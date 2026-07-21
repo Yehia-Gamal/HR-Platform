@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
@@ -65,6 +66,25 @@ class MobileReleasePolicy {
     );
   }
 
+  /// Default "continue" policy used when the server is unreachable (offline).
+  /// Prevents the app from bricking on startup during network failures.
+  factory MobileReleasePolicy.continueAction() => MobileReleasePolicy(
+    action: MobileReleaseAction.none,
+    platform: _platformName,
+    environment: AppConfig.environment,
+    currentVersion: '0.0.0',
+    currentBuild: 0,
+    latestVersion: '0.0.0',
+    latestBuild: 0,
+    minSupportedVersion: '0.0.0',
+    minSupportedBuild: 0,
+    forceUpdate: false,
+    maintenance: false,
+    messageAr: null,
+    storeUrl: null,
+    checkedAt: DateTime.now().toUtc(),
+  );
+
   final MobileReleaseAction action;
   final String platform;
   final String environment;
@@ -96,11 +116,16 @@ String get _platformName {
 }
 
 final installationIdProvider = FutureProvider<String>((ref) async {
-  final existing = await _secureStorage.read(key: _installationKey);
-  if (existing != null && existing.length >= 12) return existing;
-  final created = _uuid.v4();
-  await _secureStorage.write(key: _installationKey, value: created);
-  return created;
+  try {
+    final existing = await _secureStorage.read(key: _installationKey);
+    if (existing != null && existing.length >= 12) return existing;
+    final created = _uuid.v4();
+    await _secureStorage.write(key: _installationKey, value: created);
+    return created;
+  } catch (_) {
+    // Fallback: generate a volatile ID if secure storage fails.
+    return _uuid.v4();
+  }
 });
 
 final releasePolicyProvider = FutureProvider<MobileReleasePolicy>((ref) async {
@@ -108,38 +133,46 @@ final releasePolicyProvider = FutureProvider<MobileReleasePolicy>((ref) async {
   final installationId = await ref.watch(installationIdProvider.future);
   final packageInfo = await PackageInfo.fromPlatform();
   final build = int.tryParse(packageInfo.buildNumber) ?? 0;
+  final params = {
+    'p_platform': _platformName,
+    'p_environment': AppConfig.environment,
+    'p_current_version': packageInfo.version,
+    'p_current_build': build,
+    'p_installation_id': installationId,
+  };
   try {
     final response = await client.rpc<dynamic>(
       'get_public_release_policy',
-      params: {
-        'p_platform': _platformName,
-        'p_environment': AppConfig.environment,
-        'p_current_version': packageInfo.version,
-        'p_current_build': build,
-        'p_installation_id': installationId,
-      },
+      params: params,
     );
     return MobileReleasePolicy.fromJson(
       Map<String, dynamic>.from(response as Map<dynamic, dynamic>),
     );
   } on PostgrestException catch (e) {
     if (e.code == 'PGRST303') {
-      await client.auth.signOut();
-      final retryResponse = await client.rpc<dynamic>(
-        'get_public_release_policy',
-        params: {
-          'p_platform': _platformName,
-          'p_environment': AppConfig.environment,
-          'p_current_version': packageInfo.version,
-          'p_current_build': build,
-          'p_installation_id': installationId,
-        },
-      );
-      return MobileReleasePolicy.fromJson(
-        Map<String, dynamic>.from(retryResponse as Map<dynamic, dynamic>),
-      );
+      try {
+        await client.auth.signOut();
+      } catch (_) {
+        // Best-effort sign-out.
+      }
+      try {
+        final retryResponse = await client.rpc<dynamic>(
+          'get_public_release_policy',
+          params: params,
+        );
+        return MobileReleasePolicy.fromJson(
+          Map<String, dynamic>.from(retryResponse as Map<dynamic, dynamic>),
+        );
+      } catch (_) {
+        // Retry also failed — fall through to default policy.
+      }
     }
     rethrow;
+  } on SocketException {
+    // Offline: return default "continue" policy so the app doesn't brick.
+    return MobileReleasePolicy.continueAction();
+  } on TimeoutException {
+    return MobileReleasePolicy.continueAction();
   }
 });
 
@@ -155,39 +188,50 @@ final deviceRegistrationProvider = FutureProvider<void>((ref) async {
   String osVersion;
   bool biometricHint = false;
 
-  if (kIsWeb) {
-    final info = await deviceInfo.webBrowserInfo;
-    name = info.browserName.name;
-    model = info.userAgent ?? 'web';
-    osVersion = info.platform ?? 'web';
-  } else if (Platform.isIOS) {
-    final info = await deviceInfo.iosInfo;
-    name = info.name;
-    model = info.utsname.machine;
-    osVersion = info.systemVersion;
-    biometricHint = info.isPhysicalDevice;
-  } else {
-    final info = await deviceInfo.androidInfo;
-    name = info.device;
-    model = '${info.manufacturer} ${info.model}'.trim();
-    osVersion = info.version.release;
-    biometricHint = info.isPhysicalDevice;
+  try {
+    if (kIsWeb) {
+      final info = await deviceInfo.webBrowserInfo;
+      name = info.browserName.name;
+      model = info.userAgent ?? 'web';
+      osVersion = info.platform ?? 'web';
+    } else if (Platform.isIOS) {
+      final info = await deviceInfo.iosInfo;
+      name = info.name;
+      model = info.utsname.machine;
+      osVersion = info.systemVersion;
+      biometricHint = info.isPhysicalDevice;
+    } else {
+      final info = await deviceInfo.androidInfo;
+      name = info.device;
+      model = '${info.manufacturer} ${info.model}'.trim();
+      osVersion = info.version.release;
+      biometricHint = info.isPhysicalDevice;
+    }
+  } catch (_) {
+    // Device info failed — use safe defaults.
+    name = 'unknown';
+    model = 'unknown';
+    osVersion = 'unknown';
   }
 
-  await client.rpc<dynamic>(
-    'register_my_device',
-    params: {
-      'p_installation_id': installationId,
-      'p_platform': _platformName,
-      'p_device_name': name,
-      'p_device_model': model,
-      'p_os_version': osVersion,
-      'p_app_version': packageInfo.version,
-      'p_app_build': int.tryParse(packageInfo.buildNumber) ?? 0,
-      'p_environment': AppConfig.environment,
-      'p_push_enabled': false,
-      'p_biometric_available': biometricHint,
-      'p_metadata': {'packageName': packageInfo.packageName},
-    },
-  );
+  try {
+    await client.rpc<dynamic>(
+      'register_my_device',
+      params: {
+        'p_installation_id': installationId,
+        'p_platform': _platformName,
+        'p_device_name': name,
+        'p_device_model': model,
+        'p_os_version': osVersion,
+        'p_app_version': packageInfo.version,
+        'p_app_build': int.tryParse(packageInfo.buildNumber) ?? 0,
+        'p_environment': AppConfig.environment,
+        'p_push_enabled': false,
+        'p_biometric_available': biometricHint,
+        'p_metadata': {'packageName': packageInfo.packageName},
+      },
+    );
+  } catch (_) {
+    // Device registration is non-blocking — continue without it.
+  }
 });

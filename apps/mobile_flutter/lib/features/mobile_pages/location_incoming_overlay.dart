@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
@@ -162,7 +163,13 @@ class _LocationIncomingOverlayState
       await ref
           .read(mobileCommandsProvider)
           .respondLocation(widget.request.id, false);
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(e))),
+        );
+      }
+    }
     if (mounted) Navigator.of(context).pop(false);
   }
 
