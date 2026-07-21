@@ -1,0 +1,54 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/employee_home_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 34,
+   "summary": "The hero gradient hardcodes the brand and accent hex values (0xFF073B7A, 0xFF0B4FA2, 0xFF00A8D6) instead of deriving from the theme, so it duplicates the seed colors and will not track ColorScheme changes.",
+   "fix": "Read scheme.primary and scheme.secondary from Theme.of(context).colorScheme for the two brand stops (keep only a genuinely bespoke darker stop via Color.lerp(scheme.primary, Colors.black, .25) if needed), and use scheme.primary.withValues(alpha:.22) for the boxShadow color on line 41 instead of const Color(0xFF0B4FA2)."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 64,
+   "summary": "The date pill text color is a hardcoded Color(0xFFD6F5FF) rather than a theme-derived on-gradient color.",
+   "fix": "Use Colors.white.withValues(alpha:.9) (consistent with the other on-gradient white text in the hero) instead of const Color(0xFFD6F5FF) so the tint is not an untracked one-off."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 29,
+   "summary": "The hero container uses borderRadius 24, but the design-system card radius is 20.",
+   "fix": "Change BorderRadius.circular(24) to BorderRadius.circular(20) to match the established card radius used by every Card and _QuickAction below."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 330,
+   "summary": "_ErrorCard renders raw error.toString() directly to the user, exposing technical exception text instead of a friendly Arabic message.",
+   "fix": "Show a fixed friendly Arabic message (e.g. 'تعذر تحميل ملخص حسابك') as the primary text and keep the raw message only as a smaller muted secondary line, matching how other pages present errors."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 78,
+   "summary": "The hero header shows no brand logo mark, though guidance calls for the brand logo to appear in headers/hero areas.",
+   "fix": "Add a BrandLogoMark (white variant) into the hero top Row (near the date pill or in place of the decorative wb_sunny icon) so the primary landing header carries brand identity."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 283,
+   "summary": "_QuickAction title uses a bespoke const TextStyle(fontSize:13, fontWeight:w900) with no themed color instead of a textTheme style.",
+   "fix": "Use Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900) (matching MetricCard/section-header styling) so font sizing and color come from the theme."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 71,
+   "summary": "The decorative wb_sunny icon in the hero is not marked as decorative for screen readers.",
+   "fix": "Wrap the decorative Icon in ExcludeSemantics (or if it later becomes interactive, give it a tooltip/Semantics label)."
+  }
+ ]
+}

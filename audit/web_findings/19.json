@@ -1,0 +1,61 @@
+{
+ "file": "apps/admin_web/src/features/management/OnboardingPage.tsx",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 39,
+   "summary": "The three summary cards use a bespoke `Summary` component instead of the shared `MetricCard` primitive, diverging from the app-wide metric styling (.metric-card, metric-icon).",
+   "fix": "Delete the local `Summary` component (line 47) and render `<MetricCard label=... value=... icon=.../>` for the three stats, importing MetricCard from '../../ui/MetricCard'."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 40,
+   "summary": "Task status icons use hardcoded Tailwind colors (text-green-600 / text-amber-600) instead of the semantic design tokens.",
+   "fix": "Replace `text-green-600` with `text-[var(--success)]` and `text-amber-600` with `text-[var(--warning)]` so the icons follow the token palette and dark theme."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 43,
+   "summary": "The delete-task icon button uses hardcoded `text-red-600` instead of the danger token.",
+   "fix": "Replace `text-red-600` with `text-[var(--danger)]` on the icon-button so it matches the semantic danger color and dark theme."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 36,
+   "summary": "Loading state is a plain muted paragraph ('جارٍ تحميل رحلات الإلحاق…') rather than the shared LoadingScreen/skeleton pattern used elsewhere.",
+   "fix": "Replace the `<p className=\"muted\">` loading line with `<LoadingScreen label=\"جارٍ تحميل رحلات الإلحاق…\" />` (import from '../../ui/LoadingScreen') or a card skeleton consistent with other pages."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 40,
+   "summary": "Task-status feedback is conveyed by icon color alone (green check vs amber dashed) with no text label or aria-label, and the per-task status <select> has no aria-label.",
+   "fix": "Add `aria-label={`حالة المهمة: ${task.title}`}` to the status <select>, and add `aria-hidden` plus a visible/aria StatusBadge or sr-only text for the completed/pending icon so status is not color-only."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 48,
+   "summary": "The dialog overlay uses hardcoded `bg-slate-950/60` instead of a token-based scrim, so it won't adapt to theme scrim conventions.",
+   "fix": "Use a token-driven overlay color (e.g. `bg-[color-mix(in_srgb,var(--text-primary)_60%,transparent)]` or an established `.dialog-overlay` class) instead of `bg-slate-950/60`."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 43,
+   "summary": "The employee <select> and probation date <input> rely on wrapping <label> text but the owner/offset task inputs (المسؤول, number) have only placeholders, leaving them without accessible names.",
+   "fix": "Add `aria-label=\"المسؤول\"` to the owner input and `aria-label=\"عدد الأيام\"` to the numeric day-offset input in the task rows so screen readers announce each field."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 48,
+   "summary": "The Dialog has role/aria-modal but no `aria-label`/`aria-labelledby` tying it to its title heading, and lacks Escape-to-close/focus handling consistent with a modal.",
+   "fix": "Give the title <h2> an id and set `aria-labelledby` on the dialog container (or add `aria-label={title}`), matching the accessible-dialog pattern used elsewhere."
+  }
+ ]
+}

@@ -1,0 +1,40 @@
+{
+ "file": "apps/admin_web/src/features/performance/PerformancePage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 29,
+   "summary": "On error, both the error EmptyState (line 28) and the \"لا توجد تقييمات\" EmptyState (line 29) render at once because isLoading is false and items is empty, showing two stacked empty states.",
+   "fix": "Guard the second EmptyState against the error state: change the condition to {!query.isLoading && !query.isError && items.length === 0 ? <EmptyState .../> : null}."
+  },
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 31,
+   "summary": "The page has no loading skeleton/placeholder while query.isLoading is true; the list section just renders empty, unlike the app-wide pattern of animate-pulse skeletons.",
+   "fix": "Add a loading branch before the list, e.g. {query.isLoading ? <section className=\"space-y-4\" aria-label=\"جارٍ تحميل التقييمات\">{[1,2,3].map((i) => <div key={i} className=\"card h-40 animate-pulse bg-[var(--surface-muted)]\" />)}</section> : null}, matching LiveLocationPage/ServiceDeskPage."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 31,
+   "summary": "The score/rating/deadline chips repeat the bespoke inline utility string 'rounded-xl bg-[var(--surface-muted)] px-3 py-2 text-sm' three times instead of a shared class.",
+   "fix": "Extract the repeated chip styling into a small local const className (or a shared .chip class in styles.css) and reuse it for all three spans to keep them consistent."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 25,
+   "summary": "PageHeader is used without the eyebrow prop that other pages use for section context, so the Performance page lacks the standard eyebrow label above the title.",
+   "fix": "Pass an eyebrow such as eyebrow=\"الأداء\" (or the relevant section label) to PageHeader for consistency with the established header pattern."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 30,
+   "summary": "The KpiEvaluationEditor is rendered inline between the FilterBar/empty-states and the list, so opening an evaluation injects a large editor mid-page above the results rather than in a clear focused location.",
+   "fix": "Move the {selected ? <KpiEvaluationEditor .../> : null} render above the list section top (or into a modal/dedicated region) so the editor has a stable, predictable anchor instead of pushing the results list down."
+  }
+ ]
+}

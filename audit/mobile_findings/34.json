@@ -1,0 +1,54 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_team_page.dart",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "consistency",
+   "line": 319,
+   "summary": "_AttendancePill is a bespoke status-pill reimplementation that duplicates the shared MobileStatusPill widget (same rounded 12%-alpha container, 11px w900 label) instead of reusing it.",
+   "fix": "Extend the shared MobileStatusPill (add present/late/on_leave/absent/unregistered cases to its switch) and render MobileStatusPill(item.attendanceStatus ?? '') at line 124, deleting the local _AttendancePill class."
+  },
+  {
+   "severity": "high",
+   "category": "brand",
+   "line": 327,
+   "summary": "Attendance colors use raw Material palette (Colors.green/orange/blue/red/grey) rather than the app's curated shared status hex palette used by MobileStatusPill (e.g. 0xFF0F9F6E green, 0xFFD98508 amber, 0xFFDC3D4B red).",
+   "fix": "Replace Colors.green/orange/blue/red with the shared status palette constants (const Color(0xFF0F9F6E)/(0xFFD98508)/(0xFF008CB3)/(0xFFDC3D4B)) and use scheme.onSurfaceVariant for the unregistered/grey case, matching MobileStatusPill."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 39,
+   "summary": "Error state is bare centered text with no icon, muted color, or retry affordance, inconsistent with the app's polished empty/error patterns.",
+   "fix": "Add a muted error layout (e.g. Icon(Icons.error_outline_rounded, color: colorScheme.error) + message styled with onSurfaceVariant + a TextButton 'إعادة المحاولة' calling ref.invalidate(mobileTeamProvider))."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 303,
+   "summary": "_metric uses hardcoded TextStyle(fontSize: 18/11) with no theme text style or colorScheme, so the label lacks the standard muted onSurfaceVariant treatment used elsewhere (e.g. MetricCard).",
+   "fix": "Use Theme.of(context).textTheme.titleMedium (value) and labelMedium.copyWith(color: colorScheme.onSurfaceVariant) (label) instead of hardcoded fontSize styles."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 78,
+   "summary": "Empty-state icon uses size 54 while every sibling page (kpi/requests: 48, executive_people: 42) uses a smaller size, making this page's empty icon an outlier.",
+   "fix": "Change size: 54 to size: 48 to match the mobile_kpi_page / mobile_requests_page empty-state convention."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 78,
+   "summary": "Empty-state icon has no color so it renders at full onSurface opacity instead of the muted tone appropriate for a placeholder.",
+   "fix": "Add color: Theme.of(context).colorScheme.onSurfaceVariant to the search_off_rounded Icon."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 111,
+   "summary": "CircleAvatar initial uses item.name.substring(0,1) which throws on an empty name and gives no accessible label/tooltip for the avatar.",
+   "fix": "Guard the substring (item.name.isEmpty ? '?' : item.name.characters.first) and wrap the leading avatar in a Semantics label of item.name."
+  }
+ ]
+}

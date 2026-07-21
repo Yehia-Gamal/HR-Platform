@@ -1,0 +1,11 @@
+begin;
+select plan(7);
+select has_function('public','get_mobile_action_target',array['text','text'],'mobile action target resolver exists');
+select has_function('public','get_mobile_request_detail',array['uuid'],'mobile request detail exists');
+select has_function('public','get_mobile_feed_item',array['text','uuid'],'mobile feed detail exists');
+select has_function('public','get_my_passkeys',array[]::text[],'passkey list exists');
+select function_privs_are('public','get_mobile_action_target',array['text','text'],'authenticated',array['EXECUTE'],'authenticated resolves actions');
+select function_privs_are('public','get_mobile_request_detail',array['uuid'],'authenticated',array['EXECUTE'],'authenticated reads authorized request detail');
+select function_privs_are('public','get_my_passkeys',array[]::text[],'authenticated',array['EXECUTE'],'authenticated reads own passkeys');
+select * from finish();
+rollback;

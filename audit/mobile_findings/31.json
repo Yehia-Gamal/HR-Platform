@@ -1,0 +1,47 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_requests_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 552,
+   "summary": "The _RequestCard InkWell uses borderRadius 12, which does not match the design-system Card radius of 20, so the tap ripple is clipped to the wrong corners.",
+   "fix": "Change BorderRadius.circular(12) to BorderRadius.circular(20) to match the theme Card radius (peer cards like MobileFilterBar/MetricCard rely on the shared Card shape)."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 74,
+   "summary": "The section titles 'أرصدة الإجازات' and 'طلباتي/طلبات الفريق' are bespoke Text widgets with copyWith(fontWeight: w900) instead of the shared MobileSectionHeader used by every other mobile page.",
+   "fix": "Replace the two ad-hoc Text section headers (lines 74-79 and 131-136) with MobileSectionHeader(title: ...) for consistent typography and spacing across pages."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 577,
+   "summary": "The request card hardcodes fontSize values (17 on line 577, 12 on lines 596 and 602, plus 11 not applicable) instead of reading from Theme text styles.",
+   "fix": "Use Theme.of(context).textTheme (e.g. titleMedium for the title, bodySmall/labelSmall for the route/date row) instead of literal fontSize to stay on the type scale."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 62,
+   "summary": "The error state text is not styled with the error color and lacks the brand/section framing used elsewhere, so it reads as plain body text.",
+   "fix": "Style the error message with Theme.of(context).colorScheme.error (or wrap in a consistent empty/error block) so it visually signals a failure like other pages."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 165,
+   "summary": "In the empty state the search_off icon (line 167) is left-aligned while only the text is wrapped in Center, so the icon and label are misaligned.",
+   "fix": "Wrap the Icon in Center as well (const Center(child: Icon(Icons.search_off_rounded, size: 48))) so the icon and message are both centered; consider giving it colorScheme.onSurfaceVariant."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 53,
+   "summary": "The loading-state ListView, SizedBox, Center and CircularProgressIndicator are not marked const, unlike the const-heavy style used throughout the file.",
+   "fix": "Add const to the loading ListView children (const SizedBox(height: 260), const Center(child: CircularProgressIndicator())) for consistency and minor perf."
+  }
+ ]
+}

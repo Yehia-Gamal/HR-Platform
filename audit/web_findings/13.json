@@ -1,0 +1,54 @@
+{
+ "file": "apps/admin_web/src/features/management/AuditSecurityPage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "brand",
+   "line": 67,
+   "summary": "Security event icon badge uses hardcoded Tailwind emerald/red utility colors instead of the design-system success/danger tokens, so it will not adapt to dark theme.",
+   "fix": "Replace 'bg-emerald-500/10 text-emerald-700' / 'bg-red-500/10 text-red-700' with token-based classes driven by var(--success-soft)/var(--success) and var(--danger-soft)/var(--danger) as used elsewhere."
+  },
+  {
+   "severity": "medium",
+   "category": "filter",
+   "line": 58,
+   "summary": "The bespoke search input omits the result count and clear affordance that the shared FilterBar provides, so users get no match feedback or reset control.",
+   "fix": "Add an aria-live result count next to the search (e.g. 'عرض N من M') for the active tab and a clear (X) button when search is non-empty, mirroring FilterBar's resultText/isDirty/onClear pattern."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 64,
+   "summary": "Tabs declare role='tablist'/role='tab' with aria-selected but the content sections have no role='tabpanel', id, or aria-controls/aria-labelledby wiring, breaking the ARIA tab pattern.",
+   "fix": "Give each TabButton an id and aria-controls pointing to its panel, and add role='tabpanel' with a matching id, aria-labelledby, and tabIndex={0} to each content section (security/audit/devices)."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 61,
+   "summary": "The error branch reuses EmptyState for a load failure instead of the app's error banner pattern, presenting a hard fetch error like a benign empty result with no retry.",
+   "fix": "Render a danger-toned error banner (var(--danger-soft)/var(--danger)) with an AlertTriangle icon and a retry action (query.refetch) for the isError case, reserving EmptyState for genuinely empty results."
+  },
+  {
+   "severity": "low",
+   "category": "rtl",
+   "line": 58,
+   "summary": "The search magnifier icon is positioned with a hardcoded physical 'right-3'/'pr-10' offset rather than logical/flex placement, unlike the shared FilterBar.",
+   "fix": "Use logical positioning (an 'end-3' utility or a flex container like FilterBar's .filter-search) instead of physical 'right-3', and use 'ps-10' instead of 'pr-10' on the input."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 83,
+   "summary": "The device platform icon (Laptop/Smartphone) has no accessible treatment; the icon should be marked decorative as elsewhere in the design system.",
+   "fix": "Add aria-hidden='true' to the decorative platform icon since the platform is already shown as text via item.platform.toUpperCase(), matching StatusBadge's aria-hidden convention."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 67,
+   "summary": "The 'تأكيد المعالجة' mutation button gives no in-flight feedback beyond being disabled; there is no spinner or pending label.",
+   "fix": "When commands.handleEvent.isPending, show a spinner or 'جارٍ المعالجة…' label on the button so the in-flight state is visible, not just a disabled control."
+  }
+ ]
+}

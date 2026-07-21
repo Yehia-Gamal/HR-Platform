@@ -1,0 +1,14 @@
+begin;
+select plan(11);
+select has_table('public','attendance_periods','attendance periods exist');
+select has_table('public','work_rosters','work rosters exist');
+select has_table('public','roster_days','roster days exist');
+select has_table('public','attendance_corrections','attendance corrections exist');
+select has_table('public','overtime_records','overtime records exist');
+select has_function('public','get_attendance_operations_catalog',array['date'],'attendance operations catalog exists');
+select has_function('public','publish_roster_admin',array['text','date','date','uuid','uuid','uuid','jsonb','text'],'roster publish exists');
+select has_function('public','request_attendance_correction',array['date','text','text','timestamp with time zone','timestamp with time zone','text','text'],'correction request exists');
+select has_function('public','close_attendance_period',array['date','uuid','uuid'],'period close exists');
+select has_function('public','get_my_attendance_services',array['date','date'],'mobile attendance services exist');
+select has_index('public','attendance_periods','ux_attendance_period_scope','period scope uniqueness exists');
+select * from finish(); rollback;

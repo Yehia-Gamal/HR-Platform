@@ -1,0 +1,47 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/live_tracking_session_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 145,
+   "summary": "Error text hardcodes Colors.red instead of reading the theme error color, breaking the design-system color contract and looking off in dark mode.",
+   "fix": "Replace `style: const TextStyle(color: Colors.red)` with `style: TextStyle(color: Theme.of(context).colorScheme.error)` so the error tint matches the theme in both light and dark mode."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 141,
+   "summary": "The error state is a bare centered red line of text with no icon, container, or affordance, inconsistent with the app's structured error presentation.",
+   "fix": "Wrap the error message in a themed error container (e.g. a Card/Container using colorScheme.errorContainer with an Icons.error_outline in colorScheme.onErrorContainer) so the error state matches the design system rather than a raw red string."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 111,
+   "summary": "The large leading location icon has no color, rendering in default onSurface rather than the brand primary/accent that would signal an active tracking state.",
+   "fix": "Add `color: Theme.of(context).colorScheme.primary` (or secondary accent) to the Icon at line 111 so the active-tracking hero icon reads as branded."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 150,
+   "summary": "The primary 'End sharing' FilledButton.tonalIcon does not enforce the design-system filled-button minHeight of 52, so its tap target may fall below spec.",
+   "fix": "Apply a style with `minimumSize: const Size.fromHeight(52)` (or the shared filled-button theme) to the FilledButton.tonalIcon so it meets the 52px minHeight standard and full-width stretch."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 126,
+   "summary": "The timer Card uses ad-hoc EdgeInsets.all(18) padding rather than the common card content padding used elsewhere (20), a minor spacing inconsistency.",
+   "fix": "Change the Card's inner Padding to EdgeInsets.all(20) to match the standard card content padding used across the mobile pages."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 136,
+   "summary": "The 'points sent' counter text uses default body styling with no muted/secondary treatment, so it competes visually with the large timer above it.",
+   "fix": "Style the counter with `Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)` to visually subordinate it to the timer."
+  }
+ ]
+}

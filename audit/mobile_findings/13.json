@@ -1,0 +1,47 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/location_requests_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 148,
+   "summary": "The inline error text hardcodes Colors.red instead of reading from the theme, breaking dark-theme contrast and design-system consistency.",
+   "fix": "Replace `const TextStyle(color: Colors.red)` with `TextStyle(color: Theme.of(context).colorScheme.error)` so the error color follows the theme."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 34,
+   "summary": "The empty state is a raw stray Icon + Center(Text) with no vertical alignment, no muted color, no brand mark, and inconsistent with the polished empty-state pattern used elsewhere.",
+   "fix": "Wrap the empty state in a centered Column (Center + Column) using onSurfaceVariant color for the icon and text, add spacing, and optionally a BrandLogoMark, matching other pages' empty-state style."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 30,
+   "summary": "The error state dumps the raw `$error` string in default black body text with no icon, no muted/error styling, and no retry affordance.",
+   "fix": "Present the error inside a centered column with an error icon, onSurfaceVariant/error color, and a retry action (e.g. TextButton that invalidates myLocationRequestsProvider), consistent with other pages."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 122,
+   "summary": "The Card wrapping each request relies on default Card margin, but the outer ListView already uses 16 padding + 10 separators, which can produce doubled/inconsistent gaps versus the design-system spacing.",
+   "fix": "Set the Card `margin: EdgeInsets.zero` so spacing is governed solely by the ListView.separated padding/separators, matching other list pages."
+  },
+  {
+   "severity": "low",
+   "category": "spacing",
+   "line": 26,
+   "summary": "The loading state uses a magic SizedBox(height: 250) spacer to fake vertical centering instead of centering within the available viewport.",
+   "fix": "Replace the ListView+SizedBox hack with a scroll-friendly centered layout (e.g. LayoutBuilder/ConstrainedBox with Center) so the spinner is centered on all screen sizes."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 38,
+   "summary": "The empty-state icon (Icons.location_off_outlined) is purely decorative but has no Semantics/exclusion, and the empty text is not grouped with it for screen readers.",
+   "fix": "Wrap the icon in ExcludeSemantics and place icon+label in a single Semantics-labeled column so assistive tech announces one coherent empty-state message."
+  }
+ ]
+}

@@ -1,0 +1,40 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/manager_home_page.dart",
+ "findings": [
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 23,
+   "summary": "Hero header uses borderRadius 24 and inner icon radius 17, deviating from the design system's card radius (20) and neighboring Cards.",
+   "fix": "Use BorderRadius.circular(20) for the hero container to match the standard card radius, and align the icon container radius (e.g. 16) with the input/button radius convention for visual consistency."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 139,
+   "summary": "The chevron trailing icon on the tappable 'ملفات أعضاء الفريق' ListTile has no semantic hint, and the row relies on a visual chevron only.",
+   "fix": "Wrap the ListTile action in a Semantics(button: true, label: 'ملفات أعضاء الفريق') or add a tooltip/semanticLabel to the trailing Icon so screen readers announce it as a navigation action."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 85,
+   "summary": "The error state interpolates the raw exception ($error) into user-facing text, which can leak stack/technical detail and is inconsistent with a clean localized message.",
+   "fix": "Show a fixed localized message like 'تعذر تحميل بيانات الفريق' and keep the retry button; log the raw error separately instead of rendering it in the UI."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 142,
+   "summary": "The pushed team screen builds a bare AppBar with only a text title and no brand mark, unlike branded app bars elsewhere.",
+   "fix": "Add a BrandLogoMark (from core/widgets/brand_logo.dart) as a leading/title adornment on the pushed Scaffold's AppBar for brand consistency."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 151,
+   "summary": "The second ListTile ('الموافقات والتقييمات') looks actionable (same layout as the tappable tile above) but has no onTap, which can read as a broken/dead action.",
+   "fix": "Visually differentiate the non-interactive tile (e.g. remove the CircleAvatar emphasis or add an informational style) or make it navigate, so tappable vs informational rows are distinguishable."
+  }
+ ]
+}

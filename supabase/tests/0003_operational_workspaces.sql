@@ -1,0 +1,17 @@
+begin;
+select plan(13);
+select has_function('public','get_attendance_dashboard',array['date'],'attendance dashboard RPC exists');
+select has_function('public','get_request_inbox',array['integer'],'request inbox RPC exists');
+select has_function('public','get_kpi_inbox',array['integer'],'KPI inbox RPC exists');
+select has_function('public','get_official_feed_admin',array['integer'],'official feed RPC exists');
+select has_function('public','get_universal_action_center',array['integer'],'action center RPC exists');
+select has_function('public','publish_official_announcement',array['text','text','text','text','boolean'],'publish RPC exists');
+select has_function('public','advance_kpi_stage',array['uuid','text','jsonb','text'],'canonical KPI transition RPC exists');
+select col_is_pk('public','requests','id','requests has PK');
+select col_is_pk('public','kpi_evaluations','id','KPI evaluation has PK');
+select col_is_pk('public','administrative_decisions','id','decisions has PK');
+select ok((select pg_get_constraintdef(oid) like '%hr%' and pg_get_constraintdef(oid) like '%acknowledgement%' from pg_constraint where conname='kpi_evaluations_current_stage_check'), 'KPI stage constraint includes official HR and employee acknowledgement gates');
+select isnt_empty($$ select 1 from pg_proc where proname='get_request_inbox' and prosecdef=false $$,'read model uses invoker security');
+select isnt_empty($$ select 1 from pg_proc where proname='publish_official_announcement' and prosecdef=true $$,'publish command is security definer');
+select * from finish();
+rollback;

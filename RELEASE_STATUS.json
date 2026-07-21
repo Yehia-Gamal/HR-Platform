@@ -1,0 +1,89 @@
+{
+  "product": "Ahla Shabab Management OS V8",
+  "version": "0.10.0",
+  "classification": "staging_backend_deployed_and_smoke_verified",
+  "production_ready": false,
+  "local_runtime_verified": {
+    "supabase_db_reset_and_pgtap": true,
+    "persona_rls_runtime": true,
+    "web_source_checks": true,
+    "flutter_analyze_test": true,
+    "flutter_debug_apk": true
+  },
+  "staging_deployed": {
+    "project_ref": "ujzzvqsodyhnnnpkoaml",
+    "region": "eu-west-2",
+    "postgres_version": 17,
+    "migrations_pushed_48_of_48": true,
+    "db_push_dry_run_up_to_date": true,
+    "edge_functions_deployed_9_of_9": true,
+    "edge_secrets_configured": true,
+    "web_staging_build": true,
+    "live_smoke_tests_passed": true,
+    "cron_fail_closed_verified": true,
+    "pending_operational": [
+      "cron_scheduling_or_pg_cron_confirmation",
+      "public_web_hosting",
+      "observability_alerts",
+      "physical_device_passkey_push",
+      "custom_https_domain_for_passkey_rp_id"
+    ]
+  },
+  "architecture": {
+    "flutter_apps": 1,
+    "react_web_apps": 1,
+    "supabase_backends": 1
+  },
+  "inventory": {
+    "migrations": 59,
+    "sql_tests": 36,
+    "edge_functions": 9,
+    "edge_functions_shared_dir": "_shared",
+    "dart_files": 61,
+    "dart_classes": 205,
+    "react_source_files": 75,
+    "typescript_tests": 33,
+    "pgtap_assertions": 370
+  },
+  "ui_release": {
+    "professional_app_shell": true,
+    "grouped_permission_aware_navigation": true,
+    "workspace_command_search": true,
+    "light_dark_theme": true,
+    "role_based_dashboards": true,
+    "responsive_tables_and_mobile_cards": true,
+    "flutter_role_specific_home_experience": true,
+    "identifier_login": ["email", "phone", "employee_code"]
+  },
+  "verified_in_current_environment": [
+    "typescript_typecheck",
+    "33_typescript_react_tests",
+    "react_production_build",
+    "flutter_analyze",
+    "20_flutter_tests",
+    "npm_audit",
+    "secret_scan",
+    "dart_source_integrity",
+    "migration_sequence_59",
+    "supabase_db_reset_from_empty_59_migrations",
+    "supabase_pgtap_runtime_pass_370_through_migration_0055",
+    "persona_rls_runtime_23",
+    "audit_remediation_p0_p1_runtime_verified",
+    "audit_remediation_p2_p3_runtime_verified",
+    "audit_remediation_ledger02_refund_runtime_verified",
+    "android_debug_apk_built",
+    "edge_function_structure",
+    "staging_migrations_pushed_48",
+    "staging_edge_functions_deployed_9",
+    "staging_secrets_configured",
+    "staging_web_build",
+    "staging_live_smoke_tests_9_passed"
+  ],
+  "requires_external_runtime_verification": [
+    "ios_builds_require_macos_xcode",
+    "physical_device_passkey_gps_camera_push",
+    "production_signing",
+    "backup_restore_drill",
+    "human_visual_qa_on_target_devices"
+  ]
+}

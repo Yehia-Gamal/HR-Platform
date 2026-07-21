@@ -1,0 +1,47 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/executive_brief_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 307,
+   "summary": "The default branch of _color hardcodes the brand primary 0xFF0B4FA2 instead of reading it from the theme, so low-severity highlight avatars/values won't follow ColorScheme.",
+   "fix": "Return Theme.of(context).colorScheme.primary for the default case (pass BuildContext into _color, or resolve the color in build()), reserving the hardcoded hex only for the shared critical/high status values."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 30,
+   "summary": "The loading state uses a bare spinner pushed down by a fixed SizedBox(height: 230) with no skeleton or context, inconsistent with the richly structured data view.",
+   "fix": "Replace the fixed-height spacer + spinner with a centered CircularProgressIndicator wrapped so it appears reliably during pull-to-refresh (e.g. ListView with a Center and reasonable min-height via LayoutBuilder), or a lightweight skeleton of the hero/cards for visual continuity."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 40,
+   "summary": "The error-state icon and hero period icons are decorative but there is no Semantics label on the error illustration, and the retry affordance relies solely on the button (acceptable) while the icon adds no context for screen readers.",
+   "fix": "Wrap the error Icon in Semantics(excludeSemantics: true) or add a semanticLabel, and ensure the error Text is announced; no functional icon buttons are missing tooltips here."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 69,
+   "summary": "The hero container uses a bespoke borderRadius of 26 while the design system Card radius is 20, creating an inconsistent corner rounding versus the Cards below it.",
+   "fix": "Use BorderRadius.circular(20) to match the established card radius, or centralize the hero radius as a named constant if a larger hero radius is intentional across executive pages."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 157,
+   "summary": "_ComparisonCard is a bespoke metric-with-delta card sitting directly beside a MetricGrid, duplicating MetricCard's structure and spacing rather than reusing/extending the shared metric widget.",
+   "fix": "If MetricCard supports a trailing delta/subtitle slot, use it for the comparison cards; otherwise keep _ComparisonCard but align its padding (15) and value size to MetricCard so the two rows read as one system."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 339,
+   "summary": "The comparison delta is conveyed by color plus a small 11px label and a 15px arrow icon, and the value/delta text sizes (25 / 11) are hardcoded rather than derived from textTheme, weakening dark-theme contrast and scaling.",
+   "fix": "Drive the value and delta text from Theme.of(context).textTheme (e.g. titleLarge / labelSmall) so they respect text scaling and dark-theme onSurface colors, keeping only the status color from the shared palette."
+  }
+ ]
+}

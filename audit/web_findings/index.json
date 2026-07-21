@@ -1,0 +1,200 @@
+[
+ {
+  "i": 0,
+  "file": "apps/admin_web/src/features/actions/ActionCenterPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/00.json",
+  "n": 7
+ },
+ {
+  "i": 1,
+  "file": "apps/admin_web/src/features/advanced/AttendanceOperationsPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/01.json",
+  "n": 8
+ },
+ {
+  "i": 2,
+  "file": "apps/admin_web/src/features/advanced/DisputesPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/02.json",
+  "n": 8
+ },
+ {
+  "i": 3,
+  "file": "apps/admin_web/src/features/advanced/KpiCyclesPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/03.json",
+  "n": 7
+ },
+ {
+  "i": 4,
+  "file": "apps/admin_web/src/features/advanced/LifecycleOperationsPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/04.json",
+  "n": 8
+ },
+ {
+  "i": 5,
+  "file": "apps/admin_web/src/features/attendance/AttendancePage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/05.json",
+  "n": 8
+ },
+ {
+  "i": 6,
+  "file": "apps/admin_web/src/features/auth/LoginPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/06.json",
+  "n": 5
+ },
+ {
+  "i": 7,
+  "file": "apps/admin_web/src/features/auth/WebReleaseStatusPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/07.json",
+  "n": 6
+ },
+ {
+  "i": 8,
+  "file": "apps/admin_web/src/features/communications/OfficialFeedPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/08.json",
+  "n": 8
+ },
+ {
+  "i": 9,
+  "file": "apps/admin_web/src/features/employees/CreateEmployeePage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/09.json",
+  "n": 8
+ },
+ {
+  "i": 10,
+  "file": "apps/admin_web/src/features/employees/EmployeesPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/10.json",
+  "n": 7
+ },
+ {
+  "i": 11,
+  "file": "apps/admin_web/src/features/employees/EmployeeDetailPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/11.json",
+  "n": 8
+ },
+ {
+  "i": 12,
+  "file": "apps/admin_web/src/features/management/AccessPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/12.json",
+  "n": 8
+ },
+ {
+  "i": 13,
+  "file": "apps/admin_web/src/features/management/AuditSecurityPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/13.json",
+  "n": 7
+ },
+ {
+  "i": 14,
+  "file": "apps/admin_web/src/features/management/DocumentStudioPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/14.json",
+  "n": 8
+ },
+ {
+  "i": 15,
+  "file": "apps/admin_web/src/features/management/EnterpriseManagementPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/15.json",
+  "n": 4
+ },
+ {
+  "i": 16,
+  "file": "apps/admin_web/src/features/management/IntegrationsJobsPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/16.json",
+  "n": 8
+ },
+ {
+  "i": 17,
+  "file": "apps/admin_web/src/features/management/LearningPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/17.json",
+  "n": 7
+ },
+ {
+  "i": 18,
+  "file": "apps/admin_web/src/features/management/LiveLocationPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/18.json",
+  "n": 7
+ },
+ {
+  "i": 19,
+  "file": "apps/admin_web/src/features/management/OnboardingPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/19.json",
+  "n": 8
+ },
+ {
+  "i": 20,
+  "file": "apps/admin_web/src/features/management/OperationsCenterPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/20.json",
+  "n": 8
+ },
+ {
+  "i": 21,
+  "file": "apps/admin_web/src/features/management/OrganizationPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/21.json",
+  "n": 8
+ },
+ {
+  "i": 22,
+  "file": "apps/admin_web/src/features/management/PeopleFinancePage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/22.json",
+  "n": 6
+ },
+ {
+  "i": 23,
+  "file": "apps/admin_web/src/features/management/RecruitmentPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/23.json",
+  "n": 8
+ },
+ {
+  "i": 24,
+  "file": "apps/admin_web/src/features/management/ReleaseGovernancePage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/24.json",
+  "n": 7
+ },
+ {
+  "i": 25,
+  "file": "apps/admin_web/src/features/management/ReportSchedulerPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/25.json",
+  "n": 8
+ },
+ {
+  "i": 26,
+  "file": "apps/admin_web/src/features/management/ReportsPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/26.json",
+  "n": 5
+ },
+ {
+  "i": 27,
+  "file": "apps/admin_web/src/features/management/ServiceDeskPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/27.json",
+  "n": 8
+ },
+ {
+  "i": 28,
+  "file": "apps/admin_web/src/features/notifications/NotificationsPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/28.json",
+  "n": 7
+ },
+ {
+  "i": 29,
+  "file": "apps/admin_web/src/features/management/SystemPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/29.json",
+  "n": 8
+ },
+ {
+  "i": 30,
+  "file": "apps/admin_web/src/features/performance/PerformancePage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/30.json",
+  "n": 5
+ },
+ {
+  "i": 31,
+  "file": "apps/admin_web/src/features/requests/RequestsPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/31.json",
+  "n": 8
+ },
+ {
+  "i": 32,
+  "file": "apps/admin_web/src/features/workspaces/DashboardPage.tsx",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/web_findings/32.json",
+  "n": 5
+ }
+]

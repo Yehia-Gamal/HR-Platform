@@ -1,0 +1,61 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_official_feed_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 71,
+   "summary": "InkWell borderRadius is 12 while the design-system Card radius is 20, so the tap ripple overflows/clips against the rounded card corners.",
+   "fix": "Change BorderRadius.circular(12) to BorderRadius.circular(20) to match the theme Card radius (or read it from the CardTheme)."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 44,
+   "summary": "The empty state stacks a full-width left-aligned Icon above a centered Text (icon not centered, no spacing, no muted color or brand mark), which is inconsistent with the polished empty states used elsewhere.",
+   "fix": "Wrap the empty state in a Center + Column (mainAxisSize.min) with the icon colored scheme.onSurfaceVariant, a SizedBox gap, and the message styled from textTheme; consider a BrandLogoMark header for brand consistency."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 35,
+   "summary": "The error state is a bare left/center Text with the raw '$error' string and no error icon or retry affordance, inconsistent with a design-system error state.",
+   "fix": "Show a centered Column with Icon(Icons.error_outline, color: scheme.error), a friendly message, and a retry TextButton that calls ref.invalidate(mobileFeedProvider); avoid interpolating the raw exception."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 103,
+   "summary": "Title uses a hardcoded TextStyle(fontSize: 18, fontWeight: w900) instead of the theme text scale, bypassing Cairo/text-theme sizing.",
+   "fix": "Use Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900) so it inherits the design-system type scale."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 110,
+   "summary": "Body text uses a hardcoded TextStyle(height: 1.7) with no color, not derived from the theme text scale.",
+   "fix": "Use Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.7, color: scheme.onSurfaceVariant) for consistent typography and dark-theme contrast."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 116,
+   "summary": "The acknowledgement status Icon has no Semantics label/tooltip and the check/eye icon relies purely on shape to convey acknowledged vs pending.",
+   "fix": "Wrap the Icon in Semantics(label: item.myAcknowledged ? 'تم الإقرار بالاطلاع' : 'يتطلب الاطلاع والإقرار') and give it a meaningful color (scheme.primary when acknowledged)."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 48,
+   "summary": "The empty-state icon uses the default icon color with no theme color, so it renders as full-opacity onSurface rather than a muted placeholder.",
+   "fix": "Set color: Theme.of(context).colorScheme.onSurfaceVariant on the Icons.campaign_outlined icon."
+  },
+  {
+   "severity": "low",
+   "category": "spacing",
+   "line": 31,
+   "summary": "Loading state uses a fixed SizedBox(height: 260) magic offset to vertically position the spinner, which is fragile across viewport sizes.",
+   "fix": "Replace with a Center/Padding-based layout (e.g. Padding(top: 120) or a full-height Center) so the spinner centers responsively."
+  }
+ ]
+}

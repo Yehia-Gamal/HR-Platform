@@ -1,0 +1,54 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/executive_risk_center_page.dart",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "filter",
+   "line": 163,
+   "summary": "The severity filter is a bespoke horizontal ChoiceChip row instead of the shared MobileFilterBar, so it lacks the standard result count label and clear-filters affordance every other list page provides.",
+   "fix": "Replace the SingleChildScrollView/_filter row (163-174) with MobileFilterBar using MobileFilterOption entries for all/critical/high/medium/low, wire selected=severity and onSelected=(v)=>setState(()=>severity=v), pass a resultLabel like the current result count, and provide onClear that resets severity to 'all'."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 36,
+   "summary": "The error state has no retry action and renders a colorless warning icon, unlike a polished error state that lets the user recover without a manual pull-to-refresh.",
+   "fix": "Give the Icon a color of Theme.of(context).colorScheme.error and add a FilledButton/OutlinedButton below the message that calls ref.invalidate(mobileExecutiveCommandCenterProvider) so users can retry inline."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 77,
+   "summary": "The hero banner hardcodes a bespoke maroon gradient (0xFF46131B / 0xFF8F2635) and pure Colors.white text that is not part of the shared status palette and will not adapt to the theme or dark mode.",
+   "fix": "Derive the hero colors from the theme (e.g. build the gradient from colorScheme.error/errorContainer or a scheme-based tint) and use onError/onErrorContainer for the text and icon instead of raw hex plus Colors.white."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 403,
+   "summary": "_level (403-409) and the top-level _levelLabel (438-444) are byte-for-byte identical severity-to-Arabic mappings, a duplicated helper that should be a single source of truth.",
+   "fix": "Delete one of the two functions and route all callers (_showRisk/_showIncident rows and _SeverityBadge) through the remaining shared helper."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 466,
+   "summary": "The _MiniMeta chips render at fontSize 10 (and owner name/severity badges at 11), below the app's readable minimum and hard to read in Arabic Cairo.",
+   "fix": "Raise the _MiniMeta text to at least 12 and the owner-name/severity badge text (lines 251, 428) to 12+, or use Theme.of(context).textTheme.labelSmall instead of hardcoded const TextStyle(fontSize: 10/11)."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 449,
+   "summary": "_severityColor hardcodes the brand primary 0xFF0B4FA2 for the 'medium' case rather than reading Theme colorScheme.primary, so it will not follow the theme's seeded primary.",
+   "fix": "For the 'medium' branch return Theme.of(context).colorScheme.primary (pass context into _severityColor) instead of the literal 0xFF0B4FA2; keep the genuine status reds/ambers/greens as the intentional shared palette."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 30,
+   "summary": "The loading state uses a magic SizedBox(height: 230) to vertically position the spinner, which is fragile across screen sizes and inconsistent with a centered loading pattern.",
+   "fix": "Replace the ListView + fixed 230 spacer with a centered indicator sized to the viewport (e.g. LayoutBuilder/ConstrainedBox with minHeight or Center filling available height) so the spinner stays centered on all devices."
+  }
+ ]
+}

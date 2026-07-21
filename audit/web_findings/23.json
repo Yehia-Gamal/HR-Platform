@@ -1,0 +1,61 @@
+{
+ "file": "apps/admin_web/src/features/management/RecruitmentPage.tsx",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 96,
+   "summary": "Loading uses a bespoke plain-text \"جارٍ تحميل…\" paragraph instead of the shared LoadingScreen skeleton primitive.",
+   "fix": "Replace the `<p className=\"muted\">جارٍ تحميل بيانات التوظيف…</p>` with the shared `<LoadingScreen />` (import from '../../ui/LoadingScreen') so the page matches the app's loading pattern instead of a raw text line."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 155,
+   "summary": "The stage-move `<select>` in the ATS table row is icon/context-only with no accessible name (no aria-label).",
+   "fix": "Add `aria-label={`نقل ${application.candidateName} إلى مرحلة`}` (or a static \"نقل إلى مرحلة\") to the `<select className=\"input max-w-48\">` so screen-reader users know what the control changes."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 150,
+   "summary": "The candidates/stages table is hand-rolled (`w-full min-w-[900px]` + manual `bg-[var(--surface-muted)]` thead) instead of using the shared `.data-table` class used elsewhere.",
+   "fix": "Apply `className=\"data-table\"` to the `<table>` (keep `min-w-[900px]` if needed) so it inherits sticky header, hover, and header weight styling consistent with other management tables."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 151,
+   "summary": "Table header cells lack `scope=\"col\"`, weakening screen-reader table navigation.",
+   "fix": "Add `scope=\"col\"` to each `<th className=\"p-3\">` in the thead row (المرشح/الوظيفة/المرحلة/تاريخ التقديم/نقل إلى)."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 281,
+   "summary": "The Dialog overlay backdrop uses a hardcoded Tailwind color `bg-slate-950/60` instead of a design token, so it won't adapt to the theme system.",
+   "fix": "Replace `bg-slate-950/60` with a token-based overlay (e.g. a shared `.modal-overlay` class or `bg-[color-mix(in_srgb,var(--text-primary)_60%,transparent)]`) consistent with other dialogs in the app."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 97,
+   "summary": "Error state is rendered with EmptyState but there is no visual distinction (no danger token/icon) that this is an error rather than an empty result.",
+   "fix": "Pass a danger-styled indicator to the error EmptyState (e.g. an AlertTriangle icon and/or `--danger` accent) to differentiate the \"تعذر تحميل\" error from the normal empty states used elsewhere on the page."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 213,
+   "summary": "The \"اعتماد التعيين\" primary hire button relies on a spinner-less disabled state during a pending async mutation with no busy affordance.",
+   "fix": "Add `aria-busy={workbenchCommands.hireApplicant.isPending}` and a \"جارٍ…\" label swap (matching the dialog submit buttons at lines 237/255/273) so the pending state is communicated consistently."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 93,
+   "summary": "Header action buttons are packed inline with no icon aria treatment and the description/actions are the only header spacing—minor inconsistency with other pages using PageHeader eyebrow.",
+   "fix": "Consider adding an `eyebrow` prop (e.g. \"إدارة الموارد\") to PageHeader to match sibling management pages that use the eyebrow slot for section context; otherwise this is acceptable."
+  }
+ ]
+}

@@ -1,0 +1,12 @@
+begin;
+select plan(8);
+select has_function('public', 'get_dashboard_overview', array['text'], 'dashboard overview exists');
+select has_function('public', 'get_organization_overview', array[]::text[], 'organization overview exists');
+select has_function('public', 'get_access_overview', array[]::text[], 'access overview exists');
+select has_function('public', 'get_recruitment_overview', array[]::text[], 'recruitment overview exists');
+select has_function('public', 'get_system_overview', array[]::text[], 'system overview exists');
+select has_function('public', 'get_my_notifications', array['integer'], 'notification inbox exists');
+select has_function('public', 'mark_my_notifications_read', array['uuid[]'], 'mark notifications read exists');
+select function_returns('public', 'get_dashboard_overview', array['text'], 'jsonb', 'dashboard returns jsonb');
+select * from finish();
+rollback;

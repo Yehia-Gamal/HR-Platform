@@ -1,0 +1,34 @@
+name: Flutter CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile_flutter
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter create . --project-name ahla_shabab_management_os --org org.ahlashabab --platforms android,ios
+      - run: python ../../scripts/configure_flutter_platforms.py
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      # Debug APK build gate (plan P0.7): catches Gradle/Manifest/SDK breakage
+      # that analyze/test cannot see. Dummy dart-defines: never real secrets.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: >
+          flutter build apk --debug
+          --dart-define=SUPABASE_URL=http://10.0.2.2:54321
+          --dart-define=SUPABASE_PUBLISHABLE_KEY=ci-placeholder-key
+          --dart-define=APP_ENVIRONMENT=development

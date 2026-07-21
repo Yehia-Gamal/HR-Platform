@@ -1,0 +1,54 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/attendance_history_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 97,
+   "summary": "Status is rendered as raw inline text ('الحالة: مقبول') instead of the shared MobileStatusPill, which every other list page uses for status display.",
+   "fix": "Replace the 'الحالة: ...' Text with a MobileStatusPill. Since this page's status vocabulary (accepted/flagged/adjusted) differs from the pill's built-in cases, either extend MobileStatusPill with these values or map them to existing keys, so status is shown as a colored pill consistent with the rest of the app."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 106,
+   "summary": "The 'قيد المراجعة' review indicator uses a bare Material Chip instead of MobileStatusPill (or the 'flagged' status token), breaking the app's radius-99 status-pill styling.",
+   "fix": "Replace the Chip(label: Text('قيد المراجعة')) with const MobileStatusPill('flagged') so the review badge matches the shared status pill styling and color palette."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 45,
+   "summary": "The empty-state icon uses the default (full-opacity onSurface) color and no BrandLogoMark, whereas sibling pages mute empty/placeholder icons with onSurfaceVariant.",
+   "fix": "Give the empty-state Icon a color of Theme.of(context).colorScheme.onSurfaceVariant (and optionally the muted title text too), or lead the empty card with a BrandLogoMark, to match the muted empty-state convention used elsewhere."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 31,
+   "summary": "The error state is a plain text Card with no error icon, no color emphasis, and no retry affordance, which is thinner than the app's other error states.",
+   "fix": "Add an Icon(Icons.error_outline, color: colorScheme.error) and a retry TextButton that calls ref.invalidate(myAttendanceHistoryProvider) inside the error Card, and tint the message with colorScheme.error for consistency."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 95,
+   "summary": "Secondary metadata lines (date, verification, late minutes, accuracy) all use the default onSurface color instead of onSurfaceVariant used for secondary text across the design system.",
+   "fix": "Apply style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant) to the metadata Text widgets (lines 95, 97-102) so secondary detail reads as muted, matching MetricCard/MobileSectionHeader conventions."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 83,
+   "summary": "The check-in/check-out CircleAvatar icon has no Semantics label and no color coding, so screen readers and glance-scanning get no cue distinguishing حضور from انصراف beyond the title.",
+   "fix": "Wrap the leading icon (or CircleAvatar) with a Semantics(label: checkIn ? 'حضور' : 'انصراف') and optionally color-code the avatar (e.g. green-tinted for check-in) so the event type is conveyed accessibly and at a glance."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 83,
+   "summary": "CircleAvatar uses the default theme fill (primary-ish) for both check-in and check-out, giving no visual distinction between the two opposite event types.",
+   "fix": "Set the CircleAvatar backgroundColor/foregroundColor from colorScheme based on checkIn (e.g. surfaceContainerHighest with onSurfaceVariant icon, differentiated by event) to visually separate check-in from check-out."
+  }
+ ]
+}

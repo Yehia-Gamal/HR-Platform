@@ -1,0 +1,11 @@
+name: ahla_design_tokens
+description: Shared Flutter design tokens for Ahla Shabab applications.
+publish_to: none
+version: 0.10.0
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter

@@ -1,0 +1,4 @@
+department_code,name_ar,name_en,parent_department_code,branch_code,manager_employee_code
+HR,الموارد البشرية,Human Resources,,MAIN,EMP-0002
+HR-OPS,عمليات الموارد البشرية,HR Operations,HR,MAIN,
+FIN,المالية,Finance,,MAIN,

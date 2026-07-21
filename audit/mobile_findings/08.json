@@ -1,0 +1,54 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/executive_people_page.dart",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "consistency",
+   "line": 114,
+   "summary": "The search-bar + choice-chip row + result-count row is a full bespoke reimplementation of the shared MobileFilterBar widget, diverging from every other page.",
+   "fix": "Replace the SearchBar (114-129), chip SingleChildScrollView (131-141) and result Row (143-155) with a single MobileFilterBar (controller, searchHint, onSearchChanged, options as MobileFilterOption list, selected: filter, onSelected, resultLabel: '${visible.length} موظفًا', onClear to reset filter+search)."
+  },
+  {
+   "severity": "medium",
+   "category": "filter",
+   "line": 128,
+   "summary": "Search only fires on onSubmitted so typing does not filter until enter is pressed, and there is no 'clear filters' affordance, unlike MobileFilterBar which filters live and offers onClear.",
+   "fix": "Use onChanged (live filtering) and provide an onClear that resets both search and the 'all' filter — automatically handled by adopting MobileFilterBar."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 286,
+   "summary": "_AttendanceBadge duplicates the pill visual formula (alpha .12 fill, radius 99, w900 text) already provided by the shared MobileStatusPill.",
+   "fix": "Map attendance statuses through MobileStatusPill (or extract a shared pill primitive) instead of a bespoke Container badge so pill styling stays centralized."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 41,
+   "summary": "The error state is a plain icon plus raw '$error' text with no retry action, inconsistent with the branded error patterns and offering no recovery.",
+   "fix": "Add a button 'إعادة المحاولة' that calls ref.invalidate(mobileExecutivePeopleProvider(search)), and avoid rendering the raw exception string."
+  },
+  {
+   "severity": "low",
+   "category": "spacing",
+   "line": 78,
+   "summary": "Header container hardcodes borderRadius 23 and padding 19, deviating from the design-system card radius 20 and standard even padding.",
+   "fix": "Use BorderRadius.circular(20) and EdgeInsets.all(16) to match the established card radius and spacing scale."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 120,
+   "summary": "The search clear IconButton has no tooltip, unlike MobileFilterBar's clear button which sets tooltip 'مسح البحث'.",
+   "fix": "Add tooltip: 'مسح البحث' to the IconButton (or adopt MobileFilterBar which already includes it)."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 45,
+   "summary": "The error state uses a generic groups icon and no brand mark, missing the brand-consistent error header used elsewhere.",
+   "fix": "Add a BrandLogoMark above the icon/message in the error state to match the app's branded empty/error header pattern."
+  }
+ ]
+}

@@ -1,0 +1,61 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_offboarding_page.dart",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "consistency",
+   "line": 91,
+   "summary": "Clearance-step status is shown as a raw Material Chip displaying the untranslated English status token (e.g. 'completed'/'blocked') instead of the shared MobileStatusPill.",
+   "fix": "Replace `trailing: Chip(label: Text(step.status))` with `trailing: MobileStatusPill(step.status)` so the status uses the shared Arabic label + status color palette; import mobile_widgets.dart."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 116,
+   "summary": "Asset rows use a bespoke Material Chip ('مطلوب الإرجاع') instead of the shared pill styling, giving inconsistent chip radius/color versus the rest of the app.",
+   "fix": "Use MobileStatusPill (or a styled pill matching the status palette) rather than a plain `Chip`, keeping chip radius 99 and status-color conventions consistent with other pages."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 71,
+   "summary": "Section titles ('خطوات الإخلاء', 'العهد المطلوب إرجاعها') are hand-rolled titleLarge Text widgets rather than the shared MobileSectionHeader used across all other mobile pages.",
+   "fix": "Replace the two inline title Text blocks (lines 71-76 and 96-101) with `MobileSectionHeader(title: ...)` for consistent section header typography and spacing."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 32,
+   "summary": "The no-case empty state and the error state are bare left-aligned/centered Text with no brand logo, title/subtitle hierarchy, or retry action, unlike the app's standard empty/error treatment.",
+   "fix": "Wrap the empty state (line 32-44) in a centered column with BrandLogoMark + a titled subtitle, and give the error state (line 22-30) a retry button that calls `ref.invalidate(myOffboardingPortalProvider)`."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 87,
+   "summary": "The clearance step list has no empty state; if `data.clearance` is empty the section header renders with nothing beneath it, unlike the assets section which has an explicit empty card.",
+   "fix": "Mirror the assets pattern (line 102-108): when `data.clearance.isEmpty`, render a Card with a 'لا توجد خطوات إخلاء.' message instead of an empty gap."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 61,
+   "summary": "Status inside the summary card is printed as raw interpolated text 'الحالة: ${item['status']}' showing the untranslated English token instead of a MobileStatusPill.",
+   "fix": "Render the case status via `MobileStatusPill(item['status'] as String)` next to the label rather than interpolating the raw status string."
+  },
+  {
+   "severity": "low",
+   "category": "spacing",
+   "line": 51,
+   "summary": "Card inner padding is inconsistent: the summary/empty cards use EdgeInsets.all(18) while ListTile-based cards use default padding, and the design system standard is not uniformly applied.",
+   "fix": "Standardize card content padding (e.g. all(16) or all(18)) across the summary card, empty cards and list rows to match the design-system card padding used elsewhere."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 80,
+   "summary": "The status leading icons in clearance steps convey completed/blocked/pending purely by icon shape with no Semantics label and no color differentiation, hurting screen-reader and low-vision users.",
+   "fix": "Add a Semantics label (or tooltip) describing the step status to the leading Icon and tint it via the status color palette so state is conveyed by more than icon shape alone."
+  }
+ ]
+}

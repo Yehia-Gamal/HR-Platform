@@ -1,0 +1,47 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_notifications_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 179,
+   "summary": "The notification model exposes a priority field (defaults 'normal', can be 'urgent'/'high') but the card never surfaces it, unlike the sibling action-inbox and feed cards which render MobileStatusPill(item.priority) to flag urgent items.",
+   "fix": "In the subtitle Column, add a MobileStatusPill(item.priority) row (e.g. only when priority is not 'normal') so urgent/high notifications get the same colored pill treatment used across the action inbox and official feed, keeping the visual language consistent."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 194,
+   "summary": "The trailing affordance uses Icons.chevron_left whereas nearly every other list/detail page (manager_home, executive_home, governance, operations, people, reports) uses Icons.chevron_left_rounded.",
+   "fix": "Change to `const Icon(Icons.chevron_left_rounded)` to match the rounded chevron used consistently in the rest of the app."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 77,
+   "summary": "The empty-state uses a raw `TextStyle(fontWeight: FontWeight.w900)` with no color and a default-colored icon, so it does not read the onSurfaceVariant tone used for secondary/empty content elsewhere.",
+   "fix": "Give the empty-state icon and text an explicit muted color, e.g. `Icon(Icons.notifications_none, size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant)` and add `color: Theme.of(context).colorScheme.onSurfaceVariant` to the title's copyWith style so the empty state matches the app's subdued treatment."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 57,
+   "summary": "The error state renders only raw text inside a Card with no error icon or color emphasis, unlike a proper error affordance and inconsistent with the app's status-color palette.",
+   "fix": "Add a leading `Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error)` above/beside the message inside the error Card so failures are visually distinguishable from normal content."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 160,
+   "summary": "The unread indicator dot (Positioned red circle) conveys 'unread' purely visually with no semantic label, so screen-reader users cannot tell read from unread.",
+   "fix": "Wrap the ListTile (or the leading Stack) in a Semantics widget with a label such as 'إشعار غير مقروء' when `!item.isRead`, so the unread status is announced."
+  },
+  {
+   "severity": "low",
+   "category": "spacing",
+   "line": 89,
+   "summary": "The list separator uses SizedBox(height: 8) whereas the sibling notification-style lists (action inbox, official feed) use a 10px separator between cards, giving a slightly tighter rhythm than the rest of the app.",
+   "fix": "Change the separatorBuilder gap to `const SizedBox(height: 10)` to match the card spacing used in mobile_action_inbox_page and mobile_official_feed_page."
+  }
+ ]
+}

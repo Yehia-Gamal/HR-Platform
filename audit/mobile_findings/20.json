@@ -1,0 +1,47 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_feed_detail_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 114,
+   "summary": "The acknowledgement confirmation icon is hardcoded to Colors.green instead of using a theme/status color, which breaks the design-system color contract and can look off in dark theme.",
+   "fix": "Replace Icon(Icons.verified, color: Colors.green) with the shared success status color from the status palette (or Theme.of(context).colorScheme.primary/secondary), and read it via context so it adapts to light/dark."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 29,
+   "summary": "The error state is a bare centered Text plus OutlinedButton with no icon or brand affordance, inconsistent with a polished empty/error presentation and lacking any visual hierarchy.",
+   "fix": "Give the error state an error icon (Icon(Icons.error_outline, color: colorScheme.error)) and consistent spacing/typography matching other pages' error states, keeping the existing retry button."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 92,
+   "summary": "The title uses a raw const TextStyle(fontSize: 22, fontWeight: w900) instead of the Material 3 text theme, bypassing the design system's typography scale.",
+   "fix": "Use Theme.of(context).textTheme.headlineSmall/titleLarge (copyWith fontWeight if needed) so the title inherits the Cairo font scale and onSurface color consistently."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 100,
+   "summary": "The body uses a raw const TextStyle(height: 1.8, fontSize: 16) rather than the theme's bodyLarge, hardcoding size and losing onSurface color from the scheme.",
+   "fix": "Base the style on Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.8) instead of a standalone const TextStyle."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 98,
+   "summary": "The FilledButton.icon acknowledgement action and the retry OutlinedButton rely on default sizing; the ack button does not enforce the design-system 52px min height explicitly for a primary CTA and there is no tooltip/Semantics on the confirmation icon.",
+   "fix": "Ensure the primary acknowledge CTA uses the themed FilledButton min height (52) and wrap the standalone verified icon in a Semantics(label: 'مُقَرّ') so screen readers announce the confirmation state."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 79,
+   "summary": "The published-date is shown as a bare Material Chip while sibling metadata uses MobileStatusPill, mixing two chip styles in the same Wrap row.",
+   "fix": "Render the date with a styled chip consistent with MobileStatusPill (or a shared date-chip helper) so the metadata row is visually uniform, and apply the design-system chip radius 99."
+  }
+ ]
+}

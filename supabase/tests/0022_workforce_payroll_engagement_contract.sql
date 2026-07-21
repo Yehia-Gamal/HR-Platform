@@ -1,0 +1,14 @@
+begin; select plan(12);
+select has_table('public','workforce_plans','workforce plans exist');
+select has_table('public','capacity_snapshots','capacity snapshots exist');
+select has_table('public','salary_structures','salary structures exist');
+select has_table('public','employee_compensation','employee compensation exists');
+select has_table('public','payroll_runs','payroll runs exist');
+select has_table('public','payslips','payslips exist');
+select has_table('public','payslip_lines','payslip lines exist');
+select has_table('public','employee_loans','loans exist');
+select has_table('public','engagement_campaigns','engagement campaigns exist');
+select has_table('public','wellbeing_requests','wellbeing requests exist');
+select has_function('public','get_people_finance_catalog',array[]::text[],'people finance catalog RPC exists');
+select has_function('public','get_my_payslips',array[]::text[],'mobile payslips RPC exists');
+select * from finish(); rollback;

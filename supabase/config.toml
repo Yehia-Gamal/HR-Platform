@@ -1,0 +1,106 @@
+project_id = "ahla-shabab-management-os-v8"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+# Seed files are listed explicitly and concatenated natively by the Supabase CLI.
+# NOTE: the legacy root seed.sql used psql `\ir` include meta-commands, which the
+# CLI's driver-based seeder (v2.x) cannot parse (syntax error at "\"). Listing the
+# plain-SQL files here is the supported mechanism. Files remain idempotent.
+[db.seed]
+enabled = true
+sql_paths = ["./seed/0001_seed_permissions_roles.sql", "./seed/0002_seed_used_permissions.sql"]
+
+# Disabled: the Logflare/Analytics stack (and its `vector` log shipper) requires
+# the Docker daemon exposed on tcp://localhost:2375, which does not work reliably
+# with WSL2 mirrored networking on Windows. Not needed for local development.
+[analytics]
+enabled = false
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+[inbucket]
+enabled = true
+port = 54324
+
+[auth]
+enabled = true
+# Local dev serves the web app on 4173. On the hosted (staging/prod) project the
+# Site URL MUST be the deployed origin (https://ahla-shabab-management-os.vercel.app),
+# NOT localhost — otherwise password-recovery / invite emails point at a dead
+# localhost port and "This site can't be reached" appears when the employee
+# clicks the activation link. site_url is env-driven so `supabase config push`
+# can set the remote value (export SUPABASE_AUTH_SITE_URL=<vercel>) while local
+# `supabase start` keeps the localhost default.
+site_url = "env(SUPABASE_AUTH_SITE_URL)"
+additional_redirect_urls = [
+  "http://localhost:4173/**",
+  "http://127.0.0.1:4173/**",
+  "https://ahla-shabab-management-os.vercel.app/**",
+  "ahlashabab://action",
+  "ahlashabab://**",
+]
+jwt_expiry = 3600
+# Local dev: the provider must be enabled for password sign-IN to work
+# (identifier-sign-in uses signInWithPassword). The admin panel exposes no
+# self-signup route, so enabling this locally does not create a signup surface.
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+secure_password_change = true
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[functions.verify-attendance-punch]
+verify_jwt = false
+
+[functions.webauthn-challenge]
+verify_jwt = false
+
+[functions.admin-create-employee]
+verify_jwt = false
+
+[functions.admin-resend-invite]
+verify_jwt = false
+
+[functions.passkey-register]
+verify_jwt = false
+
+[functions.scheduled-report-runner]
+verify_jwt = false
+
+[functions.notification-dispatcher]
+verify_jwt = false
+
+[functions.retention-cleanup]
+verify_jwt = false
+
+[functions.integration-outbox-worker]
+verify_jwt = false
+
+[functions.identifier-sign-in]
+verify_jwt = false
+
+[functions.live-location-video-url]
+verify_jwt = false
+
+[functions.live-location-map-url]
+verify_jwt = false

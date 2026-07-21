@@ -1,0 +1,54 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/executive_emergency_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 36,
+   "summary": "The emergency banner container uses borderRadius 25, but the design system's card radius is 20.",
+   "fix": "Change BorderRadius.circular(25) to BorderRadius.circular(20) to match the established card radius."
+  },
+  {
+   "severity": "medium",
+   "category": "rtl",
+   "line": 295,
+   "summary": "The critical-event ListTile uses a fixed Icons.chevron_left_rounded as a directional 'drill-in' affordance, which points the wrong way for an RTL Arabic layout.",
+   "fix": "Use Icons.chevron_right_rounded (or Icons.arrow_forward_ios wrapped so it mirrors) so the disclosure chevron points in the correct forward direction under RTL."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 82,
+   "summary": "All three async sections use a bare LinearProgressIndicator for loading, which is inconsistent and gives no skeleton/placeholder for the metric grid, critical list, and location card.",
+   "fix": "Replace the raw LinearProgressIndicator loaders with a consistent card/skeleton placeholder (e.g. a shared shimmer or a Card with a centered CircularProgressIndicator) matching how other mobile pages render loading states."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 348,
+   "summary": "The _QuickAction tap target is only ~15px vertical padding around a small icon+label, likely under the 44px minimum touch target.",
+   "fix": "Wrap the InkWell content in a ConstrainedBox/SizedBox with a minimum height of ~52 (matching the filled button minHeight) so each quick action meets the 44px+ tap target."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 48,
+   "summary": "Decorative/status icons in the emergency banner and quick actions have no Semantics labels, so screen readers announce nothing meaningful for the emergency header icon.",
+   "fix": "Add Semantics labels (or excludeSemantics for purely decorative icons) so the emergency banner and quick-action icons are announced or explicitly hidden for assistive tech."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 40,
+   "summary": "The emergency banner hardcodes gradient hex colors (0xFF3B1118, 0xFFB42335) rather than deriving from the theme error palette, so it will not adapt to dark theme or theme changes.",
+   "fix": "Derive the banner gradient from Theme.of(context).colorScheme.error / errorContainer (or the shared status palette) instead of literal hex so it stays consistent in light/dark themes."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 181,
+   "summary": "The empty state for authorized location signals is a plain centered Text with no icon/brand, inconsistent with the richer empty ListTile used for the critical-events section (line 261).",
+   "fix": "Use a consistent empty-state pattern (icon + message, e.g. a CircleAvatar with an icon like the critical-events empty card) across both empty states."
+  }
+ ]
+}

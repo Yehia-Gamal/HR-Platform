@@ -1,0 +1,61 @@
+{
+ "file": "apps/admin_web/src/features/management/AccessPage.tsx",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 67,
+   "summary": "The bespoke `Summary` card reimplements MetricCard (label/value/icon) instead of reusing the shared primitive, diverging in typography (text-2xl vs metric-card's text-3xl) and icon treatment (plain text-brand icon vs metric-icon badge).",
+   "fix": "Delete the local `Summary` component and import `MetricCard` from '../../ui/MetricCard', rendering the summary section with `<MetricCard label=\"الأدوار\" value={data.roles.length} icon={ShieldCheck} />` etc."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 51,
+   "summary": "The loading state is a bare `<p className=\"muted\">` text line rather than the app's LoadingScreen/spinner + skeleton pattern, giving an inconsistent, unpolished loading experience for this heavy catalog page.",
+   "fix": "Replace the `<p>` with the shared `LoadingScreen` (`import { LoadingScreen } from '../../ui/LoadingScreen'`) or a card-based skeleton matching the pattern used in KpiEvaluationEditor (`<div className=\"card grid min-h-64 place-items-center\"><RefreshCcw className=\"animate-spin text-brand\"/></div>`)."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 52,
+   "summary": "The error path renders `EmptyState` for a load FAILURE, but the app convention for errors is a red alert banner (role=\"alert\") as in EmployeesPage/CreateEmployeePage; EmptyState is meant for 'no data', not failures.",
+   "fix": "Replace the EmptyState with the standard error banner: `<div role=\"alert\" className=\"rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800\">تعذر تحميل الصلاحيات: {query.error instanceof Error ? query.error.message : 'غير مصرح'}</div>`."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 63,
+   "summary": "The module-filter `<select>` (كل الوحدات) inside the role dialog has no accessible label — it is a bare select with no aria-label or associated <label>.",
+   "fix": "Add `aria-label=\"تصفية حسب الوحدة\"` to the `<select className=\"input max-w-xs\">`, or wrap it in the shared `Select` helper which renders a visible label."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 60,
+   "summary": "The role-revoke mutation (commands.revokeRole) has no error surfacing; if the delete fails the UI silently ignores it, unlike other mutations on sibling pages (e.g. OperationsCenterPage) that render a red error banner.",
+   "fix": "Surface `commands.revokeRole.isError` with the standard `<p className=\"rounded-xl bg-red-500/10 p-3 text-sm font-bold text-red-700\">` banner, mirroring OperationsCenterPage/LiveLocationPage error handling."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 60,
+   "summary": "The role-remove trash button uses the hardcoded Tailwind `text-red-600` instead of the danger design token, so it won't adapt to the dark theme's --danger value.",
+   "fix": "Replace `className=\"text-red-600\"` with `className=\"text-[var(--danger)]\"` (or a shared danger utility) to stay token-driven and dark-theme correct."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 68,
+   "summary": "The Dialog overlay uses a hardcoded `bg-slate-950/60` scrim rather than a design token, matching a known inconsistency (same literal in LearningPage) instead of a theme-aware overlay.",
+   "fix": "Use a token-based scrim such as `bg-[var(--text-primary)]/50` or a shared overlay class so the modal backdrop respects the theme system."
+  },
+  {
+   "severity": "low",
+   "category": "filter",
+   "line": 63,
+   "summary": "The permissions module filter is a lone select with no result count or clear affordance, inconsistent with the FilterBar pattern (resultText + مسح الكل) used across filterable lists in the app.",
+   "fix": "Show a live result count near the filter (e.g. `<p className=\"muted text-xs\" aria-live=\"polite\">{filteredCount} صلاحية</p>`) and reset moduleFilter to 'all' on dialog open for a consistent filtering UX."
+  }
+ ]
+}

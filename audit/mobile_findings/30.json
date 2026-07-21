@@ -1,0 +1,47 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_request_detail_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 104,
+   "summary": "The 'مسار الاعتماد' heading is a bespoke Text with copyWith styling instead of reusing the shared MobileSectionHeader widget.",
+   "fix": "Replace the raw Text (lines 104-109) with const MobileSectionHeader(title: 'مسار الاعتماد') so section headers render consistently across pages."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 424,
+   "summary": "The _ErrorState is a plain centered text plus button with no error/brand icon, inconsistent with a polished error presentation.",
+   "fix": "Add an Icon(Icons.error_outline_rounded, color: Theme.of(context).colorScheme.error) above the message (with spacing) so the error state has a clear visual anchor consistent with other states."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 111,
+   "summary": "The empty approval-steps state (lines 111-117) is a bespoke plain-text Card with no icon or muted styling, unlike a polished empty state.",
+   "fix": "Style the empty message with colorScheme.onSurfaceVariant and add a small leading icon (e.g. Icons.route_outlined) to match empty-state treatment used elsewhere."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 404,
+   "summary": "The step CircleAvatar uses default theme colors while the step's status color is ignored, so the order badge gives no status cue.",
+   "fix": "Tint the CircleAvatar background/foreground per step.status using the shared status color mapping, or set scheme.primaryContainer/onPrimaryContainer explicitly for intent clarity."
+  },
+  {
+   "severity": "low",
+   "category": "spacing",
+   "line": 97,
+   "summary": "Inter-card vertical spacing is inconsistent: 12 between top cards (lines 97,103) but 16 for action buttons (lines 121,132) and 8 for the section header (line 110).",
+   "fix": "Standardize the vertical gaps between stacked cards/sections to a single spacing token (e.g. 12) so the detail list has consistent rhythm."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 177,
+   "summary": "The cancel/decide dialog confirm buttons silently no-op when the reason is too short (lines 177, 232), giving the user no feedback about why nothing happened.",
+   "fix": "Show an inline helperText/error on the TextField when the minimum length is not met instead of an unexplained non-response on confirm."
+  }
+ ]
+}

@@ -1,0 +1,64 @@
+name: ahla_shabab_management_os
+version: 0.11.1+12
+publish_to: none
+description: Unified Flutter application for employee, manager and executive workspaces.
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  ahla_design_tokens:
+    path: ../../packages/design-tokens
+  flutter_riverpod: ^3.3.2
+  # Keep dependency resolution compatible with the declared Dart 3.8 floor.
+  go_router: ">=17.0.0 <17.1.0"
+  supabase_flutter: ">=2.15.4 <2.16.0"
+  flutter_secure_storage: ^10.3.1
+  intl: ^0.20.2
+  geolocator: ">=14.0.2 <14.0.3"
+  # 0.11.3+ requires Dart 3.9; this app still supports the declared Dart 3.8 floor.
+  camera: ">=0.11.2+1 <0.11.3"
+  passkeys: ^2.21.1
+  local_auth: ^2.3.0
+  package_info_plus: ">=9.0.1 <10.0.0"
+  device_info_plus: ^11.5.0
+  uuid: ^4.5.1
+  url_launcher: ^6.3.2
+  # الإشعارات العاجلة (طلب الموقع): FCM + إشعار محلي بشاشة كاملة.
+  # مثبّتة على إصدارات متوافقة مع أرضية Dart 3.8.
+  firebase_core: ">=3.6.0 <4.0.0"
+  firebase_messaging: ">=15.1.3 <16.0.0"
+  flutter_local_notifications: ">=18.0.1 <19.0.0"
+  image_picker: ^1.2.1
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.1
+  screenshot: ^3.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: assets/brand/association-logo-blue.png
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: assets/brand/association-logo-blue.png
+  min_sdk_android: 24
+  web:
+    generate: true
+    image_path: assets/brand/association-logo-blue.png
+    background_color: "#FFFFFF"
+    theme_color: "#242168"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/brand/association-logo-blue.png
+    - assets/brand/association-logo-white.png

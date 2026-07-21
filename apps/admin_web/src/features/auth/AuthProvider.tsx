@@ -1,0 +1,188 @@
+import type { AccessContext } from '@ahla/shared-contracts';
+import type { Session } from '@supabase/supabase-js';
+import {
+  createContext,
+  type PropsWithChildren,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { env, hasSupabaseConfig } from '../../core/env';
+import { getSupabase } from '../../core/supabase';
+import { loadAccessContext } from './accessService';
+import { mockContexts, type MockPersona } from './mockContexts';
+
+type AuthStatus = 'loading' | 'anonymous' | 'authenticated';
+
+interface AuthContextValue {
+  status: AuthStatus;
+  session: Session | null;
+  access: AccessContext | null;
+  error: string | null;
+  isMock: boolean;
+  signIn(identifier: string, password: string): Promise<void>;
+  signInMock(persona: MockPersona): void;
+  signOut(): Promise<void>;
+  refreshAccess(): Promise<void>;
+  // إرسال رابط استعادة كلمة المرور عبر البريد؛ تعيين كلمة المرور نفسه يتم في
+  // PasswordSetupPage التي يفتحها الرابط.
+  requestPasswordReset(email: string): Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function AuthProvider({ children }: PropsWithChildren) {
+  const [status, setStatus] = useState<AuthStatus>('loading');
+  const [session, setSession] = useState<Session | null>(null);
+  const [access, setAccess] = useState<AccessContext | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isMock, setIsMock] = useState(false);
+
+  const refreshAccess = useCallback(async () => {
+    if (isMock) return;
+    const next = await loadAccessContext();
+    setAccess(next);
+  }, [isMock]);
+
+  useEffect(() => {
+    if (env.devMocksEnabled && !hasSupabaseConfig) {
+      setStatus('anonymous');
+      return;
+    }
+    if (!hasSupabaseConfig) {
+      setError('إعدادات Supabase غير موجودة. أضف ملف .env.local أو فعّل وضع التطوير المحلي.');
+      setStatus('anonymous');
+      return;
+    }
+
+    let active = true;
+    let unsubscribe: (() => void) | undefined;
+
+    void getSupabase().then(async (supabase) => {
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      if (!active) return;
+      if (sessionError) {
+        setError(sessionError.message);
+        setStatus('anonymous');
+        return;
+      }
+      setSession(data.session);
+      if (!data.session) {
+        setStatus('anonymous');
+        return;
+      }
+      try {
+        setAccess(await loadAccessContext());
+        setStatus('authenticated');
+      } catch (accessError) {
+        setError(accessError instanceof Error ? accessError.message : 'تعذر تحميل الصلاحيات.');
+        setStatus('anonymous');
+      }
+      const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+        setSession(nextSession);
+        if (!nextSession) {
+          setAccess(null);
+          setStatus('anonymous');
+        }
+      });
+      unsubscribe = () => listener.subscription.unsubscribe();
+    }).catch((loadError: unknown) => {
+      if (!active) return;
+      setError(loadError instanceof Error ? loadError.message : 'تعذر تهيئة Supabase.');
+      setStatus('anonymous');
+    });
+
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
+  }, []);
+
+  const signIn = useCallback(async (identifier: string, password: string) => {
+    if (!hasSupabaseConfig) throw new Error('Supabase غير مهيأ.');
+    setError(null);
+    setStatus('loading');
+    const supabase = await getSupabase();
+    const { data, error: invokeError } = await supabase.functions.invoke('identifier-sign-in', {
+      body: { identifier: identifier.trim(), password },
+    });
+    const payload = data as {
+      access_token?: string;
+      refresh_token?: string;
+      error?: string;
+    } | null;
+    if (invokeError || !payload?.access_token || !payload.refresh_token) {
+      setStatus('anonymous');
+      throw new Error(payload?.error === 'TOO_MANY_ATTEMPTS'
+        ? 'محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.'
+        : 'بيانات الدخول غير صحيحة أو الحساب غير متاح.');
+    }
+    const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+      access_token: payload.access_token,
+      refresh_token: payload.refresh_token,
+    });
+    if (sessionError || !sessionData.session) {
+      setStatus('anonymous');
+      throw new Error('تعذر إنشاء جلسة آمنة. حاول مرة أخرى.');
+    }
+    setSession(sessionData.session);
+    const nextAccess = await loadAccessContext();
+    setAccess(nextAccess);
+    setStatus('authenticated');
+  }, []);
+
+  const requestPasswordReset = useCallback(async (email: string) => {
+    if (!hasSupabaseConfig) throw new Error('Supabase غير مهيأ.');
+    const supabase = await getSupabase();
+    // الرابط يفتح PasswordSetupPage التي تلتقط جلسة الاسترداد وتعيّن كلمة المرور.
+    const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/auth/setup-password` : undefined;
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo });
+    if (resetError) throw new Error(resetError.message);
+  }, []);
+
+  const signInMock = useCallback((persona: MockPersona) => {
+    if (!env.devMocksEnabled) return;
+    setIsMock(true);
+    setSession(null);
+    setAccess(mockContexts[persona]);
+    setError(null);
+    setStatus('authenticated');
+  }, []);
+
+  const signOut = useCallback(async () => {
+    if (!isMock && hasSupabaseConfig) {
+      const supabase = await getSupabase();
+      await supabase.auth.signOut();
+    }
+    setIsMock(false);
+    setSession(null);
+    setAccess(null);
+    setStatus('anonymous');
+  }, [isMock]);
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      status,
+      session,
+      access,
+      error,
+      isMock,
+      signIn,
+      signInMock,
+      signOut,
+      refreshAccess,
+      requestPasswordReset,
+    }),
+    [status, session, access, error, isMock, signIn, signInMock, signOut, refreshAccess, requestPasswordReset],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth(): AuthContextValue {
+  const value = useContext(AuthContext);
+  if (!value) throw new Error('useAuth must be used inside AuthProvider');
+  return value;
+}

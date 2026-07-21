@@ -1,0 +1,61 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_attendance_services_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 72,
+   "summary": "Schedule day status uses a bespoke Material Chip instead of the shared MobileStatusPill status widget.",
+   "fix": "Replace `trailing: Chip(label: Text(_dayStatus(day.dayStatus)))` with `trailing: MobileStatusPill(day.dayStatus)` (import mobile_widgets.dart), keeping status styling consistent with the rest of the app."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 111,
+   "summary": "Correction status uses a bespoke Material Chip instead of MobileStatusPill, and _status re-implements label mapping (pending/approved/rejected/cancelled) that MobileStatusPill already provides.",
+   "fix": "Replace `trailing: Chip(label: Text(_status(item.status)))` with `trailing: MobileStatusPill(item.status)`; MobileStatusPill already maps pending/approved/rejected/cancelled to colored pills, so the local _status helper becomes redundant for display."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 40,
+   "summary": "Section titles are hand-rolled titleLarge Texts instead of the shared MobileSectionHeader.",
+   "fix": "Replace both bespoke title Texts (lines 40-45 and 79-84) with `MobileSectionHeader(title: 'جدول العمل القادم')` / `MobileSectionHeader(title: 'طلبات التصحيح')` for consistent section styling across pages."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 28,
+   "summary": "Error state is a bare centered Text with no icon, no brand, and no retry affordance, inconsistent with a polished error state.",
+   "fix": "Wrap the error in a centered column with an error icon (Icons.error_outline colored with colorScheme.error), the message, and a FilledButton/TextButton that calls `ref.invalidate(myAttendanceServicesProvider)` to retry."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 47,
+   "summary": "Empty-state cards for schedule and corrections are plain text-only cards with no icon or visual treatment, reading as unstyled placeholders.",
+   "fix": "Give both empty cards (lines 47-53 and 86-92) a centered icon (e.g. Icons.event_busy_outlined / Icons.edit_calendar_outlined) above the message using onSurfaceVariant color for a consistent empty-state look."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 97,
+   "summary": "Correction leading icon does not color-differentiate approved/rejected/pending, so the status cue relies only on icon shape and reads flat.",
+   "fix": "Color the leading Icon by status using the shared status palette (green 0xFF0F9F6E for approved, red 0xFFDC3D4B for rejected, amber/onSurfaceVariant for pending) to reinforce status visually."
+  },
+  {
+   "severity": "low",
+   "category": "dark-theme",
+   "line": 60,
+   "summary": "The schedule day CircleAvatar relies on default avatar theming which may not read against the card in dark mode.",
+   "fix": "Set explicit `backgroundColor: colorScheme.primaryContainer` and `foregroundColor: colorScheme.onPrimaryContainer` on the CircleAvatar so the day badge reads consistently in both light and dark themes."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 153,
+   "summary": "The date-picker ListTile trailing calendar icon has no tooltip/Semantics label.",
+   "fix": "Add a Tooltip or Semantics label (e.g. 'اختيار يوم العمل') on the trailing calendar_month_outlined icon so the tap-to-pick-date affordance is announced."
+  }
+ ]
+}

@@ -1,0 +1,61 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/executive_location_page.dart",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "consistency",
+   "line": 48,
+   "summary": "Bespoke TextField search is used instead of the shared MobileFilterBar, which provides the standard search styling, clear button, and result label.",
+   "fix": "Replace the raw TextField (lines 48-60) with MobileFilterBar (searchHint, controller, onSearchChanged with the debounce logic, empty options, resultLabel like 'N موظف', onClear to clear the search) to match every other executive page."
+  },
+  {
+   "severity": "high",
+   "category": "filter",
+   "line": 48,
+   "summary": "The search field has no clear button and no result-count label, so users cannot easily reset the query or see how many employees matched.",
+   "fix": "Adopt MobileFilterBar which includes the trailing clear IconButton and resultLabel, or add a suffix clear IconButton plus a result count Text above the list."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 69,
+   "summary": "The error state is a bare inline Text with the raw exception interpolated, missing an icon, retry affordance, and centered layout consistent with the loading/empty states.",
+   "fix": "Render a centered error state (e.g. Padding + Center with an error icon, a friendly message, and a retry TextButton that calls ref.invalidate(locationDirectoryProvider)) instead of `Text('تعذر تحميل الموظفين: $error')`."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 70,
+   "summary": "The empty state is plain centered text with no icon or brand mark, unlike the richer empty headers used elsewhere in the app.",
+   "fix": "Add an icon (e.g. Icons.location_off) and/or BrandLogoMark above the 'لا يوجد موظفون داخل نطاقك' text to match the app's standard empty-state pattern."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 37,
+   "summary": "The page header is a bare Text title with no BrandLogo/BrandLogoMark, whereas the design system shows brand identity in page/empty headers.",
+   "fix": "Consider prefixing the header row with BrandLogoMark or wrapping the title in the shared header treatment to keep brand presence consistent across executive pages."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 106,
+   "summary": "The CircleAvatar initial is derived from substring(0,1) which throws on multi-code-unit leading characters and has no Semantics label for screen readers.",
+   "fix": "Use employee.name.characters.first for the initial and wrap the avatar in Semantics(label: employee.name) or an excludeSemantics avatar so the name Text carries the label."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 98,
+   "summary": "The Card relies on default padding/radius via ad-hoc EdgeInsets.all(16); confirm it inherits the theme's 20 radius rather than any local override, and MobileStatusPill placement duplicates spacing handled elsewhere.",
+   "fix": "Rely on the themed CardTheme (radius 20) and keep the const EdgeInsets.all(16) consistent with other cards; no bespoke shape should be introduced here."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 118,
+   "summary": "The employee name uses a raw `const TextStyle(fontWeight: FontWeight.w900)` which drops the theme's font/color inheritance (Cairo, onSurface).",
+   "fix": "Use Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900) instead of a bare TextStyle so the Cairo font and onSurface color are applied."
+  }
+ ]
+}

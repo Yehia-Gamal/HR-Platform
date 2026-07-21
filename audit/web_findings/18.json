@@ -1,0 +1,54 @@
+{
+ "file": "apps/admin_web/src/features/management/LiveLocationPage.tsx",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 142,
+   "summary": "The request error banner uses hardcoded Tailwind red utilities (bg-red-500/10, text-red-700) instead of the design system's danger tokens, breaking dark-theme adaptation and brand consistency.",
+   "fix": "Replace with token-based classes, e.g. className=\"rounded-xl border border-[var(--danger)]/30 bg-[var(--danger-soft)] p-3 text-sm font-bold text-[var(--danger)]\" and add role=\"alert\" for accessibility."
+  },
+  {
+   "severity": "medium",
+   "category": "filter",
+   "line": 72,
+   "summary": "The page builds a bespoke filter-bar (raw search input + custom chip row) instead of reusing the shared FilterBar primitive, losing its clear-all control, result-count (resultText/aria-live), and standardized layout.",
+   "fix": "Refactor to <FilterBar searchValue={search} onSearchChange={setSearch} searchPlaceholder=\"ابحث بالاسم أو كود الموظف أو الإدارة…\" resultText={`${visible.length} نتيجة`} isDirty={search !== '' || filter !== 'all'} onClear={() => { setSearch(''); setFilter('all'); }}> and pass the filter chips as children."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 164,
+   "summary": "The map legend swatches use hardcoded bg-emerald-500 / bg-amber-500 rather than the success/warning design tokens, so the legend colors can drift from the actual map pins and won't adapt to theme.",
+   "fix": "Use bg-[var(--success)] and bg-[var(--warning)] to match the token-driven .map-pin styles in styles.css (which already use var(--danger) etc.)."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 82,
+   "summary": "The load-error state reuses EmptyState (a neutral 'no data' component) rather than the app's error-banner pattern, so a genuine failure looks indistinguishable from an empty result.",
+   "fix": "Render a token-based error banner (border-[var(--danger)]/30 bg-[var(--danger-soft)] text-[var(--danger)], role=\"alert\") with a retry button calling query.refetch(), consistent with other pages' error handling."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 142,
+   "summary": "The error message paragraph is inserted dynamically but has no role/aria-live, so screen readers won't announce a failed request submission.",
+   "fix": "Add role=\"alert\" (or aria-live=\"assertive\") to the error <p> so submission failures are announced."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 78,
+   "summary": "Filter state is expressed only via chip highlight (is-active) with no result count feedback near the filters, unlike the FilterBar pattern which shows resultText via aria-live; the '{visible.length} نتيجة' count lives far away in the directory header.",
+   "fix": "Surface the result count through FilterBar's resultText (see line 72 fix) so filtering feedback is co-located and announced to assistive tech."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 92,
+   "summary": "The loading skeleton renders three placeholder blocks but the surrounding directory card header ('دليل الموظفين' / result count) still shows a stale '0 نتيجة' during load, producing a flicker between load and data.",
+   "fix": "Guard the header count with query.isLoading (e.g. show '…' or hide the count line while loading) so the count doesn't display 0 before data resolves."
+  }
+ ]
+}

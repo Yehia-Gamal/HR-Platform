@@ -1,0 +1,61 @@
+{
+ "file": "apps/admin_web/src/features/requests/RequestsPage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "brand",
+   "line": 43,
+   "summary": "Decision buttons use hardcoded Tailwind palette colors (bg-emerald-600, bg-red-600, text-red-600) instead of the semantic success/danger design tokens.",
+   "fix": "Replace bg-emerald-600 with bg-[var(--success)] (or a shared success button class), bg-red-600 with bg-[var(--danger)], and text-red-600 on the error message with text-[var(--danger)] so approve/reject respect the token palette and dark theme."
+  },
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 42,
+   "summary": "There is no loading state: while query.isLoading is true the page renders empty content (balances/list sections are just empty) with no skeleton or LoadingScreen, unlike the app pattern.",
+   "fix": "Render a loading indicator when query.isLoading (e.g. LoadingScreen or card skeletons in the list section) before falling through to the empty/error states, matching the established loading pattern."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 38,
+   "summary": "Leave-balance cards are a bespoke card+icon reimplementation of MetricCard (label/value/hint/icon), duplicating layout that the shared MetricCard primitive provides.",
+   "fix": "Render each balance via <MetricCard label={`رصيد ${balance.nameAr}`} value={balance.availableUnits} hint={`محجوز ${balance.reservedUnits} · مستهلك ${balance.consumedUnits}`} icon={CalendarDays} /> to reuse the shared primitive and its metric-card/metric-icon tokens."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 42,
+   "summary": "The 'مراجعة واتخاذ إجراء' action button uses ad-hoc utility classes (rounded-xl bg-brand px-4 py-2 font-black text-white) instead of the shared .btn-primary class.",
+   "fix": "Replace the inline classes with className=\"btn-primary mr-auto\" so the primary action matches the app-wide button styling, focus ring, and hover states."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 43,
+   "summary": "The decision modal has role=\"dialog\" aria-modal but no aria-labelledby/aria-describedby, so screen readers get no accessible name for the dialog.",
+   "fix": "Add an id to the modal's <h2> title and reference it via aria-labelledby on the dialog container (and optionally aria-describedby pointing at the reason block)."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 43,
+   "summary": "Close button uses a bare bordered box; other icon buttons in the app use the shared .icon-button styling.",
+   "fix": "Give the close button className=\"icon-button\" instead of 'rounded-xl border border-[var(--border)] p-2' to match the shared icon-button treatment while keeping the aria-label."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 43,
+   "summary": "The reject button is disabled when the comment is under 3 characters but gives no visible/aria explanation, so the disabled reason is not communicated.",
+   "fix": "Add aria-describedby pointing at a hint (or title) explaining that rejection requires a reason of at least 3 characters, so the disabled state is discoverable."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 43,
+   "summary": "The overlay lacks a click-outside-to-close affordance and Escape handling, unlike a standard modal, leaving only the small close button.",
+   "fix": "Add an onClick on the backdrop div that calls setSelected(null) (with stopPropagation on the inner section) to allow dismissing by clicking the overlay, consistent with modal conventions."
+  }
+ ]
+}

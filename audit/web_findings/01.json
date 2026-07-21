@@ -1,0 +1,61 @@
+{
+ "file": "apps/admin_web/src/features/advanced/AttendanceOperationsPage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 18,
+   "summary": "The page never handles query.isError or query.isLoading, so on a failed fetch it silently renders only the header with no metrics or data, unlike the sibling DisputesPage which shows an EmptyState error banner.",
+   "fix": "Mirror DisputesPage: after PageHeader render `{query.isError ? <EmptyState title=\"تعذر تحميل بيانات الحضور\" description={query.error instanceof Error ? query.error.message : 'تحقق من الاتصال والصلاحيات.'} /> : null}` and gate on a loading state (LoadingScreen or a skeleton) while query.isLoading."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 55,
+   "summary": "The 'فترات الحضور' list renders `data?.periods.map(...)` with no EmptyState fallback, so an empty result shows a bare empty container, inconsistent with the EmptyState used for rosters/corrections.",
+   "fix": "Wrap with the same pattern: `{data && data.periods.length === 0 ? <EmptyState title=\"لا توجد فترات\" description=\"ستظهر فترات الحضور المفتوحة والمغلقة هنا.\" /> : <div className=\"mt-4 space-y-3\">…</div>}`."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 56,
+   "summary": "The 'العمل الإضافي' list renders `data?.overtime.map(...)` with no EmptyState fallback, showing an empty container when there are no overtime requests.",
+   "fix": "Add an EmptyState fallback matching the corrections pattern, e.g. `{data && data.overtime.length === 0 ? <EmptyState title=\"لا يوجد عمل إضافي\" description=\"طلبات العمل الإضافي في الشهر المحدد ستظهر هنا.\" /> : …}`."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 44,
+   "summary": "The clickable shift cards use a bespoke `rounded-2xl border border-[var(--border)] p-4` button with no hover affordance, instead of the shared `.card-interactive` interaction style used for clickable cards.",
+   "fix": "Add the `card-interactive` class (and cursor/hover) to the shift `<button>`, e.g. `className=\"card-interactive rounded-2xl border border-[var(--border)] p-4 text-right\"` so it matches the app's interactive-card feedback."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 55,
+   "summary": "The 'إغلاق الشهر' primary button has no disabled/pending state while commands.closePeriod is running, unlike saveShift (line 42) which disables on isPending.",
+   "fix": "Add `disabled={commands.closePeriod.isPending}` to the إغلاق الشهر button for consistent submit feedback."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 26,
+   "summary": "The month picker in PageHeader actions is a bare `<label>` wrapping the input with the text 'الشهر' glued directly to the field and no aria-label, giving a cramped, unlabeled-in-AT control.",
+   "fix": "Give the input `aria-label=\"الشهر\"` and separate the visible label text (e.g. wrap the caption in a `<span className=\"block\">` or add spacing) so the label reads clearly in RTL and to screen readers."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 52,
+   "summary": "Section cards use repeated inline `rounded-2xl border border-[var(--border)] p-4` article wrappers across corrections/periods/overtime instead of a shared record-card class, duplicating styling that could drift from the design system.",
+   "fix": "Extract the repeated `rounded-2xl border border-[var(--border)] p-4` into a shared class (e.g. reuse `.mobile-record-card` or a new `.record-card`) and apply it to these article wrappers for consistency."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 52,
+   "summary": "The corrections empty check `data?.corrections.length === 0` evaluates false while data is undefined (loading), so during load nothing renders with no skeleton, matching a pattern that lacks any loading placeholder.",
+   "fix": "Once a loading state is added (see line 18 finding), render a lightweight skeleton or spinner for these lists while query.isLoading rather than an empty gap."
+  }
+ ]
+}

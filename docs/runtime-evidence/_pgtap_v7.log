@@ -1,0 +1,36 @@
+Connecting to local database...
+psql:/Coder/HR/HR_Platform_2/supabase/tests/0001_core_security_structure.sql:2: NOTICE:  extension "pgtap" already exists, skipping
+/Coder/HR/HR_Platform_2/supabase/tests/0001_core_security_structure.sql ........................ ok
+/Coder/HR/HR_Platform_2/supabase/tests/0002_foundation_contracts.sql ........................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0003_operational_workspaces.sql ......................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0004_management_overviews.sql ........................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0005_live_location_flow.sql ............................. ok
+/Coder/HR/HR_Platform_2/supabase/tests/0006_request_self_service.sql ........................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0007_kpi_attendance_mobile.sql .......................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0008_mobile_details_routing.sql ......................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0009_mobile_daily_workspaces.sql ........................ ok
+/Coder/HR/HR_Platform_2/supabase/tests/0010_passkey_revoke_attendance_history.sql .............. ok
+/Coder/HR/HR_Platform_2/supabase/tests/0011_mobile_notifications_contract.sql .................. ok
+/Coder/HR/HR_Platform_2/supabase/tests/0012_passkey_mobile_action_security.sql ................. ok
+/Coder/HR/HR_Platform_2/supabase/tests/0013_admin_operations.sql ............................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0014_leave_ledger_contract.sql .......................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0015_decision_lifecycle_contract.sql .................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0016_attendance_operations_contract.sql ................. ok
+/Coder/HR/HR_Platform_2/supabase/tests/0017_kpi_advanced_contract.sql .......................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0018_dispute_committee_contract.sql ..................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0019_lifecycle_contract.sql ............................. ok
+/Coder/HR/HR_Platform_2/supabase/tests/0020_enterprise_talent_learning_contract.sql ............ ok
+/Coder/HR/HR_Platform_2/supabase/tests/0021_enterprise_management_modules.sql .................. ok
+/Coder/HR/HR_Platform_2/supabase/tests/0022_workforce_payroll_engagement_contract.sql .......... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0023_retention_privacy_contract.sql ..................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0024_release_access_privacy_integration_governance.sql .. ok
+/Coder/HR/HR_Platform_2/supabase/tests/0025_identifier_login_security.sql ...................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0026_release_0_10_contract.sql .......................... ok
+psql:/Coder/HR/HR_Platform_2/supabase/tests/0027_persona_rls_runtime.sql:10: NOTICE:  extension "pgtap" already exists, skipping
+/Coder/HR/HR_Platform_2/supabase/tests/0027_persona_rls_runtime.sql ............................ ok
+/Coder/HR/HR_Platform_2/supabase/tests/0028_recruitment_interviews_offers_hire.sql ............. ok
+psql:/Coder/HR/HR_Platform_2/supabase/tests/0029_break_glass_runtime.sql:11: NOTICE:  extension "pgtap" already exists, skipping
+/Coder/HR/HR_Platform_2/supabase/tests/0029_break_glass_runtime.sql ............................ ok
+All tests successful.
+Files=29, Tests=333,  4 wallclock secs ( 0.29 usr  0.14 sys +  0.87 cusr  0.41 csys =  1.71 CPU)
+Result: PASS

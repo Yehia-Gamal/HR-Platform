@@ -1,0 +1,61 @@
+{
+ "file": "apps/admin_web/src/features/management/OperationsCenterPage.tsx",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 58,
+   "summary": "The search/tab section reimplements a bespoke filter bar (raw label + input + custom search icon) instead of reusing the shared FilterBar primitive, so it lacks the standard heading, result count, and clear affordances used across the app.",
+   "fix": "Where the tab layout allows, move the search into FilterBar (searchValue/onSearchChange/searchPlaceholder) or at minimum align styling with FilterBar; if tabs must stay inline, keep them as a separate tablist but route the search box through FilterBar so it shares the app's search/clear/result pattern."
+  },
+  {
+   "severity": "medium",
+   "category": "filter",
+   "line": 64,
+   "summary": "The search input has no clear (X) button and no result-count text, unlike FilterBar which provides isDirty/onClear and resultText, so users cannot quickly reset the search or see how many items matched.",
+   "fix": "Add a clear button that resets search when non-empty (aria-label 'مسح البحث') and render a result count line (e.g. 'عدد النتائج: {tasks.length}' for the active tab) with aria-live='polite', mirroring FilterBar's filter-result/filter-clear behavior."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 103,
+   "summary": "The create-task error banner uses hardcoded Tailwind colors (bg-red-500/10, text-red-700) instead of the design-system danger tokens, so it won't adapt to dark theme or match other error surfaces.",
+   "fix": "Replace with token-based styling, e.g. className=\"rounded-xl bg-[var(--danger-soft)] p-3 text-sm font-bold text-[var(--danger)]\" to match the app's danger palette and dark-theme support."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 122,
+   "summary": "TaskAction's 'مكتملة' state uses hardcoded text-emerald-700 rather than the --success token, breaking token consistency and dark-theme adaptation.",
+   "fix": "Use text-[var(--success)] instead of text-emerald-700 for the completed indicator."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 68,
+   "summary": "The loading state is a single bespoke pulsing card block that does not resemble the actual content (metrics row + tabs + table), giving a jarring skeleton-to-content transition inconsistent with the app's loading pattern.",
+   "fix": "Use the shared LoadingScreen primitive, or build a skeleton that mirrors the metric grid and table rows so the placeholder matches the loaded layout."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 64,
+   "summary": "The decorative Search icon inside the search label is not marked aria-hidden, unlike FilterBar which sets aria-hidden='true' on its Search icon.",
+   "fix": "Add aria-hidden=\"true\" to the <Search /> icon on line 64 so it is not exposed to assistive tech."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 103,
+   "summary": "The create-task error banner is not announced to screen readers because it lacks a live region role, so users relying on AT won't hear the failure message.",
+   "fix": "Add role=\"alert\" (or aria-live=\"assertive\") to the error <p> so the failure message is announced when it appears."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 51,
+   "summary": "The metrics section is a raw <section> with grid classes rather than using the app's dashboard/metric container convention, and mixes MetricCard (good) with an ad-hoc wrapper; minor but the breakpoint set (sm/xl) differs from other pages' metric grids.",
+   "fix": "Confirm the metric grid breakpoints match sibling management pages (e.g. sm:grid-cols-2 lg:grid-cols-4) so the four MetricCards wrap consistently with the rest of the app."
+  }
+ ]
+}

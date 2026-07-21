@@ -1,0 +1,12 @@
+begin;
+select plan(8);
+select has_function('public','get_location_directory',array['text','integer'],'location directory exists');
+select has_function('public','request_live_location',array['uuid','text','text'],'request command exists');
+select has_function('public','get_my_live_location_requests',array['integer'],'employee inbox exists');
+select has_function('public','respond_live_location_request',array['uuid','boolean'],'employee response exists');
+select has_function('public','submit_live_location_point',array['uuid','double precision','double precision','double precision','double precision','double precision','double precision','boolean','text'],'point command exists (with address)');
+select has_function('public','register_live_location_video',array['uuid','text','integer','bigint','text','double precision','double precision','double precision'],'video metadata command exists');
+select has_function('public','complete_my_live_location_request',array['uuid'],'completion command exists');
+select ok(exists(select 1 from storage.buckets where id='live-location-videos' and public=false),'video bucket is private');
+select * from finish();
+rollback;

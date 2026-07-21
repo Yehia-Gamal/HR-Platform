@@ -1,0 +1,61 @@
+{
+ "file": "apps/admin_web/src/features/employees/CreateEmployeePage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "brand",
+   "line": 108,
+   "summary": "Error banner uses hardcoded red-200/red-50/red-800 Tailwind colors instead of the --danger/--danger-soft design tokens, so it will not adapt to dark theme.",
+   "fix": "Replace with token-driven classes, e.g. className=\"mb-5 rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-4 text-sm text-[var(--danger)]\" (matching the app's .status-danger pattern)."
+  },
+  {
+   "severity": "high",
+   "category": "brand",
+   "line": 107,
+   "summary": "Success banner hardcodes emerald-200/emerald-50/emerald-800 instead of --success/--success-soft tokens, breaking dark-theme and brand consistency.",
+   "fix": "Use border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)] instead of the emerald-* utilities."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 105,
+   "summary": "Step indicator's completed/current states use hardcoded emerald-300/emerald-50/emerald-800 rather than success tokens, inconsistent with the tokenized theme.",
+   "fix": "Swap emerald-* for --success tokens (e.g. border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]) for the completed step while keeping the brand classes for the active step."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 153,
+   "summary": "Primary/next/submit buttons are bespoke inline styles (bg-brand px-5 py-3 ...) instead of reusing the shared .btn-primary class, and the prev/back buttons reimplement .btn-secondary.",
+   "fix": "Apply className=\"btn-primary\" to next/submit buttons and className=\"btn-secondary\" to the previous and header back buttons, removing the duplicated inline padding/color utilities."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 119,
+   "summary": "Remove-photo button and photo-error text hardcode red-200/red-700 rather than the --danger token.",
+   "fix": "Use border-[var(--danger)] text-[var(--danger)] (and text-[var(--danger)] for the error <p> at line 123) instead of red-* utilities."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 130,
+   "summary": "The role <select> (المنصب) and the structure SelectField/JobTitleField selects rely only on a visible label sibling with no aria-label, and icon-only nature of some controls is fine but selects lack explicit accessible naming for screen readers in RTL.",
+   "fix": "Add aria-label matching each field label to the select/input elements (e.g. aria-label=\"المنصب\" on line 130 select and pass label through as aria-label in SelectField/JobTitleField), consistent with FilterBar's aria-labeled selects."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 134,
+   "summary": "The structure lookups error uses hardcoded red-50/red-700 while the rest of the app uses tokenized banners, and there is no loading skeleton shown while lookups.isLoading.",
+   "fix": "Use --danger tokens for the error banner and add a lightweight loading state (e.g. disabled selects or a small spinner) when lookups.isLoading, matching LoadingScreen/app patterns."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 112,
+   "summary": "Placeholder icon and helper text use the ad-hoc 'muted' class and text-[var(--muted)]; the documented token is --text-muted, so --muted may be an undefined/legacy var.",
+   "fix": "Confirm the token name and use text-[var(--text-muted)] for the ImagePlus placeholder and helper copy to align with the documented design tokens."
+  }
+ ]
+}

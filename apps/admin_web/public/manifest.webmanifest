@@ -1,0 +1,15 @@
+{
+  "name": "أحلى شباب — منصة الإدارة",
+  "short_name": "أحلى شباب",
+  "description": "منصة موحدة للموارد البشرية والتشغيل والحوكمة.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F5F8FC",
+  "theme_color": "#0B4FA2",
+  "icons": [
+    { "src": "/logo-mark.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

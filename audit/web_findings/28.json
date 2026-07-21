@@ -1,0 +1,54 @@
+{
+ "file": "apps/admin_web/src/features/notifications/NotificationsPage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 7,
+   "summary": "The page renders no loading indicator while q.isLoading is true — during initial load the user sees an empty screen (no spinner, skeleton, or text), unlike every other feature page.",
+   "fix": "Add a loading branch consistent with the app pattern, e.g. right after the error/empty checks: {q.isLoading ? <section className=\"space-y-3\" aria-label=\"جارٍ تحميل الإشعارات\">{[1,2,3].map(i=><div key={i} className=\"card h-24 animate-pulse bg-[var(--surface-muted)]\" />)}</section> : null} (matching LiveLocationPage/ServiceDeskPage skeleton style)."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 7,
+   "summary": "The 'تعليم الكل كمقروء' header action is a bespoke button with hand-rolled border/padding/font classes instead of reusing the shared .btn-secondary class.",
+   "fix": "Replace the inline className with the shared primitive: className=\"btn-secondary\" (keep the CheckCheck icon + gap), so the button matches the design-system button height, radius, hover/disabled states."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 7,
+   "summary": "The 'فتح' link is a bespoke primary button (bg-brand px-4 py-2.5 rounded-xl text-white) instead of reusing the shared .btn-primary class used for primary CTAs elsewhere.",
+   "fix": "Change the Link className to \"btn-primary text-sm\" so it inherits the standard primary-button gradient/tokens, radius, and states."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 7,
+   "summary": "Multiple hardcoded brand utilities (text-brand, bg-brand, border-brand/40) are used instead of design tokens; the 'جديد' badge and unread-border rely on ad-hoc brand classes rather than --brand-primary / --brand-primary-soft tokens.",
+   "fix": "Use token-based styling: unread border via border-[var(--brand-primary)]/soft, the 'جديد' badge via bg-[var(--brand-primary)] text-white, and the bell icon via text-[var(--brand-primary)], matching the tokenized approach used in LoadingScreen and other pages."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 7,
+   "summary": "The error state uses EmptyState instead of the app's error-banner pattern, and when q.isError is true the empty-state check can also evaluate, but more importantly an errored fetch shows a generic empty look rather than a distinct danger-styled banner.",
+   "fix": "Render the error as a danger banner (e.g. a .card with border/text using --danger tokens and role=\"alert\") separate from the neutral EmptyState, so failed loads are visually distinct from 'no notifications'."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 7,
+   "summary": "The unread state is conveyed only via opacity/border/color and a 'جديد' badge without a text alternative on the item itself, and the bell icon span has no aria-hidden, adding noise to screen readers.",
+   "fix": "Add aria-hidden=\"true\" to the decorative bell icon span, and ensure unread status is programmatically exposed (e.g. aria-label on the article indicating 'غير مقروء'), avoiding reliance on color/opacity alone."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 7,
+   "summary": "The notification date is rendered as a raw formatted string in a <p> with no <time> element or machine-readable datetime, reducing semantic clarity.",
+   "fix": "Wrap the formatted date in <time dateTime={new Date(n.createdAt).toISOString()}>…</time> for semantic/a11y correctness."
+  }
+ ]
+}

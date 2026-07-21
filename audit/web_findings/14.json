@@ -1,0 +1,61 @@
+{
+ "file": "apps/admin_web/src/features/management/DocumentStudioPage.tsx",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 18,
+   "summary": "Loading state is a bare Arabic text paragraph instead of the shared LoadingScreen/skeleton primitive used across the app.",
+   "fix": "Import and render LoadingScreen from '../../ui/LoadingScreen' (or a card skeleton) in place of `<p className=\"muted\">جارٍ التحميل…</p>` so the loading experience matches other pages."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 19,
+   "summary": "The modal close button is an icon-only '✕' button with no aria-label, so screen readers announce nothing meaningful.",
+   "fix": "Add aria-label=\"إغلاق\" to the close `<button>` (and ideally the .icon-button class) so it is announced and styled consistently."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 19,
+   "summary": "The modal is a bespoke overlay with no role=\"dialog\"/aria-modal, so assistive tech does not treat it as a dialog.",
+   "fix": "Add role=\"dialog\" aria-modal=\"true\" and aria-labelledby pointing at the heading on the overlay container for accessible dialog semantics."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 19,
+   "summary": "Signature-role checkboxes render raw English keys (employee/manager/hr/executive) as visible RTL Arabic labels, inconsistent with the Arabic UI.",
+   "fix": "Map each key to its Arabic label (الموظف/المدير/HR/التنفيذي) as done in line 17 instead of rendering the raw `{k}` string."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 19,
+   "summary": "Modal overlay uses hardcoded Tailwind color `bg-slate-950/60` instead of a design token, so it won't adapt to dark theme surfaces.",
+   "fix": "Replace `bg-slate-950/60` with a token-based scrim such as `bg-[color:var(--surface-strong)]/60` or a shared overlay class defined via design tokens."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 19,
+   "summary": "The 'النوع' (documentType) field is a free-text input despite the draft defaulting to a constrained value ('letter').",
+   "fix": "Render documentType as a `<select className=\"input\">` of the known document types (letter/contract/certificate) with a proper label, matching the app's select-based enum pattern."
+  },
+  {
+   "severity": "low",
+   "category": "rtl",
+   "line": 18,
+   "summary": "Document status/pending column uses `text-left` for alignment which fights the RTL layout instead of logical end alignment.",
+   "fix": "Use `text-end` (logical property) instead of `text-left` so alignment is correct under RTL."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 10,
+   "summary": "Multiple statements and hooks are collapsed onto a single line hurting readability and consistency with the rest of the codebase.",
+   "fix": "Split the `useState`, hook calls, and draft initialization onto separate lines for maintainability (formatting-only, no logic change)."
+  }
+ ]
+}

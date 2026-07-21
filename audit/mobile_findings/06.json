@@ -1,0 +1,54 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/executive_home_page.dart",
+ "findings": [
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 25,
+   "summary": "The dark hero uses a bespoke 3-stop hardcoded gradient and no brand mark, whereas the inverse BrandLogoMark exists precisely for dark branded headers like this.",
+   "fix": "Keep the gradient (it is a legitimate brand hero) but add a BrandLogoMark(inverse: true, size: 40) into the top Row (replacing or beside Icons.auto_graph_rounded) so the executive hero carries the association identity consistent with other branded headers."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 60,
+   "summary": "The hero badge text color Color(0xFFCDEEFF) is a hardcoded tint duplicating the accent brand tone instead of a named token.",
+   "fix": "Replace Color(0xFFCDEEFF) with a token-derived light-accent (reuse the brand accent 0xFF00A8D6 as a shared const) so the hero tint is centralized rather than a one-off literal."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 94,
+   "summary": "The three _ExecutiveQuickLink cards use vertical padding of only 14 with a 10px icon+label, yielding a tap target under the 44px minimum and carry no Semantics label for the icon-only visual.",
+   "fix": "Increase _ExecutiveQuickLink vertical padding (e.g. vertical: 18) to guarantee >=44px height, and wrap the InkWell in Semantics(button: true, label: label) so screen readers announce each shortcut."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 204,
+   "summary": "The 'بوصلة القرار' section uses data.maybeWhen with orElse: SizedBox.shrink(), so during loading and on error its header shows with no loader/error/retry, inconsistent with the metrics section above which handles all three states.",
+   "fix": "Replace maybeWhen(orElse: SizedBox.shrink()) with a full data.when providing the same Card-based loading spinner and error/retry states used for the metrics grid above, so the section header never renders with nothing beneath it."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 67,
+   "summary": "The decorative hero icon has no Semantics exclusion and no tooltip; as a purely decorative glyph it should be hidden from the a11y tree.",
+   "fix": "Wrap Icons.auto_graph_rounded in ExcludeSemantics since it is decorative and conveys no meaning beyond the adjacent 'الملخص التنفيذي' label."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 34,
+   "summary": "The hero container uses borderRadius 26, a bespoke value not part of the documented radius scale (card 20, chip 99) used elsewhere on the page.",
+   "fix": "Change the hero borderRadius from 26 to the design-system card radius 20 (or a single documented hero radius) to align with the established radius scale."
+  },
+  {
+   "severity": "low",
+   "category": "rtl",
+   "line": 279,
+   "summary": "_PriorityTile hardcodes trailing Icons.chevron_left_rounded as the RTL forward affordance rather than a direction-aware icon, which would point the wrong way if shown LTR.",
+   "fix": "Use a direction-aware disclosure icon (e.g. Icons.chevron_right_rounded that flips with Directionality) instead of a fixed chevron_left, so the affordance points correctly regardless of text direction."
+  }
+ ]
+}

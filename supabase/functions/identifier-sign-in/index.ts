@@ -1,0 +1,199 @@
+import { createClient } from '@supabase/supabase-js';
+import { json, preflight } from '../_shared/cors.ts';
+
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+const HASH_PEPPER = Deno.env.get('LOGIN_HASH_PEPPER') ?? '';
+
+const IP_WINDOW_MS = 60_000;
+const IP_MAX_ATTEMPTS = 10;
+const IDENTIFIER_WINDOW_MS = 5 * 60_000;
+const IDENTIFIER_MAX_ATTEMPTS = 6;
+
+type IdentifierKind = 'email' | 'phone' | 'employee_code';
+
+type NormalizedIdentifier = {
+  kind: IdentifierKind;
+  value: string;
+};
+
+function normalizeIdentifier(raw: string): NormalizedIdentifier {
+  const value = raw.trim();
+  if (value.includes('@')) {
+    return { kind: 'email', value: value.toLowerCase() };
+  }
+
+  const compact = value.replace(/[\s().-]/g, '');
+  if (/^\+?\d{7,15}$/.test(compact)) {
+    let phone = compact;
+    if (/^01\d{9}$/.test(phone)) phone = `+20${phone.slice(1)}`;
+    else if (/^20\d{10}$/.test(phone)) phone = `+${phone}`;
+    else if (!phone.startsWith('+')) phone = `+${phone}`;
+    return { kind: 'phone', value: phone };
+  }
+
+  return { kind: 'employee_code', value: value.toUpperCase() };
+}
+
+// ESI-02: only trust forwarded IP headers when a trusted upstream is declared.
+// TRUSTED_PROXY=1 (set only when the function sits behind a proxy/CDN that
+// overwrites these headers) enables header-based IP; otherwise fall back to a
+// constant bucket so a spoofed X-Forwarded-For cannot mint a fresh IP per
+// request. The per-identifier limit remains the primary brute-force control.
+const TRUST_FORWARDED_IP = (Deno.env.get('TRUSTED_PROXY') ?? '') === '1';
+
+function clientIp(req: Request): string {
+  if (TRUST_FORWARDED_IP) {
+    return req.headers.get('cf-connecting-ip')
+      ?? req.headers.get('x-real-ip')
+      ?? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      ?? 'unknown';
+  }
+  // Untrusted network: do not let attacker-controlled headers key the limiter.
+  return 'untrusted-network';
+}
+
+async function sha256(value: string): Promise<string> {
+  const bytes = new TextEncoder().encode(`${HASH_PEPPER}:${value}`);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function genericFailure(req: Request, status = 401) {
+  return json(req, { error: 'INVALID_CREDENTIALS' }, status);
+}
+
+// ESI-01: wait until a FIXED absolute deadline computed at request start, so a
+// heavier "identifier exists" path cannot leak its extra work as longer latency.
+// The deadline is generous enough to cover the exists-path work (lookup +
+// getUserById + bcrypt). If work somehow exceeds it, still return promptly (the
+// existence signal is bounded by the deadline, not amplified past it).
+async function waitUntil(deadlineAt: number) {
+  const remaining = deadlineAt - Date.now();
+  if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return preflight(req);
+  if (req.method !== 'POST') return json(req, { error: 'METHOD_NOT_ALLOWED' }, 405);
+  const startedAt = Date.now();
+  // Fixed absolute deadline set once per request (ESI-01): every credential
+  // outcome returns at ~this instant regardless of the work performed, so an
+  // "identifier exists" path cannot leak via longer latency.
+  const deadline = startedAt + 480 + Math.floor(Math.random() * 80);
+
+  if (!SUPABASE_URL || !SERVICE_ROLE || !ANON_KEY || HASH_PEPPER.length < 24) {
+    return json(req, { error: 'SERVER_CONFIGURATION' }, 500);
+  }
+
+  let identifier = '';
+  let password = '';
+  try {
+    const body = await req.json();
+    identifier = String(body?.identifier ?? '').trim().slice(0, 254);
+    password = String(body?.password ?? '').slice(0, 512);
+  } catch {
+    return json(req, { error: 'BAD_REQUEST' }, 400);
+  }
+
+  if (identifier.length < 2 || password.length < 8) {
+    await waitUntil(deadline);
+    return genericFailure(req);
+  }
+
+  const normalized = normalizeIdentifier(identifier);
+  const ip = clientIp(req);
+  const identifierHash = await sha256(`${normalized.kind}:${normalized.value}`);
+  const ipHash = await sha256(`ip:${ip}`);
+  const userAgentHash = await sha256(`ua:${req.headers.get('user-agent') ?? 'unknown'}`);
+
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const ipWindow = new Date(Date.now() - IP_WINDOW_MS).toISOString();
+  const identifierWindow = new Date(Date.now() - IDENTIFIER_WINDOW_MS).toISOString();
+  const [ipCountResult, identifierCountResult] = await Promise.all([
+    admin.from('login_auth_attempts').select('id', { count: 'exact', head: true }).eq('ip_hash', ipHash).gte('attempted_at', ipWindow),
+    admin.from('login_auth_attempts').select('id', { count: 'exact', head: true }).eq('identifier_hash', identifierHash).gte('attempted_at', identifierWindow),
+  ]);
+
+  if ((ipCountResult.count ?? 0) >= IP_MAX_ATTEMPTS || (identifierCountResult.count ?? 0) >= IDENTIFIER_MAX_ATTEMPTS) {
+    await admin.from('login_auth_attempts').insert({
+      identifier_hash: identifierHash,
+      ip_hash: ipHash,
+      identifier_kind: normalized.kind,
+      success: false,
+      failure_code: 'rate_limited',
+      user_agent_hash: userAgentHash,
+    });
+    await waitUntil(deadline);
+    return json(req, { error: 'TOO_MANY_ATTEMPTS' }, 429);
+  }
+
+  let resolvedEmail: string | null = null;
+  try {
+    if (normalized.kind === 'email') {
+      resolvedEmail = normalized.value;
+    } else {
+      let employeeQuery = admin.from('employees').select('id').limit(1);
+      employeeQuery = normalized.kind === 'phone'
+        ? employeeQuery.eq('phone_e164', normalized.value)
+        : employeeQuery.ilike('employee_code', normalized.value);
+      const { data: employee } = await employeeQuery.maybeSingle();
+      if (employee?.id) {
+        const { data: profile } = await admin
+          .from('profiles')
+          .select('id')
+          .eq('employee_id', employee.id)
+          .maybeSingle();
+        if (profile?.id) {
+          const { data: userResult } = await admin.auth.admin.getUserById(profile.id);
+          resolvedEmail = userResult.user?.email ?? null;
+        }
+      }
+    }
+
+    const publicAuth = createClient(SUPABASE_URL, ANON_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const fallbackEmail = `invalid-${identifierHash.slice(0, 24)}@invalid.local`;
+    const { data, error } = await publicAuth.auth.signInWithPassword({
+      email: resolvedEmail ?? fallbackEmail,
+      password,
+    });
+    const success = !error && Boolean(data.session?.access_token && data.session?.refresh_token);
+
+    await admin.from('login_auth_attempts').insert({
+      identifier_hash: identifierHash,
+      ip_hash: ipHash,
+      identifier_kind: normalized.kind,
+      success,
+      failure_code: success ? null : 'invalid_credentials',
+      user_agent_hash: userAgentHash,
+    });
+
+    await waitUntil(deadline);
+    if (!success || !data.session) return genericFailure(req);
+
+    return json(req, {
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+      expires_in: data.session.expires_in,
+      expires_at: data.session.expires_at,
+      token_type: data.session.token_type,
+    });
+  } catch {
+    await admin.from('login_auth_attempts').insert({
+      identifier_hash: identifierHash,
+      ip_hash: ipHash,
+      identifier_kind: normalized.kind,
+      success: false,
+      failure_code: 'internal_failure',
+      user_agent_hash: userAgentHash,
+    });
+    await waitUntil(deadline);
+    return genericFailure(req);
+  }
+});

@@ -1,0 +1,40 @@
+{
+ "file": "apps/admin_web/src/features/workspaces/DashboardPage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 85,
+   "summary": "No loading state is rendered while the overview query is fetching; when data is undefined and there is no error the metrics grid, pulse, priorities and scope sections all render empty/blank with zero feedback to the user.",
+   "fix": "Add a loading branch (e.g. after the hero, when query.isLoading show skeleton MetricCards or a 'جارٍ تحميل اللوحة…' placeholder consistent with the app's loading text pattern) so the dashboard body is not blank during fetch."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 75,
+   "summary": "The hero description uses the hardcoded Tailwind color class text-blue-100 instead of a design token, bypassing the token system used elsewhere.",
+   "fix": "Replace text-blue-100 with a token-based hero-foreground color (e.g. a dedicated CSS class like .hero-eyebrow already used above, or a token var) so the hero text color is centralized and theme-aware."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 85,
+   "summary": "The error state uses a full EmptyState card but the metrics/pulse/priorities sections still render below it (empty), producing an inconsistent error screen versus other pages that short-circuit the body on error.",
+   "fix": "When query.isError, return early after the hero + EmptyState (or hide the metric/pulse/priority sections) so only the error card shows, matching the app's error-handling pattern."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 94,
+   "summary": "The pulse progress bars convey their value only via bar width and a numeric badge with no ARIA progress semantics, so assistive tech reads them as decorative divs.",
+   "fix": "Add role=\"progressbar\" with aria-valuenow/aria-valuemin/aria-valuemax (and aria-label from item.label) to the .progress-track element so screen readers announce each pulse metric."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 80,
+   "summary": "Hero quick-action Links lack any aria-label/title and rely solely on visible text plus an icon; acceptable but the icon has no aria-hidden so it may be announced redundantly.",
+   "fix": "Add aria-hidden=\"true\" to the decorative <Icon> inside each hero-action (and in priority-item / pulse rows) to prevent redundant icon announcements."
+  }
+ ]
+}

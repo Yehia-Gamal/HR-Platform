@@ -1,0 +1,17 @@
+begin;
+select plan(14);
+select has_table('public','dispute_conflict_declarations','conflict declarations exist');
+select has_table('public','dispute_session_attendance','session attendance exists');
+select has_table('public','dispute_decisions','committee decisions exist');
+select has_table('public','dispute_appeals','dispute appeals exist');
+select has_table('public','dispute_actions','dispute action ledger exists');
+select has_function('public','create_my_dispute',array['text','text','text','uuid','text','boolean'],'self dispute intake exists');
+select has_function('public','cancel_my_dispute',array['uuid','text'],'pre-acceptance cancellation exists');
+select has_function('public','set_dispute_committee',array['uuid','jsonb'],'committee assignment exists');
+select has_function('public','finalize_dispute_session',array['uuid','text','jsonb','text'],'quorum session finalization exists');
+select has_function('public','issue_dispute_decision',array['uuid','uuid','text','text','text','uuid','timestamp with time zone'],'decision issue exists');
+select has_function('public','submit_dispute_appeal',array['uuid','text'],'appeal submission exists');
+select has_function('public','get_dispute_operations_catalog',array['text'],'admin dispute catalog exists');
+select has_function('public','get_my_dispute_portal',array[]::text[],'mobile dispute portal exists');
+select has_function('public','can_access_dispute',array['uuid'],'case access helper exists');
+select * from finish(); rollback;

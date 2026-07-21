@@ -1,0 +1,47 @@
+{
+ "file": "apps/admin_web/src/features/management/PeopleFinancePage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 8,
+   "summary": "Panel uses `children || <EmptyState/>` but children is always a (possibly empty) array from `.map`, and an empty array is truthy in JS, so a section with zero records renders as a blank card instead of showing the intended empty state.",
+   "fix": "Guard on length instead of truthiness, e.g. accept the mapped items as a prop and render `items.length ? items : <EmptyState .../>`, or check `React.Children.count(children) ? children : <EmptyState .../>` so empty sections show the shared EmptyState."
+  },
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 7,
+   "summary": "The loading state is a bespoke `<p className=\"muted\">جارٍ التحميل…</p>` rather than the app's shared LoadingScreen or a card/metric skeleton, which is inconsistent with the established loading pattern.",
+   "fix": "Render the shared LoadingScreen (`if (!q.data) return <LoadingScreen label=\"جارٍ تحميل القوى العاملة والمالية…\"/>`) or a skeleton grid matching the metric/panel layout instead of a plain paragraph."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 7,
+   "summary": "The error case reuses EmptyState (neutral empty styling) rather than an error/danger-styled banner, so a load failure looks visually identical to a normal 'no data' state.",
+   "fix": "Use the app's error banner convention (danger tokens: --danger/--danger-soft) or at least pass a distinct error EmptyState variant/action (e.g. retry) so failures read as errors, not emptiness."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 7,
+   "summary": "PageHeader is given only title/description and omits the `eyebrow`, unlike sibling management pages that use the eyebrow for section context.",
+   "fix": "Pass an eyebrow such as `eyebrow=\"الإدارة\"` (or the relevant module label) to PageHeader for consistency with other pages."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 8,
+   "summary": "Panel header font uses raw `font-black` on an `<h2>` without the shared card-header text-size/color tokens used elsewhere, so heading scale may drift from other card sections.",
+   "fix": "Align the Panel title with the standard card-section heading classes (e.g. `text-base font-black text-[var(--text-primary)]`) used by other panels/cards in the app."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 7,
+   "summary": "The 'المشاركة والسلف' panel concatenates two independent lists (campaigns then loans) into one flat divided list with no sub-grouping labels, making the two record types visually indistinguishable.",
+   "fix": "Either split into two Panels, or add a small group label/sub-header (or differing StatusBadge/icon) so campaign rows and loan rows are visually separable."
+  }
+ ]
+}

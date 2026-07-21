@@ -1,0 +1,143 @@
+import { z } from 'zod';
+
+const uuid = z.string().uuid();
+
+export const organizationAdminCatalogSchema = z.object({
+  entities: z.array(z.object({ id: uuid, code: z.string(), name: z.string(), active: z.boolean() })),
+  branches: z.array(z.object({ id: uuid, entityId: uuid, code: z.string(), name: z.string(), active: z.boolean() })),
+  departments: z.array(z.object({
+    id: uuid,
+    entityId: uuid,
+    branchId: uuid.nullable(),
+    parentId: uuid.nullable(),
+    managerId: uuid.nullable(),
+    code: z.string(),
+    name: z.string(),
+    nameEn: z.string().nullable(),
+    active: z.boolean(),
+    employeeCount: z.number(),
+    positionCount: z.number(),
+  })),
+  teams: z.array(z.object({
+    id: uuid,
+    departmentId: uuid,
+    parentId: uuid.nullable(),
+    leadId: uuid.nullable(),
+    code: z.string(),
+    name: z.string(),
+    active: z.boolean(),
+    employeeCount: z.number(),
+  })),
+  positions: z.array(z.object({
+    id: uuid,
+    departmentId: uuid,
+    teamId: uuid.nullable(),
+    jobTitleId: uuid.nullable(),
+    gradeId: uuid.nullable(),
+    reportsToId: uuid.nullable(),
+    code: z.string(),
+    name: z.string(),
+    nameEn: z.string().nullable(),
+    headcount: z.number(),
+    active: z.boolean(),
+    assignedCount: z.number(),
+  })),
+  employees: z.array(z.object({
+    id: uuid,
+    code: z.string(),
+    name: z.string(),
+    departmentId: uuid.nullable(),
+    teamId: uuid.nullable(),
+    positionId: uuid.nullable(),
+    active: z.boolean(),
+  })),
+  jobTitles: z.array(z.object({ id: uuid, name: z.string(), active: z.boolean() })),
+  grades: z.array(z.object({ id: uuid, name: z.string(), level: z.number(), active: z.boolean() })),
+  lastUpdatedAt: z.string(),
+});
+export type OrganizationAdminCatalog = z.infer<typeof organizationAdminCatalogSchema>;
+
+export const accessAdminCatalogSchema = z.object({
+  roles: z.array(z.object({
+    id: uuid,
+    slug: z.string(),
+    name: z.string(),
+    nameEn: z.string().nullable(),
+    description: z.string().nullable(),
+    color: z.string().nullable(),
+    icon: z.string().nullable(),
+    system: z.boolean(),
+    fullAccess: z.boolean(),
+    assignments: z.number(),
+    permissions: z.array(z.object({
+      permissionId: uuid,
+      code: z.string(),
+      name: z.string(),
+      scope: z.string(),
+      requiresMfa: z.boolean(),
+      requiresReason: z.boolean(),
+    })),
+  })),
+  permissions: z.array(z.object({
+    id: uuid,
+    code: z.string(),
+    module: z.string(),
+    resource: z.string().nullable(),
+    action: z.string().nullable(),
+    name: z.string(),
+    description: z.string().nullable(),
+    riskLevel: z.string(),
+    sensitive: z.boolean(),
+    allowedScopes: z.array(z.string()),
+  })),
+  users: z.array(z.object({
+    userId: uuid,
+    employeeId: uuid.nullable(),
+    name: z.string(),
+    employeeCode: z.string().nullable(),
+    status: z.string(),
+    roles: z.array(z.object({
+      roleId: uuid,
+      slug: z.string(),
+      name: z.string(),
+      effectiveFrom: z.string(),
+      effectiveTo: z.string().nullable(),
+      scopeOverride: z.unknown().nullable(),
+    })),
+  })),
+  lastUpdatedAt: z.string(),
+});
+export type AccessAdminCatalog = z.infer<typeof accessAdminCatalogSchema>;
+
+export const onboardingAdminCatalogSchema = z.object({
+  journeys: z.array(z.object({
+    id: uuid,
+    employeeId: uuid,
+    employeeName: z.string(),
+    employeeCode: z.string(),
+    startedAt: z.string().nullable(),
+    probationEnd: z.string().nullable(),
+    status: z.string(),
+    progress: z.number(),
+    totalTasks: z.number(),
+    completedTasks: z.number(),
+    tasks: z.array(z.object({
+      id: uuid,
+      title: z.string(),
+      ownerRole: z.string().nullable(),
+      assigneeId: uuid.nullable(),
+      dueOffsetDays: z.number().nullable(),
+      status: z.string(),
+      completedAt: z.string().nullable(),
+    })),
+  })),
+  eligibleEmployees: z.array(z.object({
+    id: uuid,
+    name: z.string(),
+    code: z.string(),
+    status: z.string(),
+    probationEnd: z.string().nullable(),
+  })),
+  lastUpdatedAt: z.string(),
+});
+export type OnboardingAdminCatalog = z.infer<typeof onboardingAdminCatalogSchema>;

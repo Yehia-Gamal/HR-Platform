@@ -1,0 +1,61 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/manager_operations_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 66,
+   "summary": "The header gradient hardcodes the accent hex Color(0xFF00A8D6) instead of reading the theme accent color.",
+   "fix": "Replace const Color(0xFF00A8D6) with scheme.secondary so the gradient tracks the theme accent (and dark-theme variants) like the rest of the design system."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 409,
+   "summary": "_StatusBadge is a bespoke radius-99 status chip that duplicates MobileStatusPill's visual treatment, risking drift from the shared pill styling.",
+   "fix": "Either add the roster statuses (scheduled/rest/holiday/leave/mission) to MobileStatusPill's map and use it here, or keep _StatusBadge but source its padding/radius/weight from the same constants MobileStatusPill uses to stay in sync."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 32,
+   "summary": "The error state icon and layout are plain (default icon color, no brand context) and inconsistent with the polished gradient/brand header shown on the data state.",
+   "fix": "Give the error Icon an explicit color (e.g. Theme.of(context).colorScheme.error) and consider a BrandLogoMark or MobileSectionHeader for visual consistency with the loaded page; also add AlwaysScrollableScrollPhysics so pull-to-refresh works while erroring."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 26,
+   "summary": "The loading state relies on a hardcoded SizedBox(height: 230) to vertically center the spinner, which is brittle across screen sizes and lacks AlwaysScrollableScrollPhysics for the enclosing RefreshIndicator.",
+   "fix": "Use a centered layout that doesn't depend on a magic height (e.g. a Center within a SizedBox tied to screen height or a shimmer skeleton) and add physics: const AlwaysScrollableScrollPhysics() to the loading ListView."
+  },
+  {
+   "severity": "low",
+   "category": "spacing",
+   "line": 206,
+   "summary": "Card inner padding is inconsistent across sections: calendar cards use fromLTRB(14,14,14,8) while task/document ListTiles use EdgeInsets.all(15) and reports use symmetric(16,5).",
+   "fix": "Standardize card content padding across the four sections (e.g. 16 horizontal like the reports ListTile) so cards read as one system."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 318,
+   "summary": "The reports row uses a chevron_left_rounded trailing icon as the only affordance for a tappable navigation ListTile with no Semantics label describing the action.",
+   "fix": "Wrap the trailing icon in a Semantics label (e.g. 'عرض تقارير الموظف') or add a tooltip so screen readers announce the navigation target."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 403,
+   "summary": "_dayColor uses hardcoded hex values; 0xFF0F9F6E/0xFF6D56D9 match the shared status palette but 0xFF0B4FA2 (leave) and 0xFF68758A (default) duplicate brand/neutral tokens as literals.",
+   "fix": "Confirm these belong to the intentional shared status palette; if not, source the brand color from Theme.of(context).colorScheme.primary and the neutral from onSurfaceVariant instead of hex literals."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 68,
+   "summary": "The header container uses borderRadius 24 while the design system card radius is 20, making this hero card slightly out of step with other cards on the page.",
+   "fix": "Use BorderRadius.circular(20) to match the established card radius unless an intentionally larger hero radius is a documented pattern."
+  }
+ ]
+}

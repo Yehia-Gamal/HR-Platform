@@ -1,0 +1,300 @@
+import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+
+class PasskeyDevicesPage extends ConsumerStatefulWidget {
+  const PasskeyDevicesPage({super.key});
+
+  @override
+  ConsumerState<PasskeyDevicesPage> createState() => _PasskeyDevicesPageState();
+}
+
+class _PasskeyDevicesPageState extends ConsumerState<PasskeyDevicesPage> {
+  String? _workingId;
+  bool _registering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final devices = ref.watch(myPasskeysProvider);
+    return Scaffold(
+      appBar: AppBar(title: const Text('أجهزة البصمة الموثوقة')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _registering ? null : _register,
+        icon: _registering
+            ? const SizedBox.square(
+                dimension: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.add_moderator_outlined),
+        label: const Text('تسجيل هذا الجهاز'),
+      ),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: () async => ref.invalidate(myPasskeysProvider),
+          child: devices.when(
+            loading: () => ListView(
+              children: [
+                SizedBox(height: 260),
+                Center(child: CircularProgressIndicator()),
+              ],
+            ),
+            error: (error, _) => ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                _InfoCard(
+                  icon: Icons.error_outline,
+                  title: 'تعذر تحميل الأجهزة',
+                  body: 'تحقق من الاتصال وأعد المحاولة.',
+                ),
+              ],
+            ),
+            data: (items) => _body(items),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _body(List<PasskeyDevice> items) {
+    if (items.isEmpty) {
+      return ListView(
+        padding: const EdgeInsets.all(20),
+        children: const [
+          _InfoCard(
+            icon: Icons.phonelink_lock_outlined,
+            title: 'لا توجد أجهزة مسجلة',
+            body:
+                'سجل هذا الهاتف لاستخدام قفل الشاشة أو البصمة في إثبات الحضور.',
+          ),
+        ],
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+      itemCount: items.length + 1,
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return const _InfoCard(
+            icon: Icons.security_outlined,
+            title: 'إدارة آمنة للأجهزة',
+            body:
+                'ألغِ أي جهاز فقدته أو لم تعد تستخدمه. إلغاء الجهاز لا يكشف بيانات البصمة ولا يحذف سجل الحضور السابق.',
+          );
+        }
+        final device = items[index - 1];
+        return _DeviceCard(
+          device: device,
+          working: _workingId == device.id,
+          onRevoke: device.status == 'active' ? () => _revoke(device) : null,
+        );
+      },
+    );
+  }
+
+  Future<void> _register() async {
+    setState(() => _registering = true);
+    try {
+      await ref.read(mobileCommandsProvider).registerPasskey();
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تم تسجيل الجهاز بنجاح.')));
+      }
+    } catch (error) {
+      if (mounted) {
+        final msg = error.toString();
+        final text = msg.contains('cancelled')
+            ? 'تم إلغاء التحقق بالبصمة.'
+            : msg.contains('الجهاز لا يدعم')
+                ? 'جهازك لا يدعم التحقق بالبصمة.'
+                : 'تعذر تسجيل الجهاز. أعد المحاولة.';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(text)));
+      }
+    } finally {
+      if (mounted) setState(() => _registering = false);
+    }
+  }
+
+  Future<void> _revoke(PasskeyDevice device) async {
+    final reasonController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('إلغاء الجهاز الموثوق'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('سيتم منع ${device.deviceLabel} من إثبات الحضور مستقبلًا.'),
+            const SizedBox(height: 14),
+            TextField(
+              controller: reasonController,
+              maxLength: 240,
+              decoration: const InputDecoration(
+                labelText: 'سبب الإلغاء',
+                hintText: 'مثال: تم تغيير الهاتف أو فقد الجهاز',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('تراجع'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('إلغاء الجهاز'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _workingId = device.id);
+    try {
+      await ref
+          .read(mobileCommandsProvider)
+          .revokePasskey(device.id, reasonController.text);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تم إلغاء الجهاز.')));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تعذر إلغاء الجهاز. أعد المحاولة.')));
+      }
+    } finally {
+      reasonController.dispose();
+      if (mounted) setState(() => _workingId = null);
+    }
+  }
+}
+
+class _DeviceCard extends StatelessWidget {
+  const _DeviceCard({
+    required this.device,
+    required this.working,
+    required this.onRevoke,
+  });
+
+  final PasskeyDevice device;
+  final bool working;
+  final VoidCallback? onRevoke;
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = DateFormat('d MMMM y، h:mm a', 'ar');
+    final active = device.status == 'active';
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  child: Icon(
+                    active ? Icons.phonelink_lock : Icons.mobile_off_outlined,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        device.deviceLabel,
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      Text(active ? 'نشط' : 'ملغي'),
+                    ],
+                  ),
+                ),
+                if (device.trusted)
+                  const Tooltip(
+                    message: 'موثوق من الخادم',
+                    child: Icon(Icons.verified_user_outlined),
+                  ),
+              ],
+            ),
+            const Divider(height: 24),
+            Text('أضيف: ${formatter.format(device.createdAt.toLocal())}'),
+            Text(
+              device.lastUsedAt == null
+                  ? 'لم يُستخدم بعد'
+                  : 'آخر استخدام: ${formatter.format(device.lastUsedAt!.toLocal())}',
+            ),
+            if (device.backedUp)
+              const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: Text('المفتاح مدعوم بواسطة مزود الجهاز'),
+              ),
+            if (onRevoke != null) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: working ? null : onRevoke,
+                icon: working
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.block_outlined),
+                label: const Text('إلغاء هذا الجهاز'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  const _InfoCard({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 30),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 6),
+                Text(body),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}

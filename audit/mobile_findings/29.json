@@ -1,0 +1,61 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_profile_page.dart",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "consistency",
+   "line": 151,
+   "summary": "The header status uses a bespoke Chip with a private _status() label map instead of the shared MobileStatusPill, which already maps 'active'/'suspended' and applies the shared status color palette.",
+   "fix": "Replace `Chip(label: Text(_status(item.status)))` with `MobileStatusPill(item.status)` and delete the duplicated _status() helper; add the missing states ('onboarding','notice_period','terminated') to MobileStatusPill's switch so labels/colors stay consistent app-wide."
+  },
+  {
+   "severity": "high",
+   "category": "consistency",
+   "line": 177,
+   "summary": "Section titles in _InfoSection/_DocumentsSection/_AssetsSection are hand-styled with `TextStyle(fontSize: 17, fontWeight: w900)` instead of reusing MobileSectionHeader, so they diverge from the app-wide header style/spacing.",
+   "fix": "Replace the three inline title Texts (lines 177-180, 238-241, 279-282) with `MobileSectionHeader(title: ...)`, moving the count into a subtitle or the title string, to match every other page."
+  },
+  {
+   "severity": "medium",
+   "category": "rtl",
+   "line": 46,
+   "summary": "Navigation ListTiles use `Icons.chevron_left` (non-rounded, hardcoded direction) while every other page in the app uses `Icons.chevron_left_rounded`, breaking rounded-icon consistency.",
+   "fix": "Change the four `Icons.chevron_left` (lines 46, 60, 74, 90) to `Icons.chevron_left_rounded` to match manager_home_page, executive_home_page, etc."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 256,
+   "summary": "Document status is rendered as plain trailing Text ('منتهي'/'ساري') with no color coding, instead of MobileStatusPill which would surface expired documents in the shared error/success palette.",
+   "fix": "Replace `trailing: Text(item.status == 'expired' ? 'منتهي' : 'ساري')` with `MobileStatusPill(item.status == 'expired' ? 'rejected' : 'active')` (or add an 'expired' case to the pill) so expiry is visually flagged."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 28,
+   "summary": "The error state is a single centered Text with no icon or retry affordance, inconsistent with a polished error state and giving the user no way to recover other than pull-to-refresh.",
+   "fix": "Replace with a centered column: an error icon (Icons.error_outline, color scheme.error), the message, and a `FilledButton`/`TextButton` that calls `ref.invalidate(mobileProfileProvider)` to retry."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 243,
+   "summary": "Empty states for documents and assets are bare Text lines with no icon or muted styling, reading as unfinished next to the app's other empty states.",
+   "fix": "Wrap the empty Text (lines 244 and 285) with a small centered placeholder (muted icon + onSurfaceVariant text) or at minimum style it with `Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)` for consistency."
+  },
+  {
+   "severity": "low",
+   "category": "responsive",
+   "line": 217,
+   "summary": "The info-row trailing value is a fixed `SizedBox(width: 160)`, which can clip long values (e.g. long manager names, worksite) on narrow screens and wastes space on wide ones.",
+   "fix": "Use `Flexible`/`Expanded` for the value or move to a Row with `Expanded` label + `Flexible` value instead of a hardcoded 160px width so text wraps/ellipsizes responsively."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 18,
+   "summary": "The profile app bar and loading/error/empty states show no BrandLogoMark, unlike other primary pages that surface the association brand in headers.",
+   "fix": "Add a `BrandLogoMark` to the AppBar (e.g. as a leading or actions widget) and/or the empty header area to keep brand presence consistent with the rest of the app."
+  }
+ ]
+}

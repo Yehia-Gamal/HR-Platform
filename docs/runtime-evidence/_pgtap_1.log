@@ -1,0 +1,78 @@
+Connecting to local database...
+psql:/Coder/HR/HR_Platform_2/supabase/tests/0001_core_security_structure.sql:2: NOTICE:  extension "pgtap" already exists, skipping
+/Coder/HR/HR_Platform_2/supabase/tests/0001_core_security_structure.sql ........................ ok
+psql:/Coder/HR/HR_Platform_2/supabase/tests/0002_foundation_contracts.sql:27: ERROR:  function table_has_rls(unknown, unknown, unknown) does not exist
+LINE 1: select table_has_rls('public', 'employees', 'employees has R...
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+/Coder/HR/HR_Platform_2/supabase/tests/0002_foundation_contracts.sql ........................... 
+Dubious, test returned 3 (wstat 768, 0x300)
+Failed 3/8 subtests 
+/Coder/HR/HR_Platform_2/supabase/tests/0003_operational_workspaces.sql ......................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0004_management_overviews.sql ........................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0005_live_location_flow.sql ............................. ok
+/Coder/HR/HR_Platform_2/supabase/tests/0006_request_self_service.sql ........................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0007_kpi_attendance_mobile.sql .......................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0008_mobile_details_routing.sql ......................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0009_mobile_daily_workspaces.sql ........................ ok
+/Coder/HR/HR_Platform_2/supabase/tests/0010_passkey_revoke_attendance_history.sql .............. ok
+/Coder/HR/HR_Platform_2/supabase/tests/0011_mobile_notifications_contract.sql .................. ok
+/Coder/HR/HR_Platform_2/supabase/tests/0012_passkey_mobile_action_security.sql ................. ok
+/Coder/HR/HR_Platform_2/supabase/tests/0013_admin_operations.sql ............................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0014_leave_ledger_contract.sql .......................... 
+# Failed test 12: "SLA only service role"
+#     Missing privileges:
+#         EXECUTE
+# Looks like you failed 1 test of 12
+Failed 1/12 subtests 
+/Coder/HR/HR_Platform_2/supabase/tests/0015_decision_lifecycle_contract.sql .................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0016_attendance_operations_contract.sql ................. ok
+/Coder/HR/HR_Platform_2/supabase/tests/0017_kpi_advanced_contract.sql .......................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0018_dispute_committee_contract.sql ..................... ok
+/Coder/HR/HR_Platform_2/supabase/tests/0019_lifecycle_contract.sql ............................. 
+# Failed test 6: "document register exists"
+# Failed test 7: "asset save exists"
+# Failed test 8: "asset assignment exists"
+# Failed test 9: "asset return exists"
+# Failed test 10: "offboarding start exists"
+# Failed test 11: "offboarding approval exists"
+# Looks like you failed 6 tests of 12
+Failed 6/12 subtests 
+/Coder/HR/HR_Platform_2/supabase/tests/0020_enterprise_talent_learning_contract.sql ............ ok
+/Coder/HR/HR_Platform_2/supabase/tests/0021_enterprise_management_modules.sql .................. ok
+/Coder/HR/HR_Platform_2/supabase/tests/0022_workforce_payroll_engagement_contract.sql .......... ok
+psql:/Coder/HR/HR_Platform_2/supabase/tests/0023_retention_privacy_contract.sql:7: ERROR:  function row_security_is_enabled(unknown, unknown, unknown) does not exist
+LINE 1: select row_security_is_enabled('public','live_location_video...
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+/Coder/HR/HR_Platform_2/supabase/tests/0023_retention_privacy_contract.sql ..................... 
+Dubious, test returned 3 (wstat 768, 0x300)
+Failed 6/10 subtests 
+/Coder/HR/HR_Platform_2/supabase/tests/0024_release_access_privacy_integration_governance.sql .. 
+# Looks like you planned 24 tests but ran 21
+Failed 3/24 subtests 
+/Coder/HR/HR_Platform_2/supabase/tests/0025_identifier_login_security.sql ...................... 
+# Looks like you planned 7 tests but ran 6
+Failed 1/7 subtests 
+/Coder/HR/HR_Platform_2/supabase/tests/0026_release_0_10_contract.sql .......................... ok
+
+Test Summary Report
+-------------------
+/Coder/HR/HR_Platform_2/supabase/tests/0002_foundation_contracts.sql                         (Wstat: 768 (exited 3) Tests: 5 Failed: 0)
+  Non-zero exit status: 3
+  Parse errors: Bad plan.  You planned 8 tests but ran 5.
+/Coder/HR/HR_Platform_2/supabase/tests/0014_leave_ledger_contract.sql                        (Wstat: 0 Tests: 12 Failed: 1)
+  Failed test:  12
+/Coder/HR/HR_Platform_2/supabase/tests/0019_lifecycle_contract.sql                           (Wstat: 0 Tests: 12 Failed: 6)
+  Failed tests:  6-11
+/Coder/HR/HR_Platform_2/supabase/tests/0023_retention_privacy_contract.sql                   (Wstat: 768 (exited 3) Tests: 4 Failed: 0)
+  Non-zero exit status: 3
+  Parse errors: Bad plan.  You planned 10 tests but ran 4.
+/Coder/HR/HR_Platform_2/supabase/tests/0024_release_access_privacy_integration_governance.sql (Wstat: 0 Tests: 21 Failed: 0)
+  Parse errors: Bad plan.  You planned 24 tests but ran 21.
+/Coder/HR/HR_Platform_2/supabase/tests/0025_identifier_login_security.sql                    (Wstat: 0 Tests: 6 Failed: 0)
+  Parse errors: Bad plan.  You planned 7 tests but ran 6.
+Files=26, Tests=275,  2 wallclock secs ( 0.19 usr  0.11 sys +  0.47 cusr  0.24 csys =  1.01 CPU)
+Result: FAIL
+error running container: exit 1
+PGTAP_1_EXIT=1

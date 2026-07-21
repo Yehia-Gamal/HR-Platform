@@ -1,0 +1,170 @@
+import type { ReactNode } from 'react';
+import type { WorkspaceId } from '@ahla/shared-contracts';
+import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { LoadingScreen } from '../ui/LoadingScreen';
+import { useAuth } from '../features/auth/AuthProvider';
+import { LoginPage } from '../features/auth/LoginPage';
+import { isPasswordRecoveryLocation, PasswordSetupPage } from '../features/auth/PasswordSetupPage';
+import { MobileRedirectPage } from '../features/auth/MobileRedirectPage';
+import { WebReleaseCheckError, WebReleaseStatusPage } from '../features/auth/WebReleaseStatusPage';
+import { useRegisterWebDevice, useWebReleasePolicy } from '../features/auth/useWebReleasePolicy';
+import { CreateEmployeePage } from '../features/employees/CreateEmployeePage';
+import { EmployeeDetailPage } from '../features/employees/EmployeeDetailPage';
+import { EmployeesPage } from '../features/employees/EmployeesPage';
+import { DashboardPage } from '../features/workspaces/DashboardPage';
+import { ActionCenterPage } from '../features/actions/ActionCenterPage';
+import { AccessPage } from '../features/management/AccessPage';
+import { OrganizationPage } from '../features/management/OrganizationPage';
+import { RecruitmentPage } from '../features/management/RecruitmentPage';
+import { ReportsPage } from '../features/management/ReportsPage';
+import { SystemPage } from '../features/management/SystemPage';
+import { NotificationsPage } from '../features/notifications/NotificationsPage';
+import { OnboardingPage } from '../features/management/OnboardingPage';
+import { AttendancePage } from '../features/attendance/AttendancePage';
+import { OfficialFeedPage } from '../features/communications/OfficialFeedPage';
+import { PerformancePage } from '../features/performance/PerformancePage';
+import { RequestsPage } from '../features/requests/RequestsPage';
+import { firstWebWorkspace, hasPermission } from '../features/workspaces/access';
+import { WorkspaceShell } from '../features/workspaces/WorkspaceShell';
+import { AttendanceOperationsPage } from '../features/advanced/AttendanceOperationsPage';
+import { KpiCyclesPage } from '../features/advanced/KpiCyclesPage';
+import { DisputesPage } from '../features/advanced/DisputesPage';
+import { LifecycleOperationsPage } from '../features/advanced/LifecycleOperationsPage';
+import { LearningPage } from '../features/management/LearningPage';
+import { DocumentStudioPage } from '../features/management/DocumentStudioPage';
+import { ReportSchedulerPage } from '../features/management/ReportSchedulerPage';
+import { EnterpriseManagementPage } from '../features/management/EnterpriseManagementPage';
+import { PeopleFinancePage } from '../features/management/PeopleFinancePage';
+import { ReleaseGovernancePage } from '../features/management/ReleaseGovernancePage';
+import { AuditSecurityPage } from '../features/management/AuditSecurityPage';
+import { IntegrationsJobsPage } from '../features/management/IntegrationsJobsPage';
+import { LiveLocationPage } from '../features/management/LiveLocationPage';
+import { ExecutiveMonitoringPage } from '../features/management/ExecutiveMonitoringPage';
+import { OperationsCenterPage } from '../features/management/OperationsCenterPage';
+import { ServiceDeskPage } from '../features/management/ServiceDeskPage';
+
+export function App() {
+  const auth = useAuth();
+  const release = useWebReleasePolicy();
+  useRegisterWebDevice();
+
+  // Mobile deep-link redirect — no auth required, shown before any other check.
+  if (window.location.pathname === '/mobile-redirect') return <MobileRedirectPage />;
+
+  if (release.isLoading) return <LoadingScreen />;
+  if (release.isError) return <WebReleaseCheckError message={release.error instanceof Error ? release.error.message : 'تعذر الاتصال'} onRetry={() => void release.refetch()} />;
+  if (release.data && ['maintenance','update_required','blocked'].includes(release.data.action)) return <WebReleaseStatusPage policy={release.data} onRetry={() => void release.refetch()} />;
+
+  if (isPasswordRecoveryLocation()) return <PasswordSetupPage />;
+
+  if (auth.status === 'loading') return <LoadingScreen />;
+  if (auth.status === 'anonymous' || !auth.access) return <LoginPage />;
+
+  const defaultWorkspace = firstWebWorkspace(auth.access);
+  if (!defaultWorkspace) {
+    return (
+      <main className="grid min-h-screen place-items-center p-6">
+        <section className="card max-w-lg p-7 text-center">
+          <h1 className="text-xl font-bold">لا توجد مساحة ويب مصرح بها</h1>
+          <p className="muted mt-2 leading-7">هذا الحساب مخصص لتطبيق Flutter أو لا يملك مساحة ويب إدارية مصرحًا بها.</p>
+          <button className="mt-5 rounded-xl bg-brand px-4 py-2.5 font-bold text-white" onClick={() => void auth.signOut()}>تسجيل الخروج</button>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to={workspacePath(defaultWorkspace)} replace />} />
+
+      <Route element={<WorkspaceGuard workspace="hr" />}>
+        <Route path="/hr" element={<WorkspaceShell workspace="hr" />}>
+          <Route index element={<DashboardPage type="hr" />} />
+          <Route path="employees" element={<RequirePermission perm="people.employee.read"><EmployeesPage /></RequirePermission>} />
+          <Route path="employees/new" element={<RequirePermission perm="people.employee.manage"><CreateEmployeePage /></RequirePermission>} />
+          <Route path="employees/:employeeId" element={<RequirePermission perm="people.employee.read"><EmployeeDetailPage /></RequirePermission>} />
+          <Route path="attendance" element={<RequirePermission perm="attendance.record.read"><AttendancePage /></RequirePermission>} />
+          <Route path="attendance/operations" element={<RequirePermission perm="attendance.roster.read"><AttendanceOperationsPage /></RequirePermission>} />
+          <Route path="requests" element={<RequirePermission perm="requests.request.read"><RequestsPage /></RequirePermission>} />
+          <Route path="performance" element={<RequirePermission perm="performance.kpi.read"><PerformancePage /></RequirePermission>} />
+          <Route path="recruitment" element={<RequirePermission perm="recruitment.requisition.read"><RecruitmentPage /></RequirePermission>} />
+          <Route path="onboarding" element={<RequirePermission perm="onboarding.journey.read"><OnboardingPage /></RequirePermission>} />
+          <Route path="reports" element={<RequirePermission perm="reports.people.read"><ReportsPage /></RequirePermission>} />
+          <Route path="learning" element={<RequirePermission perm="learning.course.manage"><LearningPage /></RequirePermission>} />
+          <Route path="documents/studio" element={<RequirePermission perm="documents.template.manage"><DocumentStudioPage /></RequirePermission>} />
+          <Route path="lifecycle" element={<RequirePermission perm="documents.employee.read"><LifecycleOperationsPage /></RequirePermission>} />
+          <Route path="official-feed" element={<OfficialFeedPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
+        </Route>
+      </Route>
+
+      <Route element={<WorkspaceGuard workspace="main_admin" />}>
+        <Route path="/admin" element={<WorkspaceShell workspace="main_admin" />}>
+          <Route index element={<DashboardPage type="admin" />} />
+          <Route path="actions" element={<ActionCenterPage />} />
+          <Route path="live-location" element={<RequirePermission perm="live_location.request"><LiveLocationPage /></RequirePermission>} />
+          <Route path="live-location/monitoring" element={<RequirePermission perm="live_location.request"><ExecutiveMonitoringPage /></RequirePermission>} />
+          <Route path="official-feed" element={<RequirePermission perm="comms.announcement.manage"><OfficialFeedPage /></RequirePermission>} />
+          <Route path="organization" element={<OrganizationPage />} />
+          <Route path="performance/cycles" element={<RequirePermission perm="performance.cycle.manage"><KpiCyclesPage /></RequirePermission>} />
+          <Route path="disputes" element={<RequirePermission perm="relations.case.manage"><DisputesPage /></RequirePermission>} />
+          <Route path="lifecycle" element={<RequirePermission perm="assets.inventory.manage"><LifecycleOperationsPage /></RequirePermission>} />
+          <Route path="access" element={<RequirePermission perm="access.role.read"><AccessPage /></RequirePermission>} />
+          <Route path="settings" element={<RequirePermission perm="system.settings.read"><SystemPage /></RequirePermission>} />
+          <Route path="governance" element={<RequirePermission perm="system.release.read"><ReleaseGovernancePage /></RequirePermission>} />
+          <Route path="documents/studio" element={<RequirePermission perm="documents.template.manage"><DocumentStudioPage /></RequirePermission>} />
+          <Route path="reports/scheduler" element={<RequirePermission perm="reports.schedule.manage"><ReportSchedulerPage /></RequirePermission>} />
+          <Route path="enterprise" element={<EnterpriseManagementPage />} />
+          <Route path="operations" element={<RequirePermission perm="tasks.read"><OperationsCenterPage /></RequirePermission>} />
+          <Route path="helpdesk" element={<RequirePermission perm="service.request.manage"><ServiceDeskPage /></RequirePermission>} />
+          <Route path="people-finance" element={<PeopleFinancePage />} />
+          <Route path="audit-security" element={<RequirePermission perm="audit.view"><AuditSecurityPage /></RequirePermission>} />
+          <Route path="integrations" element={<RequirePermission perm="system.integration.view"><IntegrationsJobsPage /></RequirePermission>} />
+          <Route path="notifications" element={<NotificationsPage />} />
+        </Route>
+      </Route>
+
+      <Route element={<WorkspaceGuard workspace="committee" />}>
+        <Route path="/committee" element={<WorkspaceShell workspace="committee" />}>
+          <Route index element={<RequirePermission perm="disputes.portal.access"><DisputesPage /></RequirePermission>} />
+          <Route path="disputes" element={<RequirePermission perm="disputes.portal.access"><DisputesPage /></RequirePermission>} />
+          <Route path="notifications" element={<NotificationsPage />} />
+        </Route>
+      </Route>
+
+      <Route path="*" element={<Navigate to={workspacePath(defaultWorkspace)} replace />} />
+    </Routes>
+  );
+}
+
+function WorkspaceGuard({ workspace }: { workspace: WorkspaceId }) {
+  const auth = useAuth();
+  if (!auth.access?.workspaces.includes(workspace)) {
+    const fallback = firstWebWorkspace(auth.access!);
+    return <Navigate to={workspacePath(fallback ?? 'hr')} replace />;
+  }
+  return <Outlet />;
+}
+
+function workspacePath(workspace: WorkspaceId) {
+  if (workspace === 'main_admin') return '/admin';
+  if (workspace === 'committee') return '/committee';
+  return '/hr';
+}
+
+// CTB-01: per-route permission guard so deep-linking a page requires the same
+// permission the sidebar uses to show it. Defense-in-depth over server RLS/RPC —
+// the server remains the source of truth; this stops the page from mounting and
+// firing its reads for a user who lacks the permission.
+function RequirePermission({ perm, children }: { perm: string; children: ReactNode }) {
+  const auth = useAuth();
+  if (!auth.access || !hasPermission(auth.access, perm)) {
+    return (
+      <section className="card m-6 max-w-lg p-7 text-center">
+        <h1 className="text-lg font-bold">لا تملك صلاحية الوصول</h1>
+        <p className="muted mt-2 leading-7">هذه الصفحة تتطلب صلاحية غير متاحة لحسابك.</p>
+      </section>
+    );
+  }
+  return <>{children}</>;
+}

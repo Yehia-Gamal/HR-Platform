@@ -1,0 +1,15 @@
+begin;
+select plan(12);
+select has_table('public','offboarding_cases','offboarding cases exist');
+select has_table('public','offboarding_clearance_items','clearance items exist');
+select has_table('public','knowledge_transfer_items','knowledge transfer exists');
+select has_table('public','offboarding_actions','offboarding action ledger exists');
+select has_table('public','document_access_logs','document access logs exist');
+select has_function('public','register_employee_document_admin',array['uuid','text','text','text','text','date','date','text','text','bigint'],'document register exists');
+select has_function('public','save_asset_admin',array['uuid','text','text','text','text','text','text','text'],'asset save exists');
+select has_function('public','assign_asset_admin',array['uuid','uuid','text','text','text'],'asset assignment exists');
+select has_function('public','return_asset_admin',array['uuid','text','text','text'],'asset return exists');
+select has_function('public','start_offboarding_case',array['uuid','text','text','date','date','uuid','jsonb'],'offboarding start exists');
+select has_function('public','approve_offboarding_case',array['uuid','text','text'],'offboarding approval exists');
+select has_function('public','get_my_offboarding_portal',array[]::text[],'mobile offboarding portal exists');
+select * from finish(); rollback;

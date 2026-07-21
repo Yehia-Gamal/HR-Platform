@@ -1,0 +1,15 @@
+begin;
+select plan(12);
+select has_table('public','leave_balance_accounts','leave balance accounts exist');
+select has_table('public','leave_ledger_entries','leave ledger exists');
+select has_column('public','leave_requests','duration_unit','leave supports day/hour');
+select has_function('public','get_my_leave_balances',array['integer'],'self balance RPC exists');
+select has_function('public','adjust_leave_balance',array['uuid','uuid','integer','numeric','text'],'adjustment RPC exists');
+select has_function('public','process_request_sla',array['integer'],'SLA processor exists');
+select policies_are('public','leave_balance_accounts',array['leave_balance_accounts_select'],'balance table is read-only by RLS');
+select policies_are('public','leave_ledger_entries',array['leave_ledger_entries_select'],'ledger is read-only by RLS');
+select has_trigger('public','leave_requests','trg_leave_reserve_on_detail','reservation trigger exists');
+select has_trigger('public','requests','trg_leave_settle_on_request_decision','settlement trigger exists');
+select col_is_unique('public','leave_ledger_entries','source_key','ledger events idempotent');
+select function_privs_are('public','process_request_sla',array['integer'],'service_role',array['EXECUTE'],'SLA only service role');
+select * from finish(); rollback;

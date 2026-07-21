@@ -1,0 +1,10 @@
+begin;
+select plan(6);
+select has_function('public','get_kpi_evaluation_form',array['uuid'],'KPI form RPC exists');
+select has_function('public','return_kpi_stage',array['uuid','text','text'],'KPI return RPC exists');
+select has_function('public','get_my_attendance_state',array[]::text[],'Attendance state RPC exists');
+select has_function('public','advance_kpi_stage',array['uuid','text','jsonb','text'],'Canonical KPI transition RPC exists');
+select function_privs_are('public','get_kpi_evaluation_form',array['uuid'],'authenticated',array['EXECUTE'],'KPI form is executable by authenticated users');
+select function_privs_are('public','get_my_attendance_state',array[]::text[],'authenticated',array['EXECUTE'],'Attendance state is executable by authenticated users');
+select * from finish();
+rollback;

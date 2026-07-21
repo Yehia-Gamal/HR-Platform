@@ -1,0 +1,61 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_learning_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 63,
+   "summary": "_Summary reimplements a bespoke metric row (spaceAround Row of _metric columns) instead of using the shared MetricGrid/MetricCard.",
+   "fix": "Replace the custom Card+Row with MetricGrid(cards: [('الدورات', '${items.length}', Icons.school_rounded), ('مكتملة', '$completed', Icons.verified_rounded), ('إلزامية متبقية', '$mandatory', Icons.priority_high_rounded)]) so the summary matches other pages' metric styling."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 120,
+   "summary": "Course status is rendered as inline plain text via _status() instead of the shared MobileStatusPill used across other pages.",
+   "fix": "Show the status with MobileStatusPill; since learning statuses (completed/in_progress/failed/expired/enrolled) are not yet in the pill's palette, extend MobileStatusPill's switch to cover them (reuse the shared green/red/purple/grey colors) and render the pill in the card header Row instead of the trailing text."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 23,
+   "summary": "Error state is a bare centered Text with no icon/brand mark and no retry affordance.",
+   "fix": "Wrap the error in a Column with an error icon (Icon(Icons.error_outline_rounded, color: Theme.of(context).colorScheme.error)) plus a FilledButton/TextButton that calls ref.invalidate(myLearningCatalogProvider) to retry, matching the pull-to-refresh action."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 35,
+   "summary": "Empty state is a plain Card with only text — no illustrative icon or BrandLogoMark, inconsistent with richer empty headers.",
+   "fix": "Add a leading Icon (e.g. Icons.school_outlined) or BrandLogoMark above the 'لا توجد دورات مسجلة حاليًا.' text and use onSurfaceVariant color for a friendlier, on-brand empty state."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 82,
+   "summary": "_metric hardcodes TextStyle(fontSize/fontWeight) instead of reading from Theme.textTheme, so it ignores the Cairo type scale.",
+   "fix": "Use Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900) for the value and labelMedium/bodySmall (onSurfaceVariant) for the label instead of raw fontSize values (superseded if you adopt MetricGrid)."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 105,
+   "summary": "Card title uses a hardcoded TextStyle(fontSize:17, weight:w900) rather than the theme titleMedium/titleLarge scale.",
+   "fix": "Use Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900) for the course title so sizing follows the design system's type scale."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 118,
+   "summary": "LinearProgressIndicator uses default square ends; other progress visuals in the design system use rounded corners for consistency.",
+   "fix": "Add borderRadius: BorderRadius.circular(99) (and minHeight ~8) to the LinearProgressIndicator to match the app's rounded chip/pill language."
+  },
+  {
+   "severity": "low",
+   "category": "spacing",
+   "line": 114,
+   "summary": "The category/duration/mode meta line sits directly under the title with no vertical gap and no muted color, reducing hierarchy.",
+   "fix": "Add a SizedBox(height: 4) before the meta Text and style it with Theme.of(context).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant) to visually separate it from the title."
+  }
+ ]
+}

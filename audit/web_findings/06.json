@@ -1,0 +1,40 @@
+{
+ "file": "apps/admin_web/src/features/auth/LoginPage.tsx",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "dark-theme",
+   "line": 67,
+   "summary": "The error alert banner uses hardcoded light-mode Tailwind reds (border-red-200 bg-red-50 text-red-800) with no dark-theme handling, so on [data-theme='dark'] it renders a jarring bright light-red box.",
+   "fix": "Use the design-system danger tokens as AppErrorBoundary does: className=\"mb-4 rounded-xl border border-[var(--danger)]/30 bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]\", which adapt to dark theme automatically."
+  },
+  {
+   "severity": "medium",
+   "category": "polish",
+   "line": 70,
+   "summary": "The two field-error spans (identifier line 70, password line 71) have no reserved height, so the card layout shifts vertically each time a validation message appears or disappears.",
+   "fix": "Add a reserved min-height to the error spans as CreateEmployeePage's Field does, e.g. className=\"mt-1 block min-h-4 text-xs text-red-700\" (or text-[var(--danger)]) to prevent layout jump."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 42,
+   "summary": "Brand-panel accent text uses raw Tailwind colors (text-cyan-200 line 42, text-blue-100 lines 44/46/50-52) instead of the brand accent token, so the brand identity color is not driven by the design system and can drift from --brand-accent.",
+   "fix": "Replace ad-hoc cyan/blue text utilities with tokenized values (e.g. an on-gradient class or text-[color-mix(in_srgb,var(--brand-accent),white_40%)]) so the accent stays tied to --brand-accent."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 46,
+   "summary": "The feature cards use a non-standard opacity utility bg-white/8, which is not a canonical Tailwind opacity step and reads inconsistently with the rest of the panel's border-white/15.",
+   "fix": "Use a canonical or explicit arbitrary opacity, e.g. bg-white/10 or bg-white/[0.08], to match Tailwind's supported scale and the surrounding /15 border."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 72,
+   "summary": "When Supabase is unconfigured the submit button is disabled (line 72) but the explanatory warning (line 75) only renders when devMocks is also off, so in dev-mock builds the button is silently disabled with no adjacent reason.",
+   "fix": "Show a short inline hint next to the disabled submit button whenever !hasSupabaseConfig (independent of devMocksEnabled), or associate it via aria-describedby so users understand why login is blocked."
+  }
+ ]
+}

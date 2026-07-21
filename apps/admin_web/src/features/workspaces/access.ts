@@ -1,0 +1,15 @@
+import type { AccessContext, WorkspaceId } from '@ahla/shared-contracts';
+
+export function hasPermission(context: AccessContext, permission: string): boolean {
+  return context.permissions.includes('*') || context.permissions.includes(permission);
+}
+
+export function firstWebWorkspace(context: AccessContext): WorkspaceId | null {
+  if (context.defaultWorkspace === 'hr' || context.defaultWorkspace === 'main_admin' || context.defaultWorkspace === 'committee') {
+    return context.defaultWorkspace;
+  }
+  if (context.workspaces.includes('main_admin')) return 'main_admin';
+  if (context.workspaces.includes('hr')) return 'hr';
+  if (context.workspaces.includes('committee')) return 'committee';
+  return null;
+}

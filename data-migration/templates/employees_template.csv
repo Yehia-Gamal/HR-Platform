@@ -1,0 +1,3 @@
+employee_code,full_name_ar,full_name_en,email,phone_e164,role_slug,department_code,team_code,branch_code,manager_employee_code,hire_date,employment_type,job_title
+EMP-0001,أحمد محمد علي,Ahmed Mohamed Ali,ahmed@example.org,+201001234567,employee,HR,HR-OPS,MAIN,EMP-0002,2024-01-15,full_time,أخصائي موارد بشرية
+EMP-0002,سارة أحمد حسن,Sara Ahmed Hassan,sara@example.org,+201009876543,direct-manager,HR,,MAIN,,2022-06-01,full_time,مدير الموارد البشرية

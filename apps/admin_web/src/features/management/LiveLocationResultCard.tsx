@@ -1,0 +1,157 @@
+import { Clock, Crosshair, Download, MapPin, Play, ShieldAlert, Video } from 'lucide-react';
+import { useState } from 'react';
+import { EmptyState } from '../../ui/EmptyState';
+import { StatusBadge } from '../../ui/StatusBadge';
+import { LiveLocationMap, type MapPoint } from './LiveLocationMap';
+import { useLiveLocationLegalHold, useLiveLocationMapUrl, useLiveLocationResponse, useLiveLocationVideoUrl } from './useControlCenters';
+
+// بطاقة نتيجة طلب الموقع الكاملة (القسم 10): خريطة + عنوان تقريبي + دقة +
+// توقيتات + فيديو التحقق (رابط موقّع عند الطلب) + الحفظ الإداري.
+
+function fmt(value: string | null | undefined): string {
+  if (!value) return '—';
+  const d = new Date(value);
+  return d.toLocaleString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit' });
+}
+
+function num(v: unknown): number | null {
+  return typeof v === 'number' ? v : null;
+}
+
+export function LiveLocationResultCard({ requestId }: { requestId: string }) {
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [mapSnapshotUrl, setMapSnapshotUrl] = useState<string | null>(null);
+  const videoUrlCmd = useLiveLocationVideoUrl();
+  const mapUrlCmd = useLiveLocationMapUrl();
+  const legalHold = useLiveLocationLegalHold();
+
+  const req = (typeof requestId === 'string' ? requestId : null);
+  const response = useLiveLocationResponse(req, true);
+  const data = response.data as Record<string, any> | null | undefined;
+
+  if (response.isLoading) {
+    return <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-muted)]" aria-label="جارٍ تحميل النتيجة" />;
+  }
+  if (response.isError || !data) {
+    return <EmptyState title="تعذّر تحميل النتيجة" description={response.error instanceof Error ? response.error.message : 'تحقق من الصلاحيات.'} />;
+  }
+
+  const request = data.request ?? {};
+  const employee = data.employee ?? {};
+  const points: any[] = Array.isArray(data.points) ? data.points : [];
+  const video = data.video ?? null;
+  const latest = points.length ? points[points.length - 1] : null;
+
+  const mapPoints: MapPoint[] = points
+    .filter((p) => num(p.latitude) !== null && num(p.longitude) !== null)
+    .map((p, i) => ({
+      id: p.id ?? String(i),
+      lat: p.latitude, lng: p.longitude, accuracy: num(p.accuracy),
+      label: employee.name ?? 'الموظف',
+      sublabel: p.addressAr ?? null,
+    }));
+
+  async function playVideo() {
+    if (!video?.id) return;
+    const url = await videoUrlCmd.mutateAsync(video.id);
+    setVideoUrl(url);
+  }
+
+  async function loadMapSnapshot() {
+    setMapSnapshotUrl(await mapUrlCmd.mutateAsync(requestId));
+  }
+
+  async function hold() {
+    if (!video?.id) return;
+    const until = new Date(Date.now() + 7 * 24 * 3600_000).toISOString();
+    await legalHold.mutateAsync({ videoId: video.id, holdUntil: until, reason: 'حفظ إداري بقرار السكرتير التنفيذي' });
+  }
+
+  return (
+    <div className="space-y-5">
+      <article className="card p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-black">{employee.name ?? 'الموظف'}</h2>
+            <p className="muted mt-1 text-xs">
+              {employee.employeeCode ?? '—'} · {employee.jobTitle ?? 'دون مسمى'} · {employee.department ?? 'دون إدارة'}
+            </p>
+            <p className="muted mt-1 text-xs">طلب من: {data.requesterName ?? '—'} · السبب: {request.reason ?? '—'}</p>
+          </div>
+          <StatusBadge value={request.status ?? 'pending'} />
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+          <Stat icon={Clock} label="أُرسل" value={fmt(request.requestedAt)} />
+          <Stat icon={Clock} label="استجاب" value={fmt(request.respondedAt)} />
+          <Stat icon={Crosshair} label="دقة GPS" value={latest && num(latest.accuracy) !== null ? `${Math.round(latest.accuracy)} متر` : '—'} />
+          <Stat icon={ShieldAlert} label="Mock GPS" value={latest?.isMock ? 'مشتبه' : 'لا'} />
+        </div>
+      </article>
+
+      {mapPoints.length ? (
+        <article className="card overflow-hidden">
+          <div className="border-b border-[var(--border)] p-4"><h3 className="font-black">الموقع على الخريطة</h3></div>
+          <div className="p-4">
+            <LiveLocationMap points={mapPoints} height={360} />
+            {mapSnapshotUrl ? (
+              <figure className="mt-4">
+                <img className="w-full rounded-2xl border border-[var(--border)]" src={mapSnapshotUrl} alt="لقطة الخريطة الملتقطة مع استجابة الموظف" />
+                <figcaption className="muted mt-2 text-xs">لقطة الخريطة الأصلية المحفوظة مع الاستجابة (رابط خاص قصير الصلاحية).</figcaption>
+              </figure>
+            ) : (
+              <button type="button" className="btn-secondary mt-4" onClick={() => void loadMapSnapshot()} disabled={mapUrlCmd.isPending}>
+                <MapPin className="size-4" />{mapUrlCmd.isPending ? 'جارٍ تحميل اللقطة…' : 'عرض لقطة الخريطة المحفوظة'}
+              </button>
+            )}
+            {mapUrlCmd.isError ? <p className="mt-2 text-sm font-bold text-red-700">لا توجد لقطة خريطة متاحة أو انتهت مدة الاحتفاظ بها.</p> : null}
+            {latest?.addressAr ? (
+              <p className="mt-3 flex items-start gap-2 text-sm"><MapPin className="mt-0.5 size-4 shrink-0 text-[var(--brand-primary)]" />
+                <span>الموظف قريب من: <strong>{latest.addressAr}</strong>{num(latest.accuracy) !== null ? <> — دقة تقريبية {Math.round(latest.accuracy)} متر</> : null}</span>
+              </p>
+            ) : num(latest?.accuracy) !== null ? (
+              <p className="muted mt-3 text-sm">إحداثيات مسجّلة بدقة تقريبية {Math.round(latest.accuracy)} متر (لم يتوفّر عنوان نصي).</p>
+            ) : null}
+          </div>
+        </article>
+      ) : (
+        <EmptyState title="لم يصل موقع بعد" description="بانتظار استجابة الموظف وإرسال موقعه." />
+      )}
+
+      {video ? (
+        <article className="card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2"><Video className="size-5 text-[var(--brand-primary)]" /><h3 className="font-black">فيديو التحقق ({video.durationSeconds ?? 5} ثوانٍ)</h3></div>
+            <StatusBadge value={video.status ?? 'ready'} />
+          </div>
+          {videoUrl ? (
+            <video className="mt-4 w-full rounded-2xl" src={videoUrl} controls autoPlay playsInline />
+          ) : (
+            <button type="button" className="btn-secondary mt-4" onClick={() => void playVideo()} disabled={videoUrlCmd.isPending || video.status === 'deleted'}>
+              <Play className="size-4" />{video.status === 'deleted' ? 'حُذف بعد انتهاء مدة الاحتفاظ' : videoUrlCmd.isPending ? 'جارٍ توقيع الرابط…' : 'تشغيل الفيديو'}
+            </button>
+          )}
+          {videoUrlCmd.isError ? <p className="mt-2 text-sm font-bold text-red-700">تعذّر توقيع رابط الفيديو أو الصلاحية غير كافية.</p> : null}
+          <div className="muted mt-3 text-xs">
+            يُحذف تلقائيًا بعد: {fmt(video.retentionDeleteAfter)}{video.legalHoldUntil ? ` · حفظ إداري حتى ${fmt(video.legalHoldUntil)}` : ''}
+          </div>
+          {!video.legalHoldUntil && video.status !== 'deleted' ? (
+            <button type="button" className="btn-secondary mt-3" onClick={() => void hold()} disabled={legalHold.isPending}>
+              <Download className="size-4" />{legalHold.isPending ? 'جارٍ الحفظ…' : 'حفظ إداري (تجاوز الحذف التلقائي)'}
+            </button>
+          ) : null}
+          {legalHold.isError ? <p className="mt-2 text-sm font-bold text-red-700">الحفظ الإداري يتطلب صلاحية إدارة الاحتفاظ.</p> : null}
+        </article>
+      ) : null}
+    </div>
+  );
+}
+
+function Stat({ icon: Icon, label, value }: { icon: typeof Clock; label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-[var(--surface-muted)] p-3">
+      <span className="muted flex items-center gap-1 text-[11px]"><Icon className="size-3" />{label}</span>
+      <strong className="mt-1 block text-sm">{value}</strong>
+    </div>
+  );
+}

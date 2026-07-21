@@ -1,0 +1,54 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_tasks_page.dart",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "consistency",
+   "line": 184,
+   "summary": "_PriorityPill is a bespoke pill using raw Material colors (Colors.red/orange/blueGrey/blue) instead of the shared MobileStatusPill / status palette, so urgent/high tasks render in a different red-orange than the rest of the app (0xFFDC3D4B / 0xFFD98508).",
+   "fix": "Reuse MobileStatusPill(item.priority) (which already handles 'urgent'/'high') or, for the priority-only labels, map to the same status palette hex constants (0xFFDC3D4B urgent, 0xFFD98508 high/medium, onSurfaceVariant low) rather than Colors.red/orange/blueGrey/blue."
+  },
+  {
+   "severity": "high",
+   "category": "brand",
+   "line": 170,
+   "summary": "_SourcePill hardcodes Colors.teal for background and text, a color that is not part of the theme colorScheme nor the intentional shared status palette.",
+   "fix": "Use a theme color (e.g. scheme.secondary or scheme.tertiary with .withValues(alpha:.12) fill) or reuse MobileStatusPill styling so the Onboarding tag matches the design system instead of raw Colors.teal."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 33,
+   "summary": "The empty state is bespoke and visually inconsistent: the Icon at line 37 is not wrapped in Center (unlike the text) so it left/right-aligns under RTL, and it lacks color/typography styling and any BrandLogo header used elsewhere for empty states.",
+   "fix": "Wrap the icon in Center, tint it with scheme.onSurfaceVariant, style the message with textTheme.bodyMedium and onSurfaceVariant, and consider a BrandLogoMark above the icon to match the app's empty-state pattern."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 22,
+   "summary": "The error state has no icon, no brand mark, and the retry OutlinedButton/text are not centered, making it inconsistent with the app's other error states.",
+   "fix": "Center the content, add an error icon (Icons.error_outline tinted scheme.error) and style the message with onSurfaceVariant, matching the empty/error visual treatment used on other mobile pages."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 218,
+   "summary": "_Meta renders both the icon (line 221) and text (line 223) in the default full-strength onSurface color, whereas metadata rows elsewhere use the muted onSurfaceVariant.",
+   "fix": "Pass color: Theme.of(context).colorScheme.onSurfaceVariant to both the Icon and the Text so the due-date/created-by metadata reads as secondary text."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 112,
+   "summary": "The status SegmentedButton is the card's only interactive control and, when item.status == 'cancelled', it is silently disabled with no explanation, and it has no Semantics label describing it as the task status control.",
+   "fix": "When disabled show a MobileStatusPill('cancelled') / short 'ملغاة' hint instead of a mute disabled control, and wrap the SegmentedButton in a Semantics(label: 'حالة المهمة') for screen readers."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 45,
+   "summary": "List item spacing (SizedBox height 10) and list padding (16) are fine, but the 'متأخرة' overdue indicator at line 74 is plain bold text rather than a pill, inconsistent with the pill-based status vocabulary used across the page and app.",
+   "fix": "Render the overdue flag as a small pill (e.g. MobileStatusPill-style container with scheme.error) to match _PriorityPill/_SourcePill and the shared status pill styling."
+  }
+ ]
+}

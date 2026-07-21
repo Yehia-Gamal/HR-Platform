@@ -1,0 +1,54 @@
+{
+ "file": "apps/admin_web/src/features/advanced/KpiCyclesPage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 54,
+   "summary": "The page never renders query.isError, unlike every sibling page (DisputesPage, PerformancePage, AttendancePage, etc.) which show an EmptyState/alert on load failure, so a failed fetch silently shows zeroed metrics and empty sections.",
+   "fix": "After PageHeader, add the app-standard error guard: {query.isError ? <EmptyState title=\"تعذر تحميل دورات KPI\" description={query.error instanceof Error ? query.error.message : 'تحقق من الاتصال والصلاحيات.'} /> : null}"
+  },
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 54,
+   "summary": "There is no loading state while query.isLoading; metrics render 0 and lists render empty during fetch, whereas the app uses LoadingScreen/skeletons for the initial load.",
+   "fix": "Guard the initial load, e.g. render <LoadingScreen /> (or skeleton cards) when query.isLoading && !data before the metric/section blocks, matching the established loading pattern."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 67,
+   "summary": "The override-reason line uses hardcoded Tailwind color text-amber-700 instead of the warning design token, so it does not adapt to dark theme like the rest of the UI.",
+   "fix": "Replace className=\"mt-2 text-xs text-amber-700\" with a token-based color, e.g. text-[var(--warning)]."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 67,
+   "summary": "The 'الدورات الحالية' list maps data?.cycles with no empty state, so when there are zero cycles the section is silently blank, inconsistent with the appeals section on line 75 which uses EmptyState.",
+   "fix": "When data?.cycles.length === 0 render an EmptyState (e.g. title=\"لا توجد دورات لهذا الشهر\" description=\"جهّز دورة الشهر من البطاقة المجاورة.\") instead of an empty mapped list."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 67,
+   "summary": "The datetime-local extension input has no associated label or aria-label (unlike its sibling reason input which has a placeholder), so it is unlabeled for screen readers.",
+   "fix": "Add aria-label=\"تاريخ ووقت التمديد\" to the datetime-local input (and similarly ensure the month input's control on line 55 exposes its label)."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 55,
+   "summary": "The month picker is a bespoke inline label+input placed in PageHeader actions rather than using the shared FilterBar, which is the app's standard control surface for filtering by period.",
+   "fix": "Consider moving the month selector into a FilterBar (or at least reuse its control styling) so period filtering is visually and behaviorally consistent with other list pages; keep it inline only if FilterBar is genuinely too heavy here."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 56,
+   "summary": "MetricCards for التقييمات/المكتملة/الاعتراضات omit the hint/trend props that MetricCard supports, leaving useful context (e.g. finalized ratio, overdue count) unsurfaced compared to richer metric rows elsewhere.",
+   "fix": "Add hint text where meaningful, e.g. hint on المكتملة showing the finalized/evaluations percentage, using MetricCard's hint prop."
+  }
+ ]
+}

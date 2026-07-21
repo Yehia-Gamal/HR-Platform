@@ -1,0 +1,47 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_attendance_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 314,
+   "summary": "The status card renders attendance/verification statuses as plain bold text via a bespoke _status() switch instead of the shared MobileStatusPill, so 'حالة اليوم' and 'حالة التحقق' lose the semantic color coding used everywhere else in the app.",
+   "fix": "Render the status values with MobileStatusPill (e.g. MobileStatusPill(state.todayStatus ?? '')), mapping attendance keys (present/late/absent/flagged/pending) so they get the shared status palette; remove the duplicated _status() label switch or feed its keys into the pill."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 86,
+   "summary": "The hero container uses borderRadius 24, inconsistent with the design system's card radius of 20 used by all shared cards (Card/MobileFilterBar/MetricCard).",
+   "fix": "Change BorderRadius.circular(24) to BorderRadius.circular(20) to match the established card radius."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 83,
+   "summary": "The hero gradient blends primary with colorScheme.tertiary, but the design system's accent is 0xFF00A8D6 exposed as secondary; tertiary is an auto-derived fromSeed color that may not match the intended brand accent.",
+   "fix": "Use Theme.of(context).colorScheme.secondary as the gradient's second color to align with the defined brand accent, or confirm tertiary is intentional."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 75,
+   "summary": "Body uses EdgeInsets.all(20) list padding while shared components and MetricGrid spacing use 10-15 scale; the 22/24 padding on the hero (line 78) and 18 on cards are ad-hoc rather than following a consistent spacing scale.",
+   "fix": "Normalize inner card/hero padding to the 18/20 scale used by MetricCard/_MessageCard (e.g. hero padding 20 to match list padding) for consistent rhythm."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 91,
+   "summary": "The large decorative fingerprint icon and status rows convey state visually only; the status card 'الحالة' value is bold text with no semantic emphasis, and long error bodies in _MessageCard have no scroll/overflow handling.",
+   "fix": "Wrap the status value in MobileStatusPill (which carries color+text) so screen readers and low-vision users get semantic state, and keep the error message readable within the card."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 29,
+   "summary": "The loading state uses a hardcoded SizedBox(height: 260) to vertically center the spinner, which is brittle across screen sizes and differs from a centered loading pattern.",
+   "fix": "Replace the fixed-height spacer with a layout-based centering (e.g. a ListView with a SizedBox sized to viewport or a Center inside a full-height container) so the spinner stays centered on all devices."
+  }
+ ]
+}

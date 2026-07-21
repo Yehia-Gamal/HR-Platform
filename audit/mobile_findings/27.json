@@ -1,0 +1,47 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_payslips_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "dark-theme",
+   "line": 72,
+   "summary": "The hero header title and subtitle sit on a primaryContainer background but use bare TextStyles with no explicit color, so they inherit default onSurface which can have poor contrast on primaryContainer, especially in dark theme.",
+   "fix": "Set the text color explicitly to Theme.of(context).colorScheme.onPrimaryContainer for both the title (line 67) and subtitle (line 72) so contrast is guaranteed on the primaryContainer surface in both light and dark themes."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 33,
+   "summary": "The error-state icon uses no color so it renders in the default onSurface tone instead of the semantic error color.",
+   "fix": "Add color: Theme.of(context).colorScheme.error to the Icons.error_outline_rounded icon to match the semantic error styling used elsewhere."
+  },
+  {
+   "severity": "low",
+   "category": "spacing",
+   "line": 52,
+   "summary": "The hero header container uses borderRadius 22, inconsistent with the design-system card radius of 20 used by shared Card widgets.",
+   "fix": "Change BorderRadius.circular(22) to BorderRadius.circular(20) to match the design-system card radius."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 160,
+   "summary": "The net-amount row hardcodes Color(0xFF0F9F6E) inline; although it matches the intentional status-palette green, duplicating the literal risks drift from MobileStatusPill.",
+   "fix": "Extract the shared status green (0xFF0F9F6E) into a named constant in mobile_widgets.dart and reference it here so the 'approved/green' color stays in one place."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 88,
+   "summary": "The empty-state icon uses the default onSurface color, making it as prominent as body text rather than reading as a muted placeholder.",
+   "fix": "Give the empty-state Icon a muted color such as Theme.of(context).colorScheme.onSurfaceVariant (converting the const Card to non-const) to read as a placeholder."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 66,
+   "summary": "The hero title and subtitle use hardcoded TextStyle values instead of the theme text styles used consistently by MobileSectionHeader and MetricCard.",
+   "fix": "Use Theme.of(context).textTheme.titleMedium for the title and textTheme.bodySmall for the subtitle (with copyWith for weight/color) to align with the shared header components."
+  }
+ ]
+}

@@ -1,0 +1,61 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_disputes_page.dart",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "consistency",
+   "line": 227,
+   "summary": "Case status is rendered with a raw Material Chip instead of the shared MobileStatusPill, giving an inconsistent status treatment (color/shape/weight) versus the rest of the app.",
+   "fix": "Replace `Chip(label: Text(item.status))` with `MobileStatusPill(item.status)` (import mobile_widgets.dart), so status colors follow the shared status palette."
+  },
+  {
+   "severity": "high",
+   "category": "brand",
+   "line": 698,
+   "summary": "Hardcoded Colors.green for the 'already selected' check icon bypasses the theme and the shared status palette.",
+   "fix": "Use `Theme.of(context).colorScheme.primary` for the check icon, or the shared success color (0xFF0F9F6E), instead of `Colors.green`."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 118,
+   "summary": "Appeal status is shown with a raw Chip rather than MobileStatusPill, inconsistent with how other statuses should appear.",
+   "fix": "Replace the trailing `Chip(label: Text(item.status))` with `MobileStatusPill(item.status)`."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 38,
+   "summary": "Section titles are bespoke titleLarge Text widgets instead of the shared MobileSectionHeader used elsewhere, causing inconsistent section styling.",
+   "fix": "Render each section title via `MobileSectionHeader(title: ...)` so typography and spacing match other pages."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 29,
+   "summary": "The error state is a bare centered Text with no icon, brand mark, or retry action, unlike a polished error state.",
+   "fix": "Wrap the error in a Card/Column with an error icon and a retry button that calls ref.invalidate(myDisputePortalProvider)."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 45,
+   "summary": "The empty state is a plain text Card with no icon or brand mark, giving a flat, unbranded empty experience for the primary list.",
+   "fix": "Add an illustrative icon (e.g. Icons.gavel_outlined) or BrandLogoMark and a secondary hint styled with onSurfaceVariant above the message."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 251,
+   "summary": "Icon-only affordances (FloatingActionButton.extended and picker trailing icons) lack tooltips/Semantics for screen readers.",
+   "fix": "Add tooltip/Semantics labels to icon-bearing actions (e.g. the FAB and the picker's check/add trailing icons) so their purpose is announced."
+  },
+  {
+   "severity": "low",
+   "category": "spacing",
+   "line": 46,
+   "summary": "The empty-state Card uses EdgeInsets.all(18) while every other card in the file uses all(16), an inconsistent padding value.",
+   "fix": "Use EdgeInsets.all(16) for the empty-state Card padding to match the other cards in this page."
+  }
+ ]
+}

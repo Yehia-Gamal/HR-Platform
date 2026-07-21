@@ -1,0 +1,61 @@
+{
+ "file": "apps/admin_web/src/features/management/IntegrationsJobsPage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "brand",
+   "line": 60,
+   "summary": "Connector error state uses hardcoded Tailwind palette (bg-red-500/10 text-red-700) and repeated text-red-700 for lastError instead of the design tokens --danger/--danger-soft used everywhere else in the app.",
+   "fix": "Replace bg-red-500/10 text-red-700 with bg-[var(--danger-soft)] text-[var(--danger)] and text-red-700 with text-[var(--danger)] so the state adapts to dark theme and matches AppErrorBoundary/status tokens."
+  },
+  {
+   "severity": "high",
+   "category": "dark-theme",
+   "line": 75,
+   "summary": "Log rows hardcode bg-emerald-500/10 text-emerald-700 and bg-red-500/10 text-red-700 for status icons instead of --success/--success-soft and --danger/--danger-soft tokens, so success/failure colors won't respond to dark mode.",
+   "fix": "Use bg-[var(--success-soft)] text-[var(--success)] for success and bg-[var(--danger-soft)] text-[var(--danger)] for failed; use text-[var(--danger)] for the error paragraph."
+  },
+  {
+   "severity": "medium",
+   "category": "dark-theme",
+   "line": 81,
+   "summary": "Automation run error banner uses bg-red-500/10 text-red-700 instead of danger tokens, breaking token consistency and dark-theme contrast.",
+   "fix": "Change the error paragraph to className with bg-[var(--danger-soft)] p-3 ... text-[var(--danger)]."
+  },
+  {
+   "severity": "medium",
+   "category": "dark-theme",
+   "line": 67,
+   "summary": "Outbox table/mobile error cells hardcode text-red-700 (lines 67 and 68) rather than the --danger token.",
+   "fix": "Replace both text-red-700 occurrences with text-[var(--danger)]."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 55,
+   "summary": "The load-failure state is rendered via EmptyState, but the app pattern for query errors is a dedicated error banner (AppErrorBoundary uses a danger-tinted surface); EmptyState reads as a benign no-data message for an actual failure.",
+   "fix": "Render an error banner styled with bg-[var(--danger-soft)]/border and an AlertTriangle in --danger (matching AppErrorBoundary), or at minimum pass a retry action so the failure is visually distinct from empty results."
+  },
+  {
+   "severity": "medium",
+   "category": "filter",
+   "line": 45,
+   "summary": "Search is a bespoke input inside a .filter-bar rather than the shared FilterBar primitive, and there is no result count for the active tab, unlike the app's standard filter UX (FilterBar exposes resultText/isDirty/onClear).",
+   "fix": "Either adopt FilterBar (passing searchValue/onSearchChange/searchPlaceholder + a resultText like `عرض ${connectors.length} من ${total}` and isDirty/onClear when search is non-empty), or add a filter-result count line and a clear (X) affordance to the current bar."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 60,
+   "summary": "The enable/disable connector checkbox has no accessible name tied to which connector it controls; screen readers only hear the generic 'الموصل مفعّل/متوقف' text without the connector name.",
+   "fix": "Add aria-label={`تفعيل الموصل ${item.name}`} to the checkbox input so its purpose is unambiguous."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 56,
+   "summary": "The loading skeleton is a single bespoke h-72 pulsing card, which does not match the tab layout it replaces (metric cards + grid/table) and differs from other pages' skeleton density.",
+   "fix": "Render skeletons that mirror the connectors grid (e.g. a grid of card-sized animate-pulse placeholders) so the loading state matches the resolved layout and shared skeleton pattern."
+  }
+ ]
+}

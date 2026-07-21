@@ -1,0 +1,54 @@
+{
+ "file": "apps/admin_web/src/features/management/LearningPage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "accessibility",
+   "line": 33,
+   "summary": "The Modal close button is a bare ✕ glyph with no icon-button class, no aria-label, and the wrapper lacks role=\"dialog\"/aria-modal, unlike the sibling Dialog primitive.",
+   "fix": "Match RecruitmentPage's Dialog: add role=\"dialog\" aria-modal=\"true\" to the outer div, and replace <button onClick={close}>✕</button> with <button className=\"icon-button\" onClick={close} aria-label=\"إغلاق\"><X className=\"size-5\" /></button> (import X from lucide-react)."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 20,
+   "summary": "Loading state is a plain text \"جارٍ التحميل…\" paragraph instead of the app's skeleton pattern used by sibling pages, causing a jarring layout shift when data arrives.",
+   "fix": "Replace {query.isLoading ? <p className=\"muted\">جارٍ التحميل…</p> : null} with a skeleton matching the content layout, e.g. <section className=\"grid gap-4 sm:grid-cols-3\">{[1,2,3].map(i => <div key={i} className=\"card h-28 animate-pulse bg-[var(--surface-muted)]\" aria-label=\"جارٍ تحميل التدريب\" />)}</section>, consistent with ServiceDeskPage/LiveLocationPage."
+  },
+  {
+   "severity": "medium",
+   "category": "polish",
+   "line": 33,
+   "summary": "The Modal cannot scroll tall content and clips on small viewports because it lacks the max-h/overflow-y-auto the sibling Dialog uses.",
+   "fix": "Change the inner section to <section className=\"card max-h-[94vh] w-full max-w-2xl overflow-y-auto p-6\"> so long forms (e.g. the course form) remain fully reachable on short screens."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 28,
+   "summary": "The two form submit buttons give no in-flight/disabled feedback while the upsert/enroll mutations run, so users can double-submit.",
+   "fix": "Reflect mutation pending state on the submit buttons, e.g. <button className=\"btn-primary\" disabled={commands.upsertCourse.isPending}>{commands.upsertCourse.isPending ? 'جارٍ الحفظ…' : 'حفظ'}</button>, and likewise for the enroll button using commands.enroll.isPending."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 33,
+   "summary": "The modal overlay uses a hardcoded Tailwind color bg-slate-950/60 instead of a design token, and there is no Escape-to-close handler.",
+   "fix": "Mirror the sibling Dialog exactly (which is the accepted app pattern); if tightening further, drive the overlay from a token-based scrim, and optionally add an onKeyDown Escape handler on the dialog wrapper."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 28,
+   "summary": "The mandatory checkbox row (label className=\"flex gap-2\") is not vertically aligned, leaving the checkbox and its text baseline mismatched.",
+   "fix": "Add items-center to the checkbox label: <label className=\"flex items-center gap-2\">…دورة إلزامية</label>."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 32,
+   "summary": "LearningPage defines its own local Field/Modal helpers that duplicate the labeled-input and dialog patterns already established in sibling pages (e.g. RecruitmentPage's Input/Select/Dialog).",
+   "fix": "Where practical, reuse a shared labeled-field/dialog primitive rather than re-declaring Field and Modal per page, to keep spacing (mb-1.5, p-6, max-w) and a11y attributes uniform across management pages."
+  }
+ ]
+}

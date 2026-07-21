@@ -1,0 +1,61 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/kpi_evaluation_detail_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 43,
+   "summary": "The error state is a bare left-adjusted Text with no icon or retry affordance, inconsistent with a polished error UX and giving the user no way to recover.",
+   "fix": "Wrap in a centered Column with an error icon (Icons.error_outline, color scheme.error), the message text centered, and a FilledButton/OutlinedButton that calls ref.invalidate(kpiEvaluationFormProvider(widget.evaluationId)) to retry."
+  },
+  {
+   "severity": "medium",
+   "category": "dark-theme",
+   "line": 229,
+   "summary": "The validation-errors Card sets color: errorContainer but its child Text widgets inherit the default onSurface color, which can fail contrast on the errorContainer surface in dark theme.",
+   "fix": "Set the title and bullet Text colors to Theme.of(context).colorScheme.onErrorContainer so text reads correctly against the errorContainer background in both light and dark modes."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 119,
+   "summary": "Section titles like 'الأهداف — 40 درجة' use a bespoke hardcoded TextStyle(fontSize:17, w900) instead of the shared MobileSectionHeader widget used elsewhere in the design system.",
+   "fix": "Replace the raw Text with MobileSectionHeader(title: 'الأهداف — 40 درجة') so section headings match the established typography (titleMedium) across pages."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 87,
+   "summary": "The employee name uses a hardcoded TextStyle(fontSize:20, w900) rather than a theme text style, bypassing the design-system typography scale.",
+   "fix": "Use Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900) instead of the literal fontSize:20 style."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 481,
+   "summary": "The _chip helper wraps every label in a bare Material Chip, whereas the design system provides MobileStatusPill (radius 99) for status/role labels, producing inconsistent chip styling.",
+   "fix": "For the stage/role/locked/status labels, route recognized values through MobileStatusPill (e.g. locked/finalized) and keep Chip only for genuinely freeform text, so status chips match the shared pill styling."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 184,
+   "summary": "Sub-card headings such as 'تفاصيل الحضور المحسوبة تلقائيًا' and 'متطلبات الاعتماد غير المكتملة' use ad-hoc TextStyle(w900) with no size, diverging from the shared heading typography.",
+   "fix": "Standardize these inline card titles on Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900) for consistent weight/size."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 346,
+   "summary": "The score Slider has no Semantics label describing which criterion it edits, so screen-reader users hear only a numeric value with no context.",
+   "fix": "Wrap the Slider in Semantics(label: 'درجة معيار ${criterion.name}', value: value.toStringAsFixed(1), child: ...) or pass semanticFormatterCallback to announce the criterion name."
+  },
+  {
+   "severity": "low",
+   "category": "spacing",
+   "line": 241,
+   "summary": "The general-note and appeal TextField use the default OutlineInputBorder() instead of the design system input radius of 16, so these inputs have square-ish corners inconsistent with themed inputs.",
+   "fix": "Rely on the theme's InputDecorationTheme (drop the explicit border: OutlineInputBorder()) or set OutlineInputBorder(borderRadius: BorderRadius.circular(16)) to match the 16px input radius."
+  }
+ ]
+}

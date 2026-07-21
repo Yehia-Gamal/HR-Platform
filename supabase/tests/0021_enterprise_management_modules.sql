@@ -1,0 +1,18 @@
+begin;
+select plan(15);
+select has_table('public','strategic_objectives','strategy objectives exist');
+select has_table('public','enterprise_projects','projects exist');
+select has_table('public','project_tasks','project tasks exist');
+select has_table('public','enterprise_risks','risk register exists');
+select has_table('public','enterprise_incidents','incident register exists');
+select has_table('public','service_catalog_items','service catalog exists');
+select has_table('public','service_requests','service requests exist');
+select has_table('public','enterprise_meetings','meetings exist');
+select has_table('public','quality_cases','quality cases exist');
+select has_table('public','internal_audits','internal audits exist');
+select has_table('public','automation_rules','automation rules exist');
+select has_table('public','data_assets','data assets exist');
+select has_table('public','ai_use_cases','AI use cases exist');
+select has_function('public','get_enterprise_management_catalog',array[]::text[],'enterprise catalog RPC exists');
+select has_function('public','get_my_service_portal',array[]::text[],'employee service portal RPC exists');
+select * from finish(); rollback;

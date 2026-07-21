@@ -1,0 +1,15 @@
+begin;
+select plan(11);
+select has_function('public','archive_employee_secure',array['uuid','text'],'secure archive RPC exists');
+select has_function('public','hard_delete_employee_guarded',array['uuid','text','text'],'guarded delete RPC exists');
+select function_privs_are('public','archive_employee_secure',array['uuid','text'],'authenticated',array['EXECUTE'],'archive is permission-gated inside RPC');
+select function_privs_are('public','hard_delete_employee_guarded',array['uuid','text','text'],'authenticated',array['EXECUTE'],'delete is Main-Admin-gated inside RPC');
+select ok(not has_table_privilege('authenticated','public.employees','DELETE'),'no raw employee delete privilege');
+select is((select count(*)::integer from pg_policies where schemaname='public' and tablename='employees' and cmd='DELETE'),0,'no direct DELETE policy');
+select ok(position('auth.sessions' in pg_get_functiondef('public.archive_employee_secure(uuid,text)'::regprocedure))>0,'archive revokes sessions');
+select ok(position('push_subscriptions' in pg_get_functiondef('public.archive_employee_secure(uuid,text)'::regprocedure))>0,'archive disables push');
+select ok(position('employee_devices' in pg_get_functiondef('public.archive_employee_secure(uuid,text)'::regprocedure))>0,'archive revokes devices');
+select ok(position('attendance_events' in pg_get_functiondef('public.hard_delete_employee_guarded(uuid,text,text)'::regprocedure))>0,'delete checks history');
+select ok(position('current_is_full_access' in pg_get_functiondef('public.hard_delete_employee_guarded(uuid,text,text)'::regprocedure))>0,'delete requires Main Admin');
+select * from finish();
+rollback;

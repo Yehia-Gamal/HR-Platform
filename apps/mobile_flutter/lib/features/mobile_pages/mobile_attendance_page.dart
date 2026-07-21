@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_history_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
@@ -221,7 +222,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
             context: context,
             builder: (ctx) => AlertDialog(
               title: const Text('الموقع مغلق'),
-              content: const Text('يرجى تفعيل خدمة الموقع (GPS) لتتمكن من تسجيل بصمة الجهاز.'),
+              content: const Text(
+                'يرجى تفعيل خدمة الموقع (GPS) لتتمكن من تسجيل بصمة الجهاز.',
+              ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
@@ -249,13 +252,16 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
           return;
         }
         final msgLower = msg.toLowerCase();
-        final text = msgLower.contains('cancel') || msgLower.contains('dismissed')
+        final text =
+            msgLower.contains('cancel') || msgLower.contains('dismissed')
             ? 'تم إلغاء التحقق بالبصمة.'
             : msg.contains('الجهاز لا يدعم')
-                ? msg
-                : msg.contains('تعذر') || msg.contains('هذا الإصدار') || msg.contains('انتهت')
-                    ? msg
-                    : 'تعذر إكمال عملية البصمة. أعد المحاولة.';
+            ? 'جهازك لا يدعم التحقق بالبصمة.'
+            : msg.contains('تعذر') ||
+                  msg.contains('هذا الإصدار') ||
+                  msg.contains('انتهت')
+            ? msg
+            : 'تعذر إكمال عملية البصمة. أعد المحاولة.';
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(text)));
@@ -271,7 +277,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
         context: context,
         builder: (context) => AlertDialog(
           title: Text(
-            action == 'CHECK_IN' ? 'تأكيد تسجيل الحضور' : 'تأكيد تسجيل الانصراف',
+            action == 'CHECK_IN'
+                ? 'تأكيد تسجيل الحضور'
+                : 'تأكيد تسجيل الانصراف',
           ),
           content: const Text(
             'سيتم قراءة موقعك الحالي وطلب بصمة أو قفل الجهاز للتحقق.',
@@ -293,15 +301,32 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
 
     setState(() => _working = true);
     try {
-      await ref.read(mobileCommandsProvider).punchAttendance(eventType: action);
+      final passkeys = await ref.read(myPasskeysProvider.future);
+      final activeCredential = passkeys.firstWhere(
+        (p) => p.status == 'active' && p.trusted,
+        orElse: () => throw StateError(
+          'لا توجد بصمة مسجلة على هذا الجهاز. سجّل البصمة أولاً.',
+        ),
+      );
+      final result = await ref
+          .read(mobileCommandsProvider)
+          .punchAttendanceLocal(
+            eventType: action,
+            credentialId: activeCredential.credentialId,
+          );
       ref.invalidate(attendanceStateProvider);
       ref.invalidate(employeeHomeProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              action == 'CHECK_IN' ? 'تم تسجيل الحضور.' : 'تم تسجيل الانصراف.',
+              action == 'CHECK_IN'
+                  ? 'تم تسجيل الحضور داخل المجمع.'
+                  : 'تم تسجيل الانصراف داخل المجمع.',
             ),
+            backgroundColor: result['insideComplex'] == true
+                ? Colors.green
+                : null,
           ),
         );
       }
@@ -342,13 +367,10 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
           return;
         }
         final msgLower = msg.toLowerCase();
-        final text = msgLower.contains('cancel') || msgLower.contains('dismissed')
+        final text =
+            msgLower.contains('cancel') || msgLower.contains('dismissed')
             ? 'تم إلغاء التحقق بالبصمة.'
-            : msg.contains('record_failed')
-                ? 'تعذر تسجيل الحضور على الخادم. أعد المحاولة.'
-                : msg.contains('تعذر') || msg.contains('خارج')
-                    ? msg
-                    : 'تعذر تسجيل الحضور. أعد المحاولة.';
+            : humanizeError(error);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(text)));

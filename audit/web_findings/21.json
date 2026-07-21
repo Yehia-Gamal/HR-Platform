@@ -1,0 +1,61 @@
+{
+ "file": "apps/admin_web/src/features/management/OrganizationPage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 71,
+   "summary": "Loading state is a bare '<p className=\"muted\">جارٍ تحميل الهيكل…</p>' instead of the shared LoadingScreen/skeleton pattern used across the app.",
+   "fix": "Replace the plain paragraph with '<LoadingScreen label=\"جارٍ تحميل الهيكل…\" />' (already imported elsewhere) so loading uses the branded spinner + aria-busy pattern consistently."
+  },
+  {
+   "severity": "high",
+   "category": "consistency",
+   "line": 99,
+   "summary": "The bespoke 'Summary' component reimplements a metric tile with 'card p-5' instead of reusing the shared MetricCard primitive used by 14 other management pages.",
+   "fix": "Delete the Summary function and render '<MetricCard label={...} value={...} icon={...} />' for each of the 5 tiles so metrics match the standard metric-card styling, icon chip, and typography."
+  },
+  {
+   "severity": "high",
+   "category": "filter",
+   "line": 83,
+   "summary": "Department search is a lone bespoke '<input className=\"input max-w-xs\">' with no result count, no clear button, and no FilterBar wrapper — inconsistent with the app's FilterBar UX.",
+   "fix": "Wrap the departments search in '<FilterBar searchValue={filter} onSearchChange={setFilter} searchPlaceholder=\"بحث بالاسم أو الكود\" resultText={`${departments.length} إدارة`} isDirty={!!filter} onClear={() => setFilter('')} />' to gain result count, clear-all, and aria-label."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 84,
+   "summary": "Department and position data tables use raw '<table>' markup without the shared '.data-table' class, so they lack the standard table styling and scope semantics.",
+   "fix": "Add 'className=\"data-table\"' to both tables (or wrap in the app's data-table pattern) and add 'scope=\"col\"' to the '<th>' cells for consistent styling and header semantics."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 84,
+   "summary": "Both tables render nothing when the filtered/position list is empty — no EmptyState is shown for zero departments or zero positions.",
+   "fix": "When 'departments.length === 0' (or 'data.positions.length === 0') render '<EmptyState title=\"لا توجد إدارات\" description=\"...\" />' instead of an empty '<tbody>', matching the app's empty pattern."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 102,
+   "summary": "The shared Select helper renders a '<select>' associated only via a visible '<span>' label (not a real label/for or aria-label), and the toggle checkbox (line 103) similarly lacks an explicit accessible name.",
+   "fix": "Either wrap the control so the '<label>' element programmatically associates with the '<select>'/'<input>' (it currently does via nesting, so add 'aria-label={label}' on the select as a safeguard) to ensure each control has a discoverable accessible name."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 99,
+   "summary": "Summary tile icon uses 'text-brand' utility while the rest of the codebase colors icons via design-token vars (e.g. metric-icon chip / --brand-primary).",
+   "fix": "Adopting MetricCard (finding above) removes this; otherwise color the icon with 'text-[var(--brand-primary)]' to stay on tokens rather than a bespoke utility."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 74,
+   "summary": "Summary grid uses 'xl:grid-cols-5' for 5 tiles, which on medium widths (sm:grid-cols-2) leaves an orphaned single tile with uneven wrapping.",
+   "fix": "Add an intermediate breakpoint (e.g. 'lg:grid-cols-3 xl:grid-cols-5') so the 5 tiles wrap evenly across viewport sizes."
+  }
+ ]
+}

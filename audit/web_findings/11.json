@@ -1,0 +1,61 @@
+{
+ "file": "apps/admin_web/src/features/employees/EmployeeDetailPage.tsx",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 20,
+   "summary": "Loading state is a bespoke single-line card with plain text instead of the shared LoadingScreen primitive or the app's animate-pulse skeleton pattern used on other pages.",
+   "fix": "Replace the inline `<div className=\"card grid min-h-72 place-items-center p-8\">جارٍ تحميل ملف الموظف…</div>` with a skeleton matching the app convention (e.g. `<div className=\"card h-72 animate-pulse bg-[var(--surface-muted)]\" aria-label=\"جارٍ تحميل ملف الموظف\" />` as in OperationsCenterPage/AuditSecurityPage) or the `LoadingScreen` primitive."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 31,
+   "summary": "The back link reimplements a secondary button with ad-hoc utility classes (rounded-xl border border-[var(--border)] px-4 py-2.5) instead of the design-system `.btn-secondary` class.",
+   "fix": "Use `<Link to=\"/hr/employees\" className=\"btn-secondary\"><ArrowRight className=\"size-4\" />عودة للموظفين</Link>` so the back action matches the standard secondary-button styling, focus/hover states, and dark-theme tokens."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 36,
+   "summary": "The employee photo uses empty alt=\"\" even though it conveys identity, so screen-reader users get no name association for the avatar image.",
+   "fix": "Set `alt={item.fullNameAr}` on the `<img>` so the photo is announced with the employee's name instead of being treated as purely decorative."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 87,
+   "summary": "The asset row is represented only by a BriefcaseBusiness icon with no text/aria-label, so screen readers get no indication of the asset's held/unreturned status (icon-only, meaning conveyed by icon alone).",
+   "fix": "Add an accessible label to the icon, e.g. `<BriefcaseBusiness className=\"size-5 text-[var(--text-muted)]\" aria-label=\"عهدة قيد الاستلام\" />` (or add a small StatusBadge/text), so the asset's status is not conveyed by the icon alone."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 87,
+   "summary": "The icon uses className=\"size-5 muted\" applying the `.muted` text-color helper to an SVG with non-standard class ordering, inconsistent with the app's icon coloring convention (`text-[var(--text-muted)]` or `muted` prefixed).",
+   "fix": "Change to `className=\"size-5 text-[var(--text-muted)]\"` to color the icon via the token directly and match how icons are muted elsewhere."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 79,
+   "summary": "The empty documents/requests/tasks sub-sections use a bare `<p className=\"muted text-sm\">` line rather than a consistent inline empty treatment, and the documents empty message ignores the assets list that may still render below.",
+   "fix": "Standardize the inline empty message styling across the three panels (lines 79, 98, 107) using the same centered muted-text pattern, and word line 79 as documents-specific since assets can still appear beneath it."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 48,
+   "summary": "The 'العلاقة الإدارية' side panel is a bespoke rounded box built from raw utilities while the metrics above use MetricCard, giving inconsistent card treatment for summary-style info within the same header.",
+   "fix": "Wrap the managerial-relations panel in the standard `.card`/`.metric-card` surface (or keep bg-[var(--surface-muted)] but align radius/padding with the Data tiles) so surface styling is consistent across the header block."
+  },
+  {
+   "severity": "low",
+   "category": "spacing",
+   "line": 63,
+   "summary": "Section vertical rhythm is inconsistent: the outer stack uses space-y-6 while inner grids alternate between gap-4 (line 56) and gap-5 (lines 63, 94), producing uneven spacing between comparable sections.",
+   "fix": "Pick one gap scale for the equivalent section grids (e.g. gap-5 for all three `<section className=\"grid ...\">` blocks, or align all to space-y-6 rhythm) so inter-card spacing is uniform."
+  }
+ ]
+}

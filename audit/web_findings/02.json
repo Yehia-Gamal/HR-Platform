@@ -1,0 +1,61 @@
+{
+ "file": "apps/admin_web/src/features/advanced/DisputesPage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "brand",
+   "line": 178,
+   "summary": "The feedback banner uses hardcoded Tailwind palette colors (emerald-500/red-500/emerald-800/red-800) instead of the app's success/danger design tokens, so it will not adapt to dark theme or match the brand system.",
+   "fix": "Replace with token-based styling, e.g. success = border-[var(--success)]/bg-[var(--success-soft)]/text-[var(--success)] and error = border-[var(--danger)]/bg-[var(--danger-soft)]/text-[var(--danger)]."
+  },
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 149,
+   "summary": "The page never renders a loading state while query.isLoading (only guards the empty state at line 174), so on first load the list area appears empty with no skeleton, diverging from the app's animate-pulse card skeleton pattern.",
+   "fix": "Add a loading branch consistent with peers, e.g. render `{query.isLoading ? <div className=\"card h-72 animate-pulse bg-[var(--surface-muted)]\" aria-label=\"جارٍ تحميل القضايا\" /> : ...}` before the list, matching OperationsCenterPage/ServiceDeskPage."
+  },
+  {
+   "severity": "medium",
+   "category": "filter",
+   "line": 149,
+   "summary": "A bespoke filter section reimplements search + selects instead of reusing the shared FilterBar primitive, so it lacks the standard heading, the clear-all control, and the aria-live result count that FilterBar provides.",
+   "fix": "Replace the hand-rolled section with <FilterBar searchValue={search} onSearchChange={setSearch} searchPlaceholder=\"…\" resultText={`${filteredCases.length} نتيجة`} isDirty={search!=='' || statusFilter!=='open' || priorityFilter!=='all'} onClear={() => { setSearch(''); setStatusFilter('open'); setPriorityFilter('all'); }}> with the two selects as children."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 183,
+   "summary": "The overdue review-deadline emphasis uses hardcoded text-red-700 (and text-red-700 again at line 288) instead of the --danger token, breaking dark-theme adaptation and token consistency.",
+   "fix": "Use text-[var(--danger)] in place of text-red-700 for the overdue deadline strong (line 183) and the critical-alert AlertTriangle icon (line 288)."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 280,
+   "summary": "The completed-action proof confirmation uses hardcoded emerald-500/10 background and emerald-800 text instead of the --success-soft / --success tokens.",
+   "fix": "Change to className=\"mt-3 rounded-xl bg-[var(--success-soft)] p-3 text-sm text-[var(--success)]\"."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 201,
+   "summary": "Several functional selects have no accessible label (the 'المحقق أو المسؤول' assignee select at line 201, the transition action/target/priority selects at 210-212, committee member/role selects at 222-223, note type/visibility at 232-233, session/decision/settlement selects), relying only on a placeholder-like first <option> which is not an accessible name.",
+   "fix": "Add an aria-label to each select (e.g. aria-label=\"المحقق أو المسؤول\", \"إجراء المسار\", \"دور العضو\", \"نوع الملاحظة\", \"ظهور الملاحظة\") matching FilterBar's labelled-control convention."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 171,
+   "summary": "Case status/priority/overdue are communicated only via colored StatusBadges and the overdue deadline is conveyed by color alone (line 183), which is a color-only signal risk if any badge variant lacks a text label.",
+   "fix": "Ensure StatusBadge renders a text label for every value used here (status, priority, 'overdue') and keep the textual remainingLabel adjacent so overdue state is not color-only."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 168,
+   "summary": "The selected case card uses the utility class `border-brand`, which is not defined in styles.css (only .filter-chip references brand borders), so the active selection border likely falls back to default and is inconsistent with the token-based border-[var(--border-strong)] used elsewhere.",
+   "fix": "Replace `border-brand` with a defined token border such as border-[var(--brand-primary)] (or add a .border-brand utility) to give the selected case a visible brand-colored outline."
+  }
+ ]
+}

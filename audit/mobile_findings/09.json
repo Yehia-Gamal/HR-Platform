@@ -1,0 +1,61 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/executive_reports_page.dart",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "brand",
+   "line": 79,
+   "summary": "The hero banner gradient hardcodes hex colors Color(0xFF0A1830) and Color(0xFF104D78) instead of deriving from Theme brand/accent, breaking the color contract and dark-theme adaptability.",
+   "fix": "Replace the LinearGradient colors with theme-derived shades, e.g. colors: [scheme.primary, scheme.secondary] read from Theme.of(context).colorScheme, matching brand 0xFF0B4FA2 / accent 0xFF00A8D6 rather than one-off hex values."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 93,
+   "summary": "The banner icon uses a hardcoded Color(0xFFB9ECFF) instead of an on-brand theme color, an ad-hoc hue not in the palette.",
+   "fix": "Use a theme-based color such as scheme.onPrimary or scheme.secondary.withValues(alpha: .9) instead of the literal Color(0xFFB9ECFF)."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 75,
+   "summary": "The hero banner uses borderRadius 25, deviating from the established card radius of 20.",
+   "fix": "Change BorderRadius.circular(25) to BorderRadius.circular(20) to match the design-system card radius."
+  },
+  {
+   "severity": "medium",
+   "category": "filter",
+   "line": 166,
+   "summary": "The status filter is a bespoke horizontal ChoiceChip row that omits the MobileFilterBar result label and clear-filters affordance.",
+   "fix": "Replace the bespoke SingleChildScrollView/_filterChip row (lines 166-177, 234-241) with MobileFilterBar, or at minimum add a result-count label and a clear/reset control, passing status options and a resultLabel like 'عدد التقارير: ${filtered.length}'."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 72,
+   "summary": "The header banner is a fully bespoke container and does not surface the association BrandLogo/BrandLogoMark anywhere on this executive page.",
+   "fix": "Add a BrandLogoMark (from lib/core/widgets/brand_logo.dart) in the banner alongside the analytics icon for consistent executive branding."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 368,
+   "summary": "The report card trailing icon (chevron/download-done) conveys file-availability state but has no tooltip or Semantics label for screen readers.",
+   "fix": "Wrap the trailing Icon in Semantics(label: item.storagePath == null ? 'لا يوجد ملف' : 'الملف جاهز للتنزيل', child: ...) or add a Tooltip so the state is announced."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 304,
+   "summary": "The bottom-sheet summary uses bare Material Chip widgets with default styling inconsistent with the app's radius-99 chip and status-pill conventions.",
+   "fix": "Style the summary Chips to the design system (StadiumBorder / radius 99, theme surfaceContainerHighest background) or reuse a shared pill widget."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 37,
+   "summary": "The error and loading states use bare centered icons/spinners without a BrandLogo header and the error icon lacks a theme error color.",
+   "fix": "Tint the cloud_off icon with scheme.error and consider adding a BrandLogoMark header to the error/loading ListViews for consistency with other screens."
+  }
+ ]
+}

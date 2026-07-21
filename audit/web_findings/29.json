@@ -1,0 +1,61 @@
+{
+ "file": "apps/admin_web/src/features/management/SystemPage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 7,
+   "summary": "The page renders no loading indicator while the query is fetching; nothing appears below the header until data or error arrives, unlike the app pattern in OrganizationPage.",
+   "fix": "Add a loading branch mirroring sibling pages, e.g. {q.isLoading ? <p className=\"muted\">جارٍ تحميل الحالة التقنية…</p> : null} (or a skeleton), placed alongside the isError branch before the data block."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 7,
+   "summary": "The Feature Flags list has no empty-state fallback, so when d.flags is empty the card body renders empty, whereas the errors card correctly shows a fallback message.",
+   "fix": "Wrap the flags map with a length check and a fallback like the errors section: {d.flags.length ? d.flags.map(...) : <p className=\"muted text-sm\">لا توجد ميزات معرّفة.</p>}."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 7,
+   "summary": "When the query errors, both the EmptyState and (if cached) the data block can render together because the data block is gated only on d, not on !q.isError.",
+   "fix": "Gate the data block on success only, e.g. {d && !q.isError ? ... : null}, so the error EmptyState is shown alone rather than alongside cached data."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 7,
+   "summary": "The two section headings use bespoke <h2 className=\"font-black\"> with no size/spacing token, inconsistent with sibling section headers that pair a heading with a muted subtitle.",
+   "fix": "Standardize the card section headers (reuse the OrganizationPage pattern: a header row with <h2 className=\"font-black\"> plus an optional muted subtitle) for visual consistency across management pages."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 7,
+   "summary": "Error badges pass e.level directly to StatusBadge; a level such as 'fatal' is not in the map and falls back to a neutral badge showing the raw English key, breaking Arabic localization and color semantics.",
+   "fix": "Add missing level keys (e.g. 'fatal') to the StatusBadge map in src/ui/StatusBadge.tsx with tone 'danger', or normalize e.level to a known key before passing it."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 7,
+   "summary": "Metric label 'آخر Backup' mixes an English word into Arabic UI text where an Arabic term is available, unlike other fully-Arabic metric labels.",
+   "fix": "Use an Arabic label such as 'آخر نسخة احتياطية' for the backup MetricCard to match the surrounding Arabic labels."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 7,
+   "summary": "The fatalErrors/unresolvedErrors metric cards give no visual severity emphasis (e.g. danger accent), so critical counts read visually identical to neutral zero counts.",
+   "fix": "Pass a danger-toned hint or trend to the fatalErrors/unresolvedErrors MetricCards when count > 0 so severity is not conveyed by the number alone."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 7,
+   "summary": "The flags rollout line 'نسبة الإطلاق: {rolloutPercent}%' is plain muted text with no visual meter, a missed polish opportunity given the available surface/border tokens.",
+   "fix": "Optionally render a token-based progress meter (bg-[var(--surface-subtle)] track with a --brand-primary fill) for rolloutPercent to make the value scannable."
+  }
+ ]
+}

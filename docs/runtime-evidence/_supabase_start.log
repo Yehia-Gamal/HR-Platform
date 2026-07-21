@@ -1,0 +1,11 @@
+WARN: config section [inbucket] is deprecated. Please use [local_smtp] instead.
+supabase start is already running.
+WARN: config section [inbucket] is deprecated. Please use [local_smtp] instead.
+Stopped services: [supabase_kong_ahla-shabab-management-os-v8 supabase_auth_ahla-shabab-management-os-v8 supabase_inbucket_ahla-shabab-management-os-v8 supabase_realtime_ahla-shabab-management-os-v8 supabase_rest_ahla-shabab-management-os-v8 supabase_storage_ahla-shabab-management-os-v8 supabase_imgproxy_ahla-shabab-management-os-v8 supabase_pg_meta_ahla-shabab-management-os-v8 supabase_studio_ahla-shabab-management-os-v8 supabase_edge_runtime_ahla-shabab-management-os-v8 supabase_analytics_ahla-shabab-management-os-v8 supabase_vector_ahla-shabab-management-os-v8 supabase_pooler_ahla-shabab-management-os-v8]
+supabase local development setup is running.
+
+WARN: config section [inbucket] is deprecated. Please use [local_smtp] instead.
+Stopped services: [supabase_kong_ahla-shabab-management-os-v8 supabase_auth_ahla-shabab-management-os-v8 supabase_inbucket_ahla-shabab-management-os-v8 supabase_realtime_ahla-shabab-management-os-v8 supabase_rest_ahla-shabab-management-os-v8 supabase_storage_ahla-shabab-management-os-v8 supabase_imgproxy_ahla-shabab-management-os-v8 supabase_pg_meta_ahla-shabab-management-os-v8 supabase_studio_ahla-shabab-management-os-v8 supabase_edge_runtime_ahla-shabab-management-os-v8 supabase_analytics_ahla-shabab-management-os-v8 supabase_vector_ahla-shabab-management-os-v8 supabase_pooler_ahla-shabab-management-os-v8]
+{
+  "DB_URL": "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+}

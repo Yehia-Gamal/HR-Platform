@@ -1,0 +1,33 @@
+{
+ "file": "apps/mobile_flutter/lib/features/workspaces/workspace_scaffold.dart",
+ "findings": [
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 310,
+   "summary": "The 'more' bottom sheet omits showDragHandle: true while the sibling _showProfile sheet (line 408) enables it, so the two modal sheets look inconsistent.",
+   "fix": "Add showDragHandle: true to the showModalBottomSheet call at line 310 to match _showProfile, and remove the manual top padding of 0 so the drag handle spacing is consistent."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 375,
+   "summary": "The 'more' grid tile label uses a bare const TextStyle(fontSize: 12, fontWeight: FontWeight.w900) with no color from the color scheme, unlike the rest of the file which reads colors from Theme.",
+   "fix": "Use Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900) or set color: Theme.of(context).colorScheme.onSurface so the label follows theme/dark-mode colors."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 338,
+   "summary": "The 'more' grid tiles use a bespoke Ink/BoxDecoration card with borderRadius 18, diverging from the design-system card radius of 20.",
+   "fix": "Use borderRadius 20 (matching the app_theme card radius token) for both the InkWell (line 338) and the Ink decoration (line 351) so the tiles align with the design-system card radius."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 50,
+   "summary": "The notifications provider's loading and error states are silently coerced to an unread count of 0, so a failed fetch is indistinguishable from having zero unread items.",
+   "fix": "Acceptable for a passive badge, but consider distinguishing error state; silently mapping loading/error to 0 unread hides fetch failures."
+  }
+ ]
+}

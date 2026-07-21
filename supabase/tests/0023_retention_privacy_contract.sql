@@ -1,0 +1,14 @@
+begin;
+select plan(10);
+select has_column('public','live_location_videos_meta','retention_delete_after','video retention deadline exists');
+select has_column('public','live_location_videos_meta','legal_hold_until','video legal hold exists');
+select has_column('public','live_location_videos_meta','deleted_at','video deletion timestamp exists');
+select has_table('public','live_location_video_access_logs','video access log exists');
+select ok((select relrowsecurity from pg_class where oid = 'public.live_location_video_access_logs'::regclass),'video access log has RLS');
+select has_function('public','list_retention_video_candidates',array['integer'],'retention candidate RPC exists');
+select has_function('public','mark_retention_video_deleted',array['uuid','text'],'retention completion RPC exists');
+select has_function('public','cleanup_expired_ephemeral_records',array['integer'],'ephemeral cleanup RPC exists');
+select function_privs_are('public','list_retention_video_candidates',array['integer'],'service_role',array['EXECUTE'],'only service role executes candidate RPC');
+select function_privs_are('public','cleanup_expired_ephemeral_records',array['integer'],'service_role',array['EXECUTE'],'only service role executes cleanup RPC');
+select * from finish();
+rollback;

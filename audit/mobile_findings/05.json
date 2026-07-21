@@ -1,0 +1,54 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/executive_governance_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "dark-theme",
+   "line": 106,
+   "summary": "The header subtitle text sits inside a primaryContainer box but uses no explicit color, so it inherits the default onSurface color, which can lack contrast against the container in dark mode.",
+   "fix": "Give the subtitle (and ideally the title on line 99) an explicit color of Theme.of(context).colorScheme.onPrimaryContainer so it reads correctly against the primaryContainer background in both themes."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 283,
+   "summary": "The meeting ListTile shows a trailing chevron_left_rounded (a navigation affordance) but has no onTap, implying an action that does not exist.",
+   "fix": "Either remove the trailing chevron since the row is not tappable, or add an onTap if a detail action exists; the chevron should not appear on a non-interactive tile."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 420,
+   "summary": "The overdue progress-bar color is hardcoded as const Color(0xFFD98508) rather than pulled from the shared status palette source.",
+   "fix": "This amber matches the shared status palette so it is acceptable, but prefer deriving the overdue color from the same source used by MobileStatusPill (the 'pending'/'high' amber) instead of re-declaring the hex inline."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 104,
+   "summary": "The header subtitle uses a bespoke TextStyle(fontSize: 12) instead of the theme's bodySmall used elsewhere (e.g. MobileSectionHeader subtitles).",
+   "fix": "Use Theme.of(context).textTheme.bodySmall for the subtitle to match the typographic scale used by MobileSectionHeader and other pages."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 75,
+   "summary": "The header container uses radius 24, its leading icon box 18, and the meeting date box 14, none matching the design-system card radius of 20.",
+   "fix": "Align the header container radius to 20 (the established card radius) and normalize the inner icon and date box radii toward the 16 input radius for consistency."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 29,
+   "summary": "The loading state centers the spinner with a hardcoded SizedBox(height: 230) spacer, which is brittle across viewport heights.",
+   "fix": "Replace the fixed 230px spacer with a responsive centered layout (e.g. a min-height constrained Center) so the spinner stays centered across screen sizes."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 37,
+   "summary": "The error state uses a plain 52px icon and no brand mark, making brand presence inconsistent on this full-page state.",
+   "fix": "Consider adding a BrandLogoMark above the error icon and message to keep brand presence consistent with other headered surfaces in the app."
+  }
+ ]
+}

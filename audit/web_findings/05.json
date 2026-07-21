@@ -1,0 +1,61 @@
+{
+ "file": "apps/admin_web/src/features/attendance/AttendancePage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "brand",
+   "line": 27,
+   "summary": "Rules list uses hardcoded Tailwind palette colors (text-amber-500, text-emerald-500) instead of design tokens, so they won't adapt to the brand/dark theme.",
+   "fix": "Replace text-amber-500 with text-[var(--warning)] and text-emerald-500 with text-[var(--success)] to match the token system already used elsewhere (text-brand is used on the same line)."
+  },
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 18,
+   "summary": "The page renders nothing while data is loading (only handles data-present and isError), unlike the established skeleton pattern used on ServiceDesk/LiveLocation pages.",
+   "fix": "Add a loading branch when query.isLoading (e.g. render the metric grid + cards as `card h-44 animate-pulse bg-[var(--surface-muted)]` skeletons like ServiceDeskPage) before the `data ?` block."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 15,
+   "summary": "The refresh button is a bespoke inline-styled control instead of reusing .btn-secondary, and it lives in a custom toolbar rather than PageHeader's actions slot.",
+   "fix": "Pass the refresh button into PageHeader via the `actions` prop and give it className=\"btn-secondary\", removing the hand-rolled `inline-flex ... rounded-xl border border-[var(--border)] px-3 py-2` styling."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 17,
+   "summary": "The error EmptyState offers no retry action even though query.refetch is available, so users hit a dead end on load failure.",
+   "fix": "Add an action to the error EmptyState, e.g. action={{ label: 'إعادة المحاولة', onClick: () => void query.refetch() }} (matching EmptyState's action API)."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 27,
+   "summary": "Status meaning in the rules list is conveyed by icon color alone (amber vs emerald vs brand) with no text/aria label, failing color-only status guidance.",
+   "fix": "Add aria-hidden to the decorative icons or give each an aria-label describing its semantic (تحذير / مؤكد / معلومة); rely on the adjacent Arabic text for meaning rather than color."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 26,
+   "summary": "The 'incomplete' and 'pendingReview' figures are rendered as bespoke tiles (rounded-2xl bg surface-muted with 3xl numbers) instead of reusing MetricCard like the four cards directly above them.",
+   "fix": "Render these two figures with the shared MetricCard component (label/value/hint) for visual and spacing consistency with the metric grid at lines 19-24."
+  },
+  {
+   "severity": "low",
+   "category": "spacing",
+   "line": 13,
+   "summary": "The date/refresh toolbar uses a one-off rounded-2xl border+surface container instead of the shared .card class used by every other panel on the page.",
+   "fix": "If kept as a separate bar, use className=\"card\" (or fold the date into PageHeader) so radius/border/shadow match the .card panels at lines 26-27."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 15,
+   "summary": "The refresh button gives no accessible indication of the fetching state beyond the visually-spinning icon.",
+   "fix": "Add aria-busy={query.isFetching} (and optionally aria-label='تحديث') to the button, and mark the RefreshCcw icon aria-hidden."
+  }
+ ]
+}

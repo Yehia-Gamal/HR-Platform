@@ -1,0 +1,61 @@
+{
+ "file": "apps/admin_web/src/features/management/ReportSchedulerPage.tsx",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 18,
+   "summary": "Loading state is a bare text paragraph 'جارٍ التحميل…' instead of the shared LoadingScreen / skeleton pattern used across the app.",
+   "fix": "Replace the `<p className=\"muted\">جارٍ التحميل…</p>` fallback with `<LoadingScreen />` (or a card skeleton) for consistency with the rest of the app."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 19,
+   "summary": "The modal close button is an icon-only '✕' glyph with no aria-label, so screen readers announce nothing meaningful.",
+   "fix": "Add `aria-label=\"إغلاق\"` (and ideally the `icon-button` class or lucide X icon) to the close `<button type=\"button\">`."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 19,
+   "summary": "The modal dialog lacks dialog semantics (no role=\"dialog\", aria-modal, aria-labelledby) and no focus/escape handling.",
+   "fix": "Add `role=\"dialog\" aria-modal=\"true\" aria-labelledby` referencing the heading id to the modal wrapper for accessible modal semantics."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 19,
+   "summary": "Modal overlay uses hardcoded Tailwind color `bg-slate-950/60` instead of a design token, breaking token consistency and dark-theme adaptability.",
+   "fix": "Use a token-based scrim, e.g. a defined overlay token or `bg-[var(--surface-strong)]/60`, instead of `bg-slate-950/60`."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 19,
+   "summary": "The Save button `<button className=\"btn-primary\">حفظ الجدولة</button>` omits `type=\"submit\"` and has no pending/disabled state during the async mutation.",
+   "fix": "Add `type=\"submit\"` and disable/show a spinner while `commands.upsert.isPending` to match the app's form submission pattern."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 22,
+   "summary": "Form field labels use a bespoke inline `Field` component rather than shared label styling, and the 'channels' draft state is never editable in the form.",
+   "fix": "Align Field markup with the shared label styling used elsewhere; either expose a channels selector or drop the unused channels UI concern."
+  },
+  {
+   "severity": "low",
+   "category": "filter",
+   "line": 17,
+   "summary": "The schedules and runs lists have no search/filter affordance despite potentially long lists, diverging from the FilterBar pattern used on comparable list pages.",
+   "fix": "Add a FilterBar (search + result count) above the schedules list if the dataset can grow, for consistency with other management list pages."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 10,
+   "summary": "Multiple statements and JSX are collapsed onto single very long lines, hurting readability and diff-ability versus the rest of the codebase.",
+   "fix": "Split the component body, header JSX, and modal form onto normally-formatted multi-line JSX consistent with sibling files."
+  }
+ ]
+}

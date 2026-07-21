@@ -1,0 +1,54 @@
+{
+ "file": "apps/admin_web/src/features/actions/ActionCenterPage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 8,
+   "summary": "There is no loading state: while query.isLoading is true the metric cards render 0 and the list section is empty with no skeleton or spinner, unlike sibling pages that show pulse skeletons or loading text.",
+   "fix": "Add a loading branch before the list, e.g. `{query.isLoading ? <section className=\"space-y-3\" aria-label=\"جارٍ تحميل الإجراءات\">{[1,2,3].map((i) => <div key={i} className=\"card h-28 animate-pulse bg-[var(--surface-muted)]\" />)}</section> : null}` matching the pattern in LiveLocationPage/ServiceDeskPage."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 8,
+   "summary": "The 'فتح الإجراء' Link uses a bespoke `bg-brand ... text-white` class stack instead of the shared .btn-primary primitive, diverging from button styling elsewhere (hover/active/focus states, radius).",
+   "fix": "Replace the inline className with `className=\"btn-primary shrink-0\"` so the CTA inherits the design-system button tokens and interaction states."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 8,
+   "summary": "The due-date deadline text uses a hardcoded Tailwind color `text-amber-600` instead of the warning design token, so it will not adapt to the dark theme or match .status-warning/priority-icon which use var(--warning).",
+   "fix": "Change `text-amber-600` to `text-[var(--warning)]`."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 8,
+   "summary": "The item.status is rendered as raw plain text in a `.muted text-xs` span while kind and priority use StatusBadge, giving inconsistent status treatment within the same badge row.",
+   "fix": "Render status with the shared primitive too: `<StatusBadge value={item.status} />` for visual and color consistency with kind/priority."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 8,
+   "summary": "The error condition reuses EmptyState (a neutral empty treatment) with no error styling or icon, so a load failure is visually indistinguishable from a benign 'no items' state.",
+   "fix": "Give the error case a distinct error banner (danger token surface, e.g. a `.card` with `border-[var(--danger)]`/`text-[var(--danger)]` and an AlertCircle icon) rather than the neutral EmptyState used for the no-items case."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 8,
+   "summary": "PageHeader is used without the `eyebrow` prop that other top-level feature pages provide, making the header slightly inconsistent with the established page-header pattern.",
+   "fix": "Add an eyebrow, e.g. `eyebrow=\"مركز الإجراءات\"` (or the relevant module label) to PageHeader for consistency with sibling pages."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 8,
+   "summary": "The 'مكتمل اليوم' MetricCard is hardcoded to value={0}, so it is a permanently static placeholder metric that never reflects real data.",
+   "fix": "Either wire it to a real count from the query data, or remove the card until the metric is available, to avoid a misleading always-zero tile (polish/consistency only, no new data flow required if removed)."
+  }
+ ]
+}

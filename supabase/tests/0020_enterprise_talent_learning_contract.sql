@@ -1,0 +1,17 @@
+begin;
+select plan(13);
+select has_table('public','learning_courses','learning_courses exists');
+select has_table('public','learning_enrollments','learning_enrollments exists');
+select has_table('public','document_templates','document_templates exists');
+select has_table('public','generated_documents','generated_documents exists');
+select has_table('public','document_signature_requests','signature requests exists');
+select has_table('public','scheduled_reports','scheduled reports exists');
+select has_table('public','report_runs','report runs exists');
+select has_table('public','notification_jobs','notification jobs exists');
+select has_function('public','get_learning_admin_catalog',array[]::text[],'learning catalog RPC exists');
+select has_function('public','get_my_learning_catalog',array[]::text[],'mobile learning RPC exists');
+select has_function('public','get_document_studio_catalog',array[]::text[],'document studio RPC exists');
+select has_function('public','get_report_scheduler_catalog',array[]::text[],'report scheduler RPC exists');
+select has_function('public','get_recruitment_workbench_catalog',array[]::text[],'ATS workbench RPC exists');
+select * from finish();
+rollback;

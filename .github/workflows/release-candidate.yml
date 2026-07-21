@@ -1,0 +1,96 @@
+name: Release Candidate
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run check:all
+      - run: npx supabase start
+      - run: npx supabase db reset
+      - run: npx supabase test db
+      - if: always()
+        run: npx supabase stop --no-backup
+
+  web:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_ENABLE_DEV_MOCKS: 'false'
+          VITE_APP_VERSION: '0.10.0'
+          VITE_APP_BUILD: '10'
+          VITE_APP_ENVIRONMENT: 'staging'
+      - uses: actions/upload-artifact@v4
+        with: { name: admin-web-dist, path: apps/admin_web/dist }
+
+  android:
+    needs: verify
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/mobile_flutter } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter create . --project-name ahla_shabab_management_os --org org.ahlashabab --platforms android,ios
+      - run: python ../../scripts/configure_flutter_platforms.py
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - name: Restore Android release keystore
+        shell: bash
+        env:
+          RELEASE_KEYSTORE_B64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_B64 }}
+        run: base64 --decode <<< "$RELEASE_KEYSTORE_B64" > android/app/release-keystore.jks
+      - run: mkdir -p build/symbols && flutter build apk --release --split-per-abi --obfuscate --split-debug-info=build/symbols --dart-define=SUPABASE_URL=${{ secrets.STAGING_SUPABASE_URL }} --dart-define=SUPABASE_PUBLISHABLE_KEY=${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }} --dart-define=APP_ENVIRONMENT=staging
+        env:
+          RELEASE_KEYSTORE_PATH: release-keystore.jks
+          RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+      - run: flutter build appbundle --release --obfuscate --split-debug-info=build/symbols --dart-define=SUPABASE_URL=${{ secrets.STAGING_SUPABASE_URL }} --dart-define=SUPABASE_PUBLISHABLE_KEY=${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }} --dart-define=APP_ENVIRONMENT=staging
+        env:
+          RELEASE_KEYSTORE_PATH: release-keystore.jks
+          RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-staging-release-signed
+          path: |
+            apps/mobile_flutter/build/app/outputs/flutter-apk/*-release.apk
+            apps/mobile_flutter/build/app/outputs/bundle/release/app-release.aab
+            apps/mobile_flutter/build/symbols/**
+
+
+  ios:
+    needs: verify
+    runs-on: macos-latest
+    defaults: { run: { working-directory: apps/mobile_flutter } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter create . --project-name ahla_shabab_management_os --org org.ahlashabab --platforms ios
+      - run: python ../../scripts/configure_flutter_platforms.py
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build ios --release --no-codesign --dart-define=SUPABASE_URL=${{ secrets.STAGING_SUPABASE_URL }} --dart-define=SUPABASE_PUBLISHABLE_KEY=${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }} --dart-define=APP_ENVIRONMENT=staging
+      - run: tar -czf ios-runner-no-codesign.tar.gz -C build/ios/iphoneos Runner.app
+      - uses: actions/upload-artifact@v4
+        with: { name: ios-runner-no-codesign, path: apps/mobile_flutter/ios-runner-no-codesign.tar.gz }

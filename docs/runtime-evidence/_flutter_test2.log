@@ -1,0 +1,22 @@
+00:00 +0: loading D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/access_context_test.dart
+00:00 +0: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/access_context_test.dart: AccessContext.fromJson executive context disables self attendance
+00:00 +1: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/access_context_test.dart: AccessContext.fromJson parses nullable employee identity fields
+00:00 +2: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/access_context_test.dart: AccessContext.fromJson defaults missing role and permission lists to empty
+00:00 +3: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/access_context_test.dart: WorkspaceId.fromWire maps every known wire value including snake_case forms
+00:00 +4: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/access_context_test.dart: WorkspaceId.fromWire throws a FormatException on an unknown workspace
+00:00 +5: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/access_context_test.dart: permission checks wildcard grants any permission
+00:00 +6: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/access_context_test.dart: permission checks explicit permission is matched exactly
+00:00 +7: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/access_context_test.dart: permission checks hasAnyPermission returns true when at least one code matches
+00:01 +8: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/attendance_security_models_test.dart: attendance history parses server verification fields
+00:01 +9: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/attendance_security_models_test.dart: passkey device parses revocation and backup metadata
+00:02 +10: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/mobile_models_test.dart: action target keeps complete UUID after prefixed action id is resolved by server
+00:02 +11: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/mobile_models_test.dart: KPI form parses stage scores
+00:02 +12: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/mobile_models_test.dart: mobile profile parses documents and assets
+00:02 +13: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/mobile_models_test.dart: team member parses attendance and workflow summary
+00:02 +14: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/mobile_models_test.dart: request detail exposes cancel capability from server
+00:02 +15: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/mobile_models_test.dart: daily report keeps manager review timestamp
+00:02 +16: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/mobile_models_test.dart: mobile task identifies onboarding source
+00:04 +17: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/mobile_operations_models_test.dart: manager operations parse roster, alerts and daily report gaps
+00:04 +18: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/mobile_operations_models_test.dart: executive command center parses reports, votes and risk records
+00:08 +19: D:/Coder/HR/HR_Platform_2/apps/mobile_flutter/test/widget_test.dart: configuration errors are rendered in Arabic
+00:09 +20: All tests passed!

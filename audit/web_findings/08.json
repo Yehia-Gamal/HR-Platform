@@ -1,0 +1,61 @@
+{
+ "file": "apps/admin_web/src/features/communications/OfficialFeedPage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 75,
+   "summary": "The page never renders a loading skeleton or spinner; while query.isLoading is true the feed area is simply empty, unlike the app's LoadingScreen pattern.",
+   "fix": "Add a loading branch before the results section, e.g. render a skeleton/spinner (or reuse LoadingScreen semantics with aria-busy) when query.isLoading, so the initial fetch shows feedback instead of a blank grid."
+  },
+  {
+   "severity": "high",
+   "category": "dark-theme",
+   "line": 93,
+   "summary": "The publish modal's active mode tabs use hardcoded bg-white text-brand, which stays white in dark theme instead of using surface tokens.",
+   "fix": "Replace bg-white with bg-[var(--surface-raised)] (or bg-[var(--surface)]) so the active tab respects the dark theme like other raised surfaces."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 94,
+   "summary": "The save-error message uses hardcoded text-red-600 instead of the danger design token.",
+   "fix": "Replace text-red-600 with text-[var(--danger)] to align with the design-system danger color and dark-theme support."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 66,
+   "summary": "The header action and modal submit buttons reimplement button styles inline (bg-brand px-4 py-2.5 / rounded-xl bg-brand px-5 py-3) instead of reusing the shared .btn-primary class.",
+   "fix": "Use className=\"btn-primary\" (with the icon child) for the header 'عنصر رسمي جديد' button and the modal submit button to match the app-wide button styling."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 92,
+   "summary": "The modal close (X) button is icon-only with no accessible label.",
+   "fix": "Add aria-label=\"إغلاق\" to the close button so screen readers announce its purpose."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 92,
+   "summary": "The modal is a custom overlay without dialog semantics (no role=\"dialog\", aria-modal, or labelled title) and no Escape/backdrop-close handling.",
+   "fix": "Add role=\"dialog\" aria-modal=\"true\" and aria-labelledby pointing to the modal title heading, matching the app's modal accessibility pattern."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 88,
+   "summary": "The decision action button reimplements a bespoke style (bg-[var(--surface-muted)] text-brand) rather than using the shared .btn-secondary primitive.",
+   "fix": "Replace the inline classes with className=\"btn-secondary\" (keeping the disabled/icon children) for consistency with secondary actions elsewhere."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 87,
+   "summary": "The acknowledgement progress bar is purely visual with no accessible role or value exposed to assistive tech.",
+   "fix": "Add role=\"progressbar\" with aria-valuenow/aria-valuemin/aria-valuemax (or aria-label with the count) on the progress container so the acknowledgement ratio is announced."
+  }
+ ]
+}

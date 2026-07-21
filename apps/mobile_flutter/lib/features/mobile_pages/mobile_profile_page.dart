@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_learning_page.dart';
@@ -49,7 +50,7 @@ class MobileProfilePage extends ConsumerWidget {
                 color: Theme.of(context).colorScheme.error,
               ),
               const SizedBox(height: 12),
-              Text('تعذر تحميل الملف: $error', textAlign: TextAlign.center),
+              Text(humanizeError(error), textAlign: TextAlign.center),
               const SizedBox(height: 16),
               Center(
                 child: FilledButton.icon(
@@ -120,10 +121,25 @@ class MobileProfilePage extends ConsumerWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 10),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.password_outlined),
+                  title: const Text('تغيير الرقم السري'),
+                  subtitle: const Text('تحديث بيانات الدخول الخاصة بك'),
+                  trailing: const Icon(Icons.chevron_left_rounded),
+                  onTap: () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (context) => const _ChangePasswordDialog(),
+                  ),
+                ),
+              ),
               const SizedBox(height: 14),
               _DocumentsSection(items: item.documents),
               const SizedBox(height: 14),
               _AssetsSection(items: item.assets),
+              const SizedBox(height: 32),
             ],
           ),
         ),
@@ -158,18 +174,20 @@ class _HeaderState extends ConsumerState<_Header> {
       await Supabase.instance.client.storage.from('avatars').uploadBinary(path, bytes);
       final url = Supabase.instance.client.storage.from('avatars').getPublicUrl(path);
       
-      await Supabase.instance.client.from('employees').update({'photo_url': url}).eq('id', userId);
+      await Supabase.instance.client.from('employees').update({'photo_url': url}).eq('id', widget.item.id);
       ref.invalidate(mobileProfileProvider);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تحديث الصورة بنجاح')));
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ أثناء رفع الصورة: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذر تحديث الصورة بأمان. أعد المحاولة.')),
+        );
       }
     } finally {
-      setState(() => _isUploading = false);
+      if (mounted) setState(() => _isUploading = false);
     }
   }
 
@@ -283,8 +301,6 @@ class _InfoSection extends StatelessWidget {
                 ? null
                 : DateFormat('d MMM y', 'ar').format(item.contractEnd!),
           ),
-          const Divider(height: 32),
-          const _ChangePasswordButton(),
         ],
       ),
     ),
@@ -330,102 +346,6 @@ class _InfoSection extends StatelessWidget {
       ],
     ),
   );
-}
-
-class _ChangePasswordButton extends StatefulWidget {
-  const _ChangePasswordButton();
-  @override
-  State<_ChangePasswordButton> createState() => _ChangePasswordButtonState();
-}
-
-class _ChangePasswordButtonState extends State<_ChangePasswordButton> {
-  bool _isLoading = false;
-  final _passwordController = TextEditingController();
-
-  Future<void> _changePassword() async {
-    final password = _passwordController.text;
-    if (password.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('الرقم السري يجب أن يكون 6 أحرف على الأقل')),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      await Supabase.instance.client.auth.updateUser(
-        UserAttributes(password: password),
-      );
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم تغيير الرقم السري بنجاح')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ أثناء التغيير: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _showDialog() {
-    _passwordController.clear();
-    showDialog<void>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setStateDialog) => AlertDialog(
-          title: const Text('تغيير الرقم السري'),
-          content: TextField(
-            controller: _passwordController,
-            obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'الرقم السري الجديد',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: _isLoading ? null : () => Navigator.pop(context),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: _isLoading
-                  ? null
-                  : () async {
-                      setStateDialog(() => _isLoading = true);
-                      await _changePassword();
-                      if (mounted) setStateDialog(() => _isLoading = false);
-                    },
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Text('حفظ'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: _showDialog,
-        icon: const Icon(Icons.password_rounded),
-        label: const Text('تغيير الرقم السري'),
-      ),
-    );
-  }
 }
 
 class _DocumentsSection extends StatelessWidget {
@@ -527,6 +447,149 @@ class _EmptyLine extends StatelessWidget {
             ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ChangePasswordDialog extends StatefulWidget {
+  const _ChangePasswordDialog();
+
+  @override
+  State<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
+}
+
+class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
+  String? _error;
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    _confirmController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final response = await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: _passwordController.text),
+      );
+      if (response.user == null) {
+        throw Exception('تعذر التحديث');
+      }
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تغيير الرقم السري بنجاح')),
+        );
+      }
+    } on AuthException {
+      if (mounted) setState(() => _error = 'تعذر تغيير الرقم السري. تحقق من المتطلبات وأعد المحاولة.');
+    } catch (_) {
+      if (mounted) setState(() => _error = 'تعذر تغيير الرقم السري بأمان. أعد المحاولة.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: bottomInset > 0 ? bottomInset + 24 : 48,
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'تغيير الرقم السري',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            if (_error != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  _error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
+                ),
+              ),
+            TextFormField(
+              controller: _passwordController,
+              obscureText: _obscurePassword,
+              decoration: InputDecoration(
+                labelText: 'الرقم السري الجديد',
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ),
+              validator: (val) {
+                if (val == null || val.length < 6) {
+                  return 'الرقم السري يجب أن يكون 6 أحرف على الأقل';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _confirmController,
+              obscureText: _obscureConfirm,
+              decoration: InputDecoration(
+                labelText: 'تأكيد الرقم السري',
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscureConfirm ? Icons.visibility : Icons.visibility_off),
+                  onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                ),
+              ),
+              validator: (val) {
+                if (val != _passwordController.text) {
+                  return 'كلمتا المرور غير متطابقتين';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: _isLoading ? null : _submit,
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('حفظ الرقم السري'),
+            ),
+          ],
+        ),
       ),
     );
   }

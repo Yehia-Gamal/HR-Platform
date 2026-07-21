@@ -1,0 +1,54 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_privacy_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 125,
+   "summary": "Status is rendered with a bare Material Chip plus a bespoke _status label map instead of the shared MobileStatusPill used across the app.",
+   "fix": "Replace `Chip(label: Text(_status(item.status)))` with the shared MobileStatusPill for a consistent rounded status-pill look; since this page's status keys (submitted/in_review/waiting_requester/completed/cancelled) don't yet exist in MobileStatusPill's switch, add those cases (with labels + status-palette colors) to MobileStatusPill so the pill can drive them, keeping status styling centralized."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 98,
+   "summary": "The empty state is a plain centered-text Card with no icon or brand mark, unlike the app's richer empty states.",
+   "fix": "Give the empty state an illustration: center a BrandLogoMark (or a themed Icon such as Icons.privacy_tip_outlined in colorScheme.onSurfaceVariant) above the text, matching the empty-state treatment used on other mobile pages."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 77,
+   "summary": "The error state shows only raw '$error' text with no icon, no styling, and no retry action.",
+   "fix": "Render a themed error block: an Icons.error_outline in colorScheme.error, a friendly message, and a retry button calling ref.invalidate(mobilePrivacyRequestsProvider); avoid interpolating the raw exception into user-facing text."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 62,
+   "summary": "The AppBar shows only a text title with no BrandLogoMark, unlike branded app bars elsewhere in the app.",
+   "fix": "Add a compact BrandLogoMark before the title (or in flexibleSpace) so this page's app bar matches the app's branded header convention."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 108,
+   "summary": "The request header uses raw '·' separators and no Semantics grouping, so screen readers read the card fragmentarily.",
+   "fix": "Wrap each request Card's content in Semantics(container: true) with a concise label combining number, type and status so screen readers announce the request as one coherent item instead of fragmented '·'-separated strings."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 120,
+   "summary": "The request title uses a hardcoded TextStyle(fontWeight: FontWeight.w900) with no textTheme base, bypassing the type scale.",
+   "fix": "Base the title on Theme.of(context).textTheme.titleSmall/titleMedium with copyWith(fontWeight: FontWeight.w900) so font size/family follow the design-system type scale rather than an untyped inline style."
+  },
+  {
+   "severity": "low",
+   "category": "spacing",
+   "line": 89,
+   "summary": "Card radius is left to defaults; confirm it resolves to the design-system radius-20 token rather than the framework default.",
+   "fix": "If any Card here overrides shape, standardize to RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)); otherwise ensure the global CardTheme radius-20 token applies to these Cards."
+  }
+ ]
+}

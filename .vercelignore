@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+apps/mobile_flutter
+supabase/.temp
+supabase/.branches
+**/dist
+**/build
+**/.dart_tool
+docs/runtime-evidence/*.log
+*.apk
+*.aab
+.git
+BUILD_MANIFEST.json
+staging_generated_secrets.local.txt
+*.local.txt

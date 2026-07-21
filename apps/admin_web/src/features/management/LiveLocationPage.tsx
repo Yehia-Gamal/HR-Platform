@@ -1,0 +1,184 @@
+import { Activity, Crosshair, LocateFixed, MapPin, RefreshCw, Send, Signal, SignalLow, Users, Video, X } from 'lucide-react';
+import { useMemo, useState, type FormEvent } from 'react';
+import { EmptyState } from '../../ui/EmptyState';
+import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
+import { FilterBar } from '../../ui/FilterBar';
+import { MetricCard } from '../../ui/MetricCard';
+import { PageHeader } from '../../ui/PageHeader';
+import { StatusBadge } from '../../ui/StatusBadge';
+import { useLiveLocationCommands, useLocationDirectory, type LocationDirectoryItem } from './useControlCenters';
+
+type LocationState = 'fresh' | 'stale' | 'no_signal';
+type RequestDraft = { employee: LocationDirectoryItem; mode: string; reason: string };
+
+const filters: Array<{ id: 'all' | LocationState | 'active'; label: string }> = [
+  { id: 'all', label: 'الكل' },
+  { id: 'fresh', label: 'متصل الآن' },
+  { id: 'stale', label: 'بيانات قديمة' },
+  { id: 'no_signal', label: 'دون إشارة' },
+  { id: 'active', label: 'طلبات نشطة' },
+];
+
+function locationState(item: LocationDirectoryItem): LocationState {
+  if (!item.lastRecordedAt || item.lastLatitude === null || item.lastLongitude === null) return 'no_signal';
+  return Date.now() - new Date(item.lastRecordedAt).getTime() <= 15 * 60_000 ? 'fresh' : 'stale';
+}
+
+function stateLabel(state: LocationState) {
+  return state === 'fresh' ? 'متصل' : state === 'stale' ? 'إشارة قديمة' : 'لا توجد إشارة';
+}
+
+function relativeTime(value: string | null) {
+  if (!value) return 'لم يُسجل موقع بعد';
+  const minutes = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 60_000));
+  if (minutes < 1) return 'الآن';
+  if (minutes < 60) return `منذ ${minutes} دقيقة`;
+  const hours = Math.round(minutes / 60);
+  return hours < 24 ? `منذ ${hours} ساعة` : `منذ ${Math.round(hours / 24)} يوم`;
+}
+
+export function LiveLocationPage() {
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<(typeof filters)[number]['id']>('all');
+  const [requestDraft, setRequestDraft] = useState<RequestDraft | null>(null);
+  const query = useLocationDirectory(search);
+  const commands = useLiveLocationCommands();
+  const data = query.data ?? [];
+  const visible = useMemo(() => data.filter((item) => filter === 'all' || (filter === 'active' ? Boolean(item.activeRequestId) : locationState(item) === filter)), [data, filter]);
+  const fresh = data.filter((item) => locationState(item) === 'fresh').length;
+  const missing = data.filter((item) => locationState(item) === 'no_signal').length;
+  const active = data.filter((item) => item.activeRequestId).length;
+
+  async function submitRequest(event: FormEvent) {
+    event.preventDefault();
+    if (!requestDraft || requestDraft.reason.trim().length < 5) return;
+    await commands.request.mutateAsync({ employeeId: requestDraft.employee.id, mode: requestDraft.mode, reason: requestDraft.reason.trim() });
+    setRequestDraft(null);
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="مركز الموقع الحي"
+        description="صورة تشغيلية لحالة موظفي الميدان وطلبات التحقق النشطة، مع سبب إلزامي ونطاق وصول خادمي لكل طلب."
+        actions={<button className="btn-secondary" type="button" onClick={() => void query.refetch()} disabled={query.isFetching}><RefreshCw className={`size-4 ${query.isFetching ? 'animate-spin' : ''}`} />تحديث</button>}
+      />
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="ضمن نطاق الوصول" value={data.length} icon={Users} />
+        <MetricCard label="متصلون خلال 15 دقيقة" value={fresh} icon={Signal} />
+        <MetricCard label="طلبات نشطة" value={active} icon={Activity} />
+        <MetricCard label="دون موقع مسجل" value={missing} icon={SignalLow} />
+      </section>
+
+      <FilterBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="ابحث بالاسم أو كود الموظف أو الإدارة…"
+        resultText={query.isLoading ? undefined : `${visible.length} نتيجة`}
+        isDirty={search !== '' || filter !== 'all'}
+        onClear={() => { setSearch(''); setFilter('all'); }}
+      >
+        <div className="flex flex-wrap gap-2" role="group" aria-label="تصفية حالة الموقع">
+          {filters.map((item) => <button key={item.id} type="button" onClick={() => setFilter(item.id)} className={`filter-chip ${filter === item.id ? 'is-active' : ''}`}>{item.label}</button>)}
+        </div>
+      </FilterBar>
+
+      {query.isError ? <ErrorState title="تعذر تحميل دليل الموقع" description={query.error instanceof Error ? query.error.message : 'تحقق من الاتصال والصلاحيات.'} onRetry={() => void query.refetch()} /> : null}
+
+      {!query.isError ? (
+        <section className="grid gap-5 2xl:grid-cols-[1.15fr_.85fr]">
+          <LocationMap items={visible} />
+          <article className="card overflow-hidden">
+            <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] p-5">
+              <div><h2 className="font-black">دليل الموظفين</h2><p className="muted mt-1 text-sm">{query.isLoading ? '…' : `${visible.length} نتيجة`}</p></div>
+              <LocateFixed className="size-5 text-[var(--brand-primary)]" />
+            </div>
+            {query.isLoading ? <div className="space-y-3 p-5" aria-label="جارٍ تحميل الموظفين">{[1, 2, 3].map((item) => <div key={item} className="h-28 animate-pulse rounded-2xl bg-[var(--surface-muted)]" />)}</div> : null}
+            {!query.isLoading && !visible.length ? <EmptyState title="لا توجد نتائج مطابقة" description="غيّر البحث أو مرشح حالة الإشارة." /> : null}
+            <div className="max-h-[650px] divide-y divide-[var(--border)] overflow-y-auto">
+              {visible.map((item) => {
+                const state = locationState(item);
+                return (
+                  <article key={item.id} className="p-5 transition-colors hover:bg-[var(--surface-muted)]">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2"><strong className="truncate">{item.name}</strong><StatusBadge value={state} label={stateLabel(state)} /></div>
+                        <p className="muted mt-1 text-xs">{item.employeeCode} · {item.jobTitle ?? 'دون مسمى'} · {item.department ?? 'دون إدارة'}</p>
+                      </div>
+                      {item.activeRequestStatus ? <StatusBadge value={item.activeRequestStatus} /> : null}
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                      <div className="rounded-xl bg-[var(--surface-muted)] p-3"><span className="muted block">آخر تحديث</span><strong className="mt-1 block">{relativeTime(item.lastRecordedAt)}</strong></div>
+                      <div className="rounded-xl bg-[var(--surface-muted)] p-3"><span className="muted block">دقة GPS</span><strong className="mt-1 block">{item.lastAccuracy === null ? '—' : `${Math.round(item.lastAccuracy)} متر`}</strong></div>
+                    </div>
+                    <button type="button" className="btn-secondary mt-4 w-full" disabled={Boolean(item.activeRequestId)} onClick={() => setRequestDraft({ employee: item, mode: 'snapshot', reason: '' })}>
+                      <Crosshair className="size-4" />{item.activeRequestId ? 'يوجد طلب نشط بالفعل' : 'طلب تحقق من الموقع'}
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          </article>
+        </section>
+      ) : null}
+
+      {requestDraft ? (
+        <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setRequestDraft(null); }}>
+          <section className="card w-full max-w-xl p-6" role="dialog" aria-modal="true" aria-labelledby="location-request-title">
+            <div className="flex items-start justify-between gap-4">
+              <div><h2 id="location-request-title" className="text-xl font-black">طلب تحقق من {requestDraft.employee.name}</h2><p className="muted mt-1 text-sm">سيصل الطلب إلى هاتف الموظف ويُسجل بالكامل في سجل التدقيق.</p></div>
+              <button type="button" className="icon-button" aria-label="إغلاق" onClick={() => setRequestDraft(null)}><X className="size-5" /></button>
+            </div>
+            <form className="mt-6 space-y-4" onSubmit={(event) => void submitRequest(event)}>
+              <label className="block text-sm font-bold">نوع التحقق
+                <select className="input mt-2" value={requestDraft.mode} onChange={(event) => setRequestDraft({ ...requestDraft, mode: event.target.value })}>
+                  <option value="location_video">موقع دقيق + فيديو 5 ثوانٍ (موصى به)</option>
+                  <option value="snapshot">لقطة موقع واحدة</option>
+                  <option value="video_5s">فيديو تحقق — 5 ثوانٍ</option>
+                  <option value="track_5">تتبع حي — 5 دقائق</option>
+                  <option value="track_10">تتبع حي — 10 دقائق</option>
+                  <option value="track_15">تتبع حي — 15 دقيقة</option>
+                  <option value="track_30">تتبع حي — 30 دقيقة</option>
+                </select>
+              </label>
+              <label className="block text-sm font-bold">سبب الطلب
+                <textarea className="input mt-2 min-h-28" required minLength={5} value={requestDraft.reason} onChange={(event) => setRequestDraft({ ...requestDraft, reason: event.target.value })} placeholder="اكتب سببًا تشغيليًا واضحًا…" />
+              </label>
+              {commands.request.isError ? <ErrorBanner message={commands.request.error instanceof Error ? commands.request.error.message : 'تعذر إرسال الطلب.'} /> : null}
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setRequestDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.request.isPending || requestDraft.reason.trim().length < 5}>{requestDraft.mode === 'video_5s' ? <Video className="size-4" /> : <Send className="size-4" />}{commands.request.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}</button></div>
+            </form>
+          </section>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function LocationMap({ items }: { items: LocationDirectoryItem[] }) {
+  const points = items.filter((item) => item.lastLatitude !== null && item.lastLongitude !== null);
+  const latitudes = points.map((item) => item.lastLatitude!);
+  const longitudes = points.map((item) => item.lastLongitude!);
+  const minLat = points.length ? Math.min(...latitudes) : 0;
+  const maxLat = points.length ? Math.max(...latitudes) : 0;
+  const minLng = points.length ? Math.min(...longitudes) : 0;
+  const maxLng = points.length ? Math.max(...longitudes) : 0;
+  const latRange = Math.max(maxLat - minLat, 0.01);
+  const lngRange = Math.max(maxLng - minLng, 0.01);
+  return (
+    <article className="card overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] p-5"><div><h2 className="font-black">الخريطة التشغيلية</h2><p className="muted mt-1 text-sm">مواضع تقريبية من آخر نقطة مصرح بعرضها</p></div><div className="flex gap-3 text-xs"><span className="inline-flex items-center gap-1.5"><i className="size-2.5 rounded-full bg-[var(--success)]" aria-hidden="true" />متصل</span><span className="inline-flex items-center gap-1.5"><i className="size-2.5 rounded-full bg-[var(--warning)]" aria-hidden="true" />قديم</span></div></div>
+      <div className="location-map" role="img" aria-label={`خريطة تشغيلية تحتوي ${points.length} نقطة`}>
+        <div className="map-ring map-ring-one" /><div className="map-ring map-ring-two" />
+        <div className="map-center"><Crosshair className="size-5" /><span>نطاق التشغيل</span></div>
+        {points.map((item, index) => {
+          const left = 10 + (((item.lastLongitude! - minLng) / lngRange) * 76 + index * 7) % 80;
+          const top = 12 + ((1 - (item.lastLatitude! - minLat) / latRange) * 65 + index * 11) % 70;
+          const state = locationState(item);
+          return <span key={item.id} className={`map-pin map-pin-${state}`} style={{ left: `${left}%`, top: `${top}%` }} title={`${item.name} — ${relativeTime(item.lastRecordedAt)}`}><MapPin className="size-5" /><b>{item.name.split(' ')[0]}</b></span>;
+        })}
+        {!points.length ? <div className="absolute inset-0 grid place-items-center"><p className="rounded-xl bg-[var(--surface)]/90 px-4 py-3 text-sm font-bold">لا توجد نقاط متاحة للعرض</p></div> : null}
+      </div>
+    </article>
+  );
+}

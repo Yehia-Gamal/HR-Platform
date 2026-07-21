@@ -1,0 +1,28 @@
+{
+  "name": "ahla-shabab-management-os",
+  "version": "0.10.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/admin_web",
+    "packages/shared-contracts",
+    "packages/design-tokens"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace @ahla/admin-web",
+    "build": "npm run build --workspace @ahla/shared-contracts && npm run build --workspace @ahla/admin-web",
+    "test": "npm run test --workspace @ahla/shared-contracts && npm run test --workspace @ahla/admin-web",
+    "typecheck": "npm run typecheck --workspace @ahla/shared-contracts && npm run typecheck --workspace @ahla/admin-web",
+    "check": "npm run typecheck && npm run test && npm run build",
+    "manifest": "node scripts/generate-manifest.mjs",
+    "check:dart-source": "python3 scripts/validate_dart_sources.py",
+    "check:all": "npm run check && npm run check:dart-source && node scripts/validate-foundation.mjs && npm run check:secrets",
+    "check:secrets": "node scripts/check-no-secrets.mjs"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "devDependencies": {
+    "supabase": "^2.109.1"
+  }
+}

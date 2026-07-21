@@ -1,0 +1,50 @@
+import { Search, SlidersHorizontal, X } from 'lucide-react';
+import type { ReactNode } from 'react';
+
+interface FilterBarProps {
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+  searchPlaceholder: string;
+  children?: ReactNode;
+  resultText?: string;
+  isDirty?: boolean;
+  onClear?: () => void;
+}
+
+export function FilterBar({
+  searchValue,
+  onSearchChange,
+  searchPlaceholder,
+  children,
+  resultText,
+  isDirty = false,
+  onClear,
+}: FilterBarProps) {
+  return (
+    <section className="filter-bar" aria-label="البحث والتصفية">
+      <div className="filter-bar-heading">
+        <span className="filter-bar-title"><SlidersHorizontal className="size-4" />البحث والتصفية</span>
+        {isDirty && onClear ? (
+          <button type="button" className="filter-clear" onClick={onClear}>
+            <X className="size-3.5" />مسح الكل
+          </button>
+        ) : null}
+      </div>
+      <div className="filter-bar-grid">
+        <label className="filter-search">
+          <span className="sr-only">بحث</span>
+          <Search aria-hidden="true" />
+          <input
+            value={searchValue}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder={searchPlaceholder}
+            className="input"
+            type="search"
+          />
+        </label>
+        {children}
+      </div>
+      {resultText ? <p className="filter-result" aria-live="polite">{resultText}</p> : null}
+    </section>
+  );
+}

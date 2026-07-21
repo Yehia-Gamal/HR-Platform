@@ -1,0 +1,90 @@
+
+> ahla-shabab-management-os@0.10.0 check:all
+> npm run check && npm run check:dart-source && node scripts/validate-foundation.mjs && npm run check:secrets
+
+
+> ahla-shabab-management-os@0.10.0 check
+> npm run typecheck && npm run test && npm run build
+
+
+> ahla-shabab-management-os@0.10.0 typecheck
+> npm run typecheck --workspace @ahla/shared-contracts && npm run typecheck --workspace @ahla/admin-web
+
+
+> @ahla/shared-contracts@0.10.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @ahla/admin-web@0.10.0 typecheck
+> tsc -b --pretty false
+
+
+> ahla-shabab-management-os@0.10.0 test
+> npm run test --workspace @ahla/shared-contracts && npm run test --workspace @ahla/admin-web
+
+
+> @ahla/shared-contracts@0.10.0 test
+> vitest run src
+
+
+ RUN  v4.1.10 D:/Coder/HR/HR_Platform_2/packages/shared-contracts
+
+
+ Test Files  7 passed (7)
+      Tests  18 passed (18)
+   Start at  18:28:05
+   Duration  6.79s (transform 207ms, setup 0ms, import 5.40s, tests 150ms, environment 3ms)
+
+
+> @ahla/admin-web@0.10.0 test
+> vitest run
+
+
+ RUN  v4.1.10 D:/Coder/HR/HR_Platform_2/apps/admin_web
+
+
+ Test Files  4 passed (4)
+      Tests  5 passed (5)
+   Start at  18:28:18
+   Duration  12.44s (transform 195ms, setup 3.31s, import 1.96s, tests 1.42s, environment 20.18s)
+
+
+> ahla-shabab-management-os@0.10.0 build
+> npm run build --workspace @ahla/shared-contracts && npm run build --workspace @ahla/admin-web
+
+
+> @ahla/shared-contracts@0.10.0 build
+> tsc -p tsconfig.json
+
+
+> @ahla/admin-web@0.10.0 build
+> tsc -b && vite build
+
+[36mvite v8.1.4 [32mbuilding client environment for production...[36m[39m
+[2Ktransforming...✓ 1925 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                             1.14 kB │ gzip:  0.56 kB
+dist/assets/index-Blhpw0Xe.css             52.80 kB │ gzip: 10.76 kB
+dist/assets/rolldown-runtime-QTnfLwEv.js    0.69 kB │ gzip:  0.42 kB
+dist/assets/query-B2Y-dbi5.js              43.19 kB │ gzip: 13.10 kB
+dist/assets/vendor-JX-4yWUg.js             70.63 kB │ gzip: 19.00 kB
+dist/assets/supabase-CP-0FfgL.js          203.60 kB │ gzip: 52.06 kB
+dist/assets/react-vendor-DkZzcci-.js      282.97 kB │ gzip: 91.42 kB
+dist/assets/index-7vqh9GeR.js             336.17 kB │ gzip: 71.42 kB
+
+[33m[33m[INEFFECTIVE_DYNAMIC_IMPORT] [0msrc/features/mock/domainMocks.ts is dynamically imported by src/features/attendance/useAttendanceDashboard.ts, src/features/communications/useOfficialFeed.ts, src/features/requests/useRequests.ts but also statically imported by src/features/actions/useActionCenter.ts, src/features/management/useManagementOverviews.ts, src/features/notifications/useNotifications.ts, src/features/performance/usePerformance.ts, dynamic import will not move module into another chunk.
+[39m
+[32m✓ built in 1.39s[39m
+
+> ahla-shabab-management-os@0.10.0 check:dart-source
+> python3 scripts/validate_dart_sources.py
+
+Dart source integrity valid: 49 files, 151 classes.
+Foundation structure valid: 40 sequential migrations.
+
+> ahla-shabab-management-os@0.10.0 check:secrets
+> node scripts/check-no-secrets.mjs
+
+Secret scan passed: no high-confidence committed credentials found.
+CHECK_ALL_EXIT=0

@@ -1,0 +1,40 @@
+{
+ "file": "apps/admin_web/src/features/management/ReportsPage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 5,
+   "summary": "The page renders nothing while the query is loading (no skeleton/spinner), so users see a blank page after the header on first load, unlike the sibling OnboardingPage which shows a loading indicator.",
+   "fix": "Between the header and the metrics section, render a loading state when q.isLoading is true (e.g. the LoadingScreen pattern or a `<p className=\"muted\">جارٍ تحميل التقارير…</p>` matching OnboardingPage line 36)."
+  },
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 5,
+   "summary": "There is no error state; if the query fails, `d` is undefined and the page silently shows only the header with no feedback, diverging from the app pattern that renders an EmptyState/error banner on q.isError.",
+   "fix": "Add `{q.isError ? <EmptyState title=\"تعذر تحميل التقارير\" description={q.error instanceof Error ? q.error.message : 'تحقق من الصلاحيات'} /> : null}` (import EmptyState), mirroring OnboardingPage line 37."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 5,
+   "summary": "The export button reimplements the .btn-primary style inline (`inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 font-black text-white disabled:opacity-50`) instead of reusing the shared .btn-primary class used by sibling pages.",
+   "fix": "Replace the inline utility classes on the export button with `className=\"btn-primary\"` (as OnboardingPage line 35 does), keeping only the onClick/disabled props and the icon."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 5,
+   "summary": "All five MetricCards use the identical generic FileBarChart icon, giving no visual differentiation between metrics and making the icon decorative noise rather than informative.",
+   "fix": "Assign distinct lucide icons per metric (e.g. Users for الموظفون, UserCheck for النشطون, Inbox/ClipboardList for الطلبات, Clock for مراجعات الحضور, Target for KPI) to match the differentiated-icon convention used in other summary sections."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 5,
+   "summary": "The whole component and its download handler are collapsed onto a single minified line, which is inconsistent with the readable multi-line formatting of every other page in the feature folder.",
+   "fix": "Reformat the file with normal line breaks/indentation (one statement per line, JSX broken across lines) to match OnboardingPage and the rest of the codebase; this is purely stylistic with no logic change."
+  }
+ ]
+}

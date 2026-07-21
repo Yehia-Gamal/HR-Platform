@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="أحلى شباب">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0B4FA2"/><stop offset="1" stop-color="#0A9BCB"/></linearGradient></defs>
+  <rect width="128" height="128" rx="30" fill="url(#g)"/>
+  <path fill="#fff" d="M64 27c19.9 0 36 16.1 36 36 0 18.1-13.4 33.1-30.8 35.6v-13c10.3-2.3 18-11.5 18-22.6 0-12.8-10.4-23.2-23.2-23.2S40.8 50.2 40.8 63c0 11.1 7.7 20.3 18 22.6v13C41.4 96.1 28 81.1 28 63c0-19.9 16.1-36 36-36Z" opacity=".92"/>
+  <path fill="#fff" d="M59 50h10v51H59zM49 67h30v10H49z"/>
+</svg>

@@ -1,0 +1,40 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_action_inbox_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 24,
+   "summary": "The error state shows only an error string with no retry affordance, unlike the sibling mobile_tasks_page which adds an OutlinedButton to re-invalidate the provider.",
+   "fix": "Add a centered retry OutlinedButton below the error text that calls ref.invalidate(mobileActionCenterProvider), and give the ListView padding/textAlign matching mobile_tasks_page for consistency."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 29,
+   "summary": "The empty state icon is not centered (only the text is wrapped in Center) and uses the default icon color, so it renders left/right-aligned and unstyled compared to other pages.",
+   "fix": "Wrap the Icon in Center, add a SizedBox(height: 10) between icon and text as in mobile_tasks_page, and tint the icon with Theme.of(context).colorScheme.onSurfaceVariant for a consistent muted empty-state look."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 83,
+   "summary": "The leading CircleAvatar icon and the trailing chevron have no Semantics label/tooltip, so screen readers get no description of the action kind or the navigation affordance.",
+   "fix": "Add a Semantics label (e.g. the kind) around the leading icon and a Tooltip/Semantics on the trailing chevron ('فتح الإجراء'); the whole ListTile is tappable so ensure it exposes a meaningful semantic label."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 100,
+   "summary": "The due-date label uses a hardcoded fontSize: 11 with no color, so it does not adopt the muted onSurfaceVariant treatment used for secondary metadata elsewhere (e.g. MetricCard/section subtitles).",
+   "fix": "Replace the inline TextStyle(fontSize: 11) with Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant) so due dates read as muted metadata in both light and dark themes."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 101,
+   "summary": "The overdue/due deadline is styled identically regardless of urgency, giving no visual cue when item.dueAt is in the past.",
+   "fix": "When item.dueAt is before DateTime.now(), color the deadline text with Theme.of(context).colorScheme.error to signal an overdue action (purely presentational, no logic change to data flow)."
+  }
+ ]
+}

@@ -1,0 +1,173 @@
+import { createEmployeeInputSchema, createEmployeeResultSchema } from '@ahla/shared-contracts';
+import { zodResolver } from '@hookform/resolvers/zod';
+import type { z } from 'zod';
+import { ArrowRight, Check, CheckCircle2, ChevronLeft, ChevronRight, ImagePlus, Loader2, UserPlus, X } from 'lucide-react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Link } from 'react-router-dom';
+import { getSupabase } from '../../core/supabase';
+import { PageHeader } from '../../ui/PageHeader';
+import { useAuth } from '../auth/AuthProvider';
+import { useOrganizationLookups } from './useOrganizationLookups';
+
+type FormInput = z.input<typeof createEmployeeInputSchema>;
+const defaultValues: Partial<FormInput> = { roleSlug: 'employee', sendInvite: false };
+const uuidValue = { setValueAs: (value: string) => value || null };
+const steps = ['الهوية والحساب', 'الهيكل والوظيفة', 'المراجعة والإنشاء'];
+
+// «المنصب» يتحكم في صلاحيات حساب الدخول عبر ربطه بدور النظام. تُجلب الأدوار
+// ديناميكياً من كتالوج الأدوار (باستثناء أدوار الوصول الكامل) لا من قائمة ثابتة.
+
+export function CreateEmployeePage() {
+  const auth = useAuth();
+  const lookups = useOrganizationLookups();
+  const [step, setStep] = useState(0);
+  const [result, setResult] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const form = useForm<FormInput>({ resolver: zodResolver(createEmployeeInputSchema), defaultValues });
+  const values = form.watch();
+  const options = lookups.data;
+  const branches = options?.branches ?? [];
+  const selectedBranch = values.branchId ?? branches[0]?.id ?? null;
+  const workSites = useMemo(() => options?.workSites.filter((item) => !selectedBranch || item.parentId === selectedBranch) ?? [], [options, selectedBranch]);
+  // الأدوار المتاحة للإسناد عند الإنشاء — من كتالوج الأدوار الحيّ. يُحتفظ بخيار
+  // «موظف» كحد أدنى ريثما تُحمّل القائمة كي لا يبقى المنسدل فارغاً.
+  const roleOptions = useMemo(() => {
+    const roles = options?.roles ?? [];
+    return roles.length ? roles.map((r) => ({ slug: r.slug, label: r.label })) : [{ slug: 'employee', label: 'موظف' }];
+  }, [options]);
+
+  // كتابة المجمّع الافتراضي في الفورم فور تحميل الفروع، حتى يُرسَل فعلاً في
+  // الحمولة (لا مجرد عرضه) إن لم يختر المستخدم مجمّعاً صراحةً.
+  useEffect(() => {
+    if (!values.branchId && branches[0]?.id) {
+      form.setValue('branchId', branches[0].id);
+    }
+  }, [branches, values.branchId, form]);
+
+  const next = async () => {
+    const fields: Array<keyof FormInput> = step === 0 ? ['fullNameAr', 'email', 'phoneE164', 'roleSlug'] : [];
+    if (fields.length && !(await form.trigger(fields))) return;
+    setStep((current) => Math.min(2, current + 1));
+  };
+
+  const onPickPhoto = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setPhotoError(null);
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setPhotoError('الصيغة غير مدعومة. استخدم JPG أو PNG أو WEBP.'); return;
+    }
+    if (file.size > 5 * 1024 * 1024) { setPhotoError('حجم الصورة أكبر من 5 ميجابايت.'); return; }
+    setPhotoUploading(true);
+    try {
+      if (auth.isMock) {
+        setPhotoPreview(URL.createObjectURL(file));
+        form.setValue('photoUrl', 'https://example.com/mock-avatar.png');
+        return;
+      }
+      const supabase = await getSupabase();
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const path = `${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from('employee-avatars').upload(path, file, { upsert: false, contentType: file.type });
+      if (error) throw error;
+      const { data } = supabase.storage.from('employee-avatars').getPublicUrl(path);
+      form.setValue('photoUrl', data.publicUrl, { shouldValidate: true });
+      setPhotoPreview(data.publicUrl);
+    } catch (error) {
+      setPhotoError(error instanceof Error ? error.message : 'تعذر رفع الصورة.');
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+  const removePhoto = () => { setPhotoPreview(null); setPhotoError(null); form.setValue('photoUrl', undefined); };
+
+  const submit = form.handleSubmit(async (raw) => {
+    const parsedInput = createEmployeeInputSchema.parse(raw);
+    setResult(null); setSubmitError(null);
+    try {
+      if (auth.isMock) { setResult('تم التحقق من الرحلة كاملة في وضع التطوير دون حفظ بيانات.'); return; }
+      const supabase = await getSupabase();
+      const { data, error } = await supabase.functions.invoke('admin-create-employee', { body: parsedInput });
+      if (error) throw error;
+      const parsed = createEmployeeResultSchema.parse(data);
+      setResult(parsedInput.sendInvite
+        ? parsed.invitationSent
+          ? `تم إنشاء الموظف والحساب وإرسال رابط التفعيل بنجاح. المعرّف: ${parsed.employeeId}`
+          : `تم إنشاء الموظف والحساب، لكن تعذر إرسال رابط التفعيل. راجع إعداد عنوان التفعيل ثم أعد الإرسال. المعرّف: ${parsed.employeeId}`
+        : `تم إنشاء الموظف والحساب بنجاح دون إرسال دعوة. المعرّف: ${parsed.employeeId}`);
+      form.reset(defaultValues); setStep(0); setPhotoPreview(null);
+    } catch (error) { setSubmitError(error instanceof Error ? error.message : 'تعذر إنشاء الموظف.'); }
+  });
+
+  const roleLabel = roleOptions.find((r) => r.slug === values.roleSlug)?.label ?? values.roleSlug;
+
+  return <div><PageHeader title="إنشاء موظف وحساب دخول" description="رحلة واحدة تنشئ ملف الموظف والحساب والدور والصورة الشخصية داخل عملية خادمية آمنة." actions={<Link to="/hr/employees" className="btn-secondary text-sm"><ArrowRight className="size-4" aria-hidden="true" />رجوع</Link>} />
+    <section className="mx-auto max-w-5xl"><ol className="mb-5 grid grid-cols-3 gap-2">{steps.map((label, index) => <li key={label} className={`rounded-xl border p-3 text-center text-xs font-black ${index === step ? 'border-brand bg-brand text-white' : index < step ? 'border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]' : 'border-[var(--border)] bg-[var(--surface)] muted'}`}>{index < step ? <Check className="mx-auto mb-1 size-4" aria-hidden="true" /> : <span className="mb-1 block">{index + 1}</span>}{label}</li>)}</ol>
+      <form onSubmit={submit} className="card p-5 sm:p-7">
+        {result ? <div className="mb-5 flex gap-2 rounded-xl border border-[var(--success)] bg-[var(--success-soft)] p-4 text-sm text-[var(--success)]"><CheckCircle2 className="size-5 shrink-0" aria-hidden="true" />{result}</div> : null}
+        {submitError ? <div role="alert" className="mb-5 rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-4 text-sm text-[var(--danger)]">{submitError}</div> : null}
+        {step === 0 ? <div><SectionTitle title="الهوية وحساب الدخول" description="البيانات الأساسية والصورة الشخصية ومعرف الدخول والمنصب." />
+          <div className="mb-6 flex items-center gap-5">
+            <div className="relative size-24 shrink-0 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)]">
+              {photoPreview ? <img src={photoPreview} alt="" className="size-full object-cover" /> : <div className="flex size-full items-center justify-center text-[var(--text-muted)]"><ImagePlus className="size-8" aria-hidden="true" /></div>}
+              {photoUploading ? <div className="absolute inset-0 flex items-center justify-center bg-black/40"><Loader2 className="size-6 animate-spin text-white" aria-hidden="true" /></div> : null}
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold">الصورة الشخصية</p>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={photoUploading} className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-semibold disabled:opacity-50"><ImagePlus className="size-4" aria-hidden="true" />{photoPreview ? 'تغيير الصورة' : 'رفع صورة'}</button>
+                {photoPreview ? <button type="button" onClick={removePhoto} className="inline-flex items-center gap-2 rounded-xl border border-[var(--danger)] px-3 py-2 text-sm font-semibold text-[var(--danger)]"><X className="size-4" aria-hidden="true" />إزالة</button> : null}
+              </div>
+              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={onPickPhoto} />
+              <p className="muted mt-1.5 text-xs">JPG أو PNG أو WEBP · حتى 5 ميجابايت</p>
+              {photoError ? <p className="mt-1 text-xs text-[var(--danger)]">{photoError}</p> : null}
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="الاسم الكامل بالعربية" error={form.formState.errors.fullNameAr?.message}><input className="input" {...form.register('fullNameAr')} /></Field>
+            <Field label="الهاتف" error={form.formState.errors.phoneE164?.message}><input className="input" dir="ltr" inputMode="tel" placeholder="01154869616" {...form.register('phoneE164')} /></Field>
+            <Field label="البريد الإلكتروني" error={form.formState.errors.email?.message}><input type="email" className="input" dir="ltr" {...form.register('email')} /></Field>
+            <Field label="المنصب" error={form.formState.errors.roleSlug?.message}><select className="input" aria-label="المنصب" {...form.register('roleSlug')}>{roleOptions.map((role) => <option value={role.slug} key={role.slug}>{role.label}</option>)}</select></Field>
+            <Field label="تاريخ التعيين" error={form.formState.errors.hireDate?.message}><input type="date" className="input" {...form.register('hireDate')} /></Field>
+            <label className="flex items-center gap-3 self-end rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-semibold"><input type="checkbox" className="size-4" {...form.register('sendInvite')} />إرسال دعوة تفعيل عبر البريد</label>
+          </div></div> : null}
+        {step === 1 ? <div><SectionTitle title="الهيكل والوظيفة" description="تحديد المجمّع وموقع العمل والمدير المباشر والمسمى الوظيفي." />{lookups.isError ? <p role="alert" className="mb-4 rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">تعذر تحميل بيانات الهيكل: {lookups.error instanceof Error ? lookups.error.message : 'خطأ'}</p> : null}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SelectField label="المجمع" options={branches} register={form.register('branchId', uuidValue)} placeholder="اختر المجمع" />
+            <SelectField label="موقع العمل" options={workSites} register={form.register('workSiteId', uuidValue)} placeholder="اختر موقع العمل" />
+            <SelectField label="المدير المباشر" options={options?.managers ?? []} register={form.register('managerEmployeeId', uuidValue)} placeholder="بدون مدير" />
+            <JobTitleField label="المسمى الوظيفي" options={options?.jobTitles ?? []} register={form.register('jobTitleName')} />
+          </div></div> : null}
+        {step === 2 ? <div><SectionTitle title="مراجعة البيانات" description="راجع البيانات قبل إنشاء ملف الموظف وحساب الدخول." />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Review label="الاسم" value={values.fullNameAr} />
+            <Review label="الهاتف" value={values.phoneE164} />
+            <Review label="البريد" value={values.email} />
+            <Review label="المنصب" value={roleLabel} />
+            <Review label="المجمع" value={branches.find((x) => x.id === selectedBranch)?.label} />
+            <Review label="موقع العمل" value={options?.workSites.find((x) => x.id === values.workSiteId)?.label} />
+            <Review label="المدير" value={options?.managers.find((x) => x.id === values.managerEmployeeId)?.label} />
+            <Review label="المسمى الوظيفي" value={values.jobTitleName} />
+          </div>
+          <div className="mt-5 rounded-xl bg-[var(--surface-muted)] p-4 text-sm leading-7">سيتم إنشاء Auth User وEmployee وProfile وإسناد الدور والمدير داخل مسار خادمي. عند فشل أي جزء تُنفذ عملية تعويض ولا يُترك حساب يتيم. كود الموظف يُشتق تلقائياً من رقم الهاتف.</div></div> : null}
+        <div className="mt-7 flex items-center justify-between border-t border-[var(--border)] pt-5"><button type="button" className="btn-secondary" disabled={step === 0} onClick={() => setStep((current) => current - 1)}><ChevronRight className="size-4" aria-hidden="true" />السابق</button>{step < 2 ? <button type="button" className="btn-primary" onClick={() => void next()}>التالي<ChevronLeft className="size-4" aria-hidden="true" /></button> : <button type="submit" disabled={form.formState.isSubmitting} className="btn-primary"><UserPlus className="size-4" aria-hidden="true" />{form.formState.isSubmitting ? 'جارٍ الإنشاء…' : 'إنشاء الموظف والحساب'}</button>}</div>
+      </form></section>
+  </div>;
+}
+function SectionTitle({ title, description }: { title: string; description: string }) { return <div className="mb-6 border-b border-[var(--border)] pb-5"><h2 className="text-lg font-black">{title}</h2><p className="muted mt-1 text-sm">{description}</p></div>; }
+function Field({ label, error, children }: { label: string; error?: string; children: ReactNode }) { return <label className="block"><span className="mb-1.5 block text-sm font-semibold">{label}</span>{children}<span className="mt-1 block min-h-4 text-xs text-[var(--danger)]">{error}</span></label>; }
+function SelectField({ label, options, register, placeholder }: { label: string; options: Array<{ id: string; label: string }>; register: Record<string, unknown>; placeholder?: string }) { return <label className="block"><span className="mb-1.5 block text-sm font-semibold">{label}</span><select className="input" aria-label={label} {...register}><option value="">{placeholder ?? 'غير محدد'}</option>{options.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>; }
+// المسمى الوظيفي: إدخال حر مع اقتراحات من المسميات الموجودة (datalist).
+function JobTitleField({ label, options, register }: { label: string; options: Array<{ id: string; label: string }>; register: Record<string, unknown> }) {
+  return <label className="block"><span className="mb-1.5 block text-sm font-semibold">{label}</span>
+    <input className="input" list="job-titles-list" aria-label={label} placeholder="اكتب مسمى جديد أو اختر من الموجود" {...register} />
+    <datalist id="job-titles-list">{options.map((item) => <option key={item.id} value={item.label} />)}</datalist>
+  </label>;
+}
+function Review({ label, value }: { label: string; value?: string | null }) { return <div className="rounded-xl bg-[var(--surface-muted)] p-4"><p className="muted text-xs font-bold">{label}</p><p className="mt-1 font-black">{value || 'غير محدد'}</p></div>; }

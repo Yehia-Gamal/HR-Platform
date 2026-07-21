@@ -1,0 +1,54 @@
+{
+ "file": "apps/admin_web/src/features/management/ReleaseGovernancePage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "brand",
+   "line": 80,
+   "summary": "Destructive action buttons use the hardcoded Tailwind color text-red-700 instead of the --danger design token, so they do not adapt to dark theme and drift from the brand danger color.",
+   "fix": "Replace `btn-secondary text-red-700` with `btn-secondary text-[var(--danger)]` on all destructive buttons (revoke device, revoke access, reject break-glass, reject privacy) at lines 80, 82, 84, 86 so they use the token that responds to [data-theme='dark']."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 59,
+   "summary": "The loading state is a bespoke plain `<p className=\"muted\">جارٍ تحميل…</p>` instead of the shared LoadingScreen spinner/branding used across the app.",
+   "fix": "Import and render `<LoadingScreen label=\"جارٍ تحميل بيانات الحوكمة…\" />` (from ../../ui/LoadingScreen) when query.isLoading, matching the loading pattern used by sibling pages."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 80,
+   "summary": "The devices table is a hand-rolled `<table>` with raw utility classes (bg-[var(--surface-muted)], p-4, border-t) rather than the shared .data-table class used elsewhere, causing spacing/border inconsistencies.",
+   "fix": "Apply the shared `.data-table` class to the `<table>` (and drop the redundant per-cell p-4/border-t/bg utilities) so device listing matches the app's canonical table styling and cell padding."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 72,
+   "summary": "The tab navigation buttons convey the active tab only via btn-primary vs btn-secondary styling, with no aria-selected/aria-current, so assistive tech cannot tell which section is active.",
+   "fix": "Add `aria-current={tab===value ? 'page' : undefined}` (or use role=\"tab\"/aria-selected on a role=\"tablist\" container) to each nav button so the active section is exposed to screen readers, not color-only."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 82,
+   "summary": "Empty lists render a plain `<p className=\"muted p-5\">لا توجد…</p>` (lines 82, 84, 86) instead of the shared EmptyState primitive already imported and used for the error state.",
+   "fix": "Replace the bespoke muted paragraphs with `<EmptyState title=... description=... />` (e.g. title=\"لا توجد عناصر مراجعة معلقة\") so empty states are visually consistent with the rest of the app."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 76,
+   "summary": "Policy cards mix inconsistent card padding (p-5 here vs the devices/access panels using border-b header + p-5 body), and the release cards use p-5 while metric grid and forms vary, giving uneven spacing across tabs.",
+   "fix": "Standardize card internal padding to the app convention (p-5 body with a bordered header where a title exists), and ensure the policy cards follow the same header/body structure as the devices/access/breakglass panels for visual rhythm."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 58,
+   "summary": "The refresh button's RefreshCcw icon lacks aria-hidden, so screen readers may announce it redundantly alongside the visible 'تحديث' label (StatusBadge icons correctly set aria-hidden).",
+   "fix": "Add `aria-hidden=\"true\"` to the `<RefreshCcw className=\"size-4\"/>` icon (and any other decorative lucide icons rendered next to text) to match the StatusBadge convention."
+  }
+ ]
+}

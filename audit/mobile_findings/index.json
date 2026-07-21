@@ -1,0 +1,218 @@
+[
+ {
+  "i": 0,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/attendance_history_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/00.json",
+  "n": 7
+ },
+ {
+  "i": 1,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/employee_home_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/01.json",
+  "n": 7
+ },
+ {
+  "i": 2,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/executive_brief_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/02.json",
+  "n": 6
+ },
+ {
+  "i": 3,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/executive_emergency_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/03.json",
+  "n": 7
+ },
+ {
+  "i": 4,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/executive_employee_summary_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/04.json",
+  "n": 7
+ },
+ {
+  "i": 5,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/executive_governance_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/05.json",
+  "n": 7
+ },
+ {
+  "i": 6,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/executive_home_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/06.json",
+  "n": 7
+ },
+ {
+  "i": 7,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/executive_location_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/07.json",
+  "n": 8
+ },
+ {
+  "i": 8,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/executive_people_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/08.json",
+  "n": 7
+ },
+ {
+  "i": 9,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/executive_reports_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/09.json",
+  "n": 8
+ },
+ {
+  "i": 10,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/executive_risk_center_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/10.json",
+  "n": 7
+ },
+ {
+  "i": 11,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/kpi_evaluation_detail_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/11.json",
+  "n": 8
+ },
+ {
+  "i": 12,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/live_tracking_session_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/12.json",
+  "n": 6
+ },
+ {
+  "i": 13,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/location_requests_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/13.json",
+  "n": 6
+ },
+ {
+  "i": 14,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/manager_home_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/14.json",
+  "n": 5
+ },
+ {
+  "i": 15,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/manager_operations_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/15.json",
+  "n": 8
+ },
+ {
+  "i": 16,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_attendance_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/16.json",
+  "n": 6
+ },
+ {
+  "i": 17,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_action_inbox_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/17.json",
+  "n": 5
+ },
+ {
+  "i": 18,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_daily_reports_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/18.json",
+  "n": 7
+ },
+ {
+  "i": 19,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_attendance_services_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/19.json",
+  "n": 8
+ },
+ {
+  "i": 20,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_feed_detail_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/20.json",
+  "n": 6
+ },
+ {
+  "i": 21,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_disputes_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/21.json",
+  "n": 8
+ },
+ {
+  "i": 22,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_kpi_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/22.json",
+  "n": 7
+ },
+ {
+  "i": 23,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_learning_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/23.json",
+  "n": 8
+ },
+ {
+  "i": 24,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_offboarding_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/24.json",
+  "n": 8
+ },
+ {
+  "i": 25,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_notifications_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/25.json",
+  "n": 6
+ },
+ {
+  "i": 26,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_official_feed_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/26.json",
+  "n": 8
+ },
+ {
+  "i": 27,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_payslips_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/27.json",
+  "n": 6
+ },
+ {
+  "i": 28,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_privacy_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/28.json",
+  "n": 7
+ },
+ {
+  "i": 29,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_profile_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/29.json",
+  "n": 8
+ },
+ {
+  "i": 30,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_request_detail_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/30.json",
+  "n": 6
+ },
+ {
+  "i": 31,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_requests_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/31.json",
+  "n": 6
+ },
+ {
+  "i": 32,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_service_portal_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/32.json",
+  "n": 8
+ },
+ {
+  "i": 33,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_tasks_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/33.json",
+  "n": 7
+ },
+ {
+  "i": 34,
+  "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_team_page.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/34.json",
+  "n": 7
+ },
+ {
+  "i": 35,
+  "file": "apps/mobile_flutter/lib/features/workspaces/workspace_scaffold.dart",
+  "path": "D:/Coder/HR/HR_Platform_2/audit/mobile_findings/35.json",
+  "n": 4
+ }
+]

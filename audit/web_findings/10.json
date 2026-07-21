@@ -1,0 +1,54 @@
+{
+ "file": "apps/admin_web/src/features/employees/EmployeesPage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "brand",
+   "line": 86,
+   "summary": "Error banner uses hardcoded Tailwind red-200/red-50/red-800 colors instead of the --danger / --danger-soft design tokens, so it will not adapt in dark theme.",
+   "fix": "Replace the classes with token-based styling, e.g. className=\"rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-4 text-sm text-[var(--danger)]\" (mirroring the sibling components' use of design tokens) so the banner works in both light and dark themes."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 95,
+   "summary": "Empty and error states are rendered as plain inline text/table rows instead of the shared EmptyState component used across the app (DisputesPage, OfficialFeedPage, EmployeeDetailPage).",
+   "fix": "Import EmptyState and render it below the FilterBar for the empty case (e.g. title \"لا توجد نتائج مطابقة\", description guiding to clear filters) and for the error case, matching the established pattern instead of the bespoke table-cell/mobile-card text."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 95,
+   "summary": "The empty message \"لا توجد نتائج مطابقة\" is shown both when no employees exist at all and when filters exclude everything, giving misleading copy for a truly empty directory.",
+   "fix": "Distinguish the two cases: when all.length === 0 show a first-run empty state (e.g. \"لا يوجد موظفون بعد\" with the create action if canCreate), and only show \"لا توجد نتائج مطابقة\" when filters/search are active."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 95,
+   "summary": "Loading state uses a plain text row/card (\"جارٍ تحميل الموظفين…\") with no skeleton or spinner, inconsistent with the app's LoadingScreen/animated loading pattern.",
+   "fix": "Render lightweight skeleton rows/cards (e.g. animate-pulse placeholder rows using --surface-muted) during employees.isLoading, or reuse the app's spinner treatment, so the loading state matches the design system."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 95,
+   "summary": "Table loading/empty cells add aria-busy is missing, so screen readers are not told the region is loading.",
+   "fix": "Add aria-busy={employees.isLoading} to the table/section (and role=\"status\" on the loading text) so assistive tech announces the loading state."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 81,
+   "summary": "The refresh button has visible text \"تحديث\" but no aria-busy indication while fetching, so the spin state is purely visual.",
+   "fix": "Add aria-busy={employees.isFetching} (and optionally aria-label) to the refresh button so the fetching state is exposed to assistive technology, not only via the spinning icon."
+  },
+  {
+   "severity": "low",
+   "category": "spacing",
+   "line": 88,
+   "summary": "The desktop table wrapper uses className=\"card hidden overflow-hidden md:block\" while list sections use gap-3; header th cells use ad-hoc px-4 py-3.5 that duplicate .data-table styling.",
+   "fix": "Verify the bespoke px-4 py-3.5 padding on th/td matches .data-table's built-in cell spacing; if .data-table already defines cell padding, drop the inline overrides to keep table density consistent with other pages."
+  }
+ ]
+}

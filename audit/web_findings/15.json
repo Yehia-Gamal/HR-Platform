@@ -1,0 +1,33 @@
+{
+ "file": "apps/admin_web/src/features/management/EnterpriseManagementPage.tsx",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 7,
+   "summary": "Loading state uses a bespoke inline `<p className=\"muted\">جارٍ التحميل…</p>` instead of the shared LoadingScreen primitive used across the app.",
+   "fix": "Import LoadingScreen and render `if(q.isLoading)return <LoadingScreen label=\"جارٍ تحميل مركز الإدارة المؤسسية…\" />;` (or render it in place of the `<p className=\"muted\">` fallback) for a branded, consistent loading experience."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 8,
+   "summary": "The Panel empty-state fallback (`{children||<EmptyState.../>}`) never renders because `children` is a non-empty array of `.map()` results and an empty array is truthy in React, so panels with no data show a blank body instead of the intended EmptyState.",
+   "fix": "Compute whether the panel has any rows and gate on that, e.g. accept a boolean `isEmpty` prop (or check `React.Children.count`/array length before passing) and render `{isEmpty ? <EmptyState .../> : children}` so genuinely empty panels show the empty message."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 8,
+   "summary": "The EmptyState (a full `.card` with min-h-56) is rendered inside a Panel that is itself a `.card` with a `divide-y` body, producing a nested card-in-card that breaks the panel's visual rhythm.",
+   "fix": "Render a lightweight inline empty message inside the panel body (e.g. a centered `p-8 text-center text-[var(--text-muted)]` block) rather than the full EmptyState card, reserving EmptyState for page-level emptiness."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 7,
+   "summary": "The five MetricCards use only label/value/icon and omit the `hint` prop, leaving cards without the supporting context line the MetricCard component supports and other pages provide.",
+   "fix": "Pass a short `hint` to each MetricCard (e.g. `hint=\"مغلقة/مفتوحة\"` for risks, `hint=\"هذا العام\"` for objectives) to match the fuller MetricCard usage elsewhere; purely optional if the design intentionally omits hints."
+  }
+ ]
+}

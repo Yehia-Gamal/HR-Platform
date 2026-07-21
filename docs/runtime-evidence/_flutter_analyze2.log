@@ -1,0 +1,5 @@
+Analyzing mobile_flutter...                                     
+
+warning - The '!' will have no effect because the receiver can't be null - lib\features\mobile_pages\executive_people_page.dart:240:64 - unnecessary_non_null_assertion
+
+1 issue found. (ran in 188.6s)

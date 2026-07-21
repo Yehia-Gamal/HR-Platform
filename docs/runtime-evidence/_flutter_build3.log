@@ -1,0 +1,37 @@
+Support for Android x86 targets will be removed in the next stable release after 3.27. See https://github.com/flutter/flutter/issues/157543 for details.
+Running Gradle task 'assembleDebug'...                          
+Warning: The plugin flutter_secure_storage requires Android SDK version 36 or higher.
+For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
+Your project is configured to compile against Android SDK 35, but the following plugin(s) require to be compiled against a higher Android SDK version:
+- flutter_secure_storage compiles against Android SDK 36
+Fix this issue by compiling against the highest Android SDK version (they are backward compatible).
+Add the following to D:\Coder\HR\HR_Platform_2\apps\mobile_flutter\android\app\build.gradle.kts:
+
+    android {
+        compileSdk = 36
+        ...
+    }
+Your project is configured with Android NDK 26.3.11579264, but the following plugin(s) depend on a different Android NDK version:
+- app_links requires Android NDK 27.0.12077973
+- camera_android_camerax requires Android NDK 27.0.12077973
+- device_info_plus requires Android NDK 27.0.12077973
+- flutter_plugin_android_lifecycle requires Android NDK 27.0.12077973
+- flutter_secure_storage requires Android NDK 27.0.12077973
+- geolocator_android requires Android NDK 27.0.12077973
+- package_info_plus requires Android NDK 27.0.12077973
+- passkeys_android requires Android NDK 27.0.12077973
+- passkeys_doctor requires Android NDK 27.0.12077973
+- path_provider_android requires Android NDK 27.0.12077973
+- shared_preferences_android requires Android NDK 27.0.12077973
+- ua_client_hints requires Android NDK 27.0.12077973
+- url_launcher_android requires Android NDK 27.0.12077973
+Fix this issue by using the highest Android NDK version (they are backward compatible).
+Add the following to D:\Coder\HR\HR_Platform_2\apps\mobile_flutter\android\app\build.gradle.kts:
+
+    android {
+        ndkVersion = "27.0.12077973"
+        ...
+    }
+Running Gradle task 'assembleDebug'...                             48.3s
+√ Built build\app\outputs\flutter-apk\app-debug.apk
+BUILD3_EXIT=0

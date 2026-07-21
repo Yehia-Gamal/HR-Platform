@@ -1,0 +1,61 @@
+{
+ "file": "apps/admin_web/src/features/management/ServiceDeskPage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "dark-theme",
+   "line": 64,
+   "summary": "Overdue due-date text uses hardcoded text-red-700 instead of the --danger design token, so it will not adapt to dark theme and diverges from the token system.",
+   "fix": "Replace text-red-700 with an inline style color:'var(--danger)' (e.g. style={{ color: 'var(--danger)' }}) or a token-based utility so the color follows the design system and dark theme."
+  },
+  {
+   "severity": "high",
+   "category": "brand",
+   "line": 58,
+   "summary": "The overdue card highlight ring uses hardcoded ring-red-500/30 rather than the --danger token used elsewhere in the app.",
+   "fix": "Replace ring-1 ring-red-500/30 with a token-driven ring, e.g. style={{ boxShadow: '0 0 0 1px var(--danger-soft)' }} or a shared danger ring class, so the accent matches the design tokens in both themes."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 46,
+   "summary": "The page reimplements its own filter/search bar with a raw label+input instead of reusing the shared FilterBar primitive, duplicating structure and losing its heading, clear, and result-count affordances.",
+   "fix": "Render the search via <FilterBar searchValue={search} onSearchChange={setSearch} searchPlaceholder=\"رقم الطلب، الموظف، أو الخدمة…\" resultText={...} isDirty={...} onClear={...}> and pass the status chips as children, matching other management pages."
+  },
+  {
+   "severity": "medium",
+   "category": "filter",
+   "line": 46,
+   "summary": "The filter bar shows no result count and provides no clear/reset control, unlike FilterBar's resultText and onClear pattern used across the app.",
+   "fix": "Add a result count (e.g. `عرض ${visible.length} من ${data.length}`) via FilterBar's resultText and a clear button (isDirty/onClear) that resets search to '' and status to 'open'."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 53,
+   "summary": "The error state reuses EmptyState (a neutral empty placeholder) rather than a distinct error banner, so a load failure looks identical to a benign empty list and is not visually flagged as an error.",
+   "fix": "Render the failure in an error-styled banner (danger tokens / role=\"alert\") consistent with the app's error pattern instead of the neutral EmptyState component."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 48,
+   "summary": "The status filter chips convey the active selection with visual .is-active styling only, without aria-pressed, so screen-reader users cannot tell which filter is selected.",
+   "fix": "Add aria-pressed={status === id} to each filter-chip button so the toggle state is exposed to assistive technology."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 54,
+   "summary": "The loading skeleton grid uses lg:grid-cols-2 while the actual results grid uses xl:grid-cols-2, causing a layout jump at the lg breakpoint when data loads.",
+   "fix": "Align the skeleton grid breakpoint with the results grid by using xl:grid-cols-2 on the loading section to keep the column count stable across load."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 54,
+   "summary": "The loading skeleton renders only card placeholders and omits skeletons for the four MetricCards, so the metrics row pops in abruptly after load.",
+   "fix": "Also render placeholder skeletons (or the MetricCards with muted/zero values) for the metrics row during query.isLoading so the whole page fades in consistently."
+  }
+ ]
+}

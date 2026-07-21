@@ -1,0 +1,54 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_daily_reports_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 36,
+   "summary": "The loading and empty state ListViews lack AlwaysScrollableScrollPhysics, so pull-to-refresh cannot be triggered when content is short/absent.",
+   "fix": "Add physics: const AlwaysScrollableScrollPhysics() to the loading ListView (line 36) and the empty-state ListView (line 49) so the RefreshIndicator remains usable in those states."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 48,
+   "summary": "The empty state is a bespoke, unpolished stack of a raw Icon and a Center(Text) with no shared styling, no muted color, and no supporting subtitle.",
+   "fix": "Replace lines 49-55 with a centered Column using onSurfaceVariant-tinted icon and text (e.g. color: Theme.of(context).colorScheme.onSurfaceVariant) plus a short subtitle, matching the empty-state pattern used elsewhere; consider a BrandLogoMark header for consistency."
+  },
+  {
+   "severity": "medium",
+   "category": "consistency",
+   "line": 294,
+   "summary": "The 'تمت المراجعة' status is rendered with a bare Material Chip instead of the shared MobileStatusPill used for statuses across the app.",
+   "fix": "Import mobile_widgets.dart and replace the const Chip (lines 295-299) with MobileStatusPill('approved') (or an appropriate status key) so the reviewed status matches the app-wide pill styling and color palette."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 42,
+   "summary": "The error state renders only plain text with no icon, no theming (error color), and no retry affordance.",
+   "fix": "Wrap the error in a centered Column with an Icons.error_outline colored Theme.of(context).colorScheme.error and a retry TextButton calling ref.invalidate(mobileDailyReportsProvider(employeeId)), matching the app's error-state pattern."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 286,
+   "summary": "The date header icon (line 286) and section titles are hand-built inline rather than using MobileSectionHeader, causing minor styling drift from other cards.",
+   "fix": "Where practical, use MobileSectionHeader for the date/title row and section titles so font weight/spacing stay consistent with the shared component; at minimum align the FontWeight and spacing with the shared header."
+  },
+  {
+   "severity": "low",
+   "category": "spacing",
+   "line": 280,
+   "summary": "The report Card uses 16px padding while the shared cards (MetricCard 15, MobileFilterBar 12) and this file mix values, creating slightly inconsistent internal padding.",
+   "fix": "Standardize the card content padding to the design-system value used by sibling cards (e.g. EdgeInsets.all(16) is acceptable but verify it matches other list cards) for visual rhythm consistency."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 52,
+   "summary": "The empty-state icon and the review Chip's verified icon convey status without any Semantics label, reducing screen-reader clarity.",
+   "fix": "Add semanticLabel to the empty-state Icon (e.g. Icon(Icons.summarize_outlined, semanticLabel: 'لا توجد تقارير')) and rely on MobileStatusPill text for the reviewed status so the state is announced."
+  }
+ ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@ahla/design-tokens",
+  "version": "0.10.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./theme.css": "./theme.css",
+    "./tokens.json": "./tokens.json"
+  }
+}

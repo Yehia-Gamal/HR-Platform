@@ -1,0 +1,61 @@
+{
+ "file": "apps/admin_web/src/features/advanced/LifecycleOperationsPage.tsx",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "loading-empty-error",
+   "line": 21,
+   "summary": "The page never renders a loading screen or error banner; while useLifecycleOperations is fetching, metrics and all data-bound sections silently disappear (data ? ... : null) and query errors are ignored.",
+   "fix": "Guard the render: if (query.isLoading) return <LoadingScreen />; and render an error banner (danger-soft) when query.isError, instead of only conditionally rendering on data."
+  },
+  {
+   "severity": "high",
+   "category": "accessibility",
+   "line": 26,
+   "summary": "The asset type <select> (and the assignment, offboarding reason, and handover selects on lines 28/34) have no aria-label and no associated <label>, so screen readers announce them with no name.",
+   "fix": "Add aria-label to each select (e.g. 'نوع العهدة', 'اختر عهدة', 'الموظف', 'سبب الإنهاء', 'موظف الاستلام') matching the placeholder/first option text."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 26,
+   "summary": "All text inputs (asset code/name/serial/condition/location) rely solely on placeholder text as their label, so they have no accessible name once a value is typed.",
+   "fix": "Add aria-label to each input mirroring its placeholder, or wrap each in a <label> as done for the date fields on line 34."
+  },
+  {
+   "severity": "medium",
+   "category": "responsive",
+   "line": 26,
+   "summary": "The asset form uses fixed grid-cols-2 for its input rows, forcing two cramped columns on narrow/mobile viewports instead of stacking.",
+   "fix": "Use grid-cols-1 sm:grid-cols-2 for the three input rows so fields stack on mobile, consistent with the responsive grids used elsewhere on the page."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 32,
+   "summary": "Document reject and clearance waive actions collect the reason via window.prompt, a non-styled, non-accessible native dialog that breaks the RTL Arabic design system.",
+   "fix": "Replace window.prompt with an in-app modal/inline reason field using the app's card/input primitives to keep RTL, Cairo font, and focus management."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 32,
+   "summary": "Section list items use an ad-hoc rounded-2xl border wrapper and inline muted paragraphs instead of the shared record-row/card patterns used elsewhere in the app.",
+   "fix": "Reuse the established .mobile-record-card (or a shared record-row component) for the document and offboarding case rows so spacing, radius, and typography stay consistent."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 32,
+   "summary": "The document expiry filter is computed inline and repeated twice with no result count, unlike other list views that surface a resultText.",
+   "fix": "Hoist the filtered documents into a useMemo and surface a result count consistent with FilterBar's resultText convention."
+  },
+  {
+   "severity": "low",
+   "category": "spacing",
+   "line": 23,
+   "summary": "The MetricCard row uses gap-4 while sibling sections use gap-6, and it only renders when data exists, causing layout shift on load.",
+   "fix": "Align the metrics grid gap with the surrounding sections and reserve its space during loading to avoid layout shift."
+  }
+ ]
+}

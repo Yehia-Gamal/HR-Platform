@@ -1,0 +1,61 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_service_portal_page.dart",
+ "findings": [
+  {
+   "severity": "high",
+   "category": "consistency",
+   "line": 83,
+   "summary": "Request status uses a bespoke Chip with a local _status() switch instead of the shared MobileStatusPill, so it lacks the color-coded status palette used everywhere else.",
+   "fix": "Replace `Chip(label: Text(_status(item.status)))` with `MobileStatusPill(item.status)` and remove the local `_status` map, giving consistent color-coded pills."
+  },
+  {
+   "severity": "high",
+   "category": "consistency",
+   "line": 52,
+   "summary": "The top summary uses a bespoke three-column metric Row with a private _metric() helper instead of the shared MetricCard/MetricGrid, breaking the standard metric styling.",
+   "fix": "Replace the Card+Row+_metric block with MetricGrid(cards: [('الخدمات','${data.catalog.length}',Icons.design_services_outlined),('طلباتي','${data.requests.length}',Icons.list_alt_outlined),('مفتوحة','$openCount',Icons.pending_actions_outlined)]) and delete the private _metric helper."
+  },
+  {
+   "severity": "medium",
+   "category": "filter",
+   "line": 49,
+   "summary": "The requests list has no search or filter affordance despite MobileFilterBar being the standard, so users cannot search/filter requests or see a result count.",
+   "fix": "Add a MobileFilterBar above the list (search by title/serviceName/number plus status choice chips) wired to local filter state, with resultLabel showing the count and onClear resetting it, matching other list pages."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 32,
+   "summary": "The error state is a bare centered Text with no icon, brand header, or retry action, inconsistent with the app's richer error presentation.",
+   "fix": "Wrap the error in a Card/centered column with an error icon (colorScheme.error), the message, and a retry TextButton that calls ref.invalidate(myServicePortalProvider)."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 66,
+   "summary": "The empty-requests state is a plain centered Text with no icon, brand mark, or call-to-action, unlike the design system's fuller empty states.",
+   "fix": "Give the empty state an illustrative icon (Icons.support_agent_outlined) and a call-to-action button ('طلب خدمة') so it matches other empty headers in the app."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 15,
+   "summary": "The AppBar shows only a text title with no BrandLogoMark, unlike app bars/headers elsewhere that carry the association brand mark.",
+   "fix": "Add a leading BrandLogoMark (assets/brand/association-logo-*.png) to the AppBar for brand consistency with other screens."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 79,
+   "summary": "The request ListTile is non-interactive (no onTap) so tapping a request does nothing, and the leading icon has no semantic label.",
+   "fix": "If a detail view exists, add an onTap to the ListTile; otherwise wrap the leading Icon in a Semantics label and confirm the tile is intentionally read-only."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 28,
+   "summary": "The loading state uses a hardcoded SizedBox height of 220 to fake vertical centering, giving inconsistent placement versus other pages.",
+   "fix": "Use a shared loading placeholder (e.g. Padding(padding: EdgeInsets.only(top: 120), child: Center(child: CircularProgressIndicator()))) instead of a magic 220px SizedBox, matching other pages."
+  }
+ ]
+}

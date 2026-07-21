@@ -1,0 +1,29 @@
+Support for Android x86 targets will be removed in the next stable release after 3.27. See https://github.com/flutter/flutter/issues/157543 for details.
+Running Gradle task 'assembleDebug'...                          
+
+FAILURE: Build failed with an exception.
+
+* Where:
+Settings file 'D:\Coder\HR\HR_Platform_2\apps\mobile_flutter\android\settings.gradle.kts' line: 19
+
+* What went wrong:
+Error resolving plugin [id: 'dev.flutter.flutter-plugin-loader', version: '1.0.0']
+> A problem occurred configuring project ':gradle'.
+   > Multiple build operations failed.
+         Could not read workspace metadata from C:\Users\Elhamd\.gradle\caches\8.12\transforms\57f7cd823f335e5a07ba8760cf3fe105\metadata.bin
+         Could not read workspace metadata from C:\Users\Elhamd\.gradle\caches\8.12\transforms\6132ff50e849b4328d7c81fa98b027d9\metadata.bin
+         Could not read workspace metadata from C:\Users\Elhamd\.gradle\caches\8.12\transforms\575fcb8c5618c4ac9630ca8116076520\metadata.bin
+      > Could not read workspace metadata from C:\Users\Elhamd\.gradle\caches\8.12\transforms\57f7cd823f335e5a07ba8760cf3fe105\metadata.bin
+      > Could not read workspace metadata from C:\Users\Elhamd\.gradle\caches\8.12\transforms\6132ff50e849b4328d7c81fa98b027d9\metadata.bin
+      > Could not read workspace metadata from C:\Users\Elhamd\.gradle\caches\8.12\transforms\575fcb8c5618c4ac9630ca8116076520\metadata.bin
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 2s
+Running Gradle task 'assembleDebug'...                              3.2s
+Gradle task assembleDebug failed with exit code 1
+BUILD2_EXIT=1

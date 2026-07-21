@@ -1,0 +1,54 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/mobile_kpi_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "polish",
+   "line": 116,
+   "summary": "The InkWell borderRadius of 12 does not match the Card's themed radius (22), so the tap ripple overflows the rounded card corners.",
+   "fix": "Change BorderRadius.circular(12) to BorderRadius.circular(22) to match the CardThemeData radius so the ink splash is clipped to the card corners."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 79,
+   "summary": "The empty state is a bare left-aligned icon plus a Center text with no unified alignment, no brand/mark, and no guidance, inconsistent with a polished empty state.",
+   "fix": "Wrap the empty state in a centered Column (crossAxisAlignment.center) with the icon colored via colorScheme.onSurfaceVariant, and center-align the message; consider adding a BrandLogoMark or a secondary hint line for consistency with other pages."
+  },
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 81,
+   "summary": "The empty-state Icon uses the default (primary/onSurface) color rather than a muted theme color, unlike other muted empty states.",
+   "fix": "Add color: Theme.of(context).colorScheme.onSurfaceVariant to the Icons.search_off_rounded so the empty state reads as muted/secondary per the design system."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 133,
+   "summary": "The employee name and _Info value use hardcoded TextStyle with fontSize 17/w900 instead of a theme text style, bypassing the Cairo font scale and dark-theme onSurface color.",
+   "fix": "Use Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900) for the name and a theme labelLarge/bodyMedium for the _Info value so colors and font scale come from the theme."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 138,
+   "summary": "The employee code and workflow label are stacked as plain Text lines without muted color, giving them the same visual weight as body text and clashing with the muted-metadata pattern used elsewhere.",
+   "fix": "Apply color: Theme.of(context).colorScheme.onSurfaceVariant to the employeeCode and workflow-label Text so secondary metadata is visually de-emphasized."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 147,
+   "summary": "The two score/rating stats are a bespoke _Info/Row reimplementation instead of using the shared MetricCard/MetricGrid used across the mobile pages.",
+   "fix": "Where feasible, render the النتيجة/التقدير pair via MetricGrid or MetricCard for visual consistency with other KPI/metric surfaces; otherwise align _Info radius/padding to MetricCard conventions."
+  },
+  {
+   "severity": "low",
+   "category": "loading-empty-error",
+   "line": 42,
+   "summary": "The error state is a single unstyled left-aligned Text with no icon, no retry affordance, and no centered layout, inconsistent with a polished error state.",
+   "fix": "Present the error in a centered Column with an error icon (colorScheme.error) and a retry TextButton that calls ref.invalidate(mobileKpiProvider)."
+  }
+ ]
+}

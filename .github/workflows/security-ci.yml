@@ -1,0 +1,19 @@
+name: Security CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  source-security:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run check:secrets
+      - run: npm audit --audit-level=high
+      - run: npm run typecheck

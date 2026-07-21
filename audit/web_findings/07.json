@@ -1,0 +1,47 @@
+{
+ "file": "apps/admin_web/src/features/auth/WebReleaseStatusPage.tsx",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 10,
+   "summary": "The status icon has no color, so danger/maintenance/update states all render as a neutral gray icon with no visual severity cue, unlike sibling LoginPage which colors icons with brand/status tokens.",
+   "fix": "Color the icon by state using tokens, e.g. add a state color alongside the existing Icon ternary: `text-[var(--danger)]` for blocked, `text-[var(--warning)]` for maintenance, `text-[var(--brand-primary)]` for update_required."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 14,
+   "summary": "The check-error and blocked states convey a hard failure but the container is a plain neutral .card with an uncolored icon and no alert semantics, inconsistent with the app's error-banner pattern (LoginPage uses role=\"alert\" with danger styling).",
+   "fix": "Add `role=\"alert\"` to the container in WebReleaseCheckError and the blocked branch, and give the icon a `text-[var(--danger)]` token color so the failure reads as an error rather than neutral info."
+  },
+  {
+   "severity": "medium",
+   "category": "accessibility",
+   "line": 10,
+   "summary": "Severity is communicated by icon shape and text only; the icon carries no accessible label/color and is not marked decorative, so screen readers announce nothing meaningful for the state.",
+   "fix": "Add `aria-hidden=\"true\"` to the decorative Icon/CloudOff/RefreshCcw icons since the state is already in the heading text, and pair with the token color fix so state is not conveyed by icon shape alone."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 10,
+   "summary": "These are full-screen pre-auth gate pages (same context as LoginPage) but they show no AppLogo, so the association's brand identity is absent on a top-level screen where LoginPage renders <AppLogo>.",
+   "fix": "Add `<AppLogo />` above the icon/title inside the card (import from '../../ui/AppLogo'), matching LoginPage's branded pre-auth layout."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 10,
+   "summary": "The two near-identical page shells (icon + title + message + retry) are duplicated inline instead of sharing a single component, risking spacing/markup drift between the two gate screens.",
+   "fix": "Extract the shared centered-card gate shell (icon, title, message, optional detail, retry button) into one small local component used by both WebReleaseStatusPage and WebReleaseCheckError to keep spacing/markup consistent."
+  },
+  {
+   "severity": "low",
+   "category": "polish",
+   "line": 10,
+   "summary": "Both components are written as single dense one-line JSX returns, inconsistent with the multi-line formatted JSX used elsewhere in the auth feature (LoginPage) and hurting maintainability of spacing/class edits.",
+   "fix": "Reformat the JSX in both components onto multiple lines matching LoginPage's style so class and spacing changes are reviewable."
+  }
+ ]
+}

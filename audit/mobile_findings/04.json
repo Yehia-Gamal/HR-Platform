@@ -1,0 +1,54 @@
+{
+ "file": "apps/mobile_flutter/lib/features/mobile_pages/executive_employee_summary_page.dart",
+ "findings": [
+  {
+   "severity": "medium",
+   "category": "brand",
+   "line": 300,
+   "summary": "_attendanceColor hardcodes the brand primary 0xFF0B4FA2 for 'on_leave' instead of reading scheme.primary, and 0xFF68758A for the default case instead of scheme.onSurfaceVariant.",
+   "fix": "Replace const Color(0xFF0B4FA2) with Theme.of(context).colorScheme.primary and const Color(0xFF68758A) with colorScheme.onSurfaceVariant (pass scheme into the helper or make it non-static); keep only the intentional shared status hexes (green/amber/red)."
+  },
+  {
+   "severity": "medium",
+   "category": "loading-empty-error",
+   "line": 36,
+   "summary": "The error state lacks a retry affordance and the loading state is a bare centered spinner, inconsistent with a polished error/empty pattern (icon uses default color, no button to re-fetch).",
+   "fix": "Add a retry OutlinedButton/FilledButton under the error text that calls ref.invalidate(mobileExecutiveEmployeeSummaryProvider(employeeId)), and give the person_off icon a muted color (scheme.onSurfaceVariant) for consistency with other pages."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 40,
+   "summary": "The error-state icon at size 52 uses the default (onSurface) color, making it visually heavy and off the muted empty-state convention.",
+   "fix": "Set color: Theme.of(context).colorScheme.onSurfaceVariant on the Icons.person_off_outlined icon in the error state."
+  },
+  {
+   "severity": "low",
+   "category": "consistency",
+   "line": 129,
+   "summary": "The 'الملخص التنظيمي' card header is a bespoke inline Text (fontSize 17, w900) instead of reusing MobileSectionHeader, which is used later on the same page for 'الحضور الحديث'.",
+   "fix": "Use MobileSectionHeader(title: 'الملخص التنظيمي') for the section title, or extract a consistent card-title style, so section headings render uniformly."
+  },
+  {
+   "severity": "low",
+   "category": "brand",
+   "line": 83,
+   "summary": "Employee name and several titles hardcode TextStyle(fontSize, fontWeight) rather than deriving from Theme.of(context).textTheme, bypassing the design system's type scale.",
+   "fix": "Replace the inline const TextStyle(fontSize: 20, fontWeight: FontWeight.w900) (and the fontSize 17 card title) with textTheme.titleLarge/titleMedium copied with the desired weight for consistent scaling."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "line": 64,
+   "summary": "CircleAvatar fallback uses item.name.substring(0,1) which will throw on an empty name and provides no Semantics label for the avatar image.",
+   "fix": "Guard the initial (item.name.isEmpty ? '?' : item.name[0]) and wrap the avatar in a Semantics(label: item.name) for screen-reader clarity (initial-only fix is polish-safe; substring guard prevents a crash)."
+  },
+  {
+   "severity": "low",
+   "category": "spacing",
+   "line": 157,
+   "summary": "The KPI highlight Card overrides color to primaryContainer at alpha .45 but relies on the default Card shape, so its radius must match the theme's 20 while other cards on the page use the same default — verify the tinted card keeps the 20 radius and adequate contrast in dark theme.",
+   "fix": "Confirm the tinted Card inherits the theme CardTheme shape (radius 20); if a custom shape is ever added keep RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)) and test primaryContainer .45 legibility on dark bg 0xFF060B16."
+  }
+ ]
+}
