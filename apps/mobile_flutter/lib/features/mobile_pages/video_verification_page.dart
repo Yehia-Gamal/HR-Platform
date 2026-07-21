@@ -301,7 +301,9 @@ class _VideoVerificationPageState extends ConsumerState<VideoVerificationPage>
         if (controller?.value.isRecordingVideo == true) {
           await controller?.stopVideoRecording();
         }
-      } catch (_) {}
+      } catch (_) {
+        // Best-effort: camera cleanup may fail if already released.
+      }
       if (!mounted) return;
 
       if (e is GpsDisabledException) {
@@ -392,7 +394,9 @@ class _VideoVerificationPageState extends ConsumerState<VideoVerificationPage>
                 widget.request.id,
                 storagePath: mapPath,
               );
-        } catch (_) {}
+        } catch (_) {
+          // Map snapshot registration is optional — do not block completion.
+        }
       }
       await ref
           .read(mobileCommandsProvider)

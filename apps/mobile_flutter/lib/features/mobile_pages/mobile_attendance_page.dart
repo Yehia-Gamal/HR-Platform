@@ -257,10 +257,6 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
             ? 'تم إلغاء التحقق بالبصمة.'
             : msg.contains('الجهاز لا يدعم')
             ? 'جهازك لا يدعم التحقق بالبصمة.'
-            : msg.contains('تعذر') ||
-                  msg.contains('هذا الإصدار') ||
-                  msg.contains('انتهت')
-            ? msg
             : 'تعذر إكمال عملية البصمة. أعد المحاولة.';
         ScaffoldMessenger.of(
           context,
