@@ -1,0 +1,32 @@
+
+!.env.example
+# developer scratch / backups (audit REL-04)
+# أي ملف أسرار مُولّد أو محلي (تعميم — لا يُتتبَّع أبداً)
+*.internal-bak
+*.jks
+*.keystore
+*.local.txt
+*.tsbuildinfo
+*_generated_secrets*
+*secret*.txt
+.DS_Store
+.dart_tool/
+.env
+.env*
+.env.*
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.vercel
+android/key.properties
+apps/admin_web/vite.config.d.ts
+apps/admin_web/vite.config.js
+backup-drill/
+build/
+coverage/
+dist/
+node_modules/
+staging_generated_secrets.local.txt
+supabase/.branches/
+supabase/.temp/
+tmp_*
