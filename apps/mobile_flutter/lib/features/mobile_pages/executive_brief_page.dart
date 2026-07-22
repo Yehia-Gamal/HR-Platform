@@ -220,6 +220,28 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
         ),
         const SizedBox(height: 20),
         const MobileSectionHeader(
+          title: 'تقرير التشغيل اليومي الكامل',
+          subtitle: 'يبدأ من جميع الموظفين النشطين، مع مصدر ووقت تحديث واضحين.',
+        ),
+        const SizedBox(height: 10),
+        MetricGrid(
+          cards: [
+            ('الموظفون النشطون', _daily(item, 'employees', 'active').toString(), Icons.groups_rounded, null),
+            ('المطلوب حضورهم', _daily(item, 'employees', 'requiredToday').toString(), Icons.badge_outlined, null),
+            ('لم يسجلوا بعد', _daily(item, 'attendance', 'notYet').toString(), Icons.hourglass_top_rounded, null),
+            ('لم يسجلوا الانصراف', _daily(item, 'attendance', 'missingCheckout').toString(), Icons.logout_rounded, null),
+            ('مأموريات', _daily(item, 'workStatus', 'missions').toString(), Icons.work_history_outlined, null),
+            ('قوافل', _daily(item, 'workStatus', 'convoys').toString(), Icons.directions_bus_outlined, null),
+            ('فاندي', _daily(item, 'workStatus', 'fundraising').toString(), Icons.volunteer_activism_outlined, null),
+            ('KPI عند الموظف', _daily(item, 'kpi', 'atEmployee').toString(), Icons.person_outline, null),
+            ('KPI عند المدير', _daily(item, 'kpi', 'atManager').toString(), Icons.supervisor_account_outlined, null),
+            ('KPI عند HR', _daily(item, 'kpi', 'atHr').toString(), Icons.fact_check_outlined, null),
+            ('تقارير KPI جاهزة', _daily(item, 'kpi', 'ready').toString(), Icons.analytics_outlined, null),
+            ('طلبات موقع بلا رد', _daily(item, 'followUp', 'unansweredLocationRequests').toString(), Icons.location_searching_rounded, null),
+          ],
+        ),
+        const SizedBox(height: 20),
+        const MobileSectionHeader(
           title: 'ما يحتاج انتباهك',
           subtitle: 'مرتب حسب الأثر والمهلة، وبحد أقصى خمسة عناصر.',
         ),
@@ -309,6 +331,12 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
       ),
     };
     Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+  }
+
+  int _daily(MobileExecutiveBrief item, String section, String key) {
+    final sectionValue = item.dailyReport[section];
+    if (sectionValue is! Map) return 0;
+    return (sectionValue[key] as num?)?.toInt() ?? 0;
   }
 
   static IconData _icon(String kind) => switch (kind) {

@@ -353,10 +353,12 @@ class _MemberCard extends ConsumerWidget {
 
   static String _stage(String? value) => switch (value) {
     'self' => 'ذاتي',
-    'manager' => 'المدير',
-    'secretary' => 'السكرتير',
-    'executive' => 'التنفيذي',
-    'finalized' => 'مكتمل',
+    'manager_review' => 'مراجعة المدير',
+    'hr_review' => 'مراجعة HR',
+    'manager_final' => 'اعتماد المدير',
+    'finalized' => 'في التقرير',
+    'closed' => 'مغلق',
+    'archived' => 'مؤرشف',
     _ => '—',
   };
 }

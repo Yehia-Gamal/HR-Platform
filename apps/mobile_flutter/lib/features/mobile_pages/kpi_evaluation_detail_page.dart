@@ -9,6 +9,17 @@ import 'package:intl/intl.dart';
 /// Arabic labels for kpi_evaluations.workflow_status (migration 0058).
 /// Shared by the KPI list and detail pages so both stay in sync.
 String kpiWorkflowLabel(String value) => switch (value) {
+  'DRAFT' => 'مسودة قبل فتح الدورة',
+  'OPEN_FOR_SELF_EVALUATION' => 'مفتوح للتقييم الذاتي',
+  'SUBMITTED_TO_DIRECT_MANAGER' => 'أُرسل إلى المدير المباشر',
+  'MANAGER_REVIEW' => 'قيد مراجعة المدير المباشر',
+  'HR_REVIEW' => 'قيد مراجعة الموارد البشرية',
+  'RETURNED_TO_MANAGER_FOR_FINAL_APPROVAL' =>
+    'عاد إلى المدير للاعتماد النهائي',
+  'MANAGER_APPROVED' => 'اعتمده المدير المباشر',
+  'INCLUDED_IN_MONTHLY_REPORT' => 'مدرج في التقرير الشهري',
+  'CYCLE_CLOSED' => 'أُغلقت الدورة',
+  'ARCHIVED' => 'مؤرشف',
   'NOT_STARTED' => 'لم تبدأ',
   'EMPLOYEE_INPUT_IN_PROGRESS' => 'الموظف يُدخل بياناته',
   'HR_DATA_PENDING' => 'بانتظار تجهيز بيانات HR',
@@ -41,7 +52,6 @@ class _KpiEvaluationDetailPageState
   final Map<String, double> _scores = {};
   final Map<String, TextEditingController> _criterionNotes = {};
   final _generalNote = TextEditingController();
-  final _appealNote = TextEditingController();
   bool _initialized = false;
   bool _saving = false;
 
@@ -51,7 +61,6 @@ class _KpiEvaluationDetailPageState
       controller.dispose();
     }
     _generalNote.dispose();
-    _appealNote.dispose();
     super.dispose();
   }
 
@@ -116,7 +125,8 @@ class _KpiEvaluationDetailPageState
   }
 
   Widget _content(KpiEvaluationForm form) {
-    final canEditScores = form.editableStage == 'manager';
+    final canEditScores =
+        form.editableStage == 'self' || form.editableStage == 'manager_review';
     final canAct = form.editableStage != null && !form.locked;
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -201,7 +211,7 @@ class _KpiEvaluationDetailPageState
             const SizedBox(height: 8),
           ],
         ],
-        if (form.editableStage == 'manager') ...[
+        if (form.editableStage == 'manager_review') ...[
           FilledButton.tonalIcon(
             onPressed: _saving ? null : () => _recordSession(form),
             icon: const Icon(Icons.groups_outlined),
@@ -242,7 +252,7 @@ class _KpiEvaluationDetailPageState
           ),
           const SizedBox(height: 12),
         ],
-        if (form.editableStage == 'hr') ...[
+        if (form.editableStage == 'hr_review') ...[
           for (final metric in const ['PRAYER', 'HALAQA']) ...[
             OutlinedButton.icon(
               onPressed: _saving ? null : () => _editCompliance(form, metric),
@@ -298,20 +308,6 @@ class _KpiEvaluationDetailPageState
               ),
             ),
           ),
-          if (form.editableStage == 'acknowledgement') ...[
-            const SizedBox(height: 12),
-            TextField(
-              controller: _appealNote,
-              minLines: 2,
-              maxLines: 4,
-              decoration: InputDecoration(
-                labelText: 'اعتراض اختياري (لا يمنع تأكيد الاطلاع)',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-            ),
-          ],
           const SizedBox(height: 12),
           Row(
             children: [
@@ -334,10 +330,8 @@ class _KpiEvaluationDetailPageState
                         )
                       : const Icon(Icons.check_circle_outline),
                   label: Text(
-                    form.editableStage == 'executive'
-                        ? 'الاعتماد النهائي'
-                        : form.editableStage == 'acknowledgement'
-                        ? 'تأكيد الاطلاع وإرسال'
+                    form.editableStage == 'manager_final'
+                        ? 'اعتماد النتيجة وإدراجها في التقرير'
                         : 'حفظ وإرسال',
                   ),
                 ),
@@ -449,7 +443,7 @@ class _KpiEvaluationDetailPageState
   Future<void> _submit(KpiEvaluationForm form) async {
     final stage = form.editableStage;
     if (stage == null) return;
-    final scorePayload = stage == 'manager'
+    final scorePayload = stage == 'self' || stage == 'manager_review'
         ? form.criteria
               .where((criterion) => criterion.editable)
               .map(
@@ -463,26 +457,14 @@ class _KpiEvaluationDetailPageState
         : null;
     setState(() => _saving = true);
     try {
-      if (stage == 'acknowledgement') {
-        await ref
-            .read(mobileCommandsProvider)
-            .acknowledgeKpi(
-              form.id,
-              _generalNote.text.trim().isEmpty
-                  ? null
-                  : _generalNote.text.trim(),
-              _appealNote.text.trim().isEmpty ? null : _appealNote.text.trim(),
-            );
-      } else {
-        await ref
-            .read(mobileCommandsProvider)
-            .advanceKpi(
-              form.id,
-              stage,
-              _generalNote.text.trim(),
-              scores: scorePayload,
-            );
-      }
+      await ref
+          .read(mobileCommandsProvider)
+          .advanceKpi(
+            form.id,
+            stage,
+            _generalNote.text.trim(),
+            scores: scorePayload,
+          );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -504,10 +486,9 @@ class _KpiEvaluationDetailPageState
 
   Future<void> _returnStage(KpiEvaluationForm form) async {
     final target = switch (form.editableStage) {
-      'manager' => 'self',
-      'hr' => 'manager',
-      'secretary' => 'hr',
-      'executive' => 'secretary',
+      'manager_review' => 'self',
+      'hr_review' => 'manager_review',
+      'manager_final' => 'hr_review',
       _ => null,
     };
     if (target == null) return;
@@ -543,13 +524,12 @@ class _KpiEvaluationDetailPageState
 
   String _stage(String value) => switch (value) {
     'self' => 'الموظف',
-    'manager' => 'المدير',
-    'hr' => 'الموارد البشرية',
-    'acknowledgement' => 'اطلاع الموظف',
-    'secretary' => 'السكرتير التنفيذي',
-    'executive' => 'المدير التنفيذي',
-    'finalized' => 'مكتمل',
-    'closed' => 'مؤرشف',
+    'manager_review' => 'مراجعة المدير المباشر',
+    'hr_review' => 'مراجعة الموارد البشرية',
+    'manager_final' => 'اعتماد المدير النهائي',
+    'finalized' => 'مدرج في التقرير الشهري',
+    'closed' => 'مغلق',
+    'archived' => 'مؤرشف',
     _ => value,
   };
 

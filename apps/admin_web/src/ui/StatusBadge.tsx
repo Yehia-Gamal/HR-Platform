@@ -24,7 +24,7 @@ const map: Record<string, { label: string; tone: Tone; icon: typeof CircleCheck 
   self: { label: 'تقييم ذاتي', tone: 'info', icon: Clock3 },
   manager: { label: 'عند المدير', tone: 'violet', icon: Clock3 },
   secretary: { label: 'عند السكرتير', tone: 'info', icon: Clock3 },
-  executive: { label: 'اعتماد تنفيذي', tone: 'warning', icon: AlertTriangle },
+  executive: { label: 'مراجعة تنفيذية', tone: 'warning', icon: AlertTriangle },
   finalized: { label: 'مكتمل', tone: 'success', icon: CircleCheck },
   announcement: { label: 'إعلان', tone: 'info', icon: Megaphone },
   decision: { label: 'قرار', tone: 'violet', icon: FileText },

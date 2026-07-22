@@ -62,11 +62,11 @@ select ok(
   (select count(*) from regexp_matches(pg_get_functiondef('public.refresh_kpi_attendance_inputs(uuid)'::regprocedure),'not exception_settled','g'))>=4,
   'attendance refresh excludes HR exceptions from absence and shortage too');
 
--- Regression: workflow states advertised by the CHECK constraint are reachable.
-select ok(pg_get_functiondef('public.save_kpi_goal(uuid,uuid,text,text,numeric,numeric,text,numeric,date,text,text,text,text)'::regprocedure) like '%EMPLOYEE_INPUT_IN_PROGRESS%','employee self-input state is set');
-select ok(pg_get_functiondef('public.advance_kpi_stage(uuid,text,jsonb,text)'::regprocedure) like '%HR_DATA_PENDING%','HR data-pending state is set');
-select ok(pg_get_functiondef('public.save_kpi_compliance_metric(uuid,text,integer,integer,integer,integer,text)'::regprocedure) like '%HR_EVALUATION_IN_PROGRESS%','HR evaluation-in-progress state is set');
-select ok(pg_get_functiondef('public.acknowledge_kpi_evaluation(uuid,text,text)'::regprocedure) like '%EMPLOYEE_ACKNOWLEDGED%','plain acknowledgement sets EMPLOYEE_ACKNOWLEDGED');
+-- Regression: the V10 route is employee -> manager -> HR -> manager final.
+select has_function('public','current_is_executive_secretary',array[]::text[],'exclusive cycle-controller predicate exists');
+select ok(pg_get_functiondef('public.advance_kpi_stage(uuid,text,jsonb,text)'::regprocedure) like '%SUBMITTED_TO_DIRECT_MANAGER%','self submission reaches the direct manager');
+select ok(pg_get_functiondef('public.advance_kpi_stage(uuid,text,jsonb,text)'::regprocedure) like '%RETURNED_TO_MANAGER_FOR_FINAL_APPROVAL%','HR returns the result to the manager');
+select ok(pg_get_functiondef('public.advance_kpi_stage(uuid,text,jsonb,text)'::regprocedure) not like '%when ''executive'' then%','executive approval is absent from the V10 transition function');
 
 select * from finish();
 rollback;

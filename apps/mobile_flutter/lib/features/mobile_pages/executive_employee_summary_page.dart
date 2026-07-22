@@ -286,11 +286,12 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
 
   static String _kpiStage(String value) => switch (value) {
     'self' => 'تقييم ذاتي',
-    'manager' => 'مراجعة المدير',
-    'hr' => 'مراجعة HR',
-    'secretary' => 'المراجعة التنفيذية',
-    'executive' => 'الاعتماد التنفيذي',
-    'finalized' => 'مكتمل',
+    'manager_review' => 'مراجعة المدير',
+    'hr_review' => 'مراجعة HR',
+    'manager_final' => 'اعتماد المدير النهائي',
+    'finalized' => 'مدرج في التقرير',
+    'closed' => 'مغلق',
+    'archived' => 'مؤرشف',
     _ => value,
   };
 

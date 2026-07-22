@@ -23,7 +23,7 @@ export function useAdvanceKpi() {
   const auth = useAuth();
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async ({ evaluationId, action, note, scores }: { evaluationId: string; action: 'self' | 'manager' | 'hr' | 'acknowledgement' | 'secretary' | 'executive'; note: string; scores?: Array<{ criterion_id: string; score: number; note: string }> }) => {
+    mutationFn: async ({ evaluationId, action, note, scores }: { evaluationId: string; action: 'self' | 'manager_review' | 'hr_review' | 'manager_final'; note: string; scores?: Array<{ criterion_id: string; score: number; note: string }> }) => {
       if (auth.isMock) return { evaluationId, action };
       const supabase = await getSupabase();
       const { data, error } = await supabase.rpc('advance_kpi_stage', { p_evaluation_id: evaluationId, p_action: action, p_scores: scores ?? null, p_note: note || null });
@@ -76,5 +76,6 @@ export function useKpiFormCommands(evaluationId: string) {
     acknowledge: call('acknowledge_kpi_evaluation'),
     returnStage: call('return_kpi_stage'),
     overrideScore: call('override_kpi_score'),
+    addEvidence: call('add_kpi_evidence'),
   };
 }

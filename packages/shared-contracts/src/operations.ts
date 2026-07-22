@@ -39,7 +39,7 @@ export const kpiEvaluationSummarySchema = z.object({
   employeeCode: z.string().nullable(),
   cycleId: z.string().uuid(),
   periodMonth: z.string(),
-  currentStage: z.enum(['self', 'manager', 'hr', 'acknowledgement', 'secretary', 'executive', 'finalized', 'closed']),
+  currentStage: z.enum(['self', 'manager_review', 'hr_review', 'manager_final', 'finalized', 'closed', 'archived']),
   workflowStatus: z.string().optional(),
   cycleStatus: z.string().optional(),
   deadlineAt: z.string().nullable().optional(),
@@ -76,6 +76,7 @@ export const kpiEvaluationFormSchema = z.object({
   criteria: z.array(kpiCriterionFormSchema), goals: z.array(kpiGoalSchema), session: kpiReviewSessionSchema,
   compliance: z.array(z.object({ metric: z.enum(['PRAYER', 'HALAQA']), requiredCount: z.number(), actualCount: z.number(), exemptCount: z.number(), cancelledCount: z.number(), score: z.number(), note: z.string().nullable() })),
   attendance: z.object({ periodStart: z.string(), periodEnd: z.string(), lateCount: z.number(), earlyLeaveCount: z.number(), unexcusedAbsenceCount: z.number(), shortagePenalty: z.number(), missingPunchCount: z.number(), score: z.number(), hasPendingItems: z.boolean(), calculatedAt: z.string() }).nullable(),
+  evidence: z.array(z.object({ id: z.string().uuid(), criterionId: z.string().uuid().nullable(), type: z.string(), title: z.string(), description: z.string().nullable(), storagePath: z.string().nullable(), externalUrl: z.string().nullable(), submittedStage: z.string(), createdAt: z.string() })).default([]),
   cycle: z.object({ id: z.string().uuid(), status: z.string(), scheduledOpenAt: z.string().nullable(), deadlineAt: z.string().nullable(), extendedUntil: z.string().nullable(), effectiveDeadline: z.string().nullable() }),
   validationErrors: z.array(z.string()), lastUpdatedAt: z.string(),
 });

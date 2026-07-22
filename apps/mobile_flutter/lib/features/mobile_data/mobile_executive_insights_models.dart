@@ -17,6 +17,7 @@ class MobileExecutiveBrief {
     required this.decisions,
     required this.risk,
     required this.highlights,
+    required this.dailyReport,
     required this.generatedAt,
     required this.sourceLabel,
   });
@@ -32,6 +33,7 @@ class MobileExecutiveBrief {
           json['highlights'],
           ExecutiveBriefHighlight.fromJson,
         ),
+        dailyReport: _map(json['dailyReport'] ?? <String, dynamic>{}),
         generatedAt: DateTime.parse(json['generatedAt'] as String),
         sourceLabel: json['sourceLabel'] as String? ?? 'مصادر تشغيلية مباشرة',
       );
@@ -42,6 +44,7 @@ class MobileExecutiveBrief {
   final ExecutiveBriefDecisions decisions;
   final ExecutiveBriefRisk risk;
   final List<ExecutiveBriefHighlight> highlights;
+  final Map<String, dynamic> dailyReport;
   final DateTime generatedAt;
   final String sourceLabel;
 }

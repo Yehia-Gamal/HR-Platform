@@ -222,7 +222,7 @@ class ExecutiveHomePage extends ConsumerWidget {
                   null,
                 ),
                 (
-                  'KPI نهائي',
+                  'تقارير KPI',
                   item.pendingFinalKpi.toString(),
                   Icons.fact_check_outlined,
                   null,
@@ -300,9 +300,9 @@ class ExecutiveHomePage extends ConsumerWidget {
                   _PriorityTile(
                     icon: Icons.fact_check_outlined,
                     color: scheme.secondary,
-                    title: 'التقييمات النهائية',
+                    title: 'تقارير KPI المعتمدة',
                     subtitle:
-                        '${item.pendingFinalKpi} تقييمًا في مرحلة الاعتماد التنفيذي',
+                        '${item.pendingFinalKpi} تقريرًا اعتمدها المديرون ومتاحًا للعرض',
                   ),
                 ],
               ),

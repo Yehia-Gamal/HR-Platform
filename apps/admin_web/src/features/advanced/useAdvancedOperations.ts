@@ -51,7 +51,7 @@ export function useKpiAdmin(month: string) {
 export function useKpiAdminCommands() {
   const auth = useAuth(); const client = useQueryClient();
   const mutate = (name: string) => useMutation({ mutationFn: async (params: Record<string, unknown>) => auth.isMock ? params : rpc(name, params), onSuccess: () => Promise.all([client.invalidateQueries({ queryKey: ['kpi-admin'] }), client.invalidateQueries({ queryKey: ['kpi-evaluations'] })]) });
-  return { createCycle: mutate('create_kpi_cycle_admin'), manageCycle: mutate('manage_kpi_cycle'), refreshAttendance: mutate('refresh_kpi_attendance_inputs'), updatePolicy: mutate('create_kpi_policy_version'), decideAppeal: mutate('decide_kpi_appeal'), getReport: mutate('get_kpi_cycle_report') };
+  return { createCycle: mutate('create_kpi_cycle_admin'), manageCycle: mutate('manage_kpi_cycle'), rescheduleCycle: mutate('reschedule_kpi_cycle'), refreshAttendance: mutate('refresh_kpi_attendance_inputs'), updatePolicy: mutate('create_kpi_policy_version'), decideAppeal: mutate('decide_kpi_appeal'), getReport: mutate('get_kpi_cycle_report') };
 }
 
 export function useDisputeOperations(status?: string) {

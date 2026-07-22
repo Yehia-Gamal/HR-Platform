@@ -79,11 +79,12 @@ class _MobileKpiPageState extends ConsumerState<MobileKpiPage> {
                 options: const [
                   MobileFilterOption('all', 'كل المراحل'),
                   MobileFilterOption('self', 'الموظف'),
-                  MobileFilterOption('manager', 'المدير'),
-                  MobileFilterOption('hr', 'HR'),
-                  MobileFilterOption('secretary', 'السكرتير'),
-                  MobileFilterOption('executive', 'التنفيذي'),
-                  MobileFilterOption('finalized', 'معتمد'),
+                  MobileFilterOption('manager_review', 'مراجعة المدير'),
+                  MobileFilterOption('hr_review', 'مراجعة HR'),
+                  MobileFilterOption('manager_final', 'اعتماد المدير'),
+                  MobileFilterOption('finalized', 'في التقرير'),
+                  MobileFilterOption('closed', 'مغلق'),
+                  MobileFilterOption('archived', 'مؤرشف'),
                 ],
                 selected: _stage,
                 onSelected: (value) => setState(() => _stage = value),
@@ -233,31 +234,13 @@ class _KpiCard extends StatelessWidget {
         access.hasPermission('performance.kpi.self_assess')) {
       return 'self';
     }
-    if (item.currentStage == 'manager' &&
+    if (item.currentStage == 'manager_review' &&
         access.hasPermission('performance.kpi.manager_assess')) {
-      return 'manager';
+      return 'manager_review';
     }
-    if (item.currentStage == 'hr' &&
-        access.hasAnyPermission(const [
-          'performance.kpi.hr_assess',
-          'performance.kpi.hr_review',
-        ])) {
-      return 'hr';
-    }
-    if (item.currentStage == 'acknowledgement' &&
-        access.hasPermission('performance.kpi.self_assess')) {
-      return 'acknowledgement';
-    }
-    if (item.currentStage == 'secretary' &&
-        access.hasPermission('performance.kpi.secretary_review')) {
-      return 'secretary';
-    }
-    if (item.currentStage == 'executive' &&
-        access.hasAnyPermission(const [
-          'performance.kpi.executive_review',
-          'performance.kpi.finalize',
-        ])) {
-      return 'executive';
+    if (item.currentStage == 'manager_final' &&
+        access.hasPermission('performance.kpi.manager_assess')) {
+      return 'manager_final';
     }
     return null;
   }
