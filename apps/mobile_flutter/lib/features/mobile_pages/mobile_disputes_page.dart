@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 
 class MobileDisputesPage extends ConsumerWidget {
   const MobileDisputesPage({super.key});
@@ -333,6 +334,7 @@ class _NewDisputeFormState extends ConsumerState<_NewDisputeForm> {
   String _priority = 'normal';
   final List<DisputeDirectoryEmployee> _respondents = [];
   final List<DisputeDirectoryEmployee> _witnesses = [];
+  List<XFile> _attachments = [];
   bool _truthConfirmed = false;
   bool _confidentialityAccepted = false;
   bool _submitting = false;
@@ -410,6 +412,8 @@ class _NewDisputeFormState extends ConsumerState<_NewDisputeForm> {
                   'الشهود',
                   _witnesses.map((e) => e.name).join('، '),
                 ),
+              if (_attachments.isNotEmpty)
+                _summaryRow('المرفقات', '${_attachments.length} مرفق'),
               const SizedBox(height: 8),
               const Text(
                 'سيتم تقديم الشكوى بسرية إلى لجنة حل المشكلات. لن يتم إشعار الطرف'
@@ -433,8 +437,9 @@ class _NewDisputeFormState extends ConsumerState<_NewDisputeForm> {
     if (ok != true) return;
 
     setState(() => _submitting = true);
+    String? createdCaseId;
     try {
-      await ref
+      createdCaseId = await ref
           .read(mobileCommandsProvider)
           .submitDispute(
             title: _title.text,
@@ -450,9 +455,33 @@ class _NewDisputeFormState extends ConsumerState<_NewDisputeForm> {
                 ? null
                 : _requestedAction.text,
           );
+      for (final attachment in _attachments) {
+        final bytes = await attachment.readAsBytes();
+        if (bytes.length > 15 * 1024 * 1024) {
+          throw StateError('ATTACHMENT_TOO_LARGE');
+        }
+        await ref.read(mobileCommandsProvider).uploadDisputeEvidence(
+              caseId: createdCaseId,
+              bytes: bytes,
+              fileName: attachment.name,
+              mimeType: attachment.mimeType ?? '',
+            );
+      }
       if (mounted) Navigator.of(context).pop(true);
     } catch (error) {
       if (mounted) {
+        if (createdCaseId != null) {
+          final messenger = ScaffoldMessenger.of(context);
+          Navigator.of(context).pop(true);
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text(
+                'تم تقديم المشكلة، لكن تعذر رفع أحد المرفقات. يمكنك إضافته لاحقًا من تفاصيل القضية.',
+              ),
+            ),
+          );
+          return;
+        }
         setState(() => _submitting = false);
         ScaffoldMessenger.of(
           context,
@@ -556,6 +585,36 @@ class _NewDisputeFormState extends ConsumerState<_NewDisputeForm> {
                 labelText: 'ما الذي تطلبه من اللجنة؟ (اختياري)',
               ),
             ),
+            const SizedBox(height: 18),
+            OutlinedButton.icon(
+              onPressed: _submitting
+                  ? null
+                  : () async {
+                      final picked = await ImagePicker().pickMultiImage(
+                        imageQuality: 82,
+                        limit: 5,
+                        requestFullMetadata: false,
+                      );
+                      if (picked.isNotEmpty) {
+                        setState(() => _attachments = picked.take(5).toList());
+                      }
+                    },
+              icon: const Icon(Icons.attach_file_rounded),
+              label: Text(
+                _attachments.isEmpty
+                    ? 'إضافة مرفقات أو أدلة (اختياري)'
+                    : '${_attachments.length} مرفق محدد',
+              ),
+            ),
+            if (_attachments.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  _attachments.map((file) => file.name).join('، '),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             const SizedBox(height: 18),
             _peopleSection(
               label: 'الأطراف المعنية',

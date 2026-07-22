@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/network/offline_cache.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
@@ -8,6 +10,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/release_governanc
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:uuid/uuid.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 Map<String, dynamic> _asMap(dynamic value) =>
     Map<String, dynamic>.from(value as Map<dynamic, dynamic>);
@@ -369,6 +372,55 @@ class MobileCommands {
         );
     ref.invalidate(mobileRequestsProvider);
     ref.invalidate(employeeHomeProvider);
+  }
+
+  Future<Map<String, dynamic>> uploadRequestAttachment({
+    required Uint8List bytes,
+    required String fileName,
+    required String mimeType,
+  }) async {
+    final client = ref.read(supabaseProvider);
+    final userId = client.auth.currentUser?.id;
+    if (userId == null) throw StateError('AUTHENTICATION_REQUIRED');
+    final normalizedMime = _allowedImageMime(mimeType, fileName);
+    final extension = switch (normalizedMime) {
+      'image/png' => 'png',
+      'image/webp' => 'webp',
+      _ => 'jpg',
+    };
+    final path = '$userId/${const Uuid().v4()}.$extension';
+    await client.storage.from('request-attachments').uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(contentType: normalizedMime, upsert: false),
+        );
+    return {
+      'path': path,
+      'name': fileName,
+      'mimeType': normalizedMime,
+      'sizeBytes': bytes.length,
+    };
+  }
+
+  Future<void> deleteRequestAttachments(Iterable<String> paths) async {
+    final values = paths.where((path) => path.trim().isNotEmpty).toList();
+    if (values.isEmpty) return;
+    await ref
+        .read(supabaseProvider)
+        .storage
+        .from('request-attachments')
+        .remove(values);
+  }
+
+  static String _allowedImageMime(String mimeType, String fileName) {
+    final value = mimeType.toLowerCase();
+    if (value == 'image/png' || value == 'image/webp' || value == 'image/jpeg') {
+      return value;
+    }
+    final lowerName = fileName.toLowerCase();
+    if (lowerName.endsWith('.png')) return 'image/png';
+    if (lowerName.endsWith('.webp')) return 'image/webp';
+    return 'image/jpeg';
   }
 
   Future<void> decideRequest(
@@ -1058,7 +1110,7 @@ extension MobileSelfServiceCommands on MobileCommands {
     ref.invalidate(myAttendanceHistoryProvider);
   }
 
-  Future<void> submitDispute({
+  Future<String> submitDispute({
     required String title,
     required String description,
     required String caseType,
@@ -1069,7 +1121,7 @@ extension MobileSelfServiceCommands on MobileCommands {
     String? requestedAction,
     bool confidential = true,
   }) async {
-    await ref
+    final data = await ref
         .read(supabaseProvider)
         .rpc<dynamic>(
           'submit_my_dispute',
@@ -1093,6 +1145,46 @@ extension MobileSelfServiceCommands on MobileCommands {
             'p_confidentiality_accepted': true,
           },
         );
+    ref.invalidate(myDisputePortalProvider);
+    return data as String;
+  }
+
+  Future<void> uploadDisputeEvidence({
+    required String caseId,
+    required Uint8List bytes,
+    required String fileName,
+    required String mimeType,
+  }) async {
+    final client = ref.read(supabaseProvider);
+    final normalizedMime = MobileCommands._allowedImageMime(mimeType, fileName);
+    final extension = switch (normalizedMime) {
+      'image/png' => 'png',
+      'image/webp' => 'webp',
+      _ => 'jpg',
+    };
+    final path = '$caseId/${const Uuid().v4()}.$extension';
+    await client.storage.from('dispute-evidence').uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(contentType: normalizedMime, upsert: false),
+        );
+    try {
+      await client.rpc<dynamic>(
+        'register_dispute_evidence',
+        params: {
+          'p_case_id': caseId,
+          'p_title': fileName,
+          'p_storage_path': path,
+          'p_mime_type': normalizedMime,
+          'p_file_size_bytes': bytes.length,
+          'p_visibility': 'submitter_and_committee',
+          'p_description': null,
+        },
+      );
+    } catch (_) {
+      await client.storage.from('dispute-evidence').remove([path]);
+      rethrow;
+    }
     ref.invalidate(myDisputePortalProvider);
   }
 

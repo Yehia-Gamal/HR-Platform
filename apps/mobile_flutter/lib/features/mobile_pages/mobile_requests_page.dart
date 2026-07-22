@@ -6,6 +6,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.d
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 
 class MobileRequestsPage extends ConsumerStatefulWidget {
   const MobileRequestsPage({
@@ -220,6 +221,13 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
   }
 
   Future<void> _createRequest(BuildContext context, WidgetRef ref) async {
+    List<DisputeDirectoryEmployee> substituteOptions = const [];
+    try {
+      substituteOptions = await ref.read(disputeDirectoryProvider('').future);
+    } catch (_) {
+      // The request remains usable if the optional directory is unavailable.
+    }
+    if (!context.mounted) return;
     var type = 'leave';
     var leaveType = 'annual';
     var permitKind = 'late_arrival';
@@ -230,6 +238,8 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
     final reason = TextEditingController();
     final location = TextEditingController();
     final minutes = TextEditingController(text: '60');
+    var substituteId = '';
+    var attachments = <XFile>[];
 
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -359,6 +369,59 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                   ),
                   const SizedBox(height: 12),
                 ],
+                if (type == 'leave') ...[
+                  DropdownButtonFormField<String>(
+                    value: substituteId,
+                    decoration: const InputDecoration(
+                      labelText: 'البديل أثناء الإجازة (اختياري)',
+                      helperText: 'سيظهر للمدير مع أي تعارض في فترة الطلب.',
+                    ),
+                    items: [
+                      const DropdownMenuItem(value: '', child: Text('دون بديل')),
+                      for (final employee in substituteOptions)
+                        DropdownMenuItem(
+                          value: employee.id,
+                          child: Text(employee.name),
+                        ),
+                    ],
+                    onChanged: (value) =>
+                        setModalState(() => substituteId = value ?? ''),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (type == 'leave' ||
+                    type == 'mission' ||
+                    type == 'convoy') ...[
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final picked = await ImagePicker().pickMultiImage(
+                        imageQuality: 82,
+                        limit: 5,
+                        requestFullMetadata: false,
+                      );
+                      if (picked.isNotEmpty) {
+                        setModalState(() => attachments = picked.take(5).toList());
+                      }
+                    },
+                    icon: const Icon(Icons.attach_file_rounded),
+                    label: Text(
+                      attachments.isEmpty
+                          ? 'إضافة مرفقات (اختياري)'
+                          : '${attachments.length} مرفق محدد',
+                    ),
+                  ),
+                  if (attachments.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        attachments.map((file) => file.name).join('، '),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(sheetContext).textTheme.bodySmall,
+                      ),
+                    ),
+                  const SizedBox(height: 12),
+                ],
                 if (type == 'attendance_permit') ...[
                   DropdownButtonFormField<String>(
                     value: permitKind,
@@ -457,6 +520,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
         'leaveType': leaveType,
         'startDate': _dateValue(startDate!),
         'endDate': _dateValue(endDate!),
+        if (substituteId.isNotEmpty) 'substituteEmployeeId': substituteId,
       });
     } else if (type == 'mission' || type == 'convoy') {
       payload.addAll({
@@ -472,16 +536,37 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
       });
     }
 
+    final commands = ref.read(mobileCommandsProvider);
+    final uploaded = <Map<String, dynamic>>[];
     try {
-      await ref
-          .read(mobileCommandsProvider)
-          .submitRequest(type, requestTitle, requestReason, payload);
+      for (final attachment in attachments) {
+        final bytes = await attachment.readAsBytes();
+        if (bytes.length > 10 * 1024 * 1024) {
+          throw StateError('ATTACHMENT_TOO_LARGE');
+        }
+        uploaded.add(
+          await commands.uploadRequestAttachment(
+            bytes: bytes,
+            fileName: attachment.name,
+            mimeType: attachment.mimeType ?? '',
+          ),
+        );
+      }
+      if (uploaded.isNotEmpty) payload['attachmentPaths'] = uploaded;
+      await commands.submitRequest(type, requestTitle, requestReason, payload);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم إرسال الطلب إلى مسار الاعتماد.')),
         );
       }
     } catch (error) {
+      try {
+        await commands.deleteRequestAttachments(
+          uploaded.map((item) => item['path'] as String),
+        );
+      } catch (_) {
+        // Orphan cleanup can be retried later; preserve the original error.
+      }
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,

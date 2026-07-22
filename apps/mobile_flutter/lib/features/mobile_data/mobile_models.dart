@@ -612,6 +612,7 @@ class MobileRequestStep {
     required this.comment,
     required this.decidedAt,
     required this.dueAt,
+    required this.actorName,
   });
   factory MobileRequestStep.fromJson(Map<String, dynamic> json) =>
       MobileRequestStep(
@@ -627,6 +628,7 @@ class MobileRequestStep {
         dueAt: json['dueAt'] == null
             ? null
             : DateTime.parse(json['dueAt'] as String),
+        actorName: json['actorName'] as String?,
       );
   final String id;
   final int order;
@@ -636,6 +638,26 @@ class MobileRequestStep {
   final String? comment;
   final DateTime? decidedAt;
   final DateTime? dueAt;
+  final String? actorName;
+}
+
+class MobileRequestAttachment {
+  const MobileRequestAttachment({
+    required this.path,
+    required this.mimeType,
+    required this.sizeBytes,
+  });
+
+  factory MobileRequestAttachment.fromJson(Map<String, dynamic> json) =>
+      MobileRequestAttachment(
+        path: json['path'] as String,
+        mimeType: json['mimeType'] as String? ?? 'application/octet-stream',
+        sizeBytes: (json['sizeBytes'] as num?)?.toInt() ?? 0,
+      );
+
+  final String path;
+  final String mimeType;
+  final int sizeBytes;
 }
 
 class MobileRequestDetail {
@@ -655,6 +677,12 @@ class MobileRequestDetail {
     required this.canDecide,
     required this.canCancel,
     required this.steps,
+    required this.attachments,
+    required this.substituteName,
+    required this.conflicts,
+    required this.decisionActorName,
+    required this.decisionMode,
+    required this.decisionOnBehalfOfExecutive,
   });
   factory MobileRequestDetail.fromJson(Map<String, dynamic> json) =>
       MobileRequestDetail(
@@ -683,6 +711,31 @@ class MobileRequestDetail {
               ),
             )
             .toList(growable: false),
+        attachments: (json['attachments'] as List<dynamic>? ?? const [])
+            .map(
+              (item) => MobileRequestAttachment.fromJson(
+                Map<String, dynamic>.from(item as Map<dynamic, dynamic>),
+              ),
+            )
+            .toList(growable: false),
+        substituteName:
+            ((json['decisionContext'] as Map<dynamic, dynamic>?)?['substitute']
+                    as Map<dynamic, dynamic>?)?['name']
+                as String?,
+        conflicts:
+            (((json['decisionContext'] as Map<dynamic, dynamic>?)?['conflicts']
+                        as List<dynamic>?) ??
+                    const [])
+                .map(
+                  (item) =>
+                      (item as Map<dynamic, dynamic>)['message'] as String? ?? '',
+                )
+                .where((item) => item.isNotEmpty)
+                .toList(growable: false),
+        decisionActorName: json['decisionActorName'] as String?,
+        decisionMode: json['decisionMode'] as String?,
+        decisionOnBehalfOfExecutive:
+            json['decisionOnBehalfOfExecutive'] as bool? ?? false,
       );
   final String id;
   final int number;
@@ -699,6 +752,12 @@ class MobileRequestDetail {
   final bool canDecide;
   final bool canCancel;
   final List<MobileRequestStep> steps;
+  final List<MobileRequestAttachment> attachments;
+  final String? substituteName;
+  final List<String> conflicts;
+  final String? decisionActorName;
+  final String? decisionMode;
+  final bool decisionOnBehalfOfExecutive;
 }
 
 class PasskeyDevice {

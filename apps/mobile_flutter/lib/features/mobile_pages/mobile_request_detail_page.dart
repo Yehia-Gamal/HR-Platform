@@ -5,6 +5,8 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.d
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MobileRequestDetailPage extends ConsumerWidget {
   const MobileRequestDetailPage({required this.requestId, super.key});
@@ -77,6 +79,13 @@ class _RequestContent extends ConsumerWidget {
                 const Divider(height: 28),
                 _row('نوع الطلب', _typeLabel(request.type)),
                 _row('حالة المسار', request.workflowStatus),
+                if (request.decisionActorName != null)
+                  _row(
+                    request.decisionOnBehalfOfExecutive
+                        ? 'منفذ القرار بالإنابة'
+                        : 'منفذ القرار',
+                    request.decisionActorName!,
+                  ),
                 _row(
                   'تاريخ الإنشاء',
                   formatter.format(request.createdAt.toLocal()),
@@ -95,6 +104,69 @@ class _RequestContent extends ConsumerWidget {
           _RequestPayloadCard(
             requestType: request.type,
             payload: request.payload,
+          ),
+        ],
+        if (request.substituteName != null || request.conflicts.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'البديل والتعارضات',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 10),
+                  _row('البديل', request.substituteName ?? 'لم يحدد'),
+                  if (request.conflicts.isEmpty)
+                    const Text('لا توجد طلبات متعارضة في الفترة المحددة.')
+                  else
+                    for (final conflict in request.conflicts)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          '• $conflict',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                ],
+              ),
+            ),
+          ),
+        ],
+        if (request.attachments.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'المرفقات',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 8),
+                  for (var index = 0; index < request.attachments.length; index++)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.attachment_rounded),
+                      title: Text('مرفق ${index + 1}'),
+                      subtitle: Text(request.attachments[index].mimeType),
+                      trailing: const Icon(Icons.open_in_new_rounded),
+                      onTap: () => _openAttachment(
+                        context,
+                        request.attachments[index].path,
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ],
         const SizedBox(height: 12),
@@ -310,6 +382,21 @@ class _RequestContent extends ConsumerWidget {
     'convoy' => 'تكليف قافلة',
     _ => 'طلب عام',
   };
+
+  Future<void> _openAttachment(BuildContext context, String path) async {
+    try {
+      final url = await Supabase.instance.client.storage
+          .from('request-attachments')
+          .createSignedUrl(path, 120);
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+      }
+    }
+  }
 }
 
 class _RequestPayloadCard extends StatelessWidget {
@@ -446,6 +533,8 @@ class _StepCard extends StatelessWidget {
           children: [
             Text(step.decision ?? step.status),
             if (step.comment?.trim().isNotEmpty == true) Text(step.comment!),
+            if (step.actorName?.trim().isNotEmpty == true)
+              Text('نفذ الإجراء: ${step.actorName}'),
             if (step.decidedAt != null)
               Text(formatter.format(step.decidedAt!.toLocal())),
           ],

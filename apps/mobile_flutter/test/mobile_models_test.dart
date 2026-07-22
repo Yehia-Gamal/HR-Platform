@@ -21,9 +21,9 @@ void main() {
       'employeeId': 'employee',
       'employeeName': 'موظف تجريبي',
       'periodMonth': '2026-07-01',
-      'currentStage': 'manager',
-      'editableStage': 'manager',
-      'workflowStatus': 'MANAGER_EVALUATION_IN_PROGRESS',
+      'currentStage': 'manager_review',
+      'editableStage': 'manager_review',
+      'workflowStatus': 'MANAGER_REVIEW',
       'locked': false,
       'criteria': [
         {
@@ -50,7 +50,7 @@ void main() {
       },
     });
     expect(form.criteria.single.stageScores['self']?.score, 80);
-    expect(form.editableStage, 'manager');
+    expect(form.editableStage, 'manager_review');
     expect(form.attendance?.score, 18);
   });
 
@@ -78,11 +78,11 @@ void main() {
       'attendanceStatus': 'late',
       'lateMinutes': 12,
       'pendingRequests': 2,
-      'kpiStage': 'manager',
+      'kpiStage': 'manager_review',
     });
     expect(member.lateMinutes, 12);
     expect(member.pendingRequests, 2);
-    expect(member.kpiStage, 'manager');
+    expect(member.kpiStage, 'manager_review');
   });
 
   test('request detail exposes cancel capability from server', () {
@@ -102,10 +102,36 @@ void main() {
       'createdAt': '2026-07-13T08:00:00Z',
       'canDecide': false,
       'canCancel': true,
-      'steps': [],
+      'steps': [
+        {
+          'id': 'step',
+          'order': 1,
+          'name': 'اعتماد المدير',
+          'status': 'approved',
+          'actorName': 'مسؤول Operations',
+        },
+      ],
+      'attachments': [
+        {'path': 'user/request.jpg', 'mimeType': 'image/jpeg', 'sizeBytes': 2048},
+      ],
+      'decisionContext': {
+        'substitute': {'id': 'substitute', 'name': 'الموظف البديل'},
+        'hasConflict': true,
+        'conflicts': [
+          {'type': 'substitute_overlap', 'message': 'البديل لديه طلب متداخل'},
+        ],
+      },
+      'decisionActorName': 'مسؤول Operations',
+      'decisionMode': 'OPERATIONS_ON_BEHALF_OF_EXECUTIVE_DIRECTOR',
+      'decisionOnBehalfOfExecutive': true,
     });
     expect(request.canCancel, isTrue);
     expect(request.payload['days'], 3);
+    expect(request.attachments.single.path, 'user/request.jpg');
+    expect(request.substituteName, 'الموظف البديل');
+    expect(request.conflicts.single, 'البديل لديه طلب متداخل');
+    expect(request.steps.single.actorName, 'مسؤول Operations');
+    expect(request.decisionOnBehalfOfExecutive, isTrue);
   });
 
   test('daily report keeps manager review timestamp', () {
