@@ -44,7 +44,9 @@ $fixture$;
 -- After reserve: reserved_units = 5, consumed_units = 0
 select is(
   (select reserved_units::int from public.leave_balance_accounts
-    where employee_id = 'b3000000-0000-4000-8000-000000000001'),
+    where employee_id = 'b3000000-0000-4000-8000-000000000001'
+      and leave_type_id = 'eeeeeeee-0000-4000-8000-0000000000dd'
+      and balance_year = extract(year from current_date)::int),
   5,
   'LEDGER-02 setup: 5 days reserved on submit');
 
@@ -52,7 +54,9 @@ select is(
 update public.requests set status = 'approved' where id = 'eeeeeeee-0000-4000-8000-0000000000f1';
 select is(
   (select consumed_units::int from public.leave_balance_accounts
-    where employee_id = 'b3000000-0000-4000-8000-000000000001'),
+    where employee_id = 'b3000000-0000-4000-8000-000000000001'
+      and leave_type_id = 'eeeeeeee-0000-4000-8000-0000000000dd'
+      and balance_year = extract(year from current_date)::int),
   5,
   'LEDGER-02 setup: 5 days consumed after approval');
 
@@ -60,7 +64,9 @@ select is(
 update public.requests set status = 'cancelled' where id = 'eeeeeeee-0000-4000-8000-0000000000f1';
 select is(
   (select consumed_units::int from public.leave_balance_accounts
-    where employee_id = 'b3000000-0000-4000-8000-000000000001'),
+    where employee_id = 'b3000000-0000-4000-8000-000000000001'
+      and leave_type_id = 'eeeeeeee-0000-4000-8000-0000000000dd'
+      and balance_year = extract(year from current_date)::int),
   0,
   'LEDGER-02: cancelling an approved request refunds consumed_units to 0');
 

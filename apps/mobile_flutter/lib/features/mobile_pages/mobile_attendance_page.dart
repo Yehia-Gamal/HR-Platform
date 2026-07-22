@@ -124,7 +124,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
         const SizedBox(height: 16),
         _AttendanceStatusCard(state: value),
         const SizedBox(height: 16),
-        if (!value.hasActivePasskey)
+        if (!value.hasActiveLocalDevice)
           FilledButton.icon(
             onPressed: _working ? null : _register,
             icon: _working
@@ -133,7 +133,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.fingerprint),
-            label: const Text('تسجيل بصمة الجهاز'),
+            label: const Text('تفعيل الحضور ببصمة الجهاز'),
           )
         else
           FilledButton.icon(
@@ -189,7 +189,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
           icon: Icons.security_outlined,
           title: 'حماية العملية',
           body:
-              'لا تُرسل بيانات البصمة الحيوية إلى الخادم. الجهاز يوقّع تحديًا مشفرًا، والخادم يتحقق من التوقيع ثم يسجل الوقت من ساعته.',
+              'لا تُرسل بيانات البصمة الحيوية إلى الخادم. التحقق يتم داخل الجهاز، ثم يتحقق الخادم من الجلسة والجهاز المسجل والموقع ويسجل الوقت من ساعته.',
         ),
       ],
     );
@@ -198,15 +198,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
   Future<void> _register({bool skipDialog = false}) async {
     setState(() => _working = true);
     try {
-      final supported = await ref
-          .read(mobileCommandsProvider)
-          .supportsPasskeys();
-      if (!supported) {
-        throw StateError(
-          'الجهاز لا يدعم Passkeys أو لا يحتوي على قفل شاشة آمن.',
-        );
-      }
-      await ref.read(mobileCommandsProvider).registerPasskey();
+      await ref.read(mobileCommandsProvider).registerLocalBiometricDevice();
       ref.invalidate(attendanceStateProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -297,18 +289,10 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
 
     setState(() => _working = true);
     try {
-      final passkeys = await ref.read(myPasskeysProvider.future);
-      final activeCredential = passkeys.firstWhere(
-        (p) => p.status == 'active' && p.trusted,
-        orElse: () => throw StateError(
-          'لا توجد بصمة مسجلة على هذا الجهاز. سجّل البصمة أولاً.',
-        ),
-      );
       final result = await ref
           .read(mobileCommandsProvider)
           .punchAttendanceLocal(
             eventType: action,
-            credentialId: activeCredential.credentialId,
           );
       ref.invalidate(attendanceStateProvider);
       ref.invalidate(employeeHomeProvider);
@@ -396,7 +380,7 @@ class _AttendanceStatusCard extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             _statusRow('الحالة', state.todayStatus),
-            _row('بصمة الجهاز', state.hasActivePasskey ? 'مسجلة' : 'غير مسجلة'),
+            _row('بصمة الجهاز', state.hasActiveLocalDevice ? 'مفعلة' : 'غير مفعلة'),
             _row(
               'آخر عملية',
               state.lastEventType == null

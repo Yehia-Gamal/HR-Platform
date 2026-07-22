@@ -4,6 +4,7 @@ import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/passkey_attendance_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/release_governance.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:uuid/uuid.dart';
@@ -759,6 +760,18 @@ class MobileCommands {
     ref.invalidate(myPasskeysProvider);
   }
 
+  Future<void> registerLocalBiometricDevice() async {
+    final localAuth = LocalAuthentication();
+    final supported = await localAuth.isDeviceSupported() &&
+        await localAuth.canCheckBiometrics;
+    if (!supported) {
+      throw StateError('الجهاز لا يدعم بصمة محلية مفعلة. فعّل البصمة وقفل الشاشة أولاً.');
+    }
+    ref.invalidate(deviceRegistrationProvider);
+    await ref.read(deviceRegistrationProvider.future);
+    ref.invalidate(attendanceStateProvider);
+  }
+
   Future<Map<String, dynamic>> punchAttendance({
     required String eventType,
   }) async {
@@ -774,7 +787,6 @@ class MobileCommands {
   /// حضور انفرادي: بصمة محلية + موقع → RPC مبسط (بدون WebAuthn/Samsung Pass).
   Future<Map<String, dynamic>> punchAttendanceLocal({
     required String eventType,
-    required String credentialId,
   }) async {
     final localAuth = LocalAuthentication();
     final didAuthenticate = await localAuth.authenticate(
@@ -791,15 +803,16 @@ class MobileCommands {
 
     final position = await LocationService.current();
     final operationId = const Uuid().v4();
+    final installationId = await ref.read(installationIdProvider.future);
     final data = await retryWithBackoff(
       () => ref
           .read(supabaseProvider)
           .rpc<Map<String, dynamic>>(
-            'punch_attendance_local_v2',
+            'punch_attendance_local_biometric_v1',
             params: {
               'p_operation_id': operationId,
               'p_event_type': eventType,
-              'p_credential_id': credentialId,
+              'p_installation_id': installationId,
               'p_latitude': position.latitude,
               'p_longitude': position.longitude,
               'p_accuracy_meters': position.accuracy,

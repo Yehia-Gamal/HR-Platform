@@ -132,7 +132,9 @@ end $$;
 
 select is(
   (select accrued_units::int from public.leave_balance_accounts
-    where employee_id = '55555555-0000-4000-8000-000000000002'),
+    where employee_id = '55555555-0000-4000-8000-000000000002'
+      and leave_type_id = 'cccccccc-0000-4000-8000-0000000000dd'
+      and balance_year = extract(year from current_date)::int),
   5,
   'LEDGER-01: duplicate accrual (same source_key) applied once, not twice');
 

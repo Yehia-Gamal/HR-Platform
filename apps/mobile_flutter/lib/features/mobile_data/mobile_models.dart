@@ -401,8 +401,8 @@ class AttendanceState {
   const AttendanceState({
     required this.attendanceRequired,
     required this.selfPunchEnabled,
-    required this.activePasskeys,
-    required this.hasActivePasskey,
+    required this.activeLocalDevices,
+    required this.hasActiveLocalDevice,
     required this.canPunch,
     required this.suggestedAction,
     required this.lastEventType,
@@ -414,8 +414,12 @@ class AttendanceState {
       AttendanceState(
         attendanceRequired: json['attendanceRequired'] as bool? ?? false,
         selfPunchEnabled: json['selfPunchEnabled'] as bool? ?? false,
-        activePasskeys: (json['activePasskeys'] as num?)?.toInt() ?? 0,
-        hasActivePasskey: json['hasActivePasskey'] as bool? ?? false,
+        activeLocalDevices: (json['activeLocalDevices'] as num?)?.toInt() ??
+            (json['activePasskeys'] as num?)?.toInt() ??
+            0,
+        hasActiveLocalDevice: json['hasActiveLocalDevice'] as bool? ??
+            json['hasActivePasskey'] as bool? ??
+            false,
         canPunch: json['canPunch'] as bool? ?? false,
         suggestedAction: json['suggestedAction'] as String? ?? 'CHECK_IN',
         lastEventType: json['lastEventType'] as String?,
@@ -427,8 +431,8 @@ class AttendanceState {
       );
   final bool attendanceRequired;
   final bool selfPunchEnabled;
-  final int activePasskeys;
-  final bool hasActivePasskey;
+  final int activeLocalDevices;
+  final bool hasActiveLocalDevice;
   final bool canPunch;
   final String suggestedAction;
   final String? lastEventType;

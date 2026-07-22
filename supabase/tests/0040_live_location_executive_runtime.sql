@@ -135,14 +135,14 @@ set requested_at = now() - interval '31 seconds'
 where employee_id='eeee0000-0000-4000-8000-000000000001';
 select pg_temp.act_as('dddd0000-0000-4000-8000-000000000004');
 set local role authenticated;
+do $resend$
+begin
+  perform public.request_live_location(
+    'eeee0000-0000-4000-8000-000000000001','snapshot','إعادة مستقلة'
+  );
+end $resend$;
 select is(
-  (with created as (
-     select public.request_live_location(
-       'eeee0000-0000-4000-8000-000000000001','snapshot','إعادة مستقلة'
-     )
-   )
-   select count(*)::int
-   from public.live_location_requests
+  (select count(*)::int from public.live_location_requests
    where employee_id='eeee0000-0000-4000-8000-000000000001'
      and status in ('pending','accepted','active')),
   2,
@@ -154,6 +154,7 @@ select throws_ok(
   'P0002', null, 'exec: inactive employee rejected');
 
 -- 20 (audit). requested + response_viewed audit rows exist for the location_video request
+reset role;
 select is(
   (select count(*)::int>=1 from public.audit_events where event_type='live_location.requested'),
   true, 'audit: live_location.requested row written');

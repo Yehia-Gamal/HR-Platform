@@ -41,6 +41,38 @@ const inputSchema = z.object({
 
 type Input = z.infer<typeof inputSchema>;
 
+const STANDARD_EMPLOYEE_ROLES = new Set([
+  "employee",
+  "direct-manager",
+  "department-manager",
+  "branch-manager",
+  "operations-officer",
+  "operations-manager",
+  "operations-manager-1",
+  "operations-manager-2",
+]);
+
+const ELEVATED_EMPLOYEE_ROLES = new Set([
+  "hr-specialist",
+  "hr-manager",
+  "executive-director",
+  "executive",
+  "committee-member",
+  "committee-chair",
+  "committee-secretary",
+]);
+
+const ALLOWED_EMPLOYEE_ROLES = new Set([
+  ...STANDARD_EMPLOYEE_ROLES,
+  ...ELEVATED_EMPLOYEE_ROLES,
+]);
+
+function inaccessibleRandomPassword(): string {
+  // The value is never returned or logged. Two UUIDs provide enough entropy,
+  // while the fixed character classes satisfy common password policies.
+  return `Cdx!9-${crypto.randomUUID()}-${crypto.randomUUID()}-aZ`;
+}
+
 // تطبيع الهاتف إلى صيغة E.164: المحلي المصري 01XXXXXXXXX ← ‎+20XXXXXXXXX.
 // الأرقام الدولية تُترك كما هي. يضمن ثبات ux_employees_phone_e164_active.
 function normalizePhone(raw: string): string {
@@ -90,16 +122,47 @@ Deno.serve(async (req) => {
   // كود الموظف: صريح إن وُجد، وإلا يُشتق من الهاتف المطبّع (فريد بطبيعته).
   const employeeCode = input.employeeCode?.trim() || phoneE164;
 
-  const { data: created, error: createError } = await admin.auth.admin.createUser({
-    email: input.email.toLowerCase(),
-    password: "12345678",
-    email_confirm: true,
-    user_metadata: {
-      full_name_ar: input.fullNameAr,
-      employee_code: employeeCode,
-      must_change_password: true,
-    },
-  });
+  if (!ALLOWED_EMPLOYEE_ROLES.has(input.roleSlug)) {
+    return json(req, { error: "role_not_allowed" }, 400);
+  }
+
+  const { data: targetRole, error: targetRoleError } = await admin
+    .from("roles")
+    .select("id,slug,is_full_access")
+    .eq("slug", input.roleSlug)
+    .maybeSingle();
+  if (targetRoleError) return json(req, { error: "role_validation_failed" }, 500);
+  if (!targetRole || targetRole.is_full_access === true) {
+    return json(req, { error: "protected_role_not_allowed" }, 403);
+  }
+
+  if (ELEVATED_EMPLOYEE_ROLES.has(input.roleSlug)) {
+    const { data: callerIsFullAccess, error: fullAccessError } = await userClient
+      .rpc("current_is_full_access");
+    if (fullAccessError) return json(req, { error: "role_authorization_failed" }, 500);
+    if (callerIsFullAccess !== true) {
+      return json(req, { error: "role_assignment_forbidden" }, 403);
+    }
+  }
+
+  const userMetadata = {
+    full_name_ar: input.fullNameAr,
+    employee_code: employeeCode,
+    must_change_password: true,
+  };
+
+  const normalizedEmail = input.email.toLowerCase();
+  const { data: created, error: createError } = input.sendInvite
+    ? await admin.auth.admin.inviteUserByEmail(normalizedEmail, {
+      redirectTo: INVITE_REDIRECT,
+      data: userMetadata,
+    })
+    : await admin.auth.admin.createUser({
+      email: normalizedEmail,
+      password: inaccessibleRandomPassword(),
+      email_confirm: false,
+      user_metadata: userMetadata,
+    });
 
   if (createError || !created.user) {
     const duplicate = createError?.message.toLowerCase().includes("already") ?? false;
@@ -135,19 +198,10 @@ Deno.serve(async (req) => {
     return json(req, { error: "employee_provision_failed" }, 500);
   }
 
-  let invitationSent = false;
-  if (input.sendInvite) {
-    const { error: inviteError } = await admin.auth.resetPasswordForEmail(
-      input.email.toLowerCase(),
-      { redirectTo: INVITE_REDIRECT },
-    );
-    invitationSent = !inviteError;
-  }
-
   const result = provisioned as { employeeId?: string; userId?: string } | null;
   return json(req, {
     employeeId: result?.employeeId,
     userId: result?.userId ?? userId,
-    invitationSent,
+    invitationSent: input.sendInvite,
   }, 201);
 });

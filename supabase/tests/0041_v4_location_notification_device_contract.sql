@@ -20,8 +20,10 @@ select function_privs_are(
   'authenticated', array[]::text[],
   'clients cannot self-activate trusted devices');
 
-select has_column('public', 'employee_devices', 'credential_id');
-select has_column('public', 'employee_devices', 'device_identifier_hash');
+select has_column('public', 'employee_devices', 'credential_id',
+  'employee_devices keeps the passkey credential identifier');
+select has_column('public', 'employee_devices', 'device_identifier_hash',
+  'employee_devices keeps the privacy-safe device identifier hash');
 
 select ok(
   position('autoCancelledByNewRequest' in pg_get_functiondef(

@@ -59,6 +59,9 @@ export function App() {
 
   if (auth.status === 'loading') return <LoadingScreen />;
   if (auth.status === 'anonymous' || !auth.access) return <LoginPage />;
+  if (auth.session?.user.user_metadata.must_change_password === true) {
+    return <PasswordSetupPage />;
+  }
 
   const defaultWorkspace = firstWebWorkspace(auth.access);
   if (!defaultWorkspace) {

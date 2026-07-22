@@ -58,9 +58,22 @@ export function PasswordSetupPage() {
       if (userError || !userData.user) throw new Error('invalid_recovery_session');
       const { error: updateError } = await supabase.auth.updateUser({
         password,
-        data: { ...userData.user.user_metadata, must_change_password: false },
       });
       if (updateError) throw updateError;
+      const { data: activation, error: activationError } = await supabase.rpc(
+        'activate_employee_after_first_login',
+      );
+      const activationResult = activation as { activated?: boolean; reason?: string } | null;
+      if (
+        activationError ||
+        (activationResult?.activated !== true && activationResult?.reason !== 'already_active')
+      ) {
+        throw new Error('employee_activation_failed');
+      }
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: { ...userData.user.user_metadata, must_change_password: false },
+      });
+      if (metadataError) throw metadataError;
       await supabase.auth.signOut({ scope: 'global' });
       setPassword('');
       setConfirmation('');

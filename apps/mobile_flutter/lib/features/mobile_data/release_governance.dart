@@ -7,6 +7,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -212,6 +213,16 @@ final deviceRegistrationProvider = FutureProvider<void>((ref) async {
     name = 'unknown';
     model = 'unknown';
     osVersion = 'unknown';
+  }
+
+  if (!kIsWeb) {
+    try {
+      final localAuth = LocalAuthentication();
+      biometricHint = await localAuth.isDeviceSupported() &&
+          await localAuth.canCheckBiometrics;
+    } catch (_) {
+      biometricHint = false;
+    }
   }
 
   try {

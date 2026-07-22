@@ -106,14 +106,14 @@ begin
 end $fx2$;
 
 select is(
-  public.resolve_request_approver('cccccccc-0000-4000-8000-000000000010','2026-07-15'),
+  public.resolve_request_approver('cccccccc-0000-4000-8000-000000000010',current_date),
   'cccccccc-0000-4000-8000-000000000011'::uuid,
   'المدير المسؤول = المدير المباشر (primary)');
 
 -- منع الموافقة الذاتية على مستوى الدالة: لو صار المدير هو المُقدِّم نفسه
 -- (لا علاقة primary مطابقة) يُرجع NULL (يُترك للتصعيد/المخوّل).
 select ok(
-  public.resolve_request_approver('cccccccc-0000-4000-8000-000000000012','2026-07-15') is null,
+  public.resolve_request_approver('cccccccc-0000-4000-8000-000000000012',current_date) is null,
   'موظف بلا مدير مباشر يُرجع NULL (لا موافقة ذاتية)');
 
 -- =====================================================================

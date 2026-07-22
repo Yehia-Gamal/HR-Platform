@@ -40,17 +40,23 @@ class _SetPasswordPageState extends ConsumerState<SetPasswordPage> {
       _error = null;
     });
     try {
-      await ref.read(supabaseProvider).auth.updateUser(
+      final client = ref.read(supabaseProvider);
+      await client.auth.updateUser(
         UserAttributes(password: _password.text),
       );
-      // Activate employee after first password change (idempotent).
-      try {
-        await ref.read(supabaseProvider).rpc<dynamic>(
-          'activate_employee_after_first_login',
-        );
-      } catch (_) {
-        // Activation is best-effort; don't block the user if it fails.
+      final activation = Map<String, dynamic>.from(
+        await client.rpc<dynamic>('activate_employee_after_first_login')
+            as Map<dynamic, dynamic>,
+      );
+      final activationAccepted = activation['activated'] == true ||
+          activation['reason'] == 'already_active';
+      if (!activationAccepted) {
+        throw StateError('تعذر تفعيل سجل الموظف. تواصل مع مسؤول النظام.');
       }
+      final metadata = Map<String, dynamic>.from(
+        client.auth.currentUser?.userMetadata ?? const <String, dynamic>{},
+      )..['must_change_password'] = false;
+      await client.auth.updateUser(UserAttributes(data: metadata));
       if (mounted) setState(() => _done = true);
     } on AuthException catch (e) {
       if (mounted) setState(() => _error = humanizeError(e));
