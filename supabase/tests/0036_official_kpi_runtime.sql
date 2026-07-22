@@ -44,12 +44,16 @@ select set_config('request.jwt.claim.sub','81000000-0000-4000-8000-000000000001'
 select ok(public.current_is_executive_secretary(),'secretary is the exclusive cycle controller');
 
 do $create_cycle$
-declare v_template uuid; v_cycle uuid; v_eval uuid;
+declare
+ v_template uuid;
+ v_cycle uuid;
+ v_eval uuid;
+ v_test_month date:=date '2099-01-01';
 begin
  select id into v_template from public.kpi_templates where official_code='OFFICIAL_KPI_100';
- v_cycle:=public.create_kpi_cycle_admin(date_trunc('month',current_date)::date,v_template,now(),now(),now(),now(),false);
+ v_cycle:=public.create_kpi_cycle_admin(v_test_month,v_template,now(),now(),now(),now(),false);
  perform public.manage_kpi_cycle(v_cycle,'open','فتح دورة اختبار V10',null);
- perform public.manage_kpi_cycle(v_cycle,'extend','تمديد دورة اختبار V10',now()+interval '45 days');
+ perform public.manage_kpi_cycle(v_cycle,'extend','تمديد دورة اختبار V10',v_test_month+interval '60 days');
  select id into strict v_eval from public.kpi_evaluations where cycle_id=v_cycle and employee_id='82000000-0000-4000-8000-000000000002';
  insert into kpi_runtime_result(cycle_id,evaluation_id) values(v_cycle,v_eval);
 end

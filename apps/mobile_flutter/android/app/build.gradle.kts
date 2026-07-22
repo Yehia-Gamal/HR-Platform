@@ -49,10 +49,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        ndk {
-            // Flutter does not ship a 32-bit x86 engine. Keep only complete ABIs.
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
-        }
+        // Flutter selects its supported ABIs. Defining ndk.abiFilters here conflicts
+        // with `flutter build apk --split-per-abi` on current Android Gradle Plugin.
     }
 
     buildTypes {

@@ -6,13 +6,14 @@
 
 ## النتيجة التنفيذية
 
-تم تنفيذ الخطة داخل المشروع الحالي من دون إنشاء تطبيق أو قاعدة بيانات جديدة، ومن دون حذف جداول أو تغيير `Package Name` أو التوقيع. اكتمل التنفيذ البرمجي والاختبار المحلي. المتبقي خارج الشيفرة هو بناء حزمة Android الموقعة ونشر المهاجرات إلى البيئة البعيدة؛ لا توجد أسرار توقيع محملة ولا Git/Supabase remote مربوط بهذا المستودع.
+تم تنفيذ الخطة ونشرها داخل المشروع الحالي من دون إنشاء تطبيق أو قاعدة بيانات جديدة، ومن دون حذف جداول أو تغيير `Package Name` أو التوقيع. نُشرت مهاجرات قاعدة البيانات حتى `0113` على مشروع Supabase الحالي، ونُشرت لوحة Production على مشروع Vercel الحالي، وبُنيت حزم Android بالتوقيع الأصلي وتحققت بصمة شهادتها.
 
 ## الحماية وخط الأساس
 
 - النسخة الاحتياطية للمشروع: `D:\Coder\HR\_backups\HR_Platform_2_pre_v10_20260722_0605.tar.gz`.
 - نسخة Schema المحلية: `D:\Coder\HR\_backups\supabase_local_schema_20260722_0605.sql`.
 - نسخة البيانات المحلية: `D:\Coder\HR\_backups\supabase_local_data_20260722_0605.sql`.
+- نسخة Supabase البعيدة قبل النشر (Schema/Data/Roles): `D:\Coder\HR\_backups\HR_Platform_2_pre_release_20260722_143101`.
 - Baseline Git: `8c30e8f`.
 - إصلاحات P0 والأمن والحضور: `3b692f1`.
 - تنفيذ KPI والتقرير التنفيذي: `edd6a89`.
@@ -78,26 +79,26 @@
 ## نتائج التحقق
 
 - TypeScript typecheck: ناجح.
-- اختبارات العقود والويب: 44/44 ناجحة.
+- اختبارات العقود والويب الحالية: 47/47 ناجحة.
 - Web production build: ناجح.
 - Flutter analyze: لا أخطاء ولا تحذيرات.
-- Flutter tests: 27/27 ناجحة.
-- Supabase DB tests: 45 ملفًا، 621 اختبارًا ناجحًا.
-- DB lint على `public`: صفر أخطاء.
-- المهاجرات المحلية مطبقة حتى `0113`.
+- Flutter tests الحالية: 29/29 ناجحة.
+- Supabase DB tests البعيدة: 45 ملفًا، 621 اختبارًا ناجحًا داخل معاملات تنتهي بـ`ROLLBACK`.
+- Remote DB lint على `public`: صفر أخطاء.
+- مهاجرات V10 المعتمدة محليًا وبعيدًا متطابقة حتى `0113`، ولم توجد مهاجرات معلقة في فحص ما بعد النشر.
 
 ## حالة Release والنشر
 
 - `applicationId` و`namespace`: `org.ahlashabab.ahla_shabab_management_os` بلا تغيير.
 - الإصدار: `0.11.1+12`.
 - الـKeystore الحالي محفوظ في `apps/mobile_flutter/android/app/release-keystore.jks` ولم يُستبدل.
-- بناء Release توقف عمدًا لأن `RELEASE_STORE_PASSWORD` و`RELEASE_KEY_PASSWORD` غير محملين. نظام البناء يمنع إصدار APK بتوقيع Debug.
-- لم يتم نشر Database migrations لأن المشروع غير مربوط ببيئة Supabase بعيدة، ولا يوجد Git remote.
+- Supabase: تم تطبيق `0104–0113` على المشروع الحالي بعد النسخ الاحتياطي، ونجحت المحاكاة اللاحقة بلا تغييرات معلقة.
+- Vercel Production: `https://ahla-shabab-management-os.vercel.app/admin`، واستجاب المسار والأصل البرمجي بالحالة `200` مع رؤوس الأمان المطلوبة.
+- Android APKs: `app-armeabi-v7a-release.apk` و`app-arm64-v8a-release.apk` و`app-x86_64-release.apk`.
+- Android App Bundle: `apps/mobile_flutter/build/app/outputs/bundle/release/app-release.aab`.
+- جميع APKs تستخدم توقيع V2/V3، والحزمة والإصدار والمعمارية صحيحة.
+- بصمة SHA-256 لشهادة التوقيع: `99:E8:C4:4A:17:C8:AF:1E:62:82:3F:94:93:25:07:C7:E2:02:0E:D0:93:1A:B0:4A:BD:BC:A4:3E:86:3B:89:88`.
 
-بعد تحميل أسرار التوقيع الأصلية في Environment، يُستكمل البناء بالأمر الموجود مسبقًا:
+## حدود التحقق الآلي
 
-```powershell
-powershell -ExecutionPolicy Bypass -File apps/mobile_flutter/build_staging_apk.ps1
-```
-
-يجب بعد ذلك التحقق بـ`apksigner` من أن بصمة الشهادة هي نفس بصمة الإصدار السابق قبل التوزيع، ثم تطبيق `0112` و`0113` على Staging أولًا وتشغيل اختبار قبول الحسابات الستة هناك.
+اكتمل النشر والبناء والتحقق الآلي. يبقى قبول بشري على جهاز Android فعلي لمسارات الكاميرا وGPS وPasskey وPush Notifications قبل توزيع الحزمة على المستخدمين، ثم رفع AAB إلى حساب المتجر عند اعتماد جهة التشغيل؛ لا يتوفر جهاز Android أو حساب متجر ضمن بيئة التنفيذ الحالية.

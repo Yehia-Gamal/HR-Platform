@@ -184,8 +184,10 @@ do $$ begin
 end $$;
 set local role authenticated;
 
-select is((select count(*)::int from public.employees), 7,
-  'HR manager reads organization-wide employees');
+select is((select count(*)::int from public.employees
+           where id between '11111111-0000-4000-8000-000000000001'
+                        and '11111111-0000-4000-8000-000000000007'), 7,
+  'HR manager reads all organization fixture employees');
 select throws_ok(
   $$insert into public.employees (employee_code, full_name_ar) values ('RLS-X', 'إدراج مباشر')$$,
   '42501', null,
@@ -202,8 +204,10 @@ do $$ begin
 end $$;
 set local role authenticated;
 
-select is((select count(*)::int from public.employees), 7,
-  'executive director reads organization-wide employees');
+select is((select count(*)::int from public.employees
+           where id between '11111111-0000-4000-8000-000000000001'
+                        and '11111111-0000-4000-8000-000000000007'), 7,
+  'executive director reads all organization fixture employees');
 select throws_ok(
   $$select public.record_attendance_event('11111111-0000-4000-8000-000000000006'::uuid, 'CHECK_IN', 24.7::double precision, 46.7::double precision, 10::numeric, 'mobile'::text, null::text, null::uuid, false, false)$$,
   '42501', null,
