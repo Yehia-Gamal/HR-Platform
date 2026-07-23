@@ -254,3 +254,32 @@
 ## 12. تعريف الاكتمال
 
 لا يُغلق أي بند لمجرد تعديل CSS أو نجاح build. الإغلاق يتطلب: تغيير كود، اختبار آلي مناسب، لقطة قبل/بعد في المقاسات والثيمين، تحقق keyboard/touch، وعدم ظهور regression في الدور أو الشاشة المقابلة على المنصة الأخرى.
+
+## 13. حالة التنفيذ والتحقق — 23 يوليو 2026
+
+### المنفذ
+
+- تطبيق الثيم قبل أول render في الويب مع حفظ `system/light/dark` في الويب وFlutter.
+- توحيد Avatar وحالات التحميل والخطأ وfallback، وتوحيد التخزين على `employee-avatars`.
+- قص وضغط صور الملف الشخصي والتحقق من الأبعاد والحجم وتنظيف الملفات المؤقتة.
+- إصلاح connectivity probe الخاص بـ Flutter Web وتحسينات التجاوب وأهداف اللمس وصفحة الموقع الحي.
+- إضافة الهجرة `0114_unify_employee_avatar_storage.sql` واختبار العقد `0046_employee_avatar_storage_contract.sql`.
+- نشر الويب إلى Vercel production وربطه بالاسم `https://ahla-shabab-management-os.vercel.app`.
+
+### أدلة التحقق
+
+- `npm run check`: ناجح؛ 27 اختبارًا لـ shared-contracts و32 اختبارًا للويب، مع نجاح TypeScript وبناء production.
+- `flutter analyze`: ناجح، و29 اختبار Flutter ناجح.
+- Flutter Web release: ناجح.
+- Android debug APK: ناجح بالبناء فقط.
+- اختبار عقد تخزين الصور: 12 اختبارًا ناجحًا محليًا.
+- Vercel deployment `dpl_FioauPQ8QYFi6WDtVprR5aJMHw1w`: الحالة `Ready`.
+- طلب الإنتاج `/admin` وملفات الأصول السبعة أعادت HTTP 200.
+- فحص الأسرار و`git diff --check`: ناجحان.
+
+### غير المغلق إنتاجيًا
+
+- الهجرة البعيدة لم تُطبق لأن Supabase CLI أعاد `Unauthorized`؛ يلزم Access Token جديد صالح بعد تدوير البيانات المكشوفة.
+- لا يوجد هاتف Android متصل أو AVD، لذلك لم يُنفذ smoke بصري على Android فعلي.
+- لم تُبن نسخة Android Release موقعة لأن متغيرات `RELEASE_*` غير متاحة محليًا، ولا يجوز إنشاء هوية توقيع بديلة.
+- فحص HTTP للإنتاج ناجح، لكن جلسة المتصفح داخل أداة الفحص لم تستطع ربط تبويب؛ لذلك لا يُعد هذا تحققًا بصريًا مباشرًا من الإنتاج.
