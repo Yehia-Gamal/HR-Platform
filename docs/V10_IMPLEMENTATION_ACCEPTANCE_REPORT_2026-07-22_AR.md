@@ -14,6 +14,7 @@
 - نسخة Schema المحلية: `D:\Coder\HR\_backups\supabase_local_schema_20260722_0605.sql`.
 - نسخة البيانات المحلية: `D:\Coder\HR\_backups\supabase_local_data_20260722_0605.sql`.
 - نسخة Supabase البعيدة قبل النشر (Schema/Data/Roles): `D:\Coder\HR\_backups\HR_Platform_2_pre_release_20260722_143101`.
+- نسخة Supabase البعيدة قبل تحديث الصور (Schema/Data/Roles): `D:\Coder\HR\_backups\HR_Platform_2_pre_avatar_20260723_055823`.
 - Baseline Git: `8c30e8f`.
 - إصلاحات P0 والأمن والحضور: `3b692f1`.
 - تنفيذ KPI والتقرير التنفيذي: `edd6a89`.
@@ -79,25 +80,36 @@
 ## نتائج التحقق
 
 - TypeScript typecheck: ناجح.
-- اختبارات العقود والويب الحالية: 47/47 ناجحة.
+- اختبارات العقود والويب الحالية: 59/59 ناجحة.
 - Web production build: ناجح.
 - Flutter analyze: لا أخطاء ولا تحذيرات.
 - Flutter tests الحالية: 29/29 ناجحة.
-- Supabase DB tests البعيدة: 45 ملفًا، 621 اختبارًا ناجحًا داخل معاملات تنتهي بـ`ROLLBACK`.
+- Supabase DB tests المحلية والبعيدة: 46 ملفًا، 633 اختبارًا ناجحًا داخل معاملات تنتهي بـ`ROLLBACK`.
 - Remote DB lint على `public`: صفر أخطاء.
-- مهاجرات V10 المعتمدة محليًا وبعيدًا متطابقة حتى `0113`، ولم توجد مهاجرات معلقة في فحص ما بعد النشر.
+- المهاجرات المحلية والبعيدة متطابقة حتى `0114`، ولم توجد مهاجرات معلقة في فحص ما بعد النشر.
 
 ## حالة Release والنشر
 
 - `applicationId` و`namespace`: `org.ahlashabab.ahla_shabab_management_os` بلا تغيير.
 - الإصدار: `0.11.1+12`.
 - الـKeystore الحالي محفوظ في `apps/mobile_flutter/android/app/release-keystore.jks` ولم يُستبدل.
-- Supabase: تم تطبيق `0104–0113` على المشروع الحالي بعد النسخ الاحتياطي، ونجحت المحاكاة اللاحقة بلا تغييرات معلقة.
+- Supabase: تم تطبيق `0104–0114` على المشروع الحالي بعد النسخ الاحتياطي، ونجحت المحاكاة اللاحقة بلا تغييرات معلقة.
 - Vercel Production: `https://ahla-shabab-management-os.vercel.app/admin`، واستجاب المسار والأصل البرمجي بالحالة `200` مع رؤوس الأمان المطلوبة.
+- Edge Functions: نُشرت `passkey-register` و`verify-attendance-punch` و`webauthn-challenge`، واختبار الطلب غير الموثق أعاد `401` لكل دالة.
 - Android APKs: `app-armeabi-v7a-release.apk` و`app-arm64-v8a-release.apk` و`app-x86_64-release.apk`.
 - Android App Bundle: `apps/mobile_flutter/build/app/outputs/bundle/release/app-release.aab`.
 - جميع APKs تستخدم توقيع V2/V3، والحزمة والإصدار والمعمارية صحيحة.
 - بصمة SHA-256 لشهادة التوقيع: `99:E8:C4:4A:17:C8:AF:1E:62:82:3F:94:93:25:07:C7:E2:02:0E:D0:93:1A:B0:4A:BD:BC:A4:3E:86:3B:89:88`.
+- بصمة SHA-256 لملف AAB النهائي: `3F645A4782DA9D1220633D51F0D985EAE5CA597DBB7B443955F1868E1E0B3637`.
+
+## تحديث الواجهة والصور — 2026-07-23
+
+- توحيد الصور الشخصية بين الويب وFlutter على `employee-avatars` مع قص مربع، حد 5 MiB، والتحقق من الدقة والصيغة.
+- الموظف يدير الصور داخل مجلد `auth.uid()` الخاص به فقط، بينما HR/Admin يحتفظان بصلاحيات الإدارة؛ يغطي الاختبار `0046` حدود RLS كاملة.
+- إضافة صورة المستخدم الفعلية مع fallback آمن في القوائم والملف الشخصي ولوحة الإدارة.
+- تثبيت الوضع الفاتح/الداكن قبل رسم الواجهة لمنع الوميض، وتحسين تباين الوضع الداكن واختباره آليًا.
+- توحيد أهداف اللمس المهمة عند 44px وتحسينات الاستجابة للهواتف.
+- حفظ تفضيل الثيم في Flutter وإجراء فحص اتصال فوري عند بدء التطبيق مع دعم Android/Web.
 
 ## حدود التحقق الآلي
 
