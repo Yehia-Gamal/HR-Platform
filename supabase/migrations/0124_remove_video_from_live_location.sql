@@ -12,11 +12,15 @@
 
 -- 1) إعادة كتابة request_live_location لرفض أوضاع الفيديو.
 --    الأوضاع المسموحة: snapshot, track_5, track_10, track_15, track_30.
+--    نحافظ على التوقيع الأصلي بالضبط (p_employee_id, p_mode, p_reason) المتوافق
+--    مع تطبيق الموبايل والاختبارات (has_function يفحص 3 معاملات بالضبط).
+--    نُسقط أي توقيع سابق مختلف الترتيب/العدد لتفادي التباس الـ overloads.
+drop function if exists public.request_live_location(uuid, text, text, integer);
+drop function if exists public.request_live_location(uuid, text, integer);
 create or replace function public.request_live_location(
   p_employee_id uuid,
-  p_reason text,
   p_mode text default 'snapshot',
-  p_duration_minutes integer default null
+  p_reason text default ''
 )
 returns public.live_location_requests
 language plpgsql security definer set search_path = public, pg_temp
@@ -25,71 +29,89 @@ declare
   v_me uuid := public.current_employee_id();
   v_req public.live_location_requests;
   v_duration integer;
+  v_target_user uuid;
 begin
-  if v_me is null then raise exception 'NO_EMPLOYEE' using errcode='42501'; end if;
-  if p_employee_id = v_me then raise exception 'CANNOT_REQUEST_OWN_LOCATION' using errcode='42501'; end if;
+  if v_me is null then raise exception 'requester has no employee profile' using errcode='42501'; end if;
+  if not (public.current_is_full_access() or public.can_access_employee(p_employee_id,'live_location.request')) then
+    raise exception 'target outside permitted scope' using errcode='42501';
+  end if;
+  if p_employee_id = v_me then raise exception 'cannot request own location' using errcode='22023'; end if;
 
-  -- V12 §9: أوضاع الفيديو ملغاة نهائيًا.
+  -- V12 §9: أوضاع الفيديو ملغاة نهائيًا — snapshot و track_* فقط.
   if p_mode in ('video_5s', 'location_video') then
     raise exception 'VIDEO_MODE_DISABLED: وضع الفيديو ملغى نهائيًا بسياسة V12 §9. استخدم snapshot أو track_*.'
       using errcode = '22023';
   end if;
 
-  -- التحقق من الصلاحية (الأصلي).
-  if not (
-    public.current_is_full_access()
-    or public.has_any_permission(array[
-      'live_location.request','live_location.request_group'])
-    or public.can_access_employee(p_employee_id)
+  if not exists (
+    select 1 from public.employees where id = p_employee_id
+      and status in ('active','invited','onboarding') and user_id is not null
   ) then
-    raise exception 'NOT_AUTHORIZED_FOR_EMPLOYEE' using errcode='42501';
+    raise exception 'employee is not active or has no linked user account' using errcode='P0002';
   end if;
 
-  -- حساب المدة حسب الوضع.
-  v_duration := case
-    when p_mode = 'snapshot' then 2
-    when p_mode like 'track_%' then coalesce(p_duration_minutes, replace(p_mode,'track_','')::integer)
-    else coalesce(p_duration_minutes, 5)
-  end;
+  -- بوابة تهدئة 30 ثانية بين الطلبات لنفس الموظف من نفس الطالب.
+  if exists (
+    select 1 from public.live_location_requests
+    where requested_by = v_me and employee_id = p_employee_id
+      and requested_at > now() - interval '30 seconds'
+  ) then
+    raise exception 'cooldown_active: please wait 30 seconds between requests' using errcode='22023';
+  end if;
 
-  -- إلغاء أي طلب نشط سابق لنفس الموظف (V10: auto-cancel).
-  update public.live_location_requests
-    set status = 'cancelled', updated_at = now()
-    where target_employee_id = p_employee_id
-      and status in ('pending', 'active')
-      and requester_employee_id = v_me;
+  -- حساب المدة حسب الوضع (أوضاع الفيديو مرفوضة أعلاه).
+  v_duration := case p_mode
+    when 'snapshot' then 1
+    when 'track_5' then 5 when 'track_10' then 10
+    when 'track_15' then 15 when 'track_30' then 30
+    else null end;
+  if v_duration is null then raise exception 'invalid request mode' using errcode='22023'; end if;
 
   insert into public.live_location_requests(
-    requester_employee_id, target_employee_id, reason, mode,
-    duration_minutes, status, expires_at, metadata, created_by)
+    employee_id, requested_by, reason, status, purpose,
+    requested_at, expires_at, duration_minutes, metadata, created_by)
   values(
-    v_me, p_employee_id, trim(p_reason), p_mode,
-    v_duration, 'pending',
-    now() + make_interval(mins => v_duration + 5),
+    p_employee_id, v_me, coalesce(nullif(trim(p_reason),''), null),
+    'pending', 'verification',
+    now(), now() + interval '5 minutes', v_duration,
     jsonb_build_object(
-      'needsVideo', false,
-      'needsPoint', p_mode = 'snapshot',
-      'isTracking', p_mode like 'track_%',
-      'videoRemoved', true),
+      'mode', p_mode, 'videoSeconds', 0,
+      'needsPoint', true, 'needsVideo', false,
+      'isTracking', p_mode like 'track_%', 'videoRemoved', true),
     auth.uid())
   returning * into v_req;
 
-  -- إشعار الموظف المستهدف.
-  perform public.notify_employee(
-    p_employee_id, 'طلب موقع حي',
-    'تم طلب موقعك الحالي — أرسل موقعك فقط.',
-    'system', 'urgent', 'live_location_requests', v_req.id,
-    jsonb_build_object('mode', p_mode, 'needsVideo', false));
+  update public.live_location_requests
+    set metadata = metadata || jsonb_build_object('requestId', v_req.id)
+    where id = v_req.id returning * into v_req;
+
+  -- إشعار الموظف المستهدف (full-screen + deep-link — بدون فيديو).
+  select user_id into v_target_user from public.employees where id = p_employee_id;
+  if v_target_user is not null then
+    insert into public.notifications(
+      recipient_user_id, recipient_employee_id, title, body, category, priority,
+      action_url, entity_type, entity_id, metadata, created_by)
+    values(
+      v_target_user, p_employee_id, 'طلب تحقق من الموقع',
+      'المدير يطلب التحقق من موقعك. يرجى الاستجابة فوراً.', 'system', 'urgent',
+      'ahlashabab://action/live_location_request/'||v_req.id::text,
+      'live_location_request', v_req.id, jsonb_build_object(
+        'fullScreen', true, 'kind', 'live_location_request', 'requestId', v_req.id,
+        'entityId', v_req.id, 'deepLink', 'ahlashabab://action/live_location_request/'||v_req.id::text,
+        'channel', 'urgent_location_v4'), auth.uid());
+  end if;
 
   perform public.log_audit_event(
-    'location.requested', 'workflow', 'info',
-    'live_location_requests', v_req.id,
-    'طلب موقع حي (بدون فيديو — V12)',
-    trim(p_reason),
-    jsonb_build_object('targetEmployeeId', p_employee_id, 'mode', p_mode,
-                       'duration', v_duration, 'videoRemoved', true));
+    'live_location.requested', 'security', 'warning',
+    'live_location_requests', v_req.id, 'طلب موقع حي', null,
+    jsonb_build_object('mode', p_mode, 'employeeId', p_employee_id, 'requestId', v_req.id));
+  perform public.nudge_notification_dispatcher();
   return v_req;
 end $$;
+
+-- إعادة الصلاحيات بعد إعادة الإنشاء (الدالة الجديدة تُمنح PUBLIC افتراضيًا).
+revoke execute on function public.request_live_location(uuid, text, text) from public, anon;
+grant execute on function public.request_live_location(uuid, text, text) to authenticated;
 
 -- 2) إعادة كتابة complete_live_location_response لعدم اشتراط فيديو.
 --    تقبل الموقع فقط وتُكمل الطلب بدون video_id.
