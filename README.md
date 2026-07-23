@@ -1,11 +1,18 @@
-# Ahla Shabab Management OS V8 — Build 0.10.0
+# Ahla Shabab Management OS V8 — Build 0.11.1
 
 مشروع موحّد لإدارة الموارد البشرية والتشغيل والاعتمادات والحوكمة داخل جمعية أحلى شباب.
 
 ## المعمارية
 
+| الطبقة | التقنية |
+|---|---|
+| **Mobile** | Flutter 3 · Riverpod · Dart |
+| **Web** | React 19 · Vite · Tailwind · TanStack Query · RTL كامل |
+| **Backend** | Supabase (PostgreSQL + RLS/ABAC + RPCs + Edge Functions + Private Storage) |
+| **عقود مشتركة** | `packages/shared-contracts` — Zod schemas مشتركة بين Web وEdge Functions |
+
 - Flutter App واحدة حسب الدور والصلاحيات.
-- React Web واحدة تضم HR Workspace وMain Admin Workspace.
+- React Web واحدة تضم HR Workspace وMain Admin Workspace وCommittee Workspace.
 - Supabase Backend واحد مع PostgreSQL وRLS/ABAC وRPCs وEdge Functions وPrivate Storage.
 
 ## أبرز الوحدات
@@ -14,21 +21,24 @@
 - الحضور والورديات وPasskey وGPS والروستر والإغلاق الشهري.
 - الإجازات والطلبات والـWorkflow وKPI متعدد المراحل.
 - القرارات والأخبار والتصويت والتقارير التنفيذية.
-- الموقع الحي وفيديو 5 ثوانٍ والاحتفاظ وLegal Hold.
+- الموقع الحي والتتبع المباشر والاحتفاظ وLegal Hold.
 - التوظيف وOnboarding والتدريب والمستندات والعهد وOffboarding.
 - النزاعات واللجان والمشروعات والمخاطر والجودة والتدقيق والأتمتة.
 - حوكمة الإصدارات والأجهزة وAccess Review وBreak-glass والخصوصية وIntegration Outbox.
-- App Shell جديد للويب، لوحات قيادة حسب الدور، Dark Mode وبحث سريع.
+- App Shell للويب، لوحات قيادة حسب الدور، Dark Mode وبحث سريع.
 - تجربة Flutter يومية محسنة ودخول بالبريد أو الهاتف أو كود الموظف.
+- استعادة كلمة المرور عبر البريد الإلكتروني.
 
 ## الحجم الحالي
 
-- 56 Migration.
-- 34 اختبار SQL/pgTAP.
-- 9 Edge Functions قابلة للنشر + مجلد `_shared` مشترك.
-- 61 ملف Dart.
-- 75 ملف TypeScript/TSX داخل الويب.
-- 33 اختبار TypeScript/React ناجحًا عبر 11 ملف اختبار (19 عقود مشتركة + 14 ويب).
+| المكوّن | العدد |
+|---|---|
+| Migrations | 116 |
+| pgTAP tests (assertions) | 48 ملف (650 assertion) |
+| Edge Functions | 12 + مجلد `_shared` مشترك |
+| Dart files | 78 |
+| TypeScript/TSX files (web) | 85 |
+| اختبارات كود (web + contracts + Flutter) | 115 اختبار عبر 26 ملف ويب/عقود + 29 Flutter |
 
 ## فحص المصدر
 
@@ -60,12 +70,24 @@ flutter run \
   --dart-define=APP_ENVIRONMENT=staging
 ```
 
+## Web Runtime
+
+```bash
+cd apps/admin_web
+cp .env.example .env.local   # ثم عدّل القيم
+npm run dev                   # Vite dev server
+npm run build                 # بناء الإنتاج
+npm run test                  # Vitest
+```
+
 ## التشغيل والإطلاق
 
 - راجع `docs/runbooks/STAGING_DEPLOYMENT_RUNBOOK_AR.md`.
 - راجع `docs/runbooks/RELEASE_ACCESS_PRIVACY_GOVERNANCE_AR.md`.
 - لا تفعل Payroll في Production قبل اعتماد HR وFinance وLegal.
+- النشر عبر Vercel CLI: `npx vercel --prod` (يتطلب token صالح).
 
 ## الحالة
 
-Staging Candidate. لا يصبح Production Release قبل نجاح PostgreSQL/RLS Runtime Tests وFlutter Builds واختبارات الأجهزة الفعلية والنسخ الاحتياطي والاستعادة والتوقيع الإنتاجي.
+Production على Vercel: `https://ahla-shabab-management-os.vercel.app`
+Supabase ref: `ujzzvqsodyhnnnpkoaml`
