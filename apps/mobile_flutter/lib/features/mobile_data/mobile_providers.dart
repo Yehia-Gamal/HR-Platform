@@ -62,17 +62,19 @@ final mobileFeedDetailProvider =
       return MobileFeedItem.fromJson(_asMap(data));
     });
 final myPasskeysProvider = FutureProvider<List<PasskeyDevice>>((ref) async {
-  final data = await ref
-      .watch(supabaseProvider)
-      .rpc<dynamic>('get_my_passkeys');
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_my_passkeys'),
+  );
   return _asList(data).map(PasskeyDevice.fromJson).toList(growable: false);
 });
 
 final myAttendanceHistoryProvider = FutureProvider<List<AttendanceHistoryItem>>(
   (ref) async {
-    final data = await ref
-        .watch(supabaseProvider)
-        .rpc<dynamic>('get_my_attendance_history', params: {'p_limit': 100});
+    final data = await rpcWithTimeout(
+      ref
+          .watch(supabaseProvider)
+          .rpc<dynamic>('get_my_attendance_history', params: {'p_limit': 100}),
+    );
     return _asList(
       data,
     ).map(AttendanceHistoryItem.fromJson).toList(growable: false);
@@ -82,9 +84,11 @@ final myAttendanceHistoryProvider = FutureProvider<List<AttendanceHistoryItem>>(
 final myNotificationsProvider = FutureProvider<List<MobileNotificationItem>>((
   ref,
 ) async {
-  final data = await ref
-      .watch(supabaseProvider)
-      .rpc<dynamic>('get_my_notifications', params: {'p_limit': 100});
+  final data = await rpcWithTimeout(
+    ref
+        .watch(supabaseProvider)
+        .rpc<dynamic>('get_my_notifications', params: {'p_limit': 100}),
+  );
   return _asList(
     data,
   ).map(MobileNotificationItem.fromJson).toList(growable: false);
@@ -170,12 +174,14 @@ final workAssignmentsProvider =
       ref,
       scope,
     ) async {
-      final data = await ref
-          .watch(supabaseProvider)
-          .rpc<dynamic>(
-            'get_work_assignments_inbox',
-            params: {'p_scope': scope, 'p_limit': 100},
-          );
+      final data = await rpcWithTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'get_work_assignments_inbox',
+              params: {'p_scope': scope, 'p_limit': 100},
+            ),
+      );
       return _asList(
         data,
       ).map(MobileWorkAssignment.fromJson).toList(growable: false);
@@ -204,12 +210,14 @@ final mobileKpiProvider = FutureProvider<List<MobileKpiEvaluation>>((
 });
 final kpiEvaluationFormProvider =
     FutureProvider.family<KpiEvaluationForm, String>((ref, evaluationId) async {
-      final data = await ref
-          .watch(supabaseProvider)
-          .rpc<dynamic>(
-            'get_kpi_evaluation_form',
-            params: {'p_evaluation_id': evaluationId},
-          );
+      final data = await rpcWithTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'get_kpi_evaluation_form',
+              params: {'p_evaluation_id': evaluationId},
+            ),
+      );
       return KpiEvaluationForm.fromJson(_asMap(data));
     });
 final attendanceStateProvider = FutureProvider<AttendanceState>((ref) async {
@@ -231,17 +239,21 @@ final attendanceStateProvider = FutureProvider<AttendanceState>((ref) async {
   }
 });
 final mobileFeedProvider = FutureProvider<List<MobileFeedItem>>((ref) async {
-  final data = await ref
-      .watch(supabaseProvider)
-      .rpc<dynamic>('get_official_feed_admin', params: {'p_limit': 100});
+  final data = await rpcWithTimeout(
+    ref
+        .watch(supabaseProvider)
+        .rpc<dynamic>('get_official_feed_admin', params: {'p_limit': 100}),
+  );
   return _asList(data).map(MobileFeedItem.fromJson).toList(growable: false);
 });
 final mobileActionCenterProvider = FutureProvider<List<MobileActionItem>>((
   ref,
 ) async {
-  final data = await ref
-      .watch(supabaseProvider)
-      .rpc<dynamic>('get_universal_action_center', params: {'p_limit': 100});
+  final data = await rpcWithTimeout(
+    ref
+        .watch(supabaseProvider)
+        .rpc<dynamic>('get_universal_action_center', params: {'p_limit': 100}),
+  );
   return _asList(data).map(MobileActionItem.fromJson).toList(growable: false);
 });
 
@@ -841,6 +853,22 @@ class MobileCommands {
     required String eventType,
   }) async {
     final localAuth = LocalAuthentication();
+    // فحص دعم البصمة قبل المحاولة — يمنع خطأ غير واضح على أجهزة بلا مستشعر.
+    final canCheck = await localAuth.canCheckBiometrics;
+    final isDeviceSupported = await localAuth.isDeviceSupported();
+    if (!canCheck && !isDeviceSupported) {
+      throw StateError(
+        'الجهاز لا يدعم البصمة أو قفل الشاشة الآمن. تحقق من إعدادات الأمان.',
+      );
+    }
+    if (canCheck) {
+      final available = await localAuth.getAvailableBiometrics();
+      if (available.isEmpty) {
+        throw StateError(
+          'لا توجد بصمة مسجلة على الجهاز. أضف بصمة من إعدادات الأمان ثم أعد المحاولة.',
+        );
+      }
+    }
     final didAuthenticate = await localAuth.authenticate(
       localizedReason: 'تأكيد تسجيل الحضور بالبصمة',
       options: const AuthenticationOptions(

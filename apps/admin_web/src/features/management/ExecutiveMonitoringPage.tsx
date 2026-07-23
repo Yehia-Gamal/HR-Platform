@@ -1,4 +1,4 @@
-import { Activity, CalendarClock, MapPin, RefreshCw, Search, Send, Users, Video, X } from 'lucide-react';
+import { Activity, CalendarClock, MapPin, RefreshCw, Search, Send, Users, X } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { MetricCard } from '../../ui/MetricCard';
@@ -78,7 +78,7 @@ export function ExecutiveMonitoringPage() {
     <div className="space-y-6">
       <PageHeader
         title="متابعة الموظفين اليومية"
-        description="من حضر ومن تأخّر ومن تغيّب ومن في إجازة أو مأمورية، مع آخر موقع مصرّح به وإمكانية طلب موقع فوري + فيديو تحقق."
+        description="من حضر ومن تأخّر ومن تغيّب ومن في إجازة أو مأمورية، مع آخر موقع مصرّح به وإمكانية طلب موقع فوري."
         actions={<button className="btn-secondary" type="button" onClick={() => void overview.refetch()} disabled={overview.isFetching}><RefreshCw className={`size-4 ${overview.isFetching ? 'animate-spin' : ''}`} />تحديث</button>}
       />
 
@@ -133,8 +133,8 @@ export function ExecutiveMonitoringPage() {
                     {e.activeRequestStatus ? <StatusBadge value={e.activeRequestStatus} /> : null}
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <button type="button" className="btn-secondary flex-1" disabled={Boolean(e.activeRequestId)} onClick={() => setDraft({ row: e, mode: 'location_video', reason: '' })}>
-                      <Send className="size-4" />{e.activeRequestId ? 'يوجد طلب نشط' : 'طلب موقع + فيديو'}
+                    <button type="button" className="btn-secondary flex-1" disabled={Boolean(e.activeRequestId)} onClick={() => setDraft({ row: e, mode: 'snapshot', reason: '' })}>
+                      <Send className="size-4" />{e.activeRequestId ? 'يوجد طلب نشط' : 'طلب موقع'}
                     </button>
                     {e.activeRequestId ? <button type="button" className="btn-secondary" onClick={() => setSelectedRequestId(e.activeRequestId)}>عرض النتيجة</button> : null}
                   </div>
@@ -164,9 +164,7 @@ export function ExecutiveMonitoringPage() {
             <form className="mt-6 space-y-4" onSubmit={(ev) => void submit(ev)}>
               <label className="block text-sm font-bold">نوع التحقق
                 <select className="input mt-2" value={draft.mode} onChange={(ev) => setDraft({ ...draft, mode: ev.target.value })}>
-                  <option value="location_video">موقع دقيق + فيديو 5 ثوانٍ (موصى به)</option>
                   <option value="snapshot">لقطة موقع واحدة</option>
-                  <option value="video_5s">فيديو تحقق — 5 ثوانٍ</option>
                   <option value="track_5">تتبع حي — 5 دقائق</option>
                   <option value="track_10">تتبع حي — 10 دقائق</option>
                 </select>
@@ -175,7 +173,7 @@ export function ExecutiveMonitoringPage() {
                 <textarea className="input mt-2 min-h-28" required minLength={5} value={draft.reason} onChange={(ev) => setDraft({ ...draft, reason: ev.target.value })} placeholder="سبب تشغيلي واضح…" />
               </label>
               {commands.request.isError ? <p className="rounded-xl bg-red-500/10 p-3 text-sm font-bold text-red-700">{commands.request.error instanceof Error ? commands.request.error.message : 'تعذّر إرسال الطلب.'}</p> : null}
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.request.isPending || draft.reason.trim().length < 5}>{draft.mode.includes('video') ? <Video className="size-4" /> : <Send className="size-4" />}{commands.request.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}</button></div>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.request.isPending || draft.reason.trim().length < 5}><Send className="size-4" />{commands.request.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}</button></div>
             </form>
           </section>
         </div>

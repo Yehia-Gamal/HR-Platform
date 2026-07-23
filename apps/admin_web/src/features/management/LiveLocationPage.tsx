@@ -1,4 +1,4 @@
-import { Activity, Crosshair, LocateFixed, MapPin, RefreshCw, Send, Signal, SignalLow, Users, Video, X } from 'lucide-react';
+import { Activity, Crosshair, LocateFixed, MapPin, RefreshCw, Send, Signal, SignalLow, Users, X } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
@@ -139,9 +139,7 @@ export function LiveLocationPage() {
             <form className="mt-6 space-y-4" onSubmit={(event) => void submitRequest(event)}>
               <label className="block text-sm font-bold">نوع التحقق
                 <select className="input mt-2" value={requestDraft.mode} onChange={(event) => setRequestDraft({ ...requestDraft, mode: event.target.value })}>
-                  <option value="location_video">موقع دقيق + فيديو 5 ثوانٍ (موصى به)</option>
                   <option value="snapshot">لقطة موقع واحدة</option>
-                  <option value="video_5s">فيديو تحقق — 5 ثوانٍ</option>
                   <option value="track_5">تتبع حي — 5 دقائق</option>
                   <option value="track_10">تتبع حي — 10 دقائق</option>
                   <option value="track_15">تتبع حي — 15 دقيقة</option>
@@ -152,7 +150,7 @@ export function LiveLocationPage() {
                 <textarea className="input mt-2 min-h-28" required minLength={5} value={requestDraft.reason} onChange={(event) => setRequestDraft({ ...requestDraft, reason: event.target.value })} placeholder="اكتب سببًا تشغيليًا واضحًا…" />
               </label>
               {commands.request.isError ? <ErrorBanner message={commands.request.error instanceof Error ? commands.request.error.message : 'تعذر إرسال الطلب.'} /> : null}
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setRequestDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.request.isPending || requestDraft.reason.trim().length < 5}>{requestDraft.mode === 'video_5s' ? <Video className="size-4" /> : <Send className="size-4" />}{commands.request.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}</button></div>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setRequestDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.request.isPending || requestDraft.reason.trim().length < 5}><Send className="size-4" />{commands.request.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}</button></div>
             </form>
           </section>
         </div>

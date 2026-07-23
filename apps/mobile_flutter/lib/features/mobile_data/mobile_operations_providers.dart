@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_operations_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,24 +14,28 @@ String _wireDate(DateTime value) =>
 final mobileManagerOperationsProvider = FutureProvider<MobileManagerOperations>(
   (ref) async {
     final today = DateTime.now();
-    final data = await ref
-        .watch(supabaseProvider)
-        .rpc<dynamic>(
-          'get_mobile_manager_operations',
-          params: {
-            'p_from': _wireDate(today),
-            'p_to': _wireDate(today.add(const Duration(days: 14))),
-          },
-        );
+    final data = await rpcWithTimeout(
+      ref
+          .watch(supabaseProvider)
+          .rpc<dynamic>(
+            'get_mobile_manager_operations',
+            params: {
+              'p_from': _wireDate(today),
+              'p_to': _wireDate(today.add(const Duration(days: 14))),
+            },
+          ),
+    );
     return MobileManagerOperations.fromJson(_asMap(data));
   },
 );
 
 final mobileExecutiveCommandCenterProvider =
     FutureProvider<MobileExecutiveCommandCenter>((ref) async {
-      final data = await ref
-          .watch(supabaseProvider)
-          .rpc<dynamic>('get_mobile_executive_command_center');
+      final data = await rpcWithTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>('get_mobile_executive_command_center'),
+      );
       return MobileExecutiveCommandCenter.fromJson(_asMap(data));
     });
 

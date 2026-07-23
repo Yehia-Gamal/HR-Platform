@@ -204,3 +204,11 @@ Future<T> retryWithBackoff<T>(
   }
   throw StateError('Unreachable');
 }
+
+/// P0-21: Wraps a Future with a timeout to prevent infinite spinners.
+/// Default is 20 seconds, matching the V10 requirement.
+Future<T> rpcWithTimeout<T>(
+  Future<T> future, [
+  Duration timeout = const Duration(seconds: 20),
+]) =>
+    future.timeout(timeout);

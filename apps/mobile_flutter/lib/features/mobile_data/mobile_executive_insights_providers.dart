@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_executive_insights_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,12 +11,14 @@ List<Map<String, dynamic>> _asList(dynamic value) =>
 
 final mobileExecutiveBriefProvider =
     FutureProvider.family<MobileExecutiveBrief, String>((ref, period) async {
-      final data = await ref
-          .watch(supabaseProvider)
-          .rpc<dynamic>(
-            'get_mobile_executive_brief',
-            params: {'p_period': period},
-          );
+      final data = await rpcWithTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'get_mobile_executive_brief',
+              params: {'p_period': period},
+            ),
+      );
       return MobileExecutiveBrief.fromJson(_asMap(data));
     });
 
@@ -24,12 +27,14 @@ final mobileExecutivePeopleProvider =
       ref,
       search,
     ) async {
-      final data = await ref
-          .watch(supabaseProvider)
-          .rpc<dynamic>(
-            'get_mobile_executive_people',
-            params: {'p_search': search, 'p_limit': 80},
-          );
+      final data = await rpcWithTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'get_mobile_executive_people',
+              params: {'p_search': search, 'p_limit': 80},
+            ),
+      );
       return _asList(
         data,
       ).map(ExecutivePersonItem.fromJson).toList(growable: false);
@@ -40,11 +45,13 @@ final mobileExecutiveEmployeeSummaryProvider =
       ref,
       employeeId,
     ) async {
-      final data = await ref
-          .watch(supabaseProvider)
-          .rpc<dynamic>(
-            'get_mobile_executive_employee_summary',
-            params: {'p_employee_id': employeeId},
-          );
+      final data = await rpcWithTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'get_mobile_executive_employee_summary',
+              params: {'p_employee_id': employeeId},
+            ),
+      );
       return ExecutiveEmployeeSummary.fromJson(_asMap(data));
     });
