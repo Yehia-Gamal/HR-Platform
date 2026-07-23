@@ -4,6 +4,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_executive_
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -78,21 +79,7 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
             padding: const EdgeInsets.all(18),
             child: Row(
               children: [
-                Semantics(
-                  label: item.name,
-                  child: CircleAvatar(
-                    radius: 34,
-                    backgroundImage: item.photoUrl == null
-                        ? null
-                        : NetworkImage(item.photoUrl!),
-                    child: item.photoUrl == null
-                        ? Text(
-                            item.name.isEmpty ? '؟' : item.name[0],
-                            style: const TextStyle(fontSize: 25),
-                          )
-                        : null,
-                  ),
-                ),
+                AppAvatar(name: item.name, photoUrl: item.photoUrl, radius: 34),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(

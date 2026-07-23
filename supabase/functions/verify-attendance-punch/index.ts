@@ -47,15 +47,15 @@ function validateCoordinates(latitude: unknown, longitude: unknown, accuracy: un
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight(req);
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
+  const authorization = req.headers.get("Authorization") ?? "";
+  const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+  if (!token) return json(req, { error: "unauthorized" }, 401);
+
   if (!SUPABASE_URL || !SERVICE_ROLE || !RP_ID || ALLOWED_ORIGINS.length === 0) {
     return json(req, { error: "server_not_configured" }, 500);
   }
   const contentLength = Number(req.headers.get("content-length") ?? "0");
   if (contentLength > MAX_BODY_BYTES) return json(req, { error: "payload_too_large" }, 413);
-
-  const authorization = req.headers.get("Authorization") ?? "";
-  const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
-  if (!token) return json(req, { error: "unauthorized" }, 401);
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { persistSession: false, autoRefreshToken: false },

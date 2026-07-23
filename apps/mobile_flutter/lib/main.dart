@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:ahla_shabab_management_os/app.dart';
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
 import 'package:ahla_shabab_management_os/core/security/secure_session_storage.dart';
+import 'package:ahla_shabab_management_os/core/theme/theme_mode_controller.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/push_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -33,6 +34,7 @@ Future<void> main() async {
     ),
   );
   try {
+    final initialThemeMode = await loadSavedThemeMode();
     AppConfig.validate();
     final projectRef = Uri.parse(AppConfig.supabaseUrl).host.split('.').first;
     await Supabase.initialize(
@@ -87,7 +89,16 @@ Future<void> main() async {
       }
     }
 
-    runApp(const ProviderScope(child: AhlaShababApp()));
+    runApp(
+      ProviderScope(
+        overrides: [
+          themeModeProvider.overrideWith(
+            () => ThemeModeController(initialMode: initialThemeMode),
+          ),
+        ],
+        child: const AhlaShababApp(),
+      ),
+    );
   } on Object catch (error, stackTrace) {
     if (kDebugMode) {
       debugPrint('Application initialization failed: $error\n$stackTrace');

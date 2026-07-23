@@ -9,6 +9,7 @@ function makeContext(overrides: Partial<AccessContext> = {}): AccessContext {
     employeeId: null,
     displayName: 'Admin',
     employeeCode: null,
+    photoUrl: null,
     roles: ['admin'],
     permissions: ['*'],
     workspaces: ['main_admin', 'hr'],

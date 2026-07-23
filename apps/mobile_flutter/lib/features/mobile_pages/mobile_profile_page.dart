@@ -1,6 +1,9 @@
 import 'dart:ui' as ui;
+import 'dart:typed_data';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
+import 'package:ahla_shabab_management_os/core/theme/theme_mode_controller.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_learning_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_service_portal_page.dart';
@@ -67,6 +70,8 @@ class MobileProfilePage extends ConsumerWidget {
               _Header(item: item),
               const SizedBox(height: 14),
               _InfoSection(item: item),
+              const SizedBox(height: 14),
+              const _ThemePreferenceCard(),
               const SizedBox(height: 14),
               Card(
                 child: ListTile(
@@ -148,6 +153,64 @@ class MobileProfilePage extends ConsumerWidget {
   }
 }
 
+class _ThemePreferenceCard extends ConsumerWidget {
+  const _ThemePreferenceCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(themeModeProvider);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'مظهر التطبيق',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'اختر المظهر أو اتركه متوافقًا مع إعداد الجهاز.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<ThemeMode>(
+                segments: const [
+                  ButtonSegment(
+                    value: ThemeMode.system,
+                    icon: Icon(Icons.brightness_auto_outlined),
+                    label: Text('النظام'),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.light,
+                    icon: Icon(Icons.light_mode_outlined),
+                    label: Text('فاتح'),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.dark,
+                    icon: Icon(Icons.dark_mode_outlined),
+                    label: Text('داكن'),
+                  ),
+                ],
+                selected: {mode},
+                showSelectedIcon: false,
+                onSelectionChanged: (selection) {
+                  ref.read(themeModeProvider.notifier).setMode(selection.first);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _Header extends ConsumerStatefulWidget {
   const _Header({required this.item});
   final MobileProfile item;
@@ -161,34 +224,113 @@ class _HeaderState extends ConsumerState<_Header> {
 
   Future<void> _pickAndUploadPhoto() async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 2048,
+      maxHeight: 2048,
+    );
     if (picked == null) return;
 
     setState(() => _isUploading = true);
     try {
-      final bytes = await picked.readAsBytes();
-      final ext = picked.name.split('.').last;
+      final originalBytes = await picked.readAsBytes();
+      if (originalBytes.length > 5 * 1024 * 1024) {
+        throw StateError('حجم الصورة أكبر من 5 ميجابايت.');
+      }
+      final sourceExt = picked.name.split('.').last.toLowerCase();
+      if (!{'jpg', 'jpeg', 'png', 'webp'}.contains(sourceExt)) {
+        throw StateError('الصيغة غير مدعومة. استخدم JPG أو PNG أو WEBP.');
+      }
+      final bytes = await _prepareSquareAvatar(originalBytes);
       final userId = Supabase.instance.client.auth.currentUser!.id;
-      final path = '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.$ext';
-      
-      await Supabase.instance.client.storage.from('avatars').uploadBinary(path, bytes);
-      final url = Supabase.instance.client.storage.from('avatars').getPublicUrl(path);
-      
+      final path = '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.png';
+      final bucket = Supabase.instance.client.storage.from('employee-avatars');
+
+      await bucket.uploadBinary(
+        path,
+        bytes,
+        fileOptions: const FileOptions(contentType: 'image/png', upsert: false),
+      );
+      final url = bucket.getPublicUrl(path);
+
       await Supabase.instance.client.from('employees').update({'photo_url': url}).eq('id', widget.item.id);
+      final previousPath = _employeeAvatarPath(widget.item.photoUrl);
+      if (previousPath != null && previousPath != path) {
+        try {
+          await bucket.remove([previousPath]);
+        } catch (_) {
+          // The new photo is already active; cleanup can be retried later.
+        }
+      }
       ref.invalidate(mobileProfileProvider);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تحديث الصورة بنجاح')));
       }
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تعذر تحديث الصورة بأمان. أعد المحاولة.')),
+          SnackBar(content: Text(humanizeError(error))),
         );
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
+  }
+
+  Future<Uint8List> _prepareSquareAvatar(Uint8List bytes) async {
+    final codec = await ui.instantiateImageCodec(bytes);
+    final frame = await codec.getNextFrame();
+    codec.dispose();
+    final source = frame.image;
+    try {
+      if (source.width < 512 || source.height < 512) {
+        throw StateError('دقة الصورة منخفضة. استخدم صورة لا تقل عن 512×512 بكسل.');
+      }
+      final sourceEdge = source.width < source.height
+          ? source.width.toDouble()
+          : source.height.toDouble();
+      final outputEdge = sourceEdge > 1024 ? 1024 : sourceEdge.round();
+      final sourceRect = ui.Rect.fromLTWH(
+        (source.width - sourceEdge) / 2,
+        (source.height - sourceEdge) / 2,
+        sourceEdge,
+        sourceEdge,
+      );
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+      canvas.drawImageRect(
+        source,
+        sourceRect,
+        ui.Rect.fromLTWH(0, 0, outputEdge.toDouble(), outputEdge.toDouble()),
+        ui.Paint()..filterQuality = ui.FilterQuality.high,
+      );
+      final picture = recorder.endRecording();
+      final output = await picture.toImage(outputEdge, outputEdge);
+      picture.dispose();
+      try {
+        final data = await output.toByteData(format: ui.ImageByteFormat.png);
+        if (data == null) throw StateError('تعذر تجهيز الصورة.');
+        final result = data.buffer.asUint8List();
+        if (result.length > 5 * 1024 * 1024) {
+          throw StateError('تعذر ضغط الصورة إلى أقل من 5 ميجابايت.');
+        }
+        return result;
+      } finally {
+        output.dispose();
+      }
+    } finally {
+      source.dispose();
+    }
+  }
+
+  String? _employeeAvatarPath(String? url) {
+    if (url == null || url.isEmpty) return null;
+    const marker = '/storage/v1/object/public/employee-avatars/';
+    final index = url.indexOf(marker);
+    if (index < 0) return null;
+    return Uri.decodeComponent(url.substring(index + marker.length));
   }
 
   @override
@@ -201,17 +343,10 @@ class _HeaderState extends ConsumerState<_Header> {
             onTap: _isUploading ? null : _pickAndUploadPhoto,
             child: Stack(
               children: [
-                CircleAvatar(
+                AppAvatar(
+                  name: widget.item.fullNameAr,
+                  photoUrl: widget.item.photoUrl,
                   radius: 36,
-                  backgroundImage: widget.item.photoUrl == null
-                      ? null
-                      : NetworkImage(widget.item.photoUrl!),
-                  child: widget.item.photoUrl == null
-                      ? Text(
-                          widget.item.fullNameAr.substring(0, 1),
-                          style: const TextStyle(fontSize: 26),
-                        )
-                      : null,
                 ),
                 if (_isUploading)
                   const Positioned.fill(

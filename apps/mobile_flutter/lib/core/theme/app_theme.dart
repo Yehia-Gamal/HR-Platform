@@ -12,14 +12,27 @@ abstract final class AppTheme {
 
   static ThemeData _build(Brightness brightness) {
     final dark = brightness == Brightness.dark;
-    final scheme = ColorScheme.fromSeed(
+    final generatedScheme = ColorScheme.fromSeed(
       seedColor: _brand,
       brightness: brightness,
-      primary: _brand,
-      secondary: _accent,
+      primary: dark ? AppColors.darkPrimary : _brand,
+      secondary: dark ? AppColors.darkAccent : _accent,
       surface: dark ? AppColors.darkSurface : Colors.white,
-      error: AppColors.danger,
+      error: dark ? AppColors.darkDanger : AppColors.danger,
     );
+    final scheme = dark
+        ? generatedScheme.copyWith(
+            primary: AppColors.darkPrimary,
+            onPrimary: const Color(0xFF071426),
+            primaryContainer: AppColors.darkPrimaryContainer,
+            onPrimaryContainer: AppColors.darkPrimary,
+            secondary: AppColors.darkAccent,
+            onSecondary: const Color(0xFF041820),
+            error: AppColors.darkDanger,
+            errorContainer: const Color(0xFF421822),
+            onErrorContainer: AppColors.darkDanger,
+          )
+        : generatedScheme;
 
     final base = ThemeData(
       colorScheme: scheme,
@@ -78,7 +91,7 @@ abstract final class AppTheme {
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: states.contains(WidgetState.selected)
                 ? FontWeight.w900
                 : FontWeight.w700,
@@ -188,12 +201,12 @@ abstract final class AppTheme {
         ),
         selectedLabelTextStyle: TextStyle(
           color: scheme.primary,
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: FontWeight.w900,
         ),
         unselectedLabelTextStyle: TextStyle(
           color: scheme.onSurfaceVariant,
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: FontWeight.w700,
         ),
       ),

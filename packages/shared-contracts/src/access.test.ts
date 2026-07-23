@@ -21,5 +21,6 @@ describe('access context', () => {
 
     expect(canUseWorkspace(context, 'hr')).toBe(true);
     expect(canUseWorkspace(context, 'main_admin')).toBe(false);
+    expect(context.photoUrl).toBeNull();
   });
 });

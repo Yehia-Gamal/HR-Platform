@@ -37,6 +37,10 @@ const ALLOWED_ORIGINS = new Set(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight(req);
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
+  const authorization = req.headers.get("Authorization") ?? "";
+  const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+  if (!token) return json(req, { error: "unauthorized" }, 401);
+
   if (!SUPABASE_URL || !SERVICE_ROLE || !RP_ID || ALLOWED_ORIGINS.size === 0) {
     return json(req, { error: "server_not_configured" }, 500);
   }
@@ -45,10 +49,6 @@ Deno.serve(async (req) => {
   if (origin && !ALLOWED_ORIGINS.has(origin)) {
     return json(req, { error: "origin_not_allowed" }, 403);
   }
-
-  const authorization = req.headers.get("Authorization") ?? "";
-  const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
-  if (!token) return json(req, { error: "unauthorized" }, 401);
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { persistSession: false, autoRefreshToken: false },

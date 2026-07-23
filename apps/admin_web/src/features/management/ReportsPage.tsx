@@ -29,6 +29,6 @@ export function ReportsPage() {
   return <div className="space-y-6">
     <PageHeader title="تقارير HR" description="ملخص قابل للتصدير مبني على نفس مؤشرات اللوحة ومصدر البيانات نفسه." actions={<button onClick={download} disabled={!d} className="btn-primary"><Download className="size-4" aria-hidden="true"/>تصدير CSV</button>}/>
     {q.isError ? <ErrorState title="تعذر تحميل التقارير" description={q.error instanceof Error ? q.error.message : undefined} onRetry={() => void q.refetch()} /> : q.isLoading && !d ? <MetricSkeletonRow count={5} /> : null}
-    {d ? <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5"><MetricCard label="الموظفون" value={d.employees} icon={Users}/><MetricCard label="النشطون" value={d.activeEmployees} icon={UserCheck}/><MetricCard label="الطلبات" value={d.pendingRequests} icon={Inbox}/><MetricCard label="مراجعات الحضور" value={d.attendancePendingReview} icon={Clock}/><MetricCard label="KPI" value={d.pendingKpi} icon={Target}/></section> : null}
+    {d ? <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5"><MetricCard label="الموظفون" value={d.employees} icon={Users}/><MetricCard label="النشطون" value={d.activeEmployees} icon={UserCheck}/><MetricCard label="الطلبات" value={d.pendingRequests} icon={Inbox}/><MetricCard label="مراجعات الحضور" value={d.attendancePendingReview} icon={Clock}/><MetricCard label="KPI" value={d.pendingKpi} icon={Target}/></section> : null}
   </div>;
 }

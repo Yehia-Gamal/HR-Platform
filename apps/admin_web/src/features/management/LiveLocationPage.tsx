@@ -41,6 +41,7 @@ export function LiveLocationPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<(typeof filters)[number]['id']>('all');
   const [requestDraft, setRequestDraft] = useState<RequestDraft | null>(null);
+  const [mobileView, setMobileView] = useState<'map' | 'directory'>('directory');
   const query = useLocationDirectory(search);
   const commands = useLiveLocationCommands();
   const data = query.data ?? [];
@@ -84,12 +85,17 @@ export function LiveLocationPage() {
         </div>
       </FilterBar>
 
+      <div className="location-mobile-switch" role="tablist" aria-label="طريقة عرض الموقع">
+        <button type="button" role="tab" aria-selected={mobileView === 'directory'} className={`filter-chip ${mobileView === 'directory' ? 'is-active' : ''}`} onClick={() => setMobileView('directory')}>دليل الموظفين</button>
+        <button type="button" role="tab" aria-selected={mobileView === 'map'} className={`filter-chip ${mobileView === 'map' ? 'is-active' : ''}`} onClick={() => setMobileView('map')}>الخريطة</button>
+      </div>
+
       {query.isError ? <ErrorState title="تعذر تحميل دليل الموقع" description={query.error instanceof Error ? query.error.message : 'تحقق من الاتصال والصلاحيات.'} onRetry={() => void query.refetch()} /> : null}
 
       {!query.isError ? (
         <section className="grid gap-5 2xl:grid-cols-[1.15fr_.85fr]">
-          <LocationMap items={visible} />
-          <article className="card overflow-hidden">
+          <div className={mobileView === 'map' ? '' : 'location-mobile-hidden'}><LocationMap items={visible} /></div>
+          <article className={`card overflow-hidden ${mobileView === 'directory' ? '' : 'location-mobile-hidden'}`}>
             <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] p-5">
               <div><h2 className="font-black">دليل الموظفين</h2><p className="muted mt-1 text-sm">{query.isLoading ? '…' : `${visible.length} نتيجة`}</p></div>
               <LocateFixed className="size-5 text-[var(--brand-primary)]" />

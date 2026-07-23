@@ -23,6 +23,7 @@ export const accessContextSchema = z.object({
   employeeId: z.string().uuid().nullable(),
   displayName: z.string().min(1),
   employeeCode: z.string().nullable(),
+  photoUrl: z.string().nullable().optional().default(null),
   roles: z.array(z.string()),
   permissions: z.array(z.string()),
   workspaces: z.array(workspaceIdSchema),

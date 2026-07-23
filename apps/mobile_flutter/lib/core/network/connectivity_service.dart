@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:ahla_shabab_management_os/core/network/connectivity_probe.dart';
 
 enum ConnectivityState { online, offline, reconnecting, serverUnavailable }
 
@@ -26,15 +27,16 @@ class ConnectivityNotifier extends Notifier<ConnectivityState> {
   }
 
   void _start() {
+    unawaited(_check());
     _timer = Timer.periodic(const Duration(seconds: 10), (_) => _check());
   }
 
   Future<void> _check() async {
     try {
-      final result = await InternetAddress.lookup(
-        'dns.google',
-      ).timeout(const Duration(seconds: 5));
-      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+      final connected = await hasNetworkConnection().timeout(
+        const Duration(seconds: 5),
+      );
+      if (connected) {
         if (_wasOffline) {
           state = ConnectivityState.reconnecting;
           _wasOffline = false;
@@ -44,6 +46,9 @@ class ConnectivityNotifier extends Notifier<ConnectivityState> {
         } else if (state != ConnectivityState.reconnecting) {
           state = ConnectivityState.online;
         }
+      } else {
+        _wasOffline = true;
+        state = ConnectivityState.offline;
       }
     } on SocketException {
       _wasOffline = true;

@@ -1,5 +1,6 @@
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_daily_reports_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
@@ -133,17 +134,7 @@ class _MemberCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => Card(
     child: ExpansionTile(
-      leading: Semantics(
-        label: item.name,
-        child: CircleAvatar(
-          backgroundImage: item.photoUrl == null
-              ? null
-              : NetworkImage(item.photoUrl!),
-          child: item.photoUrl == null
-              ? Text(item.name.isEmpty ? '؟' : item.name.characters.first)
-              : null,
-        ),
-      ),
+      leading: AppAvatar(name: item.name, photoUrl: item.photoUrl),
       title: Text(
         item.name,
         style: const TextStyle(fontWeight: FontWeight.w900),

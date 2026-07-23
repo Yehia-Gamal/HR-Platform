@@ -19,6 +19,13 @@ abstract final class AppColors {
   static const darkText = Color(0xFFF5F8FF);
   static const darkBorder = Color(0xFF243652);
   static const darkBorderStrong = Color(0xFF365071);
+  static const darkPrimary = Color(0xFF8AB9FF);
+  static const darkPrimaryContainer = Color(0xFF102B51);
+  static const darkAccent = Color(0xFF5BD6FF);
+  static const darkSuccess = Color(0xFF55D6A5);
+  static const darkWarning = Color(0xFFFFC56B);
+  static const darkDanger = Color(0xFFFF8A96);
+  static const darkInfo = Color(0xFFB7A8FF);
 
   // Semantic – web tokens
   static const success = Color(0xFF22C55E);

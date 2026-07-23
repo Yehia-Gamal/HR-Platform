@@ -1,10 +1,12 @@
 import 'package:ahla_shabab_management_os/core/theme/app_theme.dart';
+import 'package:ahla_shabab_management_os/core/theme/theme_mode_controller.dart';
 import 'package:ahla_shabab_management_os/core/widgets/connectivity_banner.dart';
 import 'package:ahla_shabab_management_os/features/workspaces/app_gate.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_deep_link_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final appRouter = GoRouter(
   routes: [
@@ -20,18 +22,18 @@ final appRouter = GoRouter(
   ],
 );
 
-class AhlaShababApp extends StatelessWidget {
+class AhlaShababApp extends ConsumerWidget {
   const AhlaShababApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
       title: 'أحلى شباب Management OS',
       debugShowCheckedModeBanner: false,
       routerConfig: appRouter,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.system,
+      themeMode: ref.watch(themeModeProvider),
       locale: const Locale('ar', 'EG'),
       supportedLocales: const [Locale('ar', 'EG'), Locale('en')],
       localizationsDelegates: const [

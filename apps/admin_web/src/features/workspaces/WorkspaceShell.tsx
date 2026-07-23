@@ -38,6 +38,7 @@ import { useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AppLogo } from '../../ui/AppLogo';
 import { ThemeToggle } from '../../ui/ThemeToggle';
+import { UserAvatar } from '../../ui/UserAvatar';
 import { WorkspaceSearch } from '../../ui/WorkspaceSearch';
 import { useAuth } from '../auth/AuthProvider';
 import { useNotifications } from '../notifications/useNotifications';
@@ -135,7 +136,10 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
 
   const currentWorkspaceLabel = workspace === 'hr' ? 'الموارد البشرية' : 'الإدارة الرئيسية';
   const currentItem = [...allItems].sort((a, b) => b.to.length - a.to.length).find((item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`));
-  const initials = access.displayName.trim().slice(0, 1) || 'م';
+  const userMetadata = auth.session?.user.user_metadata;
+  const profilePhotoUrl = access.photoUrl ?? (typeof userMetadata?.photo_url === 'string'
+    ? userMetadata.photo_url
+    : typeof userMetadata?.avatar_url === 'string' ? userMetadata.avatar_url : null);
   const unreadCount = (notificationsQuery.data ?? []).filter((item) => !item.isRead).length;
   const toggleCollapsed = () => {
     const next = !collapsed;
@@ -201,7 +205,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
 
         <div className="sidebar-footer">
           <div className="sidebar-user">
-            <span className="user-avatar">{initials}</span>
+            <UserAvatar displayName={access.displayName} photoUrl={profilePhotoUrl} eager />
             {!collapsed ? <div className="min-w-0 flex-1"><p className="truncate text-sm font-black">{access.displayName}</p><p className="truncate text-xs text-[var(--text-muted)]">{currentWorkspaceLabel}</p></div> : null}
           </div>
           <button type="button" className="sidebar-logout" title="تسجيل الخروج" onClick={() => void auth.signOut()}>
@@ -213,20 +217,20 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
 
       <div className="app-content">
         <header className="app-header">
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="header-context flex min-w-0 items-center gap-3">
             <button className="icon-button mobile-nav-control" aria-label="فتح القائمة" onClick={() => setOpen(true)}><Menu className="size-5" /></button>
             <button className="icon-button desktop-nav-control" aria-label={collapsed ? 'توسيع القائمة' : 'تصغير القائمة'} onClick={toggleCollapsed}>
               {collapsed ? <PanelRightOpen className="size-4.5" /> : <PanelRightClose className="size-4.5" />}
             </button>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)]">
-                <span>{currentWorkspaceLabel}</span><span>/</span><span className="truncate text-[var(--brand-primary)]">{currentItem?.label ?? 'الرئيسية'}</span>
+                <span className="header-workspace-name">{currentWorkspaceLabel}</span><span className="header-breadcrumb-separator">/</span><span className="truncate text-[var(--brand-primary)]">{currentItem?.label ?? 'الرئيسية'}</span>
               </div>
               <h1 className="truncate text-base font-black sm:text-lg">{currentItem?.label ?? currentWorkspaceLabel}</h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="header-actions flex items-center gap-2">
             <WorkspaceSearch destinations={allItems.map((item) => ({ label: item.label, to: item.to, group: item.group }))} />
             <ThemeToggle />
             <button type="button" className="icon-button relative" aria-label={unreadCount ? `الإشعارات، ${unreadCount} غير مقروء` : 'الإشعارات'} onClick={() => navigate(workspace === 'hr' ? '/hr/notifications' : '/admin/notifications')}>
@@ -235,7 +239,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
             </button>
             <details className="profile-menu">
               <summary className="header-profile" title={access.displayName} aria-label="فتح قائمة الحساب">
-                <span className="user-avatar small">{initials}</span>
+                <UserAvatar displayName={access.displayName} photoUrl={profilePhotoUrl} size="sm" eager announceName={false} />
                 <span className="hidden max-w-32 truncate text-sm font-bold xl:inline">{access.displayName}</span>
                 <ChevronDown className="hidden size-3.5 text-[var(--text-muted)] xl:block" />
               </summary>

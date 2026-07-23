@@ -4,6 +4,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_executive_
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_employee_summary_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ExecutivePeoplePage extends ConsumerStatefulWidget {
@@ -211,15 +212,7 @@ class _PersonCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  radius: 25,
-                  backgroundImage: item.photoUrl == null
-                      ? null
-                      : NetworkImage(item.photoUrl!),
-                  child: item.photoUrl == null
-                      ? Text(item.name.substring(0, 1))
-                      : null,
-                ),
+                AppAvatar(name: item.name, photoUrl: item.photoUrl, radius: 25),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(

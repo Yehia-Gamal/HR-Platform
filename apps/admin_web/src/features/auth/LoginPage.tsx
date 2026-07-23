@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { AppLogo } from '../../ui/AppLogo';
+import { ThemeToggle } from '../../ui/ThemeToggle';
 import { env, hasSupabaseConfig } from '../../core/env';
 import { useAuth } from './AuthProvider';
 
@@ -62,15 +63,15 @@ export function LoginPage() {
     <main className="login-layout">
       <section className="login-brand-panel">
         <div className="relative z-10"><AppLogo inverse /></div>
-        <div className="relative z-10 max-w-2xl">
+        <div className="login-brand-copy relative z-10 max-w-2xl">
           <p className="mb-3 text-sm font-black text-[color-mix(in_srgb,var(--brand-accent),white_40%)]">منصة الإدارة والتشغيل المؤسسي</p>
           <h1 className="text-4xl font-black leading-[1.35] xl:text-5xl">قرارات أوضح، متابعة أسرع، وتجربة موحدة لكل فريق أحلى شباب.</h1>
           <p className="mt-5 max-w-xl text-sm leading-8 text-[color-mix(in_srgb,var(--brand-accent),white_55%)]">منصة عربية آمنة تجمع الموارد البشرية والحضور والأداء والقرارات والتشغيل في تجربة واحدة.</p>
-          <div className="mt-8 grid gap-4 xl:grid-cols-3">
+          <div className="login-feature-grid mt-8 grid gap-4 xl:grid-cols-3">
             {features.map(({ icon: Icon, title, body }) => <article key={title} className="rounded-2xl border border-white/15 bg-white/[0.08] p-4 backdrop-blur"><span className="login-feature-icon"><Icon className="size-4" /></span><h2 className="mt-3 text-sm font-black">{title}</h2><p className="mt-1 text-xs leading-6 text-[color-mix(in_srgb,var(--brand-accent),white_55%)]">{body}</p></article>)}
           </div>
         </div>
-        <div className="relative z-10 flex flex-wrap items-center gap-5 text-xs text-[color-mix(in_srgb,var(--brand-accent),white_55%)]">
+        <div className="login-brand-footer relative z-10 flex flex-wrap items-center gap-5 text-xs text-[color-mix(in_srgb,var(--brand-accent),white_55%)]">
           <span className="login-feature"><CheckCircle2 className="size-4" />RTL كامل</span>
           <span className="login-feature"><CheckCircle2 className="size-4" />تدقيق ومراجعة</span>
           <span className="login-feature"><CheckCircle2 className="size-4" />وصول حسب الدور</span>
@@ -78,8 +79,9 @@ export function LoginPage() {
       </section>
 
       <section className="login-form-panel">
+        <div className="login-theme-toggle"><ThemeToggle /></div>
         <div className="login-card">
-          <div className="mb-7 lg:hidden"><AppLogo /></div>
+          <div className="login-form-logo mb-7"><AppLogo /></div>
           <div className="card p-6 sm:p-8">
             <div className="mb-7">
               <div className="mb-4 grid size-12 place-items-center rounded-2xl bg-[var(--brand-primary-soft)] text-[var(--brand-primary)]"><LockKeyhole className="size-5" /></div>
@@ -108,8 +110,8 @@ export function LoginPage() {
             ) : (
               <form className="space-y-4" onSubmit={onSubmit}>
                 <label className="block"><span className="mb-1.5 block text-sm font-bold">البريد أو الهاتف أو كود الموظف</span><input className="input" autoComplete="username" dir="ltr" placeholder="EMP-001 أو 010... أو البريد" {...form.register('identifier')} /><span className="mt-1 block min-h-4 text-xs text-[var(--danger)]">{form.formState.errors.identifier?.message}</span></label>
-                <label className="block"><span className="mb-1.5 block text-sm font-bold">كلمة المرور</span><span className="relative block"><input type={showPassword ? 'text' : 'password'} className="input !pl-12" autoComplete="current-password" dir="ltr" placeholder="••••••••" {...form.register('password')} /><button type="button" className="absolute left-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-muted)]" aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</button></span><span className="mt-1 block min-h-4 text-xs text-[var(--danger)]">{form.formState.errors.password?.message}</span></label>
-                <div className="flex justify-end"><button type="button" className="text-sm font-bold text-[var(--brand-primary)] hover:underline" onClick={() => { setMode('reset'); setSubmitError(null); }}>نسيت كلمة المرور؟</button></div>
+                <label className="block"><span className="mb-1.5 block text-sm font-bold">كلمة المرور</span><span className="relative block"><input type={showPassword ? 'text' : 'password'} className="input !pl-14" autoComplete="current-password" dir="ltr" placeholder="••••••••" {...form.register('password')} /><button type="button" className="password-visibility-button" aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</button></span><span className="mt-1 block min-h-4 text-xs text-[var(--danger)]">{form.formState.errors.password?.message}</span></label>
+                <div className="flex justify-end"><button type="button" className="link-button" onClick={() => { setMode('reset'); setSubmitError(null); }}>نسيت كلمة المرور؟</button></div>
                 <button type="submit" disabled={form.formState.isSubmitting || !hasSupabaseConfig} aria-describedby={!hasSupabaseConfig ? 'login-config-hint' : undefined} className="btn-primary w-full !py-3.5">{form.formState.isSubmitting ? 'جارٍ التحقق…' : 'تسجيل الدخول بأمان'}</button>
               </form>
             )}

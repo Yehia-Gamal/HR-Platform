@@ -108,7 +108,7 @@ export function RecruitmentPage() {
 
       {data ? (
         <>
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
             <MetricCard label="طلبات التوظيف" value={data.requisitions} icon={BriefcaseBusiness} />
             <MetricCard label="تنتظر الاعتماد" value={data.pendingRequisitions} icon={FileClock} />
             <MetricCard label="إعلانات مفتوحة" value={data.openPostings} icon={UserPlus} />

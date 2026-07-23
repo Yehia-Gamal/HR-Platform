@@ -8,6 +8,7 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { ListSkeleton } from '../../ui/Skeletons';
+import { UserAvatar } from '../../ui/UserAvatar';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { useEmployees } from './useEmployees';
@@ -115,7 +116,7 @@ export function EmployeesPage() {
                 <tbody className="divide-y divide-[var(--border)]">
                   {filtered.map((employee) => (
                     <tr key={employee.id}>
-                      <td className="px-4 py-3.5"><div className="flex items-center gap-3"><span className="user-avatar">{employee.fullNameAr.slice(0, 1)}</span><div className="min-w-0"><Link to={`/hr/employees/${employee.id}`} className="block truncate font-black hover:text-[var(--brand-primary)]">{employee.fullNameAr}</Link><p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">{employee.fullNameEn ?? 'لا يوجد اسم إنجليزي'}</p></div></div></td>
+                      <td className="px-4 py-3.5"><div className="flex items-center gap-3"><UserAvatar displayName={employee.fullNameAr} photoUrl={employee.photoUrl} announceName={false} /><div className="min-w-0"><Link to={`/hr/employees/${employee.id}`} className="block truncate font-black hover:text-[var(--brand-primary)]">{employee.fullNameAr}</Link><p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">{employee.fullNameEn ?? 'لا يوجد اسم إنجليزي'}</p></div></div></td>
                       <td className="px-4 py-3.5 font-mono text-xs">{employee.employeeCode}</td>
                       <td className="px-4 py-3.5" dir="ltr">{employee.phoneE164 ?? '—'}</td>
                       <td className="px-4 py-3.5"><StatusBadge status={employee.status} /></td>
@@ -131,7 +132,7 @@ export function EmployeesPage() {
           <section className="grid gap-3 md:hidden" aria-busy={employees.isFetching}>
             {filtered.map((employee) => (
               <Link key={employee.id} to={`/hr/employees/${employee.id}`} className="mobile-record-card card-interactive">
-                <div className="flex items-start gap-3"><span className="user-avatar">{employee.fullNameAr.slice(0, 1)}</span><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div><h2 className="font-black">{employee.fullNameAr}</h2><p className="mt-1 font-mono text-xs text-[var(--text-muted)]">{employee.employeeCode}</p></div><StatusBadge status={employee.status} /></div><div className="mt-3 flex flex-wrap gap-3 text-xs text-[var(--text-muted)]"><span dir="ltr">{employee.phoneE164 ?? 'بدون هاتف'}</span><span>{new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' }).format(new Date(employee.createdAt))}</span></div></div></div>
+                <div className="flex items-start gap-3"><UserAvatar displayName={employee.fullNameAr} photoUrl={employee.photoUrl} announceName={false} /><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div><h2 className="font-black">{employee.fullNameAr}</h2><p className="mt-1 font-mono text-xs text-[var(--text-muted)]">{employee.employeeCode}</p></div><StatusBadge status={employee.status} /></div><div className="mt-3 flex flex-wrap gap-3 text-xs text-[var(--text-muted)]"><span dir="ltr">{employee.phoneE164 ?? 'بدون هاتف'}</span><span>{new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' }).format(new Date(employee.createdAt))}</span></div></div></div>
               </Link>
             ))}
           </section>

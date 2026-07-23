@@ -37,6 +37,7 @@ dependencies:
   flutter_map: ^8.2.2
   latlong2: ^0.9.1
   screenshot: ^3.0.0
+  web: ^1.1.1
 
 dev_dependencies:
   flutter_test:

@@ -7,6 +7,8 @@ import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { getSupabase } from '../../core/supabase';
 import { PageHeader } from '../../ui/PageHeader';
+import { UserAvatar } from '../../ui/UserAvatar';
+import { prepareAvatarFile } from '../../ui/avatarImage';
 import { useAuth } from '../auth/AuthProvider';
 import { useOrganizationLookups } from './useOrganizationLookups';
 
@@ -28,6 +30,8 @@ export function CreateEmployeePage() {
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const photoObjectUrlRef = useRef<string | null>(null);
+  const uploadedPhotoPathRef = useRef<string | null>(null);
   const form = useForm<FormInput>({ resolver: zodResolver(createEmployeeInputSchema), defaultValues });
   const values = form.watch();
   const options = lookups.data;
@@ -49,6 +53,21 @@ export function CreateEmployeePage() {
     }
   }, [branches, values.branchId, form]);
 
+  useEffect(() => () => {
+    if (photoObjectUrlRef.current) URL.revokeObjectURL(photoObjectUrlRef.current);
+    const orphanPath = uploadedPhotoPathRef.current;
+    if (orphanPath && !auth.isMock) {
+      void getSupabase()
+        .then((supabase) => supabase.storage.from('employee-avatars').remove([orphanPath]))
+        .catch(() => undefined);
+    }
+  }, [auth.isMock]);
+
+  const clearObjectPreview = () => {
+    if (photoObjectUrlRef.current) URL.revokeObjectURL(photoObjectUrlRef.current);
+    photoObjectUrlRef.current = null;
+  };
+
   const next = async () => {
     const fields: Array<keyof FormInput> = step === 0 ? ['fullNameAr', 'email', 'phoneE164', 'roleSlug'] : [];
     if (fields.length && !(await form.trigger(fields))) return;
@@ -59,33 +78,57 @@ export function CreateEmployeePage() {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
+    const previousPreview = photoPreview;
+    const previousUrl = form.getValues('photoUrl');
+    const previousPath = uploadedPhotoPathRef.current;
     setPhotoError(null);
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setPhotoError('الصيغة غير مدعومة. استخدم JPG أو PNG أو WEBP.'); return;
-    }
-    if (file.size > 5 * 1024 * 1024) { setPhotoError('حجم الصورة أكبر من 5 ميجابايت.'); return; }
     setPhotoUploading(true);
     try {
+      const prepared = await prepareAvatarFile(file);
+      clearObjectPreview();
+      photoObjectUrlRef.current = URL.createObjectURL(prepared);
+      setPhotoPreview(photoObjectUrlRef.current);
       if (auth.isMock) {
-        setPhotoPreview(URL.createObjectURL(file));
-        form.setValue('photoUrl', 'https://example.com/mock-avatar.png');
+        form.setValue('photoUrl', 'https://example.com/mock-avatar.webp');
         return;
       }
       const supabase = await getSupabase();
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const path = `${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage.from('employee-avatars').upload(path, file, { upsert: false, contentType: file.type });
+      const path = `admin/${crypto.randomUUID()}.webp`;
+      const { error } = await supabase.storage.from('employee-avatars').upload(path, prepared, { upsert: false, contentType: prepared.type });
       if (error) throw error;
       const { data } = supabase.storage.from('employee-avatars').getPublicUrl(path);
       form.setValue('photoUrl', data.publicUrl, { shouldValidate: true });
+      uploadedPhotoPathRef.current = path;
+      clearObjectPreview();
       setPhotoPreview(data.publicUrl);
+      if (previousPath && previousPath !== path) {
+        await supabase.storage.from('employee-avatars').remove([previousPath]);
+      }
     } catch (error) {
+      clearObjectPreview();
+      setPhotoPreview(previousPreview);
+      form.setValue('photoUrl', previousUrl);
       setPhotoError(error instanceof Error ? error.message : 'تعذر رفع الصورة.');
     } finally {
       setPhotoUploading(false);
     }
   };
-  const removePhoto = () => { setPhotoPreview(null); setPhotoError(null); form.setValue('photoUrl', undefined); };
+  const removePhoto = async () => {
+    const path = uploadedPhotoPathRef.current;
+    uploadedPhotoPathRef.current = null;
+    clearObjectPreview();
+    setPhotoPreview(null);
+    setPhotoError(null);
+    form.setValue('photoUrl', undefined);
+    if (path && !auth.isMock) {
+      try {
+        const supabase = await getSupabase();
+        await supabase.storage.from('employee-avatars').remove([path]);
+      } catch {
+        setPhotoError('أزيلت الصورة من النموذج، وتعذر تنظيف الملف المؤقت الآن.');
+      }
+    }
+  };
 
   const submit = form.handleSubmit(async (raw) => {
     const parsedInput = createEmployeeInputSchema.parse(raw);
@@ -101,7 +144,8 @@ export function CreateEmployeePage() {
           ? `تم إنشاء الموظف والحساب وإرسال رابط التفعيل بنجاح. المعرّف: ${parsed.employeeId}`
           : `تم إنشاء الموظف والحساب، لكن تعذر إرسال رابط التفعيل. راجع إعداد عنوان التفعيل ثم أعد الإرسال. المعرّف: ${parsed.employeeId}`
         : `تم إنشاء الموظف والحساب بنجاح دون إرسال دعوة. المعرّف: ${parsed.employeeId}`);
-      form.reset(defaultValues); setStep(0); setPhotoPreview(null);
+      uploadedPhotoPathRef.current = null;
+      form.reset(defaultValues); setStep(0); clearObjectPreview(); setPhotoPreview(null);
     } catch (error) { setSubmitError(error instanceof Error ? error.message : 'تعذر إنشاء الموظف.'); }
   });
 
@@ -114,18 +158,18 @@ export function CreateEmployeePage() {
         {submitError ? <div role="alert" className="mb-5 rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-4 text-sm text-[var(--danger)]">{submitError}</div> : null}
         {step === 0 ? <div><SectionTitle title="الهوية وحساب الدخول" description="البيانات الأساسية والصورة الشخصية ومعرف الدخول والمنصب." />
           <div className="mb-6 flex items-center gap-5">
-            <div className="relative size-24 shrink-0 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)]">
-              {photoPreview ? <img src={photoPreview} alt="" className="size-full object-cover" /> : <div className="flex size-full items-center justify-center text-[var(--text-muted)]"><ImagePlus className="size-8" aria-hidden="true" /></div>}
+            <div className="relative size-24 shrink-0">
+              {photoPreview ? <UserAvatar displayName={values.fullNameAr ?? 'صورة الموظف'} photoUrl={photoPreview} size="lg" eager announceName={false} className="!size-24 !rounded-2xl" /> : <div className="flex size-full items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text-muted)]"><ImagePlus className="size-8" aria-hidden="true" /></div>}
               {photoUploading ? <div className="absolute inset-0 flex items-center justify-center bg-black/40"><Loader2 className="size-6 animate-spin text-white" aria-hidden="true" /></div> : null}
             </div>
             <div>
               <p className="mb-2 text-sm font-semibold">الصورة الشخصية</p>
               <div className="flex gap-2">
-                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={photoUploading} className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-semibold disabled:opacity-50"><ImagePlus className="size-4" aria-hidden="true" />{photoPreview ? 'تغيير الصورة' : 'رفع صورة'}</button>
-                {photoPreview ? <button type="button" onClick={removePhoto} className="inline-flex items-center gap-2 rounded-xl border border-[var(--danger)] px-3 py-2 text-sm font-semibold text-[var(--danger)]"><X className="size-4" aria-hidden="true" />إزالة</button> : null}
+                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={photoUploading} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-semibold disabled:opacity-50"><ImagePlus className="size-4" aria-hidden="true" />{photoPreview ? 'تغيير الصورة' : 'رفع صورة'}</button>
+                {photoPreview ? <button type="button" onClick={() => void removePhoto()} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--danger)] px-3 py-2 text-sm font-semibold text-[var(--danger)]"><X className="size-4" aria-hidden="true" />إزالة</button> : null}
               </div>
               <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={onPickPhoto} />
-              <p className="muted mt-1.5 text-xs">JPG أو PNG أو WEBP · حتى 5 ميجابايت</p>
+              <p className="muted mt-1.5 text-xs">JPG أو PNG أو WEBP · حتى 5 ميجابايت · 512×512 على الأقل · تُقص تلقائيًا كمربع</p>
               {photoError ? <p className="mt-1 text-xs text-[var(--danger)]">{photoError}</p> : null}
             </div>
           </div>

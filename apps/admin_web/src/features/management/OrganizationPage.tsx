@@ -82,7 +82,7 @@ export function OrganizationPage() {
       <LoadingScreen label="جارٍ تحميل الهيكل…" />
     ) : null}
     {data ? <>
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
         <MetricCard label="الكيانات" value={data.entities.length} icon={Building2}/>
         <MetricCard label="الفروع" value={data.branches.length} icon={Building2}/>
         <MetricCard label="الإدارات" value={data.departments.length} icon={UsersRound}/>

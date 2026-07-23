@@ -10,6 +10,7 @@ import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { SkeletonCard } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
+import { UserAvatar } from '../../ui/UserAvatar';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { useEmployee360, useResendInvite, useEmployees, useChangeManager, useArchiveEmployee } from './useEmployees';
@@ -74,9 +75,7 @@ export function EmployeeDetailPage() {
       {resendError ? <div role="alert" className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-4 text-sm text-[var(--danger)]">{resendError}</div> : null}
 
       <section className="card flex flex-col gap-5 p-5 lg:flex-row lg:items-center">
-        <span className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-3xl bg-[var(--surface-muted)] text-brand">
-          {item.photoUrl ? <img src={item.photoUrl} alt={item.fullNameAr} className="size-full object-cover" /> : <UserRound className="size-9" aria-hidden="true" />}
-        </span>
+        <UserAvatar displayName={item.fullNameAr} photoUrl={item.photoUrl} size="lg" eager />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-3"><h2 className="text-2xl font-black">{item.fullNameAr}</h2><StatusBadge status={item.status} /></div>
           <p className="muted mt-1">{item.jobTitle ?? item.position ?? 'بدون مسمى وظيفي'} • {item.employeeCode}</p>
