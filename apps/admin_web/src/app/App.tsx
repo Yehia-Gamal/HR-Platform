@@ -96,7 +96,7 @@ export function App() {
           <Route path="learning" element={<RequirePermission perm="learning.course.manage"><LearningPage /></RequirePermission>} />
           <Route path="documents/studio" element={<RequirePermission perm="documents.template.manage"><DocumentStudioPage /></RequirePermission>} />
           <Route path="lifecycle" element={<RequirePermission perm="documents.employee.read"><LifecycleOperationsPage /></RequirePermission>} />
-          <Route path="official-feed" element={<OfficialFeedPage />} />
+          <Route path="official-feed" element={<RequirePermission perm="comms.announcement.read"><OfficialFeedPage /></RequirePermission>} />
           <Route path="notifications" element={<NotificationsPage />} />
         </Route>
       </Route>
@@ -104,11 +104,11 @@ export function App() {
       <Route element={<WorkspaceGuard workspace="main_admin" />}>
         <Route path="/admin" element={<WorkspaceShell workspace="main_admin" />}>
           <Route index element={<DashboardPage type="admin" />} />
-          <Route path="actions" element={<ActionCenterPage />} />
+          <Route path="actions" element={<RequirePermission perm="access.role.read"><ActionCenterPage /></RequirePermission>} />
           <Route path="live-location" element={<RequirePermission perm="live_location.request"><LiveLocationPage /></RequirePermission>} />
           <Route path="live-location/monitoring" element={<RequirePermission perm="live_location.request"><ExecutiveMonitoringPage /></RequirePermission>} />
           <Route path="official-feed" element={<RequirePermission perm="comms.announcement.manage"><OfficialFeedPage /></RequirePermission>} />
-          <Route path="organization" element={<OrganizationPage />} />
+          <Route path="organization" element={<RequirePermission perm="organization.org_chart.read"><OrganizationPage /></RequirePermission>} />
           <Route path="performance/cycles" element={<RequirePermission perm="performance.cycle.manage"><KpiCyclesPage /></RequirePermission>} />
           <Route path="disputes" element={<RequirePermission perm="relations.case.manage"><DisputesPage /></RequirePermission>} />
           <Route path="lifecycle" element={<RequirePermission perm="assets.inventory.manage"><LifecycleOperationsPage /></RequirePermission>} />
@@ -117,10 +117,10 @@ export function App() {
           <Route path="governance" element={<RequirePermission perm="system.release.read"><ReleaseGovernancePage /></RequirePermission>} />
           <Route path="documents/studio" element={<RequirePermission perm="documents.template.manage"><DocumentStudioPage /></RequirePermission>} />
           <Route path="reports/scheduler" element={<RequirePermission perm="reports.schedule.manage"><ReportSchedulerPage /></RequirePermission>} />
-          <Route path="enterprise" element={<EnterpriseManagementPage />} />
+          <Route path="enterprise" element={<RequirePermission perm="organization.entity.read"><EnterpriseManagementPage /></RequirePermission>} />
           <Route path="operations" element={<RequirePermission perm="tasks.read"><OperationsCenterPage /></RequirePermission>} />
           <Route path="helpdesk" element={<RequirePermission perm="service.request.manage"><ServiceDeskPage /></RequirePermission>} />
-          <Route path="people-finance" element={<PeopleFinancePage />} />
+          <Route path="people-finance" element={<RequirePermission perm="payroll.structure.manage"><PeopleFinancePage /></RequirePermission>} />
           <Route path="audit-security" element={<RequirePermission perm="audit.view"><AuditSecurityPage /></RequirePermission>} />
           <Route path="integrations" element={<RequirePermission perm="system.integration.view"><IntegrationsJobsPage /></RequirePermission>} />
           <Route path="notifications" element={<NotificationsPage />} />
