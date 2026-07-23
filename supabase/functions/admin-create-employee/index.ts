@@ -36,7 +36,7 @@ const inputSchema = z.object({
   gradeId: nullableUuid,
   employmentTypeId: nullableUuid,
   hireDate: z.string().date().optional(),
-  sendInvite: z.boolean().default(false),
+  sendInvite: z.boolean().default(true),
 });
 
 type Input = z.infer<typeof inputSchema>;
@@ -194,8 +194,22 @@ Deno.serve(async (req) => {
   });
 
   if (provisionError) {
-    await admin.auth.admin.deleteUser(userId);
-    return json(req, { error: "employee_provision_failed" }, 500);
+    // تحديد نوع الخطأ من رسالة PostgreSQL لإرجاع رمز مفهوم للواجهة.
+    const msg = (provisionError as { message?: string })?.message ?? "";
+    let errorCode = "employee_provision_failed";
+    if (/phone.*already|phone_e164/i.test(msg) || (msg.includes("23505") && msg.includes("phone")))
+      errorCode = "phone_already_exists";
+    else if (/employee.code.*already|employee_code/i.test(msg) || msg.includes("23505"))
+      errorCode = "employee_code_already_exists";
+    else if (/unknown.role/i.test(msg)) errorCode = "role_not_allowed";
+    else if (/manager.*not.*active/i.test(msg)) errorCode = "manager_not_active";
+
+    // محاولة تنظيف حساب المصادقة اليتيم — إعادة محاولة واحدة عند الفشل.
+    const { error: deleteError } = await admin.auth.admin.deleteUser(userId);
+    if (deleteError) {
+      await admin.auth.admin.deleteUser(userId).catch(() => undefined);
+    }
+    return json(req, { error: errorCode, orphanedUserId: deleteError ? userId : undefined }, 500);
   }
 
   const result = provisioned as { employeeId?: string; userId?: string } | null;

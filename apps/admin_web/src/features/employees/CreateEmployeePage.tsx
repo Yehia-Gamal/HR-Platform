@@ -13,7 +13,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { useOrganizationLookups } from './useOrganizationLookups';
 
 type FormInput = z.input<typeof createEmployeeInputSchema>;
-const defaultValues: Partial<FormInput> = { roleSlug: 'employee', sendInvite: false };
+const defaultValues: Partial<FormInput> = { roleSlug: 'employee', sendInvite: true };
 const uuidValue = { setValueAs: (value: string) => value || null };
 const steps = ['الهوية والحساب', 'الهيكل والوظيفة', 'المراجعة والإنشاء'];
 
@@ -69,6 +69,7 @@ export function CreateEmployeePage() {
   };
 
   const next = async () => {
+    if (photoUploading) return;
     const fields: Array<keyof FormInput> = step === 0 ? ['fullNameAr', 'email', 'phoneE164', 'roleSlug'] : [];
     if (fields.length && !(await form.trigger(fields))) return;
     setStep((current) => Math.min(2, current + 1));
@@ -146,7 +147,27 @@ export function CreateEmployeePage() {
         : `تم إنشاء الموظف والحساب بنجاح دون إرسال دعوة. المعرّف: ${parsed.employeeId}`);
       uploadedPhotoPathRef.current = null;
       form.reset(defaultValues); setStep(0); clearObjectPreview(); setPhotoPreview(null);
-    } catch (error) { setSubmitError(error instanceof Error ? error.message : 'تعذر إنشاء الموظف.'); }
+    } catch (error) {
+      // رسائل خطأ عربية مفهومة بدل الرسائل الإنجليزية العامة من supabase-js
+      const errorMessages: Record<string, string> = {
+        account_already_exists: 'يوجد حساب مسجل بهذا البريد الإلكتروني بالفعل.',
+        forbidden: 'ليس لديك صلاحية إنشاء موظفين.',
+        role_not_allowed: 'المنصب المختار غير مسموح به.',
+        phone_already_exists: 'رقم الهاتف مسجل لموظف نشط بالفعل.',
+        employee_code_already_exists: 'كود الموظف مستخدم بالفعل.',
+        employee_provision_failed: 'تعذر إنشاء سجل الموظف. تحقق من البيانات وحاول مرة أخرى.',
+      };
+      let message = 'تعذر إنشاء الموظف.';
+      if (error && typeof error === 'object' && 'context' in error) {
+        try {
+          const body = await (error as { context: Response }).context.json();
+          message = errorMessages[body?.error] ?? body?.message ?? message;
+        } catch { /* fallback */ }
+      } else if (error instanceof Error) {
+        message = errorMessages[error.message] ?? message;
+      }
+      setSubmitError(message);
+    }
   });
 
   const roleLabel = roleOptions.find((r) => r.slug === values.roleSlug)?.label ?? values.roleSlug;
@@ -189,6 +210,7 @@ export function CreateEmployeePage() {
             <JobTitleField label="المسمى الوظيفي" options={options?.jobTitles ?? []} register={form.register('jobTitleName')} />
           </div></div> : null}
         {step === 2 ? <div><SectionTitle title="مراجعة البيانات" description="راجع البيانات قبل إنشاء ملف الموظف وحساب الدخول." />
+          {photoPreview ? <div className="mb-4 flex justify-center"><UserAvatar displayName={values.fullNameAr ?? ''} photoUrl={photoPreview} size="lg" eager announceName={false} className="!size-20 !rounded-2xl" /></div> : null}
           <div className="grid gap-3 sm:grid-cols-2">
             <Review label="الاسم" value={values.fullNameAr} />
             <Review label="الهاتف" value={values.phoneE164} />
@@ -198,6 +220,8 @@ export function CreateEmployeePage() {
             <Review label="موقع العمل" value={options?.workSites.find((x) => x.id === values.workSiteId)?.label} />
             <Review label="المدير" value={options?.managers.find((x) => x.id === values.managerEmployeeId)?.label} />
             <Review label="المسمى الوظيفي" value={values.jobTitleName} />
+            <Review label="تاريخ التعيين" value={values.hireDate} />
+            <Review label="دعوة التفعيل" value={values.sendInvite ? 'نعم — سيُرسل رابط تفعيل' : 'لا'} />
           </div>
           <div className="mt-5 rounded-xl bg-[var(--surface-muted)] p-4 text-sm leading-7">سيتم إنشاء Auth User وEmployee وProfile وإسناد الدور والمدير داخل مسار خادمي. عند فشل أي جزء تُنفذ عملية تعويض ولا يُترك حساب يتيم. كود الموظف يُشتق تلقائياً من رقم الهاتف.</div></div> : null}
         <div className="mt-7 flex items-center justify-between border-t border-[var(--border)] pt-5"><button type="button" className="btn-secondary" disabled={step === 0} onClick={() => setStep((current) => current - 1)}><ChevronRight className="size-4" aria-hidden="true" />السابق</button>{step < 2 ? <button type="button" className="btn-primary" onClick={() => void next()}>التالي<ChevronLeft className="size-4" aria-hidden="true" /></button> : <button type="submit" disabled={form.formState.isSubmitting} className="btn-primary"><UserPlus className="size-4" aria-hidden="true" />{form.formState.isSubmitting ? 'جارٍ الإنشاء…' : 'إنشاء الموظف والحساب'}</button>}</div>

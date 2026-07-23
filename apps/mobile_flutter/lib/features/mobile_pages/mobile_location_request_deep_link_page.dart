@@ -40,23 +40,23 @@ class _MobileLocationRequestDeepLinkPageState
     if (_timedOut) {
       return Scaffold(
         appBar: AppBar(title: const Text('طلب التحقق من الموقع')),
-        body: const Center(
+        body: Center(
           child: Padding(
-            padding: EdgeInsets.all(24),
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.hourglass_empty, size: 48),
-                SizedBox(height: 12),
-                Text(
+                const Icon(Icons.hourglass_empty, size: 48),
+                const SizedBox(height: 12),
+                const Text(
                   'استغرق تحميل الطلب وقتاً طويلاً.',
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   'تحقق من الاتصال بالإنترنت وأعد المحاولة.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
             ),

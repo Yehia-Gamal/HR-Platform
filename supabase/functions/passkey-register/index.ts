@@ -66,17 +66,9 @@ Deno.serve(async (req) => {
   if (challengeError) return json(req, { error: "challenge_lookup_failed" }, 500);
   if (!challenge) return json(req, { error: "challenge_invalid_or_used" }, 400);
 
+  // Android APK-key-hash origins must be explicitly configured alongside the
+  // approved HTTPS origin; never trust an origin copied from clientDataJSON.
   const expectedOrigins = [...ALLOWED_ORIGINS];
-  const innerResponse = response.response as Record<string, unknown> | undefined;
-  if (innerResponse && typeof innerResponse.clientDataJSON === "string") {
-    try {
-      const clientDataStr = atob(innerResponse.clientDataJSON.replace(/-/g, "+").replace(/_/g, "/"));
-      const clientData = JSON.parse(clientDataStr);
-      if (typeof clientData.origin === "string" && clientData.origin.startsWith("android:apk-key-hash:")) {
-        expectedOrigins.push(clientData.origin);
-      }
-    } catch (e) {}
-  }
 
   let verification;
   try {

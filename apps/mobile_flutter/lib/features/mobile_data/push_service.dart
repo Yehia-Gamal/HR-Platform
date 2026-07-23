@@ -23,10 +23,10 @@ class PushService {
   /// callback لتسجيل رمز FCM في الخادم (upsert_my_push_token).
   final Future<void> Function(String token, String platform) _registerToken;
 
-  static const String urgentChannelId = 'urgent_location_v4';
+  static const String urgentChannelId = 'urgent_location_v6';
   static const String urgentChannelName = 'طلبات الموقع العاجلة';
   static const String urgentChannelDesc =
-      'إشعارات طلب الموقع الفوري من الإدارة — مع صوت واهتزاز قوي وشاشة كاملة';
+      'إشعارات طلب الموقع الفوري — صوت عالي متكرر واهتزاز وشاشة كاملة';
 
   static final AndroidNotificationChannel _urgentChannel =
       AndroidNotificationChannel(
@@ -37,7 +37,16 @@ class PushService {
         playSound: true,
         enableVibration: true,
         sound: RawResourceAndroidNotificationSound('urgent_notification'),
-        vibrationPattern: Int64List.fromList([0, 500, 200, 500]),
+        vibrationPattern: Int64List.fromList([
+          0,
+          800,
+          300,
+          800,
+          300,
+          800,
+          300,
+          800,
+        ]),
       );
 
   static const _platform = MethodChannel('com.ahlashabab/urgent_notification');
@@ -218,10 +227,12 @@ class PushService {
           ? const RawResourceAndroidNotificationSound('urgent_notification')
           : null,
       vibrationPattern: isUrgent
-          ? Int64List.fromList([0, 500, 200, 500])
+          ? Int64List.fromList([0, 800, 300, 800, 300, 800, 300, 800])
           : null,
       visibility: NotificationVisibility.public,
       timeoutAfter: 5 * 60 * 1000,
+      // FLAG_INSISTENT (4) يكرر الصوت حتى يتفاعل المستخدم.
+      additionalFlags: isUrgent ? Int32List.fromList([4]) : null,
     );
     final details = NotificationDetails(
       android: androidDetails,
@@ -298,7 +309,16 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
       playSound: true,
       enableVibration: true,
       sound: RawResourceAndroidNotificationSound('urgent_notification'),
-      vibrationPattern: Int64List.fromList([0, 500, 200, 500]),
+      vibrationPattern: Int64List.fromList([
+        0,
+        800,
+        300,
+        800,
+        300,
+        800,
+        300,
+        800,
+      ]),
     );
 
     final plugin = FlutterLocalNotificationsPlugin();

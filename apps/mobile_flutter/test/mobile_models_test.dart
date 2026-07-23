@@ -209,16 +209,17 @@ void main() {
     'requestedAt': '2026-07-15T08:00:00Z',
   });
 
-  test('location_video mode requires both a point and a video', () {
+  // V12 §9: الفيديو ملغى نهائيًا — needsVideo دائمًا false.
+  test('location_video mode requires a point but video is disabled (V12)', () {
     final r = req('location_video');
-    expect(r.needsVideo, isTrue);
+    expect(r.needsVideo, isFalse); // V12: الفيديو ملغى
     expect(r.needsPoint, isTrue);
     expect(r.isTracking, isFalse);
   });
 
-  test('video_5s needs video but not a separate point', () {
+  test('video_5s: video disabled in V12, no point either', () {
     final r = req('video_5s');
-    expect(r.needsVideo, isTrue);
+    expect(r.needsVideo, isFalse); // V12: الفيديو ملغى
     expect(r.needsPoint, isFalse);
   });
 

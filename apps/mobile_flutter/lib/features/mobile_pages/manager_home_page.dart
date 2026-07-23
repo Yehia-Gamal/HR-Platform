@@ -183,7 +183,7 @@ class ManagerHomePage extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Card(
-            color: scheme.secondaryContainer.withValues(alpha: .45),
+            color: scheme.secondaryContainer.withValues(alpha: .7),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(

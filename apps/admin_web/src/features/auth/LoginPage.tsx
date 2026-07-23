@@ -18,6 +18,7 @@ export function LoginPage() {
   const auth = useAuth();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotLink, setShowForgotLink] = useState(false); // V12 §17
   const [mode, setMode] = useState<'signin' | 'reset'>('signin');
   const [resetEmail, setResetEmail] = useState('');
   const [resetSent, setResetSent] = useState(false);
@@ -30,7 +31,10 @@ export function LoginPage() {
       setSubmitError(null);
       await auth.signIn(values.identifier, values.password);
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : 'تعذر تسجيل الدخول.');
+      const msg = error instanceof Error ? error.message : 'تعذر تسجيل الدخول.';
+      setSubmitError(msg);
+      // V12 §17: show forgot-password only on credential failure
+      if (msg.includes('غير صحيحة')) setShowForgotLink(true);
     }
   });
 
@@ -111,7 +115,7 @@ export function LoginPage() {
               <form className="space-y-4" onSubmit={onSubmit}>
                 <label className="block"><span className="mb-1.5 block text-sm font-bold">البريد أو الهاتف أو كود الموظف</span><input className="input" autoComplete="username" dir="ltr" placeholder="EMP-001 أو 010... أو البريد" {...form.register('identifier')} /><span className="mt-1 block min-h-4 text-xs text-[var(--danger)]">{form.formState.errors.identifier?.message}</span></label>
                 <label className="block"><span className="mb-1.5 block text-sm font-bold">كلمة المرور</span><span className="relative block"><input type={showPassword ? 'text' : 'password'} className="input !pl-14" autoComplete="current-password" dir="ltr" placeholder="••••••••" {...form.register('password')} /><button type="button" className="password-visibility-button" aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</button></span><span className="mt-1 block min-h-4 text-xs text-[var(--danger)]">{form.formState.errors.password?.message}</span></label>
-                <div className="flex justify-end"><button type="button" className="link-button" onClick={() => { setMode('reset'); setSubmitError(null); }}>نسيت كلمة المرور؟</button></div>
+                {showForgotLink && <div className="flex justify-end"><button type="button" className="link-button" onClick={() => { setMode('reset'); setSubmitError(null); }}>نسيت كلمة المرور؟</button></div>}
                 <button type="submit" disabled={form.formState.isSubmitting || !hasSupabaseConfig} aria-describedby={!hasSupabaseConfig ? 'login-config-hint' : undefined} className="btn-primary w-full !py-3.5">{form.formState.isSubmitting ? 'جارٍ التحقق…' : 'تسجيل الدخول بأمان'}</button>
               </form>
             )}

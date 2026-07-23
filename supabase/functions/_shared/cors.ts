@@ -20,8 +20,7 @@ export function corsHeaders(req: Request): Record<string, string> {
     "Access-Control-Allow-Origin": allow,
     "Vary": "Origin",
     "Access-Control-Allow-Headers":
-      req.headers.get("Access-Control-Request-Headers") ??
-        "authorization, x-client-info, apikey, content-type",
+        "Content-Type, Authorization, apikey, x-client-info, x-cron-secret",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Max-Age": "86400",
   };

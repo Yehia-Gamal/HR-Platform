@@ -4,6 +4,7 @@ import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/core/theme/app_theme.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -438,29 +439,27 @@ class _VideoVerificationPageState extends ConsumerState<VideoVerificationPage>
   void _showGpsDialog() {
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.grey.shade900,
-        title: const Text(
-          'الموقع الجغرافي مغلق',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: const Text(
-          'الرجاء تفعيل خدمة الموقع (GPS) من إعدادات الجهاز للمتابعة.',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('إلغاء', style: TextStyle(color: Colors.white54)),
+      builder: (ctx) => Theme(
+        data: AppTheme.dark(),
+        child: AlertDialog(
+          title: const Text('الموقع الجغرافي مغلق'),
+          content: const Text(
+            'الرجاء تفعيل خدمة الموقع (GPS) من إعدادات الجهاز للمتابعة.',
           ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              Geolocator.openLocationSettings();
-            },
-            child: const Text('فتح الإعدادات'),
-          ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Geolocator.openLocationSettings();
+              },
+              child: const Text('فتح الإعدادات'),
+            ),
+          ],
+        ),
       ),
     );
   }

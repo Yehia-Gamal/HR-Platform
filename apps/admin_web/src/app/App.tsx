@@ -84,7 +84,7 @@ export function App() {
         <Route path="/hr" element={<WorkspaceShell workspace="hr" />}>
           <Route index element={<DashboardPage type="hr" />} />
           <Route path="employees" element={<RequirePermission perm="people.employee.read"><EmployeesPage /></RequirePermission>} />
-          <Route path="employees/new" element={<RequirePermission perm="people.employee.manage"><CreateEmployeePage /></RequirePermission>} />
+          <Route path="employees/new" element={<RequirePermission perm="people.employee.create"><CreateEmployeePage /></RequirePermission>} />
           <Route path="employees/:employeeId" element={<RequirePermission perm="people.employee.read"><EmployeeDetailPage /></RequirePermission>} />
           <Route path="attendance" element={<RequirePermission perm="attendance.record.read"><AttendancePage /></RequirePermission>} />
           <Route path="attendance/operations" element={<RequirePermission perm="attendance.roster.read"><AttendanceOperationsPage /></RequirePermission>} />

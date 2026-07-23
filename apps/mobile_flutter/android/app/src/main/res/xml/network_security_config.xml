@@ -5,4 +5,26 @@
             <certificates src="system" />
         </trust-anchors>
     </base-config>
+
+    <!--
+        Certificate Pinning (TLS public-key pinning)
+        =============================================
+        When production TLS certificates are known, uncomment the block below
+        and replace the base64-encoded SHA-256 pin digests with real values.
+        Generate a pin from a certificate with:
+            openssl x509 -in cert.pem -pubkey -noout \
+              | openssl pkey -pubin -outform der \
+              | openssl dgst -sha256 -binary | openssl enc -base64
+
+        Always include at least one backup pin (a key not yet deployed) so that
+        certificate rotation does not brick the app.
+
+        <domain-config>
+            <domain includeSubdomains="true">your-project-ref.supabase.co</domain>
+            <pin-set expiration="2027-01-01">
+                <pin digest="SHA-256">REPLACE_WITH_PRIMARY_PIN_BASE64=</pin>
+                <pin digest="SHA-256">REPLACE_WITH_BACKUP_PIN_BASE64=</pin>
+            </pin-set>
+        </domain-config>
+    -->
 </network-security-config>

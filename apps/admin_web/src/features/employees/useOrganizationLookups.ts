@@ -45,7 +45,8 @@ export function useOrganizationLookups() {
       // excluded here: provision_employee_record bypasses rpc_assign_role's
       // full-access guard, so those roles must be assigned only via /admin/access.
       roles: (roles.data ?? []).filter((r) => !r.is_full_access).map((r) => ({ id: r.id, slug: r.slug, label: r.name_ar })),
-      managers: (employees.data ?? []).map((r) => ({ id: r.id, label: `${r.full_name_ar} · ${r.employee_code}` })),
+      // إخفاء كود الموظف إذا كان رقم هاتف (يبدأ بـ + أو 01) — المشتق تلقائياً من الهاتف
+      managers: (employees.data ?? []).map((r) => ({ id: r.id, label: /^\+|^01\d/.test(r.employee_code) ? r.full_name_ar : `${r.full_name_ar} · ${r.employee_code}` })),
       branches: (branches.data ?? []).map((r) => option(r)),
       workSites: (sites.data ?? []).map((r) => option(r, 'branch_id')),
       departments: (departments.data ?? []).map((r) => option(r, 'branch_id')),

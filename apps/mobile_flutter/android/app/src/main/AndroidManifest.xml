@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <!-- P1-04: Remove unnecessary permissions injected by dependencies -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove" />
@@ -74,15 +76,16 @@
                     android:pathPrefix="/mobile-redirect" />
             </intent-filter>
         </activity>
-        <!-- Full-screen Activity for urgent location request notifications -->
+        <!-- Full-screen Activity for urgent location request — alarm-style overlay -->
         <activity
             android:name=".LocationRequestFullActivity"
             android:exported="false"
             android:launchMode="singleTop"
             android:taskAffinity=""
-            android:theme="@style/LaunchTheme"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
             android:showOnLockScreen="true"
-            android:turnScreenOn="true" />
+            android:turnScreenOn="true"
+            android:excludeFromRecents="true" />
 
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
@@ -99,7 +102,7 @@
         <!-- Default channel for FCM notification payloads (fallback when Dart can't handle it) -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="urgent_location_v4" />
+            android:value="urgent_location_v6" />
         <!-- Default notification icon for FCM notification payloads -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
@@ -120,6 +123,11 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+        <service
+            android:name=".UrgentAlarmService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback"
+            android:stopWithTask="false" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

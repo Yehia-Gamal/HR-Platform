@@ -18,6 +18,7 @@ class LocationIncomingOverlay extends ConsumerStatefulWidget {
     super.key,
   });
   final MobileLocationRequest request;
+
   /// معرّف الموظف من جدول employees (وليس auth.uid) — مطلوب لمسار حفظ الفيديو.
   final String? employeeId;
   @override
@@ -27,16 +28,35 @@ class LocationIncomingOverlay extends ConsumerStatefulWidget {
 
 class _LocationIncomingOverlayState
     extends ConsumerState<LocationIncomingOverlay>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _pulse;
   bool _busy = false;
   String? _status;
   String? _error;
-  bool _gpsOff = false;
+
+  /// مشكلة متعلقة بالموقع (GPS مغلق أو صلاحية مرفوضة) — يظهر زر الإعدادات.
+  bool _locationIssue = false;
+
+  /// هل سبق أن نجح respondLocation؟ لتجنب تكراره عند إعادة المحاولة بعد GPS.
+  bool _accepted = false;
+  static const _urgentPlatform = MethodChannel(
+    'com.ahlashabab/urgent_notification',
+  );
+
+  Future<void> _stopUrgentAlarm() async {
+    try {
+      await _urgentPlatform.invokeMethod<void>('stopUrgentNotification', {
+        'requestId': widget.request.id,
+      });
+    } catch (_) {
+      // Older Android builds do not expose the native alarm service.
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pulse = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
@@ -52,8 +72,49 @@ class _LocationIncomingOverlayState
     }
   }
 
+  /// عند العودة من إعدادات الموقع أو الصلاحيات، نعيد الفحص والإرسال تلقائياً.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _locationIssue && !_busy) {
+      // تأخير صغير ليكتمل تفعيل GPS / الصلاحية في النظام
+      Future<void>.delayed(const Duration(milliseconds: 600), () {
+        if (mounted && !_busy && _locationIssue) {
+          _recheckAndRetry();
+        }
+      });
+    }
+  }
+
+  Future<void> _recheckAndRetry() async {
+    // فحص حالة الخدمة والصلاحية معاً
+    final enabled = await Geolocator.isLocationServiceEnabled();
+    if (!mounted) return;
+    if (!enabled) return; // لا تزال مغلقة — انتظر عودة أخرى
+
+    final permission = await Geolocator.checkPermission();
+    if (!mounted) return;
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      // صلاحية مرفوضة — حاول طلبها
+      final newPerm = await Geolocator.requestPermission();
+      if (!mounted) return;
+      if (newPerm == LocationPermission.denied ||
+          newPerm == LocationPermission.deniedForever) {
+        return; // لا تزال مرفوضة
+      }
+    }
+
+    // كلا الشرطين تحققا — امسح الخطأ وأعد الإرسال
+    setState(() {
+      _error = null;
+      _locationIssue = false;
+    });
+    _send();
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pulse.dispose();
     super.dispose();
   }
@@ -63,13 +124,18 @@ class _LocationIncomingOverlayState
     setState(() {
       _busy = true;
       _error = null;
-      _gpsOff = false;
-      _status = 'جاري قبول الطلب...';
+      _locationIssue = false;
+      _status = _accepted
+          ? 'جاري تحديد الموقع بدقة عالية...'
+          : 'جاري قبول الطلب...';
     });
     try {
-      await ref
-          .read(mobileCommandsProvider)
-          .respondLocation(widget.request.id, true);
+      if (!_accepted) {
+        await ref
+            .read(mobileCommandsProvider)
+            .respondLocation(widget.request.id, true);
+        _accepted = true;
+      }
 
       setState(() => _status = 'جاري تحديد الموقع بدقة عالية...');
       final position = await LocationService.current();
@@ -82,11 +148,12 @@ class _LocationIncomingOverlayState
 
       if (widget.request.needsVideo) {
         setState(() => _status = 'جاري فتح الكاميرا...');
-        final empId = widget.employeeId ??
+        final empId =
+            widget.employeeId ??
             ref.read(supabaseProvider).auth.currentUser?.id ??
             '';
         if (mounted) {
-          await Navigator.push<void>(
+          final sent = await Navigator.push<bool>(
             context,
             MaterialPageRoute(
               builder: (_) => VideoVerificationPage(
@@ -95,6 +162,13 @@ class _LocationIncomingOverlayState
               ),
             ),
           );
+          if (sent != true) {
+            setState(() {
+              _busy = false;
+              _status = null;
+            });
+            return;
+          }
         }
       } else if (widget.request.isTracking) {
         // tracking mode — accept was enough; location_requests_page handles the rest
@@ -103,28 +177,32 @@ class _LocationIncomingOverlayState
         // رابط Google Maps للموقع الحالي
         final mapsUrl =
             'https://maps.google.com/?q=${position.latitude},${position.longitude}';
-        await ref.read(mobileCommandsProvider).submitLocationPoint(
-          widget.request.id,
-          latitude: position.latitude,
-          longitude: position.longitude,
-          accuracy: position.accuracy,
-          altitude: position.altitude,
-          speed: position.speed,
-          heading: position.heading,
-          isMock: position.isMocked,
-          addressAr: '${address ?? ''} | $mapsUrl',
-        );
+        await ref
+            .read(mobileCommandsProvider)
+            .submitLocationPoint(
+              widget.request.id,
+              latitude: position.latitude,
+              longitude: position.longitude,
+              accuracy: position.accuracy,
+              altitude: position.altitude,
+              speed: position.speed,
+              heading: position.heading,
+              isMock: position.isMocked,
+              addressAr: '${address ?? ''} | $mapsUrl',
+            );
       }
+      await _stopUrgentAlarm();
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {
         String msg;
-        bool gpsOff = false;
+        bool locationIssue = false;
         if (e is GpsDisabledException) {
           msg = 'خدمة الموقع غير مفعلة. فعّل GPS ثم أعد المحاولة.';
-          gpsOff = true;
+          locationIssue = true;
         } else if (e is GpsPermissionDeniedException) {
           msg = e.message;
+          locationIssue = true;
         } else if (e is GpsAccuracyException) {
           msg = e.message;
         } else {
@@ -134,7 +212,7 @@ class _LocationIncomingOverlayState
           _busy = false;
           _status = null;
           _error = msg;
-          _gpsOff = gpsOff;
+          _locationIssue = locationIssue;
         });
       }
     }
@@ -163,11 +241,12 @@ class _LocationIncomingOverlayState
       await ref
           .read(mobileCommandsProvider)
           .respondLocation(widget.request.id, false);
+      await _stopUrgentAlarm();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(e))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(e))));
       }
     }
     if (mounted) Navigator.of(context).pop(false);
@@ -193,11 +272,7 @@ class _LocationIncomingOverlayState
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.warning_rounded,
-                      color: Colors.white,
-                      size: 18,
-                    ),
+                    Icon(Icons.warning_rounded, color: Colors.white, size: 18),
                     SizedBox(width: 8),
                     Text(
                       'طلب موقع عاجل من الإدارة',
@@ -226,7 +301,7 @@ class _LocationIncomingOverlayState
                             height: 130 + _pulse.value * 22,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                color: Colors.red.withValues(
+                              color: Colors.red.withValues(
                                 alpha: 0.15 + _pulse.value * 0.18,
                               ),
                               border: Border.all(
@@ -324,7 +399,7 @@ class _LocationIncomingOverlayState
                               textAlign: TextAlign.center,
                             ),
                           ),
-                          if (_gpsOff) ...[
+                          if (_locationIssue) ...[
                             const SizedBox(height: 12),
                             FilledButton.icon(
                               style: FilledButton.styleFrom(
@@ -394,8 +469,8 @@ class _LocationIncomingOverlayState
 
   String _modeLabel(String mode) => switch (mode) {
     'snapshot' => 'لقطة موقع فورية',
-    'video_5s' => 'موقع + فيديو 5 ثوانٍ',
-    'location_video' => 'موقع + فيديو توثيقي',
+    'video_5s' => 'موقع فقط (V12)',
+    'location_video' => 'موقع فقط (V12)',
     'track_5' => 'تتبع 5 دقائق',
     'track_10' => 'تتبع 10 دقائق',
     'track_15' => 'تتبع 15 دقيقة',
@@ -412,6 +487,7 @@ class LocationIncomingListener extends ConsumerWidget {
     super.key,
   });
   final Widget child;
+
   /// معرّف الموظف من جدول employees — يُمرَّر من AccessContext.employeeId.
   final String? employeeId;
 

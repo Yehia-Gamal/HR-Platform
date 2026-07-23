@@ -14,7 +14,7 @@ class UrgentLocationMessagingService : FlutterFirebaseMessagingService() {
             return
         }
 
-        UrgentNotificationManager.show(
+        UrgentAlarmService.start(
             context = this,
             requestId = data["requestId"].orEmpty(),
             notificationId = data["notificationId"],

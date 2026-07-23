@@ -14,19 +14,14 @@ void main() {
     expect(find.text('SUPABASE_URL is missing'), findsOneWidget);
   });
 
-  testWidgets('mobile login exposes password recovery', (tester) async {
+  // V12 §17: «نسيت كلمة المرور» مخفي ابتداءً ويظهر فقط بعد فشل بيانات الاعتماد.
+  testWidgets('mobile login hides password recovery until credential failure',
+      (tester) async {
     await tester.pumpWidget(
       const ProviderScope(child: MaterialApp(home: LoginPage())),
     );
 
-    expect(find.text('نسيت كلمة المرور؟'), findsOneWidget);
-    await tester.tap(find.text('نسيت كلمة المرور؟'));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text('أدخل بريدك المسجل وسنرسل رابط الاسترداد إليه.'),
-      findsOneWidget,
-    );
-    expect(find.text('إرسال الرابط'), findsOneWidget);
+    // الرابط مخفي عند فتح الشاشة (V12 §17.1).
+    expect(find.text('نسيت كلمة المرور؟'), findsNothing);
   });
 }

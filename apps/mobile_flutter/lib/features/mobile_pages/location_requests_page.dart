@@ -8,6 +8,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.d
 import 'package:ahla_shabab_management_os/features/mobile_pages/video_verification_page.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
@@ -132,6 +133,19 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
   bool busy = false;
   String? error;
   bool _gpsOff = false;
+  static const _urgentPlatform = MethodChannel(
+    'com.ahlashabab/urgent_notification',
+  );
+
+  Future<void> _stopUrgentAlarm() async {
+    try {
+      await _urgentPlatform.invokeMethod<void>('stopUrgentNotification', {
+        'requestId': widget.request.id,
+      });
+    } catch (_) {
+      // Older Android builds do not expose the native alarm service.
+    }
+  }
 
   Future<void> _respond(bool accept) async {
     setState(() {
@@ -143,7 +157,10 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
       await ref
           .read(mobileCommandsProvider)
           .respondLocation(widget.request.id, accept);
-      if (!accept) return;
+      if (!accept) {
+        await _stopUrgentAlarm();
+        return;
+      }
       final position = await LocationService.current();
       final addressAr = await LocationService.reverseGeocode(
         position.latitude,
@@ -162,6 +179,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
             isMock: position.isMocked,
             addressAr: addressAr,
           );
+      await _stopUrgentAlarm();
       if (!mounted) return;
       if (widget.request.needsVideo) {
         final id = widget.access.employeeId;
@@ -185,7 +203,8 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
     } catch (value) {
       if (mounted) {
         final msg = value.toString();
-        final isGpsOff = msg.contains('GPS') ||
+        final isGpsOff =
+            msg.contains('GPS') ||
             msg.contains('خدمة الموقع') ||
             msg.contains('location service') ||
             msg.contains('LocationServiceDisabled') ||
@@ -276,8 +295,8 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
 
   String _mode(String value) => switch (value) {
     'snapshot' => 'لقطة موقع',
-    'video_5s' => 'فيديو تحقق 5 ثوانٍ',
-    'location_video' => 'موقع + فيديو 5 ثوانٍ',
+    'video_5s' => 'موقع فقط (V12)',
+    'location_video' => 'موقع فقط (V12)',
     'track_5' => 'تتبع 5 دقائق',
     'track_10' => 'تتبع 10 دقائق',
     'track_15' => 'تتبع 15 دقيقة',

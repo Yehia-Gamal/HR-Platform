@@ -30,6 +30,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     super.dispose();
   }
 
+  // V12 §17: «نسيت كلمة المرور» لا يظهر إلا بعد فشل بيانات الاعتماد.
+  bool _showForgotLink = false;
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() {
@@ -51,18 +54,27 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       final refreshToken = payload['refresh_token'] as String?;
       if (response.status != 200 || refreshToken == null) {
         final code = payload['error'] as String?;
+        // V12 §17: إظهار «نسيت كلمة المرور» فقط عند فشل بيانات الاعتماد
+        // (INVALID_CREDENTIALS أو رد 401 غير TOO_MANY_ATTEMPTS).
+        // لا يظهر عند: انقطاع الإنترنت / timeout / حساب معطّل / rate limit.
+        if (code != 'TOO_MANY_ATTEMPTS') {
+          setState(() => _showForgotLink = true);
+        }
         throw AuthException(
           code == 'TOO_MANY_ATTEMPTS'
               ? 'محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.'
               : 'بيانات الدخول غير صحيحة أو الحساب غير متاح.',
         );
       }
+      // نجاح الدخول: إخفاء الرابط.
+      setState(() => _showForgotLink = false);
       await client.auth.setSession(refreshToken);
       ref.invalidate(accessContextProvider);
       if (mounted) context.go('/');
     } on AuthException catch (error) {
       setState(() => _error = error.message);
     } catch (error, stack) {
+      // أخطاء الشبكة/timeout/DNS: لا يظهر «نسيت كلمة المرور» (V12 §17.2).
       setState(() => _error = humanizeError(error, stack));
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -258,19 +270,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                       ? null
                                       : 'كلمة المرور لا تقل عن 8 أحرف.',
                                 ),
-                                Align(
-                                  alignment: AlignmentDirectional.centerEnd,
-                                  child: TextButton.icon(
-                                    onPressed: _loading
-                                        ? null
-                                        : _openForgotPassword,
-                                    icon: const Icon(
-                                      Icons.help_outline_rounded,
-                                      size: 18,
+                                // V12 §17: الرابط مخفي ابتداءً ويظهر فقط بعد فشل بيانات الاعتماد.
+                                if (_showForgotLink)
+                                  Align(
+                                    alignment: AlignmentDirectional.centerEnd,
+                                    child: TextButton.icon(
+                                      onPressed: _loading
+                                          ? null
+                                          : _openForgotPassword,
+                                      icon: const Icon(
+                                        Icons.help_outline_rounded,
+                                        size: 18,
+                                      ),
+                                      label: const Text('نسيت كلمة المرور؟'),
                                     ),
-                                    label: const Text('نسيت كلمة المرور؟'),
                                   ),
-                                ),
                                 const SizedBox(height: 8),
                                 FilledButton.icon(
                                   onPressed: _loading ? null : _submit,

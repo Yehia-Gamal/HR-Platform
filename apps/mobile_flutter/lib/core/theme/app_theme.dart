@@ -70,7 +70,8 @@ abstract final class AppTheme {
         ),
       ),
       cardTheme: CardThemeData(
-        elevation: 0,
+        elevation: dark ? 0 : 1.5,
+        shadowColor: dark ? Colors.transparent : Colors.black.withValues(alpha: .08),
         margin: EdgeInsets.zero,
         color: scheme.surface,
         surfaceTintColor: Colors.transparent,
@@ -164,11 +165,26 @@ abstract final class AppTheme {
       ),
       chipTheme: base.chipTheme.copyWith(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(99)),
-        side: BorderSide(color: scheme.outlineVariant),
-        backgroundColor: scheme.surface,
-        selectedColor: scheme.primaryContainer,
+        side: BorderSide(
+          color: dark ? scheme.outlineVariant : AppColors.lightBorderStrong,
+        ),
+        backgroundColor: dark ? scheme.surface : AppColors.lightBackground,
+        selectedColor: dark
+            ? const Color(0xFF102B51)
+            : const Color(0xFFD6E6FA),
         checkmarkColor: scheme.primary,
-        labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+        labelStyle: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          color: scheme.onSurface,
+        ),
+        secondaryLabelStyle: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          color: scheme.primary,
+        ),
+        showCheckmark: true,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       ),
       searchBarTheme: SearchBarThemeData(
         elevation: const WidgetStatePropertyAll(0),

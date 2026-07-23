@@ -12,17 +12,33 @@ import android.os.Build
 
 /** Native notification path used before a Flutter engine or Dart isolate exists. */
 object UrgentNotificationManager {
-    const val CHANNEL_ID = "urgent_location_v4"
+    const val CHANNEL_ID = "urgent_location_v6"
     private const val CHANNEL_NAME = "طلبات الموقع العاجلة"
     private const val CHANNEL_DESCRIPTION =
-        "إشعارات طلب الموقع الفوري — صوت واهتزاز وشاشة كاملة"
+        "إشعارات طلب الموقع الفوري — صوت عالي متكرر واهتزاز وشاشة كاملة"
+    private val LEGACY_CHANNEL_IDS = listOf(
+        "urgent_location_v5",
+        "urgent_location_v4",
+        "urgent_location_v3",
+    )
     private const val VERIFIED_ACTION_BASE =
         "https://ahla-shabab-management-os.vercel.app/action/live_location_request/"
 
     fun createChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = context.getSystemService(NotificationManager::class.java)
-        if (manager.getNotificationChannel(CHANNEL_ID) != null) return
+
+        // حذف القنوات القديمة — Android لا يرفع أهمية قناة موجودة.
+        for (legacyId in LEGACY_CHANNEL_IDS) {
+            manager.deleteNotificationChannel(legacyId)
+        }
+
+        // إذا القناة الحالية موجودة بأهمية أقل من MAX، احذفها وأعد إنشاءها.
+        val existing = manager.getNotificationChannel(CHANNEL_ID)
+        if (existing != null) {
+            if (existing.importance >= NotificationManager.IMPORTANCE_MAX) return
+            manager.deleteNotificationChannel(CHANNEL_ID)
+        }
 
         val sound = Uri.parse(
             "android.resource://${context.packageName}/${R.raw.urgent_notification}",
@@ -34,26 +50,30 @@ object UrgentNotificationManager {
         val channel = NotificationChannel(
             CHANNEL_ID,
             CHANNEL_NAME,
-            NotificationManager.IMPORTANCE_HIGH,
+            NotificationManager.IMPORTANCE_MAX,
         ).apply {
             description = CHANNEL_DESCRIPTION
             enableVibration(true)
-            vibrationPattern = longArrayOf(0, 500, 200, 500, 200, 800)
+            vibrationPattern = longArrayOf(0, 800, 300, 800, 300, 800, 300, 800)
             setSound(sound, audioAttributes)
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-            setShowBadge(false)
+            setBypassDnd(true)
+            setShowBadge(true)
         }
         manager.createNotificationChannel(channel)
     }
 
-    fun show(
+    fun notificationId(requestId: String): Int =
+        requestId.hashCode().and(Int.MAX_VALUE).coerceAtLeast(1)
+
+    fun buildNotification(
         context: Context,
         requestId: String,
         notificationId: String?,
         title: String,
         body: String,
-    ) {
-        if (requestId.isBlank()) return
+    ): Notification {
+        require(requestId.isNotBlank()) { "requestId is required" }
         createChannel(context)
 
         val deepLink = Uri.parse("$VERIFIED_ACTION_BASE$requestId")
@@ -69,13 +89,15 @@ object UrgentNotificationManager {
             data = deepLink
             putExtra(LocationRequestFullActivity.EXTRA_REQUEST_ID, requestId)
             putExtra(LocationRequestFullActivity.EXTRA_NOTIFICATION_ID, notificationId)
+            putExtra(LocationRequestFullActivity.EXTRA_TITLE, title)
+            putExtra(LocationRequestFullActivity.EXTRA_BODY, body)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                 Intent.FLAG_ACTIVITY_CLEAR_TOP or
                 Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
         val pendingIntent = PendingIntent.getActivity(
             context,
-            requestId.hashCode(),
+            notificationId(requestId),
             fullScreenIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -96,15 +118,40 @@ object UrgentNotificationManager {
             .setPriority(Notification.PRIORITY_MAX)
             .setCategory(Notification.CATEGORY_ALARM)
             .setVisibility(Notification.VISIBILITY_PUBLIC)
-            .setAutoCancel(true)
-            .setTimeoutAfter(5 * 60 * 1000L)
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .setOnlyAlertOnce(false)
             .setFullScreenIntent(pendingIntent, true)
             .setContentIntent(pendingIntent)
+            .addAction(R.drawable.ic_notification, "فتح وإرسال الموقع", pendingIntent)
             .setSound(sound)
-            .setVibrate(longArrayOf(0, 500, 200, 500, 200, 800))
+            .setVibrate(longArrayOf(0, 800, 300, 800, 300, 800, 300, 800))
             .build()
 
+        notification.flags = notification.flags or
+            Notification.FLAG_INSISTENT or
+            Notification.FLAG_NO_CLEAR
+        return notification
+    }
+
+    /** Fallback when Android refuses to start the foreground alarm service. */
+    fun show(
+        context: Context,
+        requestId: String,
+        notificationId: String?,
+        title: String,
+        body: String,
+    ) {
+        if (requestId.isBlank()) return
+        val notification = buildNotification(
+            context,
+            requestId,
+            notificationId,
+            title,
+            body,
+        )
+
         context.getSystemService(NotificationManager::class.java)
-            .notify(requestId.hashCode(), notification)
+            .notify(notificationId(requestId), notification)
     }
 }

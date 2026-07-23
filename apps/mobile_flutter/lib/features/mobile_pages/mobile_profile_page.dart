@@ -719,7 +719,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
                   ? const SizedBox(
                       width: 24,
                       height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Text('حفظ الرقم السري'),
             ),

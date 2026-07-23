@@ -53,7 +53,7 @@ export function LiveLocationPage() {
   async function submitRequest(event: FormEvent) {
     event.preventDefault();
     if (!requestDraft || requestDraft.reason.trim().length < 5) return;
-    await commands.request.mutateAsync({ employeeId: requestDraft.employee.id, mode: 'location_video', reason: requestDraft.reason.trim() });
+    await commands.request.mutateAsync({ employeeId: requestDraft.employee.id, mode: 'snapshot', reason: requestDraft.reason.trim() });
     setRequestDraft(null);
   }
 
@@ -119,7 +119,7 @@ export function LiveLocationPage() {
                       <div className="rounded-xl bg-[var(--surface-muted)] p-3"><span className="muted block">دقة GPS</span><strong className="mt-1 block">{item.lastAccuracy === null ? '—' : `${Math.round(item.lastAccuracy)} متر`}</strong></div>
                     </div>
                     <button type="button" className="btn-secondary mt-4 w-full" disabled={Boolean(item.activeRequestId)} onClick={() => setRequestDraft({ employee: item, reason: '' })}>
-                      <Crosshair className="size-4" />{item.activeRequestId ? 'يوجد طلب نشط بالفعل' : 'طلب موقع + فيديو 5 ثوانٍ'}
+                      <Crosshair className="size-4" />{item.activeRequestId ? 'يوجد طلب نشط بالفعل' : 'طلب موقع حي'}
                     </button>
                   </article>
                 );
@@ -133,11 +133,11 @@ export function LiveLocationPage() {
         <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setRequestDraft(null); }}>
           <section className="card w-full max-w-xl p-6" role="dialog" aria-modal="true" aria-labelledby="location-request-title">
             <div className="flex items-start justify-between gap-4">
-              <div><h2 id="location-request-title" className="text-xl font-black">طلب موقع وفيديو من {requestDraft.employee.name}</h2><p className="muted mt-1 text-sm">سيصل الطلب إلى هاتف الموظف لالتقاط موقع حديث وفيديو أمامي صامت مدته 5 ثوانٍ، ويُسجل بالكامل في سجل التدقيق.</p></div>
+              <div><h2 id="location-request-title" className="text-xl font-black">طلب موقع حي من {requestDraft.employee.name}</h2><p className="muted mt-1 text-sm">سيصل الطلب إلى هاتف الموظف لالتقاط موقعه الحالي. لا فيديو ولا كاميرا — موقع فقط (V12 §9).</p></div>
               <button type="button" className="icon-button" aria-label="إغلاق" onClick={() => setRequestDraft(null)}><X className="size-5" /></button>
             </div>
             <form className="mt-6 space-y-4" onSubmit={(event) => void submitRequest(event)}>
-              <p className="rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-bold">نوع التحقق المعتمد: موقع حديث عالي الدقة + فيديو أمامي صامت 5 ثوانٍ.</p>
+              <p className="rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-bold">نوع التحقق: موقع حديث عالي الدقة فقط (بدون فيديو).</p>
               <label className="block text-sm font-bold">سبب الطلب
                 <textarea className="input mt-2 min-h-28" required minLength={5} value={requestDraft.reason} onChange={(event) => setRequestDraft({ ...requestDraft, reason: event.target.value })} placeholder="اكتب سببًا تشغيليًا واضحًا…" />
               </label>

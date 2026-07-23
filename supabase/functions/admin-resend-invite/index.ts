@@ -64,6 +64,25 @@ Deno.serve(async (req) => {
   const { data: authUser, error: getUserError } = await admin.auth.admin.getUserById(profile.id);
   if (getUserError || !authUser.user?.email) return json(req, { error: "account_email_missing" }, 404);
 
+  // Rate limit: at most one invite per employee per 60 seconds.
+  const { data: recentInvite, error: recentError } = await admin
+    .from("auth_invite_log")
+    .select("created_at")
+    .eq("employee_id", input.employeeId)
+    .gte("created_at", new Date(Date.now() - 60_000).toISOString())
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (recentError) {
+    // If the table doesn't exist yet, skip the rate-limit check gracefully
+    // so existing deployments aren't broken before the migration lands.
+    if (recentError.code !== "42P01") {
+      return json(req, { error: "rate_limit_check_failed" }, 500);
+    }
+  } else if (recentInvite) {
+    return json(req, { error: "too_many_requests", retryAfterSeconds: 60 }, 429);
+  }
+
   const { error: inviteError } = await admin.auth.resetPasswordForEmail(
     authUser.user.email.toLowerCase(),
     { redirectTo: INVITE_REDIRECT },

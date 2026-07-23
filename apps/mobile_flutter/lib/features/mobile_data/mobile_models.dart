@@ -580,7 +580,8 @@ class MobileLocationRequest {
   final int durationMinutes;
   final DateTime requestedAt;
   final DateTime? expiresAt;
-  bool get needsVideo => mode == 'video_5s' || mode == 'location_video';
+  // V12 §9: الفيديو ملغى نهائيًا — needsVideo دائمًا false.
+  bool get needsVideo => false;
   bool get needsPoint => mode == 'snapshot' || mode == 'location_video';
   bool get isTracking => mode.startsWith('track_');
 }

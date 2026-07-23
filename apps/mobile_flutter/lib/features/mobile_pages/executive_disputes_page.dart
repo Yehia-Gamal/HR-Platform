@@ -87,7 +87,7 @@ class ExecutiveDisputesPage extends ConsumerWidget {
                   _SectionHeader(
                     title: 'قضايا سابقة',
                     count: recent.length,
-                    color: Colors.grey,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   ...recent.map((c) => _DisputeCard(
                     dispute: c,
@@ -173,10 +173,10 @@ class ExecutiveDisputesPage extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _detailRow('الحالة', c.status),
-              _detailRow('تاريخ الفتح',
+              _detailRow(context, 'الحالة', c.status),
+              _detailRow(context, 'تاريخ الفتح',
                   DateFormat('d MMM y', 'ar').format(c.openedAt)),
-              if (c.description != null) _detailRow('التفاصيل', c.description!),
+              if (c.description != null) _detailRow(context, 'التفاصيل', c.description!),
             ],
           ),
         ),
@@ -190,14 +190,14 @@ class ExecutiveDisputesPage extends ConsumerWidget {
     );
   }
 
-  Widget _detailRow(String label, String value) => Padding(
+  Widget _detailRow(BuildContext context, String label, String value) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label,
-                style: const TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurfaceVariant)),
             Text(value),
           ],
         ),
