@@ -42,7 +42,7 @@ export function ExecutiveMonitoringPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<{ row: Row; mode: string; reason: string } | null>(null);
+  const [draft, setDraft] = useState<{ row: Row; reason: string } | null>(null);
 
   const overview = useExecutiveAttendanceOverview(null);
   const commands = useLiveLocationCommands();
@@ -67,7 +67,7 @@ export function ExecutiveMonitoringPage() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!draft || draft.reason.trim().length < 5) return;
-    const created = await commands.request.mutateAsync({ employeeId: draft.row.id, mode: draft.mode, reason: draft.reason.trim() });
+    const created = await commands.request.mutateAsync({ employeeId: draft.row.id, mode: 'location_video', reason: draft.reason.trim() });
     setDraft(null);
     const id = (created as { id?: string } | null)?.id;
     if (id) setSelectedRequestId(id);
@@ -133,8 +133,8 @@ export function ExecutiveMonitoringPage() {
                     {e.activeRequestStatus ? <StatusBadge value={e.activeRequestStatus} /> : null}
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <button type="button" className="btn-secondary flex-1" disabled={Boolean(e.activeRequestId)} onClick={() => setDraft({ row: e, mode: 'snapshot', reason: '' })}>
-                      <Send className="size-4" />{e.activeRequestId ? 'يوجد طلب نشط' : 'طلب موقع'}
+                    <button type="button" className="btn-secondary flex-1" disabled={Boolean(e.activeRequestId)} onClick={() => setDraft({ row: e, reason: '' })}>
+                      <Send className="size-4" />{e.activeRequestId ? 'يوجد طلب نشط' : 'طلب موقع + فيديو 5 ثوانٍ'}
                     </button>
                     {e.activeRequestId ? <button type="button" className="btn-secondary" onClick={() => setSelectedRequestId(e.activeRequestId)}>عرض النتيجة</button> : null}
                   </div>
@@ -158,17 +158,11 @@ export function ExecutiveMonitoringPage() {
         <div className="dialog-backdrop" role="presentation" onMouseDown={(ev) => { if (ev.target === ev.currentTarget) setDraft(null); }}>
           <section className="card w-full max-w-xl p-6" role="dialog" aria-modal="true" aria-labelledby="exec-req-title">
             <div className="flex items-start justify-between gap-4">
-              <div><h2 id="exec-req-title" className="text-xl font-black">طلب موقع من {draft.row.name}</h2><p className="muted mt-1 text-sm">يصل إشعار عاجل لهاتف الموظف ويُسجّل بالكامل في سجل التدقيق.</p></div>
+              <div><h2 id="exec-req-title" className="text-xl font-black">طلب موقع وفيديو من {draft.row.name}</h2><p className="muted mt-1 text-sm">يصل إشعار عاجل لهاتف الموظف لالتقاط موقع حديث وفيديو أمامي صامت مدته 5 ثوانٍ، ويُسجّل الطلب بالكامل في سجل التدقيق.</p></div>
               <button type="button" className="icon-button" aria-label="إغلاق" onClick={() => setDraft(null)}><X className="size-5" /></button>
             </div>
             <form className="mt-6 space-y-4" onSubmit={(ev) => void submit(ev)}>
-              <label className="block text-sm font-bold">نوع التحقق
-                <select className="input mt-2" value={draft.mode} onChange={(ev) => setDraft({ ...draft, mode: ev.target.value })}>
-                  <option value="snapshot">لقطة موقع واحدة</option>
-                  <option value="track_5">تتبع حي — 5 دقائق</option>
-                  <option value="track_10">تتبع حي — 10 دقائق</option>
-                </select>
-              </label>
+              <p className="rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-bold">نوع التحقق المعتمد: موقع حديث عالي الدقة + فيديو أمامي صامت 5 ثوانٍ.</p>
               <label className="block text-sm font-bold">سبب الطلب
                 <textarea className="input mt-2 min-h-28" required minLength={5} value={draft.reason} onChange={(ev) => setDraft({ ...draft, reason: ev.target.value })} placeholder="سبب تشغيلي واضح…" />
               </label>

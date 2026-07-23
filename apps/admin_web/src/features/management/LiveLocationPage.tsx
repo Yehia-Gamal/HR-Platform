@@ -9,7 +9,7 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { useLiveLocationCommands, useLocationDirectory, type LocationDirectoryItem } from './useControlCenters';
 
 type LocationState = 'fresh' | 'stale' | 'no_signal';
-type RequestDraft = { employee: LocationDirectoryItem; mode: string; reason: string };
+type RequestDraft = { employee: LocationDirectoryItem; reason: string };
 
 const filters: Array<{ id: 'all' | LocationState | 'active'; label: string }> = [
   { id: 'all', label: 'الكل' },
@@ -53,7 +53,7 @@ export function LiveLocationPage() {
   async function submitRequest(event: FormEvent) {
     event.preventDefault();
     if (!requestDraft || requestDraft.reason.trim().length < 5) return;
-    await commands.request.mutateAsync({ employeeId: requestDraft.employee.id, mode: requestDraft.mode, reason: requestDraft.reason.trim() });
+    await commands.request.mutateAsync({ employeeId: requestDraft.employee.id, mode: 'location_video', reason: requestDraft.reason.trim() });
     setRequestDraft(null);
   }
 
@@ -118,8 +118,8 @@ export function LiveLocationPage() {
                       <div className="rounded-xl bg-[var(--surface-muted)] p-3"><span className="muted block">آخر تحديث</span><strong className="mt-1 block">{relativeTime(item.lastRecordedAt)}</strong></div>
                       <div className="rounded-xl bg-[var(--surface-muted)] p-3"><span className="muted block">دقة GPS</span><strong className="mt-1 block">{item.lastAccuracy === null ? '—' : `${Math.round(item.lastAccuracy)} متر`}</strong></div>
                     </div>
-                    <button type="button" className="btn-secondary mt-4 w-full" disabled={Boolean(item.activeRequestId)} onClick={() => setRequestDraft({ employee: item, mode: 'snapshot', reason: '' })}>
-                      <Crosshair className="size-4" />{item.activeRequestId ? 'يوجد طلب نشط بالفعل' : 'طلب تحقق من الموقع'}
+                    <button type="button" className="btn-secondary mt-4 w-full" disabled={Boolean(item.activeRequestId)} onClick={() => setRequestDraft({ employee: item, reason: '' })}>
+                      <Crosshair className="size-4" />{item.activeRequestId ? 'يوجد طلب نشط بالفعل' : 'طلب موقع + فيديو 5 ثوانٍ'}
                     </button>
                   </article>
                 );
@@ -133,19 +133,11 @@ export function LiveLocationPage() {
         <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setRequestDraft(null); }}>
           <section className="card w-full max-w-xl p-6" role="dialog" aria-modal="true" aria-labelledby="location-request-title">
             <div className="flex items-start justify-between gap-4">
-              <div><h2 id="location-request-title" className="text-xl font-black">طلب تحقق من {requestDraft.employee.name}</h2><p className="muted mt-1 text-sm">سيصل الطلب إلى هاتف الموظف ويُسجل بالكامل في سجل التدقيق.</p></div>
+              <div><h2 id="location-request-title" className="text-xl font-black">طلب موقع وفيديو من {requestDraft.employee.name}</h2><p className="muted mt-1 text-sm">سيصل الطلب إلى هاتف الموظف لالتقاط موقع حديث وفيديو أمامي صامت مدته 5 ثوانٍ، ويُسجل بالكامل في سجل التدقيق.</p></div>
               <button type="button" className="icon-button" aria-label="إغلاق" onClick={() => setRequestDraft(null)}><X className="size-5" /></button>
             </div>
             <form className="mt-6 space-y-4" onSubmit={(event) => void submitRequest(event)}>
-              <label className="block text-sm font-bold">نوع التحقق
-                <select className="input mt-2" value={requestDraft.mode} onChange={(event) => setRequestDraft({ ...requestDraft, mode: event.target.value })}>
-                  <option value="snapshot">لقطة موقع واحدة</option>
-                  <option value="track_5">تتبع حي — 5 دقائق</option>
-                  <option value="track_10">تتبع حي — 10 دقائق</option>
-                  <option value="track_15">تتبع حي — 15 دقيقة</option>
-                  <option value="track_30">تتبع حي — 30 دقيقة</option>
-                </select>
-              </label>
+              <p className="rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-bold">نوع التحقق المعتمد: موقع حديث عالي الدقة + فيديو أمامي صامت 5 ثوانٍ.</p>
               <label className="block text-sm font-bold">سبب الطلب
                 <textarea className="input mt-2 min-h-28" required minLength={5} value={requestDraft.reason} onChange={(event) => setRequestDraft({ ...requestDraft, reason: event.target.value })} placeholder="اكتب سببًا تشغيليًا واضحًا…" />
               </label>

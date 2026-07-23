@@ -124,7 +124,7 @@ class _LocationDirectoryTab extends ConsumerWidget {
         padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPad),
         children: [
           Text(
-            'اطلب موقع من أي موظف في الجمعية فوراً.',
+            'اطلب موقعاً حديثاً وفيديو تحقق أمامياً صامتاً مدته 5 ثوانٍ من أي موظف في الجمعية فوراً.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
@@ -335,11 +335,11 @@ class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
             const SizedBox(height: 12),
             FilledButton.icon(
               onPressed: inCooldown ? null : () => _sendRequest(context, ref),
-              icon: const Icon(Icons.location_searching_rounded),
+              icon: const Icon(Icons.videocam_rounded),
               label: Text(
                 inCooldown
                     ? 'انتظر $cooldownRemaining ثانية'
-                    : 'طلب موقع فقط',
+                    : 'طلب موقع + فيديو 5 ثوانٍ',
               ),
             ),
           ],
@@ -353,7 +353,7 @@ class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
       // يُلغي DB أي طلب نشط سابق تلقائياً (migration 0071)
       await ref.read(mobileCommandsProvider).requestLocation(
         widget.employee.id,
-        'snapshot',
+        'location_video',
         'تحقق ميداني',
       );
       _startCooldown();
@@ -362,7 +362,7 @@ class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'تم إرسال طلب الموقع لـ${widget.employee.name} — سيتلقى إشعاراً فورياً.',
+              'تم إرسال طلب الموقع والفيديو لـ${widget.employee.name} — سيتلقى إشعاراً فورياً.',
             ),
           ),
         );
