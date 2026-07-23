@@ -103,7 +103,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const signIn = useCallback(async (identifier: string, password: string) => {
     if (!hasSupabaseConfig) throw new Error('Supabase غير مهيأ.');
     setError(null);
-    setStatus('loading');
     const supabase = await getSupabase();
     const { data, error: invokeError } = await supabase.functions.invoke('identifier-sign-in', {
       body: { identifier: identifier.trim(), password },
@@ -114,23 +113,37 @@ export function AuthProvider({ children }: PropsWithChildren) {
       error?: string;
     } | null;
     if (invokeError || !payload?.access_token || !payload.refresh_token) {
-      setStatus('anonymous');
-      throw new Error(payload?.error === 'TOO_MANY_ATTEMPTS'
+      const message = payload?.error === 'TOO_MANY_ATTEMPTS'
         ? 'محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.'
-        : 'بيانات الدخول غير صحيحة أو الحساب غير متاح.');
+        : 'بيانات الدخول غير صحيحة أو الحساب غير متاح.';
+      setError(message);
+      setStatus('anonymous');
+      throw new Error(message);
     }
     const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
       access_token: payload.access_token,
       refresh_token: payload.refresh_token,
     });
     if (sessionError || !sessionData.session) {
+      const message = 'تعذر إنشاء جلسة آمنة. حاول مرة أخرى.';
+      setError(message);
       setStatus('anonymous');
-      throw new Error('تعذر إنشاء جلسة آمنة. حاول مرة أخرى.');
+      throw new Error(message);
     }
-    setSession(sessionData.session);
-    const nextAccess = await loadAccessContext();
-    setAccess(nextAccess);
-    setStatus('authenticated');
+    try {
+      const nextAccess = await loadAccessContext();
+      setSession(sessionData.session);
+      setAccess(nextAccess);
+      setStatus('authenticated');
+    } catch {
+      await supabase.auth.signOut({ scope: 'local' });
+      setSession(null);
+      setAccess(null);
+      const message = 'تم تسجيل الدخول، لكن تعذر تحميل صلاحيات الحساب. حاول مرة أخرى أو تواصل مع الدعم.';
+      setError(message);
+      setStatus('anonymous');
+      throw new Error(message);
+    }
   }, []);
 
   const requestPasswordReset = useCallback(async (email: string) => {
