@@ -1,4 +1,6 @@
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 select plan(17);
 
 select has_table('public', 'attendance_punch_attempts', 'attendance attempt ledger exists');

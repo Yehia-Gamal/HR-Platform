@@ -5,9 +5,8 @@ import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/theme/theme_mode_controller.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_learning_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_service_portal_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_privacy_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:flutter/material.dart';
@@ -71,62 +70,10 @@ class MobileProfilePage extends ConsumerWidget {
               const SizedBox(height: 14),
               _InfoSection(item: item),
               const SizedBox(height: 14),
+              const _DeviceSecuritySection(),
+              const SizedBox(height: 14),
               const _ThemePreferenceCard(),
               const SizedBox(height: 14),
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.school_outlined),
-                  title: const Text('تدريبي ومهاراتي'),
-                  subtitle: const Text('الدورات الإلزامية والتقدم والشهادات'),
-                  trailing: const Icon(Icons.chevron_left_rounded),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const MobileLearningPage(),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.support_agent_outlined),
-                  title: const Text('الخدمات الداخلية'),
-                  subtitle: const Text('HR وIT والتشغيل والإدارة'),
-                  trailing: const Icon(Icons.chevron_left_rounded),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const MobileServicePortalPage(),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.receipt_long_outlined),
-                  title: const Text('كشوف الرواتب'),
-                  subtitle: const Text('تظهر عند تفعيل واعتماد وحدة الرواتب'),
-                  trailing: const Icon(Icons.chevron_left_rounded),
-                  enabled: false,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.privacy_tip_outlined),
-                  title: const Text('الخصوصية وبياناتي'),
-                  subtitle: const Text(
-                    'طلبات الاطلاع والتصحيح والتقييد والحذف',
-                  ),
-                  trailing: const Icon(Icons.chevron_left_rounded),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const MobilePrivacyPage(),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.password_outlined),
@@ -582,6 +529,392 @@ class _EmptyLine extends StatelessWidget {
             ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DeviceSecuritySection extends ConsumerStatefulWidget {
+  const _DeviceSecuritySection();
+
+  @override
+  ConsumerState<_DeviceSecuritySection> createState() =>
+      _DeviceSecuritySectionState();
+}
+
+class _DeviceSecuritySectionState
+    extends ConsumerState<_DeviceSecuritySection> {
+  bool _registering = false;
+  String? _revokingId;
+  bool? _localBiometricSupported;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometricSupport();
+  }
+
+  Future<void> _checkBiometricSupport() async {
+    try {
+      final localAuth = LocalAuthentication();
+      final supported = await localAuth.isDeviceSupported() &&
+          await localAuth.canCheckBiometrics;
+      if (mounted) setState(() => _localBiometricSupported = supported);
+    } catch (_) {
+      if (mounted) setState(() => _localBiometricSupported = false);
+    }
+  }
+
+  Future<void> _register() async {
+    setState(() => _registering = true);
+    try {
+      await ref.read(mobileCommandsProvider).registerPasskey();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تسجيل الجهاز بنجاح.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        final msg = error.toString();
+        final text = msg.contains('cancelled')
+            ? 'تم إلغاء التحقق بالبصمة.'
+            : msg.contains('الجهاز لا يدعم')
+                ? 'جهازك لا يدعم التحقق بالبصمة.'
+                : 'تعذر تسجيل الجهاز. أعد المحاولة.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(text)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _registering = false);
+    }
+  }
+
+  Future<void> _revoke(PasskeyDevice device) async {
+    final reasonController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('إلغاء الجهاز الموثوق'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('سيتم منع ${device.deviceLabel} من إثبات الحضور مستقبلًا.'),
+            const SizedBox(height: 14),
+            TextField(
+              controller: reasonController,
+              maxLength: 240,
+              decoration: const InputDecoration(
+                labelText: 'سبب الإلغاء',
+                hintText: 'مثال: تم تغيير الهاتف أو فقد الجهاز',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('تراجع'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('إلغاء الجهاز'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _revokingId = device.id);
+    try {
+      await ref
+          .read(mobileCommandsProvider)
+          .revokePasskey(device.id, reasonController.text);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم إلغاء الجهاز.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(error))),
+        );
+      }
+    } finally {
+      reasonController.dispose();
+      if (mounted) setState(() => _revokingId = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final devices = ref.watch(myPasskeysProvider);
+    final formatter = DateFormat('d MMMM y، h:mm a', 'ar');
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const MobileSectionHeader(
+              title: 'أمان الجهاز والبصمة',
+              subtitle: 'إدارة أجهزتك الموثوقة لإثبات الحضور.',
+            ),
+            const SizedBox(height: 12),
+            // حالة دعم البصمة على هذا الجهاز
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: _localBiometricSupported == true
+                    ? scheme.primaryContainer.withValues(alpha: 0.4)
+                    : _localBiometricSupported == false
+                        ? scheme.errorContainer.withValues(alpha: 0.4)
+                        : scheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    _localBiometricSupported == true
+                        ? Icons.fingerprint
+                        : _localBiometricSupported == false
+                            ? Icons.fingerprint
+                            : Icons.hourglass_empty_rounded,
+                    color: _localBiometricSupported == true
+                        ? scheme.primary
+                        : _localBiometricSupported == false
+                            ? scheme.error
+                            : scheme.onSurfaceVariant,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'بصمة هذا الجهاز',
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelLarge
+                              ?.copyWith(fontWeight: FontWeight.w900),
+                        ),
+                        Text(
+                          _localBiometricSupported == null
+                              ? 'جارٍ الفحص…'
+                              : _localBiometricSupported!
+                                  ? 'الجهاز يدعم البصمة وقفل الشاشة الآمن'
+                                  : 'الجهاز لا يدعم البصمة أو لم تُسجَّل بصمة بعد',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            // قائمة الأجهزة المسجلة
+            devices.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, _) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  children: [
+                    Icon(Icons.error_outline, color: scheme.error),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'تعذر تحميل الأجهزة. اسحب لأسفل لإعادة المحاولة.',
+                        style: TextStyle(color: scheme.error),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              data: (items) {
+                if (items.isEmpty) {
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.phonelink_lock_outlined,
+                          size: 36,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'لا توجد أجهزة مسجلة',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'سجل هذا الجهاز لاستخدام البصمة في إثبات الحضور.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return Column(
+                  children: items.map((device) {
+                    final active = device.status == 'active';
+                    final isRevoking = _revokingId == device.id;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: active
+                                ? scheme.primary.withValues(alpha: 0.3)
+                                : scheme.outlineVariant,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: active
+                                      ? scheme.primaryContainer
+                                      : scheme.surfaceContainerHighest,
+                                  child: Icon(
+                                    active
+                                        ? Icons.phonelink_lock
+                                        : Icons.mobile_off_outlined,
+                                    size: 20,
+                                    color: active
+                                        ? scheme.onPrimaryContainer
+                                        : scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        device.deviceLabel,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                      MobileStatusPill(
+                                        active ? 'active' : device.status,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (device.trusted)
+                                  Tooltip(
+                                    message: 'موثوق من الخادم',
+                                    child: Icon(
+                                      Icons.verified_user_outlined,
+                                      color: scheme.primary,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const Divider(height: 18),
+                            Text(
+                              'أضيف: ${formatter.format(device.createdAt.toLocal())}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            Text(
+                              device.lastUsedAt == null
+                                  ? 'لم يُستخدم بعد'
+                                  : 'آخر استخدام: ${formatter.format(device.lastUsedAt!.toLocal())}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            if (active) ...[
+                              const SizedBox(height: 10),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed:
+                                      isRevoking ? null : () => _revoke(device),
+                                  icon: isRevoking
+                                      ? const SizedBox.square(
+                                          dimension: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(Icons.block_outlined),
+                                  label: const Text('إلغاء هذا الجهاز'),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _registering ? null : _register,
+                icon: _registering
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.add_moderator_outlined),
+                label: const Text('تسجيل هذا الجهاز'),
+              ),
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const PasskeyDevicesPage(),
+                  ),
+                ),
+                icon: const Icon(Icons.devices_outlined),
+                label: const Text('إدارة جميع الأجهزة'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

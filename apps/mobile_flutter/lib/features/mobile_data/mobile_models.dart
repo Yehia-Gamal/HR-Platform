@@ -1232,6 +1232,142 @@ class MobileWorkAssignment {
       };
 }
 
+/// صف واحد في كشف الحضور اليومي (V12 §18).
+class AttendanceStatementDay {
+  const AttendanceStatementDay({
+    required this.date,
+    required this.dayNameAr,
+    required this.checkIn,
+    required this.checkOut,
+    required this.shiftName,
+    required this.workHours,
+    required this.requiredHours,
+    required this.lateMinutes,
+    required this.status,
+    required this.hasLeave,
+    required this.hasPermit,
+    required this.hasMission,
+    required this.hasConvoyFundi,
+    required this.missingCheckIn,
+    required this.missingCheckOut,
+    required this.correctionNote,
+  });
+
+  factory AttendanceStatementDay.fromJson(Map<String, dynamic> json) =>
+      AttendanceStatementDay(
+        date: json['date'] as String? ?? '',
+        dayNameAr: json['dayNameAr'] as String? ?? '',
+        checkIn: json['checkIn'] as String?,
+        checkOut: json['checkOut'] as String?,
+        shiftName: json['shiftName'] as String? ?? '',
+        workHours: (json['workHours'] as num?)?.toDouble() ?? 0,
+        requiredHours: (json['requiredHours'] as num?)?.toDouble() ?? 0,
+        lateMinutes: (json['lateMinutes'] as num?)?.toInt() ?? 0,
+        status: json['status'] as String? ?? '',
+        hasLeave: json['hasLeave'] as bool? ?? false,
+        hasPermit: json['hasPermit'] as bool? ?? false,
+        hasMission: json['hasMission'] as bool? ?? false,
+        hasConvoyFundi: json['hasConvoyFundi'] as bool? ?? false,
+        missingCheckIn: json['missingCheckIn'] as bool? ?? false,
+        missingCheckOut: json['missingCheckOut'] as bool? ?? false,
+        correctionNote: json['correctionNote'] as String?,
+      );
+
+  final String date;
+  final String dayNameAr;
+  final String? checkIn;
+  final String? checkOut;
+  final String shiftName;
+  final double workHours;
+  final double requiredHours;
+  final int lateMinutes;
+  final String status;
+  final bool hasLeave;
+  final bool hasPermit;
+  final bool hasMission;
+  final bool hasConvoyFundi;
+  final bool missingCheckIn;
+  final bool missingCheckOut;
+  final String? correctionNote;
+}
+
+/// ملخص شهري للكشف.
+class AttendanceStatementSummary {
+  const AttendanceStatementSummary({
+    required this.totalDays,
+    required this.scheduledDays,
+    required this.presentDays,
+    required this.absentDays,
+    required this.leaveDays,
+    required this.missionDays,
+    required this.totalWorkHours,
+    required this.averageWorkHours,
+    required this.totalLateMinutes,
+    required this.missingCheckInCount,
+    required this.missingCheckOutCount,
+  });
+
+  factory AttendanceStatementSummary.fromJson(Map<String, dynamic> json) =>
+      AttendanceStatementSummary(
+        totalDays: (json['totalDays'] as num?)?.toInt() ?? 0,
+        scheduledDays: (json['scheduledDays'] as num?)?.toInt() ?? 0,
+        presentDays: (json['presentDays'] as num?)?.toInt() ?? 0,
+        absentDays: (json['absentDays'] as num?)?.toInt() ?? 0,
+        leaveDays: (json['leaveDays'] as num?)?.toInt() ?? 0,
+        missionDays: (json['missionDays'] as num?)?.toInt() ?? 0,
+        totalWorkHours: (json['totalWorkHours'] as num?)?.toDouble() ?? 0,
+        averageWorkHours: (json['averageWorkHours'] as num?)?.toDouble() ?? 0,
+        totalLateMinutes: (json['totalLateMinutes'] as num?)?.toInt() ?? 0,
+        missingCheckInCount: (json['missingCheckInCount'] as num?)?.toInt() ?? 0,
+        missingCheckOutCount: (json['missingCheckOutCount'] as num?)?.toInt() ?? 0,
+      );
+
+  final int totalDays;
+  final int scheduledDays;
+  final int presentDays;
+  final int absentDays;
+  final int leaveDays;
+  final int missionDays;
+  final double totalWorkHours;
+  final double averageWorkHours;
+  final int totalLateMinutes;
+  final int missingCheckInCount;
+  final int missingCheckOutCount;
+}
+
+/// كشف الحضور والانصراف الشهري الكامل (V12 §18).
+class MonthlyAttendanceStatement {
+  const MonthlyAttendanceStatement({
+    required this.employeeNameAr,
+    required this.year,
+    required this.month,
+    required this.days,
+    required this.summary,
+  });
+
+  factory MonthlyAttendanceStatement.fromJson(Map<String, dynamic> json) {
+    final emp = (json['employee'] as Map<String, dynamic>?) ?? {};
+    final period = (json['period'] as Map<String, dynamic>?) ?? {};
+    final sumJson = (json['summary'] as Map<String, dynamic>?) ?? {};
+    final daysJson = (json['days'] as List<dynamic>?) ?? [];
+    return MonthlyAttendanceStatement(
+      employeeNameAr: emp['fullNameAr'] as String? ?? '',
+      year: (period['year'] as num?)?.toInt() ?? 0,
+      month: (period['month'] as num?)?.toInt() ?? 0,
+      days: daysJson
+          .map((e) => AttendanceStatementDay.fromJson(e as Map<String, dynamic>))
+          .toList(growable: false),
+      summary: AttendanceStatementSummary.fromJson(sumJson),
+    );
+  }
+
+  final String employeeNameAr;
+  final int year;
+  final int month;
+  final List<AttendanceStatementDay> days;
+  final AttendanceStatementSummary summary;
+}
+
 class MobileScheduleDay {
   const MobileScheduleDay({
     required this.id,

@@ -1,4 +1,6 @@
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 select plan(11);
 select has_function('public','archive_employee_secure',array['uuid','text'],'secure archive RPC exists');
 select has_function('public','hard_delete_employee_guarded',array['uuid','text','text'],'guarded delete RPC exists');

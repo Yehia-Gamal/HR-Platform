@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { json, preflight } from "../_shared/cors.ts";
+import { normalizePhone } from "../_shared/phone.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const PUBLISHABLE_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -71,14 +72,6 @@ function inaccessibleRandomPassword(): string {
   // The value is never returned or logged. Two UUIDs provide enough entropy,
   // while the fixed character classes satisfy common password policies.
   return `Cdx!9-${crypto.randomUUID()}-${crypto.randomUUID()}-aZ`;
-}
-
-// تطبيع الهاتف إلى صيغة E.164: المحلي المصري 01XXXXXXXXX ← ‎+20XXXXXXXXX.
-// الأرقام الدولية تُترك كما هي. يضمن ثبات ux_employees_phone_e164_active.
-function normalizePhone(raw: string): string {
-  const trimmed = raw.trim();
-  if (/^01\d{9}$/.test(trimmed)) return `+20${trimmed.slice(1)}`;
-  return trimmed;
 }
 
 Deno.serve(async (req) => {

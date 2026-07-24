@@ -256,7 +256,7 @@ class EmployeeHomePage extends ConsumerWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'الموقع والفيديو لا يُطلبان إلا بسبب ومدة محددين، وتظهر لك الجلسة بوضوح قبل الموافقة.',
+                          'الموقع لا يُطلب إلا بسبب ومدة محددين، وتظهر لك الجلسة بوضوح قبل الموافقة.',
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: scheme.onSurfaceVariant,

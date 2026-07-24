@@ -3,21 +3,16 @@ import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/location_incoming_overlay.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_brief_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_emergency_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_governance_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_people_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_reports_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_risk_center_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_services_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_disputes_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_learning_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notifications_page.dart';
-
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_privacy_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_profile_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_official_feed_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_service_portal_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/org_chart_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
@@ -219,16 +214,6 @@ class WorkspaceScaffold extends ConsumerWidget {
           page: const ExecutivePeoplePage(),
         ),
         _MoreItem(
-          icon: Icons.emergency_outlined,
-          label: 'وضع الاستجابة السريعة',
-          page: const ExecutiveEmergencyPage(),
-        ),
-        _MoreItem(
-          icon: Icons.warning_amber_rounded,
-          label: 'مركز المخاطر والحوادث',
-          page: const ExecutiveRiskCenterPage(),
-        ),
-        _MoreItem(
           icon: Icons.fact_check_outlined,
           label: 'التقييمات النهائية KPI',
           page: MobileKpiPage(access: contextData),
@@ -268,25 +253,14 @@ class WorkspaceScaffold extends ConsumerWidget {
           page: const MobileAttendanceServicesPage(),
         ),
       _MoreItem(
-        icon: Icons.support_agent_rounded,
-        label: 'مكتب الخدمات',
-        page: const MobileServicePortalPage(),
-      ),
-      _MoreItem(
-        icon: Icons.school_rounded,
-        label: 'التدريب والتعلم',
-        page: const MobileLearningPage(),
+        icon: Icons.account_tree_rounded,
+        label: 'الهيكل التنظيمي',
+        page: const OrgChartPage(),
       ),
       _MoreItem(
         icon: Icons.gavel_rounded,
         label: 'الشكاوى ولجنة الخلافات',
         page: const MobileDisputesPage(),
-      ),
-
-      _MoreItem(
-        icon: Icons.privacy_tip_rounded,
-        label: 'الخصوصية وبياناتي',
-        page: const MobilePrivacyPage(),
       ),
       if (contextData.attendancePolicy.selfPunchEnabled)
         _MoreItem(

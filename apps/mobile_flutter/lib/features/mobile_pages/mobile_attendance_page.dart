@@ -1,6 +1,7 @@
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_history_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
@@ -183,6 +184,17 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const MonthlyAttendanceStatementPage(),
+            ),
+          ),
+          icon: const Icon(Icons.calendar_month_outlined),
+          label: const Text('كشف الشهر'),
         ),
         const SizedBox(height: 16),
         const _MessageCard(

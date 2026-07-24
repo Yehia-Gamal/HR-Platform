@@ -199,6 +199,45 @@ void main() {
     expect(asg.targetAmount, isNull);
   });
 
+  test('monthly attendance statement parses days and summary (V12 §18)', () {
+    final stmt = MonthlyAttendanceStatement.fromJson({
+      'employee': {'fullNameAr': 'موظف تجريبي'},
+      'period': {'year': 2026, 'month': 7},
+      'days': [
+        {
+          'date': '2026-07-01',
+          'dayNameAr': 'الأربعاء',
+          'checkIn': '08:05:00',
+          'checkOut': '16:00:00',
+          'shiftName': 'صباحي',
+          'workHours': 7.5,
+          'lateMinutes': 5,
+          'status': 'متأخر',
+          'missingCheckOut': false,
+        },
+        {
+          'date': '2026-07-07',
+          'dayNameAr': 'الثلاثاء',
+          'status': 'قافلة',
+          'hasConvoyFundi': true,
+        },
+      ],
+      'summary': {
+        'presentDays': 1,
+        'scheduledDays': 2,
+        'missionDays': 1,
+        'totalWorkHours': 7.5,
+        'totalLateMinutes': 5,
+      },
+    });
+    expect(stmt.employeeNameAr, 'موظف تجريبي');
+    expect(stmt.days.length, 2);
+    expect(stmt.days.first.lateMinutes, 5);
+    expect(stmt.days[1].hasConvoyFundi, isTrue);
+    expect(stmt.summary.totalWorkHours, 7.5);
+    expect(stmt.summary.missionDays, 1);
+  });
+
   MobileLocationRequest req(String mode) => MobileLocationRequest.fromJson({
     'id': '33333333-3333-4333-8333-333333333333',
     'requesterName': 'المدير التنفيذي',

@@ -124,7 +124,7 @@ class _LocationDirectoryTab extends ConsumerWidget {
         padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPad),
         children: [
           Text(
-            'اطلب موقعاً حديثاً وفيديو تحقق أمامياً صامتاً مدته 5 ثوانٍ من أي موظف في الجمعية فوراً.',
+            'اطلب موقعاً حديثاً من أي موظف في الجمعية فوراً.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
@@ -339,7 +339,7 @@ class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
               label: Text(
                 inCooldown
                     ? 'انتظر $cooldownRemaining ثانية'
-                    : 'طلب موقع + فيديو 5 ثوانٍ',
+                    : 'طلب موقع فوري',
               ),
             ),
           ],
@@ -362,7 +362,7 @@ class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'تم إرسال طلب الموقع والفيديو لـ${widget.employee.name} — سيتلقى إشعاراً فورياً.',
+              'تم إرسال طلب الموقع لـ${widget.employee.name} — سيتلقى إشعاراً فورياً.',
             ),
           ),
         );

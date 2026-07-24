@@ -1,24 +1,32 @@
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_services_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-/// صفحة الخدمات الذاتية — إجازة، مأمورية، قافلة/فاندي، إذن، نسيان بصمة.
-class MobileSelfServicePage extends ConsumerWidget {
+/// مركز الطلبات الموحّد — 6 أنواع طلبات + عرض الطلبات السابقة مع فلاتر الحالة.
+class MobileSelfServicePage extends ConsumerStatefulWidget {
   const MobileSelfServicePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MobileSelfServicePage> createState() =>
+      _MobileSelfServicePageState();
+}
+
+class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
+  String _statusFilter = 'all';
+
+  @override
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final balances = ref.watch(myLeaveBalancesProvider);
+    final requests = ref.watch(mobileRequestsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('الخدمات الذاتية')),
+      appBar: AppBar(title: const Text('طلباتي')),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(myLeaveBalancesProvider);
@@ -27,7 +35,7 @@ class MobileSelfServicePage extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
           children: [
-            // ── قسم الطلبات الجديدة ──
+            // ── تقديم طلب جديد ──
             const MobileSectionHeader(
               title: 'تقديم طلب جديد',
               subtitle: 'اختر نوع الطلب من الخيارات التالية.',
@@ -48,8 +56,8 @@ class MobileSelfServicePage extends ConsumerWidget {
                 Expanded(
                   child: _ServiceCard(
                     icon: Icons.work_outline_rounded,
-                    title: 'مأمورية',
-                    subtitle: 'مهمة عمل خارجية',
+                    title: 'مهمة عمل',
+                    subtitle: 'مأمورية خارجية',
                     color: scheme.tertiary,
                     onTap: () => _submitRequest(context, ref, 'mission'),
                   ),
@@ -65,17 +73,22 @@ class MobileSelfServicePage extends ConsumerWidget {
                     title: 'قافلة / فاندي',
                     subtitle: 'تكليف ميداني',
                     color: const Color(0xFF0D7C66),
-                    onTap: () => _submitRequest(context, ref, 'field_assignment'),
+                    onTap: () => _submitRequest(context, ref, 'convoy'),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _ServiceCard(
                     icon: Icons.schedule_rounded,
-                    title: 'طلب إذن',
-                    subtitle: 'تأخير أو خروج مبكر',
+                    title: 'إذن تأخير',
+                    subtitle: 'تأخير في الحضور',
                     color: const Color(0xFFBF6A22),
-                    onTap: () => _submitRequest(context, ref, 'permission'),
+                    onTap: () => _submitRequest(
+                      context,
+                      ref,
+                      'attendance_permit',
+                      permitKind: 'late_arrival',
+                    ),
                   ),
                 ),
               ],
@@ -85,53 +98,29 @@ class MobileSelfServicePage extends ConsumerWidget {
               children: [
                 Expanded(
                   child: _ServiceCard(
-                    icon: Icons.fingerprint_rounded,
-                    title: 'نسيان بصمة حضور',
-                    subtitle: 'تصحيح وقت الدخول',
-                    color: scheme.error,
-                    onTap: () => _submitCorrection(context, ref, 'forgot_check_in'),
+                    icon: Icons.exit_to_app_rounded,
+                    title: 'إذن خروج مبكر',
+                    subtitle: 'انصراف قبل الموعد',
+                    color: const Color(0xFF8B5CF6),
+                    onTap: () => _submitRequest(
+                      context,
+                      ref,
+                      'attendance_permit',
+                      permitKind: 'early_departure',
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _ServiceCard(
                     icon: Icons.fingerprint_rounded,
-                    title: 'نسيان بصمة انصراف',
-                    subtitle: 'تصحيح وقت الخروج',
-                    color: const Color(0xFF8B5CF6),
-                    onTap: () => _submitCorrection(context, ref, 'forgot_check_out'),
+                    title: 'تصحيح حضور',
+                    subtitle: 'نسيان بصمة دخول أو خروج',
+                    color: scheme.error,
+                    onTap: () => _submitCorrection(context, ref),
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 10),
-            Card(
-              child: ListTile(
-                leading: Icon(Icons.edit_calendar_rounded, color: scheme.primary),
-                title: const Text('جدولي وتصحيحات الحضور'),
-                subtitle: const Text('جدول الورديات وطلبات التصحيح السابقة'),
-                trailing: const Icon(Icons.chevron_left_rounded),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const MobileAttendanceServicesPage(),
-                  ),
-                ),
-              ),
-            ),
-            Card(
-              child: ListTile(
-                leading: Icon(Icons.description_outlined, color: scheme.primary),
-                title: const Text('طلباتي السابقة'),
-                subtitle: const Text('عرض ومتابعة جميع الطلبات'),
-                trailing: const Icon(Icons.chevron_left_rounded),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const MobileRequestsPage(allowDecision: false),
-                  ),
-                ),
-              ),
             ),
 
             // ── أرصدة الإجازات ──
@@ -186,8 +175,156 @@ class MobileSelfServicePage extends ConsumerWidget {
                     ),
                   );
                 }
+                return SizedBox(
+                  height: 116,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: items.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 10),
+                    itemBuilder: (context, index) {
+                      final balance = items[index];
+                      return SizedBox(
+                        width: 190,
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  balance.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  '${balance.availableUnits.toStringAsFixed(balance.availableUnits % 1 == 0 ? 0 : 1)} متاح',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.w900),
+                                ),
+                                Text(
+                                  'محجوز ${balance.reservedUnits.toStringAsFixed(1)} · مستهلك ${balance.consumedUnits.toStringAsFixed(1)}',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+
+            // ── طلباتي السابقة ──
+            const SizedBox(height: 20),
+            const MobileSectionHeader(
+              title: 'طلباتي السابقة',
+              subtitle: 'تابع حالة طلباتك المقدمة.',
+            ),
+            const SizedBox(height: 10),
+
+            // فلاتر الحالة
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _StatusChip(
+                    label: 'الكل',
+                    value: 'all',
+                    selected: _statusFilter,
+                    onSelected: (v) => setState(() => _statusFilter = v),
+                  ),
+                  const SizedBox(width: 6),
+                  _StatusChip(
+                    label: 'قيد المراجعة',
+                    value: 'pending',
+                    selected: _statusFilter,
+                    onSelected: (v) => setState(() => _statusFilter = v),
+                  ),
+                  const SizedBox(width: 6),
+                  _StatusChip(
+                    label: 'مقبول',
+                    value: 'approved',
+                    selected: _statusFilter,
+                    onSelected: (v) => setState(() => _statusFilter = v),
+                  ),
+                  const SizedBox(width: 6),
+                  _StatusChip(
+                    label: 'مرفوض',
+                    value: 'rejected',
+                    selected: _statusFilter,
+                    onSelected: (v) => setState(() => _statusFilter = v),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            requests.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, _) => Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    children: [
+                      Icon(Icons.error_outline, color: scheme.error),
+                      const SizedBox(height: 8),
+                      Text(humanizeError(error), textAlign: TextAlign.center),
+                      TextButton(
+                        onPressed: () =>
+                            ref.invalidate(mobileRequestsProvider),
+                        child: const Text('إعادة المحاولة'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              data: (items) {
+                final filtered = items
+                    .where(
+                      (r) =>
+                          _statusFilter == 'all' ||
+                          r.status == _statusFilter,
+                    )
+                    .toList();
+                if (filtered.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.inbox_outlined,
+                          size: 48,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _statusFilter == 'all'
+                              ? 'لم تُقدم أي طلبات بعد.'
+                              : 'لا توجد طلبات بهذه الحالة.',
+                          style: TextStyle(color: scheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  );
+                }
                 return Column(
-                  children: items.map((b) => _LeaveBalanceCard(balance: b)).toList(),
+                  children: filtered
+                      .map(
+                        (item) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _RequestCard(item: item),
+                        ),
+                      )
+                      .toList(),
                 );
               },
             ),
@@ -200,12 +337,13 @@ class MobileSelfServicePage extends ConsumerWidget {
   Future<void> _submitRequest(
     BuildContext context,
     WidgetRef ref,
-    String type,
-  ) async {
+    String type, {
+    String? permitKind,
+  }) async {
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
-      builder: (ctx) => _NewRequestSheet(type: type),
+      builder: (ctx) => _NewRequestSheet(type: type, permitKind: permitKind),
     );
     if (result == null || !context.mounted) return;
 
@@ -235,24 +373,23 @@ class MobileSelfServicePage extends ConsumerWidget {
   Future<void> _submitCorrection(
     BuildContext context,
     WidgetRef ref,
-    String type,
   ) async {
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
-      builder: (ctx) => _ForgotPunchSheet(type: type),
+      builder: (ctx) => const _ForgotPunchSheet(),
     );
     if (result == null || !context.mounted) return;
 
     try {
       await ref.read(mobileCommandsProvider).requestAttendanceCorrection(
             workDate: result['workDate'] as DateTime,
-            type: type,
+            type: result['type'] as String,
             reason: result['reason'] as String,
             checkIn: result['checkIn'] as DateTime?,
             checkOut: result['checkOut'] as DateTime?,
           );
-      ref.invalidate(myAttendanceServicesProvider);
+      ref.invalidate(mobileRequestsProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم إرسال طلب التصحيح بنجاح.')),
@@ -267,6 +404,8 @@ class MobileSelfServicePage extends ConsumerWidget {
     }
   }
 }
+
+// ── بطاقة نوع الخدمة ──
 
 class _ServiceCard extends StatelessWidget {
   const _ServiceCard({
@@ -326,71 +465,113 @@ class _ServiceCard extends StatelessWidget {
       );
 }
 
-class _LeaveBalanceCard extends StatelessWidget {
-  const _LeaveBalanceCard({required this.balance});
-  final MobileLeaveBalance balance;
+// ── شريحة فلتر الحالة ──
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({
+    required this.label,
+    required this.value,
+    required this.selected,
+    required this.onSelected,
+  });
+  final String label;
+  final String value;
+  final String selected;
+  final ValueChanged<String> onSelected;
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final used = balance.consumedUnits;
-    final total = balance.availableUnits + balance.consumedUnits + balance.reservedUnits;
-    final remaining = balance.availableUnits;
-    final progress = total > 0 ? (used / total).clamp(0.0, 1.0) : 0.0;
+  Widget build(BuildContext context) => FilterChip(
+        label: Text(label),
+        selected: selected == value,
+        onSelected: (_) => onSelected(value),
+      );
+}
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+// ── بطاقة طلب سابق ──
+
+class _RequestCard extends StatelessWidget {
+  const _RequestCard({required this.item});
+  final MobileRequest item;
+
+  @override
+  Widget build(BuildContext context) => Card(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MobileRequestDetailPage(requestId: item.id),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    balance.name,
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: remaining > 0
-                        ? Colors.green.withValues(alpha: .12)
-                        : scheme.errorContainer,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    'متبقي $remaining من $total',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: remaining > 0 ? Colors.green.shade700 : scheme.error,
+                Row(
+                  children: [
+                    MobileStatusPill(item.status),
+                    const Spacer(),
+                    Text(
+                      '#${item.number}',
+                      style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  item.title ?? _typeLabel(item.type),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+                if (item.reason?.trim().isNotEmpty == true) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    item.reason!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
+                ],
+                const Divider(height: 26),
+                Row(
+                  children: [
+                    const Icon(Icons.route_outlined, size: 18),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        item.activeStepName ?? 'اكتمل المسار',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                    Text(
+                      DateFormat('d MMM', 'ar').format(item.createdAt),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 6,
-                backgroundColor: scheme.surfaceContainerHighest,
-                color: remaining > 0 ? scheme.primary : scheme.error,
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
-    );
-  }
+      );
+
+  static String _typeLabel(String type) => switch (type) {
+        'leave' => 'طلب إجازة',
+        'mission' => 'مهمة عمل',
+        'attendance_permit' => 'إذن حضور',
+        'convoy' => 'قافلة',
+        _ => 'طلب',
+      };
 }
 
+// ── نموذج طلب جديد ──
+
 class _NewRequestSheet extends StatefulWidget {
-  const _NewRequestSheet({required this.type});
+  const _NewRequestSheet({required this.type, this.permitKind});
   final String type;
+  final String? permitKind;
   @override
   State<_NewRequestSheet> createState() => _NewRequestSheetState();
 }
@@ -398,14 +579,27 @@ class _NewRequestSheet extends StatefulWidget {
 class _NewRequestSheetState extends State<_NewRequestSheet> {
   final _titleController = TextEditingController();
   final _reasonController = TextEditingController();
+  final _locationController = TextEditingController();
   DateTime? _startDate;
   DateTime? _endDate;
+  DateTime? _permitDate;
+  String _leaveType = 'annual';
+  late String _permitKind;
+  int _minutes = 30;
+
+  @override
+  void initState() {
+    super.initState();
+    _permitKind = widget.permitKind ?? 'late_arrival';
+  }
 
   String get _typeLabel => switch (widget.type) {
         'leave' => 'طلب إجازة',
-        'mission' => 'طلب مأمورية',
-        'field_assignment' => 'طلب قافلة / فاندي',
-        'permission' => 'طلب إذن',
+        'mission' => 'طلب مهمة عمل',
+        'convoy' => 'طلب قافلة / فاندي',
+        'attendance_permit' => _permitKind == 'early_departure'
+            ? 'إذن خروج مبكر'
+            : 'إذن تأخير',
         _ => 'طلب جديد',
       };
 
@@ -413,13 +607,75 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
   void dispose() {
     _titleController.dispose();
     _reasonController.dispose();
+    _locationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDate(bool isStart) async {
+    final initial = isStart ? DateTime.now() : (_startDate ?? DateTime.now());
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      locale: const Locale('ar'),
+    );
+    if (picked == null) return;
+    setState(() {
+      if (isStart) {
+        _startDate = picked;
+        if (_endDate != null && _endDate!.isBefore(picked)) _endDate = picked;
+      } else {
+        _endDate = picked;
+      }
+    });
+  }
+
+  void _submit() {
+    final title = _titleController.text.trim();
+    final reason = _reasonController.text.trim();
+    if (title.length < 3 || reason.length < 5) return;
+
+    final Map<String, dynamic> payload;
+    switch (widget.type) {
+      case 'leave':
+        if (_startDate == null || _endDate == null) return;
+        payload = {
+          'leaveType': _leaveType,
+          'startDate': _startDate!.toIso8601String().substring(0, 10),
+          'endDate': _endDate!.toIso8601String().substring(0, 10),
+        };
+      case 'mission':
+      case 'convoy':
+        if (_startDate == null || _endDate == null) return;
+        final loc = _locationController.text.trim();
+        if (loc.length < 2) return;
+        payload = {
+          'startDate': _startDate!.toIso8601String().substring(0, 10),
+          'endDate': _endDate!.toIso8601String().substring(0, 10),
+          'location': loc,
+        };
+      case 'attendance_permit':
+        if (_permitDate == null) return;
+        payload = {
+          'permitDate': _permitDate!.toIso8601String().substring(0, 10),
+          'permitKind': _permitKind,
+          'minutes': _minutes,
+        };
+      default:
+        payload = {};
+    }
+    Navigator.pop(context, {
+      'title': title,
+      'reason': reason,
+      'payload': payload,
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
@@ -444,51 +700,133 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
             ),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                      locale: const Locale('ar'),
-                    );
-                    if (picked != null) setState(() => _startDate = picked);
-                  },
-                  icon: const Icon(Icons.calendar_today, size: 18),
-                  label: Text(
-                    _startDate == null
+
+          // ── حقول حسب النوع ──
+          if (widget.type == 'leave') ...[
+            DropdownButtonFormField<String>(
+              value: _leaveType,
+              decoration: const InputDecoration(
+                labelText: 'نوع الإجازة',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'annual', child: Text('سنوية')),
+                DropdownMenuItem(value: 'casual', child: Text('طارئة')),
+                DropdownMenuItem(value: 'sick', child: Text('مرضية')),
+                DropdownMenuItem(value: 'unpaid', child: Text('بدون راتب')),
+              ],
+              onChanged: (v) => setState(() => _leaveType = v!),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _pickDate(true),
+                    icon: const Icon(Icons.calendar_today, size: 18),
+                    label: Text(_startDate == null
                         ? 'من تاريخ'
-                        : DateFormat('d/M/y').format(_startDate!),
+                        : DateFormat('d/M/y').format(_startDate!)),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: _startDate ?? DateTime.now(),
-                      firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                      locale: const Locale('ar'),
-                    );
-                    if (picked != null) setState(() => _endDate = picked);
-                  },
-                  icon: const Icon(Icons.calendar_today, size: 18),
-                  label: Text(
-                    _endDate == null
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _pickDate(false),
+                    icon: const Icon(Icons.calendar_today, size: 18),
+                    label: Text(_endDate == null
                         ? 'إلى تاريخ'
-                        : DateFormat('d/M/y').format(_endDate!),
+                        : DateFormat('d/M/y').format(_endDate!)),
                   ),
                 ),
+              ],
+            ),
+          ] else if (widget.type == 'mission' || widget.type == 'convoy') ...[
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _pickDate(true),
+                    icon: const Icon(Icons.calendar_today, size: 18),
+                    label: Text(_startDate == null
+                        ? 'من تاريخ'
+                        : DateFormat('d/M/y').format(_startDate!)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _pickDate(false),
+                    icon: const Icon(Icons.calendar_today, size: 18),
+                    label: Text(_endDate == null
+                        ? 'إلى تاريخ'
+                        : DateFormat('d/M/y').format(_endDate!)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _locationController,
+              decoration: const InputDecoration(
+                labelText: 'الموقع / الوجهة',
+                border: OutlineInputBorder(),
               ),
+            ),
+          ] else if (widget.type == 'attendance_permit') ...[
+            OutlinedButton.icon(
+              onPressed: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _permitDate ?? DateTime.now(),
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(const Duration(days: 30)),
+                  locale: const Locale('ar'),
+                );
+                if (picked != null) setState(() => _permitDate = picked);
+              },
+              icon: const Icon(Icons.calendar_today, size: 18),
+              label: Text(_permitDate == null
+                  ? 'تاريخ الإذن'
+                  : DateFormat('d/M/y').format(_permitDate!)),
+            ),
+            const SizedBox(height: 12),
+            // إذا لم يكن النوع مُحدّدًا مسبقًا — أظهر القائمة المنسدلة
+            if (widget.permitKind == null) ...[
+              DropdownButtonFormField<String>(
+                value: _permitKind,
+                decoration: const InputDecoration(
+                  labelText: 'نوع الإذن',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                      value: 'late_arrival', child: Text('تأخير في الحضور')),
+                  DropdownMenuItem(
+                      value: 'early_departure', child: Text('خروج مبكر')),
+                ],
+                onChanged: (v) => setState(() => _permitKind = v!),
+              ),
+              const SizedBox(height: 12),
             ],
-          ),
+            Row(
+              children: [
+                const Text('المدة (دقائق): '),
+                Expanded(
+                  child: Slider(
+                    value: _minutes.toDouble(),
+                    min: 15,
+                    max: 240,
+                    divisions: 15,
+                    label: '$_minutes دقيقة',
+                    onChanged: (v) => setState(() => _minutes = v.round()),
+                  ),
+                ),
+                Text('$_minutes د'),
+              ],
+            ),
+          ],
+
           const SizedBox(height: 12),
           TextFormField(
             controller: _reasonController,
@@ -501,18 +839,7 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
           ),
           const SizedBox(height: 16),
           FilledButton(
-            onPressed: () {
-              if (_titleController.text.trim().isEmpty) return;
-              if (_reasonController.text.trim().isEmpty) return;
-              Navigator.pop(context, {
-                'title': _titleController.text.trim(),
-                'reason': _reasonController.text.trim(),
-                'payload': <String, dynamic>{
-                  'startDate': _startDate?.toIso8601String(),
-                  'endDate': _endDate?.toIso8601String(),
-                },
-              });
-            },
+            onPressed: _submit,
             child: const Text('إرسال الطلب'),
           ),
         ],
@@ -521,9 +848,10 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
   }
 }
 
+// ── نموذج تصحيح حضور ──
+
 class _ForgotPunchSheet extends StatefulWidget {
-  const _ForgotPunchSheet({required this.type});
-  final String type;
+  const _ForgotPunchSheet();
   @override
   State<_ForgotPunchSheet> createState() => _ForgotPunchSheetState();
 }
@@ -532,10 +860,7 @@ class _ForgotPunchSheetState extends State<_ForgotPunchSheet> {
   final _reasonController = TextEditingController();
   DateTime _workDate = DateTime.now();
   TimeOfDay? _time;
-
-  String get _label => widget.type == 'forgot_check_in'
-      ? 'نسيان بصمة حضور'
-      : 'نسيان بصمة انصراف';
+  String _correctionType = 'missing_check_in';
 
   @override
   void dispose() {
@@ -557,12 +882,27 @@ class _ForgotPunchSheetState extends State<_ForgotPunchSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            _label,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          const Text(
+            'تصحيح حضور',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
+          DropdownButtonFormField<String>(
+            value: _correctionType,
+            decoration: const InputDecoration(
+              labelText: 'نوع التصحيح',
+              border: OutlineInputBorder(),
+            ),
+            items: const [
+              DropdownMenuItem(
+                  value: 'missing_check_in', child: Text('نسيان بصمة حضور')),
+              DropdownMenuItem(
+                  value: 'missing_check_out', child: Text('نسيان بصمة انصراف')),
+            ],
+            onChanged: (v) => setState(() => _correctionType = v!),
+          ),
+          const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: () async {
               final picked = await showDatePicker(
@@ -617,7 +957,7 @@ class _ForgotPunchSheetState extends State<_ForgotPunchSheet> {
                   _time!.hour,
                   _time!.minute,
                 );
-                if (widget.type == 'forgot_check_in') {
+                if (_correctionType == 'missing_check_in') {
                   checkIn = dt;
                 } else {
                   checkOut = dt;
@@ -625,6 +965,7 @@ class _ForgotPunchSheetState extends State<_ForgotPunchSheet> {
               }
               Navigator.pop(context, {
                 'workDate': _workDate,
+                'type': _correctionType,
                 'reason': _reasonController.text.trim(),
                 'checkIn': checkIn,
                 'checkOut': checkOut,

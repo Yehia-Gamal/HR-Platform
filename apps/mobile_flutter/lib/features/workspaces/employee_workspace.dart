@@ -1,8 +1,8 @@
 import 'package:ahla_shabab_management_os/features/mobile_pages/employee_home_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_self_service_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/org_chart_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_profile_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_self_service_page.dart';
 import 'package:ahla_shabab_management_os/features/workspaces/workspace_scaffold.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
@@ -23,7 +23,7 @@ class _EmployeeWorkspaceState extends State<EmployeeWorkspace> {
       EmployeeHomePage(access: widget.access),
       const MobileAttendancePage(),
       const MobileSelfServicePage(),
-      const OrgChartPage(),
+      MobileKpiPage(access: widget.access),
       const MobileProfilePage(),
     ];
     return WorkspaceScaffold(
@@ -34,9 +34,9 @@ class _EmployeeWorkspaceState extends State<EmployeeWorkspace> {
       onDestinationSelected: (value) => setState(() => index = value),
       destinations: const [
         NavigationDestination(
-          icon: Icon(Icons.home_outlined),
-          selectedIcon: Icon(Icons.home),
-          label: 'الرئيسية',
+          icon: Icon(Icons.today_outlined),
+          selectedIcon: Icon(Icons.today),
+          label: 'يومي',
         ),
         NavigationDestination(
           icon: Icon(Icons.fingerprint_outlined),
@@ -44,14 +44,14 @@ class _EmployeeWorkspaceState extends State<EmployeeWorkspace> {
           label: 'الحضور',
         ),
         NavigationDestination(
-          icon: Icon(Icons.apps_outlined),
-          selectedIcon: Icon(Icons.apps),
-          label: 'الخدمات',
+          icon: Icon(Icons.assignment_outlined),
+          selectedIcon: Icon(Icons.assignment),
+          label: 'طلباتي',
         ),
         NavigationDestination(
-          icon: Icon(Icons.account_tree_outlined),
-          selectedIcon: Icon(Icons.account_tree),
-          label: 'الهيكل',
+          icon: Icon(Icons.trending_up_outlined),
+          selectedIcon: Icon(Icons.trending_up),
+          label: 'KPI',
         ),
         NavigationDestination(
           icon: Icon(Icons.person_outlined),

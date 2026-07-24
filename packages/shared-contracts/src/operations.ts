@@ -156,3 +156,69 @@ export const workAssignmentSchema = z.object({
   createdAt: z.string(),
 });
 export type WorkAssignment = z.infer<typeof workAssignmentSchema>;
+
+// كشف الحضور والانصراف الشهري (V12 §18 — Migration 0127).
+export const attendanceStatementDaySchema = z.object({
+  date: z.string(),
+  dayNameAr: z.string(),
+  checkIn: z.string().nullable(),
+  checkOut: z.string().nullable(),
+  shiftName: z.string(),
+  workHours: z.number(),
+  requiredHours: z.number(),
+  lateMinutes: z.number(),
+  earlyLeaveMinutes: z.number(),
+  overtimeMinutes: z.number(),
+  status: z.string(),
+  hasLeave: z.boolean(),
+  hasPermit: z.boolean(),
+  hasMission: z.boolean(),
+  hasConvoyFundi: z.boolean(),
+  missingCheckIn: z.boolean(),
+  missingCheckOut: z.boolean(),
+  hasCorrection: z.boolean(),
+  correctionNote: z.string().nullable(),
+});
+export type AttendanceStatementDay = z.infer<typeof attendanceStatementDaySchema>;
+
+export const attendanceStatementSchema = z.object({
+  employee: z.object({
+    id: z.string().uuid(),
+    employeeCode: z.string().nullable(),
+    fullNameAr: z.string(),
+    jobTitle: z.string(),
+    department: z.string(),
+    manager: z.string(),
+    branch: z.string(),
+    hireDate: z.string().nullable(),
+  }),
+  period: z.object({
+    year: z.number(),
+    month: z.number(),
+    startDate: z.string(),
+    endDate: z.string(),
+    generatedAt: z.string(),
+  }),
+  days: attendanceStatementDaySchema.array(),
+  summary: z.object({
+    totalDays: z.number(),
+    scheduledDays: z.number(),
+    presentDays: z.number(),
+    absentDays: z.number(),
+    leaveDays: z.number(),
+    permitCount: z.number(),
+    missionDays: z.number(),
+    convoyFundiDays: z.number(),
+    holidayDays: z.number(),
+    restDays: z.number(),
+    totalWorkHours: z.number(),
+    averageWorkHours: z.number(),
+    totalLateMinutes: z.number(),
+    totalEarlyLeaveMinutes: z.number(),
+    totalOvertimeMinutes: z.number(),
+    missingCheckInCount: z.number(),
+    missingCheckOutCount: z.number(),
+    correctionCount: z.number(),
+  }),
+});
+export type AttendanceStatement = z.infer<typeof attendanceStatementSchema>;

@@ -13,6 +13,7 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
+import { MonthlyStatementSection } from '../attendance/MonthlyStatementSection';
 import { useEmployee360, useResendInvite, useEmployees, useChangeManager, useArchiveEmployee } from './useEmployees';
 
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
@@ -158,6 +159,9 @@ export function EmployeeDetailPage() {
           </div>
         </article>
       </section>
+
+      {/* كشف الحضور والانصراف الشهري (V12 §18) */}
+      {employeeId && <MonthlyStatementSection employeeId={employeeId} />}
 
       <p className="muted flex items-center gap-2 text-xs"><CalendarDays className="size-4" aria-hidden="true" />آخر تحديث: {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.lastUpdatedAt))}</p>
 

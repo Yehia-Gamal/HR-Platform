@@ -186,6 +186,20 @@ final workAssignmentsProvider =
         data,
       ).map(MobileWorkAssignment.fromJson).toList(growable: false);
     });
+
+// كشف الحضور والانصراف الشهري الشخصي (V12 §18 — get_my_monthly_attendance_statement).
+final myMonthlyStatementProvider =
+    FutureProvider.family<MonthlyAttendanceStatement, (int, int)>(
+  (ref, params) async {
+    final data = await rpcWithTimeout(
+      ref.watch(supabaseProvider).rpc<dynamic>(
+        'get_my_monthly_attendance_statement',
+        params: {'p_year': params.$1, 'p_month': params.$2},
+      ),
+    );
+    return MonthlyAttendanceStatement.fromJson(_asMap(data));
+  },
+);
 final mobileKpiProvider = FutureProvider<List<MobileKpiEvaluation>>((
   ref,
 ) async {
