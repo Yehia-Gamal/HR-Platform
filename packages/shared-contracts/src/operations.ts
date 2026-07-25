@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import { kpiEvaluationSummarySchema, type KpiEvaluationSummary } from './kpi.js';
+
+// إعادة تصدير مخطط ملخص تقييم KPI الرسمي من kpi.ts (المصدر الوحيد للحقيقة — V17 §10).
+export { kpiEvaluationSummarySchema, type KpiEvaluationSummary };
 
 export const actionPrioritySchema = z.enum(['low', 'normal', 'high', 'urgent']);
 export const actionCenterItemSchema = z.object({
@@ -31,24 +35,6 @@ export const requestSummarySchema = z.object({
   createdAt: z.string(),
 });
 export type RequestSummary = z.infer<typeof requestSummarySchema>;
-
-export const kpiEvaluationSummarySchema = z.object({
-  id: z.string().uuid(),
-  employeeId: z.string().uuid(),
-  employeeName: z.string(),
-  employeeCode: z.string().nullable(),
-  cycleId: z.string().uuid(),
-  periodMonth: z.string(),
-  currentStage: z.enum(['self', 'manager_review', 'hr_review', 'manager_final', 'finalized', 'closed', 'archived']),
-  workflowStatus: z.string().optional(),
-  cycleStatus: z.string().optional(),
-  deadlineAt: z.string().nullable().optional(),
-  finalScore: z.number().nullable(),
-  finalRating: z.string().nullable(),
-  locked: z.boolean(),
-  updatedAt: z.string().nullable(),
-});
-export type KpiEvaluationSummary = z.infer<typeof kpiEvaluationSummarySchema>;
 
 export const kpiStageScoreSchema = z.object({ score: z.number().nullable(), note: z.string().nullable() });
 export const kpiCriterionFormSchema = z.object({

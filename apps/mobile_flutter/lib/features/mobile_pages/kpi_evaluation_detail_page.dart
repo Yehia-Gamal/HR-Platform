@@ -12,6 +12,7 @@ String kpiWorkflowLabel(String value) => switch (value) {
   'DRAFT' => 'مسودة قبل فتح الدورة',
   'OPEN_FOR_SELF_EVALUATION' => 'مفتوح للتقييم الذاتي',
   'SUBMITTED_TO_DIRECT_MANAGER' => 'أُرسل إلى المدير المباشر',
+  'SUBMITTED_TO_HR' => 'أُرسل إلى الموارد البشرية',
   'MANAGER_REVIEW' => 'قيد مراجعة المدير المباشر',
   'HR_REVIEW' => 'قيد مراجعة الموارد البشرية',
   'RETURNED_TO_MANAGER_FOR_FINAL_APPROVAL' =>
@@ -330,7 +331,7 @@ class _KpiEvaluationDetailPageState
                         )
                       : const Icon(Icons.check_circle_outline),
                   label: Text(
-                    form.editableStage == 'manager_final'
+                    form.editableStage == 'manager_review'
                         ? 'اعتماد النتيجة وإدراجها في التقرير'
                         : 'حفظ وإرسال',
                   ),
@@ -485,10 +486,10 @@ class _KpiEvaluationDetailPageState
   }
 
   Future<void> _returnStage(KpiEvaluationForm form) async {
+    /// V17 §10: return paths — hr_review→self, manager_review→hr_review.
     final target = switch (form.editableStage) {
-      'manager_review' => 'self',
-      'hr_review' => 'manager_review',
-      'manager_final' => 'hr_review',
+      'hr_review' => 'self',
+      'manager_review' => 'hr_review',
       _ => null,
     };
     if (target == null) return;
@@ -524,9 +525,10 @@ class _KpiEvaluationDetailPageState
 
   String _stage(String value) => switch (value) {
     'self' => 'الموظف',
-    'manager_review' => 'مراجعة المدير المباشر',
+    'hr' => 'الموارد البشرية',
     'hr_review' => 'مراجعة الموارد البشرية',
-    'manager_final' => 'اعتماد المدير النهائي',
+    'manager' => 'المدير المباشر',
+    'manager_review' => 'مراجعة المدير المباشر',
     'finalized' => 'مدرج في التقرير الشهري',
     'closed' => 'مغلق',
     'archived' => 'مؤرشف',

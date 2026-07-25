@@ -346,7 +346,7 @@ class _MemberCard extends ConsumerWidget {
     'self' => 'ذاتي',
     'manager_review' => 'مراجعة المدير',
     'hr_review' => 'مراجعة HR',
-    'manager_final' => 'اعتماد المدير',
+    'manager_final' => 'اعتماد المدير (قديم)',
     'finalized' => 'في التقرير',
     'closed' => 'مغلق',
     'archived' => 'مؤرشف',

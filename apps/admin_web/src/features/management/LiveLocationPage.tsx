@@ -53,7 +53,7 @@ export function LiveLocationPage() {
   async function submitRequest(event: FormEvent) {
     event.preventDefault();
     if (!requestDraft || requestDraft.reason.trim().length < 5) return;
-    await commands.request.mutateAsync({ employeeId: requestDraft.employee.id, mode: 'snapshot', reason: requestDraft.reason.trim() });
+    await commands.request.mutateAsync({ employeeId: requestDraft.employee.id, reason: requestDraft.reason.trim() });
     setRequestDraft(null);
   }
 

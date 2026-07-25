@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-// عقود طلب الموقع الحي + فيديو التحقق (Migration 0067).
+// عقود طلب الموقع الحي. أوضاع الفيديو/التتبع أدناه تاريخية فقط حتى يمكن
+// قراءة السجلات القديمة أثناء فترة الاحتفاظ؛ V17 يسمح بإنشاء snapshot فقط.
 // تطابق مخرجات RPCs: get_location_directory / get_live_location_response /
 // get_executive_attendance_overview.
 
@@ -14,6 +15,9 @@ export const liveLocationModeSchema = z.enum([
   'track_30',
 ]);
 export type LiveLocationMode = z.infer<typeof liveLocationModeSchema>;
+
+export const newLiveLocationRequestModeSchema = z.literal('snapshot');
+export type NewLiveLocationRequestMode = z.infer<typeof newLiveLocationRequestModeSchema>;
 
 export const liveLocationStatusSchema = z.enum([
   'pending',
@@ -70,7 +74,7 @@ export const liveLocationPointSchema = z.object({
 });
 export type LiveLocationPoint = z.infer<typeof liveLocationPointSchema>;
 
-// بيانات فيديو التحقق (بدون رابط خام — الرابط يُوقَّع عند الطلب).
+// بيانات فيديو تاريخية (بدون رابط خام). لا تُنشأ سجلات جديدة في V17.
 export const liveLocationVideoMetaSchema = z.object({
   id: z.string().uuid(),
   durationSeconds: z.number(),
@@ -178,7 +182,7 @@ export const executiveAttendanceOverviewSchema = z.object({
 });
 export type ExecutiveAttendanceOverview = z.infer<typeof executiveAttendanceOverviewSchema>;
 
-// طلب توقيع رابط فيديو (مدخلات دالة Edge live-location-video-url).
+// عقود وصول تاريخي خادمي أثناء retention فقط؛ ليست جزءًا من طلب V17 الجديد.
 export const liveLocationVideoUrlRequestSchema = z.object({ videoId: z.string().uuid() });
 export type LiveLocationVideoUrlRequest = z.infer<typeof liveLocationVideoUrlRequestSchema>;
 

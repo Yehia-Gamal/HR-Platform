@@ -1,9 +1,8 @@
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
-import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/video_verification_page.dart';
+// V17 §9: video_verification_page removed — video permanently disabled.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,8 +33,8 @@ class _LocationIncomingOverlayState
   String? _status;
   String? _error;
 
-  /// مشكلة متعلقة بالموقع (GPS مغلق أو صلاحية مرفوضة) — يظهر زر الإعدادات.
-  bool _locationIssue = false;
+  /// نوع مشكلة الموقع — لتحديد زر الإعدادات المناسب.
+  _LocationIssueKind? _issueKind;
 
   /// هل سبق أن نجح respondLocation؟ لتجنب تكراره عند إعادة المحاولة بعد GPS.
   bool _accepted = false;
@@ -75,10 +74,12 @@ class _LocationIncomingOverlayState
   /// عند العودة من إعدادات الموقع أو الصلاحيات، نعيد الفحص والإرسال تلقائياً.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _locationIssue && !_busy) {
+    if (state == AppLifecycleState.resumed &&
+        _issueKind != null &&
+        !_busy) {
       // تأخير صغير ليكتمل تفعيل GPS / الصلاحية في النظام
       Future<void>.delayed(const Duration(milliseconds: 600), () {
-        if (mounted && !_busy && _locationIssue) {
+        if (mounted && !_busy && _issueKind != null) {
           _recheckAndRetry();
         }
       });
@@ -107,7 +108,7 @@ class _LocationIncomingOverlayState
     // كلا الشرطين تحققا — امسح الخطأ وأعد الإرسال
     setState(() {
       _error = null;
-      _locationIssue = false;
+      _issueKind = null;
     });
     _send();
   }
@@ -124,9 +125,9 @@ class _LocationIncomingOverlayState
     setState(() {
       _busy = true;
       _error = null;
-      _locationIssue = false;
+      _issueKind = null;
       _status = _accepted
-          ? 'جاري تحديد الموقع بدقة عالية...'
+          ? LocationService.phaseLabel(LocationPhase.acquiringLocation)
           : 'جاري قبول الطلب...';
     });
     try {
@@ -137,40 +138,22 @@ class _LocationIncomingOverlayState
         _accepted = true;
       }
 
-      setState(() => _status = 'جاري تحديد الموقع بدقة عالية...');
-      final position = await LocationService.current();
+      final position = await LocationService.current(
+        onPhase: (phase) {
+          if (mounted) {
+            setState(() => _status = LocationService.phaseLabel(phase));
+          }
+        },
+      );
 
-      setState(() => _status = 'جاري الحصول على العنوان...');
+      setState(() => _status = LocationService.phaseLabel(LocationPhase.reverseGeocoding));
       final address = await LocationService.reverseGeocode(
         position.latitude,
         position.longitude,
       );
 
-      if (widget.request.needsVideo) {
-        setState(() => _status = 'جاري فتح الكاميرا...');
-        final empId =
-            widget.employeeId ??
-            ref.read(supabaseProvider).auth.currentUser?.id ??
-            '';
-        if (mounted) {
-          final sent = await Navigator.push<bool>(
-            context,
-            MaterialPageRoute(
-              builder: (_) => VideoVerificationPage(
-                request: widget.request,
-                employeeId: empId,
-              ),
-            ),
-          );
-          if (sent != true) {
-            setState(() {
-              _busy = false;
-              _status = null;
-            });
-            return;
-          }
-        }
-      } else if (widget.request.isTracking) {
+      // V17 §9: video path removed — needsVideo is always false.
+      if (widget.request.isTracking) {
         // tracking mode — accept was enough; location_requests_page handles the rest
       } else {
         setState(() => _status = 'جاري إرسال الموقع...');
@@ -193,26 +176,42 @@ class _LocationIncomingOverlayState
       }
       await _stopUrgentAlarm();
       if (mounted) Navigator.of(context).pop(true);
-    } catch (e) {
+    } on GpsDisabledException {
       if (mounted) {
-        String msg;
-        bool locationIssue = false;
-        if (e is GpsDisabledException) {
-          msg = 'خدمة الموقع غير مفعلة. فعّل GPS ثم أعد المحاولة.';
-          locationIssue = true;
-        } else if (e is GpsPermissionDeniedException) {
-          msg = e.message;
-          locationIssue = true;
-        } else if (e is GpsAccuracyException) {
-          msg = e.message;
-        } else {
-          msg = 'حدث خطأ غير متوقع. أعد المحاولة.';
-        }
         setState(() {
           _busy = false;
           _status = null;
-          _error = msg;
-          _locationIssue = locationIssue;
+          _error = 'خدمة الموقع غير مفعلة. فعّل GPS ثم أعد المحاولة.';
+          _issueKind = _LocationIssueKind.gpsOff;
+        });
+      }
+    } on GpsPermissionDeniedException catch (e) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _status = null;
+          _error = e.message;
+          _issueKind = e.isDeniedForever
+              ? _LocationIssueKind.deniedForever
+              : _LocationIssueKind.permissionDenied;
+        });
+      }
+    } on GpsAccuracyException catch (e) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _status = null;
+          _error = e.message;
+          _issueKind = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _status = null;
+          _error = humanizeError(e);
+          _issueKind = null;
         });
       }
     }
@@ -399,18 +398,55 @@ class _LocationIncomingOverlayState
                               textAlign: TextAlign.center,
                             ),
                           ),
-                          if (_locationIssue) ...[
+                          if (_issueKind == _LocationIssueKind.gpsOff) ...[
                             const SizedBox(height: 12),
                             FilledButton.icon(
                               style: FilledButton.styleFrom(
                                 backgroundColor: Colors.orange,
                                 foregroundColor: Colors.white,
                               ),
-                              onPressed: () {
-                                Geolocator.openLocationSettings();
-                              },
+                              onPressed: () =>
+                                  Geolocator.openLocationSettings(),
                               icon: const Icon(Icons.gps_fixed_rounded),
                               label: const Text('فتح إعدادات الموقع'),
+                            ),
+                          ],
+                          if (_issueKind ==
+                              _LocationIssueKind.deniedForever) ...[
+                            const SizedBox(height: 12),
+                            FilledButton.icon(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed: () => Geolocator.openAppSettings(),
+                              icon: const Icon(Icons.settings_rounded),
+                              label: const Text('فتح إعدادات التطبيق'),
+                            ),
+                          ],
+                          if (_issueKind ==
+                              _LocationIssueKind.permissionDenied) ...[
+                            const SizedBox(height: 12),
+                            FilledButton.icon(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Colors.amber.shade800,
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed: () async {
+                                final perm =
+                                    await Geolocator.requestPermission();
+                                if (!mounted) return;
+                                if (perm == LocationPermission.always ||
+                                    perm == LocationPermission.whileInUse) {
+                                  setState(() {
+                                    _error = null;
+                                    _issueKind = null;
+                                  });
+                                  _send();
+                                }
+                              },
+                              icon: const Icon(Icons.location_on_rounded),
+                              label: const Text('منح صلاحية الموقع'),
                             ),
                           ],
                         ],
@@ -469,14 +505,21 @@ class _LocationIncomingOverlayState
 
   String _modeLabel(String mode) => switch (mode) {
     'snapshot' => 'لقطة موقع فورية',
-    'video_5s' => 'موقع فقط (V12)',
-    'location_video' => 'موقع فقط (V12)',
+    'video_5s' => 'موقع فقط',
+    'location_video' => 'موقع فقط',
     'track_5' => 'تتبع 5 دقائق',
     'track_10' => 'تتبع 10 دقائق',
     'track_15' => 'تتبع 15 دقيقة',
     'track_30' => 'تتبع 30 دقيقة',
     _ => mode,
   };
+}
+
+/// نوع مشكلة الموقع — يحدد زر الإعدادات المعروض.
+enum _LocationIssueKind {
+  gpsOff,
+  permissionDenied,
+  deniedForever,
 }
 
 /// مستمع يُستخدم داخل [WorkspaceScaffold] لعرض الشاشة المنبثقة عند ورود طلب.

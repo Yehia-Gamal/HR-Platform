@@ -61,16 +61,16 @@ const hrSections: NavSection[] = [
     { label: 'الحضور', to: '/hr/attendance', icon: Activity, permission: 'attendance.record.read' },
     { label: 'الورديات وإغلاق الحضور', to: '/hr/attendance/operations', icon: CalendarClock, permission: 'attendance.roster.read' },
     { label: 'الطلبات والموافقات', to: '/hr/requests', icon: ClipboardList, permission: 'requests.request.read' },
+    { label: 'العطل الرسمية', to: '/hr/holidays', icon: CalendarClock, permission: 'holidays.manage' },
   ] },
   { title: 'الأداء والتطوير', items: [
     { label: 'KPI والأداء', to: '/hr/performance', icon: Gauge, permission: 'performance.kpi.read' },
-    { label: 'التدريب والمهارات', to: '/hr/learning', icon: BookOpenCheck, permission: 'learning.course.manage' },
+    // V17 §4.2: learning hidden
   ] },
   { title: 'رحلة الموظف', items: [
     { label: 'التوظيف', to: '/hr/recruitment', icon: BriefcaseBusiness, permission: 'recruitment.requisition.read' },
     { label: 'Onboarding', to: '/hr/onboarding', icon: ListChecks, permission: 'onboarding.journey.read' },
-    { label: 'المستندات والعهد والخروج', to: '/hr/lifecycle', icon: PackageCheck, permission: 'documents.employee.read' },
-    { label: 'استوديو المستندات', to: '/hr/documents/studio', icon: FileSignature, permission: 'documents.template.manage' },
+    // V17 §4.2: lifecycle + documents hidden
   ] },
   { title: 'التواصل والتحليلات', items: [
     { label: 'تقارير HR', to: '/hr/reports', icon: FileClock, permission: 'reports.people.read' },
@@ -92,16 +92,15 @@ const adminSections: NavSection[] = [
     { label: 'دورات KPI والاعتراضات', to: '/admin/performance/cycles', icon: BadgeCheck, permission: 'performance.cycle.manage' },
     { label: 'لجنة الخلافات', to: '/admin/disputes', icon: Gavel, permission: 'relations.case.manage' },
     { label: 'الأدوار والصلاحيات', to: '/admin/access', icon: ShieldCheck, permission: 'access.role.read' },
-    { label: 'حوكمة الإصدار والوصول', to: '/admin/governance', icon: ShieldAlert, permission: 'system.release.read' },
+    // V17 §4.2: governance hidden
   ] },
   { title: 'الخدمات المؤسسية', items: [
-    { label: 'المستندات والعهد والخروج', to: '/admin/lifecycle', icon: PackageCheck, permission: 'assets.inventory.manage' },
-    { label: 'استوديو المستندات', to: '/admin/documents/studio', icon: FileSignature, permission: 'documents.template.manage' },
+    // V17 §4.2: lifecycle + documents hidden
     { label: 'جدولة التقارير', to: '/admin/reports/scheduler', icon: TimerReset, permission: 'reports.schedule.manage' },
     { label: 'العمليات والمهام', to: '/admin/operations', icon: ClipboardList, permission: 'tasks.read' },
-    { label: 'مكتب خدمات الموظفين', to: '/admin/helpdesk', icon: Headphones, permission: 'service.request.manage' },
+    // V17 §4.2: helpdesk hidden
     { label: 'الإدارة المؤسسية', to: '/admin/enterprise', icon: Building2 },
-    { label: 'القوى العاملة والمالية', to: '/admin/people-finance', icon: WalletCards },
+    // V17 §4.2: people-finance (payroll ممنوع) hidden
   ] },
   { title: 'النظام', items: [
     { label: 'التدقيق والأمان', to: '/admin/audit-security', icon: ShieldCheck, permission: 'audit.view' },

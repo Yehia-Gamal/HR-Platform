@@ -76,12 +76,13 @@ class _MobileKpiPageState extends ConsumerState<MobileKpiPage> {
                 controller: _searchController,
                 onSearchChanged: (value) =>
                     setState(() => _search = value.trim().toLowerCase()),
+                /// V17 §10: flow order is self → hr_review → manager_review → finalized.
+                /// manager_final removed from active flow (kept in DB for history).
                 options: const [
                   MobileFilterOption('all', 'كل المراحل'),
                   MobileFilterOption('self', 'الموظف'),
-                  MobileFilterOption('manager_review', 'مراجعة المدير'),
                   MobileFilterOption('hr_review', 'مراجعة HR'),
-                  MobileFilterOption('manager_final', 'اعتماد المدير'),
+                  MobileFilterOption('manager_review', 'مراجعة المدير'),
                   MobileFilterOption('finalized', 'في التقرير'),
                   MobileFilterOption('closed', 'مغلق'),
                   MobileFilterOption('archived', 'مؤرشف'),
@@ -209,7 +210,9 @@ class _KpiCard extends StatelessWidget {
                   label: Text(
                     action == 'self'
                         ? 'بدء التقييم الذاتي'
-                        : 'فتح نموذج المراجعة',
+                        : action == 'hr_review'
+                            ? 'مراجعة HR'
+                            : 'فتح نموذج المراجعة',
                   ),
                 ),
               ],
@@ -234,13 +237,13 @@ class _KpiCard extends StatelessWidget {
         access.hasPermission('performance.kpi.self_assess')) {
       return 'self';
     }
+    if (item.currentStage == 'hr_review' &&
+        access.hasPermission('performance.kpi.hr_assess')) {
+      return 'hr_review';
+    }
     if (item.currentStage == 'manager_review' &&
         access.hasPermission('performance.kpi.manager_assess')) {
       return 'manager_review';
-    }
-    if (item.currentStage == 'manager_final' &&
-        access.hasPermission('performance.kpi.manager_assess')) {
-      return 'manager_final';
     }
     return null;
   }

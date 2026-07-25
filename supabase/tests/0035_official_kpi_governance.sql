@@ -62,11 +62,11 @@ select ok(
   (select count(*) from regexp_matches(pg_get_functiondef('public.refresh_kpi_attendance_inputs(uuid)'::regprocedure),'not exception_settled','g'))>=4,
   'attendance refresh excludes HR exceptions from absence and shortage too');
 
--- Regression: the V10 route is employee -> manager -> HR -> manager final.
+-- V17 §10: the route is employee -> HR -> manager -> manager final.
 select has_function('public','current_is_executive_secretary',array[]::text[],'exclusive cycle-controller predicate exists');
-select ok(pg_get_functiondef('public.advance_kpi_stage(uuid,text,jsonb,text)'::regprocedure) like '%SUBMITTED_TO_DIRECT_MANAGER%','self submission reaches the direct manager');
-select ok(pg_get_functiondef('public.advance_kpi_stage(uuid,text,jsonb,text)'::regprocedure) like '%RETURNED_TO_MANAGER_FOR_FINAL_APPROVAL%','HR returns the result to the manager');
-select ok(pg_get_functiondef('public.advance_kpi_stage(uuid,text,jsonb,text)'::regprocedure) not like '%when ''executive'' then%','executive approval is absent from the V10 transition function');
+select ok(pg_get_functiondef('public.advance_kpi_stage(uuid,text,jsonb,text)'::regprocedure) like '%SUBMITTED_TO_HR%','self submission reaches HR first (V17 flow)');
+select ok(pg_get_functiondef('public.advance_kpi_stage(uuid,text,jsonb,text)'::regprocedure) like '%RETURNED_TO_MANAGER_FOR_FINAL_APPROVAL%','manager review leads to final approval');
+select ok(pg_get_functiondef('public.advance_kpi_stage(uuid,text,jsonb,text)'::regprocedure) not like '%when ''executive'' then%','executive approval is absent from the V17 transition function');
 
 select * from finish();
 rollback;

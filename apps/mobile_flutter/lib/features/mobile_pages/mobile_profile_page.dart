@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
@@ -13,6 +14,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MobileProfilePage extends ConsumerWidget {
@@ -87,10 +90,10 @@ class MobileProfilePage extends ConsumerWidget {
                   ),
                 ),
               ),
+              /// V17 §4.2.3/§4.2.4 — Documents and Custody hidden until
+              /// the backend journey is ready.
               const SizedBox(height: 14),
-              _DocumentsSection(items: item.documents),
-              const SizedBox(height: 14),
-              _AssetsSection(items: item.assets),
+              const _AppVersionCard(),
               const SizedBox(height: 32),
             ],
           ),
@@ -376,13 +379,7 @@ class _InfoSection extends StatelessWidget {
                 ? null
                 : DateFormat('d MMM y', 'ar').format(item.hireDate!),
           ),
-          _row(
-            Icons.description_outlined,
-            'نهاية العقد',
-            item.contractEnd == null
-                ? null
-                : DateFormat('d MMM y', 'ar').format(item.contractEnd!),
-          ),
+          /// V17 §4.2.5 — Contract end date hidden (not relevant for current org).
         ],
       ),
     ),
@@ -430,109 +427,8 @@ class _InfoSection extends StatelessWidget {
   );
 }
 
-class _DocumentsSection extends StatelessWidget {
-  const _DocumentsSection({required this.items});
-  final List<MobileDocumentSummary> items;
-  @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          MobileSectionHeader(title: 'مستنداتي (${items.length})'),
-          const SizedBox(height: 8),
-          if (items.isEmpty)
-            _EmptyLine(
-              icon: Icons.description_outlined,
-              message: 'لا توجد مستندات متاحة.',
-            )
-          else
-            ...items.map(
-              (item) => ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.description_outlined),
-                title: Text(item.title),
-                subtitle: item.expiryDate == null
-                    ? null
-                    : Text(
-                        'ينتهي ${DateFormat('d MMM y', 'ar').format(item.expiryDate!)}',
-                      ),
-                trailing: MobileStatusPill(
-                  item.status == 'expired' ? 'expired' : 'active',
-                ),
-              ),
-            ),
-        ],
-      ),
-    ),
-  );
-}
-
-class _AssetsSection extends StatelessWidget {
-  const _AssetsSection({required this.items});
-  final List<MobileAssetSummary> items;
-  @override
-  Widget build(BuildContext context) {
-    final active = items
-        .where((item) => item.returnedAt == null)
-        .toList(growable: false);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            MobileSectionHeader(title: 'العهد الحالية (${active.length})'),
-            const SizedBox(height: 8),
-            if (active.isEmpty)
-              _EmptyLine(
-                icon: Icons.devices_other_outlined,
-                message: 'لا توجد عهد مسجلة عليك.',
-              )
-            else
-              ...active.map(
-                (item) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.devices_other_outlined),
-                  title: Text(item.assetName),
-                  subtitle: item.serial == null
-                      ? null
-                      : Text('الرقم: ${item.serial}'),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyLine extends StatelessWidget {
-  const _EmptyLine({required this.icon, required this.message});
-  final IconData icon;
-  final String message;
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Column(
-        children: [
-          Icon(icon, size: 32, color: scheme.onSurfaceVariant),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-        ],
-      ),
-    );
-  }
-}
+/// V17 §4.2.3/§4.2.4 — _DocumentsSection and _AssetsSection removed;
+/// re-add when the backend journey is ready.
 
 class _DeviceSecuritySection extends ConsumerStatefulWidget {
   const _DeviceSecuritySection();
@@ -1058,6 +954,113 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+class _AppVersionCard extends StatefulWidget {
+  const _AppVersionCard();
+
+  @override
+  State<_AppVersionCard> createState() => _AppVersionCardState();
+}
+
+class _AppVersionCardState extends State<_AppVersionCard> {
+  String _version = '';
+  String _deviceModel = '';
+  String _osVersion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInfo();
+  }
+
+  Future<void> _loadInfo() async {
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      final version = '${packageInfo.version}+${packageInfo.buildNumber}';
+
+      String model;
+      String os;
+      try {
+        final deviceInfo = DeviceInfoPlugin();
+        if (Platform.isIOS) {
+          final info = await deviceInfo.iosInfo;
+          model = info.name;
+          os = 'iOS ${info.systemVersion}';
+        } else {
+          final info = await deviceInfo.androidInfo;
+          model = '${info.manufacturer} ${info.model}'.trim();
+          os = 'Android ${info.version.release}';
+        }
+      } catch (_) {
+        model = '';
+        os = '';
+      }
+
+      if (mounted) {
+        setState(() {
+          _version = version;
+          _deviceModel = model;
+          _osVersion = os;
+        });
+      }
+    } catch (_) {
+      // PackageInfo failed — leave empty.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        );
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'معلومات التطبيق والجهاز',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 10),
+            if (_version.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(8),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              )
+            else ...[
+              _infoRow(Icons.info_outline, 'الإصدار', _version, muted),
+              if (_deviceModel.isNotEmpty)
+                _infoRow(Icons.phone_android, 'الجهاز', _deviceModel, muted),
+              if (_osVersion.isNotEmpty)
+                _infoRow(Icons.android, 'نظام التشغيل', _osVersion, muted),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _infoRow(IconData icon, String label, String value, TextStyle? style) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: style?.color),
+          const SizedBox(width: 8),
+          Text('$label: ', style: style?.copyWith(fontWeight: FontWeight.w700)),
+          Expanded(child: Text(value, style: style)),
+        ],
       ),
     );
   }

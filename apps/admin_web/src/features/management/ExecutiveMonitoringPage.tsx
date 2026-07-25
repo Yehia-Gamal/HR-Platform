@@ -67,7 +67,7 @@ export function ExecutiveMonitoringPage() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!draft || draft.reason.trim().length < 5) return;
-    const created = await commands.request.mutateAsync({ employeeId: draft.row.id, mode: 'snapshot', reason: draft.reason.trim() });
+    const created = await commands.request.mutateAsync({ employeeId: draft.row.id, reason: draft.reason.trim() });
     setDraft(null);
     const id = (created as { id?: string } | null)?.id;
     if (id) setSelectedRequestId(id);

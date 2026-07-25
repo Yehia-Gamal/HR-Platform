@@ -1,12 +1,12 @@
-import { Clock, Crosshair, Download, MapPin, Play, ShieldAlert, Video } from 'lucide-react';
+import { Clock, Crosshair, MapPin, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { LiveLocationMap, type MapPoint } from './LiveLocationMap';
-import { useLiveLocationLegalHold, useLiveLocationMapUrl, useLiveLocationResponse, useLiveLocationVideoUrl } from './useControlCenters';
+import { useLiveLocationMapUrl, useLiveLocationResponse } from './useControlCenters';
 
-// بطاقة نتيجة طلب الموقع الكاملة (القسم 10): خريطة + عنوان تقريبي + دقة +
-// توقيتات + فيديو التحقق (رابط موقّع عند الطلب) + الحفظ الإداري.
+// بطاقة نتيجة طلب الموقع الكاملة (القسم 10): خريطة + عنوان تقريبي + دقة + توقيتات.
+// V17 §9: video permanently disabled — video player, legal hold, and URL signing UI removed.
 
 function fmt(value: string | null | undefined): string {
   if (!value) return '—';
@@ -19,11 +19,8 @@ function num(v: unknown): number | null {
 }
 
 export function LiveLocationResultCard({ requestId }: { requestId: string }) {
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [mapSnapshotUrl, setMapSnapshotUrl] = useState<string | null>(null);
-  const videoUrlCmd = useLiveLocationVideoUrl();
   const mapUrlCmd = useLiveLocationMapUrl();
-  const legalHold = useLiveLocationLegalHold();
 
   const req = (typeof requestId === 'string' ? requestId : null);
   const response = useLiveLocationResponse(req, true);
@@ -39,7 +36,7 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
   const request = data.request ?? {};
   const employee = data.employee ?? {};
   const points: any[] = Array.isArray(data.points) ? data.points : [];
-  const video = data.video ?? null;
+  // V17 §9: video data ignored — video permanently disabled.
   const latest = points.length ? points[points.length - 1] : null;
 
   const mapPoints: MapPoint[] = points
@@ -51,20 +48,8 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
       sublabel: p.addressAr ?? null,
     }));
 
-  async function playVideo() {
-    if (!video?.id) return;
-    const url = await videoUrlCmd.mutateAsync(video.id);
-    setVideoUrl(url);
-  }
-
   async function loadMapSnapshot() {
     setMapSnapshotUrl(await mapUrlCmd.mutateAsync(requestId));
-  }
-
-  async function hold() {
-    if (!video?.id) return;
-    const until = new Date(Date.now() + 7 * 24 * 3600_000).toISOString();
-    await legalHold.mutateAsync({ videoId: video.id, holdUntil: until, reason: 'حفظ إداري بقرار السكرتير التنفيذي' });
   }
 
   return (
@@ -118,31 +103,7 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
         <EmptyState title="لم يصل موقع بعد" description="بانتظار استجابة الموظف وإرسال موقعه." />
       )}
 
-      {video ? (
-        <article className="card p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2"><Video className="size-5 text-[var(--brand-primary)]" /><h3 className="font-black">فيديو التحقق ({video.durationSeconds ?? 5} ثوانٍ)</h3></div>
-            <StatusBadge value={video.status ?? 'ready'} />
-          </div>
-          {videoUrl ? (
-            <video className="mt-4 w-full rounded-2xl" src={videoUrl} controls autoPlay playsInline />
-          ) : (
-            <button type="button" className="btn-secondary mt-4" onClick={() => void playVideo()} disabled={videoUrlCmd.isPending || video.status === 'deleted'}>
-              <Play className="size-4" />{video.status === 'deleted' ? 'حُذف بعد انتهاء مدة الاحتفاظ' : videoUrlCmd.isPending ? 'جارٍ توقيع الرابط…' : 'تشغيل الفيديو'}
-            </button>
-          )}
-          {videoUrlCmd.isError ? <p className="mt-2 text-sm font-bold text-red-700">تعذّر توقيع رابط الفيديو أو الصلاحية غير كافية.</p> : null}
-          <div className="muted mt-3 text-xs">
-            يُحذف تلقائيًا بعد: {fmt(video.retentionDeleteAfter)}{video.legalHoldUntil ? ` · حفظ إداري حتى ${fmt(video.legalHoldUntil)}` : ''}
-          </div>
-          {!video.legalHoldUntil && video.status !== 'deleted' ? (
-            <button type="button" className="btn-secondary mt-3" onClick={() => void hold()} disabled={legalHold.isPending}>
-              <Download className="size-4" />{legalHold.isPending ? 'جارٍ الحفظ…' : 'حفظ إداري (تجاوز الحذف التلقائي)'}
-            </button>
-          ) : null}
-          {legalHold.isError ? <p className="mt-2 text-sm font-bold text-red-700">الحفظ الإداري يتطلب صلاحية إدارة الاحتفاظ.</p> : null}
-        </article>
-      ) : null}
+      {/* V17 §9: video section permanently removed — location-only. */}
     </div>
   );
 }

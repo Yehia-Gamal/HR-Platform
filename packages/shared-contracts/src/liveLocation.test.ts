@@ -3,15 +3,19 @@ import {
   executiveAttendanceOverviewSchema,
   liveLocationModeSchema,
   liveLocationResponseSchema,
+  newLiveLocationRequestModeSchema,
 } from './liveLocation.js';
 
 describe('live location contracts', () => {
-  it('accepts the combined location_video mode', () => {
+  it('keeps historical modes readable but only accepts snapshot for new requests', () => {
     expect(liveLocationModeSchema.parse('location_video')).toBe('location_video');
+    expect(newLiveLocationRequestModeSchema.parse('snapshot')).toBe('snapshot');
+    expect(() => newLiveLocationRequestModeSchema.parse('location_video')).toThrow();
+    expect(() => newLiveLocationRequestModeSchema.parse('track_15')).toThrow();
     expect(() => liveLocationModeSchema.parse('teleport')).toThrow();
   });
 
-  it('round-trips a get_live_location_response payload with point + video', () => {
+  it('round-trips a historical response payload during retention', () => {
     const payload = liveLocationResponseSchema.parse({
       request: {
         id: '11111111-1111-4111-8111-111111111111',

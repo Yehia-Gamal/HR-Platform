@@ -3,10 +3,8 @@ import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_brief_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_emergency_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_people_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_decisions_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_risk_center_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -103,6 +101,7 @@ class ExecutiveHomePage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 14),
+          /// V17 §4.2.7 — Quick links: Brief, People, Decisions only.
           Row(
             children: [
               Expanded(
@@ -133,23 +132,6 @@ class ExecutiveHomePage extends ConsumerWidget {
               const SizedBox(width: 9),
               Expanded(
                 child: _ExecutiveQuickLink(
-                  icon: Icons.emergency_outlined,
-                  label: 'استجابة سريعة',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ExecutiveEmergencyPage(),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _ExecutiveQuickLink(
                   icon: Icons.campaign_outlined,
                   label: 'إصدار قرارات',
                   onTap: () => Navigator.push(
@@ -160,21 +142,6 @@ class ExecutiveHomePage extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 9),
-              Expanded(
-                child: _ExecutiveQuickLink(
-                  icon: Icons.gavel_outlined,
-                  label: 'مركز القرارات',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ExecutiveRiskCenterPage(),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 9),
-              Expanded(child: SizedBox()), // spacer for the third column
             ],
           ),
           const SizedBox(height: 20),

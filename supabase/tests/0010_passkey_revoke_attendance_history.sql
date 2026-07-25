@@ -2,14 +2,14 @@ begin;
 select plan(8);
 
 select has_function('public','revoke_my_passkey',array['uuid','text']);
-select has_function('public','get_my_attendance_history',array['integer','timestamp with time zone']);
+select has_function('public','get_my_attendance_history',array['integer','timestamp with time zone','integer']);
 
 select function_privs_are(
   'public','revoke_my_passkey',array['uuid','text'],'authenticated',array['EXECUTE'],
   'authenticated can execute controlled self passkey revocation'
 );
 select function_privs_are(
-  'public','get_my_attendance_history',array['integer','timestamp with time zone'],'authenticated',array['EXECUTE'],
+  'public','get_my_attendance_history',array['integer','timestamp with time zone','integer'],'authenticated',array['EXECUTE'],
   'authenticated can read personal attendance history through RPC'
 );
 

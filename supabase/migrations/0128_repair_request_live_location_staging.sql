@@ -1,11 +1,12 @@
 -- =====================================================================
--- 0128: إصلاح request_live_location على staging.
+-- 0128: إصلاح request_live_location على staging وتطبيق عقد V17 النهائي.
 -- =====================================================================
 -- خلفية: طُبّق 0124 على staging بنسخة مكسورة (أعمدة غير موجودة
 --   target_employee_id/requester_employee_id/mode، overload رباعي ملتبس،
 --   وفقدان cooldown/fullScreen/deep-link). لأن 0124 مُسجّل "مُطبّقاً" على
 --   remote فلن يُعاد تشغيله بـ db push — لذا هذا الإصلاح المستقل يعيد كتابة
---   الدالة بالنسخة الصحيحة (المطابقة لعقد 0041 وتطبيق الموبايل).
+--   الدالة بعقد واحد غير ملتبس. V17 يقصر إنشاء الطلب على المدير التنفيذي
+--   ويقصر الطلبات الجديدة على لقطة موقع حديثة واحدة بلا تتبع أو فيديو.
 -- idempotent: CREATE OR REPLACE + REVOKE/GRANT صريحة.
 -- =====================================================================
 
@@ -26,20 +27,20 @@ declare
   v_target_user uuid;
 begin
   if v_me is null then raise exception 'requester has no employee profile' using errcode='42501'; end if;
-  if not (public.current_is_full_access() or public.can_access_employee(p_employee_id,'live_location.request')) then
-    raise exception 'target outside permitted scope' using errcode='42501';
+  if not public.current_has_active_role(array['executive', 'executive-director']) then
+    raise exception 'only executive director may request employee location' using errcode='42501';
   end if;
   if p_employee_id = v_me then raise exception 'cannot request own location' using errcode='22023'; end if;
 
-  -- V12 §9: أوضاع الفيديو ملغاة نهائيًا — snapshot و track_* فقط.
-  if p_mode in ('video_5s', 'location_video') then
-    raise exception 'VIDEO_MODE_DISABLED: وضع الفيديو ملغى نهائيًا بسياسة V12 §9. استخدم snapshot أو track_*.'
-      using errcode = '22023';
+  -- V17: الطلب الجديد لقطة موقع فورية فقط. تبقى القيم القديمة للقراءة التاريخية.
+  if coalesce(p_mode, '') <> 'snapshot' then
+    raise exception 'LOCATION_MODE_DISABLED: V17 allows snapshot location requests only'
+      using errcode='22023';
   end if;
 
   if not exists (
     select 1 from public.employees where id = p_employee_id
-      and status in ('active','invited','onboarding') and user_id is not null
+      and status = 'active' and is_active and not is_deleted and user_id is not null
   ) then
     raise exception 'employee is not active or has no linked user account' using errcode='P0002';
   end if;
@@ -53,13 +54,7 @@ begin
     raise exception 'cooldown_active: please wait 30 seconds between requests' using errcode='22023';
   end if;
 
-  -- حساب المدة حسب الوضع (أوضاع الفيديو مرفوضة أعلاه).
-  v_duration := case p_mode
-    when 'snapshot' then 1
-    when 'track_5' then 5 when 'track_10' then 10
-    when 'track_15' then 15 when 'track_30' then 30
-    else null end;
-  if v_duration is null then raise exception 'invalid request mode' using errcode='22023'; end if;
+  v_duration := 1;
 
   insert into public.live_location_requests(
     employee_id, requested_by, reason, status, purpose,
@@ -69,9 +64,9 @@ begin
     'pending', 'verification',
     now(), now() + interval '5 minutes', v_duration,
     jsonb_build_object(
-      'mode', p_mode, 'videoSeconds', 0,
+      'mode', 'snapshot', 'videoSeconds', 0,
       'needsPoint', true, 'needsVideo', false,
-      'isTracking', p_mode like 'track_%', 'videoRemoved', true),
+      'isTracking', false, 'videoRemoved', true, 'policyVersion', 'V17'),
     auth.uid())
   returning * into v_req;
 
@@ -98,7 +93,7 @@ begin
   perform public.log_audit_event(
     'live_location.requested', 'security', 'warning',
     'live_location_requests', v_req.id, 'طلب موقع حي', null,
-    jsonb_build_object('mode', p_mode, 'employeeId', p_employee_id, 'requestId', v_req.id));
+    jsonb_build_object('mode', 'snapshot', 'employeeId', p_employee_id, 'requestId', v_req.id));
   perform public.nudge_notification_dispatcher();
   return v_req;
 end $$;

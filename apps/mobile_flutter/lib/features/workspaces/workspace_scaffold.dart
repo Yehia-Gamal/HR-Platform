@@ -3,9 +3,7 @@ import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/location_incoming_overlay.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_brief_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_governance_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_people_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_reports_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_services_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_disputes_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
@@ -223,22 +221,8 @@ class WorkspaceScaffold extends ConsumerWidget {
           label: 'القرارات والتعاميم',
           page: const MobileOfficialFeedPage(),
         ),
-        _MoreItem(
-          icon: Icons.analytics_outlined,
-          label: 'صندوق التقارير التنفيذي',
-          page: const _StandalonePage(
-            title: 'التقارير التنفيذية',
-            child: ExecutiveReportsPage(),
-          ),
-        ),
-        _MoreItem(
-          icon: Icons.account_balance_outlined,
-          label: 'الحوكمة والتنفيذ',
-          page: const _StandalonePage(
-            title: 'الحوكمة والتنفيذ',
-            child: ExecutiveGovernancePage(),
-          ),
-        ),
+        /// V17 §4.2.7 — Reports (in tab bar) and Governance hidden until
+        /// a real operational journey is implemented.
       ],
       if (isManager)
         _MoreItem(
@@ -448,19 +432,6 @@ class _MoreItem {
   final IconData icon;
   final String label;
   final Widget page;
-}
-
-class _StandalonePage extends StatelessWidget {
-  const _StandalonePage({required this.title, required this.child});
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(title)),
-    body: child,
-  );
 }
 
 class _Avatar extends StatelessWidget {

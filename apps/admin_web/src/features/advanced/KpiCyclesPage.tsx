@@ -57,7 +57,7 @@ export function KpiCyclesPage() {
   });
 
   return <div className="space-y-6">
-    <PageHeader title="دورات KPI الرسمية" description="السكرتير التنفيذي وحده يجهز ويفتح ويعلق ويمدد ويغلق ويؤرشف الدورة. المسار: الموظف ← المدير ← HR ← المدير للاعتماد النهائي ← التقرير الشهري." actions={<label className="text-sm font-bold">الشهر<input className="input mt-1" type="month" value={month} onChange={(event) => setMonth(event.target.value)} /></label>} />
+    <PageHeader title="دورات KPI الرسمية" description="السكرتير التنفيذي وحده يجهز ويفتح ويعلق ويمدد ويغلق ويؤرشف الدورة. المسار: الموظف ← HR ← المدير المباشر للاعتماد ← التقرير الشهري." actions={<label className="text-sm font-bold">الشهر<input className="input mt-1" type="month" value={month} onChange={(event) => setMonth(event.target.value)} /></label>} />
     {query.isError ? <ErrorState title="تعذر تحميل دورات KPI" description={query.error instanceof Error ? query.error.message : undefined} onRetry={() => void query.refetch()} /> : query.isLoading && !data ? <><MetricSkeletonRow /><ListSkeleton rows={3} /></> : <>
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="الدورات" value={totals.cycles} icon={CalendarDays} /><MetricCard label="التقييمات" value={totals.evaluations} icon={UsersRound} /><MetricCard label="المدرجة في التقارير" value={totals.finalized} icon={CheckCircle2} /><MetricCard label="الاعتراضات" value={totals.appeals} icon={Scale} /></section>
 

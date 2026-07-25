@@ -1,5 +1,5 @@
 import { employee360Schema, employeeSummarySchema, type Employee360, type EmployeeSummary } from '@ahla/shared-contracts';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSupabase } from '../../core/supabase';
 import { useAuth } from '../auth/AuthProvider';
 
@@ -16,6 +16,10 @@ const developmentEmployees: EmployeeSummary[] = [
     departmentId: null,
     teamId: null,
     branchId: null,
+    department: 'الإدارة التجريبية',
+    team: null,
+    branch: 'المقر الرئيسي',
+    jobTitle: 'موظف تجريبي',
     createdAt: new Date().toISOString(),
   },
   {
@@ -30,41 +34,32 @@ const developmentEmployees: EmployeeSummary[] = [
     departmentId: null,
     teamId: null,
     branchId: null,
+    department: 'الإدارة التجريبية',
+    team: null,
+    branch: 'المقر الرئيسي',
+    jobTitle: 'مدير مباشر',
     createdAt: new Date().toISOString(),
   },
 ];
 
-export function useEmployees() {
+export function useEmployees(search?: string, status?: string) {
   const auth = useAuth();
   return useQuery({
-    queryKey: ['employees', auth.isMock],
+    queryKey: ['employees', search, status, auth.isMock],
     enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<EmployeeSummary[]> => {
       if (auth.isMock) return developmentEmployees;
 
       const supabase = await getSupabase();
-      const { data, error } = await supabase
-        .from('employees')
-        .select('id,employee_code,full_name_ar,full_name_en,phone_e164,status,is_active,photo_url,department_id,team_id,branch_id,created_at')
-        .eq('is_deleted', false)
-        .order('created_at', { ascending: false })
-        .limit(100);
+      const { data, error } = await supabase.rpc('get_employees_enriched', {
+        p_search: search?.trim() || null,
+        p_status: status && status !== 'all' ? status : null,
+        p_limit: 500,
+      });
 
       if (error) throw error;
-      return (data ?? []).map((row) => employeeSummarySchema.parse({
-        id: row.id,
-        employeeCode: row.employee_code,
-        fullNameAr: row.full_name_ar,
-        fullNameEn: row.full_name_en,
-        phoneE164: row.phone_e164,
-        status: row.status,
-        isActive: row.is_active,
-        photoUrl: row.photo_url,
-        departmentId: row.department_id,
-        teamId: row.team_id,
-        branchId: row.branch_id,
-        createdAt: row.created_at,
-      }));
+      const rows = Array.isArray(data) ? data : [];
+      return rows.map((row: Record<string, unknown>) => employeeSummarySchema.parse(row));
     },
   });
 }
@@ -141,6 +136,29 @@ export function useChangeManager() {
         p_reason: reason,
       });
       if (error) throw error;
+    },
+  });
+}
+
+export function useUpdateEmployee() {
+  const auth = useAuth();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ employeeId, changes, reason }: { employeeId: string; changes: Record<string, unknown>; reason: string }): Promise<void> => {
+      if (auth.isMock) return;
+      const supabase = await getSupabase();
+      const { error } = await supabase.rpc('update_employee_admin', {
+        p_employee_id: employeeId,
+        p_changes: changes,
+        p_reason: reason,
+      });
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['employees'] }),
+        client.invalidateQueries({ queryKey: ['employee-360'] }),
+      ]);
     },
   });
 }

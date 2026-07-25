@@ -1,7 +1,7 @@
 import type { DisputeOperationsCatalog } from '@ahla/shared-contracts';
 import {
-  AlertTriangle, CalendarPlus, CheckCircle2, Clock3, FileText, Gavel, MessageSquareText,
-  RotateCcw, Scale, Send, ShieldAlert, UserCheck, UsersRound,
+  AlertTriangle, Briefcase, CalendarPlus, CheckCircle2, ClipboardCheck, Clock3, FileText, Gavel, MessageSquareText,
+  RotateCcw, Scale, Send, ShieldAlert, ShieldCheck, UserCheck, UsersRound,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -80,6 +80,8 @@ export function DisputesPage() {
   const [settlement, setSettlement] = useState({ type: 'written_apology', fromId: '', toId: '', text: '', place: '', dueAt: '' });
   const [proofs, setProofs] = useState<Record<string, string>>({});
   const [appealResolution, setAppealResolution] = useState<Record<string, string>>({});
+  const [proposedAction, setProposedAction] = useState('');
+  const [executionNotes, setExecutionNotes] = useState('');
 
   const cases = query.data?.cases ?? [];
   const people = directory.data ?? [];
@@ -112,6 +114,8 @@ export function DisputesPage() {
     setQuorum(item.quorum);
     setMembers(item.members.filter((member) => member.active).map((member) => ({ employeeId: member.employeeId, role: member.role })));
     setTransition({ action: '', reason: '', targetId: '', summary: '', priority: item.priority });
+    setProposedAction('');
+    setExecutionNotes('');
     setFeedback(null);
   };
 
@@ -283,6 +287,71 @@ export function DisputesPage() {
         </section> : null}
 
         {selected.decision ? <section className="card p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-lg font-black">القرار {selected.decision.number}</h3><p className="muted mt-1 text-sm">صدر {formatDate(selected.decision.issuedAt)}</p></div><StatusBadge value={selected.decision.status} /></div><p className="mt-4 whitespace-pre-wrap leading-8">{selected.decision.text}</p><details className="mt-4 rounded-2xl bg-[var(--surface-muted)] p-4"><summary className="cursor-pointer font-black">الحيثيات الداخلية</summary><p className="mt-3 whitespace-pre-wrap leading-7">{selected.decision.rationale}</p></details></section> : null}
+
+        {selected.decision ? <section className="card p-5">
+          <h3 className="text-lg font-black">مسار الإجراء الإداري</h3>
+          <p className="muted mt-1 text-sm">ثلاث خطوات: اقتراح المقرر → قرار المدير التنفيذي → تنفيذ الموارد البشرية.</p>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-3">
+            <div className={`rounded-2xl border p-4 ${selected.proposedAdministrativeAction ? 'border-[var(--success)]/30 bg-[var(--success-soft)]' : 'border-[var(--border)] bg-[var(--surface-muted)]'}`}>
+              <div className="flex items-center gap-2">
+                <Briefcase className={`size-5 ${selected.proposedAdministrativeAction ? 'text-[var(--success)]' : 'text-[var(--muted)]'}`} aria-hidden="true" />
+                <strong className="text-sm">١. اقتراح المقرر</strong>
+              </div>
+              <StatusBadge value={selected.proposedAdministrativeAction ? 'completed' : 'pending'} />
+              {selected.proposedAdministrativeAction ? <p className="mt-2 text-sm leading-7">{selected.proposedAdministrativeAction}</p> : <p className="muted mt-2 text-xs">لم يُقترح إجراء بعد</p>}
+            </div>
+
+            <div className={`rounded-2xl border p-4 ${selected.executiveDecision === 'approve' ? 'border-[var(--success)]/30 bg-[var(--success-soft)]' : selected.executiveDecision === 'reject' ? 'border-[var(--danger)]/30 bg-[var(--danger-soft)]' : selected.executiveDecision === 'modify' ? 'border-[var(--warning)]/30 bg-[var(--warning-soft)]' : 'border-[var(--border)] bg-[var(--surface-muted)]'}`}>
+              <div className="flex items-center gap-2">
+                <ShieldCheck className={`size-5 ${selected.executiveDecision ? (selected.executiveDecision === 'approve' ? 'text-[var(--success)]' : selected.executiveDecision === 'reject' ? 'text-[var(--danger)]' : 'text-[var(--warning)]') : 'text-[var(--muted)]'}`} aria-hidden="true" />
+                <strong className="text-sm">٢. قرار المدير التنفيذي</strong>
+              </div>
+              {selected.executiveDecision ? <><StatusBadge value={selected.executiveDecision === 'approve' ? 'approved' : selected.executiveDecision === 'reject' ? 'rejected' : 'modified'} />{selected.executiveDecisionReason ? <p className="mt-2 text-sm leading-7">{selected.executiveDecisionReason}</p> : null}{selected.approvedAdministrativeAction && selected.executiveDecision === 'modify' ? <p className="mt-2 rounded-xl bg-[var(--surface)] p-3 text-sm leading-7"><strong className="block text-xs">الإجراء المعدّل:</strong>{selected.approvedAdministrativeAction}</p> : null}</> : <p className="muted mt-2 text-xs">بانتظار قرار المدير التنفيذي (عبر التطبيق)</p>}
+            </div>
+
+            <div className={`rounded-2xl border p-4 ${selected.executedAt ? 'border-[var(--success)]/30 bg-[var(--success-soft)]' : 'border-[var(--border)] bg-[var(--surface-muted)]'}`}>
+              <div className="flex items-center gap-2">
+                <ClipboardCheck className={`size-5 ${selected.executedAt ? 'text-[var(--success)]' : 'text-[var(--muted)]'}`} aria-hidden="true" />
+                <strong className="text-sm">٣. تنفيذ الموارد البشرية</strong>
+              </div>
+              <StatusBadge value={selected.executedAt ? 'completed' : 'pending'} />
+              {selected.executedAt ? <><p className="mt-2 text-sm leading-7">تم التنفيذ {formatDate(selected.executedAt)}</p>{selected.executionNotes ? <p className="mt-2 rounded-xl bg-[var(--surface)] p-3 text-sm leading-7">{selected.executionNotes}</p> : null}</> : <p className="muted mt-2 text-xs">لم يُنفذ بعد</p>}
+            </div>
+          </div>
+
+          {!selected.proposedAdministrativeAction ? <div className="mt-5 rounded-2xl border border-[var(--border)] p-4">
+            <h4 className="font-bold">اقتراح الإجراء الإداري</h4>
+            <p className="muted mt-1 text-xs">بصفتك مقرر اللجنة، اقترح الإجراء الإداري المناسب بناءً على قرار اللجنة.</p>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+              <textarea className="input min-h-20 flex-1" placeholder="وصف الإجراء الإداري المقترح…" value={proposedAction} onChange={(event) => setProposedAction(event.target.value)} aria-label="الإجراء الإداري المقترح" />
+              <button className="btn-primary self-end" disabled={proposedAction.trim().length < 10 || commands.proposeAdminAction.isPending} onClick={() => void run(async () => { await commands.proposeAdminAction.mutateAsync({ p_case_id: selected.id, p_proposed_action: proposedAction.trim() }); setProposedAction(''); }, 'تم إرسال الاقتراح للمدير التنفيذي للمراجعة.')}><Briefcase className="size-4" />إرسال الاقتراح</button>
+            </div>
+          </div> : null}
+
+          {selected.executiveDecision === 'approve' && !selected.executedAt ? <div className="mt-5 rounded-2xl border border-[var(--success)]/30 bg-[var(--success-soft)] p-4">
+            <h4 className="font-bold text-[var(--success)]">تنفيذ الإجراء الإداري المعتمد</h4>
+            <p className="muted mt-1 text-xs">الإجراء المعتمد: {selected.approvedAdministrativeAction ?? selected.proposedAdministrativeAction}</p>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+              <textarea className="input min-h-20 flex-1" placeholder="ملاحظات التنفيذ وتفاصيل ما تم…" value={executionNotes} onChange={(event) => setExecutionNotes(event.target.value)} aria-label="ملاحظات التنفيذ" />
+              <button className="btn-primary self-end" disabled={executionNotes.trim().length < 5 || commands.executeAdminAction.isPending} onClick={() => void run(async () => { await commands.executeAdminAction.mutateAsync({ p_case_id: selected.id, p_notes: executionNotes.trim() }); setExecutionNotes(''); }, 'تم تنفيذ الإجراء الإداري وتسجيله.')}><ClipboardCheck className="size-4" />تأكيد التنفيذ</button>
+            </div>
+          </div> : null}
+
+          {selected.executiveDecision === 'modify' && !selected.executedAt ? <div className="mt-5 rounded-2xl border border-[var(--warning)]/30 bg-[var(--warning-soft)] p-4">
+            <h4 className="font-bold text-[var(--warning)]">تنفيذ الإجراء الإداري المعدّل</h4>
+            <p className="muted mt-1 text-xs">الإجراء المعدّل: {selected.approvedAdministrativeAction}</p>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+              <textarea className="input min-h-20 flex-1" placeholder="ملاحظات التنفيذ وتفاصيل ما تم…" value={executionNotes} onChange={(event) => setExecutionNotes(event.target.value)} aria-label="ملاحظات التنفيذ" />
+              <button className="btn-primary self-end" disabled={executionNotes.trim().length < 5 || commands.executeAdminAction.isPending} onClick={() => void run(async () => { await commands.executeAdminAction.mutateAsync({ p_case_id: selected.id, p_notes: executionNotes.trim() }); setExecutionNotes(''); }, 'تم تنفيذ الإجراء الإداري المعدّل وتسجيله.')}><ClipboardCheck className="size-4" />تأكيد التنفيذ</button>
+            </div>
+          </div> : null}
+
+          {selected.executiveDecision === 'reject' ? <div className="mt-5 rounded-2xl border border-[var(--danger)]/30 bg-[var(--danger-soft)] p-4">
+            <div className="flex items-center gap-2"><AlertTriangle className="size-5 text-[var(--danger)]" aria-hidden="true" /><h4 className="font-bold text-[var(--danger)]">رفض المدير التنفيذي الإجراء المقترح</h4></div>
+            {selected.executiveDecisionReason ? <p className="mt-2 text-sm leading-7">{selected.executiveDecisionReason}</p> : null}
+          </div> : null}
+        </section> : null}
 
         {selected.decision && selected.status !== 'closed' ? <section className="card p-5"><h3 className="text-lg font-black">الاعتذار أو التسوية</h3><div className="mt-4 grid gap-3 md:grid-cols-2"><select className="input" aria-label="نوع التسوية" value={settlement.type} onChange={(event) => setSettlement({ ...settlement, type: event.target.value })}><option value="verbal_apology">اعتذار شفهي</option><option value="written_apology">اعتذار مكتوب</option><option value="group_apology">اعتذار في مجموعة العمل</option><option value="undertaking">تعهد</option><option value="mediation">تسوية</option><option value="follow_up">جلسة متابعة</option><option value="other">أخرى</option></select><select className="input" aria-label="المطلوب منه التنفيذ" value={settlement.fromId} onChange={(event) => setSettlement({ ...settlement, fromId: event.target.value })}><option value="">المطلوب منه التنفيذ</option>{selected.parties.map((party) => <option key={party.id} value={party.employeeId}>{party.name}</option>)}</select><select className="input" aria-label="المستفيد" value={settlement.toId} onChange={(event) => setSettlement({ ...settlement, toId: event.target.value })}><option value="">المستفيد</option>{selected.parties.map((party) => <option key={party.id} value={party.employeeId}>{party.name}</option>)}</select><input className="input" type="datetime-local" aria-label="موعد التنفيذ" value={settlement.dueAt} onChange={(event) => setSettlement({ ...settlement, dueAt: event.target.value })} /><textarea className="input min-h-20" placeholder="نص الاعتذار أو تفاصيل التسوية" value={settlement.text} onChange={(event) => setSettlement({ ...settlement, text: event.target.value })} /><input className="input" placeholder="مكان نشر الاعتذار (إن وجد)" value={settlement.place} onChange={(event) => setSettlement({ ...settlement, place: event.target.value })} /></div><button className="btn-secondary mt-3" disabled={!settlement.fromId || commands.recordSettlement.isPending} onClick={() => void run(() => commands.recordSettlement.mutateAsync({ p_case_id: selected.id, p_type: settlement.type, p_from: settlement.fromId, p_to: settlement.toId || null, p_text: settlement.text || null, p_publication_place: settlement.place || null, p_due_at: settlement.dueAt ? new Date(settlement.dueAt).toISOString() : null }), 'تم تسجيل التسوية وإسناد تنفيذها دون إرسال أي نص تلقائيًا.')}><Scale className="size-4" />تسجيل التسوية</button></section> : null}
 

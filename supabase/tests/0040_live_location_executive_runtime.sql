@@ -4,16 +4,16 @@
 -- Everything rolls back.
 --
 -- V12 §9 policy: the video feature is PERMANENTLY REMOVED. This contract now
--- asserts that snapshot/track_* modes work and that video modes are rejected.
+-- asserts that only the Executive Director can create a new snapshot request.
 --
 -- Personas:
---   executive-director (org scope), operations-manager (dept scope),
+--   executive-director (org scope), main admin, operations-manager (dept scope),
 --   employee target (dept A), peer employee (dept B), unauthorized employee.
 
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(20);
+select plan(22);
 
 -- =====================================================================
 -- Fixture (superuser; RLS not yet in play)
@@ -35,7 +35,8 @@ begin
     ('dddd0000-0000-4000-8000-000000000003', 'llx-opsmgr@test.local','authenticated','authenticated'),
     ('dddd0000-0000-4000-8000-000000000004', 'llx-exec@test.local',  'authenticated','authenticated'),
     ('dddd0000-0000-4000-8000-000000000005', 'llx-none@test.local',  'authenticated','authenticated'),
-    ('dddd0000-0000-4000-8000-000000000006', 'llx-empb@test.local',  'authenticated','authenticated');
+    ('dddd0000-0000-4000-8000-000000000006', 'llx-empb@test.local',  'authenticated','authenticated'),
+    ('dddd0000-0000-4000-8000-000000000007', 'llx-admin@test.local', 'authenticated','authenticated');
 
   -- emp + opsmgr in dept A; peer/exec/none/empb in dept B.
   insert into public.employees (id, user_id, employee_code, full_name_ar, department_id, status, is_active) values
@@ -44,7 +45,8 @@ begin
     ('eeee0000-0000-4000-8000-000000000003','dddd0000-0000-4000-8000-000000000003','LLX-003','مدير العمليات',    'cccc0000-0000-4000-8000-00000000000a','active',true),
     ('eeee0000-0000-4000-8000-000000000004','dddd0000-0000-4000-8000-000000000004','LLX-004','المدير التنفيذي',  'cccc0000-0000-4000-8000-00000000000b','active',true),
     ('eeee0000-0000-4000-8000-000000000005','dddd0000-0000-4000-8000-000000000005','LLX-005','موظف غير مخوّل',   'cccc0000-0000-4000-8000-00000000000b','active',true),
-    ('eeee0000-0000-4000-8000-000000000006','dddd0000-0000-4000-8000-000000000006','LLX-006','موظف غير نشط',     'cccc0000-0000-4000-8000-00000000000b','terminated',false);
+    ('eeee0000-0000-4000-8000-000000000006','dddd0000-0000-4000-8000-000000000006','LLX-006','موظف غير نشط',     'cccc0000-0000-4000-8000-00000000000b','terminated',false),
+    ('eeee0000-0000-4000-8000-000000000007','dddd0000-0000-4000-8000-000000000007','LLX-007','مدير النظام',       'cccc0000-0000-4000-8000-00000000000b','active',true);
 
   insert into public.profiles (id, employee_id, status)
   select u, e, 'active' from (values
@@ -53,7 +55,8 @@ begin
     ('dddd0000-0000-4000-8000-000000000003'::uuid,'eeee0000-0000-4000-8000-000000000003'::uuid),
     ('dddd0000-0000-4000-8000-000000000004'::uuid,'eeee0000-0000-4000-8000-000000000004'::uuid),
     ('dddd0000-0000-4000-8000-000000000005'::uuid,'eeee0000-0000-4000-8000-000000000005'::uuid),
-    ('dddd0000-0000-4000-8000-000000000006'::uuid,'eeee0000-0000-4000-8000-000000000006'::uuid)
+    ('dddd0000-0000-4000-8000-000000000006'::uuid,'eeee0000-0000-4000-8000-000000000006'::uuid),
+    ('dddd0000-0000-4000-8000-000000000007'::uuid,'eeee0000-0000-4000-8000-000000000007'::uuid)
   ) as t(u,e);
 
   insert into public.user_roles (user_id, role_id)
@@ -63,7 +66,8 @@ begin
     ('dddd0000-0000-4000-8000-000000000003'::uuid,'operations-manager'),
     ('dddd0000-0000-4000-8000-000000000004'::uuid,'executive-director'),
     ('dddd0000-0000-4000-8000-000000000005'::uuid,'employee'),
-    ('dddd0000-0000-4000-8000-000000000006'::uuid,'employee')
+    ('dddd0000-0000-4000-8000-000000000006'::uuid,'employee'),
+    ('dddd0000-0000-4000-8000-000000000007'::uuid,'admin')
   ) as t(u,slug)
   join public.roles r on r.slug=t.slug;
 end
@@ -77,18 +81,24 @@ begin
   perform set_config('request.jwt.claim.sub', p_user::text, true);
 end $$;
 
+-- 1. V17 exposes exactly one request_live_location signature.
+select is(
+  (select count(*)::int from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+   where n.nspname='public' and p.proname='request_live_location'),
+  1, 'V17: request_live_location has one unambiguous signature');
+
 -- =====================================================================
 -- Executive-director (org scope) as requester
 -- =====================================================================
 select pg_temp.act_as('dddd0000-0000-4000-8000-000000000004');
 set local role authenticated;
 
--- 1. executive requests in-scope employee (snapshot) -> pending
+-- 2. executive requests in-scope employee (snapshot) -> pending
 select lives_ok(
   $$select public.request_live_location('eeee0000-0000-4000-8000-000000000001','snapshot','متابعة إدارية')$$,
   'exec: request snapshot for in-scope employee succeeds');
 
--- 2. snapshot metadata: needsPoint=true, needsVideo=false, videoRemoved=true
+-- 3. snapshot metadata: needsPoint=true, needsVideo=false, videoRemoved=true
 select is(
   (select ((r.metadata->>'needsPoint')::boolean
            and not (r.metadata->>'needsVideo')::boolean
@@ -98,51 +108,50 @@ select is(
    order by r.requested_at desc limit 1),
   true, 'exec: snapshot metadata is point-only, video removed');
 
--- 3. V12 §9: location_video mode is rejected (video removed)
+-- 4. V17: location_video mode is rejected
 select throws_ok(
   $$select public.request_live_location('eeee0000-0000-4000-8000-000000000001','location_video','فيديو وموقع')$$,
   '22023', null, 'exec: location_video mode rejected (V12 §9)');
 
--- 4. V12 §9: video_5s mode is rejected (video removed)
+-- 5. V17: video_5s mode is rejected
 select throws_ok(
   $$select public.request_live_location('eeee0000-0000-4000-8000-000000000001','video_5s','فيديو فقط')$$,
   '22023', null, 'exec: video_5s mode rejected (V12 §9)');
 
--- 5. request own location -> 22023
+-- 6. request own location -> 22023
 select throws_ok(
   $$select public.request_live_location('eeee0000-0000-4000-8000-000000000004','snapshot','نفسي')$$,
   '22023', null, 'exec: cannot request own location');
 
--- 6. reason is optional in the executive flow.
+-- 7. reason is optional in the executive flow.
 select lives_ok(
   $$select public.request_live_location('eeee0000-0000-4000-8000-000000000002','snapshot','')$$,
   'exec: request without reason succeeds');
 
--- 7. invalid mode -> 22023
+-- 8. invalid mode -> 22023
 select throws_ok(
   $$select public.request_live_location('eeee0000-0000-4000-8000-000000000002','teleport','وضع غير صالح')$$,
   '22023', null, 'exec: invalid mode rejected');
 
--- 8. resend inside 30-second cooldown rejected
+-- 9. resend inside 30-second cooldown rejected
 select throws_ok(
   $$select public.request_live_location('eeee0000-0000-4000-8000-000000000001','snapshot','طلب مكرر')$$,
   '22023', null, 'exec: resend inside 30-second cooldown rejected');
 
--- 9. track_15 mode works and sets duration=15
+-- 10. tracking modes are rejected for new V17 requests.
 reset role;
 delete from public.live_location_requests where employee_id='eeee0000-0000-4000-8000-000000000001';
 select pg_temp.act_as('dddd0000-0000-4000-8000-000000000004'); set local role authenticated;
-select is(
-  (select r.duration_minutes
-   from public.request_live_location('eeee0000-0000-4000-8000-000000000001','track_15','تتبع') r),
-  15, 'exec: track_15 sets duration=15');
+select throws_ok(
+  $$select public.request_live_location('eeee0000-0000-4000-8000-000000000001','track_15','تتبع')$$,
+  '22023', null, 'exec: track_15 mode rejected by V17');
 
--- 10. inactive employee -> P0002
+-- 11. inactive employee -> P0002
 select throws_ok(
   $$select public.request_live_location('eeee0000-0000-4000-8000-000000000006','snapshot','غير نشط')$$,
   'P0002', null, 'exec: inactive employee rejected');
 
--- 11. audit row written
+-- 12. audit row written
 reset role;
 select is(
   (select count(*)::int>=1 from public.audit_events where event_type='live_location.requested'),
@@ -154,12 +163,12 @@ select is(
 reset role; delete from public.live_location_requests where employee_id='eeee0000-0000-4000-8000-000000000001';
 select pg_temp.act_as('dddd0000-0000-4000-8000-000000000003'); set local role authenticated;
 
--- 12. ops-manager requests same-dept employee (dept A) -> ok
-select lives_ok(
+-- 13. Operations cannot create employee location requests under V17.
+select throws_ok(
   $$select public.request_live_location('eeee0000-0000-4000-8000-000000000001','snapshot','متابعة قسم')$$,
-  'ops-manager: request same-department employee succeeds');
+  '42501', null, 'ops-manager: location request denied by V17');
 
--- 13. ops-manager requests out-of-department (dept B) -> 42501
+-- 14. ops-manager requests out-of-department (dept B) -> 42501
 select throws_ok(
   $$select public.request_live_location('eeee0000-0000-4000-8000-000000000002','snapshot','خارج القسم')$$,
   '42501', null, 'ops-manager: out-of-department request rejected');
@@ -169,10 +178,16 @@ select throws_ok(
 -- =====================================================================
 select pg_temp.act_as('dddd0000-0000-4000-8000-000000000005'); set local role authenticated;
 
--- 14. plain employee requests anyone -> 42501
+-- 15. plain employee requests anyone -> 42501
 select throws_ok(
   $$select public.request_live_location('eeee0000-0000-4000-8000-000000000002','snapshot','بلا صلاحية')$$,
   '42501', null, 'employee: cannot request others');
+
+-- Main Admin/full-access is still not the Executive Director.
+select pg_temp.act_as('dddd0000-0000-4000-8000-000000000007'); set local role authenticated;
+select throws_ok(
+  $$select public.request_live_location('eeee0000-0000-4000-8000-000000000002','snapshot','صلاحية كاملة')$$,
+  '42501', null, 'main admin: location request denied by V17');
 
 -- =====================================================================
 -- Target responds + submits point (snapshot auto-completes)

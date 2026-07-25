@@ -689,7 +689,7 @@ class MobileRequestDetail {
       MobileRequestDetail(
         id: json['id'] as String,
         number: (json['requestNumber'] as num?)?.toInt() ?? 0,
-        type: json['requestType'] as String? ?? 'generic',
+        type: json['requestType'] as String? ?? 'leave',
         employeeName: json['employeeName'] as String? ?? 'موظف',
         employeeCode: json['employeeCode'] as String?,
         title: json['title'] as String?,
@@ -1483,6 +1483,19 @@ class MobileDisputeCase {
     required this.openedAt,
     required this.canCancel,
     required this.isCommitteeMember,
+    this.proposedAdminAction,
+    this.proposedActionDetail,
+    this.proposedAt,
+    this.proposedByName,
+    this.executiveDecision,
+    this.executiveDecisionReason,
+    this.executiveDecisionAt,
+    this.approvedAdminAction,
+    this.approvedActionDetail,
+    this.executedAt,
+    this.executedByName,
+    this.executionNotes,
+    this.actorName,
   });
   factory MobileDisputeCase.fromJson(Map<String, dynamic> json) =>
       MobileDisputeCase(
@@ -1497,6 +1510,19 @@ class MobileDisputeCase {
         openedAt: DateTime.parse(json['openedAt'] as String),
         canCancel: json['canCancel'] as bool? ?? false,
         isCommitteeMember: json['isCommitteeMember'] as bool? ?? false,
+        proposedAdminAction: json['proposedAdminAction'] as String?,
+        proposedActionDetail: json['proposedActionDetail'] as String?,
+        proposedAt: json['proposedAt'] != null ? DateTime.parse(json['proposedAt'] as String) : null,
+        proposedByName: json['proposedByName'] as String?,
+        executiveDecision: json['executiveDecision'] as String?,
+        executiveDecisionReason: json['executiveDecisionReason'] as String?,
+        executiveDecisionAt: json['executiveDecisionAt'] != null ? DateTime.parse(json['executiveDecisionAt'] as String) : null,
+        approvedAdminAction: json['approvedAdminAction'] as String?,
+        approvedActionDetail: json['approvedActionDetail'] as String?,
+        executedAt: json['executedAt'] != null ? DateTime.parse(json['executedAt'] as String) : null,
+        executedByName: json['executedByName'] as String?,
+        executionNotes: json['executionNotes'] as String?,
+        actorName: json['actorName'] as String?,
       );
   final String id;
   final String? caseNumber;
@@ -1509,6 +1535,70 @@ class MobileDisputeCase {
   final DateTime openedAt;
   final bool canCancel;
   final bool isCommitteeMember;
+  // V17 §14 — admin action fields
+  final String? proposedAdminAction;
+  final String? proposedActionDetail;
+  final DateTime? proposedAt;
+  final String? proposedByName;
+  final String? executiveDecision;
+  final String? executiveDecisionReason;
+  final DateTime? executiveDecisionAt;
+  final String? approvedAdminAction;
+  final String? approvedActionDetail;
+  final DateTime? executedAt;
+  final String? executedByName;
+  final String? executionNotes;
+  final String? actorName;
+}
+
+/// V17 §14 — صندوق المدير التنفيذي للإجراءات الإدارية
+class ExecutiveDisputeInbox {
+  const ExecutiveDisputeInbox({
+    required this.awaitingDecision,
+    required this.pendingExecution,
+    required this.recentlyExecuted,
+    required this.counts,
+  });
+  factory ExecutiveDisputeInbox.fromJson(Map<String, dynamic> json) =>
+      ExecutiveDisputeInbox(
+        awaitingDecision: _parseDisputeList(json['awaitingDecision']),
+        pendingExecution: _parseDisputeList(json['pendingExecution']),
+        recentlyExecuted: _parseDisputeList(json['recentlyExecuted']),
+        counts: ExecutiveDisputeInboxCounts.fromJson(
+          Map<String, dynamic>.from(
+            (json['counts'] as Map<dynamic, dynamic>?) ?? const {},
+          ),
+        ),
+      );
+  final List<MobileDisputeCase> awaitingDecision;
+  final List<MobileDisputeCase> pendingExecution;
+  final List<MobileDisputeCase> recentlyExecuted;
+  final ExecutiveDisputeInboxCounts counts;
+
+  static List<MobileDisputeCase> _parseDisputeList(dynamic list) =>
+      (list as List<dynamic>? ?? const [])
+          .map((e) => MobileDisputeCase.fromJson(
+                Map<String, dynamic>.from(e as Map<dynamic, dynamic>),
+              ))
+          .toList(growable: false);
+}
+
+class ExecutiveDisputeInboxCounts {
+  const ExecutiveDisputeInboxCounts({
+    required this.awaitingDecision,
+    required this.pendingExecution,
+    required this.executedLast30Days,
+  });
+  factory ExecutiveDisputeInboxCounts.fromJson(Map<String, dynamic> json) =>
+      ExecutiveDisputeInboxCounts(
+        awaitingDecision: (json['awaitingDecision'] as num?)?.toInt() ?? 0,
+        pendingExecution: (json['pendingExecution'] as num?)?.toInt() ?? 0,
+        executedLast30Days:
+            (json['executedLast30Days'] as num?)?.toInt() ?? 0,
+      );
+  final int awaitingDecision;
+  final int pendingExecution;
+  final int executedLast30Days;
 }
 
 class DisputeDirectoryEmployee {
@@ -1630,6 +1720,53 @@ class MobileDisputePortal {
   final List<MobileDisputeCase> cases;
   final List<MobileDisputeDecision> decisions;
   final List<MobileDisputeAppeal> appeals;
+}
+
+/// V17 §14 — Executive dispute inbox (admin-action workflow)
+class ExecutiveDisputeInbox {
+  const ExecutiveDisputeInbox({
+    required this.awaitingDecision,
+    required this.pendingExecution,
+    required this.recentlyExecuted,
+    required this.counts,
+  });
+  factory ExecutiveDisputeInbox.fromJson(Map<String, dynamic> json) =>
+      ExecutiveDisputeInbox(
+        awaitingDecision: _parseCases(json['awaitingDecision']),
+        pendingExecution: _parseCases(json['pendingExecution']),
+        recentlyExecuted: _parseCases(json['recentlyExecuted']),
+        counts: ExecutiveDisputeCounts.fromJson(
+          Map<String, dynamic>.from(
+              (json['counts'] as Map<dynamic, dynamic>?) ?? const {}),
+        ),
+      );
+  final List<MobileDisputeCase> awaitingDecision;
+  final List<MobileDisputeCase> pendingExecution;
+  final List<MobileDisputeCase> recentlyExecuted;
+  final ExecutiveDisputeCounts counts;
+
+  static List<MobileDisputeCase> _parseCases(dynamic raw) =>
+      (raw as List<dynamic>? ?? const [])
+          .map((e) => MobileDisputeCase.fromJson(
+              Map<String, dynamic>.from(e as Map<dynamic, dynamic>)))
+          .toList(growable: false);
+}
+
+class ExecutiveDisputeCounts {
+  const ExecutiveDisputeCounts({
+    required this.awaitingDecision,
+    required this.pendingExecution,
+    required this.executedLast30Days,
+  });
+  factory ExecutiveDisputeCounts.fromJson(Map<String, dynamic> json) =>
+      ExecutiveDisputeCounts(
+        awaitingDecision: (json['awaitingDecision'] as num?)?.toInt() ?? 0,
+        pendingExecution: (json['pendingExecution'] as num?)?.toInt() ?? 0,
+        executedLast30Days: (json['executedLast30Days'] as num?)?.toInt() ?? 0,
+      );
+  final int awaitingDecision;
+  final int pendingExecution;
+  final int executedLast30Days;
 }
 
 class MobileClearanceItem {

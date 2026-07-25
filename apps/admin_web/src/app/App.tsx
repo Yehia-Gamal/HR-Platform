@@ -29,19 +29,15 @@ import { WorkspaceShell } from '../features/workspaces/WorkspaceShell';
 import { AttendanceOperationsPage } from '../features/advanced/AttendanceOperationsPage';
 import { KpiCyclesPage } from '../features/advanced/KpiCyclesPage';
 import { DisputesPage } from '../features/advanced/DisputesPage';
-import { LifecycleOperationsPage } from '../features/advanced/LifecycleOperationsPage';
-import { LearningPage } from '../features/management/LearningPage';
-import { DocumentStudioPage } from '../features/management/DocumentStudioPage';
+/* V17 §4.2: dead imports removed — LifecycleOperationsPage, LearningPage, DocumentStudioPage, PeopleFinancePage, ReleaseGovernancePage, ServiceDeskPage */
 import { ReportSchedulerPage } from '../features/management/ReportSchedulerPage';
 import { EnterpriseManagementPage } from '../features/management/EnterpriseManagementPage';
-import { PeopleFinancePage } from '../features/management/PeopleFinancePage';
-import { ReleaseGovernancePage } from '../features/management/ReleaseGovernancePage';
 import { AuditSecurityPage } from '../features/management/AuditSecurityPage';
 import { IntegrationsJobsPage } from '../features/management/IntegrationsJobsPage';
 import { LiveLocationPage } from '../features/management/LiveLocationPage';
 import { ExecutiveMonitoringPage } from '../features/management/ExecutiveMonitoringPage';
 import { OperationsCenterPage } from '../features/management/OperationsCenterPage';
-import { ServiceDeskPage } from '../features/management/ServiceDeskPage';
+import { OfficialHolidaysPage } from '../features/holidays/OfficialHolidaysPage';
 
 export function App() {
   const auth = useAuth();
@@ -93,9 +89,8 @@ export function App() {
           <Route path="recruitment" element={<RequirePermission perm="recruitment.requisition.read"><RecruitmentPage /></RequirePermission>} />
           <Route path="onboarding" element={<RequirePermission perm="onboarding.journey.read"><OnboardingPage /></RequirePermission>} />
           <Route path="reports" element={<RequirePermission perm="reports.people.read"><ReportsPage /></RequirePermission>} />
-          <Route path="learning" element={<RequirePermission perm="learning.course.manage"><LearningPage /></RequirePermission>} />
-          <Route path="documents/studio" element={<RequirePermission perm="documents.template.manage"><DocumentStudioPage /></RequirePermission>} />
-          <Route path="lifecycle" element={<RequirePermission perm="documents.employee.read"><LifecycleOperationsPage /></RequirePermission>} />
+          <Route path="holidays" element={<RequirePermission perm="holidays.manage"><OfficialHolidaysPage /></RequirePermission>} />
+          {/* V17 §4.2: hidden secondary modules — learning, documents, lifecycle */}
           <Route path="official-feed" element={<RequirePermission perm="comms.announcement.read"><OfficialFeedPage /></RequirePermission>} />
           <Route path="notifications" element={<NotificationsPage />} />
         </Route>
@@ -111,16 +106,14 @@ export function App() {
           <Route path="organization" element={<RequirePermission perm="organization.org_chart.read"><OrganizationPage /></RequirePermission>} />
           <Route path="performance/cycles" element={<RequirePermission perm="performance.cycle.manage"><KpiCyclesPage /></RequirePermission>} />
           <Route path="disputes" element={<RequirePermission perm="relations.case.manage"><DisputesPage /></RequirePermission>} />
-          <Route path="lifecycle" element={<RequirePermission perm="assets.inventory.manage"><LifecycleOperationsPage /></RequirePermission>} />
+          {/* V17 §4.2: lifecycle hidden */}
           <Route path="access" element={<RequirePermission perm="access.role.read"><AccessPage /></RequirePermission>} />
           <Route path="settings" element={<RequirePermission perm="system.settings.read"><SystemPage /></RequirePermission>} />
-          <Route path="governance" element={<RequirePermission perm="system.release.read"><ReleaseGovernancePage /></RequirePermission>} />
-          <Route path="documents/studio" element={<RequirePermission perm="documents.template.manage"><DocumentStudioPage /></RequirePermission>} />
+          {/* V17 §4.2: governance + documents hidden */}
           <Route path="reports/scheduler" element={<RequirePermission perm="reports.schedule.manage"><ReportSchedulerPage /></RequirePermission>} />
           <Route path="enterprise" element={<RequirePermission perm="organization.entity.read"><EnterpriseManagementPage /></RequirePermission>} />
           <Route path="operations" element={<RequirePermission perm="tasks.read"><OperationsCenterPage /></RequirePermission>} />
-          <Route path="helpdesk" element={<RequirePermission perm="service.request.manage"><ServiceDeskPage /></RequirePermission>} />
-          <Route path="people-finance" element={<RequirePermission perm="payroll.structure.manage"><PeopleFinancePage /></RequirePermission>} />
+          {/* V17 §4.2: helpdesk + people-finance (payroll ممنوع) hidden */}
           <Route path="audit-security" element={<RequirePermission perm="audit.view"><AuditSecurityPage /></RequirePermission>} />
           <Route path="integrations" element={<RequirePermission perm="system.integration.view"><IntegrationsJobsPage /></RequirePermission>} />
           <Route path="notifications" element={<NotificationsPage />} />

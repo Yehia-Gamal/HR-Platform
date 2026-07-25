@@ -97,9 +97,7 @@ String humanizeError(Object error, [StackTrace? stack]) {
       msg.contains('credential_not_found')) {
     return 'هذا الجهاز غير معتمد للحضور. حدّث حالة الأجهزة أو تواصل مع المسؤول.';
   }
-  if (msg.contains('video_required')) {
-    return 'يجب تسجيل فيديو التحقق قبل إكمال هذا الطلب.';
-  }
+  // V17 §9: video_required check removed — video permanently disabled.
   if (msg.contains('duplicate_attendance_event')) {
     return 'تم تسجيل هذه العملية بالفعل.';
   }

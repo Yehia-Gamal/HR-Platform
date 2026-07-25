@@ -94,12 +94,45 @@ class AttendanceHistoryPage extends ConsumerWidget {
                       ),
                     ],
                   )
-                : ListView.separated(
+                : ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: items.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) =>
-                        _HistoryCard(item: items[index]),
+                    itemCount: items.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                size: 16,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'آخر ${items.length} عملية مسجلة',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      final itemIndex = index - 1;
+                      return Padding(
+                        padding: EdgeInsets.only(
+                            top: itemIndex > 0 ? 8 : 0),
+                        child: _HistoryCard(item: items[itemIndex]),
+                      );
+                    },
                   ),
           ),
         ),

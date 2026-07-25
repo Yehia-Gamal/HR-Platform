@@ -26,6 +26,11 @@ export const employeeSummarySchema = z.object({
   departmentId: z.string().uuid().nullable(),
   teamId: z.string().uuid().nullable(),
   branchId: z.string().uuid().nullable(),
+  // أسماء مُثراة من get_employees_enriched (اختياري للتوافق مع الاستعلام القديم)
+  department: z.string().nullable().optional(),
+  team: z.string().nullable().optional(),
+  branch: z.string().nullable().optional(),
+  jobTitle: z.string().nullable().optional(),
   createdAt: z.string(),
 });
 
@@ -89,6 +94,16 @@ export const employee360Schema = z.object({
   workSite: z.string().nullable(),
   managerName: z.string().nullable(),
   accountStatus: z.string().nullable(),
+  // معرّفات FK خام — للاستخدام في نموذج التعديل (0129)
+  departmentId: z.string().uuid().nullable().optional(),
+  teamId: z.string().uuid().nullable().optional(),
+  branchId: z.string().uuid().nullable().optional(),
+  workSiteId: z.string().uuid().nullable().optional(),
+  jobTitleId: z.string().uuid().nullable().optional(),
+  positionId: z.string().uuid().nullable().optional(),
+  gradeId: z.string().uuid().nullable().optional(),
+  employmentTypeId: z.string().uuid().nullable().optional(),
+  managerId: z.string().uuid().nullable().optional(),
   roles: z.array(z.object({ slug: z.string(), name: z.string() })),
   directReports: z.number(),
   attendance30: z.object({

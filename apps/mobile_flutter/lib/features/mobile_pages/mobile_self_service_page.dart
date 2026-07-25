@@ -86,7 +86,7 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                     onTap: () => _submitRequest(
                       context,
                       ref,
-                      'attendance_permit',
+                      'late_permit',
                       permitKind: 'late_arrival',
                     ),
                   ),
@@ -105,7 +105,7 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                     onTap: () => _submitRequest(
                       context,
                       ref,
-                      'attendance_permit',
+                      'early_permit',
                       permitKind: 'early_departure',
                     ),
                   ),
@@ -560,7 +560,9 @@ class _RequestCard extends StatelessWidget {
   static String _typeLabel(String type) => switch (type) {
         'leave' => 'طلب إجازة',
         'mission' => 'مهمة عمل',
-        'attendance_permit' => 'إذن حضور',
+        'late_permit' => 'إذن تأخير',
+        'early_permit' => 'إذن خروج مبكر',
+        'attendance_correction' => 'تصحيح حضور',
         'convoy' => 'قافلة',
         _ => 'طلب',
       };
@@ -597,9 +599,8 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
         'leave' => 'طلب إجازة',
         'mission' => 'طلب مهمة عمل',
         'convoy' => 'طلب قافلة / فاندي',
-        'attendance_permit' => _permitKind == 'early_departure'
-            ? 'إذن خروج مبكر'
-            : 'إذن تأخير',
+        'late_permit' => 'إذن تأخير',
+        'early_permit' => 'إذن خروج مبكر',
         _ => 'طلب جديد',
       };
 
@@ -634,7 +635,7 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
   void _submit() {
     final title = _titleController.text.trim();
     final reason = _reasonController.text.trim();
-    if (title.length < 3 || reason.length < 5) return;
+    if (title.length < 3 || reason.length < 3 || reason.length > 300) return;
 
     final Map<String, dynamic> payload;
     switch (widget.type) {
@@ -655,11 +656,11 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
           'endDate': _endDate!.toIso8601String().substring(0, 10),
           'location': loc,
         };
-      case 'attendance_permit':
+      case 'late_permit':
+      case 'early_permit':
         if (_permitDate == null) return;
         payload = {
           'permitDate': _permitDate!.toIso8601String().substring(0, 10),
-          'permitKind': _permitKind,
           'minutes': _minutes,
         };
       default:
@@ -773,7 +774,7 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
                 border: OutlineInputBorder(),
               ),
             ),
-          ] else if (widget.type == 'attendance_permit') ...[
+          ] else if (widget.type == 'late_permit' || widget.type == 'early_permit') ...[
             OutlinedButton.icon(
               onPressed: () async {
                 final picked = await showDatePicker(
@@ -831,6 +832,7 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
           TextFormField(
             controller: _reasonController,
             maxLines: 3,
+            maxLength: 300,
             decoration: const InputDecoration(
               labelText: 'السبب',
               border: OutlineInputBorder(),
@@ -937,6 +939,7 @@ class _ForgotPunchSheetState extends State<_ForgotPunchSheet> {
           TextFormField(
             controller: _reasonController,
             maxLines: 2,
+            maxLength: 300,
             decoration: const InputDecoration(
               labelText: 'السبب',
               border: OutlineInputBorder(),
@@ -946,7 +949,7 @@ class _ForgotPunchSheetState extends State<_ForgotPunchSheet> {
           const SizedBox(height: 16),
           FilledButton(
             onPressed: () {
-              if (_reasonController.text.trim().isEmpty) return;
+              if (_reasonController.text.trim().length < 3) return;
               DateTime? checkIn;
               DateTime? checkOut;
               if (_time != null) {

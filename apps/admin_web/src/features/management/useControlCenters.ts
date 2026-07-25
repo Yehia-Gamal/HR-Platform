@@ -78,12 +78,12 @@ export function useLiveLocationCommands() {
   const auth = useAuth();
   const client = useQueryClient();
   const request = useMutation({
-    mutationFn: async (input: { employeeId: string; mode: string; reason: string }) => {
+    mutationFn: async (input: { employeeId: string; reason: string }) => {
       if (auth.isMock) return input;
       const supabase = await getSupabase();
       const result = await supabase.rpc('request_live_location', {
         p_employee_id: input.employeeId,
-        p_mode: input.mode,
+        p_mode: 'snapshot',
         p_reason: input.reason,
       });
       if (result.error) throw result.error;
@@ -112,19 +112,7 @@ export function useLiveLocationResponse(requestId: string | null, isActive: bool
   });
 }
 
-// يجلب رابطًا موقّعًا قصير الصلاحية لفيديو التحقق عبر دالة Edge.
-export function useLiveLocationVideoUrl() {
-  return useMutation({
-    mutationFn: async (videoId: string): Promise<string> => {
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.functions.invoke('live-location-video-url', { body: { videoId } });
-      if (error) throw error;
-      const url = (data as { url?: string } | null)?.url;
-      if (!url) throw new Error('تعذّر توقيع رابط الفيديو.');
-      return url;
-    },
-  });
-}
+// V17 §9: useLiveLocationVideoUrl removed — video permanently disabled.
 
 export function useLiveLocationMapUrl() {
   return useMutation({
@@ -139,23 +127,7 @@ export function useLiveLocationMapUrl() {
   });
 }
 
-// الحفظ الإداري بعد 24 ساعة (السكرتير التنفيذي / manage_retention).
-export function useLiveLocationLegalHold() {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: { videoId: string; holdUntil: string | null; reason: string }) => {
-      const supabase = await getSupabase();
-      const result = await supabase.rpc('set_live_location_legal_hold', {
-        p_video_id: input.videoId,
-        p_hold_until: input.holdUntil,
-        p_reason: input.reason,
-      });
-      if (result.error) throw result.error;
-      return result.data;
-    },
-    onSuccess: async () => client.invalidateQueries({ queryKey: ['live-location-response'] }),
-  });
-}
+// V17 §9: useLiveLocationLegalHold removed — video permanently disabled.
 
 // لوحة المتابعة اليومية للمدير التنفيذي — get_executive_attendance_overview.
 export function useExecutiveAttendanceOverview(date: string | null) {

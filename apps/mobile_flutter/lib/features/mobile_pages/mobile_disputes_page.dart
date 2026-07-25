@@ -359,8 +359,9 @@ class _NewDisputeFormState extends ConsumerState<_NewDisputeForm> {
 
   bool get _canSubmit =>
       !_submitting &&
-      _title.text.trim().length >= 5 &&
-      _description.text.trim().length >= 20 &&
+      _title.text.trim().length >= 3 &&
+      _description.text.trim().length >= 3 &&
+      _description.text.trim().length <= 300 &&
       _respondents.isNotEmpty &&
       _truthConfirmed &&
       _confidentialityAccepted;
@@ -550,24 +551,28 @@ class _NewDisputeFormState extends ConsumerState<_NewDisputeForm> {
               controller: _title,
               decoration: const InputDecoration(
                 labelText: 'عنوان واضح',
-                helperText: '5 أحرف على الأقل',
+                helperText: '3 أحرف على الأقل',
               ),
               validator: (value) =>
-                  (value ?? '').trim().length < 5 ? 'العنوان قصير جدًا' : null,
+                  (value ?? '').trim().length < 3 ? 'العنوان قصير جدًا' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _description,
               minLines: 5,
               maxLines: 8,
+              maxLength: 300,
               decoration: const InputDecoration(
                 labelText: 'التفاصيل',
                 hintText: 'اكتب الوقائع والتوقيت وما تطلبه من اللجنة',
-                helperText: '20 حرفًا على الأقل',
+                helperText: '3–300 حرف',
               ),
-              validator: (value) => (value ?? '').trim().length < 20
-                  ? 'التفاصيل غير كافية'
-                  : null,
+              validator: (value) {
+                final len = (value ?? '').trim().length;
+                if (len < 3) return 'التفاصيل غير كافية (3 أحرف على الأقل)';
+                if (len > 300) return 'التفاصيل طويلة جدًا (300 حرف كحد أقصى)';
+                return null;
+              },
             ),
             const SizedBox(height: 12),
             TextFormField(

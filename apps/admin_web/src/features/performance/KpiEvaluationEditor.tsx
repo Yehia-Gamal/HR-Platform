@@ -13,7 +13,6 @@ const stageLabel: Record<string, string> = {
   self: 'التقييم الذاتي',
   manager_review: 'مراجعة المدير المباشر',
   hr_review: 'مراجعة HR',
-  manager_final: 'اعتماد المدير النهائي',
   finalized: 'مدرج في التقرير الشهري',
   closed: 'مغلق',
   archived: 'مؤرشف',
@@ -78,7 +77,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
     if (!form.editableStage) return;
     await advance.mutateAsync({
       evaluationId: form.id,
-      action: form.editableStage as 'self' | 'manager_review' | 'hr_review' | 'manager_final',
+      action: form.editableStage as 'self' | 'hr_review' | 'manager_review',
       note,
       scores: ['self', 'manager_review'].includes(form.editableStage) ? editableCriteria.map((criterion) => ({ criterion_id: criterion.id, score: scores[criterion.id]?.score ?? 0, note: scores[criterion.id]?.note ?? '' })) : undefined,
     });
@@ -111,7 +110,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
 
       {form.validationErrors.length ? <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950"><h3 className="flex items-center gap-2 font-black"><AlertTriangle className="size-5" />متطلبات الاعتماد غير المكتملة</h3><ul className="mt-2 list-disc space-y-1 pr-5 text-sm">{form.validationErrors.map((item) => <li key={item}>{item}</li>)}</ul></section> : <p className="flex items-center gap-2 text-green-700"><CheckCircle2 className="size-5" />كل متطلبات الاعتماد مكتملة.</p>}
 
-      {form.editableStage ? <section className="rounded-2xl border border-[var(--border)] p-4"><label className="text-sm font-bold">ملاحظة المرحلة<textarea className="input mt-2 min-h-20" value={note} onChange={(event) => setNote(event.target.value)} /></label><div className="mt-3 flex flex-wrap gap-2">{form.editableStage !== 'self' ? <button className="btn-secondary" disabled={pending || note.trim().length < 5} onClick={() => { const target = form.editableStage === 'manager_review' ? 'self' : form.editableStage === 'hr_review' ? 'manager_review' : 'hr_review'; void commands.returnStage.mutateAsync({ p_evaluation_id: form.id, p_target_stage: target, p_note: note }); }}>إعادة للتصحيح</button> : null}<button className="btn-primary" disabled={pending} onClick={() => void submit()}><CheckCircle2 className="size-4" />{form.editableStage === 'manager_final' ? 'اعتماد النتيجة وإدراجها في التقرير' : 'اعتماد المرحلة وإرسال'}</button></div></section> : null}
+      {form.editableStage ? <section className="rounded-2xl border border-[var(--border)] p-4"><label className="text-sm font-bold">ملاحظة المرحلة<textarea className="input mt-2 min-h-20" value={note} onChange={(event) => setNote(event.target.value)} /></label><div className="mt-3 flex flex-wrap gap-2">{form.editableStage !== 'self' ? <button className="btn-secondary" disabled={pending || note.trim().length < 5} onClick={() => { const target = form.editableStage === 'hr_review' ? 'self' : form.editableStage === 'manager_review' ? 'hr_review' : 'self'; void commands.returnStage.mutateAsync({ p_evaluation_id: form.id, p_target_stage: target, p_note: note }); }}>إعادة للتصحيح</button> : null}<button className="btn-primary" disabled={pending} onClick={() => void submit()}><CheckCircle2 className="size-4" />{form.editableStage === 'manager_review' ? 'اعتماد النتيجة وإدراجها في التقرير' : 'اعتماد المرحلة وإرسال'}</button></div></section> : null}
     </div>
   </section>;
 }

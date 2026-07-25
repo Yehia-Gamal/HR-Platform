@@ -277,9 +277,8 @@ class EmployeeHomePage extends ConsumerWidget {
 
   String _stage(String? value) => switch (value) {
     'self' => 'ذاتي',
-    'manager_review' => 'مراجعة المدير',
     'hr_review' => 'مراجعة HR',
-    'manager_final' => 'اعتماد المدير',
+    'manager_review' => 'مراجعة المدير',
     'finalized' => 'في التقرير',
     'closed' => 'مغلق',
     'archived' => 'مؤرشف',

@@ -22,3 +22,17 @@ export * from './enterpriseManagement.js';
 export * from './releaseGovernance.js';
 
 export * from './liveLocation.js';
+
+export * from './kpi.js';
+
+export * from './disputes.js';
+
+export * from './requests.js';
+
+export * from './attendanceConfig.js';
+
+export * from './holidays.js';
+
+export * from './postPublishing.js';
+
+export * from './validation.js';

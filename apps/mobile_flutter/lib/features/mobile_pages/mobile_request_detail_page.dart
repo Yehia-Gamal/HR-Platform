@@ -229,6 +229,15 @@ class _RequestContent extends ConsumerWidget {
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _decide(context, ref, 'return'),
+              icon: const Icon(Icons.replay_outlined),
+              label: const Text('إرجاع للموظف للتعديل'),
+            ),
+          ),
         ],
         const SizedBox(height: 24),
       ],
@@ -303,14 +312,22 @@ class _RequestContent extends ConsumerWidget {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setState) => AlertDialog(
-          title: Text(decision == 'approve' ? 'اعتماد الطلب' : 'رفض الطلب'),
+          title: Text(
+            decision == 'approve'
+                ? 'اعتماد الطلب'
+                : decision == 'return'
+                    ? 'إرجاع الطلب'
+                    : 'رفض الطلب',
+          ),
           content: TextField(
             controller: controller,
             maxLines: 3,
             decoration: InputDecoration(
-              labelText: decision == 'reject'
-                  ? 'سبب الرفض (إلزامي)'
-                  : 'ملاحظة اختيارية',
+              labelText: decision == 'approve'
+                  ? 'ملاحظة اختيارية'
+                  : decision == 'return'
+                      ? 'سبب الإرجاع (إلزامي)'
+                      : 'سبب الرفض (إلزامي)',
               errorText: errorText,
             ),
           ),
@@ -321,10 +338,12 @@ class _RequestContent extends ConsumerWidget {
             ),
             FilledButton(
               onPressed: () {
-                if (decision == 'reject' &&
+                if (decision != 'approve' &&
                     controller.text.trim().length < 3) {
                   setState(
-                    () => errorText = 'سبب الرفض إلزامي ولا يقل عن 3 أحرف.',
+                    () => errorText = decision == 'return'
+                        ? 'سبب الإرجاع إلزامي ولا يقل عن 3 أحرف.'
+                        : 'سبب الرفض إلزامي ولا يقل عن 3 أحرف.',
                   );
                   return;
                 }
@@ -378,7 +397,9 @@ class _RequestContent extends ConsumerWidget {
   static String _typeLabel(String type) => switch (type) {
     'leave' => 'طلب إجازة',
     'mission' => 'مأمورية',
-    'attendance_permit' => 'إذن حضور أو انصراف',
+    'late_permit' => 'إذن تأخير',
+    'early_permit' => 'إذن خروج مبكر',
+    'attendance_correction' => 'تصحيح حضور',
     'convoy' => 'تكليف قافلة',
     _ => 'طلب عام',
   };
@@ -473,7 +494,7 @@ class _RequestPayloadCard extends StatelessWidget {
       if (payload['days'] != null) {
         rows.add(('عدد الأيام', '${payload['days']}'));
       }
-    } else if (requestType == 'attendance_permit') {
+    } else if (requestType == 'late_permit' || requestType == 'early_permit') {
       final date = dateLabel('permitDate');
       if (date != null) rows.add(('تاريخ الإذن', date));
       rows.add(('نوع الإذن', _permitType(payload['permitKind']?.toString())));

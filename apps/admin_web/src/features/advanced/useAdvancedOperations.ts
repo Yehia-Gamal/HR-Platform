@@ -83,6 +83,9 @@ export function useDisputeCommands() {
     recordSettlement: mutate('record_dispute_settlement'),
     completeAction: mutate('complete_dispute_action'),
     decideAppeal: mutate('decide_dispute_appeal'),
+    proposeAdminAction: mutate('propose_admin_action'),
+    decideAdminAction: mutate('decide_admin_action'),
+    executeAdminAction: mutate('execute_admin_action'),
   };
 }
 

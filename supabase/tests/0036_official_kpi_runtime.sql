@@ -52,8 +52,8 @@ declare
 begin
  select id into v_template from public.kpi_templates where official_code='OFFICIAL_KPI_100';
  v_cycle:=public.create_kpi_cycle_admin(v_test_month,v_template,now(),now(),now(),now(),false);
- perform public.manage_kpi_cycle(v_cycle,'open','فتح دورة اختبار V10',null);
- perform public.manage_kpi_cycle(v_cycle,'extend','تمديد دورة اختبار V10',v_test_month+interval '60 days');
+ perform public.manage_kpi_cycle(v_cycle,'open','فتح دورة اختبار V17',null);
+ perform public.manage_kpi_cycle(v_cycle,'extend','تمديد دورة اختبار V17',v_test_month+interval '60 days');
  select id into strict v_eval from public.kpi_evaluations where cycle_id=v_cycle and employee_id='82000000-0000-4000-8000-000000000002';
  insert into kpi_runtime_result(cycle_id,evaluation_id) values(v_cycle,v_eval);
 end
@@ -61,6 +61,11 @@ $create_cycle$;
 
 select is((select count(*)::integer from public.kpi_evaluations e join kpi_runtime_result r on r.cycle_id=e.cycle_id where e.employee_id='82000000-0000-4000-8000-000000000005'),0,'executive director is excluded from KPI evaluations');
 
+-- ═══════════════════════════════════════════════════════════════════════════
+-- V17 §10 flow: Employee → HR → Manager → Manager Final → Finalized
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- Step 1: Employee self-assessment → goes to HR (not manager)
 select set_config('request.jwt.claim.sub','81000000-0000-4000-8000-000000000002',true);
 do $employee_submit$
 declare v_eval uuid; v_scores jsonb;
@@ -72,9 +77,29 @@ begin
 end
 $employee_submit$;
 
-select is((select current_stage from public.kpi_evaluations where id=(select evaluation_id from kpi_runtime_result)),'manager_review','self submission reaches manager review');
+select is((select current_stage from public.kpi_evaluations where id=(select evaluation_id from kpi_runtime_result)),'hr_review','V17: self submission goes to HR review first');
 select is((select count(*)::integer from public.kpi_scores where evaluation_id=(select evaluation_id from kpi_runtime_result) and reviewer_stage='self'),7,'employee proposes all seven scores');
 
+-- Step 2: HR reviews compliance (attendance + prayer + halaqa) → sends to manager
+select set_config('request.jwt.claim.sub','81000000-0000-4000-8000-000000000004',true);
+
+select throws_ok(
+ $$select public.manage_kpi_cycle((select cycle_id from kpi_runtime_result),'close','محاولة HR إغلاق الدورة',null)$$,
+ '42501',null,'HR cannot control the KPI cycle even with legacy permission rows');
+
+do $hr_review$
+declare v_eval uuid;
+begin
+ select evaluation_id into v_eval from kpi_runtime_result;
+ perform public.save_kpi_compliance_metric(v_eval,'PRAYER',10,10,0,0,'التزام كامل');
+ perform public.save_kpi_compliance_metric(v_eval,'HALAQA',4,3,0,0,'حضور ثلاث حلقات');
+ perform public.advance_kpi_stage(v_eval,'hr_review',null,'اكتملت بنود HR والحضور');
+end
+$hr_review$;
+
+select is((select current_stage from public.kpi_evaluations where id=(select evaluation_id from kpi_runtime_result)),'manager_review','V17: HR sends evaluation to manager for scoring');
+
+-- Step 3: Manager scores targets/competency/conduct/initiatives → advances to final
 select set_config('request.jwt.claim.sub','81000000-0000-4000-8000-000000000003',true);
 do $manager_review$
 declare v_eval uuid; v_template uuid; v_scores jsonb;
@@ -90,30 +115,15 @@ begin
 end
 $manager_review$;
 
-select is((select current_stage from public.kpi_evaluations where id=(select evaluation_id from kpi_runtime_result)),'hr_review','manager sends only to HR');
+select is((select current_stage from public.kpi_evaluations where id=(select evaluation_id from kpi_runtime_result)),'manager_final','V17: manager review advances to manager final');
 
-select set_config('request.jwt.claim.sub','81000000-0000-4000-8000-000000000004',true);
-select throws_ok(
- $$select public.manage_kpi_cycle((select cycle_id from kpi_runtime_result),'close','محاولة HR إغلاق الدورة',null)$$,
- '42501',null,'HR cannot control the KPI cycle even with legacy permission rows');
-
-do $hr_review$
-declare v_eval uuid;
-begin
- select evaluation_id into v_eval from kpi_runtime_result;
- perform public.save_kpi_compliance_metric(v_eval,'PRAYER',10,10,0,0,'التزام كامل');
- perform public.save_kpi_compliance_metric(v_eval,'HALAQA',4,3,0,0,'حضور ثلاث حلقات');
- perform public.advance_kpi_stage(v_eval,'hr_review',null,'اكتملت بنود HR والحضور');
-end
-$hr_review$;
-
-select is((select current_stage from public.kpi_evaluations where id=(select evaluation_id from kpi_runtime_result)),'manager_final','HR returns the evaluation to the manager');
-
+-- Step 4: Executive cannot approve, only direct manager can
 select set_config('request.jwt.claim.sub','81000000-0000-4000-8000-000000000005',true);
 select throws_ok(
  $$select public.advance_kpi_stage((select evaluation_id from kpi_runtime_result),'manager_final',null,'محاولة اعتماد تنفيذي')$$,
  '42501',null,'executive director cannot approve KPI scores');
 
+-- Step 5: Manager gives final approval → finalized
 select set_config('request.jwt.claim.sub','81000000-0000-4000-8000-000000000003',true);
 select lives_ok(
  $$select public.advance_kpi_stage((select evaluation_id from kpi_runtime_result),'manager_final',null,'اعتماد المدير المباشر النهائي')$$,
@@ -128,7 +138,7 @@ update kpi_runtime_result r set
  audit_count=(select count(*) from public.audit_events a where a.target_id=e.id)
 from public.kpi_evaluations e where e.id=r.evaluation_id;
 
-select is((select stage from kpi_runtime_result),'finalized','runtime flow reaches finalization');
+select is((select stage from kpi_runtime_result),'finalized','V17 flow reaches finalization');
 select is((select workflow_status from kpi_runtime_result),'INCLUDED_IN_MONTHLY_REPORT','manager-approved result is included in monthly report');
 select is((select final_score from kpi_runtime_result),83.75::numeric,'server computes the expected 83.75 total');
 select is((select target_score from kpi_runtime_result),32.00::numeric,'manager owns the final Target score');

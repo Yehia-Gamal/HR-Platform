@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
@@ -17,7 +18,8 @@ class LiveTrackingSessionPage extends ConsumerStatefulWidget {
 }
 
 class _LiveTrackingSessionPageState
-    extends ConsumerState<LiveTrackingSessionPage> {
+    extends ConsumerState<LiveTrackingSessionPage>
+    with WidgetsBindingObserver {
   StreamSubscription<Position>? subscription;
   Timer? timer;
   int secondsLeft = 0;
@@ -25,10 +27,52 @@ class _LiveTrackingSessionPageState
   String? error;
   bool stopping = false;
 
+  /// نوع مشكلة الموقع — لتحديد زر الإعدادات المناسب.
+  _LocationIssueKind? _issueKind;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     secondsLeft = widget.request.durationMinutes * 60;
+    _start();
+  }
+
+  /// عند العودة من إعدادات الموقع أو التطبيق — إعادة المحاولة تلقائياً.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        _issueKind != null &&
+        subscription == null) {
+      Future<void>.delayed(const Duration(milliseconds: 600), () {
+        if (mounted && _issueKind != null && subscription == null) {
+          _recheckAndRetry();
+        }
+      });
+    }
+  }
+
+  Future<void> _recheckAndRetry() async {
+    final enabled = await Geolocator.isLocationServiceEnabled();
+    if (!mounted) return;
+    if (!enabled) return;
+
+    final permission = await Geolocator.checkPermission();
+    if (!mounted) return;
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      final newPerm = await Geolocator.requestPermission();
+      if (!mounted) return;
+      if (newPerm == LocationPermission.denied ||
+          newPerm == LocationPermission.deniedForever) {
+        return;
+      }
+    }
+
+    setState(() {
+      error = null;
+      _issueKind = null;
+    });
     _start();
   }
 
@@ -38,8 +82,25 @@ class _LiveTrackingSessionPageState
       await _send(first);
       subscription = LocationService.stream().listen(
         _send,
-        onError: (Object value) {
-          if (mounted) setState(() => error = _humanizeError(value));
+        onError: (Object e) {
+          if (!mounted) return;
+          if (e is GpsDisabledException) {
+            setState(() {
+              error = 'خدمة الموقع غير مفعلة. فعّل GPS ثم أعد المحاولة.';
+              _issueKind = _LocationIssueKind.gpsOff;
+            });
+          } else if (e is GpsPermissionDeniedException) {
+            setState(() {
+              error = e.message;
+              _issueKind = e.isDeniedForever
+                  ? _LocationIssueKind.deniedForever
+                  : _LocationIssueKind.permissionDenied;
+            });
+          } else if (e is GpsAccuracyException) {
+            setState(() => error = e.message);
+          } else {
+            setState(() => error = 'حدث خطأ أثناء التتبع. أعد المحاولة.');
+          }
         },
       );
       timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -50,8 +111,28 @@ class _LiveTrackingSessionPageState
           setState(() => secondsLeft--);
         }
       });
-    } catch (value) {
-      if (mounted) setState(() => error = _humanizeError(value));
+    } on GpsDisabledException {
+      if (mounted) {
+        setState(() {
+          error = 'خدمة الموقع غير مفعلة. فعّل GPS ثم أعد المحاولة.';
+          _issueKind = _LocationIssueKind.gpsOff;
+        });
+      }
+    } on GpsPermissionDeniedException catch (e) {
+      if (mounted) {
+        setState(() {
+          error = e.message;
+          _issueKind = e.isDeniedForever
+              ? _LocationIssueKind.deniedForever
+              : _LocationIssueKind.permissionDenied;
+        });
+      }
+    } on GpsAccuracyException catch (e) {
+      if (mounted) setState(() => error = e.message);
+    } catch (_) {
+      if (mounted) {
+        setState(() => error = 'حدث خطأ أثناء التتبع. أعد المحاولة.');
+      }
     }
   }
 
@@ -70,8 +151,8 @@ class _LiveTrackingSessionPageState
             isMock: position.isMocked,
           );
       if (mounted) setState(() => sent++);
-    } catch (value) {
-      if (mounted) setState(() => error = _humanizeError(value));
+    } catch (e) {
+      if (mounted) setState(() => error = humanizeError(e));
     }
   }
 
@@ -87,7 +168,7 @@ class _LiveTrackingSessionPageState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تعذر إرسال إغلاق الجلسة: ${_humanizeError(e)}')),
+          SnackBar(content: Text('تعذر إرسال إغلاق الجلسة: ${humanizeError(e)}')),
         );
       }
     }
@@ -96,23 +177,10 @@ class _LiveTrackingSessionPageState
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     timer?.cancel();
     subscription?.cancel();
     super.dispose();
-  }
-
-  static String _humanizeError(Object e) {
-    final s = e.toString();
-    if (s.contains('LocationServiceDisabledException') || s.contains('GpsDisabledException')) {
-      return 'خدمة الموقع غير مفعلة. فعّل GPS ثم أعد المحاولة.';
-    }
-    if (s.contains('GpsPermissionDeniedException')) {
-      return 'إذن الموقع مطلوب للمتابعة.';
-    }
-    if (s.contains('GpsAccuracyException')) {
-      return 'دقة الموقع غير كافية. اخرج إلى مكان مفتوح وأعد المحاولة.';
-    }
-    return 'حدث خطأ أثناء التتبع. أعد المحاولة.';
   }
 
   @override
@@ -188,6 +256,53 @@ class _LiveTrackingSessionPageState
                     ],
                   ),
                 ),
+                if (_issueKind == _LocationIssueKind.gpsOff) ...[
+                  const SizedBox(height: 8),
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () => Geolocator.openLocationSettings(),
+                    icon: const Icon(Icons.gps_fixed_rounded, size: 18),
+                    label: const Text('فتح إعدادات الموقع'),
+                  ),
+                ],
+                if (_issueKind == _LocationIssueKind.deniedForever) ...[
+                  const SizedBox(height: 8),
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () => Geolocator.openAppSettings(),
+                    icon: const Icon(Icons.settings_rounded, size: 18),
+                    label: const Text('فتح إعدادات التطبيق'),
+                  ),
+                ],
+                if (_issueKind == _LocationIssueKind.permissionDenied) ...[
+                  const SizedBox(height: 8),
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.amber.shade800,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () async {
+                      final perm = await Geolocator.requestPermission();
+                      if (!mounted) return;
+                      if (perm == LocationPermission.always ||
+                          perm == LocationPermission.whileInUse) {
+                        setState(() {
+                          error = null;
+                          _issueKind = null;
+                        });
+                        _start();
+                      }
+                    },
+                    icon: const Icon(Icons.location_on_rounded, size: 18),
+                    label: const Text('منح صلاحية الموقع'),
+                  ),
+                ],
               ],
               const Spacer(),
               FilledButton.tonalIcon(
@@ -204,4 +319,11 @@ class _LiveTrackingSessionPageState
       ),
     );
   }
+}
+
+/// نوع مشكلة الموقع — يحدد زر الإعدادات المعروض.
+enum _LocationIssueKind {
+  gpsOff,
+  permissionDenied,
+  deniedForever,
 }

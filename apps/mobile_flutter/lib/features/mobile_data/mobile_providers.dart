@@ -73,7 +73,7 @@ final myAttendanceHistoryProvider = FutureProvider<List<AttendanceHistoryItem>>(
     final data = await rpcWithTimeout(
       ref
           .watch(supabaseProvider)
-          .rpc<dynamic>('get_my_attendance_history', params: {'p_limit': 100}),
+          .rpc<dynamic>('get_my_attendance_history', params: {'p_limit': 100, 'p_days': 30}),
     );
     return _asList(
       data,
@@ -699,7 +699,6 @@ class MobileCommands {
 
   Future<void> requestLocation(
     String employeeId,
-    String mode,
     String reason,
   ) async {
     await ref
@@ -708,7 +707,7 @@ class MobileCommands {
           'request_live_location',
           params: {
             'p_employee_id': employeeId,
-            'p_mode': mode,
+            'p_mode': 'snapshot',
             'p_reason': reason,
           },
         );
@@ -787,33 +786,7 @@ class MobileCommands {
     ref.invalidate(myLocationRequestsProvider);
   }
 
-  Future<void> registerLocationVideo(
-    String requestId, {
-    required String storagePath,
-    required int durationSeconds,
-    required int sizeBytes,
-    required String mimeType,
-    required double latitude,
-    required double longitude,
-    required double accuracy,
-  }) async {
-    await ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'register_live_location_video',
-          params: {
-            'p_request_id': requestId,
-            'p_storage_path': storagePath,
-            'p_duration_seconds': durationSeconds,
-            'p_size_bytes': sizeBytes,
-            'p_mime_type': mimeType,
-            'p_latitude': latitude,
-            'p_longitude': longitude,
-            'p_accuracy': accuracy,
-          },
-        );
-    ref.invalidate(myLocationRequestsProvider);
-  }
+  // V17 §9: registerLocationVideo removed — video permanently disabled.
 
   Future<void> registerLocationMapSnapshot(
     String requestId, {
@@ -1114,6 +1087,16 @@ final myDisputePortalProvider = FutureProvider<MobileDisputePortal>((
   return MobileDisputePortal.fromJson(_asMap(data));
 });
 
+/// V17 §14 — Executive dispute inbox (admin-action workflow)
+final executiveDisputeInboxProvider = FutureProvider<ExecutiveDisputeInbox>((
+  ref,
+) async {
+  final data = await ref
+      .watch(supabaseProvider)
+      .rpc<dynamic>('get_executive_dispute_inbox');
+  return ExecutiveDisputeInbox.fromJson(_asMap(data));
+});
+
 final myOffboardingPortalProvider = FutureProvider<MobileOffboardingPortal>((
   ref,
 ) async {
@@ -1247,6 +1230,32 @@ extension MobileSelfServiceCommands on MobileCommands {
           'submit_dispute_appeal',
           params: {'p_decision_id': decisionId, 'p_reason': reason.trim()},
         );
+    ref.invalidate(myDisputePortalProvider);
+  }
+}
+
+/// V17 §14 — Executive admin-action commands
+extension ExecutiveDisputeCommands on MobileCommands {
+  Future<void> decideAdminAction({
+    required String caseId,
+    required String decision,
+    required String reason,
+    String? modifiedAction,
+    String? modifiedDetail,
+  }) async {
+    await ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
+          'decide_admin_action',
+          params: {
+            'p_case_id': caseId,
+            'p_decision': decision,
+            'p_reason': reason.trim(),
+            'p_modified_action': modifiedAction,
+            'p_modified_detail': modifiedDetail?.trim(),
+          },
+        );
+    ref.invalidate(executiveDisputeInboxProvider);
     ref.invalidate(myDisputePortalProvider);
   }
 }

@@ -335,7 +335,7 @@ class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
             const SizedBox(height: 12),
             FilledButton.icon(
               onPressed: inCooldown ? null : () => _sendRequest(context, ref),
-              icon: const Icon(Icons.videocam_rounded),
+              icon: const Icon(Icons.location_on_rounded),
               label: Text(
                 inCooldown
                     ? 'انتظر $cooldownRemaining ثانية'
@@ -353,7 +353,6 @@ class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
       // يُلغي DB أي طلب نشط سابق تلقائياً (migration 0071)
       await ref.read(mobileCommandsProvider).requestLocation(
         widget.employee.id,
-        'location_video',
         'تحقق ميداني',
       );
       _startCooldown();

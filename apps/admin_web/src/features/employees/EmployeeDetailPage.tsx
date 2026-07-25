@@ -1,8 +1,9 @@
+import type { Employee360 } from '@ahla/shared-contracts';
 import {
   ArrowRight, BadgeCheck, BriefcaseBusiness, CalendarDays, Clock3, FileText,
-  Archive, Gauge, MailCheck, Network, Phone, ShieldCheck, UserRound, UsersRound,
+  Archive, Gauge, MailCheck, Network, Pencil, Phone, ShieldCheck, UserRound, UsersRound,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -14,7 +15,8 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { MonthlyStatementSection } from '../attendance/MonthlyStatementSection';
-import { useEmployee360, useResendInvite, useEmployees, useChangeManager, useArchiveEmployee } from './useEmployees';
+import { useEmployee360, useResendInvite, useEmployees, useChangeManager, useArchiveEmployee, useUpdateEmployee } from './useEmployees';
+import { useOrganizationLookups } from './useOrganizationLookups';
 
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
 
@@ -30,6 +32,7 @@ export function EmployeeDetailPage() {
   const [resendError, setResendError] = useState<string | null>(null);
   const [showManagerDialog, setShowManagerDialog] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const item = query.data;
 
   if (query.isError) {
@@ -67,6 +70,7 @@ export function EmployeeDetailPage() {
         description="ملخص موحّد للبيانات الوظيفية والحضور والطلبات والأداء والمستندات والعهد، بعد تطبيق RLS والنطاق الفعلي."
         actions={<div className="flex flex-wrap gap-2">
           {showResend ? <button type="button" className="btn-secondary" disabled={resend.isPending} onClick={() => void onResend()}><MailCheck className="size-4" aria-hidden="true" />{resend.isPending ? 'جارٍ الإرسال…' : 'إعادة إرسال دعوة التفعيل'}</button> : null}
+          {canEdit ? <button type="button" className="btn-primary" onClick={() => setShowEditDialog(true)}><Pencil className="size-4" aria-hidden="true" />تعديل البيانات</button> : null}
           {canEdit && item.isActive ? <button type="button" className="btn-secondary text-[var(--danger)]" onClick={() => setShowArchiveDialog(true)}><Archive className="size-4" aria-hidden="true" />أرشفة الموظف</button> : null}
           <Link to="/hr/employees" className="btn-secondary"><ArrowRight className="size-4" aria-hidden="true" />عودة للموظفين</Link>
         </div>}
@@ -181,7 +185,238 @@ export function EmployeeDetailPage() {
           onClose={() => setShowArchiveDialog(false)}
           onSuccess={() => { setShowArchiveDialog(false); void query.refetch(); }} />
       )}
+      {showEditDialog && employeeId && (
+        <EditEmployeeDialog
+          item={item}
+          onClose={() => setShowEditDialog(false)}
+          onSuccess={() => { setShowEditDialog(false); void query.refetch(); }}
+        />
+      )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// EditEmployeeDialog — JSONB patch editor for employee fields (migration 0129)
+// ---------------------------------------------------------------------------
+const STATUS_LABELS: Record<string, string> = {
+  draft: 'مسودة',
+  invited: 'تمت الدعوة',
+  onboarding: 'قيد التهيئة',
+  active: 'نشط',
+  suspended: 'موقوف',
+  notice_period: 'فترة إخطار',
+  terminated: 'منتهي',
+  archived: 'مؤرشف',
+  probation_failed: 'فشل فترة الاختبار',
+};
+
+function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; onClose: () => void; onSuccess: () => void }) {
+  const auth = useAuth();
+  const lookups = useOrganizationLookups();
+  const update = useUpdateEmployee();
+
+  const canSensitive = Boolean(auth.access && hasPermission(auth.access, 'people.employee.update_sensitive'));
+
+  // --- Basic fields ---
+  const [fullNameAr, setFullNameAr] = useState(item.fullNameAr);
+  const [fullNameEn, setFullNameEn] = useState(item.fullNameEn ?? '');
+  const [phoneE164, setPhoneE164] = useState(item.phoneE164 ?? '');
+
+  // --- Sensitive fields ---
+  const [departmentId, setDepartmentId] = useState(item.departmentId ?? '');
+  const [teamId, setTeamId] = useState(item.teamId ?? '');
+  const [branchId, setBranchId] = useState(item.branchId ?? '');
+  const [workSiteId, setWorkSiteId] = useState(item.workSiteId ?? '');
+  const [jobTitleId, setJobTitleId] = useState(item.jobTitleId ?? '');
+  const [positionId, setPositionId] = useState(item.positionId ?? '');
+  const [gradeId, setGradeId] = useState(item.gradeId ?? '');
+  const [employmentTypeId, setEmploymentTypeId] = useState(item.employmentTypeId ?? '');
+  const [hireDate, setHireDate] = useState(item.hireDate ?? '');
+  const [contractEnd, setContractEnd] = useState(item.contractEnd ?? '');
+  const [probationEnd, setProbationEnd] = useState(item.probationEnd ?? '');
+  const [status, setStatus] = useState(item.status);
+
+  const [reason, setReason] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  // Filter child lookups by parent selection
+  const teams = useMemo(() => {
+    const opts = lookups.data?.teams ?? [];
+    return departmentId ? opts.filter((t) => t.parentId === departmentId) : opts;
+  }, [lookups.data?.teams, departmentId]);
+
+  const positions = useMemo(() => {
+    const opts = lookups.data?.positions ?? [];
+    return departmentId ? opts.filter((p) => p.parentId === departmentId) : opts;
+  }, [lookups.data?.positions, departmentId]);
+
+  const workSites = useMemo(() => {
+    const opts = lookups.data?.workSites ?? [];
+    return branchId ? opts.filter((s) => s.parentId === branchId) : opts;
+  }, [lookups.data?.workSites, branchId]);
+
+  // Reset child when parent changes
+  const onDepartmentChange = (value: string) => {
+    setDepartmentId(value);
+    const nextTeams = (lookups.data?.teams ?? []).filter((t) => !value || t.parentId === value);
+    if (teamId && nextTeams.every((t) => t.id !== teamId)) setTeamId('');
+    const nextPositions = (lookups.data?.positions ?? []).filter((p) => !value || p.parentId === value);
+    if (positionId && nextPositions.every((p) => p.id !== positionId)) setPositionId('');
+  };
+  const onBranchChange = (value: string) => {
+    setBranchId(value);
+    const nextSites = (lookups.data?.workSites ?? []).filter((s) => !value || s.parentId === value);
+    if (workSiteId && nextSites.every((s) => s.id !== workSiteId)) setWorkSiteId('');
+  };
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    // Build JSONB patch — only changed fields
+    const changes: Record<string, unknown> = {};
+    // Basic
+    if (fullNameAr.trim() !== item.fullNameAr) changes.fullNameAr = fullNameAr.trim();
+    if ((fullNameEn.trim() || null) !== (item.fullNameEn ?? null)) changes.fullNameEn = fullNameEn.trim() || null;
+    if ((phoneE164.trim() || null) !== (item.phoneE164 ?? null)) changes.phoneE164 = phoneE164.trim() || null;
+    // Sensitive
+    if (canSensitive) {
+      if ((departmentId || null) !== (item.departmentId ?? null)) changes.departmentId = departmentId || null;
+      if ((teamId || null) !== (item.teamId ?? null)) changes.teamId = teamId || null;
+      if ((branchId || null) !== (item.branchId ?? null)) changes.branchId = branchId || null;
+      if ((workSiteId || null) !== (item.workSiteId ?? null)) changes.workSiteId = workSiteId || null;
+      if ((jobTitleId || null) !== (item.jobTitleId ?? null)) changes.jobTitleId = jobTitleId || null;
+      if ((positionId || null) !== (item.positionId ?? null)) changes.positionId = positionId || null;
+      if ((gradeId || null) !== (item.gradeId ?? null)) changes.gradeId = gradeId || null;
+      if ((employmentTypeId || null) !== (item.employmentTypeId ?? null)) changes.employmentTypeId = employmentTypeId || null;
+      if ((hireDate || null) !== (item.hireDate ?? null)) changes.hireDate = hireDate || null;
+      if ((contractEnd || null) !== (item.contractEnd ?? null)) changes.contractEnd = contractEnd || null;
+      if ((probationEnd || null) !== (item.probationEnd ?? null)) changes.probationEnd = probationEnd || null;
+      if (status !== item.status) changes.status = status;
+    }
+
+    if (Object.keys(changes).length === 0) {
+      setError('لم يتم تغيير أي حقل.');
+      return;
+    }
+
+    try {
+      await update.mutateAsync({ employeeId: item.id, changes, reason: reason.trim() });
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'تعذر تحديث بيانات الموظف.');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <form onSubmit={(e) => void onSubmit(e)} className="card flex max-h-[90vh] w-full max-w-2xl flex-col">
+        <div className="border-b border-[var(--border)] p-6">
+          <h2 className="text-lg font-black">تعديل بيانات الموظف</h2>
+          <p className="muted mt-1 text-sm">{item.fullNameAr} — {item.employeeCode}</p>
+        </div>
+
+        <div className="flex-1 space-y-6 overflow-y-auto p-6">
+          {error ? <div role="alert" className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
+
+          {/* البيانات الشخصية (update_basic) */}
+          <fieldset>
+            <legend className="mb-3 font-black">البيانات الشخصية</legend>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-semibold">الاسم بالعربية <span className="text-[var(--danger)]">*</span></span>
+                <input type="text" className="input w-full" required minLength={3} maxLength={160} value={fullNameAr} onChange={(e) => setFullNameAr(e.target.value)} disabled={update.isPending} />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-semibold">الاسم بالإنجليزية</span>
+                <input type="text" className="input w-full" maxLength={160} value={fullNameEn} onChange={(e) => setFullNameEn(e.target.value)} disabled={update.isPending} dir="ltr" />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="mb-1.5 block text-sm font-semibold">رقم الهاتف</span>
+                <input type="tel" className="input w-full" value={phoneE164} onChange={(e) => setPhoneE164(e.target.value)} disabled={update.isPending} dir="ltr" placeholder="+201XXXXXXXXX" />
+              </label>
+            </div>
+          </fieldset>
+
+          {/* البيانات الوظيفية (update_sensitive) */}
+          {canSensitive ? (
+            <fieldset>
+              <legend className="mb-3 font-black">البيانات الوظيفية</legend>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <LookupSelect label="الإدارة" value={departmentId} options={lookups.data?.departments ?? []} onChange={onDepartmentChange} disabled={update.isPending} />
+                <LookupSelect label="الفريق" value={teamId} options={teams} onChange={setTeamId} disabled={update.isPending} />
+                <LookupSelect label="الفرع" value={branchId} options={lookups.data?.branches ?? []} onChange={onBranchChange} disabled={update.isPending} />
+                <LookupSelect label="موقع العمل" value={workSiteId} options={workSites} onChange={setWorkSiteId} disabled={update.isPending} />
+                <LookupSelect label="المسمى الوظيفي" value={jobTitleId} options={lookups.data?.jobTitles ?? []} onChange={setJobTitleId} disabled={update.isPending} />
+                <LookupSelect label="المنصب" value={positionId} options={positions} onChange={setPositionId} disabled={update.isPending} />
+                <LookupSelect label="الدرجة" value={gradeId} options={lookups.data?.grades ?? []} onChange={setGradeId} disabled={update.isPending} />
+                <LookupSelect label="نوع التوظيف" value={employmentTypeId} options={lookups.data?.employmentTypes ?? []} onChange={setEmploymentTypeId} disabled={update.isPending} />
+              </div>
+            </fieldset>
+          ) : null}
+
+          {canSensitive ? (
+            <fieldset>
+              <legend className="mb-3 font-black">التواريخ والحالة</legend>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-semibold">تاريخ التعيين</span>
+                  <input type="date" className="input w-full" value={hireDate} onChange={(e) => setHireDate(e.target.value)} disabled={update.isPending} />
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-semibold">نهاية العقد</span>
+                  <input type="date" className="input w-full" value={contractEnd} onChange={(e) => setContractEnd(e.target.value)} disabled={update.isPending} />
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-semibold">نهاية فترة الاختبار</span>
+                  <input type="date" className="input w-full" value={probationEnd} onChange={(e) => setProbationEnd(e.target.value)} disabled={update.isPending} />
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-semibold">الحالة</span>
+                  <select className="input w-full" value={status} onChange={(e) => setStatus(e.target.value as typeof status)} disabled={update.isPending}>
+                    {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </fieldset>
+          ) : null}
+
+          {/* سبب التعديل */}
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-semibold">سبب التعديل <span className="text-[var(--danger)]">*</span></span>
+            <textarea className="input min-h-20 w-full" required minLength={5} value={reason} onChange={(e) => setReason(e.target.value)} disabled={update.isPending} placeholder="اذكر سبب التعديل للتدقيق…" />
+          </label>
+        </div>
+
+        <div className="flex justify-end gap-3 border-t border-[var(--border)] p-6">
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={update.isPending}>إلغاء</button>
+          <button type="submit" className="btn-primary" disabled={update.isPending || reason.trim().length < 5}>
+            {update.isPending ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function LookupSelect({ label, value, options, onChange, disabled }: {
+  label: string;
+  value: string;
+  options: Array<{ id: string; label: string }>;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-sm font-semibold">{label}</span>
+      <select className="input w-full" value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
+        <option value="">— غير محدد —</option>
+        {options.map((opt) => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
+      </select>
+    </label>
   );
 }
 

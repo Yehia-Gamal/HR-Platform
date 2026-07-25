@@ -110,6 +110,13 @@ export const disputeOperationsCatalogSchema = z.object({
       id: uuid, number: z.string(), text: z.string(), rationale: z.string(), outcome: z.string(), status: z.string(), issuedAt: z.string().nullable(),
       ownerId: nullableUuid, ownerName: z.string().nullable(), dueAt: z.string().nullable(), implementedAt: z.string().nullable(),
     }).nullable(),
+    proposedAdministrativeAction: z.string().nullable().optional(),
+    executiveDecision: z.string().nullable().optional(),
+    executiveDecisionReason: z.string().nullable().optional(),
+    approvedAdministrativeAction: z.string().nullable().optional(),
+    executedAt: z.string().nullable().optional(),
+    executedBy: nullableUuid.optional(),
+    executionNotes: z.string().nullable().optional(),
     actions: z.array(disputeActionSchema), settlements: z.array(disputeSettlementSchema), appeals: z.array(disputeAppealSchema),
   })),
   summary: z.object({

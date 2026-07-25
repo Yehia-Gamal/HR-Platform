@@ -271,14 +271,21 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                     DropdownMenuItem(value: 'leave', child: Text('إجازة')),
                     DropdownMenuItem(value: 'mission', child: Text('مأمورية')),
                     DropdownMenuItem(
-                      value: 'attendance_permit',
-                      child: Text('إذن حضور أو انصراف'),
+                      value: 'late_permit',
+                      child: Text('إذن تأخير'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'early_permit',
+                      child: Text('إذن خروج مبكر'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'attendance_correction',
+                      child: Text('تصحيح حضور'),
                     ),
                     DropdownMenuItem(
                       value: 'convoy',
                       child: Text('تكليف قافلة'),
                     ),
-                    DropdownMenuItem(value: 'generic', child: Text('طلب عام')),
                   ],
                   onChanged: (value) => setModalState(() {
                     type = value ?? 'leave';
@@ -422,7 +429,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                     ),
                   const SizedBox(height: 12),
                 ],
-                if (type == 'attendance_permit') ...[
+                if (type == 'late_permit' || type == 'early_permit') ...[
                   DropdownButtonFormField<String>(
                     value: permitKind,
                     decoration: const InputDecoration(labelText: 'نوع الإذن'),
@@ -470,6 +477,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                 TextField(
                   controller: reason,
                   maxLines: 3,
+                  maxLength: 300,
                   decoration: const InputDecoration(
                     labelText: 'السبب والتفاصيل',
                   ),
@@ -528,10 +536,9 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
         'endDate': _dateValue(endDate!),
         'location': requestLocation,
       });
-    } else if (type == 'attendance_permit') {
+    } else if (type == 'late_permit' || type == 'early_permit') {
       payload.addAll({
         'permitDate': _dateValue(permitDate!),
-        'permitKind': permitKind,
         'minutes': requestMinutes,
       });
     }
@@ -586,7 +593,8 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
     required String minutes,
   }) {
     if (title.trim().length < 3) return 'اكتب عنوانًا واضحًا للطلب.';
-    if (reason.trim().length < 5) return 'اكتب سبب الطلب وتفاصيله.';
+    if (reason.trim().length < 3) return 'اكتب سبب الطلب وتفاصيله.';
+    if (reason.trim().length > 300) return 'السبب طويل جدًا (300 حرف كحد أقصى).';
     if (type == 'leave' || type == 'mission' || type == 'convoy') {
       if (startDate == null || endDate == null) {
         return 'حدد تاريخ البداية والنهاية.';
@@ -598,7 +606,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
     if ((type == 'mission' || type == 'convoy') && location.trim().length < 2) {
       return 'حدد مكان أو جهة التكليف.';
     }
-    if (type == 'attendance_permit') {
+    if (type == 'late_permit' || type == 'early_permit') {
       if (permitDate == null) return 'حدد تاريخ الإذن.';
       final value = int.tryParse(minutes.trim());
       if (value == null || value < 1 || value > 240) {
@@ -729,7 +737,9 @@ class _RequestCard extends StatelessWidget {
   static String _typeLabel(String type) => switch (type) {
     'leave' => 'طلب إجازة',
     'mission' => 'مأمورية',
-    'attendance_permit' => 'إذن حضور',
+    'late_permit' => 'إذن تأخير',
+    'early_permit' => 'إذن خروج مبكر',
+    'attendance_correction' => 'تصحيح حضور',
     'convoy' => 'قافلة',
     _ => 'طلب',
   };

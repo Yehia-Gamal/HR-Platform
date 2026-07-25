@@ -1,5 +1,4 @@
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_home_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_governance_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_reports_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
@@ -7,6 +6,8 @@ import 'package:ahla_shabab_management_os/features/workspaces/workspace_scaffold
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
 
+/// V17 §4.2.7 — Governance tab hidden until a real operational journey is
+/// implemented. Kept: Home, Inbox, Location, Reports (per §4.4 executive list).
 class ExecutiveWorkspace extends StatefulWidget {
   const ExecutiveWorkspace({required this.access, super.key});
 
@@ -28,7 +29,6 @@ class _ExecutiveWorkspaceState extends State<ExecutiveWorkspace> {
       const MobileActionInboxPage(),
       const ExecutiveLocationPage(),
       const ExecutiveReportsPage(),
-      const ExecutiveGovernancePage(),
     ];
 
     return WorkspaceScaffold(
@@ -57,11 +57,6 @@ class _ExecutiveWorkspaceState extends State<ExecutiveWorkspace> {
           icon: Icon(Icons.analytics_outlined),
           selectedIcon: Icon(Icons.analytics_rounded),
           label: 'التقارير',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.account_balance_outlined),
-          selectedIcon: Icon(Icons.account_balance_rounded),
-          label: 'الحوكمة',
         ),
       ],
       body: IndexedStack(index: index, children: pages),

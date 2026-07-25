@@ -1,4 +1,6 @@
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/widgets/gps_preflight_banner.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_history_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
@@ -18,8 +20,72 @@ class MobileAttendancePage extends ConsumerStatefulWidget {
       _MobileAttendancePageState();
 }
 
-class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
+class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
+    with WidgetsBindingObserver {
   bool _working = false;
+
+  /// نوع مشكلة الموقع — لتحديد زر الإعدادات المناسب.
+  _LocationIssueKind? _issueKind;
+
+  /// العملية المعلقة بعد العودة من إعدادات GPS.
+  _PendingRetry? _pendingRetry;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// عند العودة من إعدادات الموقع أو التطبيق — إعادة المحاولة تلقائياً.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        _issueKind != null &&
+        _pendingRetry != null &&
+        !_working) {
+      Future<void>.delayed(const Duration(milliseconds: 600), () {
+        if (mounted && _issueKind != null && _pendingRetry != null && !_working) {
+          _recheckAndRetry();
+        }
+      });
+    }
+  }
+
+  Future<void> _recheckAndRetry() async {
+    final enabled = await Geolocator.isLocationServiceEnabled();
+    if (!mounted) return;
+    if (!enabled) return;
+
+    final permission = await Geolocator.checkPermission();
+    if (!mounted) return;
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      final newPerm = await Geolocator.requestPermission();
+      if (!mounted) return;
+      if (newPerm == LocationPermission.denied ||
+          newPerm == LocationPermission.deniedForever) {
+        return;
+      }
+    }
+
+    // كلا الشرطين تحققا — امسح الخطأ وأعد العملية المعلقة
+    final retry = _pendingRetry;
+    setState(() {
+      _issueKind = null;
+      _pendingRetry = null;
+    });
+    if (retry == _PendingRetry.register) {
+      _register(skipDialog: true);
+    } else if (retry != null) {
+      _punch(retry.action!, skipDialog: true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,31 +93,38 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
     return Scaffold(
       appBar: AppBar(title: const Text('الحضور والانصراف')),
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async => ref.invalidate(attendanceStateProvider),
-          child: state.when(
-            loading: () => LayoutBuilder(
-              builder: (context, constraints) => ListView(
-                children: [
-                  SizedBox(
-                    height: constraints.maxHeight,
-                    child: const Center(child: CircularProgressIndicator()),
+        child: Column(
+          children: [
+            const GpsPreflightBanner(),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async => ref.invalidate(attendanceStateProvider),
+                child: state.when(
+                  loading: () => LayoutBuilder(
+                    builder: (context, constraints) => ListView(
+                      children: [
+                        SizedBox(
+                          height: constraints.maxHeight,
+                          child: const Center(child: CircularProgressIndicator()),
+                        ),
+                      ],
+                    ),
                   ),
-                ],
+                  error: (error, _) => ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      _MessageCard(
+                        icon: Icons.error_outline,
+                        title: 'تعذر تحميل حالة الحضور',
+                        body: 'تحقق من الاتصال وأعد المحاولة.',
+                      ),
+                    ],
+                  ),
+                  data: (value) => _body(value),
+                ),
               ),
             ),
-            error: (error, _) => ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                _MessageCard(
-                  icon: Icons.error_outline,
-                  title: 'تعذر تحميل حالة الحضور',
-                  body: 'تحقق من الاتصال وأعد المحاولة.',
-                ),
-              ],
-            ),
-            data: (value) => _body(value),
-          ),
+          ],
         ),
       ),
     );
@@ -217,17 +290,48 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
           const SnackBar(content: Text('تم تسجيل بصمة الجهاز بنجاح.')),
         );
       }
-    } catch (error) {
+    } on GpsDisabledException {
       if (mounted) {
-        final msg = error.toString();
-        final isGpsOff = msg.contains('خدمة الموقع غير مفعلة');
-        if (isGpsOff) {
+        setState(() => _issueKind = _LocationIssueKind.gpsOff);
+        final opened = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('الموقع مغلق'),
+            content: const Text(
+              'يرجى تفعيل خدمة الموقع (GPS) لتتمكن من تسجيل بصمة الجهاز.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('تفعيل الموقع'),
+              ),
+            ],
+          ),
+        );
+        if (opened == true) {
+          _pendingRetry = _PendingRetry.register;
+          await Geolocator.openLocationSettings();
+        } else {
+          setState(() {
+            _issueKind = null;
+            _pendingRetry = null;
+          });
+        }
+      }
+    } on GpsPermissionDeniedException catch (e) {
+      if (mounted) {
+        if (e.isDeniedForever) {
+          setState(() => _issueKind = _LocationIssueKind.deniedForever);
           final opened = await showDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
-              title: const Text('الموقع مغلق'),
+              title: const Text('صلاحية الموقع مرفوضة'),
               content: const Text(
-                'يرجى تفعيل خدمة الموقع (GPS) لتتمكن من تسجيل بصمة الجهاز.',
+                'صلاحية الموقع مرفوضة نهائيًا. افتح إعدادات التطبيق لتفعيلها.',
               ),
               actions: [
                 TextButton(
@@ -236,32 +340,49 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
                 ),
                 FilledButton(
                   onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('تفعيل الموقع'),
+                  child: const Text('فتح الإعدادات'),
                 ),
               ],
             ),
           );
           if (opened == true) {
-            await Geolocator.openLocationSettings();
-            for (int i = 0; i < 30; i++) {
-              await Future<void>.delayed(const Duration(seconds: 1));
-              if (await Geolocator.isLocationServiceEnabled()) {
-                if (mounted) {
-                  _register(skipDialog: true);
-                }
-                return;
-              }
-            }
+            _pendingRetry = _PendingRetry.register;
+            await Geolocator.openAppSettings();
+          } else {
+            setState(() {
+              _issueKind = null;
+              _pendingRetry = null;
+            });
           }
-          return;
+        } else {
+          // صلاحية مرفوضة (ليست نهائية) — نطلبها مباشرة
+          final perm = await Geolocator.requestPermission();
+          if (!mounted) return;
+          if (perm == LocationPermission.always ||
+              perm == LocationPermission.whileInUse) {
+            _register(skipDialog: true);
+            return;
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('يرجى منح صلاحية الموقع للمتابعة.')),
+          );
         }
-        final msgLower = msg.toLowerCase();
+      }
+    } on GpsAccuracyException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        final msg = error.toString().toLowerCase();
         final text =
-            msgLower.contains('cancel') || msgLower.contains('dismissed')
+            msg.contains('cancel') || msg.contains('dismissed')
             ? 'تم إلغاء التحقق بالبصمة.'
             : msg.contains('الجهاز لا يدعم')
             ? 'جهازك لا يدعم التحقق بالبصمة.'
-            : 'تعذر إكمال عملية البصمة. أعد المحاولة.';
+            : humanizeError(error);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(text)));
@@ -322,16 +443,47 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
           ),
         );
       }
-    } catch (error) {
+    } on GpsDisabledException {
       if (mounted) {
-        final msg = error.toString();
-        final isGpsOff = msg.contains('خدمة الموقع غير مفعلة');
-        if (isGpsOff) {
+        setState(() => _issueKind = _LocationIssueKind.gpsOff);
+        final opened = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('الموقع مغلق'),
+            content: const Text('يرجى تفعيل خدمة الموقع (GPS) للمتابعة.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('تفعيل الموقع'),
+              ),
+            ],
+          ),
+        );
+        if (opened == true) {
+          _pendingRetry = _PendingRetry.punch(action);
+          await Geolocator.openLocationSettings();
+        } else {
+          setState(() {
+            _issueKind = null;
+            _pendingRetry = null;
+          });
+        }
+      }
+    } on GpsPermissionDeniedException catch (e) {
+      if (mounted) {
+        if (e.isDeniedForever) {
+          setState(() => _issueKind = _LocationIssueKind.deniedForever);
           final opened = await showDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
-              title: const Text('الموقع مغلق'),
-              content: const Text('يرجى تفعيل خدمة الموقع (GPS) للمتابعة.'),
+              title: const Text('صلاحية الموقع مرفوضة'),
+              content: const Text(
+                'صلاحية الموقع مرفوضة نهائيًا. افتح إعدادات التطبيق لتفعيلها.',
+              ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
@@ -339,28 +491,44 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
                 ),
                 FilledButton(
                   onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('تفعيل الموقع'),
+                  child: const Text('فتح الإعدادات'),
                 ),
               ],
             ),
           );
           if (opened == true) {
-            await Geolocator.openLocationSettings();
-            for (int i = 0; i < 30; i++) {
-              await Future<void>.delayed(const Duration(seconds: 1));
-              if (await Geolocator.isLocationServiceEnabled()) {
-                if (mounted) {
-                  _punch(action, skipDialog: true);
-                }
-                return;
-              }
-            }
+            _pendingRetry = _PendingRetry.punch(action);
+            await Geolocator.openAppSettings();
+          } else {
+            setState(() {
+              _issueKind = null;
+              _pendingRetry = null;
+            });
           }
-          return;
+        } else {
+          final perm = await Geolocator.requestPermission();
+          if (!mounted) return;
+          if (perm == LocationPermission.always ||
+              perm == LocationPermission.whileInUse) {
+            _punch(action, skipDialog: true);
+            return;
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('يرجى منح صلاحية الموقع للمتابعة.')),
+          );
         }
-        final msgLower = msg.toLowerCase();
+      }
+    } on GpsAccuracyException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        final msg = error.toString().toLowerCase();
         final text =
-            msgLower.contains('cancel') || msgLower.contains('dismissed')
+            msg.contains('cancel') || msg.contains('dismissed')
             ? 'تم إلغاء التحقق بالبصمة.'
             : humanizeError(error);
         ScaffoldMessenger.of(
@@ -371,6 +539,21 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage> {
       if (mounted) setState(() => _working = false);
     }
   }
+}
+
+/// العملية المعلقة بعد العودة من إعدادات GPS — لإعادة المحاولة تلقائياً.
+class _PendingRetry {
+  const _PendingRetry._(this.action);
+  static const register = _PendingRetry._(null);
+  factory _PendingRetry.punch(String action) => _PendingRetry._(action);
+  final String? action;
+}
+
+/// نوع مشكلة الموقع — يحدد سلوك إعادة المحاولة التلقائية.
+/// permissionDenied لا يُخزَّن هنا — يُعالج فوراً بطلب الصلاحية.
+enum _LocationIssueKind {
+  gpsOff,
+  deniedForever,
 }
 
 class _AttendanceStatusCard extends StatelessWidget {

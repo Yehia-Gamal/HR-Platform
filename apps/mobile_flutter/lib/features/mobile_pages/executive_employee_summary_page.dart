@@ -275,7 +275,7 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
     'self' => 'تقييم ذاتي',
     'manager_review' => 'مراجعة المدير',
     'hr_review' => 'مراجعة HR',
-    'manager_final' => 'اعتماد المدير النهائي',
+    'manager_final' => 'اعتماد المدير (قديم)',
     'finalized' => 'مدرج في التقرير',
     'closed' => 'مغلق',
     'archived' => 'مؤرشف',
