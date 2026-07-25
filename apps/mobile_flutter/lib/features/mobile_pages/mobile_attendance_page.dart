@@ -451,6 +451,22 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           .punchAttendanceLocal(
             eventType: action,
           );
+
+      // الخادم يرجع ok: false عند رفض العملية (خارج النطاق، تكرار، إلخ)
+      if (result['ok'] != true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_humanizePunchError(
+                result['error'] as String? ?? 'unknown_error',
+              )),
+              backgroundColor: Colors.red.shade700,
+            ),
+          );
+        }
+        return;
+      }
+
       ref.invalidate(attendanceStateProvider);
       ref.invalidate(employeeHomeProvider);
       if (mounted) {
@@ -458,12 +474,10 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           SnackBar(
             content: Text(
               action == 'CHECK_IN'
-                  ? 'تم تسجيل الحضور داخل المجمع.'
-                  : 'تم تسجيل الانصراف داخل المجمع.',
+                  ? 'تم تسجيل الحضور بنجاح ✓'
+                  : 'تم تسجيل الانصراف بنجاح ✓',
             ),
-            backgroundColor: result['insideComplex'] == true
-                ? Colors.green
-                : null,
+            backgroundColor: Colors.green,
           ),
         );
       }
@@ -561,6 +575,32 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       }
     } finally {
       if (mounted) setState(() => _working = false);
+    }
+  }
+
+  /// ترجمة أكواد الخطأ من الخادم إلى رسائل عربية واضحة للمستخدم.
+  String _humanizePunchError(String code) {
+    switch (code) {
+      case 'attendance_outside_complex':
+        return 'أنت خارج نطاق المجمع. يُرجى التسجيل من داخل موقع العمل.';
+      case 'attendance_mock_location_rejected':
+        return 'تم رفض الموقع — يُشتبه في استخدام موقع مزيف.';
+      case 'attendance_location_accuracy_too_low':
+        return 'دقة الموقع منخفضة جداً. حاول في مكان مفتوح.';
+      case 'attendance_geofence_not_configured':
+        return 'لم يتم تحديد نطاق جغرافي لحضورك. تواصل مع المسؤول.';
+      case 'attendance_location_required':
+        return 'الموقع مطلوب لتسجيل الحضور.';
+      case 'duplicate_attendance_event':
+        return 'تم تسجيل هذا الحدث مسبقاً.';
+      case 'attendance_period_finalized':
+        return 'فترة الحضور مغلقة ولا يمكن التعديل عليها.';
+      case 'attendance_check_in_required':
+        return 'يجب تسجيل الحضور أولاً قبل الانصراف.';
+      case 'attendance_check_out_required':
+        return 'يجب تسجيل الانصراف أولاً قبل حضور جديد.';
+      default:
+        return 'حدث خطأ غير متوقع ($code). حاول مرة أخرى.';
     }
   }
 }
