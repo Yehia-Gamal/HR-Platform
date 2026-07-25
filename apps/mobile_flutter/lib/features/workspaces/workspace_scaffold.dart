@@ -1,4 +1,5 @@
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/location_incoming_overlay.dart';
@@ -116,7 +117,7 @@ class WorkspaceScaffold extends ConsumerWidget {
               IconButton(
                 tooltip: 'حسابي',
                 onPressed: () => _showProfile(context),
-                icon: _Avatar(name: contextData.displayName, radius: 17),
+                icon: AppAvatar(name: contextData.displayName, photoUrl: contextData.photoUrl, radius: 17),
               ),
               IconButton(
                 tooltip: 'الخدمات والمزيد',
@@ -198,7 +199,6 @@ class WorkspaceScaffold extends ConsumerWidget {
 
   void _showMore(BuildContext context, WidgetRef ref) {
     final isExecutive = workspace == WorkspaceId.executive;
-    final isManager = workspace == WorkspaceId.manager;
     final items = <_MoreItem>[
       if (isExecutive) ...[
         _MoreItem(
@@ -216,20 +216,15 @@ class WorkspaceScaffold extends ConsumerWidget {
           label: 'التقييمات النهائية KPI',
           page: MobileKpiPage(access: contextData),
         ),
-        _MoreItem(
-          icon: Icons.campaign_outlined,
-          label: 'القرارات والتعاميم',
-          page: const MobileOfficialFeedPage(),
-        ),
         /// V17 §4.2.7 — Reports (in tab bar) and Governance hidden until
         /// a real operational journey is implemented.
       ],
-      if (isManager)
-        _MoreItem(
-          icon: Icons.campaign_outlined,
-          label: 'القرارات والتعاميم',
-          page: const MobileOfficialFeedPage(),
-        ),
+      // §8.3.3 — القرارات والتعاميم متاحة لجميع المستخدمين
+      _MoreItem(
+        icon: Icons.campaign_outlined,
+        label: 'القرارات والتعاميم',
+        page: const MobileOfficialFeedPage(),
+      ),
       if (contextData.attendancePolicy.attendanceRequired)
         _MoreItem(
           icon: Icons.edit_calendar_rounded,
@@ -372,7 +367,7 @@ class WorkspaceScaffold extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _Avatar(name: contextData.displayName, radius: 34),
+            AppAvatar(name: contextData.displayName, photoUrl: contextData.photoUrl, radius: 34),
             const SizedBox(height: 12),
             Text(
               contextData.displayName,
@@ -432,23 +427,6 @@ class _MoreItem {
   final IconData icon;
   final String label;
   final Widget page;
-}
-
-class _Avatar extends StatelessWidget {
-  const _Avatar({required this.name, this.radius = 21});
-  final String name;
-  final double radius;
-
-  @override
-  Widget build(BuildContext context) => CircleAvatar(
-    radius: radius,
-    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-    foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-    child: Text(
-      name.trim().isEmpty ? 'م' : name.trim().substring(0, 1),
-      style: TextStyle(fontWeight: FontWeight.w900, fontSize: radius * .75),
-    ),
-  );
 }
 
 extension _FirstOrNullExtension<T> on List<T> {

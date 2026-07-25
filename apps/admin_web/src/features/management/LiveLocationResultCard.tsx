@@ -2,6 +2,7 @@ import { Clock, Crosshair, MapPin, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { StatusBadge } from '../../ui/StatusBadge';
+import { UserAvatar } from '../../ui/UserAvatar';
 import { LiveLocationMap, type MapPoint } from './LiveLocationMap';
 import { useLiveLocationMapUrl, useLiveLocationResponse } from './useControlCenters';
 
@@ -56,11 +57,14 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
     <div className="space-y-5">
       <article className="card p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+          <div className="flex items-center gap-3">
+            <UserAvatar displayName={employee.name ?? 'الموظف'} />
+            <div>
             <h2 className="text-lg font-black">{employee.name ?? 'الموظف'}</h2>
             <p className="muted mt-1 text-xs">
               {employee.employeeCode ?? '—'} · {employee.jobTitle ?? 'دون مسمى'} · {employee.department ?? 'دون إدارة'}
             </p>
+            </div>
             <p className="muted mt-1 text-xs">طلب من: {data.requesterName ?? '—'} · السبب: {request.reason ?? '—'}</p>
           </div>
           <StatusBadge value={request.status ?? 'pending'} />

@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
@@ -695,10 +696,22 @@ class _RequestCard extends StatelessWidget {
                 fontWeight: FontWeight.w900,
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              item.employeeName,
-              style: Theme.of(context).textTheme.bodySmall,
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                AppAvatar(
+                  name: item.employeeName,
+                  photoUrl: item.employeePhotoUrl,
+                  radius: 16,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    item.employeeName,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
             ),
             if (item.reason?.trim().isNotEmpty == true) ...[
               const SizedBox(height: 10),

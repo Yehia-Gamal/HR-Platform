@@ -79,8 +79,11 @@ export const officialFeedItemSchema = z.object({
   requiresAcknowledgement: z.boolean(),
   publishedAt: z.string().nullable(),
   expiresAt: z.string().nullable(),
+  imageUrl: z.string().nullable().optional(),
   acknowledgedCount: z.number(),
   targetCount: z.number().nullable(),
+  myAcknowledged: z.boolean().optional(),
+  createdAt: z.string().optional(),
 });
 export type OfficialFeedItem = z.infer<typeof officialFeedItemSchema>;
 

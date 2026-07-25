@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:flutter/material.dart';
@@ -379,25 +380,10 @@ class _EmployeeCard extends StatelessWidget {
           child: Row(
             children: [
               // Avatar
-              CircleAvatar(
+              AppAvatar(
+                name: employee.fullNameAr,
+                photoUrl: employee.photoUrl,
                 radius: 22,
-                backgroundImage: employee.photoUrl != null
-                    ? NetworkImage(employee.photoUrl!)
-                    : null,
-                backgroundColor: isManager
-                    ? scheme.primary.withValues(alpha: .15)
-                    : scheme.surfaceContainerHighest,
-                child: employee.photoUrl == null
-                    ? Text(
-                        employee.fullNameAr.isNotEmpty
-                            ? employee.fullNameAr.substring(0, 1)
-                            : '?',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          color: isManager ? scheme.primary : scheme.onSurface,
-                        ),
-                      )
-                    : null,
               ),
               const SizedBox(width: 12),
               // Info

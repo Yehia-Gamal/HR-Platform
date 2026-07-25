@@ -5,6 +5,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_brief_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_people_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_decisions_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_disputes_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,6 +19,7 @@ class ExecutiveHomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final data = ref.watch(executiveDashboardProvider);
+    final disputeInbox = ref.watch(executiveDisputeInboxProvider);
     final scheme = Theme.of(context).colorScheme;
 
     return RefreshIndicator(
@@ -176,6 +178,13 @@ class ExecutiveHomePage extends ConsumerWidget {
             ),
             data: (item) => MetricGrid(
               cards: [
+                // بطاقة نسبة الحضور — أولى لتأخذ التأكيد البصري
+                (
+                  'نسبة الحضور',
+                  '${item.attendanceRate}%',
+                  Icons.groups_rounded,
+                  null,
+                ),
                 (
                   'عاجل الآن',
                   item.urgentActions.toString(),
@@ -290,6 +299,80 @@ class ExecutiveHomePage extends ConsumerWidget {
               ),
             ),
           ),
+          // قسم الإجراءات الإدارية للقضايا — يظهر فقط عند وجود قضايا معلقة
+          disputeInbox.whenOrNull(
+            data: (inbox) {
+              final counts = inbox.counts;
+              if (counts.awaitingDecision == 0 &&
+                  counts.pendingExecution == 0) {
+                return const SizedBox.shrink();
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 16),
+                  const MobileSectionHeader(
+                    title: 'الإجراءات الإدارية',
+                    subtitle: 'قضايا تحتاج قرارًا أو متابعة تنفيذ.',
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ExecutiveDisputesPage(),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor:
+                                  scheme.error.withValues(alpha: .12),
+                              child: Icon(
+                                Icons.gavel_rounded,
+                                color: scheme.error,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (counts.awaitingDecision > 0)
+                                    Text(
+                                      '${counts.awaitingDecision} بانتظار القرار',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  if (counts.pendingExecution > 0)
+                                    Text(
+                                      '${counts.pendingExecution} بانتظار التنفيذ',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: scheme.onSurfaceVariant,
+                                          ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right_rounded),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ) ??
+              const SizedBox.shrink(),
         ],
       ),
     );

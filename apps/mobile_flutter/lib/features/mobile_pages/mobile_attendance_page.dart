@@ -198,7 +198,31 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
         const SizedBox(height: 16),
         _AttendanceStatusCard(state: value),
         const SizedBox(height: 16),
-        if (!value.hasActiveLocalDevice)
+        if (value.localDeviceStatus == 'pending') ...[
+          Card(
+            color: Colors.orange.shade50,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.hourglass_top_outlined, color: Colors.orange, size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'جهازك مسجل وينتظر موافقة المسؤول — لا يمكنك تسجيل الحضور حالياً',
+                      style: TextStyle(
+                        color: Colors.orange.shade900,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ] else if (!value.hasActiveLocalDevice)
           FilledButton.icon(
             onPressed: _working ? null : _register,
             icon: _working

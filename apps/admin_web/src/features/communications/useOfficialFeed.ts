@@ -23,7 +23,7 @@ export function usePublishAnnouncement() {
   const auth = useAuth();
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { title: string; body: string; category: string; priority: string; requiresAcknowledgement: boolean }) => {
+    mutationFn: async (input: { title: string; body: string; category: string; priority: string; requiresAcknowledgement: boolean; bannerUrl?: string | null }) => {
       if (auth.isMock) return input;
       const supabase = await getSupabase();
       const { data, error } = await supabase.rpc('publish_official_announcement', {
@@ -32,6 +32,7 @@ export function usePublishAnnouncement() {
         p_category: input.category,
         p_priority: input.priority,
         p_requires_acknowledgement: input.requiresAcknowledgement,
+        p_banner_url: input.bannerUrl ?? null,
       });
       if (error) throw error;
       return data;

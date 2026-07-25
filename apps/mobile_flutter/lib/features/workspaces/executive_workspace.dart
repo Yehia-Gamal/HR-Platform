@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_disputes_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_home_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_reports_page.dart';
@@ -6,8 +7,8 @@ import 'package:ahla_shabab_management_os/features/workspaces/workspace_scaffold
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
 
-/// V17 §4.2.7 — Governance tab hidden until a real operational journey is
-/// implemented. Kept: Home, Inbox, Location, Reports (per §4.4 executive list).
+/// V17 §14 — Disputes tab added for admin-action workflow.
+/// Tabs: Home, Inbox, Disputes, Location, Reports.
 class ExecutiveWorkspace extends StatefulWidget {
   const ExecutiveWorkspace({required this.access, super.key});
 
@@ -27,6 +28,7 @@ class _ExecutiveWorkspaceState extends State<ExecutiveWorkspace> {
     final pages = [
       const ExecutiveHomePage(),
       const MobileActionInboxPage(),
+      const ExecutiveDisputesPage(),
       const ExecutiveLocationPage(),
       const ExecutiveReportsPage(),
     ];
@@ -47,6 +49,11 @@ class _ExecutiveWorkspaceState extends State<ExecutiveWorkspace> {
           icon: Icon(Icons.inbox_outlined),
           selectedIcon: Icon(Icons.inbox),
           label: 'الوارد',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.gavel_outlined),
+          selectedIcon: Icon(Icons.gavel),
+          label: 'الإجراءات',
         ),
         NavigationDestination(
           icon: Icon(Icons.location_searching),

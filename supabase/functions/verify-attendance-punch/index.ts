@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
         public_key: credential.public_key,
         device_name: credential.device_label || "هاتف الموظف",
         platform: "android",
-        status: "active",
+        status: "pending",
         registered_at: new Date().toISOString(),
         metadata: {
           serverVerified: true,
@@ -175,7 +175,8 @@ Deno.serve(async (req) => {
       console.error("auto-provision employee_devices failed", provisionError);
     }
   } else if (device.status !== "active") {
-    return json(req, { error: "device_not_active" }, 403);
+    const errorCode = device.status === "pending" ? "device_pending_approval" : "device_not_active";
+    return json(req, { error: errorCode }, 403);
   }
 
   const { data: challenge, error: challengeError } = await admin

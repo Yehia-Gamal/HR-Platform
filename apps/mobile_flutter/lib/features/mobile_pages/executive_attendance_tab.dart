@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -62,21 +63,89 @@ class ExecutiveAttendanceTab extends ConsumerWidget {
             counts[key] = (counts[key] ?? 0) + 1;
           }
 
+          // ─── تجميع الموظفين حسب القسم ─────────────────────────────────
+          final grouped = <String, List<AttendanceTodayEmployee>>{};
+          for (final emp in employees) {
+            final dept =
+                emp.department?.isNotEmpty == true ? emp.department! : 'بدون قسم';
+            (grouped[dept] ??= []).add(emp);
+          }
+          final sortedDepts = grouped.keys.toList()
+            ..sort((a, b) {
+              if (a == 'بدون قسم') return 1;
+              if (b == 'بدون قسم') return -1;
+              return a.compareTo(b);
+            });
+
           final bottomPad = MediaQuery.of(context).padding.bottom;
-          return ListView(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPad),
-            children: [
-              // ─── شريط الملخص ───────────────────────────────────────
-              _SummaryBar(counts: counts, total: employees.length),
-              const SizedBox(height: 16),
-              // ─── قائمة الموظفين ────────────────────────────────────
-              ...employees.map(
-                (e) => Padding(
+          final scheme = Theme.of(context).colorScheme;
+
+          // بناء قائمة العناصر المسطّحة: شريط الملخص + رؤوس الأقسام + بطاقات
+          final items = <Widget>[
+            // ─── شريط الملخص ──────────────────────────────────────────
+            _SummaryBar(counts: counts, total: employees.length),
+            const SizedBox(height: 16),
+          ];
+
+          for (final dept in sortedDepts) {
+            final deptEmployees = grouped[dept]!;
+
+            // حساب ملخص الحضور لكل قسم
+            int present = 0, late = 0, absent = 0;
+            for (final e in deptEmployees) {
+              if (e.isOnMission) continue;
+              if (e.attendanceStatus == 'present') present++;
+              if (e.attendanceStatus == 'late') late++;
+              if (e.attendanceStatus == 'absent') absent++;
+            }
+            final summaryParts = <String>[];
+            if (present > 0) summaryParts.add('$present حاضر');
+            if (late > 0) summaryParts.add('$late متأخر');
+            if (absent > 0) summaryParts.add('$absent غائب');
+
+            // رأس القسم
+            items.add(
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
+                child: Row(
+                  children: [
+                    Icon(Icons.business_rounded, size: 18, color: scheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        dept,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                    ),
+                    Text(
+                      summaryParts.isNotEmpty
+                          ? '${deptEmployees.length} موظف — ${summaryParts.join(' · ')}'
+                          : '${deptEmployees.length} موظف',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+
+            // بطاقات الموظفين في هذا القسم
+            for (final e in deptEmployees) {
+              items.add(
+                Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: _AttendanceCard(employee: e),
                 ),
-              ),
-            ],
+              );
+            }
+          }
+
+          return ListView(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPad),
+            children: items,
           );
         },
       ),
@@ -199,15 +268,33 @@ class _AttendanceCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            // أيقونة الحالة
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: statusColor.withValues(alpha: 0.15),
-              ),
-              child: Icon(statusIcon, color: statusColor, size: 22),
+            // صورة الموظف مع شارة الحالة
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                AppAvatar(
+                  name: employee.name,
+                  photoUrl: employee.photoUrl,
+                  radius: 22,
+                ),
+                Positioned(
+                  bottom: -2,
+                  left: -2,
+                  child: Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: statusColor,
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.surface,
+                        width: 2,
+                      ),
+                    ),
+                    child: Icon(statusIcon, color: Colors.white, size: 10),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(width: 12),
             Expanded(

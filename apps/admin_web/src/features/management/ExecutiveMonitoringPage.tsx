@@ -4,6 +4,7 @@ import { EmptyState } from '../../ui/EmptyState';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
+import { UserAvatar } from '../../ui/UserAvatar';
 import { LiveLocationMap, type MapPoint } from './LiveLocationMap';
 import { LiveLocationResultCard } from './LiveLocationResultCard';
 import { useExecutiveAttendanceOverview, useLiveLocationCommands } from './useControlCenters';
@@ -125,6 +126,7 @@ export function ExecutiveMonitoringPage() {
               {visible.map((e) => (
                 <article key={e.id} className="p-4 transition-colors hover:bg-[var(--surface-muted)]">
                   <div className="flex items-start justify-between gap-3">
+                    <UserAvatar displayName={e.name ?? ''} size="sm" />
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2"><strong className="truncate">{e.name}</strong><StatusBadge value={e.status} label={STATUS_LABELS[e.status] ?? e.status} /></div>
                       <p className="muted mt-1 text-xs">{e.employeeCode ?? '—'} · {e.department ?? 'دون إدارة'} · مدير: {e.managerName ?? '—'}</p>

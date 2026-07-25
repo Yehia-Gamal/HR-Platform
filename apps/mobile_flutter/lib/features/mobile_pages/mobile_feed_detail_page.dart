@@ -75,53 +75,67 @@ class _FeedDetailContent extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       children: [
         Card(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (item.imageUrl != null && item.imageUrl!.isNotEmpty)
+                Image.network(
+                  item.imageUrl!,
+                  height: 220,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    MobileStatusPill(item.kind),
-                    MobileStatusPill(item.priority),
-                    if (item.publishedAt != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(99),
-                        ),
-                        child: Text(
-                          DateFormat(
-                            'd MMMM y',
-                            'ar',
-                          ).format(item.publishedAt!.toLocal()),
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        MobileStatusPill(item.kind),
+                        MobileStatusPill(item.priority),
+                        if (item.publishedAt != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(99),
+                            ),
+                            child: Text(
+                              DateFormat(
+                                'd MMMM y',
+                                'ar',
+                              ).format(item.publishedAt!.toLocal()),
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
                           ),
-                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      item.title,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
                       ),
+                    ),
+                    const SizedBox(height: 12),
+                    SelectableText(
+                      item.body,
+                      style: theme.textTheme.bodyLarge?.copyWith(height: 1.8),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  item.title,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SelectableText(
-                  item.body,
-                  style: theme.textTheme.bodyLarge?.copyWith(height: 1.8),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
         if (item.requiresAcknowledgement) ...[

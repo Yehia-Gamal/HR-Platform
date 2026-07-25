@@ -46,6 +46,7 @@ class AccessContext {
     required this.employeeId,
     required this.displayName,
     required this.employeeCode,
+    this.photoUrl,
     required this.roles,
     required this.permissions,
     required this.workspaces,
@@ -59,6 +60,7 @@ class AccessContext {
       employeeId: json['employeeId'] as String?,
       displayName: json['displayName'] as String,
       employeeCode: json['employeeCode'] as String?,
+      photoUrl: json['photoUrl'] as String?,
       roles: List<String>.from(json['roles'] as List<dynamic>? ?? const []),
       permissions: List<String>.from(
         json['permissions'] as List<dynamic>? ?? const [],
@@ -81,6 +83,7 @@ class AccessContext {
   final String? employeeId;
   final String displayName;
   final String? employeeCode;
+  final String? photoUrl;
   final List<String> roles;
   final List<String> permissions;
   final List<WorkspaceId> workspaces;

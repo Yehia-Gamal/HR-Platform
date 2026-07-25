@@ -38,6 +38,7 @@ import { LiveLocationPage } from '../features/management/LiveLocationPage';
 import { ExecutiveMonitoringPage } from '../features/management/ExecutiveMonitoringPage';
 import { OperationsCenterPage } from '../features/management/OperationsCenterPage';
 import { OfficialHolidaysPage } from '../features/holidays/OfficialHolidaysPage';
+import { DeviceApprovalPage } from '../features/devices/DeviceApprovalPage';
 
 export function App() {
   const auth = useAuth();
@@ -102,6 +103,7 @@ export function App() {
           <Route path="actions" element={<RequirePermission perm="access.role.read"><ActionCenterPage /></RequirePermission>} />
           <Route path="live-location" element={<RequirePermission perm="live_location.request"><LiveLocationPage /></RequirePermission>} />
           <Route path="live-location/monitoring" element={<RequirePermission perm="live_location.request"><ExecutiveMonitoringPage /></RequirePermission>} />
+          <Route path="device-approvals" element={<DeviceApprovalPage />} />
           <Route path="official-feed" element={<RequirePermission perm="comms.announcement.manage"><OfficialFeedPage /></RequirePermission>} />
           <Route path="organization" element={<RequirePermission perm="organization.org_chart.read"><OrganizationPage /></RequirePermission>} />
           <Route path="performance/cycles" element={<RequirePermission perm="performance.cycle.manage"><KpiCyclesPage /></RequirePermission>} />

@@ -1,0 +1,4 @@
+-- 0144: إضافة photoUrl لدالة get_my_access_context
+-- ملاحظة: هذا التغيير مدمج بالفعل في 0143_fix_attendance_all_non_executive.sql
+-- هذا الملف موجود فقط للحفاظ على تطابق schema_migrations مع الملفات المحلية.
+-- no-op

@@ -3,6 +3,7 @@ import { AlertTriangle, CalendarCheck, CheckCircle2, Link2, RefreshCcw, Save, Sh
 import { useEffect, useMemo, useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { StatusBadge } from '../../ui/StatusBadge';
+import { UserAvatar } from '../../ui/UserAvatar';
 import { useAdvanceKpi, useKpiEvaluationForm, useKpiFormCommands } from './usePerformance';
 import { kpiWorkflowStatusText } from './workflowStatus';
 
@@ -86,7 +87,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
 
   return <section className="card overflow-hidden">
     <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--border)] p-5">
-      <div><div className="flex flex-wrap items-center gap-2"><StatusBadge value={form.currentStage} /><span className="muted text-xs">{kpiWorkflowStatusText(form.workflowStatus)}</span></div><h2 className="mt-2 text-xl font-black">{form.employeeName}</h2><p className="muted text-sm">{form.employeeCode ?? 'بدون كود'} · {stageLabel[form.currentStage]}</p></div>
+      <div><div className="flex flex-wrap items-center gap-2"><StatusBadge value={form.currentStage} /><span className="muted text-xs">{kpiWorkflowStatusText(form.workflowStatus)}</span></div><div className="mt-2 flex items-center gap-3"><UserAvatar displayName={form.employeeName} /><div><h2 className="text-xl font-black">{form.employeeName}</h2><p className="muted text-sm">{form.employeeCode ?? 'بدون كود'} · {stageLabel[form.currentStage]}</p></div></div></div>
       <div className="text-left"><p className="text-2xl font-black">{form.finalScore ?? form.criteria.reduce((sum, item) => sum + (item.effectiveScore ?? 0), 0)} / 100</p><p className="muted text-xs">الموعد: {form.cycle.effectiveDeadline ? new Date(form.cycle.effectiveDeadline).toLocaleString('ar-EG') : '—'}</p><button className="btn-secondary mt-2" onClick={onDone}>إغلاق التفاصيل</button></div>
     </header>
 

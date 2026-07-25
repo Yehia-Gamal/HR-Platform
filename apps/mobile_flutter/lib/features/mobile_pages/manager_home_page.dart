@@ -1,7 +1,10 @@
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_team_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,10 +14,14 @@ class ManagerHomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final data = ref.watch(managerDashboardProvider);
+    final profile = ref.watch(mobileProfileProvider);
     final scheme = Theme.of(context).colorScheme;
 
     return RefreshIndicator(
-      onRefresh: () async => ref.invalidate(managerDashboardProvider),
+      onRefresh: () async {
+        ref.invalidate(managerDashboardProvider);
+        ref.invalidate(mobileTeamProvider);
+      },
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
         children: [
@@ -27,7 +34,13 @@ class ManagerHomePage extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
+                profile.whenOrNull(
+                  data: (p) => AppAvatar(
+                    name: p.fullNameAr,
+                    photoUrl: p.photoUrl,
+                    radius: 26,
+                  ),
+                ) ?? Container(
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
@@ -126,6 +139,24 @@ class ManagerHomePage extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           const MobileSectionHeader(
+            title: 'حضور الفريق اليوم',
+            subtitle: 'توزيع حالات الحضور لأعضاء فريقك.',
+          ),
+          const SizedBox(height: 12),
+          ref.watch(mobileTeamProvider).when(
+            loading: () => const Card(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: Center(
+                  child: CircularProgressIndicator.adaptive(),
+                ),
+              ),
+            ),
+            error: (_, __) => const SizedBox.shrink(),
+            data: (members) => _TeamAttendanceCard(members: members),
+          ),
+          const SizedBox(height: 20),
+          const MobileSectionHeader(
             title: 'إجراءات المدير',
             subtitle: 'ابدأ من العناصر الأعلى تأثيرًا على الفريق.',
           ),
@@ -208,4 +239,83 @@ class ManagerHomePage extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _TeamAttendanceCard extends StatelessWidget {
+  const _TeamAttendanceCard({required this.members});
+  final List<MobileTeamMember> members;
+
+  @override
+  Widget build(BuildContext context) {
+    final counts = <String, int>{};
+    for (final m in members) {
+      var status = m.attendanceStatus ?? 'absent';
+      if (status == 'leave') status = 'on_leave';
+      counts[status] = (counts[status] ?? 0) + 1;
+    }
+
+    final order = <(String, String, Color)>[
+      ('present', 'حاضر', AppColors.statusSuccess),
+      ('late', 'متأخر', AppColors.statusWarning),
+      ('mission', 'مهمة', AppColors.statusViolet),
+      ('on_leave', 'إجازة', AppColors.statusInfo),
+      ('absent', 'غائب', AppColors.statusDanger),
+    ];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final (key, label, color) in order)
+              _CountChip(label: label, count: counts[key] ?? 0, color: color),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CountChip extends StatelessWidget {
+  const _CountChip({
+    required this.label,
+    required this.count,
+    required this.color,
+  });
+  final String label;
+  final int count;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: .12),
+      borderRadius: BorderRadius.circular(99),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '$count',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 14,
+            color: color,
+          ),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 11,
+            color: color,
+          ),
+        ),
+      ],
+    ),
+  );
 }

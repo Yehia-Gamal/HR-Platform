@@ -7,6 +7,7 @@ import { MetricCard } from '../../ui/MetricCard';
 import { MetricSkeletonRow, SkeletonCard } from '../../ui/Skeletons';
 import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
+import { UserAvatar } from '../../ui/UserAvatar';
 import { useEnterpriseManagementCatalog } from './useEnterpriseManagement';
 import { useServiceDeskCommands } from './useControlCenters';
 
@@ -79,7 +80,7 @@ export function ServiceDeskPage() {
           {visible.map((item) => (
             <article className="card p-5" key={item.id} style={isOverdue(item) ? { boxShadow: '0 0 0 1px var(--danger-soft)' } : undefined}>
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="rounded-lg bg-[var(--surface-muted)] px-2 py-1 font-mono text-xs font-black">#{item.number}</span><StatusBadge value={item.priority} /></div><h2 className="mt-3 text-lg font-black">{item.title}</h2><p className="muted mt-1 text-sm">{item.serviceName} · مقدّم الطلب: {item.requesterName}</p></div>
+                <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="rounded-lg bg-[var(--surface-muted)] px-2 py-1 font-mono text-xs font-black">#{item.number}</span><StatusBadge value={item.priority} /></div><h2 className="mt-3 text-lg font-black">{item.title}</h2><div className="mt-1 flex items-center gap-2"><UserAvatar displayName={item.requesterName} size="sm" /><p className="muted text-sm">{item.serviceName} · مقدّم الطلب: {item.requesterName}</p></div></div>
                 <StatusBadge value={isOverdue(item) ? 'overdue' : item.status} label={isOverdue(item) ? 'متجاوز SLA' : undefined} />
               </div>
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-4">

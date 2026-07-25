@@ -102,7 +102,9 @@ class _PasskeyDevicesPageState extends ConsumerState<PasskeyDevicesPage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('تم تسجيل الجهاز بنجاح.')));
+        ).showSnackBar(const SnackBar(
+          content: Text('تم تسجيل الجهاز — ينتظر موافقة المسؤول'),
+        ));
       }
     } catch (error) {
       if (mounted) {
@@ -191,10 +193,48 @@ class _DeviceCard extends StatelessWidget {
   final bool working;
   final VoidCallback? onRevoke;
 
+  /// أيقونة ولون ونص الحالة حسب status الجهاز.
+  static ({IconData icon, Color color, String label}) _statusInfo(
+    String status,
+    BuildContext context,
+  ) =>
+      switch (status) {
+        'pending' => (
+          icon: Icons.hourglass_top_outlined,
+          color: Colors.orange,
+          label: 'ينتظر الموافقة',
+        ),
+        'active' => (
+          icon: Icons.phonelink_lock,
+          color: Colors.green,
+          label: 'نشط',
+        ),
+        'blocked' => (
+          icon: Icons.block_outlined,
+          color: Colors.red,
+          label: 'محظور',
+        ),
+        'revoked' => (
+          icon: Icons.mobile_off_outlined,
+          color: Colors.grey,
+          label: 'ملغي',
+        ),
+        'replaced' => (
+          icon: Icons.swap_horiz_outlined,
+          color: Colors.grey,
+          label: 'مُستبدَل',
+        ),
+        _ => (
+          icon: Icons.device_unknown_outlined,
+          color: Colors.grey,
+          label: status,
+        ),
+      };
+
   @override
   Widget build(BuildContext context) {
     final formatter = DateFormat('d MMMM y، h:mm a', 'ar');
-    final active = device.status == 'active';
+    final info = _statusInfo(device.status, context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -204,9 +244,8 @@ class _DeviceCard extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  child: Icon(
-                    active ? Icons.phonelink_lock : Icons.mobile_off_outlined,
-                  ),
+                  backgroundColor: info.color.withValues(alpha: 0.15),
+                  child: Icon(info.icon, color: info.color),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -217,7 +256,10 @@ class _DeviceCard extends StatelessWidget {
                         device.deviceLabel,
                         style: const TextStyle(fontWeight: FontWeight.w900),
                       ),
-                      Text(active ? 'نشط' : 'ملغي'),
+                      Text(
+                        info.label,
+                        style: TextStyle(color: info.color),
+                      ),
                     ],
                   ),
                 ),
@@ -230,11 +272,34 @@ class _DeviceCard extends StatelessWidget {
             ),
             const Divider(height: 24),
             Text('أضيف: ${formatter.format(device.createdAt.toLocal())}'),
+            if (device.approvedAt != null)
+              Text(
+                'وُوفق عليه: ${formatter.format(device.approvedAt!.toLocal())}',
+              ),
             Text(
               device.lastUsedAt == null
                   ? 'لم يُستخدم بعد'
                   : 'آخر استخدام: ${formatter.format(device.lastUsedAt!.toLocal())}',
             ),
+            if (device.status == 'blocked' &&
+                device.rejectionReason != null &&
+                device.rejectionReason!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline, size: 18, color: Colors.red),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'سبب الحظر: ${device.rejectionReason}',
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             if (device.backedUp)
               const Padding(
                 padding: EdgeInsets.only(top: 6),

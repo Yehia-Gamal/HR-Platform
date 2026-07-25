@@ -19,7 +19,7 @@ const emptyAttendance: AttendanceOperationsCatalog = { month: now.slice(0, 7) + 
 const emptyKpi: KpiAdminCatalog = { month: now.slice(0, 7) + '-01', cycles: [], templates: [], appeals: [], stageCounts: {}, lastUpdatedAt: now };
 const emptyDisputes: DisputeOperationsCatalog = {
   cases: [],
-  summary: { new: 0, overdue: 0, urgent: 0, critical: 0, waitingStatements: 0, escalated: 0, pendingExecution: 0, closed: 0, averageResolutionHours: 0 },
+  summary: { new: 0, overdue: 0, urgent: 0, critical: 0, waitingStatements: 0, escalated: 0, pendingExecution: 0, actionProposed: 0, awaitingExecution: 0, executed: 0, closed: 0, averageResolutionHours: 0 },
   pendingAppeals: 0,
   lastUpdatedAt: now,
 };

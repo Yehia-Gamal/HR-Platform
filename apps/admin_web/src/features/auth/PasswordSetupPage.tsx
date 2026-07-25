@@ -1,5 +1,6 @@
 import { CheckCircle2, Eye, EyeOff, KeyRound, ShieldCheck } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getSupabase } from '../../core/supabase';
 import { AppLogo } from '../../ui/AppLogo';
 
@@ -18,6 +19,7 @@ function clearRecoverySecretsFromAddressBar() {
 }
 
 export function PasswordSetupPage() {
+  const navigate = useNavigate();
   const [pageState, setPageState] = useState<PageState>('checking');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -109,6 +111,7 @@ export function PasswordSetupPage() {
                 <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-[var(--danger-soft)] text-[var(--danger)]"><KeyRound className="size-7" /></span>
                 <h2 className="mt-4 text-xl font-black">الرابط غير صالح أو انتهت مدته</h2>
                 <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">اطلب من مسؤول الموارد البشرية إرسال رابط تفعيل جديد. لا تشارك رابط التفعيل مع أي شخص.</p>
+                <button className="btn-primary mt-5 !py-3" onClick={() => navigate('/')}>الذهاب لصفحة تسجيل الدخول</button>
               </div>
             ) : null}
 
@@ -139,6 +142,7 @@ export function PasswordSetupPage() {
                 <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-[var(--success-soft)] text-[var(--success)]"><CheckCircle2 className="size-8" /></span>
                 <h2 className="mt-4 text-xl font-black">تم تفعيل الحساب بنجاح</h2>
                 <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">افتح تطبيق أحلى شباب وسجّل الدخول بالبريد أو كود الموظف وكلمة المرور الجديدة.</p>
+                <button className="btn-primary mx-auto mt-5 !py-3 px-8" type="button" onClick={() => navigate('/')}>تسجيل الدخول من المتصفح</button>
               </div>
             ) : null}
           </div>

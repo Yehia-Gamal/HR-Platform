@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/location_requests_page.dart';
@@ -20,6 +21,7 @@ class EmployeeHomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summary = ref.watch(employeeHomeProvider);
+    final profile = ref.watch(mobileProfileProvider);
     final scheme = Theme.of(context).colorScheme;
     final date = DateFormat('EEEE، d MMMM', 'ar_EG').format(DateTime.now());
 
@@ -75,7 +77,13 @@ class EmployeeHomePage extends ConsumerWidget {
                     const Spacer(),
                     const BrandLogoMark(inverse: true, size: 40),
                     const SizedBox(width: 8),
-                    ExcludeSemantics(
+                    profile.whenOrNull(
+                      data: (p) => AppAvatar(
+                        name: p.fullNameAr,
+                        photoUrl: p.photoUrl,
+                        radius: 20,
+                      ),
+                    ) ?? ExcludeSemantics(
                       child: Icon(
                         Icons.wb_sunny_outlined,
                         color: Colors.white.withValues(alpha: .8),

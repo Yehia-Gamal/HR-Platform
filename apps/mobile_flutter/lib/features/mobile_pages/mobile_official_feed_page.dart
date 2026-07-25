@@ -98,8 +98,9 @@ class MobileOfficialFeedPage extends ConsumerWidget {
             : ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
                 itemCount: items.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 10),
-                itemBuilder: (context, index) => _FeedCard(item: items[index]),
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (context, index) =>
+                    _FeedCard(item: items[index]),
               ),
       ),
     );
@@ -113,83 +114,102 @@ class _FeedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-    child: InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) =>
-              MobileFeedDetailPage(kind: item.kind, itemId: item.id),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                MobileStatusPill(item.kind),
-                const SizedBox(width: 6),
-                MobileStatusPill(item.priority),
-                const Spacer(),
-                if (item.publishedAt != null)
-                  Text(
-                    DateFormat(
-                      'd MMM',
-                      'ar',
-                    ).format(item.publishedAt!.toLocal()),
-                    style: Theme.of(context).textTheme.labelSmall,
-                  ),
-              ],
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  MobileFeedDetailPage(kind: item.kind, itemId: item.id),
             ),
-            const SizedBox(height: 12),
-            Text(
-              item.title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              item.body,
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                height: 1.7,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            if (item.requiresAcknowledgement) ...[
-              const Divider(height: 28),
-              Row(
-                children: [
-                  Semantics(
-                    label: item.myAcknowledged
-                        ? 'تم الإقرار بالاطلاع'
-                        : 'يتطلب الاطلاع والإقرار',
-                    child: Icon(
-                      item.myAcknowledged
-                          ? Icons.verified
-                          : Icons.visibility_outlined,
-                      size: 20,
-                      color: item.myAcknowledged
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (item.imageUrl != null && item.imageUrl!.isNotEmpty)
+                Image.network(
+                  item.imageUrl!,
+                  height: 160,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        MobileStatusPill(item.kind),
+                        const SizedBox(width: 6),
+                        MobileStatusPill(item.priority),
+                        const Spacer(),
+                        if (item.publishedAt != null)
+                          Text(
+                            DateFormat(
+                              'd MMM',
+                              'ar',
+                            ).format(item.publishedAt!.toLocal()),
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    item.myAcknowledged
-                        ? 'تم الإقرار بالاطلاع'
-                        : 'يتطلب الاطلاع والإقرار',
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    Text(
+                      item.title,
+                      style:
+                          Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      item.body,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        height: 1.7,
+                        color:
+                            Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    if (item.requiresAcknowledgement) ...[
+                      const Divider(height: 28),
+                      Row(
+                        children: [
+                          Semantics(
+                            label: item.myAcknowledged
+                                ? 'تم الإقرار بالاطلاع'
+                                : 'يتطلب الاطلاع والإقرار',
+                            child: Icon(
+                              item.myAcknowledged
+                                  ? Icons.verified
+                                  : Icons.visibility_outlined,
+                              size: 20,
+                              color: item.myAcknowledged
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            item.myAcknowledged
+                                ? 'تم الإقرار بالاطلاع'
+                                : 'يتطلب الاطلاع والإقرار',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ],
-          ],
+          ),
         ),
-      ),
-    ),
-  );
+      );
 }

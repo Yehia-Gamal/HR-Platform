@@ -6,6 +6,7 @@ import { FilterBar } from '../../ui/FilterBar';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
+import { UserAvatar } from '../../ui/UserAvatar';
 import { useLiveLocationCommands, useLocationDirectory, type LocationDirectoryItem } from './useControlCenters';
 
 type LocationState = 'fresh' | 'stale' | 'no_signal';
@@ -108,6 +109,7 @@ export function LiveLocationPage() {
                 return (
                   <article key={item.id} className="p-5 transition-colors hover:bg-[var(--surface-muted)]">
                     <div className="flex items-start justify-between gap-3">
+                      <UserAvatar displayName={item.name} size="sm" />
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2"><strong className="truncate">{item.name}</strong><StatusBadge value={state} label={stateLabel(state)} /></div>
                         <p className="muted mt-1 text-xs">{item.employeeCode} · {item.jobTitle ?? 'دون مسمى'} · {item.department ?? 'دون إدارة'}</p>

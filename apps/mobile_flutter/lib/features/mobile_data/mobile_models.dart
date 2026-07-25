@@ -54,23 +54,39 @@ class ExecutiveDashboardSummary {
     required this.publishedDecisions,
     required this.openCases,
     required this.activeLocationRequests,
+    required this.attendancePresent,
+    required this.attendanceRequired,
   });
-  factory ExecutiveDashboardSummary.fromJson(Map<String, dynamic> json) =>
-      ExecutiveDashboardSummary(
-        urgentActions: (json['urgentActions'] as num?)?.toInt() ?? 0,
-        pendingApprovals: (json['pendingApprovals'] as num?)?.toInt() ?? 0,
-        pendingFinalKpi: (json['pendingFinalKpi'] as num?)?.toInt() ?? 0,
-        publishedDecisions: (json['publishedDecisions'] as num?)?.toInt() ?? 0,
-        openCases: (json['openCases'] as num?)?.toInt() ?? 0,
-        activeLocationRequests:
-            (json['activeLocationRequests'] as num?)?.toInt() ?? 0,
-      );
+  factory ExecutiveDashboardSummary.fromJson(Map<String, dynamic> json) {
+    // استخراج بيانات الحضور من dailyReport
+    final report = json['dailyReport'] as Map<String, dynamic>? ?? {};
+    final att = report['attendance'] as Map<String, dynamic>? ?? {};
+    final emp = report['employees'] as Map<String, dynamic>? ?? {};
+    return ExecutiveDashboardSummary(
+      urgentActions: (json['urgentActions'] as num?)?.toInt() ?? 0,
+      pendingApprovals: (json['pendingApprovals'] as num?)?.toInt() ?? 0,
+      pendingFinalKpi: (json['pendingFinalKpi'] as num?)?.toInt() ?? 0,
+      publishedDecisions: (json['publishedDecisions'] as num?)?.toInt() ?? 0,
+      openCases: (json['openCases'] as num?)?.toInt() ?? 0,
+      activeLocationRequests:
+          (json['activeLocationRequests'] as num?)?.toInt() ?? 0,
+      attendancePresent: (att['present'] as num?)?.toInt() ?? 0,
+      attendanceRequired: (emp['requiredToday'] as num?)?.toInt() ?? 0,
+    );
+  }
   final int urgentActions;
   final int pendingApprovals;
   final int pendingFinalKpi;
   final int publishedDecisions;
   final int openCases;
   final int activeLocationRequests;
+  /// عدد الحاضرين اليوم (من dailyReport.attendance.present)
+  final int attendancePresent;
+  /// العدد المطلوب اليوم (من dailyReport.employees.requiredToday)
+  final int attendanceRequired;
+  /// نسبة الحضور المحسوبة (0-100)
+  int get attendanceRate =>
+      attendanceRequired > 0 ? (attendancePresent * 100 ~/ attendanceRequired) : 0;
 }
 
 class MobileRequest {
@@ -79,6 +95,7 @@ class MobileRequest {
     required this.number,
     required this.type,
     required this.employeeName,
+    required this.employeePhotoUrl,
     required this.title,
     required this.reason,
     required this.status,
@@ -91,6 +108,7 @@ class MobileRequest {
     number: (json['requestNumber'] as num).toInt(),
     type: json['requestType'] as String,
     employeeName: json['employeeName'] as String? ?? 'موظف',
+    employeePhotoUrl: json['employeePhotoUrl'] as String?,
     title: json['title'] as String?,
     reason: json['reason'] as String?,
     status: json['status'] as String? ?? 'pending',
@@ -102,6 +120,7 @@ class MobileRequest {
   final int number;
   final String type;
   final String employeeName;
+  final String? employeePhotoUrl;
   final String? title;
   final String? reason;
   final String status;
@@ -116,6 +135,7 @@ class MobileKpiEvaluation {
     required this.employeeId,
     required this.employeeName,
     required this.employeeCode,
+    required this.employeePhotoUrl,
     required this.periodMonth,
     required this.currentStage,
     required this.workflowStatus,
@@ -129,6 +149,7 @@ class MobileKpiEvaluation {
         employeeId: json['employeeId'] as String,
         employeeName: json['employeeName'] as String? ?? 'موظف',
         employeeCode: json['employeeCode'] as String?,
+        employeePhotoUrl: json['employeePhotoUrl'] as String?,
         periodMonth: DateTime.parse(json['periodMonth'] as String),
         currentStage: json['currentStage'] as String? ?? 'self',
         workflowStatus: json['workflowStatus'] as String? ?? 'NOT_STARTED',
@@ -142,6 +163,7 @@ class MobileKpiEvaluation {
   final String employeeId;
   final String employeeName;
   final String? employeeCode;
+  final String? employeePhotoUrl;
   final DateTime periodMonth;
   final String currentStage;
   final String workflowStatus;
@@ -409,6 +431,7 @@ class AttendanceState {
     required this.lastEventAt,
     required this.lastEventStatus,
     required this.todayStatus,
+    required this.localDeviceStatus,
   });
   factory AttendanceState.fromJson(Map<String, dynamic> json) =>
       AttendanceState(
@@ -428,6 +451,7 @@ class AttendanceState {
             : DateTime.parse(json['lastEventAt'] as String),
         lastEventStatus: json['lastEventStatus'] as String?,
         todayStatus: json['todayStatus'] as String?,
+        localDeviceStatus: json['localDeviceStatus'] as String?,
       );
   final bool attendanceRequired;
   final bool selfPunchEnabled;
@@ -439,6 +463,9 @@ class AttendanceState {
   final DateTime? lastEventAt;
   final String? lastEventStatus;
   final String? todayStatus;
+
+  /// حالة الجهاز المحلي: null (لا يوجد)، 'pending'، 'active'، 'blocked'، إلخ.
+  final String? localDeviceStatus;
 }
 
 class MobileFeedItem {
@@ -451,6 +478,7 @@ class MobileFeedItem {
     required this.requiresAcknowledgement,
     required this.myAcknowledged,
     required this.publishedAt,
+    this.imageUrl,
   });
   factory MobileFeedItem.fromJson(Map<String, dynamic> json) => MobileFeedItem(
     id: json['id'] as String,
@@ -463,6 +491,7 @@ class MobileFeedItem {
     publishedAt: json['publishedAt'] == null
         ? null
         : DateTime.parse(json['publishedAt'] as String),
+    imageUrl: json['imageUrl'] as String?,
   );
   final String id;
   final String kind;
@@ -472,6 +501,7 @@ class MobileFeedItem {
   final bool requiresAcknowledgement;
   final bool myAcknowledged;
   final DateTime? publishedAt;
+  final String? imageUrl;
 }
 
 class MobileActionItem {
@@ -772,6 +802,8 @@ class PasskeyDevice {
     required this.backedUp,
     required this.lastUsedAt,
     required this.createdAt,
+    required this.approvedAt,
+    required this.rejectionReason,
   });
   factory PasskeyDevice.fromJson(Map<String, dynamic> json) => PasskeyDevice(
     id: json['id'] as String,
@@ -785,6 +817,10 @@ class PasskeyDevice {
         ? null
         : DateTime.parse(json['lastUsedAt'] as String),
     createdAt: DateTime.parse(json['createdAt'] as String),
+    approvedAt: json['approvedAt'] == null
+        ? null
+        : DateTime.parse(json['approvedAt'] as String),
+    rejectionReason: json['rejectionReason'] as String?,
   );
   final String id;
   final String credentialId;
@@ -795,6 +831,8 @@ class PasskeyDevice {
   final bool backedUp;
   final DateTime? lastUsedAt;
   final DateTime createdAt;
+  final DateTime? approvedAt;
+  final String? rejectionReason;
 }
 
 class AttendanceHistoryItem {
@@ -1551,56 +1589,6 @@ class MobileDisputeCase {
   final String? actorName;
 }
 
-/// V17 §14 — صندوق المدير التنفيذي للإجراءات الإدارية
-class ExecutiveDisputeInbox {
-  const ExecutiveDisputeInbox({
-    required this.awaitingDecision,
-    required this.pendingExecution,
-    required this.recentlyExecuted,
-    required this.counts,
-  });
-  factory ExecutiveDisputeInbox.fromJson(Map<String, dynamic> json) =>
-      ExecutiveDisputeInbox(
-        awaitingDecision: _parseDisputeList(json['awaitingDecision']),
-        pendingExecution: _parseDisputeList(json['pendingExecution']),
-        recentlyExecuted: _parseDisputeList(json['recentlyExecuted']),
-        counts: ExecutiveDisputeInboxCounts.fromJson(
-          Map<String, dynamic>.from(
-            (json['counts'] as Map<dynamic, dynamic>?) ?? const {},
-          ),
-        ),
-      );
-  final List<MobileDisputeCase> awaitingDecision;
-  final List<MobileDisputeCase> pendingExecution;
-  final List<MobileDisputeCase> recentlyExecuted;
-  final ExecutiveDisputeInboxCounts counts;
-
-  static List<MobileDisputeCase> _parseDisputeList(dynamic list) =>
-      (list as List<dynamic>? ?? const [])
-          .map((e) => MobileDisputeCase.fromJson(
-                Map<String, dynamic>.from(e as Map<dynamic, dynamic>),
-              ))
-          .toList(growable: false);
-}
-
-class ExecutiveDisputeInboxCounts {
-  const ExecutiveDisputeInboxCounts({
-    required this.awaitingDecision,
-    required this.pendingExecution,
-    required this.executedLast30Days,
-  });
-  factory ExecutiveDisputeInboxCounts.fromJson(Map<String, dynamic> json) =>
-      ExecutiveDisputeInboxCounts(
-        awaitingDecision: (json['awaitingDecision'] as num?)?.toInt() ?? 0,
-        pendingExecution: (json['pendingExecution'] as num?)?.toInt() ?? 0,
-        executedLast30Days:
-            (json['executedLast30Days'] as num?)?.toInt() ?? 0,
-      );
-  final int awaitingDecision;
-  final int pendingExecution;
-  final int executedLast30Days;
-}
-
 class DisputeDirectoryEmployee {
   const DisputeDirectoryEmployee({
     required this.id,
@@ -2071,6 +2059,7 @@ class AttendanceTodayEmployee {
     required this.id,
     required this.name,
     required this.employeeCode,
+    required this.photoUrl,
     required this.jobTitle,
     required this.department,
     required this.attendanceStatus,
@@ -2087,6 +2076,7 @@ class AttendanceTodayEmployee {
         id: json['id'] as String,
         name: json['name'] as String? ?? 'موظف',
         employeeCode: json['employeeCode'] as String?,
+        photoUrl: json['photoUrl'] as String?,
         jobTitle: json['jobTitle'] as String?,
         department: json['department'] as String?,
         attendanceStatus: json['attendanceStatus'] as String? ?? 'absent',
@@ -2107,6 +2097,7 @@ class AttendanceTodayEmployee {
   final String id;
   final String name;
   final String? employeeCode;
+  final String? photoUrl;
   final String? jobTitle;
   final String? department;
   final String attendanceStatus;

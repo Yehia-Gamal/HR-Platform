@@ -28,6 +28,7 @@ import {
   Settings,
   ShieldAlert,
   ShieldCheck,
+  Smartphone,
   Sparkles,
   TimerReset,
   Users,
@@ -86,6 +87,7 @@ const adminSections: NavSection[] = [
     { label: 'مركز الموقع الحي', to: '/admin/live-location', icon: MapPin, permission: 'live_location.request' },
     { label: 'متابعة الموظفين اليومية', to: '/admin/live-location/monitoring', icon: MapPin, permission: 'live_location.request' },
     { label: 'الأخبار والقرارات', to: '/admin/official-feed', icon: Megaphone, permission: 'comms.announcement.manage' },
+    { label: 'أجهزة الموظفين', to: '/admin/device-approvals', icon: Smartphone },
   ] },
   { title: 'الحوكمة والتنظيم', items: [
     { label: 'الهيكل المؤسسي', to: '/admin/organization', icon: Network },
