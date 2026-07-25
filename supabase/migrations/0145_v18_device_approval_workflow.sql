@@ -142,9 +142,9 @@ as $$
   select coalesce(jsonb_agg(jsonb_build_object(
     'id', d.id,
     'employeeId', d.employee_id,
-    'employeeName', e.full_name,
+    'employeeName', e.full_name_ar,
     'employeeCode', e.employee_code,
-    'employeePhotoUrl', p.photo_url,
+    'employeePhotoUrl', e.photo_url,
     'deviceName', d.device_name,
     'platform', d.platform,
     'status', d.status,
@@ -155,7 +155,6 @@ as $$
   ) order by d.registered_at desc), '[]'::jsonb)
   from public.employee_devices d
   join public.employees e on e.id = d.employee_id
-  left join public.profiles p on p.id = e.user_id
   where d.status in ('pending', 'blocked')
     and public.current_is_full_access();
 $$;
