@@ -25,6 +25,7 @@ backup-drill/
 build/
 coverage/
 dist/
+dist-mobile/symbols/
 node_modules/
 staging_generated_secrets.local.txt
 supabase/.branches/
