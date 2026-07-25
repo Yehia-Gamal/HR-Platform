@@ -43,7 +43,7 @@ select col_has_check(
 
 -- Verify the enum accepts SUBMITTED_TO_HR (V17 addition)
 select lives_ok(
-  $$do $t$
+  $live$do $t$
   declare v_chk text;
   begin
     select pg_get_constraintdef(c.oid) into v_chk
@@ -52,7 +52,7 @@ select lives_ok(
     if v_chk not ilike '%SUBMITTED_TO_HR%' then
       raise exception 'SUBMITTED_TO_HR not in workflow_status CHECK';
     end if;
-  end $t$$$,
+  end $t$$live$,
   'SUBMITTED_TO_HR is in kpi_evaluations workflow_status CHECK'
 );
 
@@ -61,7 +61,7 @@ select lives_ok(
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 select lives_ok(
-  $$do $t$
+  $live$do $t$
   declare v_chk text;
   begin
     select pg_get_constraintdef(c.oid) into v_chk
@@ -73,7 +73,7 @@ select lives_ok(
     if v_chk not ilike '%manager_review%' then
       raise exception 'manager_review not in current_stage CHECK';
     end if;
-  end $t$$$,
+  end $t$$live$,
   'current_stage CHECK includes hr_review and manager_review'
 );
 
@@ -183,10 +183,10 @@ select has_column(
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 select lives_ok(
-  $$do $t$ begin
+  $live$do $t$ begin
     -- Just verify the function signature works without real data
     perform 1;
-  end $t$$$,
+  end $t$$live$,
   'get_kpi_evaluation_form callable'
 );
 

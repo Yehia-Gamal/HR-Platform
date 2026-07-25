@@ -366,10 +366,18 @@ class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
           ),
         );
       }
-    } catch (_) {
+    } catch (e) {
       if (context.mounted) {
+        final msg = e.toString();
+        final display = msg.contains('cooldown_active')
+            ? 'يرجى الانتظار 30 ثانية بين الطلبات.'
+            : msg.contains('cannot request own location')
+                ? 'لا يمكن طلب موقعك الخاص.'
+                : msg.contains('not active')
+                    ? 'الموظف غير نشط أو لا يملك حساباً مرتبطاً.'
+                    : 'تعذر إرسال الطلب. تحقق من الاتصال وأعد المحاولة.';
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تعذر إرسال الطلب. تحقق من الاتصال وأعد المحاولة.')),
+          SnackBar(content: Text(display)),
         );
       }
     }

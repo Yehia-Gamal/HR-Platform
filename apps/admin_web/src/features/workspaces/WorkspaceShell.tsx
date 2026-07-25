@@ -61,7 +61,7 @@ const hrSections: NavSection[] = [
   { title: 'الوقت والخدمات', items: [
     { label: 'الحضور', to: '/hr/attendance', icon: Activity, permission: 'attendance.record.read' },
     { label: 'الورديات وإغلاق الحضور', to: '/hr/attendance/operations', icon: CalendarClock, permission: 'attendance.roster.read' },
-    { label: 'الطلبات والموافقات', to: '/hr/requests', icon: ClipboardList, permission: 'requests.request.read' },
+    { label: 'طلب اجازة', to: '/hr/requests', icon: ClipboardList, permission: 'requests.request.read' },
     { label: 'العطل الرسمية', to: '/hr/holidays', icon: CalendarClock, permission: 'holidays.manage' },
   ] },
   { title: 'الأداء والتطوير', items: [

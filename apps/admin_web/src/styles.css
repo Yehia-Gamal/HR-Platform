@@ -51,6 +51,8 @@ a { color: inherit; text-decoration: none; }
 
 .btn-primary,
 .btn-secondary,
+.btn-danger,
+.btn-ghost,
 .icon-button {
   display: inline-flex;
   align-items: center;
@@ -74,6 +76,20 @@ a { color: inherit; text-decoration: none; }
   color: var(--text-primary);
   padding: 0.72rem 1.05rem;
 }
+.btn-danger {
+  border: 1px solid transparent;
+  background: var(--danger);
+  color: #fff;
+  padding: 0.72rem 1.05rem;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--danger) 20%, transparent);
+}
+.btn-ghost {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0.72rem 1.05rem;
+}
+.btn-ghost:hover { background: var(--surface-hover); }
 .icon-button {
   width: 2.75rem;
   height: 2.75rem;
@@ -83,12 +99,17 @@ a { color: inherit; text-decoration: none; }
 }
 .btn-primary:hover,
 .btn-secondary:hover,
+.btn-danger:hover,
 .icon-button:hover { opacity: 0.92; border-color: var(--border-strong); }
 .btn-primary:active,
 .btn-secondary:active,
+.btn-danger:active,
+.btn-ghost:active,
 .icon-button:active { transform: translateY(1px); }
 .btn-primary:disabled,
 .btn-secondary:disabled,
+.btn-danger:disabled,
+.btn-ghost:disabled,
 .icon-button:disabled { cursor: not-allowed; opacity: 0.5; }
 
 /* Application shell */
@@ -154,7 +175,7 @@ a { color: inherit; text-decoration: none; }
 .app-content { min-width: 0; }
 .app-header { position: sticky; top: 0; z-index: 30; display: flex; height: 78px; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 88%, transparent); padding: 0 1.25rem; backdrop-filter: blur(22px); }
 .page-container { width: min(100%, 1680px); margin-inline: auto; padding: 1.35rem; animation: page-enter 220ms ease both; }
-@keyframes page-enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@keyframes page-enter { from { opacity: 0; } to { opacity: 1; } }
 .header-profile { display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); padding: 0.28rem 0.35rem 0.28rem 0.72rem; color: var(--text-primary); }
 .notification-dot { position: absolute; top: 0.52rem; left: 0.55rem; width: 7px; height: 7px; border: 2px solid var(--surface); border-radius: 50%; background: var(--danger); }
 .mobile-overlay { display: none; }

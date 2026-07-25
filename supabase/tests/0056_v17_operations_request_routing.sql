@@ -33,7 +33,7 @@ select has_function(
 -- ════════════════════════════════════════════════════════════════════════════════
 
 select lives_ok(
-  $$do $t$
+  $live$do $t$
   declare v_chk text;
   begin
     select pg_get_constraintdef(c.oid) into v_chk
@@ -52,7 +52,7 @@ select lives_ok(
     -- الأنواع القديمة محذوفة
     if v_chk ilike '%attendance_permit%' then raise exception 'CHECK still allows old attendance_permit'; end if;
     if v_chk ilike '%generic%'           then raise exception 'CHECK still allows old generic'; end if;
-  end $t$$$,
+  end $t$$live$,
   'requests_request_type_check يحتوي على 6 أنواع V17 ويستبعد الأنواع القديمة'
 );
 

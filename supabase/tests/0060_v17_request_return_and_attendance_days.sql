@@ -16,7 +16,7 @@ select plan(14);
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 select lives_ok(
-  $$do $t$
+  $live$do $t$
   declare v_chk text;
   begin
     select pg_get_constraintdef(c.oid) into v_chk
@@ -28,7 +28,7 @@ select lives_ok(
     if v_chk not ilike '%returned%' then
       raise exception 'returned not in status CHECK';
     end if;
-  end $t$$$,
+  end $t$$live$,
   'requests_status_check يشمل returned'
 );
 

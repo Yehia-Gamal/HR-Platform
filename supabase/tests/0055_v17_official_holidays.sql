@@ -25,7 +25,7 @@ select has_column('public_holidays', 'notes',
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 select lives_ok(
-  $$do $t$
+  $live$do $t$
   declare v_chk text;
   begin
     select pg_get_constraintdef(c.oid) into v_chk
@@ -36,7 +36,7 @@ select lives_ok(
     if v_chk not ilike '%all%' or v_chk not ilike '%legal_entity%' or v_chk not ilike '%department%' then
       raise exception 'scope CHECK missing expected values';
     end if;
-  end $t$$$,
+  end $t$$live$,
   'scope CHECK accepts all, legal_entity, department'
 );
 

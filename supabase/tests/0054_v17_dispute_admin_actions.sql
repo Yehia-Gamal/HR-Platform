@@ -55,7 +55,7 @@ select is(
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 select lives_ok(
-  $$do $t$
+  $live$do $t$
   declare v_chk text;
   begin
     select pg_get_constraintdef(c.oid) into v_chk
@@ -70,7 +70,7 @@ select lives_ok(
     if v_chk not ilike '%executed%' then
       raise exception 'executed not in status CHECK';
     end if;
-  end $t$$$,
+  end $t$$live$,
   'status CHECK includes V17 admin-action statuses'
 );
 

@@ -169,7 +169,7 @@ select is((select count(*)::integer from public.attendance_daily where employee_
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"91000000-0000-4000-8000-000000000005","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','91000000-0000-4000-8000-000000000005',true);
-select ok((public.get_my_access_context()->'workspaces') ? 'hr' and not (public.get_my_access_context()->'workspaces') ? 'employee' and not (public.get_my_access_context()#>>'{attendancePolicy,attendanceRequired}')::boolean,'HR is web-only with no attendance workspace');
+select ok((public.get_my_access_context()->'workspaces') ? 'hr' and (public.get_my_access_context()->'workspaces') ? 'employee' and not (public.get_my_access_context()->'workspaces') ? 'main_admin' and (public.get_my_access_context()#>>'{attendancePolicy,attendanceRequired}')::boolean,'HR has hr + employee workspaces with attendance, no admin access');
 select ok(public.current_is_hr_reviewer() and public.has_permission('performance.kpi.hr_review'),'HR owns only the HR review stage');
 select throws_ok($$select public.manage_kpi_cycle('94000000-0000-4000-8000-000000000001','open','محاولة HR فتح الدورة',null)$$,'42501',null,'HR cannot open the KPI cycle');
 select ok(public.has_permission('people.employee.update_basic'),'HR can edit permitted employee fields');

@@ -31,3 +31,4 @@ staging_generated_secrets.local.txt
 supabase/.branches/
 supabase/.temp/
 tmp_*
+.claude/worktrees/

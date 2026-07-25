@@ -170,6 +170,8 @@ class _KpiEvaluationDetailPageState
           ),
         ),
         const SizedBox(height: 12),
+        _KpiStageStepper(currentStage: form.currentStage),
+        const SizedBox(height: 12),
         if (form.goals.isNotEmpty) ...[
           const MobileSectionHeader(title: 'الأهداف — 40 درجة'),
           const SizedBox(height: 8),
@@ -805,5 +807,105 @@ class _KpiEvaluationDetailPageState
     exempt.dispose();
     cancelled.dispose();
     note.dispose();
+  }
+}
+
+class _KpiStageStepper extends StatelessWidget {
+  const _KpiStageStepper({required this.currentStage});
+  final String currentStage;
+
+  static const _stages = [
+    ('self', 'الموظف'),
+    ('hr_review', 'الموارد البشرية'),
+    ('manager_review', 'المدير المباشر'),
+    ('finalized', 'معتمد'),
+  ];
+
+  int _resolveIndex() {
+    for (var i = 0; i < _stages.length; i++) {
+      if (_stages[i].$1 == currentStage) return i;
+    }
+    // closed / archived → treat as fully completed
+    if (currentStage == 'closed' || currentStage == 'archived') {
+      return _stages.length;
+    }
+    return 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final active = _resolveIndex();
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        child: Row(
+          children: [
+            for (var i = 0; i < _stages.length; i++) ...[
+              if (i > 0)
+                Expanded(
+                  child: Container(
+                    height: 2,
+                    color: i <= active
+                        ? scheme.primary
+                        : scheme.outlineVariant,
+                  ),
+                ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: i < active
+                          ? scheme.primary
+                          : i == active
+                              ? scheme.primaryContainer
+                              : scheme.surfaceContainerHighest,
+                      border: i == active
+                          ? Border.all(color: scheme.primary, width: 2.5)
+                          : null,
+                    ),
+                    child: Center(
+                      child: i < active
+                          ? Icon(
+                              Icons.check_rounded,
+                              size: 16,
+                              color: scheme.onPrimary,
+                            )
+                          : Text(
+                              '${i + 1}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                color: i == active
+                                    ? scheme.primary
+                                    : scheme.onSurfaceVariant,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _stages[i].$2,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight:
+                          i == active ? FontWeight.w900 : FontWeight.w600,
+                      color: i <= active
+                          ? scheme.primary
+                          : scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
