@@ -54,8 +54,8 @@ describe('createEmployeeInputSchema — fields', () => {
     expect(() => createEmployeeInputSchema.parse({ ...base, branchId: 'not-a-uuid' })).toThrow();
   });
 
-  it('defaults sendInvite to true when omitted', () => {
-    expect(createEmployeeInputSchema.parse(base).sendInvite).toBe(true);
+  it('defaults sendInvite to false when omitted', () => {
+    expect(createEmployeeInputSchema.parse(base).sendInvite).toBe(false);
   });
 });
 

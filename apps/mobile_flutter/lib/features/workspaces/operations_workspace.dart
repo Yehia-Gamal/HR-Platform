@@ -2,7 +2,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/employee_home_pa
 import 'package:ahla_shabab_management_os/features/mobile_pages/manager_operations_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_disputes_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/committee_dispute_list_page.dart';
 import 'package:ahla_shabab_management_os/features/workspaces/workspace_scaffold.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +22,7 @@ class _OperationsWorkspaceState extends State<OperationsWorkspace> {
     final pages = [
       EmployeeHomePage(access: widget.access),
       const MobileRequestsPage(allowDecision: true),
-      const ExecutiveDisputesPage(),
+      const CommitteeDisputeListPage(),
       MobileKpiPage(access: widget.access),
       const ManagerOperationsPage(),
     ];

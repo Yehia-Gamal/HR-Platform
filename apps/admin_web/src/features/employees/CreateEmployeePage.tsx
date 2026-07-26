@@ -13,7 +13,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { useOrganizationLookups } from './useOrganizationLookups';
 
 type FormInput = z.input<typeof createEmployeeInputSchema>;
-const defaultValues: Partial<FormInput> = { roleSlug: 'employee', sendInvite: true };
+const defaultValues: Partial<FormInput> = { roleSlug: 'employee', sendInvite: false };
 const uuidValue = { setValueAs: (value: string) => value || null };
 const steps = ['الهوية والحساب', 'الهيكل والوظيفة', 'المراجعة والإنشاء'];
 
@@ -144,7 +144,7 @@ export function CreateEmployeePage() {
         ? parsed.invitationSent
           ? `تم إنشاء الموظف والحساب وإرسال رابط التفعيل بنجاح. المعرّف: ${parsed.employeeId}`
           : `تم إنشاء الموظف والحساب، لكن تعذر إرسال رابط التفعيل. راجع إعداد عنوان التفعيل ثم أعد الإرسال. المعرّف: ${parsed.employeeId}`
-        : `تم إنشاء الموظف والحساب بنجاح دون إرسال دعوة. المعرّف: ${parsed.employeeId}`);
+        : `تم إنشاء الموظف بنجاح — نشط وجاهز للعمل فوراً. المعرّف: ${parsed.employeeId}`);
       uploadedPhotoPathRef.current = null;
       form.reset(defaultValues); setStep(0); clearObjectPreview(); setPhotoPreview(null);
     } catch (error) {

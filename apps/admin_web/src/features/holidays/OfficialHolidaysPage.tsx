@@ -1,5 +1,6 @@
 import { CalendarDays, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
@@ -133,7 +134,7 @@ export function OfficialHolidaysPage() {
         />
       )}
 
-      {deleting && (
+      {deleting && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="card w-full max-w-sm p-6">
             <h2 className="text-lg font-black">حذف العطلة</h2>
@@ -145,7 +146,8 @@ export function OfficialHolidaysPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
@@ -204,7 +206,7 @@ function HolidayFormDialog({ holiday, onClose, onSuccess }: { holiday: Holiday |
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <form onSubmit={(e) => void onSubmit(e)} className="card flex max-h-[90vh] w-full max-w-lg flex-col">
         <div className="border-b border-[var(--border)] p-6">
@@ -268,6 +270,7 @@ function HolidayFormDialog({ holiday, onClose, onSuccess }: { holiday: Holiday |
           </button>
         </div>
       </form>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -1,5 +1,6 @@
 import { Ban, CheckCircle2, Clock3, MonitorSmartphone, ShieldAlert, Smartphone, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
@@ -113,7 +114,7 @@ export function DeviceApprovalPage() {
       )}
 
       {/* حوار التأكيد */}
-      {confirmAction ? (
+      {confirmAction ? createPortal(
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={() => setConfirmAction(null)}>
           <div className="card w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
@@ -154,7 +155,8 @@ export function DeviceApprovalPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </div>
   );

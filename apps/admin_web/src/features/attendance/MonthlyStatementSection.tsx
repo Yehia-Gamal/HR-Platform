@@ -1,5 +1,6 @@
 import type { AttendanceStatement } from '@ahla/shared-contracts';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, Clock, AlertTriangle, TrendingUp, UserCheck, Timer, ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -43,48 +44,149 @@ export function MonthlyStatementSection({ employeeId }: { employeeId: string }) 
   );
 }
 
+// ─── نسبة الحضور المئوية ─────────────────────────────────────────
+function AttendancePercentageRing({ percentage }: { percentage: number }) {
+  const pct = Math.min(100, Math.max(0, percentage));
+  const color = pct >= 90 ? 'text-emerald-600' : pct >= 75 ? 'text-amber-500' : 'text-red-600';
+  const bgColor = pct >= 90 ? 'stroke-emerald-100' : pct >= 75 ? 'stroke-amber-100' : 'stroke-red-100';
+  const fgColor = pct >= 90 ? 'stroke-emerald-600' : pct >= 75 ? 'stroke-amber-500' : 'stroke-red-600';
+  const r = 40;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (pct / 100) * circ;
+
+  return (
+    <div className="relative flex flex-col items-center gap-1">
+      <svg width="100" height="100" viewBox="0 0 100 100" className="-rotate-90" aria-hidden="true">
+        <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className={bgColor} />
+        <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className={fgColor}
+          strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
+          style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className={`text-2xl font-black ${color}`}>{pct.toFixed(0)}%</span>
+        <span className="text-[10px] text-[var(--text-muted)]">حضور</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── علامات (tags) صغيرة للجدول ──────────────────────────────────
+function DayTag({ label, variant }: { label: string; variant: 'info' | 'warn' | 'success' | 'purple' }) {
+  const styles = {
+    info: 'bg-sky-50 text-sky-700 border-sky-200',
+    warn: 'bg-amber-50 text-amber-700 border-amber-200',
+    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    purple: 'bg-violet-50 text-violet-700 border-violet-200',
+  };
+  return (
+    <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold border ${styles[variant]}`}>
+      {label}
+    </span>
+  );
+}
+
 function StatementBody({ data }: { data: AttendanceStatement }) {
   const s = data.summary;
   const fmtTime = (t: string | null) => t ? t.slice(0, 5) : '—';
+  const attendancePct = s.scheduledDays > 0 ? (s.presentDays / s.scheduledDays * 100) : 0;
+
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
-        <MetricCard label="أيام الحضور" value={s.presentDays} hint={`من ${s.scheduledDays} مجدولة`} icon={CalendarDays} />
-        <MetricCard label="أيام الغياب" value={s.absentDays} icon={CalendarDays} />
-        <MetricCard label="أيام الإجازات" value={s.leaveDays} icon={CalendarDays} />
-        <MetricCard label="أيام المأموريات" value={s.missionDays} icon={CalendarDays} />
-        <MetricCard label="قوافل/فاندي" value={s.convoyFundiDays} icon={CalendarDays} />
-        <MetricCard label="إجمالي ساعات العمل" value={s.totalWorkHours} hint={`متوسط ${s.averageWorkHours} س/يوم`} icon={CalendarDays} />
+    <div className="space-y-5">
+      {/* ─── نسبة الحضور + ملخص رئيسي ─── */}
+      <div className="grid gap-4 lg:grid-cols-[auto_1fr]">
+        {/* دائرة النسبة */}
+        <div className="flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-6">
+          <AttendancePercentageRing percentage={attendancePct} />
+        </div>
+
+        {/* بطاقات الملخص */}
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard label="أيام الحضور" value={s.presentDays} hint={`من ${s.scheduledDays} مجدولة`} icon={UserCheck} />
+          <MetricCard label="أيام الغياب" value={s.absentDays} icon={AlertTriangle} />
+          <MetricCard label="أيام الإجازات" value={s.leaveDays} icon={CalendarDays} />
+          <MetricCard label="أيام المأموريات" value={s.missionDays} icon={TrendingUp} />
+          <MetricCard label="إذنات" value={s.permitCount} icon={Clock} />
+          <MetricCard label="قوافل/فاندي" value={s.convoyFundiDays} icon={CalendarDays} />
+          <MetricCard label="إجمالي ساعات العمل" value={s.totalWorkHours.toFixed(1)} hint={`متوسط ${s.averageWorkHours.toFixed(1)} س/يوم`} icon={Timer} />
+          <MetricCard label="ساعات إضافية" value={`${s.totalOvertimeMinutes} د`} icon={ArrowUpRight} />
+        </div>
       </div>
+
+      {/* ─── شريط الإحصائيات السريعة ─── */}
+      <div className="flex flex-wrap gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)]/40 px-4 py-3 text-xs">
+        <StatItem label="تأخير كلي" value={`${s.totalLateMinutes} د`} icon={<ArrowDownRight className="size-3.5 text-amber-500" />} />
+        <StatItem label="خروج مبكر" value={`${s.totalEarlyLeaveMinutes} د`} icon={<ArrowUpRight className="size-3.5 text-amber-500" />} />
+        <StatItem label="نسيان حضور" value={`${s.missingCheckInCount}`} icon={<AlertTriangle className="size-3.5 text-red-500" />} />
+        <StatItem label="نسيان انصراف" value={`${s.missingCheckOutCount}`} icon={<AlertTriangle className="size-3.5 text-red-500" />} />
+        <StatItem label="عطل رسمية" value={`${s.holidayDays}`} icon={<CalendarDays className="size-3.5 text-[var(--text-muted)]" />} />
+        <StatItem label="أيام راحة" value={`${s.restDays}`} icon={<CalendarDays className="size-3.5 text-[var(--text-muted)]" />} />
+        <StatItem label="تصحيحات" value={`${s.correctionCount}`} icon={<Clock className="size-3.5 text-slate-500" />} />
+      </div>
+
+      {/* ─── الجدول اليومي ─── */}
       <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
-        <table className="w-full min-w-[720px] text-right text-sm">
+        <table className="w-full min-w-[900px] text-right text-sm">
           <thead className="bg-[var(--surface-muted)] text-xs font-black">
             <tr>
-              <th className="p-2">التاريخ</th><th className="p-2">اليوم</th>
-              <th className="p-2">الحضور</th><th className="p-2">الانصراف</th>
-              <th className="p-2">الوردية</th><th className="p-2">ساعات فعلية</th>
-              <th className="p-2">التأخير</th><th className="p-2">الحالة</th>
-              <th className="p-2">ملاحظات</th>
+              <th className="p-2.5">التاريخ</th><th className="p-2.5">اليوم</th>
+              <th className="p-2.5">الحضور</th><th className="p-2.5">الانصراف</th>
+              <th className="p-2.5">الوردية</th><th className="p-2.5">ساعات فعلية</th>
+              <th className="p-2.5">التأخير</th><th className="p-2.5">خروج مبكر</th>
+              <th className="p-2.5">إضافي</th><th className="p-2.5">الحالة</th>
+              <th className="p-2.5">ملاحظات</th>
             </tr>
           </thead>
           <tbody>
-            {data.days.map((d) => (
-              <tr key={d.date} className="border-t border-[var(--border)] odd:bg-[var(--surface-muted)]/30">
-                <td className="p-2 tabular-nums" dir="ltr">{d.date}</td>
-                <td className="p-2">{d.dayNameAr}</td>
-                <td className="p-2 tabular-nums" dir="ltr">{fmtTime(d.checkIn)}</td>
-                <td className="p-2 tabular-nums" dir="ltr">{fmtTime(d.checkOut)}</td>
-                <td className="p-2">{d.shiftName || '—'}</td>
-                <td className="p-2 tabular-nums">{d.workHours || '—'}</td>
-                <td className="p-2 tabular-nums">{d.lateMinutes ? `${d.lateMinutes} د` : '—'}</td>
-                <td className={`p-2 font-bold ${WARN_STATUSES.has(d.status) ? 'text-red-600' : ''}`}>{d.status}</td>
-                <td className="p-2 text-xs">{d.correctionNote || (d.missingCheckOut ? 'لم يسجل انصراف' : '')}</td>
-              </tr>
-            ))}
+            {data.days.map((d) => {
+              const tags: { label: string; variant: 'info' | 'warn' | 'success' | 'purple' }[] = [];
+              if (d.hasLeave) tags.push({ label: 'إجازة', variant: 'purple' });
+              if (d.hasMission) tags.push({ label: 'مأمورية', variant: 'info' });
+              if (d.hasPermit) tags.push({ label: 'إذن', variant: 'warn' });
+              if (d.hasConvoyFundi) tags.push({ label: 'قافلة/فاندي', variant: 'purple' });
+              if (d.missingCheckIn) tags.push({ label: 'نقص حضور', variant: 'warn' });
+              if (d.missingCheckOut) tags.push({ label: 'نقص انصراف', variant: 'warn' });
+              if (d.hasCorrection) tags.push({ label: 'تصحيح', variant: 'info' });
+
+              return (
+                <tr key={d.date} className="border-t border-[var(--border)] odd:bg-[var(--surface-muted)]/30 hover:bg-[var(--surface-muted)]/60 transition-colors">
+                  <td className="p-2.5 tabular-nums" dir="ltr">{d.date}</td>
+                  <td className="p-2.5">{d.dayNameAr}</td>
+                  <td className="p-2.5 tabular-nums" dir="ltr">{fmtTime(d.checkIn)}</td>
+                  <td className="p-2.5 tabular-nums" dir="ltr">{fmtTime(d.checkOut)}</td>
+                  <td className="p-2.5">{d.shiftName || '—'}</td>
+                  <td className="p-2.5 tabular-nums">{d.workHours ? d.workHours.toFixed(1) : '—'}</td>
+                  <td className={`p-2.5 tabular-nums ${d.lateMinutes > 0 ? 'text-amber-600 font-bold' : ''}`}>
+                    {d.lateMinutes ? `${d.lateMinutes} د` : '—'}
+                  </td>
+                  <td className={`p-2.5 tabular-nums ${d.earlyLeaveMinutes > 0 ? 'text-amber-600 font-bold' : ''}`}>
+                    {d.earlyLeaveMinutes ? `${d.earlyLeaveMinutes} د` : '—'}
+                  </td>
+                  <td className={`p-2.5 tabular-nums ${d.overtimeMinutes > 0 ? 'text-emerald-600 font-bold' : ''}`}>
+                    {d.overtimeMinutes ? `${d.overtimeMinutes} د` : '—'}
+                  </td>
+                  <td className={`p-2.5 font-bold ${WARN_STATUSES.has(d.status) ? 'text-red-600' : ''}`}>{d.status}</td>
+                  <td className="p-2.5">
+                    <div className="flex flex-wrap gap-1">
+                      {tags.map((t) => <DayTag key={t.label} label={t.label} variant={t.variant} />)}
+                      {d.correctionNote && !tags.length && <span className="text-xs text-[var(--text-muted)]">{d.correctionNote}</span>}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
-      <p className="muted text-xs">تأخير كلي: {s.totalLateMinutes} د · خروج مبكر: {s.totalEarlyLeaveMinutes} د · نسيان ختم حضور: {s.missingCheckInCount} · نسيان ختم انصراف: {s.missingCheckOutCount} · تصحيحات: {s.correctionCount}</p>
+    </div>
+  );
+}
+
+function StatItem({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      {icon}
+      <span className="text-[var(--text-muted)]">{label}:</span>
+      <span className="font-bold">{value}</span>
     </div>
   );
 }

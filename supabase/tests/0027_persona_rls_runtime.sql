@@ -79,9 +79,9 @@ begin
   insert into public.manager_relations (employee_id, manager_employee_id, relation_type)
   values ('11111111-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000003', 'primary');
 
-  -- one pending generic request from emp, assigned to mgr
+  -- one pending attendance_correction request from emp, assigned to mgr
   insert into public.requests (id, request_type, employee_id, manager_employee_id, status, workflow_status, title)
-  values ('33333333-0000-4000-8000-000000000001', 'generic',
+  values ('33333333-0000-4000-8000-000000000001', 'attendance_correction',
           '11111111-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000003',
           'pending', 'submitted', 'طلب اختبار RLS');
 end

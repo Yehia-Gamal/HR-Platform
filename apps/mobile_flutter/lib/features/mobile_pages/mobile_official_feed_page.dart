@@ -1,6 +1,8 @@
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_announcement_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_decisions_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_feed_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
@@ -11,11 +13,15 @@ class MobileOfficialFeedPage extends ConsumerWidget {
   const MobileOfficialFeedPage({
     this.focusItemId,
     this.focusKind = 'decision',
+    this.canPublish = false,
     super.key,
   });
 
   final String? focusItemId;
   final String focusKind;
+
+  /// هل المستخدم لديه صلاحية إنشاء قرارات وإعلانات (مدير تنفيذي / أدمن).
+  final bool canPublish;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,85 +32,235 @@ class MobileOfficialFeedPage extends ConsumerWidget {
     final feed = ref.watch(mobileFeedProvider);
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    return RefreshIndicator(
-      onRefresh: () async => ref.invalidate(mobileFeedProvider),
-      child: feed.when(
-        loading: () => ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: const [
-            Padding(
-              padding: EdgeInsets.only(top: 120),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          ],
-        ),
-        error: (error, _) => ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(24),
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 80),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.error_outline, size: 48, color: scheme.error),
-                  const SizedBox(height: 12),
-                  Text(
-                    'تعذر تحميل الأخبار والقرارات',
-                    textAlign: TextAlign.center,
-                    style: textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton.icon(
-                    onPressed: () => ref.invalidate(mobileFeedProvider),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('إعادة المحاولة'),
-                  ),
-                ],
+    return Scaffold(
+      appBar: AppBar(title: const Text('القرارات والتعاميم')),
+      floatingActionButton: canPublish
+          ? FloatingActionButton.extended(
+              heroTag: 'fab_new_post',
+              onPressed: () => _showCreateOptions(context),
+              icon: const Icon(Icons.add),
+              label: const Text('نشر جديد'),
+            )
+          : null,
+      body: RefreshIndicator(
+        onRefresh: () async => ref.invalidate(mobileFeedProvider),
+        child: feed.when(
+          loading: () => ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: const [
+              Padding(
+                padding: EdgeInsets.only(top: 120),
+                child: Center(child: CircularProgressIndicator()),
               ),
-            ),
-          ],
-        ),
-        data: (items) => items.isEmpty
-            ? ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 100),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const BrandLogoMark(size: 44),
-                          const SizedBox(height: 16),
-                          Icon(
-                            Icons.campaign_outlined,
-                            size: 48,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'لا توجد منشورات رسمية',
-                            style: textTheme.bodyMedium?.copyWith(
+            ],
+          ),
+          error: (error, _) => ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(24),
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 80),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.error_outline, size: 48, color: scheme.error),
+                    const SizedBox(height: 12),
+                    Text(
+                      'تعذر تحميل الأخبار والقرارات',
+                      textAlign: TextAlign.center,
+                      style: textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton.icon(
+                      onPressed: () => ref.invalidate(mobileFeedProvider),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('إعادة المحاولة'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          data: (items) => items.isEmpty
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 80),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const BrandLogoMark(size: 44),
+                            const SizedBox(height: 16),
+                            Icon(
+                              Icons.campaign_outlined,
+                              size: 48,
                               color: scheme.onSurfaceVariant,
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 12),
+                            Text(
+                              'لا توجد منشورات رسمية',
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                            if (canPublish) ...[
+                              const SizedBox(height: 24),
+                              FilledButton.tonalIcon(
+                                onPressed: () => _showCreateOptions(context),
+                                icon: const Icon(Icons.add),
+                                label: const Text('أنشئ أول قرار أو إعلان'),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              )
-            : ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
-                itemCount: items.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (context, index) =>
-                    _FeedCard(item: items[index]),
-              ),
+                  ],
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) =>
+                      _FeedCard(item: items[index]),
+                ),
+        ),
       ),
     );
   }
+
+  void _showCreateOptions(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'إنشاء منشور جديد',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'اختر نوع المنشور الذي تريد إصداره',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              _CreateOptionTile(
+                icon: Icons.campaign_rounded,
+                iconColor: scheme.primary,
+                title: 'إعلان أو تعميم',
+                subtitle: 'يُنشر فوراً ويصل كإشعار لجميع الموظفين',
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ExecutiveAnnouncementPage(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+              _CreateOptionTile(
+                icon: Icons.gavel_rounded,
+                iconColor: scheme.tertiary,
+                title: 'قرار إداري',
+                subtitle: 'يُحفظ كمسودة ويمر بمراحل الاعتماد والنشر',
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ExecutiveDecisionsPage(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CreateOptionTile extends StatelessWidget {
+  const _CreateOptionTile({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Card(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: iconColor.withValues(alpha: 0.15),
+                  radius: 24,
+                  child: Icon(icon, color: iconColor, size: 26),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style:
+                            Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 }
 
 class _FeedCard extends StatelessWidget {

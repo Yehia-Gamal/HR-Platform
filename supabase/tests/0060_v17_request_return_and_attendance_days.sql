@@ -67,10 +67,10 @@ begin
     ('a0600000-0000-4000-8000-000000000102', 'v17ret-mgr@test.local',  'authenticated', 'authenticated'),
     ('a0600000-0000-4000-8000-000000000103', 'v17ret-exec@test.local', 'authenticated', 'authenticated');
 
-  insert into public.employees(id, user_id, employee_code, full_name_ar, department_id, legal_entity_id, status, is_active, is_deleted) values
-    ('a0600000-0000-4000-8000-000000000201', 'a0600000-0000-4000-8000-000000000101', 'RET-EMP', 'موظف الاختبار',      v_dept, v_entity, 'active', true, false),
-    ('a0600000-0000-4000-8000-000000000202', 'a0600000-0000-4000-8000-000000000102', 'RET-MGR', 'مدير الاختبار',       v_dept, v_entity, 'active', true, false),
-    ('a0600000-0000-4000-8000-000000000203', 'a0600000-0000-4000-8000-000000000103', 'RET-EXE', 'المدير التنفيذي',     v_dept, v_entity, 'active', true, false);
+  insert into public.employees(id, user_id, employee_code, full_name_ar, department_id, status, is_active, is_deleted) values
+    ('a0600000-0000-4000-8000-000000000201', 'a0600000-0000-4000-8000-000000000101', 'RET-EMP', 'موظف الاختبار',      v_dept, 'active', true, false),
+    ('a0600000-0000-4000-8000-000000000202', 'a0600000-0000-4000-8000-000000000102', 'RET-MGR', 'مدير الاختبار',       v_dept, 'active', true, false),
+    ('a0600000-0000-4000-8000-000000000203', 'a0600000-0000-4000-8000-000000000103', 'RET-EXE', 'المدير التنفيذي',     v_dept, 'active', true, false);
 
   insert into public.profiles(id, employee_id, status) values
     ('a0600000-0000-4000-8000-000000000101', 'a0600000-0000-4000-8000-000000000201', 'active'),
@@ -93,9 +93,9 @@ begin
 
   -- أحداث حضور: حدث قديم (90 يوم) وحدث حديث (5 أيام)
   insert into public.attendance_events(id, employee_id, event_type, event_at, status, source) values
-    ('a0600000-0000-4000-8000-000000000301', 'a0600000-0000-4000-8000-000000000201', 'check_in',  now() - interval '90 days', 'verified',  'gps'),
-    ('a0600000-0000-4000-8000-000000000302', 'a0600000-0000-4000-8000-000000000201', 'check_in',  now() - interval '5 days',  'verified',  'gps'),
-    ('a0600000-0000-4000-8000-000000000303', 'a0600000-0000-4000-8000-000000000201', 'check_out', now() - interval '5 days' + interval '8 hours', 'verified', 'gps');
+    ('a0600000-0000-4000-8000-000000000301', 'a0600000-0000-4000-8000-000000000201', 'CHECK_IN',  now() - interval '90 days', 'verified',  'gps'),
+    ('a0600000-0000-4000-8000-000000000302', 'a0600000-0000-4000-8000-000000000201', 'CHECK_IN',  now() - interval '5 days',  'verified',  'gps'),
+    ('a0600000-0000-4000-8000-000000000303', 'a0600000-0000-4000-8000-000000000201', 'CHECK_OUT', now() - interval '5 days' + interval '8 hours', 'verified', 'gps');
 end
 $fixture$;
 

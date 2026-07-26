@@ -81,10 +81,10 @@ begin
     ('a5500000-0000-4000-8000-000000000102', 'v17hol-hr@test.local',    'authenticated', 'authenticated'),
     ('a5500000-0000-4000-8000-000000000103', 'v17hol-emp@test.local',   'authenticated', 'authenticated');
 
-  insert into public.employees(id, user_id, employee_code, full_name_ar, department_id, legal_entity_id, status, is_active, is_deleted) values
-    ('a5500000-0000-4000-8000-000000000201', 'a5500000-0000-4000-8000-000000000101', 'HL-ADM', 'مدير عطل',    v_dept_a, v_entity, 'active', true, false),
-    ('a5500000-0000-4000-8000-000000000202', 'a5500000-0000-4000-8000-000000000102', 'HL-HR',  'أخصائي HR',   v_dept_a, v_entity, 'active', true, false),
-    ('a5500000-0000-4000-8000-000000000203', 'a5500000-0000-4000-8000-000000000103', 'HL-EMP', 'موظف عطل',    v_dept_b, v_entity, 'active', true, false);
+  insert into public.employees(id, user_id, employee_code, full_name_ar, department_id, status, is_active, is_deleted) values
+    ('a5500000-0000-4000-8000-000000000201', 'a5500000-0000-4000-8000-000000000101', 'HL-ADM', 'مدير عطل',    v_dept_a, 'active', true, false),
+    ('a5500000-0000-4000-8000-000000000202', 'a5500000-0000-4000-8000-000000000102', 'HL-HR',  'أخصائي HR',   v_dept_a, 'active', true, false),
+    ('a5500000-0000-4000-8000-000000000203', 'a5500000-0000-4000-8000-000000000103', 'HL-EMP', 'موظف عطل',    v_dept_b, 'active', true, false);
 
   insert into public.profiles(id, employee_id, status) values
     ('a5500000-0000-4000-8000-000000000101', 'a5500000-0000-4000-8000-000000000201', 'active'),

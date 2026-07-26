@@ -37,7 +37,7 @@ const inputSchema = z.object({
   gradeId: nullableUuid,
   employmentTypeId: nullableUuid,
   hireDate: z.string().date().optional(),
-  sendInvite: z.boolean().default(true),
+  sendInvite: z.boolean().default(false),
 });
 
 type Input = z.infer<typeof inputSchema>;

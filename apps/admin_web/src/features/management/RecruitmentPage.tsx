@@ -1,5 +1,6 @@
 import { BriefcaseBusiness, CalendarPlus, CheckCircle2, FileClock, FileSignature, Plus, Send, UserCheck, UserPlus, Users, X } from 'lucide-react';
 import { useState, type FormEvent, type ReactNode } from 'react';
+import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
@@ -231,7 +232,7 @@ export function RecruitmentPage() {
       ) : null}
 
       {interviewDraft ? (
-        <Dialog title="جدولة مقابلة" onClose={() => setInterviewDraft(null)}>
+        <DialogOverlay title="جدولة مقابلة" onClose={() => setInterviewDraft(null)} maxWidth="max-w-4xl">
           <form className="space-y-5" onSubmit={(event) => void submitInterview(event)}>
             <Select label="الطلب/المرشح" required value={interviewDraft.applicationId} onChange={(value) => setInterviewDraft({ ...interviewDraft, applicationId: value })}>
               {applicationOptions.map((app) => <option key={app.id} value={app.id}>{applicationLabel(app.id)}</option>)}
@@ -246,11 +247,11 @@ export function RecruitmentPage() {
             <Input label="المكان أو رابط الاجتماع" value={interviewDraft.locationOrLink} onChange={(value) => setInterviewDraft({ ...interviewDraft, locationOrLink: value })} />
             <button className="btn-primary" disabled={!interviewDraft.applicationId || !interviewDraft.scheduledAt || workbenchCommands.scheduleInterview.isPending}><CalendarPlus className="size-4" />{workbenchCommands.scheduleInterview.isPending ? 'جارٍ الحفظ…' : 'جدولة'}</button>
           </form>
-        </Dialog>
+        </DialogOverlay>
       ) : null}
 
       {offerDraft ? (
-        <Dialog title="عرض توظيف جديد" onClose={() => setOfferDraft(null)}>
+        <DialogOverlay title="عرض توظيف جديد" onClose={() => setOfferDraft(null)} maxWidth="max-w-4xl">
           <form className="space-y-5" onSubmit={(event) => void submitOffer(event)}>
             <Select label="الطلب/المرشح" required value={offerDraft.applicationId} onChange={(value) => setOfferDraft({ ...offerDraft, applicationId: value })}>
               {applicationOptions.map((app) => <option key={app.id} value={app.id}>{applicationLabel(app.id)}</option>)}
@@ -264,11 +265,11 @@ export function RecruitmentPage() {
             </div>
             <button className="btn-primary" disabled={!offerDraft.applicationId || workbenchCommands.createOffer.isPending}><FileSignature className="size-4" />{workbenchCommands.createOffer.isPending ? 'جارٍ الحفظ…' : 'إنشاء العرض'}</button>
           </form>
-        </Dialog>
+        </DialogOverlay>
       ) : null}
 
       {draft && organization.data ? (
-        <Dialog title="طلب توظيف جديد" onClose={() => setDraft(null)}>
+        <DialogOverlay title="طلب توظيف جديد" onClose={() => setDraft(null)} maxWidth="max-w-4xl">
           <form className="space-y-5" onSubmit={(event) => void submit(event)}>
             <div className="grid gap-4 sm:grid-cols-2">
               <Select label="الإدارة" required value={draft.departmentId} onChange={(value) => setDraft({ ...draft, departmentId: value })}>
@@ -282,13 +283,12 @@ export function RecruitmentPage() {
             <label className="flex items-center gap-3 rounded-xl bg-[var(--surface-muted)] p-4 text-sm font-bold"><input type="checkbox" checked={draft.submit} onChange={(event) => setDraft({ ...draft, submit: event.target.checked })} />إرسال الطلب للاعتماد فور الحفظ</label>
             <button className="btn-primary" disabled={commands.createRequisition.isPending}><Send className="size-4" />{commands.createRequisition.isPending ? 'جارٍ الحفظ…' : draft.submit ? 'حفظ وإرسال' : 'حفظ كمسودة'}</button>
           </form>
-        </Dialog>
+        </DialogOverlay>
       ) : null}
     </div>
   );
 }
 
-function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) { return <div className="fixed inset-0 z-50 grid place-items-center p-4 bg-[color-mix(in_srgb,var(--text-primary)_60%,transparent)]" role="dialog" aria-modal="true"><section className="card max-h-[94vh] w-full max-w-4xl overflow-y-auto p-6"><div className="mb-5 flex items-center justify-between"><h2 className="text-xl font-black">{title}</h2><button className="icon-button" onClick={onClose} aria-label="إغلاق"><X className="size-5" aria-hidden="true" /></button></div>{children}</section></div>; }
 function Input({ label, value, onChange, required, placeholder }: { label: string; value: string; onChange: (value: string) => void; required?: boolean; placeholder?: string }) { return <label><span className="mb-1.5 block text-sm font-bold">{label}</span><input className="input" required={required} placeholder={placeholder} value={value} onChange={(event) => onChange(event.target.value)} /></label>; }
 function NumberInput({ label, value, onChange, min }: { label: string; value: number; onChange: (value: number) => void; min: number }) { return <label><span className="mb-1.5 block text-sm font-bold">{label}</span><input className="input" type="number" min={min} required value={value} onChange={(event) => onChange(Math.max(min, Number(event.target.value) || min))} /></label>; }
 function Select({ label, value, onChange, required, children }: { label: string; value: string; onChange: (value: string) => void; required?: boolean; children: ReactNode }) { return <label><span className="mb-1.5 block text-sm font-bold">{label}</span><select className="input" required={required} value={value} onChange={(event) => onChange(event.target.value)}><option value="">اختر…</option>{children}</select></label>; }

@@ -1,5 +1,6 @@
 import { AlarmClockCheck, FileBarChart2, Plus, Send, X } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
@@ -109,7 +110,7 @@ export function ReportSchedulerPage() {
         </>
       )}
 
-      {open ? (
+      {open ? createPortal(
         <div
           className="fixed inset-0 z-50 grid place-items-center p-4"
           style={{ background: 'color-mix(in srgb, var(--text-primary) 55%, transparent)' }}
@@ -161,7 +162,8 @@ export function ReportSchedulerPage() {
               {commands.upsert.isPending ? 'جارٍ الحفظ…' : 'حفظ الجدولة'}
             </button>
           </form>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </div>
   );

@@ -1,5 +1,6 @@
 import { Activity, Crosshair, LocateFixed, MapPin, RefreshCw, Send, Signal, SignalLow, Users, X } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
@@ -131,7 +132,7 @@ export function LiveLocationPage() {
         </section>
       ) : null}
 
-      {requestDraft ? (
+      {requestDraft ? createPortal(
         <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setRequestDraft(null); }}>
           <section className="card w-full max-w-xl p-6" role="dialog" aria-modal="true" aria-labelledby="location-request-title">
             <div className="flex items-start justify-between gap-4">
@@ -147,8 +148,8 @@ export function LiveLocationPage() {
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setRequestDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.request.isPending || requestDraft.reason.trim().length < 5}><Send className="size-4" />{commands.request.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}</button></div>
             </form>
           </section>
-        </div>
-      ) : null}
+        </div>,
+      document.body) : null}
     </div>
   );
 }

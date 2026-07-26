@@ -85,10 +85,12 @@ export const accessAdminCatalogSchema = z.object({
     resource: z.string().nullable(),
     action: z.string().nullable(),
     name: z.string(),
+    nameAr: z.string().nullable().optional(),
     description: z.string().nullable(),
     riskLevel: z.string(),
     sensitive: z.boolean(),
     allowedScopes: z.array(z.string()),
+    moduleAr: z.string().nullable().optional(),
   })),
   users: z.array(z.object({
     userId: uuid,

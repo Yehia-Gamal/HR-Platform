@@ -60,7 +60,7 @@ export const createEmployeeInputSchema = z.object({
   gradeId: optionalUuid,
   employmentTypeId: optionalUuid,
   hireDate: z.string().date().optional(),
-  sendInvite: z.boolean().default(true),
+  sendInvite: z.boolean().default(false),
 });
 
 export type CreateEmployeeInput = z.infer<typeof createEmployeeInputSchema>;
@@ -104,6 +104,15 @@ export const employee360Schema = z.object({
   gradeId: z.string().uuid().nullable().optional(),
   employmentTypeId: z.string().uuid().nullable().optional(),
   managerId: z.string().uuid().nullable().optional(),
+  // إدارات الموظف (V17 — multi-department)
+  departments: z.array(z.object({
+    id: z.string().uuid(),
+    departmentId: z.string().uuid(),
+    departmentName: z.string(),
+    jobTitle: z.string().nullable(),
+    isPrimary: z.boolean(),
+    assignedAt: z.string(),
+  })).optional().default([]),
   roles: z.array(z.object({ slug: z.string(), name: z.string() })),
   directReports: z.number(),
   attendance30: z.object({

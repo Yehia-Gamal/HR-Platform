@@ -85,12 +85,13 @@ export function App() {
           <Route path="employees/:employeeId" element={<RequirePermission perm="people.employee.read"><EmployeeDetailPage /></RequirePermission>} />
           <Route path="attendance" element={<RequirePermission perm="attendance.record.read"><AttendancePage /></RequirePermission>} />
           <Route path="attendance/operations" element={<RequirePermission perm="attendance.roster.read"><AttendanceOperationsPage /></RequirePermission>} />
-          <Route path="requests" element={<RequirePermission perm="requests.request.read"><RequestsPage /></RequirePermission>} />
+          {/* V17: MonthlyStatementPage + RequestDetailPage not yet implemented */}
           <Route path="performance" element={<RequirePermission perm="performance.kpi.read"><PerformancePage /></RequirePermission>} />
           <Route path="recruitment" element={<RequirePermission perm="recruitment.requisition.read"><RecruitmentPage /></RequirePermission>} />
           <Route path="onboarding" element={<RequirePermission perm="onboarding.journey.read"><OnboardingPage /></RequirePermission>} />
           <Route path="reports" element={<RequirePermission perm="reports.people.read"><ReportsPage /></RequirePermission>} />
           <Route path="holidays" element={<RequirePermission perm="holidays.manage"><OfficialHolidaysPage /></RequirePermission>} />
+          {/* V17: OrgChartPage not yet implemented */}
           {/* V17 §4.2: hidden secondary modules — learning, documents, lifecycle */}
           <Route path="official-feed" element={<RequirePermission perm="comms.announcement.read"><OfficialFeedPage /></RequirePermission>} />
           <Route path="notifications" element={<NotificationsPage />} />

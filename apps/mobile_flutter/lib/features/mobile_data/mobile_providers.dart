@@ -1097,6 +1097,16 @@ final executiveDisputeInboxProvider = FutureProvider<ExecutiveDisputeInbox>((
   return ExecutiveDisputeInbox.fromJson(_asMap(data));
 });
 
+/// V18 — Committee dispute portal (all-cases card-list for committee members)
+final committeeDisputePortalProvider = FutureProvider<CommitteeDisputePortal>((
+  ref,
+) async {
+  final data = await ref
+      .watch(supabaseProvider)
+      .rpc<dynamic>('get_committee_dispute_portal');
+  return CommitteeDisputePortal.fromJson(_asMap(data));
+});
+
 final myOffboardingPortalProvider = FutureProvider<MobileOffboardingPortal>((
   ref,
 ) async {
@@ -1256,6 +1266,7 @@ extension ExecutiveDisputeCommands on MobileCommands {
           },
         );
     ref.invalidate(executiveDisputeInboxProvider);
+    ref.invalidate(committeeDisputePortalProvider);
     ref.invalidate(myDisputePortalProvider);
   }
 }

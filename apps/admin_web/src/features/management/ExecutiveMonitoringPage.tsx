@@ -1,5 +1,6 @@
 import { Activity, CalendarClock, MapPin, RefreshCw, Search, Send, Users, X } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { EmptyState } from '../../ui/EmptyState';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
@@ -147,16 +148,16 @@ export function ExecutiveMonitoringPage() {
         </section>
       ) : null}
 
-      {selectedRequestId ? (
+      {selectedRequestId ? createPortal(
         <div className="dialog-backdrop" role="presentation" onMouseDown={(ev) => { if (ev.target === ev.currentTarget) setSelectedRequestId(null); }}>
           <section className="card w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6" role="dialog" aria-modal="true" aria-label="نتيجة طلب الموقع">
             <div className="mb-4 flex items-center justify-between"><h2 className="text-xl font-black">نتيجة طلب الموقع</h2><button type="button" className="icon-button" aria-label="إغلاق" onClick={() => setSelectedRequestId(null)}><X className="size-5" /></button></div>
             <LiveLocationResultCard requestId={selectedRequestId} />
           </section>
-        </div>
-      ) : null}
+        </div>,
+      document.body) : null}
 
-      {draft ? (
+      {draft ? createPortal(
         <div className="dialog-backdrop" role="presentation" onMouseDown={(ev) => { if (ev.target === ev.currentTarget) setDraft(null); }}>
           <section className="card w-full max-w-xl p-6" role="dialog" aria-modal="true" aria-labelledby="exec-req-title">
             <div className="flex items-start justify-between gap-4">
@@ -172,8 +173,8 @@ export function ExecutiveMonitoringPage() {
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.request.isPending || draft.reason.trim().length < 5}><Send className="size-4" />{commands.request.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}</button></div>
             </form>
           </section>
-        </div>
-      ) : null}
+        </div>,
+      document.body) : null}
     </div>
   );
 }

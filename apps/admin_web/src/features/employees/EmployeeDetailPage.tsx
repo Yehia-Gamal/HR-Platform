@@ -1,10 +1,11 @@
 import type { Employee360 } from '@ahla/shared-contracts';
 import {
-  ArrowRight, BadgeCheck, BriefcaseBusiness, CalendarDays, Clock3, FileText,
-  Archive, Gauge, MailCheck, Network, Pencil, Phone, ShieldCheck, UserRound, UsersRound,
+  ArrowRight, BadgeCheck, BriefcaseBusiness, Building2, CalendarDays, Clock3, FileText,
+  Archive, Gauge, MailCheck, Network, Pencil, Phone, Plus, ShieldCheck, Star, Trash2, UserRound, UsersRound, X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
@@ -15,7 +16,10 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { MonthlyStatementSection } from '../attendance/MonthlyStatementSection';
-import { useEmployee360, useResendInvite, useEmployees, useChangeManager, useArchiveEmployee, useUpdateEmployee } from './useEmployees';
+import {
+  useEmployee360, useResendInvite, useEmployees, useChangeManager, useArchiveEmployee,
+  useUpdateEmployee, useEmployeeDepartments, useAssignDepartment, useRemoveDepartment, useDeleteEmployee,
+} from './useEmployees';
 import { useOrganizationLookups } from './useOrganizationLookups';
 
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
@@ -33,6 +37,9 @@ export function EmployeeDetailPage() {
   const [showManagerDialog, setShowManagerDialog] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showAddDeptDialog, setShowAddDeptDialog] = useState(false);
+  const navigate = useNavigate();
   const item = query.data;
 
   if (query.isError) {
@@ -72,6 +79,7 @@ export function EmployeeDetailPage() {
           {showResend ? <button type="button" className="btn-secondary" disabled={resend.isPending} onClick={() => void onResend()}><MailCheck className="size-4" aria-hidden="true" />{resend.isPending ? 'جارٍ الإرسال…' : 'إعادة إرسال دعوة التفعيل'}</button> : null}
           {canEdit ? <button type="button" className="btn-primary" onClick={() => setShowEditDialog(true)}><Pencil className="size-4" aria-hidden="true" />تعديل البيانات</button> : null}
           {canEdit && item.isActive ? <button type="button" className="btn-secondary text-[var(--danger)]" onClick={() => setShowArchiveDialog(true)}><Archive className="size-4" aria-hidden="true" />أرشفة الموظف</button> : null}
+          {canEdit ? <button type="button" className="btn-secondary text-[var(--danger)]" onClick={() => setShowDeleteDialog(true)}><Trash2 className="size-4" aria-hidden="true" />حذف الموظف</button> : null}
           <Link to="/hr/employees" className="btn-secondary"><ArrowRight className="size-4" aria-hidden="true" />عودة للموظفين</Link>
         </div>}
       />
@@ -164,6 +172,9 @@ export function EmployeeDetailPage() {
         </article>
       </section>
 
+      {/* إدارات الموظف — V17 multi-department */}
+      {employeeId && <DepartmentsSection employeeId={employeeId} canEdit={canEdit} onAdd={() => setShowAddDeptDialog(true)} />}
+
       {/* كشف الحضور والانصراف الشهري (V12 §18) */}
       {employeeId && <MonthlyStatementSection employeeId={employeeId} />}
 
@@ -190,6 +201,21 @@ export function EmployeeDetailPage() {
           item={item}
           onClose={() => setShowEditDialog(false)}
           onSuccess={() => { setShowEditDialog(false); void query.refetch(); }}
+        />
+      )}
+      {showDeleteDialog && employeeId && (
+        <DeleteEmployeeDialog
+          employeeId={employeeId}
+          employeeName={item.fullNameAr}
+          onClose={() => setShowDeleteDialog(false)}
+          onSuccess={() => { setShowDeleteDialog(false); void navigate('/hr/employees'); }}
+        />
+      )}
+      {showAddDeptDialog && employeeId && (
+        <AddDepartmentDialog
+          employeeId={employeeId}
+          onClose={() => setShowAddDeptDialog(false)}
+          onSuccess={() => { setShowAddDeptDialog(false); void query.refetch(); }}
         />
       )}
     </div>
@@ -309,7 +335,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <form onSubmit={(e) => void onSubmit(e)} className="card flex max-h-[90vh] w-full max-w-2xl flex-col">
         <div className="border-b border-[var(--border)] p-6">
@@ -398,7 +424,8 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
           </button>
         </div>
       </form>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -430,7 +457,7 @@ function ArchiveEmployeeDialog({ employeeId, employeeName, onClose, onSuccess }:
     try { await archive.mutateAsync({ employeeId, reason: reason.trim() }); onSuccess(); }
     catch { setError('تعذر أرشفة الموظف بأمان. تحقق من الصلاحية وأعد المحاولة.'); }
   };
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+  return createPortal(<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
     <form onSubmit={(event) => void submit(event)} className="card w-full max-w-md p-6">
       <h2 className="text-lg font-black">أرشفة الموظف</h2>
       <p className="muted mt-2 text-sm">سيُعطّل حساب {employeeName} وتُسحب جلساته وأجهزته، مع الاحتفاظ بالسجل التاريخي.</p>
@@ -439,7 +466,7 @@ function ArchiveEmployeeDialog({ employeeId, employeeName, onClose, onSuccess }:
       <label className="mt-4 flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /><span>أؤكد تعطيل الحساب وسحب الجلسات والأجهزة الموثوقة.</span></label>
       <div className="mt-6 flex justify-end gap-3"><button type="button" className="btn-secondary" onClick={onClose} disabled={archive.isPending}>إلغاء</button><button type="submit" className="btn-primary" disabled={archive.isPending || !confirmed || reason.trim().length < 5}>{archive.isPending ? 'جارٍ الأرشفة…' : 'تأكيد الأرشفة'}</button></div>
     </form>
-  </div>;
+  </div>, document.body);
 }
 
 function ChangeManagerDialog({ employeeId, currentManagerName, onClose, onSuccess }: { employeeId: string; currentManagerName: string | null; onClose: () => void; onSuccess: () => void }) {
@@ -462,7 +489,7 @@ function ChangeManagerDialog({ employeeId, currentManagerName, onClose, onSucces
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <form onSubmit={(e) => void onSubmit(e)} className="card w-full max-w-md p-6">
         <h2 className="text-lg font-black">تغيير المدير المباشر</h2>
@@ -504,7 +531,8 @@ function ChangeManagerDialog({ employeeId, currentManagerName, onClose, onSucces
           </button>
         </div>
       </form>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -514,4 +542,167 @@ function Info({ icon: Icon, label, dir }: { icon: typeof UserRound; label: strin
 
 function Data({ label, value }: { label: string; value: string | null }) {
   return <div className="rounded-xl bg-[var(--surface-muted)] p-3"><p className="muted text-xs">{label}</p><p className="mt-1 font-bold">{value ?? '—'}</p></div>;
+}
+
+// ---------------------------------------------------------------------------
+// DepartmentsSection — V17 تعدد الإدارات
+// ---------------------------------------------------------------------------
+function DepartmentsSection({ employeeId, canEdit, onAdd }: { employeeId: string; canEdit: boolean; onAdd: () => void }) {
+  const { data: departments, isLoading } = useEmployeeDepartments(employeeId);
+  const removeDept = useRemoveDepartment();
+
+  if (isLoading) return <SkeletonCard className="h-32" />;
+  if (!departments || departments.length === 0) {
+    return (
+      <article className="card p-5">
+        <div className="flex items-center justify-between">
+          <h3 className="font-black flex items-center gap-2"><Building2 className="size-5" aria-hidden="true" />الإدارات</h3>
+          {canEdit ? <button type="button" className="btn-secondary text-sm" onClick={onAdd}><Plus className="size-4" aria-hidden="true" />إضافة إدارة</button> : null}
+        </div>
+        <p className="muted mt-3 text-sm">لم يُسنَد لأي إدارة بعد.</p>
+      </article>
+    );
+  }
+
+  return (
+    <article className="card p-5">
+      <div className="flex items-center justify-between">
+        <h3 className="font-black flex items-center gap-2"><Building2 className="size-5" aria-hidden="true" />الإدارات ({departments.length})</h3>
+        {canEdit ? <button type="button" className="btn-secondary text-sm" onClick={onAdd}><Plus className="size-4" aria-hidden="true" />إضافة إدارة</button> : null}
+      </div>
+      <div className="mt-4 space-y-2">
+        {departments.map((dept) => (
+          <div key={dept.id} className="flex items-center justify-between gap-3 rounded-xl bg-[var(--surface-muted)] p-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="font-bold">{dept.departmentName}</p>
+                {dept.isPrimary ? <span className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-soft)] px-2 py-0.5 text-xs font-bold text-[var(--brand)]"><Star className="size-3" aria-hidden="true" />أساسية</span> : null}
+              </div>
+              {dept.jobTitle ? <p className="muted mt-1 text-xs">{dept.jobTitle}</p> : null}
+            </div>
+            {canEdit ? (
+              <button
+                type="button"
+                className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] transition-colors"
+                disabled={removeDept.isPending}
+                onClick={() => void removeDept.mutateAsync({ employeeId, departmentId: dept.departmentId })}
+                title="إزالة من الإدارة"
+              >
+                <X className="size-4" />
+              </button>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// DeleteEmployeeDialog — حذف الموظف نهائياً
+// ---------------------------------------------------------------------------
+function DeleteEmployeeDialog({ employeeId, employeeName, onClose, onSuccess }: { employeeId: string; employeeName: string; onClose: () => void; onSuccess: () => void }) {
+  const deleteEmployee = useDeleteEmployee();
+  const [confirmText, setConfirmText] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    try {
+      await deleteEmployee.mutateAsync({ employeeId });
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'حدث خطأ أثناء الحذف.');
+    }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <form onSubmit={(e) => void onSubmit(e)} className="card w-full max-w-md space-y-4 p-6">
+        <h2 className="text-lg font-black text-[var(--danger)]">⚠️ حذف الموظف نهائياً</h2>
+        <p className="text-sm">سيتم حذف <strong>{employeeName}</strong> نهائياً من النظام. لا يمكن التراجع عن هذا الإجراء.</p>
+        {error ? <div role="alert" className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-semibold">اكتب «حذف» للتأكيد</span>
+          <input
+            className="input w-full"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder="حذف"
+            disabled={deleteEmployee.isPending}
+          />
+        </label>
+        <div className="flex justify-end gap-3">
+          <button type="button" onClick={onClose} disabled={deleteEmployee.isPending} className="btn-secondary">إلغاء</button>
+          <button type="submit" disabled={deleteEmployee.isPending || confirmText !== 'حذف'} className="btn-primary bg-[var(--danger)] hover:bg-[var(--danger)]">
+            {deleteEmployee.isPending ? 'جارٍ الحذف...' : 'حذف نهائي'}
+          </button>
+        </div>
+      </form>
+    </div>,
+    document.body,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// AddDepartmentDialog — إضافة إدارة لموظف
+// ---------------------------------------------------------------------------
+function AddDepartmentDialog({ employeeId, onClose, onSuccess }: { employeeId: string; onClose: () => void; onSuccess: () => void }) {
+  const lookups = useOrganizationLookups();
+  const assignDept = useAssignDepartment();
+  const [departmentId, setDepartmentId] = useState('');
+  const [jobTitle, setJobTitle] = useState('');
+  const [isPrimary, setIsPrimary] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const departments = useMemo(() => lookups.data?.departments ?? [], [lookups.data]);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    try {
+      await assignDept.mutateAsync({
+        employeeId,
+        departmentId,
+        jobTitle: jobTitle.trim() || undefined,
+        isPrimary,
+        note: 'إضافة من صفحة ملف الموظف',
+      });
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'حدث خطأ أثناء الإضافة.');
+    }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <form onSubmit={(e) => void onSubmit(e)} className="card w-full max-w-md space-y-4 p-6">
+        <h2 className="text-lg font-black">إضافة إدارة للموظف</h2>
+        {error ? <div role="alert" className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-semibold">الإدارة</span>
+          <select className="input w-full" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} required disabled={assignDept.isPending || lookups.isLoading}>
+            <option value="">اختر إدارة…</option>
+            {departments.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-semibold">المسمى الوظيفي في هذه الإدارة (اختياري)</span>
+          <input className="input w-full" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} disabled={assignDept.isPending} placeholder="مثال: مسؤول مشتريات" />
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={isPrimary} onChange={(e) => setIsPrimary(e.target.checked)} disabled={assignDept.isPending} />
+          <span>تعيين كإدارة أساسية</span>
+        </label>
+        <div className="flex justify-end gap-3">
+          <button type="button" onClick={onClose} disabled={assignDept.isPending} className="btn-secondary">إلغاء</button>
+          <button type="submit" disabled={assignDept.isPending || !departmentId} className="btn-primary">
+            {assignDept.isPending ? 'جارٍ الإضافة...' : 'إضافة'}
+          </button>
+        </div>
+      </form>
+    </div>,
+    document.body,
+  );
 }

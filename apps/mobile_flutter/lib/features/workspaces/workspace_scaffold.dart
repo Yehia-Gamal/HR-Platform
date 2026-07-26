@@ -220,10 +220,18 @@ class WorkspaceScaffold extends ConsumerWidget {
         /// a real operational journey is implemented.
       ],
       // §8.3.3 — القرارات والتعاميم متاحة لجميع المستخدمين
+      // المدير التنفيذي والأدمن يرون زر "نشر جديد"
       _MoreItem(
         icon: Icons.campaign_outlined,
         label: 'القرارات والتعاميم',
-        page: const MobileOfficialFeedPage(),
+        page: MobileOfficialFeedPage(
+          canPublish: isExecutive ||
+              contextData.hasAnyPermission(const [
+                'posts.publish',
+                'comms.announcement.manage',
+                'comms.decision.manage',
+              ]),
+        ),
       ),
       if (contextData.attendancePolicy.attendanceRequired)
         _MoreItem(

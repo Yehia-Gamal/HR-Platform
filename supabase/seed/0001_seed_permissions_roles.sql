@@ -517,6 +517,8 @@ with mapping(role_slug, permission_code, scope) as (
     ('hr-specialist','documents.expiry.manage','organization'),
     ('hr-specialist','reports.people.read','organization'),
     ('hr-specialist','reports.attendance.read','organization'),
+    ('hr-specialist','performance.kpi.read','organization'),
+    ('hr-specialist','performance.kpi.hr_review','organization'),
 
   -- ============================================================
   -- executive-secretary: دعم المكتب التنفيذي ومراجعة السكرتير للأداء
@@ -527,6 +529,7 @@ with mapping(role_slug, permission_code, scope) as (
     ('executive-secretary','requests.workflow.read','organization'),
     ('executive-secretary','performance.kpi.read','organization'),
     ('executive-secretary','performance.kpi.secretary_review','organization'),
+    ('executive-secretary','performance.cycle.manage','organization'),
     ('executive-secretary','performance.kpi.view_reviewer_notes','organization'),
     ('executive-secretary','communications.announcement.create','organization'),
     ('executive-secretary','communications.decision.create','organization'),

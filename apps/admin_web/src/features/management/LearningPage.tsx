@@ -1,5 +1,6 @@
 import { BookOpenCheck, GraduationCap, Plus, Users, X } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
@@ -33,4 +34,4 @@ export function LearningPage() {
   </div>;
 }
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label><span className="mb-1.5 block text-sm font-bold">{label}</span>{children}</label>; }
-function Modal({ title, close, children }: { title: string; close: () => void; children: React.ReactNode }) { return <div className="dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) close(); }}><section className="card max-h-[94vh] w-full max-w-2xl overflow-y-auto p-6" role="dialog" aria-modal="true" aria-labelledby="learning-modal-title"><div className="mb-5 flex items-start justify-between gap-4"><h2 id="learning-modal-title" className="text-xl font-black">{title}</h2><button type="button" className="icon-button" onClick={close} aria-label="إغلاق"><X className="size-5" /></button></div>{children}</section></div>; }
+function Modal({ title, close, children }: { title: string; close: () => void; children: React.ReactNode }) { return createPortal(<div className="dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) close(); }}><section className="card max-h-[94vh] w-full max-w-2xl overflow-y-auto p-6" role="dialog" aria-modal="true" aria-labelledby="learning-modal-title"><div className="mb-5 flex items-start justify-between gap-4"><h2 id="learning-modal-title" className="text-xl font-black">{title}</h2><button type="button" className="icon-button" onClick={close} aria-label="إغلاق"><X className="size-5" /></button></div>{children}</section></div>, document.body); }

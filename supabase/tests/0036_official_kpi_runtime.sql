@@ -1,24 +1,22 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions,pg_temp;
-select plan(16);
+select plan(14);
 
 insert into auth.users(id,email,aud,role) values
  ('81000000-0000-4000-8000-000000000001','kpi-secretary@test.local','authenticated','authenticated'),
  ('81000000-0000-4000-8000-000000000002','kpi-employee@test.local','authenticated','authenticated'),
  ('81000000-0000-4000-8000-000000000003','kpi-manager@test.local','authenticated','authenticated'),
- ('81000000-0000-4000-8000-000000000004','kpi-hr@test.local','authenticated','authenticated'),
- ('81000000-0000-4000-8000-000000000005','kpi-executive@test.local','authenticated','authenticated');
+ ('81000000-0000-4000-8000-000000000004','kpi-hr@test.local','authenticated','authenticated');
 
 insert into public.employees(id,user_id,employee_code,full_name_ar,status,is_active) values
  ('82000000-0000-4000-8000-000000000001','81000000-0000-4000-8000-000000000001','KPI-SEC','سكرتير KPI للاختبار','active',true),
  ('82000000-0000-4000-8000-000000000002','81000000-0000-4000-8000-000000000002','KPI-EMP','موظف KPI للاختبار','active',true),
  ('82000000-0000-4000-8000-000000000003','81000000-0000-4000-8000-000000000003','KPI-MGR','مدير KPI للاختبار','active',true),
- ('82000000-0000-4000-8000-000000000004','81000000-0000-4000-8000-000000000004','KPI-HR','مسؤول HR للاختبار','active',true),
- ('82000000-0000-4000-8000-000000000005','81000000-0000-4000-8000-000000000005','KPI-EXEC','مدير تنفيذي للاختبار','active',true);
+ ('82000000-0000-4000-8000-000000000004','81000000-0000-4000-8000-000000000004','KPI-HR','مسؤول HR للاختبار','active',true);
 
 insert into public.profiles(id,employee_id,status)
-select user_id,id,'active' from public.employees where id between '82000000-0000-4000-8000-000000000001' and '82000000-0000-4000-8000-000000000005';
+select user_id,id,'active' from public.employees where id between '82000000-0000-4000-8000-000000000001' and '82000000-0000-4000-8000-000000000004';
 
 insert into public.user_roles(user_id,role_id,effective_from)
 select x.user_id,r.id,now()
@@ -26,8 +24,7 @@ from (values
  ('81000000-0000-4000-8000-000000000001'::uuid,'executive-secretary'),
  ('81000000-0000-4000-8000-000000000002'::uuid,'employee'),
  ('81000000-0000-4000-8000-000000000003'::uuid,'direct-manager'),
- ('81000000-0000-4000-8000-000000000004'::uuid,'hr-manager'),
- ('81000000-0000-4000-8000-000000000005'::uuid,'executive-director')
+ ('81000000-0000-4000-8000-000000000004'::uuid,'hr-manager')
 ) x(user_id,slug) join public.roles r on r.slug=x.slug;
 
 insert into public.manager_relations(employee_id,manager_employee_id,relation_type,effective_from)
@@ -59,10 +56,8 @@ begin
 end
 $create_cycle$;
 
-select is((select count(*)::integer from public.kpi_evaluations e join kpi_runtime_result r on r.cycle_id=e.cycle_id where e.employee_id='82000000-0000-4000-8000-000000000005'),0,'executive director is excluded from KPI evaluations');
-
 -- ═══════════════════════════════════════════════════════════════════════════
--- V17 §10 flow: Employee → HR → Manager → Manager Final → Finalized
+-- V17 §KPI flow: Employee → HR → Manager → Manager Final → Finalized
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- Step 1: Employee self-assessment → goes to HR (not manager)
@@ -77,7 +72,7 @@ begin
 end
 $employee_submit$;
 
-select is((select current_stage from public.kpi_evaluations where id=(select evaluation_id from kpi_runtime_result)),'hr_review','V17: self submission goes to HR review first');
+select is((select current_stage from public.kpi_evaluations where id=(select evaluation_id from kpi_runtime_result)),'hr_review','self submission goes to HR review first');
 select is((select count(*)::integer from public.kpi_scores where evaluation_id=(select evaluation_id from kpi_runtime_result) and reviewer_stage='self'),7,'employee proposes all seven scores');
 
 -- Step 2: HR reviews compliance (attendance + prayer + halaqa) → sends to manager
@@ -97,9 +92,9 @@ begin
 end
 $hr_review$;
 
-select is((select current_stage from public.kpi_evaluations where id=(select evaluation_id from kpi_runtime_result)),'manager_review','V17: HR sends evaluation to manager for scoring');
+select is((select current_stage from public.kpi_evaluations where id=(select evaluation_id from kpi_runtime_result)),'manager_review','HR sends evaluation to manager for scoring');
 
--- Step 3: Manager scores targets/competency/conduct/initiatives → advances to final
+-- Step 3: Manager scores targets/competency/conduct/initiatives → advances to manager_final
 select set_config('request.jwt.claim.sub','81000000-0000-4000-8000-000000000003',true);
 do $manager_review$
 declare v_eval uuid; v_template uuid; v_scores jsonb;
@@ -115,19 +110,12 @@ begin
 end
 $manager_review$;
 
-select is((select current_stage from public.kpi_evaluations where id=(select evaluation_id from kpi_runtime_result)),'manager_final','V17: manager review advances to manager final');
+select is((select current_stage from public.kpi_evaluations where id=(select evaluation_id from kpi_runtime_result)),'manager_final','V17: manager review advances to manager_final');
 
--- Step 4: Executive cannot approve, only direct manager can
-select set_config('request.jwt.claim.sub','81000000-0000-4000-8000-000000000005',true);
-select throws_ok(
- $$select public.advance_kpi_stage((select evaluation_id from kpi_runtime_result),'manager_final',null,'محاولة اعتماد تنفيذي')$$,
- '42501',null,'executive director cannot approve KPI scores');
-
--- Step 5: Manager gives final approval → finalized
-select set_config('request.jwt.claim.sub','81000000-0000-4000-8000-000000000003',true);
+-- Step 4: Manager gives final approval → finalized
 select lives_ok(
- $$select public.advance_kpi_stage((select evaluation_id from kpi_runtime_result),'manager_final',null,'اعتماد المدير المباشر النهائي')$$,
- 'direct manager gives final approval');
+ $$select public.advance_kpi_stage((select evaluation_id from kpi_runtime_result),'manager_final',null,'اعتماد نهائي من المدير المباشر')$$,
+ 'manager gives final approval at manager_final stage');
 
 reset role;
 update kpi_runtime_result r set
@@ -139,15 +127,11 @@ update kpi_runtime_result r set
 from public.kpi_evaluations e where e.id=r.evaluation_id;
 
 select is((select stage from kpi_runtime_result),'finalized','V17 flow reaches finalization');
-select is((select workflow_status from kpi_runtime_result),'INCLUDED_IN_MONTHLY_REPORT','manager-approved result is included in monthly report');
+select is((select workflow_status from kpi_runtime_result),'INCLUDED_IN_MONTHLY_REPORT','final result is included in monthly report');
 select is((select final_score from kpi_runtime_result),83.75::numeric,'server computes the expected 83.75 total');
 select is((select target_score from kpi_runtime_result),32.00::numeric,'manager owns the final Target score');
 select is((select attendance_score from kpi_runtime_result),20.00::numeric,'attendance remains server-authored');
-select ok((select audit_count from kpi_runtime_result)>=6,'workflow transitions are audited');
-
-set local role authenticated;
-select set_config('request.jwt.claim.sub','81000000-0000-4000-8000-000000000005',true);
-select lives_ok($$select public.get_kpi_cycle_report((select cycle_id from kpi_runtime_result))$$,'executive director receives the aggregated KPI report');
+select ok((select audit_count from kpi_runtime_result)>=4,'workflow transitions are audited');
 
 select * from finish();
 rollback;

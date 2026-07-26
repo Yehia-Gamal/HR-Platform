@@ -1281,6 +1281,8 @@ class AttendanceStatementDay {
     required this.workHours,
     required this.requiredHours,
     required this.lateMinutes,
+    required this.earlyLeaveMinutes,
+    required this.overtimeMinutes,
     required this.status,
     required this.hasLeave,
     required this.hasPermit,
@@ -1288,6 +1290,7 @@ class AttendanceStatementDay {
     required this.hasConvoyFundi,
     required this.missingCheckIn,
     required this.missingCheckOut,
+    required this.hasCorrection,
     required this.correctionNote,
   });
 
@@ -1301,6 +1304,8 @@ class AttendanceStatementDay {
         workHours: (json['workHours'] as num?)?.toDouble() ?? 0,
         requiredHours: (json['requiredHours'] as num?)?.toDouble() ?? 0,
         lateMinutes: (json['lateMinutes'] as num?)?.toInt() ?? 0,
+        earlyLeaveMinutes: (json['earlyLeaveMinutes'] as num?)?.toInt() ?? 0,
+        overtimeMinutes: (json['overtimeMinutes'] as num?)?.toInt() ?? 0,
         status: json['status'] as String? ?? '',
         hasLeave: json['hasLeave'] as bool? ?? false,
         hasPermit: json['hasPermit'] as bool? ?? false,
@@ -1308,6 +1313,7 @@ class AttendanceStatementDay {
         hasConvoyFundi: json['hasConvoyFundi'] as bool? ?? false,
         missingCheckIn: json['missingCheckIn'] as bool? ?? false,
         missingCheckOut: json['missingCheckOut'] as bool? ?? false,
+        hasCorrection: json['hasCorrection'] as bool? ?? false,
         correctionNote: json['correctionNote'] as String?,
       );
 
@@ -1319,6 +1325,8 @@ class AttendanceStatementDay {
   final double workHours;
   final double requiredHours;
   final int lateMinutes;
+  final int earlyLeaveMinutes;
+  final int overtimeMinutes;
   final String status;
   final bool hasLeave;
   final bool hasPermit;
@@ -1326,6 +1334,7 @@ class AttendanceStatementDay {
   final bool hasConvoyFundi;
   final bool missingCheckIn;
   final bool missingCheckOut;
+  final bool hasCorrection;
   final String? correctionNote;
 }
 
@@ -1338,11 +1347,18 @@ class AttendanceStatementSummary {
     required this.absentDays,
     required this.leaveDays,
     required this.missionDays,
+    required this.permitCount,
+    required this.convoyFundiDays,
+    required this.holidayDays,
+    required this.restDays,
     required this.totalWorkHours,
     required this.averageWorkHours,
     required this.totalLateMinutes,
+    required this.totalEarlyLeaveMinutes,
+    required this.totalOvertimeMinutes,
     required this.missingCheckInCount,
     required this.missingCheckOutCount,
+    required this.correctionCount,
   });
 
   factory AttendanceStatementSummary.fromJson(Map<String, dynamic> json) =>
@@ -1353,11 +1369,18 @@ class AttendanceStatementSummary {
         absentDays: (json['absentDays'] as num?)?.toInt() ?? 0,
         leaveDays: (json['leaveDays'] as num?)?.toInt() ?? 0,
         missionDays: (json['missionDays'] as num?)?.toInt() ?? 0,
+        permitCount: (json['permitCount'] as num?)?.toInt() ?? 0,
+        convoyFundiDays: (json['convoyFundiDays'] as num?)?.toInt() ?? 0,
+        holidayDays: (json['holidayDays'] as num?)?.toInt() ?? 0,
+        restDays: (json['restDays'] as num?)?.toInt() ?? 0,
         totalWorkHours: (json['totalWorkHours'] as num?)?.toDouble() ?? 0,
         averageWorkHours: (json['averageWorkHours'] as num?)?.toDouble() ?? 0,
         totalLateMinutes: (json['totalLateMinutes'] as num?)?.toInt() ?? 0,
+        totalEarlyLeaveMinutes: (json['totalEarlyLeaveMinutes'] as num?)?.toInt() ?? 0,
+        totalOvertimeMinutes: (json['totalOvertimeMinutes'] as num?)?.toInt() ?? 0,
         missingCheckInCount: (json['missingCheckInCount'] as num?)?.toInt() ?? 0,
         missingCheckOutCount: (json['missingCheckOutCount'] as num?)?.toInt() ?? 0,
+        correctionCount: (json['correctionCount'] as num?)?.toInt() ?? 0,
       );
 
   final int totalDays;
@@ -1366,19 +1389,35 @@ class AttendanceStatementSummary {
   final int absentDays;
   final int leaveDays;
   final int missionDays;
+  final int permitCount;
+  final int convoyFundiDays;
+  final int holidayDays;
+  final int restDays;
   final double totalWorkHours;
   final double averageWorkHours;
   final int totalLateMinutes;
+  final int totalEarlyLeaveMinutes;
+  final int totalOvertimeMinutes;
   final int missingCheckInCount;
   final int missingCheckOutCount;
+  final int correctionCount;
 }
 
 /// كشف الحضور والانصراف الشهري الكامل (V12 §18).
 class MonthlyAttendanceStatement {
   const MonthlyAttendanceStatement({
     required this.employeeNameAr,
+    required this.employeeCode,
+    required this.jobTitle,
+    required this.department,
+    required this.branch,
+    required this.manager,
+    required this.hireDate,
     required this.year,
     required this.month,
+    required this.startDate,
+    required this.endDate,
+    required this.generatedAt,
     required this.days,
     required this.summary,
   });
@@ -1390,8 +1429,17 @@ class MonthlyAttendanceStatement {
     final daysJson = (json['days'] as List<dynamic>?) ?? [];
     return MonthlyAttendanceStatement(
       employeeNameAr: emp['fullNameAr'] as String? ?? '',
+      employeeCode: emp['employeeCode'] as String?,
+      jobTitle: emp['jobTitle'] as String? ?? '',
+      department: emp['department'] as String? ?? '',
+      branch: emp['branch'] as String? ?? '',
+      manager: emp['manager'] as String? ?? '',
+      hireDate: emp['hireDate'] as String?,
       year: (period['year'] as num?)?.toInt() ?? 0,
       month: (period['month'] as num?)?.toInt() ?? 0,
+      startDate: period['startDate'] as String? ?? '',
+      endDate: period['endDate'] as String? ?? '',
+      generatedAt: period['generatedAt'] as String? ?? '',
       days: daysJson
           .map((e) => AttendanceStatementDay.fromJson(e as Map<String, dynamic>))
           .toList(growable: false),
@@ -1400,10 +1448,25 @@ class MonthlyAttendanceStatement {
   }
 
   final String employeeNameAr;
+  final String? employeeCode;
+  final String jobTitle;
+  final String department;
+  final String branch;
+  final String manager;
+  final String? hireDate;
   final int year;
   final int month;
+  final String startDate;
+  final String endDate;
+  final String generatedAt;
   final List<AttendanceStatementDay> days;
   final AttendanceStatementSummary summary;
+
+  /// نسبة الحضور المئوية (أيام الحضور ÷ أيام العمل المجدولة × 100).
+  double get attendancePercentage =>
+      summary.scheduledDays > 0
+          ? (summary.presentDays / summary.scheduledDays * 100)
+          : 0;
 }
 
 class MobileScheduleDay {
@@ -1755,6 +1818,168 @@ class ExecutiveDisputeCounts {
   final int awaitingDecision;
   final int pendingExecution;
   final int executedLast30Days;
+}
+
+/// V18 — committee dispute portal (lightweight card-list for mobile).
+class CommitteeDisputeCase {
+  const CommitteeDisputeCase({
+    required this.id,
+    required this.caseNumber,
+    required this.title,
+    required this.description,
+    required this.caseType,
+    required this.status,
+    required this.severity,
+    required this.actorName,
+    required this.actorDepartment,
+    required this.respondentName,
+    required this.assignedName,
+    required this.openedAt,
+    required this.updatedAt,
+    required this.overdue,
+    required this.proposedAdminAction,
+    required this.proposedActionDetail,
+    required this.proposedAt,
+    required this.proposedByName,
+    required this.executiveDecision,
+    required this.executiveDecisionReason,
+    required this.executiveDecisionAt,
+    required this.approvedAdminAction,
+    required this.approvedActionDetail,
+    required this.executedAt,
+    required this.executedByName,
+    required this.executionNotes,
+    required this.partyCount,
+    required this.sessionCount,
+    required this.hasDecision,
+  });
+  factory CommitteeDisputeCase.fromJson(Map<String, dynamic> j) =>
+      CommitteeDisputeCase(
+        id: j['id'] as String,
+        caseNumber: j['caseNumber'] as String? ?? '',
+        title: j['title'] as String? ?? '',
+        description: j['description'] as String?,
+        caseType: j['caseType'] as String? ?? 'complaint',
+        status: j['status'] as String? ?? 'submitted',
+        severity: j['severity'] as String? ?? 'normal',
+        actorName: j['actorName'] as String?,
+        actorDepartment: j['actorDepartment'] as String?,
+        respondentName: j['respondentName'] as String?,
+        assignedName: j['assignedName'] as String?,
+        openedAt: j['openedAt'] == null
+            ? null
+            : DateTime.parse(j['openedAt'] as String),
+        updatedAt: j['updatedAt'] == null
+            ? null
+            : DateTime.parse(j['updatedAt'] as String),
+        overdue: j['overdue'] as bool? ?? false,
+        proposedAdminAction: j['proposedAdminAction'] as String?,
+        proposedActionDetail: j['proposedActionDetail'] as String?,
+        proposedAt: j['proposedAt'] == null
+            ? null
+            : DateTime.parse(j['proposedAt'] as String),
+        proposedByName: j['proposedByName'] as String?,
+        executiveDecision: j['executiveDecision'] as String?,
+        executiveDecisionReason: j['executiveDecisionReason'] as String?,
+        executiveDecisionAt: j['executiveDecisionAt'] == null
+            ? null
+            : DateTime.parse(j['executiveDecisionAt'] as String),
+        approvedAdminAction: j['approvedAdminAction'] as String?,
+        approvedActionDetail: j['approvedActionDetail'] as String?,
+        executedAt: j['executedAt'] == null
+            ? null
+            : DateTime.parse(j['executedAt'] as String),
+        executedByName: j['executedByName'] as String?,
+        executionNotes: j['executionNotes'] as String?,
+        partyCount: (j['partyCount'] as num?)?.toInt() ?? 0,
+        sessionCount: (j['sessionCount'] as num?)?.toInt() ?? 0,
+        hasDecision: j['hasDecision'] as bool? ?? false,
+      );
+
+  final String id;
+  final String caseNumber;
+  final String title;
+  final String? description;
+  final String caseType;
+  final String status;
+  final String severity;
+  final String? actorName;
+  final String? actorDepartment;
+  final String? respondentName;
+  final String? assignedName;
+  final DateTime? openedAt;
+  final DateTime? updatedAt;
+  final bool overdue;
+  final String? proposedAdminAction;
+  final String? proposedActionDetail;
+  final DateTime? proposedAt;
+  final String? proposedByName;
+  final String? executiveDecision;
+  final String? executiveDecisionReason;
+  final DateTime? executiveDecisionAt;
+  final String? approvedAdminAction;
+  final String? approvedActionDetail;
+  final DateTime? executedAt;
+  final String? executedByName;
+  final String? executionNotes;
+  final int partyCount;
+  final int sessionCount;
+  final bool hasDecision;
+}
+
+class CommitteeDisputeSummary {
+  const CommitteeDisputeSummary({
+    required this.total,
+    required this.submitted,
+    required this.underReview,
+    required this.actionProposed,
+    required this.pendingExecution,
+    required this.executed,
+    required this.closed,
+    required this.overdue,
+    required this.urgent,
+  });
+  factory CommitteeDisputeSummary.fromJson(Map<String, dynamic> j) =>
+      CommitteeDisputeSummary(
+        total: (j['total'] as num?)?.toInt() ?? 0,
+        submitted: (j['new'] as num?)?.toInt() ?? 0,
+        underReview: (j['underReview'] as num?)?.toInt() ?? 0,
+        actionProposed: (j['actionProposed'] as num?)?.toInt() ?? 0,
+        pendingExecution: (j['pendingExecution'] as num?)?.toInt() ?? 0,
+        executed: (j['executed'] as num?)?.toInt() ?? 0,
+        closed: (j['closed'] as num?)?.toInt() ?? 0,
+        overdue: (j['overdue'] as num?)?.toInt() ?? 0,
+        urgent: (j['urgent'] as num?)?.toInt() ?? 0,
+      );
+
+  final int total;
+  final int submitted;
+  final int underReview;
+  final int actionProposed;
+  final int pendingExecution;
+  final int executed;
+  final int closed;
+  final int overdue;
+  final int urgent;
+}
+
+class CommitteeDisputePortal {
+  const CommitteeDisputePortal({
+    required this.cases,
+    required this.summary,
+  });
+  factory CommitteeDisputePortal.fromJson(Map<String, dynamic> j) =>
+      CommitteeDisputePortal(
+        cases: (j['cases'] as List<dynamic>? ?? [])
+            .map((e) => CommitteeDisputeCase.fromJson(
+                Map<String, dynamic>.from(e as Map)))
+            .toList(growable: false),
+        summary: CommitteeDisputeSummary.fromJson(
+            Map<String, dynamic>.from(j['summary'] as Map)),
+      );
+
+  final List<CommitteeDisputeCase> cases;
+  final CommitteeDisputeSummary summary;
 }
 
 class MobileClearanceItem {

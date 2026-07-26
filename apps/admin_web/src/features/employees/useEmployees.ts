@@ -177,3 +177,103 @@ export function useArchiveEmployee() {
     },
   });
 }
+
+// ---------------------------------------------------------------------------
+// V17: تعدد الإدارات — Multi-Department hooks
+// ---------------------------------------------------------------------------
+
+export interface EmployeeDepartment {
+  id: string;
+  departmentId: string;
+  departmentName: string;
+  jobTitle: string | null;
+  isPrimary: boolean;
+  assignedAt: string;
+}
+
+export function useEmployeeDepartments(employeeId: string | undefined) {
+  const auth = useAuth();
+  return useQuery({
+    queryKey: ['employee-departments', employeeId, auth.isMock],
+    enabled: auth.status === 'authenticated' && Boolean(employeeId),
+    queryFn: async (): Promise<EmployeeDepartment[]> => {
+      if (!employeeId) return [];
+      if (auth.isMock) return [];
+      const supabase = await getSupabase();
+      const { data, error } = await supabase.rpc('get_employee_departments', { p_employee_id: employeeId });
+      if (error) throw error;
+      return (data as EmployeeDepartment[]) ?? [];
+    },
+  });
+}
+
+export function useAssignDepartment() {
+  const auth = useAuth();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { employeeId: string; departmentId: string; jobTitle?: string; isPrimary?: boolean; note?: string }): Promise<string> => {
+      if (auth.isMock) return 'mock-id';
+      const supabase = await getSupabase();
+      const { data, error } = await supabase.rpc('assign_employee_department', {
+        p_employee_id: params.employeeId,
+        p_department_id: params.departmentId,
+        p_job_title: params.jobTitle ?? null,
+        p_is_primary: params.isPrimary ?? false,
+        p_note: params.note ?? null,
+      });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['employee-departments'] }),
+        client.invalidateQueries({ queryKey: ['employee-360'] }),
+        client.invalidateQueries({ queryKey: ['employees'] }),
+      ]);
+    },
+  });
+}
+
+export function useRemoveDepartment() {
+  const auth = useAuth();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { employeeId: string; departmentId: string }): Promise<void> => {
+      if (auth.isMock) return;
+      const supabase = await getSupabase();
+      const { error } = await supabase.rpc('remove_employee_department', {
+        p_employee_id: params.employeeId,
+        p_department_id: params.departmentId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['employee-departments'] }),
+        client.invalidateQueries({ queryKey: ['employee-360'] }),
+        client.invalidateQueries({ queryKey: ['employees'] }),
+      ]);
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// V17: حذف الموظف نهائياً
+// ---------------------------------------------------------------------------
+
+export function useDeleteEmployee() {
+  const auth = useAuth();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ employeeId }: { employeeId: string }): Promise<void> => {
+      if (auth.isMock) return;
+      const supabase = await getSupabase();
+      // حذف مباشر — RLS والصلاحيات تحمي العملية
+      const { error } = await supabase.from('employees').delete().eq('id', employeeId);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: ['employees'] });
+    },
+  });
+}

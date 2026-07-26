@@ -35,7 +35,7 @@ const mockOrganization: OrganizationAdminCatalog = {
 
 const mockAccess: AccessAdminCatalog = {
   roles: [{ id: ids.role, slug: 'employee', name: 'موظف', nameEn: 'Employee', description: 'الخدمة الذاتية', color: null, icon: null, system: true, fullAccess: false, assignments: 10, permissions: [{ permissionId: ids.permission, code: 'people.employee.read', name: 'عرض الموظف', scope: 'self', requiresMfa: false, requiresReason: false }] }],
-  permissions: [{ id: ids.permission, code: 'people.employee.read', module: 'people', resource: 'employee', action: 'read', name: 'عرض الموظف', description: null, riskLevel: 'normal', sensitive: false, allowedScopes: ['self', 'direct_reports', 'organization'] }],
+  permissions: [{ id: ids.permission, code: 'people.employee.read', module: 'people', resource: 'employee', action: 'read', name: 'عرض بيانات الموظف', nameAr: 'عرض بيانات الموظف', description: null, riskLevel: 'normal', sensitive: false, allowedScopes: ['self', 'direct_reports', 'organization'], moduleAr: 'شؤون الموظفين' }],
   users: [{ userId: ids.user, employeeId: ids.employee, name: 'موظف تجريبي', employeeCode: 'EMP-001', status: 'active', roles: [{ roleId: ids.role, slug: 'employee', name: 'موظف', effectiveFrom: new Date().toISOString(), effectiveTo: null, scopeOverride: null }] }],
   lastUpdatedAt: new Date().toISOString(),
 };

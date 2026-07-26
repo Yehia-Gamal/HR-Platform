@@ -39,7 +39,7 @@ export function PerformancePage() {
     manager: all.filter((item) => item.currentStage === 'manager_review').length,
     hr: all.filter((item) => item.currentStage === 'hr_review').length,
     completed: all.filter((item) => ['finalized', 'closed', 'archived'].includes(item.currentStage)).length,
-    overdue: all.filter((item) => item.workflowStatus === 'OVERDUE').length,
+    overdue: all.filter((item) => (item.workflowStatus as string) === 'OVERDUE').length,
   };
 
   return <div className="space-y-6">

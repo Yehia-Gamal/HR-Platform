@@ -70,9 +70,9 @@ begin
   values(v_entity, 'V17-REQ-LE', 'كيان طلبات V17');
 
   -- قسم تشغيل (slug يبدأ بـ operations) وقسم مالية عادي
-  insert into public.departments(id, legal_entity_id, code, name, slug) values
-    (v_dept_ops, v_entity, 'V17-OPS', 'إدارة التشغيل', 'operations-main'),
-    (v_dept_fin, v_entity, 'V17-FIN', 'إدارة المالية', 'finance-dept');
+  insert into public.departments(id, legal_entity_id, code, name) values
+    (v_dept_ops, v_entity, 'operations-main', 'إدارة التشغيل'),
+    (v_dept_fin, v_entity, 'V17-FIN', 'إدارة المالية');
 
   -- 4 مستخدمين: مدير (يمثّل admin)، موظف تشغيل، موظف مالية، تنفيذي
   insert into auth.users(id, email, aud, role) values
@@ -81,11 +81,11 @@ begin
     ('a5600000-0000-4000-8000-000000000103', 'v17req-fin@test.local',  'authenticated', 'authenticated'),
     ('a5600000-0000-4000-8000-000000000104', 'v17req-exe@test.local',  'authenticated', 'authenticated');
 
-  insert into public.employees(id, user_id, employee_code, full_name_ar, department_id, legal_entity_id, status, is_active, is_deleted) values
-    ('a5600000-0000-4000-8000-000000000201', 'a5600000-0000-4000-8000-000000000101', 'RQ-ADM', 'مدير الاختبار',    v_dept_fin, v_entity, 'active', true, false),
-    ('a5600000-0000-4000-8000-000000000202', 'a5600000-0000-4000-8000-000000000102', 'RQ-OPS', 'موظف التشغيل',    v_dept_ops, v_entity, 'active', true, false),
-    ('a5600000-0000-4000-8000-000000000203', 'a5600000-0000-4000-8000-000000000103', 'RQ-FIN', 'موظف المالية',    v_dept_fin, v_entity, 'active', true, false),
-    ('a5600000-0000-4000-8000-000000000204', 'a5600000-0000-4000-8000-000000000104', 'RQ-EXE', 'المدير التنفيذي', v_dept_fin, v_entity, 'active', true, false);
+  insert into public.employees(id, user_id, employee_code, full_name_ar, department_id, status, is_active, is_deleted) values
+    ('a5600000-0000-4000-8000-000000000201', 'a5600000-0000-4000-8000-000000000101', 'RQ-ADM', 'مدير الاختبار',    v_dept_fin, 'active', true, false),
+    ('a5600000-0000-4000-8000-000000000202', 'a5600000-0000-4000-8000-000000000102', 'RQ-OPS', 'موظف التشغيل',    v_dept_ops, 'active', true, false),
+    ('a5600000-0000-4000-8000-000000000203', 'a5600000-0000-4000-8000-000000000103', 'RQ-FIN', 'موظف المالية',    v_dept_fin, 'active', true, false),
+    ('a5600000-0000-4000-8000-000000000204', 'a5600000-0000-4000-8000-000000000104', 'RQ-EXE', 'المدير التنفيذي', v_dept_fin, 'active', true, false);
 
   insert into public.profiles(id, employee_id, status) values
     ('a5600000-0000-4000-8000-000000000101', 'a5600000-0000-4000-8000-000000000201', 'active'),
