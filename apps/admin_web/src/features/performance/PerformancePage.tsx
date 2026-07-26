@@ -14,9 +14,12 @@ import { usePerformance } from './usePerformance';
 
 const stageLabel: Record<KpiEvaluationSummary['currentStage'], string> = {
   self: 'التقييم الذاتي',
+  parallel_review: 'مراجعة متوازية',
   hr_review: 'مراجعة HR',
   manager_review: 'مراجعة المدير المباشر',
   manager_final: 'اعتماد المدير (قديم)',
+  secretary_review: 'مراجعة السكرتير',
+  executive_review: 'مراجعة المدير التنفيذي',
   finalized: 'مدرج في التقرير الشهري',
   closed: 'مغلق',
   archived: 'مؤرشف',
@@ -36,6 +39,7 @@ export function PerformancePage() {
   }), [all, search, stage]);
   const counts = {
     total: all.length,
+    parallel: all.filter((item) => item.currentStage === 'parallel_review').length,
     manager: all.filter((item) => item.currentStage === 'manager_review').length,
     hr: all.filter((item) => item.currentStage === 'hr_review').length,
     completed: all.filter((item) => ['finalized', 'closed', 'archived'].includes(item.currentStage)).length,
@@ -43,11 +47,11 @@ export function PerformancePage() {
   };
 
   return <div className="space-y-6">
-    <PageHeader eyebrow="الأداء" title="KPI والأداء" description="الموظف يقيّم ذاتيًا، ثم تراجع HR (الحضور والصلاة والحلقة)، ثم المدير المباشر يراجع ويعتمد. السكرتير التنفيذي يدير الدورة." />
+    <PageHeader eyebrow="الأداء" title="KPI والأداء" description="الموظف يقيّم ذاتيًا، ثم تراجع HR والمدير بالتوازي، ثم السكرتير التنفيذي يراجع والمدير التنفيذي يعتمد." />
     {counts.overdue > 0 ? <section className="flex items-center gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950"><AlertTriangle className="size-5 shrink-0" /><p className="font-bold">{counts.overdue} تقييم متأخر عن الموعد النهائي — يُرجى المتابعة مع المديرين والموظفين المعنيين.</p></section> : null}
-    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="إجمالي التقييمات" value={counts.total} icon={UsersRound} /><MetricCard label="عند المديرين" value={counts.manager} icon={Gauge} /><MetricCard label="عند HR" value={counts.hr} icon={Gauge} /><MetricCard label="المكتملة" value={counts.completed} icon={CheckCircle2} /></section>
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5"><MetricCard label="إجمالي التقييمات" value={counts.total} icon={UsersRound} /><MetricCard label="مراجعة متوازية" value={counts.parallel} icon={Gauge} /><MetricCard label="عند المديرين" value={counts.manager} icon={Gauge} /><MetricCard label="عند HR" value={counts.hr} icon={Gauge} /><MetricCard label="المكتملة" value={counts.completed} icon={CheckCircle2} /></section>
     <FilterBar searchValue={search} onSearchChange={setSearch} searchPlaceholder="بحث باسم الموظف أو الكود" resultText={`عرض ${items.length} من ${all.length} تقييم`} isDirty={Boolean(search || stage !== 'all')} onClear={() => { setSearch(''); setStage('all'); }}>
-      <select className="input" aria-label="تصفية حسب مرحلة التقييم" value={stage} onChange={(event) => setStage(event.target.value)}><option value="all">كل المراحل</option><option value="self">التقييم الذاتي</option><option value="hr_review">مراجعة HR</option><option value="manager_review">مراجعة المدير</option><option value="finalized">مدرج في التقرير</option><option value="closed">مغلق</option><option value="archived">مؤرشف</option></select>
+      <select className="input" aria-label="تصفية حسب مرحلة التقييم" value={stage} onChange={(event) => setStage(event.target.value)}><option value="all">كل المراحل</option><option value="self">التقييم الذاتي</option><option value="parallel_review">مراجعة متوازية (V23)</option><option value="hr_review">مراجعة HR</option><option value="manager_review">مراجعة المدير</option><option value="secretary_review">مراجعة السكرتير</option><option value="executive_review">مراجعة المدير التنفيذي</option><option value="finalized">مدرج في التقرير</option><option value="closed">مغلق</option><option value="archived">مؤرشف</option></select>
     </FilterBar>
     {selected ? <KpiEvaluationEditor evaluationId={selected} onDone={() => setSelected(null)} /> : null}
     {query.isError ? <ErrorState description={query.error instanceof Error ? query.error.message : undefined} onRetry={() => void query.refetch()} /> : query.isLoading ? <ListSkeleton rows={3} label="جارٍ تحميل التقييمات" /> : items.length === 0 ? <EmptyState title="لا توجد تقييمات" description="لا توجد تقييمات مطابقة في الدورة الحالية." /> : null}

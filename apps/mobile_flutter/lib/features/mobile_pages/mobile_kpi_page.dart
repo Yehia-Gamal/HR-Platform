@@ -77,13 +77,15 @@ class _MobileKpiPageState extends ConsumerState<MobileKpiPage> {
                 controller: _searchController,
                 onSearchChanged: (value) =>
                     setState(() => _search = value.trim().toLowerCase()),
-                /// V17 §10: flow order is self → hr_review → manager_review → finalized.
-                /// manager_final removed from active flow (kept in DB for history).
+                // V23: أضفنا مراحل المسار المتوازي (parallel_review, secretary_review, executive_review).
                 options: const [
                   MobileFilterOption('all', 'كل المراحل'),
                   MobileFilterOption('self', 'الموظف'),
+                  MobileFilterOption('parallel_review', 'مراجعة متوازية'),
                   MobileFilterOption('hr_review', 'مراجعة HR'),
                   MobileFilterOption('manager_review', 'مراجعة المدير'),
+                  MobileFilterOption('secretary_review', 'السكرتير'),
+                  MobileFilterOption('executive_review', 'المدير التنفيذي'),
                   MobileFilterOption('finalized', 'في التقرير'),
                   MobileFilterOption('closed', 'مغلق'),
                   MobileFilterOption('archived', 'مؤرشف'),
@@ -225,13 +227,7 @@ class _KpiCard extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: () => _open(context),
                   icon: const Icon(Icons.fact_check_outlined),
-                  label: Text(
-                    action == 'self'
-                        ? 'بدء التقييم الذاتي'
-                        : action == 'hr_review'
-                            ? 'مراجعة HR'
-                            : 'فتح نموذج المراجعة',
-                  ),
+                  label: Text(_actionLabel(action)),
                 ),
               ],
             ],
@@ -250,6 +246,16 @@ class _KpiCard extends StatelessWidget {
     );
   }
 
+  // V23: تسميات أزرار الإجراء حسب المرحلة.
+  String _actionLabel(String action) => switch (action) {
+    'self' => 'بدء التقييم الذاتي',
+    'hr_review' => 'مراجعة HR',
+    'parallel_review' => 'مراجعة متوازية',
+    'secretary_review' => 'مراجعة السكرتير',
+    'executive_review' => 'إقرار المدير التنفيذي',
+    _ => 'فتح نموذج المراجعة',
+  };
+
   String? _allowedAction() {
     if (item.currentStage == 'self' &&
         access.hasPermission('performance.kpi.self_assess')) {
@@ -262,6 +268,22 @@ class _KpiCard extends StatelessWidget {
     if (item.currentStage == 'manager_review' &&
         access.hasPermission('performance.kpi.manager_assess')) {
       return 'manager_review';
+    }
+    // V23: المراجعة المتوازية — HR أو المدير حسب الصلاحية.
+    if (item.currentStage == 'parallel_review') {
+      if (access.hasPermission('performance.kpi.hr_assess') ||
+          access.hasPermission('performance.kpi.manager_assess')) {
+        return 'parallel_review';
+      }
+    }
+    // V23: مراحل السكرتير والمدير التنفيذي.
+    if (item.currentStage == 'secretary_review' &&
+        access.hasPermission('performance.kpi.secretary_review')) {
+      return 'secretary_review';
+    }
+    if (item.currentStage == 'executive_review' &&
+        access.hasPermission('performance.kpi.executive_review')) {
+      return 'executive_review';
     }
     return null;
   }

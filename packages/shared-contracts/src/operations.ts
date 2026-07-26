@@ -21,13 +21,13 @@ export type ActionCenterItem = z.infer<typeof actionCenterItemSchema>;
 export const requestSummarySchema = z.object({
   id: z.string().uuid(),
   requestNumber: z.number(),
-  requestType: z.enum(['leave', 'mission', 'convoy', 'attendance_permit', 'generic']),
+  requestType: z.enum(['leave', 'mission', 'convoy', 'late_permit', 'early_permit', 'attendance_correction']),
   employeeId: z.string().uuid(),
   employeeName: z.string(),
   employeeCode: z.string().nullable(),
   title: z.string().nullable(),
   reason: z.string().nullable(),
-  status: z.enum(['pending', 'approved', 'rejected', 'cancelled', 'withdrawn', 'expired']),
+  status: z.enum(['draft', 'pending', 'approved', 'rejected', 'returned', 'cancelled', 'withdrawn', 'expired', 'escalated']),
   workflowStatus: z.string(),
   currentStepOrder: z.number(),
   activeStepName: z.string().nullable(),
@@ -65,8 +65,16 @@ export const kpiEvaluationFormSchema = z.object({
   evidence: z.array(z.object({ id: z.string().uuid(), criterionId: z.string().uuid().nullable(), type: z.string(), title: z.string(), description: z.string().nullable(), storagePath: z.string().nullable(), externalUrl: z.string().nullable(), submittedStage: z.string(), createdAt: z.string() })).default([]),
   cycle: z.object({ id: z.string().uuid(), status: z.string(), scheduledOpenAt: z.string().nullable(), deadlineAt: z.string().nullable(), extendedUntil: z.string().nullable(), effectiveDeadline: z.string().nullable() }),
   validationErrors: z.array(z.string()), lastUpdatedAt: z.string(),
+  // V23: حقول المسار المتوازي
+  hrCompleted: z.boolean().optional(),
+  managerCompleted: z.boolean().optional(),
+  parallelFlow: z.boolean().optional(),
+  version: z.number().optional(),
 });
 export type KpiEvaluationForm = z.infer<typeof kpiEvaluationFormSchema>;
+
+// PostType مُصدَّر من postPublishing.ts — لا تكرره هنا.
+import { postTypeSchema } from './postPublishing.js';
 
 export const officialFeedItemSchema = z.object({
   id: z.string().uuid(),
@@ -76,10 +84,13 @@ export const officialFeedItemSchema = z.object({
   category: z.string(),
   priority: actionPrioritySchema,
   status: z.string(),
+  postType: postTypeSchema.optional(),
   requiresAcknowledgement: z.boolean(),
   publishedAt: z.string().nullable(),
   expiresAt: z.string().nullable(),
   imageUrl: z.string().nullable().optional(),
+  authorName: z.string().optional(),
+  authorPhotoUrl: z.string().nullable().optional(),
   acknowledgedCount: z.number(),
   targetCount: z.number().nullable(),
   myAcknowledged: z.boolean().optional(),

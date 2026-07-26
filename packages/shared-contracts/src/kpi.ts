@@ -1,16 +1,20 @@
 import { z } from 'zod';
 
-// عقود KPI الرسمية — V17 §10.
-// مراحل التقييم: موظف → HR → مدير مباشر → اعتماد نهائي → مكتمل.
+// عقود KPI الرسمية — V17 §10 + V23 المسار المتوازي.
+// V17: موظف → HR → مدير مباشر → اعتماد نهائي → مكتمل.
+// V23: موظف → HR + المدير بالتوازي → حاجز → السكرتير → المدير التنفيذي → مكتمل.
 // المعايير السبعة بأوزانها الرسمية (المجموع 100).
 
 // ─── مراحل التقييم ───────────────────────────────────────────────────────────
 
 export const kpiStageSchema = z.enum([
   'self',
+  'parallel_review',
   'hr_review',
   'manager_review',
   'manager_final',
+  'secretary_review',
+  'executive_review',
   'finalized',
   'closed',
   'archived',
@@ -20,9 +24,12 @@ export type KpiStage = z.infer<typeof kpiStageSchema>;
 /** الترتيب الرسمي للمراحل — الفهرس يحدد التقدم مقابل الإرجاع. */
 export const KPI_STAGE_ORDER: readonly KpiStage[] = [
   'self',
+  'parallel_review',
   'hr_review',
   'manager_review',
   'manager_final',
+  'secretary_review',
+  'executive_review',
   'finalized',
   'closed',
   'archived',
@@ -43,6 +50,14 @@ export const kpiWorkflowStatusSchema = z.enum([
   'REJECTED',
   'CLOSED',
   'ARCHIVED',
+  // V23: حالات المسار المتوازي
+  'PARALLEL_REVIEW_IN_PROGRESS',
+  'HR_COMPLETED',
+  'MANAGER_COMPLETED',
+  'SECRETARY_REVIEW',
+  'EXECUTIVE_REVIEW',
+  'EXECUTIVE_ACKNOWLEDGED',
+  'RETURNED_BY_EXECUTIVE',
 ]);
 export type KpiWorkflowStatus = z.infer<typeof kpiWorkflowStatusSchema>;
 
@@ -59,12 +74,12 @@ export const kpiCriterionCodeSchema = z.enum([
 ]);
 export type KpiCriterionCode = z.infer<typeof kpiCriterionCodeSchema>;
 
-/** مسؤول التقييم لكل معيار: HR تقيّم الحضور والسلوك والصلاة والحلقة، المدير يقيّم الباقي. */
+/** مسؤول التقييم لكل معيار — V23: السلوك انتقل للمدير. HR: حضور+صلاة+حلقة (30). المدير: أهداف+كفاءة+سلوك+مبادرات (70). */
 export const KPI_CRITERION_EVALUATOR: Record<KpiCriterionCode, 'hr' | 'manager'> = {
   TARGET: 'manager',
   EFFICIENCY: 'manager',
   ATTENDANCE: 'hr',
-  CONDUCT: 'hr',
+  CONDUCT: 'manager',
   PRAYER: 'hr',
   HALAQA: 'hr',
   INITIATIVES: 'manager',
@@ -130,7 +145,7 @@ export const kpiRatingBandSchema = z.object({
 });
 export type KpiRatingBand = z.infer<typeof kpiRatingBandSchema>;
 
-// ─── ملخص التقييم (نتيجة get_kpi_evaluation_form) ────────────────────────────
+// ─── ملخص التقييم (نتيجة get_kpi_inbox) ──────────────────────────────────────
 
 export const kpiEvaluationSummarySchema = z.object({
   id: z.string().uuid(),
@@ -155,5 +170,10 @@ export const kpiEvaluationSummarySchema = z.object({
     secretary: z.number().nullable(),
     effective: z.number().nullable(),
   })),
+  // V23: حقول المسار المتوازي
+  hrCompleted: z.boolean().optional(),
+  managerCompleted: z.boolean().optional(),
+  parallelFlow: z.boolean().optional(),
+  version: z.number().optional(),
 });
 export type KpiEvaluationSummary = z.infer<typeof kpiEvaluationSummarySchema>;

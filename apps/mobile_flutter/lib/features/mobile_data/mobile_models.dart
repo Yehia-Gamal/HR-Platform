@@ -354,6 +354,10 @@ class KpiEvaluationForm {
     required this.compliance,
     required this.attendance,
     required this.validationErrors,
+    this.parallelFlow = false,
+    this.hrCompleted = false,
+    this.managerCompleted = false,
+    this.version = 1,
   });
   factory KpiEvaluationForm.fromJson(Map<String, dynamic> json) =>
       KpiEvaluationForm(
@@ -400,6 +404,10 @@ class KpiEvaluationForm {
             (json['validationErrors'] as List<dynamic>? ?? const [])
                 .map((item) => item.toString())
                 .toList(growable: false),
+        parallelFlow: json['parallelFlow'] as bool? ?? false,
+        hrCompleted: json['hrCompleted'] as bool? ?? false,
+        managerCompleted: json['managerCompleted'] as bool? ?? false,
+        version: json['version'] as int? ?? 1,
       );
   final String id;
   final String employeeId;
@@ -417,6 +425,11 @@ class KpiEvaluationForm {
   final List<KpiComplianceForm> compliance;
   final KpiAttendanceSummary? attendance;
   final List<String> validationErrors;
+  // V23: حقول المسار المتوازي.
+  final bool parallelFlow;
+  final bool hrCompleted;
+  final bool managerCompleted;
+  final int version;
 }
 
 class AttendanceState {
@@ -804,6 +817,8 @@ class PasskeyDevice {
     required this.createdAt,
     required this.approvedAt,
     required this.rejectionReason,
+    required this.revocationSource,
+    required this.canResubmit,
   });
   factory PasskeyDevice.fromJson(Map<String, dynamic> json) => PasskeyDevice(
     id: json['id'] as String,
@@ -821,6 +836,8 @@ class PasskeyDevice {
         ? null
         : DateTime.parse(json['approvedAt'] as String),
     rejectionReason: json['rejectionReason'] as String?,
+    revocationSource: json['revocationSource'] as String?,
+    canResubmit: json['canResubmit'] as bool? ?? false,
   );
   final String id;
   final String credentialId;
@@ -833,6 +850,8 @@ class PasskeyDevice {
   final DateTime createdAt;
   final DateTime? approvedAt;
   final String? rejectionReason;
+  final String? revocationSource;
+  final bool canResubmit;
 }
 
 class AttendanceHistoryItem {

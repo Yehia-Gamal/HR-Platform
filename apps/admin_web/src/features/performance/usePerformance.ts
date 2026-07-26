@@ -19,11 +19,12 @@ export function usePerformance() {
   });
 }
 
+// V23: وسّعنا نوع action ليشمل مراحل المسار المتوازي الجديدة.
 export function useAdvanceKpi() {
   const auth = useAuth();
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async ({ evaluationId, action, note, scores }: { evaluationId: string; action: 'self' | 'manager_review' | 'hr_review'; note: string; scores?: Array<{ criterion_id: string; score: number; note: string }> }) => {
+    mutationFn: async ({ evaluationId, action, note, scores }: { evaluationId: string; action: string; note: string; scores?: Array<{ criterion_id: string; score: number; note: string }> }) => {
       if (auth.isMock) return { evaluationId, action };
       const supabase = await getSupabase();
       const { data, error } = await supabase.rpc('advance_kpi_stage', { p_evaluation_id: evaluationId, p_action: action, p_scores: scores ?? null, p_note: note || null });

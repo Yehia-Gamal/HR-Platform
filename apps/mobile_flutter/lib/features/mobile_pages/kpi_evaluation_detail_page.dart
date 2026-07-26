@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-/// Arabic labels for kpi_evaluations.workflow_status (migration 0058).
+/// Arabic labels for kpi_evaluations.workflow_status (migration 0058 + V23 migration 0163).
 /// Shared by the KPI list and detail pages so both stay in sync.
 String kpiWorkflowLabel(String value) => switch (value) {
   'DRAFT' => 'مسودة قبل فتح الدورة',
@@ -36,6 +36,14 @@ String kpiWorkflowLabel(String value) => switch (value) {
   'APPROVED' => 'معتمد',
   'CLOSED' => 'مؤرشف',
   'OVERDUE' => 'متأخر عن الموعد',
+  // V23: حالات المسار المتوازي
+  'PARALLEL_REVIEW_IN_PROGRESS' => 'مراجعة HR والمدير جارية بالتوازي',
+  'HR_COMPLETED' => 'أنهى HR مراجعته — بانتظار المدير',
+  'MANAGER_COMPLETED' => 'أنهى المدير مراجعته — بانتظار HR',
+  'SECRETARY_REVIEW' => 'قيد مراجعة السكرتير التنفيذي',
+  'EXECUTIVE_REVIEW' => 'بانتظار إقرار المدير التنفيذي',
+  'EXECUTIVE_ACKNOWLEDGED' => 'أقرّ المدير التنفيذي',
+  'RETURNED_BY_EXECUTIVE' => 'أعاده المدير التنفيذي للمراجعة',
   _ => value,
 };
 
@@ -126,9 +134,16 @@ class _KpiEvaluationDetailPageState
   }
 
   Widget _content(KpiEvaluationForm form) {
+    // V23: في المراجعة المتوازية، الموظف يمكنه تعديل الدرجات أيضًا.
     final canEditScores =
-        form.editableStage == 'self' || form.editableStage == 'manager_review';
+        form.editableStage == 'self' ||
+        form.editableStage == 'manager_review' ||
+        form.editableStage == 'parallel_review';
     final canAct = form.editableStage != null && !form.locked;
+    // V23: إظهار الامتثال والجلسة في المراجعة المتوازية.
+    final isParallel = form.editableStage == 'parallel_review';
+    final showCompliance = form.editableStage == 'hr_review' || isParallel;
+    final showSession = form.editableStage == 'manager_review' || isParallel;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -158,6 +173,8 @@ class _KpiEvaluationDetailPageState
                     if (form.locked) const MobileStatusPill('closed'),
                     if (form.finalScore != null)
                       _chip('النتيجة ${form.finalScore!.toStringAsFixed(1)}%'),
+                    if (form.parallelFlow == true)
+                      _chip('مسار V23 المتوازي'),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -170,7 +187,30 @@ class _KpiEvaluationDetailPageState
           ),
         ),
         const SizedBox(height: 12),
-        _KpiStageStepper(currentStage: form.currentStage),
+        // V23: مؤشر تقدم المراجعة المتوازية.
+        if (form.currentStage == 'parallel_review') ...[
+          Card(
+            color: Theme.of(context).colorScheme.secondaryContainer,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  const Icon(Icons.sync_rounded, size: 20),
+                  const SizedBox(width: 10),
+                  Text(
+                    'HR ${form.hrCompleted == true ? '✓' : '⏳'} · المدير ${form.managerCompleted == true ? '✓' : '⏳'}',
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        _KpiStageStepper(
+          currentStage: form.currentStage,
+          parallelFlow: form.parallelFlow,
+        ),
         const SizedBox(height: 12),
         if (form.goals.isNotEmpty) ...[
           const MobileSectionHeader(title: 'الأهداف — 40 درجة'),
@@ -214,7 +254,8 @@ class _KpiEvaluationDetailPageState
             const SizedBox(height: 8),
           ],
         ],
-        if (form.editableStage == 'manager_review') ...[
+        // V23: تسجيل الجلسة متاح في المراجعة المتوازية أيضًا.
+        if (showSession) ...[
           FilledButton.tonalIcon(
             onPressed: _saving ? null : () => _recordSession(form),
             icon: const Icon(Icons.groups_outlined),
@@ -255,7 +296,8 @@ class _KpiEvaluationDetailPageState
           ),
           const SizedBox(height: 12),
         ],
-        if (form.editableStage == 'hr_review') ...[
+        // V23: الامتثال متاح في المراجعة المتوازية أيضًا.
+        if (showCompliance) ...[
           for (final metric in const ['PRAYER', 'HALAQA']) ...[
             OutlinedButton.icon(
               onPressed: _saving ? null : () => _editCompliance(form, metric),
@@ -332,11 +374,7 @@ class _KpiEvaluationDetailPageState
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.check_circle_outline),
-                  label: Text(
-                    form.editableStage == 'manager_review'
-                        ? 'اعتماد النتيجة وإدراجها في التقرير'
-                        : 'حفظ وإرسال',
-                  ),
+                  label: Text(_submitLabel(form.editableStage)),
                 ),
               ),
             ],
@@ -353,6 +391,15 @@ class _KpiEvaluationDetailPageState
       ],
     );
   }
+
+  // V23: تسميات أزرار الاعتماد حسب المرحلة.
+  String _submitLabel(String? stage) => switch (stage) {
+    'manager_review' => 'اعتماد النتيجة وإدراجها في التقرير',
+    'parallel_review' => 'اعتماد مراجعتي وإرسال',
+    'secretary_review' => 'اعتماد وإرسال للمدير التنفيذي',
+    'executive_review' => 'إقرار واعتماد نهائي',
+    _ => 'حفظ وإرسال',
+  };
 
   Widget _criterionCard(
     KpiCriterionForm criterion,
@@ -446,7 +493,8 @@ class _KpiEvaluationDetailPageState
   Future<void> _submit(KpiEvaluationForm form) async {
     final stage = form.editableStage;
     if (stage == null) return;
-    final scorePayload = stage == 'self' || stage == 'manager_review'
+    // V23: إرسال الدرجات في مراحل التقييم الذاتي والمدير والمراجعة المتوازية.
+    final scorePayload = stage == 'self' || stage == 'manager_review' || stage == 'parallel_review'
         ? form.criteria
               .where((criterion) => criterion.editable)
               .map(
@@ -488,10 +536,13 @@ class _KpiEvaluationDetailPageState
   }
 
   Future<void> _returnStage(KpiEvaluationForm form) async {
-    /// V17 §10: return paths — hr_review→self, manager_review→hr_review.
+    // V23: أهداف الإرجاع حسب المرحلة — المتوازي يرجع للموظف، السكرتير للمتوازي، التنفيذي للسكرتير.
     final target = switch (form.editableStage) {
       'hr_review' => 'self',
       'manager_review' => 'hr_review',
+      'parallel_review' => 'self',
+      'secretary_review' => 'parallel_review',
+      'executive_review' => 'secretary_review',
       _ => null,
     };
     if (target == null) return;
@@ -525,19 +576,24 @@ class _KpiEvaluationDetailPageState
 
   Widget _chip(String text) => Chip(label: Text(text));
 
+  // V23: أضفنا المراحل الجديدة.
   String _stage(String value) => switch (value) {
     'self' => 'الموظف',
     'hr' => 'الموارد البشرية',
     'hr_review' => 'مراجعة الموارد البشرية',
     'manager' => 'المدير المباشر',
     'manager_review' => 'مراجعة المدير المباشر',
+    'parallel_review' => 'مراجعة متوازية',
+    'manager_final' => 'اعتماد المدير النهائي',
+    'secretary_review' => 'مراجعة السكرتير',
+    'executive_review' => 'إقرار المدير التنفيذي',
     'finalized' => 'مدرج في التقرير الشهري',
     'closed' => 'مغلق',
     'archived' => 'مؤرشف',
     _ => value,
   };
 
-  // Arabic labels for kpi_evaluations.workflow_status (migration 0058).
+  // Arabic labels for kpi_evaluations.workflow_status (migration 0058 + V23).
   String _workflow(String value) => kpiWorkflowLabel(value);
 
   Future<void> _editGoal(KpiEvaluationForm form, KpiGoalForm goal) async {
@@ -811,23 +867,37 @@ class _KpiEvaluationDetailPageState
 }
 
 class _KpiStageStepper extends StatelessWidget {
-  const _KpiStageStepper({required this.currentStage});
+  const _KpiStageStepper({
+    required this.currentStage,
+    this.parallelFlow = false,
+  });
   final String currentStage;
+  final bool parallelFlow;
 
-  static const _stages = [
-    ('self', 'الموظف'),
-    ('hr_review', 'الموارد البشرية'),
-    ('manager_review', 'المدير المباشر'),
-    ('finalized', 'معتمد'),
-  ];
+  // V23: المسار المتوازي يمر بمراحل مختلفة عن V17.
+  List<(String, String)> get _stages => parallelFlow
+      ? const [
+          ('self', 'الموظف'),
+          ('parallel_review', 'HR + المدير'),
+          ('secretary_review', 'السكرتير'),
+          ('executive_review', 'التنفيذي'),
+          ('finalized', 'معتمد'),
+        ]
+      : const [
+          ('self', 'الموظف'),
+          ('hr_review', 'الموارد البشرية'),
+          ('manager_review', 'المدير المباشر'),
+          ('finalized', 'معتمد'),
+        ];
 
   int _resolveIndex() {
-    for (var i = 0; i < _stages.length; i++) {
-      if (_stages[i].$1 == currentStage) return i;
+    final stages = _stages;
+    for (var i = 0; i < stages.length; i++) {
+      if (stages[i].$1 == currentStage) return i;
     }
     // closed / archived → treat as fully completed
     if (currentStage == 'closed' || currentStage == 'archived') {
-      return _stages.length;
+      return stages.length;
     }
     return 0;
   }
@@ -836,13 +906,14 @@ class _KpiStageStepper extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final active = _resolveIndex();
+    final stages = _stages;
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         child: Row(
           children: [
-            for (var i = 0; i < _stages.length; i++) ...[
+            for (var i = 0; i < stages.length; i++) ...[
               if (i > 0)
                 Expanded(
                   child: Container(
@@ -890,7 +961,7 @@ class _KpiStageStepper extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _stages[i].$2,
+                    stages[i].$2,
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight:

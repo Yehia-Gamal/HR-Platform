@@ -1,5 +1,5 @@
 // Arabic labels for the official KPI workflow states (kpi_evaluations.workflow_status).
-// Keep in sync with the CHECK constraint in migration 0058_official_kpi_governance.sql.
+// Keep in sync with the CHECK constraint in migration 0058 + V23 migration 0163.
 export const kpiWorkflowStatusLabel: Record<string, string> = {
   DRAFT: 'مسودة قبل فتح الدورة',
   OPEN_FOR_SELF_EVALUATION: 'مفتوح للتقييم الذاتي',
@@ -26,6 +26,14 @@ export const kpiWorkflowStatusLabel: Record<string, string> = {
   APPROVED: 'معتمد',
   CLOSED: 'مؤرشف',
   OVERDUE: 'متأخر عن الموعد',
+  // V23: حالات المسار المتوازي
+  PARALLEL_REVIEW_IN_PROGRESS: 'مراجعة HR والمدير جارية بالتوازي',
+  HR_COMPLETED: 'أنهى HR مراجعته — بانتظار المدير',
+  MANAGER_COMPLETED: 'أنهى المدير مراجعته — بانتظار HR',
+  SECRETARY_REVIEW: 'قيد مراجعة السكرتير التنفيذي',
+  EXECUTIVE_REVIEW: 'بانتظار إقرار المدير التنفيذي',
+  EXECUTIVE_ACKNOWLEDGED: 'أقرّ المدير التنفيذي',
+  RETURNED_BY_EXECUTIVE: 'أعاده المدير التنفيذي للمراجعة',
 };
 
 export const kpiWorkflowStatusText = (value?: string | null): string =>
