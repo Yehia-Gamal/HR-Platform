@@ -183,11 +183,11 @@ select throws_ok(
   $$select public.request_live_location('eeee0000-0000-4000-8000-000000000002','snapshot','بلا صلاحية')$$,
   '42501', null, 'employee: cannot request others');
 
--- Main Admin/full-access is still not the Executive Director.
+-- V17+0150: full-access admin CAN request employee location (current_is_full_access).
 select pg_temp.act_as('dddd0000-0000-4000-8000-000000000007'); set local role authenticated;
-select throws_ok(
+select lives_ok(
   $$select public.request_live_location('eeee0000-0000-4000-8000-000000000002','snapshot','صلاحية كاملة')$$,
-  '42501', null, 'main admin: location request denied by V17');
+  'main admin: location request succeeds (0150 fix)');
 
 -- =====================================================================
 -- Target responds + submits point (snapshot auto-completes)

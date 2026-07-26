@@ -4,7 +4,7 @@ import {
   Archive, Gauge, MailCheck, Network, Pencil, Phone, Plus, ShieldCheck, Star, Trash2, UserRound, UsersRound, X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { DialogOverlay } from '../../ui/DialogOverlay';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -335,97 +335,90 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
     }
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <form onSubmit={(e) => void onSubmit(e)} className="card flex max-h-[90vh] w-full max-w-2xl flex-col">
-        <div className="border-b border-[var(--border)] p-6">
-          <h2 className="text-lg font-black">تعديل بيانات الموظف</h2>
-          <p className="muted mt-1 text-sm">{item.fullNameAr} — {item.employeeCode}</p>
-        </div>
+  return (
+    <DialogOverlay title="تعديل بيانات الموظف" onClose={onClose} maxWidth="max-w-2xl">
+      <p className="muted -mt-2 mb-5 text-sm">{item.fullNameAr} — {item.employeeCode}</p>
+      <form onSubmit={(e) => void onSubmit(e)} className="space-y-6">
+        {error ? <div role="alert" className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
 
-        <div className="flex-1 space-y-6 overflow-y-auto p-6">
-          {error ? <div role="alert" className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
+        {/* البيانات الشخصية (update_basic) */}
+        <fieldset>
+          <legend className="mb-3 font-black">البيانات الشخصية</legend>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-semibold">الاسم بالعربية <span className="text-[var(--danger)]">*</span></span>
+              <input type="text" className="input w-full" required minLength={3} maxLength={160} value={fullNameAr} onChange={(e) => setFullNameAr(e.target.value)} disabled={update.isPending} />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-semibold">الاسم بالإنجليزية</span>
+              <input type="text" className="input w-full" maxLength={160} value={fullNameEn} onChange={(e) => setFullNameEn(e.target.value)} disabled={update.isPending} dir="ltr" />
+            </label>
+            <label className="block sm:col-span-2">
+              <span className="mb-1.5 block text-sm font-semibold">رقم الهاتف</span>
+              <input type="tel" className="input w-full" value={phoneE164} onChange={(e) => setPhoneE164(e.target.value)} disabled={update.isPending} dir="ltr" placeholder="+201XXXXXXXXX" />
+            </label>
+          </div>
+        </fieldset>
 
-          {/* البيانات الشخصية (update_basic) */}
+        {/* البيانات الوظيفية (update_sensitive) */}
+        {canSensitive ? (
           <fieldset>
-            <legend className="mb-3 font-black">البيانات الشخصية</legend>
+            <legend className="mb-3 font-black">البيانات الوظيفية</legend>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <LookupSelect label="الإدارة" value={departmentId} options={lookups.data?.departments ?? []} onChange={onDepartmentChange} disabled={update.isPending} />
+              <LookupSelect label="الفريق" value={teamId} options={teams} onChange={setTeamId} disabled={update.isPending} />
+              <LookupSelect label="الفرع" value={branchId} options={lookups.data?.branches ?? []} onChange={onBranchChange} disabled={update.isPending} />
+              <LookupSelect label="موقع العمل" value={workSiteId} options={workSites} onChange={setWorkSiteId} disabled={update.isPending} />
+              <LookupSelect label="المسمى الوظيفي" value={jobTitleId} options={lookups.data?.jobTitles ?? []} onChange={setJobTitleId} disabled={update.isPending} />
+              <LookupSelect label="المنصب" value={positionId} options={positions} onChange={setPositionId} disabled={update.isPending} />
+              <LookupSelect label="الدرجة" value={gradeId} options={lookups.data?.grades ?? []} onChange={setGradeId} disabled={update.isPending} />
+              <LookupSelect label="نوع التوظيف" value={employmentTypeId} options={lookups.data?.employmentTypes ?? []} onChange={setEmploymentTypeId} disabled={update.isPending} />
+            </div>
+          </fieldset>
+        ) : null}
+
+        {canSensitive ? (
+          <fieldset>
+            <legend className="mb-3 font-black">التواريخ والحالة</legend>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block">
-                <span className="mb-1.5 block text-sm font-semibold">الاسم بالعربية <span className="text-[var(--danger)]">*</span></span>
-                <input type="text" className="input w-full" required minLength={3} maxLength={160} value={fullNameAr} onChange={(e) => setFullNameAr(e.target.value)} disabled={update.isPending} />
+                <span className="mb-1.5 block text-sm font-semibold">تاريخ التعيين</span>
+                <input type="date" className="input w-full" value={hireDate} onChange={(e) => setHireDate(e.target.value)} disabled={update.isPending} />
               </label>
               <label className="block">
-                <span className="mb-1.5 block text-sm font-semibold">الاسم بالإنجليزية</span>
-                <input type="text" className="input w-full" maxLength={160} value={fullNameEn} onChange={(e) => setFullNameEn(e.target.value)} disabled={update.isPending} dir="ltr" />
+                <span className="mb-1.5 block text-sm font-semibold">نهاية العقد</span>
+                <input type="date" className="input w-full" value={contractEnd} onChange={(e) => setContractEnd(e.target.value)} disabled={update.isPending} />
               </label>
-              <label className="block sm:col-span-2">
-                <span className="mb-1.5 block text-sm font-semibold">رقم الهاتف</span>
-                <input type="tel" className="input w-full" value={phoneE164} onChange={(e) => setPhoneE164(e.target.value)} disabled={update.isPending} dir="ltr" placeholder="+201XXXXXXXXX" />
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-semibold">نهاية فترة الاختبار</span>
+                <input type="date" className="input w-full" value={probationEnd} onChange={(e) => setProbationEnd(e.target.value)} disabled={update.isPending} />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-semibold">الحالة</span>
+                <select className="input w-full" value={status} onChange={(e) => setStatus(e.target.value as typeof status)} disabled={update.isPending}>
+                  {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
               </label>
             </div>
           </fieldset>
+        ) : null}
 
-          {/* البيانات الوظيفية (update_sensitive) */}
-          {canSensitive ? (
-            <fieldset>
-              <legend className="mb-3 font-black">البيانات الوظيفية</legend>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <LookupSelect label="الإدارة" value={departmentId} options={lookups.data?.departments ?? []} onChange={onDepartmentChange} disabled={update.isPending} />
-                <LookupSelect label="الفريق" value={teamId} options={teams} onChange={setTeamId} disabled={update.isPending} />
-                <LookupSelect label="الفرع" value={branchId} options={lookups.data?.branches ?? []} onChange={onBranchChange} disabled={update.isPending} />
-                <LookupSelect label="موقع العمل" value={workSiteId} options={workSites} onChange={setWorkSiteId} disabled={update.isPending} />
-                <LookupSelect label="المسمى الوظيفي" value={jobTitleId} options={lookups.data?.jobTitles ?? []} onChange={setJobTitleId} disabled={update.isPending} />
-                <LookupSelect label="المنصب" value={positionId} options={positions} onChange={setPositionId} disabled={update.isPending} />
-                <LookupSelect label="الدرجة" value={gradeId} options={lookups.data?.grades ?? []} onChange={setGradeId} disabled={update.isPending} />
-                <LookupSelect label="نوع التوظيف" value={employmentTypeId} options={lookups.data?.employmentTypes ?? []} onChange={setEmploymentTypeId} disabled={update.isPending} />
-              </div>
-            </fieldset>
-          ) : null}
+        {/* سبب التعديل */}
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-semibold">سبب التعديل <span className="text-[var(--danger)]">*</span></span>
+          <textarea className="input min-h-20 w-full" required minLength={5} value={reason} onChange={(e) => setReason(e.target.value)} disabled={update.isPending} placeholder="اذكر سبب التعديل للتدقيق…" />
+        </label>
 
-          {canSensitive ? (
-            <fieldset>
-              <legend className="mb-3 font-black">التواريخ والحالة</legend>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-semibold">تاريخ التعيين</span>
-                  <input type="date" className="input w-full" value={hireDate} onChange={(e) => setHireDate(e.target.value)} disabled={update.isPending} />
-                </label>
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-semibold">نهاية العقد</span>
-                  <input type="date" className="input w-full" value={contractEnd} onChange={(e) => setContractEnd(e.target.value)} disabled={update.isPending} />
-                </label>
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-semibold">نهاية فترة الاختبار</span>
-                  <input type="date" className="input w-full" value={probationEnd} onChange={(e) => setProbationEnd(e.target.value)} disabled={update.isPending} />
-                </label>
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-semibold">الحالة</span>
-                  <select className="input w-full" value={status} onChange={(e) => setStatus(e.target.value as typeof status)} disabled={update.isPending}>
-                    {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>{label}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </fieldset>
-          ) : null}
-
-          {/* سبب التعديل */}
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold">سبب التعديل <span className="text-[var(--danger)]">*</span></span>
-            <textarea className="input min-h-20 w-full" required minLength={5} value={reason} onChange={(e) => setReason(e.target.value)} disabled={update.isPending} placeholder="اذكر سبب التعديل للتدقيق…" />
-          </label>
-        </div>
-
-        <div className="flex justify-end gap-3 border-t border-[var(--border)] p-6">
+        <div className="flex justify-end gap-3 border-t border-[var(--border)] pt-4">
           <button type="button" className="btn-secondary" onClick={onClose} disabled={update.isPending}>إلغاء</button>
           <button type="submit" className="btn-primary" disabled={update.isPending || reason.trim().length < 5}>
             {update.isPending ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}
           </button>
         </div>
       </form>
-    </div>,
-    document.body,
+    </DialogOverlay>
   );
 }
 

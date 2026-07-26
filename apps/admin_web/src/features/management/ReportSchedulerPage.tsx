@@ -1,6 +1,6 @@
-import { AlarmClockCheck, FileBarChart2, Plus, Send, X } from 'lucide-react';
+import { AlarmClockCheck, FileBarChart2, Plus, Send } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { createPortal } from 'react-dom';
+import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';

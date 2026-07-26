@@ -8,7 +8,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(10);
+select plan(11);
 
 -- =====================================================================
 -- 1. دور hr-specialist موجود في جدول roles

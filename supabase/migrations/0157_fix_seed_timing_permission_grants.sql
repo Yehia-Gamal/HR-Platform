@@ -9,11 +9,11 @@
 
 -- ── 1) إنشاء الصلاحيات المفقودة (موجودة في seed فقط) ──
 
-insert into public.permissions (code)
+insert into public.permissions (code, module, resource, action)
 values
-  ('performance.kpi.read'),
-  ('performance.kpi.hr_review'),
-  ('performance.cycle.manage')
+  ('performance.kpi.read',       'performance', 'kpi',   'read'),
+  ('performance.kpi.hr_review',  'performance', 'kpi',   'hr_review'),
+  ('performance.cycle.manage',   'performance', 'cycle', 'manage')
 on conflict (code) do nothing;
 
 -- ── 2) منح performance.kpi.read + performance.kpi.hr_review لـ hr-specialist ──

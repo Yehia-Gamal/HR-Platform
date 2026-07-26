@@ -1,7 +1,7 @@
-import { BellRing, CheckCircle2, FileText, ImagePlus, Megaphone, Plus, Send, ShieldCheck, Trash2, X } from 'lucide-react';
+import { BellRing, CheckCircle2, FileText, ImagePlus, Megaphone, Plus, Send, ShieldCheck, Trash2 } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { getSupabase } from '../../core/supabase';
+import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
@@ -149,35 +149,37 @@ export function OfficialFeedPage() {
       })}
     </section>
     )}
-    {open ? createPortal(<div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"><section className="card max-h-[90vh] w-full max-w-2xl overflow-y-auto p-6" role="dialog" aria-modal="true" aria-labelledby="official-feed-modal-title"><div className="flex items-center justify-between"><h2 id="official-feed-modal-title" className="text-xl font-black">إنشاء عنصر رسمي</h2><button className="rounded-xl border border-[var(--border)] p-2" aria-label="إغلاق" onClick={() => setOpen(false)}><X className="size-5" aria-hidden="true" /></button></div>
-      <div className="mt-5 grid grid-cols-2 gap-2 rounded-2xl bg-[var(--surface-muted)] p-1"><button className={`rounded-xl px-3 py-2 font-black ${mode === 'announcement' ? 'bg-[var(--surface-raised)] text-brand shadow-sm' : ''}`} onClick={() => setMode('announcement')}>خبر أو إعلان</button><button className={`rounded-xl px-3 py-2 font-black ${mode === 'decision' ? 'bg-[var(--surface-raised)] text-brand shadow-sm' : ''}`} onClick={() => setMode('decision')}>قرار إداري</button></div>
-      <div className="mt-5 grid gap-4">
-        <label className="text-sm font-bold">العنوان<input className="input mt-2" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
-        <label className="text-sm font-bold">المحتوى<textarea className="input mt-2 min-h-36 resize-y" value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} /></label>
-        {mode === 'announcement' ? <div>
-          <span className="text-sm font-bold">صورة الإعلان (اختياري)</span>
-          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageSelect} />
-          {imagePreview ? (
-            <div className="relative mt-2">
-              <img src={imagePreview} alt="معاينة" className="h-40 w-full rounded-xl object-cover" />
-              <button type="button" className="absolute start-2 top-2 rounded-full bg-red-600 p-1 text-white shadow" aria-label="إزالة الصورة" onClick={() => void removeImage()}><Trash2 className="size-4" /></button>
-            </div>
-          ) : (
-            <button type="button" className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--border)] p-6 text-sm transition hover:border-brand hover:text-brand" disabled={imageUploading} onClick={() => fileInputRef.current?.click()}>
-              {imageUploading ? <span className="animate-pulse">جارٍ رفع الصورة…</span> : <><ImagePlus className="size-5" aria-hidden="true" />اضغط لاختيار صورة</>}
-            </button>
-          )}
-          {imageError ? <p className="mt-1 text-xs text-red-500">{imageError}</p> : null}
-        </div> : null}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-sm font-bold">التصنيف<select className="input mt-2" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}><option value="general">عام</option><option value="hr">موارد بشرية</option><option value="policy">سياسة</option><option value="organizational">تنظيمي</option><option value="financial">مالي</option></select></label>
-          {mode === 'announcement' ? <label className="text-sm font-bold">الأولوية<select className="input mt-2" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}><option value="normal">عادية</option><option value="high">مرتفعة</option><option value="urgent">عاجلة</option></select></label> : null}
+    {open ? (
+      <DialogOverlay title="إنشاء عنصر رسمي" onClose={() => setOpen(false)} maxWidth="max-w-2xl">
+        <div className="grid grid-cols-2 gap-2 rounded-2xl bg-[var(--surface-muted)] p-1"><button type="button" className={`rounded-xl px-3 py-2 font-black ${mode === 'announcement' ? 'bg-[var(--surface-raised)] text-brand shadow-sm' : ''}`} onClick={() => setMode('announcement')}>خبر أو إعلان</button><button type="button" className={`rounded-xl px-3 py-2 font-black ${mode === 'decision' ? 'bg-[var(--surface-raised)] text-brand shadow-sm' : ''}`} onClick={() => setMode('decision')}>قرار إداري</button></div>
+        <div className="mt-5 grid gap-4">
+          <label className="text-sm font-bold">العنوان<input className="input mt-2" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
+          <label className="text-sm font-bold">المحتوى<textarea className="input mt-2 min-h-36 resize-y" value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} /></label>
+          {mode === 'announcement' ? <div>
+            <span className="text-sm font-bold">صورة الإعلان (اختياري)</span>
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageSelect} />
+            {imagePreview ? (
+              <div className="relative mt-2">
+                <img src={imagePreview} alt="معاينة" className="h-40 w-full rounded-xl object-cover" />
+                <button type="button" className="absolute start-2 top-2 rounded-full bg-red-600 p-1 text-white shadow" aria-label="إزالة الصورة" onClick={() => void removeImage()}><Trash2 className="size-4" /></button>
+              </div>
+            ) : (
+              <button type="button" className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--border)] p-6 text-sm transition hover:border-brand hover:text-brand" disabled={imageUploading} onClick={() => fileInputRef.current?.click()}>
+                {imageUploading ? <span className="animate-pulse">جارٍ رفع الصورة…</span> : <><ImagePlus className="size-5" aria-hidden="true" />اضغط لاختيار صورة</>}
+              </button>
+            )}
+            {imageError ? <p className="mt-1 text-xs text-red-500">{imageError}</p> : null}
+          </div> : null}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="text-sm font-bold">التصنيف<select className="input mt-2" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}><option value="general">عام</option><option value="hr">موارد بشرية</option><option value="policy">سياسة</option><option value="organizational">تنظيمي</option><option value="financial">مالي</option></select></label>
+            {mode === 'announcement' ? <label className="text-sm font-bold">الأولوية<select className="input mt-2" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}><option value="normal">عادية</option><option value="high">مرتفعة</option><option value="urgent">عاجلة</option></select></label> : null}
+          </div>
+          {mode === 'decision' ? <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">النتيجة المتوقعة<input className="input mt-2" value={form.expectedOutcome} onChange={(e) => setForm({ ...form, expectedOutcome: e.target.value })} /></label><label className="text-sm font-bold">مؤشر قياس النجاح<input className="input mt-2" value={form.successMetric} onChange={(e) => setForm({ ...form, successMetric: e.target.value })} /></label></div> : null}
+          <label className="flex items-center gap-3 rounded-xl bg-[var(--surface-muted)] p-4 text-sm font-bold"><input type="checkbox" checked={form.requiresAcknowledgement} onChange={(e) => setForm({ ...form, requiresAcknowledgement: e.target.checked })} />يتطلب إقرارًا بالاطلاع</label>
+          {publish.isError || createDecision.isError ? <ErrorBanner message="تعذر حفظ العنصر الرسمي." /> : null}
+          <button className="btn-primary" disabled={publish.isPending || createDecision.isPending || imageUploading || form.title.trim().length < 3 || form.body.trim().length < 10} onClick={() => void submit()}>{mode === 'decision' ? 'حفظ كمسودة قرار' : 'نشر الآن'}</button>
         </div>
-        {mode === 'decision' ? <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">النتيجة المتوقعة<input className="input mt-2" value={form.expectedOutcome} onChange={(e) => setForm({ ...form, expectedOutcome: e.target.value })} /></label><label className="text-sm font-bold">مؤشر قياس النجاح<input className="input mt-2" value={form.successMetric} onChange={(e) => setForm({ ...form, successMetric: e.target.value })} /></label></div> : null}
-        <label className="flex items-center gap-3 rounded-xl bg-[var(--surface-muted)] p-4 text-sm font-bold"><input type="checkbox" checked={form.requiresAcknowledgement} onChange={(e) => setForm({ ...form, requiresAcknowledgement: e.target.checked })} />يتطلب إقرارًا بالاطلاع</label>
-        {publish.isError || createDecision.isError ? <ErrorBanner message="تعذر حفظ العنصر الرسمي." /> : null}
-        <button className="btn-primary" disabled={publish.isPending || createDecision.isPending || imageUploading || form.title.trim().length < 3 || form.body.trim().length < 10} onClick={() => void submit()}>{mode === 'decision' ? 'حفظ كمسودة قرار' : 'نشر الآن'}</button>
-      </div>
-    </section></div>, document.body) : null}
+      </DialogOverlay>
+    ) : null}
   </div>;
 }

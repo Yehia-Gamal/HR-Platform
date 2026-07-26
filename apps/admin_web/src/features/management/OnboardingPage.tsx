@@ -1,6 +1,5 @@
 import { CheckCircle2, CircleDashed, ClipboardCheck, Plus, Rocket, Save, X } from 'lucide-react';
-import { useId, useState, type FormEvent, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, type FormEvent } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';

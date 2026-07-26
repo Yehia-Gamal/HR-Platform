@@ -6,7 +6,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(22);
+select plan(24);
 
 -- ═══════════════════════════════════════════════════════════════════════════════
 -- 1. Structure assertions — RPCs exist

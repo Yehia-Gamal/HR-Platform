@@ -1,6 +1,7 @@
 import { CalendarDays, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
@@ -134,20 +135,16 @@ export function OfficialHolidaysPage() {
         />
       )}
 
-      {deleting && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="card w-full max-w-sm p-6">
-            <h2 className="text-lg font-black">حذف العطلة</h2>
-            <p className="muted mt-2 text-sm">هل أنت متأكد من حذف «{deleting.name}»؟ لا يمكن التراجع.</p>
-            <div className="mt-6 flex justify-end gap-3">
-              <button type="button" className="btn-secondary" onClick={() => setDeleting(null)} disabled={deleteHoliday.isPending}>إلغاء</button>
-              <button type="button" className="btn-primary bg-[var(--danger)]" onClick={() => void onDelete()} disabled={deleteHoliday.isPending}>
-                {deleteHoliday.isPending ? 'جارٍ الحذف…' : 'تأكيد الحذف'}
-              </button>
-            </div>
+      {deleting && (
+        <DialogOverlay title="حذف العطلة" onClose={() => setDeleting(null)} maxWidth="max-w-sm">
+          <p className="muted mt-2 text-sm">هل أنت متأكد من حذف «{deleting.name}»؟ لا يمكن التراجع.</p>
+          <div className="mt-6 flex justify-end gap-3">
+            <button type="button" className="btn-secondary" onClick={() => setDeleting(null)} disabled={deleteHoliday.isPending}>إلغاء</button>
+            <button type="button" className="btn-primary bg-[var(--danger)]" onClick={() => void onDelete()} disabled={deleteHoliday.isPending}>
+              {deleteHoliday.isPending ? 'جارٍ الحذف…' : 'تأكيد الحذف'}
+            </button>
           </div>
-        </div>,
-        document.body,
+        </DialogOverlay>
       )}
     </div>
   );
@@ -206,71 +203,64 @@ function HolidayFormDialog({ holiday, onClose, onSuccess }: { holiday: Holiday |
     }
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <form onSubmit={(e) => void onSubmit(e)} className="card flex max-h-[90vh] w-full max-w-lg flex-col">
-        <div className="border-b border-[var(--border)] p-6">
-          <h2 className="text-lg font-black">{isEdit ? 'تعديل العطلة' : 'إضافة عطلة رسمية'}</h2>
+  return (
+    <DialogOverlay title={isEdit ? 'تعديل العطلة' : 'إضافة عطلة رسمية'} onClose={onClose} maxWidth="max-w-lg">
+      <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
+        {error ? <div role="alert" className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
+
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-semibold">اسم العطلة <span className="text-[var(--danger)]">*</span></span>
+          <input type="text" className="input w-full" required minLength={3} maxLength={200} value={name} onChange={(e) => setName(e.target.value)} disabled={isPending} />
+        </label>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-semibold">تاريخ البداية <span className="text-[var(--danger)]">*</span></span>
+            <input type="date" className="input w-full" required value={holidayDate} onChange={(e) => setHolidayDate(e.target.value)} disabled={isPending} />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-semibold">تاريخ النهاية</span>
+            <input type="date" className="input w-full" value={endDate} onChange={(e) => setEndDate(e.target.value)} disabled={isPending} min={holidayDate} />
+          </label>
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto p-6">
-          {error ? <div role="alert" className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
-
+        <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold">اسم العطلة <span className="text-[var(--danger)]">*</span></span>
-            <input type="text" className="input w-full" required minLength={3} maxLength={200} value={name} onChange={(e) => setName(e.target.value)} disabled={isPending} />
+            <span className="mb-1.5 block text-sm font-semibold">النطاق</span>
+            <select className="input w-full" value={scope} onChange={(e) => setScope(e.target.value as typeof scope)} disabled={isPending}>
+              <option value="all">الكل</option>
+              <option value="legal_entity">جهة قانونية</option>
+              <option value="department">إدارة</option>
+            </select>
           </label>
-
-          <div className="grid gap-4 sm:grid-cols-2">
+          {scope === 'department' ? (
             <label className="block">
-              <span className="mb-1.5 block text-sm font-semibold">تاريخ البداية <span className="text-[var(--danger)]">*</span></span>
-              <input type="date" className="input w-full" required value={holidayDate} onChange={(e) => setHolidayDate(e.target.value)} disabled={isPending} />
-            </label>
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-semibold">تاريخ النهاية</span>
-              <input type="date" className="input w-full" value={endDate} onChange={(e) => setEndDate(e.target.value)} disabled={isPending} min={holidayDate} />
-            </label>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-semibold">النطاق</span>
-              <select className="input w-full" value={scope} onChange={(e) => setScope(e.target.value as typeof scope)} disabled={isPending}>
-                <option value="all">الكل</option>
-                <option value="legal_entity">جهة قانونية</option>
-                <option value="department">إدارة</option>
+              <span className="mb-1.5 block text-sm font-semibold">الإدارة <span className="text-[var(--danger)]">*</span></span>
+              <select className="input w-full" required value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} disabled={isPending}>
+                <option value="">— اختر —</option>
+                {departments.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
               </select>
             </label>
-            {scope === 'department' ? (
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-semibold">الإدارة <span className="text-[var(--danger)]">*</span></span>
-                <select className="input w-full" required value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} disabled={isPending}>
-                  <option value="">— اختر —</option>
-                  {departments.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
-                </select>
-              </label>
-            ) : null}
-          </div>
-
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold">ملاحظات</span>
-            <textarea className="input min-h-16 w-full" maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} disabled={isPending} />
-          </label>
-
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} disabled={isPending} />
-            <span>تتكرر سنويًا</span>
-          </label>
+          ) : null}
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-[var(--border)] p-6">
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-semibold">ملاحظات</span>
+          <textarea className="input min-h-16 w-full" maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} disabled={isPending} />
+        </label>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} disabled={isPending} />
+          <span>تتكرر سنويًا</span>
+        </label>
+
+        <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border)]">
           <button type="button" className="btn-secondary" onClick={onClose} disabled={isPending}>إلغاء</button>
           <button type="submit" className="btn-primary" disabled={isPending}>
             {isPending ? 'جارٍ الحفظ…' : isEdit ? 'حفظ التعديلات' : 'إضافة العطلة'}
           </button>
         </div>
       </form>
-    </div>,
-    document.body,
+    </DialogOverlay>
   );
 }

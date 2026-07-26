@@ -1,6 +1,6 @@
-import { Ban, CheckCircle2, Clock3, MonitorSmartphone, ShieldAlert, Smartphone, X } from 'lucide-react';
+import { Ban, CheckCircle2, Clock3, MonitorSmartphone, ShieldAlert, Smartphone } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
@@ -114,49 +114,38 @@ export function DeviceApprovalPage() {
       )}
 
       {/* حوار التأكيد */}
-      {confirmAction ? createPortal(
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={() => setConfirmAction(null)}>
-          <div className="card w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-black">
-                {confirmAction.approved ? 'تأكيد الموافقة' : 'تأكيد الرفض'}
-              </h2>
-              <button type="button" className="btn-ghost p-1" onClick={() => setConfirmAction(null)} aria-label="إغلاق">
-                <X className="size-5" />
-              </button>
+      {confirmAction ? (
+        <DialogOverlay title={confirmAction.approved ? 'تأكيد الموافقة' : 'تأكيد الرفض'} onClose={() => setConfirmAction(null)} maxWidth="max-w-md">
+          <p className="text-sm leading-7 text-[var(--text-muted)]">
+            {confirmAction.approved
+              ? `هل تريد الموافقة على جهاز "${confirmAction.device.deviceName ?? confirmAction.device.platform}" للموظف ${confirmAction.device.employeeName}؟ سيتمكن الموظف من تسجيل الحضور عبر هذا الجهاز.`
+              : `هل تريد رفض جهاز "${confirmAction.device.deviceName ?? confirmAction.device.platform}" للموظف ${confirmAction.device.employeeName}؟`}
+          </p>
+          {!confirmAction.approved ? (
+            <div className="mt-4">
+              <label className="text-sm font-bold" htmlFor="rejection-reason">سبب الرفض (اختياري)</label>
+              <textarea
+                id="rejection-reason"
+                className="input mt-1 w-full"
+                rows={2}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="مثال: الجهاز غير مسجل ضمن الأجهزة المعتمدة"
+              />
             </div>
-            <p className="text-sm leading-7 text-[var(--text-muted)]">
-              {confirmAction.approved
-                ? `هل تريد الموافقة على جهاز "${confirmAction.device.deviceName ?? confirmAction.device.platform}" للموظف ${confirmAction.device.employeeName}؟ سيتمكن الموظف من تسجيل الحضور عبر هذا الجهاز.`
-                : `هل تريد رفض جهاز "${confirmAction.device.deviceName ?? confirmAction.device.platform}" للموظف ${confirmAction.device.employeeName}؟`}
-            </p>
-            {!confirmAction.approved ? (
-              <div>
-                <label className="text-sm font-bold" htmlFor="rejection-reason">سبب الرفض (اختياري)</label>
-                <textarea
-                  id="rejection-reason"
-                  className="input mt-1 w-full"
-                  rows={2}
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="مثال: الجهاز غير مسجل ضمن الأجهزة المعتمدة"
-                />
-              </div>
-            ) : null}
-            <div className="flex gap-2 justify-end">
-              <button type="button" className="btn-secondary" onClick={() => setConfirmAction(null)}>إلغاء</button>
-              <button
-                type="button"
-                className={confirmAction.approved ? 'btn-primary' : 'btn-danger'}
-                disabled={approve.isPending}
-                onClick={executeAction}
-              >
-                {approve.isPending ? 'جارٍ التنفيذ...' : confirmAction.approved ? 'موافقة' : 'رفض'}
-              </button>
-            </div>
+          ) : null}
+          <div className="mt-4 flex gap-2 justify-end">
+            <button type="button" className="btn-secondary" onClick={() => setConfirmAction(null)}>إلغاء</button>
+            <button
+              type="button"
+              className={confirmAction.approved ? 'btn-primary' : 'btn-danger'}
+              disabled={approve.isPending}
+              onClick={executeAction}
+            >
+              {approve.isPending ? 'جارٍ التنفيذ...' : confirmAction.approved ? 'موافقة' : 'رفض'}
+            </button>
           </div>
-        </div>,
-        document.body,
+        </DialogOverlay>
       ) : null}
     </div>
   );

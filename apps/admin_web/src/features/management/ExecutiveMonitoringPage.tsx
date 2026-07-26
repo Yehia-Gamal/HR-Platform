@@ -1,7 +1,7 @@
-import { Activity, CalendarClock, MapPin, RefreshCw, Search, Send, Users, X } from 'lucide-react';
+import { Activity, CalendarClock, MapPin, RefreshCw, Search, Send, Users } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
-import { createPortal } from 'react-dom';
 import { EmptyState } from '../../ui/EmptyState';
+import { DialogOverlay } from '../../ui/DialogOverlay';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
@@ -148,23 +148,16 @@ export function ExecutiveMonitoringPage() {
         </section>
       ) : null}
 
-      {selectedRequestId ? createPortal(
-        <div className="dialog-backdrop" role="presentation" onMouseDown={(ev) => { if (ev.target === ev.currentTarget) setSelectedRequestId(null); }}>
-          <section className="card w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6" role="dialog" aria-modal="true" aria-label="نتيجة طلب الموقع">
-            <div className="mb-4 flex items-center justify-between"><h2 className="text-xl font-black">نتيجة طلب الموقع</h2><button type="button" className="icon-button" aria-label="إغلاق" onClick={() => setSelectedRequestId(null)}><X className="size-5" /></button></div>
-            <LiveLocationResultCard requestId={selectedRequestId} />
-          </section>
-        </div>,
-      document.body) : null}
+      {selectedRequestId ? (
+        <DialogOverlay title="نتيجة طلب الموقع" onClose={() => setSelectedRequestId(null)} maxWidth="max-w-2xl">
+          <LiveLocationResultCard requestId={selectedRequestId} />
+        </DialogOverlay>
+      ) : null}
 
-      {draft ? createPortal(
-        <div className="dialog-backdrop" role="presentation" onMouseDown={(ev) => { if (ev.target === ev.currentTarget) setDraft(null); }}>
-          <section className="card w-full max-w-xl p-6" role="dialog" aria-modal="true" aria-labelledby="exec-req-title">
-            <div className="flex items-start justify-between gap-4">
-              <div><h2 id="exec-req-title" className="text-xl font-black">طلب موقع حي من {draft.row.name}</h2><p className="muted mt-1 text-sm">يصل إشعار عاجل لهاتف الموظف لإرسال موقعه الحالي فقط. لا فيديو ولا كاميرا (V12 §9).</p></div>
-              <button type="button" className="icon-button" aria-label="إغلاق" onClick={() => setDraft(null)}><X className="size-5" /></button>
-            </div>
-            <form className="mt-6 space-y-4" onSubmit={(ev) => void submit(ev)}>
+      {draft ? (
+        <DialogOverlay title={`طلب موقع حي من ${draft.row.name}`} onClose={() => setDraft(null)} maxWidth="max-w-xl">
+          <p className="muted mb-4 text-sm">يصل إشعار عاجل لهاتف الموظف لإرسال موقعه الحالي فقط. لا فيديو ولا كاميرا (V12 §9).</p>
+          <form className="space-y-4" onSubmit={(ev) => void submit(ev)}>
               <p className="rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-bold">نوع التحقق: موقع حديث عالي الدقة فقط (بدون فيديو).</p>
               <label className="block text-sm font-bold">سبب الطلب
                 <textarea className="input mt-2 min-h-28" required minLength={5} value={draft.reason} onChange={(ev) => setDraft({ ...draft, reason: ev.target.value })} placeholder="سبب تشغيلي واضح…" />
@@ -172,9 +165,8 @@ export function ExecutiveMonitoringPage() {
               {commands.request.isError ? <p className="rounded-xl bg-red-500/10 p-3 text-sm font-bold text-red-700">{commands.request.error instanceof Error ? commands.request.error.message : 'تعذّر إرسال الطلب.'}</p> : null}
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.request.isPending || draft.reason.trim().length < 5}><Send className="size-4" />{commands.request.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}</button></div>
             </form>
-          </section>
-        </div>,
-      document.body) : null}
+        </DialogOverlay>
+      ) : null}
     </div>
   );
 }

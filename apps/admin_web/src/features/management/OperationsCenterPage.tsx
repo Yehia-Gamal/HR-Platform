@@ -1,6 +1,5 @@
 import { BusFront, CalendarClock, CheckCircle2, CircleAlert, ClipboardCheck, ListTodo, Plus, Search, TimerReset, X } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
-import { createPortal } from 'react-dom';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
@@ -8,6 +7,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { MetricSkeletonRow, SkeletonCard } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
+import { DialogOverlay } from '../../ui/DialogOverlay';
 import { useOperationsCenter, useOperationsCommands } from './useControlCenters';
 
 type Tab = 'tasks' | 'missions' | 'convoys';
@@ -106,11 +106,10 @@ export function OperationsCenterPage() {
         <section className="grid gap-4 lg:grid-cols-2">{convoys.map((item) => <article className="card p-5" key={item.id}><div className="flex items-start justify-between gap-3"><div><h2 className="font-black">{item.name}</h2><div className="mt-1 flex items-center gap-2"><UserAvatar displayName={item.employeeName} size="sm" /><p className="muted text-sm">المسؤول: {item.employeeName}</p></div></div><StatusBadge value={item.status} /></div><div className="mt-5 flex items-center gap-3 rounded-2xl bg-[var(--surface-muted)] p-4"><span className="rounded-xl bg-[var(--surface)] p-2"><BusFront className="size-5 text-[var(--brand-primary)]" /></span><div><strong>{item.origin} ← {item.destination}</strong><p className="muted mt-1 text-xs">التحرك {date(item.departureAt, true)}</p></div></div><div className="mt-4 grid grid-cols-2 gap-3 text-sm"><Info label="الركاب" value={`${item.passengers} فرد`} /><Info label="المركبات" value={`${item.vehicles} مركبة`} /></div></article>)}{!convoys.length ? <div className="lg:col-span-2"><EmptyState title="لا توجد قوافل مطابقة" description="تظهر القوافل بعد إنشائها واعتمادها من مسار الطلبات." /></div> : null}</section>
       ) : null}
 
-      {taskDraft ? createPortal(
-        <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setTaskDraft(null); }}>
-          <section className="card w-full max-w-2xl p-6" role="dialog" aria-modal="true" aria-labelledby="new-task-title">
-            <div className="flex items-center justify-between gap-4"><div><h2 id="new-task-title" className="text-xl font-black">إنشاء مهمة تشغيلية</h2><p className="muted mt-1 text-sm">ستظهر المهمة للموظف المسند إليه في تطبيق الهاتف.</p></div><button className="icon-button" type="button" aria-label="إغلاق" onClick={() => setTaskDraft(null)}><X className="size-5" /></button></div>
-            <form className="mt-6 space-y-4" onSubmit={(event) => void createTask(event)}>
+      {taskDraft ? (
+        <DialogOverlay title="إنشاء مهمة تشغيلية" onClose={() => setTaskDraft(null)} maxWidth="max-w-2xl">
+          <p className="muted -mt-3 mb-5 text-sm">ستظهر المهمة للموظف المسند إليه في تطبيق الهاتف.</p>
+          <form className="space-y-4" onSubmit={(event) => void createTask(event)}>
               <label className="block text-sm font-bold">عنوان المهمة<input className="input mt-2" required value={taskDraft.title} onChange={(event) => setTaskDraft({ ...taskDraft, title: event.target.value })} /></label>
               <label className="block text-sm font-bold">التفاصيل<textarea className="input mt-2 min-h-24" value={taskDraft.description} onChange={(event) => setTaskDraft({ ...taskDraft, description: event.target.value })} /></label>
               <div className="grid gap-4 sm:grid-cols-3">
@@ -120,10 +119,9 @@ export function OperationsCenterPage() {
               </div>
               {commands.createTask.isError ? <ErrorBanner message={commands.createTask.error instanceof Error ? commands.createTask.error.message : 'تعذر إنشاء المهمة.'} /> : null}
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setTaskDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.createTask.isPending}><ClipboardCheck className="size-4" />{commands.createTask.isPending ? 'جارٍ الإنشاء…' : 'إنشاء المهمة'}</button></div>
-            </form>
-          </section>
-        </div>,
-      document.body) : null}
+          </form>
+        </DialogOverlay>
+      ) : null}
     </div>
   );
 }

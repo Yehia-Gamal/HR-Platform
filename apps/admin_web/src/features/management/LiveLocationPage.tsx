@@ -1,6 +1,6 @@
-import { Activity, Crosshair, LocateFixed, MapPin, RefreshCw, Send, Signal, SignalLow, Users, X } from 'lucide-react';
+import { Activity, Crosshair, LocateFixed, MapPin, RefreshCw, Send, Signal, SignalLow, Users } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
-import { createPortal } from 'react-dom';
+import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
@@ -132,24 +132,19 @@ export function LiveLocationPage() {
         </section>
       ) : null}
 
-      {requestDraft ? createPortal(
-        <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setRequestDraft(null); }}>
-          <section className="card w-full max-w-xl p-6" role="dialog" aria-modal="true" aria-labelledby="location-request-title">
-            <div className="flex items-start justify-between gap-4">
-              <div><h2 id="location-request-title" className="text-xl font-black">طلب موقع حي من {requestDraft.employee.name}</h2><p className="muted mt-1 text-sm">سيصل الطلب إلى هاتف الموظف لالتقاط موقعه الحالي. لا فيديو ولا كاميرا — موقع فقط (V12 §9).</p></div>
-              <button type="button" className="icon-button" aria-label="إغلاق" onClick={() => setRequestDraft(null)}><X className="size-5" /></button>
-            </div>
-            <form className="mt-6 space-y-4" onSubmit={(event) => void submitRequest(event)}>
-              <p className="rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-bold">نوع التحقق: موقع حديث عالي الدقة فقط (بدون فيديو).</p>
-              <label className="block text-sm font-bold">سبب الطلب
-                <textarea className="input mt-2 min-h-28" required minLength={5} value={requestDraft.reason} onChange={(event) => setRequestDraft({ ...requestDraft, reason: event.target.value })} placeholder="اكتب سببًا تشغيليًا واضحًا…" />
-              </label>
-              {commands.request.isError ? <ErrorBanner message={commands.request.error instanceof Error ? commands.request.error.message : 'تعذر إرسال الطلب.'} /> : null}
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setRequestDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.request.isPending || requestDraft.reason.trim().length < 5}><Send className="size-4" />{commands.request.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}</button></div>
-            </form>
-          </section>
-        </div>,
-      document.body) : null}
+      {requestDraft ? (
+        <DialogOverlay title={`طلب موقع حي من ${requestDraft.employee.name}`} onClose={() => setRequestDraft(null)} maxWidth="max-w-xl">
+          <p className="muted -mt-2 mb-4 text-sm">سيصل الطلب إلى هاتف الموظف لالتقاط موقعه الحالي. لا فيديو ولا كاميرا — موقع فقط (V12 §9).</p>
+          <form className="space-y-4" onSubmit={(event) => void submitRequest(event)}>
+            <p className="rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-bold">نوع التحقق: موقع حديث عالي الدقة فقط (بدون فيديو).</p>
+            <label className="block text-sm font-bold">سبب الطلب
+              <textarea className="input mt-2 min-h-28" required minLength={5} value={requestDraft.reason} onChange={(event) => setRequestDraft({ ...requestDraft, reason: event.target.value })} placeholder="اكتب سببًا تشغيليًا واضحًا…" />
+            </label>
+            {commands.request.isError ? <ErrorBanner message={commands.request.error instanceof Error ? commands.request.error.message : 'تعذر إرسال الطلب.'} /> : null}
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setRequestDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.request.isPending || requestDraft.reason.trim().length < 5}><Send className="size-4" />{commands.request.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}</button></div>
+          </form>
+        </DialogOverlay>
+      ) : null}
     </div>
   );
 }
