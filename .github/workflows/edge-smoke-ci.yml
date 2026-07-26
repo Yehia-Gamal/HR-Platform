@@ -1,0 +1,55 @@
+name: Edge Smoke Tests
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/functions/**'
+      - 'supabase/migrations/**'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/**'
+      - 'supabase/migrations/**'
+
+jobs:
+  edge-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Supabase CLI
+        run: npm install -g supabase
+
+      - name: Start Supabase
+        run: |
+          npx supabase start
+          echo "Waiting for services to be ready..."
+          sleep 10
+
+      - name: Get Supabase keys
+        id: keys
+        run: |
+          echo "ANON_KEY=$(npx supabase status -o json | jq -r '.ANON_KEY')" >> $GITHUB_OUTPUT
+          echo "BASE_URL=$(npx supabase status -o json | jq -r '.API_URL')/functions/v1" >> $GITHUB_OUTPUT
+
+      - name: Serve Edge Functions
+        run: |
+          npx supabase functions serve &
+          sleep 5
+
+      - name: Run smoke tests
+        run: |
+          chmod +x scripts/edge-smoke-tests.sh
+          BASE_URL="${{ steps.keys.outputs.BASE_URL }}" \
+          ANON_KEY="${{ steps.keys.outputs.ANON_KEY }}" \
+          bash scripts/edge-smoke-tests.sh
+
+      - name: Stop Supabase
+        if: always()
+        run: npx supabase stop

@@ -1,0 +1,40 @@
+version: 2
+
+updates:
+  # تحديثات حزم npm — الويب والعقود المشتركة
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps:"
+    open-pull-requests-limit: 10
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+
+  # تحديثات GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci:"
+
+  # تحديثات حزم Dart/Flutter
+  - package-ecosystem: "pub"
+    directory: "/apps/mobile_flutter"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps(flutter):"
+    ignore:
+      - dependency-name: "flutter"
+        update-types: ["version-update:semver-major"]

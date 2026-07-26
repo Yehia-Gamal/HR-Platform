@@ -17,7 +17,11 @@
     "manifest": "node scripts/generate-manifest.mjs",
     "check:dart-source": "python3 scripts/validate_dart_sources.py",
     "check:all": "npm run check && npm run check:dart-source && node scripts/validate-foundation.mjs && npm run check:secrets",
-    "check:secrets": "node scripts/check-no-secrets.mjs"
+    "check:secrets": "node scripts/check-no-secrets.mjs",
+    "release-gate": "node scripts/release-gate.mjs",
+    "test:e2e": "npx playwright test --config apps/admin_web/playwright.config.ts --project=chromium-desktop",
+    "release-gate": "node scripts/release-gate.mjs",
+    "test:e2e": "npx playwright test --project=chromium-desktop"
   },
   "engines": {
     "node": ">=22.12.0"

@@ -1,0 +1,30 @@
+# ملفات ملكية الكود — منصة أحلى شباب
+# كل سطر يحدد المالكين المسؤولين عن مراجعة التعديلات على الملفات المطابقة
+
+# القاعدة الافتراضية — كل الملفات لفريق التطوير
+* @AhlaShabab/dev-team
+
+# قاعدة البيانات والهجرات — تتطلب موافقة فريق قاعدة البيانات والأمان
+supabase/migrations/ @AhlaShabab/db-team @AhlaShabab/security
+
+# دوال الحافة — فريق الباك إند والأمان
+supabase/functions/ @AhlaShabab/backend-team @AhlaShabab/security
+
+# خطوط التكامل المستمر — فريق العمليات والأمان
+.github/workflows/ @AhlaShabab/devops @AhlaShabab/security
+
+# المصادقة في الويب — فريق الأمان
+apps/admin_web/src/features/auth/ @AhlaShabab/security
+
+# المصادقة في الموبايل — فريق الأمان
+apps/mobile_flutter/lib/features/auth/ @AhlaShabab/security
+
+# العقود المشتركة — فريق التطوير
+packages/shared-contracts/ @AhlaShabab/dev-team
+
+# سكربتات البناء والنشر — فريق العمليات
+scripts/ @AhlaShabab/devops
+
+# إعدادات النشر — فريق العمليات
+vercel.json @AhlaShabab/devops
+deploy/ @AhlaShabab/devops
