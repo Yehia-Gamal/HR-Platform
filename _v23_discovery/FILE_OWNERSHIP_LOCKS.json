@@ -1,0 +1,153 @@
+{
+  "_meta": {
+    "description": "ملكية الملفات حسب وكلاء V23 — لا يعدل وكيلان الملف نفسه في الوقت نفسه",
+    "generated": "2026-07-26",
+    "agent": "00A"
+  },
+  "agents": {
+    "00A_Discovery": {
+      "scope": "قراءة فقط — جرد وتوثيق",
+      "owns": [
+        "_v23_discovery/*.md",
+        "_v23_discovery/*.json"
+      ]
+    },
+    "01_RBAC_Permissions": {
+      "scope": "صلاحيات، أدوار، RLS policies",
+      "owns": [
+        "supabase/migrations/01XX_v23_rbac_*.sql",
+        "supabase/tests/0062_v23_rbac_*.sql",
+        "packages/shared-contracts/src/access.ts",
+        "packages/shared-contracts/src/access.test.ts",
+        "apps/admin_web/src/features/management/AccessPage.tsx"
+      ],
+      "shared": [
+        "apps/admin_web/src/app/App.tsx",
+        "CROSS_AGENT_REQUESTS.md"
+      ]
+    },
+    "02_Attendance_Shifts": {
+      "scope": "حضور، ورديات، بصمة، geofence",
+      "owns": [
+        "supabase/migrations/01XX_v23_attendance_*.sql",
+        "packages/shared-contracts/src/operations.ts",
+        "packages/shared-contracts/src/attendanceConfig.ts",
+        "apps/admin_web/src/features/attendance/",
+        "apps/mobile_flutter/lib/features/mobile_pages/mobile_punch_page.dart",
+        "apps/mobile_flutter/lib/features/mobile_pages/mobile_attendance_history_page.dart"
+      ],
+      "shared": [
+        "packages/shared-contracts/src/operations.test.ts"
+      ]
+    },
+    "03_Requests_Workflow": {
+      "scope": "طلبات، إجازات، مهمات، SLA",
+      "owns": [
+        "supabase/migrations/01XX_v23_requests_*.sql",
+        "packages/shared-contracts/src/requests.ts",
+        "apps/admin_web/src/features/requests/",
+        "apps/mobile_flutter/lib/features/mobile_pages/mobile_requests_page.dart",
+        "apps/mobile_flutter/lib/features/mobile_pages/mobile_leave_request_page.dart"
+      ]
+    },
+    "04_KPI_Performance": {
+      "scope": "تقييم أداء، دورات KPI",
+      "owns": [
+        "supabase/migrations/01XX_v23_kpi_*.sql",
+        "supabase/tests/0065_v23_kpi_*.sql",
+        "packages/shared-contracts/src/kpi.ts",
+        "packages/shared-contracts/src/kpi.test.ts",
+        "apps/admin_web/src/features/kpi/",
+        "apps/mobile_flutter/lib/features/mobile_pages/mobile_kpi_page.dart"
+      ]
+    },
+    "05_Disputes_Committee": {
+      "scope": "شكاوى، لجان، جلسات، قرارات",
+      "owns": [
+        "supabase/migrations/01XX_v23_dispute_*.sql",
+        "supabase/tests/0060_v23_dispute_*.sql",
+        "packages/shared-contracts/src/disputes.ts",
+        "apps/admin_web/src/features/disputes/",
+        "apps/mobile_flutter/lib/features/mobile_pages/mobile_disputes_page.dart"
+      ]
+    },
+    "06_Notifications_Push": {
+      "scope": "إشعارات، FCM، cron",
+      "owns": [
+        "supabase/migrations/01XX_v23_notification_*.sql",
+        "supabase/functions/notification-dispatcher/",
+        "apps/mobile_flutter/lib/services/notification_service.dart"
+      ]
+    },
+    "07_Devices_Security": {
+      "scope": "أجهزة، مفاتيح مرور، WebAuthn، أمان",
+      "owns": [
+        "supabase/migrations/01XX_v23_device_*.sql",
+        "supabase/tests/0062_v23_device_*.sql",
+        "supabase/functions/passkey-register/",
+        "supabase/functions/webauthn-challenge/",
+        "supabase/functions/verify-attendance-punch/",
+        "apps/mobile_flutter/lib/features/mobile_pages/mobile_device_management_page.dart"
+      ]
+    },
+    "08_Employee_Lifecycle": {
+      "scope": "إنشاء موظف، أرشفة، حذف",
+      "owns": [
+        "supabase/migrations/01XX_v23_employee_*.sql",
+        "supabase/functions/admin-create-employee/",
+        "supabase/functions/admin-resend-invite/",
+        "packages/shared-contracts/src/employee.ts",
+        "apps/admin_web/src/features/employees/"
+      ]
+    },
+    "09_Location": {
+      "scope": "موقع مباشر، خرائط",
+      "owns": [
+        "supabase/migrations/01XX_v23_location_*.sql",
+        "supabase/functions/live-location-map-url/",
+        "packages/shared-contracts/src/liveLocation.ts",
+        "apps/admin_web/src/features/location/",
+        "apps/mobile_flutter/lib/features/mobile_pages/mobile_location_share_page.dart"
+      ]
+    },
+    "10_UI_Polish": {
+      "scope": "واجهة ويب عامة، مكونات مشتركة",
+      "owns": [
+        "apps/admin_web/src/ui/",
+        "apps/admin_web/src/app/App.tsx",
+        "packages/design-tokens/"
+      ],
+      "note": "App.tsx مشترك — يتطلب تنسيق عبر CROSS_AGENT_REQUESTS.md"
+    },
+    "11_Mobile_Core": {
+      "scope": "Flutter core، navigation، workspaces",
+      "owns": [
+        "apps/mobile_flutter/lib/main.dart",
+        "apps/mobile_flutter/lib/app.dart",
+        "apps/mobile_flutter/lib/core/",
+        "apps/mobile_flutter/lib/features/workspaces/"
+      ]
+    },
+    "12_Integration_Cron": {
+      "scope": "تكاملات خارجية، مهام مجدولة",
+      "owns": [
+        "supabase/functions/integration-outbox-worker/",
+        "supabase/functions/retention-cleanup/",
+        "supabase/functions/scheduled-report-runner/"
+      ]
+    }
+  },
+  "shared_files": {
+    "CROSS_AGENT_REQUESTS.md": "تنسيق بين الوكلاء — أي تغيير مشترك يُسجل هنا",
+    "MIGRATION_REGISTRY.md": "Agent 00A يملكه — كل وكيل يسجل migrations جديدة هنا",
+    "apps/admin_web/src/app/App.tsx": "Agent 10 يملكه — أي route جديد يتطلب Cross-Agent Request",
+    "apps/mobile_flutter/lib/app.dart": "Agent 11 يملكه — أي route جديد يتطلب Cross-Agent Request",
+    "packages/shared-contracts/src/index.ts": "أي export جديد يتطلب تنسيق مع مالك الوحدة"
+  },
+  "rules": [
+    "لا يعدل وكيلان الملف نفسه في الوقت نفسه",
+    "التغييرات المشتركة تسجل في CROSS_AGENT_REQUESTS.md",
+    "Migrations الجديدة تسجل في MIGRATION_REGISTRY.md أولاً",
+    "فحص تكرار أرقام Migration إلزامي قبل الإنشاء"
+  ]
+}
