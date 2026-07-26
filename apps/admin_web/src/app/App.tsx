@@ -26,6 +26,7 @@ import { PerformancePage } from '../features/performance/PerformancePage';
 import { RequestsPage } from '../features/requests/RequestsPage';
 import { firstWebWorkspace, hasPermission } from '../features/workspaces/access';
 import { WorkspaceShell } from '../features/workspaces/WorkspaceShell';
+import { MonthlyAttendanceReportPage } from '../features/attendance/MonthlyAttendanceReportPage';
 import { AttendanceOperationsPage } from '../features/advanced/AttendanceOperationsPage';
 import { KpiCyclesPage } from '../features/advanced/KpiCyclesPage';
 import { DisputesPage } from '../features/advanced/DisputesPage';
@@ -39,6 +40,7 @@ import { ExecutiveMonitoringPage } from '../features/management/ExecutiveMonitor
 import { OperationsCenterPage } from '../features/management/OperationsCenterPage';
 import { OfficialHolidaysPage } from '../features/holidays/OfficialHolidaysPage';
 import { DeviceApprovalPage } from '../features/devices/DeviceApprovalPage';
+import { ForbiddenState } from '../ui/ForbiddenState';
 
 export function App() {
   const auth = useAuth();
@@ -85,7 +87,7 @@ export function App() {
           <Route path="employees/:employeeId" element={<RequirePermission perm="people.employee.read"><EmployeeDetailPage /></RequirePermission>} />
           <Route path="attendance" element={<RequirePermission perm="attendance.record.read"><AttendancePage /></RequirePermission>} />
           <Route path="attendance/operations" element={<RequirePermission perm="attendance.roster.read"><AttendanceOperationsPage /></RequirePermission>} />
-          {/* V17: MonthlyStatementPage + RequestDetailPage not yet implemented */}
+          <Route path="attendance/report" element={<RequirePermission perm="attendance.record.read"><MonthlyAttendanceReportPage /></RequirePermission>} />
           <Route path="performance" element={<RequirePermission perm="performance.kpi.read"><PerformancePage /></RequirePermission>} />
           <Route path="recruitment" element={<RequirePermission perm="recruitment.requisition.read"><RecruitmentPage /></RequirePermission>} />
           <Route path="onboarding" element={<RequirePermission perm="onboarding.journey.read"><OnboardingPage /></RequirePermission>} />
@@ -158,12 +160,7 @@ function workspacePath(workspace: WorkspaceId) {
 function RequirePermission({ perm, children }: { perm: string; children: ReactNode }) {
   const auth = useAuth();
   if (!auth.access || !hasPermission(auth.access, perm)) {
-    return (
-      <section className="card m-6 max-w-lg p-7 text-center">
-        <h1 className="text-lg font-bold">لا تملك صلاحية الوصول</h1>
-        <p className="muted mt-2 leading-7">هذه الصفحة تتطلب صلاحية غير متاحة لحسابك.</p>
-      </section>
-    );
+    return <ForbiddenState />;
   }
   return <>{children}</>;
 }

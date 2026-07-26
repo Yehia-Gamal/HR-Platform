@@ -44,12 +44,15 @@ import { WorkspaceSearch } from '../../ui/WorkspaceSearch';
 import { useAuth } from '../auth/AuthProvider';
 import { useNotifications } from '../notifications/useNotifications';
 import { hasPermission } from './access';
+import { isFeatureEnabled, type FeatureFlagKey } from '../../ui/featureFlags';
 
 interface NavItem {
   label: string;
   to: string;
   icon: typeof LayoutDashboard;
   permission?: string;
+  /** V23 §13 — إذا وُجد، لا يظهر العنصر إلا إذا كان الـ flag مفعّلًا */
+  featureFlag?: FeatureFlagKey;
 }
 interface NavSection { title: string; items: NavItem[] }
 
@@ -61,17 +64,19 @@ const hrSections: NavSection[] = [
   { title: 'الوقت والخدمات', items: [
     { label: 'الحضور', to: '/hr/attendance', icon: Activity, permission: 'attendance.record.read' },
     { label: 'الورديات وإغلاق الحضور', to: '/hr/attendance/operations', icon: CalendarClock, permission: 'attendance.roster.read' },
-    { label: 'طلب اجازة', to: '/hr/requests', icon: ClipboardList, permission: 'requests.request.read' },
+    { label: 'كشف الحضور الشهري', to: '/hr/attendance/report', icon: FileSignature, permission: 'attendance.record.read' },
+    { label: 'طلب إجازة', to: '/hr/requests', icon: ClipboardList, permission: 'requests.request.read' },
     { label: 'العطل الرسمية', to: '/hr/holidays', icon: CalendarClock, permission: 'holidays.manage' },
   ] },
   { title: 'الأداء والتطوير', items: [
     { label: 'KPI والأداء', to: '/hr/performance', icon: Gauge, permission: 'performance.kpi.read' },
-    // V17 §4.2: learning hidden
+    { label: 'التدريب والمهارات', to: '/hr/learning', icon: Sparkles, featureFlag: 'learning' },
   ] },
   { title: 'رحلة الموظف', items: [
     { label: 'التوظيف', to: '/hr/recruitment', icon: BriefcaseBusiness, permission: 'recruitment.requisition.read' },
     { label: 'Onboarding', to: '/hr/onboarding', icon: ListChecks, permission: 'onboarding.journey.read' },
-    // V17 §4.2: lifecycle + documents hidden
+    { label: 'دورة حياة الموظف', to: '/hr/lifecycle', icon: PackageCheck, featureFlag: 'lifecycle' },
+    { label: 'استوديو المستندات', to: '/hr/documents', icon: FileSignature, featureFlag: 'documents' },
   ] },
   { title: 'التواصل والتحليلات', items: [
     { label: 'تقارير HR', to: '/hr/reports', icon: FileClock, permission: 'reports.people.read' },
@@ -94,15 +99,16 @@ const adminSections: NavSection[] = [
     { label: 'دورات KPI والاعتراضات', to: '/admin/performance/cycles', icon: BadgeCheck, permission: 'performance.cycle.manage' },
     { label: 'لجنة الخلافات', to: '/admin/disputes', icon: Gavel, permission: 'relations.case.manage' },
     { label: 'الأدوار والصلاحيات', to: '/admin/access', icon: ShieldCheck, permission: 'access.role.read' },
-    // V17 §4.2: governance hidden
+    { label: 'الحوكمة والمخاطر', to: '/admin/governance', icon: ShieldAlert, featureFlag: 'governance' },
   ] },
   { title: 'الخدمات المؤسسية', items: [
-    // V17 §4.2: lifecycle + documents hidden
+    { label: 'دورة حياة الموظف', to: '/admin/lifecycle', icon: PackageCheck, featureFlag: 'lifecycle' },
+    { label: 'استوديو المستندات', to: '/admin/documents', icon: FileSignature, featureFlag: 'documents' },
     { label: 'جدولة التقارير', to: '/admin/reports/scheduler', icon: TimerReset, permission: 'reports.schedule.manage' },
     { label: 'العمليات والمهام', to: '/admin/operations', icon: ClipboardList, permission: 'tasks.read' },
-    // V17 §4.2: helpdesk hidden
+    { label: 'مكتب الخدمات', to: '/admin/helpdesk', icon: Headphones, featureFlag: 'helpdesk' },
     { label: 'الإدارة المؤسسية', to: '/admin/enterprise', icon: Building2 },
-    // V17 §4.2: people-finance (payroll ممنوع) hidden
+    { label: 'الرواتب والمالية', to: '/admin/finance', icon: WalletCards, featureFlag: 'peopleFinance' },
   ] },
   { title: 'النظام', items: [
     { label: 'التدقيق والأمان', to: '/admin/audit-security', icon: ShieldCheck, permission: 'audit.view' },
@@ -123,7 +129,10 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
   const sections = workspace === 'hr' ? hrSections : adminSections;
   const allowedSections = sections.map((section) => ({
     ...section,
-    items: section.items.filter((item) => !item.permission || hasPermission(access, item.permission)),
+    items: section.items.filter((item) =>
+      (!item.permission || hasPermission(access, item.permission)) &&
+      (!item.featureFlag || isFeatureEnabled(item.featureFlag)),
+    ),
   })).filter((section) => section.items.length > 0);
   const allItems = allowedSections.flatMap((section) => section.items.map((item) => ({ ...item, group: section.title })));
 
