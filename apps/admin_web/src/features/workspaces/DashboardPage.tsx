@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ErrorState } from '../../ui/ErrorState';
+import { getShortName, getTimeGreeting } from '../../ui/formatDisplayName';
 import { MetricCard } from '../../ui/MetricCard';
 import { MetricSkeletonRow } from '../../ui/Skeletons';
 import { useAuth } from '../auth/AuthProvider';
@@ -79,7 +80,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
       <div className="dashboard-hero-grid">
         <div>
           <p className="hero-eyebrow">{today}</p>
-          <h2 className="text-2xl font-black sm:text-3xl">مرحبًا {auth.access?.displayName}</h2>
+          <h2 className="text-2xl font-black sm:text-3xl" title={auth.access?.displayName}>{getTimeGreeting()}، {getShortName(auth.access?.displayName ?? '')}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-7 text-white/80">
             {type === 'hr' ? 'هذه صورة تشغيلية مباشرة للموظفين والحضور والطلبات والأداء.' : 'هنا أهم القرارات والمخاطر والإجراءات التي تحتاج انتباهك اليوم.'}
           </p>
