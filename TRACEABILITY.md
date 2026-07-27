@@ -85,7 +85,7 @@
 |---|---|---|---|---|---|---|---|
 | 7.1 | أنواع الإجازات (اعتيادية/عارضة/مرضية) | 7 | `leave_types` | tables | 0060 | 0038 | RUNTIME_VERIFIED |
 | 7.2 | أرصدة الإجازات (15/6/policy) | 7 | `leave_entitlements` | tables | 0060 | 0038 | TESTED |
-| 7.3 | العارضة = تنفيذ مباشر بشروط | 7 | `submit_casual_leave` | RPCs | 0061 | 0038 | IMPLEMENTED |
+| 7.3 | العارضة = تنفيذ مباشر بشروط | 7 | `submit_casual_leave` | RPCs | 0061 | 0038,0080 | TESTED |
 | 7.4 | مسار القرار (مدير → تصعيد) | 7 | `resolve_request_approver` | RPCs | 0062,0136 | 0056 | RUNTIME_VERIFIED |
 | 7.5 | لا اعتماد ذاتي | 7 | `no_self_approve` check | RPCs | 0062 | 0027,0060 | TESTED |
 | 7.6 | التكليفات (مأمورية/قافلة/فاندي) | 7 | `work_assignments` | tables | 0063,0065 | 0039 | RUNTIME_VERIFIED |
@@ -100,7 +100,7 @@
 | 8.1 | دورة KPI (فتح → ذاتي → HR/مدير بالتوازي → barrier → سكرتير → تنفيذي → إغلاق) | 8 | `advance_kpi_stage` | RPCs | 0058,0109,0130,0162 | 0035,0053,0065 | RUNTIME_VERIFIED |
 | 8.2 | HR: الحضور 20، الصلاة 5، الحلقة 5 (30 نقطة) | 8 | `kpi_criteria` weights | data + `kpi.ts` | 0058 | 0035, kpi.test.ts | RUNTIME_VERIFIED |
 | 8.3 | المدير: الأهداف 40، الكفاءة 20، السلوك 5، المبادرات 5 (70 نقطة) | 8 | `kpi_criteria` weights — V23: السلوك انتقل من HR للمدير | data + `kpi.ts` | 0058 | 0035, kpi.test.ts | RUNTIME_VERIFIED |
-| 8.4 | Executive لا يقيم ولا يعدل | 8 | stage guard | `advance_kpi_stage` | 0130 | 0053 | IMPLEMENTED |
+| 8.4 | Executive لا يقيم ولا يعدل | 8 | stage guard | `advance_kpi_stage` | 0130 | 0053,0081 | TESTED |
 | 8.5 | V23: مسار متوازي (HR + مدير بالتوازي → حاجز → سكرتير → تنفيذي) | 8 | `kpi.ts` parallel stages | `kpi.ts`, `operations.ts` | 0162 | 0065, kpi.test.ts | TESTED |
 | 8.6 | V23: 10 مراحل (self→parallel→hr→manager→final→secretary→executive→finalized→closed→archived) | 8,14 | `kpiStageSchema` + `KPI_STAGE_ORDER` | `kpi.ts` | 0162 | kpi.test.ts (180 pass) | TESTED |
 
@@ -190,8 +190,8 @@
 |---|---|---|
 | RELEASED | 0 | 0% |
 | RUNTIME_VERIFIED | 46 | 62% |
-| TESTED | 21 | 28% |
-| IMPLEMENTED | 6 | 8% |
+| TESTED | 23 | 31% |
+| IMPLEMENTED | 4 | 5% |
 | DESIGNED | 1 | 1% |
 | DISCOVERED | 0 | 0% |
 | **المجموع** | **74** | **100%** |
@@ -200,5 +200,9 @@
 
 ## الفجوات المعروفة (تحتاج عمل V23)
 
-1. **§7.2-7.3** — أرصدة الإجازات والعارضة (مُنفذ، بحاجة Runtime verification)
-2. **§8.4** — Executive لا يقيم KPI (مُنفذ، بحاجة Runtime verification)
+1. ~~**§7.3** — العارضة الفورية~~ ✅ TESTED (0080)
+2. ~~**§8.4** — Executive لا يُقيَّم KPI~~ ✅ TESTED (0081)
+3. **§6.5** — Missing Checkout settlement (بحاجة فحص آلية `settle_attendance_day`)
+4. **§9.3** — حذف الأولوية/المكان/الأدلة من النزاعات (تغطية جزئية)
+5. **§10.4** — GPS يعاد فحصه عند الرجوع (Flutter — يحتاج جهاز)
+6. **§15.1** — Wave 0 Discovery + baselines (عنصر عملية)
