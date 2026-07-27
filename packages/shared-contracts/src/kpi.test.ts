@@ -12,24 +12,29 @@ import {
   kpiEvaluationSummarySchema,
 } from './kpi.js';
 
-describe('KPI contracts — V17 §10', () => {
-  it('stage enum follows V17 order: self → hr_review → manager_review → manager_final → finalized', () => {
+describe('KPI contracts — V23 §8', () => {
+  it('stage enum follows V23 order: self → parallel → hr → manager → final → secretary → executive → finalized → closed → archived', () => {
     expect(kpiStageSchema.parse('self')).toBe('self');
+    expect(kpiStageSchema.parse('parallel_review')).toBe('parallel_review');
     expect(kpiStageSchema.parse('hr_review')).toBe('hr_review');
     expect(kpiStageSchema.parse('manager_review')).toBe('manager_review');
     expect(kpiStageSchema.parse('manager_final')).toBe('manager_final');
+    expect(kpiStageSchema.parse('secretary_review')).toBe('secretary_review');
+    expect(kpiStageSchema.parse('executive_review')).toBe('executive_review');
     expect(kpiStageSchema.parse('finalized')).toBe('finalized');
     expect(() => kpiStageSchema.parse('executive')).toThrow();
-    expect(() => kpiStageSchema.parse('executive_review')).toThrow();
   });
 
-  it('KPI_STAGE_ORDER matches the stage enum in V17 sequence', () => {
+  it('KPI_STAGE_ORDER matches the stage enum in V23 sequence', () => {
     expect(KPI_STAGE_ORDER[0]).toBe('self');
-    expect(KPI_STAGE_ORDER[1]).toBe('hr_review');
-    expect(KPI_STAGE_ORDER[2]).toBe('manager_review');
-    expect(KPI_STAGE_ORDER[3]).toBe('manager_final');
-    expect(KPI_STAGE_ORDER[4]).toBe('finalized');
-    expect(KPI_STAGE_ORDER).toHaveLength(7);
+    expect(KPI_STAGE_ORDER[1]).toBe('parallel_review');
+    expect(KPI_STAGE_ORDER[2]).toBe('hr_review');
+    expect(KPI_STAGE_ORDER[3]).toBe('manager_review');
+    expect(KPI_STAGE_ORDER[4]).toBe('manager_final');
+    expect(KPI_STAGE_ORDER[5]).toBe('secretary_review');
+    expect(KPI_STAGE_ORDER[6]).toBe('executive_review');
+    expect(KPI_STAGE_ORDER[7]).toBe('finalized');
+    expect(KPI_STAGE_ORDER).toHaveLength(10);
   });
 
   it('workflow statuses include SUBMITTED_TO_HR for V17 flow', () => {
@@ -56,13 +61,13 @@ describe('KPI contracts — V17 §10', () => {
     expect(KPI_CRITERIA_WEIGHTS.INITIATIVES).toBe(5);
   });
 
-  it('HR owns attendance + behavior + prayer + halaqa; manager owns the rest', () => {
+  it('V23 §8: HR owns attendance + prayer + halaqa (30); manager owns target + efficiency + conduct + initiatives (70)', () => {
     expect(KPI_CRITERION_EVALUATOR.ATTENDANCE).toBe('hr');
-    expect(KPI_CRITERION_EVALUATOR.CONDUCT).toBe('hr');
     expect(KPI_CRITERION_EVALUATOR.PRAYER).toBe('hr');
     expect(KPI_CRITERION_EVALUATOR.HALAQA).toBe('hr');
     expect(KPI_CRITERION_EVALUATOR.TARGET).toBe('manager');
     expect(KPI_CRITERION_EVALUATOR.EFFICIENCY).toBe('manager');
+    expect(KPI_CRITERION_EVALUATOR.CONDUCT).toBe('manager');
     expect(KPI_CRITERION_EVALUATOR.INITIATIVES).toBe('manager');
   });
 
