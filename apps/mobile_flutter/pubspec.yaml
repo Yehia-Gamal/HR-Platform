@@ -21,7 +21,7 @@ dependencies:
   intl: ^0.20.2
   geolocator: ">=14.0.2 <14.0.3"
   # 0.11.3+ requires Dart 3.9; this app still supports the declared Dart 3.8 floor.
-  passkeys: ^2.21.1
+  passkeys: ^2.22.0
   local_auth: ^2.3.0
   package_info_plus: ">=9.0.1 <10.0.0"
   device_info_plus: ^11.5.0
