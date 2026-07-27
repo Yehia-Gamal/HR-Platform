@@ -214,18 +214,16 @@ SELECT ok(
 -- ════════════════════════════════════════════════════════════════
 
 SELECT ok(
-  NOT has_function_privilege('PUBLIC', 'provision_employee_record(jsonb)', 'EXECUTE'),
-  'provision_employee_record — no PUBLIC EXECUTE'
-);
+  NOT has_function_privilege('anon', p.oid, 'EXECUTE'),
+  'provision_employee_record — no anon EXECUTE'
+) FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+  WHERE n.nspname = 'public' AND p.proname = 'provision_employee_record' LIMIT 1;
 
 SELECT ok(
-  NOT has_function_privilege(
-    'PUBLIC',
-    'record_attendance_event(uuid,text,double precision,double precision,double precision,text,text,uuid,boolean,boolean)',
-    'EXECUTE'
-  ),
-  'record_attendance_event — no PUBLIC EXECUTE'
-);
+  NOT has_function_privilege('anon', p.oid, 'EXECUTE'),
+  'record_attendance_event — no anon EXECUTE'
+) FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+  WHERE n.nspname = 'public' AND p.proname = 'record_attendance_event' LIMIT 1;
 
 
 -- ════════════════════════════════════════════════════════════════

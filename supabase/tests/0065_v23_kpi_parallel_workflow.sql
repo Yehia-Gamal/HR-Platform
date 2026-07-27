@@ -32,8 +32,8 @@ select col_default_is('public','kpi_evaluations','version','1',
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- parallel_review is valid for current_stage
-select lives_ok($$
-  do $$
+select lives_ok($test$
+  do $inner$
   declare v_ck text;
   begin
     select cc.check_clause into v_ck
@@ -44,12 +44,12 @@ select lives_ok($$
       and tc.constraint_name='kpi_evaluations_current_stage_check';
     if v_ck is null then raise exception 'CHECK not found'; end if;
     if position('parallel_review' in v_ck)=0 then raise exception 'parallel_review missing from CHECK'; end if;
-  end $$;
-$$, 'current_stage CHECK accepts parallel_review');
+  end $inner$;
+$test$, 'current_stage CHECK accepts parallel_review');
 
 -- secretary_review is valid
-select lives_ok($$
-  do $$
+select lives_ok($test$
+  do $inner$
   declare v_ck text;
   begin
     select cc.check_clause into v_ck
@@ -59,12 +59,12 @@ select lives_ok($$
     where tc.table_schema='public' and tc.table_name='kpi_evaluations'
       and tc.constraint_name='kpi_evaluations_current_stage_check';
     if position('secretary_review' in v_ck)=0 then raise exception 'secretary_review missing'; end if;
-  end $$;
-$$, 'current_stage CHECK accepts secretary_review');
+  end $inner$;
+$test$, 'current_stage CHECK accepts secretary_review');
 
 -- executive_review is valid
-select lives_ok($$
-  do $$
+select lives_ok($test$
+  do $inner$
   declare v_ck text;
   begin
     select cc.check_clause into v_ck
@@ -74,13 +74,13 @@ select lives_ok($$
     where tc.table_schema='public' and tc.table_name='kpi_evaluations'
       and tc.constraint_name='kpi_evaluations_current_stage_check';
     if position('executive_review' in v_ck)=0 then raise exception 'executive_review missing'; end if;
-  end $$;
-$$, 'current_stage CHECK accepts executive_review');
+  end $inner$;
+$test$, 'current_stage CHECK accepts executive_review');
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 4. V23 workflow statuses accepted
 -- ─────────────────────────────────────────────────────────────────────────────
-select lives_ok($$
+select lives_ok($test$
   do $$
   declare v_ck text;
   begin
@@ -96,12 +96,12 @@ select lives_ok($$
     if position('SECRETARY_REVIEW' in v_ck)=0 then raise exception 'SECRETARY_REVIEW missing'; end if;
     if position('EXECUTIVE_REVIEW' in v_ck)=0 then raise exception 'EXECUTIVE_REVIEW missing'; end if;
   end $$;
-$$, 'workflow_status CHECK accepts all V23 statuses');
+$test$, 'workflow_status CHECK accepts all V23 statuses');
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 5. Barrier CHECK constraint exists
 -- ─────────────────────────────────────────────────────────────────────────────
-select lives_ok($$
+select lives_ok($test$
   do $$
   declare v_ck text;
   begin
@@ -113,12 +113,12 @@ select lives_ok($$
       and tc.constraint_name='kpi_evaluations_barrier_check';
     if v_ck is null then raise exception 'barrier CHECK not found'; end if;
   end $$;
-$$, 'barrier CHECK constraint exists on kpi_evaluations');
+$test$, 'barrier CHECK constraint exists on kpi_evaluations');
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 6. V23 evidence stages accepted
 -- ─────────────────────────────────────────────────────────────────────────────
-select lives_ok($$
+select lives_ok($test$
   do $$
   declare v_ck text;
   begin
@@ -130,7 +130,7 @@ select lives_ok($$
       and tc.constraint_name='kpi_evidence_submitted_stage_check';
     if position('parallel_review' in v_ck)=0 then raise exception 'parallel_review missing from evidence CHECK'; end if;
   end $$;
-$$, 'evidence submitted_stage CHECK accepts parallel_review');
+$test$, 'evidence submitted_stage CHECK accepts parallel_review');
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 7. CONDUCT criterion is evaluator_stage=manager
