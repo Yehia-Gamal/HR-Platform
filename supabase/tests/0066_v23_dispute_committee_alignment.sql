@@ -73,10 +73,10 @@ select lives_ok(
 select lives_ok(
   $live$do $t$
   begin
-    if has_function_privilege('public',
+    if has_function_privilege('anon',
       'public.submit_my_dispute_v23(text,text,text,jsonb,jsonb,boolean,boolean)',
       'execute') then
-      raise exception 'public should NOT execute submit_my_dispute_v23';
+      raise exception 'anon should NOT execute submit_my_dispute_v23';
     end if;
   end $t$$live$,
   'public cannot execute submit_my_dispute_v23'
@@ -117,45 +117,67 @@ begin
     ('a6600000-0000-4000-8000-000000000103', 'a6600000-0000-4000-8000-000000000203', 'active')
   on conflict do nothing;
 
-  -- admin = full access
+  -- admin = full access (slug = 'admin' which has is_full_access=true)
   insert into public.user_roles(user_id, role_id)
   select 'a6600000-0000-4000-8000-000000000101', r.id
-  from public.roles r where r.slug='full-access'
+  from public.roles r where r.slug='admin'
   on conflict do nothing;
+
+  -- ═════════════════════════════════════════════════════════════════════════════
+  -- Dispute case fixtures — inserted as superuser (no INSERT RLS policy exists;
+  -- the system uses SECURITY DEFINER RPCs for inserts)
+  -- ═════════════════════════════════════════════════════════════════════════════
+
+  -- Case 301: for resolve_friendly happy path (under_review → resolved_friendly → closed)
+  insert into public.dispute_cases(
+    id, case_number, title, description, case_type, status, severity,
+    actor_employee_id, is_confidential, privacy_level, opened_at,
+    truth_confirmed, confidentiality_accepted, review_due_at, created_by
+  ) values(
+    'a6600000-0000-4000-8000-000000000301',
+    'CASE-V23-RF-001', 'قضية حل ودي', 'وصف تجريبي لقضية الحل الودي',
+    'employee_conflict', 'under_review', 'normal',
+    'a6600000-0000-4000-8000-000000000202', true, 'restricted', now(),
+    true, true, now() + interval '24 hours', 'a6600000-0000-4000-8000-000000000101'
+  );
+
+  insert into public.dispute_parties(case_id, employee_id, party_type, notification_status, created_by)
+  values('a6600000-0000-4000-8000-000000000301', 'a6600000-0000-4000-8000-000000000202', 'complainant', 'read', 'a6600000-0000-4000-8000-000000000101');
+
+  insert into public.dispute_parties(case_id, employee_id, party_type, notification_status, created_by)
+  values('a6600000-0000-4000-8000-000000000301', 'a6600000-0000-4000-8000-000000000203', 'respondent', 'withheld', 'a6600000-0000-4000-8000-000000000101');
+
+  -- Case 302: for invalid-state and reason-required tests (starts as submitted)
+  insert into public.dispute_cases(
+    id, case_number, title, description, case_type, status, severity,
+    actor_employee_id, is_confidential, privacy_level, opened_at,
+    truth_confirmed, confidentiality_accepted, review_due_at, created_by
+  ) values(
+    'a6600000-0000-4000-8000-000000000302',
+    'CASE-V23-RF-002', 'قضية رفض حل ودي', 'وصف تجريبي لرفض الحل الودي',
+    'employee_conflict', 'submitted', 'normal',
+    'a6600000-0000-4000-8000-000000000202', true, 'restricted', now(),
+    true, true, now() + interval '24 hours', 'a6600000-0000-4000-8000-000000000101'
+  );
 end $fixture$;
 
 -- ═══════════════════════════════════════════════════════════════════════════════
 -- 6. resolve_friendly transition: happy path
 -- ═══════════════════════════════════════════════════════════════════════════════
 
--- Insert a dispute case directly in under_review status, then resolve friendly
+-- Set JWT context for admin user, then call transition RPC
+do $$ begin
+  perform set_config('request.jwt.claims',
+    '{"sub":"a6600000-0000-4000-8000-000000000101","role":"authenticated"}', true);
+  perform set_config('request.jwt.claim.sub',
+    'a6600000-0000-4000-8000-000000000101', true);
+end $$;
+set local role authenticated;
+
 select lives_ok(
   $live$do $t$
-  declare v_case uuid; v_next text;
+  declare v_next text;
   begin
-    set local role to 'authenticated';
-    set local request.jwt.claim.sub to 'a6600000-0000-4000-8000-000000000101';
-
-    insert into public.dispute_cases(
-      id, case_number, title, description, case_type, status, severity,
-      actor_employee_id, is_confidential, privacy_level, opened_at,
-      truth_confirmed, confidentiality_accepted, review_due_at, created_by
-    ) values(
-      'a6600000-0000-4000-8000-000000000301',
-      'CASE-V23-RF-001', 'قضية حل ودي', 'وصف تجريبي لقضية الحل الودي',
-      'employee_conflict', 'under_review', 'normal',
-      'a6600000-0000-4000-8000-000000000202', true, 'restricted', now(),
-      true, true, now() + interval '24 hours', 'a6600000-0000-4000-8000-000000000101'
-    );
-
-    -- Add complainant party
-    insert into public.dispute_parties(case_id, employee_id, party_type, notification_status, created_by)
-    values('a6600000-0000-4000-8000-000000000301', 'a6600000-0000-4000-8000-000000000202', 'complainant', 'read', 'a6600000-0000-4000-8000-000000000101');
-
-    -- Add respondent party
-    insert into public.dispute_parties(case_id, employee_id, party_type, notification_status, created_by)
-    values('a6600000-0000-4000-8000-000000000301', 'a6600000-0000-4000-8000-000000000203', 'respondent', 'withheld', 'a6600000-0000-4000-8000-000000000101');
-
     v_next := public.transition_dispute_case(
       'a6600000-0000-4000-8000-000000000301',
       'resolve_friendly',
@@ -214,29 +236,28 @@ select lives_ok(
   'close allowed from resolved_friendly status'
 );
 
+-- Verify closed_at is set after close
+select isnt(
+  (select closed_at from public.dispute_cases where id = 'a6600000-0000-4000-8000-000000000301'),
+  null,
+  'closed_at is set after close from resolved_friendly'
+);
+
+-- Verify closure_reason is set
+select is(
+  (select closure_reason from public.dispute_cases where id = 'a6600000-0000-4000-8000-000000000301'),
+  'تم إغلاق القضية بعد الحل الودي',
+  'closure_reason is set after close from resolved_friendly'
+);
+
 -- ═══════════════════════════════════════════════════════════════════════════════
 -- 8. resolve_friendly from invalid state is rejected
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 select lives_ok(
   $live$do $t$
-  declare v_case uuid;
   begin
-    set local role to 'authenticated';
-    set local request.jwt.claim.sub to 'a6600000-0000-4000-8000-000000000101';
-
-    insert into public.dispute_cases(
-      id, case_number, title, description, case_type, status, severity,
-      actor_employee_id, is_confidential, privacy_level, opened_at,
-      truth_confirmed, confidentiality_accepted, review_due_at, created_by
-    ) values(
-      'a6600000-0000-4000-8000-000000000302',
-      'CASE-V23-RF-002', 'قضية رفض حل ودي', 'وصف تجريبي لرفض الحل الودي',
-      'employee_conflict', 'submitted', 'normal',
-      'a6600000-0000-4000-8000-000000000202', true, 'restricted', now(),
-      true, true, now() + interval '24 hours', 'a6600000-0000-4000-8000-000000000101'
-    );
-
+    -- Case 302 already inserted as superuser with status = 'submitted'
     begin
       perform public.transition_dispute_case(
         'a6600000-0000-4000-8000-000000000302',
@@ -257,15 +278,22 @@ select lives_ok(
 -- 9. resolve_friendly requires reason (min 5 chars)
 -- ═══════════════════════════════════════════════════════════════════════════════
 
+-- Reset to superuser to update case 302 status (no UPDATE RLS policy exists)
+reset role;
+update public.dispute_cases set status='under_review' where id='a6600000-0000-4000-8000-000000000302';
+
+-- Re-set authenticated role for RPC test
+do $$ begin
+  perform set_config('request.jwt.claims',
+    '{"sub":"a6600000-0000-4000-8000-000000000101","role":"authenticated"}', true);
+  perform set_config('request.jwt.claim.sub',
+    'a6600000-0000-4000-8000-000000000101', true);
+end $$;
+set local role authenticated;
+
 select lives_ok(
   $live$do $t$
   begin
-    set local role to 'authenticated';
-    set local request.jwt.claim.sub to 'a6600000-0000-4000-8000-000000000101';
-
-    -- Set case 302 to under_review first
-    update public.dispute_cases set status='under_review' where id='a6600000-0000-4000-8000-000000000302';
-
     begin
       perform public.transition_dispute_case(
         'a6600000-0000-4000-8000-000000000302',
