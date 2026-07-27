@@ -74,7 +74,7 @@
 | 6.2 | خارج النطاق = رفض | 6 | `record_attendance` | RPCs | 0089 | 0042 | RUNTIME_VERIFIED |
 | 6.3 | Mock/Impossible travel checks | 6 | `check_impossible_travel` | RPCs | 0046,0120 | 0042 | RUNTIME_VERIFIED |
 | 6.4 | زر الحضور يتحول إلى الانصراف | 6,10 | `get_attendance_state` | RPCs + mobile UI | 0019 | 0007 | RUNTIME_VERIFIED |
-| 6.5 | Missing Checkout — لا وقت وهمي | 6 | attendance settlement | `settle_attendance_day` | 0028 | 0016 | IMPLEMENTED |
+| 6.5 | Missing Checkout — لا وقت وهمي | 6 | attendance settlement | `settle_attendance_day` | 0028 | 0016,0082 | TESTED |
 | 6.6 | لا حضور Offline | 6 | online-only guard | mobile + edge fn | 0089 | 0042 | RUNTIME_VERIFIED |
 
 ---
@@ -112,7 +112,7 @@
 |---|---|---|---|---|---|---|---|
 | 9.1 | نموذج مبسط (عنوان/وصف/أطراف/شهود/إقرارات) | 9 | `dispute_cases` | tables | 0059,0064 | 0037 | RUNTIME_VERIFIED |
 | 9.2 | المسار (موظف → سكرتير → لجنة → تنفيذي → HR → إغلاق) | 9 | dispute workflow | RPCs | 0131,0141 | 0054 | RUNTIME_VERIFIED |
-| 9.3 | حذف الأولوية والمكان والأدلة | 9 | V23 §9 | UI + schema | 0064 | 0037 | IMPLEMENTED |
+| 9.3 | حذف الأولوية والمكان والأدلة | 9 | V23 §9 | UI + schema | 0064,0164 | 0037,0083 | TESTED |
 
 ---
 
@@ -190,8 +190,8 @@
 |---|---|---|
 | RELEASED | 0 | 0% |
 | RUNTIME_VERIFIED | 46 | 62% |
-| TESTED | 23 | 31% |
-| IMPLEMENTED | 4 | 5% |
+| TESTED | 25 | 34% |
+| IMPLEMENTED | 2 | 3% |
 | DESIGNED | 1 | 1% |
 | DISCOVERED | 0 | 0% |
 | **المجموع** | **74** | **100%** |
@@ -202,7 +202,7 @@
 
 1. ~~**§7.3** — العارضة الفورية~~ ✅ TESTED (0080)
 2. ~~**§8.4** — Executive لا يُقيَّم KPI~~ ✅ TESTED (0081)
-3. **§6.5** — Missing Checkout settlement (بحاجة فحص آلية `settle_attendance_day`)
-4. **§9.3** — حذف الأولوية/المكان/الأدلة من النزاعات (تغطية جزئية)
+3. ~~**§6.5** — Missing Checkout لا وقت وهمي~~ ✅ TESTED (0082)
+4. ~~**§9.3** — حذف الأولوية/المكان/الأدلة~~ ✅ TESTED (0083)
 5. **§10.4** — GPS يعاد فحصه عند الرجوع (Flutter — يحتاج جهاز)
 6. **§15.1** — Wave 0 Discovery + baselines (عنصر عملية)
