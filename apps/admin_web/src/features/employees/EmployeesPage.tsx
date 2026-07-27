@@ -76,6 +76,7 @@ export function EmployeesPage() {
             <option value="suspended">موقوف</option>
             <option value="notice_period">فترة إخطار</option>
             <option value="terminated">منتهي</option>
+            <option value="archived">مؤرشف</option>
           </select>
           <select className="input" value={sort} onChange={(event) => setSort(event.target.value as SortMode)} aria-label="ترتيب الموظفين">
             <option value="newest">الأحدث إضافة</option>

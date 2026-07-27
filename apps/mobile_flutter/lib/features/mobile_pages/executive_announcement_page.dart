@@ -20,8 +20,19 @@ class _ExecutiveAnnouncementPageState
   final _bodyController = TextEditingController();
   String _category = 'general';
   String _priority = 'normal';
+  String _postType = 'announcement';
   bool _requiresAcknowledgement = false;
   bool _submitting = false;
+
+  static const _postTypes = <String, String>{
+    'announcement': 'إعلان',
+    'alert': 'تنبيه',
+    'poll': 'تصويت',
+    'meeting': 'اجتماع',
+    'holiday_notice': 'إشعار عطلة',
+    'kpi_notice': 'إشعار أداء',
+    'attendance_notice': 'إشعار حضور',
+  };
 
   static const _categories = <String, String>{
     'general': 'تعميم عام',
@@ -74,6 +85,20 @@ class _ExecutiveAnnouncementPageState
             ),
           ),
           const SizedBox(height: 20),
+          DropdownButtonFormField<String>(
+            value: _postType,
+            decoration: const InputDecoration(
+              labelText: 'نوع المنشور',
+              prefixIcon: Icon(Icons.article_outlined),
+              border: OutlineInputBorder(),
+            ),
+            items: _postTypes.entries
+                .map((e) =>
+                    DropdownMenuItem(value: e.key, child: Text(e.value)))
+                .toList(),
+            onChanged: (v) => setState(() => _postType = v!),
+          ),
+          const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             value: _category,
             decoration: const InputDecoration(
@@ -218,6 +243,7 @@ class _ExecutiveAnnouncementPageState
           'p_category': _category,
           'p_priority': _priority,
           'p_requires_acknowledgement': _requiresAcknowledgement,
+          'p_post_type': _postType,
         },
       );
       // تحديث القائمة

@@ -50,5 +50,9 @@ export const createPostInputSchema = z.object({
   imageId: z.string().uuid().optional(),
   /** تاريخ انتهاء المنشور */
   expiresAt: z.string().datetime().optional(),
+  /** خيارات الاستطلاع (2–6 خيارات — مطلوبة لنوع poll فقط) — V23 §17 */
+  pollOptions: z.array(z.string().min(1).max(500)).min(2).max(6).optional(),
+  /** تاريخ انتهاء الاستطلاع */
+  pollExpiresAt: z.string().datetime().optional(),
 });
 export type CreatePostInput = z.infer<typeof createPostInputSchema>;

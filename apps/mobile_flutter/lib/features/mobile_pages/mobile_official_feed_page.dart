@@ -300,6 +300,20 @@ class _FeedCard extends StatelessWidget {
                       children: [
                         MobileStatusPill(item.kind),
                         const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            item.postTypeLabel,
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
                         MobileStatusPill(item.priority),
                         const Spacer(),
                         if (item.publishedAt != null)
@@ -332,6 +346,44 @@ class _FeedCard extends StatelessWidget {
                             Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
+                    if (item.authorName != null &&
+                        item.authorName!.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 12,
+                            backgroundImage: item.authorPhotoUrl != null &&
+                                    item.authorPhotoUrl!.isNotEmpty
+                                ? NetworkImage(item.authorPhotoUrl!)
+                                : null,
+                            child: item.authorPhotoUrl == null ||
+                                    item.authorPhotoUrl!.isEmpty
+                                ? Text(
+                                    item.authorName!.characters.first,
+                                    style: const TextStyle(fontSize: 11),
+                                  )
+                                : null,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              item.authorName!,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     if (item.requiresAcknowledgement) ...[
                       const Divider(height: 28),
                       Row(

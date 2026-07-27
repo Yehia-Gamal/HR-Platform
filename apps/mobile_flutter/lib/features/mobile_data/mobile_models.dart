@@ -492,6 +492,9 @@ class MobileFeedItem {
     required this.myAcknowledged,
     required this.publishedAt,
     this.imageUrl,
+    this.postType,
+    this.authorName,
+    this.authorPhotoUrl,
   });
   factory MobileFeedItem.fromJson(Map<String, dynamic> json) => MobileFeedItem(
     id: json['id'] as String,
@@ -505,6 +508,9 @@ class MobileFeedItem {
         ? null
         : DateTime.parse(json['publishedAt'] as String),
     imageUrl: json['imageUrl'] as String?,
+    postType: json['postType'] as String?,
+    authorName: json['authorName'] as String?,
+    authorPhotoUrl: json['authorPhotoUrl'] as String?,
   );
   final String id;
   final String kind;
@@ -515,6 +521,22 @@ class MobileFeedItem {
   final bool myAcknowledged;
   final DateTime? publishedAt;
   final String? imageUrl;
+  final String? postType;
+  final String? authorName;
+  final String? authorPhotoUrl;
+
+  /// تسمية نوع المنشور بالعربية
+  String get postTypeLabel => switch (postType ?? kind) {
+    'announcement' => 'إعلان',
+    'decision' => 'قرار إداري',
+    'alert' => 'تنبيه',
+    'poll' => 'تصويت',
+    'meeting' => 'اجتماع',
+    'holiday_notice' => 'إشعار عطلة',
+    'kpi_notice' => 'إشعار أداء',
+    'attendance_notice' => 'إشعار حضور',
+    _ => kind,
+  };
 }
 
 class MobileActionItem {

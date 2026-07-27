@@ -95,6 +95,7 @@ export function EmployeeDetailPage() {
           <p className="muted mt-1">{item.jobTitle ?? item.position ?? 'بدون مسمى وظيفي'} • {item.employeeCode}</p>
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
             <Info icon={Network} label={item.department ?? 'بدون إدارة'} />
+            {item.departments.length > 1 && <span className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-soft)] px-2 py-0.5 text-xs font-bold text-[var(--brand)]"><Building2 className="size-3" aria-hidden="true" />+{item.departments.length - 1} إدارة أخرى</span>}
             <Info icon={UsersRound} label={item.team ?? 'بدون فريق'} />
             <Info icon={Phone} label={item.phoneE164 ?? 'بدون هاتف'} dir="ltr" />
             <Info icon={ShieldCheck} label={`الحساب: ${item.accountStatus ?? 'غير مرتبط'}`} />

@@ -52,4 +52,44 @@ describe('post publishing contracts — V17 §18', () => {
     expect(post.requiresAcknowledgement).toBe(true);
     expect(post.expiresAt).toBeDefined();
   });
+
+  it('poll type accepts 2–6 options and expiry — V23 §17', () => {
+    const poll = createPostInputSchema.parse({
+      title: 'استطلاع رأي الموظفين',
+      body: 'ما رأيكم في توقيت الدوام الجديد؟',
+      type: 'poll',
+      pollOptions: ['ممتاز', 'جيد', 'مقبول', 'غير مناسب'],
+      pollExpiresAt: '2026-08-15T23:59:59.000Z',
+    });
+    expect(poll.type).toBe('poll');
+    expect(poll.pollOptions).toHaveLength(4);
+    expect(poll.pollExpiresAt).toBeDefined();
+  });
+
+  it('rejects poll with fewer than 2 options', () => {
+    expect(() => createPostInputSchema.parse({
+      title: 'استطلاع خاطئ',
+      body: 'خيار واحد فقط',
+      type: 'poll',
+      pollOptions: ['خيار وحيد'],
+    })).toThrow();
+  });
+
+  it('rejects poll with more than 6 options', () => {
+    expect(() => createPostInputSchema.parse({
+      title: 'استطلاع كبير',
+      body: 'سبعة خيارات غير مسموح',
+      type: 'poll',
+      pollOptions: ['أ', 'ب', 'ج', 'د', 'هـ', 'و', 'ز'],
+    })).toThrow();
+  });
+
+  it('poll options are optional for non-poll types', () => {
+    const alert = createPostInputSchema.parse({
+      title: 'تنبيه عاجل',
+      body: 'يرجى الانتباه لهذا الإعلان المهم',
+      type: 'alert',
+    });
+    expect(alert.pollOptions).toBeUndefined();
+  });
 });
