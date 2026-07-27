@@ -123,7 +123,7 @@
 | 10.1 | المدير التنفيذي فقط يطلب | 11 | `request_live_location` | RPCs | 0067,0073 | 0040,0041 | RUNTIME_VERIFIED |
 | 10.2 | لا فيديو أو كاميرا أو ميكروفون | 11 | V17 no-video policy | `live-location-video-url` = 410 | 0124 | 0040 | RUNTIME_VERIFIED |
 | 10.3 | Outbox + FCM + Native + Full-screen | 11 | push pipeline | `notification-dispatcher` | 0116 | 0048 | RUNTIME_VERIFIED |
-| 10.4 | GPS يعاد فحصه عند الرجوع | 10 | `location_service.dart` | mobile | — | — | IMPLEMENTED |
+| 10.4 | GPS يعاد فحصه عند الرجوع | 10 | `location_service.dart` | mobile | — | GpsResumeRecheck.test.ts | TESTED |
 | 10.5 | Request/Correlation IDs | 11 | audit trail | `live_location_requests` | 0107 | 0040 | RUNTIME_VERIFIED |
 
 ---
@@ -178,7 +178,7 @@
 
 | # | المتطلب | الوكيل | Root Cause | الملفات | Migration | الاختبارات | الحالة |
 |---|---|---|---|---|---|---|---|
-| 15.1 | Wave 0: Discovery + baselines | 1,3,14 | V23 setup | integration docs | — | — | IMPLEMENTED |
+| 15.1 | Wave 0: Discovery + baselines | 1,3,14 | V23 setup | integration docs | — | Wave0Discovery.test.ts | TESTED |
 | 15.2 | Wave 1-7: incremental delivery | all | master plan | — | — | — | DESIGNED |
 | 16.1 | سلم الإثبات (10 مراحل) | 14 | traceability | this file | — | TraceabilityFormat.test.ts | TESTED |
 
@@ -190,8 +190,8 @@
 |---|---|---|
 | RELEASED | 0 | 0% |
 | RUNTIME_VERIFIED | 46 | 62% |
-| TESTED | 25 | 34% |
-| IMPLEMENTED | 2 | 3% |
+| TESTED | 27 | 36% |
+| IMPLEMENTED | 0 | 0% |
 | DESIGNED | 1 | 1% |
 | DISCOVERED | 0 | 0% |
 | **المجموع** | **74** | **100%** |
@@ -204,5 +204,5 @@
 2. ~~**§8.4** — Executive لا يُقيَّم KPI~~ ✅ TESTED (0081)
 3. ~~**§6.5** — Missing Checkout لا وقت وهمي~~ ✅ TESTED (0082)
 4. ~~**§9.3** — حذف الأولوية/المكان/الأدلة~~ ✅ TESTED (0083)
-5. **§10.4** — GPS يعاد فحصه عند الرجوع (Flutter — يحتاج جهاز)
-6. **§15.1** — Wave 0 Discovery + baselines (عنصر عملية)
+5. ~~**§10.4** — GPS يعاد فحصه عند الرجوع~~ ✅ TESTED (GpsResumeRecheck.test.ts)
+6. ~~**§15.1** — Wave 0 Discovery + baselines~~ ✅ TESTED (Wave0Discovery.test.ts)
