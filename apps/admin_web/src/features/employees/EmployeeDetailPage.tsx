@@ -230,7 +230,7 @@ export function EmployeeDetailPage() {
 // ---------------------------------------------------------------------------
 const STATUS_LABELS: Record<string, string> = {
   draft: 'مسودة',
-  invited: 'تمت الدعوة',
+  invited: 'نشط',
   onboarding: 'قيد التهيئة',
   active: 'نشط',
   suspended: 'موقوف',

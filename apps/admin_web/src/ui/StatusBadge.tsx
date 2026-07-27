@@ -3,7 +3,7 @@ import { AlertTriangle, CircleCheck, CircleMinus, CircleX, Clock3, FileText, Meg
 type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'violet';
 const map: Record<string, { label: string; tone: Tone; icon: typeof CircleCheck }> = {
   draft: { label: 'مسودة', tone: 'neutral', icon: CircleMinus },
-  invited: { label: 'تمت الدعوة', tone: 'info', icon: Clock3 },
+  invited: { label: 'نشط', tone: 'success', icon: CircleCheck },
   onboarding: { label: 'تهيئة', tone: 'violet', icon: Clock3 },
   active: { label: 'نشط', tone: 'success', icon: CircleCheck },
   inactive: { label: 'غير نشط', tone: 'neutral', icon: CircleMinus },

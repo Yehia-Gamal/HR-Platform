@@ -174,18 +174,18 @@ export const attendanceStatementDaySchema = z.object({
   isAbsent: z.boolean().default(false),
   /** يوم عطلة رسمية */
   isOfficialHoliday: z.boolean().default(false),
-  hasLeave: z.boolean(),
+  hasLeave: z.boolean().default(false),
   /** إذن تأخير — V23 §14 */
   hasLatePermit: z.boolean().default(false),
   /** إذن انصراف مبكر — V23 §14 */
   hasEarlyPermit: z.boolean().default(false),
   /** توافق خلفي: hasPermit = hasLatePermit || hasEarlyPermit */
-  hasPermit: z.boolean(),
-  hasMission: z.boolean(),
-  hasConvoyFundi: z.boolean(),
-  missingCheckIn: z.boolean(),
-  missingCheckOut: z.boolean(),
-  hasCorrection: z.boolean(),
+  hasPermit: z.boolean().default(false),
+  hasMission: z.boolean().default(false),
+  hasConvoyFundi: z.boolean().default(false),
+  missingCheckIn: z.boolean().default(false),
+  missingCheckOut: z.boolean().default(false),
+  hasCorrection: z.boolean().default(false),
   correctionNote: z.string().nullable(),
   /** ملاحظات اليوم — V23 §14 */
   notes: z.string().nullable().default(null),
