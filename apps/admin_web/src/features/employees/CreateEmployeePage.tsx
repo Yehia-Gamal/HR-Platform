@@ -110,7 +110,10 @@ export function CreateEmployeePage() {
       clearObjectPreview();
       setPhotoPreview(previousPreview);
       form.setValue('photoUrl', previousUrl);
-      setPhotoError(safeErrorMessage(error));
+      // أخطاء التحقق المحلية (حجم/دقة/صيغة) من prepareAvatarFile عربية وآمنة — تُعرض مباشرة.
+      // أخطاء الرفع الخادمية (storage) تحتوي خصائص status/statusCode — تُمرر عبر safeErrorMessage.
+      const isLocalValidation = error instanceof Error && !('statusCode' in error) && !('status' in error);
+      setPhotoError(isLocalValidation ? error.message : safeErrorMessage(error));
     } finally {
       setPhotoUploading(false);
     }
@@ -200,7 +203,7 @@ export function CreateEmployeePage() {
             <Field label="الهاتف" error={form.formState.errors.phoneE164?.message}><input className="input" dir="ltr" inputMode="tel" placeholder="01154869616" {...form.register('phoneE164')} /></Field>
             <Field label="البريد الإلكتروني" error={form.formState.errors.email?.message}><input type="email" className="input" dir="ltr" {...form.register('email')} /></Field>
             <Field label="المنصب" error={form.formState.errors.roleSlug?.message}><select className="input" aria-label="المنصب" {...form.register('roleSlug')}>{roleOptions.map((role) => <option value={role.slug} key={role.slug}>{role.label}</option>)}</select></Field>
-            <Field label="تاريخ التعيين" error={form.formState.errors.hireDate?.message}><input type="date" className="input" {...form.register('hireDate')} /></Field>
+            <Field label="تاريخ التعيين" error={form.formState.errors.hireDate?.message}><input type="date" className="input" {...form.register('hireDate', { setValueAs: (v: string) => v || undefined })} /></Field>
             <label className="flex items-center gap-3 self-end rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-semibold"><input type="checkbox" className="size-4" {...form.register('sendInvite')} />إرسال دعوة تفعيل عبر البريد</label>
           </div></div> : null}
         {step === 1 ? <div><SectionTitle title="الهيكل والوظيفة" description="تحديد المجمّع وموقع العمل والمدير المباشر والمسمى الوظيفي." />{lookups.isError ? <p role="alert" className="mb-4 rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">تعذر تحميل بيانات الهيكل: {safeErrorMessage(lookups.error)}</p> : null}
@@ -221,7 +224,7 @@ export function CreateEmployeePage() {
             <Review label="موقع العمل" value={options?.workSites.find((x) => x.id === values.workSiteId)?.label} />
             <Review label="المدير" value={options?.managers.find((x) => x.id === values.managerEmployeeId)?.label} />
             <Review label="المسمى الوظيفي" value={values.jobTitleName} />
-            <Review label="تاريخ التعيين" value={values.hireDate} />
+            <Review label="تاريخ التعيين" value={values.hireDate as string | undefined} />
             <Review label="دعوة التفعيل" value={values.sendInvite ? 'نعم — سيُرسل رابط تفعيل' : 'لا'} />
           </div>
           <div className="mt-5 rounded-xl bg-[var(--surface-muted)] p-4 text-sm leading-7">سيتم إنشاء Auth User وEmployee وProfile وإسناد الدور والمدير داخل مسار خادمي. عند فشل أي جزء تُنفذ عملية تعويض ولا يُترك حساب يتيم. كود الموظف يُشتق تلقائياً من رقم الهاتف.</div></div> : null}

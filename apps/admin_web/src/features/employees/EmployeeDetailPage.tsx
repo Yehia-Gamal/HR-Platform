@@ -80,7 +80,7 @@ export function EmployeeDetailPage() {
           {showResend ? <button type="button" className="btn-secondary" disabled={resend.isPending} onClick={() => void onResend()}><MailCheck className="size-4" aria-hidden="true" />{resend.isPending ? 'جارٍ الإرسال…' : 'إعادة إرسال دعوة التفعيل'}</button> : null}
           {canEdit ? <button type="button" className="btn-primary" onClick={() => setShowEditDialog(true)}><Pencil className="size-4" aria-hidden="true" />تعديل البيانات</button> : null}
           {canEdit && item.isActive ? <button type="button" className="btn-secondary text-[var(--danger)]" onClick={() => setShowArchiveDialog(true)}><Archive className="size-4" aria-hidden="true" />أرشفة الموظف</button> : null}
-          {canEdit ? <button type="button" className="btn-secondary text-[var(--danger)]" onClick={() => setShowDeleteDialog(true)}><Trash2 className="size-4" aria-hidden="true" />حذف الموظف</button> : null}
+          {canEdit && auth.access?.workspaces.includes('main_admin') ? <button type="button" className="btn-secondary text-[var(--danger)]" onClick={() => setShowDeleteDialog(true)}><Trash2 className="size-4" aria-hidden="true" />حذف نهائي</button> : null}
           <Link to="/hr/employees" className="btn-secondary"><ArrowRight className="size-4" aria-hidden="true" />عودة للموظفين</Link>
         </div>}
       />
