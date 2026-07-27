@@ -84,7 +84,7 @@
 | # | المتطلب | الوكيل | Root Cause | الملفات | Migration | الاختبارات | الحالة |
 |---|---|---|---|---|---|---|---|
 | 7.1 | أنواع الإجازات (اعتيادية/عارضة/مرضية) | 7 | `leave_types` | tables | 0060 | 0038 | RUNTIME_VERIFIED |
-| 7.2 | أرصدة الإجازات (15/6/policy) | 7 | `leave_entitlements` | tables | 0060 | 0038 | IMPLEMENTED |
+| 7.2 | أرصدة الإجازات (15/6/policy) | 7 | `leave_entitlements` | tables | 0060 | 0038 | TESTED |
 | 7.3 | العارضة = تنفيذ مباشر بشروط | 7 | `submit_casual_leave` | RPCs | 0061 | 0038 | IMPLEMENTED |
 | 7.4 | مسار القرار (مدير → تصعيد) | 7 | `resolve_request_approver` | RPCs | 0062,0136 | 0056 | RUNTIME_VERIFIED |
 | 7.5 | لا اعتماد ذاتي | 7 | `no_self_approve` check | RPCs | 0062 | 0027,0060 | TESTED |
@@ -167,7 +167,7 @@
 | # | المتطلب | الوكيل | Root Cause | الملفات | Migration | الاختبارات | الحالة |
 |---|---|---|---|---|---|---|---|
 | 14.1 | Default Deny | 3 | RLS policies | all tables | 0050,0052,0095,0096 | 0031,0044 | RUNTIME_VERIFIED |
-| 14.2 | USING(true) allowlist موثقة | 3,14 | audit review | `docs/USING_TRUE_ALLOWLIST.md` | — | — | IMPLEMENTED |
+| 14.2 | USING(true) allowlist موثقة | 3,14 | audit review | `docs/USING_TRUE_ALLOWLIST.md` | — | UsingTrueAllowlist.test.ts | TESTED |
 | 14.3 | RLS تدريجي + Feature Flags | 3 | gradual rollout | `featureFlags.ts`, `FeatureGate.tsx` | 0172 | 0073, FeatureGate.test.tsx | TESTED |
 | 14.4 | Migration names: YYYYMMDDHHMMSS | 2,14 | naming convention | all migrations | — | — | RUNTIME_VERIFIED |
 | 14.5 | Security/QA من Wave 0 | 3,14 | policy | CI + tests | — | — | RUNTIME_VERIFIED |
@@ -180,7 +180,7 @@
 |---|---|---|---|---|---|---|---|
 | 15.1 | Wave 0: Discovery + baselines | 1,3,14 | V23 setup | integration docs | — | — | IMPLEMENTED |
 | 15.2 | Wave 1-7: incremental delivery | all | master plan | — | — | — | DESIGNED |
-| 16.1 | سلم الإثبات (10 مراحل) | 14 | traceability | this file | — | — | IMPLEMENTED |
+| 16.1 | سلم الإثبات (10 مراحل) | 14 | traceability | this file | — | TraceabilityFormat.test.ts | TESTED |
 
 ---
 
@@ -190,8 +190,8 @@
 |---|---|---|
 | RELEASED | 0 | 0% |
 | RUNTIME_VERIFIED | 46 | 62% |
-| TESTED | 18 | 24% |
-| IMPLEMENTED | 9 | 12% |
+| TESTED | 21 | 28% |
+| IMPLEMENTED | 6 | 8% |
 | DESIGNED | 1 | 1% |
 | DISCOVERED | 0 | 0% |
 | **المجموع** | **74** | **100%** |
