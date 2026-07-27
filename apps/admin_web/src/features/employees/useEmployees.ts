@@ -265,11 +265,14 @@ export function useDeleteEmployee() {
   const auth = useAuth();
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async ({ employeeId }: { employeeId: string }): Promise<void> => {
+    mutationFn: async ({ employeeId, confirmationCode, reason }: { employeeId: string; confirmationCode: string; reason: string }): Promise<void> => {
       if (auth.isMock) return;
       const supabase = await getSupabase();
-      // حذف مباشر — RLS والصلاحيات تحمي العملية
-      const { error } = await supabase.from('employees').delete().eq('id', employeeId);
+      const { error } = await supabase.rpc('hard_delete_employee_guarded', {
+        p_employee_id: employeeId,
+        p_confirmation_code: confirmationCode,
+        p_reason: reason,
+      });
       if (error) throw error;
     },
     onSuccess: async () => {

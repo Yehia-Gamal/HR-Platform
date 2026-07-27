@@ -209,6 +209,7 @@ export function EmployeeDetailPage() {
         <DeleteEmployeeDialog
           employeeId={employeeId}
           employeeName={item.fullNameAr}
+          employeeCode={item.employeeCode}
           onClose={() => setShowDeleteDialog(false)}
           onSuccess={() => { setShowDeleteDialog(false); void navigate('/hr/employees'); }}
         />
@@ -662,19 +663,39 @@ function DepartmentsSection({ employeeId, canEdit, onAdd }: { employeeId: string
 // ---------------------------------------------------------------------------
 // DeleteEmployeeDialog — حذف الموظف نهائياً
 // ---------------------------------------------------------------------------
-function DeleteEmployeeDialog({ employeeId, employeeName, onClose, onSuccess }: { employeeId: string; employeeName: string; onClose: () => void; onSuccess: () => void }) {
+const DELETE_ERROR_MAP: Record<string, string> = {
+  main_admin_required: 'هذا الإجراء متاح فقط للمسؤول الرئيسي.',
+  self_delete_not_allowed: 'لا يمكنك حذف حسابك الخاص.',
+  delete_reason_required: 'سبب الحذف مطلوب (10 أحرف على الأقل).',
+  delete_confirmation_mismatch: 'كود الموظف غير مطابق. تأكد من كتابته بشكل صحيح.',
+  employee_not_found: 'الموظف غير موجود أو تم حذفه مسبقاً.',
+  employee_history_requires_archive: 'لا يمكن حذف هذا الموظف لوجود سجلات مرتبطة (حضور، طلبات، تقييمات...). استخدم الأرشفة بدلاً من الحذف.',
+};
+
+function deleteErrorMessage(err: unknown): string {
+  const msg = safeErrorMessage(err);
+  for (const [key, label] of Object.entries(DELETE_ERROR_MAP)) {
+    if (msg.includes(key)) return label;
+  }
+  return msg;
+}
+
+function DeleteEmployeeDialog({ employeeId, employeeName, employeeCode, onClose, onSuccess }: { employeeId: string; employeeName: string; employeeCode: string; onClose: () => void; onSuccess: () => void }) {
   const deleteEmployee = useDeleteEmployee();
-  const [confirmText, setConfirmText] = useState('');
+  const [confirmCode, setConfirmCode] = useState('');
+  const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const canSubmit = !deleteEmployee.isPending && confirmCode === employeeCode && reason.trim().length >= 10;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     try {
-      await deleteEmployee.mutateAsync({ employeeId });
+      await deleteEmployee.mutateAsync({ employeeId, confirmationCode: confirmCode, reason: reason.trim() });
       onSuccess();
     } catch (err) {
-      setError(safeErrorMessage(err));
+      setError(deleteErrorMessage(err));
     }
   };
 
@@ -684,18 +705,30 @@ function DeleteEmployeeDialog({ employeeId, employeeName, onClose, onSuccess }: 
         <p className="text-sm">سيتم حذف <strong>{employeeName}</strong> نهائياً من النظام. لا يمكن التراجع عن هذا الإجراء.</p>
         {error ? <div role="alert" className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
         <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold">اكتب «حذف» للتأكيد</span>
+          <span className="mb-1.5 block text-sm font-semibold">سبب الحذف</span>
+          <textarea
+            className="input w-full"
+            rows={2}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="اكتب سبب الحذف (10 أحرف على الأقل)..."
+            disabled={deleteEmployee.isPending}
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-semibold">اكتب كود الموظف <code className="rounded bg-[var(--surface-raised)] px-1.5 py-0.5 text-xs font-mono">{employeeCode}</code> للتأكيد</span>
           <input
             className="input w-full"
-            value={confirmText}
-            onChange={(e) => setConfirmText(e.target.value)}
-            placeholder="حذف"
+            dir="ltr"
+            value={confirmCode}
+            onChange={(e) => setConfirmCode(e.target.value)}
+            placeholder={employeeCode}
             disabled={deleteEmployee.isPending}
           />
         </label>
         <div className="flex justify-end gap-3">
           <button type="button" onClick={onClose} disabled={deleteEmployee.isPending} className="btn-secondary">إلغاء</button>
-          <button type="submit" disabled={deleteEmployee.isPending || confirmText !== 'حذف'} className="btn-primary bg-[var(--danger)] hover:bg-[var(--danger)]">
+          <button type="submit" disabled={!canSubmit} className="btn-primary bg-[var(--danger)] hover:bg-[var(--danger)]">
             {deleteEmployee.isPending ? 'جارٍ الحذف...' : 'حذف نهائي'}
           </button>
         </div>
