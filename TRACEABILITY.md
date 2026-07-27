@@ -168,7 +168,7 @@
 |---|---|---|---|---|---|---|---|
 | 14.1 | Default Deny | 3 | RLS policies | all tables | 0050,0052,0095,0096 | 0031,0044 | RUNTIME_VERIFIED |
 | 14.2 | USING(true) allowlist موثقة | 3,14 | audit review | `docs/USING_TRUE_ALLOWLIST.md` | — | — | IMPLEMENTED |
-| 14.3 | RLS تدريجي + Feature Flags | 3 | gradual rollout | — | — | — | DESIGNED |
+| 14.3 | RLS تدريجي + Feature Flags | 3 | gradual rollout | `featureFlags.ts`, `FeatureGate.tsx` | 0172 | 0073, FeatureGate.test.tsx | TESTED |
 | 14.4 | Migration names: YYYYMMDDHHMMSS | 2,14 | naming convention | all migrations | — | — | RUNTIME_VERIFIED |
 | 14.5 | Security/QA من Wave 0 | 3,14 | policy | CI + tests | — | — | RUNTIME_VERIFIED |
 
@@ -190,9 +190,9 @@
 |---|---|---|
 | RELEASED | 0 | 0% |
 | RUNTIME_VERIFIED | 33 | 58% |
-| TESTED | 4 | 7% |
+| TESTED | 5 | 9% |
 | IMPLEMENTED | 18 | 32% |
-| DESIGNED | 2 | 4% |
+| DESIGNED | 1 | 2% |
 | DISCOVERED | 0 | 0% |
 | **المجموع** | **57** | **100%** |
 
@@ -203,4 +203,3 @@
 1. **§3.4** — RLS/ABAC بالكامل تعتمد reporting lines (مصمم، بحاجة اختبار شامل)
 2. **§7.2-7.3** — أرصدة الإجازات والعارضة (مُنفذ، بحاجة Runtime verification)
 3. **§8.4** — Executive لا يقيم KPI (مُنفذ، بحاجة Runtime verification)
-4. **§14.3** — RLS تدريجي + Feature Flags (مصمم، لم يُنفذ)
