@@ -23,6 +23,16 @@ class LocationRequestFullActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // منع زر الرجوع على Android 13+ — enableOnBackInvokedCallback="true"
+        // يجعل onBackPressed() كود ميت، لازم نسجل callback جديد.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            onBackInvokedDispatcher.registerOnBackInvokedCallback(
+                android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+            ) {
+                // فارغ عمداً — المستخدم لازم يتفاعل مع أزرار إرسال/رفض.
+            }
+        }
+
         // إظهار فوق شاشة القفل + تشغيل الشاشة
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O_MR1) {
             @Suppress("DEPRECATION")
@@ -183,8 +193,11 @@ class LocationRequestFullActivity : Activity() {
         recreate()
     }
 
+    @Suppress("DEPRECATION")
     override fun onBackPressed() {
-        // منع الخروج بزر الرجوع — يجب التفاعل مع الطلب
+        // منع الخروج بزر الرجوع — يجب التفاعل مع الطلب.
+        // هذا للأجهزة API < 33 فقط. Android 13+ يستخدم OnBackInvokedCallback
+        // المسجّل في onCreate().
     }
 
     companion object {

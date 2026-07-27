@@ -11,6 +11,46 @@ set local search_path = public, extensions, pg_temp;
 select plan(11);
 
 -- =====================================================================
+-- Fixture: إنشاء الصلاحيات التي لا تُنشئها أي migration (فقط في seed).
+-- بدون هذه الصلاحيات، حلقة DO في migration 0138 تتخطاها بصمت
+-- (v_perm_id IS NULL → skip). migration 0157 أصلحت التوقيت لـ
+-- performance.kpi.read و performance.kpi.hr_review فقط.
+-- =====================================================================
+
+insert into public.permissions (code, module, resource, action)
+values
+  ('people.employee.read',    'people',   'employee', 'read'),
+  ('attendance.record.read',  'attendance','record',  'read'),
+  ('requests.request.read',   'requests', 'request',  'read')
+on conflict (code) do nothing;
+
+-- إعادة تشغيل منطق منح الصلاحيات لـ hr-specialist (كما في 0138)
+-- حتى نتحقق أن المنطق يعمل عندما تكون الصلاحيات موجودة.
+do $fix$
+declare
+  v_role_id uuid;
+  v_perm_id uuid;
+  v_code text;
+  v_codes text[] := array[
+    'people.employee.read',
+    'attendance.record.read',
+    'requests.request.read'
+  ];
+begin
+  select id into v_role_id from public.roles where slug = 'hr-specialist';
+  if v_role_id is null then return; end if;
+  foreach v_code in array v_codes loop
+    select id into v_perm_id from public.permissions where code = v_code;
+    if v_perm_id is not null then
+      insert into public.role_permissions (role_id, permission_id, scope)
+      values (v_role_id, v_perm_id, 'organization')
+      on conflict (role_id, permission_id, scope) do nothing;
+    end if;
+  end loop;
+end;
+$fix$;
+
+-- =====================================================================
 -- 1. دور hr-specialist موجود في جدول roles
 -- =====================================================================
 

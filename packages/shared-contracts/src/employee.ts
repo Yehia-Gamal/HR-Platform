@@ -46,7 +46,9 @@ export const createEmployeeInputSchema = z.object({
   phoneE164: z
     .string()
     .trim()
-    .regex(/^(01\d{9}|\+[1-9]\d{7,14})$/, 'رقم هاتف غير صالح'),
+    // إزالة أي أحرف غير مرئية (RTL/LTR marks, zero-width spaces) قبل التحقق
+    .transform((v) => v.replace(/[^\d+]/g, ''))
+    .pipe(z.string().regex(/^(01\d{9}|\+[1-9]\d{7,14})$/, 'رقم هاتف غير صالح')),
   roleSlug: z.string().trim().min(2),
   jobTitleName: z.string().trim().max(160).optional(),
   photoUrl: z.string().url().max(1000).optional(),

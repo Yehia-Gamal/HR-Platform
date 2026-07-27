@@ -109,26 +109,26 @@ begin
     values(v_emp_worker2,v_emp_director,'primary',current_date);
 
   -- صلاحية اختبارية
-  insert into public.permissions(id,code,name,module,description)
-    values(gen_random_uuid(),'test.access.78','§3.4 test','test','اختبار نطاقات ABAC')
+  insert into public.permissions(id,code,module,resource,action,description)
+    values(gen_random_uuid(),'test.access.78','test','access','test78','اختبار نطاقات ABAC')
     returning id into v_perm_id;
 
   -- أدوار اختبارية (واحد لكل نطاق)
-  insert into public.roles(id,name,slug,description,is_full_access) values
+  insert into public.roles(id,name_ar,slug,description,is_full_access) values
     (gen_random_uuid(),'T78 Self','t78-self','§3.4 self scope',false) returning id into v_role_self;
-  insert into public.roles(id,name,slug,description,is_full_access) values
+  insert into public.roles(id,name_ar,slug,description,is_full_access) values
     (gen_random_uuid(),'T78 Direct','t78-direct','§3.4 direct_reports',false) returning id into v_role_direct;
-  insert into public.roles(id,name,slug,description,is_full_access) values
+  insert into public.roles(id,name_ar,slug,description,is_full_access) values
     (gen_random_uuid(),'T78 Descendants','t78-descendants','§3.4 management_descendants',false) returning id into v_role_desc;
-  insert into public.roles(id,name,slug,description,is_full_access) values
+  insert into public.roles(id,name_ar,slug,description,is_full_access) values
     (gen_random_uuid(),'T78 Dept','t78-dept','§3.4 department',false) returning id into v_role_dept;
-  insert into public.roles(id,name,slug,description,is_full_access) values
+  insert into public.roles(id,name_ar,slug,description,is_full_access) values
     (gen_random_uuid(),'T78 Team','t78-team','§3.4 team',false) returning id into v_role_team;
-  insert into public.roles(id,name,slug,description,is_full_access) values
+  insert into public.roles(id,name_ar,slug,description,is_full_access) values
     (gen_random_uuid(),'T78 SelDept','t78-seldept','§3.4 selected_departments',false) returning id into v_role_seldept;
-  insert into public.roles(id,name,slug,description,is_full_access) values
+  insert into public.roles(id,name_ar,slug,description,is_full_access) values
     (gen_random_uuid(),'T78 SelEmp','t78-selemp','§3.4 selected_employees',false) returning id into v_role_selemp;
-  insert into public.roles(id,name,slug,description,is_full_access) values
+  insert into public.roles(id,name_ar,slug,description,is_full_access) values
     (gen_random_uuid(),'T78 Org','t78-org','§3.4 organization',false) returning id into v_role_org;
 
   -- ربط الأدوار بالصلاحية مع النطاقات

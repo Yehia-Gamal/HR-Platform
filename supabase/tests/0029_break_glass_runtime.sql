@@ -23,9 +23,9 @@ begin
     ('44444444-0000-4000-8000-000000000002', 'bg-approver@test.local',  'authenticated', 'authenticated'),
     ('44444444-0000-4000-8000-000000000003', 'bg-target@test.local',    'authenticated', 'authenticated');
 
-  -- requester: system-admin (holds access.break_glass.request via seeds)
+  -- requester: admin (is_full_access=true → passes current_is_full_access() in request_break_glass)
   insert into public.user_roles (user_id, role_id)
-  select '44444444-0000-4000-8000-000000000001', r.id from public.roles r where r.slug = 'system-admin';
+  select '44444444-0000-4000-8000-000000000001', r.id from public.roles r where r.slug = 'admin';
 
   -- approver: admin (full access → may approve)
   insert into public.user_roles (user_id, role_id)

@@ -3,6 +3,12 @@ create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions,pg_temp;
 select plan(12);
 
+-- Seed the people.employee.create permission if not already present
+-- (this code is used in policies but the permission row may not exist yet).
+insert into public.permissions(code,module,resource,action)
+values ('people.employee.create','people','employee','create')
+on conflict(code) do nothing;
+
 insert into auth.users(id,email,aud,role) values
  ('95000000-0000-4000-8000-000000000001','avatar-employee@test.local','authenticated','authenticated'),
  ('95000000-0000-4000-8000-000000000002','avatar-hr@test.local','authenticated','authenticated');
@@ -22,6 +28,15 @@ from (values
  ('95000000-0000-4000-8000-000000000002'::uuid,'hr-manager')
 ) x(user_id,slug)
 join public.roles r on r.slug=x.slug;
+
+-- Grant people.employee.create to hr-manager (the 0121 seed silently skips
+-- when the permission row is absent; we ensure the grant here).
+insert into public.role_permissions(role_id,permission_id,scope)
+select r.id,p.id,'organization'
+from public.roles r
+join public.permissions p on p.code='people.employee.create'
+where r.slug='hr-manager'
+on conflict(role_id,permission_id,scope) do nothing;
 
 select is((select public from storage.buckets where id='employee-avatars'),true,'employee avatar bucket is public');
 select is((select file_size_limit from storage.buckets where id='employee-avatars'),5242880::bigint,'employee avatar bucket limits files to 5 MiB');

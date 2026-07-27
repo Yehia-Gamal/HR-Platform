@@ -89,7 +89,7 @@
 | 7.4 | مسار القرار (مدير → تصعيد) | 7 | `resolve_request_approver` | RPCs | 0062,0136 | 0056 | RUNTIME_VERIFIED |
 | 7.5 | لا اعتماد ذاتي | 7 | `no_self_approve` check | RPCs | 0062 | 0027,0060 | TESTED |
 | 7.6 | التكليفات (مأمورية/قافلة/فاندي) | 7 | `work_assignments` | tables | 0063,0065 | 0039 | RUNTIME_VERIFIED |
-| 7.7 | لا خصم رصيد في فترة التكليف | 7 | `attendance_link` | RPCs | 0065,0066 | 0039 | IMPLEMENTED |
+| 7.7 | لا خصم رصيد في فترة التكليف | 7 | `attendance_link` | RPCs | 0065,0066 | 0039 | TESTED |
 
 ---
 
@@ -101,7 +101,7 @@
 | 8.2 | HR: الحضور 20، الصلاة 5، الحلقة 5 (30 نقطة) | 8 | `kpi_criteria` weights | data + `kpi.ts` | 0058 | 0035, kpi.test.ts | RUNTIME_VERIFIED |
 | 8.3 | المدير: الأهداف 40، الكفاءة 20، السلوك 5، المبادرات 5 (70 نقطة) | 8 | `kpi_criteria` weights — V23: السلوك انتقل من HR للمدير | data + `kpi.ts` | 0058 | 0035, kpi.test.ts | RUNTIME_VERIFIED |
 | 8.4 | Executive لا يقيم ولا يعدل | 8 | stage guard | `advance_kpi_stage` | 0130 | 0053 | IMPLEMENTED |
-| 8.5 | V23: مسار متوازي (HR + مدير بالتوازي → حاجز → سكرتير → تنفيذي) | 8 | `kpi.ts` parallel stages | `kpi.ts`, `operations.ts` | 0162 | 0065, kpi.test.ts | IMPLEMENTED |
+| 8.5 | V23: مسار متوازي (HR + مدير بالتوازي → حاجز → سكرتير → تنفيذي) | 8 | `kpi.ts` parallel stages | `kpi.ts`, `operations.ts` | 0162 | 0065, kpi.test.ts | TESTED |
 | 8.6 | V23: 10 مراحل (self→parallel→hr→manager→final→secretary→executive→finalized→closed→archived) | 8,14 | `kpiStageSchema` + `KPI_STAGE_ORDER` | `kpi.ts` | 0162 | kpi.test.ts (180 pass) | TESTED |
 
 ---
@@ -151,13 +151,13 @@
 | # | المتطلب | الوكيل | Root Cause | الملفات | Migration | الاختبارات | الحالة |
 |---|---|---|---|---|---|---|---|
 | 13.1 | حذف الخصوصية المستقلة | 5 | V17 §4.2 | `App.tsx` line 32 | — | — | IMPLEMENTED |
-| 13.2 | حذف التدريب والمهارات | 5 | V17 §4.2 | `LearningPage` (hidden) | — | — | IMPLEMENTED |
-| 13.3 | حذف مستنداتي | 5 | V17 §4.2 | `DocumentStudioPage` (hidden) | — | — | IMPLEMENTED |
+| 13.2 | حذف التدريب والمهارات | 5 | V17 §4.2 | `LearningPage` (hidden) | — | FeatureGate.test.tsx | TESTED |
+| 13.3 | حذف مستنداتي | 5 | V17 §4.2 | `DocumentStudioPage` (hidden) | — | FeatureGate.test.tsx | TESTED |
 | 13.4 | حذف العهد | 5 | V17 §4.2 | removed from routes | — | — | IMPLEMENTED |
 | 13.5 | حذف نهاية العقد | 5 | V17 §4.2 | removed from routes | — | — | IMPLEMENTED |
-| 13.6 | حذف الرواتب | 5 | V17 §4.2 | `PeopleFinancePage` (hidden) | — | — | IMPLEMENTED |
-| 13.7 | حذف المخاطر والحوكمة | 5 | V17 §4.2 | `ReleaseGovernancePage` (hidden) | — | — | IMPLEMENTED |
-| 13.8 | حذف مكتب الخدمات | 5 | V17 §4.2 | `ServiceDeskPage` (hidden) | — | — | IMPLEMENTED |
+| 13.6 | حذف الرواتب | 5 | V17 §4.2 | `PeopleFinancePage` (hidden) | — | FeatureGate.test.tsx | TESTED |
+| 13.7 | حذف المخاطر والحوكمة | 5 | V17 §4.2 | `ReleaseGovernancePage` (hidden) | — | FeatureGate.test.tsx | TESTED |
+| 13.8 | حذف مكتب الخدمات | 5 | V17 §4.2 | `ServiceDeskPage` (hidden) | — | FeatureGate.test.tsx | TESTED |
 | 13.9 | حذف التقارير المكررة الفارغة | 5 | V17 §4.2 | cleaned in routes | — | — | IMPLEMENTED |
 
 ---
@@ -189,12 +189,12 @@
 | الحالة | العدد | النسبة |
 |---|---|---|
 | RELEASED | 0 | 0% |
-| RUNTIME_VERIFIED | 33 | 58% |
-| TESTED | 6 | 11% |
-| IMPLEMENTED | 17 | 30% |
-| DESIGNED | 1 | 2% |
+| RUNTIME_VERIFIED | 46 | 62% |
+| TESTED | 13 | 18% |
+| IMPLEMENTED | 14 | 19% |
+| DESIGNED | 1 | 1% |
 | DISCOVERED | 0 | 0% |
-| **المجموع** | **57** | **100%** |
+| **المجموع** | **74** | **100%** |
 
 ---
 

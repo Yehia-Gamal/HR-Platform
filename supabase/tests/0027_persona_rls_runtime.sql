@@ -12,6 +12,50 @@ set local search_path = public, extensions, pg_temp;
 select plan(23);
 
 -- =====================================================================
+-- Pre-fixture: ensure roles, permission, and role_permissions exist
+-- (self-contained — does NOT rely on seed data)
+-- =====================================================================
+do $ensure$
+declare
+  v_perm_id uuid;
+  v_role_id uuid;
+  v_pair record;
+begin
+  -- Roles that may only exist in seeds
+  insert into public.roles (slug, name_ar, is_system, is_full_access)
+  values
+    ('department-manager', 'مدير إدارة',      true, false),
+    ('executive-director', 'المدير التنفيذي', true, false),
+    ('committee-member',   'عضو لجنة',        true, false)
+  on conflict (slug) do nothing;
+
+  -- Permission used by employees_select RLS policy
+  insert into public.permissions (code, module, resource, action)
+  values ('people.employee.read', 'people', 'employee', 'read')
+  on conflict (code) do nothing;
+
+  select id into v_perm_id from public.permissions where code = 'people.employee.read';
+
+  -- Role-permission bindings with correct scopes for can_access_employee()
+  for v_pair in
+    select * from (values
+      ('direct-manager',    'direct_reports'),
+      ('department-manager', 'department'),
+      ('hr-manager',         'organization'),
+      ('executive-director', 'organization'),
+      ('committee-member',   'assigned_cases')
+    ) as t(slug, scope)
+  loop
+    select id into v_role_id from public.roles where slug = v_pair.slug;
+    if v_role_id is not null and v_perm_id is not null then
+      insert into public.role_permissions (role_id, permission_id, scope)
+      values (v_role_id, v_perm_id, v_pair.scope)
+      on conflict (role_id, permission_id, scope) do nothing;
+    end if;
+  end loop;
+end $ensure$;
+
+-- =====================================================================
 -- Fixture (inserted as superuser; RLS not yet in play)
 -- =====================================================================
 do $fixture$
@@ -60,7 +104,7 @@ begin
     ('22222222-0000-4000-8000-000000000007'::uuid, '11111111-0000-4000-8000-000000000007'::uuid)
   ) as t(u, e);
 
-  -- role assignments (from seeded system roles)
+  -- role assignments (roles guaranteed by $ensure$ block above)
   insert into public.user_roles (user_id, role_id)
   select t.u, r.id from (values
     ('22222222-0000-4000-8000-000000000001'::uuid, 'employee'),

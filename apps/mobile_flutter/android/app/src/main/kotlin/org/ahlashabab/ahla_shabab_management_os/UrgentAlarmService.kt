@@ -127,18 +127,24 @@ class UrgentAlarmService : Service() {
             val soundUri = android.net.Uri.parse(
                 "android.resource://$packageName/${R.raw.urgent_notification}",
             )
-            mediaPlayer = MediaPlayer().apply {
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build(),
-                )
-                setDataSource(this@UrgentAlarmService, soundUri)
-                setVolume(1f, 1f)
-                isLooping = true
-                prepare()
-                start()
+            try {
+                mediaPlayer = MediaPlayer().apply {
+                    setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build(),
+                    )
+                    setDataSource(this@UrgentAlarmService, soundUri)
+                    setVolume(1f, 1f)
+                    isLooping = true
+                    prepare()
+                    start()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to start MediaPlayer — alarm will be silent", e)
+                mediaPlayer?.release()
+                mediaPlayer = null
             }
         }
 

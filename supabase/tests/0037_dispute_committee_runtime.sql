@@ -40,13 +40,13 @@ begin
     ('44444444-0000-4000-8000-000000000003'::uuid, '55555555-0000-4000-8000-000000000003'::uuid)
   ) as t(u, e);
 
-  -- complainant + respondent are plain employees; admin is the executive
-  -- secretary (Main Admin, is_full_access) that owns the committee workflow.
+  -- complainant + respondent are plain employees; admin has the 'admin' role
+  -- (is_full_access=true) that owns the committee workflow.
   insert into public.user_roles (user_id, role_id)
   select t.u, r.id from (values
     ('44444444-0000-4000-8000-000000000001'::uuid, 'employee'),
     ('44444444-0000-4000-8000-000000000002'::uuid, 'employee'),
-    ('44444444-0000-4000-8000-000000000003'::uuid, 'executive-secretary')
+    ('44444444-0000-4000-8000-000000000003'::uuid, 'admin')
   ) as t(u, slug)
   join public.roles r on r.slug = t.slug;
 end
@@ -166,7 +166,7 @@ select is((select count(*)::int from public.dispute_cases where title = 'خلا�
   'respondent can see the case once notified');
 
 -- =====================================================================
--- Persona: executive secretary (Main Admin) — full workflow authority
+-- Persona: admin (full-access) — full workflow authority
 -- =====================================================================
 reset role;
 do $$ begin
@@ -177,12 +177,12 @@ end $$;
 set local role authenticated;
 
 select is((select count(*)::int from public.dispute_cases where title = 'خلاف حول توزيع المهام'), 1,
-  'Main Admin (executive secretary) reads committee cases org-wide');
+  'admin (full-access) reads committee cases org-wide');
 select lives_ok(
   $$select public.transition_dispute_case(
       (select id from public.dispute_cases where title = 'خلاف حول توزيع المهام'),
       'accept', 'قبول المشكلة للدراسة')$$,
-  'Main Admin can drive the case workflow');
+  'admin can drive the case workflow');
 
 reset role;
 select * from finish();
