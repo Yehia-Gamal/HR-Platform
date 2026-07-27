@@ -38,7 +38,7 @@
 | # | المتطلب | الوكيل | Root Cause | الملفات | Migration | الاختبارات | الحالة |
 |---|---|---|---|---|---|---|---|
 | 3.1 | قوالب أدوار عربية | 3 | 0121 seed | `roles` table | 0121 | 0001 | RUNTIME_VERIFIED |
-| 3.2 | لا Permission منفردة للمستخدم | 3 | تصميم RLS | `role_permissions` | 0002,0121 | 0001 | IMPLEMENTED |
+| 3.2 | لا Permission منفردة للمستخدم | 3 | تصميم RLS | `role_permissions` | 0002,0121 | 0001,0079 | TESTED |
 | 3.3 | Main Admin يمنح الأدوار العليا | 3 | `current_is_full_access()` | RPCs | 0013,0121 | 0001 | RUNTIME_VERIFIED |
 | 3.4 | RLS/ABAC تعتمد reporting lines | 3 | `can_access_employee()` | RPCs | 0013,0084 | 0027,0078 | TESTED |
 
@@ -150,15 +150,15 @@
 
 | # | المتطلب | الوكيل | Root Cause | الملفات | Migration | الاختبارات | الحالة |
 |---|---|---|---|---|---|---|---|
-| 13.1 | حذف الخصوصية المستقلة | 5 | V17 §4.2 | `App.tsx` line 32 | — | — | IMPLEMENTED |
+| 13.1 | حذف الخصوصية المستقلة | 5 | V17 §4.2 | `App.tsx` line 32 | — | RemovedFeatures.test.ts | TESTED |
 | 13.2 | حذف التدريب والمهارات | 5 | V17 §4.2 | `LearningPage` (hidden) | — | FeatureGate.test.tsx | TESTED |
 | 13.3 | حذف مستنداتي | 5 | V17 §4.2 | `DocumentStudioPage` (hidden) | — | FeatureGate.test.tsx | TESTED |
-| 13.4 | حذف العهد | 5 | V17 §4.2 | removed from routes | — | — | IMPLEMENTED |
-| 13.5 | حذف نهاية العقد | 5 | V17 §4.2 | removed from routes | — | — | IMPLEMENTED |
+| 13.4 | حذف العهد | 5 | V17 §4.2 | removed from routes | — | RemovedFeatures.test.ts | TESTED |
+| 13.5 | حذف نهاية العقد | 5 | V17 §4.2 | removed from routes | — | RemovedFeatures.test.ts | TESTED |
 | 13.6 | حذف الرواتب | 5 | V17 §4.2 | `PeopleFinancePage` (hidden) | — | FeatureGate.test.tsx | TESTED |
 | 13.7 | حذف المخاطر والحوكمة | 5 | V17 §4.2 | `ReleaseGovernancePage` (hidden) | — | FeatureGate.test.tsx | TESTED |
 | 13.8 | حذف مكتب الخدمات | 5 | V17 §4.2 | `ServiceDeskPage` (hidden) | — | FeatureGate.test.tsx | TESTED |
-| 13.9 | حذف التقارير المكررة الفارغة | 5 | V17 §4.2 | cleaned in routes | — | — | IMPLEMENTED |
+| 13.9 | حذف التقارير المكررة الفارغة | 5 | V17 §4.2 | cleaned in routes | — | RemovedFeatures.test.ts | TESTED |
 
 ---
 
@@ -190,8 +190,8 @@
 |---|---|---|
 | RELEASED | 0 | 0% |
 | RUNTIME_VERIFIED | 46 | 62% |
-| TESTED | 13 | 18% |
-| IMPLEMENTED | 14 | 19% |
+| TESTED | 18 | 24% |
+| IMPLEMENTED | 9 | 12% |
 | DESIGNED | 1 | 1% |
 | DISCOVERED | 0 | 0% |
 | **المجموع** | **74** | **100%** |
