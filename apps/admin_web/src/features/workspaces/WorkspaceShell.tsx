@@ -41,6 +41,7 @@ import { AppLogo } from '../../ui/AppLogo';
 import { ThemeToggle } from '../../ui/ThemeToggle';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { WorkspaceSearch } from '../../ui/WorkspaceSearch';
+import { getShortName } from '../../ui/formatDisplayName';
 import { useAuth } from '../auth/AuthProvider';
 import { useNotifications } from '../notifications/useNotifications';
 import { hasPermission } from './access';
@@ -216,7 +217,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
         <div className="sidebar-footer">
           <div className="sidebar-user">
             <UserAvatar displayName={access.displayName} photoUrl={profilePhotoUrl} eager />
-            {!collapsed ? <div className="min-w-0 flex-1"><p className="truncate text-sm font-black">{access.displayName}</p><p className="truncate text-xs text-[var(--text-muted)]">{currentWorkspaceLabel}</p></div> : null}
+            {!collapsed ? <div className="min-w-0 flex-1"><p className="truncate text-sm font-black" title={access.displayName}>{getShortName(access.displayName)}</p><p className="truncate text-xs text-[var(--text-muted)]">{currentWorkspaceLabel}</p></div> : null}
           </div>
           <button type="button" className="sidebar-logout" title="تسجيل الخروج" onClick={() => void auth.signOut()}>
             <LogOut className="size-4.5" />
@@ -250,7 +251,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
             <details className="profile-menu">
               <summary className="header-profile" title={access.displayName} aria-label="فتح قائمة الحساب">
                 <UserAvatar displayName={access.displayName} photoUrl={profilePhotoUrl} size="sm" eager announceName={false} />
-                <span className="hidden max-w-32 truncate text-sm font-bold xl:inline">{access.displayName}</span>
+                <span className="hidden max-w-32 truncate text-sm font-bold xl:inline">{getShortName(access.displayName)}</span>
                 <ChevronDown className="hidden size-3.5 text-[var(--text-muted)] xl:block" />
               </summary>
               <div className="profile-popover">
