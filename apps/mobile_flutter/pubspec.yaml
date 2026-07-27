@@ -24,7 +24,7 @@ dependencies:
   passkeys: ^2.21.1
   local_auth: ^2.3.0
   package_info_plus: ">=9.0.1 <10.0.0"
-  device_info_plus: ^11.5.0
+  device_info_plus: ^12.4.0
   uuid: ^4.5.1
   url_launcher: ^6.3.2
   # الإشعارات العاجلة (طلب الموقع): FCM + إشعار محلي بشاشة كاملة.
