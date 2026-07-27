@@ -40,7 +40,7 @@
 | 3.1 | قوالب أدوار عربية | 3 | 0121 seed | `roles` table | 0121 | 0001 | RUNTIME_VERIFIED |
 | 3.2 | لا Permission منفردة للمستخدم | 3 | تصميم RLS | `role_permissions` | 0002,0121 | 0001 | IMPLEMENTED |
 | 3.3 | Main Admin يمنح الأدوار العليا | 3 | `current_is_full_access()` | RPCs | 0013,0121 | 0001 | RUNTIME_VERIFIED |
-| 3.4 | RLS/ABAC تعتمد reporting lines | 3 | `can_access_employee()` | RPCs | 0013,0084 | 0027 | IMPLEMENTED |
+| 3.4 | RLS/ABAC تعتمد reporting lines | 3 | `can_access_employee()` | RPCs | 0013,0084 | 0027,0078 | TESTED |
 
 ---
 
@@ -190,8 +190,8 @@
 |---|---|---|
 | RELEASED | 0 | 0% |
 | RUNTIME_VERIFIED | 33 | 58% |
-| TESTED | 5 | 9% |
-| IMPLEMENTED | 18 | 32% |
+| TESTED | 6 | 11% |
+| IMPLEMENTED | 17 | 30% |
 | DESIGNED | 1 | 2% |
 | DISCOVERED | 0 | 0% |
 | **المجموع** | **57** | **100%** |
@@ -200,6 +200,5 @@
 
 ## الفجوات المعروفة (تحتاج عمل V23)
 
-1. **§3.4** — RLS/ABAC بالكامل تعتمد reporting lines (مصمم، بحاجة اختبار شامل)
-2. **§7.2-7.3** — أرصدة الإجازات والعارضة (مُنفذ، بحاجة Runtime verification)
-3. **§8.4** — Executive لا يقيم KPI (مُنفذ، بحاجة Runtime verification)
+1. **§7.2-7.3** — أرصدة الإجازات والعارضة (مُنفذ، بحاجة Runtime verification)
+2. **§8.4** — Executive لا يقيم KPI (مُنفذ، بحاجة Runtime verification)
