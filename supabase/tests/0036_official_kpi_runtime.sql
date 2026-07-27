@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions,pg_temp;
-select plan(14);
+select plan(13);
 
 insert into auth.users(id,email,aud,role) values
  ('81000000-0000-4000-8000-000000000001','kpi-secretary@test.local','authenticated','authenticated'),
@@ -29,6 +29,17 @@ from (values
 
 insert into public.manager_relations(employee_id,manager_employee_id,relation_type,effective_from)
 values('82000000-0000-4000-8000-000000000002','82000000-0000-4000-8000-000000000003','primary',current_date);
+
+-- Seed KPI permissions if missing (seed file may not have been applied)
+insert into public.permissions(code,module,resource,action)
+values('performance.kpi.self_assess','performance','kpi','self_assess'),
+      ('performance.kpi.manager_assess','performance','kpi','manager_assess')
+on conflict(code) do nothing;
+
+insert into public.role_permissions(role_id,permission_id)
+select r.id,p.id from public.roles r, public.permissions p
+where r.slug='employee' and p.code='performance.kpi.self_assess'
+on conflict do nothing;
 
 create temporary table kpi_runtime_result(
  cycle_id uuid,evaluation_id uuid,stage text,workflow_status text,final_score numeric,

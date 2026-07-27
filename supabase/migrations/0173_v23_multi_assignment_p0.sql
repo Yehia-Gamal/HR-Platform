@@ -55,6 +55,9 @@ create index if not exists idx_employee_departments_active
 -- ═══════════════════════════════════════════════════════════════════════
 -- 2) تحديث assign_employee_department لدعم الحقول الجديدة
 -- ═══════════════════════════════════════════════════════════════════════
+-- حذف التحميل الزائد القديم (5 params من 0156) لمنع تضارب الدوال
+drop function if exists public.assign_employee_department(uuid, uuid, text, boolean, text);
+
 create or replace function public.assign_employee_department(
   p_employee_id uuid,
   p_department_id uuid,

@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(18);
+select plan(16);
 
 -- ═══════════════════════════════════════════════════════════════════════
 -- 1) الدالة لا تزال موجودة بنفس التوقيع
@@ -46,8 +46,8 @@ begin
     values(v_emp,'ST76-001','موظف كشف V23',v_dept,'active',true,'1990-01-01','2020-01-01');
 
   -- وردية ثابتة (8 ساعات: 09:00-17:00، بدون استراحة)
-  insert into public.shifts(id,name,start_time,end_time,crosses_midnight,break_minutes)
-    values(v_shift,'وردية اختبار','09:00','17:00',false,0);
+  insert into public.shifts(id,code,name,start_time,end_time,crosses_midnight,break_minutes)
+    values(v_shift,'ST76-SH','وردية اختبار','09:00','17:00',false,0);
 
   -- 2026-07-01 (أربعاء) — حاضر مع وردية
   insert into public.attendance_daily(employee_id,work_date,status,shift_id,

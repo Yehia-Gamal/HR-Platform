@@ -42,10 +42,11 @@ language sql stable security definer set search_path = public, pg_temp
 as $$
   select case
     when exists (
-      select 1 from public.employee_roles er
-        join public.roles r on r.id = er.role_id
-      where er.employee_id = p_manager_id
-        and er.is_active = true
+      select 1 from public.user_roles ur
+        join public.roles r on r.id = ur.role_id
+        join public.profiles p on p.id = ur.user_id
+      where p.employee_id = p_manager_id
+        and p.status = 'active'
         and r.slug = 'executive-director'
     )
     then coalesce(

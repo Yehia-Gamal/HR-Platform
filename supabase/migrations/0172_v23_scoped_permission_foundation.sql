@@ -39,7 +39,10 @@ as $$
        'department_id', e.department_id,
        'branch_id', e.branch_id,
        'team_id', e.team_id,
-       'manager_id', e.manager_id,
+       'manager_id', (select mr.manager_employee_id from public.manager_relations mr
+                      where mr.employee_id = e.id and mr.relation_type = 'primary'
+                        and (mr.effective_to is null or mr.effective_to >= current_date)
+                      limit 1),
        'departments', coalesce(
          (select jsonb_agg(ed.department_id)
           from public.employee_departments ed
@@ -110,9 +113,12 @@ begin
     when 'subordinate' then
       -- يملك الصلاحية إذا كان الهدف أحد مرؤوسيه
       return exists (
-        select 1 from public.employees e
-        where e.id = p_scope_id
-          and e.manager_id = (v_scope->>'employee_id')::uuid
+        select 1 from public.manager_relations mr
+        join public.employees e on e.id = mr.employee_id
+        where mr.employee_id = p_scope_id
+          and mr.manager_employee_id = (v_scope->>'employee_id')::uuid
+          and mr.relation_type = 'primary'
+          and (mr.effective_to is null or mr.effective_to >= current_date)
           and e.is_active = true
       );
     else

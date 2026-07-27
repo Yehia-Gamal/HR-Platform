@@ -98,6 +98,12 @@ begin
   insert into public.user_roles(user_id, role_id)
   select 'a5500000-0000-4000-8000-000000000103', id from public.roles where slug='employee';
 
+  -- Seed holidays.manage → hr-specialist if missing (seed may not have applied)
+  insert into public.role_permissions(role_id, permission_id)
+  select r.id, p.id from public.roles r, public.permissions p
+  where r.slug='hr-specialist' and p.code='holidays.manage'
+  on conflict do nothing;
+
   -- === Holiday test data ===
 
   -- Global holiday (scope = 'all')
