@@ -23,7 +23,7 @@ class _EmployeeWorkspaceState extends State<EmployeeWorkspace> {
       EmployeeHomePage(access: widget.access),
       const MobileAttendancePage(),
       const MobileSelfServicePage(),
-      MobileKpiPage(access: widget.access),
+      MobileKpiPage(access: widget.access, employeeOnly: true),
       const MobileProfilePage(),
     ];
     return WorkspaceScaffold(

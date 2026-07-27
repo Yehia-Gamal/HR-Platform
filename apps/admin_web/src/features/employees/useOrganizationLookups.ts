@@ -27,7 +27,7 @@ export function useOrganizationLookups() {
     if (auth.isMock) return mock;
     const supabase = await getSupabase();
     const [roles, employees, branches, sites, departments, teams, titles, positions, grades, employmentTypes] = await Promise.all([
-      supabase.from('roles').select('id,slug,name_ar,is_full_access').order('name_ar'),
+      supabase.from('roles').select('id,slug,name_ar,is_full_access,is_capability').order('name_ar'),
       supabase.from('employees').select('id,full_name_ar,employee_code').eq('is_active', true).eq('is_deleted', false).order('full_name_ar'),
       supabase.from('branches').select('id,name').eq('is_active', true).order('name'),
       supabase.from('work_sites').select('id,name,branch_id').eq('is_active', true).order('name'),
@@ -41,10 +41,11 @@ export function useOrganizationLookups() {
     const firstError = [roles, employees, branches, sites, departments, teams, titles, positions, grades, employmentTypes].find((result) => result.error)?.error;
     if (firstError) throw firstError;
     return {
-      // Full-access roles (admin / executive secretary) are intentionally
-      // excluded here: provision_employee_record bypasses rpc_assign_role's
-      // full-access guard, so those roles must be assigned only via /admin/access.
-      roles: (roles.data ?? []).filter((r) => !r.is_full_access).map((r) => ({ id: r.id, slug: r.slug, label: r.name_ar })),
+      // Full-access roles (admin / executive secretary) and capability roles
+      // (committee-member / committee-chair) are intentionally excluded here:
+      // full-access → provision_employee_record bypasses rpc_assign_role guard;
+      // capability → contextual roles added via committee management, not employee creation.
+      roles: (roles.data ?? []).filter((r) => !r.is_full_access && !r.is_capability).map((r) => ({ id: r.id, slug: r.slug, label: r.name_ar })),
       // إخفاء كود الموظف إذا كان رقم هاتف (يبدأ بـ + أو 01) — المشتق تلقائياً من الهاتف
       managers: (employees.data ?? []).map((r) => ({ id: r.id, label: /^\+|^01\d/.test(r.employee_code) ? r.full_name_ar : `${r.full_name_ar} · ${r.employee_code}` })),
       branches: (branches.data ?? []).map((r) => option(r)),

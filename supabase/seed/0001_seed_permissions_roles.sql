@@ -301,27 +301,28 @@ on conflict (code) do update set
 --    is_full_access=true لـ admin والسكرتير التنفيذي بصفته الأدمن الرئيسي.
 -- =====================================================================================
 
-insert into public.roles (slug, name_ar, name_en, description, is_system, is_full_access)
+insert into public.roles (slug, name_ar, name_en, description, is_system, is_full_access, is_capability)
 values
-  ('admin',               'مدير النظام (كامل الصلاحية)', 'System Administrator (Full Access)', 'وصول كامل — super/full admin', true,  true),
-  ('employee',            'موظف',                        'Employee',                           'صلاحيات الموظف على بياناته فقط', true, false),
-  ('operations-officer',  'ضابط عمليات',                 'Operations Officer',                 'تنفيذ المهام والعمليات الميدانية', true, false),
-  ('operations-manager',  'مدير العمليات',               'Operations Manager',                 'إدارة العمليات والمهام والحوادث والقوافل', true, false),
-  ('direct-manager',      'مدير مباشر',                  'Direct Manager',                     'إدارة المرؤوسين المباشرين والموافقات وتقييم الأداء', true, false),
-  ('department-manager',  'مدير إدارة',                  'Department Manager',                 'إدارة على مستوى الإدارة', true, false),
-  ('hr-specialist',       'أخصائي موارد بشرية',          'HR Specialist',                      'تنفيذ عمليات الموارد البشرية', true, false),
-  ('hr-manager',          'مدير الموارد البشرية',        'HR Manager',                         'إدارة الموارد البشرية على مستوى المنظمة', true, false),
-  ('executive-secretary', 'السكرتير التنفيذي (الأدمن الرئيسي)', 'Executive Secretary (Main Administrator)', 'إدارة النظام بالكامل ومراجعة الأداء والتحكم في دوراته', true, true),
-  ('executive-director',  'المدير التنفيذي',             'Executive Director',                 'الاعتماد النهائي والقرارات والتقارير التنفيذية', true, false),
-  ('committee-member',    'عضو لجنة',                    'Committee Member',                   'مراجعة الحالات المسندة للجنة', true, false),
-  ('committee-chair',     'رئيس لجنة',                   'Committee Chair',                    'قيادة اللجان واعتماد الإجراءات التأديبية', true, false),
-  ('system-admin',        'مسؤول تقني',                  'System Admin (Technical)',           'إدارة إعدادات النظام والتكامل والمهام والنسخ الاحتياطي', true, false)
+  ('admin',               'مدير النظام (كامل الصلاحية)', 'System Administrator (Full Access)', 'وصول كامل — super/full admin', true,  true,  false),
+  ('employee',            'موظف',                        'Employee',                           'صلاحيات الموظف على بياناته فقط', true, false, false),
+  ('operations-officer',  'ضابط عمليات',                 'Operations Officer',                 'تنفيذ المهام والعمليات الميدانية', true, false, false),
+  ('operations-manager',  'مدير العمليات',               'Operations Manager',                 'إدارة العمليات والمهام والحوادث والقوافل', true, false, false),
+  ('direct-manager',      'مدير مباشر',                  'Direct Manager',                     'إدارة المرؤوسين المباشرين والموافقات وتقييم الأداء', true, false, false),
+  ('department-manager',  'مدير إدارة',                  'Department Manager',                 'إدارة على مستوى الإدارة', true, false, false),
+  ('hr-specialist',       'أخصائي موارد بشرية',          'HR Specialist',                      'تنفيذ عمليات الموارد البشرية', true, false, false),
+  ('hr-manager',          'مدير الموارد البشرية',        'HR Manager',                         'إدارة الموارد البشرية على مستوى المنظمة', true, false, false),
+  ('executive-secretary', 'السكرتير التنفيذي (الأدمن الرئيسي)', 'Executive Secretary (Main Administrator)', 'إدارة النظام بالكامل ومراجعة الأداء والتحكم في دوراته', true, true,  false),
+  ('executive-director',  'المدير التنفيذي',             'Executive Director',                 'الاعتماد النهائي والقرارات والتقارير التنفيذية', true, false, false),
+  ('committee-member',    'عضو لجنة',                    'Committee Member',                   'مراجعة الحالات المسندة للجنة', true, false, true),
+  ('committee-chair',     'رئيس لجنة',                   'Committee Chair',                    'قيادة اللجان واعتماد الإجراءات التأديبية', true, false, true),
+  ('system-admin',        'مسؤول تقني',                  'System Admin (Technical)',           'إدارة إعدادات النظام والتكامل والمهام والنسخ الاحتياطي', true, false, false)
 on conflict (slug) do update set
   name_ar        = excluded.name_ar,
   name_en        = excluded.name_en,
   description    = excluded.description,
   is_system      = excluded.is_system,
   is_full_access = excluded.is_full_access,
+  is_capability  = excluded.is_capability,
   updated_at     = now();
 
 -- =====================================================================================

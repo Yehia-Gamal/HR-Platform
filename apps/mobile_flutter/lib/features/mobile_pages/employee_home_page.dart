@@ -208,7 +208,7 @@ class EmployeeHomePage extends ConsumerWidget {
                   () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => MobileKpiPage(access: access),
+                      builder: (_) => MobileKpiPage(access: access, employeeOnly: true),
                     ),
                   ),
                 ),

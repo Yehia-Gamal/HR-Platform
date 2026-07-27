@@ -10,9 +10,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 class MobileKpiPage extends ConsumerStatefulWidget {
-  const MobileKpiPage({required this.access, super.key});
+  const MobileKpiPage({required this.access, this.employeeOnly = false, super.key});
 
   final AccessContext access;
+
+  /// عند true يعرض فقط تقييم الموظف الحالي (مساحة الموظف).
+  final bool employeeOnly;
 
   @override
   ConsumerState<MobileKpiPage> createState() => _MobileKpiPageState();
@@ -68,41 +71,56 @@ class _MobileKpiPageState extends ConsumerState<MobileKpiPage> {
           ],
         ),
         data: (items) {
-          final visible = items.where(_matches).toList(growable: false);
+          // في مساحة الموظف: تصفية للتقييم الذاتي فقط.
+          final scoped = widget.employeeOnly
+              ? items.where((e) => e.employeeId == widget.access.employeeId).toList(growable: false)
+              : items;
+          final visible = scoped.where(_matches).toList(growable: false);
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
             children: [
-              MobileFilterBar(
-                searchHint: 'بحث باسم الموظف أو الكود',
-                controller: _searchController,
-                onSearchChanged: (value) =>
-                    setState(() => _search = value.trim().toLowerCase()),
-                // V23: أضفنا مراحل المسار المتوازي (parallel_review, secretary_review, executive_review).
-                options: const [
-                  MobileFilterOption('all', 'كل المراحل'),
-                  MobileFilterOption('self', 'الموظف'),
-                  MobileFilterOption('parallel_review', 'مراجعة متوازية'),
-                  MobileFilterOption('hr_review', 'مراجعة HR'),
-                  MobileFilterOption('manager_review', 'مراجعة المدير'),
-                  MobileFilterOption('secretary_review', 'السكرتير'),
-                  MobileFilterOption('executive_review', 'المدير التنفيذي'),
-                  MobileFilterOption('finalized', 'في التقرير'),
-                  MobileFilterOption('closed', 'مغلق'),
-                  MobileFilterOption('archived', 'مؤرشف'),
-                ],
-                selected: _stage,
-                onSelected: (value) => setState(() => _stage = value),
-                resultLabel: '${visible.length} من ${items.length} تقييم',
-                onClear: _search.isEmpty && _stage == 'all'
-                    ? null
-                    : () {
-                        _searchController.clear();
-                        setState(() {
-                          _search = '';
-                          _stage = 'all';
-                        });
-                      },
-              ),
+              if (!widget.employeeOnly)
+                MobileFilterBar(
+                  searchHint: 'بحث باسم الموظف أو الكود',
+                  controller: _searchController,
+                  onSearchChanged: (value) =>
+                      setState(() => _search = value.trim().toLowerCase()),
+                  // V23: أضفنا مراحل المسار المتوازي (parallel_review, secretary_review, executive_review).
+                  options: const [
+                    MobileFilterOption('all', 'كل المراحل'),
+                    MobileFilterOption('self', 'الموظف'),
+                    MobileFilterOption('parallel_review', 'مراجعة متوازية'),
+                    MobileFilterOption('hr_review', 'مراجعة HR'),
+                    MobileFilterOption('manager_review', 'مراجعة المدير'),
+                    MobileFilterOption('secretary_review', 'السكرتير'),
+                    MobileFilterOption('executive_review', 'المدير التنفيذي'),
+                    MobileFilterOption('finalized', 'في التقرير'),
+                    MobileFilterOption('closed', 'مغلق'),
+                    MobileFilterOption('archived', 'مؤرشف'),
+                  ],
+                  selected: _stage,
+                  onSelected: (value) => setState(() => _stage = value),
+                  resultLabel: '${visible.length} من ${scoped.length} تقييم',
+                  onClear: _search.isEmpty && _stage == 'all'
+                      ? null
+                      : () {
+                          _searchController.clear();
+                          setState(() {
+                            _search = '';
+                            _stage = 'all';
+                          });
+                        },
+                ),
+              if (widget.employeeOnly)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    'تقييماتي',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
               const SizedBox(height: 12),
               if (visible.isEmpty) ...[
                 const SizedBox(height: 100),
@@ -110,13 +128,17 @@ class _MobileKpiPageState extends ConsumerState<MobileKpiPage> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.search_off_rounded,
+                      widget.employeeOnly
+                          ? Icons.hourglass_empty_rounded
+                          : Icons.search_off_rounded,
                       size: 48,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'لا توجد تقييمات مطابقة للفلاتر',
+                    Text(
+                      widget.employeeOnly
+                          ? 'لا يوجد تقييم حالي لك'
+                          : 'لا توجد تقييمات مطابقة للفلاتر',
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -125,7 +147,11 @@ class _MobileKpiPageState extends ConsumerState<MobileKpiPage> {
                 ...visible.map(
                   (item) => Padding(
                     padding: const EdgeInsets.only(bottom: 10),
-                    child: _KpiCard(item: item, access: widget.access),
+                    child: _KpiCard(
+                      item: item,
+                      access: widget.access,
+                      employeeOnly: widget.employeeOnly,
+                    ),
                   ),
                 ),
             ],
@@ -144,10 +170,15 @@ class _MobileKpiPageState extends ConsumerState<MobileKpiPage> {
 }
 
 class _KpiCard extends StatelessWidget {
-  const _KpiCard({required this.item, required this.access});
+  const _KpiCard({
+    required this.item,
+    required this.access,
+    this.employeeOnly = false,
+  });
 
   final MobileKpiEvaluation item;
   final AccessContext access;
+  final bool employeeOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -169,35 +200,37 @@ class _KpiCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  AppAvatar(
-                    name: item.employeeName,
-                    photoUrl: item.employeePhotoUrl,
-                    radius: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.employeeName,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        Text(
-                          item.employeeCode ?? 'بدون كود',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
+              // في مساحة الموظف لا داعي لعرض اسم الموظف — هو نفسه.
+              if (!employeeOnly)
+                Row(
+                  children: [
+                    AppAvatar(
+                      name: item.employeeName,
+                      photoUrl: item.employeePhotoUrl,
+                      radius: 20,
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.employeeName,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          Text(
+                            item.employeeCode ?? 'بدون كود',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               Text(
                 kpiWorkflowLabel(item.workflowStatus),
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -257,8 +290,10 @@ class _KpiCard extends StatelessWidget {
   };
 
   String? _allowedAction() {
+    // في مساحة الموظف: زر التقييم الذاتي يظهر مباشرة عندما يكون الدور 'self'.
     if (item.currentStage == 'self' &&
-        access.hasPermission('performance.kpi.self_assess')) {
+        (access.hasPermission('performance.kpi.self_assess') ||
+         (employeeOnly && item.employeeId == access.employeeId))) {
       return 'self';
     }
     if (item.currentStage == 'hr_review' &&
