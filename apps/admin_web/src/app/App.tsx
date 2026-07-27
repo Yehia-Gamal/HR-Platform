@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { WorkspaceId } from '@ahla/shared-contracts';
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { LoadingScreen } from '../ui/LoadingScreen';
+import { safeErrorMessage } from '../core/errorMapper';
 import { useAuth } from '../features/auth/AuthProvider';
 import { LoginPage } from '../features/auth/LoginPage';
 import { isPasswordRecoveryLocation, PasswordSetupPage } from '../features/auth/PasswordSetupPage';
@@ -51,7 +52,7 @@ export function App() {
   if (window.location.pathname === '/mobile-redirect') return <MobileRedirectPage />;
 
   if (release.isLoading) return <LoadingScreen />;
-  if (release.isError) return <WebReleaseCheckError message={release.error instanceof Error ? release.error.message : 'تعذر الاتصال'} onRetry={() => void release.refetch()} />;
+  if (release.isError) return <WebReleaseCheckError message={safeErrorMessage(release.error)} onRetry={() => void release.refetch()} />;
   if (release.data && ['maintenance','update_required','blocked'].includes(release.data.action)) return <WebReleaseStatusPage policy={release.data} onRetry={() => void release.refetch()} />;
 
   if (isPasswordRecoveryLocation()) return <PasswordSetupPage />;
@@ -93,7 +94,9 @@ export function App() {
           <Route path="onboarding" element={<RequirePermission perm="onboarding.journey.read"><OnboardingPage /></RequirePermission>} />
           <Route path="reports" element={<RequirePermission perm="reports.people.read"><ReportsPage /></RequirePermission>} />
           <Route path="holidays" element={<RequirePermission perm="holidays.manage"><OfficialHolidaysPage /></RequirePermission>} />
-          {/* V17: OrgChartPage not yet implemented */}
+          <Route path="requests" element={<RequirePermission perm="requests.request.read"><RequestsPage /></RequirePermission>} />
+          <Route path="devices" element={<RequirePermission perm="access.role.read"><DeviceApprovalPage /></RequirePermission>} />
+          <Route path="organization" element={<RequirePermission perm="organization.org_chart.read"><OrganizationPage /></RequirePermission>} />
           {/* V17 §4.2: hidden secondary modules — learning, documents, lifecycle */}
           <Route path="official-feed" element={<RequirePermission perm="comms.announcement.read"><OfficialFeedPage /></RequirePermission>} />
           <Route path="notifications" element={<NotificationsPage />} />

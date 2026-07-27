@@ -1,6 +1,7 @@
 import { BellRing, CheckCircle2, FileText, ImagePlus, Megaphone, Plus, Send, ShieldCheck, Trash2, User } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { getSupabase } from '../../core/supabase';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
@@ -80,7 +81,7 @@ export function OfficialFeedPage() {
       setBannerUrl(urlData.publicUrl);
       setImagePreview(URL.createObjectURL(prepared));
     } catch (err) {
-      setImageError(err instanceof Error ? err.message : 'تعذر رفع الصورة.');
+      setImageError(safeErrorMessage(err));
     } finally {
       setImageUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

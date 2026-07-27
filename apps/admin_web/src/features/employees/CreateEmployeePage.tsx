@@ -6,6 +6,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { getSupabase } from '../../core/supabase';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { PageHeader } from '../../ui/PageHeader';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { prepareAvatarFile } from '../../ui/avatarImage';
@@ -109,7 +110,7 @@ export function CreateEmployeePage() {
       clearObjectPreview();
       setPhotoPreview(previousPreview);
       form.setValue('photoUrl', previousUrl);
-      setPhotoError(error instanceof Error ? error.message : 'تعذر رفع الصورة.');
+      setPhotoError(safeErrorMessage(error));
     } finally {
       setPhotoUploading(false);
     }
@@ -202,7 +203,7 @@ export function CreateEmployeePage() {
             <Field label="تاريخ التعيين" error={form.formState.errors.hireDate?.message}><input type="date" className="input" {...form.register('hireDate')} /></Field>
             <label className="flex items-center gap-3 self-end rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-semibold"><input type="checkbox" className="size-4" {...form.register('sendInvite')} />إرسال دعوة تفعيل عبر البريد</label>
           </div></div> : null}
-        {step === 1 ? <div><SectionTitle title="الهيكل والوظيفة" description="تحديد المجمّع وموقع العمل والمدير المباشر والمسمى الوظيفي." />{lookups.isError ? <p role="alert" className="mb-4 rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">تعذر تحميل بيانات الهيكل: {lookups.error instanceof Error ? lookups.error.message : 'خطأ'}</p> : null}
+        {step === 1 ? <div><SectionTitle title="الهيكل والوظيفة" description="تحديد المجمّع وموقع العمل والمدير المباشر والمسمى الوظيفي." />{lookups.isError ? <p role="alert" className="mb-4 rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">تعذر تحميل بيانات الهيكل: {safeErrorMessage(lookups.error)}</p> : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <SelectField label="المجمع" options={branches} register={form.register('branchId', uuidValue)} placeholder="اختر المجمع" />
             <SelectField label="موقع العمل" options={workSites} register={form.register('workSiteId', uuidValue)} placeholder="اختر موقع العمل" />

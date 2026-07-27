@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { AppLogo } from '../../ui/AppLogo';
 import { ThemeToggle } from '../../ui/ThemeToggle';
 import { env, hasSupabaseConfig } from '../../core/env';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { useAuth } from './AuthProvider';
 
 const schema = z.object({
@@ -31,7 +32,7 @@ export function LoginPage() {
       setSubmitError(null);
       await auth.signIn(values.identifier, values.password);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'تعذر تسجيل الدخول.';
+      const msg = safeErrorMessage(error);
       setSubmitError(msg);
       // V12 §17: show forgot-password only on credential failure
       if (msg.includes('غير صحيحة')) setShowForgotLink(true);
@@ -51,7 +52,7 @@ export function LoginPage() {
       await auth.requestPasswordReset(email);
       setResetSent(true);
     } catch (error) {
-      setResetError(error instanceof Error ? error.message : 'تعذر إرسال رابط الاستعادة.');
+      setResetError(safeErrorMessage(error));
     } finally {
       setResetBusy(false);
     }

@@ -8,6 +8,8 @@ import { PageHeader } from '../../ui/PageHeader';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useAccessAdminCatalog, useAccessCommands } from './useAdminOperations';
 import type { AccessAdminCatalog } from '@ahla/shared-contracts';
+import { env } from '../../core/env';
+import { safeErrorMessage } from '../../core/errorMapper';
 
 // ─── ترجمة النطاقات ────────────────────────────────────────────────────────
 const SCOPE_AR: Record<string, string> = {
@@ -130,9 +132,9 @@ export function AccessPage() {
   }
 
   return <div className="space-y-6">
-    <PageHeader title="الأدوار والصلاحيات" description="اختر قالب دور لإسناده للمستخدمين، أو أنشئ دوراً مخصصاً بصلاحيات محددة." actions={<button className="btn-primary" onClick={() => openCustomDraft()}><Plus className="size-4"/>دور مخصص</button>}/>
+    <PageHeader title="الأدوار والصلاحيات" description="اختر قالب دور لإسناده للمستخدمين، أو أنشئ دوراً مخصصاً بصلاحيات محددة." actions={env.appEnvironment !== 'production' ? <button className="btn-primary" onClick={() => openCustomDraft()}><Plus className="size-4"/>دور مخصص</button> : undefined}/>
 
-    {query.isError ? <ErrorState title="تعذر تحميل الصلاحيات" description={query.error instanceof Error ? query.error.message : 'غير مصرح'} onRetry={() => void query.refetch()} /> : query.isLoading && !data ? <MetricSkeletonRow /> : null}
+    {query.isError ? <ErrorState title="تعذر تحميل الصلاحيات" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} /> : query.isLoading && !data ? <MetricSkeletonRow /> : null}
 
     {data ? <>
       {/* ── الإحصائيات ── */}
@@ -203,7 +205,7 @@ export function AccessPage() {
         <div className="border-b border-[var(--border)] p-5">
           <h2 className="font-black">إسنادات المستخدمين</h2>
         </div>
-        {commands.revokeRole.isError && <div className="p-5 pb-0"><ErrorBanner message={`تعذر سحب الدور: ${commands.revokeRole.error instanceof Error ? commands.revokeRole.error.message : 'حدث خطأ غير متوقع'}`} /></div>}
+        {commands.revokeRole.isError && <div className="p-5 pb-0"><ErrorBanner message={`تعذر سحب الدور: ${safeErrorMessage(commands.revokeRole.error)}`} /></div>}
         <div className="divide-y divide-[var(--border)]">
           {data.users.map((user) => <article key={user.userId} className="p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -299,6 +301,7 @@ export function AccessPage() {
 // ─── بطاقة قالب الدور ──────────────────────────────────────────────────────
 function RoleTemplateCard({ template, permissionCount, assignmentCount, onClick }: { template: RoleTemplate & { dbRole?: AccessAdminCatalog['roles'][number] }; permissionCount: number; assignmentCount: number; onClick: () => void }) {
   const Icon = template.icon;
+  const isFullAccess = template.dbRole?.fullAccess === true;
   return <button type="button" onClick={onClick} className={`card group relative overflow-hidden border-2 p-5 text-right transition-all hover:shadow-lg ${template.borderColor}`}>
     <div className={`absolute left-0 top-0 h-full w-1.5 ${template.bgColor}`} style={{ backgroundColor: 'currentColor' }}/>
     <div className="flex items-start gap-3">
@@ -311,8 +314,10 @@ function RoleTemplateCard({ template, permissionCount, assignmentCount, onClick 
       </div>
     </div>
     <div className="mt-4 flex items-center justify-between border-t border-[var(--border)] pt-3">
-      <div className="flex gap-4">
-        <span className="text-xs"><strong className={template.color}>{permissionCount}</strong> <span className="muted">صلاحية</span></span>
+      <div className="flex items-center gap-3">
+        {isFullAccess
+          ? <span className="inline-flex items-center gap-1 rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-black text-amber-800">✦ وصول كامل</span>
+          : <span className="text-xs"><strong className={template.color}>{permissionCount}</strong> <span className="muted">صلاحية</span></span>}
         <span className="text-xs"><strong>{assignmentCount}</strong> <span className="muted">مستخدم</span></span>
       </div>
       <ChevronLeft className="size-4 text-[var(--text-muted)] transition-transform group-hover:-translate-x-1"/>

@@ -13,6 +13,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { SkeletonCard } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { MonthlyStatementSection } from '../attendance/MonthlyStatementSection';
@@ -43,7 +44,7 @@ export function EmployeeDetailPage() {
   const item = query.data;
 
   if (query.isError) {
-    return <ErrorState title="تعذر فتح ملف الموظف" description={query.error instanceof Error ? query.error.message : undefined} onRetry={() => void query.refetch()} />;
+    return <ErrorState title="تعذر فتح ملف الموظف" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />;
   }
   if (query.isLoading) {
     return <SkeletonCard className="h-72" />;
@@ -66,7 +67,7 @@ export function EmployeeDetailPage() {
     try {
       setResendMessage(await resend.mutateAsync(employeeId));
     } catch (error) {
-      setResendError(error instanceof Error ? error.message : 'تعذر إعادة إرسال الدعوة.');
+      setResendError(safeErrorMessage(error));
     }
   };
 
@@ -331,7 +332,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
       await update.mutateAsync({ employeeId: item.id, changes, reason: reason.trim() });
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذر تحديث بيانات الموظف.');
+      setError(safeErrorMessage(err));
     }
   };
 
@@ -450,16 +451,17 @@ function ArchiveEmployeeDialog({ employeeId, employeeName, onClose, onSuccess }:
     try { await archive.mutateAsync({ employeeId, reason: reason.trim() }); onSuccess(); }
     catch { setError('تعذر أرشفة الموظف بأمان. تحقق من الصلاحية وأعد المحاولة.'); }
   };
-  return createPortal(<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-    <form onSubmit={(event) => void submit(event)} className="card w-full max-w-md p-6">
-      <h2 className="text-lg font-black">أرشفة الموظف</h2>
-      <p className="muted mt-2 text-sm">سيُعطّل حساب {employeeName} وتُسحب جلساته وأجهزته، مع الاحتفاظ بالسجل التاريخي.</p>
-      {error ? <div role="alert" className="mt-4 rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
-      <label className="mt-4 block"><span className="mb-1.5 block text-sm font-semibold">سبب الأرشفة</span><textarea className="input min-h-24 w-full" required minLength={5} value={reason} onChange={(event) => setReason(event.target.value)} /></label>
-      <label className="mt-4 flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /><span>أؤكد تعطيل الحساب وسحب الجلسات والأجهزة الموثوقة.</span></label>
-      <div className="mt-6 flex justify-end gap-3"><button type="button" className="btn-secondary" onClick={onClose} disabled={archive.isPending}>إلغاء</button><button type="submit" className="btn-primary" disabled={archive.isPending || !confirmed || reason.trim().length < 5}>{archive.isPending ? 'جارٍ الأرشفة…' : 'تأكيد الأرشفة'}</button></div>
-    </form>
-  </div>, document.body);
+  return (
+    <DialogOverlay title="أرشفة الموظف" onClose={onClose} maxWidth="max-w-md">
+      <form onSubmit={(event) => void submit(event)} className="space-y-4">
+        <p className="muted text-sm">سيُعطَّل حساب {employeeName} وتُسحب جلساته وأجهزته، مع الاحتفاظ بالسجل التاريخي.</p>
+        {error ? <div role="alert" className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
+        <label className="block"><span className="mb-1.5 block text-sm font-semibold">سبب الأرشفة</span><textarea className="input min-h-24 w-full" required minLength={5} value={reason} onChange={(event) => setReason(event.target.value)} /></label>
+        <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /><span>أؤكد تعطيل الحساب وسحب الجلسات والأجهزة الموثوقة.</span></label>
+        <div className="flex justify-end gap-3"><button type="button" className="btn-secondary" onClick={onClose} disabled={archive.isPending}>إلغاء</button><button type="submit" className="btn-primary" disabled={archive.isPending || !confirmed || reason.trim().length < 5}>{archive.isPending ? 'جارٍ الأرشفة…' : 'تأكيد الأرشفة'}</button></div>
+      </form>
+    </DialogOverlay>
+  );
 }
 
 function ChangeManagerDialog({ employeeId, currentManagerName, onClose, onSuccess }: { employeeId: string; currentManagerName: string | null; onClose: () => void; onSuccess: () => void }) {
@@ -478,19 +480,18 @@ function ChangeManagerDialog({ employeeId, currentManagerName, onClose, onSucces
       await changeManager.mutateAsync({ employeeId, managerId: selectedManagerId || null, reason });
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذر تغيير المدير.');
+      setError(safeErrorMessage(err));
     }
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <form onSubmit={(e) => void onSubmit(e)} className="card w-full max-w-md p-6">
-        <h2 className="text-lg font-black">تغيير المدير المباشر</h2>
-        <p className="muted mt-2 text-sm">المدير الحالي: {currentManagerName ?? 'غير معين'}</p>
+  return (
+    <DialogOverlay title="تغيير المدير المباشر" onClose={onClose} maxWidth="max-w-md">
+      <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
+        <p className="muted text-sm">المدير الحالي: {currentManagerName ?? 'غير معين'}</p>
 
-        {error ? <div className="mt-4 rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
+        {error ? <div className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
 
-        <label className="mt-4 block">
+        <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">اختر المدير الجديد</span>
           <select
             className="input w-full"
@@ -505,7 +506,7 @@ function ChangeManagerDialog({ employeeId, currentManagerName, onClose, onSucces
           </select>
         </label>
 
-        <label className="mt-4 block">
+        <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">سبب التغيير</span>
           <textarea
             className="input min-h-24 w-full"
@@ -517,15 +518,14 @@ function ChangeManagerDialog({ employeeId, currentManagerName, onClose, onSucces
           />
         </label>
 
-        <div className="mt-6 flex justify-end gap-3">
+        <div className="flex justify-end gap-3">
           <button type="button" onClick={onClose} disabled={changeManager.isPending} className="btn-secondary">إلغاء</button>
           <button type="submit" disabled={changeManager.isPending || reason.trim().length < 3} className="btn-primary">
             {changeManager.isPending ? 'جارٍ الحفظ...' : 'حفظ التغييرات'}
           </button>
         </div>
       </form>
-    </div>,
-    document.body,
+    </DialogOverlay>
   );
 }
 
@@ -606,14 +606,13 @@ function DeleteEmployeeDialog({ employeeId, employeeName, onClose, onSuccess }: 
       await deleteEmployee.mutateAsync({ employeeId });
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'حدث خطأ أثناء الحذف.');
+      setError(safeErrorMessage(err));
     }
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <form onSubmit={(e) => void onSubmit(e)} className="card w-full max-w-md space-y-4 p-6">
-        <h2 className="text-lg font-black text-[var(--danger)]">⚠️ حذف الموظف نهائياً</h2>
+  return (
+    <DialogOverlay title="⚠️ حذف الموظف نهائياً" onClose={onClose} maxWidth="max-w-md">
+      <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
         <p className="text-sm">سيتم حذف <strong>{employeeName}</strong> نهائياً من النظام. لا يمكن التراجع عن هذا الإجراء.</p>
         {error ? <div role="alert" className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
         <label className="block">
@@ -633,8 +632,7 @@ function DeleteEmployeeDialog({ employeeId, employeeName, onClose, onSuccess }: 
           </button>
         </div>
       </form>
-    </div>,
-    document.body,
+    </DialogOverlay>
   );
 }
 
@@ -664,14 +662,13 @@ function AddDepartmentDialog({ employeeId, onClose, onSuccess }: { employeeId: s
       });
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'حدث خطأ أثناء الإضافة.');
+      setError(safeErrorMessage(err));
     }
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <form onSubmit={(e) => void onSubmit(e)} className="card w-full max-w-md space-y-4 p-6">
-        <h2 className="text-lg font-black">إضافة إدارة للموظف</h2>
+  return (
+    <DialogOverlay title="إضافة إدارة للموظف" onClose={onClose} maxWidth="max-w-md">
+      <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
         {error ? <div role="alert" className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
         <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">الإدارة</span>
@@ -695,7 +692,6 @@ function AddDepartmentDialog({ employeeId, onClose, onSuccess }: { employeeId: s
           </button>
         </div>
       </form>
-    </div>,
-    document.body,
+    </DialogOverlay>
   );
 }

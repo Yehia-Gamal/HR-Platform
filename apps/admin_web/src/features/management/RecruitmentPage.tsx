@@ -3,6 +3,7 @@ import { useState, type FormEvent, type ReactNode } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { MetricSkeletonRow } from '../../ui/Skeletons';
@@ -100,7 +101,7 @@ export function RecruitmentPage() {
       {error ? (
         <ErrorState
           title="تعذر تحميل التوظيف"
-          description={error instanceof Error ? error.message : 'تحقق من الصلاحيات والاتصال'}
+          description={safeErrorMessage(error)}
           onRetry={() => { void overview.refetch(); void organization.refetch(); void workbench.refetch(); }}
         />
       ) : overview.isLoading || organization.isLoading ? (

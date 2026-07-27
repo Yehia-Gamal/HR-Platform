@@ -1,7 +1,7 @@
 import { CalendarDays, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { DialogOverlay } from '../../ui/DialogOverlay';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
@@ -199,7 +199,7 @@ function HolidayFormDialog({ holiday, onClose, onSuccess }: { holiday: Holiday |
       }
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذر حفظ العطلة.');
+      setError(safeErrorMessage(err));
     }
   };
 
