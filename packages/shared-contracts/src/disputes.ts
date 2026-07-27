@@ -102,6 +102,27 @@ export const executeActionInputSchema = z.object({
 });
 export type ExecuteActionInput = z.infer<typeof executeActionInputSchema>;
 
+// ─── مدخلات تقديم مشكلة (V23 §16) ────────────────────────────────────────────
+// تطابق submit_my_dispute_v23 RPC — 7 معلمات مبسطة.
+
+export const createDisputeInputSchema = z.object({
+  /** عنوان المشكلة (3–300 حرف) */
+  title: z.string().min(3).max(300),
+  /** وصف المشكلة (10–5000 حرف) */
+  description: z.string().min(10).max(5000),
+  /** نوع القضية */
+  caseType: z.string().min(2).max(100),
+  /** معرّفات الأطراف المعنيين */
+  parties: z.array(z.string().uuid()).default([]),
+  /** معرّفات الشهود */
+  witnesses: z.array(z.string().uuid()).default([]),
+  /** إقرار بصحة المعلومات */
+  truthConfirmed: z.boolean(),
+  /** الموافقة على السرية */
+  confidentialityAccepted: z.boolean(),
+});
+export type CreateDisputeInput = z.infer<typeof createDisputeInputSchema>;
+
 // ─── مدخلات تقديم شكوى — V23 §16 ────────────────────────────────────────────
 // يُطابق RPC submit_my_dispute_v23 (7 معاملات).
 
