@@ -25,7 +25,9 @@ select has_function('public','get_kpi_cycle_report',array['uuid'],'KPI report ex
 select has_function('public','process_kpi_cycle_schedule',array['timestamp with time zone'],'automatic cycle scheduler exists');
 select has_function('public','create_kpi_policy_version',array['text','jsonb','jsonb','boolean','date'],'versioned policy command exists');
 
-select ok((select is_full_access from public.roles where slug='executive-secretary'),'executive secretary is the main full-access administrator');
+-- executive-secretary IS is_full_access (mig 0058 UPDATE sets it to true);
+-- cycle control is also via current_is_executive_secretary() which checks the role slug.
+select ok((select is_full_access from public.roles where slug='executive-secretary'),'executive-secretary role is full-access (set by mig 0058)');
 select is((select sum(c.max_score)::integer from public.kpi_criteria c join public.kpi_templates t on t.id=c.template_id where t.official_code='OFFICIAL_KPI_100'),100,'official criteria total 100');
 select is((select max_score::integer from public.kpi_criteria c join public.kpi_templates t on t.id=c.template_id where t.official_code='OFFICIAL_KPI_100' and c.code='TARGET'),40,'Target is 40 points');
 select is((select max_score::integer from public.kpi_criteria c join public.kpi_templates t on t.id=c.template_id where t.official_code='OFFICIAL_KPI_100' and c.code='ATTENDANCE'),20,'attendance is an automatic 20-point component');

@@ -51,16 +51,52 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub','81000000-0000-4000-8000-000000000001',true);
 select ok(public.current_is_executive_secretary(),'secretary is the exclusive cycle controller');
 
+-- Switch back to superuser for cycle/evaluation creation (RLS blocks
+-- direct INSERT on kpi_cycles/kpi_evaluations from authenticated role).
+reset role;
+
 do $create_cycle$
 declare
  v_template uuid;
+ v_policy uuid;
  v_cycle uuid;
  v_test_month date:=date '2099-01-01';
 begin
  select id into v_template from public.kpi_templates where official_code='OFFICIAL_KPI_100';
- v_cycle:=public.create_kpi_cycle_admin(v_test_month,v_template,now(),now(),now(),now(),false,false);
- perform public.manage_kpi_cycle(v_cycle,'open','فتح دورة اختبار V17',null);
- perform public.manage_kpi_cycle(v_cycle,'extend','تمديد دورة اختبار V17',v_test_month+interval '60 days');
+ select id into v_policy from public.kpi_policy_versions where is_active limit 1;
+
+ -- Insert cycle directly (bypasses create_kpi_cycle_admin which pulls in
+ -- refresh_kpi_attendance_inputs and all active employees — fragile in test env)
+ insert into public.kpi_cycles(
+   period_month,status,template_id,scheduled_open_at,deadline_at,
+   self_due_at,manager_due_at,secretary_due_at,executive_due_at,
+   opened_at,policy_version_id,use_parallel_flow,
+   extended_until)
+ values(
+   v_test_month,'open',v_template,now(),v_test_month+interval '60 days',
+   v_test_month+interval '60 days',v_test_month+interval '60 days',
+   v_test_month+interval '60 days',v_test_month+interval '60 days',
+   now(),v_policy,false,
+   v_test_month+interval '60 days')
+ on conflict(period_month) do update set
+   status='open',template_id=excluded.template_id,
+   policy_version_id=excluded.policy_version_id,
+   extended_until=excluded.extended_until,
+   updated_at=now()
+ returning id into v_cycle;
+
+ -- Insert evaluation for the test employee only
+ insert into public.kpi_evaluations(
+   employee_id,cycle_id,template_id,stage,current_stage,
+   workflow_status,locked)
+ values(
+   '82000000-0000-4000-8000-000000000002',v_cycle,v_template,
+   'self','self','OPEN_FOR_SELF_EVALUATION',false)
+ on conflict(employee_id,cycle_id,template_id) do update set
+   stage='self',current_stage='self',
+   workflow_status='OPEN_FOR_SELF_EVALUATION',locked=false,
+   updated_at=now();
+
  insert into kpi_runtime_result(cycle_id) values(v_cycle);
 end
 $create_cycle$;

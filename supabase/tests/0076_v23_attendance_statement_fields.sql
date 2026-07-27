@@ -33,55 +33,58 @@ select ok(
 -- ═══════════════════════════════════════════════════════════════════════
 -- 2) Fixture: موظف + حضور + عطلة + إذن
 -- ═══════════════════════════════════════════════════════════════════════
-do $fixture$
-declare
-  v_le uuid := 'fa000000-0000-4000-8000-000000000000';
-  v_dept uuid := 'fa000000-0000-4000-8000-000000000001';
-  v_emp uuid := 'fa000000-0000-4000-8000-000000000010';
-  v_shift uuid := 'fa000000-0000-4000-8000-000000000020';
-begin
-  insert into public.legal_entities(id,code,name) values(v_le,'ST76-LE','كيان §14');
-  insert into public.departments(id,legal_entity_id,code,name) values(v_dept,v_le,'ST76-D','إدارة §14');
-  insert into public.employees(id,employee_code,full_name_ar,department_id,status,is_active,birth_date,hire_date)
-    values(v_emp,'ST76-001','موظف كشف V23',v_dept,'active',true,'1990-01-01','2020-01-01');
+-- Plain SQL INSERTs (no DO block — clearer error on failure)
+insert into public.legal_entities(id,code,name)
+  values('fa000000-0000-4000-8000-000000000000','ST76-LE','كيان §14');
 
-  -- وردية ثابتة (8 ساعات: 09:00-17:00، بدون استراحة)
-  insert into public.shifts(id,code,name,start_time,end_time,crosses_midnight,break_minutes)
-    values(v_shift,'ST76-SH','وردية اختبار','09:00','17:00',false,0);
+insert into public.departments(id,legal_entity_id,code,name)
+  values('fa000000-0000-4000-8000-000000000001',
+         'fa000000-0000-4000-8000-000000000000','ST76-D','إدارة §14');
 
-  -- 2026-07-01 (أربعاء) — حاضر مع وردية
-  insert into public.attendance_daily(employee_id,work_date,status,shift_id,
-    first_check_in,last_check_out,work_minutes,late_minutes)
-    values(v_emp,'2026-07-01','present',v_shift,
-      '2026-07-01 09:05:00+02','2026-07-01 17:10:00+02',485,5);
+insert into public.employees(id,employee_code,full_name_ar,department_id,status,is_active,birth_date,hire_date)
+  values('fa000000-0000-4000-8000-000000000010','ST76-001','موظف كشف V23',
+         'fa000000-0000-4000-8000-000000000001','active',true,'1990-01-01','2020-01-01');
 
-  -- 2026-07-02 (خميس) — غائب
-  insert into public.attendance_daily(employee_id,work_date,status,work_minutes)
-    values(v_emp,'2026-07-02','absent',0);
+-- وردية ثابتة (8 ساعات: 09:00-17:00، بدون استراحة)
+insert into public.shifts(id,code,name,start_time,end_time,crosses_midnight,break_minutes)
+  values('fa000000-0000-4000-8000-000000000020','ST76-SH','وردية اختبار',
+         '09:00','17:00',false,0);
 
-  -- 2026-07-06 (أحد) — حاضر مع وردية + إذن تأخير معتمد
-  insert into public.attendance_daily(employee_id,work_date,status,shift_id,
-    first_check_in,last_check_out,work_minutes,late_minutes)
-    values(v_emp,'2026-07-06','late',v_shift,
-      '2026-07-06 09:30:00+02','2026-07-06 17:00:00+02',450,30);
+-- 2026-07-01 (أربعاء) — حاضر مع وردية
+insert into public.attendance_daily(employee_id,work_date,status,shift_id,
+  first_check_in,last_check_out,work_minutes,late_minutes)
+  values('fa000000-0000-4000-8000-000000000010','2026-07-01','present',
+         'fa000000-0000-4000-8000-000000000020',
+         '2026-07-01 09:05:00+02','2026-07-01 17:10:00+02',485,5);
 
-  insert into public.attendance_permits(employee_id,kind,permit_date,status,grace_minutes)
-    values(v_emp,'arrival','2026-07-06','approved',30);
+-- 2026-07-02 (خميس) — غائب
+insert into public.attendance_daily(employee_id,work_date,status,work_minutes)
+  values('fa000000-0000-4000-8000-000000000010','2026-07-02','absent',0);
 
-  -- 2026-07-07 (اثنين) — حاضر + إذن انصراف مبكر
-  insert into public.attendance_daily(employee_id,work_date,status,shift_id,
-    first_check_in,last_check_out,work_minutes,early_leave_minutes)
-    values(v_emp,'2026-07-07','present',v_shift,
-      '2026-07-07 09:00:00+02','2026-07-07 16:00:00+02',420,60);
+-- 2026-07-06 (أحد) — حاضر مع وردية + إذن تأخير معتمد
+insert into public.attendance_daily(employee_id,work_date,status,shift_id,
+  first_check_in,last_check_out,work_minutes,late_minutes)
+  values('fa000000-0000-4000-8000-000000000010','2026-07-06','late',
+         'fa000000-0000-4000-8000-000000000020',
+         '2026-07-06 09:30:00+02','2026-07-06 17:00:00+02',450,30);
 
-  insert into public.attendance_permits(employee_id,kind,permit_date,status,grace_minutes)
-    values(v_emp,'departure','2026-07-07','approved',60);
+insert into public.attendance_permits(employee_id,kind,permit_date,status,grace_minutes)
+  values('fa000000-0000-4000-8000-000000000010','arrival','2026-07-06','approved',30);
 
-  -- عطلة رسمية: 2026-07-09 (أربعاء)
-  insert into public.public_holidays(holiday_date,name,is_active)
-    values('2026-07-09','عطلة اختبار',true)
-    on conflict do nothing;
-end $fixture$;
+-- 2026-07-07 (اثنين) — حاضر + إذن انصراف مبكر
+insert into public.attendance_daily(employee_id,work_date,status,shift_id,
+  first_check_in,last_check_out,work_minutes,early_leave_minutes)
+  values('fa000000-0000-4000-8000-000000000010','2026-07-07','present',
+         'fa000000-0000-4000-8000-000000000020',
+         '2026-07-07 09:00:00+02','2026-07-07 16:00:00+02',420,60);
+
+insert into public.attendance_permits(employee_id,kind,permit_date,status,grace_minutes)
+  values('fa000000-0000-4000-8000-000000000010','departure','2026-07-07','approved',60);
+
+-- عطلة رسمية: 2026-07-09 (أربعاء)
+insert into public.public_holidays(holiday_date,name,is_active)
+  values('2026-07-09','عطلة اختبار',true)
+  on conflict do nothing;
 
 -- ═══════════════════════════════════════════════════════════════════════
 -- 3) تشغيل الكشف

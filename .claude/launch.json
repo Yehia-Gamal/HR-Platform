@@ -7,6 +7,11 @@
       "runtimeArgs": ["run", "dev:web"],
       "port": 4173,
       "autoPort": true
+    },
+    {
+      "name": "vercel-live",
+      "url": "https://ahla-shabab-management-os.vercel.app",
+      "port": 443
     }
   ]
 }

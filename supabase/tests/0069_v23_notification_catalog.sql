@@ -142,11 +142,13 @@ select lives_ok(
 reset role;
 
 -- Verify both device_approved and device_rejected notifications exist for emp1
+-- Note: mig 0169 removed notification logic from approve_device function,
+-- but mig 0177 re-added it via trigger trg_device_approval_notify on employee_devices.
 select is(
   (select count(*)::int from public.notifications
    where recipient_employee_id = 'ffbb0000-0000-4000-8000-000000000002'
      and metadata->>'kind' in ('device_approved','device_rejected'))::int,
-  2, '8: employee received both approved + rejected notifications');
+  2, '8: device approval trigger emits approved + rejected notifications (mig 0177)');
 
 -- =====================================================================
 -- 9: Holiday broadcast -> all active employees notified

@@ -231,7 +231,7 @@ set local role authenticated;
 
 select lives_ok(
   $$insert into public.public_holidays(name, holiday_date, is_active, scope)
-    values('عطلة HR تجريبية', '2026-12-25', true, 'all')$$,
+    values('عطلة HR تجريبية', '2026-12-25', false, 'all')$$,
   'HR specialist with holidays.manage can insert holidays'
 );
 

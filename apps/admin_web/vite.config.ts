@@ -25,6 +25,6 @@ export default defineConfig({
     css: true,
     pool: 'threads',
     testTimeout: 30_000,
-    exclude: ['e2e/**', 'node_modules/**'],
+    exclude: ['e2e/**', 'node_modules/**', '**/.claude/worktrees/**'],
   },
 });

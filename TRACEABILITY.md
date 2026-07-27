@@ -87,7 +87,7 @@
 | 7.2 | أرصدة الإجازات (15/6/policy) | 7 | `leave_entitlements` | tables | 0060 | 0038 | IMPLEMENTED |
 | 7.3 | العارضة = تنفيذ مباشر بشروط | 7 | `submit_casual_leave` | RPCs | 0061 | 0038 | IMPLEMENTED |
 | 7.4 | مسار القرار (مدير → تصعيد) | 7 | `resolve_request_approver` | RPCs | 0062,0136 | 0056 | RUNTIME_VERIFIED |
-| 7.5 | لا اعتماد ذاتي | 7 | `no_self_approve` check | RPCs | 0062 | 0056 | IMPLEMENTED |
+| 7.5 | لا اعتماد ذاتي | 7 | `no_self_approve` check | RPCs | 0062 | 0027,0060 | TESTED |
 | 7.6 | التكليفات (مأمورية/قافلة/فاندي) | 7 | `work_assignments` | tables | 0063,0065 | 0039 | RUNTIME_VERIFIED |
 | 7.7 | لا خصم رصيد في فترة التكليف | 7 | `attendance_link` | RPCs | 0065,0066 | 0039 | IMPLEMENTED |
 
@@ -141,8 +141,8 @@
 
 | # | المتطلب | الوكيل | Root Cause | الملفات | Migration | الاختبارات | الحالة |
 |---|---|---|---|---|---|---|---|
-| 12.1 | P0: Primary + Secondary assignments | 4 | `employee_departments` | tables | 0156 | — | IMPLEMENTED |
-| 12.2 | الطلبات والحضور وKPI تعتمد Primary | 4,6,7,8 | primary flag | `employee_departments` | 0156 | — | IMPLEMENTED |
+| 12.1 | P0: Primary + Secondary assignments | 4 | `employee_departments` | tables | 0156 | 0074,0077 | TESTED |
+| 12.2 | الطلبات والحضور وKPI تعتمد Primary | 4,6,7,8 | primary flag | `employee_departments` | 0156 | 0074,0077 | TESTED |
 
 ---
 
@@ -167,7 +167,7 @@
 | # | المتطلب | الوكيل | Root Cause | الملفات | Migration | الاختبارات | الحالة |
 |---|---|---|---|---|---|---|---|
 | 14.1 | Default Deny | 3 | RLS policies | all tables | 0050,0052,0095,0096 | 0031,0044 | RUNTIME_VERIFIED |
-| 14.2 | USING(true) allowlist موثقة | 3,14 | audit review | V21 §19.1.2 | — | — | DISCOVERED |
+| 14.2 | USING(true) allowlist موثقة | 3,14 | audit review | `docs/USING_TRUE_ALLOWLIST.md` | — | — | IMPLEMENTED |
 | 14.3 | RLS تدريجي + Feature Flags | 3 | gradual rollout | — | — | — | DESIGNED |
 | 14.4 | Migration names: YYYYMMDDHHMMSS | 2,14 | naming convention | all migrations | — | — | RUNTIME_VERIFIED |
 | 14.5 | Security/QA من Wave 0 | 3,14 | policy | CI + tests | — | — | RUNTIME_VERIFIED |
@@ -190,10 +190,10 @@
 |---|---|---|
 | RELEASED | 0 | 0% |
 | RUNTIME_VERIFIED | 33 | 58% |
-| TESTED | 1 | 2% |
-| IMPLEMENTED | 20 | 35% |
+| TESTED | 4 | 7% |
+| IMPLEMENTED | 18 | 32% |
 | DESIGNED | 2 | 4% |
-| DISCOVERED | 1 | 2% |
+| DISCOVERED | 0 | 0% |
 | **المجموع** | **57** | **100%** |
 
 ---
@@ -202,8 +202,5 @@
 
 1. **§3.4** — RLS/ABAC بالكامل تعتمد reporting lines (مصمم، بحاجة اختبار شامل)
 2. **§7.2-7.3** — أرصدة الإجازات والعارضة (مُنفذ، بحاجة Runtime verification)
-3. **§7.5** — لا اعتماد ذاتي (مُنفذ، بحاجة اختبار E2E)
-4. **§8.4** — Executive لا يقيم KPI (مُنفذ، بحاجة Runtime verification)
-5. **§12.1-12.2** — Multi-department (P0 مُنفذ، بحاجة اختبارات)
-6. **§14.2** — USING(true) allowlist (مُكتشف فقط، بحاجة توثيق كامل)
-7. **§14.3** — RLS تدريجي + Feature Flags (مصمم، لم يُنفذ)
+3. **§8.4** — Executive لا يقيم KPI (مُنفذ، بحاجة Runtime verification)
+4. **§14.3** — RLS تدريجي + Feature Flags (مصمم، لم يُنفذ)

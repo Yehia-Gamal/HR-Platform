@@ -16,6 +16,10 @@ final connectivityProvider =
 class ConnectivityNotifier extends Notifier<ConnectivityState> {
   Timer? _timer;
   bool _wasOffline = false;
+  /// عدد الفشل المتتالي — نعتبره offline بعد فشلين متتاليين
+  /// حتى لا يظهر البانر عند خطأ DNS مؤقت واحد.
+  int _consecutiveFailures = 0;
+  static const _failThreshold = 2;
 
   @override
   ConnectivityState build() {
@@ -28,15 +32,16 @@ class ConnectivityNotifier extends Notifier<ConnectivityState> {
 
   void _start() {
     unawaited(_check());
-    _timer = Timer.periodic(const Duration(seconds: 10), (_) => _check());
+    _timer = Timer.periodic(const Duration(seconds: 15), (_) => _check());
   }
 
   Future<void> _check() async {
     try {
       final connected = await hasNetworkConnection().timeout(
-        const Duration(seconds: 5),
+        const Duration(seconds: 8),
       );
       if (connected) {
+        _consecutiveFailures = 0;
         if (_wasOffline) {
           state = ConnectivityState.reconnecting;
           _wasOffline = false;
@@ -47,16 +52,20 @@ class ConnectivityNotifier extends Notifier<ConnectivityState> {
           state = ConnectivityState.online;
         }
       } else {
-        _wasOffline = true;
-        state = ConnectivityState.offline;
+        _onFailure();
       }
     } on SocketException {
-      _wasOffline = true;
-      state = ConnectivityState.offline;
+      _onFailure();
     } on TimeoutException {
-      _wasOffline = true;
-      state = ConnectivityState.offline;
+      _onFailure();
     } catch (_) {
+      _onFailure();
+    }
+  }
+
+  void _onFailure() {
+    _consecutiveFailures++;
+    if (_consecutiveFailures >= _failThreshold) {
       _wasOffline = true;
       state = ConnectivityState.offline;
     }
