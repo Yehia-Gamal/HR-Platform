@@ -107,6 +107,21 @@ export function useEmployee360(employeeId: string | undefined) {
   });
 }
 
+// خريطة أخطاء Edge Function → رسائل عربية
+const INVITE_ERROR_MESSAGES: Record<string, string> = {
+  forbidden: 'ليس لديك صلاحية لإرسال الدعوات.',
+  no_linked_account: 'الموظف ليس لديه حساب مربوط بعد.',
+  account_email_missing: 'لا يوجد بريد إلكتروني مسجّل للموظف.',
+  too_many_requests: 'أُرسلت دعوة مؤخرًا. انتظر دقيقة ثم أعد المحاولة.',
+  invite_send_failed: 'تعذر إرسال البريد. أعد المحاولة لاحقًا.',
+  permission_check_failed: 'تعذر التحقق من الصلاحية.',
+  lookup_failed: 'تعذر البحث عن بيانات الموظف.',
+  server_not_configured: 'الخدمة غير مهيأة. تواصل مع الدعم.',
+  validation_failed: 'بيانات الطلب غير صالحة.',
+  rate_limit_check_failed: 'تعذر التحقق من حد الإرسال. أعد المحاولة.',
+  invalid_session: 'انتهت صلاحية الجلسة. سجّل الدخول مجددًا.',
+};
+
 // Re-sends the account-activation / password-setup email for an employee whose
 // account is not yet active. The edge function is permission-gated and uses the
 // server-configured redirect (Vercel), so the link never points at localhost.
@@ -117,7 +132,16 @@ export function useResendInvite() {
       if (auth.isMock) return 'وضع التطوير: لم يُرسل بريد فعلي.';
       const supabase = await getSupabase();
       const { data, error } = await supabase.functions.invoke('admin-resend-invite', { body: { employeeId } });
-      if (error) throw error;
+      if (error) {
+        // FunctionsHttpError: استخراج رسالة الخطأ الفعلية من جسم الاستجابة
+        const resp = (error as Record<string, unknown>).context;
+        if (resp instanceof Response) {
+          const body = await resp.json().catch(() => null) as { error?: string } | null;
+          const code = body?.error;
+          if (code && INVITE_ERROR_MESSAGES[code]) throw new Error(INVITE_ERROR_MESSAGES[code]);
+        }
+        throw error;
+      }
       const email = (data as { email?: string } | null)?.email;
       return email ? `أُعيد إرسال رابط التفعيل إلى ${email}.` : 'أُعيد إرسال رابط التفعيل.';
     },

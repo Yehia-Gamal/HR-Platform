@@ -27,6 +27,7 @@ const ERROR_PATTERNS: Array<[RegExp, string]> = [
   // Supabase RPC / Edge Functions
   [/Could not find.*function/i, 'الخدمة غير متوفرة حاليًا. أعد المحاولة لاحقًا.'],
   [/function.*does not exist/i, 'الخدمة غير متوفرة حاليًا. أعد المحاولة لاحقًا.'],
+  [/Edge Function returned a non-2xx/i, 'فشل تنفيذ العملية على الخادم. أعد المحاولة لاحقًا.'],
 
   // مصادقة / JWT
   [/JWT expired/i, 'انتهت صلاحية الجلسة. سجّل الدخول مجددًا.'],
