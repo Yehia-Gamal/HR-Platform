@@ -21,8 +21,11 @@ describe('post publishing contracts — V17 §18', () => {
     expect(PUBLISHER_CHANNELS.executive_mobile).toBe('mobile');
   });
 
-  it('post types are announcement and decision', () => {
-    expect(postTypeSchema.options).toEqual(['announcement', 'decision']);
+  it('post types include all V23 types', () => {
+    expect(postTypeSchema.options).toEqual([
+      'announcement', 'decision', 'alert', 'poll',
+      'meeting', 'holiday_notice', 'kpi_notice', 'attendance_notice',
+    ]);
   });
 
   it('create post input enforces title 3–300, body 3–5000', () => {

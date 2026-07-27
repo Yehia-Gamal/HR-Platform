@@ -6,9 +6,13 @@ import {
   CalendarDays,
   Clock3,
   FileWarning,
+  MapPin,
   Plus,
   ShieldAlert,
   Sparkles,
+  UserCheck,
+  UserMinus,
+  UserX,
   Users,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -17,10 +21,13 @@ import { MetricCard } from '../../ui/MetricCard';
 import { MetricSkeletonRow } from '../../ui/Skeletons';
 import { useAuth } from '../auth/AuthProvider';
 import { useDashboardOverview } from '../management/useManagementOverviews';
+import { useAttendanceTodayOverview } from './useAttendanceTodayOverview';
 
 export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
   const auth = useAuth();
   const query = useDashboardOverview(type === 'hr' ? 'hr' : 'main_admin');
+  const attendance = useAttendanceTodayOverview();
+  const att = attendance.data;
   const data = query.data;
   const today = new Intl.DateTimeFormat('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
   const cards = data ? (type === 'hr' ? [
@@ -96,6 +103,23 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5" aria-label="المؤشرات الرئيسية">
           {cards.map((card) => <MetricCard key={card.label} {...card} />)}
         </section>
+
+        {type === 'hr' && att ? (() => {
+          const breakdownCards = [
+            { label: 'حاضر', value: att.present, icon: UserCheck, hint: `من ${att.expected} متوقع` },
+            { label: 'متأخر', value: att.late, icon: Clock3, hint: 'سجّل حضور بعد الموعد' },
+            { label: 'لم يسجّل بعد', value: att.notCheckedIn, icon: UserMinus, hint: 'لم يسجّل دخول حتى الآن' },
+            { label: 'إجازة', value: att.onLeave, icon: CalendarDays, hint: 'في إجازة معتمدة' },
+            { label: 'تكليف خارجي', value: att.onAssignment, icon: MapPin, hint: 'مكلف خارج المقر' },
+            { label: 'غياب', value: att.absent, icon: UserX, hint: 'غير مبرر حتى الآن' },
+          ].filter((c) => c.value > 0);
+          return breakdownCards.length > 0 ? <section>
+            <h2 className="mb-3 text-sm font-black text-[var(--text-muted)]">توزيع حضور اليوم — {att.date}</h2>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6" aria-label="توزيع الحضور">
+              {breakdownCards.map((card) => <MetricCard key={card.label} {...card} />)}
+            </div>
+          </section> : null;
+        })() : null}
 
         {data ? <section className="grid gap-4 xl:grid-cols-[1.2fr_.8fr]">
           <article className="card p-5">

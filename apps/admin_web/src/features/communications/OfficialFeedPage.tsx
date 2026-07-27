@@ -1,4 +1,4 @@
-import { BellRing, CheckCircle2, FileText, ImagePlus, Megaphone, Plus, Send, ShieldCheck, Trash2 } from 'lucide-react';
+import { BellRing, CheckCircle2, FileText, ImagePlus, Megaphone, Plus, Send, ShieldCheck, Trash2, User } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { getSupabase } from '../../core/supabase';
 import { DialogOverlay } from '../../ui/DialogOverlay';
@@ -16,6 +16,29 @@ import { useCreateDecisionDraft, useOfficialFeed, usePublishAnnouncement, useTra
 
 type PublishMode = 'announcement' | 'decision';
 
+/** V23 Task-10: تسميات أنواع المنشورات بالعربية */
+const POST_TYPE_LABELS: Record<string, string> = {
+  announcement: 'إعلان',
+  decision: 'قرار إداري',
+  alert: 'تنبيه',
+  poll: 'تصويت',
+  meeting: 'اجتماع',
+  holiday_notice: 'إشعار عطلة',
+  kpi_notice: 'إشعار أداء',
+  attendance_notice: 'إشعار حضور',
+};
+
+/** أنواع المنشورات المتاحة في وضع الإعلانات (غير القرارات) */
+const ANNOUNCEMENT_POST_TYPES = [
+  { value: 'announcement', label: 'إعلان' },
+  { value: 'alert', label: 'تنبيه' },
+  { value: 'poll', label: 'تصويت' },
+  { value: 'meeting', label: 'اجتماع' },
+  { value: 'holiday_notice', label: 'إشعار عطلة' },
+  { value: 'kpi_notice', label: 'إشعار أداء' },
+  { value: 'attendance_notice', label: 'إشعار حضور' },
+] as const;
+
 export function OfficialFeedPage() {
   const auth = useAuth();
   const query = useOfficialFeed();
@@ -27,7 +50,7 @@ export function OfficialFeedPage() {
   const [search, setSearch] = useState('');
   const [kind, setKind] = useState('all');
   const [priority, setPriority] = useState('all');
-  const [form, setForm] = useState({ title: '', body: '', category: 'general', priority: 'normal', requiresAcknowledgement: false, expectedOutcome: '', successMetric: '' });
+  const [form, setForm] = useState({ title: '', body: '', category: 'general', priority: 'normal', requiresAcknowledgement: false, expectedOutcome: '', successMetric: '', postType: 'announcement' });
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
@@ -65,7 +88,7 @@ export function OfficialFeedPage() {
   }, []);
 
   const resetAll = () => {
-    setForm({ title: '', body: '', category: 'general', priority: 'normal', requiresAcknowledgement: false, expectedOutcome: '', successMetric: '' });
+    setForm({ title: '', body: '', category: 'general', priority: 'normal', requiresAcknowledgement: false, expectedOutcome: '', successMetric: '', postType: 'announcement' });
     setBannerUrl(null);
     setImagePreview(null);
     setImageError(null);
@@ -89,7 +112,7 @@ export function OfficialFeedPage() {
 
   const submit = async () => {
     if (mode === 'announcement') {
-      await publish.mutateAsync({ ...form, bannerUrl });
+      await publish.mutateAsync({ ...form, bannerUrl, postType: form.postType });
     } else {
       await createDecision.mutateAsync(form);
     }
@@ -136,12 +159,32 @@ export function OfficialFeedPage() {
       {items.map((item) => {
         const action = item.kind === 'decision' ? nextAction(item.status) : null;
         const canRun = action === 'approve' ? canApproveDecision : canManageDecision;
+        const postTypeLabel = POST_TYPE_LABELS[item.postType ?? item.kind] ?? item.kind;
         return <article key={`${item.kind}-${item.id}`} className="card overflow-hidden">
           <div className="border-b border-[var(--border)] p-5">
-            <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><StatusBadge value={item.kind} /><StatusBadge value={item.priority} /><StatusBadge value={item.status} /></div><span className="muted text-xs">{item.publishedAt ? new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.publishedAt)) : 'غير منشور'}</span></div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <StatusBadge value={item.kind} />
+                <span className="rounded-lg bg-[var(--surface-muted)] px-2 py-0.5 text-xs font-bold">{postTypeLabel}</span>
+                <StatusBadge value={item.priority} />
+                <StatusBadge value={item.status} />
+              </div>
+              <span className="muted text-xs">{item.publishedAt ? new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.publishedAt)) : 'غير منشور'}</span>
+            </div>
             <h2 className="mt-4 text-xl font-black">{item.title}</h2>
             {item.imageUrl ? <img src={item.imageUrl} alt="" className="mt-3 h-44 w-full rounded-2xl object-cover" /> : null}
             <p className="mt-3 text-sm leading-8">{item.body}</p>
+            {/* V23 Task-10: عرض اسم وصورة الناشر */}
+            {item.authorName ? (
+              <div className="mt-3 flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                {item.authorPhotoUrl ? (
+                  <img src={item.authorPhotoUrl} alt="" className="size-6 rounded-full object-cover" />
+                ) : (
+                  <span className="grid size-6 place-items-center rounded-full bg-[var(--surface-muted)]"><User className="size-3" aria-hidden="true" /></span>
+                )}
+                <span className="font-bold">{item.authorName}</span>
+              </div>
+            ) : null}
           </div>
           {item.requiresAcknowledgement ? <div className="p-5"><div className="flex justify-between text-sm"><span>نسبة الاطلاع والإقرار</span><strong>{item.acknowledgedCount}{item.targetCount ? ` / ${item.targetCount}` : ''}</strong></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]" role="progressbar" aria-label="نسبة الاطلاع والإقرار" aria-valuemin={0} aria-valuemax={item.targetCount ?? 0} aria-valuenow={item.acknowledgedCount}><div className="h-full rounded-full bg-brand" style={{ width: `${item.targetCount ? Math.min(100, (item.acknowledgedCount / item.targetCount) * 100) : 0}%` }} /></div></div> : null}
           {action && canRun ? <div className="border-t border-[var(--border)] p-4"><button className="btn-secondary" disabled={transition.isPending} onClick={() => void transition.mutateAsync({ decisionId: item.id, action })}>{action === 'approve' ? <ShieldCheck className="size-4" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}{actionLabel[action]}</button></div> : null}
@@ -155,21 +198,29 @@ export function OfficialFeedPage() {
         <div className="mt-5 grid gap-4">
           <label className="text-sm font-bold">العنوان<input className="input mt-2" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
           <label className="text-sm font-bold">المحتوى<textarea className="input mt-2 min-h-36 resize-y" value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} /></label>
-          {mode === 'announcement' ? <div>
-            <span className="text-sm font-bold">صورة الإعلان (اختياري)</span>
-            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageSelect} />
-            {imagePreview ? (
-              <div className="relative mt-2">
-                <img src={imagePreview} alt="معاينة" className="h-40 w-full rounded-xl object-cover" />
-                <button type="button" className="absolute start-2 top-2 rounded-full bg-red-600 p-1 text-white shadow" aria-label="إزالة الصورة" onClick={() => void removeImage()}><Trash2 className="size-4" /></button>
-              </div>
-            ) : (
-              <button type="button" className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--border)] p-6 text-sm transition hover:border-brand hover:text-brand" disabled={imageUploading} onClick={() => fileInputRef.current?.click()}>
-                {imageUploading ? <span className="animate-pulse">جارٍ رفع الصورة…</span> : <><ImagePlus className="size-5" aria-hidden="true" />اضغط لاختيار صورة</>}
-              </button>
-            )}
-            {imageError ? <p className="mt-1 text-xs text-red-500">{imageError}</p> : null}
-          </div> : null}
+          {mode === 'announcement' ? <>
+            {/* V23 Task-10: اختيار نوع المنشور */}
+            <label className="text-sm font-bold">نوع المنشور
+              <select className="input mt-2" value={form.postType} onChange={(e) => setForm({ ...form, postType: e.target.value })}>
+                {ANNOUNCEMENT_POST_TYPES.map((pt) => <option key={pt.value} value={pt.value}>{pt.label}</option>)}
+              </select>
+            </label>
+            <div>
+              <span className="text-sm font-bold">صورة الإعلان (اختياري)</span>
+              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageSelect} />
+              {imagePreview ? (
+                <div className="relative mt-2">
+                  <img src={imagePreview} alt="معاينة" className="h-40 w-full rounded-xl object-cover" />
+                  <button type="button" className="absolute start-2 top-2 rounded-full bg-red-600 p-1 text-white shadow" aria-label="إزالة الصورة" onClick={() => void removeImage()}><Trash2 className="size-4" /></button>
+                </div>
+              ) : (
+                <button type="button" className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--border)] p-6 text-sm transition hover:border-brand hover:text-brand" disabled={imageUploading} onClick={() => fileInputRef.current?.click()}>
+                  {imageUploading ? <span className="animate-pulse">جارٍ رفع الصورة…</span> : <><ImagePlus className="size-5" aria-hidden="true" />اضغط لاختيار صورة</>}
+                </button>
+              )}
+              {imageError ? <p className="mt-1 text-xs text-red-500">{imageError}</p> : null}
+            </div>
+          </> : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="text-sm font-bold">التصنيف<select className="input mt-2" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}><option value="general">عام</option><option value="hr">موارد بشرية</option><option value="policy">سياسة</option><option value="organizational">تنظيمي</option><option value="financial">مالي</option></select></label>
             {mode === 'announcement' ? <label className="text-sm font-bold">الأولوية<select className="input mt-2" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}><option value="normal">عادية</option><option value="high">مرتفعة</option><option value="urgent">عاجلة</option></select></label> : null}

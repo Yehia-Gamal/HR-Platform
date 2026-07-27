@@ -28,6 +28,12 @@ export const PUBLISHER_CHANNELS: Record<PublisherRole, 'web' | 'mobile'> = {
 export const postTypeSchema = z.enum([
   'announcement',
   'decision',
+  'alert',
+  'poll',
+  'meeting',
+  'holiday_notice',
+  'kpi_notice',
+  'attendance_notice',
 ]);
 export type PostType = z.infer<typeof postTypeSchema>;
 
