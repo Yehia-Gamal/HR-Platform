@@ -3,7 +3,7 @@
 -- Validates migration 0163_v23_security_search_path_hardening.sql
 
 BEGIN;
-SELECT plan(30);
+SELECT plan(27);
 
 -- ════════════════════════════════════════════════════════════════
 -- 1. search_path مثبت على الدوال المُصلحة في 0160

@@ -93,9 +93,9 @@ begin
 
   -- أحداث حضور: حدث قديم (90 يوم) وحدث حديث (5 أيام)
   insert into public.attendance_events(id, employee_id, event_type, event_at, status, source) values
-    ('a0600000-0000-4000-8000-000000000301', 'a0600000-0000-4000-8000-000000000201', 'CHECK_IN',  now() - interval '90 days', 'verified',  'mobile'),
-    ('a0600000-0000-4000-8000-000000000302', 'a0600000-0000-4000-8000-000000000201', 'CHECK_IN',  now() - interval '5 days',  'verified',  'mobile'),
-    ('a0600000-0000-4000-8000-000000000303', 'a0600000-0000-4000-8000-000000000201', 'CHECK_OUT', now() - interval '5 days' + interval '8 hours', 'verified', 'mobile');
+    ('a0600000-0000-4000-8000-000000000301', 'a0600000-0000-4000-8000-000000000201', 'CHECK_IN',  now() - interval '90 days', 'accepted',  'mobile'),
+    ('a0600000-0000-4000-8000-000000000302', 'a0600000-0000-4000-8000-000000000201', 'CHECK_IN',  now() - interval '5 days',  'accepted',  'mobile'),
+    ('a0600000-0000-4000-8000-000000000303', 'a0600000-0000-4000-8000-000000000201', 'CHECK_OUT', now() - interval '5 days' + interval '8 hours', 'accepted', 'mobile');
 end
 $fixture$;
 
@@ -114,15 +114,15 @@ $$;
 -- أنشئ طلب pending (legacy/no-step)
 do $$
 begin
-  insert into public.requests(id, workspace_id, request_number, request_type, employee_id, manager_employee_id, title, description, status, workflow_status, created_by)
-  select
+  insert into public.requests(id, request_type, employee_id, manager_employee_id, title, reason, status, workflow_status, created_by)
+  values(
     'a0600000-0000-4000-8000-000000000401',
-    w.id, 9901, 'leave',
+    'leave',
     'a0600000-0000-4000-8000-000000000201',
     'a0600000-0000-4000-8000-000000000202',
-    'طلب اختبار الإعادة بدون تعليق', 'سبب', 'pending', 'pending',
+    'طلب اختبار الإعادة بدون تعليق', 'سبب', 'pending', 'submitted',
     'a0600000-0000-4000-8000-000000000101'
-  from public.workspaces w limit 1;
+  );
 end $$;
 
 select pg_temp.act_as('a0600000-0000-4000-8000-000000000102');
@@ -197,18 +197,24 @@ select throws_ok(
 -- 7. decide_request: منع الموظف من اتخاذ قرار على طلبه (self-approval)
 -- ═══════════════════════════════════════════════════════════════════════════════
 
+-- إدراج كـ superuser لتجاوز RLS (لا يوجد سياسة INSERT مفتوحة)
+reset role;
 do $$
 begin
-  insert into public.requests(id, workspace_id, request_number, request_type, employee_id, manager_employee_id, title, description, status, workflow_status, created_by)
-  select
+  insert into public.requests(id, request_type, employee_id, manager_employee_id, title, reason, status, workflow_status, created_by)
+  values(
     'a0600000-0000-4000-8000-000000000402',
-    w.id, 9902, 'mission',
+    'mission',
     'a0600000-0000-4000-8000-000000000202',
     'a0600000-0000-4000-8000-000000000203',
-    'طلب المدير نفسه', 'سبب', 'pending', 'pending',
+    'طلب المدير نفسه', 'سبب اختبار', 'pending', 'submitted',
     'a0600000-0000-4000-8000-000000000102'
-  from public.workspaces w limit 1;
+  );
 end $$;
+
+-- إعادة سياق المدير للاختبار التالي
+select pg_temp.act_as('a0600000-0000-4000-8000-000000000102');
+set local role authenticated;
 
 select throws_ok(
   $$select public.decide_request(

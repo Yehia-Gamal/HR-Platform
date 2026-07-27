@@ -44,17 +44,25 @@ do $create_cycle$
 declare
  v_template uuid;
  v_cycle uuid;
- v_eval uuid;
  v_test_month date:=date '2099-01-01';
 begin
  select id into v_template from public.kpi_templates where official_code='OFFICIAL_KPI_100';
- v_cycle:=public.create_kpi_cycle_admin(v_test_month,v_template,now(),now(),now(),now(),false);
+ v_cycle:=public.create_kpi_cycle_admin(v_test_month,v_template,now(),now(),now(),now(),false,false);
  perform public.manage_kpi_cycle(v_cycle,'open','فتح دورة اختبار V17',null);
  perform public.manage_kpi_cycle(v_cycle,'extend','تمديد دورة اختبار V17',v_test_month+interval '60 days');
- select id into strict v_eval from public.kpi_evaluations where cycle_id=v_cycle and employee_id='82000000-0000-4000-8000-000000000002';
- insert into kpi_runtime_result(cycle_id,evaluation_id) values(v_cycle,v_eval);
+ insert into kpi_runtime_result(cycle_id) values(v_cycle);
 end
 $create_cycle$;
+
+-- RLS on kpi_evaluations restricts row visibility per role;
+-- fetch eval_id as superuser so the test can track the employee's evaluation.
+reset role;
+update kpi_runtime_result set evaluation_id = (
+  select id from public.kpi_evaluations
+  where cycle_id = (select cycle_id from kpi_runtime_result)
+    and employee_id = '82000000-0000-4000-8000-000000000002'
+);
+set local role authenticated;
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- V17 §KPI flow: Employee → HR → Manager → Manager Final → Finalized

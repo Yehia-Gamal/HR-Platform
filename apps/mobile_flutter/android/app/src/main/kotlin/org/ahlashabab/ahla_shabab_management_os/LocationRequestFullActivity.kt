@@ -131,6 +131,9 @@ class LocationRequestFullActivity : Activity() {
     }
 
     private fun onSend(requestId: String, notifId: String?) {
+        // Stop the alarm BEFORE navigating to Flutter.
+        UrgentAlarmService.stop(this, requestId)
+
         // فتح Flutter مع deep link لشاشة طلب الموقع
         val deepLink = Uri.parse(
             "https://ahla-shabab-management-os.vercel.app/action/live_location_request/$requestId"
@@ -151,6 +154,9 @@ class LocationRequestFullActivity : Activity() {
     }
 
     private fun onReject(requestId: String, notifId: String?) {
+        // Stop the alarm BEFORE navigating to Flutter.
+        UrgentAlarmService.stop(this, requestId)
+
         // فتح Flutter مع deep link — الشاشة ستعرض حالة الرفض
         val deepLink = Uri.parse(
             "https://ahla-shabab-management-os.vercel.app/action/live_location_request/$requestId"

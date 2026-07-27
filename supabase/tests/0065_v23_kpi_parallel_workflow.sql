@@ -1,7 +1,7 @@
 -- pgTAP: V23 KPI parallel workflow — structure and CHECK constraints.
 -- Test file: 0065_v23_kpi_parallel_workflow.sql
 begin;
-select plan(20);
+select plan(19);
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 1. Schema: new columns exist on kpi_cycles
@@ -135,30 +135,29 @@ $test$, 'evidence submitted_stage CHECK accepts parallel_review');
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 7. CONDUCT criterion is evaluator_stage=manager
 -- ─────────────────────────────────────────────────────────────────────────────
-select results_eq($$
-  select evaluator_stage from public.kpi_criteria
-  where code='CONDUCT'
-  limit 1
-$$, $$values('manager'::text)$$,
+select is(
+  (select evaluator_stage from public.kpi_criteria
+   where code='CONDUCT' limit 1),
+  'manager',
   'CONDUCT criterion evaluator_stage is manager');
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 8. HR criteria sum to 30, Manager criteria sum to 70
 -- ─────────────────────────────────────────────────────────────────────────────
-select results_eq($$
-  select coalesce(sum(max_score),0)::integer
-  from public.kpi_criteria c
-  join public.kpi_templates t on t.id=c.template_id
-  where t.official_code='OFFICIAL_KPI_100' and c.evaluator_stage='hr'
-$$, $$values(30)$$,
+select is(
+  (select coalesce(sum(max_score),0)::integer
+   from public.kpi_criteria c
+   join public.kpi_templates t on t.id=c.template_id
+   where t.official_code='OFFICIAL_KPI_100' and c.evaluator_stage='hr'),
+  30,
   'HR criteria total max_score = 30');
 
-select results_eq($$
-  select coalesce(sum(max_score),0)::integer
-  from public.kpi_criteria c
-  join public.kpi_templates t on t.id=c.template_id
-  where t.official_code='OFFICIAL_KPI_100' and c.evaluator_stage='manager'
-$$, $$values(70)$$,
+select is(
+  (select coalesce(sum(max_score),0)::integer
+   from public.kpi_criteria c
+   join public.kpi_templates t on t.id=c.template_id
+   where t.official_code='OFFICIAL_KPI_100' and c.evaluator_stage='manager'),
+  70,
   'Manager criteria total max_score = 70');
 
 -- ─────────────────────────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
-import { BarChart3, BellRing, CheckCircle2, Eye, EyeOff, FileText, Megaphone, Plus, Send, ShieldCheck, Trash2, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { BarChart3, BellRing, CheckCircle2, Eye, EyeOff, FileText, ImagePlus, Megaphone, Plus, Send, ShieldCheck, Trash2, X } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { getSupabase } from '../../core/supabase';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
@@ -26,6 +27,10 @@ export function OfficialFeedPage() {
   const [priority, setPriority] = useState('all');
   const [form, setForm] = useState({ title: '', body: '', category: 'general', priority: 'normal', requiresAcknowledgement: false, expectedOutcome: '', successMetric: '', postType: 'standard' as 'standard' | 'poll', pollOptions: ['', ''] as string[], expiresAt: '' });
   const [showPreview, setShowPreview] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imagePreviewUrl = imageFile ? URL.createObjectURL(imageFile) : null;
   const allItems = query.data ?? [];
   const items = useMemo(() => allItems.filter((item) => {
     const queryText = search.trim().toLowerCase();
@@ -36,10 +41,25 @@ export function OfficialFeedPage() {
   const canManageDecision = hasPermission(auth.access!, 'comms.decision.manage') || auth.access!.workspaces.includes('main_admin');
   const canApproveDecision = hasPermission(auth.access!, 'comms.decision.approve') || auth.access!.workspaces.includes('main_admin');
 
-  const reset = () => { setForm({ title: '', body: '', category: 'general', priority: 'normal', requiresAcknowledgement: false, expectedOutcome: '', successMetric: '', postType: 'standard', pollOptions: ['', ''], expiresAt: '' }); setShowPreview(false); };
+  const reset = () => { setForm({ title: '', body: '', category: 'general', priority: 'normal', requiresAcknowledgement: false, expectedOutcome: '', successMetric: '', postType: 'standard', pollOptions: ['', ''], expiresAt: '' }); setShowPreview(false); setImageFile(null); };
   const submit = async () => {
+    let bannerUrl: string | null = null;
+    if (imageFile && mode === 'announcement') {
+      setUploading(true);
+      try {
+        const supabase = await getSupabase();
+        const ext = imageFile.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+        const path = `${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from('announcements').upload(path, imageFile, { contentType: imageFile.type, upsert: false });
+        if (upErr) throw upErr;
+        const { data: urlData } = supabase.storage.from('announcements').getPublicUrl(path);
+        bannerUrl = urlData.publicUrl;
+      } finally {
+        setUploading(false);
+      }
+    }
     if (mode === 'announcement') {
-      await publish.mutateAsync(form);
+      await publish.mutateAsync({ ...form, bannerUrl });
     } else {
       await createDecision.mutateAsync(form);
     }
@@ -106,6 +126,11 @@ export function OfficialFeedPage() {
       <div className="mt-5 grid gap-4">
         <label className="text-sm font-bold">العنوان<input className="input mt-2" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
         <label className="text-sm font-bold">المحتوى<textarea className="input mt-2 min-h-36 resize-y" value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} /></label>
+        {mode === 'announcement' ? <div className="space-y-2">
+          <span className="text-sm font-bold">صورة مرفقة (اختياري)</span>
+          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (f.size > 5 * 1024 * 1024) { return; } setImageFile(f); } }} />
+          {imagePreviewUrl ? <div className="relative"><img src={imagePreviewUrl} alt="معاينة الصورة المرفقة" className="h-40 w-full rounded-xl border border-[var(--border)] object-cover" /><button type="button" className="absolute left-2 top-2 rounded-full bg-black/60 p-1.5 text-white transition-colors hover:bg-black/80" aria-label="إزالة الصورة" onClick={() => { setImageFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}><X className="size-4" aria-hidden="true" /></button></div> : <button type="button" className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--border)] px-4 py-6 text-sm font-bold text-[var(--text-muted)] transition-colors hover:border-brand hover:text-brand" onClick={() => fileInputRef.current?.click()}><ImagePlus className="size-5" aria-hidden="true" />اختر صورة للإعلان (حتى 5 ميجابايت)</button>}
+        </div> : null}
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="text-sm font-bold">التصنيف<select className="input mt-2" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}><option value="general">عام</option><option value="hr">موارد بشرية</option><option value="policy">سياسة</option><option value="organizational">تنظيمي</option><option value="financial">مالي</option></select></label>
           {mode === 'announcement' ? <label className="text-sm font-bold">الأولوية<select className="input mt-2" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}><option value="normal">عادية</option><option value="high">مرتفعة</option><option value="urgent">عاجلة</option></select></label> : null}
@@ -137,7 +162,7 @@ export function OfficialFeedPage() {
           {form.requiresAcknowledgement ? <div className="p-5"><div className="flex justify-between text-sm"><span>نسبة الاطلاع والإقرار</span><strong>0</strong></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]"><div className="h-full rounded-full bg-brand" style={{ width: '0%' }} /></div></div> : null}
         </article> : null}
         {publish.isError || createDecision.isError ? <ErrorBanner message="تعذر حفظ العنصر الرسمي." /> : null}
-        <button className="btn-primary" disabled={publish.isPending || createDecision.isPending || form.title.trim().length < 3 || form.body.trim().length < 10 || !isPollValid} onClick={() => void submit()}>{mode === 'decision' ? 'حفظ كمسودة قرار' : 'نشر الآن'}</button>
+        <button className="btn-primary" disabled={uploading || publish.isPending || createDecision.isPending || form.title.trim().length < 3 || form.body.trim().length < 10 || !isPollValid} onClick={() => void submit()}>{uploading ? 'جارٍ رفع الصورة...' : mode === 'decision' ? 'حفظ كمسودة قرار' : 'نشر الآن'}</button>
       </div>
     </section></div> : null}
   </div>;

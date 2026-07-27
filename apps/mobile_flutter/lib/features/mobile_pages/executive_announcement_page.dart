@@ -1,8 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// صفحة إنشاء إعلان أو تعميم رسمي من الموبايل (للمدير التنفيذي والأدمن).
 /// تستدعي RPC publish_official_announcement لنشر فوري لجميع الموظفين.
@@ -23,6 +27,11 @@ class _ExecutiveAnnouncementPageState
   String _postType = 'announcement';
   bool _requiresAcknowledgement = false;
   bool _submitting = false;
+
+  // ─── صورة مرفقة ───
+  XFile? _pickedImage;
+  Uint8List? _imageBytes;
+  bool _uploading = false;
 
   static const _postTypes = <String, String>{
     'announcement': 'إعلان',
@@ -146,6 +155,49 @@ class _ExecutiveAnnouncementPageState
               alignLabelWithHint: true,
             ),
           ),
+          const SizedBox(height: 16),
+          // ─── صورة مرفقة (اختياري) ───
+          Text('صورة مرفقة (اختياري)',
+              style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 8),
+          if (_imageBytes != null)
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.memory(_imageBytes!,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover),
+                ),
+                Positioned(
+                  top: 6,
+                  left: 6,
+                  child: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: scheme.error,
+                    child: IconButton(
+                      iconSize: 16,
+                      padding: EdgeInsets.zero,
+                      icon: Icon(Icons.close, color: scheme.onError),
+                      onPressed: () => setState(() {
+                        _pickedImage = null;
+                        _imageBytes = null;
+                      }),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          else
+            OutlinedButton.icon(
+              onPressed: _pickImage,
+              icon: const Icon(Icons.add_photo_alternate_outlined),
+              label: const Text('اختر صورة للإعلان (حتى 5 ميجابايت)'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+              ),
+            ),
           const SizedBox(height: 12),
           SwitchListTile(
             title: const Text('يتطلب إقرار بالاطلاع'),
@@ -186,7 +238,11 @@ class _ExecutiveAnnouncementPageState
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.send),
-            label: Text(_submitting ? 'جارٍ النشر...' : 'نشر الإعلان الآن'),
+            label: Text(_uploading
+                ? 'جارٍ رفع الصورة...'
+                : _submitting
+                    ? 'جارٍ النشر...'
+                    : 'نشر الإعلان الآن'),
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
             ),
@@ -194,6 +250,31 @@ class _ExecutiveAnnouncementPageState
         ],
       ),
     );
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final xfile = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1920,
+      maxHeight: 1080,
+      imageQuality: 85,
+    );
+    if (xfile == null) return;
+    final bytes = await xfile.readAsBytes();
+    // حد 5 ميجابايت
+    if (bytes.lengthInBytes > 5 * 1024 * 1024) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('حجم الصورة يتجاوز 5 ميجابايت')),
+        );
+      }
+      return;
+    }
+    setState(() {
+      _pickedImage = xfile;
+      _imageBytes = bytes;
+    });
   }
 
   Future<void> _submit() async {
@@ -235,6 +316,30 @@ class _ExecutiveAnnouncementPageState
 
     setState(() => _submitting = true);
     try {
+      // ─── رفع الصورة إن وُجدت ───
+      String? bannerUrl;
+      if (_pickedImage != null && _imageBytes != null) {
+        setState(() => _uploading = true);
+        try {
+          final ext = _pickedImage!.name.split('.').last.toLowerCase();
+          final path =
+              '${DateTime.now().millisecondsSinceEpoch}_${_pickedImage!.name.hashCode}.$ext';
+          final bucket =
+              Supabase.instance.client.storage.from('announcements');
+          await bucket.uploadBinary(
+            path,
+            _imageBytes!,
+            fileOptions: FileOptions(
+              contentType: _pickedImage!.mimeType ?? 'image/jpeg',
+              upsert: false,
+            ),
+          );
+          bannerUrl = bucket.getPublicUrl(path);
+        } finally {
+          if (mounted) setState(() => _uploading = false);
+        }
+      }
+
       await ref.read(supabaseProvider).rpc<dynamic>(
         'publish_official_announcement',
         params: {
@@ -243,6 +348,7 @@ class _ExecutiveAnnouncementPageState
           'p_category': _category,
           'p_priority': _priority,
           'p_requires_acknowledgement': _requiresAcknowledgement,
+          'p_banner_url': bannerUrl,
           'p_post_type': _postType,
         },
       );

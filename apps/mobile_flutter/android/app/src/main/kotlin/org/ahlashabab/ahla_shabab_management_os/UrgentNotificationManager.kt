@@ -66,12 +66,19 @@ object UrgentNotificationManager {
     fun notificationId(requestId: String): Int =
         requestId.hashCode().and(Int.MAX_VALUE).coerceAtLeast(1)
 
+    /**
+     * @param forForegroundService true when the alarm service owns a MediaPlayer
+     *   for the sound — the notification itself should be silent to avoid double
+     *   audio overlap. false for the fallback path where no MediaPlayer exists
+     *   and the notification must carry FLAG_INSISTENT to ring on its own.
+     */
     fun buildNotification(
         context: Context,
         requestId: String,
         notificationId: String?,
         title: String,
         body: String,
+        forForegroundService: Boolean = false,
     ): Notification {
         require(requestId.isNotBlank()) { "requestId is required" }
         createChannel(context)
@@ -110,7 +117,7 @@ object UrgentNotificationManager {
             @Suppress("DEPRECATION")
             Notification.Builder(context)
         }
-        val notification = builder
+        builder
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(body)
@@ -120,17 +127,30 @@ object UrgentNotificationManager {
             .setVisibility(Notification.VISIBILITY_PUBLIC)
             .setOngoing(true)
             .setAutoCancel(false)
-            .setOnlyAlertOnce(false)
             .setFullScreenIntent(pendingIntent, true)
             .setContentIntent(pendingIntent)
             .addAction(R.drawable.ic_notification, "فتح وإرسال الموقع", pendingIntent)
-            .setSound(sound)
-            .setVibrate(longArrayOf(0, 800, 300, 800, 300, 800, 300, 800))
-            .build()
 
-        notification.flags = notification.flags or
-            Notification.FLAG_INSISTENT or
-            Notification.FLAG_NO_CLEAR
+        if (forForegroundService) {
+            // MediaPlayer handles the looping alarm sound — suppress the
+            // notification's own alert to avoid double audio overlap.
+            builder.setOnlyAlertOnce(true)
+        } else {
+            // Fallback path (no service / no MediaPlayer). The notification
+            // itself must carry the sound + FLAG_INSISTENT so it rings.
+            builder.setOnlyAlertOnce(false)
+                .setSound(sound)
+                .setVibrate(longArrayOf(0, 800, 300, 800, 300, 800, 300, 800))
+        }
+
+        val notification = builder.build()
+
+        // FLAG_NO_CLEAR prevents swipe-dismiss. FLAG_INSISTENT is only added
+        // for the fallback (non-service) path to repeat the notification sound.
+        notification.flags = notification.flags or Notification.FLAG_NO_CLEAR
+        if (!forForegroundService) {
+            notification.flags = notification.flags or Notification.FLAG_INSISTENT
+        }
         return notification
     }
 

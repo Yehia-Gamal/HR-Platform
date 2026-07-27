@@ -44,8 +44,8 @@ export function MonthlyStatementSection({ employeeId }: { employeeId: string }) 
   );
 }
 
-// ─── نسبة الحضور المئوية ─────────────────────────────────────────
-function AttendancePercentageRing({ percentage }: { percentage: number }) {
+// ─── دائرة نسبة مئوية (حضور / التزام) ─────────────────────────────
+function AttendancePercentageRing({ percentage, label = 'حضور' }: { percentage: number; label?: string }) {
   const pct = Math.min(100, Math.max(0, percentage));
   const color = pct >= 90 ? 'text-emerald-600' : pct >= 75 ? 'text-amber-500' : 'text-red-600';
   const bgColor = pct >= 90 ? 'stroke-emerald-100' : pct >= 75 ? 'stroke-amber-100' : 'stroke-red-100';
@@ -64,10 +64,15 @@ function AttendancePercentageRing({ percentage }: { percentage: number }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className={`text-2xl font-black ${color}`}>{pct.toFixed(0)}%</span>
-        <span className="text-[10px] text-[var(--text-muted)]">حضور</span>
+        <span className="text-[10px] text-[var(--text-muted)]">{label}</span>
       </div>
     </div>
   );
+}
+
+// V23: اختصار — ComplianceRing = AttendancePercentageRing بتسمية «التزام»
+function ComplianceRing({ percentage }: { percentage: number }) {
+  return <AttendancePercentageRing percentage={percentage} label="التزام" />;
 }
 
 // ─── علامات (tags) صغيرة للجدول ──────────────────────────────────
@@ -88,15 +93,18 @@ function DayTag({ label, variant }: { label: string; variant: 'info' | 'warn' | 
 function StatementBody({ data }: { data: AttendanceStatement }) {
   const s = data.summary;
   const fmtTime = (t: string | null) => t ? t.slice(0, 5) : '—';
-  const attendancePct = s.scheduledDays > 0 ? (s.presentDays / s.scheduledDays * 100) : 0;
+  // V23: استخدام النسب من الخادم بدلاً من الحساب المحلي
+  const attendancePct = s.attendanceRate ?? (s.scheduledDays > 0 ? (s.presentDays / s.scheduledDays * 100) : 0);
+  const compliancePct = s.hoursComplianceRate ?? 0;
 
   return (
     <div className="space-y-5">
-      {/* ─── نسبة الحضور + ملخص رئيسي ─── */}
+      {/* ─── نسب الحضور والالتزام + ملخص رئيسي ─── */}
       <div className="grid gap-4 lg:grid-cols-[auto_1fr]">
-        {/* دائرة النسبة */}
-        <div className="flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-6">
+        {/* دوائر النسب */}
+        <div className="flex items-center justify-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-6">
           <AttendancePercentageRing percentage={attendancePct} />
+          <ComplianceRing percentage={compliancePct} />
         </div>
 
         {/* بطاقات الملخص */}
@@ -107,7 +115,7 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
           <MetricCard label="أيام المأموريات" value={s.missionDays} icon={TrendingUp} />
           <MetricCard label="إذنات" value={s.permitCount} icon={Clock} />
           <MetricCard label="قوافل/فاندي" value={s.convoyFundiDays} icon={CalendarDays} />
-          <MetricCard label="إجمالي ساعات العمل" value={s.totalWorkHours.toFixed(1)} hint={`متوسط ${s.averageWorkHours.toFixed(1)} س/يوم`} icon={Timer} />
+          <MetricCard label="ساعات العمل" value={s.totalWorkHours.toFixed(1)} hint={`مطلوب ${(s.totalRequiredHours ?? 0).toFixed(1)} | متوسط ${s.averageWorkHours.toFixed(1)} س/يوم`} icon={Timer} />
           <MetricCard label="ساعات إضافية" value={`${s.totalOvertimeMinutes} د`} icon={ArrowUpRight} />
         </div>
       </div>
@@ -116,6 +124,8 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
       <div className="flex flex-wrap gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)]/40 px-4 py-3 text-xs">
         <StatItem label="تأخير كلي" value={`${s.totalLateMinutes} د`} icon={<ArrowDownRight className="size-3.5 text-amber-500" />} />
         <StatItem label="خروج مبكر" value={`${s.totalEarlyLeaveMinutes} د`} icon={<ArrowUpRight className="size-3.5 text-amber-500" />} />
+        <StatItem label="نسبة الحضور" value={`${attendancePct.toFixed(0)}%`} icon={<UserCheck className="size-3.5 text-emerald-500" />} />
+        <StatItem label="التزام الساعات" value={`${compliancePct.toFixed(0)}%`} icon={<Timer className="size-3.5 text-blue-500" />} />
         <StatItem label="نسيان حضور" value={`${s.missingCheckInCount}`} icon={<AlertTriangle className="size-3.5 text-red-500" />} />
         <StatItem label="نسيان انصراف" value={`${s.missingCheckOutCount}`} icon={<AlertTriangle className="size-3.5 text-red-500" />} />
         <StatItem label="عطل رسمية" value={`${s.holidayDays}`} icon={<CalendarDays className="size-3.5 text-[var(--text-muted)]" />} />
@@ -139,13 +149,19 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
           <tbody>
             {data.days.map((d) => {
               const tags: { label: string; variant: 'info' | 'warn' | 'success' | 'purple' }[] = [];
+              if (d.isOfficialHoliday) tags.push({ label: 'عطلة رسمية', variant: 'info' });
+              if (d.isAbsent) tags.push({ label: 'غائب', variant: 'warn' });
               if (d.hasLeave) tags.push({ label: 'إجازة', variant: 'purple' });
               if (d.hasMission) tags.push({ label: 'مأمورية', variant: 'info' });
-              if (d.hasPermit) tags.push({ label: 'إذن', variant: 'warn' });
+              // V23: تفصيل إذن تأخير وانصراف مبكر
+              if (d.hasLatePermit) tags.push({ label: 'إذن تأخير', variant: 'warn' });
+              if (d.hasEarlyPermit) tags.push({ label: 'إذن انصراف', variant: 'warn' });
+              if (!d.hasLatePermit && !d.hasEarlyPermit && d.hasPermit) tags.push({ label: 'إذن', variant: 'warn' });
               if (d.hasConvoyFundi) tags.push({ label: 'قافلة/فاندي', variant: 'purple' });
               if (d.missingCheckIn) tags.push({ label: 'نقص حضور', variant: 'warn' });
               if (d.missingCheckOut) tags.push({ label: 'نقص انصراف', variant: 'warn' });
               if (d.hasCorrection) tags.push({ label: 'تصحيح', variant: 'info' });
+              if (d.penalties > 0) tags.push({ label: `جزاء: ${d.penalties}`, variant: 'warn' });
 
               return (
                 <tr key={d.date} className="border-t border-[var(--border)] odd:bg-[var(--surface-muted)]/30 hover:bg-[var(--surface-muted)]/60 transition-colors">

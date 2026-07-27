@@ -35,7 +35,7 @@ function exportCSV(data: AttendanceStatement) {
     `الكود: ${emp.employeeCode ?? '—'} | الإدارة: ${emp.department} | المسمى: ${emp.jobTitle}`,
     `الفترة: ${MONTHS[period.month - 1]} ${period.year} (${period.startDate} — ${period.endDate})`,
     '',
-    'التاريخ,اليوم,الحضور,الانصراف,الوردية,ساعات فعلية,ساعات مطلوبة,التأخير (د),خروج مبكر (د),إضافي (د),الحالة,إجازة,إذن,مأمورية,قافلة/فاندي,نقص حضور,نقص انصراف,تصحيح,ملاحظة',
+    'التاريخ,اليوم,الحضور,الانصراف,الوردية,ساعات فعلية,ساعات مطلوبة,التأخير (د),خروج مبكر (د),إضافي (د),الحالة,غائب,عطلة رسمية,إجازة,إذن تأخير,إذن انصراف,مأمورية,قافلة/فاندي,نقص حضور,نقص انصراف,تصحيح,جزاءات,ملاحظة',
   ].join('\n');
 
   const rows = days.map((d) =>
@@ -45,9 +45,12 @@ function exportCSV(data: AttendanceStatement) {
       d.shiftName, d.workHours.toFixed(1), d.requiredHours.toFixed(1),
       d.lateMinutes, d.earlyLeaveMinutes, d.overtimeMinutes,
       d.status,
-      d.hasLeave ? 'نعم' : '', d.hasPermit ? 'نعم' : '', d.hasMission ? 'نعم' : '',
+      d.isAbsent ? 'نعم' : '', d.isOfficialHoliday ? 'نعم' : '',
+      d.hasLeave ? 'نعم' : '', d.hasLatePermit ? 'نعم' : '', d.hasEarlyPermit ? 'نعم' : '',
+      d.hasMission ? 'نعم' : '',
       d.hasConvoyFundi ? 'نعم' : '', d.missingCheckIn ? 'نعم' : '',
       d.missingCheckOut ? 'نعم' : '', d.hasCorrection ? 'نعم' : '',
+      d.penalties > 0 ? d.penalties : '',
       d.correctionNote ?? '',
     ].join(','),
   ).join('\n');
@@ -66,6 +69,7 @@ function exportCSV(data: AttendanceStatement) {
     `عطل رسمية,${s.holidayDays}`,
     `أيام الراحة,${s.restDays}`,
     `إجمالي ساعات العمل,${s.totalWorkHours.toFixed(1)}`,
+    `إجمالي الساعات المطلوبة,${(s.totalRequiredHours ?? 0).toFixed(1)}`,
     `متوسط ساعات/يوم,${s.averageWorkHours.toFixed(1)}`,
     `إجمالي التأخير (د),${s.totalLateMinutes}`,
     `إجمالي الخروج المبكر (د),${s.totalEarlyLeaveMinutes}`,
@@ -73,6 +77,8 @@ function exportCSV(data: AttendanceStatement) {
     `نقص حضور,${s.missingCheckInCount}`,
     `نقص انصراف,${s.missingCheckOutCount}`,
     `تصحيحات,${s.correctionCount}`,
+    `نسبة الحضور %,${(s.attendanceRate ?? 0).toFixed(1)}`,
+    `التزام الساعات %,${(s.hoursComplianceRate ?? 0).toFixed(1)}`,
   ].join('\n');
 
   const csv = header + '\n' + rows + summaryBlock;
@@ -231,7 +237,9 @@ export function MonthlyAttendanceReportPage() {
 // ─── عرض الكشف الكامل ──────────────────────────────────────────
 function StatementReport({ data }: { data: AttendanceStatement }) {
   const { employee: emp, period, summary: s } = data;
-  const attendancePct = s.scheduledDays > 0 ? (s.presentDays / s.scheduledDays * 100) : 0;
+  // V23: استخدام النسب من الخادم بدلاً من الحساب المحلي
+  const attendancePct = s.attendanceRate ?? (s.scheduledDays > 0 ? (s.presentDays / s.scheduledDays * 100) : 0);
+  const compliancePct = s.hoursComplianceRate ?? 0;
 
   return (
     <div className="space-y-5 print:space-y-3">
@@ -257,10 +265,11 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
         </div>
       </section>
 
-      {/* نسبة الحضور + ملخص رئيسي */}
+      {/* V23: نسب الحضور والالتزام + ملخص رئيسي */}
       <div className="grid gap-4 lg:grid-cols-[auto_1fr]">
-        <div className="flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-6 print:p-3">
+        <div className="flex items-center justify-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-6 print:p-3">
           <AttendancePercentageRing percentage={attendancePct} />
+          <AttendancePercentageRing percentage={compliancePct} label="التزام" />
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 print:grid-cols-4">
           <MetricCard label="أيام الحضور" value={s.presentDays} hint={`من ${s.scheduledDays} مجدولة`} icon={UserCheck} />
@@ -269,7 +278,7 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
           <MetricCard label="أيام المأموريات" value={s.missionDays} icon={TrendingUp} />
           <MetricCard label="إذنات" value={s.permitCount} icon={Clock} />
           <MetricCard label="قوافل/فاندي" value={s.convoyFundiDays} icon={CalendarDays} />
-          <MetricCard label="إجمالي ساعات العمل" value={s.totalWorkHours.toFixed(1)} hint={`متوسط ${s.averageWorkHours.toFixed(1)} س/يوم`} icon={Timer} />
+          <MetricCard label="ساعات العمل" value={s.totalWorkHours.toFixed(1)} hint={`مطلوب ${(s.totalRequiredHours ?? 0).toFixed(1)} | متوسط ${s.averageWorkHours.toFixed(1)} س/يوم`} icon={Timer} />
           <MetricCard label="ساعات إضافية" value={`${s.totalOvertimeMinutes} د`} icon={ArrowUpRight} />
         </div>
       </div>
@@ -278,6 +287,8 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
       <div className="flex flex-wrap gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)]/40 px-4 py-3 text-xs print:py-2 print:text-[10px]">
         <StatItem label="تأخير كلي" value={`${s.totalLateMinutes} د`} icon={<ArrowDownRight className="size-3.5 text-amber-500" />} />
         <StatItem label="خروج مبكر" value={`${s.totalEarlyLeaveMinutes} د`} icon={<ArrowUpRight className="size-3.5 text-amber-500" />} />
+        <StatItem label="نسبة الحضور" value={`${attendancePct.toFixed(0)}%`} icon={<UserCheck className="size-3.5 text-emerald-500" />} />
+        <StatItem label="التزام الساعات" value={`${compliancePct.toFixed(0)}%`} icon={<Timer className="size-3.5 text-blue-500" />} />
         <StatItem label="نسيان حضور" value={`${s.missingCheckInCount}`} icon={<AlertTriangle className="size-3.5 text-red-500" />} />
         <StatItem label="نسيان انصراف" value={`${s.missingCheckOutCount}`} icon={<AlertTriangle className="size-3.5 text-red-500" />} />
         <StatItem label="عطل رسمية" value={`${s.holidayDays}`} icon={<CalendarDays className="size-3.5 text-[var(--text-muted)]" />} />
@@ -317,13 +328,19 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
 function DayRow({ d }: { d: AttendanceStatementDay }) {
   const fmtTime = (t: string | null) => t ? t.slice(0, 5) : '—';
   const tags: { label: string; variant: 'info' | 'warn' | 'success' | 'purple' }[] = [];
+  if (d.isAbsent) tags.push({ label: 'غائب', variant: 'warn' });
+  if (d.isOfficialHoliday) tags.push({ label: 'عطلة رسمية', variant: 'info' });
   if (d.hasLeave) tags.push({ label: 'إجازة', variant: 'purple' });
   if (d.hasMission) tags.push({ label: 'مأمورية', variant: 'info' });
-  if (d.hasPermit) tags.push({ label: 'إذن', variant: 'warn' });
+  // V23: تفصيل إذن تأخير وانصراف مبكر
+  if (d.hasLatePermit) tags.push({ label: 'إذن تأخير', variant: 'warn' });
+  if (d.hasEarlyPermit) tags.push({ label: 'إذن انصراف', variant: 'warn' });
+  if (!d.hasLatePermit && !d.hasEarlyPermit && d.hasPermit) tags.push({ label: 'إذن', variant: 'warn' });
   if (d.hasConvoyFundi) tags.push({ label: 'قافلة/فاندي', variant: 'purple' });
   if (d.missingCheckIn) tags.push({ label: 'نقص حضور', variant: 'warn' });
   if (d.missingCheckOut) tags.push({ label: 'نقص انصراف', variant: 'warn' });
   if (d.hasCorrection) tags.push({ label: 'تصحيح', variant: 'info' });
+  if (d.penalties > 0) tags.push({ label: `جزاء: ${d.penalties}`, variant: 'warn' });
 
   return (
     <tr className="border-t border-[var(--border)] odd:bg-[var(--surface-muted)]/30 hover:bg-[var(--surface-muted)]/60 transition-colors print:hover:bg-transparent">
@@ -369,7 +386,7 @@ function DayTag({ label, variant }: { label: string; variant: 'info' | 'warn' | 
   );
 }
 
-function AttendancePercentageRing({ percentage }: { percentage: number }) {
+function AttendancePercentageRing({ percentage, label = 'حضور' }: { percentage: number; label?: string }) {
   const pct = Math.min(100, Math.max(0, percentage));
   const color = pct >= 90 ? 'text-emerald-600' : pct >= 75 ? 'text-amber-500' : 'text-red-600';
   const bgColor = pct >= 90 ? 'stroke-emerald-100' : pct >= 75 ? 'stroke-amber-100' : 'stroke-red-100';
@@ -388,7 +405,7 @@ function AttendancePercentageRing({ percentage }: { percentage: number }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className={`text-2xl font-black ${color}`}>{pct.toFixed(0)}%</span>
-        <span className="text-[10px] text-[var(--text-muted)]">حضور</span>
+        <span className="text-[10px] text-[var(--text-muted)]">{label}</span>
       </div>
     </div>
   );

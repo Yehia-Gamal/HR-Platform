@@ -200,7 +200,7 @@ select pg_temp.act_as('a5500000-0000-4000-8000-000000000103');
 set local role authenticated;
 
 select ok(
-  (select count(*) >= 4 from public.public_holidays where name like '%V17%' or id like 'a5500000%'),
+  (select count(*) >= 4 from public.public_holidays where name like '%V17%' or id::text like 'a5500000%'),
   'employee can SELECT holidays (reference data, using(true))'
 );
 
