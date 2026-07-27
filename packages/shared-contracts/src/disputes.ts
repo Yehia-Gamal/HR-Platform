@@ -15,6 +15,7 @@ export const disputeCaseStatusSchema = z.enum([
   'appealed',
   'appeal_decided',
   'executed',
+  'resolved_friendly',
   'closed',
   'archived',
 ]);

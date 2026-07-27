@@ -169,6 +169,7 @@ class MobileStatusPill extends StatelessWidget {
       'final_eval' => ('تقييم نهائي', AppColors.statusWarning),
       'done' => ('مكتملة', AppColors.statusSuccess),
       'resolved' => ('تم الحل', AppColors.statusSuccess),
+      'resolved_friendly' => ('حل ودي', AppColors.statusSuccess),
       'enrolled' => ('مُسجَّل', AppColors.statusInfo),
       'failed' => ('فشل', AppColors.statusDanger),
       'expired' => ('منتهي الصلاحية', AppColors.statusDanger),

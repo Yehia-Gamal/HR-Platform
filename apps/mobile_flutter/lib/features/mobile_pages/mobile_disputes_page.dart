@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:intl/intl.dart';
-import 'package:image_picker/image_picker.dart';
+// V23: image_picker removed — evidence/attachments no longer in employee form
 
 class MobileDisputesPage extends ConsumerWidget {
   const MobileDisputesPage({super.key});
@@ -311,10 +311,15 @@ const _caseTypes = <String, String>{
   'other': 'أخرى',
 };
 
-const _priorities = <String, String>{
-  'normal': 'عادية',
-  'urgent': 'عاجلة',
-};
+// V23: _priorities removed — employee form no longer has priority field
+// V23: priority is always 'normal' server-side via submit_my_dispute_v23
+
+/// V23: عدد الكلمات — يطابق word_count() في الخادم
+int _wordCount(String text) {
+  final trimmed = text.trim();
+  if (trimmed.isEmpty) return 0;
+  return trimmed.split(RegExp(r'\s+')).length;
+}
 
 class _NewDisputeForm extends ConsumerStatefulWidget {
   const _NewDisputeForm();
@@ -327,14 +332,14 @@ class _NewDisputeFormState extends ConsumerState<_NewDisputeForm> {
   final _formKey = GlobalKey<FormState>();
   final _title = TextEditingController();
   final _description = TextEditingController();
-  final _location = TextEditingController();
-  final _requestedAction = TextEditingController();
+  // V23: _location removed — incident_location no longer in employee form
+  // V23: _requestedAction removed — requested_action no longer in employee form
 
   String _type = 'employee_conflict';
-  String _priority = 'normal';
+  // V23: _priority removed — always 'normal' server-side
   final List<DisputeDirectoryEmployee> _respondents = [];
   final List<DisputeDirectoryEmployee> _witnesses = [];
-  List<XFile> _attachments = [];
+  // V23: _attachments removed — evidence/attachments no longer in employee form
   bool _truthConfirmed = false;
   bool _confidentialityAccepted = false;
   bool _submitting = false;
@@ -350,18 +355,18 @@ class _NewDisputeFormState extends ConsumerState<_NewDisputeForm> {
   void dispose() {
     _title.dispose();
     _description.dispose();
-    _location.dispose();
-    _requestedAction.dispose();
+    // V23: _location.dispose() and _requestedAction.dispose() removed
     super.dispose();
   }
 
   void _refresh() => setState(() {});
 
+  // V23: validation uses word count (3–300 words) instead of character count
   bool get _canSubmit =>
       !_submitting &&
       _title.text.trim().length >= 3 &&
-      _description.text.trim().length >= 3 &&
-      _description.text.trim().length <= 300 &&
+      _wordCount(_description.text) >= 3 &&
+      _wordCount(_description.text) <= 300 &&
       _respondents.isNotEmpty &&
       _truthConfirmed &&
       _confidentialityAccepted;
@@ -402,7 +407,7 @@ class _NewDisputeFormState extends ConsumerState<_NewDisputeForm> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _summaryRow('النوع', _caseTypes[_type] ?? _type),
-              _summaryRow('الأولوية', _priorities[_priority] ?? _priority),
+              // V23: priority row removed
               _summaryRow('العنوان', _title.text.trim()),
               _summaryRow(
                 'الأطراف',
@@ -413,8 +418,7 @@ class _NewDisputeFormState extends ConsumerState<_NewDisputeForm> {
                   'الشهود',
                   _witnesses.map((e) => e.name).join('، '),
                 ),
-              if (_attachments.isNotEmpty)
-                _summaryRow('المرفقات', '${_attachments.length} مرفق'),
+              // V23: attachments row removed
               const SizedBox(height: 8),
               const Text(
                 'سيتم تقديم الشكوى بسرية إلى لجنة حل المشكلات. لن يتم إشعار الطرف'
@@ -438,51 +442,20 @@ class _NewDisputeFormState extends ConsumerState<_NewDisputeForm> {
     if (ok != true) return;
 
     setState(() => _submitting = true);
-    String? createdCaseId;
     try {
-      createdCaseId = await ref
+      // V23: use submitDisputeV23 — no priority, location, requestedAction, attachments
+      await ref
           .read(mobileCommandsProvider)
-          .submitDispute(
+          .submitDisputeV23(
             title: _title.text,
             description: _description.text,
             caseType: _type,
-            priority: _priority,
             respondentIds: _respondents.map((e) => e.id).toList(),
             witnessIds: _witnesses.map((e) => e.id).toList(),
-            incidentLocation: _location.text.trim().isEmpty
-                ? null
-                : _location.text,
-            requestedAction: _requestedAction.text.trim().isEmpty
-                ? null
-                : _requestedAction.text,
           );
-      for (final attachment in _attachments) {
-        final bytes = await attachment.readAsBytes();
-        if (bytes.length > 15 * 1024 * 1024) {
-          throw StateError('ATTACHMENT_TOO_LARGE');
-        }
-        await ref.read(mobileCommandsProvider).uploadDisputeEvidence(
-              caseId: createdCaseId,
-              bytes: bytes,
-              fileName: attachment.name,
-              mimeType: attachment.mimeType ?? '',
-            );
-      }
       if (mounted) Navigator.of(context).pop(true);
     } catch (error) {
       if (mounted) {
-        if (createdCaseId != null) {
-          final messenger = ScaffoldMessenger.of(context);
-          Navigator.of(context).pop(true);
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text(
-                'تم تقديم المشكلة، لكن تعذر رفع أحد المرفقات. يمكنك إضافته لاحقًا من تفاصيل القضية.',
-              ),
-            ),
-          );
-          return;
-        }
         setState(() => _submitting = false);
         ScaffoldMessenger.of(
           context,
@@ -517,6 +490,7 @@ class _NewDisputeFormState extends ConsumerState<_NewDisputeForm> {
 
   @override
   Widget build(BuildContext context) {
+    final descWords = _wordCount(_description.text);
     return Scaffold(
       appBar: AppBar(title: const Text('تقديم شكوى')),
       body: Form(
@@ -535,17 +509,7 @@ class _NewDisputeFormState extends ConsumerState<_NewDisputeForm> {
               onChanged: (value) =>
                   setState(() => _type = value ?? 'employee_conflict'),
             ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _priority,
-              decoration: const InputDecoration(labelText: 'الأولوية'),
-              items: [
-                for (final entry in _priorities.entries)
-                  DropdownMenuItem(value: entry.key, child: Text(entry.value)),
-              ],
-              onChanged: (value) =>
-                  setState(() => _priority = value ?? 'normal'),
-            ),
+            // V23: priority dropdown removed
             const SizedBox(height: 12),
             TextFormField(
               controller: _title,
@@ -557,69 +521,26 @@ class _NewDisputeFormState extends ConsumerState<_NewDisputeForm> {
                   (value ?? '').trim().length < 3 ? 'العنوان قصير جدًا' : null,
             ),
             const SizedBox(height: 12),
+            // V23: description uses word count (3–300 كلمة) instead of character count
             TextFormField(
               controller: _description,
               minLines: 5,
               maxLines: 8,
-              maxLength: 300,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'التفاصيل',
                 hintText: 'اكتب الوقائع والتوقيت وما تطلبه من اللجنة',
-                helperText: '3–300 حرف',
+                helperText: '٣–٣٠٠ كلمة (الآن: $descWords)',
               ),
               validator: (value) {
-                final len = (value ?? '').trim().length;
-                if (len < 3) return 'التفاصيل غير كافية (3 أحرف على الأقل)';
-                if (len > 300) return 'التفاصيل طويلة جدًا (300 حرف كحد أقصى)';
+                final words = _wordCount(value ?? '');
+                if (words < 3) return 'التفاصيل غير كافية (٣ كلمات على الأقل)';
+                if (words > 300) return 'التفاصيل طويلة جدًا (٣٠٠ كلمة كحد أقصى)';
                 return null;
               },
             ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _location,
-              decoration: const InputDecoration(
-                labelText: 'مكان الواقعة (اختياري)',
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _requestedAction,
-              minLines: 2,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'ما الذي تطلبه من اللجنة؟ (اختياري)',
-              ),
-            ),
-            const SizedBox(height: 18),
-            OutlinedButton.icon(
-              onPressed: _submitting
-                  ? null
-                  : () async {
-                      final picked = await ImagePicker().pickMultiImage(
-                        imageQuality: 82,
-                        limit: 5,
-                        requestFullMetadata: false,
-                      );
-                      if (picked.isNotEmpty) {
-                        setState(() => _attachments = picked.take(5).toList());
-                      }
-                    },
-              icon: const Icon(Icons.attach_file_rounded),
-              label: Text(
-                _attachments.isEmpty
-                    ? 'إضافة مرفقات أو أدلة (اختياري)'
-                    : '${_attachments.length} مرفق محدد',
-              ),
-            ),
-            if (_attachments.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  _attachments.map((file) => file.name).join('، '),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
+            // V23: incident_location field removed
+            // V23: requested_action field removed
+            // V23: attachments picker removed
             const SizedBox(height: 18),
             _peopleSection(
               label: 'الأطراف المعنية',

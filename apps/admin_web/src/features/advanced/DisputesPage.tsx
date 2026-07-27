@@ -27,7 +27,7 @@ const transitionLabels: Record<string, string> = {
   request_more_information: 'طلب استكمال بيانات', reject: 'رفض شكلي', start_review: 'بدء/استئناف المراجعة',
   request_respondent_statement: 'طلب إفادة الطرف الآخر', request_witness_statement: 'طلب إفادة شاهد',
   start_deliberation: 'بدء المداولة', escalate: 'تصعيد للمدير التنفيذي', return_to_committee: 'إعادة إلى اللجنة',
-  close: 'إغلاق بعد التنفيذ', reopen: 'إعادة فتح', extend_review: 'تمديد مهلة المراجعة 24 ساعة', change_priority: 'تغيير الأولوية',
+  resolve_friendly: 'حل ودي', close: 'إغلاق بعد التنفيذ', reopen: 'إعادة فتح', extend_review: 'تمديد مهلة المراجعة 24 ساعة', change_priority: 'تغيير الأولوية',
 };
 
 function formatDate(value?: string | null, withTime = true) {
@@ -52,7 +52,8 @@ function actionsFor(item: DisputeCase) {
   }
   if (!terminalStatuses.has(item.status) && item.status !== 'escalated_to_executive') result.push('escalate');
   if (item.status === 'escalated_to_executive') result.push('return_to_committee');
-  if (['decision_issued', 'settlement_pending', 'executed'].includes(item.status)) result.push('close');
+  if (['under_review', 'waiting_for_respondent', 'waiting_for_witness', 'committee_deliberation'].includes(item.status)) result.push('resolve_friendly');
+  if (['decision_issued', 'settlement_pending', 'executed', 'resolved_friendly'].includes(item.status)) result.push('close');
   if (['closed', 'rejected'].includes(item.status)) result.push('reopen');
   if (!terminalStatuses.has(item.status)) result.push('change_priority');
   return [...new Set(result)];
@@ -167,7 +168,7 @@ export function DisputesPage() {
         <option value="open">القضايا المفتوحة</option><option value="overdue">المتأخرة</option><option value="submitted">الجديدة</option>
         <option value="under_review">قيد المراجعة</option><option value="waiting_for_respondent">بانتظار الطرف</option>
         <option value="session_scheduled">جلسة محددة</option><option value="committee_deliberation">قيد المداولة</option>
-        <option value="decision_issued">صدر القرار</option><option value="action_proposed">بانتظار قرار تنفيذي</option><option value="pending_execution">بانتظار التنفيذ</option><option value="executed">تم التنفيذ</option><option value="escalated_to_executive">المصعدة</option><option value="closed">المغلقة</option><option value="all">كل الحالات</option>
+        <option value="decision_issued">صدر القرار</option><option value="action_proposed">بانتظار قرار تنفيذي</option><option value="pending_execution">بانتظار التنفيذ</option><option value="executed">تم التنفيذ</option><option value="resolved_friendly">حل ودي</option><option value="escalated_to_executive">المصعدة</option><option value="closed">المغلقة</option><option value="all">كل الحالات</option>
       </select>
       <select className="input" value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)} aria-label="فلتر الأولوية">
         <option value="all">كل الأولويات</option><option value="normal">عادية</option><option value="urgent">عاجلة</option><option value="critical">حرجة</option>

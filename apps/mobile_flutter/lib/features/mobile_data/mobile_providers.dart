@@ -907,6 +907,20 @@ class MobileCommands {
     ref.invalidate(attendanceStateProvider);
   }
 
+  /// هاتف مفقود — يلغي الجهاز النشط ويسمح بتسجيل جهاز جديد
+  Future<void> requestDeviceReplacement(String reason) async {
+    await ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
+          'request_device_replacement',
+          params: {
+            'p_reason': reason.trim().isEmpty ? null : reason.trim(),
+          },
+        );
+    ref.invalidate(myPasskeysProvider);
+    ref.invalidate(attendanceStateProvider);
+  }
+
   Future<MobileActionTarget> resolveAction(MobileActionItem item) async {
     return ref.read(mobileActionTargetProvider(item).future);
   }
@@ -1176,6 +1190,38 @@ extension MobileSelfServiceCommands on MobileCommands {
             ],
             'p_requested_action': requestedAction?.trim(),
             'p_confidential': confidential,
+            'p_truth_confirmed': true,
+            'p_confidentiality_accepted': true,
+          },
+        );
+    ref.invalidate(myDisputePortalProvider);
+    return data as String;
+  }
+
+  /// V23: نموذج مبسط — بدون أولوية أو موقع أو مرفقات
+  Future<String> submitDisputeV23({
+    required String title,
+    required String description,
+    required String caseType,
+    required List<String> respondentIds,
+    List<String> witnessIds = const [],
+  }) async {
+    final data = await ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
+          'submit_my_dispute_v23',
+          params: {
+            'p_title': title.trim(),
+            'p_description': description.trim(),
+            'p_case_type': caseType,
+            'p_parties': [
+              for (final id in respondentIds)
+                {'employeeId': id, 'type': 'respondent'},
+            ],
+            'p_witnesses': [
+              for (final id in witnessIds)
+                {'employeeId': id, 'type': 'witness'},
+            ],
             'p_truth_confirmed': true,
             'p_confidentiality_accepted': true,
           },
