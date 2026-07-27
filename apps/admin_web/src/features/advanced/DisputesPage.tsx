@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
@@ -128,7 +129,7 @@ export function DisputesPage() {
       await task();
       setFeedback({ tone: 'success', text: success });
     } catch (error) {
-      setFeedback({ tone: 'error', text: error instanceof Error ? error.message : 'تعذر تنفيذ الإجراء.' });
+      setFeedback({ tone: 'error', text: safeErrorMessage(error) });
     }
   };
 

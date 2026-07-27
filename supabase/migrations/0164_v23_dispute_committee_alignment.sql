@@ -129,6 +129,7 @@ end $$;
 -- 3. submit_my_dispute_v23 — simplified 7-param RPC
 -- ═══════════════════════════════════════════════════════════════════════════════
 
+drop function if exists public.submit_my_dispute_v23;
 create or replace function public.submit_my_dispute_v23(
   p_title text,
   p_description text,

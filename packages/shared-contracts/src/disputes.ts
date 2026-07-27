@@ -101,3 +101,24 @@ export const executeActionInputSchema = z.object({
   notes: z.string().min(3).max(2000),
 });
 export type ExecuteActionInput = z.infer<typeof executeActionInputSchema>;
+
+// ─── مدخلات تقديم شكوى — V23 §16 ────────────────────────────────────────────
+// يُطابق RPC submit_my_dispute_v23 (7 معاملات).
+
+export const createDisputeInputSchema = z.object({
+  /** عنوان الشكوى (3–300 حرف) */
+  title: z.string().min(3).max(300),
+  /** تفاصيل الشكوى (10–5000 حرف) */
+  description: z.string().min(10).max(5000),
+  /** نوع القضية (سلوكي، إداري، مالي...) */
+  caseType: z.string().min(2).max(100),
+  /** معرّفات الأطراف (المشتكى عليهم) */
+  parties: z.array(z.string().uuid()).default([]),
+  /** معرّفات الشهود */
+  witnesses: z.array(z.string().uuid()).default([]),
+  /** إقرار بصدق المعلومات */
+  truthConfirmed: z.boolean(),
+  /** قبول سياسة السرية */
+  confidentialityAccepted: z.boolean(),
+});
+export type CreateDisputeInput = z.infer<typeof createDisputeInputSchema>;
