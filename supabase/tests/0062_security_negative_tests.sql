@@ -31,42 +31,47 @@ SELECT policies_are(
 -- ════════════════════════════════════════════════════
 
 -- التحقق من أن الدوال الحساسة لها search_path ثابت
-SELECT lives_ok(
-  $$SELECT proname FROM pg_proc p
+SELECT is(
+  (SELECT count(*)::integer FROM pg_proc p
     JOIN pg_namespace n ON p.pronamespace = n.oid
     WHERE n.nspname = 'public'
     AND p.prosecdef = true
     AND NOT EXISTS (
       SELECT 1 FROM unnest(p.proconfig) c
       WHERE c LIKE 'search_path=%'
-    )
-    HAVING count(*) = 0$$,
+    )),
+  0,
   'كل دوال SECURITY DEFINER لها search_path ثابت'
 );
 
 -- ════════════════════════════════════════════════════
--- 3. الصلاحيات: لا EXECUTE من PUBLIC على الدوال الحساسة
+-- 3. الصلاحيات: لا EXECUTE من anon على الدوال الحساسة
 -- ════════════════════════════════════════════════════
 
+-- فحص الصلاحيات عبر OID — لا حاجة لتوقيع الدالة الكامل
 SELECT ok(
-  NOT has_function_privilege('PUBLIC', 'provision_employee_record(jsonb)', 'EXECUTE'),
-  'provision_employee_record ليست متاحة لـ PUBLIC'
-);
+  NOT has_function_privilege('anon', p.oid, 'EXECUTE'),
+  'provision_employee_record ليست متاحة لـ anon'
+) FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+  WHERE n.nspname = 'public' AND p.proname = 'provision_employee_record' LIMIT 1;
 
 SELECT ok(
-  NOT has_function_privilege('PUBLIC', 'rpc_assign_role(uuid, uuid)', 'EXECUTE'),
-  'rpc_assign_role ليست متاحة لـ PUBLIC'
-);
+  NOT has_function_privilege('anon', p.oid, 'EXECUTE'),
+  'rpc_assign_role ليست متاحة لـ anon'
+) FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+  WHERE n.nspname = 'public' AND p.proname = 'rpc_assign_role' LIMIT 1;
 
 SELECT ok(
-  NOT has_function_privilege('PUBLIC', 'rpc_revoke_role(uuid, uuid)', 'EXECUTE'),
-  'rpc_revoke_role ليست متاحة لـ PUBLIC'
-);
+  NOT has_function_privilege('anon', p.oid, 'EXECUTE'),
+  'rpc_revoke_role ليست متاحة لـ anon'
+) FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+  WHERE n.nspname = 'public' AND p.proname = 'rpc_revoke_role' LIMIT 1;
 
 SELECT ok(
-  NOT has_function_privilege('PUBLIC', 'log_audit_event(text, text, text, jsonb)', 'EXECUTE'),
-  'log_audit_event ليست متاحة لـ PUBLIC'
-);
+  NOT has_function_privilege('anon', p.oid, 'EXECUTE'),
+  'log_audit_event ليست متاحة لـ anon'
+) FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+  WHERE n.nspname = 'public' AND p.proname = 'log_audit_event' LIMIT 1;
 
 -- ════════════════════════════════════════════════════
 -- 4. القيود: لا NULL في الأعمدة الإلزامية
@@ -74,7 +79,7 @@ SELECT ok(
 
 SELECT col_not_null('public', 'employees', 'id', 'employees.id NOT NULL');
 SELECT col_not_null('public', 'employees', 'full_name_ar', 'employees.full_name_ar NOT NULL');
-SELECT col_not_null('public', 'employees', 'employment_status', 'employees.employment_status NOT NULL');
+SELECT col_not_null('public', 'employees', 'status', 'employees.status NOT NULL');
 
 SELECT col_not_null('public', 'attendance_events', 'employee_id', 'attendance_events.employee_id NOT NULL');
 SELECT col_not_null('public', 'attendance_events', 'event_type', 'attendance_events.event_type NOT NULL');

@@ -1,0 +1,86 @@
+{
+  "package": "AHLA_SHABAB_V22_AGENT_PACK",
+  "file_count": 16,
+  "files": [
+    {
+      "name": "00_MASTER_INDEX_AND_ORCHESTRATION.md",
+      "size_bytes": 6494,
+      "sha256": "977357ea2a98fb046fba16c0395ec52b34393f1bc25226b45b76238b84915708"
+    },
+    {
+      "name": "01_DISCOVERY_ARCHITECTURE_INVENTORY.md",
+      "size_bytes": 3841,
+      "sha256": "edcb6f7da0b507bfce26ee07a3b6063499212ebc5229565981aa3672b88f986b"
+    },
+    {
+      "name": "02_DATABASE_MIGRATIONS_DATA_INTEGRITY.md",
+      "size_bytes": 4430,
+      "sha256": "3716e7b4281bcb8989d1df2d89726a98459d9a14adedb5a0a7131d3e57b64208"
+    },
+    {
+      "name": "03_SECURITY_RLS_ROLES_PERMISSIONS.md",
+      "size_bytes": 4235,
+      "sha256": "6937973c8da8d34b8ee2dd837ccec7b8894734224bdbdbf7548f5707a15a7880"
+    },
+    {
+      "name": "04_EMPLOYEE_PROVISIONING_ORG_MULTI_ASSIGNMENTS.md",
+      "size_bytes": 3932,
+      "sha256": "eb294502b0f64afac868ac0680bcb0b8d20c894711612917f28f57997085d1c6"
+    },
+    {
+      "name": "05_WEB_ADMIN_HR_UI_MODALS_WORKSPACES.md",
+      "size_bytes": 3344,
+      "sha256": "0ee9852c1a376c7428e9c66980cbe7269b03d12feb392e79a5509cf27438c06a"
+    },
+    {
+      "name": "06_ATTENDANCE_DEVICE_BIOMETRICS_GEOFENCE.md",
+      "size_bytes": 3858,
+      "sha256": "d7a0baa7208e5430d87d587467afcb413a0f29aceac40279f9054f3367533465"
+    },
+    {
+      "name": "07_LEAVES_ASSIGNMENTS_CORRECTIONS_HOLIDAYS.md",
+      "size_bytes": 4302,
+      "sha256": "00f52c64f38b95117aeb26a2e4bde46662ec2de861e7614be97dc5b89308bee9"
+    },
+    {
+      "name": "08_KPI_PARALLEL_WORKFLOW.md",
+      "size_bytes": 3619,
+      "sha256": "4b689dbbe3c77edc0863a21105b79b6d7dbb12d82bf39dc9a364f365967fab6b"
+    },
+    {
+      "name": "09_DISPUTES_COMMITTEE_ADMIN_ACTIONS.md",
+      "size_bytes": 3416,
+      "sha256": "3f3604d12dc1de3e17ae839dbf4ea6d3dec287ab0b149f7aa8930df375dfcdc4"
+    },
+    {
+      "name": "10_EXECUTIVE_MOBILE_POSTS_REPORTS_ORG_CHART.md",
+      "size_bytes": 3629,
+      "sha256": "a5cc233f37680d74ad2ad5d10335d326b1c849cbfe6ed96d5f371433b67202d9"
+    },
+    {
+      "name": "11_LIVE_LOCATION_FCM_ANDROID_NOTIFICATIONS.md",
+      "size_bytes": 3677,
+      "sha256": "f135466be36498f8522b5ff8d2fba05ad489a0432cbb499f7b0adc0be8477061"
+    },
+    {
+      "name": "12_MONTHLY_ATTENDANCE_STATEMENT_REPORTING.md",
+      "size_bytes": 3719,
+      "sha256": "af0d7ce36e42fd5857e7f9c9f1832df455faa26907d98430a4a53607036d451c"
+    },
+    {
+      "name": "13_UI_UX_RTL_THEME_OFFLINE_PERFORMANCE.md",
+      "size_bytes": 3289,
+      "sha256": "2aa93fb1380c1a9111253964db33582fa1cf4795b1dc2439fd46d0443e468660"
+    },
+    {
+      "name": "14_QA_SECURITY_LOAD_RELEASE.md",
+      "size_bytes": 3251,
+      "sha256": "dd2c9fe465d30aa3be9986ba3c9739b431106035b7e1e89199483d5d3e87dc55"
+    },
+    {
+      "name": "15_INTEGRATION_MERGE_TRACEABILITY.md",
+      "size_bytes": 3548,
+      "sha256": "a11125acb875f70e5de4fae171217c6c184f795d864b4d4c13b09a005726732f"
+    }
+  ]
+}

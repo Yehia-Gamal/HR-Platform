@@ -70,9 +70,9 @@ begin
   values(v_entity, 'V17-REQ-LE', 'كيان طلبات V17');
 
   -- قسم تشغيل (slug يبدأ بـ operations) وقسم مالية عادي
-  insert into public.departments(id, legal_entity_id, code, name) values
-    (v_dept_ops, v_entity, 'operations-main', 'إدارة التشغيل'),
-    (v_dept_fin, v_entity, 'V17-FIN', 'إدارة المالية');
+  insert into public.departments(id, legal_entity_id, code, name, slug) values
+    (v_dept_ops, v_entity, 'operations-main', 'إدارة التشغيل', 'operations-main'),
+    (v_dept_fin, v_entity, 'V17-FIN', 'إدارة المالية', 'v17-fin');
 
   -- 4 مستخدمين: مدير (يمثّل admin)، موظف تشغيل، موظف مالية، تنفيذي
   insert into auth.users(id, email, aud, role) values

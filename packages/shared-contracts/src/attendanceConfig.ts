@@ -48,3 +48,29 @@ export const attendanceConfigSchema = z.object({
   exemptRoles: z.array(z.string()).default(['executive_director']),
 });
 export type AttendanceConfig = z.infer<typeof attendanceConfigSchema>;
+
+// ─── إعدادات الحضور على مستوى الخادم (V23 §4) ─────────────────────────────
+// تعكس جدول attendance_settings (singleton) — المصدر الوحيد للحقيقة.
+
+export const attendanceSettingsSchema = z.object({
+  /** نصف قطر السياج الافتراضي (متر) — V23 §4 */
+  geofenceRadiusDefaultMeters: z.number().min(50).max(5000).default(300),
+  /** أقصى عمر للموقع (ثانية) — الخادم يرفض موقعاً أقدم من هذا */
+  locationAgeMaxSeconds: z.number().int().min(5).max(120).default(15),
+  /** أقصى دقة مقبولة (متر) — احتياطي إذا لم يُحدد في السياج */
+  accuracyMaxDefaultMeters: z.number().min(10).max(1000).default(100),
+  /** فترة سماح بعد انتهاء الوردية لانتظار بصمة الخروج (دقيقة) */
+  missingCheckoutGraceMinutes: z.number().int().min(15).max(480).default(60),
+  /** عتبة سرعة الانتقال المستحيل (م/ث) — 42 ≈ 150 كم/س */
+  impossibleTravelSpeedMps: z.number().min(10).max(200).default(42),
+  /** المنطقة الزمنية الرسمية */
+  timezone: z.string().default('Africa/Cairo'),
+});
+export type AttendanceSettings = z.infer<typeof attendanceSettingsSchema>;
+
+/** الحالات المسموحة لـ attendance_daily.status — V23 §4. */
+export const attendanceDailyStatus = z.enum([
+  'present', 'absent', 'late', 'on_leave', 'holiday',
+  'weekend', 'partial', 'pending', 'missing_checkout',
+]);
+export type AttendanceDailyStatus = z.infer<typeof attendanceDailyStatus>;

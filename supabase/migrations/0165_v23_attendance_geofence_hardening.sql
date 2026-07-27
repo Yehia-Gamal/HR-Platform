@@ -1,0 +1,1036 @@
+-- ============================================================================
+-- 0160: V23 §4 — Attendance Geofence Hardening
+-- ============================================================================
+-- تقوية نظام الحضور: إعدادات مركزية، إصلاح الورديات الليلية،
+-- تصفية بصمات الخروج المفقودة، تدقيق تغييرات السياج الجغرافي.
+--
+-- القسم أ: جدول attendance_settings (singleton) — إعدادات مركزية
+-- القسم ب: إضافة 'missing_checkout' لقيد attendance_daily.status
+-- القسم ج: record_attendance_event — إصلاح الورديات الليلية + فترات زمنية
+-- القسم د: record_attendance_local_biometric — نفس الإصلاحات
+-- القسم هـ: finalize_missing_checkouts — تصفية بصمات الخروج المفقودة
+-- القسم و: tg_geofence_audit — تدقيق تغييرات السياج
+-- القسم ز: pg_cron — جدولة finalize_missing_checkouts
+-- ============================================================================
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- القسم أ: attendance_settings singleton
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+create table if not exists public.attendance_settings (
+  singleton_key   boolean primary key default true
+                  check (singleton_key = true),
+  geofence_radius_default_meters integer not null default 300,
+  location_age_max_seconds       integer not null default 15,
+  accuracy_max_default_meters    integer not null default 100,
+  missing_checkout_grace_minutes integer not null default 60,
+  impossible_travel_speed_mps    numeric(6,2) not null default 42,
+  timezone                       text not null default 'Africa/Cairo',
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz
+);
+
+comment on table public.attendance_settings is
+  'إعدادات الحضور المركزية (صف واحد فقط) — V23 §4.';
+
+-- Seed the singleton row
+insert into public.attendance_settings (singleton_key)
+values (true)
+on conflict (singleton_key) do nothing;
+
+-- updated_at trigger (project standard)
+create trigger set_attendance_settings_updated_at
+  before update on public.attendance_settings
+  for each row execute function public.tg_set_updated_at();
+
+-- RLS
+alter table public.attendance_settings enable row level security;
+
+-- authenticated can read
+create policy "attendance_settings_select"
+  on public.attendance_settings for select
+  to authenticated
+  using (true);
+
+-- only full-access can modify
+create policy "attendance_settings_modify"
+  on public.attendance_settings for all
+  to authenticated
+  using (public.current_is_full_access())
+  with check (public.current_is_full_access());
+
+-- service_role bypass (implicit with RLS but explicit grant for clarity)
+grant select, update on public.attendance_settings to service_role;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- القسم ب: attendance_daily.status — إضافة 'missing_checkout'
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- القيد الأصلي في 0005 مُضمَّن بدون اسم. نبحث عنه ديناميكياً ونستبدله.
+
+do $$
+declare
+  v_conname text;
+begin
+  select conname into v_conname
+  from pg_constraint
+  where conrelid = 'public.attendance_daily'::regclass
+    and contype = 'c'
+    and pg_get_constraintdef(oid) like '%absent%'
+    and pg_get_constraintdef(oid) like '%present%'
+    and pg_get_constraintdef(oid) not like '%missing_checkout%';
+
+  if v_conname is not null then
+    execute format('alter table public.attendance_daily drop constraint %I', v_conname);
+  end if;
+end;
+$$;
+
+alter table public.attendance_daily
+  add constraint attendance_daily_status_check
+  check (status in (
+    'present', 'absent', 'late', 'on_leave', 'holiday',
+    'weekend', 'partial', 'pending', 'missing_checkout'
+  ));
+
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- القسم ج: record_attendance_event — إصلاح الورديات الليلية + فترات زمنية
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- التغييرات الرئيسية عن 0120:
+--   1) قراءة timezone + impossible_travel_speed_mps من attendance_settings
+--   2) كشف وردية ليلية (crosses_midnight): إذا الوقت المحلي < 12:00
+--      يبحث في جدول أمس عن وردية ليلية مفتوحة → يعدّل v_work_date
+--   3) حدود الفترة (period boundaries) بدل التاريخ لاستعلامات الأحداث
+--   4) دقة GPS: سلسلة احتياطية geofence.max_accuracy → settings → 100
+-- ============================================================================
+
+create or replace function public.record_attendance_event(
+  p_employee_id uuid,
+  p_event_type text,
+  p_latitude double precision,
+  p_longitude double precision,
+  p_accuracy_meters double precision,
+  p_biometric_method text default 'passkey',
+  p_selfie_path text default null,
+  p_passkey_credential_id uuid default null,
+  p_verified boolean default false,
+  p_is_mock boolean default false
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_event_id uuid;
+  v_assignment public.shift_assignments%rowtype;
+  v_geofence public.geofences%rowtype;
+  v_shift public.shifts%rowtype;
+  v_roster_shift_id uuid;
+  v_roster_geofence_id uuid;
+  v_now timestamptz := now();
+  v_tz text;
+  v_local_time time;
+  v_work_date date;
+  v_distance numeric(12,2);
+  v_late integer := 0;
+  v_first_check_in timestamptz;
+  v_last_check_out timestamptz;
+  v_last_event_type text;
+  -- Night shift / period boundaries
+  v_crosses_midnight boolean := false;
+  v_period_start timestamptz;
+  v_period_end timestamptz;
+  -- Impossible-travel guard
+  v_prev_at timestamptz;
+  v_prev_lat double precision;
+  v_prev_lon double precision;
+  v_gap_seconds numeric;
+  v_travel double precision;
+  v_impossible_speed numeric;
+  v_requires_review boolean := false;
+  v_notes text := 'inside_complex';
+  -- Accuracy fallback
+  v_max_accuracy numeric;
+begin
+  -- 0) Read centralized settings
+  select s.timezone, s.impossible_travel_speed_mps, s.accuracy_max_default_meters
+    into v_tz, v_impossible_speed, v_max_accuracy
+  from public.attendance_settings s
+  limit 1;
+  v_tz := coalesce(v_tz, 'Africa/Cairo');
+  v_impossible_speed := coalesce(v_impossible_speed, 42);
+  v_max_accuracy := coalesce(v_max_accuracy, 100);
+
+  v_local_time := (v_now at time zone v_tz)::time;
+  v_work_date := (v_now at time zone v_tz)::date;
+
+  -- 1) Service-role guard
+  if coalesce(
+       current_setting('request.jwt.claim.role', true),
+       current_setting('role', true),
+       current_user
+     ) not in ('service_role', 'postgres', 'supabase_admin')
+     and current_user <> 'service_role' then
+    raise exception 'attendance_trusted_server_required' using errcode = '42501';
+  end if;
+
+  -- 2) Basic validations
+  if p_event_type not in ('CHECK_IN', 'CHECK_OUT') then
+    raise exception 'invalid_event_type' using errcode = '22023';
+  end if;
+  if p_employee_id is null or not p_verified then
+    raise exception 'attendance_identity_not_verified' using errcode = '28000';
+  end if;
+  if p_is_mock then
+    raise exception 'attendance_mock_location_rejected' using errcode = '22023';
+  end if;
+  if p_latitude is null or p_longitude is null or p_accuracy_meters is null then
+    raise exception 'attendance_location_required' using errcode = '22023';
+  end if;
+
+  -- 3) Passkey verification
+  if p_passkey_credential_id is null or not exists (
+    select 1
+    from public.passkey_credentials pc
+    where pc.id = p_passkey_credential_id
+      and pc.employee_id = p_employee_id
+      and pc.status = 'active'
+      and pc.trusted = true
+  ) then
+    raise exception 'attendance_passkey_not_trusted' using errcode = '28000';
+  end if;
+
+  -- 4) Duplicate guard (60-second window)
+  if exists (
+    select 1 from public.attendance_events ae
+    where ae.employee_id = p_employee_id
+      and ae.event_type = p_event_type
+      and ae.event_at > v_now - interval '60 seconds'
+  ) then
+    raise exception 'duplicate_attendance_event' using errcode = '23505';
+  end if;
+
+  -- 5) Roster + shift assignment lookup (moved before sequencing for period computation)
+  select rd.shift_id, rd.geofence_id
+    into v_roster_shift_id, v_roster_geofence_id
+  from public.roster_days rd
+  join public.work_rosters wr on wr.id = rd.roster_id and wr.status = 'published'
+  where rd.employee_id = p_employee_id
+    and rd.work_date = v_work_date
+    and rd.day_status = 'scheduled'
+  order by wr.published_at desc nulls last
+  limit 1;
+
+  select * into v_assignment
+  from public.shift_assignments sa
+  where sa.employee_id = p_employee_id
+    and sa.is_active = true
+    and sa.effective_from <= v_work_date
+    and (sa.effective_to is null or sa.effective_to >= v_work_date)
+  order by sa.effective_from desc
+  limit 1;
+
+  -- Load shift
+  if coalesce(v_roster_shift_id, v_assignment.shift_id) is not null then
+    select * into v_shift from public.shifts
+    where id = coalesce(v_roster_shift_id, v_assignment.shift_id);
+  end if;
+
+  -- 6) Night-shift detection: if local time < 12:00, check yesterday for crosses_midnight shift
+  if v_local_time < '12:00:00'::time then
+    declare
+      v_yest_date date := v_work_date - 1;
+      v_yest_shift public.shifts%rowtype;
+      v_yest_shift_id uuid;
+      v_has_open_yesterday boolean := false;
+    begin
+      -- Check yesterday's roster first
+      select rd.shift_id into v_yest_shift_id
+      from public.roster_days rd
+      join public.work_rosters wr on wr.id = rd.roster_id and wr.status = 'published'
+      where rd.employee_id = p_employee_id
+        and rd.work_date = v_yest_date
+        and rd.day_status = 'scheduled'
+      order by wr.published_at desc nulls last
+      limit 1;
+
+      -- Fallback to shift_assignments for yesterday
+      if v_yest_shift_id is null then
+        select sa.shift_id into v_yest_shift_id
+        from public.shift_assignments sa
+        where sa.employee_id = p_employee_id
+          and sa.is_active = true
+          and sa.effective_from <= v_yest_date
+          and (sa.effective_to is null or sa.effective_to >= v_yest_date)
+        order by sa.effective_from desc
+        limit 1;
+      end if;
+
+      if v_yest_shift_id is not null then
+        select * into v_yest_shift from public.shifts where id = v_yest_shift_id;
+        if v_yest_shift.crosses_midnight then
+          -- Check if there's an open attendance_daily for yesterday (check-in but no check-out)
+          select true into v_has_open_yesterday
+          from public.attendance_daily ad
+          where ad.employee_id = p_employee_id
+            and ad.work_date = v_yest_date
+            and ad.first_check_in is not null
+            and ad.last_check_out is null
+            and ad.is_finalized = false;
+
+          if v_has_open_yesterday then
+            v_work_date := v_yest_date;
+            v_crosses_midnight := true;
+            v_shift := v_yest_shift;
+            -- Re-lookup roster/assignment for yesterday
+            select rd.shift_id, rd.geofence_id
+              into v_roster_shift_id, v_roster_geofence_id
+            from public.roster_days rd
+            join public.work_rosters wr on wr.id = rd.roster_id and wr.status = 'published'
+            where rd.employee_id = p_employee_id
+              and rd.work_date = v_yest_date
+              and rd.day_status = 'scheduled'
+            order by wr.published_at desc nulls last
+            limit 1;
+
+            select * into v_assignment
+            from public.shift_assignments sa
+            where sa.employee_id = p_employee_id
+              and sa.is_active = true
+              and sa.effective_from <= v_yest_date
+              and (sa.effective_to is null or sa.effective_to >= v_yest_date)
+            order by sa.effective_from desc
+            limit 1;
+          end if;
+        end if;
+      end if;
+    end;
+  end if;
+
+  -- 7) Compute period boundaries
+  if v_crosses_midnight and v_shift.id is not null then
+    -- Night shift: period = work_date+start_time → (work_date+1)+end_time
+    v_period_start := (v_work_date + v_shift.start_time) at time zone v_tz;
+    v_period_end   := ((v_work_date + 1) + v_shift.end_time) at time zone v_tz;
+  else
+    -- Day shift or no shift: full calendar day
+    v_period_start := v_work_date::timestamptz at time zone v_tz;
+    v_period_end   := (v_work_date + 1)::timestamptz at time zone v_tz;
+  end if;
+
+  -- 8) Finalized-period guard
+  if exists (
+    select 1 from public.attendance_daily
+    where employee_id = p_employee_id
+      and work_date = v_work_date
+      and is_finalized = true
+  ) then
+    raise exception 'attendance_period_finalized' using errcode = '55000';
+  end if;
+
+  -- 9) Sequencing check (period-based instead of date-based)
+  select ae.event_type into v_last_event_type
+  from public.attendance_events ae
+  where ae.employee_id = p_employee_id
+    and ae.event_at >= v_period_start
+    and ae.event_at < v_period_end
+    and ae.status in ('accepted', 'adjusted')
+  order by ae.event_at desc
+  limit 1;
+  if p_event_type = 'CHECK_OUT'
+     and v_last_event_type is distinct from 'CHECK_IN' then
+    raise exception 'attendance_check_in_required' using errcode = '22023';
+  end if;
+  if p_event_type = 'CHECK_IN' and v_last_event_type = 'CHECK_IN' then
+    raise exception 'attendance_check_out_required' using errcode = '22023';
+  end if;
+
+  -- 10) Impossible-travel guard (configurable speed from settings)
+  select ae.event_at, ae.latitude, ae.longitude
+    into v_prev_at, v_prev_lat, v_prev_lon
+  from public.attendance_events ae
+  where ae.employee_id = p_employee_id
+    and ae.latitude is not null and ae.longitude is not null
+    and ae.event_at > v_now - interval '6 hours'
+  order by ae.event_at desc
+  limit 1;
+
+  if v_prev_at is not null then
+    v_gap_seconds := greatest(extract(epoch from (v_now - v_prev_at)), 1);
+    v_travel := public.geo_distance_meters(
+      p_latitude, p_longitude, v_prev_lat, v_prev_lon
+    );
+    if v_travel is not null and (v_travel / v_gap_seconds) > v_impossible_speed then
+      v_requires_review := true;
+      v_notes := v_notes || ',impossible_travel';
+    end if;
+  end if;
+
+  -- 11) Geofence lookup + validation
+  if v_roster_geofence_id is not null then
+    select * into v_geofence from public.geofences
+    where id = v_roster_geofence_id and is_active = true;
+  elsif v_assignment.geofence_id is not null then
+    select * into v_geofence from public.geofences
+    where id = v_assignment.geofence_id and is_active = true;
+  end if;
+
+  if v_geofence.id is null then
+    raise exception 'attendance_geofence_not_configured' using errcode = '55000';
+  end if;
+
+  v_distance := public.geo_distance_meters(
+    p_latitude, p_longitude, v_geofence.latitude, v_geofence.longitude
+  )::numeric(12,2);
+
+  if v_distance > v_geofence.radius_meters then
+    raise exception 'attendance_outside_complex' using errcode = '22023';
+  end if;
+
+  -- Accuracy fallback chain: geofence.max_accuracy → settings → 100
+  if coalesce(v_geofence.max_accuracy, v_max_accuracy) is not null
+     and p_accuracy_meters > coalesce(v_geofence.max_accuracy, v_max_accuracy) then
+    raise exception 'attendance_location_accuracy_too_low' using errcode = '22023';
+  end if;
+
+  -- 12) Late calculation
+  if p_event_type = 'CHECK_IN' and v_shift.id is not null then
+    v_late := public.calculate_late_minutes(
+      v_now, v_shift.start_time, v_shift.grace_in_minutes, v_work_date
+    );
+  end if;
+
+  -- 13) Insert event
+  insert into public.attendance_events (
+    employee_id, shift_assignment_id, geofence_id, event_type, event_at,
+    latitude, longitude, accuracy_meters, distance_meters, status,
+    late_minutes, requires_review, verification_status,
+    passkey_credential_id, biometric_method, selfie_path, server_verified,
+    is_mock_location, notes, source, created_by
+  ) values (
+    p_employee_id, v_assignment.id, v_geofence.id, p_event_type, v_now,
+    p_latitude, p_longitude, p_accuracy_meters, v_distance,
+    case when v_requires_review then 'flagged' else 'accepted' end,
+    v_late, v_requires_review, 'passkey_verified',
+    p_passkey_credential_id, coalesce(p_biometric_method, 'passkey'),
+    p_selfie_path, true, false,
+    v_notes, 'mobile', null
+  ) returning id into v_event_id;
+
+  -- 14) Aggregate attendance_daily (period-based)
+  select min(event_at) filter (where event_type = 'CHECK_IN'),
+         max(event_at) filter (where event_type = 'CHECK_OUT')
+    into v_first_check_in, v_last_check_out
+  from public.attendance_events
+  where employee_id = p_employee_id
+    and event_at >= v_period_start
+    and event_at < v_period_end
+    and status in ('accepted', 'adjusted');
+
+  insert into public.attendance_daily (
+    employee_id, work_date, shift_id, first_check_in, last_check_out,
+    work_minutes, late_minutes, status, is_finalized, created_by
+  ) values (
+    p_employee_id, v_work_date, coalesce(v_roster_shift_id, v_assignment.shift_id),
+    v_first_check_in, v_last_check_out,
+    case when v_first_check_in is not null and v_last_check_out is not null
+      then greatest(0, floor(extract(epoch from (v_last_check_out - v_first_check_in)) / 60)::integer)
+      else 0 end,
+    v_late,
+    case
+      when v_first_check_in is null then 'partial'
+      when v_late > 0 then 'late'
+      else 'present'
+    end,
+    false, null
+  )
+  on conflict on constraint attendance_daily_uq do update set
+    shift_id = coalesce(excluded.shift_id, attendance_daily.shift_id),
+    first_check_in = coalesce(excluded.first_check_in, attendance_daily.first_check_in),
+    last_check_out = coalesce(excluded.last_check_out, attendance_daily.last_check_out),
+    work_minutes = excluded.work_minutes,
+    late_minutes = greatest(attendance_daily.late_minutes, excluded.late_minutes),
+    status = case
+      when attendance_daily.status in ('on_leave', 'holiday', 'weekend') then attendance_daily.status
+      when excluded.first_check_in is null then 'partial'
+      when greatest(attendance_daily.late_minutes, excluded.late_minutes) > 0 then 'late'
+      else 'present'
+    end,
+    updated_at = now()
+  where attendance_daily.is_finalized = false;
+
+  -- 15) Update passkey last_used
+  update public.passkey_credentials set last_used = v_now
+  where id = p_passkey_credential_id;
+
+  -- 16) Audit log
+  perform public.log_audit_event(
+    'attendance.' || lower(p_event_type), 'security', 'info',
+    'attendance_events', v_event_id, 'بصمة موثقة داخل نطاق المجمع', null,
+    jsonb_build_object(
+      'method', p_biometric_method,
+      'insideComplex', true,
+      'distanceMeters', v_distance,
+      'geofenceId', v_geofence.id,
+      'impossibleTravel', v_requires_review,
+      'nightShift', v_crosses_midnight,
+      'workDate', v_work_date
+    )
+  );
+
+  return v_event_id;
+end;
+$$;
+
+-- Re-apply revokes after CREATE OR REPLACE
+revoke all on function public.record_attendance_event(
+  uuid, text, double precision, double precision, double precision,
+  text, text, uuid, boolean, boolean
+) from public, anon, authenticated;
+grant execute on function public.record_attendance_event(
+  uuid, text, double precision, double precision, double precision,
+  text, text, uuid, boolean, boolean
+) to service_role;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- القسم د: record_attendance_local_biometric — نفس إصلاحات الورديات الليلية
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+create or replace function public.record_attendance_local_biometric(
+  p_employee_id uuid,
+  p_event_type text,
+  p_latitude double precision,
+  p_longitude double precision,
+  p_accuracy_meters double precision,
+  p_is_mock boolean default false
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_event_id uuid;
+  v_assignment public.shift_assignments%rowtype;
+  v_geofence public.geofences%rowtype;
+  v_shift public.shifts%rowtype;
+  v_roster_shift_id uuid;
+  v_roster_geofence_id uuid;
+  v_now timestamptz := now();
+  v_tz text;
+  v_local_time time;
+  v_work_date date;
+  v_distance numeric(12,2);
+  v_late integer := 0;
+  v_first_check_in timestamptz;
+  v_last_check_out timestamptz;
+  v_last_event_type text;
+  -- Night shift / period boundaries
+  v_crosses_midnight boolean := false;
+  v_period_start timestamptz;
+  v_period_end timestamptz;
+  -- Impossible-travel guard
+  v_prev_at timestamptz;
+  v_prev_lat double precision;
+  v_prev_lon double precision;
+  v_gap_seconds numeric;
+  v_travel double precision;
+  v_impossible_speed numeric;
+  v_requires_review boolean := false;
+  v_notes text := 'inside_complex_local_biometric';
+  -- Accuracy fallback
+  v_max_accuracy numeric;
+begin
+  -- 0) Read centralized settings
+  select s.timezone, s.impossible_travel_speed_mps, s.accuracy_max_default_meters
+    into v_tz, v_impossible_speed, v_max_accuracy
+  from public.attendance_settings s
+  limit 1;
+  v_tz := coalesce(v_tz, 'Africa/Cairo');
+  v_impossible_speed := coalesce(v_impossible_speed, 42);
+  v_max_accuracy := coalesce(v_max_accuracy, 100);
+
+  v_local_time := (v_now at time zone v_tz)::time;
+  v_work_date := (v_now at time zone v_tz)::date;
+
+  -- 1) Service-role guard (current_user check for biometric path)
+  if current_user not in ('service_role', 'postgres', 'supabase_admin') then
+    raise exception 'attendance_trusted_server_required' using errcode = '42501';
+  end if;
+
+  -- 2) Basic validations
+  if p_event_type not in ('CHECK_IN', 'CHECK_OUT') then
+    raise exception 'invalid_event_type' using errcode = '22023';
+  end if;
+  if p_employee_id is null then
+    raise exception 'attendance_identity_not_verified' using errcode = '28000';
+  end if;
+  if p_is_mock then
+    raise exception 'attendance_mock_location_rejected' using errcode = '22023';
+  end if;
+  if p_latitude is null or p_longitude is null or p_accuracy_meters is null then
+    raise exception 'attendance_location_required' using errcode = '22023';
+  end if;
+  if p_latitude < -90 or p_latitude > 90
+     or p_longitude < -180 or p_longitude > 180
+     or p_accuracy_meters < 0 or p_accuracy_meters > 10000 then
+    raise exception 'invalid_attendance_location' using errcode = '22023';
+  end if;
+
+  -- 3) Duplicate guard (60-second window)
+  if exists (
+    select 1 from public.attendance_events ae
+    where ae.employee_id = p_employee_id
+      and ae.event_type = p_event_type
+      and ae.event_at > v_now - interval '60 seconds'
+  ) then
+    raise exception 'duplicate_attendance_event' using errcode = '23505';
+  end if;
+
+  -- 4) Roster + shift assignment lookup (moved before sequencing)
+  select rd.shift_id, rd.geofence_id
+    into v_roster_shift_id, v_roster_geofence_id
+  from public.roster_days rd
+  join public.work_rosters wr on wr.id = rd.roster_id and wr.status = 'published'
+  where rd.employee_id = p_employee_id
+    and rd.work_date = v_work_date
+    and rd.day_status = 'scheduled'
+  order by wr.published_at desc nulls last
+  limit 1;
+
+  select * into v_assignment
+  from public.shift_assignments sa
+  where sa.employee_id = p_employee_id
+    and sa.is_active = true
+    and sa.effective_from <= v_work_date
+    and (sa.effective_to is null or sa.effective_to >= v_work_date)
+  order by sa.effective_from desc
+  limit 1;
+
+  -- Load shift
+  if coalesce(v_roster_shift_id, v_assignment.shift_id) is not null then
+    select * into v_shift from public.shifts
+    where id = coalesce(v_roster_shift_id, v_assignment.shift_id);
+  end if;
+
+  -- 5) Night-shift detection
+  if v_local_time < '12:00:00'::time then
+    declare
+      v_yest_date date := v_work_date - 1;
+      v_yest_shift public.shifts%rowtype;
+      v_yest_shift_id uuid;
+      v_has_open_yesterday boolean := false;
+    begin
+      select rd.shift_id into v_yest_shift_id
+      from public.roster_days rd
+      join public.work_rosters wr on wr.id = rd.roster_id and wr.status = 'published'
+      where rd.employee_id = p_employee_id
+        and rd.work_date = v_yest_date
+        and rd.day_status = 'scheduled'
+      order by wr.published_at desc nulls last
+      limit 1;
+
+      if v_yest_shift_id is null then
+        select sa.shift_id into v_yest_shift_id
+        from public.shift_assignments sa
+        where sa.employee_id = p_employee_id
+          and sa.is_active = true
+          and sa.effective_from <= v_yest_date
+          and (sa.effective_to is null or sa.effective_to >= v_yest_date)
+        order by sa.effective_from desc
+        limit 1;
+      end if;
+
+      if v_yest_shift_id is not null then
+        select * into v_yest_shift from public.shifts where id = v_yest_shift_id;
+        if v_yest_shift.crosses_midnight then
+          select true into v_has_open_yesterday
+          from public.attendance_daily ad
+          where ad.employee_id = p_employee_id
+            and ad.work_date = v_yest_date
+            and ad.first_check_in is not null
+            and ad.last_check_out is null
+            and ad.is_finalized = false;
+
+          if v_has_open_yesterday then
+            v_work_date := v_yest_date;
+            v_crosses_midnight := true;
+            v_shift := v_yest_shift;
+
+            select rd.shift_id, rd.geofence_id
+              into v_roster_shift_id, v_roster_geofence_id
+            from public.roster_days rd
+            join public.work_rosters wr on wr.id = rd.roster_id and wr.status = 'published'
+            where rd.employee_id = p_employee_id
+              and rd.work_date = v_yest_date
+              and rd.day_status = 'scheduled'
+            order by wr.published_at desc nulls last
+            limit 1;
+
+            select * into v_assignment
+            from public.shift_assignments sa
+            where sa.employee_id = p_employee_id
+              and sa.is_active = true
+              and sa.effective_from <= v_yest_date
+              and (sa.effective_to is null or sa.effective_to >= v_yest_date)
+            order by sa.effective_from desc
+            limit 1;
+          end if;
+        end if;
+      end if;
+    end;
+  end if;
+
+  -- 6) Compute period boundaries
+  if v_crosses_midnight and v_shift.id is not null then
+    v_period_start := (v_work_date + v_shift.start_time) at time zone v_tz;
+    v_period_end   := ((v_work_date + 1) + v_shift.end_time) at time zone v_tz;
+  else
+    v_period_start := v_work_date::timestamptz at time zone v_tz;
+    v_period_end   := (v_work_date + 1)::timestamptz at time zone v_tz;
+  end if;
+
+  -- 7) Finalized-period guard
+  if exists (
+    select 1 from public.attendance_daily
+    where employee_id = p_employee_id
+      and work_date = v_work_date
+      and is_finalized = true
+  ) then
+    raise exception 'attendance_period_finalized' using errcode = '55000';
+  end if;
+
+  -- 8) Impossible-travel guard (configurable speed)
+  select ae.event_at, ae.latitude, ae.longitude
+    into v_prev_at, v_prev_lat, v_prev_lon
+  from public.attendance_events ae
+  where ae.employee_id = p_employee_id
+    and ae.latitude is not null and ae.longitude is not null
+    and ae.event_at > v_now - interval '6 hours'
+  order by ae.event_at desc
+  limit 1;
+
+  if v_prev_at is not null then
+    v_gap_seconds := greatest(extract(epoch from (v_now - v_prev_at)), 1);
+    v_travel := public.geo_distance_meters(
+      p_latitude, p_longitude, v_prev_lat, v_prev_lon
+    );
+    if v_travel is not null and (v_travel / v_gap_seconds) > v_impossible_speed then
+      v_requires_review := true;
+      v_notes := v_notes || ',impossible_travel';
+    end if;
+  end if;
+
+  -- 9) Sequencing check (period-based)
+  select ae.event_type into v_last_event_type
+  from public.attendance_events ae
+  where ae.employee_id = p_employee_id
+    and ae.event_at >= v_period_start
+    and ae.event_at < v_period_end
+    and ae.status in ('accepted', 'adjusted')
+  order by ae.event_at desc
+  limit 1;
+  if p_event_type = 'CHECK_OUT' and v_last_event_type is distinct from 'CHECK_IN' then
+    raise exception 'attendance_check_in_required' using errcode = '22023';
+  end if;
+  if p_event_type = 'CHECK_IN' and v_last_event_type = 'CHECK_IN' then
+    raise exception 'attendance_check_out_required' using errcode = '22023';
+  end if;
+
+  -- 10) Geofence lookup + validation
+  if v_roster_geofence_id is not null then
+    select * into v_geofence from public.geofences
+    where id = v_roster_geofence_id and is_active = true;
+  elsif v_assignment.geofence_id is not null then
+    select * into v_geofence from public.geofences
+    where id = v_assignment.geofence_id and is_active = true;
+  end if;
+  if v_geofence.id is null then
+    raise exception 'attendance_geofence_not_configured' using errcode = '55000';
+  end if;
+
+  v_distance := public.geo_distance_meters(
+    p_latitude, p_longitude, v_geofence.latitude, v_geofence.longitude
+  )::numeric(12,2);
+  if v_distance > v_geofence.radius_meters then
+    raise exception 'attendance_outside_complex' using errcode = '22023';
+  end if;
+  -- Accuracy fallback chain: geofence.max_accuracy → settings → 100
+  if coalesce(v_geofence.max_accuracy, v_max_accuracy) is not null
+     and p_accuracy_meters > coalesce(v_geofence.max_accuracy, v_max_accuracy) then
+    raise exception 'attendance_location_accuracy_too_low' using errcode = '22023';
+  end if;
+
+  -- 11) Late calculation
+  if p_event_type = 'CHECK_IN' and v_shift.id is not null then
+    v_late := public.calculate_late_minutes(
+      v_now, v_shift.start_time, v_shift.grace_in_minutes, v_work_date
+    );
+  end if;
+
+  -- 12) Insert event
+  insert into public.attendance_events (
+    employee_id, shift_assignment_id, geofence_id, event_type, event_at,
+    latitude, longitude, accuracy_meters, distance_meters, status,
+    late_minutes, requires_review, verification_status,
+    passkey_credential_id, biometric_method, selfie_path, server_verified,
+    is_mock_location, notes, source, created_by
+  ) values (
+    p_employee_id, v_assignment.id, v_geofence.id, p_event_type, v_now,
+    p_latitude, p_longitude, p_accuracy_meters, v_distance,
+    case when v_requires_review then 'flagged' else 'accepted' end,
+    v_late, v_requires_review, 'biometric_verified',
+    null, 'fingerprint', null, true, false,
+    v_notes, 'mobile', null
+  ) returning id into v_event_id;
+
+  -- 13) Aggregate attendance_daily (period-based)
+  select min(event_at) filter (where event_type = 'CHECK_IN'),
+         max(event_at) filter (where event_type = 'CHECK_OUT')
+    into v_first_check_in, v_last_check_out
+  from public.attendance_events
+  where employee_id = p_employee_id
+    and event_at >= v_period_start
+    and event_at < v_period_end
+    and status in ('accepted', 'adjusted');
+
+  insert into public.attendance_daily (
+    employee_id, work_date, shift_id, first_check_in, last_check_out,
+    work_minutes, late_minutes, status, is_finalized, created_by
+  ) values (
+    p_employee_id, v_work_date, coalesce(v_roster_shift_id, v_assignment.shift_id),
+    v_first_check_in, v_last_check_out,
+    case when v_first_check_in is not null and v_last_check_out is not null
+      then greatest(0, floor(extract(epoch from (v_last_check_out - v_first_check_in)) / 60)::integer)
+      else 0 end,
+    v_late,
+    case
+      when v_first_check_in is null then 'partial'
+      when v_late > 0 then 'late'
+      else 'present'
+    end,
+    false, null
+  )
+  on conflict on constraint attendance_daily_uq do update set
+    shift_id = coalesce(excluded.shift_id, attendance_daily.shift_id),
+    first_check_in = coalesce(excluded.first_check_in, attendance_daily.first_check_in),
+    last_check_out = coalesce(excluded.last_check_out, attendance_daily.last_check_out),
+    work_minutes = excluded.work_minutes,
+    late_minutes = greatest(attendance_daily.late_minutes, excluded.late_minutes),
+    status = case
+      when attendance_daily.status in ('on_leave', 'holiday', 'weekend')
+        then attendance_daily.status
+      when excluded.first_check_in is null then 'partial'
+      when greatest(attendance_daily.late_minutes, excluded.late_minutes) > 0 then 'late'
+      else 'present'
+    end,
+    updated_at = now()
+  where attendance_daily.is_finalized = false;
+
+  -- 14) Audit log
+  perform public.log_audit_event(
+    'attendance.' || lower(p_event_type), 'security', 'info',
+    'attendance_events', v_event_id, 'بصمة محلية موثقة داخل نطاق المجمع', null,
+    jsonb_build_object(
+      'method', 'local_biometric',
+      'insideComplex', true,
+      'distanceMeters', v_distance,
+      'geofenceId', v_geofence.id,
+      'impossibleTravel', v_requires_review,
+      'nightShift', v_crosses_midnight,
+      'workDate', v_work_date
+    )
+  );
+
+  return v_event_id;
+end;
+$$;
+
+-- Re-apply revokes after CREATE OR REPLACE
+revoke all on function public.record_attendance_local_biometric(
+  uuid, text, double precision, double precision, double precision, boolean
+) from public, anon, authenticated;
+grant execute on function public.record_attendance_local_biometric(
+  uuid, text, double precision, double precision, double precision, boolean
+) to service_role;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- القسم هـ: finalize_missing_checkouts — تصفية بصمات الخروج المفقودة
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- تعمل عبر pg_cron كل 30 دقيقة. تبحث عن attendance_daily بدون بصمة خروج
+-- وانتهت فترة السماح → تحدّث الحالة إلى 'missing_checkout' وتُنشئ استثناء.
+
+create or replace function public.finalize_missing_checkouts()
+returns integer
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_count integer := 0;
+  v_grace_minutes integer;
+  v_tz text;
+  v_now timestamptz := now();
+  v_rec record;
+  v_shift public.shifts%rowtype;
+  v_deadline timestamptz;
+begin
+  -- Service-role only
+  if current_user not in ('service_role', 'postgres', 'supabase_admin') then
+    raise exception 'attendance_trusted_server_required' using errcode = '42501';
+  end if;
+
+  -- Read settings
+  select s.missing_checkout_grace_minutes, s.timezone
+    into v_grace_minutes, v_tz
+  from public.attendance_settings s
+  limit 1;
+  v_grace_minutes := coalesce(v_grace_minutes, 60);
+  v_tz := coalesce(v_tz, 'Africa/Cairo');
+
+  -- Find open attendance_daily records: check-in exists, no check-out, not finalized
+  for v_rec in
+    select ad.id, ad.employee_id, ad.work_date, ad.shift_id
+    from public.attendance_daily ad
+    where ad.first_check_in is not null
+      and ad.last_check_out is null
+      and ad.is_finalized = false
+      and ad.status not in ('on_leave', 'holiday', 'weekend', 'missing_checkout')
+  loop
+    -- Load shift to compute deadline
+    if v_rec.shift_id is not null then
+      select * into v_shift from public.shifts where id = v_rec.shift_id;
+    else
+      v_shift := null;
+    end if;
+
+    if v_shift.id is not null then
+      if v_shift.crosses_midnight then
+        -- Night shift ends next day
+        v_deadline := ((v_rec.work_date + 1) + v_shift.end_time) at time zone v_tz
+                      + (v_grace_minutes || ' minutes')::interval;
+      else
+        v_deadline := (v_rec.work_date + v_shift.end_time) at time zone v_tz
+                      + (v_grace_minutes || ' minutes')::interval;
+      end if;
+    else
+      -- No shift: default end at 18:00
+      v_deadline := (v_rec.work_date + '18:00'::time) at time zone v_tz
+                    + (v_grace_minutes || ' minutes')::interval;
+    end if;
+
+    -- Only finalize if deadline has passed
+    if v_now > v_deadline then
+      -- Update status
+      update public.attendance_daily
+      set status = 'missing_checkout',
+          updated_at = now()
+      where id = v_rec.id
+        and is_finalized = false;
+
+      -- Create attendance exception
+      insert into public.attendance_exceptions (
+        employee_id, work_date, kind, description, auto_generated
+      ) values (
+        v_rec.employee_id,
+        v_rec.work_date,
+        'missing_check_out',
+        'بصمة خروج مفقودة — أُنشئ تلقائياً بواسطة finalize_missing_checkouts',
+        true
+      )
+      on conflict do nothing;
+
+      -- Audit log
+      perform public.log_audit_event(
+        'attendance.missing_checkout_finalized', 'operations', 'warning',
+        'attendance_daily', v_rec.id,
+        'بصمة خروج مفقودة — تصفية تلقائية', null,
+        jsonb_build_object(
+          'workDate', v_rec.work_date,
+          'shiftId', v_rec.shift_id,
+          'deadline', v_deadline
+        )
+      );
+
+      v_count := v_count + 1;
+    end if;
+  end loop;
+
+  return v_count;
+end;
+$$;
+
+revoke all on function public.finalize_missing_checkouts()
+  from public, anon, authenticated;
+grant execute on function public.finalize_missing_checkouts()
+  to service_role;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- القسم و: tg_geofence_audit — تدقيق تغييرات السياج الجغرافي
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+create or replace function public.tg_geofence_audit()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  perform public.log_audit_event(
+    'geofence.config_changed', 'security', 'warning',
+    'geofences', new.id,
+    'تغيير إعدادات السياج الجغرافي', null,
+    jsonb_build_object(
+      'code', new.code,
+      'changes', jsonb_build_object(
+        'radius_meters', jsonb_build_object('old', old.radius_meters, 'new', new.radius_meters),
+        'max_accuracy', jsonb_build_object('old', old.max_accuracy, 'new', new.max_accuracy),
+        'latitude', jsonb_build_object('old', old.latitude, 'new', new.latitude),
+        'longitude', jsonb_build_object('old', old.longitude, 'new', new.longitude),
+        'is_active', jsonb_build_object('old', old.is_active, 'new', new.is_active)
+      )
+    )
+  );
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_geofence_audit on public.geofences;
+create trigger trg_geofence_audit
+  after update of radius_meters, max_accuracy, latitude, longitude, is_active
+  on public.geofences
+  for each row
+  execute function public.tg_geofence_audit();
+
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- القسم ز: pg_cron — جدولة finalize_missing_checkouts كل 30 دقيقة
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- pg_cron قد لا يكون متاحاً في بيئة التطوير المحلية — نغلّف في DO block مع exception.
+
+do $$
+begin
+  -- Remove existing job if any
+  perform cron.unschedule('finalize_missing_checkouts');
+exception when others then
+  -- pg_cron not available — skip silently
+  null;
+end;
+$$;
+
+do $$
+begin
+  perform cron.schedule(
+    'finalize_missing_checkouts',
+    '*/30 * * * *',
+    $cron$select public.finalize_missing_checkouts()$cron$
+  );
+exception when others then
+  raise notice 'pg_cron not available — finalize_missing_checkouts not scheduled (run manually or configure externally)';
+end;
+$$;

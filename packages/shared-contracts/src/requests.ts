@@ -32,16 +32,41 @@ export const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
 
 export const requestStatusSchema = z.enum([
   'draft',
-  'pending',
+  'sent',
+  'pending_direct_manager',
+  'needs_completion',
+  'escalated',
   'approved',
   'rejected',
   'returned',
   'cancelled',
+  'cancelled_by_employee',
+  'cancel_requested',
+  'cancelled_after_approval',
   'withdrawn',
   'expired',
-  'escalated',
+  'closed',
 ]);
 export type RequestStatus = z.infer<typeof requestStatusSchema>;
+
+/** تسميات حالات الطلب بالعربية — V23 §8. */
+export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
+  draft: 'مسودة',
+  sent: 'مرسل',
+  pending_direct_manager: 'بانتظار المدير المباشر',
+  needs_completion: 'يحتاج استكمال',
+  escalated: 'مصعّد',
+  approved: 'معتمد',
+  rejected: 'مرفوض',
+  returned: 'معاد',
+  cancelled: 'ملغى',
+  cancelled_by_employee: 'ملغى بواسطة الموظف',
+  cancel_requested: 'طلب إلغاء',
+  cancelled_after_approval: 'ملغى بعد الاعتماد',
+  withdrawn: 'مسحوب',
+  expired: 'منتهي',
+  closed: 'مغلق',
+};
 
 // ─── مدخلات إنشاء طلب ────────────────────────────────────────────────────────
 

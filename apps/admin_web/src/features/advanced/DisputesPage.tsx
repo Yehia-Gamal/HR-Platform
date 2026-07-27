@@ -197,7 +197,7 @@ export function DisputesPage() {
         <section className="card p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><StatusBadge value={selected.status} /><StatusBadge value={selected.priority} />{selected.overdue ? <StatusBadge value="overdue" /> : null}</div><h2 className="mt-3 text-xl font-black">{selected.title}</h2><p className="muted mt-1">{selected.caseNumber} · {caseTypes[selected.caseType] ?? selected.caseType}</p></div>
-            <div className="rounded-2xl bg-[var(--surface-muted)] px-4 py-3 text-left"><span className="muted block text-xs">مهلة المراجعة</span><strong className={selected.overdue ? 'text-[var(--danger)]' : ''}>{remainingLabel(selected.reviewDueAt)}</strong></div>
+            <div className="rounded-2xl bg-[var(--surface-muted)] px-4 py-3 text-end"><span className="muted block text-xs">مهلة المراجعة</span><strong className={selected.overdue ? 'text-[var(--danger)]' : ''}>{remainingLabel(selected.reviewDueAt)}</strong></div>
           </div>
           <p className="mt-5 whitespace-pre-wrap leading-8">{selected.description ?? 'لا يوجد وصف.'}</p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

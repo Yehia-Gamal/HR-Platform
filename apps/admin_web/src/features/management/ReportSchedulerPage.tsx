@@ -110,24 +110,9 @@ export function ReportSchedulerPage() {
         </>
       )}
 
-      {open ? createPortal(
-        <div
-          className="fixed inset-0 z-50 grid place-items-center p-4"
-          style={{ background: 'color-mix(in srgb, var(--text-primary) 55%, transparent)' }}
-        >
-          <form
-            className="card w-full max-w-2xl space-y-4 p-6"
-            onSubmit={submit}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="report-scheduler-modal-title"
-          >
-            <div className="flex justify-between">
-              <h2 id="report-scheduler-modal-title" className="text-xl font-black">جدولة تقرير</h2>
-              <button type="button" className="icon-button" aria-label="إغلاق" onClick={() => setOpen(false)}>
-                <X className="size-4" aria-hidden="true" />
-              </button>
-            </div>
+      {open ? (
+        <DialogOverlay title="جدولة تقرير" onClose={() => setOpen(false)} maxWidth="max-w-2xl">
+          <form className="space-y-4" onSubmit={submit}>
             {commands.upsert.error ? (
               <ErrorBanner
                 message={commands.upsert.error instanceof Error ? commands.upsert.error.message : 'تعذر حفظ الجدولة'}
@@ -162,8 +147,7 @@ export function ReportSchedulerPage() {
               {commands.upsert.isPending ? 'جارٍ الحفظ…' : 'حفظ الجدولة'}
             </button>
           </form>
-        </div>,
-        document.body,
+        </DialogOverlay>
       ) : null}
     </div>
   );

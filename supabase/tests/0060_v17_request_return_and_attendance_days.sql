@@ -93,9 +93,9 @@ begin
 
   -- أحداث حضور: حدث قديم (90 يوم) وحدث حديث (5 أيام)
   insert into public.attendance_events(id, employee_id, event_type, event_at, status, source) values
-    ('a0600000-0000-4000-8000-000000000301', 'a0600000-0000-4000-8000-000000000201', 'CHECK_IN',  now() - interval '90 days', 'verified',  'gps'),
-    ('a0600000-0000-4000-8000-000000000302', 'a0600000-0000-4000-8000-000000000201', 'CHECK_IN',  now() - interval '5 days',  'verified',  'gps'),
-    ('a0600000-0000-4000-8000-000000000303', 'a0600000-0000-4000-8000-000000000201', 'CHECK_OUT', now() - interval '5 days' + interval '8 hours', 'verified', 'gps');
+    ('a0600000-0000-4000-8000-000000000301', 'a0600000-0000-4000-8000-000000000201', 'CHECK_IN',  now() - interval '90 days', 'verified',  'mobile'),
+    ('a0600000-0000-4000-8000-000000000302', 'a0600000-0000-4000-8000-000000000201', 'CHECK_IN',  now() - interval '5 days',  'verified',  'mobile'),
+    ('a0600000-0000-4000-8000-000000000303', 'a0600000-0000-4000-8000-000000000201', 'CHECK_OUT', now() - interval '5 days' + interval '8 hours', 'verified', 'mobile');
 end
 $fixture$;
 

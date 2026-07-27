@@ -15,16 +15,18 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { useMyLeaveBalances, useRequestDecision, useRequests, useWorkAssignments } from './useRequests';
 import { useAttendanceOperations, useAttendanceOperationsCommands } from '../advanced/useAdvancedOperations';
 
-const labels: Record<RequestSummary['requestType'], string> = { leave: 'إجازة', mission: 'مأمورية', convoy: 'قافلة', attendance_permit: 'إذن حضور', generic: 'طلب عام' };
+const labels: Record<RequestSummary['requestType'], string> = { leave: 'إجازة', mission: 'مأمورية', convoy: 'قافلة / فاندي', late_permit: 'إذن تأخير', early_permit: 'إذن انصراف مبكر', attendance_correction: 'تصحيح حضور' };
 const assignmentLabels: Record<WorkAssignment['assignmentType'], string> = { MISSION: 'مأمورية', CONVOY: 'قافلة', FUNDRAISING: 'فاندي' };
-type TypeTab = 'all' | 'leave' | 'mission' | 'convoy' | 'attendance_permit' | 'corrections';
+type TypeTab = 'all' | 'leave' | 'mission' | 'convoy' | 'late_permit' | 'early_permit' | 'attendance_correction' | 'corrections';
 const typeTabs: { key: TypeTab; label: string }[] = [
   { key: 'all', label: 'الكل' },
   { key: 'leave', label: 'الإجازات' },
   { key: 'mission', label: 'المأموريات' },
-  { key: 'convoy', label: 'القوافل' },
-  { key: 'attendance_permit', label: 'أذونات الحضور' },
-  { key: 'corrections', label: 'تصحيحات الحضور' },
+  { key: 'convoy', label: 'القوافل / فاندي' },
+  { key: 'late_permit', label: 'إذن تأخير' },
+  { key: 'early_permit', label: 'إذن انصراف مبكر' },
+  { key: 'attendance_correction', label: 'تصحيح حضور' },
+  { key: 'corrections', label: 'تصحيحات (إدارية)' },
 ];
 
 const currentMonth = new Date().toISOString().slice(0, 7);
@@ -62,7 +64,7 @@ export function RequestsPage() {
   };
 
   return <div className="space-y-6">
-    <PageHeader title="طلب اجازة" description="صندوق موحد للإجازات وتصحيحات الحضور وتكليفات العمل (مأمورية/قافلة/فاندي) والأذونات، يعمل بمراحل واعتمادات خادمية ومنع الموافقة الذاتية." />
+    <PageHeader title="الإجازات والتكليفات" description="صندوق موحد للإجازات وتصحيحات الحضور وتكليفات العمل (مأمورية/قافلة/فاندي) والأذونات، يعمل بمراحل واعتمادات خادمية ومنع الموافقة الذاتية." />
     {balances.isLoading && !balances.data ? <MetricSkeletonRow /> : <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{(balances.data ?? []).map((balance) => <MetricCard key={balance.leaveTypeId} label={`رصيد ${balance.nameAr}`} value={balance.availableUnits} hint={`محجوز ${balance.reservedUnits} · مستهلك ${balance.consumedUnits}`} icon={CalendarDays} />)}</section>}
     <nav className="flex flex-wrap gap-2" aria-label="تصنيف الطلبات">{typeTabs.map((tab) => <button key={tab.key} type="button" aria-pressed={typeTab === tab.key} className={`rounded-xl px-4 py-2 text-sm font-black ${typeTab === tab.key ? 'bg-brand text-white' : 'bg-[var(--surface-muted)]'}`} onClick={() => setTypeTab(tab.key)}>{tab.label}</button>)}</nav>
 
@@ -90,7 +92,7 @@ export function RequestsPage() {
     </section> : <>
 
     {/* ─── قائمة الطلبات العادية ─── */}
-    <FilterBar searchValue={search} onSearchChange={setSearch} searchPlaceholder="بحث بالاسم أو الكود أو رقم الطلب" resultText={`عرض ${filtered.length} من ${(query.data ?? []).length} طلب`} isDirty={Boolean(search || status !== 'all')} onClear={() => { setSearch(''); setStatus('all'); }}><select className="input" aria-label="تصفية الطلبات حسب الحالة" value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">كل الحالات</option><option value="pending">قيد المراجعة</option><option value="approved">معتمد</option><option value="rejected">مرفوض</option><option value="cancelled">ملغي</option></select></FilterBar>
+    <FilterBar searchValue={search} onSearchChange={setSearch} searchPlaceholder="بحث بالاسم أو الكود أو رقم الطلب" resultText={`عرض ${filtered.length} من ${(query.data ?? []).length} طلب`} isDirty={Boolean(search || status !== 'all')} onClear={() => { setSearch(''); setStatus('all'); }}><select className="input" aria-label="تصفية الطلبات حسب الحالة" value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">كل الحالات</option><option value="pending">قيد المراجعة</option><option value="approved">معتمد</option><option value="rejected">مرفوض</option><option value="returned">مُعاد</option><option value="escalated">مُصعَّد</option><option value="cancelled">ملغي</option><option value="withdrawn">مسحوب</option><option value="expired">منتهي</option></select></FilterBar>
     {query.isError ? <ErrorState description={query.error instanceof Error ? query.error.message : undefined} onRetry={() => void query.refetch()} />
       : query.isLoading && !query.data ? <ListSkeleton rows={4} />
       : filtered.length === 0 ? <EmptyState title="لا توجد طلبات" description="لا توجد عناصر مطابقة للفلاتر الحالية." />

@@ -14,12 +14,28 @@ class PasskeyDevicesPage extends ConsumerStatefulWidget {
 class _PasskeyDevicesPageState extends ConsumerState<PasskeyDevicesPage> {
   String? _workingId;
   bool _registering = false;
+  bool _replacingDevice = false;
 
   @override
   Widget build(BuildContext context) {
     final devices = ref.watch(myPasskeysProvider);
+    final hasActiveDevice = devices.asData?.value.any(
+          (d) => d.status == 'active',
+        ) ??
+        false;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('أجهزة البصمة الموثوقة')),
+      appBar: AppBar(
+        title: const Text('أجهزة البصمة الموثوقة'),
+        actions: [
+          if (hasActiveDevice)
+            IconButton(
+              onPressed: _replacingDevice ? null : _requestReplacement,
+              tooltip: 'فقدت هاتفي — طلب استبدال',
+              icon: const Icon(Icons.phonelink_erase_outlined),
+            ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _registering ? null : _register,
         icon: _registering
@@ -75,7 +91,7 @@ class _PasskeyDevicesPageState extends ConsumerState<PasskeyDevicesPage> {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
       itemCount: items.length + 1,
-      separatorBuilder: (_, _) => const SizedBox(height: 10),
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         if (index == 0) {
           return const _InfoCard(
@@ -180,6 +196,74 @@ class _PasskeyDevicesPageState extends ConsumerState<PasskeyDevicesPage> {
       if (mounted) setState(() => _workingId = null);
     }
   }
+
+  /// طلب استبدال الجهاز (هاتف مفقود)
+  Future<void> _requestReplacement() async {
+    final reasonController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.phonelink_erase_outlined, size: 40),
+        title: const Text('طلب استبدال الجهاز'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'سيتم إلغاء جهازك النشط الحالي وتسجيل خروجك من جميع الجلسات. '
+              'بعد ذلك يمكنك تسجيل جهاز جديد.',
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: reasonController,
+              maxLength: 240,
+              decoration: const InputDecoration(
+                labelText: 'سبب الاستبدال',
+                hintText: 'مثال: فقدت الهاتف أو تعطل الجهاز',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('تراجع'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('إلغاء الجهاز وطلب استبدال'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _replacingDevice = true);
+    try {
+      await ref
+          .read(mobileCommandsProvider)
+          .requestDeviceReplacement(reasonController.text);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم إلغاء الجهاز القديم. يمكنك الآن تسجيل جهاز جديد.'),
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذر طلب الاستبدال. أعد المحاولة.')),
+        );
+      }
+    } finally {
+      reasonController.dispose();
+      if (mounted) setState(() => _replacingDevice = false);
+    }
+  }
 }
 
 class _DeviceCard extends StatelessWidget {
@@ -192,6 +276,12 @@ class _DeviceCard extends StatelessWidget {
   final PasskeyDevice device;
   final bool working;
   final VoidCallback? onRevoke;
+
+  static const _revocationSourceLabels = <String, String>{
+    'admin': 'إلغاء إداري',
+    'employee': 'طلب الموظف',
+    'replacement': 'استبدال بجهاز جديد',
+  };
 
   /// أيقونة ولون ونص الحالة حسب status الجهاز.
   static ({IconData icon, Color color, String label}) _statusInfo(
@@ -223,6 +313,11 @@ class _DeviceCard extends StatelessWidget {
           icon: Icons.swap_horiz_outlined,
           color: Colors.grey,
           label: 'مُستبدَل',
+        ),
+        'auto_revoked' => (
+          icon: Icons.warning_amber_outlined,
+          color: Colors.orange,
+          label: 'إلغاء تلقائي',
         ),
         _ => (
           icon: Icons.device_unknown_outlined,
@@ -281,6 +376,24 @@ class _DeviceCard extends StatelessWidget {
                   ? 'لم يُستخدم بعد'
                   : 'آخر استخدام: ${formatter.format(device.lastUsedAt!.toLocal())}',
             ),
+            if (device.revocationSource != null &&
+                device.revocationSource!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline, size: 18, color: Colors.grey),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'سبب الإلغاء: ${_revocationSourceLabels[device.revocationSource] ?? device.revocationSource}',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             if (device.status == 'blocked' &&
                 device.rejectionReason != null &&
                 device.rejectionReason!.isNotEmpty)
@@ -296,6 +409,20 @@ class _DeviceCard extends StatelessWidget {
                         'سبب الحظر: ${device.rejectionReason}',
                         style: const TextStyle(color: Colors.red),
                       ),
+                    ),
+                  ],
+                ),
+              ),
+            if (device.canResubmit && device.status == 'blocked')
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Row(
+                  children: [
+                    Icon(Icons.refresh_outlined, size: 18, color: Colors.blue),
+                    const SizedBox(width: 6),
+                    Text(
+                      'يمكنك إعادة تسجيل جهاز جديد',
+                      style: TextStyle(color: Colors.blue),
                     ),
                   ],
                 ),

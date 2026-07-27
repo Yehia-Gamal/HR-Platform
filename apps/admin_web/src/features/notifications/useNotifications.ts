@@ -1,11 +1,52 @@
 import { notificationItemSchema, type NotificationItem } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 import { getSupabase } from '../../core/supabase';
 import { useAuth } from '../auth/AuthProvider';
 import { loadDomainMocks } from '../mock/loadDomainMocks';
 
+/**
+ * اشتراك Realtime يُبطل كاش الإشعارات فور وصول إشعار جديد.
+ * يعتمد على Supabase Realtime + RLS — يستقبل فقط إشعارات المستخدم الحالي.
+ */
+function useNotificationsRealtime() {
+  const auth = useAuth();
+  const queryClient = useQueryClient();
+  const channelRef = useRef<ReturnType<Awaited<ReturnType<typeof getSupabase>>['channel']> | null>(null);
+
+  useEffect(() => {
+    if (auth.status !== 'authenticated' || auth.isMock) return;
+    let cancelled = false;
+
+    (async () => {
+      const supabase = await getSupabase();
+      if (cancelled) return;
+      channelRef.current = supabase
+        .channel('notifications-realtime')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+        }, () => {
+          void queryClient.invalidateQueries({ queryKey: ['my-notifications'] });
+        })
+        .subscribe();
+    })();
+
+    return () => {
+      cancelled = true;
+      if (channelRef.current) {
+        void channelRef.current.unsubscribe();
+        channelRef.current = null;
+      }
+    };
+  }, [auth.status, auth.isMock, queryClient]);
+}
+
 export function useNotifications() {
   const auth = useAuth();
+  // اشتراك Realtime لتحديث الإشعارات فوراً بدون polling
+  useNotificationsRealtime();
   return useQuery({
     queryKey: ['my-notifications', auth.isMock], enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<NotificationItem[]> => {

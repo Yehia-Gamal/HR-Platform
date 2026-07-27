@@ -170,7 +170,16 @@ export const attendanceStatementDaySchema = z.object({
   earlyLeaveMinutes: z.number(),
   overtimeMinutes: z.number(),
   status: z.string(),
+  /** غائب */
+  isAbsent: z.boolean().default(false),
+  /** يوم عطلة رسمية */
+  isOfficialHoliday: z.boolean().default(false),
   hasLeave: z.boolean(),
+  /** إذن تأخير — V23 §14 */
+  hasLatePermit: z.boolean().default(false),
+  /** إذن انصراف مبكر — V23 §14 */
+  hasEarlyPermit: z.boolean().default(false),
+  /** توافق خلفي: hasPermit = hasLatePermit || hasEarlyPermit */
   hasPermit: z.boolean(),
   hasMission: z.boolean(),
   hasConvoyFundi: z.boolean(),
@@ -178,6 +187,10 @@ export const attendanceStatementDaySchema = z.object({
   missingCheckOut: z.boolean(),
   hasCorrection: z.boolean(),
   correctionNote: z.string().nullable(),
+  /** ملاحظات اليوم — V23 §14 */
+  notes: z.string().nullable().default(null),
+  /** الجزاءات (مثلاً خصم ساعات) — V23 §14 */
+  penalties: z.number().default(0),
 });
 export type AttendanceStatementDay = z.infer<typeof attendanceStatementDaySchema>;
 
@@ -212,6 +225,8 @@ export const attendanceStatementSchema = z.object({
     holidayDays: z.number(),
     restDays: z.number(),
     totalWorkHours: z.number(),
+    /** إجمالي الساعات المطلوبة — V23 §14 */
+    totalRequiredHours: z.number().default(0),
     averageWorkHours: z.number(),
     totalLateMinutes: z.number(),
     totalEarlyLeaveMinutes: z.number(),
@@ -219,6 +234,10 @@ export const attendanceStatementSchema = z.object({
     missingCheckInCount: z.number(),
     missingCheckOutCount: z.number(),
     correctionCount: z.number(),
+    /** نسبة الحضور — V23 §14 */
+    attendanceRate: z.number().min(0).max(100).default(0),
+    /** نسبة الالتزام بالساعات — V23 §14 */
+    hoursComplianceRate: z.number().min(0).max(100).default(0),
   }),
 });
 export type AttendanceStatement = z.infer<typeof attendanceStatementSchema>;

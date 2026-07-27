@@ -62,7 +62,7 @@ export const mockRequests: RequestSummary[] = [
   {
     id: '41000000-0000-4000-8000-000000000003',
     requestNumber: 1039,
-    requestType: 'attendance_permit',
+    requestType: 'late_permit',
     employeeId: '30000000-0000-4000-8000-000000000003',
     employeeName: 'سارة حسن',
     employeeCode: 'EMP-132',
