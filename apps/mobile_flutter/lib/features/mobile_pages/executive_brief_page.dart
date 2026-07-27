@@ -18,16 +18,17 @@ class ExecutiveBriefPage extends ConsumerStatefulWidget {
 }
 
 class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
-  String period = DateTime.now().hour < 15 ? 'morning' : 'evening';
+  // يوم عمل كامل — لا شيفتات صباحية/مسائية
+  static const _period = 'morning';
 
   @override
   Widget build(BuildContext context) {
-    final brief = ref.watch(mobileExecutiveBriefProvider(period));
+    final brief = ref.watch(mobileExecutiveBriefProvider(_period));
     return Scaffold(
       appBar: AppBar(title: const Text('الملخص التنفيذي اليومي')),
       body: RefreshIndicator(
         onRefresh: () async =>
-            ref.invalidate(mobileExecutiveBriefProvider(period)),
+            ref.invalidate(mobileExecutiveBriefProvider(_period)),
         child: brief.when(
           loading: () => LayoutBuilder(
             builder: (context, constraints) => ListView(
@@ -61,7 +62,7 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
               const SizedBox(height: 14),
               OutlinedButton.icon(
                 onPressed: () =>
-                    ref.invalidate(mobileExecutiveBriefProvider(period)),
+                    ref.invalidate(mobileExecutiveBriefProvider(_period)),
                 icon: const Icon(Icons.refresh_rounded),
                 label: const Text('إعادة المحاولة'),
               ),
@@ -82,12 +83,10 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
           padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               begin: Alignment.topRight,
               end: Alignment.bottomLeft,
-              colors: period == 'morning'
-                  ? const [AppColors.brandPrimaryStrong, AppColors.accent]
-                  : const [AppColors.eveningDark, AppColors.eveningAccent],
+              colors: [AppColors.brandPrimaryStrong, AppColors.accent],
             ),
           ),
           child: Column(
@@ -95,18 +94,14 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
             children: [
               Row(
                 children: [
-                  Icon(
-                    period == 'morning'
-                        ? Icons.wb_sunny_outlined
-                        : Icons.nights_stay_outlined,
+                  const Icon(
+                    Icons.auto_awesome_outlined,
                     color: Colors.white,
                   ),
                   const SizedBox(width: 9),
-                  Text(
-                    period == 'morning'
-                        ? 'ملخص بداية اليوم'
-                        : 'ملخص نهاية اليوم',
-                    style: const TextStyle(
+                  const Text(
+                    'ملخص اليوم',
+                    style: TextStyle(
                       color: Colors.white,
                       fontSize: 12,
                       fontWeight: FontWeight.w900,
@@ -141,24 +136,6 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 14),
-        SegmentedButton<String>(
-          segments: const [
-            ButtonSegment(
-              value: 'morning',
-              icon: Icon(Icons.wb_sunny_outlined),
-              label: Text('صباحي'),
-            ),
-            ButtonSegment(
-              value: 'evening',
-              icon: Icon(Icons.nights_stay_outlined),
-              label: Text('مسائي'),
-            ),
-          ],
-          selected: {period},
-          showSelectedIcon: false,
-          onSelectionChanged: (value) => setState(() => period = value.first),
         ),
         const SizedBox(height: 18),
         const MobileSectionHeader(

@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const styles = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8');
+const styles = readFileSync(resolve(import.meta.dirname, '../styles.css'), 'utf8');
 
 describe('touch target design contracts', () => {
   it.each([

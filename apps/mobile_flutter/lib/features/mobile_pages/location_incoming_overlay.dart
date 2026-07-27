@@ -61,6 +61,9 @@ class _LocationIncomingOverlayState
       duration: const Duration(milliseconds: 700),
     )..repeat(reverse: true);
     _vibrateSeries();
+    // أوقف المنبه الأصلي (Kotlin) فوراً عند ظهور شاشة Flutter
+    // لمنع تداخل شاشتين + إيقاف الصوت المكرر.
+    _stopUrgentAlarm();
   }
 
   void _vibrateSeries() {

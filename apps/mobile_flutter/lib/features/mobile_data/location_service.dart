@@ -149,6 +149,7 @@ class LocationService {
   // ترميز جغرافي عكسي عبر Nominatim/OSM (مجاني، بسياسة استخدام).
   // يعيد null بهدوء عند أي فشل — العنوان اختياري ولا يجب أن يُفشل المسار.
   static Future<String?> reverseGeocode(double lat, double lng) async {
+    HttpClient? client;
     try {
       final uri = Uri.https('nominatim.openstreetmap.org', '/reverse', {
         'format': 'jsonv2',
@@ -157,24 +158,22 @@ class LocationService {
         'accept-language': 'ar',
         'zoom': '18',
       });
-      final client = HttpClient()
+      client = HttpClient()
         ..connectionTimeout = const Duration(seconds: 8);
       final request = await client.getUrl(uri);
       // سياسة Nominatim تتطلب User-Agent معرِّفًا.
       request.headers.set(HttpHeaders.userAgentHeader, 'AhlaShababHR/1.0 (location-verify)');
       final response = await request.close().timeout(const Duration(seconds: 10));
-      if (response.statusCode != 200) {
-        client.close();
-        return null;
-      }
+      if (response.statusCode != 200) return null;
       final body = await response.transform(utf8.decoder).join();
-      client.close();
       final data = jsonDecode(body) as Map<String, dynamic>;
       final display = data['display_name'] as String?;
       if (display == null || display.trim().isEmpty) return null;
       return display.trim();
     } catch (_) {
       return null;
+    } finally {
+      client?.close();
     }
   }
 

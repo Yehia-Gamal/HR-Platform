@@ -166,6 +166,12 @@ class PushService {
     }
 
     _ready = true;
+
+    // طلب إعفاء من تحسين البطارية (Samsung/Xiaomi تقتل العملية في الخلفية).
+    // بدون هذا الإعفاء لن تصل إشعارات FCM العاجلة عندما يكون التطبيق مغلقاً.
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      await requestBatteryOptimizationExemption();
+    }
   }
 
   Future<void> _safeRegister(String token) async {
@@ -272,6 +278,37 @@ class PushService {
       }
     } catch (_) {
       // تجاهل روابط غير صالحة.
+    }
+  }
+
+  /// هل التطبيق معفى من تحسين البطارية؟
+  /// يعود `true` إذا كان معفى، `false` إذا لا، `null` على غير Android.
+  static Future<bool?> isBatteryOptimizationExempt() async {
+    if (defaultTargetPlatform != TargetPlatform.android) return null;
+    try {
+      final exempt = await _platform.invokeMethod<bool>(
+        'isIgnoringBatteryOptimization',
+      );
+      return exempt;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// يطلب من المستخدم إعفاء التطبيق من تحسين البطارية.
+  /// يظهر حوار النظام مباشرة (Android فقط).
+  static Future<void> requestBatteryOptimizationExemption() async {
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+    try {
+      final exempt = await _platform.invokeMethod<bool>(
+        'isIgnoringBatteryOptimization',
+      );
+      if (exempt == true) return;
+      await _platform.invokeMethod<void>('requestIgnoreBatteryOptimization');
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Battery optimization exemption request failed: $e');
+      }
     }
   }
 }

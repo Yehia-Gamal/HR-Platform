@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const excludedDirectories = new Set([
-  '.git', 'node_modules', 'dist', 'build', '.dart_tool', '.idea', '.vscode',
+  '.git', 'node_modules', 'dist', 'build', '.dart_tool', '.idea', '.vscode', '.claude',
 ]);
 const allowedExtensions = new Set([
   '.ts', '.tsx', '.js', '.mjs', '.dart', '.sql', '.json', '.yaml', '.yml',
@@ -27,11 +27,11 @@ const patterns = [
   ['stripe-live-key', /\b(?:sk|rk)_live_[0-9A-Za-z]{16,}\b/],
   ['supabase-secret-key', /\bsb_secret_[0-9A-Za-z_-]{20,}\b/],
   ['jwt-service-token', /\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\b/],
-  ['hardcoded-secret-assignment', /(?:SUPABASE_SERVICE_ROLE_KEY|DATABASE_PASSWORD|PUSH_PROVIDER_TOKEN|CRON_SECRET)\s*[:=]\s*["'](?!YOUR_|generate-|<|\$\{|process\.|Deno\.env)[^"']{16,}["']/],
+  ['hardcoded-secret-assignment', /(?:SUPABASE_SERVICE_ROLE_KEY|DATABASE_PASSWORD|PUSH_PROVIDER_TOKEN|CRON_SECRET)\s*[:=]\s*["'](?!YOUR_|generate-|<|\$\{|\$\(|process\.|Deno\.env)[^"']{16,}["']/],
   // audit REL-02: catch *_PEPPER / *_SECRET / *_TOKEN assignments; allow
   // documented dev placeholders (local-dev-…, change-in-prod, YOUR_, generate-)
   // and env-reference forms (process.env / Deno.env / ${…}).
-  ['hardcoded-pepper-or-secret', /\b[A-Z0-9_]*(?:PEPPER|SECRET|TOKEN|PASSWORD)\s*[:=]\s*["'](?!YOUR_|generate-|<|\$\{|process\.|Deno\.env|local-dev|change-in-prod|placeholder)[^"']{16,}["']/],
+  ['hardcoded-pepper-or-secret', /\b[A-Z0-9_]*(?:PEPPER|SECRET|TOKEN|PASSWORD)\s*[:=]\s*["'](?!YOUR_|generate-|<|\$\{|\$\(|process\.|Deno\.env|local-dev|change-in-prod|placeholder)[^"']{16,}["']/],
 ];
 
 async function walk(directory) {

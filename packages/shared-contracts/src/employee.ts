@@ -61,7 +61,7 @@ export const createEmployeeInputSchema = z.object({
   positionId: optionalUuid,
   gradeId: optionalUuid,
   employmentTypeId: optionalUuid,
-  hireDate: z.string().date().optional(),
+  hireDate: z.preprocess((v) => (v === '' ? undefined : v), z.string().date().optional()),
   sendInvite: z.boolean().default(false),
 });
 

@@ -818,6 +818,25 @@ class MobileCommands {
     if (!supported) {
       throw StateError('الجهاز لا يدعم بصمة محلية مفعلة. فعّل البصمة وقفل الشاشة أولاً.');
     }
+    // فحص وجود بصمات مسجلة على الجهاز.
+    final available = await localAuth.getAvailableBiometrics();
+    if (available.isEmpty) {
+      throw StateError(
+        'لا توجد بصمة مسجلة على الجهاز. أضف بصمة من إعدادات الأمان ثم أعد المحاولة.',
+      );
+    }
+    // تحقق فعلي من البصمة — يظهر نافذة البصمة للمستخدم.
+    final didAuthenticate = await localAuth.authenticate(
+      localizedReason: 'تأكيد تسجيل البصمة لنظام الحضور',
+      options: const AuthenticationOptions(
+        stickyAuth: true,
+        biometricOnly: true,
+        useErrorDialogs: true,
+      ),
+    );
+    if (!didAuthenticate) {
+      throw StateError('تم إلغاء التحقق بالبصمة. لم يتم التسجيل.');
+    }
     ref.invalidate(deviceRegistrationProvider);
     await ref.read(deviceRegistrationProvider.future);
     ref.invalidate(attendanceStateProvider);

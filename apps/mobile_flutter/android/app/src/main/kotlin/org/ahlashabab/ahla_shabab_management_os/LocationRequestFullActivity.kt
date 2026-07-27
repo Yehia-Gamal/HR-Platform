@@ -13,6 +13,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.app.Activity
+import java.lang.ref.WeakReference
 
 /**
  * شاشة كاملة تظهر فوق شاشة القفل وخارج التطبيق عند ورود طلب موقع عاجل.
@@ -22,6 +23,7 @@ import android.app.Activity
 class LocationRequestFullActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        activeInstance = WeakReference(this)
 
         // منع زر الرجوع على Android 13+ — enableOnBackInvokedCallback="true"
         // يجعل onBackPressed() كود ميت، لازم نسجل callback جديد.
@@ -205,5 +207,18 @@ class LocationRequestFullActivity : Activity() {
         const val EXTRA_NOTIFICATION_ID = "notification_id"
         const val EXTRA_TITLE = "title"
         const val EXTRA_BODY = "body"
+
+        /**
+         * Weak reference to the currently-visible instance.
+         * Used by [dismissIfActive] so the Flutter overlay can close this
+         * native screen when it takes over the urgent-request flow.
+         */
+        private var activeInstance: java.lang.ref.WeakReference<LocationRequestFullActivity>? = null
+
+        /** Finish the activity if it's still alive — called from the MethodChannel. */
+        fun dismissIfActive() {
+            activeInstance?.get()?.finish()
+            activeInstance = null
+        }
     }
 }

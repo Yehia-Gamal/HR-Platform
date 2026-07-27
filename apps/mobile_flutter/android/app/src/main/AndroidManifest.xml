@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- طلب إعفاء من تحسين البطارية — ضروري على Samsung/Xiaomi لإبقاء FCM يعمل في الخلفية -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- V17 §9: MODIFY_AUDIO_SETTINGS removed — vestigial from video era -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" tools:node="remove" />
 

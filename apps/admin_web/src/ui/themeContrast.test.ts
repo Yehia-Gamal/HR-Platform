@@ -7,7 +7,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const css = readFileSync(
-  resolve(process.cwd(), '../../packages/design-tokens/theme.css'),
+  resolve(import.meta.dirname, '../../../../packages/design-tokens/theme.css'),
   'utf8',
 );
 const darkBlock = css.match(/\[data-theme='dark'\]\s*\{([\s\S]*?)\}/)?.[1] ?? '';
