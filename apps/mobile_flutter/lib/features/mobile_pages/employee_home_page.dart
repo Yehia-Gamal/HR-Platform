@@ -113,7 +113,7 @@ class EmployeeHomePage extends ConsumerWidget {
                   FilledButton.icon(
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF073B7A),
+                      foregroundColor: scheme.primary,
                     ),
                     onPressed: () => Navigator.push(
                       context,
@@ -357,10 +357,15 @@ class _LoadingSummary extends StatelessWidget {
   const _LoadingSummary();
 
   @override
-  Widget build(BuildContext context) => const Card(
+  Widget build(BuildContext context) => Card(
     child: Padding(
-      padding: EdgeInsets.all(28),
-      child: Center(child: CircularProgressIndicator()),
+      padding: const EdgeInsets.all(28),
+      child: Center(
+        child: Semantics(
+          label: 'جاري التحميل',
+          child: const CircularProgressIndicator(),
+        ),
+      ),
     ),
   );
 }
