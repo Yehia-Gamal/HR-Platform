@@ -1,4 +1,4 @@
-import { BellRing, CheckCircle2, FileText, ImagePlus, Megaphone, Plus, Send, ShieldCheck, Trash2 } from 'lucide-react';
+import { BellRing, CheckCircle2, FileText, ImagePlus, ListPlus, Megaphone, Plus, Send, ShieldCheck, Trash2, X } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { getSupabase } from '../../core/supabase';
 import { DialogOverlay } from '../../ui/DialogOverlay';
@@ -32,6 +32,9 @@ export function OfficialFeedPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [postType, setPostType] = useState<'standard' | 'poll'>('standard');
+  const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
+  const [expiresAt, setExpiresAt] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const allItems = query.data ?? [];
   const items = useMemo(() => allItems.filter((item) => {
@@ -69,6 +72,9 @@ export function OfficialFeedPage() {
     setBannerUrl(null);
     setImagePreview(null);
     setImageError(null);
+    setPostType('standard');
+    setPollOptions(['', '']);
+    setExpiresAt('');
   };
 
 
@@ -89,7 +95,7 @@ export function OfficialFeedPage() {
 
   const submit = async () => {
     if (mode === 'announcement') {
-      await publish.mutateAsync({ ...form, bannerUrl });
+      await publish.mutateAsync({ ...form, bannerUrl, postType, pollOptions, expiresAt: expiresAt || undefined });
     } else {
       await createDecision.mutateAsync(form);
     }
@@ -169,6 +175,24 @@ export function OfficialFeedPage() {
               </button>
             )}
             {imageError ? <p className="mt-1 text-xs text-red-500">{imageError}</p> : null}
+          </div> : null}
+          {mode === 'announcement' ? <div>
+            <span className="text-sm font-bold">نوع المنشور</span>
+            <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl bg-[var(--surface-muted)] p-1">
+              <button type="button" className={`rounded-lg px-3 py-1.5 text-sm font-bold ${postType === 'standard' ? 'bg-[var(--surface-raised)] text-brand shadow-sm' : ''}`} onClick={() => setPostType('standard')}>منشور عادي</button>
+              <button type="button" className={`rounded-lg px-3 py-1.5 text-sm font-bold ${postType === 'poll' ? 'bg-[var(--surface-raised)] text-brand shadow-sm' : ''}`} onClick={() => setPostType('poll')}><ListPlus className="inline size-4 me-1" aria-hidden="true" />تصويت</button>
+            </div>
+            {postType === 'poll' ? <div className="mt-3 space-y-2">
+              <span className="text-sm font-bold">خيارات التصويت</span>
+              {pollOptions.map((opt, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input className="input flex-1" placeholder={`الخيار ${i + 1}`} value={opt} onChange={(e) => { const next = [...pollOptions]; next[i] = e.target.value; setPollOptions(next); }} />
+                  {pollOptions.length > 2 ? <button type="button" className="rounded-full p-1 text-red-500 hover:bg-red-50" aria-label="حذف الخيار" onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}><X className="size-4" /></button> : null}
+                </div>
+              ))}
+              {pollOptions.length < 6 ? <button type="button" className="text-sm font-bold text-brand hover:underline" onClick={() => setPollOptions([...pollOptions, ''])}>+ إضافة خيار</button> : null}
+              <label className="block text-sm font-bold">تاريخ انتهاء التصويت (اختياري)<input type="datetime-local" className="input mt-2" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} /></label>
+            </div> : null}
           </div> : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="text-sm font-bold">التصنيف<select className="input mt-2" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}><option value="general">عام</option><option value="hr">موارد بشرية</option><option value="policy">سياسة</option><option value="organizational">تنظيمي</option><option value="financial">مالي</option></select></label>
