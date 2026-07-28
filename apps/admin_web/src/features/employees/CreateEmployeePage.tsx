@@ -18,9 +18,6 @@ const defaultValues: Partial<FormInput> = { roleSlug: 'employee', sendInvite: fa
 const uuidValue = { setValueAs: (value: string) => value || null };
 const steps = ['الهوية والحساب', 'الهيكل والوظيفة', 'المراجعة والإنشاء'];
 
-// «المنصب» يتحكم في صلاحيات حساب الدخول عبر ربطه بدور النظام. تُجلب الأدوار
-// ديناميكياً من كتالوج الأدوار (باستثناء أدوار الوصول الكامل) لا من قائمة ثابتة.
-
 export function CreateEmployeePage() {
   const auth = useAuth();
   const lookups = useOrganizationLookups();
@@ -36,7 +33,6 @@ export function CreateEmployeePage() {
   const form = useForm<FormInput>({ resolver: zodResolver(createEmployeeInputSchema), defaultValues });
   const values = form.watch();
   const options = lookups.data;
-  const roleOptions = options?.roles ?? [];
   const [branchText, setBranchText] = useState('');
   const [gradeText, setGradeText] = useState('');
   const branches = options?.branches ?? [];
@@ -148,6 +144,7 @@ export function CreateEmployeePage() {
         : `تم إنشاء الموظف بنجاح — نشط وجاهز للعمل فوراً. المعرّف: ${parsed.employeeId}`);
       uploadedPhotoPathRef.current = null;
       form.reset(defaultValues); setStep(0); clearObjectPreview(); setPhotoPreview(null);
+      setBranchText(''); setGradeText('');
     } catch (error) {
       // رسائل خطأ عربية مفهومة بدل الرسائل الإنجليزية العامة من supabase-js
       const errorMessages: Record<string, string> = {
@@ -181,8 +178,6 @@ export function CreateEmployeePage() {
     }
   });
 
-  const roleLabel = roleOptions.find((r) => r.slug === values.roleSlug)?.label ?? values.roleSlug;
-
   return <div><PageHeader title="إنشاء موظف وحساب دخول" description="رحلة واحدة تنشئ ملف الموظف والحساب والدور والصورة الشخصية داخل عملية خادمية آمنة." actions={<Link to="/hr/employees" className="btn-secondary text-sm"><ArrowRight className="size-4" aria-hidden="true" />رجوع</Link>} />
     <section className="mx-auto max-w-5xl"><ol className="mb-5 grid grid-cols-3 gap-2">{steps.map((label, index) => <li key={label} className={`rounded-xl border p-3 text-center text-xs font-black ${index === step ? 'border-brand bg-brand text-white' : index < step ? 'border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]' : 'border-[var(--border)] bg-[var(--surface)] muted'}`}>{index < step ? <Check className="mx-auto mb-1 size-4" aria-hidden="true" /> : <span className="mb-1 block">{index + 1}</span>}{label}</li>)}</ol>
       <form onSubmit={submit} className="card p-5 sm:p-7">
@@ -213,12 +208,13 @@ export function CreateEmployeePage() {
             <Field label="تاريخ التعيين" error={form.formState.errors.hireDate?.message}><input type="date" className="input" {...form.register('hireDate', { setValueAs: (v: string) => v || undefined })} /></Field>
             <label className="flex items-center gap-3 self-end rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-semibold"><input type="checkbox" className="size-4" {...form.register('sendInvite')} />إرسال دعوة تفعيل عبر البريد</label>
           </div></div> : null}
-        {step === 1 ? <div><SectionTitle title="الهيكل والوظيفة" description="تحديد المجمّع وموقع العمل والمدير المباشر والمسمى الوظيفي." />{lookups.isError ? <p role="alert" className="mb-4 rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">تعذر تحميل بيانات الهيكل: {safeErrorMessage(lookups.error)}</p> : null}
+        {step === 1 ? <div><SectionTitle title="الهيكل والوظيفة" description="تحديد الفرع وموقع العمل والمدير المباشر والمسمى الوظيفي والدرجة." />{lookups.isError ? <p role="alert" className="mb-4 rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">تعذر تحميل بيانات الهيكل: {safeErrorMessage(lookups.error)}</p> : null}
           <div className="grid gap-4 sm:grid-cols-2">
-            <SelectField label="المجمع" options={branches} register={form.register('branchId', uuidValue)} placeholder="اختر المجمع" />
+            <label className="block"><span className="mb-1.5 block text-sm font-semibold">الفرع</span><input type="text" className="input" list="create-branches" value={branchText} onChange={(e) => setBranchText(e.target.value)} placeholder="اكتب أو اختر الفرع…" /><datalist id="create-branches">{branches.map((b) => <option key={b.id} value={b.label} />)}</datalist></label>
             <SelectField label="موقع العمل" options={workSites} register={form.register('workSiteId', uuidValue)} placeholder="اختر موقع العمل" />
             <SelectField label="المدير المباشر" options={options?.managers ?? []} register={form.register('managerEmployeeId', uuidValue)} placeholder="بدون مدير" />
             <JobTitleField label="المسمى الوظيفي" options={options?.jobTitles ?? []} register={form.register('jobTitleName')} />
+            <label className="block"><span className="mb-1.5 block text-sm font-semibold">الدرجة الوظيفية</span><input type="text" className="input" list="create-grades" value={gradeText} onChange={(e) => setGradeText(e.target.value)} placeholder="اكتب أو اختر الدرجة…" /><datalist id="create-grades"><option value="موظف" /><option value="مدير" /><option value="أوبريشن" />{grades.filter((g) => !['موظف', 'مدير', 'أوبريشن'].includes(g.label)).map((g) => <option key={g.id} value={g.label} />)}</datalist></label>
           </div></div> : null}
         {step === 2 ? <div><SectionTitle title="مراجعة البيانات" description="راجع البيانات قبل إنشاء ملف الموظف وحساب الدخول." />
           {photoPreview ? <div className="mb-4 flex justify-center"><UserAvatar displayName={values.fullNameAr ?? ''} photoUrl={photoPreview} size="lg" eager announceName={false} className="!size-20 !rounded-2xl" /></div> : null}
@@ -226,11 +222,11 @@ export function CreateEmployeePage() {
             <Review label="الاسم" value={values.fullNameAr} />
             <Review label="الهاتف" value={values.phoneE164} />
             <Review label="البريد" value={values.email} />
-            <Review label="المنصب" value={roleLabel} />
-            <Review label="المجمع" value={branches.find((x) => x.id === values.branchId)?.label} />
+            <Review label="الفرع" value={branchText || undefined} />
             <Review label="موقع العمل" value={options?.workSites.find((x) => x.id === values.workSiteId)?.label} />
             <Review label="المدير" value={options?.managers.find((x) => x.id === values.managerEmployeeId)?.label} />
             <Review label="المسمى الوظيفي" value={values.jobTitleName} />
+            <Review label="الدرجة الوظيفية" value={gradeText || undefined} />
             <Review label="تاريخ التعيين" value={values.hireDate as string | undefined} />
             <Review label="دعوة التفعيل" value={values.sendInvite ? 'نعم — سيُرسل رابط تفعيل' : 'لا'} />
           </div>
