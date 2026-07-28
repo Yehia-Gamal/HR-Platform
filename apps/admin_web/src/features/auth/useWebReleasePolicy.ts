@@ -72,7 +72,7 @@ export function useRegisterWebDevice() {
         p_push_enabled: Notification.permission === 'granted', p_biometric_available: Boolean(window.PublicKeyCredential),
         p_metadata: { language: navigator.language, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
       });
-      if (error) console.warn('Managed device registration skipped', error.message);
+      if (error && import.meta.env.DEV) console.warn('Managed device registration skipped', error.message);
     });
     return () => { active = false; };
   }, [auth.status, auth.isMock, auth.session?.user.id]);
