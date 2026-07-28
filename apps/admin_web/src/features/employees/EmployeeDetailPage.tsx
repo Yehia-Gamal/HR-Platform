@@ -268,7 +268,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
 
   // --- Sensitive fields ---
   const [departmentId, setDepartmentId] = useState(item.departmentId ?? '');
-  const [branchId, setBranchId] = useState(item.branchId ?? '');
+  const [branchText, setBranchText] = useState(item.branch ?? '');
   const [workSiteId, setWorkSiteId] = useState(item.workSiteId ?? '');
   const [jobTitleText, setJobTitleText] = useState(item.jobTitle ?? '');
   const [gradeText, setGradeText] = useState(item.grade ?? '');
@@ -337,24 +337,20 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
     setPhotoError(null);
   };
 
-  // Filter child lookups by parent selection
+  // Resolve typed branch text to an existing branch record (if any)
+  const matchedBranch = useMemo(() => (lookups.data?.branches ?? []).find((b) => b.label === branchText.trim()) ?? null, [lookups.data?.branches, branchText]);
+
+  // Filter child lookups by matched branch
   const workSites = useMemo(() => {
     const opts = lookups.data?.workSites ?? [];
-    return branchId ? opts.filter((s) => s.parentId === branchId) : opts;
-  }, [lookups.data?.workSites, branchId]);
+    return matchedBranch ? opts.filter((s) => s.parentId === matchedBranch.id) : opts;
+  }, [lookups.data?.workSites, matchedBranch]);
 
   // استبعاد الموظف نفسه من قائمة المديرين
   const availableManagers = useMemo(
     () => (lookups.data?.managers ?? []).filter((m) => m.id !== item.id),
     [lookups.data?.managers, item.id],
   );
-
-  // Reset child when parent changes
-  const onBranchChange = (value: string) => {
-    setBranchId(value);
-    const nextSites = (lookups.data?.workSites ?? []).filter((s) => !value || s.parentId === value);
-    if (workSiteId && nextSites.every((s) => s.id !== workSiteId)) setWorkSiteId('');
-  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -369,7 +365,10 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
     // Sensitive
     if (canSensitive) {
       if ((departmentId || null) !== (item.departmentId ?? null)) changes.departmentId = departmentId || null;
-      if ((branchId || null) !== (item.branchId ?? null)) changes.branchId = branchId || null;
+      if ((branchText.trim() || null) !== (item.branch ?? null)) {
+        const resolvedBranchId = matchedBranch?.id ?? null;
+        changes.branchId = resolvedBranchId;
+      }
       if ((workSiteId || null) !== (item.workSiteId ?? null)) changes.workSiteId = workSiteId || null;
       if ((jobTitleText.trim() || null) !== (item.jobTitle ?? null)) changes.jobTitleName = jobTitleText.trim() || null;
       if ((gradeText.trim() || null) !== (item.grade ?? null)) changes.gradeName = gradeText.trim() || null;
@@ -467,8 +466,12 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
             <legend className="mb-1 flex items-center gap-2 font-black"><Building2 className="size-4 text-[var(--brand)]" aria-hidden="true" />الهيكل التنظيمي</legend>
             <p className="muted mb-3 text-xs">الفرع والإدارة وموقع العمل — موقع العمل يتبع الفرع.</p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <LookupSelect label="الفرع" value={branchId} options={lookups.data?.branches ?? []} onChange={onBranchChange} disabled={isBusy} />
-              <LookupSelect label="موقع العمل" value={workSiteId} options={workSites} onChange={setWorkSiteId} disabled={isBusy} hint={branchId ? undefined : 'اختر الفرع أولاً لتصفية المواقع'} />
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-semibold">الفرع</span>
+                <input type="text" className="input w-full" list="edit-branches" value={branchText} onChange={(e) => setBranchText(e.target.value)} disabled={isBusy} placeholder="اكتب أو اختر الفرع…" />
+                <datalist id="edit-branches">{(lookups.data?.branches ?? []).map((b) => <option key={b.id} value={b.label} />)}</datalist>
+              </label>
+              <LookupSelect label="موقع العمل" value={workSiteId} options={workSites} onChange={setWorkSiteId} disabled={isBusy} />
               <LookupSelect label="الإدارة" value={departmentId} options={lookups.data?.departments ?? []} onChange={setDepartmentId} disabled={isBusy} />
             </div>
           </fieldset>

@@ -222,9 +222,36 @@ class _KpiCard extends StatelessWidget {
                   Text(DateFormat('MMMM y', 'ar').format(item.periodMonth)),
                 ],
               ),
+              // عرض الموعد النهائي إن وُجد.
+              if (item.deadlineAt != null) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(
+                      item.deadlineAt!.isBefore(DateTime.now())
+                          ? Icons.warning_amber_rounded
+                          : Icons.schedule_rounded,
+                      size: 14,
+                      color: item.deadlineAt!.isBefore(DateTime.now())
+                          ? Theme.of(context).colorScheme.error
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'الموعد النهائي: ${DateFormat.yMd('ar').format(item.deadlineAt!)}',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: item.deadlineAt!.isBefore(DateTime.now())
+                            ? Theme.of(context).colorScheme.error
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 12),
               // في مساحة الموظف لا داعي لعرض اسم الموظف — هو نفسه.
-              if (!employeeOnly)
+              if (!employeeOnly) ...[
                 Row(
                   children: [
                     AppAvatar(
@@ -254,6 +281,8 @@ class _KpiCard extends StatelessWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 8),
+              ],
               Text(
                 kpiWorkflowLabel(item.workflowStatus),
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -278,6 +307,36 @@ class _KpiCard extends StatelessWidget {
                   ),
                 ],
               ),
+              // في مساحة الموظف: رسالة توضيحية بعد إرسال التقييم الذاتي.
+              if (employeeOnly && item.currentStage != 'self' && action == null) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline_rounded,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.onSecondaryContainer,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'تم تقديم تقييمك — ${kpiWorkflowLabel(item.workflowStatus)}',
+                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSecondaryContainer,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               if (action != null) ...[
                 const SizedBox(height: 12),
                 FilledButton.icon(
@@ -306,6 +365,7 @@ class _KpiCard extends StatelessWidget {
   String _actionLabel(String action) => switch (action) {
     'self' => 'بدء التقييم الذاتي',
     'hr_review' => 'مراجعة HR',
+    'manager_review' => 'مراجعة المدير المباشر',
     'parallel_review' => 'مراجعة متوازية',
     'secretary_review' => 'مراجعة السكرتير',
     'executive_review' => 'إقرار المدير التنفيذي',
@@ -313,10 +373,10 @@ class _KpiCard extends StatelessWidget {
   };
 
   String? _allowedAction() {
-    // في مساحة الموظف: زر التقييم الذاتي يظهر مباشرة عندما يكون الدور 'self'.
+    // التقييم الذاتي: يتطلب الصلاحية دائمًا + ملكية التقييم في مساحة الموظف.
     if (item.currentStage == 'self' &&
-        (access.hasPermission('performance.kpi.self_assess') ||
-         (employeeOnly && item.employeeId == access.employeeId))) {
+        access.hasPermission('performance.kpi.self_assess') &&
+        (!employeeOnly || item.employeeId == access.employeeId)) {
       return 'self';
     }
     if (item.currentStage == 'hr_review' &&

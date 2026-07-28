@@ -74,10 +74,10 @@ Deno.serve(async (req) => {
     .limit(1)
     .maybeSingle();
   if (recentError) {
-    // Table auth_invite_log doesn't exist yet — skip rate-limit check.
-    // PostgREST returns PGRST-prefixed codes (not PostgreSQL 42P01) when a
-    // relation is missing from the schema cache, so accept any error here.
-  } else if (recentInvite) {
+    // جدول auth_invite_log مطلوب (mig 0193) — إذا فشل الاستعلام نرفض بدل التجاهل.
+    return json(req, { error: "rate_limit_check_failed" }, 500);
+  }
+  if (recentInvite) {
     return json(req, { error: "too_many_requests", retryAfterSeconds: 60 }, 429);
   }
 
@@ -88,11 +88,15 @@ Deno.serve(async (req) => {
   if (inviteError) return json(req, { error: "invite_send_failed" }, 502);
 
   // Record the invite so the rate-limit check above can actually block repeats.
-  await admin.from("auth_invite_log").insert({
+  const { error: logError } = await admin.from("auth_invite_log").insert({
     employee_id: input.employeeId,
     sent_by: userData.user.id,
     email: authUser.user.email.toLowerCase(),
-  }).catch(() => { /* table may not exist yet — graceful, mirrors the read fallback */ });
+  });
+  if (logError) {
+    // الدعوة أُرسلت بنجاح لكن التسجيل فشل — نُبلغ بالخطأ للتتبع.
+    console.error("auth_invite_log insert failed", logError.code);
+  }
 
   return json(req, { invitationSent: true, email: authUser.user.email }, 200);
 });

@@ -36,23 +36,16 @@ export function CreateEmployeePage() {
   const form = useForm<FormInput>({ resolver: zodResolver(createEmployeeInputSchema), defaultValues });
   const values = form.watch();
   const options = lookups.data;
+  const [branchText, setBranchText] = useState('');
+  const [gradeText, setGradeText] = useState('');
   const branches = options?.branches ?? [];
-  const selectedBranch = values.branchId ?? branches[0]?.id ?? null;
-  const workSites = useMemo(() => options?.workSites.filter((item) => !selectedBranch || item.parentId === selectedBranch) ?? [], [options, selectedBranch]);
-  // الأدوار المتاحة للإسناد عند الإنشاء — من كتالوج الأدوار الحيّ. يُحتفظ بخيار
-  // «موظف» كحد أدنى ريثما تُحمّل القائمة كي لا يبقى المنسدل فارغاً.
-  const roleOptions = useMemo(() => {
-    const roles = options?.roles ?? [];
-    return roles.length ? roles.map((r) => ({ slug: r.slug, label: r.label })) : [{ slug: 'employee', label: 'موظف' }];
-  }, [options]);
-
-  // كتابة المجمّع الافتراضي في الفورم فور تحميل الفروع، حتى يُرسَل فعلاً في
-  // الحمولة (لا مجرد عرضه) إن لم يختر المستخدم مجمّعاً صراحةً.
-  useEffect(() => {
-    if (!values.branchId && branches[0]?.id) {
-      form.setValue('branchId', branches[0].id);
-    }
-  }, [branches, values.branchId, form]);
+  const matchedBranch = useMemo(() => branches.find((b) => b.label === branchText.trim()) ?? null, [branches, branchText]);
+  const grades = options?.grades ?? [];
+  const matchedGrade = useMemo(() => grades.find((g) => g.label === gradeText.trim()) ?? null, [grades, gradeText]);
+  const workSites = useMemo(() => {
+    const all = options?.workSites ?? [];
+    return matchedBranch ? all.filter((item) => item.parentId === matchedBranch.id) : all;
+  }, [options, matchedBranch]);
 
   useEffect(() => () => {
     if (photoObjectUrlRef.current) URL.revokeObjectURL(photoObjectUrlRef.current);
@@ -71,7 +64,7 @@ export function CreateEmployeePage() {
 
   const next = async () => {
     if (photoUploading) return;
-    const fields: Array<keyof FormInput> = step === 0 ? ['fullNameAr', 'email', 'phoneE164', 'roleSlug'] : [];
+    const fields: Array<keyof FormInput> = step === 0 ? ['fullNameAr', 'email', 'phoneE164'] : [];
     if (fields.length && !(await form.trigger(fields))) return;
     setStep((current) => Math.min(2, current + 1));
   };
@@ -230,7 +223,7 @@ export function CreateEmployeePage() {
             <Review label="الهاتف" value={values.phoneE164} />
             <Review label="البريد" value={values.email} />
             <Review label="المنصب" value={roleLabel} />
-            <Review label="المجمع" value={branches.find((x) => x.id === selectedBranch)?.label} />
+            <Review label="المجمع" value={branches.find((x) => x.id === values.branchId)?.label} />
             <Review label="موقع العمل" value={options?.workSites.find((x) => x.id === values.workSiteId)?.label} />
             <Review label="المدير" value={options?.managers.find((x) => x.id === values.managerEmployeeId)?.label} />
             <Review label="المسمى الوظيفي" value={values.jobTitleName} />

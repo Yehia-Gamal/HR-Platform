@@ -173,7 +173,10 @@ Deno.serve(async (req) => {
       }, { onConflict: "employee_id,device_identifier_hash" });
     if (provisionError) {
       console.error("auto-provision employee_devices failed", provisionError);
+      return json(req, { error: "device_provision_failed" }, 500);
     }
+    // الجهاز أُنشئ بحالة pending — يجب اعتماده من المسؤول أولاً.
+    return json(req, { error: "device_pending_approval", correlationId }, 403);
   } else if (device.status !== "active") {
     const errorCode = device.status === "pending" ? "device_pending_approval" : "device_not_active";
     return json(req, { error: errorCode }, 403);

@@ -1,28 +1,29 @@
+import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/location_incoming_overlay.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_brief_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_people_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_services_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_announcement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_attendance_tab.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_brief_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_decisions_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_disputes_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_emergency_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_governance_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_people_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_risk_center_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/manager_operations_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_services_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_daily_reports_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_disputes_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notifications_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_profile_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_official_feed_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_profile_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_tasks_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/org_chart_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/org_chart_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
@@ -232,12 +233,12 @@ class WorkspaceScaffold extends ConsumerWidget {
           page: const ExecutiveDecisionsPage(),
         ),
         _MoreItem(
-          icon: Icons.campaign_outlined,
+          icon: Icons.record_voice_over_outlined,
           label: 'نشر تعميم',
           page: const ExecutiveAnnouncementPage(),
         ),
         _MoreItem(
-          icon: Icons.shield_outlined,
+          icon: Icons.admin_panel_settings_outlined,
           label: 'مركز القيادة والحوكمة',
           page: Scaffold(
             appBar: AppBar(title: const Text('مركز القيادة والحوكمة')),
@@ -423,9 +424,16 @@ class WorkspaceScaffold extends ConsumerWidget {
                   },
                 ),
               ),
-              // V23 — لا زر خروج: التطبيق يبقى فعّالاً دائمًا لاستقبال
-              // الإشعارات وطلبات الموقع المباشر من المدير التنفيذي.
-              // الجلسة تُدار بالكامل من الخادم (إبطال / صيانة / تحديث إجباري).
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  Navigator.pop(sheetContext);
+                  await ref.read(supabaseProvider).auth.signOut();
+                  ref.invalidate(accessContextProvider);
+                },
+                icon: const Icon(Icons.logout_rounded),
+                label: const Text('تسجيل الخروج'),
+              ),
             ],
           ),
         ),
@@ -503,4 +511,8 @@ class _MoreItem {
   final IconData icon;
   final String label;
   final Widget page;
+}
+
+extension _FirstOrNullExtension<T> on List<T> {
+  T? get firstOrNull => isEmpty ? null : first;
 }
