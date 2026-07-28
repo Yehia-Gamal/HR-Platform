@@ -1,7 +1,7 @@
 import type { Employee360 } from '@ahla/shared-contracts';
 import {
-  ArrowRight, BadgeCheck, BriefcaseBusiness, Building2, CalendarDays, Clock3, FileText,
-  Archive, Gauge, Loader2, MailCheck, Network, Pencil, Phone, Plus, ShieldCheck, Star, Trash2, UserRound, X,
+  ArrowRight, BadgeCheck, BriefcaseBusiness, Building2, CalendarDays, Camera, Clock3, FileText,
+  Archive, Gauge, KeyRound, Loader2, MailCheck, Network, Pencil, Phone, Plus, ShieldCheck, Star, Trash2, UserRound, X,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
