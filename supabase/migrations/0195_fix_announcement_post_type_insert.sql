@@ -1,4 +1,4 @@
--- Migration 0194: إصلاح publish_official_announcement — post_type مفقود من INSERT
+-- Migration 0195: إصلاح publish_official_announcement — post_type مفقود من INSERT
 -- المشكلة (1): Migration 0185 أعادت إنشاء الدالة بـ 9 params لكن أزالت post_type
 --   من عبارة INSERT — القيمة تُخزّن فقط في metadata JSONB، والعمود يأخذ الافتراضي 'announcement'.
 -- المشكلة (2): CHECK constraint من 0165 لا يشمل 'standard' — الدالة تقبل 'standard'

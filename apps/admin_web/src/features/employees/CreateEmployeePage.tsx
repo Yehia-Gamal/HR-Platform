@@ -36,6 +36,7 @@ export function CreateEmployeePage() {
   const form = useForm<FormInput>({ resolver: zodResolver(createEmployeeInputSchema), defaultValues });
   const values = form.watch();
   const options = lookups.data;
+  const roleOptions = options?.roles ?? [];
   const [branchText, setBranchText] = useState('');
   const [gradeText, setGradeText] = useState('');
   const branches = options?.branches ?? [];
@@ -129,6 +130,9 @@ export function CreateEmployeePage() {
   };
 
   const submit = form.handleSubmit(async (raw) => {
+    // حل النص الحر → معرّف قبل التحقق
+    raw.branchId = matchedBranch?.id ?? null;
+    raw.gradeId = matchedGrade?.id ?? null;
     const parsedInput = createEmployeeInputSchema.parse(raw);
     setResult(null); setSubmitError(null);
     try {
@@ -177,7 +181,6 @@ export function CreateEmployeePage() {
     }
   });
 
-  const roleLabel = roleOptions.find((r) => r.slug === values.roleSlug)?.label ?? values.roleSlug;
 
   return <div><PageHeader title="إنشاء موظف وحساب دخول" description="رحلة واحدة تنشئ ملف الموظف والحساب والدور والصورة الشخصية داخل عملية خادمية آمنة." actions={<Link to="/hr/employees" className="btn-secondary text-sm"><ArrowRight className="size-4" aria-hidden="true" />رجوع</Link>} />
     <section className="mx-auto max-w-5xl"><ol className="mb-5 grid grid-cols-3 gap-2">{steps.map((label, index) => <li key={label} className={`rounded-xl border p-3 text-center text-xs font-black ${index === step ? 'border-brand bg-brand text-white' : index < step ? 'border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]' : 'border-[var(--border)] bg-[var(--surface)] muted'}`}>{index < step ? <Check className="mx-auto mb-1 size-4" aria-hidden="true" /> : <span className="mb-1 block">{index + 1}</span>}{label}</li>)}</ol>
