@@ -770,7 +770,7 @@ class _CaseDetailSheet extends ConsumerWidget {
               );
             },
             icon: const Icon(Icons.gavel),
-            label: const Text('اتخاذ قرار إداري'),
+            label: const Text('القرار التنفيذي النهائي'),
           ),
         ],
       ],
@@ -797,9 +797,9 @@ class _CaseDetailSheet extends ConsumerWidget {
       );
 
   static String _decisionLabel(String d) => switch (d) {
-        'approved' => 'تمت الموافقة ✓',
-        'modified' => 'تم التعديل والموافقة',
-        'rejected' => 'مرفوض ✗',
+        'approved' => 'تم توقيع الجزاء الإداري ✓',
+        'modified' => 'تم تعديل الجزاء وتوقيعه ✓',
+        'rejected' => 'تم العفو ✗',
         'deferred' => 'مؤجل',
         _ => d,
       };
@@ -857,11 +857,11 @@ class _DecisionSheetState extends ConsumerState<_DecisionSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(_decision == 'approved'
-                  ? 'تم اعتماد الإجراء'
+                  ? 'تم توقيع الجزاء الإداري'
                   : _decision == 'modified'
-                      ? 'تم تعديل واعتماد الإجراء'
+                      ? 'تم تعديل الجزاء وتوقيعه'
                       : _decision == 'rejected'
-                          ? 'تم رفض الإجراء المقترح'
+                          ? 'تم العفو وإغلاق القضية'
                           : 'تم تأجيل القرار')),
         );
       }
@@ -1100,12 +1100,123 @@ class _DecisionSheetState extends ConsumerState<_DecisionSheet> {
       };
 
   static String _submitLabel(String d) => switch (d) {
-        'approved' => 'اعتماد',
-        'modified' => 'تعديل واعتماد',
-        'rejected' => 'رفض',
+        'approved' => 'توقيع الجزاء',
+        'modified' => 'تعديل وتوقيع',
+        'rejected' => 'العفو وإغلاق القضية',
         'deferred' => 'تأجيل',
         _ => 'إرسال',
       };
+}
+
+// ── ملخص آراء اللجنة داخل شاشة القرار التنفيذي ─────────────────────────────
+
+class _DecisionRecommendationsPreview extends ConsumerWidget {
+  const _DecisionRecommendationsPreview({required this.caseId});
+  final String caseId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final async = ref.watch(disputeCaseRecommendationsProvider(caseId));
+
+    return async.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      ),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (data) {
+        if (data.recommendations.isEmpty) {
+          return Card(
+            color: theme.colorScheme.surfaceContainerHighest,
+            child: const Padding(
+              padding: EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 18),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text('لا توجد آراء من أعضاء اللجنة بعد'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.groups, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'آراء أعضاء اللجنة (${data.totalCount})',
+                      style: theme.textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Divider(height: 1),
+                const SizedBox(height: 8),
+                ...data.recommendations.take(5).map((r) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CircleAvatar(
+                            radius: 14,
+                            child: Text(
+                              r.submittedByName.isNotEmpty
+                                  ? r.submittedByName[0]
+                                  : '؟',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  r.submittedByName,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13),
+                                ),
+                                Text(
+                                  r.statementText,
+                                  style: theme.textTheme.bodySmall,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )),
+                if (data.recommendations.length > 5)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      '+ ${data.recommendations.length - 5} آراء أخرى',
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: theme.colorScheme.primary),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 // ── آراء وتوصيات أعضاء اللجنة (0198) ───────────────────────────────────────

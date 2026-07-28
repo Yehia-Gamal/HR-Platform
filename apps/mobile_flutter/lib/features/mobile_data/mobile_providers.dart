@@ -983,12 +983,14 @@ final mobileDailyReportsProvider =
       ref,
       employeeId,
     ) async {
-      final data = await ref
-          .watch(supabaseProvider)
-          .rpc<dynamic>(
-            'get_mobile_daily_reports',
-            params: {'p_employee_id': employeeId, 'p_limit': 30},
-          );
+      final data = await rpcWithTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'get_mobile_daily_reports',
+              params: {'p_employee_id': employeeId, 'p_limit': 30},
+            ),
+      );
       return _asList(
         data,
       ).map(MobileDailyReport.fromJson).toList(growable: false);
@@ -1085,12 +1087,12 @@ extension MobileDailyCommands on MobileCommands {
 final myLeaveBalancesProvider = FutureProvider<List<MobileLeaveBalance>>((
   ref,
 ) async {
-  final data = await ref
-      .watch(supabaseProvider)
-      .rpc<dynamic>(
-        'get_my_leave_balances',
-        params: {'p_year': DateTime.now().year},
-      );
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>(
+          'get_my_leave_balances',
+          params: {'p_year': DateTime.now().year},
+        ),
+  );
   return _asList(data).map(MobileLeaveBalance.fromJson).toList(growable: false);
 });
 
@@ -1102,21 +1104,21 @@ final myAttendanceServicesProvider = FutureProvider<MobileAttendanceServices>((
   final to = now.add(const Duration(days: 45));
   String date(DateTime value) =>
       '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
-  final data = await ref
-      .watch(supabaseProvider)
-      .rpc<dynamic>(
-        'get_my_attendance_services',
-        params: {'p_from': date(from), 'p_to': date(to)},
-      );
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>(
+          'get_my_attendance_services',
+          params: {'p_from': date(from), 'p_to': date(to)},
+        ),
+  );
   return MobileAttendanceServices.fromJson(_asMap(data));
 });
 
 final myDisputePortalProvider = FutureProvider<MobileDisputePortal>((
   ref,
 ) async {
-  final data = await ref
-      .watch(supabaseProvider)
-      .rpc<dynamic>('get_my_dispute_portal');
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_my_dispute_portal'),
+  );
   return MobileDisputePortal.fromJson(_asMap(data));
 });
 
@@ -1124,9 +1126,9 @@ final myDisputePortalProvider = FutureProvider<MobileDisputePortal>((
 final executiveDisputeInboxProvider = FutureProvider<ExecutiveDisputeInbox>((
   ref,
 ) async {
-  final data = await ref
-      .watch(supabaseProvider)
-      .rpc<dynamic>('get_executive_dispute_inbox');
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_executive_dispute_inbox'),
+  );
   return ExecutiveDisputeInbox.fromJson(_asMap(data));
 });
 
@@ -1134,29 +1136,29 @@ final executiveDisputeInboxProvider = FutureProvider<ExecutiveDisputeInbox>((
 final committeeDisputePortalProvider = FutureProvider<CommitteeDisputePortal>((
   ref,
 ) async {
-  final data = await ref
-      .watch(supabaseProvider)
-      .rpc<dynamic>('get_committee_dispute_portal');
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_committee_dispute_portal'),
+  );
   return CommitteeDisputePortal.fromJson(_asMap(data));
 });
 
 /// 0198 — آراء/توصيات أعضاء اللجنة لقضية محددة
 final disputeCaseRecommendationsProvider =
     FutureProvider.family<DisputeCaseRecommendations, String>((ref, caseId) async {
-  final data = await ref
-      .watch(supabaseProvider)
-      .rpc<dynamic>('get_dispute_case_recommendations', params: {
-    'p_case_id': caseId,
-  });
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_dispute_case_recommendations', params: {
+      'p_case_id': caseId,
+    }),
+  );
   return DisputeCaseRecommendations.fromJson(_asMap(data));
 });
 
 final myOffboardingPortalProvider = FutureProvider<MobileOffboardingPortal>((
   ref,
 ) async {
-  final data = await ref
-      .watch(supabaseProvider)
-      .rpc<dynamic>('get_my_offboarding_portal');
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_my_offboarding_portal'),
+  );
   return MobileOffboardingPortal.fromJson(_asMap(data));
 });
 
@@ -1371,9 +1373,9 @@ extension ExecutiveDisputeCommands on MobileCommands {
 final myLearningCatalogProvider = FutureProvider<MobileLearningCatalog>((
   ref,
 ) async {
-  final data = await ref
-      .watch(supabaseProvider)
-      .rpc<dynamic>('get_my_learning_catalog');
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_my_learning_catalog'),
+  );
   return MobileLearningCatalog.fromJson(_asMap(data));
 });
 
@@ -1402,15 +1404,15 @@ extension MobileLearningCommands on MobileCommands {
 final myServicePortalProvider = FutureProvider<MobileServicePortal>((
   ref,
 ) async {
-  final data = await ref
-      .watch(supabaseProvider)
-      .rpc<dynamic>('get_my_service_portal');
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_my_service_portal'),
+  );
   return MobileServicePortal.fromJson(_asMap(data));
 });
 final myPayslipsProvider = FutureProvider<List<MobilePayslip>>((ref) async {
-  final data = await ref
-      .watch(supabaseProvider)
-      .rpc<dynamic>('get_my_payslips');
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_my_payslips'),
+  );
   return _asList(data).map(MobilePayslip.fromJson).toList(growable: false);
 });
 

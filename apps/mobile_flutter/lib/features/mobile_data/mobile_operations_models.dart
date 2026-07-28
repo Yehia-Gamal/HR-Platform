@@ -9,6 +9,8 @@ List<T> _items<T>(dynamic value, T Function(Map<String, dynamic>) factory) =>
 DateTime? _date(dynamic value) =>
     value == null ? null : DateTime.tryParse(value.toString());
 
+DateTime _reqDate(dynamic value) => _date(value) ?? DateTime(0);
+
 class MobileManagerOperations {
   const MobileManagerOperations({
     required this.from,
@@ -23,8 +25,8 @@ class MobileManagerOperations {
 
   factory MobileManagerOperations.fromJson(Map<String, dynamic> json) =>
       MobileManagerOperations(
-        from: DateTime.parse(json['from'] as String),
-        to: DateTime.parse(json['to'] as String),
+        from: _reqDate(json['from']),
+        to: _reqDate(json['to']),
         metrics: ManagerOperationsMetrics.fromJson(_map(json['metrics'])),
         calendar: _items(json['calendar'], ManagerRosterEntry.fromJson),
         documentAlerts: _items(
@@ -36,7 +38,7 @@ class MobileManagerOperations {
           json['missingReports'],
           ManagerMissingReport.fromJson,
         ),
-        lastUpdatedAt: DateTime.parse(json['lastUpdatedAt'] as String),
+        lastUpdatedAt: _reqDate(json['lastUpdatedAt']),
       );
 
   final DateTime from;
@@ -94,7 +96,7 @@ class ManagerRosterEntry {
         employeeId: json['employeeId'] as String,
         employeeName: json['employeeName'] as String? ?? 'موظف',
         employeeCode: json['employeeCode'] as String?,
-        workDate: DateTime.parse(json['workDate'] as String),
+        workDate: _reqDate(json['workDate']),
         dayStatus: json['dayStatus'] as String? ?? 'scheduled',
         shiftName: json['shiftName'] as String?,
         startsAt: json['startsAt']?.toString(),
@@ -134,7 +136,7 @@ class ManagerDocumentAlert {
         employeeCode: json['employeeCode'] as String?,
         title: json['title'] as String? ?? 'مستند',
         documentType: json['documentType'] as String? ?? 'other',
-        expiryDate: DateTime.parse(json['expiryDate'] as String),
+        expiryDate: _reqDate(json['expiryDate']),
         status: json['status'] as String? ?? 'active',
       );
 
@@ -228,7 +230,7 @@ class MobileExecutiveCommandCenter {
         risks: _items(json['risks'], ExecutiveRiskItem.fromJson),
         incidents: _items(json['incidents'], ExecutiveIncidentItem.fromJson),
         meetings: _items(json['meetings'], ExecutiveMeeting.fromJson),
-        lastUpdatedAt: DateTime.parse(json['lastUpdatedAt'] as String),
+        lastUpdatedAt: _reqDate(json['lastUpdatedAt']),
       );
 
   final List<ExecutiveReportRun> reports;
@@ -270,7 +272,7 @@ class ExecutiveReportRun {
         storagePath: json['storagePath'] as String?,
         summary: json['summary'] == null ? const {} : _map(json['summary']),
         attempts: (json['attempts'] as num?)?.toInt() ?? 0,
-        createdAt: DateTime.parse(json['createdAt'] as String),
+        createdAt: _reqDate(json['createdAt']),
         completedAt: _date(json['completedAt']),
         errorDetail: json['errorDetail'] as String?,
       );
@@ -404,8 +406,8 @@ class ExecutiveDecisionPoll {
         pollType: json['pollType'] as String? ?? 'yes_no',
         status: json['status'] as String? ?? 'open',
         isAnonymous: json['isAnonymous'] as bool? ?? false,
-        opensAt: DateTime.parse(json['opensAt'] as String),
-        closesAt: DateTime.parse(json['closesAt'] as String),
+        opensAt: _reqDate(json['opensAt']),
+        closesAt: _reqDate(json['closesAt']),
         quorumPercent: (json['quorumPercent'] as num?)?.toDouble(),
         approvalThresholdPercent: (json['approvalThresholdPercent'] as num?)
             ?.toDouble(),
@@ -467,7 +469,7 @@ class ExecutiveRiskItem {
         status: json['status'] as String? ?? 'open',
         ownerName: json['ownerName'] as String?,
         updatedAt: _date(json['updatedAt']),
-        createdAt: DateTime.parse(json['createdAt'] as String),
+        createdAt: _reqDate(json['createdAt']),
       );
 
   final String id;
@@ -502,7 +504,7 @@ class ExecutiveIncidentItem {
         severity: json['severity'] as String? ?? 'medium',
         status: json['status'] as String? ?? 'open',
         reporterName: json['reporterName'] as String?,
-        createdAt: DateTime.parse(json['createdAt'] as String),
+        createdAt: _reqDate(json['createdAt']),
         updatedAt: _date(json['updatedAt']),
       );
 

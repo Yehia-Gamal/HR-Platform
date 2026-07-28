@@ -9,6 +9,8 @@ List<T> _items<T>(dynamic value, T Function(Map<String, dynamic>) factory) =>
 DateTime? _date(dynamic value) =>
     value == null ? null : DateTime.tryParse(value.toString());
 
+DateTime _reqDate(dynamic value) => _date(value) ?? DateTime(0);
+
 class MobileExecutiveBrief {
   const MobileExecutiveBrief({
     required this.period,
@@ -25,7 +27,7 @@ class MobileExecutiveBrief {
   factory MobileExecutiveBrief.fromJson(Map<String, dynamic> json) =>
       MobileExecutiveBrief(
         period: json['period'] as String? ?? 'morning',
-        briefDate: DateTime.parse(json['briefDate'] as String),
+        briefDate: _reqDate(json['briefDate']),
         attendance: ExecutiveBriefAttendance.fromJson(_map(json['attendance'])),
         decisions: ExecutiveBriefDecisions.fromJson(_map(json['decisions'])),
         risk: ExecutiveBriefRisk.fromJson(_map(json['risk'])),
@@ -34,7 +36,7 @@ class MobileExecutiveBrief {
           ExecutiveBriefHighlight.fromJson,
         ),
         dailyReport: _map(json['dailyReport'] ?? <String, dynamic>{}),
-        generatedAt: DateTime.parse(json['generatedAt'] as String),
+        generatedAt: _reqDate(json['generatedAt']),
         sourceLabel: json['sourceLabel'] as String? ?? 'مصادر تشغيلية مباشرة',
       );
 
@@ -246,7 +248,7 @@ class ExecutiveEmployeeSummary {
           json['recentAttendance'],
           ExecutiveEmployeeAttendance.fromJson,
         ),
-        lastUpdatedAt: DateTime.parse(json['lastUpdatedAt'] as String),
+        lastUpdatedAt: _reqDate(json['lastUpdatedAt']),
       );
 
   final String id;
@@ -304,7 +306,7 @@ class ExecutiveEmployeeAttendance {
 
   factory ExecutiveEmployeeAttendance.fromJson(Map<String, dynamic> json) =>
       ExecutiveEmployeeAttendance(
-        workDate: DateTime.parse(json['workDate'] as String),
+        workDate: _reqDate(json['workDate']),
         status: json['status'] as String? ?? 'pending',
         lateMinutes: (json['lateMinutes'] as num?)?.toInt() ?? 0,
         workMinutes: (json['workMinutes'] as num?)?.toInt() ?? 0,

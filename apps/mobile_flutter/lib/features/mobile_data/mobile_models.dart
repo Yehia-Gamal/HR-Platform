@@ -1,3 +1,7 @@
+/// Safely parses a required DateTime from JSON, returning epoch on null/invalid.
+DateTime _reqDate(dynamic value) =>
+    DateTime.tryParse(value?.toString() ?? '') ?? DateTime(0);
+
 class EmployeeHomeSummary {
   const EmployeeHomeSummary({
     required this.pendingRequests,
@@ -105,7 +109,7 @@ class MobileRequest {
   });
   factory MobileRequest.fromJson(Map<String, dynamic> json) => MobileRequest(
     id: json['id'] as String,
-    number: (json['requestNumber'] as num).toInt(),
+    number: (json['requestNumber'] as num?)?.toInt() ?? 0,
     type: json['requestType'] as String,
     employeeName: json['employeeName'] as String? ?? 'موظف',
     employeePhotoUrl: json['employeePhotoUrl'] as String?,
@@ -114,7 +118,7 @@ class MobileRequest {
     status: json['status'] as String? ?? 'pending',
     workflowStatus: json['workflowStatus'] as String? ?? 'submitted',
     activeStepName: json['activeStepName'] as String?,
-    createdAt: DateTime.parse(json['createdAt'] as String),
+    createdAt: _reqDate(json['createdAt']),
   );
   final String id;
   final int number;
@@ -150,7 +154,7 @@ class MobileKpiEvaluation {
         employeeName: json['employeeName'] as String? ?? 'موظف',
         employeeCode: json['employeeCode'] as String?,
         employeePhotoUrl: json['employeePhotoUrl'] as String?,
-        periodMonth: DateTime.parse(json['periodMonth'] as String),
+        periodMonth: _reqDate(json['periodMonth']),
         currentStage: json['currentStage'] as String? ?? 'self',
         workflowStatus: json['workflowStatus'] as String? ?? 'NOT_STARTED',
         deadlineAt: json['deadlineAt'] == null
@@ -365,7 +369,7 @@ class KpiEvaluationForm {
         employeeId: json['employeeId'] as String,
         employeeName: json['employeeName'] as String? ?? 'موظف',
         employeeCode: json['employeeCode'] as String?,
-        periodMonth: DateTime.parse(json['periodMonth'] as String),
+        periodMonth: _reqDate(json['periodMonth']),
         currentStage: json['currentStage'] as String? ?? 'self',
         workflowStatus: json['workflowStatus'] as String? ?? 'NOT_STARTED',
         editableStage: json['editableStage'] as String?,
@@ -632,7 +636,7 @@ class MobileLocationRequest {
         status: json['status'] as String? ?? 'pending',
         mode: json['mode'] as String? ?? 'snapshot',
         durationMinutes: (json['durationMinutes'] as num?)?.toInt() ?? 1,
-        requestedAt: DateTime.parse(json['requestedAt'] as String),
+        requestedAt: _reqDate(json['requestedAt']),
         expiresAt: json['expiresAt'] == null
             ? null
             : DateTime.parse(json['expiresAt'] as String),
@@ -764,7 +768,7 @@ class MobileRequestDetail {
         payload: Map<String, dynamic>.from(
           json['payload'] as Map<dynamic, dynamic>? ?? const {},
         ),
-        createdAt: DateTime.parse(json['createdAt'] as String),
+        createdAt: _reqDate(json['createdAt']),
         updatedAt: json['updatedAt'] == null
             ? null
             : DateTime.parse(json['updatedAt'] as String),
@@ -853,7 +857,7 @@ class PasskeyDevice {
     lastUsedAt: json['lastUsedAt'] == null
         ? null
         : DateTime.parse(json['lastUsedAt'] as String),
-    createdAt: DateTime.parse(json['createdAt'] as String),
+    createdAt: _reqDate(json['createdAt']),
     approvedAt: json['approvedAt'] == null
         ? null
         : DateTime.parse(json['approvedAt'] as String),
@@ -895,7 +899,7 @@ class AttendanceHistoryItem {
       AttendanceHistoryItem(
         id: json['id'] as String,
         eventType: json['eventType'] as String? ?? 'CHECK_IN',
-        eventAt: DateTime.parse(json['eventAt'] as String),
+        eventAt: _reqDate(json['eventAt']),
         status: json['status'] as String? ?? 'pending',
         verificationStatus:
             json['verificationStatus'] as String? ?? 'unverified',
@@ -1078,7 +1082,7 @@ class MobileTask {
     dueDate: json['dueDate'] == null
         ? null
         : DateTime.parse(json['dueDate'] as String),
-    createdAt: DateTime.parse(json['createdAt'] as String),
+    createdAt: _reqDate(json['createdAt']),
     createdByName: json['createdByName'] as String?,
     isOverdue: json['isOverdue'] as bool? ?? false,
   );
@@ -1159,7 +1163,7 @@ class MobileDailyReport {
         id: json['id'] as String,
         employeeId: json['employeeId'] as String,
         employeeName: json['employeeName'] as String? ?? 'موظف',
-        reportDate: DateTime.parse(json['reportDate'] as String),
+        reportDate: _reqDate(json['reportDate']),
         achievements: json['achievements'] as String?,
         blockers: json['blockers'] as String?,
         tomorrowPlan: json['tomorrowPlan'] as String?,
@@ -1168,7 +1172,7 @@ class MobileDailyReport {
         reviewedAt: json['reviewedAt'] == null
             ? null
             : DateTime.parse(json['reviewedAt'] as String),
-        createdAt: DateTime.parse(json['createdAt'] as String),
+        createdAt: _reqDate(json['createdAt']),
       );
   final String id;
   final String employeeId;
@@ -1208,7 +1212,7 @@ class MobileNotificationItem {
         entityType: json['entityType'] as String?,
         entityId: json['entityId'] as String?,
         isRead: json['isRead'] as bool? ?? false,
-        createdAt: DateTime.parse(json['createdAt'] as String),
+        createdAt: _reqDate(json['createdAt']),
       );
 
   final String id;
@@ -1284,8 +1288,8 @@ class MobileWorkAssignment {
         assignmentType: json['assignment_type'] as String? ?? 'MISSION',
         title: json['title'] as String? ?? '',
         status: json['status'] as String? ?? 'DRAFT',
-        startAt: DateTime.parse(json['start_at'] as String),
-        endAt: DateTime.parse(json['end_at'] as String),
+        startAt: _reqDate(json['start_at']),
+        endAt: _reqDate(json['end_at']),
         isFullDay: json['is_full_day'] as bool? ?? true,
         location: json['location'] as String?,
         needsReport: json['needs_report'] as bool? ?? false,
@@ -1523,7 +1527,7 @@ class MobileScheduleDay {
   factory MobileScheduleDay.fromJson(Map<String, dynamic> json) =>
       MobileScheduleDay(
         id: json['id'] as String,
-        workDate: DateTime.parse(json['workDate'] as String),
+        workDate: _reqDate(json['workDate']),
         dayStatus: json['dayStatus'] as String? ?? 'scheduled',
         shiftName: json['shiftName'] as String?,
         startTime: json['startTime'] as String?,
@@ -1555,7 +1559,7 @@ class MobileAttendanceCorrection {
   factory MobileAttendanceCorrection.fromJson(Map<String, dynamic> json) =>
       MobileAttendanceCorrection(
         id: json['id'] as String,
-        workDate: DateTime.parse(json['workDate'] as String),
+        workDate: _reqDate(json['workDate']),
         type: json['type'] as String? ?? 'other',
         reason: json['reason'] as String? ?? '',
         status: json['status'] as String? ?? 'pending',
@@ -1567,7 +1571,7 @@ class MobileAttendanceCorrection {
             : DateTime.parse(json['requestedCheckOut'] as String),
         requestedStatus: json['requestedStatus'] as String?,
         reviewNote: json['reviewNote'] as String?,
-        createdAt: DateTime.parse(json['createdAt'] as String),
+        createdAt: _reqDate(json['createdAt']),
       );
   final String id;
   final DateTime workDate;
@@ -1649,7 +1653,7 @@ class MobileDisputeCase {
         status: json['status'] as String? ?? 'submitted',
         severity: json['severity'] as String? ?? 'medium',
         respondentName: json['respondentName'] as String?,
-        openedAt: DateTime.parse(json['openedAt'] as String),
+        openedAt: _reqDate(json['openedAt']),
         canCancel: json['canCancel'] as bool? ?? false,
         isCommitteeMember: json['isCommitteeMember'] as bool? ?? false,
         proposedAdminAction: json['proposedAdminAction'] as String?,
@@ -1767,7 +1771,7 @@ class MobileDisputeAppeal {
         decisionId: json['decisionId'] as String,
         reason: json['reason'] as String? ?? '',
         status: json['status'] as String? ?? 'submitted',
-        submittedAt: DateTime.parse(json['submittedAt'] as String),
+        submittedAt: _reqDate(json['submittedAt']),
         resolution: json['resolution'] as String?,
       );
   final String id;
@@ -2258,7 +2262,7 @@ class MobileServiceRequest {
         dueAt: json['dueAt'] == null
             ? null
             : DateTime.parse(json['dueAt'] as String),
-        createdAt: DateTime.parse(json['createdAt'] as String),
+        createdAt: _reqDate(json['createdAt']),
         satisfactionScore: (json['satisfactionScore'] as num?)?.toInt(),
       );
   final String id;
@@ -2343,7 +2347,7 @@ class MobilePayslip {
   });
   factory MobilePayslip.fromJson(Map<String, dynamic> json) => MobilePayslip(
     id: json['id'] as String,
-    periodMonth: DateTime.parse(json['periodMonth'] as String),
+    periodMonth: _reqDate(json['periodMonth']),
     currency: json['currency'] as String? ?? 'EGP',
     grossAmount: (json['grossAmount'] as num?)?.toDouble() ?? 0,
     deductionAmount: (json['deductionAmount'] as num?)?.toDouble() ?? 0,

@@ -12,8 +12,8 @@ apps/admin_web/        — React 19 + Vite + Tailwind + TanStack Query
 apps/mobile_flutter/   — Flutter 3 + Riverpod
 packages/shared-contracts/  — Zod schemas مشتركة (web + edge functions)
 packages/design-tokens/     — متغيرات التصميم
-supabase/migrations/   — 116 migration (PostgreSQL)
-supabase/tests/        — 48 pgTAP test file (650 assertion)
+supabase/migrations/   — 200 migration (PostgreSQL)
+supabase/tests/        — 83 pgTAP test file
 supabase/functions/    — 12 Edge Function + _shared/
 scripts/               — أدوات بناء وتحقق
 .github/workflows/     — CI/CD (web, flutter, supabase, release, security)
@@ -76,10 +76,10 @@ npx vercel --prod                  # يتطلب VERCEL_TOKEN
 - `using(true)` مقبول فقط على جداول القراءة المرجعية (roles, permissions, kpi_criteria...).
 
 ### اختبارات
-- Web: `vitest run` — 32 اختبار في 8 ملفات.
-- Contracts: `vitest run` — 54 اختبار في 18 ملف.
-- Flutter: `flutter test` — 29 اختبار.
-- pgTAP: `supabase test db` — 48 ملف / 650 assertion.
+- Web: `vitest run` — 25 ملف اختبار.
+- Contracts: `vitest run` — 17 ملف اختبار.
+- Flutter: `flutter test` — 6 ملفات اختبار.
+- pgTAP: `supabase test db` — 83 ملف اختبار.
 
 ## بيئة التشغيل
 
