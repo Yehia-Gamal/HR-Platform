@@ -181,13 +181,14 @@ export function CreateEmployeePage() {
     }
   });
 
+  const roleLabel = roleOptions.find((r) => r.slug === values.roleSlug)?.label ?? values.roleSlug;
 
   return <div><PageHeader title="إنشاء موظف وحساب دخول" description="رحلة واحدة تنشئ ملف الموظف والحساب والدور والصورة الشخصية داخل عملية خادمية آمنة." actions={<Link to="/hr/employees" className="btn-secondary text-sm"><ArrowRight className="size-4" aria-hidden="true" />رجوع</Link>} />
     <section className="mx-auto max-w-5xl"><ol className="mb-5 grid grid-cols-3 gap-2">{steps.map((label, index) => <li key={label} className={`rounded-xl border p-3 text-center text-xs font-black ${index === step ? 'border-brand bg-brand text-white' : index < step ? 'border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]' : 'border-[var(--border)] bg-[var(--surface)] muted'}`}>{index < step ? <Check className="mx-auto mb-1 size-4" aria-hidden="true" /> : <span className="mb-1 block">{index + 1}</span>}{label}</li>)}</ol>
       <form onSubmit={submit} className="card p-5 sm:p-7">
         {result ? <div className="mb-5 flex gap-2 rounded-xl border border-[var(--success)] bg-[var(--success-soft)] p-4 text-sm text-[var(--success)]"><CheckCircle2 className="size-5 shrink-0" aria-hidden="true" />{result}</div> : null}
         {submitError ? <div role="alert" className="mb-5 rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-4 text-sm text-[var(--danger)]">{submitError}</div> : null}
-        {step === 0 ? <div><SectionTitle title="الهوية وحساب الدخول" description="البيانات الأساسية والصورة الشخصية ومعرف الدخول والمنصب." />
+        {step === 0 ? <div><SectionTitle title="الهوية وحساب الدخول" description="البيانات الأساسية والصورة الشخصية ومعرف الدخول." />
           <div className="mb-6 flex items-center gap-5">
             <div className="relative size-24 shrink-0">
               {photoPreview ? <UserAvatar displayName={values.fullNameAr ?? 'صورة الموظف'} photoUrl={photoPreview} size="lg" eager announceName={false} className="!size-24 !rounded-2xl" /> : <div className="flex size-full items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text-muted)]"><ImagePlus className="size-8" aria-hidden="true" /></div>}
@@ -208,7 +209,7 @@ export function CreateEmployeePage() {
             <Field label="الاسم الكامل بالعربية" error={form.formState.errors.fullNameAr?.message}><input className="input" {...form.register('fullNameAr')} /></Field>
             <Field label="الهاتف" error={form.formState.errors.phoneE164?.message}><input className="input" dir="ltr" inputMode="tel" placeholder="01154869616" {...form.register('phoneE164')} /></Field>
             <Field label="البريد الإلكتروني" error={form.formState.errors.email?.message}><input type="email" className="input" dir="ltr" {...form.register('email')} /></Field>
-            <Field label="المنصب" error={form.formState.errors.roleSlug?.message}><select className="input" aria-label="المنصب" {...form.register('roleSlug')}>{roleOptions.map((role) => <option value={role.slug} key={role.slug}>{role.label}</option>)}</select></Field>
+            <input type="hidden" value="employee" {...form.register('roleSlug')} />
             <Field label="تاريخ التعيين" error={form.formState.errors.hireDate?.message}><input type="date" className="input" {...form.register('hireDate', { setValueAs: (v: string) => v || undefined })} /></Field>
             <label className="flex items-center gap-3 self-end rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-semibold"><input type="checkbox" className="size-4" {...form.register('sendInvite')} />إرسال دعوة تفعيل عبر البريد</label>
           </div></div> : null}

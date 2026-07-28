@@ -46,7 +46,7 @@ export function WorkspaceSearch({ destinations }: { destinations: SearchDestinat
     <>
       <button type="button" className="workspace-search-trigger" onClick={() => setOpen(true)}>
         <Search className="size-4" />
-        <span className="hidden sm:inline">بحث سريع في النظام</span>
+        <span className="hidden lg:inline whitespace-nowrap">بحث سريع في النظام</span>
         <kbd className="hidden lg:inline-flex"><Command className="size-3" />K</kbd>
       </button>
       {open ? (
