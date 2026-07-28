@@ -38,6 +38,7 @@ import {
 import { useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AppLogo } from '../../ui/AppLogo';
+import { RouteErrorBoundary } from '../../ui/RouteErrorBoundary';
 import { ThemeToggle } from '../../ui/ThemeToggle';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { WorkspaceSearch } from '../../ui/WorkspaceSearch';
@@ -267,7 +268,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
           </div>
         </header>
         <main id="main-content" tabIndex={-1} key={location.pathname} className="page-container">
-          <Outlet />
+          <RouteErrorBoundary><Outlet /></RouteErrorBoundary>
         </main>
       </div>
     </div>
