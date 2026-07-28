@@ -754,8 +754,15 @@ class _CaseDetailSheet extends ConsumerWidget {
         // ── آراء وتوصيات أعضاء اللجنة (0198) ──
         _RecommendationsSection(caseId: c.id),
 
-        // ── Decision button for action_proposed cases ──
-        if (c.status == 'action_proposed') ...[
+        // ── Decision button — only for executive / full-access ──
+        if (c.status == 'action_proposed' &&
+            (ref.watch(accessContextProvider).valueOrNull?.hasAnyPermission(
+                  const [
+                    'disputes.admin_action.decide',
+                    'disputes.executive.manage',
+                  ],
+                ) ??
+                false)) ...[
           const SizedBox(height: 20),
           FilledButton.icon(
             onPressed: () {
