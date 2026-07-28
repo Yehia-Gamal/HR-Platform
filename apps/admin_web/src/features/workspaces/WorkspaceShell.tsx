@@ -44,14 +44,15 @@ import { WorkspaceSearch } from '../../ui/WorkspaceSearch';
 import { getShortName } from '../../ui/formatDisplayName';
 import { useAuth } from '../auth/AuthProvider';
 import { useNotifications } from '../notifications/useNotifications';
-import { hasPermission } from './access';
+import { hasAnyPermission } from './access';
 import { isFeatureEnabled, type FeatureFlagKey } from '../../ui/featureFlags';
 
 interface NavItem {
   label: string;
   to: string;
   icon: typeof LayoutDashboard;
-  permission?: string;
+  /** صلاحية واحدة أو عدة صلاحيات (OR) — يظهر العنصر إذا يملك المستخدم أي واحدة منها */
+  permission?: string | string[];
   /** V23 §13 — إذا وُجد، لا يظهر العنصر إلا إذا كان الـ flag مفعّلًا */
   featureFlag?: FeatureFlagKey;
 }
@@ -92,7 +93,7 @@ const adminSections: NavSection[] = [
     { label: 'مركز الإجراءات', to: '/admin/actions', icon: BadgeCheck },
     { label: 'مركز الموقع الحي', to: '/admin/live-location', icon: MapPin, permission: 'live_location.request' },
     { label: 'متابعة الموظفين اليومية', to: '/admin/live-location/monitoring', icon: MapPin, permission: 'live_location.request' },
-    { label: 'الأخبار والقرارات', to: '/admin/official-feed', icon: Megaphone, permission: 'comms.announcement.manage' },
+    { label: 'الأخبار والقرارات', to: '/admin/official-feed', icon: Megaphone, permission: ['comms.announcement.read', 'comms.decision.read'] },
     { label: 'أجهزة الموظفين', to: '/admin/device-approvals', icon: Smartphone },
   ] },
   { title: 'الحوكمة والتنظيم', items: [
@@ -131,7 +132,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
   const allowedSections = sections.map((section) => ({
     ...section,
     items: section.items.filter((item) =>
-      (!item.permission || hasPermission(access, item.permission)) &&
+      (!item.permission || hasAnyPermission(access, item.permission)) &&
       (!item.featureFlag || isFeatureEnabled(item.featureFlag)),
     ),
   })).filter((section) => section.items.length > 0);

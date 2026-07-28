@@ -25,7 +25,7 @@ import { AttendancePage } from '../features/attendance/AttendancePage';
 import { OfficialFeedPage } from '../features/communications/OfficialFeedPage';
 import { PerformancePage } from '../features/performance/PerformancePage';
 import { RequestsPage } from '../features/requests/RequestsPage';
-import { firstWebWorkspace, hasPermission } from '../features/workspaces/access';
+import { firstWebWorkspace, hasAnyPermission } from '../features/workspaces/access';
 import { WorkspaceShell } from '../features/workspaces/WorkspaceShell';
 import { MonthlyAttendanceReportPage } from '../features/attendance/MonthlyAttendanceReportPage';
 import { AttendanceOperationsPage } from '../features/advanced/AttendanceOperationsPage';
@@ -98,7 +98,7 @@ export function App() {
           <Route path="devices" element={<RequirePermission perm="access.role.read"><DeviceApprovalPage /></RequirePermission>} />
           <Route path="organization" element={<RequirePermission perm="organization.org_chart.read"><OrganizationPage /></RequirePermission>} />
           {/* V17 §4.2: hidden secondary modules — learning, documents, lifecycle */}
-          <Route path="official-feed" element={<RequirePermission perm="comms.announcement.read"><OfficialFeedPage /></RequirePermission>} />
+          <Route path="official-feed" element={<RequirePermission perm={['comms.announcement.read', 'comms.decision.read']}><OfficialFeedPage /></RequirePermission>} />
           <Route path="notifications" element={<NotificationsPage />} />
         </Route>
       </Route>
@@ -110,7 +110,7 @@ export function App() {
           <Route path="live-location" element={<RequirePermission perm="live_location.request"><LiveLocationPage /></RequirePermission>} />
           <Route path="live-location/monitoring" element={<RequirePermission perm="live_location.request"><ExecutiveMonitoringPage /></RequirePermission>} />
           <Route path="device-approvals" element={<RequirePermission perm="access.role.read"><DeviceApprovalPage /></RequirePermission>} />
-          <Route path="official-feed" element={<RequirePermission perm="comms.announcement.manage"><OfficialFeedPage /></RequirePermission>} />
+          <Route path="official-feed" element={<RequirePermission perm={['comms.announcement.read', 'comms.decision.read']}><OfficialFeedPage /></RequirePermission>} />
           <Route path="organization" element={<RequirePermission perm="organization.org_chart.read"><OrganizationPage /></RequirePermission>} />
           <Route path="performance/cycles" element={<RequirePermission perm="performance.cycle.manage"><KpiCyclesPage /></RequirePermission>} />
           <Route path="disputes" element={<RequirePermission perm="relations.case.manage"><DisputesPage /></RequirePermission>} />
@@ -160,9 +160,10 @@ function workspacePath(workspace: WorkspaceId) {
 // permission the sidebar uses to show it. Defense-in-depth over server RLS/RPC —
 // the server remains the source of truth; this stops the page from mounting and
 // firing its reads for a user who lacks the permission.
-function RequirePermission({ perm, children }: { perm: string; children: ReactNode }) {
+// يدعم صلاحية واحدة أو عدة صلاحيات (OR) — يمر إذا يملك المستخدم أي واحدة منها.
+function RequirePermission({ perm, children }: { perm: string | string[]; children: ReactNode }) {
   const auth = useAuth();
-  if (!auth.access || !hasPermission(auth.access, perm)) {
+  if (!auth.access || !hasAnyPermission(auth.access, perm)) {
     return <ForbiddenState />;
   }
   return <>{children}</>;
