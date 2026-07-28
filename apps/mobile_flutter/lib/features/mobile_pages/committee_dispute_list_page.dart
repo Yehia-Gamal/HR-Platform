@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:flutter/material.dart';
@@ -756,7 +757,7 @@ class _CaseDetailSheet extends ConsumerWidget {
 
         // ── Decision button — only for executive / full-access ──
         if (c.status == 'action_proposed' &&
-            (ref.watch(accessContextProvider).valueOrNull?.hasAnyPermission(
+            (ref.watch(accessContextProvider).value?.hasAnyPermission(
                   const [
                     'disputes.admin_action.decide',
                     'disputes.executive.manage',

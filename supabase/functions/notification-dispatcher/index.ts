@@ -78,6 +78,7 @@ Deno.serve(async (req) => {
           const message = buildFcmMessage(sub.fcm_token!, notification);
           const res = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
             method: 'POST',
+            signal: AbortSignal.timeout(15_000),
             headers: { 'Authorization': `Bearer ${fcmToken}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ message }),
           });
@@ -106,6 +107,7 @@ Deno.serve(async (req) => {
       if (!providerUrl || !(subscriptions?.length)) throw new Error('NO_PUSH_PROVIDER_OR_DEVICE');
       const response = await fetch(providerUrl, {
         method: 'POST',
+        signal: AbortSignal.timeout(15_000),
         headers: { 'content-type': 'application/json', ...(providerToken ? { authorization: `Bearer ${providerToken}` } : {}) },
         body: JSON.stringify({ subscriptions, notification }),
       });
@@ -205,6 +207,7 @@ async function mintFcmAccessToken(serviceAccountJson: string): Promise<string> {
 
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
+    signal: AbortSignal.timeout(10_000),
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `grant_type=${encodeURIComponent('urn:ietf:params:oauth:grant-type:jwt-bearer')}&assertion=${assertion}`,
   });
