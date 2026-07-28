@@ -355,6 +355,7 @@ class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
         widget.employee.id,
         'تحقق ميداني',
       );
+      if (!mounted) return;
       _startCooldown();
       ref.invalidate(locationDirectoryProvider);
       if (context.mounted) {

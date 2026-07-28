@@ -200,8 +200,21 @@ class MobileDisputesPage extends ConsumerWidget {
         ],
       ),
     );
-    if (confirmed != true || reason.text.trim().length < 5) return;
-    await ref.read(mobileCommandsProvider).cancelDispute(item.id, reason.text);
+    if (confirmed != true || reason.text.trim().length < 5) {
+      reason.dispose();
+      return;
+    }
+    try {
+      await ref.read(mobileCommandsProvider).cancelDispute(item.id, reason.text);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(e))),
+        );
+      }
+    } finally {
+      reason.dispose();
+    }
   }
 
   Future<void> _appeal(
@@ -232,10 +245,23 @@ class MobileDisputesPage extends ConsumerWidget {
         ],
       ),
     );
-    if (confirmed != true || reason.text.trim().length < 20) return;
-    await ref
-        .read(mobileCommandsProvider)
-        .appealDisputeDecision(item.id, reason.text);
+    if (confirmed != true || reason.text.trim().length < 20) {
+      reason.dispose();
+      return;
+    }
+    try {
+      await ref
+          .read(mobileCommandsProvider)
+          .appealDisputeDecision(item.id, reason.text);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(e))),
+        );
+      }
+    } finally {
+      reason.dispose();
+    }
   }
 }
 

@@ -684,6 +684,12 @@ class _KpiEvaluationDetailPageState
               evidenceSource: evidence.text.trim(),
               employeeNote: note.text.trim(),
             );
+      } catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(humanizeError(error))),
+          );
+        }
       } finally {
         if (mounted) setState(() => _saving = false);
       }
@@ -770,6 +776,12 @@ class _KpiEvaluationDetailPageState
           'employeeAttended': true,
           'managerAttended': true,
         });
+      } catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(humanizeError(error))),
+          );
+        }
       } finally {
         if (mounted) setState(() => _saving = false);
       }
@@ -854,6 +866,12 @@ class _KpiEvaluationDetailPageState
               int.tryParse(cancelled.text) ?? 0,
               note.text.trim(),
             );
+      } catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(humanizeError(error))),
+          );
+        }
       } finally {
         if (mounted) setState(() => _saving = false);
       }

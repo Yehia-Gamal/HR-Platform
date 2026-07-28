@@ -362,8 +362,7 @@ class _InfoSection extends StatelessWidget {
           const MobileSectionHeader(title: 'البيانات الوظيفية'),
           const SizedBox(height: 10),
           _row(Icons.account_tree_outlined, 'الإدارة', item.department),
-          _row(Icons.groups_outlined, 'الفريق', item.team),
-          _row(Icons.badge_outlined, 'المنصب', item.position ?? item.jobTitle),
+          _row(Icons.badge_outlined, 'المسمى الوظيفي', item.jobTitle),
           _row(Icons.business_outlined, 'الفرع', item.branch),
           _row(Icons.location_on_outlined, 'موقع العمل', item.workSite),
           _row(

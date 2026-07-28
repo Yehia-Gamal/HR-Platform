@@ -117,7 +117,7 @@ class _ExecutiveDecisionsPageState extends ConsumerState<ExecutiveDecisionsPage>
     }
     setState(() => _submitting = true);
     try {
-      await ref.read(supabaseProvider).rpc<dynamic>(
+      await rpcWithTimeout(ref.read(supabaseProvider).rpc<dynamic>(
         'create_decision_draft',
         params: {
           'p_title': title,
@@ -129,7 +129,7 @@ class _ExecutiveDecisionsPageState extends ConsumerState<ExecutiveDecisionsPage>
                   ? null
                   : _outcomeController.text.trim(),
         },
-      );
+      ));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم إصدار القرار بنجاح')),

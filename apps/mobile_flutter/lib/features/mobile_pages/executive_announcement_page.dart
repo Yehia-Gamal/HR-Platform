@@ -340,7 +340,7 @@ class _ExecutiveAnnouncementPageState
         }
       }
 
-      await ref.read(supabaseProvider).rpc<dynamic>(
+      await rpcWithTimeout(ref.read(supabaseProvider).rpc<dynamic>(
         'publish_official_announcement',
         params: {
           'p_title': title,
@@ -351,7 +351,7 @@ class _ExecutiveAnnouncementPageState
           'p_banner_url': bannerUrl,
           'p_post_type': _postType,
         },
-      );
+      ));
       // تحديث القائمة
       ref.invalidate(mobileFeedProvider);
       if (mounted) {

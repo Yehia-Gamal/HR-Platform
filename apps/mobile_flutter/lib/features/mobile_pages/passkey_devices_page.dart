@@ -173,7 +173,10 @@ class _PasskeyDevicesPageState extends ConsumerState<PasskeyDevicesPage> {
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true) {
+      reasonController.dispose();
+      return;
+    }
 
     setState(() => _workingId = device.id);
     try {
@@ -239,7 +242,10 @@ class _PasskeyDevicesPageState extends ConsumerState<PasskeyDevicesPage> {
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true) {
+      reasonController.dispose();
+      return;
+    }
 
     setState(() => _replacingDevice = true);
     try {

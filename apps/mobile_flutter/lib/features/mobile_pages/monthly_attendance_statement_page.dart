@@ -45,7 +45,17 @@ class _MonthlyAttendanceStatementPageState
             IconButton(
               icon: const Icon(Icons.picture_as_pdf_rounded),
               tooltip: 'تصدير PDF',
-              onPressed: () => exportAttendancePdf(statement.value!),
+              onPressed: () async {
+                try {
+                  await exportAttendancePdf(statement.value!);
+                } catch (error) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(humanizeError(error))),
+                    );
+                  }
+                }
+              },
             ),
         ],
         bottom: PreferredSize(

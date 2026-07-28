@@ -252,7 +252,10 @@ class MobileAttendanceServicesPage extends ConsumerWidget {
         ),
       ),
     );
-    if (accepted != true || reason.text.trim().length < 5) return;
+    if (accepted != true || reason.text.trim().length < 5) {
+      reason.dispose();
+      return;
+    }
     try {
       await ref
           .read(mobileCommandsProvider)
@@ -272,6 +275,8 @@ class MobileAttendanceServicesPage extends ConsumerWidget {
           context,
         ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
+    } finally {
+      reason.dispose();
     }
   }
 

@@ -138,7 +138,6 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
                 const MobileSectionHeader(title: 'الملخص التنظيمي'),
                 const SizedBox(height: 8),
                 _info(Icons.account_tree_outlined, 'الإدارة', item.department),
-                _info(Icons.groups_outlined, 'الفريق', item.team),
                 _info(Icons.business_outlined, 'الفرع', item.branch),
                 _info(Icons.location_on_outlined, 'موقع العمل', item.workSite),
                 _info(

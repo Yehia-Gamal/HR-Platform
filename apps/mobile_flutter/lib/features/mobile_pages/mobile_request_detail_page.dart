@@ -408,7 +408,8 @@ class _RequestContent extends ConsumerWidget {
     try {
       final url = await Supabase.instance.client.storage
           .from('request-attachments')
-          .createSignedUrl(path, 120);
+          .createSignedUrl(path, 120)
+          .timeout(const Duration(seconds: 20));
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     } catch (error) {
       if (context.mounted) {
