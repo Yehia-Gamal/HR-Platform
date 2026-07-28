@@ -29,7 +29,6 @@ export function EmployeesPage() {
     return all.filter((employee) => {
       const matchesQuery = !query
         || employee.fullNameAr.toLowerCase().includes(query)
-        || employee.fullNameEn?.toLowerCase().includes(query)
         || employee.employeeCode.toLowerCase().includes(query)
         || employee.phoneE164?.includes(query);
       return matchesQuery && (status === 'all' || employee.status === status);
@@ -116,7 +115,7 @@ export function EmployeesPage() {
                 <tbody className="divide-y divide-[var(--border)]">
                   {filtered.map((employee) => (
                     <tr key={employee.id}>
-                      <td className="px-4 py-3.5"><div className="flex items-center gap-3"><UserAvatar displayName={employee.fullNameAr} photoUrl={employee.photoUrl} announceName={false} /><div className="min-w-0"><Link to={`/hr/employees/${employee.id}`} className="block truncate font-black hover:text-[var(--brand-primary)]">{employee.fullNameAr}</Link>{employee.fullNameEn ? <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">{employee.fullNameEn}</p> : null}</div></div></td>
+                      <td className="px-4 py-3.5"><div className="flex items-center gap-3"><UserAvatar displayName={employee.fullNameAr} photoUrl={employee.photoUrl} announceName={false} /><div className="min-w-0"><Link to={`/hr/employees/${employee.id}`} className="block truncate font-black hover:text-[var(--brand-primary)]">{employee.fullNameAr}</Link></div></div></td>
                       <td className="px-4 py-3.5 font-mono text-xs">{employee.employeeCode}</td>
                       <td className="px-4 py-3.5 text-sm">{employee.department ?? '—'}</td>
                       <td className="px-4 py-3.5 text-sm">{employee.jobTitle ?? '—'}</td>

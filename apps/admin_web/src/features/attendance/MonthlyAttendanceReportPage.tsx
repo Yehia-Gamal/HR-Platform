@@ -113,7 +113,6 @@ export function MonthlyAttendanceReportPage() {
     const q = filterText.trim().toLowerCase();
     return all.filter((e) =>
       e.fullNameAr.toLowerCase().includes(q)
-      || (e.fullNameEn ?? '').toLowerCase().includes(q)
       || (e.employeeCode ?? '').toLowerCase().includes(q)
       || (e.department ?? '').toLowerCase().includes(q),
     );

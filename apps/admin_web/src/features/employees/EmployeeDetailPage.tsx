@@ -6,7 +6,6 @@ import {
 import { useMemo, useState } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
@@ -44,13 +43,26 @@ export function EmployeeDetailPage() {
   const item = query.data;
 
   if (query.isError) {
-    return <ErrorState title="تعذر فتح ملف الموظف" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />;
+    const raw = query.error instanceof Error ? query.error.message : String(query.error ?? '');
+    const isNotFound = /PGRST116|no rows|not found|P0002|EMPLOYEE_NOT_FOUND/i.test(raw);
+    return <ErrorState
+      title={isNotFound ? 'الموظف غير موجود' : 'تعذر فتح ملف الموظف'}
+      description={isNotFound ? 'تم حذف أو أرشفة هذا الموظف، أو أنه خارج نطاق صلاحيتك.' : safeErrorMessage(query.error)}
+      action={<div className="flex gap-3">
+        {!isNotFound ? <button type="button" className="btn-secondary" onClick={() => void query.refetch()}>إعادة المحاولة</button> : null}
+        <Link to="/hr/employees" className="btn-primary">العودة لقائمة الموظفين</Link>
+      </div>}
+    />;
   }
   if (query.isLoading) {
     return <SkeletonCard className="h-72" />;
   }
   if (!item) {
-    return <EmptyState title="تعذر فتح ملف الموظف" description="الملف غير موجود أو خارج نطاق صلاحيتك." />;
+    return <ErrorState
+      title="الموظف غير موجود"
+      description="تم حذف أو أرشفة هذا الموظف، أو أنه خارج نطاق صلاحيتك."
+      action={<Link to="/hr/employees" className="btn-primary">العودة لقائمة الموظفين</Link>}
+    />;
   }
 
   const canInvite = Boolean(auth.access && hasPermission(auth.access, 'people.employee.create'));
@@ -92,11 +104,10 @@ export function EmployeeDetailPage() {
         <UserAvatar displayName={item.fullNameAr} photoUrl={item.photoUrl} size="lg" eager />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-3"><h2 className="text-2xl font-black">{item.fullNameAr}</h2><StatusBadge status={item.status} /></div>
-          <p className="muted mt-1">{item.jobTitle ?? item.position ?? 'بدون مسمى وظيفي'} • {item.employeeCode}</p>
+          <p className="muted mt-1">{item.jobTitle ?? 'بدون مسمى وظيفي'} • {item.employeeCode}</p>
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
             <Info icon={Network} label={item.department ?? 'بدون إدارة'} />
             {item.departments.length > 1 && <span className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-soft)] px-2 py-0.5 text-xs font-bold text-[var(--brand)]"><Building2 className="size-3" aria-hidden="true" />+{item.departments.length - 1} إدارة أخرى</span>}
-            <Info icon={UsersRound} label={item.team ?? 'بدون فريق'} />
             <Info icon={Phone} label={item.phoneE164 ?? 'بدون هاتف'} dir="ltr" />
             <Info icon={ShieldCheck} label={`الحساب: ${item.accountStatus ?? 'غير مرتبط'}`} />
           </div>
@@ -126,12 +137,10 @@ export function EmployeeDetailPage() {
         <article className="card p-5">
           <h3 className="font-black">البيانات الوظيفية</h3>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <Data label="المنصب" value={item.position} />
             <Data label="الدرجة" value={item.grade} />
             <Data label="الفرع" value={item.branch} />
             <Data label="موقع العمل" value={item.workSite} />
             <Data label="تاريخ التعيين" value={item.hireDate ? dateFormatter.format(new Date(item.hireDate)) : null} />
-            <Data label="نهاية العقد" value={item.contractEnd ? dateFormatter.format(new Date(item.contractEnd)) : null} />
           </div>
         </article>
 
@@ -196,7 +205,7 @@ export function EmployeeDetailPage() {
       {showArchiveDialog && employeeId && (
         <ArchiveEmployeeDialog employeeId={employeeId} employeeName={item.fullNameAr}
           onClose={() => setShowArchiveDialog(false)}
-          onSuccess={() => { setShowArchiveDialog(false); void query.refetch(); }} />
+          onSuccess={() => { setShowArchiveDialog(false); void navigate('/hr/employees'); }} />
       )}
       {showEditDialog && employeeId && (
         <EditEmployeeDialog
@@ -252,21 +261,16 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
 
   // --- Basic fields ---
   const [fullNameAr, setFullNameAr] = useState(item.fullNameAr);
-  const [fullNameEn, setFullNameEn] = useState(item.fullNameEn ?? '');
   const [phoneE164, setPhoneE164] = useState(item.phoneE164 ?? '');
 
   // --- Sensitive fields ---
   const [departmentId, setDepartmentId] = useState(item.departmentId ?? '');
-  const [teamId, setTeamId] = useState(item.teamId ?? '');
   const [branchId, setBranchId] = useState(item.branchId ?? '');
   const [workSiteId, setWorkSiteId] = useState(item.workSiteId ?? '');
-  const [jobTitleId, setJobTitleId] = useState(item.jobTitleId ?? '');
-  const [positionId, setPositionId] = useState(item.positionId ?? '');
-  const [gradeId, setGradeId] = useState(item.gradeId ?? '');
+  const [jobTitleText, setJobTitleText] = useState(item.jobTitle ?? '');
+  const [gradeText, setGradeText] = useState(item.grade ?? '');
   const [employmentTypeId, setEmploymentTypeId] = useState(item.employmentTypeId ?? '');
   const [hireDate, setHireDate] = useState(item.hireDate ?? '');
-  const [contractEnd, setContractEnd] = useState(item.contractEnd ?? '');
-  const [probationEnd, setProbationEnd] = useState(item.probationEnd ?? '');
   const [status, setStatus] = useState(item.status);
 
   // --- Manager ---
@@ -276,16 +280,6 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
   const [error, setError] = useState<string | null>(null);
 
   // Filter child lookups by parent selection
-  const teams = useMemo(() => {
-    const opts = lookups.data?.teams ?? [];
-    return departmentId ? opts.filter((t) => t.parentId === departmentId) : opts;
-  }, [lookups.data?.teams, departmentId]);
-
-  const positions = useMemo(() => {
-    const opts = lookups.data?.positions ?? [];
-    return departmentId ? opts.filter((p) => p.parentId === departmentId) : opts;
-  }, [lookups.data?.positions, departmentId]);
-
   const workSites = useMemo(() => {
     const opts = lookups.data?.workSites ?? [];
     return branchId ? opts.filter((s) => s.parentId === branchId) : opts;
@@ -298,13 +292,6 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
   );
 
   // Reset child when parent changes
-  const onDepartmentChange = (value: string) => {
-    setDepartmentId(value);
-    const nextTeams = (lookups.data?.teams ?? []).filter((t) => !value || t.parentId === value);
-    if (teamId && nextTeams.every((t) => t.id !== teamId)) setTeamId('');
-    const nextPositions = (lookups.data?.positions ?? []).filter((p) => !value || p.parentId === value);
-    if (positionId && nextPositions.every((p) => p.id !== positionId)) setPositionId('');
-  };
   const onBranchChange = (value: string) => {
     setBranchId(value);
     const nextSites = (lookups.data?.workSites ?? []).filter((s) => !value || s.parentId === value);
@@ -319,21 +306,16 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
     const changes: Record<string, unknown> = {};
     // Basic
     if (fullNameAr.trim() !== item.fullNameAr) changes.fullNameAr = fullNameAr.trim();
-    if ((fullNameEn.trim() || null) !== (item.fullNameEn ?? null)) changes.fullNameEn = fullNameEn.trim() || null;
     if ((phoneE164.trim() || null) !== (item.phoneE164 ?? null)) changes.phoneE164 = phoneE164.trim() || null;
     // Sensitive
     if (canSensitive) {
       if ((departmentId || null) !== (item.departmentId ?? null)) changes.departmentId = departmentId || null;
-      if ((teamId || null) !== (item.teamId ?? null)) changes.teamId = teamId || null;
       if ((branchId || null) !== (item.branchId ?? null)) changes.branchId = branchId || null;
       if ((workSiteId || null) !== (item.workSiteId ?? null)) changes.workSiteId = workSiteId || null;
-      if ((jobTitleId || null) !== (item.jobTitleId ?? null)) changes.jobTitleId = jobTitleId || null;
-      if ((positionId || null) !== (item.positionId ?? null)) changes.positionId = positionId || null;
-      if ((gradeId || null) !== (item.gradeId ?? null)) changes.gradeId = gradeId || null;
+      if ((jobTitleText.trim() || null) !== (item.jobTitle ?? null)) changes.jobTitleName = jobTitleText.trim() || null;
+      if ((gradeText.trim() || null) !== (item.grade ?? null)) changes.gradeName = gradeText.trim() || null;
       if ((employmentTypeId || null) !== (item.employmentTypeId ?? null)) changes.employmentTypeId = employmentTypeId || null;
       if ((hireDate || null) !== (item.hireDate ?? null)) changes.hireDate = hireDate || null;
-      if ((contractEnd || null) !== (item.contractEnd ?? null)) changes.contractEnd = contractEnd || null;
-      if ((probationEnd || null) !== (item.probationEnd ?? null)) changes.probationEnd = probationEnd || null;
       if (status !== item.status) changes.status = status;
     }
 

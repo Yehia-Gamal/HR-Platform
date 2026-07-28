@@ -189,6 +189,7 @@ export function useUpdateEmployee() {
 
 export function useArchiveEmployee() {
   const auth = useAuth();
+  const client = useQueryClient();
   return useMutation({
     mutationFn: async ({ employeeId, reason }: { employeeId: string; reason: string }): Promise<void> => {
       if (auth.isMock) return;
@@ -198,6 +199,12 @@ export function useArchiveEmployee() {
         p_reason: reason,
       });
       if (error) throw error;
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['employees'] }),
+        client.invalidateQueries({ queryKey: ['employee-360'] }),
+      ]);
     },
   });
 }
