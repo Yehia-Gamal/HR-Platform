@@ -39,7 +39,7 @@ class MobileDailyReportsPage extends ConsumerWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             children: const [
               SizedBox(height: 220),
-              Center(child: CircularProgressIndicator()),
+              Center(child: CircularProgressIndicator(semanticsLabel: 'جاري التحميل')),
             ],
           ),
           error: (error, _) => ListView(

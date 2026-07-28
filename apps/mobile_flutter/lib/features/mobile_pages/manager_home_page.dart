@@ -86,7 +86,7 @@ class ManagerHomePage extends ConsumerWidget {
             loading: () => const Card(
               child: Padding(
                 padding: EdgeInsets.all(28),
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(child: CircularProgressIndicator(semanticsLabel: 'جاري التحميل')),
               ),
             ),
             error: (error, stackTrace) => Card(
@@ -148,7 +148,7 @@ class ManagerHomePage extends ConsumerWidget {
               child: Padding(
                 padding: EdgeInsets.all(20),
                 child: Center(
-                  child: CircularProgressIndicator.adaptive(),
+                  child: CircularProgressIndicator.adaptive(semanticsLabel: 'جاري التحميل'),
                 ),
               ),
             ),

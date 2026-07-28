@@ -26,8 +26,8 @@ class MobileDisputesPage extends ConsumerWidget {
         child: portal.when(
           loading: () => ListView(
             children: [
-              SizedBox(height: 240),
-              Center(child: CircularProgressIndicator()),
+              const SizedBox(height: 240),
+              const Center(child: CircularProgressIndicator(semanticsLabel: 'جاري التحميل')),
             ],
           ),
           error: (error, _) => ListView(
@@ -42,6 +42,7 @@ class MobileDisputesPage extends ConsumerWidget {
                         Icons.error_outline,
                         size: 40,
                         color: Theme.of(context).colorScheme.error,
+                        semanticLabel: 'خطأ',
                       ),
                       const SizedBox(height: 12),
                       Text(
@@ -76,6 +77,7 @@ class MobileDisputesPage extends ConsumerWidget {
                           Icons.gavel_outlined,
                           size: 40,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          semanticLabel: 'لا توجد شكاوى',
                         ),
                         const SizedBox(height: 12),
                         const Text(

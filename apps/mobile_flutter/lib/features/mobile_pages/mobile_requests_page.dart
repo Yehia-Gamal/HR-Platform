@@ -80,7 +80,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
           loading: () => ListView(
             children: const [
               SizedBox(height: 260),
-              Center(child: CircularProgressIndicator()),
+              Center(child: CircularProgressIndicator(semanticsLabel: 'جاري التحميل')),
             ],
           ),
           error: (error, _) => ListView(
@@ -192,6 +192,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                     Icons.search_off_rounded,
                     size: 48,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    semanticLabel: 'لا توجد نتائج',
                   ),
                 ),
                 const Center(child: Text('لا توجد طلبات مطابقة للفلاتر')),
@@ -805,7 +806,7 @@ class _WorkAssignmentsTab extends ConsumerWidget {
             const SizedBox(height: 12),
             if (items.isEmpty) ...[
               const SizedBox(height: 100),
-              const Icon(Icons.work_off_outlined, size: 48),
+              const Icon(Icons.work_off_outlined, size: 48, semanticLabel: 'لا توجد تكليفات'),
               const Center(child: Text('لا توجد تكليفات عمل')),
             ] else
               ...items.map(

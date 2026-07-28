@@ -34,8 +34,8 @@ class _MobileTeamPageState extends ConsumerState<MobileTeamPage> {
       child: team.when(
         loading: () => ListView(
           children: [
-            SizedBox(height: 220),
-            Center(child: CircularProgressIndicator()),
+            const SizedBox(height: 220),
+            const Center(child: CircularProgressIndicator(semanticsLabel: 'جاري التحميل')),
           ],
         ),
         error: (error, _) => ListView(
@@ -46,6 +46,7 @@ class _MobileTeamPageState extends ConsumerState<MobileTeamPage> {
               Icons.error_outline_rounded,
               size: 48,
               color: Theme.of(context).colorScheme.error,
+              semanticLabel: 'خطأ',
             ),
             const SizedBox(height: 12),
             Text(
@@ -100,6 +101,7 @@ class _MobileTeamPageState extends ConsumerState<MobileTeamPage> {
                 Icon(
                   Icons.search_off_rounded,
                   size: 48,
+                  semanticLabel: 'لا توجد نتائج',
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 const Center(child: Text('لا يوجد أعضاء مطابقون للفلاتر')),
