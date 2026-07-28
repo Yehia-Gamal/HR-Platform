@@ -384,10 +384,6 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
               <input type="text" className="input w-full" required minLength={3} maxLength={160} value={fullNameAr} onChange={(e) => setFullNameAr(e.target.value)} disabled={isBusy} />
             </label>
             <label className="block">
-              <span className="mb-1.5 block text-sm font-semibold">الاسم بالإنجليزية</span>
-              <input type="text" className="input w-full" maxLength={160} value={fullNameEn} onChange={(e) => setFullNameEn(e.target.value)} disabled={isBusy} dir="ltr" />
-            </label>
-            <label className="block sm:col-span-2">
               <span className="mb-1.5 block text-sm font-semibold">رقم الهاتف</span>
               <input type="tel" className="input w-full" value={phoneE164} onChange={(e) => setPhoneE164(e.target.value)} disabled={isBusy} dir="ltr" placeholder="+201XXXXXXXXX" />
             </label>
