@@ -75,6 +75,11 @@ export interface AuditSecurityData {
     trusted: boolean;
     status: string;
     lastSeenAt: string;
+    employeeId: string | null;
+    employeeName: string | null;
+    deviceModel: string | null;
+    osVersion: string | null;
+    firstSeenAt: string;
   }>;
 }
 

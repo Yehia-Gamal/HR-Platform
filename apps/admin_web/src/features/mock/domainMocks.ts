@@ -310,9 +310,9 @@ export const mockAudit: AuditSecurityData = {
     { id: '70000000-0000-4000-8000-000000000003', eventType: 'live_location.requested', category: 'security', severity: 'warning', summary: 'طلب موقع حي بسبب تشغيلي', targetTable: 'live_location_requests', occurredAt: ago(96) },
   ],
   devices: [
-    { id: '80000000-0000-4000-8000-000000000001', name: 'Chrome — جهاز العمل', platform: 'web', appVersion: '0.10.0', environment: 'staging', trusted: true, status: 'active', lastSeenAt: ago(2) },
-    { id: '80000000-0000-4000-8000-000000000002', name: 'Samsung A54', platform: 'android', appVersion: '0.10.0', environment: 'staging', trusted: true, status: 'active', lastSeenAt: ago(22) },
-    { id: '80000000-0000-4000-8000-000000000003', name: 'iPhone 13', platform: 'ios', appVersion: '0.9.0', environment: 'production', trusted: false, status: 'revoked', lastSeenAt: ago(1440) },
+    { id: '80000000-0000-4000-8000-000000000001', name: 'Chrome — جهاز العمل', platform: 'web', appVersion: '0.10.0', environment: 'staging', trusted: true, status: 'active', lastSeenAt: ago(2), employeeId: '10000000-0000-4000-8000-000000000001', employeeName: 'أحمد يوسف', deviceModel: null, osVersion: 'Windows 10', firstSeenAt: ago(720) },
+    { id: '80000000-0000-4000-8000-000000000002', name: 'Samsung A54', platform: 'android', appVersion: '0.10.0', environment: 'staging', trusted: true, status: 'active', lastSeenAt: ago(22), employeeId: '10000000-0000-4000-8000-000000000002', employeeName: 'سارة محمد', deviceModel: 'Samsung Galaxy A54', osVersion: 'Android 14', firstSeenAt: ago(1440) },
+    { id: '80000000-0000-4000-8000-000000000003', name: 'iPhone 13', platform: 'ios', appVersion: '0.9.0', environment: 'production', trusted: false, status: 'revoked', lastSeenAt: ago(1440), employeeId: null, employeeName: null, deviceModel: 'iPhone 13', osVersion: 'iOS 17.2', firstSeenAt: ago(2880) },
   ],
 };
 

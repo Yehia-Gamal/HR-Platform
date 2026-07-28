@@ -78,7 +78,7 @@ export function useAllDevices(status?: string) {
       if (auth.isMock) return [];
       const supabase = await getSupabase();
       const { data, error } = await supabase.rpc('get_all_devices_admin', {
-        p_status: status ?? null,
+        p_status_filter: status ?? null,
       });
       if (error) throw error;
       return (data as AdminDevice[]) ?? [];

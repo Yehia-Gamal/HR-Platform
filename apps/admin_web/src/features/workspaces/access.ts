@@ -4,6 +4,12 @@ export function hasPermission(context: AccessContext, permission: string): boole
   return context.permissions.includes('*') || context.permissions.includes(permission);
 }
 
+/** يعيد true إذا يملك المستخدم أي صلاحية من القائمة (OR). */
+export function hasAnyPermission(context: AccessContext, permissions: string | string[]): boolean {
+  if (typeof permissions === 'string') return hasPermission(context, permissions);
+  return permissions.some((p) => hasPermission(context, p));
+}
+
 export function firstWebWorkspace(context: AccessContext): WorkspaceId | null {
   if (context.defaultWorkspace === 'hr' || context.defaultWorkspace === 'main_admin' || context.defaultWorkspace === 'committee') {
     return context.defaultWorkspace;
