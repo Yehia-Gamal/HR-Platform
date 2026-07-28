@@ -1,4 +1,4 @@
-import { notificationItemSchema, type NotificationItem } from '@ahla/shared-contracts';
+import { notificationItemSchema, MOBILE_ONLY_ENTITY_TYPES, type NotificationItem } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { getSupabase } from '../../core/supabase';
@@ -54,7 +54,9 @@ export function useNotifications() {
       const supabase = await getSupabase();
       const { data, error } = await supabase.rpc('get_my_notifications', { p_limit: 100 });
       if (error) throw error;
-      return notificationItemSchema.array().parse(data ?? []);
+      const all = notificationItemSchema.array().parse(data ?? []);
+      // فلترة: لوحة الإدارة لا تعرض إشعارات الموبايل الشخصية (تذكير حضور، طلب موقع).
+      return all.filter((n) => !MOBILE_ONLY_ENTITY_TYPES.includes(n.entityType as typeof MOBILE_ONLY_ENTITY_TYPES[number]));
     },
   });
 }

@@ -88,7 +88,15 @@ export const notificationItemSchema = z.object({
   category: z.string(),
   priority: z.enum(['low', 'normal', 'high', 'urgent']),
   actionUrl: z.string().nullable(),
+  entityType: z.string().nullable().optional(),
+  entityId: z.string().nullable().optional(),
   isRead: z.boolean(),
   createdAt: z.string(),
 });
 export type NotificationItem = z.infer<typeof notificationItemSchema>;
+
+/**
+ * أنواع الإشعارات الخاصة بالموبايل فقط — لا تظهر في لوحة الإدارة.
+ * تذكيرات البصمة وطلبات التحقق من الموقع مخصصة لتطبيق الموظف.
+ */
+export const MOBILE_ONLY_ENTITY_TYPES = ['punch_reminder', 'live_location_request'] as const;
