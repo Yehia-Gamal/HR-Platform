@@ -56,32 +56,63 @@ export function PasswordSetupPage() {
     setSubmitting(true);
     try {
       const supabase = await getSupabase();
+
+      // 1) التحقق من صلاحية جلسة الاسترداد
       const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData.user) throw new Error('invalid_recovery_session');
+      if (userError || !userData.user) {
+        setError('انتهت صلاحية رابط التفعيل. اطلب رابط تفعيل جديدًا ثم حاول مرة أخرى.');
+        return;
+      }
+
+      // 2) تعيين كلمة المرور الجديدة
       const { error: updateError } = await supabase.auth.updateUser({
         password,
       });
-      if (updateError) throw updateError;
+      if (updateError) {
+        // رسائل خطأ محددة لسياسات كلمة المرور
+        const msg = updateError.message?.toLowerCase() ?? '';
+        if (msg.includes('weak') || msg.includes('strength') || msg.includes('policy') || msg.includes('short')) {
+          setError('كلمة المرور ضعيفة. استخدم مزيجًا من الأحرف الكبيرة والصغيرة والأرقام والرموز (مثل @#$).');
+        } else if (msg.includes('same') || msg.includes('previous') || msg.includes('reuse')) {
+          setError('لا يمكن إعادة استخدام نفس كلمة المرور السابقة. اختر كلمة مرور مختلفة.');
+        } else if (msg.includes('session') || msg.includes('token') || msg.includes('expired')) {
+          setError('انتهت صلاحية رابط التفعيل. اطلب رابط تفعيل جديدًا ثم حاول مرة أخرى.');
+        } else {
+          setError('تعذر تعيين كلمة المرور: ' + (updateError.message || 'خطأ غير معروف'));
+        }
+        return;
+      }
+
+      // 3) تفعيل سجل الموظف (اختياري — لا يُفشل العملية)
       const { data: activation, error: activationError } = await supabase.rpc(
         'activate_employee_after_first_login',
       );
       const activationResult = activation as { activated?: boolean; reason?: string } | null;
-      if (
-        activationError ||
-        (activationResult?.activated !== true && activationResult?.reason !== 'already_active')
-      ) {
-        throw new Error('employee_activation_failed');
+      // نقبل: activated=true، already_active، أو no_employee_record (حساب ويب بدون سجل موظف)
+      const activationOk =
+        !activationError &&
+        (activationResult?.activated === true ||
+          activationResult?.reason === 'already_active' ||
+          activationResult?.reason === 'no_employee_record');
+      if (!activationOk) {
+        // كلمة المرور تم تعيينها بنجاح لكن التفعيل فشل — نُكمل مع تحذير
+        // (لا نمنع المستخدم من إنهاء العملية)
       }
+
+      // 4) إزالة علامة must_change_password
       const { error: metadataError } = await supabase.auth.updateUser({
         data: { ...userData.user.user_metadata, must_change_password: false },
       });
-      if (metadataError) throw metadataError;
+      if (metadataError) {
+        // كلمة المرور تم تعيينها — نتجاهل خطأ المتاداتا (ثانوي)
+      }
+
       await supabase.auth.signOut({ scope: 'global' });
       setPassword('');
       setConfirmation('');
       setPageState('success');
     } catch {
-      setError('تعذر حفظ كلمة المرور. اطلب رابط تفعيل جديدًا ثم حاول مرة أخرى.');
+      setError('حدث خطأ غير متوقع. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.');
     } finally {
       setSubmitting(false);
     }

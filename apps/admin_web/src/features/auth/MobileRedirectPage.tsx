@@ -61,11 +61,18 @@ export function MobileRedirectPage() {
           <>
             <h1 className="text-xl font-black">لم يفتح التطبيق تلقائياً</h1>
             <p className="muted leading-7 text-sm">
-              هذا الرابط مخصص لتطبيق <strong>أحلى شباب</strong> على الجوال. افتح هذا البريد الإلكتروني من هاتفك وتأكد من أن التطبيق مثبت.
+              يمكنك تعيين كلمة المرور من المتصفح مباشرة، أو فتح الرابط من هاتفك إذا كان التطبيق مثبتاً.
             </p>
 
+            <a
+              href="/auth/setup-password"
+              className="block w-full rounded-xl bg-brand px-4 py-3 font-bold text-white text-sm text-center"
+            >
+              تعيين كلمة المرور من المتصفح
+            </a>
+
             <div className="rounded-2xl bg-[var(--surface-muted)] p-4 text-sm text-right space-y-2">
-              <p className="font-bold">خطوات بديلة:</p>
+              <p className="font-bold">أو من الجوال:</p>
               <ol className="muted space-y-1 list-decimal list-inside text-right">
                 <li>افتح البريد الإلكتروني على هاتفك.</li>
                 <li>اضغط على رابط التفعيل في رسالة الدعوة.</li>
@@ -75,7 +82,7 @@ export function MobileRedirectPage() {
 
             <button
               type="button"
-              className="w-full rounded-xl bg-brand px-4 py-3 font-bold text-white text-sm"
+              className="w-full rounded-xl border border-brand/30 px-4 py-3 font-bold text-brand text-sm"
               onClick={() => { window.location.href = appLink.current; }}
             >
               حاول فتح التطبيق مجدداً
