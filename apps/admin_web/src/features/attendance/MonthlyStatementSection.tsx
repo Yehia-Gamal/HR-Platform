@@ -35,6 +35,16 @@ export function MonthlyStatementSection({ employeeId }: { employeeId: string }) 
           <select className="input" aria-label="السنة" value={year} onChange={(e) => setYear(Number(e.target.value))}>
             {[now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2].map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
+          {query.data && (
+            <button
+              type="button"
+              className="btn btn-secondary flex items-center gap-1.5 text-xs"
+              onClick={() => exportAttendancePDF(query.data!)}
+            >
+              <FileDown className="size-4" aria-hidden="true" />
+              تصدير PDF
+            </button>
+          )}
         </div>
       </div>
       {query.isError ? <ErrorState description="تعذر تحميل كشف الحضور. أعد المحاولة أو تواصل مع الدعم." onRetry={() => void query.refetch()} />

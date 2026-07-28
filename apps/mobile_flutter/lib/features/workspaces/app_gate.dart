@@ -111,8 +111,16 @@ class _AuthenticatedGate extends ConsumerWidget {
     if (context.workspaces.contains(WorkspaceId.executive)) {
       return WorkspaceId.executive;
     }
+    // السكرتير التنفيذي / الأدمن الرئيسي — يرى المساحة التنفيذية على الموبايل
+    if (context.workspaces.contains(WorkspaceId.mainAdmin)) {
+      return WorkspaceId.executive;
+    }
     if (context.workspaces.contains(WorkspaceId.fieldOperations)) {
       return WorkspaceId.fieldOperations;
+    }
+    // مدير HR — يرى مساحة المدير (فريقي + الطلبات + KPI)
+    if (context.workspaces.contains(WorkspaceId.hr)) {
+      return WorkspaceId.manager;
     }
     if (context.workspaces.contains(WorkspaceId.manager)) {
       return WorkspaceId.manager;

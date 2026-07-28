@@ -92,6 +92,7 @@ export function EmployeeDetailPage() {
         description="ملخص موحّد للبيانات الوظيفية والحضور والطلبات والأداء والمستندات والعهد، بعد تطبيق RLS والنطاق الفعلي."
         actions={<div className="flex flex-wrap gap-2">
           {showResend ? <button type="button" className="btn-secondary" disabled={resend.isPending} onClick={() => void onResend()}><MailCheck className="size-4" aria-hidden="true" />{resend.isPending ? 'جارٍ الإرسال…' : 'إعادة إرسال دعوة التفعيل'}</button> : null}
+          {canInvite && !accountPending && employeeId ? <button type="button" className="btn-secondary" disabled={resend.isPending} onClick={() => void onResend()}><KeyRound className="size-4" aria-hidden="true" />{resend.isPending ? 'جارٍ الإرسال…' : 'إرسال رابط إعادة تعيين كلمة المرور'}</button> : null}
           {canEdit ? <button type="button" className="btn-primary" onClick={() => setShowEditDialog(true)}><Pencil className="size-4" aria-hidden="true" />تعديل البيانات</button> : null}
           {canEdit && item.isActive ? <button type="button" className="btn-secondary text-[var(--danger)]" onClick={() => setShowArchiveDialog(true)}><Archive className="size-4" aria-hidden="true" />أرشفة الموظف</button> : null}
           {canEdit && auth.access?.workspaces.includes('main_admin') ? <button type="button" className="btn-secondary text-[var(--danger)]" onClick={() => setShowDeleteDialog(true)}><Trash2 className="size-4" aria-hidden="true" />حذف نهائي</button> : null}
@@ -281,6 +282,61 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  // --- Photo ---
+  const [photoUrl, setPhotoUrl] = useState(item.photoUrl ?? '');
+  const [photoPreview, setPhotoPreview] = useState<string | null>(item.photoUrl ?? null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const photoObjectUrlRef = useRef<string | null>(null);
+
+  const clearObjectPreview = () => {
+    if (photoObjectUrlRef.current) { URL.revokeObjectURL(photoObjectUrlRef.current); photoObjectUrlRef.current = null; }
+  };
+
+  const onPhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const previousPreview = photoPreview;
+    const previousUrl = photoUrl;
+    setPhotoError(null);
+    setPhotoUploading(true);
+    try {
+      const prepared = await prepareAvatarFile(file);
+      clearObjectPreview();
+      if (auth.isMock) {
+        const objectUrl = URL.createObjectURL(prepared);
+        photoObjectUrlRef.current = objectUrl;
+        setPhotoPreview(objectUrl);
+        setPhotoUrl(objectUrl);
+        return;
+      }
+      const supabase = await getSupabase();
+      const path = `admin/${crypto.randomUUID()}.webp`;
+      const { error: uploadError } = await supabase.storage.from('employee-avatars').upload(path, prepared, { upsert: false, contentType: prepared.type });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from('employee-avatars').getPublicUrl(path);
+      setPhotoUrl(data.publicUrl);
+      clearObjectPreview();
+      setPhotoPreview(data.publicUrl);
+    } catch (err) {
+      clearObjectPreview();
+      setPhotoPreview(previousPreview);
+      setPhotoUrl(previousUrl);
+      setPhotoError(err instanceof Error ? err.message : 'تعذر رفع الصورة.');
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
+  const removePhoto = () => {
+    clearObjectPreview();
+    setPhotoPreview(null);
+    setPhotoUrl('');
+    setPhotoError(null);
+  };
+
   // Filter child lookups by parent selection
   const workSites = useMemo(() => {
     const opts = lookups.data?.workSites ?? [];
@@ -309,6 +365,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
     // Basic
     if (fullNameAr.trim() !== item.fullNameAr) changes.fullNameAr = fullNameAr.trim();
     if ((phoneE164.trim() || null) !== (item.phoneE164 ?? null)) changes.phoneE164 = phoneE164.trim() || null;
+    if ((photoUrl || null) !== (item.photoUrl ?? null)) changes.photoUrl = photoUrl || null;
     // Sensitive
     if (canSensitive) {
       if ((departmentId || null) !== (item.departmentId ?? null)) changes.departmentId = departmentId || null;
@@ -379,7 +436,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
         {/* ─── البيانات الشخصية (update_basic) ─── */}
         <fieldset>
           <legend className="mb-1 flex items-center gap-2 font-black"><UserRound className="size-4 text-[var(--brand)]" aria-hidden="true" />البيانات الشخصية</legend>
-          <p className="muted mb-3 text-xs">الاسم ورقم الهاتف — يتطلب صلاحية update_basic على الأقل.</p>
+          <p className="muted mb-3 text-xs">الاسم ورقم الهاتف والصورة — يتطلب صلاحية update_basic على الأقل.</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
               <span className="mb-1.5 block text-sm font-semibold">الاسم بالعربية <span className="text-[var(--danger)]">*</span></span>
@@ -389,6 +446,18 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
               <span className="mb-1.5 block text-sm font-semibold">رقم الهاتف</span>
               <input type="tel" className="input w-full" value={phoneE164} onChange={(e) => setPhoneE164(e.target.value)} disabled={isBusy} dir="ltr" placeholder="+201XXXXXXXXX" />
             </label>
+            <div className="sm:col-span-2">
+              <span className="mb-1.5 block text-sm font-semibold">صورة الموظف</span>
+              <div className="flex items-center gap-4">
+                <UserAvatar displayName={fullNameAr} photoUrl={photoPreview} size="sm" announceName={false} />
+                <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => void onPhotoChange(e)} disabled={isBusy || photoUploading} />
+                <button type="button" className="btn-secondary text-xs" disabled={isBusy || photoUploading} onClick={() => fileInputRef.current?.click()}>
+                  {photoUploading ? <><Loader2 className="size-4 animate-spin" aria-hidden="true" />جارٍ الرفع…</> : <><Camera className="size-4" aria-hidden="true" />{photoPreview ? 'تغيير الصورة' : 'رفع صورة'}</>}
+                </button>
+                {photoPreview ? <button type="button" className="btn-secondary text-xs text-[var(--danger)]" disabled={isBusy || photoUploading} onClick={removePhoto}><X className="size-4" aria-hidden="true" />إزالة</button> : null}
+              </div>
+              {photoError ? <p className="mt-1 text-xs text-[var(--danger)]">{photoError}</p> : null}
+            </div>
           </div>
         </fieldset>
 

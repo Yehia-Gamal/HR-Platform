@@ -6,6 +6,7 @@ import {
   CalendarDays,
   Clock,
   Download,
+  FileDown,
   Printer,
   Search,
   Timer,
@@ -22,6 +23,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { MetricSkeletonRow, SkeletonCard } from '../../ui/Skeletons';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useEmployees } from '../employees/useEmployees';
+import { exportAttendancePDF } from './exportAttendancePDF';
 import { useEmployeeMonthlyStatement } from './useMonthlyStatement';
 
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
@@ -129,6 +131,9 @@ export function MonthlyAttendanceReportPage() {
               <>
                 <button className="btn-secondary" onClick={handlePrint}>
                   <Printer className="size-4" aria-hidden="true" />طباعة
+                </button>
+                <button className="btn-secondary" onClick={() => exportAttendancePDF(statementQuery.data!)}>
+                  <FileDown className="size-4" aria-hidden="true" />تصدير PDF
                 </button>
                 <button className="btn-primary" onClick={() => exportCSV(statementQuery.data!)}>
                   <Download className="size-4" aria-hidden="true" />تصدير CSV

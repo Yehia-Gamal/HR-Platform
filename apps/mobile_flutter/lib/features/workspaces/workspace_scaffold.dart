@@ -5,11 +5,22 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/location_incomin
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_brief_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_people_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_services_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_announcement_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_attendance_tab.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_decisions_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_disputes_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_emergency_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_governance_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_risk_center_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/manager_operations_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_daily_reports_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_disputes_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notifications_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_profile_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_official_feed_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_tasks_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/org_chart_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
@@ -215,8 +226,73 @@ class WorkspaceScaffold extends ConsumerWidget {
           label: 'التقييمات النهائية KPI',
           page: MobileKpiPage(access: contextData),
         ),
-        /// V17 §4.2.7 — Reports (in tab bar) and Governance hidden until
-        /// a real operational journey is implemented.
+        _MoreItem(
+          icon: Icons.description_outlined,
+          label: 'إصدار قرار',
+          page: const ExecutiveDecisionsPage(),
+        ),
+        _MoreItem(
+          icon: Icons.campaign_outlined,
+          label: 'نشر تعميم',
+          page: const ExecutiveAnnouncementPage(),
+        ),
+        _MoreItem(
+          icon: Icons.shield_outlined,
+          label: 'مركز القيادة والحوكمة',
+          page: Scaffold(
+            appBar: AppBar(title: const Text('مركز القيادة والحوكمة')),
+            body: const ExecutiveGovernancePage(),
+          ),
+        ),
+        _MoreItem(
+          icon: Icons.warning_amber_rounded,
+          label: 'مركز المخاطر والحوادث',
+          page: const ExecutiveRiskCenterPage(),
+        ),
+        _MoreItem(
+          icon: Icons.emergency_outlined,
+          label: 'الاستجابة السريعة',
+          page: const ExecutiveEmergencyPage(),
+        ),
+        _MoreItem(
+          icon: Icons.people_alt_outlined,
+          label: 'حضور الموظفين اليوم',
+          page: Scaffold(
+            appBar: AppBar(title: const Text('حضور الموظفين اليوم')),
+            body: const ExecutiveAttendanceTab(),
+          ),
+        ),
+        _MoreItem(
+          icon: Icons.gavel_outlined,
+          label: 'القضايا التنفيذية',
+          page: const ExecutiveDisputesPage(),
+        ),
+        _MoreItem(
+          icon: Icons.approval_outlined,
+          label: 'الطلبات والاعتمادات',
+          page: const MobileRequestsPage(allowDecision: true),
+        ),
+        _MoreItem(
+          icon: Icons.engineering_outlined,
+          label: 'إدارة العمليات',
+          page: Scaffold(
+            appBar: AppBar(title: const Text('إدارة العمليات')),
+            body: const ManagerOperationsPage(),
+          ),
+        ),
+        _MoreItem(
+          icon: Icons.task_alt_outlined,
+          label: 'المهام',
+          page: Scaffold(
+            appBar: AppBar(title: const Text('المهام')),
+            body: const MobileTasksPage(),
+          ),
+        ),
+        _MoreItem(
+          icon: Icons.summarize_outlined,
+          label: 'التقارير اليومية',
+          page: const MobileDailyReportsPage(),
+        ),
       ],
       // §8.3.3 — القرارات والتعاميم متاحة لجميع المستخدمين
       // المدير التنفيذي والأدمن يرون زر "نشر جديد"

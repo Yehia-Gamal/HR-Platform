@@ -164,6 +164,10 @@ class MobileStatusPill extends StatelessWidget {
       'waiting_requester' => ('بانتظار صاحب الطلب', AppColors.statusWarning),
       'completed' => ('مكتمل', AppColors.statusSuccess),
       // KPI Stages
+      'self' => ('تقييم ذاتي', AppColors.statusInfo),
+      'parallel_review' => ('مراجعة متوازية', AppColors.statusViolet),
+      'secretary_review' => ('مراجعة السكرتير', AppColors.statusInfo),
+      'executive_review' => ('المدير التنفيذي', AppColors.statusWarning),
       'goal_setting' => ('تحديد الأهداف', AppColors.statusInfo),
       'mid_year' => ('نصف سنوي', AppColors.statusViolet),
       'final_eval' => ('تقييم نهائي', AppColors.statusWarning),
