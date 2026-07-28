@@ -44,10 +44,11 @@ class _SetPasswordPageState extends ConsumerState<SetPasswordPage> {
       await client.auth.updateUser(
         UserAttributes(password: _password.text),
       );
-      final activation = Map<String, dynamic>.from(
-        await client.rpc<dynamic>('activate_employee_after_first_login')
-            as Map<dynamic, dynamic>,
-      );
+      final raw = await client.rpc<dynamic>('activate_employee_after_first_login');
+      if (raw == null) {
+        throw StateError('تعذر تفعيل سجل الموظف — الخادم لم يستجب. تواصل مع مسؤول النظام.');
+      }
+      final activation = Map<String, dynamic>.from(raw as Map<dynamic, dynamic>);
       final activationAccepted = activation['activated'] == true ||
           activation['reason'] == 'already_active';
       if (!activationAccepted) {

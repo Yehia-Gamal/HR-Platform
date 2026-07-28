@@ -958,23 +958,23 @@ class MobileCommands {
 }
 
 final mobileProfileProvider = FutureProvider<MobileProfile>((ref) async {
-  final data = await ref
-      .watch(supabaseProvider)
-      .rpc<dynamic>('get_my_mobile_profile');
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_my_mobile_profile'),
+  );
   return MobileProfile.fromJson(_asMap(data));
 });
 
 final mobileTasksProvider = FutureProvider<List<MobileTask>>((ref) async {
-  final data = await ref
-      .watch(supabaseProvider)
-      .rpc<dynamic>('get_my_mobile_tasks', params: {'p_limit': 100});
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_my_mobile_tasks', params: {'p_limit': 100}),
+  );
   return _asList(data).map(MobileTask.fromJson).toList(growable: false);
 });
 
 final mobileTeamProvider = FutureProvider<List<MobileTeamMember>>((ref) async {
-  final data = await ref
-      .watch(supabaseProvider)
-      .rpc<dynamic>('get_my_mobile_team', params: {'p_limit': 100});
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_my_mobile_team', params: {'p_limit': 100}),
+  );
   return _asList(data).map(MobileTeamMember.fromJson).toList(growable: false);
 });
 

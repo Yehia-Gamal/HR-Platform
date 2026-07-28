@@ -2016,7 +2016,7 @@ class CommitteeDisputePortal {
                 Map<String, dynamic>.from(e as Map)))
             .toList(growable: false),
         summary: CommitteeDisputeSummary.fromJson(
-            Map<String, dynamic>.from(j['summary'] as Map)),
+            Map<String, dynamic>.from(j['summary'] as Map? ?? const {})),
       );
 
   final List<CommitteeDisputeCase> cases;

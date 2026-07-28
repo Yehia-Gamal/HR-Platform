@@ -15,12 +15,20 @@ interface AttendanceTodayOverview {
   lastUpdatedAt: string;
 }
 
+const emptyOverview: AttendanceTodayOverview = {
+  date: new Date().toISOString().slice(0, 10),
+  totalActive: 0, expected: 0, present: 0, late: 0,
+  notCheckedIn: 0, onLeave: 0, onAssignment: 0, absent: 0,
+  lastUpdatedAt: new Date().toISOString(),
+};
+
 export function useAttendanceTodayOverview() {
   const auth = useAuth();
   return useQuery({
     queryKey: ['attendance-today-overview', auth.isMock],
     enabled: auth.status === 'authenticated',
     refetchInterval: 60_000,
+    retry: 1,
     queryFn: async (): Promise<AttendanceTodayOverview> => {
       if (auth.isMock) {
         return {
@@ -30,7 +38,12 @@ export function useAttendanceTodayOverview() {
           lastUpdatedAt: new Date().toISOString(),
         };
       }
-      return await rpc<AttendanceTodayOverview>('get_attendance_today_overview', {});
+      try {
+        return await rpc<AttendanceTodayOverview>('get_attendance_today_overview', {});
+      } catch {
+        // الدالة قد لا تكون موجودة بعد (migration لم تُنشر) — نعيد قيم فارغة
+        return emptyOverview;
+      }
     },
   });
 }

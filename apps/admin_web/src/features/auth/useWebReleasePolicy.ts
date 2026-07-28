@@ -50,15 +50,24 @@ export function useRegisterWebDevice() {
     let active = true;
     void getSupabase().then(async (supabase) => {
       if (!active) return;
-      const { error } = await supabase.rpc('register_my_device', {
-        p_installation_id: installationId(), p_platform: 'web',
+      const params = () => ({
+        p_installation_id: installationId(), p_platform: 'web' as const,
         p_device_name: navigator.platform || 'Web Browser', p_device_model: navigator.userAgent.slice(0, 180),
         p_os_version: (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ?? navigator.platform ?? null,
         p_app_version: env.appVersion, p_app_build: env.appBuild, p_environment: env.appEnvironment,
         p_push_enabled: Notification.permission === 'granted', p_biometric_available: Boolean(window.PublicKeyCredential),
         p_metadata: { language: navigator.language, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
       });
-      if (error) console.warn('Managed device registration failed', error.message);
+      const { error } = await supabase.rpc('register_my_device', params());
+      if (error?.message?.includes('belongs to another account')) {
+        // الـ installation ID مرتبط بحساب آخر — نعيد التوليد ونحاول مرة ثانية
+        localStorage.removeItem(installationKey);
+        if (!active) return;
+        const { error: retryError } = await supabase.rpc('register_my_device', params());
+        if (retryError) console.warn('Managed device registration retry failed', retryError.message);
+      } else if (error) {
+        console.warn('Managed device registration failed', error.message);
+      }
     });
     return () => { active = false; };
   }, [auth.status, auth.isMock, auth.session?.user.id]);
