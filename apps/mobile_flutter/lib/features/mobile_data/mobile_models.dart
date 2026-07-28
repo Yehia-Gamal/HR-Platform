@@ -2023,6 +2023,65 @@ class CommitteeDisputePortal {
   final CommitteeDisputeSummary summary;
 }
 
+/// 0198 — رأي/توصية عضو لجنة على قضية محددة
+class DisputeRecommendation {
+  const DisputeRecommendation({
+    required this.id,
+    required this.submittedByName,
+    required this.submittedById,
+    required this.statementType,
+    required this.statementText,
+    required this.submittedAt,
+    required this.visibility,
+    required this.isOwn,
+  });
+  factory DisputeRecommendation.fromJson(Map<String, dynamic> j) =>
+      DisputeRecommendation(
+        id: j['id'] as String,
+        submittedByName: j['submittedByName'] as String? ?? '',
+        submittedById: j['submittedById'] as String? ?? '',
+        statementType: j['statementType'] as String? ?? 'recommendation',
+        statementText: j['statementText'] as String? ?? '',
+        submittedAt: j['submittedAt'] == null
+            ? null
+            : DateTime.parse(j['submittedAt'] as String),
+        visibility: j['visibility'] as String? ?? 'committee_only',
+        isOwn: j['isOwn'] as bool? ?? false,
+      );
+
+  final String id;
+  final String submittedByName;
+  final String submittedById;
+  final String statementType;
+  final String statementText;
+  final DateTime? submittedAt;
+  final String visibility;
+  final bool isOwn;
+}
+
+/// 0198 — آراء وتوصيات اللجنة لقضية محددة
+class DisputeCaseRecommendations {
+  const DisputeCaseRecommendations({
+    required this.recommendations,
+    required this.myRecommendationExists,
+    required this.totalCount,
+  });
+  factory DisputeCaseRecommendations.fromJson(Map<String, dynamic> j) =>
+      DisputeCaseRecommendations(
+        recommendations: (j['recommendations'] as List<dynamic>? ?? [])
+            .map((e) => DisputeRecommendation.fromJson(
+                Map<String, dynamic>.from(e as Map)))
+            .toList(growable: false),
+        myRecommendationExists:
+            j['myRecommendationExists'] as bool? ?? false,
+        totalCount: (j['totalCount'] as num?)?.toInt() ?? 0,
+      );
+
+  final List<DisputeRecommendation> recommendations;
+  final bool myRecommendationExists;
+  final int totalCount;
+}
+
 class MobileClearanceItem {
   const MobileClearanceItem({
     required this.id,

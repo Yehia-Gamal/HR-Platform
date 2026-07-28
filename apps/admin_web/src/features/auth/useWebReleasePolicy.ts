@@ -6,12 +6,24 @@ import { getSupabase } from '../../core/supabase';
 import { useAuth } from './AuthProvider';
 
 const installationKey = 'management_os_web_installation_id_v1';
+const installationOwnerKey = 'management_os_web_installation_owner_v1';
 
-function installationId() {
+function installationId(userId?: string) {
   const current = localStorage.getItem(installationKey);
-  if (current && current.length >= 12) return current;
+  const owner = localStorage.getItem(installationOwnerKey);
+
+  // إذا الـ ID موجود: نرجعه إذا ما في userId، أو المالك غير مسجّل (ترقية)، أو نفس المستخدم
+  if (current && current.length >= 12) {
+    if (!userId || !owner || owner === userId) {
+      if (userId && !owner) localStorage.setItem(installationOwnerKey, userId);
+      return current;
+    }
+    // المالك مختلف — حساب آخر على نفس المتصفح → نولّد ID جديد
+  }
+
   const next = crypto.randomUUID();
   localStorage.setItem(installationKey, next);
+  if (userId) localStorage.setItem(installationOwnerKey, userId);
   return next;
 }
 
@@ -47,27 +59,20 @@ export function useRegisterWebDevice() {
   const auth = useAuth();
   useEffect(() => {
     if (auth.status !== 'authenticated' || auth.isMock || !hasSupabaseConfig) return;
+    const userId = auth.session?.user.id;
+    if (!userId) return;
     let active = true;
     void getSupabase().then(async (supabase) => {
       if (!active) return;
-      const params = () => ({
-        p_installation_id: installationId(), p_platform: 'web' as const,
+      const { error } = await supabase.rpc('register_my_device', {
+        p_installation_id: installationId(userId), p_platform: 'web' as const,
         p_device_name: navigator.platform || 'Web Browser', p_device_model: navigator.userAgent.slice(0, 180),
         p_os_version: (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ?? navigator.platform ?? null,
         p_app_version: env.appVersion, p_app_build: env.appBuild, p_environment: env.appEnvironment,
         p_push_enabled: Notification.permission === 'granted', p_biometric_available: Boolean(window.PublicKeyCredential),
         p_metadata: { language: navigator.language, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
       });
-      const { error } = await supabase.rpc('register_my_device', params());
-      if (error?.message?.includes('belongs to another account')) {
-        // الـ installation ID مرتبط بحساب آخر — نعيد التوليد ونحاول مرة ثانية
-        localStorage.removeItem(installationKey);
-        if (!active) return;
-        const { error: retryError } = await supabase.rpc('register_my_device', params());
-        if (retryError) console.warn('Managed device registration retry failed', retryError.message);
-      } else if (error) {
-        console.warn('Managed device registration failed', error.message);
-      }
+      if (error) console.warn('Managed device registration skipped', error.message);
     });
     return () => { active = false; };
   }, [auth.status, auth.isMock, auth.session?.user.id]);

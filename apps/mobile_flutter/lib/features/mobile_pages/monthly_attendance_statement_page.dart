@@ -1,4 +1,5 @@
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/attendance_pdf_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
@@ -39,6 +40,14 @@ class _MonthlyAttendanceStatementPageState
     return Scaffold(
       appBar: AppBar(
         title: const Text('كشف الحضور والانصراف'),
+        actions: [
+          if (statement.hasValue)
+            IconButton(
+              icon: const Icon(Icons.picture_as_pdf_rounded),
+              tooltip: 'تصدير PDF',
+              onPressed: () => exportAttendancePdf(statement.value!),
+            ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(56),
           child: Padding(

@@ -1140,6 +1140,17 @@ final committeeDisputePortalProvider = FutureProvider<CommitteeDisputePortal>((
   return CommitteeDisputePortal.fromJson(_asMap(data));
 });
 
+/// 0198 — آراء/توصيات أعضاء اللجنة لقضية محددة
+final disputeCaseRecommendationsProvider =
+    FutureProvider.family<DisputeCaseRecommendations, String>((ref, caseId) async {
+  final data = await ref
+      .watch(supabaseProvider)
+      .rpc<dynamic>('get_dispute_case_recommendations', params: {
+    'p_case_id': caseId,
+  });
+  return DisputeCaseRecommendations.fromJson(_asMap(data));
+});
+
 final myOffboardingPortalProvider = FutureProvider<MobileOffboardingPortal>((
   ref,
 ) async {
@@ -1311,6 +1322,27 @@ extension MobileSelfServiceCommands on MobileCommands {
 
 /// V17 §14 — Executive admin-action commands
 extension ExecutiveDisputeCommands on MobileCommands {
+  /// 0198 — تقديم رأي/توصية على قضية
+  Future<void> submitDisputeRecommendation({
+    required String caseId,
+    required String text,
+    String statementType = 'recommendation',
+  }) async {
+    await ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
+          'submit_dispute_statement',
+          params: {
+            'p_case_id': caseId,
+            'p_statement_type': statementType,
+            'p_statement_text': text.trim(),
+            'p_visibility': 'committee_only',
+          },
+        );
+    ref.invalidate(disputeCaseRecommendationsProvider(caseId));
+    ref.invalidate(committeeDisputePortalProvider);
+  }
+
   Future<void> decideAdminAction({
     required String caseId,
     required String decision,

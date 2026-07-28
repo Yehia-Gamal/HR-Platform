@@ -751,6 +751,9 @@ class _CaseDetailSheet extends ConsumerWidget {
           ),
         ],
 
+        // ── آراء وتوصيات أعضاء اللجنة (0198) ──
+        _RecommendationsSection(caseId: c.id),
+
         // ── Decision button for action_proposed cases ──
         if (c.status == 'action_proposed') ...[
           const SizedBox(height: 20),
@@ -901,9 +904,12 @@ class _DecisionSheetState extends ConsumerState<_DecisionSheet> {
             ),
 
             // Title
-            Text('قرار الإجراء الإداري',
+            Text('القرار التنفيذي النهائي',
                 style: theme.textTheme.titleLarge
                     ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text('قرارك نهائي ويُحسم به الأمر',
+                style: theme.textTheme.bodySmall),
             const SizedBox(height: 16),
 
             // Case info card
@@ -941,6 +947,10 @@ class _DecisionSheetState extends ConsumerState<_DecisionSheet> {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+
+            // ── آراء اللجنة — يراها المدير التنفيذي قبل القرار ──
+            _DecisionRecommendationsPreview(caseId: c.id),
             const SizedBox(height: 12),
 
             // Proposed action
@@ -991,7 +1001,7 @@ class _DecisionSheetState extends ConsumerState<_DecisionSheet> {
             const SizedBox(height: 16),
 
             // Decision radio
-            Text('قرارك', style: theme.textTheme.titleSmall),
+            Text('قرارك التنفيذي', style: theme.textTheme.titleSmall),
             const SizedBox(height: 4),
             ...['approved', 'modified', 'rejected', 'deferred'].map(
               (d) => RadioListTile<String>(
@@ -1001,6 +1011,8 @@ class _DecisionSheetState extends ConsumerState<_DecisionSheet> {
                 contentPadding: EdgeInsets.zero,
                 onChanged: (v) => setState(() => _decision = v!),
                 title: Text(_decisionLabel(d)),
+                subtitle: Text(_decisionSubtitle(d),
+                    style: theme.textTheme.bodySmall),
               ),
             ),
 
@@ -1064,11 +1076,19 @@ class _DecisionSheetState extends ConsumerState<_DecisionSheet> {
   }
 
   static String _decisionLabel(String d) => switch (d) {
-        'approved' => 'اعتماد الإجراء كما هو',
-        'modified' => 'تعديل الإجراء واعتماده',
-        'rejected' => 'رفض الإجراء المقترح',
+        'approved' => 'تطبيق الجزاء الإداري',
+        'modified' => 'تعديل الجزاء وتطبيقه',
+        'rejected' => 'العفو',
         'deferred' => 'تأجيل القرار',
         _ => d,
+      };
+
+  static String _decisionSubtitle(String d) => switch (d) {
+        'approved' => 'سيتم توقيع الجزاء الإداري المقترح كما هو',
+        'modified' => 'سيتم تعديل الجزاء المقترح ثم تطبيقه',
+        'rejected' => 'سيتم العفو وإغلاق القضية بدون جزاء إداري',
+        'deferred' => 'سيتم تأجيل البت في القضية لوقت لاحق',
+        _ => '',
       };
 
   static IconData _decisionIcon(String d) => switch (d) {
@@ -1086,4 +1106,349 @@ class _DecisionSheetState extends ConsumerState<_DecisionSheet> {
         'deferred' => 'تأجيل',
         _ => 'إرسال',
       };
+}
+
+// ── آراء وتوصيات أعضاء اللجنة (0198) ───────────────────────────────────────
+
+class _RecommendationsSection extends ConsumerWidget {
+  const _RecommendationsSection({required this.caseId});
+  final String caseId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final recsAsync = ref.watch(disputeCaseRecommendationsProvider(caseId));
+
+    return recsAsync.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      ),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (data) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Divider(height: 24),
+            Row(
+              children: [
+                Icon(Icons.rate_review_outlined,
+                    size: 18, color: theme.colorScheme.primary),
+                const SizedBox(width: 6),
+                Text('آراء وتوصيات اللجنة',
+                    style: theme.textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+                const Spacer(),
+                if (data.totalCount > 0)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text('${data.totalCount}',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onPrimaryContainer)),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // قائمة الآراء الحالية
+            if (data.recommendations.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'لم يتم تقديم أي آراء أو توصيات بعد',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+              )
+            else
+              ...data.recommendations.map((r) => _RecommendationCard(rec: r)),
+
+            const SizedBox(height: 12),
+
+            // زر إضافة رأي
+            if (!data.myRecommendationExists)
+              OutlinedButton.icon(
+                onPressed: () => _showAddRecommendation(context, ref),
+                icon: const Icon(Icons.add_comment_outlined),
+                label: const Text('أضف رأيك'),
+              )
+            else
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle_outline,
+                        size: 16, color: Colors.green.shade700),
+                    const SizedBox(width: 6),
+                    Text('تم تقديم رأيك',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade700)),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAddRecommendation(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => _AddRecommendationSheet(caseId: caseId),
+    );
+  }
+}
+
+class _RecommendationCard extends StatelessWidget {
+  const _RecommendationCard({required this.rec});
+  final DisputeRecommendation rec;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final df = DateFormat('d MMM y — HH:mm', 'ar');
+    final isNote = rec.statementType == 'committee_note';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      color: rec.isOwn
+          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.25)
+          : null,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 14,
+                  backgroundColor: isNote
+                      ? Colors.orange.shade100
+                      : theme.colorScheme.primaryContainer,
+                  child: Icon(
+                    isNote ? Icons.note_outlined : Icons.thumb_up_outlined,
+                    size: 14,
+                    color: isNote
+                        ? Colors.orange.shade800
+                        : theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        rec.submittedByName,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      Text(
+                        isNote ? 'ملاحظة' : 'توصية',
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+                if (rec.isOwn)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text('أنت',
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary)),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(rec.statementText,
+                style: const TextStyle(fontSize: 13, height: 1.6)),
+            const SizedBox(height: 6),
+            if (rec.submittedAt != null)
+              Text(
+                df.format(rec.submittedAt!),
+                style: TextStyle(
+                    fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AddRecommendationSheet extends ConsumerStatefulWidget {
+  const _AddRecommendationSheet({required this.caseId});
+  final String caseId;
+
+  @override
+  ConsumerState<_AddRecommendationSheet> createState() =>
+      _AddRecommendationSheetState();
+}
+
+class _AddRecommendationSheetState
+    extends ConsumerState<_AddRecommendationSheet> {
+  final _controller = TextEditingController();
+  String _type = 'recommendation';
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool get _canSubmit =>
+      !_submitting && _controller.text.trim().length >= 10;
+
+  Future<void> _submit() async {
+    if (!_canSubmit) return;
+    setState(() => _submitting = true);
+    try {
+      await ref.read(mobileCommandsProvider).submitDisputeRecommendation(
+            caseId: widget.caseId,
+            text: _controller.text,
+            statementType: _type,
+          );
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تقديم رأيك بنجاح')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurfaceVariant
+                      .withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            Text('أضف رأيك',
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text('سيتم مشاركة رأيك مع أعضاء اللجنة فقط',
+                style: theme.textTheme.bodySmall),
+            const SizedBox(height: 16),
+
+            // نوع المشاركة
+            Text('نوع المشاركة', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 4),
+            RadioListTile<String>(
+              value: 'recommendation',
+              groupValue: _type,
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              onChanged: (v) => setState(() => _type = v!),
+              title: const Text('توصية'),
+              subtitle: const Text('رأيك النهائي في القضية'),
+            ),
+            RadioListTile<String>(
+              value: 'committee_note',
+              groupValue: _type,
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              onChanged: (v) => setState(() => _type = v!),
+              title: const Text('ملاحظة'),
+              subtitle: const Text('ملاحظة أو ملحوظة للمناقشة'),
+            ),
+            const SizedBox(height: 12),
+
+            // نص الرأي
+            TextField(
+              controller: _controller,
+              maxLines: 5,
+              maxLength: 1000,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                labelText: 'نص الرأي أو التوصية',
+                hintText: '10 أحرف على الأقل',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            FilledButton.icon(
+              onPressed: _canSubmit ? _submit : null,
+              icon: _submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.send),
+              label: Text(_type == 'recommendation'
+                  ? 'إرسال التوصية'
+                  : 'إرسال الملاحظة'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

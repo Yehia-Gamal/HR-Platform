@@ -104,29 +104,35 @@ Deno.serve(async (req) => {
     transports: normalizeTransports(credential.transports),
   }));
 
-  const options = type === "register"
-    ? await generateRegistrationOptions({
-      rpName: RP_NAME,
-      rpID: RP_ID,
-      userName: userData.user.email ?? employee.employee_code ?? userData.user.id,
-      userDisplayName: employee.full_name_ar ?? employee.employee_code ?? "موظف",
-      userID: new TextEncoder().encode(userData.user.id),
-      attestationType: "none",
-      excludeCredentials: credentials,
-      authenticatorSelection: {
-        authenticatorAttachment: "platform",
-        residentKey: "preferred",
+  let options;
+  try {
+    options = type === "register"
+      ? await generateRegistrationOptions({
+        rpName: RP_NAME,
+        rpID: RP_ID,
+        userName: userData.user.email ?? employee.employee_code ?? userData.user.id,
+        userDisplayName: employee.full_name_ar ?? employee.employee_code ?? "موظف",
+        userID: new TextEncoder().encode(userData.user.id),
+        attestationType: "none",
+        excludeCredentials: credentials,
+        authenticatorSelection: {
+          authenticatorAttachment: "platform",
+          residentKey: "preferred",
+          userVerification: "required",
+        },
+        supportedAlgorithmIDs: [-7, -257],
+        timeout: 300_000,
+      })
+      : await generateAuthenticationOptions({
+        rpID: RP_ID,
+        allowCredentials: credentials,
         userVerification: "required",
-      },
-      supportedAlgorithmIDs: [-7, -257],
-      timeout: 300_000,
-    })
-    : await generateAuthenticationOptions({
-      rpID: RP_ID,
-      allowCredentials: credentials,
-      userVerification: "required",
-      timeout: 300_000,
-    });
+        timeout: 300_000,
+      });
+  } catch (error) {
+    console.error("webauthn options generation failed", error instanceof Error ? error.message : "unknown error");
+    return json(req, { error: "options_generation_failed" }, 500);
+  }
 
   const expiresAt = new Date(Date.now() + 5 * 60_000).toISOString();
   const { data: createdChallenge, error: insertError } = await admin.from("webauthn_challenges").insert({

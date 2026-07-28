@@ -521,7 +521,10 @@ class _DeviceSecuritySectionState
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true) {
+      reasonController.dispose();
+      return;
+    }
 
     setState(() => _revokingId = device.id);
     try {

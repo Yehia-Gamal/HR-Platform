@@ -1,4 +1,5 @@
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
+import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 
 const _months = [
@@ -21,24 +22,22 @@ String _buildAttendanceHtml(MonthlyAttendanceStatement stmt) {
       : '';
   final attendancePct = stmt.attendancePercentage;
   final compliancePct = s.scheduledDays > 0
-      ? (s.totalWorkHours / (s.scheduledDays * 8) * 100).clamp(0, 100)
+      ? (s.totalWorkHours / (s.scheduledDays * 8) * 100).clamp(0.0, 100.0)
       : 0.0;
 
   final dayRows = StringBuffer();
   for (final d in stmt.days) {
     final tags = <String>[];
-    if (d.isAbsent) tags.add('غائب');
-    if (d.isOfficialHoliday) tags.add('عطلة رسمية');
+    // استنتاج الغياب والعطلة من حقل status بدل خصائص غير موجودة.
+    if (d.status.contains('غائب')) tags.add('غائب');
+    if (d.status == 'عطلة رسمية') tags.add('عطلة رسمية');
     if (d.hasLeave) tags.add('إجازة');
     if (d.hasMission) tags.add('مأمورية');
-    if (d.hasLatePermit) tags.add('إذن تأخير');
-    if (d.hasEarlyPermit) tags.add('إذن انصراف');
-    if (!d.hasLatePermit && !d.hasEarlyPermit && d.hasPermit) tags.add('إذن');
+    if (d.hasPermit) tags.add('إذن');
     if (d.hasConvoyFundi) tags.add('قافلة/فاندي');
     if (d.missingCheckIn) tags.add('نقص حضور');
     if (d.missingCheckOut) tags.add('نقص انصراف');
     if (d.hasCorrection) tags.add('تصحيح');
-    if (d.penalties > 0) tags.add('جزاء: ${d.penalties}');
 
     final isRest = d.status == 'راحة أسبوعية' || d.status == 'عطلة رسمية';
     final isWarn = _warnStatuses.contains(d.status);
@@ -293,7 +292,7 @@ Future<void> exportAttendancePdf(MonthlyAttendanceStatement statement) async {
       ? _months[statement.month - 1]
       : '${statement.month}';
   final fileName =
-      'كشف-حضور-${statement.employeeCode ?? statement.employeeNameAr}-${statement.year}-${statement.month.toString().padLeft(2, '0')}.pdf';
+      'كشف-حضور-${statement.employeeCode ?? statement.employeeNameAr}-${statement.year}-$monthName.pdf';
 
   final pdfBytes = await Printing.convertHtml(
     html: html,

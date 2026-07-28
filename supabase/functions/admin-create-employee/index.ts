@@ -145,21 +145,82 @@ Deno.serve(async (req) => {
   };
 
   const normalizedEmail = input.email.toLowerCase();
-  const { data: created, error: createError } = input.sendInvite
-    ? await admin.auth.admin.inviteUserByEmail(normalizedEmail, {
-      redirectTo: INVITE_REDIRECT,
-      data: userMetadata,
-    })
-    : await admin.auth.admin.createUser({
-      email: normalizedEmail,
-      password: inaccessibleRandomPassword(),
-      email_confirm: false,
-      user_metadata: userMetadata,
+
+  // ─── إنشاء حساب Auth مع استعادة تلقائية من اليتيم (orphan recovery) ───
+  // إذا فشل الإنشاء لأن البريد موجود مسبقًا (من محاولة سابقة فاشلة)،
+  // نحذف الحساب اليتيم ونعيد المحاولة مرة واحدة.
+  async function tryCreateAuthUser() {
+    const result = input.sendInvite
+      ? await admin.auth.admin.inviteUserByEmail(normalizedEmail, {
+        redirectTo: INVITE_REDIRECT,
+        data: userMetadata,
+      })
+      : await admin.auth.admin.createUser({
+        email: normalizedEmail,
+        password: inaccessibleRandomPassword(),
+        email_confirm: false,
+        user_metadata: userMetadata,
+      });
+    return result;
+  }
+
+  function isDuplicateError(err: { message?: string; status?: number } | null): boolean {
+    if (!err) return false;
+    const msg = (err.message ?? "").toLowerCase();
+    return msg.includes("already") || msg.includes("registered") ||
+      msg.includes("exists") || msg.includes("duplicate") ||
+      msg.includes("unique") || (err as { status?: number }).status === 422;
+  }
+
+  let { data: created, error: createError } = await tryCreateAuthUser();
+
+  // استعادة من حساب يتيم: حذف ثم إعادة إنشاء
+  if (createError && isDuplicateError(createError)) {
+    console.error("auth.createUser duplicate detected — attempting orphan recovery", {
+      message: createError.message,
+      status: (createError as { status?: number }).status,
     });
 
-  if (createError || !created.user) {
-    const duplicate = createError?.message.toLowerCase().includes("already") ?? false;
-    return json(req, { error: duplicate ? "account_already_exists" : "account_create_failed" }, duplicate ? 409 : 500);
+    // البحث عن الحساب اليتيم عبر GoTrue Admin REST API
+    const listRes = await fetch(
+      `${SUPABASE_URL}/auth/v1/admin/users?filter=email%20eq%20%22${encodeURIComponent(normalizedEmail)}%22&page=1&per_page=1`,
+      { headers: { Authorization: `Bearer ${SERVICE_ROLE}`, apikey: SERVICE_ROLE } },
+    );
+    const listBody = await listRes.json().catch(() => null);
+    const existingUsers = listBody?.users ?? [];
+
+    if (existingUsers.length > 0) {
+      const orphanId = existingUsers[0].id;
+      // تأكد أنه يتيم فعلاً (ليس لديه سجل موظف)
+      const { data: empRow } = await admin
+        .from("employees")
+        .select("id")
+        .eq("user_id", orphanId)
+        .eq("is_deleted", false)
+        .maybeSingle();
+
+      if (empRow) {
+        // الحساب مربوط بموظف فعلي — ليس يتيم
+        return json(req, { error: "account_already_exists" }, 409);
+      }
+
+      // حذف اليتيم وإعادة المحاولة
+      console.error("deleting orphaned auth user for recovery", { orphanId });
+      await admin.auth.admin.deleteUser(orphanId).catch(() => undefined);
+      ({ data: created, error: createError } = await tryCreateAuthUser());
+    }
+  }
+
+  if (createError || !created?.user) {
+    console.error("auth.createUser failed", {
+      message: createError?.message,
+      status: (createError as { status?: number })?.status,
+      name: (createError as { name?: string })?.name,
+    });
+    if (isDuplicateError(createError)) {
+      return json(req, { error: "account_already_exists" }, 409);
+    }
+    return json(req, { error: "account_create_failed" }, 500);
   }
 
   const userId = created.user.id;
