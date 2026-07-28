@@ -18,8 +18,8 @@ class MobileActionInboxPage extends ConsumerWidget {
       child: actions.when(
         loading: () => ListView(
           children: [
-            SizedBox(height: 240),
-            Center(child: CircularProgressIndicator()),
+            const SizedBox(height: 240),
+            const Center(child: CircularProgressIndicator(semanticsLabel: 'جاري التحميل')),
           ],
         ),
         error: (error, _) => ListView(
@@ -39,16 +39,17 @@ class MobileActionInboxPage extends ConsumerWidget {
         data: (items) => items.isEmpty
             ? ListView(
                 children: [
-                  SizedBox(height: 180),
+                  const SizedBox(height: 180),
                   Center(
                     child: Icon(
                       Icons.inbox_outlined,
                       size: 48,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      semanticLabel: 'لا توجد إجراءات',
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Center(child: Text('لا توجد إجراءات معلقة')),
+                  const Center(child: Text('لا توجد إجراءات معلقة')),
                 ],
               )
             : ListView.separated(

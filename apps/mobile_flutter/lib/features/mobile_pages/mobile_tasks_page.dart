@@ -17,8 +17,8 @@ class MobileTasksPage extends ConsumerWidget {
       child: tasks.when(
         loading: () => ListView(
           children: [
-            SizedBox(height: 220),
-            Center(child: CircularProgressIndicator()),
+            const SizedBox(height: 220),
+            const Center(child: CircularProgressIndicator(semanticsLabel: 'جاري التحميل')),
           ],
         ),
         error: (error, _) => ListView(
@@ -30,6 +30,7 @@ class MobileTasksPage extends ConsumerWidget {
               Icons.error_outline,
               size: 54,
               color: Theme.of(context).colorScheme.error,
+              semanticLabel: 'خطأ',
             ),
             const SizedBox(height: 12),
             Text(
@@ -58,6 +59,7 @@ class MobileTasksPage extends ConsumerWidget {
                       Icons.task_alt,
                       size: 54,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      semanticLabel: 'لا توجد مهام',
                     ),
                   ),
                   const SizedBox(height: 10),
