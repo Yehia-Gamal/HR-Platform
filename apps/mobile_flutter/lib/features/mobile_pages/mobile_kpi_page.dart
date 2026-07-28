@@ -72,6 +72,29 @@ class _MobileKpiPageState extends ConsumerState<MobileKpiPage> {
         ),
         data: (items) {
           // في مساحة الموظف: تصفية للتقييم الذاتي فقط.
+          // حماية: إذا لم يكن للمستخدم employeeId مربوط، نعرض رسالة واضحة.
+          if (widget.employeeOnly && widget.access.employeeId == null) {
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
+              children: [
+                const SizedBox(height: 100),
+                Column(
+                  children: [
+                    Icon(
+                      Icons.link_off_rounded,
+                      size: 48,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'حسابك غير مربوط بملف موظف.\nتواصل مع الموارد البشرية لربط حسابك.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ],
+            );
+          }
           final scoped = widget.employeeOnly
               ? items.where((e) => e.employeeId == widget.access.employeeId).toList(growable: false)
               : items;
