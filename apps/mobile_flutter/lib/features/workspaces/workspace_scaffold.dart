@@ -428,7 +428,3 @@ class _MoreItem {
   final String label;
   final Widget page;
 }
-
-extension _FirstOrNullExtension<T> on List<T> {
-  T? get firstOrNull => isEmpty ? null : first;
-}

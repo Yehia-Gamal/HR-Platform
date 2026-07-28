@@ -262,15 +262,38 @@ export function useAuditSecurityCenter() {
     enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<AuditSecurityData> => {
       if (auth.isMock) return (await loadDomainMocks()).mockAudit;
-      const [securityRows, auditRows, deviceRows] = await Promise.all([
+      const supabase = await getSupabase();
+      const [securityRows, auditRows, deviceResult] = await Promise.all([
         tableRows('security_events', 'id,event_type,severity,outcome,handled,occurred_at', 'occurred_at', 100),
         tableRows('audit_events', 'id,event_type,category,severity,summary_ar,target_table,occurred_at', 'occurred_at', 120),
-        tableRows('managed_devices', 'id,device_name,device_model,platform,app_version,environment,trusted,status,last_seen_at', 'last_seen_at', 100),
+        supabase.from('managed_devices')
+          .select('id,device_name,device_model,platform,os_version,app_version,environment,trusted,status,last_seen_at,first_seen_at,employee_id,employees(full_name_ar)')
+          .order('last_seen_at', { ascending: false })
+          .limit(200),
       ]);
+      if (deviceResult.error) throw deviceResult.error;
+      const deviceRows = rows(deviceResult.data);
       return {
         securityEvents: securityRows.map((item) => ({ id: string(item.id), eventType: string(item.event_type), severity: string(item.severity), outcome: string(item.outcome), handled: boolean(item.handled), occurredAt: string(item.occurred_at) })),
         auditEvents: auditRows.map((item) => ({ id: string(item.id), eventType: string(item.event_type), category: string(item.category), severity: string(item.severity), summary: nullableString(item.summary_ar), targetTable: nullableString(item.target_table), occurredAt: string(item.occurred_at) })),
-        devices: deviceRows.map((item) => ({ id: string(item.id), name: string(item.device_name) || string(item.device_model, 'جهاز غير مسمى'), platform: string(item.platform), appVersion: string(item.app_version), environment: string(item.environment), trusted: boolean(item.trusted), status: string(item.status), lastSeenAt: string(item.last_seen_at) })),
+        devices: deviceRows.map((item) => {
+          const emp = item.employees as Record<string, unknown> | null;
+          return {
+            id: string(item.id),
+            name: string(item.device_name) || string(item.device_model, 'جهاز غير مسمى'),
+            platform: string(item.platform),
+            appVersion: string(item.app_version),
+            environment: string(item.environment),
+            trusted: boolean(item.trusted),
+            status: string(item.status),
+            lastSeenAt: string(item.last_seen_at),
+            firstSeenAt: string(item.first_seen_at),
+            employeeId: nullableString(item.employee_id),
+            employeeName: emp ? string(emp.full_name_ar) || null : null,
+            deviceModel: nullableString(item.device_model),
+            osVersion: nullableString(item.os_version),
+          };
+        }),
       };
     },
   });
@@ -289,7 +312,17 @@ export function useAuditSecurityCommands() {
     },
     onSuccess: async () => client.invalidateQueries({ queryKey: ['audit-security-center'] }),
   });
-  return { handleEvent };
+  const revokeDevice = useMutation({
+    mutationFn: async (input: { deviceId: string; reason: string }) => {
+      if (auth.isMock) return input;
+      const supabase = await getSupabase();
+      const result = await supabase.rpc('revoke_managed_device', { p_device_id: input.deviceId, p_reason: input.reason });
+      if (result.error) throw result.error;
+      return result.data;
+    },
+    onSuccess: async () => client.invalidateQueries({ queryKey: ['audit-security-center'] }),
+  });
+  return { handleEvent, revokeDevice };
 }
 
 export function useIntegrationCenter() {

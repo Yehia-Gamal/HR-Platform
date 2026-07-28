@@ -1,5 +1,5 @@
-import { AlertTriangle, CheckCircle2, Fingerprint, History, Laptop, Loader2, Search, ShieldAlert, ShieldCheck, Smartphone, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { AlertTriangle, Calendar, CheckCircle2, ChevronDown, ChevronUp, Clock, Cpu, Fingerprint, History, Laptop, Loader2, Monitor, Search, ShieldAlert, ShieldCheck, ShieldX, Smartphone, Trash2, User, X } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
@@ -7,6 +7,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { SkeletonCard } from '../../ui/Skeletons';
 import { useAuditSecurityCenter, useAuditSecurityCommands } from './useControlCenters';
+import type { AuditSecurityData } from './controlCenterTypes';
 
 type Tab = 'security' | 'audit' | 'devices';
 
@@ -35,7 +36,7 @@ export function AuditSecurityPage() {
   const term = search.trim().toLocaleLowerCase('ar');
   const securityEvents = useMemo(() => (data?.securityEvents ?? []).filter((item) => !term || `${eventLabel(item.eventType)} ${item.severity} ${item.outcome}`.toLocaleLowerCase('ar').includes(term)), [data, term]);
   const auditEvents = useMemo(() => (data?.auditEvents ?? []).filter((item) => !term || `${eventLabel(item.eventType)} ${item.summary ?? ''} ${item.category} ${item.targetTable ?? ''}`.toLocaleLowerCase('ar').includes(term)), [data, term]);
-  const devices = useMemo(() => (data?.devices ?? []).filter((item) => !term || `${item.name} ${item.platform} ${item.environment} ${item.appVersion}`.toLocaleLowerCase('ar').includes(term)), [data, term]);
+  const devices = useMemo(() => (data?.devices ?? []).filter((item) => !term || `${item.name} ${item.employeeName ?? ''} ${item.platform} ${item.environment} ${item.appVersion} ${item.deviceModel ?? ''}`.toLocaleLowerCase('ar').includes(term)), [data, term]);
   const unhandled = (data?.securityEvents ?? []).filter((item) => !item.handled).length;
   const critical = (data?.securityEvents ?? []).filter((item) => ['high', 'critical'].includes(item.severity) && !item.handled).length;
   const activeDevices = (data?.devices ?? []).filter((item) => item.status === 'active').length;
@@ -99,11 +100,170 @@ export function AuditSecurityPage() {
       ) : null}
 
       {data && tab === 'devices' ? (
-        <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3" role="tabpanel" id="panel-devices" aria-labelledby="tab-devices" tabIndex={0}>
-          {devices.map((item) => <article className="card p-5" key={item.id}><div className="flex items-start justify-between gap-3"><span className="rounded-2xl bg-[var(--surface-muted)] p-3">{item.platform === 'web' ? <Laptop className="size-6" aria-hidden="true" /> : <Smartphone className="size-6" aria-hidden="true" />}</span><div className="flex flex-wrap justify-end gap-2"><StatusBadge value={item.status} /><StatusBadge value={item.trusted ? 'trusted' : 'untrusted'} label={item.trusted ? 'موثوق' : 'غير موثوق'} /></div></div><h2 className="mt-5 font-black">{item.name}</h2><p className="muted mt-1 text-sm">{item.platform.toUpperCase()} · الإصدار {item.appVersion}</p><div className="mt-4 grid grid-cols-2 gap-2 text-xs"><div className="rounded-xl bg-[var(--surface-muted)] p-3"><span className="muted block">البيئة</span><strong className="mt-1 block">{item.environment}</strong></div><div className="rounded-xl bg-[var(--surface-muted)] p-3"><span className="muted block">آخر ظهور</span><strong className="mt-1 block">{date(item.lastSeenAt)}</strong></div></div></article>)}
-          {!devices.length ? <div className="lg:col-span-2 xl:col-span-3"><EmptyState title="لا توجد أجهزة مطابقة" description="لا توجد أجهزة ضمن البحث الحالي." /></div> : null}
-        </section>
+        <DevicesPanel devices={devices} commands={commands} />
       ) : null}
+    </div>
+  );
+}
+
+type DeviceItem = AuditSecurityData['devices'][number];
+
+/** تجميع الأجهزة حسب الموظف — لإزالة التكرار وعرض جهاز واحد (الأحدث) لكل موظف+منصة */
+function deduplicateDevices(items: DeviceItem[]): DeviceItem[] {
+  const map = new Map<string, DeviceItem>();
+  for (const item of items) {
+    // مفتاح: موظف + منصة (أو id الموظف الفارغ + اسم الجهاز)
+    const key = `${item.employeeId ?? 'anon'}-${item.platform}-${item.name}`;
+    const existing = map.get(key);
+    if (!existing || item.lastSeenAt > existing.lastSeenAt) {
+      map.set(key, item);
+    }
+  }
+  return Array.from(map.values());
+}
+
+function DevicesPanel({ devices, commands }: { devices: DeviceItem[]; commands: ReturnType<typeof useAuditSecurityCommands> }) {
+  const deduplicated = useMemo(() => deduplicateDevices(devices), [devices]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [revokeTarget, setRevokeTarget] = useState<DeviceItem | null>(null);
+  const [revokeReason, setRevokeReason] = useState('');
+  const [revokeError, setRevokeError] = useState('');
+
+  const handleRevoke = useCallback(async () => {
+    if (!revokeTarget) return;
+    const reason = revokeReason.trim();
+    if (reason.length < 10) {
+      setRevokeError('السبب يجب أن يكون 10 أحرف على الأقل.');
+      return;
+    }
+    setRevokeError('');
+    try {
+      await commands.revokeDevice.mutateAsync({ deviceId: revokeTarget.id, reason });
+      setRevokeTarget(null);
+      setRevokeReason('');
+    } catch {
+      setRevokeError('تعذّر إلغاء تسجيل الجهاز. تحقق من صلاحياتك.');
+    }
+  }, [revokeTarget, revokeReason, commands.revokeDevice]);
+
+  return (
+    <>
+      {commands.revokeDevice.isError && !revokeTarget ? <ErrorBanner message="تعذّر إلغاء تسجيل الجهاز." /> : null}
+
+      {/* حوار تأكيد الإلغاء */}
+      {revokeTarget ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setRevokeTarget(null)}>
+          <div className="card w-full max-w-md space-y-4 p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3">
+              <span className="rounded-xl bg-[var(--danger-soft)] p-2.5 text-[var(--danger)]"><ShieldX className="size-5" aria-hidden="true" /></span>
+              <h3 className="text-lg font-black">إلغاء تسجيل الجهاز</h3>
+            </div>
+            <p className="text-sm">سيتم إلغاء تسجيل <strong>{revokeTarget.name}</strong>{revokeTarget.employeeName ? <> — <span className="text-[var(--brand-primary)]">{revokeTarget.employeeName}</span></> : null}. لا يمكن التراجع عن هذا الإجراء.</p>
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium">سبب الإلغاء <span className="text-[var(--danger)]">*</span></span>
+              <textarea className="input w-full" rows={3} value={revokeReason} onChange={(e) => setRevokeReason(e.target.value)} placeholder="اكتب سبب الإلغاء (10 أحرف على الأقل)…" />
+            </label>
+            {revokeError ? <p className="text-sm text-[var(--danger)]">{revokeError}</p> : null}
+            <div className="flex justify-end gap-2">
+              <button type="button" className="btn-secondary" onClick={() => { setRevokeTarget(null); setRevokeReason(''); setRevokeError(''); }}>إلغاء</button>
+              <button type="button" className="btn-danger" disabled={commands.revokeDevice.isPending} onClick={() => void handleRevoke()}>
+                {commands.revokeDevice.isPending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Trash2 className="size-4" aria-hidden="true" />}
+                {commands.revokeDevice.isPending ? 'جارٍ الإلغاء…' : 'تأكيد الإلغاء'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3" role="tabpanel" id="panel-devices" aria-labelledby="tab-devices" tabIndex={0}>
+        {deduplicated.map((item) => {
+          const isExpanded = expandedId === item.id;
+          const isRevoked = item.status === 'revoked';
+          return (
+            <article className={`card overflow-hidden ${isRevoked ? 'opacity-60' : ''}`} key={item.id}>
+              <div className="p-5">
+                {/* رأس البطاقة: أيقونة + حالة */}
+                <div className="flex items-start justify-between gap-3">
+                  <span className="rounded-2xl bg-[var(--surface-muted)] p-3">
+                    {item.platform === 'web' ? <Monitor className="size-6" aria-hidden="true" /> : item.platform === 'ios' ? <Smartphone className="size-6" aria-hidden="true" /> : <Smartphone className="size-6" aria-hidden="true" />}
+                  </span>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <StatusBadge value={item.status} />
+                    <StatusBadge value={item.trusted ? 'trusted' : 'untrusted'} label={item.trusted ? 'موثوق' : 'غير موثوق'} />
+                  </div>
+                </div>
+
+                {/* اسم الجهاز */}
+                <h2 className="mt-4 font-black">{item.name}</h2>
+
+                {/* اسم الموظف */}
+                <div className="mt-2 flex items-center gap-2 text-sm">
+                  <User className="size-4 shrink-0 text-[var(--brand-primary)]" aria-hidden="true" />
+                  <span className={item.employeeName ? 'font-medium' : 'muted'}>{item.employeeName ?? 'غير مرتبط بموظف'}</span>
+                </div>
+
+                {/* معلومات أساسية */}
+                <p className="muted mt-2 text-sm">{item.platform.toUpperCase()}{item.deviceModel ? ` · ${item.deviceModel}` : ''} · الإصدار {item.appVersion}</p>
+
+                {/* شبكة المعلومات المختصرة */}
+                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-xl bg-[var(--surface-muted)] p-3">
+                    <span className="muted flex items-center gap-1"><Clock className="size-3" aria-hidden="true" /> آخر ظهور</span>
+                    <strong className="mt-1 block">{date(item.lastSeenAt)}</strong>
+                  </div>
+                  <div className="rounded-xl bg-[var(--surface-muted)] p-3">
+                    <span className="muted flex items-center gap-1"><Cpu className="size-3" aria-hidden="true" /> البيئة</span>
+                    <strong className="mt-1 block">{item.environment}</strong>
+                  </div>
+                </div>
+
+                {/* زر عرض/إخفاء التفاصيل */}
+                <button type="button" className="mt-3 flex w-full items-center justify-center gap-1 rounded-xl py-2 text-xs font-medium text-[var(--brand-primary)] transition hover:bg-[var(--surface-muted)]" onClick={() => setExpandedId(isExpanded ? null : item.id)}>
+                  {isExpanded ? <ChevronUp className="size-4" aria-hidden="true" /> : <ChevronDown className="size-4" aria-hidden="true" />}
+                  {isExpanded ? 'إخفاء التفاصيل' : 'عرض التفاصيل'}
+                </button>
+              </div>
+
+              {/* التفاصيل الموسّعة */}
+              {isExpanded ? (
+                <div className="border-t border-[var(--border)] bg-[var(--surface-muted)] px-5 py-4">
+                  <dl className="grid grid-cols-2 gap-3 text-xs">
+                    {item.osVersion ? <DetailItem label="نظام التشغيل" value={item.osVersion} /> : null}
+                    {item.deviceModel ? <DetailItem label="الطراز" value={item.deviceModel} /> : null}
+                    <DetailItem label="أول ظهور" value={date(item.firstSeenAt)} />
+                    <DetailItem label="آخر ظهور" value={date(item.lastSeenAt)} />
+                    <DetailItem label="المنصة" value={item.platform.toUpperCase()} />
+                    <DetailItem label="إصدار التطبيق" value={item.appVersion} />
+                    <DetailItem label="البيئة" value={item.environment} />
+                    <DetailItem label="الثقة" value={item.trusted ? 'موثوق ✓' : 'غير موثوق ✗'} />
+                  </dl>
+
+                  {/* زر إلغاء التسجيل */}
+                  {!isRevoked ? (
+                    <button type="button" className="btn-danger mt-4 w-full" onClick={() => { setRevokeTarget(item); setRevokeReason(''); setRevokeError(''); }}>
+                      <Trash2 className="size-4" aria-hidden="true" /> إلغاء تسجيل الجهاز
+                    </button>
+                  ) : (
+                    <p className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-[var(--danger-soft)] p-3 text-sm font-medium text-[var(--danger)]">
+                      <ShieldX className="size-4" aria-hidden="true" /> تم إلغاء التسجيل
+                    </p>
+                  )}
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
+        {!deduplicated.length ? <div className="lg:col-span-2 xl:col-span-3"><EmptyState title="لا توجد أجهزة مطابقة" description="لا توجد أجهزة ضمن البحث الحالي." /></div> : null}
+      </section>
+    </>
+  );
+}
+
+function DetailItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="muted">{label}</dt>
+      <dd className="mt-0.5 font-medium">{value}</dd>
     </div>
   );
 }
