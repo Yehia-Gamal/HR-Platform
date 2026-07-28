@@ -160,6 +160,16 @@ export function CreateEmployeePage() {
         phone_already_exists: 'رقم الهاتف مسجل لموظف نشط بالفعل.',
         employee_code_already_exists: 'كود الموظف مستخدم بالفعل.',
         employee_provision_failed: 'تعذر إنشاء سجل الموظف. تحقق من البيانات وحاول مرة أخرى.',
+        server_not_configured: 'الخدمة غير مهيأة. تواصل مع الدعم.',
+        invalid_session: 'انتهت صلاحية الجلسة. سجّل الدخول مجددًا.',
+        permission_check_failed: 'تعذر التحقق من الصلاحية.',
+        validation_failed: 'بيانات النموذج غير صالحة. راجع الحقول وحاول مرة أخرى.',
+        role_validation_failed: 'تعذر التحقق من المنصب المختار.',
+        protected_role_not_allowed: 'لا يمكن إسناد هذا المنصب المحمي.',
+        role_authorization_failed: 'تعذر التحقق من صلاحية إسناد المنصب.',
+        role_assignment_forbidden: 'ليس لديك صلاحية إسناد هذا المنصب.',
+        account_create_failed: 'تعذر إنشاء حساب الدخول. أعد المحاولة لاحقًا.',
+        manager_not_active: 'المدير المباشر المختار غير نشط.',
       };
       let message = 'تعذر إنشاء الموظف.';
       if (error && typeof error === 'object' && 'context' in error) {

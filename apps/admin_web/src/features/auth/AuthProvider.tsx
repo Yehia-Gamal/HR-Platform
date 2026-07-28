@@ -113,9 +113,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
       error?: string;
     } | null;
     if (invokeError || !payload?.access_token || !payload.refresh_token) {
-      const message = payload?.error === 'TOO_MANY_ATTEMPTS'
+      // FunctionsHttpError: data يكون null — نستخرج كود الخطأ من جسم الاستجابة
+      let errorCode = payload?.error;
+      if (!errorCode && invokeError) {
+        const resp = (invokeError as Record<string, unknown>).context;
+        if (resp instanceof Response) {
+          const body = await resp.json().catch(() => null) as { error?: string } | null;
+          errorCode = body?.error;
+        }
+      }
+      const message = errorCode === 'TOO_MANY_ATTEMPTS'
         ? 'محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.'
-        : 'بيانات الدخول غير صحيحة أو الحساب غير متاح.';
+        : errorCode === 'SERVER_CONFIGURATION'
+          ? 'الخدمة غير مهيأة. تواصل مع الدعم.'
+          : 'بيانات الدخول غير صحيحة أو الحساب غير متاح.';
       setError(message);
       setStatus('anonymous');
       throw new Error(message);

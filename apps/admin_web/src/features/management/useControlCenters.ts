@@ -114,12 +114,31 @@ export function useLiveLocationResponse(requestId: string | null, isActive: bool
 
 // V17 §9: useLiveLocationVideoUrl removed — video permanently disabled.
 
+const MAP_URL_ERROR_MESSAGES: Record<string, string> = {
+  METHOD_NOT_ALLOWED: 'طريقة الطلب غير مدعومة.',
+  SERVER_CONFIGURATION: 'الخدمة غير مهيأة. تواصل مع الدعم.',
+  unauthorized: 'انتهت صلاحية الجلسة. سجّل الدخول مجددًا.',
+  INVALID_INPUT: 'معرّف الطلب غير صالح.',
+  GATE_FAILED: 'تعذّر التحقق من صلاحية الوصول.',
+  FORBIDDEN: 'ليس لديك صلاحية لعرض هذا الموقع.',
+  SIGN_FAILED: 'تعذّر توقيع رابط لقطة الخريطة.',
+};
+
 export function useLiveLocationMapUrl() {
   return useMutation({
     mutationFn: async (requestId: string): Promise<string> => {
       const supabase = await getSupabase();
       const { data, error } = await supabase.functions.invoke('live-location-map-url', { body: { requestId } });
-      if (error) throw error;
+      if (error) {
+        // FunctionsHttpError: data = null — نستخرج كود الخطأ من جسم الاستجابة
+        let message = 'تعذّر توقيع رابط لقطة الخريطة.';
+        const resp = (error as Record<string, unknown>).context;
+        if (resp instanceof Response) {
+          const body = await resp.json().catch(() => null) as { error?: string } | null;
+          if (body?.error) message = MAP_URL_ERROR_MESSAGES[body.error] ?? message;
+        }
+        throw new Error(message);
+      }
       const url = (data as { url?: string } | null)?.url;
       if (!url) throw new Error('تعذّر توقيع رابط لقطة الخريطة.');
       return url;
