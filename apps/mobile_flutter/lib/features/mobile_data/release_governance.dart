@@ -168,11 +168,15 @@ final releasePolicyProvider = FutureProvider<MobileReleasePolicy>((ref) async {
         // Retry also failed — fall through to default policy.
       }
     }
-    rethrow;
+    // أي خطأ Postgrest آخر (RPC غير موجود، خطأ في الجدول…) → لا نحجب التطبيق.
+    return MobileReleasePolicy.continueAction();
   } on SocketException {
     // Offline: return default "continue" policy so the app doesn't brick.
     return MobileReleasePolicy.continueAction();
   } on TimeoutException {
+    return MobileReleasePolicy.continueAction();
+  } catch (_) {
+    // أي استثناء آخر (DNS، SSL، ClientException…) → لا نحجب التطبيق.
     return MobileReleasePolicy.continueAction();
   }
 });
