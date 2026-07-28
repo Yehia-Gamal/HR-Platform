@@ -23,9 +23,16 @@ export function usePublishAnnouncement() {
   const auth = useAuth();
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { title: string; body: string; category: string; priority: string; requiresAcknowledgement: boolean; bannerUrl?: string | null; postType?: string }) => {
+    mutationFn: async (input: {
+      title: string; body: string; category: string; priority: string;
+      requiresAcknowledgement: boolean; bannerUrl?: string | null;
+      postType?: string; pollOptions?: string[]; expiresAt?: string;
+    }) => {
       if (auth.isMock) return input;
       const supabase = await getSupabase();
+      const pollOpts = input.postType === 'poll' && input.pollOptions?.length
+        ? input.pollOptions.filter((o) => o.trim())
+        : null;
       const { data, error } = await supabase.rpc('publish_official_announcement', {
         p_title: input.title,
         p_body: input.body,
@@ -33,6 +40,9 @@ export function usePublishAnnouncement() {
         p_priority: input.priority,
         p_requires_acknowledgement: input.requiresAcknowledgement,
         p_banner_url: input.bannerUrl ?? null,
+        p_post_type: input.postType ?? 'standard',
+        p_poll_options: pollOpts,
+        p_expires_at: input.expiresAt || null,
       });
       if (error) throw error;
       return data;
