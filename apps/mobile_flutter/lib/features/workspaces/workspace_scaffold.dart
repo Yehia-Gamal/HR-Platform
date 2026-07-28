@@ -14,6 +14,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/executive_people
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_risk_center_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/manager_operations_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_services_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_daily_reports_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_disputes_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
@@ -22,6 +23,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_official_
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_profile_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_tasks_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_team_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/org_chart_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
@@ -210,6 +212,8 @@ class WorkspaceScaffold extends ConsumerWidget {
 
   void _showMore(BuildContext context, WidgetRef ref) {
     final isExecutive = workspace == WorkspaceId.executive;
+    final isManagerOrOps = workspace == WorkspaceId.manager ||
+        workspace == WorkspaceId.fieldOperations;
     final items = <_MoreItem>[
       if (isExecutive) ...[
         _MoreItem(
@@ -293,6 +297,38 @@ class WorkspaceScaffold extends ConsumerWidget {
           icon: Icons.summarize_outlined,
           label: 'التقارير اليومية',
           page: const MobileDailyReportsPage(),
+        ),
+      ],
+      // §9.1 — ميزات إضافية لمساحة المدير والتشغيل
+      if (isManagerOrOps) ...[
+        _MoreItem(
+          icon: Icons.task_alt_outlined,
+          label: 'المهام الشخصية',
+          page: Scaffold(
+            appBar: AppBar(title: const Text('المهام الشخصية')),
+            body: const MobileTasksPage(),
+          ),
+        ),
+        _MoreItem(
+          icon: Icons.summarize_outlined,
+          label: 'التقارير اليومية',
+          page: const MobileDailyReportsPage(),
+        ),
+        _MoreItem(
+          icon: Icons.people_outline_rounded,
+          label: 'ملفات أعضاء الفريق',
+          page: Scaffold(
+            appBar: AppBar(title: const Text('ملفات أعضاء الفريق')),
+            body: const MobileTeamPage(),
+          ),
+        ),
+        _MoreItem(
+          icon: Icons.inbox_rounded,
+          label: 'صندوق الإجراءات',
+          page: Scaffold(
+            appBar: AppBar(title: const Text('صندوق الإجراءات')),
+            body: const MobileActionInboxPage(),
+          ),
         ),
       ],
       // §8.3.3 — القرارات والتعاميم متاحة لجميع المستخدمين
