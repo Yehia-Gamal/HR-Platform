@@ -171,26 +171,26 @@ export const attendanceStatementDaySchema = z.object({
   overtimeMinutes: z.number(),
   status: z.string(),
   /** غائب */
-  isAbsent: z.boolean().default(false),
+  isAbsent: z.boolean().catch(false),
   /** يوم عطلة رسمية */
-  isOfficialHoliday: z.boolean().default(false),
-  hasLeave: z.boolean().default(false),
+  isOfficialHoliday: z.boolean().catch(false),
+  hasLeave: z.boolean().catch(false),
   /** إذن تأخير — V23 §14 */
-  hasLatePermit: z.boolean().default(false),
+  hasLatePermit: z.boolean().catch(false),
   /** إذن انصراف مبكر — V23 §14 */
-  hasEarlyPermit: z.boolean().default(false),
+  hasEarlyPermit: z.boolean().catch(false),
   /** توافق خلفي: hasPermit = hasLatePermit || hasEarlyPermit */
-  hasPermit: z.boolean().default(false),
-  hasMission: z.boolean().default(false),
-  hasConvoyFundi: z.boolean().default(false),
-  missingCheckIn: z.boolean().default(false),
-  missingCheckOut: z.boolean().default(false),
-  hasCorrection: z.boolean().default(false),
+  hasPermit: z.boolean().catch(false),
+  hasMission: z.boolean().catch(false),
+  hasConvoyFundi: z.boolean().catch(false),
+  missingCheckIn: z.boolean().catch(false),
+  missingCheckOut: z.boolean().catch(false),
+  hasCorrection: z.boolean().catch(false),
   correctionNote: z.string().nullable(),
   /** ملاحظات اليوم — V23 §14 */
   notes: z.string().nullable().default(null),
   /** الجزاءات (مثلاً خصم ساعات) — V23 §14 */
-  penalties: z.number().default(0),
+  penalties: z.number().catch(0),
 });
 export type AttendanceStatementDay = z.infer<typeof attendanceStatementDaySchema>;
 

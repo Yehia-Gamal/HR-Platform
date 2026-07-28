@@ -136,10 +136,10 @@ begin
     'workspaces', to_jsonb(v_workspaces),
     'defaultWorkspace', v_default_workspace,
     'attendancePolicy', jsonb_build_object(
-      -- البصمة تظهر لكل الموظفين ما عدا التنفيذي فقط
-      'attendanceRequired', not v_is_executive and v_employee_id is not null,
-      'selfPunchEnabled', not v_is_executive and v_employee_id is not null,
-      'liveLocationResponseEnabled', not v_is_executive and v_employee_id is not null
+      -- البصمة تظهر لكل الموظفين ما عدا التنفيذي و الأدمن الرئيسي (سكرتير/مشرف)
+      'attendanceRequired', not v_is_executive and not v_is_main_admin and v_employee_id is not null,
+      'selfPunchEnabled', not v_is_executive and not v_is_main_admin and v_employee_id is not null,
+      'liveLocationResponseEnabled', not v_is_executive and not v_is_main_admin and v_employee_id is not null
     )
   );
 end;

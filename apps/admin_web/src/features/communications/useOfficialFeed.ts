@@ -33,7 +33,6 @@ export function usePublishAnnouncement() {
         p_priority: input.priority,
         p_requires_acknowledgement: input.requiresAcknowledgement,
         p_banner_url: input.bannerUrl ?? null,
-        p_post_type: input.postType ?? 'announcement',
       });
       if (error) throw error;
       return data;

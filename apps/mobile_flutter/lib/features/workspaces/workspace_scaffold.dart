@@ -1,4 +1,3 @@
-import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
@@ -348,16 +347,9 @@ class WorkspaceScaffold extends ConsumerWidget {
                   },
                 ),
               ),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  Navigator.pop(sheetContext);
-                  await ref.read(supabaseProvider).auth.signOut();
-                  ref.invalidate(accessContextProvider);
-                },
-                icon: const Icon(Icons.logout_rounded),
-                label: const Text('تسجيل الخروج'),
-              ),
+              // V23 — لا زر خروج: التطبيق يبقى فعّالاً دائمًا لاستقبال
+              // الإشعارات وطلبات الموقع المباشر من المدير التنفيذي.
+              // الجلسة تُدار بالكامل من الخادم (إبطال / صيانة / تحديث إجباري).
             ],
           ),
         ),

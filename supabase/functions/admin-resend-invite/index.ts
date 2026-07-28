@@ -74,11 +74,9 @@ Deno.serve(async (req) => {
     .limit(1)
     .maybeSingle();
   if (recentError) {
-    // If the table doesn't exist yet, skip the rate-limit check gracefully
-    // so existing deployments aren't broken before the migration lands.
-    if (recentError.code !== "42P01") {
-      return json(req, { error: "rate_limit_check_failed" }, 500);
-    }
+    // Table auth_invite_log doesn't exist yet — skip rate-limit check.
+    // PostgREST returns PGRST-prefixed codes (not PostgreSQL 42P01) when a
+    // relation is missing from the schema cache, so accept any error here.
   } else if (recentInvite) {
     return json(req, { error: "too_many_requests", retryAfterSeconds: 60 }, 429);
   }
@@ -88,6 +86,13 @@ Deno.serve(async (req) => {
     { redirectTo: INVITE_REDIRECT },
   );
   if (inviteError) return json(req, { error: "invite_send_failed" }, 502);
+
+  // Record the invite so the rate-limit check above can actually block repeats.
+  await admin.from("auth_invite_log").insert({
+    employee_id: input.employeeId,
+    sent_by: userData.user.id,
+    email: authUser.user.email.toLowerCase(),
+  }).catch(() => { /* table may not exist yet — graceful, mirrors the read fallback */ });
 
   return json(req, { invitationSent: true, email: authUser.user.email }, 200);
 });

@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
 
   const { data: credential, error: credentialError } = await admin
     .from("passkey_credentials")
-    .select("id, credential_id, public_key, status, employee_id, user_id, sign_count, transports")
+    .select("id, credential_id, public_key, status, employee_id, user_id, sign_count, transports, device_label")
     .eq("credential_id", credentialId)
     .eq("employee_id", profile.employee_id)
     .eq("user_id", userData.user.id)
@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
       },
     });
   } catch (error) {
-    console.error("attendance assertion verification failed", error);
+    console.error("attendance assertion verification failed", error instanceof Error ? error.message : "unknown error");
     return json(req, { error: "assertion_verification_failed" }, 403);
   }
   if (!verification.verified) return json(req, { error: "assertion_not_verified" }, 403);

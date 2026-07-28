@@ -202,7 +202,10 @@ Deno.serve(async (req) => {
     if (deleteError) {
       await admin.auth.admin.deleteUser(userId).catch(() => undefined);
     }
-    return json(req, { error: errorCode, orphanedUserId: deleteError ? userId : undefined }, 500);
+    if (deleteError) {
+      console.error("orphaned auth user cleanup failed", { userId, code: (deleteError as { code?: string })?.code });
+    }
+    return json(req, { error: errorCode }, 500);
   }
 
   const result = provisioned as { employeeId?: string; userId?: string } | null;

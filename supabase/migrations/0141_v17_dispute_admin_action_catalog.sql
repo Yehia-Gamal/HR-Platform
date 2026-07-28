@@ -13,7 +13,9 @@ returns jsonb language plpgsql stable security definer set search_path=public,pg
 begin
  if not(public.current_is_full_access() or public.has_permission('disputes.portal.access') or public.has_permission('disputes.case.read_all') or exists(select 1 from public.committee_members where employee_id=public.current_employee_id() and is_active)) then raise exception 'FORBIDDEN' using errcode='42501'; end if;
  return jsonb_build_object(
-  'cases',coalesce((select jsonb_agg(jsonb_build_object(
+  'cases',coalesce((select jsonb_agg(
+   -- Split into two jsonb_build_object calls merged with || to stay under PG's 100-arg limit
+   jsonb_build_object(
    'id',c.id,'caseNumber',c.case_number,'title',c.title,'description',c.description,'caseType',c.case_type,'status',c.status,'priority',c.severity,
    'actorId',c.actor_employee_id,'actorName',a.full_name_ar,'actorDepartment',ad.name,
    'respondentId',c.respondent_employee_id,'respondentName',r.full_name_ar,
@@ -22,7 +24,7 @@ begin
    'incidentAt',c.incident_at,'incidentLocation',c.incident_location,'requestedAction',c.requested_action,
    'directManagerContacted',c.direct_manager_contacted,'amicableAttempted',c.amicable_resolution_attempted,'amicableResult',c.amicable_resolution_result,
    'confidential',c.is_confidential,'privacyLevel',c.privacy_level,'quorum',c.committee_quorum,'closureReason',c.closure_reason,
-   -- V17 admin-action fields (mig 0131 columns) ─────────────────────────────
+   -- V17 admin-action fields (mig 0131 columns)
    'proposedAdminAction',c.proposed_administrative_action,
    'proposedActionDetail',c.proposed_action_detail,
    'proposedAt',c.proposed_at,
@@ -35,8 +37,8 @@ begin
    'approvedActionDetail',c.approved_action_detail,
    'executedAt',c.executed_at,
    'executedByName',exb.full_name_ar,
-   'executionNotes',c.execution_notes,
-   -- ────────────────────────────────────────────────────────────────────────
+   'executionNotes',c.execution_notes
+   ) || jsonb_build_object(
    'parties',coalesce((select jsonb_agg(jsonb_build_object('id',dp.id,'employeeId',dp.employee_id,'name',pe.full_name_ar,'type',dp.party_type,'notificationStatus',dp.notification_status,'notifiedAt',dp.notified_at,'statementSubmittedAt',dp.statement_submitted_at) order by dp.party_type,pe.full_name_ar) from public.dispute_parties dp join public.employees pe on pe.id=dp.employee_id where dp.case_id=c.id),'[]'::jsonb),
    'members',coalesce((select jsonb_agg(jsonb_build_object('id',m.id,'employeeId',m.employee_id,'name',me.full_name_ar,'role',m.role_in_committee,'active',m.is_active) order by m.role_in_committee) from public.committee_members m join public.employees me on me.id=m.employee_id where m.case_id=c.id),'[]'::jsonb),
    'statements',coalesce((select jsonb_agg(jsonb_build_object('id',st.id,'submittedBy',st.submitted_by,'submittedByName',se.full_name_ar,'type',st.statement_type,'text',st.statement_text,'visibility',st.visibility,'submittedAt',st.submitted_at) order by st.submitted_at desc) from public.dispute_statements st join public.employees se on se.id=st.submitted_by where st.case_id=c.id),'[]'::jsonb),
@@ -47,7 +49,8 @@ begin
    'actions',coalesce((select jsonb_agg(jsonb_build_object('id',x.id,'type',x.action_type,'note',x.note,'assignedTo',x.assigned_to,'assignedName',xe.full_name_ar,'dueAt',x.due_at,'status',x.execution_status,'proof',x.completion_proof,'completedAt',x.completed_at,'createdAt',x.created_at) order by x.created_at desc) from public.dispute_actions x left join public.employees xe on xe.id=x.assigned_to where x.case_id=c.id and x.execution_status is not null),'[]'::jsonb),
    'settlements',coalesce((select jsonb_agg(jsonb_build_object('id',z.id,'type',z.settlement_type,'fromName',zf.full_name_ar,'toName',zt.full_name_ar,'text',z.apology_text,'publicationPlace',z.publication_place,'dueAt',z.due_at,'status',z.status,'completedAt',z.completed_at) order by z.created_at desc) from public.dispute_settlements z left join public.employees zf on zf.id=z.apology_from left join public.employees zt on zt.id=z.apology_to where z.case_id=c.id),'[]'::jsonb),
    'appeals',coalesce((select jsonb_agg(jsonb_build_object('id',ap.id,'decisionId',ap.decision_id,'appellantId',ap.appellant_employee_id,'appellantName',ape.full_name_ar,'reason',ap.reason,'status',ap.status,'submittedAt',ap.submitted_at,'resolution',ap.resolution) order by ap.submitted_at desc) from public.dispute_appeals ap join public.employees ape on ape.id=ap.appellant_employee_id where ap.case_id=c.id),'[]'::jsonb)
-  ) order by case when c.status in ('submitted','needs_more_information') then 0 when c.status='action_proposed' then 1 when c.status='pending_execution' then 2 else 3 end,c.review_due_at,c.opened_at desc)
+   )
+  order by case when c.status in ('submitted','needs_more_information') then 0 when c.status='action_proposed' then 1 when c.status='pending_execution' then 2 else 3 end,c.review_due_at,c.opened_at desc)
   from public.dispute_cases c
   left join public.employees a on a.id=c.actor_employee_id left join public.departments ad on ad.id=a.department_id
   left join public.employees r on r.id=c.respondent_employee_id left join public.employees ass on ass.id=c.assigned_to

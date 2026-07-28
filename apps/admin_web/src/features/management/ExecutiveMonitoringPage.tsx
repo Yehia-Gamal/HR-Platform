@@ -6,6 +6,7 @@ import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
+import { useAuth } from '../auth/AuthProvider';
 import { LiveLocationMap, type MapPoint } from './LiveLocationMap';
 import { LiveLocationResultCard } from './LiveLocationResultCard';
 import { useExecutiveAttendanceOverview, useLiveLocationCommands } from './useControlCenters';
@@ -41,6 +42,7 @@ function relative(value: string | null): string {
 }
 
 export function ExecutiveMonitoringPage() {
+  const auth = useAuth();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
@@ -135,12 +137,12 @@ export function ExecutiveMonitoringPage() {
                     </div>
                     {e.activeRequestStatus ? <StatusBadge value={e.activeRequestStatus} /> : null}
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  {e.id !== auth.access?.employeeId ? <div className="mt-3 flex flex-wrap gap-2">
                     <button type="button" className="btn-secondary flex-1" disabled={Boolean(e.activeRequestId)} onClick={() => setDraft({ row: e, reason: '' })}>
                       <Send className="size-4" />{e.activeRequestId ? 'يوجد طلب نشط' : 'طلب موقع حي'}
                     </button>
                     {e.activeRequestId ? <button type="button" className="btn-secondary" onClick={() => setSelectedRequestId(e.activeRequestId)}>عرض النتيجة</button> : null}
-                  </div>
+                  </div> : null}
                 </article>
               ))}
             </div>

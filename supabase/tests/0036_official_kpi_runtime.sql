@@ -70,13 +70,13 @@ begin
  insert into public.kpi_cycles(
    period_month,status,template_id,scheduled_open_at,deadline_at,
    self_due_at,manager_due_at,secretary_due_at,executive_due_at,
-   opened_at,policy_version_id,use_parallel_flow,
+   opened_at,policy_version_id,
    extended_until)
  values(
    v_test_month,'open',v_template,now(),v_test_month+interval '60 days',
    v_test_month+interval '60 days',v_test_month+interval '60 days',
    v_test_month+interval '60 days',v_test_month+interval '60 days',
-   now(),v_policy,false,
+   now(),v_policy,
    v_test_month+interval '60 days')
  on conflict(period_month) do update set
    status='open',template_id=excluded.template_id,

@@ -100,15 +100,24 @@ export function MonthlyAttendanceReportPage() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
-  const [employeeSearch, setEmployeeSearch] = useState('');
+  const [filterText, setFilterText] = useState('');
 
-  const employeesQuery = useEmployees(employeeSearch || undefined, 'active');
+  // تحميل كل الموظفين النشطين مرة واحدة
+  const employeesQuery = useEmployees(undefined, 'active');
   const statementQuery = useEmployeeMonthlyStatement(selectedEmployeeId, year, month);
 
-  const selectedEmployee = useMemo(() => {
-    if (!selectedEmployeeId || !employeesQuery.data) return null;
-    return employeesQuery.data.find((e) => e.id === selectedEmployeeId) ?? null;
-  }, [selectedEmployeeId, employeesQuery.data]);
+  // فلترة محلية للبطاقات حسب النص
+  const filteredEmployees = useMemo(() => {
+    const all = employeesQuery.data ?? [];
+    if (!filterText.trim()) return all;
+    const q = filterText.trim().toLowerCase();
+    return all.filter((e) =>
+      e.fullNameAr.toLowerCase().includes(q)
+      || (e.fullNameEn ?? '').toLowerCase().includes(q)
+      || (e.employeeCode ?? '').toLowerCase().includes(q)
+      || (e.department ?? '').toLowerCase().includes(q),
+    );
+  }, [employeesQuery.data, filterText]);
 
   return (
     <div className="space-y-6 print:space-y-3">
@@ -131,55 +140,24 @@ export function MonthlyAttendanceReportPage() {
         }
       />
 
-      {/* ─── شريط الفلاتر ─── */}
+      {/* ─── شريط الفترة + البحث ─── */}
       <section className="card space-y-4 p-5 print:hidden" aria-label="اختيار الموظف والفترة">
         <div className="grid gap-4 sm:grid-cols-[1fr_auto_auto]">
-          {/* اختيار الموظف */}
-          <div className="relative">
-            <label className="text-sm font-bold">
-              <span className="block mb-1">الموظف</span>
-              <div className="relative">
-                <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
-                <input
-                  type="search"
-                  className="input w-full pr-9"
-                  placeholder="ابحث بالاسم أو الكود…"
-                  value={employeeSearch}
-                  onChange={(e) => {
-                    setEmployeeSearch(e.target.value);
-                    if (!e.target.value) setSelectedEmployeeId(null);
-                  }}
-                  aria-label="بحث الموظف"
-                />
-              </div>
-            </label>
-            {/* قائمة نتائج البحث */}
-            {employeeSearch && !selectedEmployeeId && employeesQuery.data ? (
-              <div className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-lg">
-                {employeesQuery.data.length === 0 ? (
-                  <p className="p-3 text-center text-sm text-[var(--text-muted)]">لا توجد نتائج</p>
-                ) : (
-                  employeesQuery.data.slice(0, 20).map((emp) => (
-                    <button
-                      key={emp.id}
-                      type="button"
-                      className="flex w-full items-center gap-3 px-3 py-2.5 text-right hover:bg-[var(--surface-muted)] transition-colors"
-                      onClick={() => {
-                        setSelectedEmployeeId(emp.id);
-                        setEmployeeSearch(emp.fullNameAr);
-                      }}
-                    >
-                      <UserAvatar displayName={emp.fullNameAr} size="sm" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold">{emp.fullNameAr}</p>
-                        <p className="truncate text-xs text-[var(--text-muted)]">{emp.employeeCode} · {emp.department ?? '—'}</p>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-            ) : null}
-          </div>
+          {/* بحث فلترة سريع */}
+          <label className="text-sm font-bold">
+            <span className="block mb-1">بحث سريع</span>
+            <div className="relative">
+              <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
+              <input
+                type="search"
+                className="input w-full pr-9"
+                placeholder="فلترة بالاسم أو الكود أو الإدارة…"
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
+                aria-label="فلترة الموظفين"
+              />
+            </div>
+          </label>
 
           {/* اختيار الشهر */}
           <label className="text-sm font-bold">
@@ -197,31 +175,62 @@ export function MonthlyAttendanceReportPage() {
             </select>
           </label>
         </div>
+      </section>
 
-        {/* بطاقة الموظف المختار */}
-        {selectedEmployee ? (
-          <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/40 p-3">
-            <UserAvatar displayName={selectedEmployee.fullNameAr} size="md" />
-            <div className="min-w-0 flex-1">
-              <p className="font-bold">{selectedEmployee.fullNameAr}</p>
-              <p className="text-xs text-[var(--text-muted)]">
-                {selectedEmployee.employeeCode} · {selectedEmployee.department ?? '—'} · {selectedEmployee.jobTitle ?? '—'}
-              </p>
-            </div>
-            <button
-              className="btn-secondary text-xs"
-              onClick={() => { setSelectedEmployeeId(null); setEmployeeSearch(''); }}
-            >
-              تغيير
-            </button>
+      {/* ─── شبكة بطاقات الموظفين ─── */}
+      <section className="print:hidden" aria-label="اختيار الموظف">
+        {employeesQuery.isLoading ? (
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} className="h-24" />)}
           </div>
-        ) : null}
+        ) : employeesQuery.isError ? (
+          <ErrorState description="تعذر تحميل قائمة الموظفين." onRetry={() => void employeesQuery.refetch()} />
+        ) : filteredEmployees.length === 0 ? (
+          <EmptyState title="لا توجد نتائج" description={filterText ? 'جرّب كلمة بحث مختلفة.' : 'لا يوجد موظفون نشطون.'} />
+        ) : (
+          <>
+            <div className="mb-3 flex items-center gap-2 text-sm text-[var(--text-muted)]">
+              <Users className="size-4" />
+              <span>{filteredEmployees.length} موظف</span>
+              {selectedEmployeeId ? <span className="font-bold text-[var(--brand-primary)]">— تم الاختيار</span> : <span>— اختر موظفًا لعرض الكشف</span>}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {filteredEmployees.map((emp) => {
+                const isSelected = emp.id === selectedEmployeeId;
+                return (
+                  <button
+                    key={emp.id}
+                    type="button"
+                    onClick={() => setSelectedEmployeeId(isSelected ? null : emp.id)}
+                    className={`relative flex items-center gap-3 rounded-xl border-2 p-3 text-right transition-all duration-200 ${
+                      isSelected
+                        ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/5 shadow-md ring-2 ring-[var(--brand-primary)]/20'
+                        : 'border-[var(--border)] bg-[var(--surface)] hover:border-[var(--brand-primary)]/40 hover:shadow-sm'
+                    }`}
+                    aria-pressed={isSelected}
+                    aria-label={`${emp.fullNameAr}${isSelected ? ' — محدد' : ''}`}
+                  >
+                    {isSelected ? (
+                      <span className="absolute top-2 left-2 flex size-5 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white">
+                        <UserCheck className="size-3" />
+                      </span>
+                    ) : null}
+                    <UserAvatar displayName={emp.fullNameAr} photoUrl={emp.photoUrl} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-black">{emp.fullNameAr}</p>
+                      <p className="truncate text-[11px] text-[var(--text-muted)]">{emp.department ?? '—'}</p>
+                      <p className="truncate text-[11px] text-[var(--text-muted)]">{emp.jobTitle ?? '—'}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
       </section>
 
       {/* ─── حالات العرض ─── */}
-      {!selectedEmployeeId ? (
-        <EmptyState title="اختر موظفًا" description="ابحث واختر موظفًا من القائمة أعلاه لعرض كشف حضوره الشهري." />
-      ) : statementQuery.isError ? (
+      {!selectedEmployeeId ? null : statementQuery.isError ? (
         <ErrorState description={statementQuery.error instanceof Error ? statementQuery.error.message : undefined} onRetry={() => void statementQuery.refetch()} />
       ) : statementQuery.isLoading ? (
         <><MetricSkeletonRow count={4} /><SkeletonCard className="h-64" /></>

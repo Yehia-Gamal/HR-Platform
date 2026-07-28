@@ -16,7 +16,7 @@ alter table public.notifications
   add constraint notifications_category_check
   check (category in (
     'general','decision','announcement','survey','request',
-    'dispute','recognition','system','device'
+    'dispute','recognition','system','kpi','device'
   ));
 
 -- ═══════════════════════════════════════════════════════════════════════

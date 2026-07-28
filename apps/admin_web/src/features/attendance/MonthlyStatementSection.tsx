@@ -36,7 +36,7 @@ export function MonthlyStatementSection({ employeeId }: { employeeId: string }) 
           </select>
         </div>
       </div>
-      {query.isError ? <ErrorState description={query.error instanceof Error ? query.error.message : undefined} onRetry={() => void query.refetch()} />
+      {query.isError ? <ErrorState description="تعذر تحميل كشف الحضور. أعد المحاولة أو تواصل مع الدعم." onRetry={() => void query.refetch()} />
         : query.isLoading ? <SkeletonCard className="h-64" />
         : !query.data ? <EmptyState title="لا يوجد كشف" description="تعذر تحميل بيانات الشهر." />
         : <StatementBody data={query.data} />}

@@ -1,5 +1,4 @@
 
-!.env.example
 # developer scratch / backups (audit REL-04)
 # أي ملف أسرار مُولّد أو محلي (تعميم — لا يُتتبَّع أبداً)
 .vercel_token
@@ -12,9 +11,8 @@
 *secret*.txt
 .DS_Store
 .dart_tool/
-.env
 .env*
-.env.*
+!.env.example
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
@@ -33,3 +31,4 @@ supabase/.branches/
 supabase/.temp/
 tmp_*
 .claude/worktrees/
+*.apk

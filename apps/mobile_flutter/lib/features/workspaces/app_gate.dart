@@ -353,10 +353,11 @@ class _WebOnlyPage extends ConsumerWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
-              OutlinedButton.icon(
-                onPressed: () => ref.read(supabaseProvider).auth.signOut(),
-                icon: const Icon(Icons.logout),
-                label: const Text('تسجيل الخروج'),
+              // V23 — لا زر خروج: الجلسة دائمة لاستقبال الإشعارات.
+              const Text(
+                'هذا الحساب يملك HR أو Main Admin Workspace على لوحة الويب فقط.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12),
               ),
             ],
           ),
