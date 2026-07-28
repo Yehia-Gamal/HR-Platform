@@ -331,6 +331,38 @@ class WorkspaceScaffold extends ConsumerWidget {
           ),
         ),
       ],
+      // §9.2 — المهام والتقارير اليومية لبقية المساحات (موظف، HR، لجنة)
+      if (!isExecutive && !isManagerOrOps) ...[
+        _MoreItem(
+          icon: Icons.task_alt_outlined,
+          label: 'المهام الشخصية',
+          page: Scaffold(
+            appBar: AppBar(title: const Text('المهام الشخصية')),
+            body: const MobileTasksPage(),
+          ),
+        ),
+        _MoreItem(
+          icon: Icons.summarize_outlined,
+          label: 'التقارير اليومية',
+          page: const MobileDailyReportsPage(),
+        ),
+      ],
+      // §9.2 — المهام والتقارير اليومية لمساحات الموظف واللجان
+      if (!isExecutive && !isManagerOrOps) ...[
+        _MoreItem(
+          icon: Icons.task_alt_outlined,
+          label: 'المهام الشخصية',
+          page: Scaffold(
+            appBar: AppBar(title: const Text('المهام الشخصية')),
+            body: const MobileTasksPage(),
+          ),
+        ),
+        _MoreItem(
+          icon: Icons.summarize_outlined,
+          label: 'التقارير اليومية',
+          page: const MobileDailyReportsPage(),
+        ),
+      ],
       // §8.3.3 — القرارات والتعاميم متاحة لجميع المستخدمين
       // المدير التنفيذي والأدمن يرون زر "نشر جديد"
       _MoreItem(
@@ -547,8 +579,4 @@ class _MoreItem {
   final IconData icon;
   final String label;
   final Widget page;
-}
-
-extension _FirstOrNullExtension<T> on List<T> {
-  T? get firstOrNull => isEmpty ? null : first;
 }
