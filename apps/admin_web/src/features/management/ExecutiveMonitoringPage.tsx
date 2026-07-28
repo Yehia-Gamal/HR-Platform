@@ -102,8 +102,8 @@ export function ExecutiveMonitoringPage() {
 
       <section className="filter-bar">
         <label className="relative min-w-0 flex-1 sm:max-w-md">
-          <Search className="pointer-events-none absolute right-3 top-3 size-4 text-[var(--text-muted)]" />
-          <input className="input pr-10" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ابحث بالاسم أو الكود أو الإدارة…" aria-label="بحث" />
+          <Search className="pointer-events-none absolute end-3 top-3 size-4 text-[var(--text-muted)]" />
+          <input className="input pe-10" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ابحث بالاسم أو الكود أو الإدارة…" aria-label="بحث" />
         </label>
         <div className="flex flex-wrap gap-2" role="group" aria-label="تصفية الحالة">
           {FILTERS.map((f) => <button key={f.id} type="button" onClick={() => setFilter(f.id)} className={`filter-chip ${filter === f.id ? 'is-active' : ''}`}>{f.label}</button>)}

@@ -245,8 +245,8 @@ export function AccessPage() {
           <h3 className="font-black">الصلاحيات</h3>
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
-              <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]"/>
-              <input className="input pr-9" placeholder="بحث…" value={permSearch} onChange={(e) => setPermSearch(e.target.value)}/>
+              <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]"/>
+              <input className="input pe-9" placeholder="بحث…" value={permSearch} onChange={(e) => setPermSearch(e.target.value)}/>
             </div>
             <select aria-label="تصفية حسب الوحدة" className="input max-w-xs" value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)}>
               <option value="all">كل الوحدات</option>
@@ -256,7 +256,7 @@ export function AccessPage() {
           </div>
         </div>
 
-        <div className="max-h-[52vh] space-y-2 overflow-y-auto pr-1">
+        <div className="max-h-[52vh] space-y-2 overflow-y-auto pe-1">
           {data.permissions
             .filter((p) => moduleFilter === 'all' || p.module === moduleFilter)
             .filter((p) => !permSearch || (p.nameAr ?? p.name ?? p.code).includes(permSearch) || p.code.includes(permSearch))
@@ -300,7 +300,7 @@ export function AccessPage() {
 function RoleTemplateCard({ template, permissionCount, assignmentCount, onClick }: { template: RoleTemplate & { dbRole?: AccessAdminCatalog['roles'][number] }; permissionCount: number; assignmentCount: number; onClick: () => void }) {
   const Icon = template.icon;
   return <button type="button" onClick={onClick} className={`card group relative overflow-hidden border-2 p-5 text-right transition-all hover:shadow-lg ${template.borderColor}`}>
-    <div className={`absolute left-0 top-0 h-full w-1.5 ${template.bgColor}`} style={{ backgroundColor: 'currentColor' }}/>
+    <div className={`absolute start-0 top-0 h-full w-1.5 ${template.bgColor}`} style={{ backgroundColor: 'currentColor' }}/>
     <div className="flex items-start gap-3">
       <div className={`flex size-12 shrink-0 items-center justify-center rounded-xl ${template.bgColor} ${template.color}`}>
         <Icon className="size-6"/>
@@ -315,7 +315,7 @@ function RoleTemplateCard({ template, permissionCount, assignmentCount, onClick 
         <span className="text-xs"><strong className={template.color}>{permissionCount}</strong> <span className="muted">صلاحية</span></span>
         <span className="text-xs"><strong>{assignmentCount}</strong> <span className="muted">مستخدم</span></span>
       </div>
-      <ChevronLeft className="size-4 text-[var(--text-muted)] transition-transform group-hover:-translate-x-1"/>
+      <ChevronLeft className="size-4 text-[var(--text-muted)] transition-transform group-hover:rtl:translate-x-1 group-hover:ltr:-translate-x-1"/>
     </div>
   </button>;
 }
@@ -356,8 +356,8 @@ function RolePermissionsView({ role, permissions }: { role: AccessAdminCatalog['
       <p className="text-sm"><strong>{role.permissions.length}</strong> صلاحية في <strong>{grouped.length}</strong> وحدة</p>
       <div className="flex items-center gap-2">
         <div className="relative">
-          <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]"/>
-          <input className="input pr-9" placeholder="بحث…" value={search} onChange={(e) => setSearch(e.target.value)}/>
+          <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]"/>
+          <input className="input pe-9" placeholder="بحث…" value={search} onChange={(e) => setSearch(e.target.value)}/>
         </div>
         <button type="button" className="btn-secondary px-3 py-2 text-xs" onClick={expandAll}>فتح الكل</button>
         <button type="button" className="btn-secondary px-3 py-2 text-xs" onClick={() => setExpandedModules(new Set())}>إغلاق الكل</button>

@@ -451,7 +451,7 @@ function ArchiveEmployeeDialog({ employeeId, employeeName, onClose, onSuccess }:
     catch { setError('تعذر أرشفة الموظف بأمان. تحقق من الصلاحية وأعد المحاولة.'); }
   };
   return createPortal(<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-    <form onSubmit={(event) => void submit(event)} className="card w-full max-w-md p-6">
+    <form onSubmit={(event) => void submit(event)} className="card w-full max-w-md p-6" role="dialog" aria-modal="true">
       <h2 className="text-lg font-black">أرشفة الموظف</h2>
       <p className="muted mt-2 text-sm">سيُعطّل حساب {employeeName} وتُسحب جلساته وأجهزته، مع الاحتفاظ بالسجل التاريخي.</p>
       {error ? <div role="alert" className="mt-4 rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
@@ -484,7 +484,7 @@ function ChangeManagerDialog({ employeeId, currentManagerName, onClose, onSucces
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <form onSubmit={(e) => void onSubmit(e)} className="card w-full max-w-md p-6">
+      <form onSubmit={(e) => void onSubmit(e)} className="card w-full max-w-md p-6" role="dialog" aria-modal="true">
         <h2 className="text-lg font-black">تغيير المدير المباشر</h2>
         <p className="muted mt-2 text-sm">المدير الحالي: {currentManagerName ?? 'غير معين'}</p>
 
@@ -580,8 +580,9 @@ function DepartmentsSection({ employeeId, canEdit, onAdd }: { employeeId: string
                 disabled={removeDept.isPending}
                 onClick={() => void removeDept.mutateAsync({ employeeId, departmentId: dept.departmentId })}
                 title="إزالة من الإدارة"
+                aria-label="إزالة من الإدارة"
               >
-                <X className="size-4" />
+                <X className="size-4" aria-hidden="true" />
               </button>
             ) : null}
           </div>
@@ -612,7 +613,7 @@ function DeleteEmployeeDialog({ employeeId, employeeName, onClose, onSuccess }: 
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <form onSubmit={(e) => void onSubmit(e)} className="card w-full max-w-md space-y-4 p-6">
+      <form onSubmit={(e) => void onSubmit(e)} className="card w-full max-w-md space-y-4 p-6" role="dialog" aria-modal="true">
         <h2 className="text-lg font-black text-[var(--danger)]">⚠️ حذف الموظف نهائياً</h2>
         <p className="text-sm">سيتم حذف <strong>{employeeName}</strong> نهائياً من النظام. لا يمكن التراجع عن هذا الإجراء.</p>
         {error ? <div role="alert" className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
@@ -670,7 +671,7 @@ function AddDepartmentDialog({ employeeId, onClose, onSuccess }: { employeeId: s
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <form onSubmit={(e) => void onSubmit(e)} className="card w-full max-w-md space-y-4 p-6">
+      <form onSubmit={(e) => void onSubmit(e)} className="card w-full max-w-md space-y-4 p-6" role="dialog" aria-modal="true">
         <h2 className="text-lg font-black">إضافة إدارة للموظف</h2>
         {error ? <div role="alert" className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
         <label className="block">

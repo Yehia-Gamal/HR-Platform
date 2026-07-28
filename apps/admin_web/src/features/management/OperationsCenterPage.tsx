@@ -89,7 +89,7 @@ export function OperationsCenterPage() {
         <section className="card overflow-hidden">
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[880px] text-right text-sm">
-              <thead className="bg-[var(--surface-muted)]"><tr><th className="p-4">المهمة</th><th className="p-4">المسؤول</th><th className="p-4">الأولوية</th><th className="p-4">الاستحقاق</th><th className="p-4">الحالة</th><th className="p-4">الإجراء</th></tr></thead>
+              <thead className="bg-[var(--surface-muted)]"><tr><th scope="col" className="p-4">المهمة</th><th scope="col" className="p-4">المسؤول</th><th scope="col" className="p-4">الأولوية</th><th scope="col" className="p-4">الاستحقاق</th><th scope="col" className="p-4">الحالة</th><th scope="col" className="p-4">الإجراء</th></tr></thead>
               <tbody>{tasks.map((item) => <tr className="border-t border-[var(--border)]" key={item.id}><td className="p-4"><strong>{item.title}</strong>{item.description ? <p className="muted mt-1 max-w-md text-xs">{item.description}</p> : null}</td><td className="p-4"><div className="flex items-center gap-2"><UserAvatar displayName={item.assigneeName} size="sm" />{item.assigneeName}</div></td><td className="p-4"><StatusBadge value={item.priority} /></td><td className="p-4">{date(item.dueDate)}</td><td className="p-4"><StatusBadge value={item.status} /></td><td className="p-4"><TaskAction id={item.id} status={item.status} pending={commands.transitionTask.isPending} transition={(status) => void commands.transitionTask.mutateAsync({ id: item.id, status })} /></td></tr>)}</tbody>
             </table>
           </div>

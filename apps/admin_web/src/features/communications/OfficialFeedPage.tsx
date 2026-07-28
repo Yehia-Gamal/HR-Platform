@@ -135,7 +135,9 @@ export function OfficialFeedPage() {
       <ErrorState title="تعذر تحميل القناة" description={query.error instanceof Error ? query.error.message : undefined} onRetry={() => void query.refetch()} />
     ) : query.isLoading && allItems.length === 0 ? (
       <ListSkeleton rows={4} label="جارٍ تحميل القناة الرسمية" />
-    ) : allItems.length > 0 && items.length === 0 ? (
+    ) : allItems.length === 0 ? (
+      <EmptyState title="لا توجد منشورات بعد" description="لم يتم نشر أي خبر أو قرار رسمي حتى الآن." />
+    ) : items.length === 0 ? (
       <EmptyState title="لا توجد نتائج مطابقة" description="جرّب تغيير كلمة البحث أو مسح الفلاتر الحالية." />
     ) : (
     <section className="grid gap-4 xl:grid-cols-2">
@@ -146,7 +148,7 @@ export function OfficialFeedPage() {
           <div className="border-b border-[var(--border)] p-5">
             <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><StatusBadge value={item.kind} /><StatusBadge value={item.priority} /><StatusBadge value={item.status} /></div><span className="muted text-xs">{item.publishedAt ? new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.publishedAt)) : 'غير منشور'}</span></div>
             <h2 className="mt-4 text-xl font-black">{item.title}</h2>
-            {item.imageUrl ? <img src={item.imageUrl} alt="" className="mt-3 h-44 w-full rounded-2xl object-cover" /> : null}
+            {item.imageUrl ? <img src={item.imageUrl} alt={item.title} className="mt-3 h-44 w-full rounded-2xl object-cover" /> : null}
             <p className="mt-3 text-sm leading-8">{item.body}</p>
           </div>
           {item.requiresAcknowledgement ? <div className="p-5"><div className="flex justify-between text-sm"><span>نسبة الاطلاع والإقرار</span><strong>{item.acknowledgedCount}{item.targetCount ? ` / ${item.targetCount}` : ''}</strong></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]" role="progressbar" aria-label="نسبة الاطلاع والإقرار" aria-valuemin={0} aria-valuemax={item.targetCount ?? 0} aria-valuenow={item.acknowledgedCount}><div className="h-full rounded-full bg-brand" style={{ width: `${item.targetCount ? Math.min(100, (item.acknowledgedCount / item.targetCount) * 100) : 0}%` }} /></div></div> : null}
