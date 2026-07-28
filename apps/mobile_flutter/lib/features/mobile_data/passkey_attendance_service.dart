@@ -36,10 +36,9 @@ class PasskeyAttendanceService {
   Future<bool> isSupported() => _authenticator.canAuthenticate();
 
   Future<void> register({String deviceLabel = 'هاتف الموظف'}) async {
-    final challengeResponse = await _client.functions.invoke(
-      'webauthn-challenge',
-      body: const {'type': 'register'},
-    );
+    final challengeResponse = await _client.functions
+        .invoke('webauthn-challenge', body: const {'type': 'register'})
+        .timeout(const Duration(seconds: 20));
     _throwOnFunctionError(challengeResponse);
 
     final request = RegisterRequestType.fromJson(_map(challengeResponse.data));
@@ -57,35 +56,36 @@ class PasskeyAttendanceService {
       throw StateError('تعذر فتح نافذة البصمة على الجهاز. أعد المحاولة.');
     }
 
-    final finishResponse = await _client.functions.invoke(
-      'passkey-register',
-      body: {
-        'deviceLabel': deviceLabel,
-        'response': {
-          'id': credential.id,
-          'rawId': credential.rawId,
-          'type': 'public-key',
-          'response': {
-            'clientDataJSON': credential.clientDataJSON,
-            'attestationObject': credential.attestationObject,
-            'transports': credential.transports.whereType<String>().toList(
-              growable: false,
-            ),
+    final finishResponse = await _client.functions
+        .invoke(
+          'passkey-register',
+          body: {
+            'deviceLabel': deviceLabel,
+            'response': {
+              'id': credential.id,
+              'rawId': credential.rawId,
+              'type': 'public-key',
+              'response': {
+                'clientDataJSON': credential.clientDataJSON,
+                'attestationObject': credential.attestationObject,
+                'transports': credential.transports.whereType<String>().toList(
+                  growable: false,
+                ),
+              },
+              'clientExtensionResults': <String, dynamic>{},
+            },
           },
-          'clientExtensionResults': <String, dynamic>{},
-        },
-      },
-    );
+        )
+        .timeout(const Duration(seconds: 20));
     _throwOnFunctionError(finishResponse);
   }
 
   Future<Map<String, dynamic>> punch(String eventType) async {
     final position = await LocationService.current();
     final operationId = const Uuid().v4();
-    final challengeResponse = await _client.functions.invoke(
-      'webauthn-challenge',
-      body: const {'type': 'auth'},
-    );
+    final challengeResponse = await _client.functions
+        .invoke('webauthn-challenge', body: const {'type': 'auth'})
+        .timeout(const Duration(seconds: 20));
     _throwOnFunctionError(challengeResponse);
 
     final challengeData = _map(challengeResponse.data);
@@ -108,31 +108,33 @@ class PasskeyAttendanceService {
       throw StateError('تعذر فتح نافذة البصمة على الجهاز. أعد المحاولة.');
     }
 
-    final verifyResponse = await _client.functions.invoke(
-      'verify-attendance-punch',
-      body: {
-        'operationId': operationId,
-        'correlationId': operationId,
-        'challengeId': challengeId,
-        'eventType': eventType,
-        'latitude': position.latitude,
-        'longitude': position.longitude,
-        'accuracyMeters': position.accuracy,
-        'isMock': position.isMocked,
-        'response': {
-          'id': assertion.id,
-          'rawId': assertion.rawId,
-          'type': 'public-key',
-          'response': {
-            'clientDataJSON': assertion.clientDataJSON,
-            'authenticatorData': assertion.authenticatorData,
-            'signature': assertion.signature,
-            'userHandle': assertion.userHandle,
+    final verifyResponse = await _client.functions
+        .invoke(
+          'verify-attendance-punch',
+          body: {
+            'operationId': operationId,
+            'correlationId': operationId,
+            'challengeId': challengeId,
+            'eventType': eventType,
+            'latitude': position.latitude,
+            'longitude': position.longitude,
+            'accuracyMeters': position.accuracy,
+            'isMock': position.isMocked,
+            'response': {
+              'id': assertion.id,
+              'rawId': assertion.rawId,
+              'type': 'public-key',
+              'response': {
+                'clientDataJSON': assertion.clientDataJSON,
+                'authenticatorData': assertion.authenticatorData,
+                'signature': assertion.signature,
+                'userHandle': assertion.userHandle,
+              },
+              'clientExtensionResults': <String, dynamic>{},
+            },
           },
-          'clientExtensionResults': <String, dynamic>{},
-        },
-      },
-    );
+        )
+        .timeout(const Duration(seconds: 20));
     _throwOnFunctionError(verifyResponse);
     return _map(verifyResponse.data);
   }

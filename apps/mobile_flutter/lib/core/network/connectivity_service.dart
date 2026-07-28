@@ -111,6 +111,10 @@ String humanizeError(Object error, [StackTrace? stack]) {
     return 'تم تسجيل هذه العملية بالفعل.';
   }
 
+  if (msg.contains('Invalid API key') || msg.contains('apikey')) {
+    return 'مفتاح الاتصال غير صالح. تأكد من تحديث التطبيق لآخر إصدار أو تواصل مع مسؤول النظام.';
+  }
+
   if (error is FunctionException) {
     return _humanizeFunctionError(error);
   }

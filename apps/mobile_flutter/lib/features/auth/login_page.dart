@@ -41,13 +41,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     });
     try {
       final client = ref.read(supabaseProvider);
-      final response = await client.functions.invoke(
-        'identifier-sign-in',
-        body: {
-          'identifier': _identifier.text.trim(),
-          'password': _password.text,
-        },
-      );
+      final response = await client.functions
+          .invoke(
+            'identifier-sign-in',
+            body: {
+              'identifier': _identifier.text.trim(),
+              'password': _password.text,
+            },
+          )
+          .timeout(const Duration(seconds: 20));
+      if (!mounted) return;
       final payload = Map<String, dynamic>.from(
         response.data as Map<dynamic, dynamic>? ?? const {},
       );
@@ -72,10 +75,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       ref.invalidate(accessContextProvider);
       if (mounted) context.go('/');
     } on AuthException catch (error) {
-      setState(() => _error = error.message);
+      if (mounted) setState(() => _error = error.message);
     } catch (error, stack) {
       // أخطاء الشبكة/timeout/DNS: لا يظهر «نسيت كلمة المرور» (V12 §17.2).
-      setState(() => _error = humanizeError(error, stack));
+      if (mounted) setState(() => _error = humanizeError(error, stack));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

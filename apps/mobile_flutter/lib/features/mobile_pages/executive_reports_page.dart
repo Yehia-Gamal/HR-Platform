@@ -361,7 +361,8 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
           .read(supabaseProvider)
           .storage
           .from('report-files')
-          .createSignedUrl(report.storagePath!, 120);
+          .createSignedUrl(report.storagePath!, 120)
+          .timeout(const Duration(seconds: 20));
       if (context.mounted) {
         await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
       }
