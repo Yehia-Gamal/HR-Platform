@@ -397,8 +397,8 @@ class _RequestContent extends ConsumerWidget {
   static String _typeLabel(String type) => switch (type) {
     'leave' => 'طلب إجازة',
     'mission' => 'مأمورية',
-    'late_permit' => 'إذن تأخير',
-    'early_permit' => 'إذن خروج مبكر',
+    'late_permit' => 'إذن حضور',
+    'early_permit' => 'إذن انصراف',
     'attendance_correction' => 'تصحيح حضور',
     'convoy' => 'تكليف قافلة',
     _ => 'طلب عام',

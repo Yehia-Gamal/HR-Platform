@@ -1,4 +1,4 @@
-import { Archive, CalendarDays, CheckCircle2, Download, Lock, PauseCircle, RefreshCcw, Scale, Unlock, UsersRound, XCircle } from 'lucide-react';
+import { Archive, Bell, CalendarDays, CheckCircle2, ChevronDown, ChevronUp, Download, Lock, PauseCircle, RefreshCcw, Scale, Unlock, UsersRound, XCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -11,6 +11,11 @@ import { useKpiAdmin, useKpiAdminCommands } from './useAdvancedOperations';
 
 const monthNow = new Date().toISOString().slice(0, 7);
 
+const stageLabels: Record<string, string> = {
+  self: 'تقييم ذاتي', manager: 'المدير المباشر', secretary: 'السكرتير', executive: 'المدير التنفيذي',
+  hr_review: 'مراجعة HR', finalized: 'مُعتمد', closed: 'مغلق', archived: 'مؤرشف',
+};
+
 export function KpiCyclesPage() {
   const [month, setMonth] = useState(monthNow);
   const query = useKpiAdmin(month);
@@ -20,6 +25,7 @@ export function KpiCyclesPage() {
   const [openAt, setOpenAt] = useState<Record<string, string>>({});
   const [deadlineAt, setDeadlineAt] = useState<Record<string, string>>({});
   const [appealNotes, setAppealNotes] = useState<Record<string, string>>({});
+  const [expandedCycle, setExpandedCycle] = useState<string | null>(null);
   const [policyRules, setPolicyRules] = useState({ late: 1, earlyLeave: 1, unexcusedAbsence: 4, missingPunch: 1, shortagePerHour: 1, maxShortagePerDay: 2 });
   const [ratingMins, setRatingMins] = useState({ excellent: 90, veryGood: 80, good: 70, acceptable: 60 });
   const data = query.data;
@@ -44,9 +50,10 @@ export function KpiCyclesPage() {
       const report = await commands.getReport.mutateAsync({ p_cycle_id: cycleId }) as { evaluations?: Array<Record<string, unknown>> };
       const rows = report.evaluations ?? [];
       const csv = ['الموظف,الكود,المرحلة,الحالة,النتيجة,التقدير', ...rows.map((row) => [row.employeeName, row.employeeCode, row.stage, row.workflowStatus, row.finalScore, row.finalRating].map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(','))].join('\n');
-      const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })); link.download = `kpi-${month}.csv`; link.click(); URL.revokeObjectURL(link.href);
+      const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })); link.download = `kpi-${month}.csv`; link.click(); URL.revokeObjectURL(link.href);
     } catch { /* isError surfaced by TanStack */ }
   };
+  const sendNotifications = (cycleId: string) => commands.sendNotifications.mutateAsync({ p_cycle_id: cycleId }).catch(() => {});
   const savePolicy = () => commands.updatePolicy.mutateAsync({
     p_name: 'السياسة الرسمية لتقييم الأداء', p_attendance_rules: policyRules,
     p_rating_bands: [
@@ -60,7 +67,7 @@ export function KpiCyclesPage() {
   }).catch(() => {});
 
   return <div className="space-y-6">
-    <PageHeader title="دورات KPI الرسمية" description="السكرتير التنفيذي وحده يجهز ويفتح ويعلق ويمدد ويغلق ويؤرشف الدورة. المسار: الموظف ← HR ← المدير المباشر للاعتماد ← التقرير الشهري." actions={<label className="text-sm font-bold">الشهر<input className="input mt-1" type="month" value={month} onChange={(event) => setMonth(event.target.value)} /></label>} />
+    <PageHeader title="دورات KPI الرسمية" description="إدارة دورات تقييم الأداء الشهرية — تجهيز وفتح وإغلاق الدورات وإرسال الإشعارات ومتابعة تقييمات الموظفين." actions={<label className="text-sm font-bold">الشهر<input className="input mt-1" type="month" value={month} onChange={(event) => setMonth(event.target.value)} /></label>} />
     {query.isError ? <ErrorState title="تعذر تحميل دورات KPI" description={query.error instanceof Error ? query.error.message : undefined} onRetry={() => void query.refetch()} /> : query.isLoading && !data ? <><MetricSkeletonRow /><ListSkeleton rows={3} /></> : <>
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="الدورات" value={totals.cycles} icon={CalendarDays} /><MetricCard label="التقييمات" value={totals.evaluations} icon={UsersRound} /><MetricCard label="المدرجة في التقارير" value={totals.finalized} icon={CheckCircle2} /><MetricCard label="الاعتراضات" value={totals.appeals} icon={Scale} /></section>
 
@@ -68,9 +75,39 @@ export function KpiCyclesPage() {
 
       <section className="space-y-3">{data?.cycles.length === 0 ? <EmptyState title="لا توجد دورات" description="جهّز دورة الشهر من البطاقة السابقة." /> : data?.cycles.map((cycle) => {
         const validReason = (reason[cycle.id]?.trim().length ?? 0) >= 5;
+        const isExpanded = expandedCycle === cycle.id;
+        const evals = cycle.employeeEvaluations ?? [];
         return <article key={cycle.id} className="card p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><strong>{new Intl.DateTimeFormat('ar-EG', { month: 'long', year: 'numeric' }).format(new Date(cycle.periodMonth))}</strong><StatusBadge value={cycle.status} /></div><p className="muted mt-1 text-sm">{cycle.finalized}/{cycle.evaluations} مدرج · {cycle.overdue ?? 0} متأخر · المتوسط {cycle.averageScore ?? '—'}</p><p className="muted mt-1 text-xs">الفتح: {cycle.scheduledOpenAt ? new Date(cycle.scheduledOpenAt).toLocaleString('ar-EG') : '—'} · النهاية: {cycle.effectiveDeadline ? new Date(cycle.effectiveDeadline).toLocaleString('ar-EG') : '—'}</p>{cycle.overrideReason ? <p className="mt-2 text-xs text-[var(--warning)]">آخر سبب إداري: {cycle.overrideReason}</p> : null}</div><div className="flex flex-wrap gap-2"><button className="btn-secondary" onClick={() => void commands.refreshAttendance.mutateAsync({ p_cycle_id: cycle.id }).catch(() => {}).catch(() => {})}><RefreshCcw className="size-4" />تحديث الحضور</button><button className="btn-secondary" onClick={() => void downloadReport(cycle.id)}><Download className="size-4" />CSV</button></div></div>
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><strong>{new Intl.DateTimeFormat('ar-EG', { month: 'long', year: 'numeric' }).format(new Date(cycle.periodMonth))}</strong><StatusBadge value={cycle.status} /></div><p className="muted mt-1 text-sm">{cycle.finalized}/{cycle.evaluations} مدرج · {cycle.overdue ?? 0} متأخر · المتوسط {cycle.averageScore ?? '—'}</p><p className="muted mt-1 text-xs">الفتح: {cycle.scheduledOpenAt ? new Date(cycle.scheduledOpenAt).toLocaleString('ar-EG') : '—'} · النهاية: {cycle.effectiveDeadline ? new Date(cycle.effectiveDeadline).toLocaleString('ar-EG') : '—'}</p>{cycle.overrideReason ? <p className="mt-2 text-xs text-[var(--warning)]">آخر سبب إداري: {cycle.overrideReason}</p> : null}</div><div className="flex flex-wrap gap-2">
+            {data.canManageCycles ? <button className="btn-secondary" disabled={commands.sendNotifications.isPending} onClick={() => void sendNotifications(cycle.id)}><Bell className="size-4" />إرسال إشعارات</button> : null}
+            <button className="btn-secondary" onClick={() => void commands.refreshAttendance.mutateAsync({ p_cycle_id: cycle.id }).catch(() => {})}><RefreshCcw className="size-4" />تحديث الحضور</button>
+            <button className="btn-secondary" onClick={() => void downloadReport(cycle.id)}><Download className="size-4" />CSV</button>
+            {evals.length > 0 ? <button className="btn-secondary" onClick={() => setExpandedCycle(isExpanded ? null : cycle.id)}>{isExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}{isExpanded ? 'إخفاء التقييمات' : `عرض التقييمات (${evals.length})`}</button> : null}
+          </div></div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]"><div className="h-full bg-brand" style={{ width: `${cycle.evaluations ? Math.round(cycle.finalized / cycle.evaluations * 100) : 0}%` }} /></div>
+
+          {/* جدول تقييمات الموظفين */}
+          {isExpanded && evals.length > 0 ? <div className="mt-4 overflow-x-auto rounded-2xl border border-[var(--border)]">
+            <table className="w-full text-sm">
+              <thead className="bg-[var(--surface-muted)] text-xs"><tr>
+                <th className="p-3 text-start font-bold">الموظف</th>
+                <th className="p-3 text-start font-bold">الكود</th>
+                <th className="p-3 text-start font-bold">المرحلة</th>
+                <th className="p-3 text-start font-bold">الحالة</th>
+                <th className="p-3 text-start font-bold">النتيجة</th>
+                <th className="p-3 text-start font-bold">التقدير</th>
+              </tr></thead>
+              <tbody className="divide-y divide-[var(--border)]">{evals.map((ev) => <tr key={ev.id} className={ev.locked ? 'opacity-60' : ''}>
+                <td className="p-3"><div className="flex items-center gap-2"><UserAvatar displayName={ev.employeeName} size="sm" /><span>{ev.employeeName}</span></div></td>
+                <td className="p-3 text-xs font-mono">{ev.employeeCode ?? '—'}</td>
+                <td className="p-3"><StatusBadge value={stageLabels[ev.stage] ?? ev.stage} /></td>
+                <td className="p-3">{ev.workflowStatus ? <StatusBadge value={ev.workflowStatus} /> : '—'}</td>
+                <td className="p-3 font-bold">{ev.finalScore ?? '—'}</td>
+                <td className="p-3">{ev.finalRating ?? '—'}</td>
+              </tr>)}</tbody>
+            </table>
+          </div> : null}
+
           {data.canManageCycles ? <div className="mt-4 space-y-3 rounded-2xl bg-[var(--surface-muted)] p-4">
             <input className="input" placeholder="سبب الإجراء الإداري — إلزامي" value={reason[cycle.id] ?? ''} onChange={(event) => setReason((old) => ({ ...old, [cycle.id]: event.target.value }))} />
             <div className="flex flex-wrap gap-2"><button className="btn-secondary" disabled={!validReason} onClick={() => void control(cycle.id, cycle.status === 'locked' ? 'reopen' : 'open')}><Unlock className="size-4" />فتح/إعادة فتح</button><button className="btn-secondary" disabled={!validReason || cycle.status !== 'open'} onClick={() => void control(cycle.id, 'suspend')}><PauseCircle className="size-4" />تعليق</button><button className="btn-secondary" disabled={!validReason || !['open', 'draft'].includes(cycle.status)} onClick={() => void control(cycle.id, 'cancel_open')}><XCircle className="size-4" />إلغاء الفتح</button><button className="btn-secondary" disabled={!validReason} onClick={() => void control(cycle.id, 'close')}><Lock className="size-4" />إغلاق</button><button className="btn-secondary" disabled={!validReason || cycle.status !== 'locked'} onClick={() => void control(cycle.id, 'archive')}><Archive className="size-4" />أرشفة</button></div>

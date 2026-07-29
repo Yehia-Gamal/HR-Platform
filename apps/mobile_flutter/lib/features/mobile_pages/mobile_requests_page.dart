@@ -639,11 +639,10 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
     if ((type == 'mission' || type == 'convoy') && location.trim().length < 2) {
       return 'حدد مكان أو جهة التكليف.';
     }
-    if (type == 'late_permit' || type == 'early_permit') {
+    if (type == 'permit' ||
+        type == 'late_permit' ||
+        type == 'early_permit') {
       if (permitDate == null) return 'حدد تاريخ الإذن.';
-      final value = int.tryParse(minutes.trim());
-      if (value == null || value < 1 || value > 240) {
-        return 'عدد الدقائق يجب أن يكون من 1 إلى 240.';
       }
     }
     return null;
@@ -782,8 +781,8 @@ class _RequestCard extends StatelessWidget {
   static String _typeLabel(String type) => switch (type) {
     'leave' => 'طلب إجازة',
     'mission' => 'مأمورية',
-    'late_permit' => 'إذن تأخير',
-    'early_permit' => 'إذن خروج مبكر',
+    'late_permit' => 'إذن حضور',
+    'early_permit' => 'إذن انصراف',
     'attendance_correction' => 'تصحيح حضور',
     'convoy' => 'قافلة',
     _ => 'طلب',
