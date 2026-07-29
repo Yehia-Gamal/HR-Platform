@@ -1,5 +1,5 @@
 import type { KpiEvaluationSummary } from '@ahla/shared-contracts';
-import { AlertTriangle, CheckCircle2, Gauge, UsersRound } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ClipboardList, Gauge, User, UsersRound } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -27,30 +27,84 @@ const stageLabel: Record<KpiEvaluationSummary['currentStage'], string> = {
 
 const chipClass = 'rounded-xl bg-[var(--surface-muted)] px-3 py-2 text-sm';
 
+// 0204: تعريف التابات — تقييمي / فريقي / المهام
+type KpiRelation = 'self' | 'team' | 'review';
+interface KpiTabDef {
+  key: KpiRelation;
+  label: string;
+  icon: typeof User;
+}
+const TAB_DEFS: KpiTabDef[] = [
+  { key: 'self', label: 'تقييمي', icon: User },
+  { key: 'team', label: 'فريقي', icon: UsersRound },
+  { key: 'review', label: 'المهام', icon: ClipboardList },
+];
+
 export function PerformancePage() {
   const query = usePerformance();
   const [search, setSearch] = useState('');
   const [stage, setStage] = useState('all');
   const [selected, setSelected] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<KpiRelation | null>(null);
   const all = query.data ?? [];
-  const items = useMemo(() => all.filter((item) => {
+
+  // 0204: تقسيم البيانات حسب relation
+  const { availableTabs, currentTab } = useMemo(() => {
+    const tabs = TAB_DEFS.filter((t) => all.some((item) => item.relation === t.key));
+    // إذا لم توجد relation (بيانات قديمة) — عرض الكل بدون تابات.
+    const hasRelation = all.some((item) => item.relation);
+    if (!hasRelation) return { availableTabs: [] as KpiTabDef[], currentTab: null };
+    // اختيار التاب النشط: المحدد أو أول تاب متوفر.
+    const current = tabs.find((t) => t.key === activeTab) ?? tabs[0] ?? null;
+    return { availableTabs: tabs, currentTab: current };
+  }, [all, activeTab]);
+
+  // تصفية حسب التاب النشط + البحث + المرحلة.
+  const tabItems = useMemo(() => {
+    if (!currentTab) return all;
+    return all.filter((item) => item.relation === currentTab.key);
+  }, [all, currentTab]);
+
+  const items = useMemo(() => tabItems.filter((item) => {
     const matchesSearch = `${item.employeeName} ${item.employeeCode ?? ''}`.toLowerCase().includes(search.trim().toLowerCase());
     return matchesSearch && (stage === 'all' || item.currentStage === stage);
-  }), [all, search, stage]);
+  }), [tabItems, search, stage]);
+
   const counts = {
-    total: all.length,
-    parallel: all.filter((item) => item.currentStage === 'parallel_review').length,
-    manager: all.filter((item) => item.currentStage === 'manager_review').length,
-    hr: all.filter((item) => item.currentStage === 'hr_review').length,
-    completed: all.filter((item) => ['finalized', 'closed', 'archived'].includes(item.currentStage)).length,
-    overdue: all.filter((item) => (item.workflowStatus as string) === 'OVERDUE').length,
+    total: tabItems.length,
+    parallel: tabItems.filter((item) => item.currentStage === 'parallel_review').length,
+    manager: tabItems.filter((item) => item.currentStage === 'manager_review').length,
+    hr: tabItems.filter((item) => item.currentStage === 'hr_review').length,
+    completed: tabItems.filter((item) => ['finalized', 'closed', 'archived'].includes(item.currentStage)).length,
+    overdue: tabItems.filter((item) => (item.workflowStatus as string) === 'OVERDUE').length,
   };
 
   return <div className="space-y-6">
     <PageHeader eyebrow="الأداء" title="KPI والأداء" description="الموظف يقيّم ذاتيًا، ثم تراجع HR والمدير بالتوازي، ثم السكرتير التنفيذي يراجع والمدير التنفيذي يعتمد." />
+
+    {/* 0204: شريط التابات */}
+    {availableTabs.length > 1 ? <nav className="flex gap-1 rounded-2xl bg-[var(--surface-muted)] p-1" role="tablist" aria-label="تصنيف التقييمات">
+      {availableTabs.map((tab) => {
+        const Icon = tab.icon;
+        const isActive = currentTab?.key === tab.key;
+        const count = all.filter((item) => item.relation === tab.key).length;
+        return <button
+          key={tab.key}
+          role="tab"
+          aria-selected={isActive}
+          onClick={() => { setActiveTab(tab.key); setSearch(''); setStage('all'); }}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${isActive ? 'bg-white shadow-sm text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+        >
+          <Icon className="size-4" />
+          {tab.label}
+          <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${isActive ? 'bg-[var(--primary)] text-white' : 'bg-[var(--surface-muted)]'}`}>{count}</span>
+        </button>;
+      })}
+    </nav> : null}
+
     {counts.overdue > 0 ? <section className="flex items-center gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950"><AlertTriangle className="size-5 shrink-0" /><p className="font-bold">{counts.overdue} تقييم متأخر عن الموعد النهائي — يُرجى المتابعة مع المديرين والموظفين المعنيين.</p></section> : null}
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5"><MetricCard label="إجمالي التقييمات" value={counts.total} icon={UsersRound} /><MetricCard label="مراجعة متوازية" value={counts.parallel} icon={Gauge} /><MetricCard label="عند المديرين" value={counts.manager} icon={Gauge} /><MetricCard label="عند HR" value={counts.hr} icon={Gauge} /><MetricCard label="المكتملة" value={counts.completed} icon={CheckCircle2} /></section>
-    <FilterBar searchValue={search} onSearchChange={setSearch} searchPlaceholder="بحث باسم الموظف أو الكود" resultText={`عرض ${items.length} من ${all.length} تقييم`} isDirty={Boolean(search || stage !== 'all')} onClear={() => { setSearch(''); setStage('all'); }}>
+    <FilterBar searchValue={search} onSearchChange={setSearch} searchPlaceholder="بحث باسم الموظف أو الكود" resultText={`عرض ${items.length} من ${tabItems.length} تقييم`} isDirty={Boolean(search || stage !== 'all')} onClear={() => { setSearch(''); setStage('all'); }}>
       <select className="input" aria-label="تصفية حسب مرحلة التقييم" value={stage} onChange={(event) => setStage(event.target.value)}><option value="all">كل المراحل</option><option value="self">التقييم الذاتي</option><option value="parallel_review">مراجعة متوازية (V23)</option><option value="hr_review">مراجعة HR</option><option value="manager_review">مراجعة المدير</option><option value="secretary_review">مراجعة السكرتير</option><option value="executive_review">مراجعة المدير التنفيذي</option><option value="finalized">مدرج في التقرير</option><option value="closed">مغلق</option><option value="archived">مؤرشف</option></select>
     </FilterBar>
     {selected ? <KpiEvaluationEditor evaluationId={selected} onDone={() => setSelected(null)} /> : null}

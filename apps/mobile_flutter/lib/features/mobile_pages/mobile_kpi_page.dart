@@ -21,15 +21,58 @@ class MobileKpiPage extends ConsumerStatefulWidget {
   ConsumerState<MobileKpiPage> createState() => _MobileKpiPageState();
 }
 
-class _MobileKpiPageState extends ConsumerState<MobileKpiPage> {
+class _MobileKpiPageState extends ConsumerState<MobileKpiPage>
+    with SingleTickerProviderStateMixin {
   final _searchController = TextEditingController();
   String _search = '';
   String _stage = 'all';
 
+  // 0204: تابات — تقييمي / فريقي / المهام
+  TabController? _tabController;
+  List<_KpiTab> _tabs = [];
+
   @override
   void dispose() {
     _searchController.dispose();
+    _tabController?.dispose();
     super.dispose();
+  }
+
+  /// يبني التابات حسب البيانات المتوفرة.
+  void _buildTabs(List<MobileKpiEvaluation> items) {
+    final newTabs = <_KpiTab>[];
+    final selfItems = items.where((e) => e.relation == 'self').toList(growable: false);
+    final teamItems = items.where((e) => e.relation == 'team').toList(growable: false);
+    final reviewItems = items.where((e) => e.relation == 'review').toList(growable: false);
+
+    if (selfItems.isNotEmpty) {
+      newTabs.add(_KpiTab(key: 'self', label: 'تقييمي', icon: Icons.person_outline_rounded, items: selfItems));
+    }
+    if (teamItems.isNotEmpty) {
+      newTabs.add(_KpiTab(key: 'team', label: 'فريقي', icon: Icons.groups_outlined, items: teamItems));
+    }
+    if (reviewItems.isNotEmpty) {
+      newTabs.add(_KpiTab(key: 'review', label: 'المهام', icon: Icons.task_alt_outlined, items: reviewItems));
+    }
+
+    // إذا لم يتغير عدد التابات لا نعيد بناء الكونترولر.
+    if (_tabs.length == newTabs.length && _tabController != null) {
+      _tabs = newTabs;
+      return;
+    }
+
+    final oldIndex = _tabController?.index ?? 0;
+    _tabController?.dispose();
+    _tabs = newTabs;
+    if (_tabs.isNotEmpty) {
+      _tabController = TabController(
+        length: _tabs.length,
+        vsync: this,
+        initialIndex: oldIndex.clamp(0, (_tabs.length - 1).clamp(0, 99)),
+      );
+    } else {
+      _tabController = null;
+    }
   }
 
   @override
@@ -96,93 +139,194 @@ class _MobileKpiPageState extends ConsumerState<MobileKpiPage> {
               ],
             );
           }
-          final scoped = widget.employeeOnly
-              ? items.where((e) => e.employeeId == widget.access.employeeId).toList(growable: false)
-              : items;
-          final visible = scoped.where(_matches).toList(growable: false);
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
-            children: [
-              if (!widget.employeeOnly)
-                MobileFilterBar(
-                  searchHint: 'بحث باسم الموظف أو الكود',
-                  controller: _searchController,
-                  onSearchChanged: (value) =>
-                      setState(() => _search = value.trim().toLowerCase()),
-                  // V23: أضفنا مراحل المسار المتوازي (parallel_review, secretary_review, executive_review).
-                  options: const [
-                    MobileFilterOption('all', 'كل المراحل'),
-                    MobileFilterOption('self', 'الموظف'),
-                    MobileFilterOption('parallel_review', 'مراجعة متوازية'),
-                    MobileFilterOption('hr_review', 'مراجعة HR'),
-                    MobileFilterOption('manager_review', 'مراجعة المدير'),
-                    MobileFilterOption('secretary_review', 'السكرتير'),
-                    MobileFilterOption('executive_review', 'المدير التنفيذي'),
-                    MobileFilterOption('finalized', 'في التقرير'),
-                    MobileFilterOption('closed', 'مغلق'),
-                    MobileFilterOption('archived', 'مؤرشف'),
-                  ],
-                  selected: _stage,
-                  onSelected: (value) => setState(() => _stage = value),
-                  resultLabel: '${visible.length} من ${scoped.length} تقييم',
-                  onClear: _search.isEmpty && _stage == 'all'
-                      ? null
-                      : () {
-                          _searchController.clear();
-                          setState(() {
-                            _search = '';
-                            _stage = 'all';
-                          });
-                        },
-                ),
-              if (widget.employeeOnly)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    'تقييماتي',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 12),
-              if (visible.isEmpty) ...[
+
+          // ─── مساحة الموظف: قائمة مسطحة بدون تابات ─────────────────
+          if (widget.employeeOnly) {
+            final selfItems = items
+                .where((e) => e.employeeId == widget.access.employeeId)
+                .toList(growable: false);
+            return _buildFlatList(
+              context,
+              selfItems,
+              showFilter: false,
+              showHeader: true,
+            );
+          }
+
+          // ─── مساحة المدير / العمليات: تابات حسب relation ──────────
+          _buildTabs(items);
+
+          if (_tabs.isEmpty) {
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
+              children: [
                 const SizedBox(height: 100),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Icon(
-                      widget.employeeOnly
-                          ? Icons.hourglass_empty_rounded
-                          : Icons.search_off_rounded,
+                      Icons.search_off_rounded,
                       size: 48,
                       semanticLabel: 'لا توجد نتائج',
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      widget.employeeOnly
-                          ? 'لا يوجد تقييم حالي لك'
-                          : 'لا توجد تقييمات مطابقة للفلاتر',
+                    const Text(
+                      'لا توجد تقييمات في الدورة الحالية',
                       textAlign: TextAlign.center,
                     ),
                   ],
                 ),
-              ] else
-                ...visible.map(
-                  (item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _KpiCard(
-                      item: item,
-                      access: widget.access,
-                      employeeOnly: widget.employeeOnly,
+              ],
+            );
+          }
+
+          return Column(
+            children: [
+              Material(
+                color: Theme.of(context).colorScheme.surface,
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: _tabs.length > 2,
+                  tabAlignment: _tabs.length > 2 ? TabAlignment.start : null,
+                  tabs: _tabs.map((t) => Tab(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(t.icon, size: 18),
+                        const SizedBox(width: 6),
+                        Text(t.label),
+                        const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${t.items.length}',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
+                  )).toList(),
                 ),
+              ),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: _tabs.map((tab) {
+                    final isPersonal = tab.key == 'self';
+                    return RefreshIndicator(
+                      onRefresh: () async => ref.invalidate(mobileKpiProvider),
+                      child: _buildFlatList(
+                        context,
+                        tab.items,
+                        showFilter: !isPersonal,
+                        showHeader: false,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
             ],
           );
         },
       ),
+    );
+  }
+
+  /// يبني قائمة البطاقات مع فلتر اختياري.
+  Widget _buildFlatList(
+    BuildContext context,
+    List<MobileKpiEvaluation> items, {
+    required bool showFilter,
+    required bool showHeader,
+  }) {
+    final visible = items.where(_matches).toList(growable: false);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
+      children: [
+        if (showHeader)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              'تقييماتي',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        if (showFilter)
+          MobileFilterBar(
+            searchHint: 'بحث باسم الموظف أو الكود',
+            controller: _searchController,
+            onSearchChanged: (value) =>
+                setState(() => _search = value.trim().toLowerCase()),
+            options: const [
+              MobileFilterOption('all', 'كل المراحل'),
+              MobileFilterOption('self', 'الموظف'),
+              MobileFilterOption('parallel_review', 'مراجعة متوازية'),
+              MobileFilterOption('hr_review', 'مراجعة HR'),
+              MobileFilterOption('manager_review', 'مراجعة المدير'),
+              MobileFilterOption('secretary_review', 'السكرتير'),
+              MobileFilterOption('executive_review', 'المدير التنفيذي'),
+              MobileFilterOption('finalized', 'في التقرير'),
+              MobileFilterOption('closed', 'مغلق'),
+              MobileFilterOption('archived', 'مؤرشف'),
+            ],
+            selected: _stage,
+            onSelected: (value) => setState(() => _stage = value),
+            resultLabel: '${visible.length} من ${items.length} تقييم',
+            onClear: _search.isEmpty && _stage == 'all'
+                ? null
+                : () {
+                    _searchController.clear();
+                    setState(() {
+                      _search = '';
+                      _stage = 'all';
+                    });
+                  },
+          ),
+        const SizedBox(height: 12),
+        if (visible.isEmpty) ...[
+          const SizedBox(height: 100),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(
+                showHeader
+                    ? Icons.hourglass_empty_rounded
+                    : Icons.search_off_rounded,
+                size: 48,
+                semanticLabel: 'لا توجد نتائج',
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                showHeader
+                    ? 'لا يوجد تقييم حالي لك'
+                    : 'لا توجد تقييمات مطابقة للفلاتر',
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ] else
+          ...visible.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _KpiCard(
+                item: item,
+                access: widget.access,
+                employeeOnly: widget.employeeOnly,
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -192,6 +336,20 @@ class _MobileKpiPageState extends ConsumerState<MobileKpiPage> {
     return (_search.isEmpty || haystack.contains(_search)) &&
         (_stage == 'all' || item.currentStage == _stage);
   }
+}
+
+/// وصف تاب واحد في صفحة KPI.
+class _KpiTab {
+  const _KpiTab({
+    required this.key,
+    required this.label,
+    required this.icon,
+    required this.items,
+  });
+  final String key;
+  final String label;
+  final IconData icon;
+  final List<MobileKpiEvaluation> items;
 }
 
 class _KpiCard extends StatelessWidget {
