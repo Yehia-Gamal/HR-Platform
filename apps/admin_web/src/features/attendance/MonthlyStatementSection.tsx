@@ -125,7 +125,7 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
 
       {/* ─── الجدول اليومي ─── */}
       <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
-        <table className="w-full min-w-[900px] text-right text-sm">
+        <table className="w-full min-w-[900px] text-start text-sm">
           <thead className="bg-[var(--surface-muted)] text-xs font-black">
             <tr>
               <th scope="col" className="p-2.5">التاريخ</th><th scope="col" className="p-2.5">اليوم</th>

@@ -299,7 +299,7 @@ export function AccessPage() {
 // ─── بطاقة قالب الدور ──────────────────────────────────────────────────────
 function RoleTemplateCard({ template, permissionCount, assignmentCount, onClick }: { template: RoleTemplate & { dbRole?: AccessAdminCatalog['roles'][number] }; permissionCount: number; assignmentCount: number; onClick: () => void }) {
   const Icon = template.icon;
-  return <button type="button" onClick={onClick} className={`card group relative overflow-hidden border-2 p-5 text-right transition-all hover:shadow-lg ${template.borderColor}`}>
+  return <button type="button" onClick={onClick} className={`card group relative overflow-hidden border-2 p-5 text-start transition-all hover:shadow-lg ${template.borderColor}`}>
     <div className={`absolute start-0 top-0 h-full w-1.5 ${template.bgColor}`} style={{ backgroundColor: 'currentColor' }}/>
     <div className="flex items-start gap-3">
       <div className={`flex size-12 shrink-0 items-center justify-center rounded-xl ${template.bgColor} ${template.color}`}>
@@ -369,7 +369,7 @@ function RolePermissionsView({ role, permissions }: { role: AccessAdminCatalog['
         const isExpanded = expandedModules.has(module);
         const moduleLabel = perms[0]?.moduleAr ?? MODULE_AR[module] ?? module;
         return <div key={module} className="rounded-xl border border-[var(--border)] overflow-hidden">
-          <button type="button" className="flex w-full items-center justify-between bg-[var(--surface-muted)] px-4 py-3 text-right" onClick={() => toggleModule(module)}>
+          <button type="button" className="flex w-full items-center justify-between bg-[var(--surface-muted)] px-4 py-3 text-start" onClick={() => toggleModule(module)}>
             <div className="flex items-center gap-2">
               <span className="font-bold">{moduleLabel}</span>
               <span className="muted text-xs">({perms.length})</span>

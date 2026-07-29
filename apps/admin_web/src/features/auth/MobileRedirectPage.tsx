@@ -64,9 +64,9 @@ export function MobileRedirectPage() {
               هذا الرابط مخصص لتطبيق <strong>أحلى شباب</strong> على الجوال. افتح هذا البريد الإلكتروني من هاتفك وتأكد من أن التطبيق مثبت.
             </p>
 
-            <div className="rounded-2xl bg-[var(--surface-muted)] p-4 text-sm text-right space-y-2">
+            <div className="rounded-2xl bg-[var(--surface-muted)] p-4 text-sm text-start space-y-2">
               <p className="font-bold">خطوات بديلة:</p>
-              <ol className="muted space-y-1 list-decimal list-inside text-right">
+              <ol className="muted space-y-1 list-decimal list-inside text-start">
                 <li>افتح البريد الإلكتروني على هاتفك.</li>
                 <li>اضغط على رابط التفعيل في رسالة الدعوة.</li>
                 <li>سيفتح التطبيق مباشرة لتعيين كلمة المرور.</li>

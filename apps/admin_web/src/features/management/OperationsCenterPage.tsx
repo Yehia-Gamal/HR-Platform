@@ -67,7 +67,7 @@ export function OperationsCenterPage() {
           <TabButton active={tab === 'convoys'} onClick={() => setTab('convoys')} icon={<BusFront className="size-4" />} label={`القوافل (${data?.convoys.length ?? 0})`} />
         </div>
         <div className="flex w-full flex-col gap-2 lg:max-w-sm">
-          <label className="relative w-full"><Search aria-hidden="true" className="pointer-events-none absolute right-3 top-3 size-4 text-[var(--text-muted)]" /><input className="input pr-10" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="بحث في القسم الحالي…" aria-label="بحث العمليات" />{search ? <button type="button" className="icon-button absolute left-1.5 top-1.5" aria-label="مسح البحث" onClick={() => setSearch('')}><X className="size-4" /></button> : null}</label>
+          <label className="relative w-full"><Search aria-hidden="true" className="pointer-events-none absolute end-3 top-3 size-4 text-[var(--text-muted)]" /><input className="input pe-10" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="بحث في القسم الحالي…" aria-label="بحث العمليات" />{search ? <button type="button" className="icon-button absolute start-1.5 top-1.5" aria-label="مسح البحث" onClick={() => setSearch('')}><X className="size-4" /></button> : null}</label>
           <span className="muted text-xs" aria-live="polite">عدد النتائج: {activeCount}</span>
         </div>
       </section>
@@ -88,7 +88,7 @@ export function OperationsCenterPage() {
       {data && tab === 'tasks' ? (
         <section className="card overflow-hidden">
           <div className="hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[880px] text-right text-sm">
+            <table className="w-full min-w-[880px] text-start text-sm">
               <thead className="bg-[var(--surface-muted)]"><tr><th scope="col" className="p-4">المهمة</th><th scope="col" className="p-4">المسؤول</th><th scope="col" className="p-4">الأولوية</th><th scope="col" className="p-4">الاستحقاق</th><th scope="col" className="p-4">الحالة</th><th scope="col" className="p-4">الإجراء</th></tr></thead>
               <tbody>{tasks.map((item) => <tr className="border-t border-[var(--border)]" key={item.id}><td className="p-4"><strong>{item.title}</strong>{item.description ? <p className="muted mt-1 max-w-md text-xs">{item.description}</p> : null}</td><td className="p-4"><div className="flex items-center gap-2"><UserAvatar displayName={item.assigneeName} size="sm" />{item.assigneeName}</div></td><td className="p-4"><StatusBadge value={item.priority} /></td><td className="p-4">{date(item.dueDate)}</td><td className="p-4"><StatusBadge value={item.status} /></td><td className="p-4"><TaskAction id={item.id} status={item.status} pending={commands.transitionTask.isPending} transition={(status) => void commands.transitionTask.mutateAsync({ id: item.id, status })} /></td></tr>)}</tbody>
             </table>

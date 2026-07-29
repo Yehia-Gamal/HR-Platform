@@ -159,7 +159,7 @@ export function RecruitmentPage() {
           </div>
           <div className="overflow-x-auto">
             <table className="data-table min-w-[900px] text-sm">
-              <thead className="bg-[var(--surface-muted)] text-right"><tr><th scope="col" className="p-3">المرشح</th><th scope="col" className="p-3">الوظيفة</th><th scope="col" className="p-3">المرحلة</th><th scope="col" className="p-3">تاريخ التقديم</th><th scope="col" className="p-3">نقل إلى</th></tr></thead>
+              <thead className="bg-[var(--surface-muted)] text-start"><tr><th scope="col" className="p-3">المرشح</th><th scope="col" className="p-3">الوظيفة</th><th scope="col" className="p-3">المرحلة</th><th scope="col" className="p-3">تاريخ التقديم</th><th scope="col" className="p-3">نقل إلى</th></tr></thead>
               <tbody className="divide-y divide-[var(--border)]">
                 {workbench.data.applications.map((application) => {
                   const stages = workbench.data!.stages.filter((stage) => stage.postingId === application.postingId);

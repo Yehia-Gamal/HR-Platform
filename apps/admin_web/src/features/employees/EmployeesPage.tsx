@@ -109,7 +109,7 @@ export function EmployeesPage() {
         <>
           <section className="card hidden overflow-hidden md:block" aria-busy={employees.isFetching}>
             <div className="overflow-x-auto">
-              <table className="data-table w-full min-w-[1020px] text-right text-sm">
+              <table className="data-table w-full min-w-[1020px] text-start text-sm">
                 <thead className="bg-[var(--surface-muted)] text-xs text-[var(--text-muted)]">
                   <tr><th scope="col" className="px-4 py-3.5">الموظف</th><th scope="col" className="px-4 py-3.5">الكود</th><th scope="col" className="px-4 py-3.5">الإدارة</th><th scope="col" className="px-4 py-3.5">المسمى الوظيفي</th><th scope="col" className="px-4 py-3.5">الهاتف</th><th scope="col" className="px-4 py-3.5">الحالة</th><th scope="col" className="px-4 py-3.5">تاريخ الإضافة</th><th scope="col" className="px-4 py-3.5"><span className="sr-only">فتح</span></th></tr>
                 </thead>

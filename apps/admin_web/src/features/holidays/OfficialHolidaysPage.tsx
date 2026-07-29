@@ -88,7 +88,7 @@ export function OfficialHolidaysPage() {
       ) : (
         <section className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="data-table w-full min-w-[800px] text-right text-sm">
+            <table className="data-table w-full min-w-[800px] text-start text-sm">
               <thead className="bg-[var(--surface-muted)] text-xs text-[var(--text-muted)]">
                 <tr>
                   <th className="px-4 py-3.5">اسم العطلة</th>
