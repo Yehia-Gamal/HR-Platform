@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSupabase } from '../../core/supabase';
+import { invokeEdgeFunction } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
 import { loadDomainMocks } from '../mock/loadDomainMocks';
 import type {
@@ -131,19 +132,13 @@ const MAP_URL_ERROR_MESSAGES: Record<string, string> = {
 export function useLiveLocationMapUrl() {
   return useMutation({
     mutationFn: async (requestId: string): Promise<string> => {
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.functions.invoke('live-location-map-url', { body: { requestId } });
-      if (error) {
-        // FunctionsHttpError: data = null — نستخرج كود الخطأ من جسم الاستجابة
-        let message = 'تعذّر توقيع رابط لقطة الخريطة.';
-        const resp = (error as Record<string, unknown>).context;
-        if (resp instanceof Response) {
-          const body = await resp.json().catch(() => null) as { error?: string } | null;
-          if (body?.error) message = MAP_URL_ERROR_MESSAGES[body.error] ?? message;
-        }
-        throw new Error(message);
-      }
-      const url = (data as { url?: string } | null)?.url;
+      const result = await invokeEdgeFunction<{ url?: string }>(
+        'live-location-map-url',
+        { requestId },
+        MAP_URL_ERROR_MESSAGES,
+        'تعذّر توقيع رابط لقطة الخريطة.',
+      );
+      const url = result?.url;
       if (!url) throw new Error('تعذّر توقيع رابط لقطة الخريطة.');
       return url;
     },
