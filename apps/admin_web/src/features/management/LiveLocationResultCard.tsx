@@ -1,7 +1,5 @@
 import { Clock, Crosshair, MapPin, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
-import { EmptyState } from '../../ui/EmptyState';
-import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
