@@ -20,6 +20,7 @@ import { ErrorState } from '../../ui/ErrorState';
 import { getShortName, getTimeGreeting } from '../../ui/formatDisplayName';
 import { MetricCard } from '../../ui/MetricCard';
 import { MetricSkeletonRow } from '../../ui/Skeletons';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { useAuth } from '../auth/AuthProvider';
 import { useDashboardOverview } from '../management/useManagementOverviews';
 import { useAttendanceTodayOverview } from './useAttendanceTodayOverview';
@@ -94,7 +95,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
     {query.isError ? (
       <ErrorState
         title="تعذر تحميل اللوحة"
-        description={query.error instanceof Error ? query.error.message : undefined}
+        description={safeErrorMessage(query.error)}
         onRetry={() => void query.refetch()}
       />
     ) : query.isLoading && !data ? (

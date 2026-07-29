@@ -8,6 +8,7 @@ import { LoadingScreen } from '../../ui/LoadingScreen';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { useOrganizationAdminCatalog, useOrganizationCommands } from './useAdminOperations';
 
 type DepartmentDraft = {
@@ -95,7 +96,7 @@ export function OrganizationPage() {
     {query.isError ? (
       <ErrorState
         title={'تعذر تحميل الهيكل'}
-        description={query.error instanceof Error ? query.error.message : undefined}
+        description={safeErrorMessage(query.error)}
         onRetry={() => void query.refetch()}
       />
     ) : query.isLoading && !data ? (

@@ -9,6 +9,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { ListSkeleton, MetricSkeletonRow } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
+import { safeErrorMessage } from '../../core/errorMapper';
 import type { AdminDevice, PendingDevice } from './useDevices';
 import { useAllDevices, useApproveDevice, useDeviceApprovals, useRevokeDevice } from './useDevices';
 
@@ -153,7 +154,7 @@ function PendingDevicesPanel() {
               />
             </div>
           ) : null}
-          {approve.isError ? <div className="mt-3"><ErrorBanner message={approve.error instanceof Error ? approve.error.message : 'تعذّر تنفيذ الإجراء'} /></div> : null}
+          {approve.isError ? <div className="mt-3"><ErrorBanner message={safeErrorMessage(approve.error)} /></div> : null}
           <div className="mt-4 flex gap-2 justify-end">
             <button type="button" className="btn-secondary" onClick={() => setConfirmAction(null)}>إلغاء</button>
             <button
@@ -282,7 +283,7 @@ function AllDevicesPanel() {
               placeholder="مثال: جهاز مفقود أو مشبوه"
             />
           </div>
-          {revoke.isError ? <div className="mt-3"><ErrorBanner message={revoke.error instanceof Error ? revoke.error.message : 'تعذّر إلغاء الصلاحية'} /></div> : null}
+          {revoke.isError ? <div className="mt-3"><ErrorBanner message={safeErrorMessage(revoke.error)} /></div> : null}
           <div className="mt-4 flex gap-2 justify-end">
             <button type="button" className="btn-secondary" onClick={() => setRevokeTarget(null)}>إلغاء</button>
             <button

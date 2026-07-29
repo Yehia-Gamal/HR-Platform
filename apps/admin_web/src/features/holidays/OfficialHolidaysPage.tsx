@@ -78,7 +78,7 @@ export function OfficialHolidaysPage() {
       </FilterBar>
 
       {holidays.isError ? (
-        <ErrorState description={holidays.error instanceof Error ? holidays.error.message : undefined} onRetry={() => void holidays.refetch()} />
+        <ErrorState description={safeErrorMessage(holidays.error)} onRetry={() => void holidays.refetch()} />
       ) : holidays.isLoading ? (
         <ListSkeleton rows={4} label="جارٍ تحميل العطل…" />
       ) : all.length === 0 ? (

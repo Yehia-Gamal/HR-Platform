@@ -6,6 +6,7 @@ import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { SkeletonCard } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { useIntegrationCenter, useIntegrationCommands } from './useControlCenters';
 
 type Tab = 'connectors' | 'outbox' | 'logs' | 'automations';
@@ -54,7 +55,7 @@ export function IntegrationsJobsPage() {
         <label className="relative w-full lg:max-w-sm"><Search className="pointer-events-none absolute end-3 top-3 size-4 text-[var(--text-muted)]" /><input className="input pe-10" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="بحث في القسم الحالي…" aria-label="البحث في التكاملات" /></label>
       </section>
 
-      {query.isError ? <ErrorState title="تعذر تحميل مركز التكاملات" description={query.error instanceof Error ? query.error.message : 'تحقق من الصلاحيات والاتصال.'} onRetry={() => void query.refetch()} /> : null}
+      {query.isError ? <ErrorState title="تعذر تحميل مركز التكاملات" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} /> : null}
       {!query.isError && query.isLoading ? (
         <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3" aria-label="جارٍ تحميل التكاملات">
           {Array.from({ length: 6 }).map((_, index) => <SkeletonCard key={index} className="h-52 p-5" />)}

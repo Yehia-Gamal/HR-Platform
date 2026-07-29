@@ -18,6 +18,7 @@ import { MetricCard } from '../../ui/MetricCard';
 import { MetricSkeletonRow } from '../../ui/Skeletons';
 import { PageHeader } from '../../ui/PageHeader';
 import { useHrReportsSummary } from './useHrReportsSummary';
+import { safeErrorMessage } from '../../core/errorMapper';
 
 /** مساعد لتحويل قسم تقرير إلى صفوف CSV */
 function sectionToCsv(title: string, data: Record<string, number | string | undefined>): string[] {
@@ -59,7 +60,7 @@ export function ReportsPage() {
     />
 
     {q.isError ? (
-      <ErrorState title="تعذر تحميل التقارير" description={q.error instanceof Error ? q.error.message : undefined} onRetry={() => void q.refetch()} />
+      <ErrorState title="تعذر تحميل التقارير" description={safeErrorMessage(q.error)} onRetry={() => void q.refetch()} />
     ) : q.isLoading && !d ? (
       <MetricSkeletonRow count={5} />
     ) : d ? (

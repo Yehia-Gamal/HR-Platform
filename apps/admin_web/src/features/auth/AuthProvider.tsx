@@ -10,6 +10,7 @@ import {
   useState,
 } from 'react';
 import { env, hasSupabaseConfig } from '../../core/env';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { getSupabase } from '../../core/supabase';
 import { loadAccessContext } from './accessService';
 import { mockContexts, type MockPersona } from './mockContexts';
@@ -77,7 +78,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setAccess(await loadAccessContext());
         setStatus('authenticated');
       } catch (accessError) {
-        setError(accessError instanceof Error ? accessError.message : 'تعذر تحميل الصلاحيات.');
+        setError(safeErrorMessage(accessError));
         setStatus('anonymous');
       }
       if (!active) return;
@@ -102,7 +103,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       unsubscribe = () => listener.subscription.unsubscribe();
     }).catch((loadError: unknown) => {
       if (!active) return;
-      setError(loadError instanceof Error ? loadError.message : 'تعذر تهيئة Supabase.');
+      setError(safeErrorMessage(loadError));
       setStatus('anonymous');
     });
 

@@ -8,6 +8,7 @@ import { MetricSkeletonRow, ListSkeleton } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useAttendanceOperations, useAttendanceOperationsCommands } from './useAdvancedOperations';
+import { safeErrorMessage } from '../../core/errorMapper';
 
 const currentMonth = new Date().toISOString().slice(0, 7);
 
@@ -28,7 +29,7 @@ export function AttendanceOperationsPage() {
 
   return <div className="space-y-6">
     <PageHeader title="الورديات وإغلاق الحضور" description="إدارة تعريفات الورديات، جداول العمل، العمل الإضافي، وإغلاق الشهر بسجل تدقيق. تصحيحات الحضور انتقلت إلى صفحة طلب إجازة." actions={<label className="text-sm font-bold"><span className="block">الشهر</span><input type="month" aria-label="الشهر" className="input mt-1" value={month} onChange={(e) => setMonth(e.target.value)} /></label>} />
-    {query.isError ? <ErrorState description={query.error instanceof Error ? query.error.message : undefined} onRetry={() => void query.refetch()} /> : !data ? <><MetricSkeletonRow count={5} /><ListSkeleton rows={3} /></> : <>
+    {query.isError ? <ErrorState description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} /> : !data ? <><MetricSkeletonRow count={5} /><ListSkeleton rows={3} /></> : <>
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <MetricCard label="الأيام المجدولة" value={data.summary.scheduled} icon={CalendarClock} />
       <MetricCard label="الحضور" value={data.summary.present} icon={CheckCircle2} />

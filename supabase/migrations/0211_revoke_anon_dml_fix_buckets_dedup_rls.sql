@@ -1,25 +1,31 @@
 -- تعزيز أمني — الجولة الثالثة
--- 1. سحب INSERT/UPDATE/DELETE من anon على جميع جداول public
--- 2. ضبط الصلاحيات الافتراضية لمنع DML المستقبلي على anon
+-- 1. سحب ALL من anon على جميع جداول وتسلسلات public
+-- 2. ضبط الصلاحيات الافتراضية لمنع أي منح مستقبلي لـ anon
 -- 3. جعل bucket employee-avatars خاصاً + إصلاح سياساته
 -- 4. حذف سياسات RLS مكررة/ميتة على public_holidays
 
 BEGIN;
 
 -- ═══════════════════════════════════════════════════════════════
--- 1. REVOKE INSERT / UPDATE / DELETE من anon على جميع الجداول
---    SECURITY DEFINER functions تعمل بصلاحية المالك فلا تتأثر.
---    SELECT يبقى (RLS يحجب الصفوف فعلياً).
+-- 1. REVOKE ALL من anon على جميع الجداول والتسلسلات
+--    - لا يوجد أي RLS SELECT policy يستهدف anon
+--    - جميع الدوال المتاحة لـ anon هي SECURITY DEFINER
+--    - Edge Functions تستخدم service_role داخلياً
+--    ⇒ anon لا يحتاج أي صلاحية على الجداول
 -- ═══════════════════════════════════════════════════════════════
 
-REVOKE INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public FROM anon;
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon;
 
 -- ═══════════════════════════════════════════════════════════════
--- 2. صلاحيات افتراضية: الجداول الجديدة لا تُمنح DML لـ anon
+-- 2. صلاحيات افتراضية: الجداول والتسلسلات الجديدة لا تُمنح لـ anon
 -- ═══════════════════════════════════════════════════════════════
 
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  REVOKE INSERT, UPDATE, DELETE ON TABLES FROM anon;
+  REVOKE ALL ON TABLES FROM anon;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  REVOKE ALL ON SEQUENCES FROM anon;
 
 -- ═══════════════════════════════════════════════════════════════
 -- 3. جعل bucket employee-avatars خاصاً + إصلاح السياسات

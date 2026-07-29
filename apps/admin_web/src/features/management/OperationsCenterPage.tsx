@@ -8,6 +8,7 @@ import { MetricSkeletonRow, SkeletonCard } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { DialogOverlay } from '../../ui/DialogOverlay';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { useOperationsCenter, useOperationsCommands } from './useControlCenters';
 
 type Tab = 'tasks' | 'missions' | 'convoys';
@@ -77,7 +78,7 @@ export function OperationsCenterPage() {
       {query.isError ? (
         <ErrorState
           title="تعذر تحميل مركز العمليات"
-          description={query.error instanceof Error ? query.error.message : 'تحقق من الاتصال والصلاحيات.'}
+          description={safeErrorMessage(query.error)}
           onRetry={() => void query.refetch()}
         />
       ) : query.isLoading ? (
@@ -119,7 +120,7 @@ export function OperationsCenterPage() {
                 <label className="block text-sm font-bold">الأولوية<select className="input mt-2" value={taskDraft.priority} onChange={(event) => setTaskDraft({ ...taskDraft, priority: event.target.value })}><option value="low">منخفضة</option><option value="medium">متوسطة</option><option value="high">عالية</option><option value="urgent">عاجلة</option></select></label>
                 <label className="block text-sm font-bold">تاريخ الاستحقاق<input className="input mt-2" type="date" value={taskDraft.dueDate} onChange={(event) => setTaskDraft({ ...taskDraft, dueDate: event.target.value })} /></label>
               </div>
-              {commands.createTask.isError ? <ErrorBanner message={commands.createTask.error instanceof Error ? commands.createTask.error.message : 'تعذر إنشاء المهمة.'} /> : null}
+              {commands.createTask.isError ? <ErrorBanner message={safeErrorMessage(commands.createTask.error)} /> : null}
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setTaskDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.createTask.isPending}><ClipboardCheck className="size-4" aria-hidden="true" />{commands.createTask.isPending ? 'جارٍ الإنشاء…' : 'إنشاء المهمة'}</button></div>
           </form>
         </DialogOverlay>

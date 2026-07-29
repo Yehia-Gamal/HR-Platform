@@ -10,6 +10,7 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { useAuth } from '../auth/AuthProvider';
 import { LiveLocationMap, type MapPoint } from './LiveLocationMap';
 import { LiveLocationResultCard } from './LiveLocationResultCard';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { useExecutiveAttendanceOverview, useLiveLocationCommands } from './useControlCenters';
 import type { EmployeeOverviewRow, ExecutiveOverviewData } from './controlCenterTypes';
 
@@ -114,7 +115,7 @@ export function ExecutiveMonitoringPage() {
         </div>
       </section>
 
-      {overview.isError ? <ErrorState description={overview.error instanceof Error ? overview.error.message : 'تحقق من الصلاحيات.'} onRetry={() => void overview.refetch()} /> : null}
+      {overview.isError ? <ErrorState description={safeErrorMessage(overview.error)} onRetry={() => void overview.refetch()} /> : null}
 
       {!overview.isError ? (
         <section className="grid gap-5 2xl:grid-cols-[1.1fr_.9fr]">
@@ -166,7 +167,7 @@ export function ExecutiveMonitoringPage() {
               <label className="block text-sm font-bold">سبب الطلب
                 <textarea className="input mt-2 min-h-28" required minLength={5} value={draft.reason} onChange={(ev) => setDraft({ ...draft, reason: ev.target.value })} placeholder="سبب تشغيلي واضح…" />
               </label>
-              {commands.request.isError ? <ErrorBanner message={commands.request.error instanceof Error ? commands.request.error.message : 'تعذّر إرسال الطلب.'} /> : null}
+              {commands.request.isError ? <ErrorBanner message={safeErrorMessage(commands.request.error)} /> : null}
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.request.isPending || draft.reason.trim().length < 5}><Send className="size-4" aria-hidden="true" />{commands.request.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}</button></div>
             </form>
         </DialogOverlay>

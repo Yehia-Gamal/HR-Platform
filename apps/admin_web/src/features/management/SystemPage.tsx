@@ -5,6 +5,7 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { ErrorState } from '../../ui/ErrorState';
 import { MetricSkeletonRow, ListSkeleton } from '../../ui/Skeletons';
 import { useSystemOverview } from './useManagementOverviews';
+import { safeErrorMessage } from '../../core/errorMapper';
 
 export function SystemPage() {
   const q = useSystemOverview();
@@ -20,9 +21,7 @@ export function SystemPage() {
       {q.isError ? (
         <ErrorState
           title="تعذر تحميل الحالة التقنية"
-          description={
-            q.error instanceof Error ? q.error.message : undefined
-          }
+          description={safeErrorMessage(q.error)}
           onRetry={() => void q.refetch()}
         />
       ) : q.isLoading && !d ? (

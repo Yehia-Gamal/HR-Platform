@@ -7,6 +7,7 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { LiveLocationMap, type MapPoint } from './LiveLocationMap';
 import type { LiveLocationResponseData, LocationPoint } from './controlCenterTypes';
 import { useLiveLocationMapUrl, useLiveLocationResponse } from './useControlCenters';
+import { safeErrorMessage } from '../../core/errorMapper';
 
 // بطاقة نتيجة طلب الموقع الكاملة (القسم 10): خريطة + عنوان تقريبي + دقة + توقيتات.
 // V17 §9: video permanently disabled — video player, legal hold, and URL signing UI removed.
@@ -33,7 +34,7 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
     return <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-muted)]" aria-label="جارٍ تحميل النتيجة" />;
   }
   if (response.isError || !data) {
-    return <ErrorState title="تعذّر تحميل النتيجة" description={response.error instanceof Error ? response.error.message : 'تحقق من الصلاحيات.'} onRetry={() => void response.refetch()} />;
+    return <ErrorState title="تعذّر تحميل النتيجة" description={safeErrorMessage(response.error)} onRetry={() => void response.refetch()} />;
   }
 
   const request = data.request ?? { status: 'pending', reason: null, requestedAt: null, respondedAt: null };

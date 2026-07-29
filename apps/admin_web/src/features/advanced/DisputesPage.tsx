@@ -13,6 +13,7 @@ import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { useDisputeCommands, useDisputeOperations, useDisputeParticipantDirectory } from './useAdvancedOperations';
+import { safeErrorMessage } from '../../core/errorMapper';
 
 type DisputeCase = DisputeOperationsCatalog['cases'][number];
 
@@ -127,7 +128,7 @@ export function DisputesPage() {
       await task();
       setFeedback({ tone: 'success', text: success });
     } catch (error) {
-      setFeedback({ tone: 'error', text: error instanceof Error ? error.message : 'تعذر تنفيذ الإجراء.' });
+      setFeedback({ tone: 'error', text: safeErrorMessage(error) });
     }
   };
 
@@ -174,7 +175,7 @@ export function DisputesPage() {
       </select>
     </FilterBar>
 
-    {query.isError ? <ErrorState description={query.error instanceof Error ? query.error.message : undefined} onRetry={() => void query.refetch()} /> : null}
+    {query.isError ? <ErrorState description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} /> : null}
 
     <section className="grid gap-6 xl:grid-cols-[390px_minmax(0,1fr)]">
       <div className="card p-4">

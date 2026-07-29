@@ -9,9 +9,12 @@ import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { UserAvatar } from '../../ui/UserAvatar';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { useEmployees } from './useEmployees';
+import { safeErrorMessage } from '../../core/errorMapper';
 
 type SortMode = 'newest' | 'name' | 'code';
 
@@ -88,7 +91,7 @@ export function EmployeesPage() {
 
       {employees.isError ? (
         <ErrorState
-          description={employees.error instanceof Error ? employees.error.message : undefined}
+          description={safeErrorMessage(employees.error)}
           onRetry={() => void employees.refetch()}
         />
       ) : employees.isLoading ? (

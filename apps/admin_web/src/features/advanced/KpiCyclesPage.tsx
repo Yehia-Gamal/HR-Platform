@@ -1,13 +1,14 @@
 import { Archive, Bell, CalendarDays, CheckCircle2, ChevronDown, ChevronUp, Download, Lock, PauseCircle, RefreshCcw, Scale, Unlock, UsersRound, XCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
-import { ErrorState } from '../../ui/ErrorState';
+import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { MetricSkeletonRow, ListSkeleton } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useKpiAdmin, useKpiAdminCommands } from './useAdvancedOperations';
+import { safeErrorMessage } from '../../core/errorMapper';
 
 const monthNow = new Date().toISOString().slice(0, 7);
 
@@ -30,6 +31,7 @@ export function KpiCyclesPage() {
   const [ratingMins, setRatingMins] = useState({ excellent: 90, veryGood: 80, good: 70, acceptable: 60 });
   const data = query.data;
   const totals = useMemo(() => ({ cycles: data?.cycles.length ?? 0, evaluations: data?.cycles.reduce((sum, item) => sum + item.evaluations, 0) ?? 0, finalized: data?.cycles.reduce((sum, item) => sum + item.finalized, 0) ?? 0, appeals: data?.appeals.length ?? 0 }), [data]);
+  const mutationError = [commands.createCycle, commands.manageCycle, commands.rescheduleCycle, commands.sendNotifications, commands.refreshAttendance, commands.updatePolicy, commands.getReport, commands.decideAppeal].find((m) => m.isError)?.error ?? null;
 
   useEffect(() => {
     if (!data?.policy) return;
@@ -68,7 +70,8 @@ export function KpiCyclesPage() {
 
   return <div className="space-y-6">
     <PageHeader title="دورات KPI الرسمية" description="إدارة دورات تقييم الأداء الشهرية — تجهيز وفتح وإغلاق الدورات وإرسال الإشعارات ومتابعة تقييمات الموظفين." actions={<label className="text-sm font-bold">الشهر<input className="input mt-1" type="month" value={month} onChange={(event) => setMonth(event.target.value)} /></label>} />
-    {query.isError ? <ErrorState title="تعذر تحميل دورات KPI" description={query.error instanceof Error ? query.error.message : undefined} onRetry={() => void query.refetch()} /> : query.isLoading && !data ? <><MetricSkeletonRow /><ListSkeleton rows={3} /></> : <>
+    {mutationError ? <ErrorBanner message={safeErrorMessage(mutationError)} /> : null}
+    {query.isError ? <ErrorState title="تعذر تحميل دورات KPI" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} /> : query.isLoading && !data ? <><MetricSkeletonRow /><ListSkeleton rows={3} /></> : <>
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="الدورات" value={totals.cycles} icon={CalendarDays} /><MetricCard label="التقييمات" value={totals.evaluations} icon={UsersRound} /><MetricCard label="المدرجة في التقارير" value={totals.finalized} icon={CheckCircle2} /><MetricCard label="الاعتراضات" value={totals.appeals} icon={Scale} /></section>
 
       {data?.canManageCycles ? <form className="card flex flex-wrap items-center justify-between gap-4 p-5" onSubmit={(event) => { event.preventDefault(); void createCycle(); }}><div><h2 className="text-lg font-black">تجهيز دورة الشهر</h2><p className="muted text-sm">القالب الرسمي سبعة بنود بإجمالي 100 درجة، والفتح المجدول يوم 20.</p></div><button className="btn-primary" disabled={commands.createCycle.isPending || !data.officialTemplateId}>تجهيز الدورة</button></form> : null}
@@ -119,7 +122,7 @@ export function KpiCyclesPage() {
 
       {data?.canManageCycles && data.policy ? <section className="card p-5"><h2 className="text-lg font-black">سياسة الخصم والتصنيف</h2><p className="muted mt-1 text-sm">الحفظ ينشئ إصدارًا جديدًا ويحافظ على نتائج الدورات السابقة.</p><div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">{([['late', 'التأخير'], ['earlyLeave', 'الانصراف المبكر'], ['unexcusedAbsence', 'الغياب'], ['missingPunch', 'البصمة الناقصة'], ['shortagePerHour', 'نقص الساعة'], ['maxShortagePerDay', 'حد النقص اليومي']] as const).map(([key, label]) => <label className="text-xs font-bold" key={key}>{label}<input className="input mt-1" type="number" min={0} step="0.25" value={policyRules[key]} onChange={(event) => setPolicyRules({ ...policyRules, [key]: Number(event.target.value) })} /></label>)}</div><div className="mt-4 grid gap-3 sm:grid-cols-4"><input className="input" type="number" aria-label="بداية ممتاز" value={ratingMins.excellent} onChange={(event) => setRatingMins({ ...ratingMins, excellent: Number(event.target.value) })} /><input className="input" type="number" aria-label="بداية جيد جدًا" value={ratingMins.veryGood} onChange={(event) => setRatingMins({ ...ratingMins, veryGood: Number(event.target.value) })} /><input className="input" type="number" aria-label="بداية جيد" value={ratingMins.good} onChange={(event) => setRatingMins({ ...ratingMins, good: Number(event.target.value) })} /><input className="input" type="number" aria-label="بداية مقبول" value={ratingMins.acceptable} onChange={(event) => setRatingMins({ ...ratingMins, acceptable: Number(event.target.value) })} /></div><button className="btn-primary mt-4" disabled={commands.updatePolicy.isPending || !(ratingMins.excellent > ratingMins.veryGood && ratingMins.veryGood > ratingMins.good && ratingMins.good > ratingMins.acceptable)} onClick={() => void savePolicy()}>حفظ إصدار سياسة جديد</button></section> : null}
 
-      <section className="card p-5"><h2 className="text-lg font-black">اعتراضات التقييم</h2>{data?.appeals.length === 0 ? <EmptyState title="لا توجد اعتراضات معلقة" description="تظهر هنا الاعتراضات على النتائج المعتمدة." /> : <div className="mt-4 space-y-3">{data?.appeals.map((appeal) => <article key={appeal.id} className="rounded-2xl border border-[var(--border)] p-4"><div className="flex items-start justify-between gap-3"><div className="flex items-center gap-2"><UserAvatar displayName={appeal.employeeName} size="sm" /><strong>{appeal.employeeName}</strong><p className="muted mt-1 text-sm">{appeal.reason}</p></div><StatusBadge value={appeal.status} /></div><div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_auto]"><input className="input" placeholder="قرار ومبررات المراجعة" value={appealNotes[appeal.id] ?? ''} onChange={(event) => setAppealNotes((old) => ({ ...old, [appeal.id]: event.target.value }))} /><button className="btn-primary" disabled={(appealNotes[appeal.id]?.trim().length ?? 0) < 8} onClick={() => commands.decideAppeal.mutate({ p_appeal_id: appeal.id, p_decision: 'accepted', p_note: appealNotes[appeal.id] }).catch(() => { /* mutation error surfaced via isError */ })}>قبول وإعادة للمدير</button><button className="btn-secondary" disabled={(appealNotes[appeal.id]?.trim().length ?? 0) < 8} onClick={() => void commands.decideAppeal.mutateAsync({ p_appeal_id: appeal.id, p_decision: 'rejected', p_note: appealNotes[appeal.id] })}>رفض</button></div></article>)}</div>}</section>
+      <section className="card p-5"><h2 className="text-lg font-black">اعتراضات التقييم</h2>{data?.appeals.length === 0 ? <EmptyState title="لا توجد اعتراضات معلقة" description="تظهر هنا الاعتراضات على النتائج المعتمدة." /> : <div className="mt-4 space-y-3">{data?.appeals.map((appeal) => <article key={appeal.id} className="rounded-2xl border border-[var(--border)] p-4"><div className="flex items-start justify-between gap-3"><div className="flex items-center gap-2"><UserAvatar displayName={appeal.employeeName} size="sm" /><strong>{appeal.employeeName}</strong><p className="muted mt-1 text-sm">{appeal.reason}</p></div><StatusBadge value={appeal.status} /></div><div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_auto]"><input className="input" placeholder="قرار ومبررات المراجعة" value={appealNotes[appeal.id] ?? ''} onChange={(event) => setAppealNotes((old) => ({ ...old, [appeal.id]: event.target.value }))} /><button className="btn-primary" disabled={(appealNotes[appeal.id]?.trim().length ?? 0) < 8} onClick={() => commands.decideAppeal.mutate({ p_appeal_id: appeal.id, p_decision: 'accepted', p_note: appealNotes[appeal.id] })}>قبول وإعادة للمدير</button><button className="btn-secondary" disabled={(appealNotes[appeal.id]?.trim().length ?? 0) < 8} onClick={() => commands.decideAppeal.mutate({ p_appeal_id: appeal.id, p_decision: 'rejected', p_note: appealNotes[appeal.id] })}>رفض</button></div></article>)}</div>}</section>
     </>}
   </div>;
 }

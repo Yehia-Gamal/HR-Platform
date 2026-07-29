@@ -18,6 +18,7 @@ import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { MetricSkeletonRow, SkeletonCard } from '../../ui/Skeletons';
@@ -246,7 +247,7 @@ export function MonthlyAttendanceReportPage() {
 
       {/* ─── حالات العرض ─── */}
       {!selectedEmployeeId ? null : statementQuery.isError ? (
-        <ErrorState description={statementQuery.error instanceof Error ? statementQuery.error.message : undefined} onRetry={() => void statementQuery.refetch()} />
+        <ErrorState description={safeErrorMessage(statementQuery.error)} onRetry={() => void statementQuery.refetch()} />
       ) : statementQuery.isLoading ? (
         <><MetricSkeletonRow count={4} /><SkeletonCard className="h-64" /></>
       ) : !statementQuery.data ? (

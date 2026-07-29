@@ -21,6 +21,7 @@ import {
   useEmployee360, useResendInvite, useEmployees, useChangeManager, useArchiveEmployee,
   useUpdateEmployee, useEmployeeDepartments, useAssignDepartment, useRemoveDepartment, useDeleteEmployee,
 } from './useEmployees';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { useOrganizationLookups } from './useOrganizationLookups';
 
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
@@ -44,7 +45,7 @@ export function EmployeeDetailPage() {
   const item = query.data;
 
   if (query.isError) {
-    return <ErrorState title="تعذر فتح ملف الموظف" description={query.error instanceof Error ? query.error.message : undefined} onRetry={() => void query.refetch()} />;
+    return <ErrorState title="تعذر فتح ملف الموظف" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />;
   }
   if (query.isLoading) {
     return <SkeletonCard className="h-72" />;
@@ -67,7 +68,7 @@ export function EmployeeDetailPage() {
     try {
       setResendMessage(await resend.mutateAsync(employeeId));
     } catch (error) {
-      setResendError(error instanceof Error ? error.message : 'تعذر إعادة إرسال الدعوة.');
+      setResendError(safeErrorMessage(error));
     }
   };
 
@@ -332,7 +333,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
       await update.mutateAsync({ employeeId: item.id, changes, reason: reason.trim() });
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذر تحديث بيانات الموظف.');
+      setError(safeErrorMessage(err));
     }
   };
 
@@ -479,7 +480,7 @@ function ChangeManagerDialog({ employeeId, currentManagerName, onClose, onSucces
       await changeManager.mutateAsync({ employeeId, managerId: selectedManagerId || null, reason });
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذر تغيير المدير.');
+      setError(safeErrorMessage(err));
     }
   };
 
@@ -608,7 +609,7 @@ function DeleteEmployeeDialog({ employeeId, employeeName, onClose, onSuccess }: 
       await deleteEmployee.mutateAsync({ employeeId, confirmationCode: confirmText, reason: 'حذف نهائي بواسطة المسؤول' });
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'حدث خطأ أثناء الحذف.');
+      setError(safeErrorMessage(err));
     }
   };
 
@@ -666,7 +667,7 @@ function AddDepartmentDialog({ employeeId, onClose, onSuccess }: { employeeId: s
       });
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'حدث خطأ أثناء الإضافة.');
+      setError(safeErrorMessage(err));
     }
   };
 

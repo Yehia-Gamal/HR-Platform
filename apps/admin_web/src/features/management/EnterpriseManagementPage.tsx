@@ -15,6 +15,7 @@ import { LoadingScreen } from '../../ui/LoadingScreen';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { useEnterpriseManagementCatalog } from './useEnterpriseManagement';
 
 export function EnterpriseManagementPage() {
@@ -24,7 +25,7 @@ export function EnterpriseManagementPage() {
     return (
       <ErrorState
         title="تعذر تحميل مركز الإدارة المؤسسية"
-        description={q.error instanceof Error ? q.error.message : undefined}
+        description={safeErrorMessage(q.error)}
         onRetry={() => void q.refetch()}
       />
     );

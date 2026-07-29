@@ -1,11 +1,12 @@
 import type { KpiEvaluationForm } from '@ahla/shared-contracts';
 import { AlertTriangle, CalendarCheck, CheckCircle2, Link2, RefreshCcw, Save, ShieldCheck, Target } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { ErrorState } from '../../ui/ErrorState';
+import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useAdvanceKpi, useKpiEvaluationForm, useKpiFormCommands } from './usePerformance';
 import { kpiWorkflowStatusText } from './workflowStatus';
+import { safeErrorMessage } from '../../core/errorMapper';
 
 type ScoreDraft = Record<string, { score: number; note: string }>;
 type ComplianceDraft = Record<'PRAYER' | 'HALAQA', { required: number; actual: number; exempt: number; cancelled: number; note: string }>;
@@ -56,7 +57,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
   const editableCriteria = useMemo(() => form?.criteria.filter((item) => item.editable) ?? [], [form]);
 
   if (query.isLoading) return <div className="card grid min-h-64 place-items-center"><RefreshCcw className="size-6 animate-spin text-brand" aria-hidden="true" /></div>;
-  if (query.isError || !form) return <ErrorState title="تعذر فتح نموذج التقييم" description={query.error instanceof Error ? query.error.message : 'أعد المحاولة.'} onRetry={() => void query.refetch()} />;
+  if (query.isError || !form) return <ErrorState title="تعذر فتح نموذج التقييم" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />;
 
   const saveGoal = async (goal: KpiEvaluationForm['goals'][number]) => {
     const draft = goalDrafts[goal.id];

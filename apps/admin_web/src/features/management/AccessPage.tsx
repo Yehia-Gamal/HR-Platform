@@ -8,6 +8,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useAccessAdminCatalog, useAccessCommands } from './useAdminOperations';
 import type { AccessAdminCatalog } from '@ahla/shared-contracts';
+import { safeErrorMessage } from '../../core/errorMapper';
 
 // ─── ترجمة النطاقات ────────────────────────────────────────────────────────
 const SCOPE_AR: Record<string, string> = {
@@ -138,7 +139,7 @@ export function AccessPage() {
   return <div className="space-y-6">
     <PageHeader title="الأدوار والصلاحيات" description="اضغط على بطاقة دور لتعديل صلاحياته وإدارة المستخدمين المسندين، أو أنشئ دوراً مخصصاً." actions={<button className="btn-primary" onClick={() => openCustomDraft()}><Plus className="size-4" aria-hidden="true"/>دور مخصص</button>}/>
 
-    {query.isError ? <ErrorState title="تعذر تحميل الصلاحيات" description={query.error instanceof Error ? query.error.message : 'غير مصرح'} onRetry={() => void query.refetch()} /> : query.isLoading && !data ? <MetricSkeletonRow /> : null}
+    {query.isError ? <ErrorState title="تعذر تحميل الصلاحيات" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} /> : query.isLoading && !data ? <MetricSkeletonRow /> : null}
 
     {data ? <>
       {/* ── الإحصائيات ── */}
@@ -209,7 +210,7 @@ export function AccessPage() {
         <div className="border-b border-[var(--border)] p-5">
           <h2 className="font-black">إسنادات المستخدمين</h2>
         </div>
-        {commands.revokeRole.isError && <div className="p-5 pb-0"><ErrorBanner message={`تعذر سحب الدور: ${commands.revokeRole.error instanceof Error ? commands.revokeRole.error.message : 'حدث خطأ غير متوقع'}`} /></div>}
+        {commands.revokeRole.isError && <div className="p-5 pb-0"><ErrorBanner message={`تعذر سحب الدور: ${safeErrorMessage(commands.revokeRole.error)}`} /></div>}
         <div className="divide-y divide-[var(--border)]">
           {data.users.map((user) => <article key={user.userId} className="p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -497,7 +498,7 @@ function RoleManagementDialog({ role, data, commands, onClose }: {
         </button>
       </div>
 
-      {commands.revokeRole.isError && <ErrorBanner message={`تعذر سحب الدور: ${commands.revokeRole.error instanceof Error ? commands.revokeRole.error.message : 'حدث خطأ غير متوقع'}`}/>}
+      {commands.revokeRole.isError && <ErrorBanner message={`تعذر سحب الدور: ${safeErrorMessage(commands.revokeRole.error)}`}/>}
 
       {/* قائمة المستخدمين المسندين */}
       {assignedUsers.length === 0

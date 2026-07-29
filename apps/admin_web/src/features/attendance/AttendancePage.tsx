@@ -1,5 +1,6 @@
 import { AlertTriangle, CalendarClock, CheckCircle2, Clock3, RefreshCcw, UserMinus, Users } from 'lucide-react';
 import { ErrorState } from '../../ui/ErrorState';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { MetricSkeletonRow, SkeletonCard } from '../../ui/Skeletons';
@@ -31,7 +32,7 @@ export function AttendancePage() {
       {query.isError ? (
         <ErrorState
           title="تعذر تحميل الحضور"
-          description={query.error instanceof Error ? query.error.message : 'تحقق من الاتصال والصلاحيات.'}
+          description={safeErrorMessage(query.error)}
           onRetry={() => void query.refetch()}
         />
       ) : !data && query.isLoading ? (

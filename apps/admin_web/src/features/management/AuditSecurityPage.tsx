@@ -8,6 +8,7 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { SkeletonCard } from '../../ui/Skeletons';
 import { useAuditSecurityCenter, useAuditSecurityCommands } from './useControlCenters';
 import type { AuditSecurityData } from './controlCenterTypes';
+import { safeErrorMessage } from '../../core/errorMapper';
 
 type Tab = 'security' | 'audit' | 'devices';
 
@@ -75,12 +76,12 @@ export function AuditSecurityPage() {
       </section>
 
       {query.isError ? (
-        <ErrorState title="تعذر تحميل مركز الأمان" description={query.error instanceof Error ? query.error.message : 'تحقق من صلاحيات التدقيق والأمان.'} onRetry={() => void query.refetch()} />
+        <ErrorState title="تعذر تحميل مركز الأمان" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
       ) : query.isLoading ? (
         <SkeletonCard className="h-72" />
       ) : null}
 
-      {commands.handleEvent.isError ? <ErrorBanner message={commands.handleEvent.error instanceof Error ? commands.handleEvent.error.message : 'تعذر تأكيد معالجة الحدث.'} /> : null}
+      {commands.handleEvent.isError ? <ErrorBanner message={safeErrorMessage(commands.handleEvent.error)} /> : null}
 
       {data && tab === 'security' ? (
         <section className="card overflow-hidden" role="tabpanel" id="panel-security" aria-labelledby="tab-security" tabIndex={0}>

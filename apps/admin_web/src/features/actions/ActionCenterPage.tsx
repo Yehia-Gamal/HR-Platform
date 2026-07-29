@@ -2,6 +2,7 @@ import { AlertCircle, ArrowLeft, Clock3, Inbox } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { MetricSkeletonRow, ListSkeleton } from '../../ui/Skeletons';
@@ -42,9 +43,7 @@ export function ActionCenterPage() {
       {query.isError ? (
         <ErrorState
           title="تعذر تحميل مركز الإجراءات"
-          description={
-            query.error instanceof Error ? query.error.message : undefined
-          }
+          description={safeErrorMessage(query.error)}
           onRetry={() => void query.refetch()}
         />
       ) : isInitialLoading ? (

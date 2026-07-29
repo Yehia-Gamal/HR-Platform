@@ -10,6 +10,7 @@ import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { preparePostImage } from '../../ui/postImage';
 import { StatusBadge } from '../../ui/StatusBadge';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { useCreateDecisionDraft, useOfficialFeed, usePublishAnnouncement, useTransitionDecision } from './useOfficialFeed';
@@ -60,7 +61,7 @@ export function OfficialFeedPage() {
       setBannerUrl(urlData.publicUrl);
       setImagePreview(URL.createObjectURL(prepared));
     } catch (err) {
-      setImageError(err instanceof Error ? err.message : 'تعذر رفع الصورة.');
+      setImageError(safeErrorMessage(err));
     } finally {
       setImageUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -134,7 +135,7 @@ export function OfficialFeedPage() {
     </section>
     <FilterBar searchValue={search} onSearchChange={setSearch} searchPlaceholder="بحث في عنوان أو محتوى المنشور" resultText={`عرض ${items.length} من ${allItems.length} عنصر رسمي`} isDirty={Boolean(search || kind !== 'all' || priority !== 'all')} onClear={() => { setSearch(''); setKind('all'); setPriority('all'); }}><select className="input" aria-label="نوع العنصر الرسمي" value={kind} onChange={(event) => setKind(event.target.value)}><option value="all">كل الأنواع</option><option value="announcement">خبر أو إعلان</option><option value="decision">قرار إداري</option></select><select className="input" aria-label="أولوية العنصر الرسمي" value={priority} onChange={(event) => setPriority(event.target.value)}><option value="all">كل الأولويات</option><option value="normal">عادية</option><option value="high">مرتفعة</option><option value="urgent">عاجلة</option></select></FilterBar>
     {query.isError ? (
-      <ErrorState title="تعذر تحميل القناة" description={query.error instanceof Error ? query.error.message : undefined} onRetry={() => void query.refetch()} />
+      <ErrorState title="تعذر تحميل القناة" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
     ) : query.isLoading && allItems.length === 0 ? (
       <ListSkeleton rows={4} label="جارٍ تحميل القناة الرسمية" />
     ) : allItems.length === 0 ? (

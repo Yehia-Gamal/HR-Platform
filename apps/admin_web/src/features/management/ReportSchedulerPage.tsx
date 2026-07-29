@@ -7,6 +7,7 @@ import { MetricCard } from '../../ui/MetricCard';
 import { MetricSkeletonRow, ListSkeleton } from '../../ui/Skeletons';
 import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { useReportSchedulerCatalog, useReportSchedulerCommands } from './useEnterpriseOperations';
 
 export function ReportSchedulerPage() {
@@ -48,7 +49,7 @@ export function ReportSchedulerPage() {
       {query.isError ? (
         <ErrorState
           title="تعذر تحميل جدولة التقارير"
-          description={query.error instanceof Error ? query.error.message : undefined}
+          description={safeErrorMessage(query.error)}
           onRetry={() => void query.refetch()}
         />
       ) : !data ? (
@@ -117,7 +118,7 @@ export function ReportSchedulerPage() {
           <form className="space-y-4" onSubmit={submit}>
             {commands.upsert.error ? (
               <ErrorBanner
-                message={commands.upsert.error instanceof Error ? commands.upsert.error.message : 'تعذر حفظ الجدولة'}
+                message={safeErrorMessage(commands.upsert.error)}
               />
             ) : null}
             <div className="grid gap-4 sm:grid-cols-2">

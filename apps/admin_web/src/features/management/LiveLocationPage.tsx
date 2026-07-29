@@ -9,6 +9,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useLiveLocationCommands, useLocationDirectory, type LocationDirectoryItem } from './useControlCenters';
+import { safeErrorMessage } from '../../core/errorMapper';
 
 type LocationState = 'fresh' | 'stale' | 'no_signal';
 type RequestDraft = { employee: LocationDirectoryItem; reason: string };
@@ -94,7 +95,7 @@ export function LiveLocationPage() {
         <button type="button" role="tab" aria-selected={mobileView === 'map'} className={`filter-chip ${mobileView === 'map' ? 'is-active' : ''}`} onClick={() => setMobileView('map')}>الخريطة</button>
       </div>
 
-      {query.isError ? <ErrorState title="تعذر تحميل دليل الموقع" description={query.error instanceof Error ? query.error.message : 'تحقق من الاتصال والصلاحيات.'} onRetry={() => void query.refetch()} /> : null}
+      {query.isError ? <ErrorState title="تعذر تحميل دليل الموقع" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} /> : null}
 
       {!query.isError ? (
         <section className="grid gap-5 2xl:grid-cols-[1.15fr_.85fr]">
@@ -142,7 +143,7 @@ export function LiveLocationPage() {
             <label className="block text-sm font-bold">سبب الطلب
               <textarea className="input mt-2 min-h-28" required minLength={5} value={requestDraft.reason} onChange={(event) => setRequestDraft({ ...requestDraft, reason: event.target.value })} placeholder="اكتب سببًا تشغيليًا واضحًا…" />
             </label>
-            {commands.request.isError ? <ErrorBanner message={commands.request.error instanceof Error ? commands.request.error.message : 'تعذر إرسال الطلب.'} /> : null}
+            {commands.request.isError ? <ErrorBanner message={safeErrorMessage(commands.request.error)} /> : null}
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setRequestDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.request.isPending || requestDraft.reason.trim().length < 5}><Send className="size-4" aria-hidden="true" />{commands.request.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}</button></div>
           </form>
         </DialogOverlay>

@@ -2,6 +2,7 @@ import { Bell, CheckCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { useMarkNotificationsRead, useNotifications } from './useNotifications';
@@ -32,7 +33,7 @@ export function NotificationsPage() {
       {q.isError ? (
         <ErrorState
           title="تعذر تحميل الإشعارات"
-          description={q.error instanceof Error ? q.error.message : undefined}
+          description={safeErrorMessage(q.error)}
           onRetry={() => void q.refetch()}
         />
       ) : q.isLoading ? (
