@@ -36,6 +36,7 @@ const ALLOWED_ORIGINS = new Set(
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight(req);
+  try {
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
   const authorization = req.headers.get("Authorization") ?? "";
   const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
@@ -149,4 +150,8 @@ Deno.serve(async (req) => {
   if (insertError) return json(req, { error: "challenge_create_failed" }, 500);
 
   return json(req, { ...options, challengeId: createdChallenge.id, expiresAt, type }, 200);
+  } catch (err) {
+    console.error("webauthn-challenge unhandled error", err instanceof Error ? err.message : String(err));
+    return json(req, { error: "INTERNAL_ERROR" }, 500);
+  }
 });

@@ -120,10 +120,12 @@ Deno.serve(async (req) => {
   // "identifier exists" path cannot leak via longer latency.
   const deadline = startedAt + 480 + Math.floor(Math.random() * 80);
 
+  try {
   if (!SUPABASE_URL || !SERVICE_ROLE || !ANON_KEY || HASH_PEPPER.length < 24) {
     return json(req, { error: 'SERVER_CONFIGURATION' }, 500);
   }
 
+  try {
   let identifier = '';
   let password = '';
   try {
@@ -230,6 +232,16 @@ Deno.serve(async (req) => {
       failure_code: 'internal_failure',
       user_agent_hash: userAgentHash,
     });
+    await waitUntil(deadline);
+    return genericFailure(req);
+  }
+  } catch {
+    // Top-level safety net: preserve timing guarantee even on unexpected errors.
+    await waitUntil(deadline);
+    return genericFailure(req);
+  }
+  } catch (err) {
+    console.error('identifier-sign-in unhandled error', err instanceof Error ? err.message : String(err));
     await waitUntil(deadline);
     return genericFailure(req);
   }

@@ -16,6 +16,7 @@ const inputSchema = z.object({ employeeId: z.string().uuid() });
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight(req);
+  try {
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
   if (!SUPABASE_URL || !PUBLISHABLE_KEY || !SERVICE_ROLE) {
     return json(req, { error: "server_not_configured" }, 500);
@@ -99,4 +100,8 @@ Deno.serve(async (req) => {
   }
 
   return json(req, { invitationSent: true, email: authUser.user.email }, 200);
+  } catch (err) {
+    console.error("admin-resend-invite unhandled error", err instanceof Error ? err.message : String(err));
+    return json(req, { error: "INTERNAL_ERROR" }, 500);
+  }
 });

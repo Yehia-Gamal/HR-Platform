@@ -76,6 +76,7 @@ function inaccessibleRandomPassword(): string {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight(req);
+  try {
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
   if (!SUPABASE_URL || !PUBLISHABLE_KEY || !SERVICE_ROLE) {
     return json(req, { error: "server_not_configured" }, 500);
@@ -287,4 +288,8 @@ Deno.serve(async (req) => {
     userId: result?.userId ?? userId,
     invitationSent: input.sendInvite,
   }, 201);
+  } catch (err) {
+    console.error("admin-create-employee unhandled error", err instanceof Error ? err.message : String(err));
+    return json(req, { error: "INTERNAL_ERROR" }, 500);
+  }
 });

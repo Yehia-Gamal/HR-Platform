@@ -46,6 +46,7 @@ function validateCoordinates(latitude: unknown, longitude: unknown, accuracy: un
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight(req);
+  try {
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
   const authorization = req.headers.get("Authorization") ?? "";
   const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
@@ -249,4 +250,8 @@ Deno.serve(async (req) => {
     return json(req, finalized, 400);
   }
   return json(req, finalized, 200);
+  } catch (err) {
+    console.error("verify-attendance-punch unhandled error", err instanceof Error ? err.message : String(err));
+    return json(req, { error: "INTERNAL_ERROR" }, 500);
+  }
 });

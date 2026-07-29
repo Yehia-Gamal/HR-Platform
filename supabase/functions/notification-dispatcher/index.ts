@@ -34,6 +34,7 @@ type SupabaseClient = ReturnType<typeof createClient>;
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
   if (req.method !== 'POST') return respond(req, { error: 'METHOD_NOT_ALLOWED' }, 405);
+  try {
   const cronSecret = Deno.env.get('CRON_SECRET');
   if (!await timingSafeEqual(req.headers.get('x-cron-secret'), cronSecret)) return respond(req, { error: 'UNAUTHORIZED' }, 401);
   const url = Deno.env.get('SUPABASE_URL'); const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -149,6 +150,10 @@ Deno.serve(async (req) => {
     }
   }
   return respond(req, { processed: ordered.length, sent, failed });
+  } catch (err) {
+    console.error('notification-dispatcher unhandled error', err instanceof Error ? err.message : String(err));
+    return respond(req, { error: 'INTERNAL_ERROR' }, 500);
+  }
 });
 
 // يبني رسالة FCM v1: تجربة عاجلة (شاشة كاملة/صوت/اهتزاز) عند urgent+fullScreen.

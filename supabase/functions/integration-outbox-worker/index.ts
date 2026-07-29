@@ -25,6 +25,7 @@ type IntegrationRow = {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
   if (req.method !== 'POST') return respond(req, { error: 'METHOD_NOT_ALLOWED' }, 405);
+  try {
   const cronSecret = Deno.env.get('CRON_SECRET');
   if (!await timingSafeEqual(req.headers.get('x-cron-secret'), cronSecret)) {
     return respond(req, { error: 'UNAUTHORIZED' }, 401);
@@ -125,6 +126,10 @@ Deno.serve(async (req) => {
   }
 
   return respond(req, { processed: (candidates ?? []).length, delivered, failed, skipped, worker, completedAt: new Date().toISOString() });
+  } catch (err) {
+    console.error('integration-outbox-worker unhandled error', err instanceof Error ? err.message : String(err));
+    return respond(req, { error: 'INTERNAL_ERROR' }, 500);
+  }
 });
 
 /**

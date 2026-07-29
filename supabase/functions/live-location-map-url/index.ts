@@ -10,6 +10,8 @@ const inputSchema = z.object({ requestId: z.string().uuid() });
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight(req);
+  try {
+  try {
   if (req.method !== "POST") return json(req, { error: "METHOD_NOT_ALLOWED" }, 405);
   if (!SUPABASE_URL || !SERVICE_ROLE || !PUBLISHABLE_KEY) {
     return json(req, { error: "SERVER_CONFIGURATION" }, 500);
@@ -50,4 +52,8 @@ Deno.serve(async (req) => {
     action: "signed_url",
   });
   return json(req, { url: signed.signedUrl, expiresInSeconds: SIGNED_TTL_SECONDS });
+  } catch (err) {
+    console.error("live-location-map-url unhandled error", err instanceof Error ? err.message : String(err));
+    return json(req, { error: "INTERNAL_ERROR" }, 500);
+  }
 });

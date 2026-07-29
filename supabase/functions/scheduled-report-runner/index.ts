@@ -149,6 +149,7 @@ async function generateHrMonthly(sb: SupabaseClient, _run: ReportRun) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
   if (req.method !== 'POST') return json(req, { error: 'METHOD_NOT_ALLOWED' }, 405);
+  try {
   const cronSecret = Deno.env.get('CRON_SECRET');
   const cron = req.headers.get('x-cron-secret');
   if (!await timingSafeEqual(cron, cronSecret)) return json(req, { error: 'UNAUTHORIZED' }, 401);
@@ -237,6 +238,10 @@ Deno.serve(async (req) => {
     }
   }
   return json(req, { queued: queued ?? 0, completed, failed });
+  } catch (err) {
+    console.error('scheduled-report-runner unhandled error', err instanceof Error ? err.message : String(err));
+    return json(req, { error: 'INTERNAL_ERROR' }, 500);
+  }
 });
 
 function json(req: Request, body: unknown, status = 200) {

@@ -20,6 +20,7 @@ function bytesToBase64Url(bytes: Uint8Array): string {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight(req);
+  try {
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
   const authorization = req.headers.get("Authorization") ?? "";
   const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
@@ -129,4 +130,8 @@ Deno.serve(async (req) => {
   }
 
   return json(req, { ok: true, verified: true, credential: saved }, 201);
+  } catch (err) {
+    console.error("passkey-register unhandled error", err instanceof Error ? err.message : String(err));
+    return json(req, { error: "INTERNAL_ERROR" }, 500);
+  }
 });
