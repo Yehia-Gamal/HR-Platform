@@ -4,6 +4,7 @@ import { EmptyState } from '../../ui/EmptyState';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { LiveLocationMap, type MapPoint } from './LiveLocationMap';
+import type { LiveLocationResponseData, LocationPoint } from './controlCenterTypes';
 import { useLiveLocationMapUrl, useLiveLocationResponse } from './useControlCenters';
 
 // بطاقة نتيجة طلب الموقع الكاملة (القسم 10): خريطة + عنوان تقريبي + دقة + توقيتات.
@@ -25,7 +26,7 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
 
   const req = (typeof requestId === 'string' ? requestId : null);
   const response = useLiveLocationResponse(req, true);
-  const data = response.data as Record<string, any> | null | undefined;
+  const data = response.data as LiveLocationResponseData | null | undefined;
 
   if (response.isLoading) {
     return <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-muted)]" aria-label="جارٍ تحميل النتيجة" />;
@@ -34,9 +35,9 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
     return <EmptyState title="تعذّر تحميل النتيجة" description={response.error instanceof Error ? response.error.message : 'تحقق من الصلاحيات.'} />;
   }
 
-  const request = data.request ?? {};
-  const employee = data.employee ?? {};
-  const points: any[] = Array.isArray(data.points) ? data.points : [];
+  const request = data.request ?? { status: 'pending', reason: null, requestedAt: null, respondedAt: null };
+  const employee = data.employee ?? { name: null, employeeCode: null, jobTitle: null, department: null };
+  const points: LocationPoint[] = Array.isArray(data.points) ? data.points : [];
   // V17 §9: video data ignored — video permanently disabled.
   const latest = points.length ? points[points.length - 1] : null;
 
