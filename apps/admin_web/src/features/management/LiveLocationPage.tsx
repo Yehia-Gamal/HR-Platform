@@ -55,8 +55,10 @@ export function LiveLocationPage() {
   async function submitRequest(event: FormEvent) {
     event.preventDefault();
     if (!requestDraft || requestDraft.reason.trim().length < 5) return;
-    await commands.request.mutateAsync({ employeeId: requestDraft.employee.id, reason: requestDraft.reason.trim() });
-    setRequestDraft(null);
+    try {
+      await commands.request.mutateAsync({ employeeId: requestDraft.employee.id, reason: requestDraft.reason.trim() });
+      setRequestDraft(null);
+    } catch { /* mutation error surfaced via commands.request.isError */ }
   }
 
   return (

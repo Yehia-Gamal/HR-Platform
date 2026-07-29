@@ -52,7 +52,9 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
     }));
 
   async function loadMapSnapshot() {
-    setMapSnapshotUrl(await mapUrlCmd.mutateAsync(requestId));
+    try {
+      setMapSnapshotUrl(await mapUrlCmd.mutateAsync(requestId));
+    } catch { /* error surfaced via mapUrlCmd.isError */ }
   }
 
   return (
