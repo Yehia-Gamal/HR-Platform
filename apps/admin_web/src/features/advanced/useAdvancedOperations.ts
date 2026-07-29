@@ -3,28 +3,16 @@ import {
   disputeOperationsCatalogSchema,
   disputeParticipantDirectorySchema,
   kpiAdminCatalogSchema,
-  type AttendanceOperationsCatalog,
-  type DisputeOperationsCatalog,
   type DisputeParticipant,
-  type KpiAdminCatalog,
 } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
-
-const now = new Date().toISOString();
-const emptyAttendance: AttendanceOperationsCatalog = { month: now.slice(0, 7) + '-01', shifts: [], rosters: [], corrections: [], overtime: [], periods: [], summary: { scheduled: 0, present: 0, absent: 0, pendingCorrections: 0, pendingOvertime: 0 }, lastUpdatedAt: now };
-const emptyKpi: KpiAdminCatalog = { month: now.slice(0, 7) + '-01', cycles: [], templates: [], appeals: [], stageCounts: {}, lastUpdatedAt: now };
-const emptyDisputes: DisputeOperationsCatalog = {
-  cases: [],
-  summary: { new: 0, overdue: 0, urgent: 0, critical: 0, waitingStatements: 0, escalated: 0, pendingExecution: 0, actionProposed: 0, awaitingExecution: 0, executed: 0, closed: 0, averageResolutionHours: 0 },
-  pendingAppeals: 0,
-  lastUpdatedAt: now,
-};
+import { loadDomainMocks } from '../mock/loadDomainMocks';
 
 export function useAttendanceOperations(month: string) {
   const auth = useAuth();
-  return useQuery({ queryKey: ['attendance-operations', month, auth.isMock], enabled: auth.status === 'authenticated', queryFn: async () => auth.isMock ? emptyAttendance : attendanceOperationsCatalogSchema.parse(await rpc('get_attendance_operations_catalog', { p_month: `${month}-01` })) });
+  return useQuery({ queryKey: ['attendance-operations', month, auth.isMock], enabled: auth.status === 'authenticated', queryFn: async () => auth.isMock ? (await loadDomainMocks()).mockAttendanceOps : attendanceOperationsCatalogSchema.parse(await rpc('get_attendance_operations_catalog', { p_month: `${month}-01` })) });
 }
 
 export function useAttendanceOperationsCommands() {
@@ -41,7 +29,7 @@ export function useAttendanceOperationsCommands() {
 
 export function useKpiAdmin(month: string) {
   const auth = useAuth();
-  return useQuery({ queryKey: ['kpi-admin', month, auth.isMock], enabled: auth.status === 'authenticated', queryFn: async () => auth.isMock ? emptyKpi : kpiAdminCatalogSchema.parse(await rpc('get_kpi_admin_catalog', { p_month: `${month}-01` })) });
+  return useQuery({ queryKey: ['kpi-admin', month, auth.isMock], enabled: auth.status === 'authenticated', queryFn: async () => auth.isMock ? (await loadDomainMocks()).mockKpiAdminCatalog : kpiAdminCatalogSchema.parse(await rpc('get_kpi_admin_catalog', { p_month: `${month}-01` })) });
 }
 
 export function useKpiAdminCommands() {
@@ -52,7 +40,7 @@ export function useKpiAdminCommands() {
 
 export function useDisputeOperations(status?: string) {
   const auth = useAuth();
-  return useQuery({ queryKey: ['dispute-operations', status ?? 'all', auth.isMock], enabled: auth.status === 'authenticated', queryFn: async () => auth.isMock ? emptyDisputes : disputeOperationsCatalogSchema.parse(await rpc('get_dispute_operations_catalog', { p_status: status || null })) });
+  return useQuery({ queryKey: ['dispute-operations', status ?? 'all', auth.isMock], enabled: auth.status === 'authenticated', queryFn: async () => auth.isMock ? (await loadDomainMocks()).mockDisputeOps : disputeOperationsCatalogSchema.parse(await rpc('get_dispute_operations_catalog', { p_status: status || null })) });
 }
 
 export function useDisputeParticipantDirectory(search = '') {

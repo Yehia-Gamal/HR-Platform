@@ -202,7 +202,16 @@ class MobileDisputesPage extends ConsumerWidget {
         ],
       ),
     );
-    if (confirmed != true || reason.text.trim().length < 5) {
+    if (confirmed != true) {
+      reason.dispose();
+      return;
+    }
+    if (reason.text.trim().length < 5) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('يرجى إدخال 5 أحرف على الأقل لسبب الإلغاء')),
+        );
+      }
       reason.dispose();
       return;
     }
@@ -247,7 +256,18 @@ class MobileDisputesPage extends ConsumerWidget {
         ],
       ),
     );
-    if (confirmed != true || reason.text.trim().length < 20) {
+    if (confirmed != true) {
+      reason.dispose();
+      return;
+    }
+    if (reason.text.trim().length < 20) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('يرجى كتابة 20 حرفًا على الأقل لأسباب الاعتراض'),
+          ),
+        );
+      }
       reason.dispose();
       return;
     }

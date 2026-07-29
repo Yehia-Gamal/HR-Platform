@@ -1,29 +1,15 @@
 import {
   recruitmentWorkbenchSchema,
   reportSchedulerCatalogSchema,
-  type RecruitmentWorkbench,
-  type ReportSchedulerCatalog,
 } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
-
-const id = (tail: string) => `90000000-0000-4000-8000-${tail.padStart(12, '0')}`;
-const now = new Date().toISOString();
-
-const mockRecruitment: RecruitmentWorkbench = {
-  requisitions: [{ id: id('1'), title: 'أخصائي تشغيل', departmentId: id('2'), departmentName: 'التشغيل', headcount: 2, status: 'approved', createdAt: now }],
-  postings: [{ id: id('3'), requisitionId: id('1'), title: 'أخصائي تشغيل', slug: 'operations-specialist', visibility: 'external', status: 'published', publishedAt: now, closesAt: null }],
-  applications: [{ id: id('4'), candidateId: id('5'), candidateName: 'مرشح تجريبي', postingId: id('3'), jobTitle: 'أخصائي تشغيل', status: 'active', stageId: id('6'), stageName: 'مقابلة', appliedAt: now, assigneeId: null }],
-  candidates: [{ id: id('5'), name: 'مرشح تجريبي', email: 'candidate@example.com', phone: '+201000000000', source: 'referral', tags: ['تشغيل'], createdAt: now }],
-  stages: [{ id: id('6'), postingId: id('3'), name: 'مقابلة', orderIndex: 3, slaDays: 3 }],
-  interviews: [], offers: [], lastUpdatedAt: now,
-};
-const mockReports: ReportSchedulerCatalog = { schedules: [], runs: [], notificationQueue: { queued: 0, failed: 0 }, lastUpdatedAt: now };
+import { loadDomainMocks } from '../mock/loadDomainMocks';
 
 export function useRecruitmentWorkbench() {
   const auth = useAuth();
-  return useQuery({ queryKey: ['recruitment-workbench', auth.isMock], enabled: auth.status === 'authenticated', queryFn: async () => auth.isMock ? mockRecruitment : recruitmentWorkbenchSchema.parse(await rpc('get_recruitment_workbench_catalog')) });
+  return useQuery({ queryKey: ['recruitment-workbench', auth.isMock], enabled: auth.status === 'authenticated', queryFn: async () => auth.isMock ? (await loadDomainMocks()).mockRecruitmentWorkbench : recruitmentWorkbenchSchema.parse(await rpc('get_recruitment_workbench_catalog')) });
 }
 
 export function useRecruitmentWorkbenchCommands() {
@@ -58,10 +44,10 @@ export function useRecruitmentWorkbenchCommands() {
 
 export function useReportSchedulerCatalog() {
   const auth = useAuth();
-  return useQuery({ queryKey: ['report-scheduler', auth.isMock], enabled: auth.status === 'authenticated', queryFn: async () => auth.isMock ? mockReports : reportSchedulerCatalogSchema.parse(await rpc('get_report_scheduler_catalog')) });
+  return useQuery({ queryKey: ['report-scheduler', auth.isMock], enabled: auth.status === 'authenticated', queryFn: async () => auth.isMock ? (await loadDomainMocks()).mockReportScheduler : reportSchedulerCatalogSchema.parse(await rpc('get_report_scheduler_catalog')) });
 }
 export function useReportSchedulerCommands() {
   const auth = useAuth(); const client = useQueryClient();
-  const upsert = useMutation({ mutationFn: async (input: { code: string; name: string; reportType: string; audienceScope: string; scheduleKind: string; runHour: number; channels: string[] }) => auth.isMock ? id('40') : rpc('upsert_scheduled_report_admin', { p_id: null, p_code: input.code, p_name_ar: input.name, p_report_type: input.reportType, p_audience_scope: input.audienceScope, p_schedule_kind: input.scheduleKind, p_run_hour: input.runHour, p_run_weekday: input.scheduleKind === 'weekly' ? 1 : null, p_run_monthday: input.scheduleKind === 'monthly' ? 1 : null, p_delivery_channels: input.channels, p_active: true }), onSuccess: async () => client.invalidateQueries({ queryKey: ['report-scheduler'] }) });
+  const upsert = useMutation({ mutationFn: async (input: { code: string; name: string; reportType: string; audienceScope: string; scheduleKind: string; runHour: number; channels: string[] }) => auth.isMock ? '90000000-0000-4000-8000-000000000040' : rpc('upsert_scheduled_report_admin', { p_id: null, p_code: input.code, p_name_ar: input.name, p_report_type: input.reportType, p_audience_scope: input.audienceScope, p_schedule_kind: input.scheduleKind, p_run_hour: input.runHour, p_run_weekday: input.scheduleKind === 'weekly' ? 1 : null, p_run_monthday: input.scheduleKind === 'monthly' ? 1 : null, p_delivery_channels: input.channels, p_active: true }), onSuccess: async () => client.invalidateQueries({ queryKey: ['report-scheduler'] }) });
   return { upsert };
 }

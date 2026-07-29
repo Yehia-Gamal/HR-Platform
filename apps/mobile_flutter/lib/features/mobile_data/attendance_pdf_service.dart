@@ -11,6 +11,14 @@ const _warnStatuses = {'غائب دون إذن', 'يحتاج مراجعة'};
 
 String _fmtTime(String? t) => (t != null && t.length >= 5) ? t.substring(0, 5) : '—';
 
+/// يهرّب محارف HTML الخاصة لمنع XSS/injection عند إدراج نصوص المستخدم في قوالب HTML.
+String _escapeHtml(String text) => text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+
 String _pctColor(double pct) =>
     pct >= 90 ? '#059669' : pct >= 75 ? '#f59e0b' : '#dc2626';
 
@@ -45,17 +53,17 @@ String _buildAttendanceHtml(MonthlyAttendanceStatement stmt) {
     final statusColor = isWarn ? '#dc2626' : isRest ? '#0369a1' : '#111827';
 
     dayRows.writeln('''<tr style="border-bottom:1px solid #e5e7eb;${rowBg.isNotEmpty ? 'background:$rowBg;' : ''}">
-      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${d.date}</td>
-      <td style="padding:6px 8px;text-align:center">${d.dayNameAr}</td>
+      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${_escapeHtml(d.date)}</td>
+      <td style="padding:6px 8px;text-align:center">${_escapeHtml(d.dayNameAr)}</td>
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${_fmtTime(d.checkIn)}</td>
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${_fmtTime(d.checkOut)}</td>
-      <td style="padding:6px 8px;text-align:center">${d.shiftName.isNotEmpty ? d.shiftName : '—'}</td>
+      <td style="padding:6px 8px;text-align:center">${d.shiftName.isNotEmpty ? _escapeHtml(d.shiftName) : '—'}</td>
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums">${d.workHours > 0 ? d.workHours.toStringAsFixed(1) : '—'}</td>
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;${d.lateMinutes > 0 ? 'color:#d97706;font-weight:700;' : ''}">${d.lateMinutes > 0 ? '${d.lateMinutes} د' : '—'}</td>
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;${d.earlyLeaveMinutes > 0 ? 'color:#d97706;font-weight:700;' : ''}">${d.earlyLeaveMinutes > 0 ? '${d.earlyLeaveMinutes} د' : '—'}</td>
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;${d.overtimeMinutes > 0 ? 'color:#059669;font-weight:700;' : ''}">${d.overtimeMinutes > 0 ? '${d.overtimeMinutes} د' : '—'}</td>
-      <td style="padding:6px 8px;text-align:center;font-weight:700;color:$statusColor">${d.status}</td>
-      <td style="padding:6px 8px;text-align:center;font-size:9px">${tags.isNotEmpty ? tags.join('، ') : (d.correctionNote ?? '')}</td>
+      <td style="padding:6px 8px;text-align:center;font-weight:700;color:$statusColor">${_escapeHtml(d.status)}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:9px">${tags.isNotEmpty ? tags.join('، ') : _escapeHtml(d.correctionNote ?? '')}</td>
     </tr>''');
   }
 
@@ -66,7 +74,7 @@ String _buildAttendanceHtml(MonthlyAttendanceStatement stmt) {
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <title>كشف حضور — ${stmt.employeeNameAr} — $monthName ${stmt.year}</title>
+  <title>كشف حضور — ${_escapeHtml(stmt.employeeNameAr)} — $monthName ${stmt.year}</title>
   <style>
     @page {
       size: A4 landscape;
@@ -205,7 +213,7 @@ String _buildAttendanceHtml(MonthlyAttendanceStatement stmt) {
   <div class="header">
     <div class="header-right">
       <h1>📋 كشف الحضور والانصراف الشهري</h1>
-      <p>$monthName ${stmt.year} — من ${stmt.startDate} إلى ${stmt.endDate}</p>
+      <p>$monthName ${stmt.year} — من ${_escapeHtml(stmt.startDate)} إلى ${_escapeHtml(stmt.endDate)}</p>
     </div>
     <div class="header-left">
       <div class="org">جمعية خواطر أحلى شباب</div>
@@ -214,13 +222,13 @@ String _buildAttendanceHtml(MonthlyAttendanceStatement stmt) {
   </div>
 
   <div class="emp-grid">
-    <div class="emp-field"><label>الاسم</label><span>${stmt.employeeNameAr}</span></div>
-    <div class="emp-field"><label>الكود</label><span>${stmt.employeeCode ?? '—'}</span></div>
-    <div class="emp-field"><label>الإدارة</label><span>${stmt.department}</span></div>
-    <div class="emp-field"><label>المسمى الوظيفي</label><span>${stmt.jobTitle}</span></div>
-    <div class="emp-field"><label>الفرع</label><span>${stmt.branch}</span></div>
-    <div class="emp-field"><label>المدير المباشر</label><span>${stmt.manager}</span></div>
-    <div class="emp-field"><label>تاريخ التعيين</label><span style="direction:ltr;text-align:right">${stmt.hireDate ?? '—'}</span></div>
+    <div class="emp-field"><label>الاسم</label><span>${_escapeHtml(stmt.employeeNameAr)}</span></div>
+    <div class="emp-field"><label>الكود</label><span>${stmt.employeeCode != null ? _escapeHtml(stmt.employeeCode!) : '—'}</span></div>
+    <div class="emp-field"><label>الإدارة</label><span>${_escapeHtml(stmt.department)}</span></div>
+    <div class="emp-field"><label>المسمى الوظيفي</label><span>${_escapeHtml(stmt.jobTitle)}</span></div>
+    <div class="emp-field"><label>الفرع</label><span>${_escapeHtml(stmt.branch)}</span></div>
+    <div class="emp-field"><label>المدير المباشر</label><span>${_escapeHtml(stmt.manager)}</span></div>
+    <div class="emp-field"><label>تاريخ التعيين</label><span style="direction:ltr;text-align:right">${stmt.hireDate != null ? _escapeHtml(stmt.hireDate!) : '—'}</span></div>
     <div class="emp-field"><label>الفترة</label><span>$monthName ${stmt.year}</span></div>
   </div>
 

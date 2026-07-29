@@ -564,12 +564,9 @@ class _PollCard extends StatelessWidget {
             child: onVote == null
                 ? OutlinedButton.icon(
                     onPressed: null,
-                    icon: Icon(
-                      item.hasVoted
-                          ? Icons.verified_rounded
-                          :
-                    null,
-                  ),
+                    icon: item.hasVoted
+                        ? const Icon(Icons.verified_rounded)
+                        : const SizedBox.shrink(),
                     label: Text(item.hasVoted ? 'تم تسجيل صوتك' : 'للعرض فقط'),
                   )
                 : FilledButton.icon(

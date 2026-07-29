@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:flutter/material.dart';
@@ -294,7 +295,7 @@ class _DecisionSheetState extends ConsumerState<_DecisionSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
+          SnackBar(content: Text(humanizeError(e))),
         );
       }
     } finally {

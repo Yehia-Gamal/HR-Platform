@@ -1,9 +1,18 @@
 import type {
+  AccessAdminCatalog,
   ActionCenterItem,
   AttendanceDashboard,
+  AttendanceOperationsCatalog,
+  DisputeOperationsCatalog,
+  EnterpriseManagementCatalog,
+  KpiAdminCatalog,
   KpiEvaluationSummary,
   LeaveBalance,
   OfficialFeedItem,
+  OnboardingAdminCatalog,
+  OrganizationAdminCatalog,
+  RecruitmentWorkbench,
+  ReportSchedulerCatalog,
   RequestSummary,
 } from '@ahla/shared-contracts';
 import type {
@@ -336,3 +345,98 @@ export const mockIntegrations: IntegrationCenterData = {
     { id: '93000000-0000-4000-8000-000000000002', status: 'failed', attempts: 2, createdAt: ago(70), completedAt: ago(66), error: 'تعذر إنشاء الإشعار' },
   ],
 };
+
+/* ------------------------------------------------------------------ */
+/*  Admin Operations mocks (from useAdminOperations)                   */
+/* ------------------------------------------------------------------ */
+
+const adminIds = {
+  entity: '10000000-0000-4000-8000-000000000001',
+  branch: '10000000-0000-4000-8000-000000000002',
+  department: '10000000-0000-4000-8000-000000000003',
+  position: '10000000-0000-4000-8000-000000000004',
+  employee: '30000000-0000-4000-8000-000000000001',
+  role: '20000000-0000-4000-8000-000000000001',
+  permission: '20000000-0000-4000-8000-000000000002',
+  user: '40000000-0000-4000-8000-000000000001',
+  journey: '50000000-0000-4000-8000-000000000001',
+  task: '50000000-0000-4000-8000-000000000002',
+};
+
+export const mockOrganizationAdmin: OrganizationAdminCatalog = {
+  entities: [{ id: adminIds.entity, code: 'AHLA', name: 'جمعية خواطر أحلى شباب', active: true }],
+  branches: [{ id: adminIds.branch, entityId: adminIds.entity, code: 'HQ', name: 'المقر الرئيسي', active: true }],
+  departments: [{ id: adminIds.department, entityId: adminIds.entity, branchId: adminIds.branch, parentId: null, managerId: adminIds.employee, code: 'OPS', name: 'إدارة التشغيل', nameEn: 'Operations', active: true, employeeCount: 12, positionCount: 4 }],
+  teams: [],
+  positions: [{ id: adminIds.position, departmentId: adminIds.department, teamId: null, jobTitleId: null, gradeId: null, reportsToId: null, code: 'OPS-MGR', name: 'مدير التشغيل', nameEn: null, headcount: 1, active: true, assignedCount: 1 }],
+  employees: [{ id: adminIds.employee, code: 'EMP-001', name: 'موظف تجريبي', departmentId: adminIds.department, teamId: null, positionId: adminIds.position, active: true }],
+  jobTitles: [], grades: [], lastUpdatedAt: iso(),
+};
+
+export const mockAccessAdmin: AccessAdminCatalog = {
+  roles: [{ id: adminIds.role, slug: 'employee', name: 'موظف', nameEn: 'Employee', description: 'الخدمة الذاتية', color: null, icon: null, system: true, fullAccess: false, assignments: 10, permissions: [{ permissionId: adminIds.permission, code: 'people.employee.read', name: 'عرض الموظف', scope: 'self', requiresMfa: false, requiresReason: false }] }],
+  permissions: [{ id: adminIds.permission, code: 'people.employee.read', module: 'people', resource: 'employee', action: 'read', name: 'عرض بيانات الموظف', nameAr: 'عرض بيانات الموظف', description: null, riskLevel: 'normal', sensitive: false, allowedScopes: ['self', 'direct_reports', 'organization'], moduleAr: 'شؤون الموظفين' }],
+  users: [{ userId: adminIds.user, employeeId: adminIds.employee, name: 'موظف تجريبي', employeeCode: 'EMP-001', status: 'active', roles: [{ roleId: adminIds.role, slug: 'employee', name: 'موظف', effectiveFrom: iso(), effectiveTo: null, scopeOverride: null }] }],
+  lastUpdatedAt: iso(),
+};
+
+export const mockOnboardingAdmin: OnboardingAdminCatalog = {
+  journeys: [{ id: adminIds.journey, employeeId: adminIds.employee, employeeName: 'موظف تجريبي', employeeCode: 'EMP-001', startedAt: iso(), probationEnd: null, status: 'in_progress', progress: 50, totalTasks: 2, completedTasks: 1, tasks: [{ id: adminIds.task, title: 'توقيع السياسات', ownerRole: 'HR', assigneeId: null, dueOffsetDays: 1, status: 'completed', completedAt: iso() }] }],
+  eligibleEmployees: [{ id: adminIds.employee, name: 'موظف تجريبي', code: 'EMP-001', status: 'onboarding', probationEnd: null }],
+  lastUpdatedAt: iso(),
+};
+
+/* ------------------------------------------------------------------ */
+/*  Enterprise Operations mocks (from useEnterpriseOperations)         */
+/* ------------------------------------------------------------------ */
+
+const eid = (tail: string) => `90000000-0000-4000-8000-${tail.padStart(12, '0')}`;
+
+export const mockRecruitmentWorkbench: RecruitmentWorkbench = {
+  requisitions: [{ id: eid('1'), title: 'أخصائي تشغيل', departmentId: eid('2'), departmentName: 'التشغيل', headcount: 2, status: 'approved', createdAt: iso() }],
+  postings: [{ id: eid('3'), requisitionId: eid('1'), title: 'أخصائي تشغيل', slug: 'operations-specialist', visibility: 'external', status: 'published', publishedAt: iso(), closesAt: null }],
+  applications: [{ id: eid('4'), candidateId: eid('5'), candidateName: 'مرشح تجريبي', postingId: eid('3'), jobTitle: 'أخصائي تشغيل', status: 'active', stageId: eid('6'), stageName: 'مقابلة', appliedAt: iso(), assigneeId: null }],
+  candidates: [{ id: eid('5'), name: 'مرشح تجريبي', email: 'candidate@example.com', phone: '+201000000000', source: 'referral', tags: ['تشغيل'], createdAt: iso() }],
+  stages: [{ id: eid('6'), postingId: eid('3'), name: 'مقابلة', orderIndex: 3, slaDays: 3 }],
+  interviews: [], offers: [], lastUpdatedAt: iso(),
+};
+
+export const mockReportScheduler: ReportSchedulerCatalog = { schedules: [], runs: [], notificationQueue: { queued: 0, failed: 0 }, lastUpdatedAt: iso() };
+
+/* ------------------------------------------------------------------ */
+/*  Enterprise Management mocks (from useEnterpriseManagement)         */
+/* ------------------------------------------------------------------ */
+
+export const mockEnterpriseManagement: EnterpriseManagementCatalog = {
+  objectives: [],
+  projects: [],
+  risks: [],
+  incidents: [],
+  serviceRequests: [
+    { id: 'a1000000-0000-4000-8000-000000000001', number: 24031, serviceName: 'الدعم التقني', requesterName: 'أحمد محمود', title: 'تعذر الدخول إلى نظام الحضور', priority: 'urgent', status: 'submitted', dueAt: ago(45) },
+    { id: 'a1000000-0000-4000-8000-000000000002', number: 24030, serviceName: 'الخدمات الإدارية', requesterName: 'سارة عادل', title: 'طلب بطاقة دخول بديلة', priority: 'high', status: 'in_progress', dueAt: later(5) },
+    { id: 'a1000000-0000-4000-8000-000000000003', number: 24028, serviceName: 'تقنية المعلومات', requesterName: 'محمود فؤاد', title: 'تجهيز صلاحيات جهاز العمل', priority: 'normal', status: 'assigned', dueAt: later(22) },
+    { id: 'a1000000-0000-4000-8000-000000000004', number: 24021, serviceName: 'الموارد البشرية', requesterName: 'منى حسن', title: 'تصحيح بيانات وثيقة وظيفية', priority: 'normal', status: 'resolved', dueAt: ago(1560) },
+  ],
+  meetings: [],
+  qualityCases: [],
+  audits: [],
+  automations: [],
+  dataAssets: [],
+  aiUseCases: [],
+  lastUpdatedAt: iso(),
+};
+
+/* ------------------------------------------------------------------ */
+/*  Advanced Operations mocks (from useAdvancedOperations)              */
+/* ------------------------------------------------------------------ */
+
+export const mockAttendanceOps: AttendanceOperationsCatalog = { month: iso().slice(0, 7) + '-01', shifts: [], rosters: [], corrections: [], overtime: [], periods: [], summary: { scheduled: 0, present: 0, absent: 0, pendingCorrections: 0, pendingOvertime: 0 }, lastUpdatedAt: iso() };
+export const mockKpiAdminCatalog: KpiAdminCatalog = { month: iso().slice(0, 7) + '-01', cycles: [], templates: [], appeals: [], stageCounts: {}, lastUpdatedAt: iso() };
+export const mockDisputeOps: DisputeOperationsCatalog = {
+  cases: [],
+  summary: { new: 0, overdue: 0, urgent: 0, critical: 0, waitingStatements: 0, escalated: 0, pendingExecution: 0, actionProposed: 0, awaitingExecution: 0, executed: 0, closed: 0, averageResolutionHours: 0 },
+  pendingAppeals: 0,
+  lastUpdatedAt: iso(),
+};
+

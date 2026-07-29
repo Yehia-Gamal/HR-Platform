@@ -1283,7 +1283,12 @@ class _QuickLeaveSheetState extends State<_QuickLeaveSheet> {
 
   void _submit() {
     final reason = _reasonCtrl.text.trim();
-    if (reason.length < 3) return;
+    if (reason.length < 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى إدخال سبب الطلب (3 أحرف على الأقل)')),
+      );
+      return;
+    }
     Navigator.pop(context, {
       'title': 'طلب إجازة ${_leaveTypes[_leaveType]} — ${widget.dateStr}',
       'reason': reason,
@@ -1378,7 +1383,12 @@ class _QuickCorrectionSheetState extends State<_QuickCorrectionSheet> {
 
   void _submit() {
     final reason = _reasonCtrl.text.trim();
-    if (reason.length < 3) return;
+    if (reason.length < 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى إدخال سبب التصحيح (3 أحرف على الأقل)')),
+      );
+      return;
+    }
     Navigator.pop(context, {
       'type': _type,
       'reason': reason,
@@ -1455,7 +1465,12 @@ class _QuickPermitSheetState extends State<_QuickPermitSheet> {
 
   void _submit() {
     final reason = _reasonCtrl.text.trim();
-    if (reason.length < 3) return;
+    if (reason.length < 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى إدخال سبب الطلب (3 أحرف على الأقل)')),
+      );
+      return;
+    }
     Navigator.pop(context, {
       'title': '$_kindLabel — ${widget.dateStr}',
       'reason': reason,

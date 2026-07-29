@@ -617,12 +617,34 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
   void _submit() {
     final title = _titleController.text.trim();
     final reason = _reasonController.text.trim();
-    if (title.length < 3 || reason.length < 3 || reason.length > 300) return;
+    if (title.length < 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى كتابة عنوان واضح (3 أحرف على الأقل)')),
+      );
+      return;
+    }
+    if (reason.length < 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى كتابة سبب الطلب (3 أحرف على الأقل)')),
+      );
+      return;
+    }
+    if (reason.length > 300) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('السبب طويل جدًا (300 حرف كحد أقصى)')),
+      );
+      return;
+    }
 
     final Map<String, dynamic> payload;
     switch (widget.type) {
       case 'leave':
-        if (_startDate == null || _endDate == null) return;
+        if (_startDate == null || _endDate == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('يرجى تحديد تاريخ البداية والنهاية')),
+          );
+          return;
+        }
         payload = {
           'leaveType': _leaveType,
           'startDate': _startDate!.toIso8601String().substring(0, 10),
@@ -630,9 +652,19 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
         };
       case 'mission':
       case 'convoy':
-        if (_startDate == null || _endDate == null) return;
+        if (_startDate == null || _endDate == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('يرجى تحديد تاريخ البداية والنهاية')),
+          );
+          return;
+        }
         final loc = _locationController.text.trim();
-        if (loc.length < 2) return;
+        if (loc.length < 2) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('يرجى إدخال موقع المأمورية')),
+          );
+          return;
+        }
         payload = {
           'startDate': _startDate!.toIso8601String().substring(0, 10),
           'endDate': _endDate!.toIso8601String().substring(0, 10),
@@ -641,7 +673,12 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
       case 'permit':
       case 'late_permit':
       case 'early_permit':
-        if (_permitDate == null) return;
+        if (_permitDate == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('يرجى تحديد تاريخ الإذن')),
+          );
+          return;
+        }
         payload = {
           'permitDate': _permitDate!.toIso8601String().substring(0, 10),
           'minutes': 120,
@@ -936,7 +973,14 @@ class _ForgotPunchSheetState extends State<_ForgotPunchSheet> {
           const SizedBox(height: 16),
           FilledButton(
             onPressed: () {
-              if (_reasonController.text.trim().length < 3) return;
+              if (_reasonController.text.trim().length < 3) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('يرجى إدخال سبب التصحيح (3 أحرف على الأقل)'),
+                  ),
+                );
+                return;
+              }
               DateTime? checkIn;
               DateTime? checkOut;
               if (_time != null) {

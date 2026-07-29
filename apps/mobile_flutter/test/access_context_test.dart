@@ -82,11 +82,28 @@ void main() {
       );
     });
 
-    test('throws a FormatException on an unknown workspace', () {
-      expect(
-        () => WorkspaceId.fromWire('unknown'),
-        throwsA(isA<FormatException>()),
+    test('returns null for an unknown workspace', () {
+      expect(WorkspaceId.fromWire('unknown'), isNull);
+    });
+  });
+
+  group('fromJson with unknown workspaces', () {
+    test('filters out unrecognized workspace strings', () {
+      final context = AccessContext.fromJson(
+        _contextJson(
+          workspaces: ['employee', 'future_workspace', 'manager'],
+        ),
       );
+
+      expect(context.workspaces, [WorkspaceId.employee, WorkspaceId.manager]);
+    });
+
+    test('falls back to employee when defaultWorkspace is unrecognized', () {
+      final context = AccessContext.fromJson(
+        _contextJson(defaultWorkspace: 'future_workspace'),
+      );
+
+      expect(context.defaultWorkspace, WorkspaceId.employee);
     });
   });
 

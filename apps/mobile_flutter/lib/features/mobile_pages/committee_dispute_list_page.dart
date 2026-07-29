@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
@@ -139,7 +140,7 @@ class CommitteeDisputeListPage extends ConsumerWidget {
                     Text('تعذر تحميل القضايا',
                         style: theme.textTheme.titleMedium),
                     const SizedBox(height: 4),
-                    Text('$error',
+                    Text(humanizeError(error),
                         style: theme.textTheme.bodySmall,
                         textAlign: TextAlign.center),
                     const SizedBox(height: 12),
@@ -870,7 +871,7 @@ class _DecisionSheetState extends ConsumerState<_DecisionSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
+          SnackBar(content: Text(humanizeError(e))),
         );
       }
     } finally {
@@ -1523,7 +1524,7 @@ class _AddRecommendationSheetState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
+          SnackBar(content: Text(humanizeError(e))),
         );
       }
     } finally {
@@ -2006,7 +2007,7 @@ class _CaseActionsSection extends ConsumerWidget {
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('خطأ: $e')),
+                      SnackBar(content: Text(humanizeError(e))),
                     );
                   }
                 }
@@ -2068,7 +2069,7 @@ class _TransitionReasonSheetState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
+          SnackBar(content: Text(humanizeError(e))),
         );
       }
     } finally {
@@ -2192,7 +2193,7 @@ class _ProposeAdminActionSheetState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
+          SnackBar(content: Text(humanizeError(e))),
         );
       }
     } finally {
@@ -2328,7 +2329,7 @@ class _ExecuteAdminActionSheetState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
+          SnackBar(content: Text(humanizeError(e))),
         );
       }
     } finally {

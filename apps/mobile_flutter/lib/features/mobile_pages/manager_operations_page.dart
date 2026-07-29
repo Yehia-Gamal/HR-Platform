@@ -276,10 +276,9 @@ class _ManagerOperationsPageState extends ConsumerState<ManagerOperationsPage> {
                   vertical: 6,
                 ),
                 leading: CircleAvatar(
-                  child: Icon(
-                    task.isOverdue ? Icons.timer_off_outlined :
-                    null,
-                  ),
+                  child: task.isOverdue
+                      ? const Icon(Icons.timer_off_outlined)
+                      : const SizedBox.shrink(),
                 ),
                 title: Text(
                   task.title,
@@ -375,12 +374,9 @@ class _ManagerOperationsPageState extends ConsumerState<ManagerOperationsPage> {
                   vertical: 6,
                 ),
                 leading: CircleAvatar(
-                  child: Icon(
-                    document.status == 'expired'
-                        ? Icons.warning_amber_rounded
-                        :
-                    null,
-                  ),
+                  child: document.status == 'expired'
+                      ? const Icon(Icons.warning_amber_rounded)
+                      : const SizedBox.shrink(),
                 ),
                 title: Text(
                   document.title,

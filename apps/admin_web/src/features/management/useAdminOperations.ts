@@ -2,56 +2,18 @@ import {
   accessAdminCatalogSchema,
   onboardingAdminCatalogSchema,
   organizationAdminCatalogSchema,
-  type AccessAdminCatalog,
-  type OnboardingAdminCatalog,
-  type OrganizationAdminCatalog,
 } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
-
-const ids = {
-  entity: '10000000-0000-4000-8000-000000000001',
-  branch: '10000000-0000-4000-8000-000000000002',
-  department: '10000000-0000-4000-8000-000000000003',
-  position: '10000000-0000-4000-8000-000000000004',
-  employee: '30000000-0000-4000-8000-000000000001',
-  role: '20000000-0000-4000-8000-000000000001',
-  permission: '20000000-0000-4000-8000-000000000002',
-  user: '40000000-0000-4000-8000-000000000001',
-  journey: '50000000-0000-4000-8000-000000000001',
-  task: '50000000-0000-4000-8000-000000000002',
-};
-
-const mockOrganization: OrganizationAdminCatalog = {
-  entities: [{ id: ids.entity, code: 'AHLA', name: 'جمعية خواطر أحلى شباب', active: true }],
-  branches: [{ id: ids.branch, entityId: ids.entity, code: 'HQ', name: 'المقر الرئيسي', active: true }],
-  departments: [{ id: ids.department, entityId: ids.entity, branchId: ids.branch, parentId: null, managerId: ids.employee, code: 'OPS', name: 'إدارة التشغيل', nameEn: 'Operations', active: true, employeeCount: 12, positionCount: 4 }],
-  teams: [],
-  positions: [{ id: ids.position, departmentId: ids.department, teamId: null, jobTitleId: null, gradeId: null, reportsToId: null, code: 'OPS-MGR', name: 'مدير التشغيل', nameEn: null, headcount: 1, active: true, assignedCount: 1 }],
-  employees: [{ id: ids.employee, code: 'EMP-001', name: 'موظف تجريبي', departmentId: ids.department, teamId: null, positionId: ids.position, active: true }],
-  jobTitles: [], grades: [], lastUpdatedAt: new Date().toISOString(),
-};
-
-const mockAccess: AccessAdminCatalog = {
-  roles: [{ id: ids.role, slug: 'employee', name: 'موظف', nameEn: 'Employee', description: 'الخدمة الذاتية', color: null, icon: null, system: true, fullAccess: false, assignments: 10, permissions: [{ permissionId: ids.permission, code: 'people.employee.read', name: 'عرض الموظف', scope: 'self', requiresMfa: false, requiresReason: false }] }],
-  permissions: [{ id: ids.permission, code: 'people.employee.read', module: 'people', resource: 'employee', action: 'read', name: 'عرض بيانات الموظف', nameAr: 'عرض بيانات الموظف', description: null, riskLevel: 'normal', sensitive: false, allowedScopes: ['self', 'direct_reports', 'organization'], moduleAr: 'شؤون الموظفين' }],
-  users: [{ userId: ids.user, employeeId: ids.employee, name: 'موظف تجريبي', employeeCode: 'EMP-001', status: 'active', roles: [{ roleId: ids.role, slug: 'employee', name: 'موظف', effectiveFrom: new Date().toISOString(), effectiveTo: null, scopeOverride: null }] }],
-  lastUpdatedAt: new Date().toISOString(),
-};
-
-const mockOnboarding: OnboardingAdminCatalog = {
-  journeys: [{ id: ids.journey, employeeId: ids.employee, employeeName: 'موظف تجريبي', employeeCode: 'EMP-001', startedAt: new Date().toISOString(), probationEnd: null, status: 'in_progress', progress: 50, totalTasks: 2, completedTasks: 1, tasks: [{ id: ids.task, title: 'توقيع السياسات', ownerRole: 'HR', assigneeId: null, dueOffsetDays: 1, status: 'completed', completedAt: new Date().toISOString() }] }],
-  eligibleEmployees: [{ id: ids.employee, name: 'موظف تجريبي', code: 'EMP-001', status: 'onboarding', probationEnd: null }],
-  lastUpdatedAt: new Date().toISOString(),
-};
+import { loadDomainMocks } from '../mock/loadDomainMocks';
 
 export function useOrganizationAdminCatalog() {
   const auth = useAuth();
   return useQuery({
     queryKey: ['organization-admin-catalog', auth.isMock],
     enabled: auth.status === 'authenticated',
-    queryFn: async () => auth.isMock ? mockOrganization : organizationAdminCatalogSchema.parse(await rpc('get_organization_admin_catalog')),
+    queryFn: async () => auth.isMock ? (await loadDomainMocks()).mockOrganizationAdmin : organizationAdminCatalogSchema.parse(await rpc('get_organization_admin_catalog')),
   });
 }
 
@@ -67,7 +29,7 @@ export function useOrganizationCommands() {
   };
   const department = useMutation({
     mutationFn: async (input: { id?: string | null; entityId: string; branchId?: string | null; parentId?: string | null; managerId?: string | null; code: string; name: string; nameEn?: string | null; active: boolean }) => {
-      if (auth.isMock) return ids.department;
+      if (auth.isMock) return '10000000-0000-4000-8000-000000000003';
       return rpc('upsert_department_admin', {
         p_id: input.id ?? null,
         p_legal_entity_id: input.entityId,
@@ -84,7 +46,7 @@ export function useOrganizationCommands() {
   });
   const position = useMutation({
     mutationFn: async (input: { id?: string | null; departmentId: string; teamId?: string | null; jobTitleId?: string | null; gradeId?: string | null; reportsToId?: string | null; code: string; name: string; nameEn?: string | null; headcount: number; active: boolean }) => {
-      if (auth.isMock) return ids.position;
+      if (auth.isMock) return '10000000-0000-4000-8000-000000000004';
       return rpc('upsert_position_admin', {
         p_id: input.id ?? null,
         p_department_id: input.departmentId,
@@ -109,7 +71,7 @@ export function useAccessAdminCatalog() {
   return useQuery({
     queryKey: ['access-admin-catalog', auth.isMock],
     enabled: auth.status === 'authenticated',
-    queryFn: async () => auth.isMock ? mockAccess : accessAdminCatalogSchema.parse(await rpc('get_access_admin_catalog')),
+    queryFn: async () => auth.isMock ? (await loadDomainMocks()).mockAccessAdmin : accessAdminCatalogSchema.parse(await rpc('get_access_admin_catalog')),
   });
 }
 
@@ -124,7 +86,7 @@ export function useAccessCommands() {
   };
   const upsertRole = useMutation({
     mutationFn: async (input: { id?: string | null; slug: string; name: string; nameEn?: string | null; description?: string | null; color?: string | null; icon?: string | null; fullAccess?: boolean }) => {
-      if (auth.isMock) return { id: input.id ?? ids.role };
+      if (auth.isMock) return { id: input.id ?? '20000000-0000-4000-8000-000000000001' };
       return rpc('rpc_upsert_role', {
         p_id: input.id ?? null,
         p_slug: input.slug,
@@ -173,7 +135,7 @@ export function useOnboardingAdminCatalog() {
   return useQuery({
     queryKey: ['onboarding-admin-catalog', auth.isMock],
     enabled: auth.status === 'authenticated',
-    queryFn: async () => auth.isMock ? mockOnboarding : onboardingAdminCatalogSchema.parse(await rpc('get_onboarding_admin_catalog', { p_limit: 150 })),
+    queryFn: async () => auth.isMock ? (await loadDomainMocks()).mockOnboardingAdmin : onboardingAdminCatalogSchema.parse(await rpc('get_onboarding_admin_catalog', { p_limit: 150 })),
   });
 }
 
@@ -188,7 +150,7 @@ export function useOnboardingCommands() {
   };
   const createJourney = useMutation({
     mutationFn: async (input: { employeeId: string; probationEnd?: string | null; tasks: Array<{ title: string; ownerRole?: string | null; dueOffsetDays?: number }> }) => {
-      if (auth.isMock) return ids.journey;
+      if (auth.isMock) return '50000000-0000-4000-8000-000000000001';
       return rpc('create_onboarding_journey_admin', {
         p_employee_id: input.employeeId,
         p_started_at: new Date().toISOString(),

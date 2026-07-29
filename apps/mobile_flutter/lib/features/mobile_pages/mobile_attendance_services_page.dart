@@ -252,7 +252,18 @@ class MobileAttendanceServicesPage extends ConsumerWidget {
         ),
       ),
     );
-    if (accepted != true || reason.text.trim().length < 5) {
+    if (accepted != true) {
+      reason.dispose();
+      return;
+    }
+    if (reason.text.trim().length < 5) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('يرجى إدخال 5 أحرف على الأقل لسبب التصحيح'),
+          ),
+        );
+      }
       reason.dispose();
       return;
     }

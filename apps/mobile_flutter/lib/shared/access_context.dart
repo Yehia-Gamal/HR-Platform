@@ -7,7 +7,7 @@ enum WorkspaceId {
   committee,
   fieldOperations;
 
-  static WorkspaceId fromWire(String value) => switch (value) {
+  static WorkspaceId? fromWire(String value) => switch (value) {
     'employee' => WorkspaceId.employee,
     'manager' => WorkspaceId.manager,
     'executive' => WorkspaceId.executive,
@@ -15,7 +15,7 @@ enum WorkspaceId {
     'main_admin' => WorkspaceId.mainAdmin,
     'committee' => WorkspaceId.committee,
     'field_operations' => WorkspaceId.fieldOperations,
-    _ => throw FormatException('Unknown workspace: $value'),
+    _ => null,
   };
 }
 
@@ -67,10 +67,11 @@ class AccessContext {
       ),
       workspaces: (json['workspaces'] as List<dynamic>? ?? const [])
           .map((value) => WorkspaceId.fromWire(value as String))
+          .whereType<WorkspaceId>()
           .toList(growable: false),
       defaultWorkspace: WorkspaceId.fromWire(
         json['defaultWorkspace'] as String,
-      ),
+      ) ?? WorkspaceId.employee,
       attendancePolicy: AttendancePolicy.fromJson(
         Map<String, dynamic>.from(
           json['attendancePolicy'] as Map<dynamic, dynamic>,

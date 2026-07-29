@@ -1197,45 +1197,6 @@ extension MobileSelfServiceCommands on MobileCommands {
     ref.invalidate(myAttendanceHistoryProvider);
   }
 
-  Future<String> submitDispute({
-    required String title,
-    required String description,
-    required String caseType,
-    required String priority,
-    required List<String> respondentIds,
-    List<String> witnessIds = const [],
-    String? incidentLocation,
-    String? requestedAction,
-    bool confidential = true,
-  }) async {
-    final data = await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'submit_my_dispute',
-          params: {
-            'p_title': title.trim(),
-            'p_description': description.trim(),
-            'p_case_type': caseType,
-            'p_priority': priority,
-            'p_incident_location': incidentLocation?.trim(),
-            'p_parties': [
-              for (final id in respondentIds)
-                {'employeeId': id, 'type': 'respondent'},
-            ],
-            'p_witnesses': [
-              for (final id in witnessIds)
-                {'employeeId': id, 'type': 'witness'},
-            ],
-            'p_requested_action': requestedAction?.trim(),
-            'p_confidential': confidential,
-            'p_truth_confirmed': true,
-            'p_confidentiality_accepted': true,
-          },
-        ));
-    ref.invalidate(myDisputePortalProvider);
-    return data as String;
-  }
-
   /// V23: نموذج مبسط — بدون أولوية أو موقع أو مرفقات
   Future<String> submitDisputeV23({
     required String title,

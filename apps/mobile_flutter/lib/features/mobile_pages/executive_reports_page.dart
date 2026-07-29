@@ -231,9 +231,9 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
                   child: ListTile(
                     contentPadding: const EdgeInsets.all(16),
                     leading: CircleAvatar(
-                      child: Icon(
-                        schedule.active ? Icons.event_repeat_rounded : null,
-                      ),
+                      child: schedule.active
+                          ? const Icon(Icons.event_repeat_rounded)
+                          : const SizedBox.shrink(),
                     ),
                     title: Text(
                       schedule.name,
@@ -415,9 +415,9 @@ class _ReportRunCard extends StatelessWidget {
       ),
       trailing: Semantics(
         label: item.storagePath == null ? 'لا يوجد ملف' : 'الملف جاهز للتنزيل',
-        child: Icon(
-          item.storagePath == null ? Icons.chevron_left_rounded : null,
-        ),
+        child: item.storagePath == null
+            ? const Icon(Icons.chevron_left_rounded)
+            : const SizedBox.shrink(),
       ),
       onTap: onTap,
     ),
