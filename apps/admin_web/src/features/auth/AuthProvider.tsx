@@ -70,19 +70,23 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return;
       }
       setSession(data.session);
-      if (!data.session) {
-        setStatus('anonymous');
-        return;
-      }
-      try {
-        setAccess(await loadAccessContext());
-        setStatus('authenticated');
-      } catch (accessError) {
-        setError(safeErrorMessage(accessError));
+      if (data.session) {
+        try {
+          setAccess(await loadAccessContext());
+          setStatus('authenticated');
+        } catch (accessError) {
+          setError(safeErrorMessage(accessError));
+          setStatus('anonymous');
+        }
+      } else {
         setStatus('anonymous');
       }
       if (!active) return;
+      // المستمع يُسجَّل دائمًا (بغض النظر عن وجود جلسة أولية) لالتقاط
+      // TOKEN_REFRESHED و USER_UPDATED عند تغيير الصلاحيات أثناء الجلسة.
       const { data: listener } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
+        // الجلسة الأولى عولجت أعلاه عبر getSession — نتجاهلها هنا
+        if (event === 'INITIAL_SESSION') return;
         setSession(nextSession);
         if (!nextSession) {
           setAccess(null);
