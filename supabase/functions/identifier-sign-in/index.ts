@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
     if (normalized.kind === 'email') {
       resolvedEmail = normalized.value;
     } else {
-      let employeeQuery = admin.from('employees').select('id').limit(1);
+      let employeeQuery = admin.from('employees').select('id').eq('is_deleted', false).eq('is_active', true).limit(1);
       employeeQuery = normalized.kind === 'phone'
         ? employeeQuery.eq('phone_e164', normalized.value)
         : employeeQuery.eq('employee_code', normalized.value);
