@@ -5,16 +5,16 @@ const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'ماي�
 // حالات اليوم التي تُعرض بلون تحذيري
 const WARN_STATUSES = new Set(['غائب دون إذن', 'يحتاج مراجعة']);
 
-function fmtTime(t: string | null) {
+export function fmtTime(t: string | null) {
   return t ? t.slice(0, 5) : '—';
 }
 
-function pctColor(pct: number) {
+export function pctColor(pct: number) {
   return pct >= 90 ? '#059669' : pct >= 75 ? '#f59e0b' : '#dc2626';
 }
 
 /** يمنع حقن HTML عند بناء المستند بالـ template literals */
-function esc(value: unknown): string {
+export function esc(value: unknown): string {
   return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
