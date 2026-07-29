@@ -113,10 +113,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
                   error: (error, _) => ListView(
                     padding: const EdgeInsets.all(20),
                     children: [
-                      _MessageCard(
-                        icon: Icons.error_outline,
-                        title: 'تعذر تحميل حالة الحضور',
-                        body: 'تحقق من الاتصال وأعد المحاولة.',
+                      _ErrorCard(
+                        message: humanizeError(error),
+                        onRetry: () => ref.invalidate(attendanceStateProvider),
                       ),
                     ],
                   ),
@@ -134,12 +133,15 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     if (!value.attendanceRequired || !value.selfPunchEnabled) {
       return ListView(
         padding: const EdgeInsets.all(20),
-        children: const [
-          _MessageCard(
+        children: [
+          _InfoBanner(
             icon: Icons.verified_user_outlined,
             title: 'لا توجد بصمة شخصية لهذا الحساب',
-            body: 'سياسة الحساب الحالية لا تتطلب حضورًا أو انصرافًا شخصيًا.',
+            body:
+                'سياسة الحساب الحالية لا تتطلب حضورًا أو انصرافًا شخصيًا.',
           ),
+          const SizedBox(height: 16),
+          _QuickLinksRow(working: _working),
         ],
       );
     }
@@ -153,153 +155,32 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     final actionIcon = action == 'CHECK_IN' ? Icons.login : Icons.logout;
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Theme.of(context).colorScheme.primary,
-                Theme.of(context).colorScheme.secondary,
-              ],
-            ),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                Icons.fingerprint,
-                color: Theme.of(context).colorScheme.onPrimary,
-                size: 42,
-              ),
-              const SizedBox(height: 14),
-              Text(
-                actionLabel,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'سيطلب التطبيق بصمة الجهاز والموقع الحالي، ثم يتحقق الخادم من النطاق والسياسة.',
-                style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onPrimary.withValues(alpha: 0.75),
-                ),
-              ),
-            ],
-          ),
+        // ── بطاقة الإجراء الرئيسية ──
+        _PunchCard(
+          actionLabel: actionLabel,
+          actionIcon: actionIcon,
+          isCheckIn: action == 'CHECK_IN',
+          hasActiveDevice: value.hasActiveLocalDevice,
+          devicePending: value.localDeviceStatus == 'pending',
+          canPunch: value.canPunch,
+          working: _working,
+          onRegister: _register,
+          onPunch: () => _punch(action),
         ),
-        const SizedBox(height: 16),
-        _AttendanceStatusCard(state: value),
-        const SizedBox(height: 16),
-        if (value.localDeviceStatus == 'pending') ...[
-          Card(
-            color: Colors.orange.shade50,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.hourglass_top_outlined, color: Colors.orange, size: 28),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'جهازك مسجل وينتظر موافقة المسؤول — لا يمكنك تسجيل الحضور حالياً',
-                      style: TextStyle(
-                        color: Colors.orange.shade900,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-        ] else if (!value.hasActiveLocalDevice)
-          FilledButton.icon(
-            onPressed: _working ? null : _register,
-            icon: _working
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.fingerprint),
-            label: const Text('تفعيل الحضور ببصمة الجهاز'),
-          )
-        else
-          FilledButton.icon(
-            onPressed: _working || !value.canPunch
-                ? null
-                : () => _punch(action),
-            icon: _working
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(actionIcon),
-            label: Text(actionLabel),
-          ),
-        const SizedBox(height: 10),
-        OutlinedButton.icon(
-          onPressed: _working
-              ? null
-              : () => ref.invalidate(attendanceStateProvider),
-          icon: const Icon(Icons.refresh),
-          label: const Text('تحديث الحالة'),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AttendanceHistoryPage(),
-                  ),
-                ),
-                icon: const Icon(Icons.history),
-                label: const Text('سجل الحضور'),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const PasskeyDevicesPage()),
-                ),
-                icon: const Icon(Icons.devices_outlined),
-                label: const Text('أجهزتي'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        OutlinedButton.icon(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const MonthlyAttendanceStatementPage(),
-            ),
-          ),
-          icon: const Icon(Icons.calendar_month_outlined),
-          label: const Text('كشف الشهر'),
-        ),
-        const SizedBox(height: 16),
-        const _MessageCard(
-          icon: Icons.security_outlined,
-          title: 'حماية العملية',
-          body:
-              'لا تُرسل بيانات البصمة الحيوية إلى الخادم. التحقق يتم داخل الجهاز، ثم يتحقق الخادم من الجلسة والجهاز المسجل والموقع ويسجل الوقت من ساعته.',
-        ),
+        const SizedBox(height: 14),
+
+        // ── بطاقة حالة اليوم ──
+        _TodayStatusCard(state: value),
+        const SizedBox(height: 14),
+
+        // ── روابط سريعة ──
+        _QuickLinksRow(working: _working),
+        const SizedBox(height: 14),
+
+        // ── ملاحظة أمان مختصرة ──
+        const _SecurityNote(),
       ],
     );
   }
@@ -618,106 +499,427 @@ class _PendingRetry {
 }
 
 /// نوع مشكلة الموقع — يحدد سلوك إعادة المحاولة التلقائية.
-/// permissionDenied لا يُخزَّن هنا — يُعالج فوراً بطلب الصلاحية.
 enum _LocationIssueKind {
   gpsOff,
   deniedForever,
 }
 
-class _AttendanceStatusCard extends StatelessWidget {
-  const _AttendanceStatusCard({required this.state});
-  final AttendanceState state;
+// ═══════════════════════════════════════════════════════════════════════════════
+// بطاقة البصمة الرئيسية — إجراء واحد واضح
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _PunchCard extends StatelessWidget {
+  const _PunchCard({
+    required this.actionLabel,
+    required this.actionIcon,
+    required this.isCheckIn,
+    required this.hasActiveDevice,
+    required this.devicePending,
+    required this.canPunch,
+    required this.working,
+    required this.onRegister,
+    required this.onPunch,
+  });
+
+  final String actionLabel;
+  final IconData actionIcon;
+  final bool isCheckIn;
+  final bool hasActiveDevice;
+  final bool devicePending;
+  final bool canPunch;
+  final bool working;
+  final VoidCallback onRegister;
+  final VoidCallback onPunch;
 
   @override
   Widget build(BuildContext context) {
-    final formatter = DateFormat('d MMMM، h:mm a', 'ar');
+    final scheme = Theme.of(context).colorScheme;
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'حالة اليوم',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 14),
-            _statusRow('الحالة', state.todayStatus),
-            _row('بصمة الجهاز', state.hasActiveLocalDevice ? 'مفعلة' : 'غير مفعلة'),
-            _row(
-              'آخر عملية',
-              state.lastEventType == null
-                  ? 'لا توجد'
-                  : state.lastEventType == 'CHECK_IN'
-                  ? 'حضور'
-                  : 'انصراف',
-            ),
-            _row(
-              'وقت آخر عملية',
-              state.lastEventAt == null
-                  ? '—'
-                  : formatter.format(state.lastEventAt!.toLocal()),
-            ),
-            if (state.lastEventStatus != null)
-              _statusRow('حالة التحقق', state.lastEventStatus),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _row(String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 5),
-    child: Row(
-      children: [
-        Expanded(child: Text(label)),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
-      ],
-    ),
-  );
-
-  // Renders known status keys as a shared MobileStatusPill (semantic color +
-  // screen-reader text); unknown keys fall back to a translated bold label so
-  // no raw English key is shown.
-  Widget _statusRow(String label, String? value) {
-    const pillKeys = {
-      'present',
-      'late',
-      'absent',
-      'flagged',
-      'pending',
-      'accepted',
-    };
-    final Widget valueWidget = value != null && pillKeys.contains(value)
-        ? MobileStatusPill(value)
-        : Text(
-            _status(value),
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          );
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
         children: [
-          Expanded(child: Text(label)),
-          valueWidget,
+          // البانر العلوي
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [scheme.primary, scheme.secondary],
+              ),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.fingerprint,
+                  color: scheme.onPrimary,
+                  size: 38,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  actionLabel,
+                  style: TextStyle(
+                    color: scheme.onPrimary,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'بصمة الجهاز + الموقع → التحقق خادمياً',
+                  style: TextStyle(
+                    color: scheme.onPrimary.withValues(alpha: 0.7),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // زر الإجراء
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: _buildActionButton(context),
+          ),
         ],
       ),
     );
   }
 
-  String _status(String? value) => switch (value) {
-    'present' || 'accepted' => 'حاضر',
-    'late' => 'متأخر',
-    'absent' => 'غائب',
-    'flagged' => 'قيد المراجعة',
-    'pending' => 'جارٍ التحقق',
-    'incomplete' => 'غير مكتمل',
-    _ => value ?? '—',
-  };
+  Widget _buildActionButton(BuildContext context) {
+    if (devicePending) {
+      return _WarningBanner(
+        icon: Icons.hourglass_top_outlined,
+        text: 'جهازك مسجل وينتظر موافقة المسؤول',
+      );
+    }
+
+    if (!hasActiveDevice) {
+      return SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
+          onPressed: working ? null : onRegister,
+          icon: working
+              ? const SizedBox.square(
+                  dimension: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.fingerprint),
+          label: const Text('تفعيل الحضور ببصمة الجهاز'),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        onPressed: working || !canPunch ? null : onPunch,
+        icon: working
+            ? const SizedBox.square(
+                dimension: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(actionIcon),
+        label: Text(actionLabel),
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
+      ),
+    );
+  }
 }
 
-class _MessageCard extends StatelessWidget {
-  const _MessageCard({
+// ═══════════════════════════════════════════════════════════════════════════════
+// بطاقة حالة اليوم — تُخفي الحقول الفارغة
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _TodayStatusCard extends StatelessWidget {
+  const _TodayStatusCard({required this.state});
+  final AttendanceState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = DateFormat('h:mm a', 'ar');
+    final scheme = Theme.of(context).colorScheme;
+    final hasEvent = state.lastEventType != null;
+    final hasStatus = state.todayStatus != null &&
+        state.todayStatus != '—' &&
+        state.todayStatus!.isNotEmpty;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.today_outlined, size: 18, color: scheme.primary),
+                const SizedBox(width: 8),
+                const Text(
+                  'حالة اليوم',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                ),
+                const Spacer(),
+                if (hasStatus) MobileStatusPill(state.todayStatus!),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // بصمة الجهاز
+            _StatusRow(
+              icon: Icons.fingerprint,
+              label: 'بصمة الجهاز',
+              value: state.hasActiveLocalDevice ? 'مفعلة' : 'غير مفعلة',
+              valueColor: state.hasActiveLocalDevice
+                  ? const Color(0xFF0F9F6E)
+                  : scheme.error,
+            ),
+
+            // آخر عملية (فقط عند وجود بيانات)
+            if (hasEvent) ...[
+              const SizedBox(height: 8),
+              _StatusRow(
+                icon: state.lastEventType == 'CHECK_IN'
+                    ? Icons.login
+                    : Icons.logout,
+                label: 'آخر عملية',
+                value:
+                    '${state.lastEventType == 'CHECK_IN' ? 'حضور' : 'انصراف'}'
+                    '${state.lastEventAt != null ? ' · ${formatter.format(state.lastEventAt!.toLocal())}' : ''}',
+              ),
+            ],
+
+            // حالة التحقق (فقط عند وجودها)
+            if (state.lastEventStatus != null) ...[
+              const SizedBox(height: 8),
+              _StatusRow(
+                icon: Icons.verified_outlined,
+                label: 'التحقق',
+                trailing: MobileStatusPill(state.lastEventStatus!),
+              ),
+            ],
+
+            // رسالة عندما لا يوجد أي نشاط
+            if (!hasEvent && !hasStatus) ...[
+              const SizedBox(height: 4),
+              Text(
+                'لم تُسجَّل أي عملية حضور اليوم',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusRow extends StatelessWidget {
+  const _StatusRow({
+    required this.icon,
+    required this.label,
+    this.value,
+    this.valueColor,
+    this.trailing,
+  });
+  final IconData icon;
+  final String label;
+  final String? value;
+  final Color? valueColor;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: scheme.onSurfaceVariant),
+        const SizedBox(width: 8),
+        Text(label, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
+        const Spacer(),
+        if (trailing != null) trailing!
+        else Text(
+          value ?? '—',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+            color: valueColor,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// روابط سريعة — شبكة 3 أزرار مدمجة
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _QuickLinksRow extends StatelessWidget {
+  const _QuickLinksRow({required this.working});
+  final bool working;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _QuickLink(
+          icon: Icons.history_rounded,
+          label: 'السجل',
+          onTap: working
+              ? null
+              : () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AttendanceHistoryPage(),
+                    ),
+                  ),
+        ),
+        const SizedBox(width: 8),
+        _QuickLink(
+          icon: Icons.calendar_month_outlined,
+          label: 'كشف الشهر',
+          onTap: working
+              ? null
+              : () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const MonthlyAttendanceStatementPage(),
+                    ),
+                  ),
+        ),
+        const SizedBox(width: 8),
+        _QuickLink(
+          icon: Icons.devices_outlined,
+          label: 'أجهزتي',
+          onTap: working
+              ? null
+              : () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PasskeyDevicesPage(),
+                    ),
+                  ),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickLink extends StatelessWidget {
+  const _QuickLink({required this.icon, required this.label, this.onTap});
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Column(
+              children: [
+                Icon(icon, color: scheme.primary),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ملاحظة الأمان — مدمجة وغير مشتتة
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _SecurityNote extends StatelessWidget {
+  const _SecurityNote();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.shield_outlined, size: 16, color: scheme.onSurfaceVariant),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'البصمة تُحقَّق داخل الجهاز فقط، ثم يتحقق الخادم من الجلسة والجهاز والموقع.',
+            style: TextStyle(
+              fontSize: 12,
+              color: scheme.onSurfaceVariant,
+              height: 1.6,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// بطاقات مساعدة
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _ErrorCard extends StatelessWidget {
+  const _ErrorCard({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Icon(Icons.wifi_off_rounded, size: 40, color: scheme.error),
+            const SizedBox(height: 10),
+            const Text(
+              'تعذر تحميل حالة الحضور',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('إعادة المحاولة'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoBanner extends StatelessWidget {
+  const _InfoBanner({
     required this.icon,
     required this.title,
     required this.body,
@@ -730,26 +932,50 @@ class _MessageCard extends StatelessWidget {
   Widget build(BuildContext context) => Card(
     child: Padding(
       padding: const EdgeInsets.all(18),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
         children: [
-          Icon(icon, size: 30),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 6),
-                Text(body),
-              ],
-            ),
+          Icon(icon, size: 36, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.w900),
+            textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 6),
+          Text(body, textAlign: TextAlign.center),
         ],
       ),
+    ),
+  );
+}
+
+class _WarningBanner extends StatelessWidget {
+  const _WarningBanner({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.orange.shade50,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Row(
+      children: [
+        Icon(icon, color: Colors.orange, size: 24),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: Colors.orange.shade900,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ],
     ),
   );
 }
