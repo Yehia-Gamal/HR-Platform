@@ -2,7 +2,7 @@ import { BriefcaseBusiness, CalendarPlus, CheckCircle2, FileClock, FileSignature
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
-import { ErrorState } from '../../ui/ErrorState';
+import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
@@ -94,6 +94,8 @@ export function RecruitmentPage() {
   });
 
   const error = overview.error ?? organization.error ?? workbench.error;
+  const mutationError = [commands.createRequisition, workbenchCommands.scheduleInterview, workbenchCommands.createOffer, workbenchCommands.decideInterview, workbenchCommands.transitionOffer, workbenchCommands.moveStage, workbenchCommands.hireApplicant].find((m) => m.isError)?.error ?? null;
+  const mutationPending = workbenchCommands.decideInterview.isPending || workbenchCommands.transitionOffer.isPending || workbenchCommands.moveStage.isPending;
 
   return (
     <div className="space-y-6">
@@ -103,6 +105,8 @@ export function RecruitmentPage() {
         description="إنشاء احتياج وظيفي موثق، حفظه كمسودة أو إرساله للاعتماد، ثم متابعة الإعلانات والمرشحين حتى التعيين."
         actions={<div className="flex flex-wrap gap-2"><button className="btn-secondary" onClick={() => openDraft(false)}><Plus className="size-4" aria-hidden="true" />مسودة</button><button className="btn-primary" onClick={() => openDraft(true)}><Send className="size-4" aria-hidden="true" />طلب توظيف</button></div>}
       />
+
+      {mutationError ? <ErrorBanner message={safeErrorMessage(mutationError)} /> : null}
 
       {error ? (
         <ErrorState
@@ -197,9 +201,9 @@ export function RecruitmentPage() {
                     <StatusBadge value={interview.status} />
                     {interview.status === 'scheduled' ? (
                       <>
-                        <button className="btn-secondary" onClick={() => workbenchCommands.decideInterview.mutate({ interviewId: interview.id, status: 'completed' })}>إتمام</button>
-                        <button className="btn-secondary" onClick={() => workbenchCommands.decideInterview.mutate({ interviewId: interview.id, status: 'no_show' })}>عدم حضور</button>
-                        <button className="btn-secondary" onClick={() => workbenchCommands.decideInterview.mutate({ interviewId: interview.id, status: 'cancelled' })}>إلغاء</button>
+                        <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.decideInterview.mutate({ interviewId: interview.id, status: 'completed' })}>إتمام</button>
+                        <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.decideInterview.mutate({ interviewId: interview.id, status: 'no_show' })}>عدم حضور</button>
+                        <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.decideInterview.mutate({ interviewId: interview.id, status: 'cancelled' })}>إلغاء</button>
                       </>
                     ) : null}
                   </div>

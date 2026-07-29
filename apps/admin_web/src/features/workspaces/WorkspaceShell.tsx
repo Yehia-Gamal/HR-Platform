@@ -130,14 +130,14 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
   const [collapsed, setCollapsed] = useState(() => window.localStorage.getItem('ahla-sidebar') === 'collapsed');
   const access = auth.access!;
   const sections = workspace === 'hr' ? hrSections : adminSections;
-  const allowedSections = sections.map((section) => ({
+  const allowedSections = useMemo(() => sections.map((section) => ({
     ...section,
     items: section.items.filter((item) =>
       (!item.permission || hasAnyPermission(access, item.permission)) &&
       (!item.featureFlag || isFeatureEnabled(item.featureFlag)),
     ),
-  })).filter((section) => section.items.length > 0);
-  const allItems = allowedSections.flatMap((section) => section.items.map((item) => ({ ...item, group: section.title })));
+  })).filter((section) => section.items.length > 0), [sections, access]);
+  const allItems = useMemo(() => allowedSections.flatMap((section) => section.items.map((item) => ({ ...item, group: section.title }))), [allowedSections]);
 
   const workspaceOptions = useMemo(
     () => [

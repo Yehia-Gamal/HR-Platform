@@ -55,6 +55,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
 
   const pending = advance.isPending || Object.values(commands).some((mutation) => mutation.isPending);
   const editableCriteria = useMemo(() => form?.criteria.filter((item) => item.editable) ?? [], [form]);
+  const mutationError = [commands.saveGoal, commands.saveSession, commands.saveCompliance, commands.addEvidence, commands.returnStage, advance].find((m) => m.isError)?.error ?? null;
 
   if (query.isLoading) return <div className="card grid min-h-64 place-items-center"><RefreshCcw className="size-6 animate-spin text-brand" aria-hidden="true" /></div>;
   if (query.isError || !form) return <ErrorState title="تعذر فتح نموذج التقييم" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />;
@@ -108,6 +109,8 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
       <div><div className="flex flex-wrap items-center gap-2"><StatusBadge value={form.currentStage} /><span className="muted text-xs">{kpiWorkflowStatusText(form.workflowStatus)}</span></div><div className="mt-2 flex items-center gap-3"><UserAvatar displayName={form.employeeName} /><div><h2 className="text-xl font-black">{form.employeeName}</h2><p className="muted text-sm">{form.employeeCode ?? 'بدون كود'} · {stageLabel[form.currentStage]}</p></div></div></div>
       <div className="text-start"><p className="text-2xl font-black">{form.finalScore ?? form.criteria.reduce((sum, item) => sum + (item.effectiveScore ?? 0), 0)} / 100</p><p className="muted text-xs">الموعد: {form.cycle.effectiveDeadline ? new Date(form.cycle.effectiveDeadline).toLocaleString('ar-EG') : '—'}</p><button className="btn-secondary mt-2" onClick={onDone}>إغلاق التفاصيل</button></div>
     </header>
+
+    {mutationError ? <ErrorBanner message={safeErrorMessage(mutationError)} /> : null}
 
     <div className="p-5">
       <nav className="mb-5 flex flex-wrap gap-1 rounded-xl bg-[var(--surface-muted)] p-1" role="tablist">
