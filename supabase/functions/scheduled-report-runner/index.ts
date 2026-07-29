@@ -231,7 +231,7 @@ Deno.serve(async (req) => {
     } catch (err) {
       console.error(`Report run ${run.id} failed:`, err);
       await supabase.from('report_runs')
-        .update({ status: 'failed', completed_at: new Date().toISOString(), error_detail: String(err) })
+        .update({ status: 'failed', completed_at: new Date().toISOString(), error_detail: String(err).replace(/https?:\/\/[^\s]+/g, '[URL]').slice(0, 500) })
         .eq('id', run.id).catch(() => {});
       failed += 1;
     }

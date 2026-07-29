@@ -1,5 +1,5 @@
 import { BellRing, CheckCircle2, FileText, ImagePlus, ListPlus, Megaphone, Plus, Send, ShieldCheck, Trash2, X } from 'lucide-react';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getSupabase } from '../../core/supabase';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
@@ -23,6 +23,7 @@ function useOfficialFeedForm(publish: ReturnType<typeof usePublishAnnouncement>,
   const [form, setForm] = useState({ title: '', body: '', category: 'general', priority: 'normal', requiresAcknowledgement: false, expectedOutcome: '', successMetric: '' });
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [postType, setPostType] = useState<'standard' | 'poll'>('standard');
@@ -43,7 +44,10 @@ function useOfficialFeedForm(publish: ReturnType<typeof usePublishAnnouncement>,
       if (uploadError) throw uploadError;
       const { data: urlData } = supabase.storage.from('announcement-images').getPublicUrl(path);
       setBannerUrl(urlData.publicUrl);
-      setImagePreview(URL.createObjectURL(prepared));
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+      const previewUrl = URL.createObjectURL(prepared);
+      objectUrlRef.current = previewUrl;
+      setImagePreview(previewUrl);
     } catch (err) {
       setImageError(safeErrorMessage(err));
     } finally {
@@ -52,9 +56,13 @@ function useOfficialFeedForm(publish: ReturnType<typeof usePublishAnnouncement>,
     }
   }, []);
 
+  // تنظيف object URL عند إلغاء التحميل (منع تسرب الذاكرة)
+  useEffect(() => () => { if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current); }, []);
+
   const resetAll = () => {
     setForm({ title: '', body: '', category: 'general', priority: 'normal', requiresAcknowledgement: false, expectedOutcome: '', successMetric: '' });
     setBannerUrl(null);
+    if (objectUrlRef.current) { URL.revokeObjectURL(objectUrlRef.current); objectUrlRef.current = null; }
     setImagePreview(null);
     setImageError(null);
     setPostType('standard');
@@ -72,6 +80,7 @@ function useOfficialFeedForm(publish: ReturnType<typeof usePublishAnnouncement>,
       } catch { /* best effort cleanup */ }
     }
     setBannerUrl(null);
+    if (objectUrlRef.current) { URL.revokeObjectURL(objectUrlRef.current); objectUrlRef.current = null; }
     setImagePreview(null);
     setImageError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -108,7 +117,11 @@ export function OfficialFeedPage() {
   const [search, setSearch] = useState('');
   const [kind, setKind] = useState('all');
   const [priority, setPriority] = useState('all');
-  const feedForm = useOfficialFeedForm(publish, createDecision);
+  const {
+    mode, setMode, form, setForm, imagePreview, imageUploading, imageError,
+    postType, setPostType, pollOptions, setPollOptions, expiresAt, setExpiresAt,
+    fileInputRef, handleImageSelect, removeImage, submit,
+  } = useOfficialFeedForm(publish, createDecision);
   const allItems = query.data ?? [];
   const items = useMemo(() => allItems.filter((item) => {
     const queryText = search.trim().toLowerCase();

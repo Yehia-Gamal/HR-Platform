@@ -6,6 +6,8 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: { port: 4173 },
   build: {
+    sourcemap: 'hidden',
+    target: 'es2022',
     rolldownOptions: {
       output: {
         manualChunks(id) {

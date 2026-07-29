@@ -141,10 +141,34 @@ function isAllowedWebhookUrl(raw: string): boolean {
   }
   if (parsed.protocol !== 'https:') return false;
   const host = parsed.hostname.toLowerCase();
-  // Block localhost variants
-  if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host === '0.0.0.0') return false;
+  // Block localhost variants — URL.hostname strips brackets from IPv6 so [::1] → "::1"
+  if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '0.0.0.0') return false;
   // Block cloud metadata endpoint (AWS/GCP/Azure link-local)
   if (host === '169.254.169.254' || host === 'metadata.google.internal') return false;
+
+  // Block IPv6 private/reserved ranges
+  if (host.includes(':')) {
+    // IPv4-mapped IPv6 — ::ffff:127.0.0.1 / ::ffff:169.254.169.254 / ::ffff:10.x.x.x etc.
+    const v4mapped = host.match(/^::ffff:(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (v4mapped) {
+      const [, a, b] = v4mapped.map(Number);
+      if (a === 127) return false;                          // loopback
+      if (a === 10) return false;                           // 10.0.0.0/8
+      if (a === 172 && b >= 16 && b <= 31) return false;    // 172.16.0.0/12
+      if (a === 192 && b === 168) return false;             // 192.168.0.0/16
+      if (a === 169 && b === 254) return false;             // 169.254.0.0/16
+      if (a === 0 || a >= 224) return false;                // reserved/multicast
+    }
+    // ULA (fc00::/7) — private IPv6 addresses
+    if (host.startsWith('fc') || host.startsWith('fd')) return false;
+    // Link-local IPv6 (fe80::/10)
+    if (host.startsWith('fe8') || host.startsWith('fe9') || host.startsWith('fea') || host.startsWith('feb')) return false;
+    // Any other ::ffff: mapped form (hex notation)
+    if (host.startsWith('::ffff:')) return false;
+    // Unspecified address
+    if (host === '::') return false;
+  }
+
   // Block private/reserved IPv4 ranges
   const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (ipv4) {

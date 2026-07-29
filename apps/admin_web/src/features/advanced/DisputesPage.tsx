@@ -6,7 +6,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { EmptyState } from '../../ui/EmptyState';
-import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
+import { ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { MetricCard } from '../../ui/MetricCard';
@@ -356,7 +356,8 @@ export function DisputesPage() {
   const directory = useDisputeParticipantDirectory();
   const commands = useDisputeCommands();
   const [params, setParams] = useSearchParams();
-  const [selectedCase, setSelectedCase] = useState(params.get('case') ?? '');
+  const caseParam = params.get('case');
+  const [selectedCase, setSelectedCase] = useState(caseParam ?? '');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('open');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -368,9 +369,8 @@ export function DisputesPage() {
   const summary = query.data?.summary;
 
   useEffect(() => {
-    const requested = params.get('case');
-    if (requested && requested !== selectedCase) setSelectedCase(requested);
-  }, [params, selectedCase]);
+    if (caseParam && caseParam !== selectedCase) setSelectedCase(caseParam);
+  }, [caseParam, selectedCase]);
   useEffect(() => {
     if (!selectedCase && cases.length) setSelectedCase(cases[0].id);
   }, [cases, selectedCase]);

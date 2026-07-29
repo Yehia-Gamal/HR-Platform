@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
       await supabase.from('notification_jobs').update({
         status: terminal ? 'failed' : 'queued',
         available_at: new Date(Date.now() + Math.min(3600, 2 ** attempts * 60) * 1000).toISOString(),
-        last_error: String(err), locked_at: null, locked_by: null,
+        last_error: String(err).replace(/https?:\/\/[^\s]+/g, '[URL]').slice(0, 200), locked_at: null, locked_by: null,
       }).eq('id', job.id);
       failed += 1;
     }

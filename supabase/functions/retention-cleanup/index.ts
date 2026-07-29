@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
       if (markError) throw markError;
       deleted += 1;
     } catch (error) {
-      failures.push({ id: item.video_id, reason: String(error) });
+      failures.push({ id: item.video_id, reason: safeErrorReason(error) });
     }
   }
 
@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
         if (markError) throw markError;
         deletedSnapshots += 1;
       } catch (error) {
-        failures.push({ id: String(snapshot.id), reason: `map_snapshot:${String(error)}` });
+        failures.push({ id: String(snapshot.id), reason: `map_snapshot:${safeErrorReason(error)}` });
       }
     }
   }
@@ -109,4 +109,30 @@ function respond(req: Request, body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders(req), 'content-type': 'application/json; charset=utf-8' },
   });
+}
+
+/** استخراج كود خطأ آمن بدون تسريب تفاصيل داخلية */
+function safeErrorReason(error: unknown): string {
+  if (error && typeof error === 'object' && 'code' in error && typeof (error as Record<string, unknown>).code === 'string') {
+    return (error as Record<string, unknown>).code as string;
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    const msg = String((error as Record<string, unknown>).message);
+    // إرجاع أول 80 حرف من الرسالة بعد إزالة التفاصيل الحساسة
+    return msg.replace(/https?:\/\/[^\s]+/g, '[URL]').slice(0, 80);
+  }
+  return 'UNKNOWN_ERROR';
+}
+
+/** استخراج كود خطأ آمن بدون تسريب تفاصيل داخلية (stack traces, connection strings) */
+function safeErrorReason(err: unknown): string {
+  if (err && typeof err === 'object' && 'code' in err && typeof (err as Record<string, unknown>).code === 'string') {
+    return (err as Record<string, unknown>).code as string;
+  }
+  if (err && typeof err === 'object' && 'message' in err) {
+    const msg = String((err as Record<string, unknown>).message);
+    // اقطع الرسالة وأزل أي مسارات أو تفاصيل تقنية
+    return msg.slice(0, 120).replace(/https?:\/\/\S+/g, '[url]');
+  }
+  return 'UNKNOWN_ERROR';
 }

@@ -3,7 +3,6 @@ import {
   Activity,
   BadgeCheck,
   Bell,
-  BookOpenCheck,
   BriefcaseBusiness,
   Building2,
   CalendarClock,

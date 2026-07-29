@@ -41,6 +41,9 @@ Deno.serve(async (req) => {
   const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
   if (!token) return json(req, { error: "unauthorized" }, 401);
 
+  const contentLength = Number(req.headers.get("content-length") ?? 0);
+  if (contentLength > 4096) return json(req, { error: "payload_too_large" }, 413);
+
   if (!SUPABASE_URL || !SERVICE_ROLE || !RP_ID || ALLOWED_ORIGINS.size === 0) {
     return json(req, { error: "server_not_configured" }, 500);
   }

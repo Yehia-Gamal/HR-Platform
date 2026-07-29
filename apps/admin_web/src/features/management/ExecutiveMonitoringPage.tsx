@@ -65,9 +65,9 @@ export function ExecutiveMonitoringPage() {
     });
   }, [employees, search, filter]);
 
-  const mapPoints: MapPoint[] = visible
+  const mapPoints: MapPoint[] = useMemo(() => visible
     .filter((e): e is typeof e & { lastLatitude: number; lastLongitude: number } => typeof e.lastLatitude === 'number' && typeof e.lastLongitude === 'number')
-    .map((e) => ({ id: e.id, lat: e.lastLatitude, lng: e.lastLongitude, accuracy: e.lastAccuracy ?? null, label: e.name, sublabel: e.lastAddressAr ?? e.department }));
+    .map((e) => ({ id: e.id, lat: e.lastLatitude, lng: e.lastLongitude, accuracy: e.lastAccuracy ?? null, label: e.name, sublabel: e.lastAddressAr ?? e.department })), [visible]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
