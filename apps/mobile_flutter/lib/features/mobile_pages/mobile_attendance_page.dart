@@ -455,12 +455,16 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       // الخادم يرجع ok: false عند رفض العملية (خارج النطاق، تكرار، إلخ)
       if (result['ok'] != true) {
         if (mounted) {
+          final errorCode = result['error'] as String? ?? 'unknown_error';
+          // أخطاء الإعدادات (نطاق جغرافي غير معرّف) — بانر معلوماتي برتقالي.
+          // أخطاء الانتهاك (خارج النطاق، موقع مزيف) — بانر أحمر.
+          final isConfigIssue =
+              errorCode == 'attendance_geofence_not_configured';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(_humanizePunchError(
-                result['error'] as String? ?? 'unknown_error',
-              )),
-              backgroundColor: Colors.red.shade700,
+              content: Text(_humanizePunchError(errorCode)),
+              backgroundColor:
+                  isConfigIssue ? Colors.orange.shade700 : Colors.red.shade700,
             ),
           );
         }

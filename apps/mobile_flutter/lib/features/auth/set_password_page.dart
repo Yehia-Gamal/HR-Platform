@@ -60,7 +60,19 @@ class _SetPasswordPageState extends ConsumerState<SetPasswordPage> {
       await client.auth.updateUser(UserAttributes(data: metadata));
       if (mounted) setState(() => _done = true);
     } on AuthException catch (e) {
-      if (mounted) setState(() => _error = humanizeError(e));
+      // رسائل محددة لمشاكل الجلسة/التفعيل المنتهية.
+      final msg = e.message.toLowerCase();
+      if (msg.contains('session') ||
+          msg.contains('expired') ||
+          msg.contains('not found') ||
+          msg.contains('token')) {
+        if (mounted) {
+          setState(() => _error =
+              'انتهت صلاحية رابط التفعيل. اطلب رابطًا جديدًا من مسؤول الموارد البشرية.');
+        }
+      } else {
+        if (mounted) setState(() => _error = humanizeError(e));
+      }
     } catch (e, stack) {
       if (mounted) setState(() => _error = humanizeError(e, stack));
     } finally {
