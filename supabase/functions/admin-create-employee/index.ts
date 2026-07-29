@@ -101,6 +101,18 @@ Deno.serve(async (req) => {
   if (permissionError) return json(req, { error: "permission_check_failed" }, 500);
   if (canCreate !== true) return json(req, { error: "forbidden" }, 403);
 
+  // ─── Rate limit: 10 إنشاءات في الدقيقة لكل مستخدم ───
+  const oneMinuteAgo = new Date(Date.now() - 60_000).toISOString();
+  const { count: recentCount, error: rlError } = await admin
+    .from("employees")
+    .select("id", { count: "exact", head: true })
+    .eq("created_by", userData.user.id)
+    .gte("created_at", oneMinuteAgo);
+  if (rlError) return json(req, { error: "rate_limit_check_failed" }, 500);
+  if ((recentCount ?? 0) >= 10) {
+    return json(req, { error: "too_many_requests", retryAfterSeconds: 60 }, 429);
+  }
+
   let input: Input;
   try {
     input = inputSchema.parse(await req.json());
