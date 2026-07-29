@@ -382,15 +382,17 @@ function RoleManagementDialog({ role, data, commands, onClose }: {
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
-    } finally {
+    } catch { /* mutation error surfaced via mutation.isError state */ } finally {
       setSaving(false);
     }
   }
 
   async function assignUser() {
     if (!assignUserId) return;
-    await commands.assignRole.mutateAsync({ userId: assignUserId, roleId: role.id });
-    setAssignUserId('');
+    try {
+      await commands.assignRole.mutateAsync({ userId: assignUserId, roleId: role.id });
+      setAssignUserId('');
+    } catch { /* mutation error surfaced via mutation.isError state */ }
   }
 
   const tabClass = (active: boolean) => `px-5 py-3 text-sm font-black transition-colors ${active ? 'border-b-2 border-[var(--brand)] text-[var(--brand)]' : 'muted hover:text-[var(--text)]'}`;

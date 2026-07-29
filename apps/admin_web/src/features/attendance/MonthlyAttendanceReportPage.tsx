@@ -250,7 +250,7 @@ export function MonthlyAttendanceReportPage() {
       ) : statementQuery.isLoading ? (
         <><MetricSkeletonRow count={4} /><SkeletonCard className="h-64" /></>
       ) : !statementQuery.data ? (
-        <EmptyState title="لا يوجد كشف" description="تعذر تحميل بيانات الشهر المحدد." />
+        <EmptyState title="لا يوجد كشف" description="لا توجد بيانات كشف لهذا الشهر." />
       ) : (
         <StatementReport data={statementQuery.data} />
       )}
