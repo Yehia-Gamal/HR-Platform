@@ -83,7 +83,7 @@ const hrSections: NavSection[] = [
   ] },
   { title: 'التواصل والتحليلات', items: [
     { label: 'تقارير HR', to: '/hr/reports', icon: FileClock, permission: 'reports.people.read' },
-    { label: 'الأخبار والقرارات', to: '/hr/official-feed', icon: Megaphone },
+    { label: 'الأخبار والقرارات', to: '/hr/official-feed', icon: Megaphone, permission: ['comms.announcement.read', 'comms.decision.read'] },
     { label: 'الإشعارات', to: '/hr/notifications', icon: Bell },
   ] },
 ];
@@ -91,14 +91,14 @@ const hrSections: NavSection[] = [
 const adminSections: NavSection[] = [
   { title: 'القيادة', items: [
     { label: 'لوحة الإدارة', to: '/admin', icon: LayoutDashboard },
-    { label: 'مركز الإجراءات', to: '/admin/actions', icon: BadgeCheck },
+    { label: 'مركز الإجراءات', to: '/admin/actions', icon: BadgeCheck, permission: 'access.role.read' },
     { label: 'مركز الموقع الحي', to: '/admin/live-location', icon: MapPin, permission: 'live_location.request' },
     { label: 'متابعة الموظفين اليومية', to: '/admin/live-location/monitoring', icon: MapPin, permission: 'live_location.request' },
     { label: 'الأخبار والقرارات', to: '/admin/official-feed', icon: Megaphone, permission: ['comms.announcement.read', 'comms.decision.read'] },
-    { label: 'أجهزة الموظفين', to: '/admin/device-approvals', icon: Smartphone },
+    { label: 'أجهزة الموظفين', to: '/admin/device-approvals', icon: Smartphone, permission: 'access.role.read' },
   ] },
   { title: 'الحوكمة والتنظيم', items: [
-    { label: 'الهيكل المؤسسي', to: '/admin/organization', icon: Network },
+    { label: 'الهيكل المؤسسي', to: '/admin/organization', icon: Network, permission: 'organization.org_chart.read' },
     { label: 'دورات KPI والاعتراضات', to: '/admin/performance/cycles', icon: BadgeCheck, permission: 'performance.cycle.manage' },
     { label: 'لجنة الخلافات', to: '/admin/disputes', icon: Gavel, permission: 'relations.case.manage' },
     { label: 'الأدوار والصلاحيات', to: '/admin/access', icon: ShieldCheck, permission: 'access.role.read' },
