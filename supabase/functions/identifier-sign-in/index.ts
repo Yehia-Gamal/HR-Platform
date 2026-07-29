@@ -1,6 +1,43 @@
 import { createClient } from '@supabase/supabase-js';
 import { json, preflight } from '../_shared/cors.ts';
 
+// ─── identifier-sign-in ────────────────────────────────────────────
+// Timing-safe credential gateway: resolves email / phone / employee_code
+// to a Supabase Auth email and calls signInWithPassword.
+//
+// SECURITY DESIGN NOTES:
+//
+// 1. FIXED-DEADLINE TIMING (ESI-01)
+//    Every request returns at the SAME absolute instant (~480-560ms after
+//    start), regardless of whether the identifier was found, the password
+//    was checked, or the request was rejected early. This prevents an
+//    attacker from distinguishing "valid identifier + wrong password" from
+//    "identifier does not exist" via response-time side-channels.
+//
+// 2. IP + IDENTIFIER RATE LIMITING
+//    Two sliding-window counters (IP: 10/60s, identifier: 6/5min) are
+//    checked before any credential work. Both use peppered SHA-256 hashes
+//    so the raw identifiers/IPs never touch the database.
+//
+// 3. WHY NOT ZOD
+//    Input parsing uses manual String() coercion + .trim()/.slice() instead
+//    of a Zod schema. This is intentional: Zod's variable-cost validation
+//    (depending on input shape/size) would add unpredictable latency that
+//    undermines the fixed-deadline timing guarantee. The manual approach
+//    has constant-time cost and is easier to audit for side-channel safety.
+//
+// 4. FALLBACK EMAIL (ESI-01 complement)
+//    When the identifier doesn't resolve to a real user, we still call
+//    signInWithPassword with a deterministic fake email derived from the
+//    identifier hash. This ensures bcrypt work always runs, preventing
+//    a timing oracle that skips the password check for unknown users.
+//
+// 5. TRUSTED PROXY (ESI-02)
+//    IP extraction from headers is only enabled when TRUSTED_PROXY=1.
+//    Without it, all requests share a single IP bucket, so a spoofed
+//    X-Forwarded-For cannot mint fresh rate-limit buckets.
+// ────────────────────────────────────────────────────────────────────
+
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
