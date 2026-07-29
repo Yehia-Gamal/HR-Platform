@@ -1,13 +1,14 @@
-import 'package:ahla_shabab_management_os/features/mobile_pages/committee_dispute_list_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/employee_home_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/manager_operations_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/manager_home_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_profile_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_self_service_page.dart';
 import 'package:ahla_shabab_management_os/features/workspaces/workspace_scaffold.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
 
+/// مساحة المدير — نفس تبويبات الموظف (يومي، الحضور، طلباتي، KPI، حسابي)
+/// + ميزات إدارة الفريق متاحة من قائمة "الخدمات والمزيد".
 class ManagerWorkspace extends StatefulWidget {
   const ManagerWorkspace({required this.access, super.key});
 
@@ -22,62 +23,47 @@ class _ManagerWorkspaceState extends State<ManagerWorkspace> {
 
   @override
   Widget build(BuildContext context) {
-    // السكرتير التنفيذي (mainAdmin) و HR يُوجَّهان إلى هذه المساحة —
-    // mainAdmin: إدارة لجنة حل المشكلات. HR: تنفيذ الإجراءات الإدارية.
-    final showDisputes =
-        widget.access.workspaces.contains(WorkspaceId.mainAdmin) ||
-        widget.access.workspaces.contains(WorkspaceId.hr);
-
     final pages = [
       EmployeeHomePage(access: widget.access),
-      const ManagerHomePage(),
-      const MobileRequestsPage(allowDecision: true),
-      if (showDisputes) const CommitteeDisputeListPage(),
+      const MobileAttendancePage(),
+      const MobileSelfServicePage(),
       MobileKpiPage(access: widget.access),
-      const ManagerOperationsPage(),
-    ];
-
-    final destinations = [
-      const NavigationDestination(
-        icon: Icon(Icons.home_outlined),
-        selectedIcon: Icon(Icons.home),
-        label: 'يومي',
-      ),
-      const NavigationDestination(
-        icon: Icon(Icons.groups_outlined),
-        selectedIcon: Icon(Icons.groups),
-        label: 'فريقي',
-      ),
-      const NavigationDestination(
-        icon: Icon(Icons.approval_outlined),
-        selectedIcon: Icon(Icons.approval),
-        label: 'الطلبات',
-      ),
-      if (showDisputes)
-        const NavigationDestination(
-          icon: Icon(Icons.gavel_outlined),
-          selectedIcon: Icon(Icons.gavel),
-          label: 'القضايا',
-        ),
-      const NavigationDestination(
-        icon: Icon(Icons.speed_outlined),
-        selectedIcon: Icon(Icons.speed),
-        label: 'KPI',
-      ),
-      const NavigationDestination(
-        icon: Icon(Icons.hub_outlined),
-        selectedIcon: Icon(Icons.hub_rounded),
-        label: 'التشغيل',
-      ),
+      const MobileProfilePage(),
     ];
 
     return WorkspaceScaffold(
-      title: showDisputes ? 'المساحة الإدارية' : 'مساحة المدير المباشر',
+      title: 'مساحة المدير',
       workspace: WorkspaceId.manager,
       contextData: widget.access,
       currentIndex: index,
       onDestinationSelected: (value) => setState(() => index = value),
-      destinations: destinations,
+      destinations: const [
+        NavigationDestination(
+          icon: Icon(Icons.today_outlined),
+          selectedIcon: Icon(Icons.today),
+          label: 'يومي',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.fingerprint_outlined),
+          selectedIcon: Icon(Icons.fingerprint),
+          label: 'الحضور',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.assignment_outlined),
+          selectedIcon: Icon(Icons.assignment),
+          label: 'طلباتي',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.trending_up_outlined),
+          selectedIcon: Icon(Icons.trending_up),
+          label: 'KPI',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.person_outlined),
+          selectedIcon: Icon(Icons.person),
+          label: 'حسابي',
+        ),
+      ],
       body: IndexedStack(index: index, children: pages),
     );
   }

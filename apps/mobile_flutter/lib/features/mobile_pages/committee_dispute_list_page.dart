@@ -15,14 +15,23 @@ class CommitteeDisputeListPage extends ConsumerWidget {
   static const _statusLabels = <String, String>{
     'submitted': 'جديدة',
     'needs_more_information': 'تحتاج معلومات',
+    'accepted': 'مقبولة',
     'under_review': 'قيد المراجعة',
     'waiting_for_respondent': 'بانتظار المشتكى عليه',
     'waiting_for_witness': 'بانتظار الشهود',
-    'hearing_scheduled': 'جلسة محددة',
+    'session_scheduled': 'جلسة محددة',
+    'session_completed': 'جلسة منتهية',
+    'committee_deliberation': 'مداولة اللجنة',
+    'settlement_pending': 'تسوية معلقة',
+    'escalated_to_executive': 'مصعّدة للتنفيذي',
+    'returned_to_committee': 'معادة للجنة',
+    'decision_issued': 'صدر قرار',
+    'resolved_friendly': 'حُلّت ودياً',
     'action_proposed': 'إجراء مقترح',
     'pending_execution': 'بانتظار التنفيذ',
     'executed': 'تم التنفيذ',
     'closed': 'مغلقة',
+    'reopened': 'أعيد فتحها',
     'rejected': 'مرفوضة',
     'cancelled_by_employee': 'ملغاة',
     'mediated': 'تم الوساطة',
@@ -31,14 +40,23 @@ class CommitteeDisputeListPage extends ConsumerWidget {
   static const _statusColors = <String, Color>{
     'submitted': Color(0xFF1565C0),
     'needs_more_information': Color(0xFFF57C00),
+    'accepted': Color(0xFF2E7D32),
     'under_review': Color(0xFF6A1B9A),
     'waiting_for_respondent': Color(0xFF00838F),
     'waiting_for_witness': Color(0xFF00838F),
-    'hearing_scheduled': Color(0xFF4527A0),
+    'session_scheduled': Color(0xFF4527A0),
+    'session_completed': Color(0xFF5E35B1),
+    'committee_deliberation': Color(0xFF7B1FA2),
+    'settlement_pending': Color(0xFF00838F),
+    'escalated_to_executive': Color(0xFFD84315),
+    'returned_to_committee': Color(0xFFF57C00),
+    'decision_issued': Color(0xFF1B5E20),
+    'resolved_friendly': Color(0xFF00695C),
     'action_proposed': Color(0xFFE65100),
     'pending_execution': Color(0xFFF9A825),
     'executed': Color(0xFF2E7D32),
     'closed': Color(0xFF616161),
+    'reopened': Color(0xFF0277BD),
     'rejected': Color(0xFFC62828),
     'cancelled_by_employee': Color(0xFF9E9E9E),
     'mediated': Color(0xFF00695C),
@@ -1132,7 +1150,35 @@ class _DecisionRecommendationsPreview extends ConsumerWidget {
         padding: EdgeInsets.symmetric(vertical: 8),
         child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
       ),
-      error: (_, _) => const SizedBox.shrink(),
+      error: (_, _) => Card(
+        color: theme.colorScheme.errorContainer,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded,
+                  size: 18, color: theme.colorScheme.onErrorContainer),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'تعذر تحميل آراء اللجنة',
+                  style: TextStyle(color: theme.colorScheme.onErrorContainer),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () => ref.invalidate(
+                    disputeCaseRecommendationsProvider(caseId)),
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('إعادة'),
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  foregroundColor: theme.colorScheme.onErrorContainer,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
       data: (data) {
         if (data.recommendations.isEmpty) {
           return Card(
@@ -1243,7 +1289,35 @@ class _RecommendationsSection extends ConsumerWidget {
         padding: EdgeInsets.symmetric(vertical: 12),
         child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
       ),
-      error: (_, _) => const SizedBox.shrink(),
+      error: (_, _) => Card(
+        color: theme.colorScheme.errorContainer,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded,
+                  size: 18, color: theme.colorScheme.onErrorContainer),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'تعذر تحميل آراء اللجنة',
+                  style: TextStyle(color: theme.colorScheme.onErrorContainer),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () => ref.invalidate(
+                    disputeCaseRecommendationsProvider(caseId)),
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('إعادة'),
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  foregroundColor: theme.colorScheme.onErrorContainer,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
       data: (data) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,

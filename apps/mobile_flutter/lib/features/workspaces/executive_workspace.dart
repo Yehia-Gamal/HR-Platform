@@ -23,8 +23,6 @@ class _ExecutiveWorkspaceState extends State<ExecutiveWorkspace> {
 
   @override
   Widget build(BuildContext context) {
-    assert(!widget.access.attendancePolicy.selfPunchEnabled);
-
     final pages = [
       const ExecutiveHomePage(),
       const MobileActionInboxPage(),

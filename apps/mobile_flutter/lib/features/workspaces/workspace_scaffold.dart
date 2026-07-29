@@ -12,6 +12,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/executive_emerge
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_governance_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_people_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_risk_center_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/manager_home_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/manager_operations_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_services_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
@@ -299,20 +300,28 @@ class WorkspaceScaffold extends ConsumerWidget {
           page: const MobileDailyReportsPage(),
         ),
       ],
-      // §9.1 — ميزات إضافية لمساحة المدير والتشغيل
+      // §9.1 — ميزات إدارة الفريق لمساحة المدير والتشغيل
       if (isManagerOrOps) ...[
         _MoreItem(
-          icon: Icons.task_alt_outlined,
-          label: 'المهام الشخصية',
+          icon: Icons.groups_outlined,
+          label: 'إدارة فريقي',
           page: Scaffold(
-            appBar: AppBar(title: const Text('المهام الشخصية')),
-            body: const MobileTasksPage(),
+            appBar: AppBar(title: const Text('إدارة فريقي')),
+            body: const ManagerHomePage(),
           ),
         ),
         _MoreItem(
-          icon: Icons.summarize_outlined,
-          label: 'التقارير اليومية',
-          page: const MobileDailyReportsPage(),
+          icon: Icons.approval_outlined,
+          label: 'الطلبات الإدارية',
+          page: const MobileRequestsPage(allowDecision: true),
+        ),
+        _MoreItem(
+          icon: Icons.engineering_outlined,
+          label: 'إدارة التشغيل',
+          page: Scaffold(
+            appBar: AppBar(title: const Text('إدارة التشغيل')),
+            body: const ManagerOperationsPage(),
+          ),
         ),
         _MoreItem(
           icon: Icons.people_outline_rounded,
@@ -331,24 +340,8 @@ class WorkspaceScaffold extends ConsumerWidget {
           ),
         ),
       ],
-      // §9.2 — المهام والتقارير اليومية لبقية المساحات (موظف، HR، لجنة)
-      if (!isExecutive && !isManagerOrOps) ...[
-        _MoreItem(
-          icon: Icons.task_alt_outlined,
-          label: 'المهام الشخصية',
-          page: Scaffold(
-            appBar: AppBar(title: const Text('المهام الشخصية')),
-            body: const MobileTasksPage(),
-          ),
-        ),
-        _MoreItem(
-          icon: Icons.summarize_outlined,
-          label: 'التقارير اليومية',
-          page: const MobileDailyReportsPage(),
-        ),
-      ],
-      // §9.2 — المهام والتقارير اليومية لمساحات الموظف واللجان
-      if (!isExecutive && !isManagerOrOps) ...[
+      // §9.2 — المهام والتقارير اليومية — لجميع المساحات (غير التنفيذية)
+      if (!isExecutive) ...[
         _MoreItem(
           icon: Icons.task_alt_outlined,
           label: 'المهام الشخصية',
