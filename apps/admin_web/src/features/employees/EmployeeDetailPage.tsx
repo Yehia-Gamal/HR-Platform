@@ -579,7 +579,7 @@ function DepartmentsSection({ employeeId, canEdit, onAdd }: { employeeId: string
                 type="button"
                 className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] transition-colors"
                 disabled={removeDept.isPending}
-                onClick={() => void removeDept.mutateAsync({ employeeId, departmentId: dept.departmentId })}
+                onClick={() => removeDept.mutate({ employeeId, departmentId: dept.departmentId })}
                 title="إزالة من الإدارة"
                 aria-label="إزالة من الإدارة"
               >

@@ -25,6 +25,8 @@ export function AttendanceOperationsPage() {
       setShift(emptyShift);
     } catch { /* mutation error surfaced via mutation.isError state */ }
   };
+
+  return <div className="space-y-6">
     <PageHeader title="الورديات وإغلاق الحضور" description="إدارة تعريفات الورديات، جداول العمل، العمل الإضافي، وإغلاق الشهر بسجل تدقيق. تصحيحات الحضور انتقلت إلى صفحة طلب إجازة." actions={<label className="text-sm font-bold"><span className="block">الشهر</span><input type="month" aria-label="الشهر" className="input mt-1" value={month} onChange={(e) => setMonth(e.target.value)} /></label>} />
     {query.isError ? <ErrorState description={query.error instanceof Error ? query.error.message : undefined} onRetry={() => void query.refetch()} /> : !data ? <><MetricSkeletonRow count={5} /><ListSkeleton rows={3} /></> : <>
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
