@@ -10,7 +10,7 @@ max_rows = 1000
 [db]
 port = 54322
 shadow_port = 54320
-major_version = 15
+major_version = 17
 
 # Seed files are listed explicitly and concatenated natively by the Supabase CLI.
 # NOTE: the legacy root seed.sql used psql `\ir` include meta-commands, which the
@@ -31,7 +31,7 @@ enabled = true
 port = 54323
 api_url = "http://127.0.0.1"
 
-[inbucket]
+[local_smtp]
 enabled = true
 port = 54324
 

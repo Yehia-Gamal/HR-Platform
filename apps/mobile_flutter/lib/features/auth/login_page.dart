@@ -55,7 +55,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       final Map<String, dynamic> payload;
       final raw = response.data;
       if (raw is Map) {
-        payload = Map<String, dynamic>.from(raw as Map<dynamic, dynamic>);
+        payload = Map<String, dynamic>.from(raw);
       } else {
         // نص خطأ عادي — نمرره كرسالة خام لمعالجة الأخطاء.
         final rawStr = raw?.toString() ?? '';

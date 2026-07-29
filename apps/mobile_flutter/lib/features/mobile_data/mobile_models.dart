@@ -1651,7 +1651,8 @@ class MobileDisputeCase {
         description: json['description'] as String?,
         caseType: json['caseType'] as String? ?? 'grievance',
         status: json['status'] as String? ?? 'submitted',
-        severity: json['severity'] as String? ?? 'medium',
+        // get_my_dispute_portal يرسل 'priority' بينما باقي RPCs ترسل 'severity'
+        severity: json['severity'] as String? ?? json['priority'] as String? ?? 'normal',
         respondentName: json['respondentName'] as String?,
         openedAt: _reqDate(json['openedAt']),
         canCancel: json['canCancel'] as bool? ?? false,

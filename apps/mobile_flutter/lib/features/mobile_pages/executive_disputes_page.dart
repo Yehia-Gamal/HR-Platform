@@ -764,7 +764,35 @@ class _ExecRecommendationsPreview extends ConsumerWidget {
         padding: EdgeInsets.symmetric(vertical: 8),
         child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
       ),
-      error: (_, _) => const SizedBox.shrink(),
+      error: (_, _) => Card(
+        color: theme.colorScheme.errorContainer,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded,
+                  size: 18, color: theme.colorScheme.onErrorContainer),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'تعذر تحميل آراء اللجنة',
+                  style: TextStyle(color: theme.colorScheme.onErrorContainer),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () => ref.invalidate(
+                    disputeCaseRecommendationsProvider(caseId)),
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('إعادة'),
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  foregroundColor: theme.colorScheme.onErrorContainer,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
       data: (data) {
         if (data.recommendations.isEmpty) {
           return Card(

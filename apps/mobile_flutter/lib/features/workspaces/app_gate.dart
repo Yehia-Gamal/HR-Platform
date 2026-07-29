@@ -457,33 +457,47 @@ class _WebOnlyPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    void signOut() {
+      ref.read(supabaseProvider).auth.signOut();
+      ref.invalidate(authSessionProvider);
+      ref.invalidate(accessContextProvider);
+    }
+
     return Scaffold(
-      appBar: AppBar(title: const Text('أحلى شباب Management OS')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.desktop_windows_outlined, size: 56),
-              const SizedBox(height: 16),
-              Text(
-                access.displayName,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'هذا الحساب يملك HR أو Main Admin Workspace على لوحة الويب، ولا توجد له مساحة موبايل مفعلة.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              // V23 — لا زر خروج: الجلسة دائمة لاستقبال الإشعارات.
-              const Text(
-                'هذا الحساب يملك HR أو Main Admin Workspace على لوحة الويب فقط.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12),
-              ),
-            ],
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.desktop_windows_outlined, size: 56),
+                const SizedBox(height: 16),
+                const Text(
+                  'مساحة العمل على الويب فقط',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'مرحبًا ${access.displayName}',
+                  style: Theme.of(context).textTheme.titleMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'صلاحياتك الحالية متاحة فقط على لوحة الويب.\nاستخدم المتصفح للوصول إلى النظام.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(height: 1.7),
+                ),
+                const SizedBox(height: 24),
+                OutlinedButton.icon(
+                  onPressed: signOut,
+                  icon: const Icon(Icons.logout),
+                  label: const Text('تسجيل الخروج'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
