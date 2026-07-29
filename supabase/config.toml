@@ -70,19 +70,19 @@ enabled = true
 file_size_limit = "50MiB"
 
 [functions.verify-attendance-punch]
-verify_jwt = false
+verify_jwt = true
 
 [functions.webauthn-challenge]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-create-employee]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-resend-invite]
-verify_jwt = false
+verify_jwt = true
 
 [functions.passkey-register]
-verify_jwt = false
+verify_jwt = true
 
 [functions.scheduled-report-runner]
 verify_jwt = false
@@ -103,4 +103,4 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.live-location-map-url]
-verify_jwt = false
+verify_jwt = true
