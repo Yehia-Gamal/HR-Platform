@@ -15,7 +15,7 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { useMyLeaveBalances, useRequestDecision, useRequests, useWorkAssignments } from './useRequests';
 import { useAttendanceOperations, useAttendanceOperationsCommands } from '../advanced/useAdvancedOperations';
 
-const labels: Record<RequestSummary['requestType'], string> = { leave: 'إجازة', mission: 'مأمورية', convoy: 'قافلة', attendance_permit: 'إذن حضور', generic: 'طلب عام' };
+const labels: Record<RequestSummary['requestType'], string> = { leave: 'إجازة', mission: 'مأمورية', convoy: 'قافلة', late_permit: 'إذن تأخير', early_permit: 'إذن خروج مبكر', attendance_correction: 'تصحيح حضور' };
 const assignmentLabels: Record<WorkAssignment['assignmentType'], string> = { MISSION: 'مأمورية', CONVOY: 'قافلة', FUNDRAISING: 'فاندي' };
 type TypeTab = 'all' | 'leave' | 'mission' | 'convoy' | 'attendance_permit' | 'corrections';
 const typeTabs: { key: TypeTab; label: string }[] = [
