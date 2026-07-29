@@ -1,11 +1,5 @@
 import 'dart:async';
 
-import 'dart:async';
-
-import 'dart:async';
-
-import 'dart:async';
-
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
@@ -386,83 +380,6 @@ class _TimedLoadingPage extends StatefulWidget {
   const _TimedLoadingPage({
     required this.label,
     required this.timeout,
-    this.onRetry,
-    this.onSignOut,
-  });
-  final String label;
-  final Duration timeout;
-  final VoidCallback? onRetry;
-  final VoidCallback? onSignOut;
-
-  @override
-  State<_TimedLoadingPage> createState() => _TimedLoadingPageState();
-}
-
-class _TimedLoadingPageState extends State<_TimedLoadingPage> {
-  bool _showFallback = false;
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer(widget.timeout, () {
-      if (mounted) setState(() => _showFallback = true);
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    body: Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(widget.label),
-            if (_showFallback) ...[
-              const SizedBox(height: 20),
-              Text(
-                'يبدو أن العملية تأخرت. جرّب الخيارات التالية:',
-                style: Theme.of(context).textTheme.bodySmall,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              if (widget.onRetry != null)
-                FilledButton.icon(
-                  onPressed: widget.onRetry,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('إعادة المحاولة'),
-                ),
-              if (widget.onSignOut != null) ...[
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: widget.onSignOut,
-                  icon: const Icon(Icons.logout),
-                  label: const Text('تسجيل الخروج'),
-                ),
-              ],
-            ],
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-/// صفحة تحميل تظهر أزرار بديلة (إعادة محاولة / خروج) بعد مهلة زمنية
-/// لمنع تعليق المستخدم على spinner بلا مخرج.
-class _TimedLoadingPage extends StatefulWidget {
-  const _TimedLoadingPage({
-    required this.label,
-    this.timeout = const Duration(seconds: 15),
     this.onRetry,
     this.onSignOut,
   });

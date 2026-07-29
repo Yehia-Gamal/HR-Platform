@@ -419,7 +419,7 @@ class MobileCommands {
           path,
           bytes,
           fileOptions: FileOptions(contentType: normalizedMime, upsert: false),
-        );
+        ).timeout(const Duration(seconds: 60));
     return {
       'path': path,
       'name': fileName,
@@ -1280,7 +1280,7 @@ extension MobileSelfServiceCommands on MobileCommands {
           path,
           bytes,
           fileOptions: FileOptions(contentType: normalizedMime, upsert: false),
-        );
+        ).timeout(const Duration(seconds: 60));
     try {
       await _withTimeout(client.rpc<dynamic>(
         'register_dispute_evidence',
