@@ -23,8 +23,8 @@ export const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
   leave: 'إجازة',
   mission: 'مأمورية',
   convoy: 'قافلة / فاندي',
-  late_permit: 'إذن تأخير',
-  early_permit: 'إذن انصراف مبكر',
+  late_permit: 'إذن حضور',
+  early_permit: 'إذن انصراف',
   attendance_correction: 'تصحيح حضور',
 };
 

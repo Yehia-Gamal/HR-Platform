@@ -66,7 +66,7 @@ export const mockRequests: RequestSummary[] = [
     employeeId: '30000000-0000-4000-8000-000000000003',
     employeeName: 'سارة حسن',
     employeeCode: 'EMP-132',
-    title: 'إذن تأخير',
+    title: 'إذن حضور',
     reason: 'موعد طبي',
     status: 'pending',
     workflowStatus: 'awaiting_manager',
@@ -172,7 +172,7 @@ export const mockActionCenter: ActionCenterItem[] = [
   {
     id: 'action-request-1',
     kind: 'request',
-    title: 'إذن تأخير يحتاج اعتماد المدير',
+    title: 'إذن حضور يحتاج اعتماد المدير',
     subtitle: 'سارة حسن · EMP-132',
     priority: 'urgent',
     status: 'awaiting_manager',

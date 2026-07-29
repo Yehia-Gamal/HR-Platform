@@ -34,7 +34,7 @@ export function exportAttendancePDF(data: AttendanceStatement) {
     if (d.isOfficialHoliday) tags.push('عطلة رسمية');
     if (d.hasLeave) tags.push('إجازة');
     if (d.hasMission) tags.push('مأمورية');
-    if (d.hasLatePermit) tags.push('إذن تأخير');
+    if (d.hasLatePermit) tags.push('إذن حضور');
     if (d.hasEarlyPermit) tags.push('إذن انصراف');
     if (!d.hasLatePermit && !d.hasEarlyPermit && d.hasPermit) tags.push('إذن');
     if (d.hasConvoyFundi) tags.push('قافلة/فاندي');
