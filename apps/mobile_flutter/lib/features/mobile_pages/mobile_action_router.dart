@@ -19,10 +19,10 @@ Widget mobilePageForActionTarget(MobileActionTarget target) =>
       'live_location_request' => MobileLocationRequestDeepLinkPage(
         requestId: target.recordId,
       ),
-      // صفحات الإشعارات الإضافية
-      'dispute_detail' => const MobileDisputesPage(),
-      'task_detail' => const MobileTasksPage(),
-      'attendance_detail' => const MobileAttendanceServicesPage(),
+      'dispute_detail' => MobileDisputesPage(highlightId: target.recordId),
+      'task_detail' => MobileTasksPage(highlightId: target.recordId),
+      'attendance_detail' =>
+        MobileAttendanceServicesPage(highlightId: target.recordId),
       _ => const Scaffold(
         body: Center(child: Text('نوع الإجراء غير مدعوم في التطبيق.')),
       ),

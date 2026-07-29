@@ -6,7 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 class MobileAttendanceServicesPage extends ConsumerWidget {
-  const MobileAttendanceServicesPage({super.key});
+  const MobileAttendanceServicesPage({this.highlightId, super.key});
+  final String? highlightId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -127,30 +128,43 @@ class MobileAttendanceServicesPage extends ConsumerWidget {
                 )
               else
                 ...catalog.corrections.map(
-                  (item) => Card(
-                    child: ListTile(
-                      leading: Icon(
-                        item.status == 'approved'
-                            ? Icons.check_circle_outline
-                            : item.status == 'rejected'
-                            ? Icons.cancel_outlined
-                            : Icons.schedule_outlined,
-                        color: item.status == 'approved'
-                            ? const Color(0xFF0F9F6E)
-                            : item.status == 'rejected'
-                            ? const Color(0xFFDC3D4B)
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                  (item) {
+                    final isHighlighted = item.id == highlightId;
+                    final scheme = Theme.of(context).colorScheme;
+                    return Card(
+                      shape: isHighlighted
+                          ? RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: scheme.primary, width: 2),
+                            )
+                          : null,
+                      color: isHighlighted
+                          ? scheme.primaryContainer.withValues(alpha: .15)
+                          : null,
+                      child: ListTile(
+                        leading: Icon(
+                          item.status == 'approved'
+                              ? Icons.check_circle_outline
+                              : item.status == 'rejected'
+                              ? Icons.cancel_outlined
+                              : Icons.schedule_outlined,
+                          color: item.status == 'approved'
+                              ? const Color(0xFF0F9F6E)
+                              : item.status == 'rejected'
+                              ? const Color(0xFFDC3D4B)
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        title: Text(
+                          '${_correctionType(item.type)} · ${DateFormat('d MMM y', 'ar').format(item.workDate)}',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        subtitle: Text(
+                          '${item.reason}${item.reviewNote == null ? '' : '\nرد المراجعة: ${item.reviewNote}'}',
+                        ),
+                        trailing: MobileStatusPill(item.status),
                       ),
-                      title: Text(
-                        '${_correctionType(item.type)} · ${DateFormat('d MMM y', 'ar').format(item.workDate)}',
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      subtitle: Text(
-                        '${item.reason}${item.reviewNote == null ? '' : '\nرد المراجعة: ${item.reviewNote}'}',
-                      ),
-                      trailing: MobileStatusPill(item.status),
-                    ),
-                  ),
+                    );
+                  },
                 ),
             ],
           ),

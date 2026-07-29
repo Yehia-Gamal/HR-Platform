@@ -8,7 +8,8 @@ import 'package:intl/intl.dart';
 // V23: image_picker removed — evidence/attachments no longer in employee form
 
 class MobileDisputesPage extends ConsumerWidget {
-  const MobileDisputesPage({super.key});
+  const MobileDisputesPage({this.highlightId, super.key});
+  final String? highlightId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -101,6 +102,7 @@ class MobileDisputesPage extends ConsumerWidget {
                 ...data.cases.map(
                   (item) => _CaseCard(
                     item: item,
+                    isHighlighted: item.id == highlightId,
                     onCancel: item.canCancel
                         ? () => _cancel(context, ref, item)
                         : null,
@@ -288,60 +290,71 @@ class MobileDisputesPage extends ConsumerWidget {
 }
 
 class _CaseCard extends StatelessWidget {
-  const _CaseCard({required this.item, this.onCancel});
+  const _CaseCard({required this.item, this.isHighlighted = false, this.onCancel});
 
   final MobileDisputeCase item;
+  final bool isHighlighted;
   final VoidCallback? onCancel;
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  item.title,
-                  style: const TextStyle(fontWeight: FontWeight.w900),
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      shape: isHighlighted
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: scheme.primary, width: 2),
+            )
+          : null,
+      color: isHighlighted ? scheme.primaryContainer.withValues(alpha: .15) : null,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    item.title,
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+                MobileStatusPill(item.status),
+              ],
+            ),
+            if (item.caseNumber != null)
+              Text(
+                item.caseNumber!,
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            const SizedBox(height: 6),
+            if (item.description != null)
+              Text(
+                item.description!,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+              ),
+            const SizedBox(height: 8),
+            Text(
+              'فُتحت ${DateFormat('d MMM y', 'ar').format(item.openedAt)}'
+              '${item.respondentName == null ? '' : ' · الطرف الآخر: ${item.respondentName}'}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (onCancel != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: onCancel,
+                  icon: const Icon(Icons.close),
+                  label: const Text('إلغاء قبل القبول'),
                 ),
               ),
-              MobileStatusPill(item.status),
-            ],
-          ),
-          if (item.caseNumber != null)
-            Text(
-              item.caseNumber!,
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
-          const SizedBox(height: 6),
-          if (item.description != null)
-            Text(
-              item.description!,
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-            ),
-          const SizedBox(height: 8),
-          Text(
-            'فُتحت ${DateFormat('d MMM y', 'ar').format(item.openedAt)}'
-            '${item.respondentName == null ? '' : ' · الطرف الآخر: ${item.respondentName}'}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          if (onCancel != null)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: onCancel,
-                icon: const Icon(Icons.close),
-                label: const Text('إلغاء قبل القبول'),
-              ),
-            ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 const _caseTypes = <String, String>{

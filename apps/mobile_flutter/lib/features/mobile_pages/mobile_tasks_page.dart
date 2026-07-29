@@ -7,7 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 class MobileTasksPage extends ConsumerWidget {
-  const MobileTasksPage({super.key});
+  const MobileTasksPage({this.highlightId, super.key});
+  final String? highlightId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -78,7 +79,10 @@ class MobileTasksPage extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
                 itemCount: items.length,
                 separatorBuilder: (_, _) => const SizedBox(height: 10),
-                itemBuilder: (context, index) => _TaskCard(item: items[index]),
+                itemBuilder: (context, index) => _TaskCard(
+                  item: items[index],
+                  isHighlighted: items[index].id == highlightId,
+                ),
               ),
       ),
     );
@@ -86,13 +90,21 @@ class MobileTasksPage extends ConsumerWidget {
 }
 
 class _TaskCard extends ConsumerWidget {
-  const _TaskCard({required this.item});
+  const _TaskCard({required this.item, this.isHighlighted = false});
   final MobileTask item;
+  final bool isHighlighted;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     return Card(
+      shape: isHighlighted
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: scheme.primary, width: 2),
+            )
+          : null,
+      color: isHighlighted ? scheme.primaryContainer.withValues(alpha: .15) : null,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
