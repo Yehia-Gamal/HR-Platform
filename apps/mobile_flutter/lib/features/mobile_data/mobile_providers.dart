@@ -1408,6 +1408,30 @@ extension ExecutiveDisputeCommands on MobileCommands {
     ref.invalidate(executiveDisputeInboxProvider);
     ref.invalidate(executiveDashboardProvider);
   }
+
+  /// 0202 — نقل حالة القضية (سكرتير/أدمن/لجنة)
+  Future<String> transitionDisputeCase({
+    required String caseId,
+    required String action,
+    String? reason,
+    Map<String, dynamic>? metadata,
+  }) async {
+    final result = await _withTimeout(ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
+          'transition_dispute_case',
+          params: {
+            'p_case_id': caseId,
+            'p_action': action,
+            'p_reason': reason?.trim(),
+            'p_metadata': metadata ?? {},
+          },
+        ));
+    ref.invalidate(committeeDisputePortalProvider);
+    ref.invalidate(executiveDisputeInboxProvider);
+    ref.invalidate(myDisputePortalProvider);
+    return result?.toString() ?? action;
+  }
 }
 
 final myLearningCatalogProvider = FutureProvider<MobileLearningCatalog>((
