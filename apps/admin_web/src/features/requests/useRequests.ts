@@ -7,6 +7,7 @@ import {
 } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSupabase } from '../../core/supabase';
+import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
 import { loadDomainMocks } from '../mock/loadDomainMocks';
 
@@ -114,30 +115,21 @@ export function useSecretaryRequestActions() {
   const reassign = useMutation({
     mutationFn: async ({ requestId, newManagerId, reason }: { requestId: string; newManagerId: string; reason: string }) => {
       if (auth.isMock) return { id: requestId };
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('reassign_request', { p_request_id: requestId, p_new_manager_id: newManagerId, p_reason: reason });
-      if (error) throw error;
-      return data;
+      return rpc('reassign_request', { p_request_id: requestId, p_new_manager_id: newManagerId, p_reason: reason });
     },
     onSuccess: invalidate,
   });
   const extendDeadline = useMutation({
     mutationFn: async ({ requestId, hours, reason }: { requestId: string; hours: number; reason: string }) => {
       if (auth.isMock) return { id: requestId };
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('extend_request_deadline', { p_request_id: requestId, p_hours: hours, p_reason: reason });
-      if (error) throw error;
-      return data;
+      return rpc('extend_request_deadline', { p_request_id: requestId, p_hours: hours, p_reason: reason });
     },
     onSuccess: invalidate,
   });
   const withdrawEscalation = useMutation({
     mutationFn: async ({ requestId, reason }: { requestId: string; reason: string }) => {
       if (auth.isMock) return { id: requestId };
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('withdraw_escalation', { p_request_id: requestId, p_reason: reason });
-      if (error) throw error;
-      return data;
+      return rpc('withdraw_escalation', { p_request_id: requestId, p_reason: reason });
     },
     onSuccess: invalidate,
   });
