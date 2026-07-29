@@ -2,7 +2,7 @@ import { Ban, CheckCircle2, Clock3, MonitorSmartphone, Shield, ShieldAlert, Shie
 import { useMemo, useState } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
-import { ErrorState } from '../../ui/ErrorState';
+import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
@@ -153,6 +153,8 @@ function PendingDevicesPanel() {
               />
             </div>
           ) : null}
+          {approve.isError ? <div className="mt-3"><ErrorBanner message={approve.error instanceof Error ? approve.error.message : 'تعذّر تنفيذ الإجراء'} /></div> : null}
+          {approve.isError ? <div className="mt-3"><ErrorBanner message={approve.error instanceof Error ? approve.error.message : 'تعذّر تنفيذ الإجراء'} /></div> : null}
           <div className="mt-4 flex gap-2 justify-end">
             <button type="button" className="btn-secondary" onClick={() => setConfirmAction(null)}>إلغاء</button>
             <button
@@ -281,6 +283,7 @@ function AllDevicesPanel() {
               placeholder="مثال: جهاز مفقود أو مشبوه"
             />
           </div>
+          {revoke.isError ? <div className="mt-3"><ErrorBanner message={revoke.error instanceof Error ? revoke.error.message : 'تعذّر إلغاء الصلاحية'} /></div> : null}
           <div className="mt-4 flex gap-2 justify-end">
             <button type="button" className="btn-secondary" onClick={() => setRevokeTarget(null)}>إلغاء</button>
             <button

@@ -192,5 +192,7 @@ export const kpiEvaluationSummarySchema = z.object({
   version: z.number().optional(),
   // حقل إضافي من get_kpi_inbox
   employeePhotoUrl: z.string().nullable().optional(),
+  // 0204: تصنيف العلاقة (self/team/review) — للتابات في الواجهة
+  relation: z.enum(['self', 'team', 'review']).optional(),
 });
 export type KpiEvaluationSummary = z.infer<typeof kpiEvaluationSummarySchema>;

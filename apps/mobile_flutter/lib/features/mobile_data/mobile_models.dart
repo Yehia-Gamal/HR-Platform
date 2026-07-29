@@ -146,6 +146,7 @@ class MobileKpiEvaluation {
     required this.deadlineAt,
     required this.finalScore,
     required this.finalRating,
+    required this.relation,
   });
   factory MobileKpiEvaluation.fromJson(Map<String, dynamic> json) =>
       MobileKpiEvaluation(
@@ -162,6 +163,7 @@ class MobileKpiEvaluation {
             : DateTime.parse(json['deadlineAt'] as String),
         finalScore: (json['finalScore'] as num?)?.toDouble(),
         finalRating: json['finalRating'] as String?,
+        relation: json['relation'] as String?,
       );
   final String id;
   final String employeeId;
@@ -174,6 +176,9 @@ class MobileKpiEvaluation {
   final DateTime? deadlineAt;
   final double? finalScore;
   final String? finalRating;
+
+  /// 0204: relation — self (تقييمي) / team (فريقي) / review (مهام)
+  final String? relation;
 }
 
 class KpiStageScore {
@@ -376,6 +381,7 @@ class KpiEvaluationForm {
         locked: json['locked'] as bool? ?? false,
         finalScore: (json['finalScore'] as num?)?.toDouble(),
         finalRating: json['finalRating'] as String?,
+        relation: json['relation'] as String?,
         criteria: (json['criteria'] as List<dynamic>? ?? const [])
             .map(
               (item) => KpiCriterionForm.fromJson(

@@ -107,7 +107,10 @@ export function useWorkAssignments(scope: 'mine' | 'team' = 'team') {
 export function useSecretaryRequestActions() {
   const auth = useAuth();
   const client = useQueryClient();
-  const invalidate = () => client.invalidateQueries({ queryKey: ['requests'] });
+  const invalidate = () => Promise.all([
+    client.invalidateQueries({ queryKey: ['requests'] }),
+    client.invalidateQueries({ queryKey: ['action-center'] }),
+  ]);
   const reassign = useMutation({
     mutationFn: async ({ requestId, newManagerId, reason }: { requestId: string; newManagerId: string; reason: string }) => {
       if (auth.isMock) return { id: requestId };

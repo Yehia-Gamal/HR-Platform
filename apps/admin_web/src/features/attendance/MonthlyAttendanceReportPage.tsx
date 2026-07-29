@@ -30,11 +30,22 @@ const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'ماي�
 const WARN_STATUSES = new Set(['غائب دون إذن', 'يحتاج مراجعة']);
 
 // ─── تصدير CSV ─────────────────────────────────────────────────
+
+/** يحمي خلايا CSV من كسر الأعمدة (فاصلة / سطر جديد) ومن حقن الصيغ (=+−@) */
+function csvSafe(v: unknown): string {
+  let s = String(v ?? '');
+  // حماية من حقن الصيغ: أي خلية تبدأ بحرف صيغة يُسبق بفاصلة عليا
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  // إن احتوت على فاصلة أو علامة تنصيص أو سطر جديد — تُغلّف بتنصيص مزدوج
+  if (/[",\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
 function exportCSV(data: AttendanceStatement) {
   const { employee: emp, period, days, summary: s } = data;
   const header = [
-    `كشف الحضور والانصراف الشهري — ${emp.fullNameAr}`,
-    `الكود: ${emp.employeeCode ?? '—'} | الإدارة: ${emp.department} | المسمى: ${emp.jobTitle}`,
+    `كشف الحضور والانصراف الشهري — ${csvSafe(emp.fullNameAr)}`,
+    `الكود: ${csvSafe(emp.employeeCode ?? '—')} | الإدارة: ${csvSafe(emp.department)} | المسمى: ${csvSafe(emp.jobTitle)}`,
     `الفترة: ${MONTHS[period.month - 1]} ${period.year} (${period.startDate} — ${period.endDate})`,
     '',
     'التاريخ,اليوم,الحضور,الانصراف,الوردية,ساعات فعلية,ساعات مطلوبة,التأخير (د),خروج مبكر (د),إضافي (د),الحالة,غائب,عطلة رسمية,إجازة,إذن تأخير,إذن انصراف,مأمورية,قافلة/فاندي,نقص حضور,نقص انصراف,تصحيح,جزاءات,ملاحظة',
@@ -44,16 +55,16 @@ function exportCSV(data: AttendanceStatement) {
     [
       d.date, d.dayNameAr,
       d.checkIn?.slice(0, 5) ?? '', d.checkOut?.slice(0, 5) ?? '',
-      d.shiftName, d.workHours.toFixed(1), d.requiredHours.toFixed(1),
+      csvSafe(d.shiftName), d.workHours.toFixed(1), d.requiredHours.toFixed(1),
       d.lateMinutes, d.earlyLeaveMinutes, d.overtimeMinutes,
-      d.status,
+      csvSafe(d.status),
       d.isAbsent ? 'نعم' : '', d.isOfficialHoliday ? 'نعم' : '',
       d.hasLeave ? 'نعم' : '', d.hasLatePermit ? 'نعم' : '', d.hasEarlyPermit ? 'نعم' : '',
       d.hasMission ? 'نعم' : '',
       d.hasConvoyFundi ? 'نعم' : '', d.missingCheckIn ? 'نعم' : '',
       d.missingCheckOut ? 'نعم' : '', d.hasCorrection ? 'نعم' : '',
       d.penalties > 0 ? d.penalties : '',
-      d.correctionNote ?? '',
+      csvSafe(d.correctionNote ?? ''),
     ].join(','),
   ).join('\n');
 

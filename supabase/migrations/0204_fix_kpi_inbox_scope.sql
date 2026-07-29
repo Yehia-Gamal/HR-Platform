@@ -1,12 +1,14 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 0204 — إصلاح get_kpi_inbox: المدير يرى فقط فريقه وليس الجميع
+--        + إضافة حقل relation (self/team/review) للتصنيف في التابات
 --
 -- المشكلة: migration 0166 استبدلت النسخة scope-aware من 0101 بنسخة مبسّطة
 --   تستخدم has_any_permission('performance.kpi.read') بدون فحص scope.
 --   دور direct-manager يملك performance.kpi.read بنطاق 'direct_reports'
 --   لكن has_any_permission لا تفحص scope → المدير يرى KPI الجميع.
 --
--- الحل: إعادة الفحص scope-aware مع الحفاظ على حقول V23.
+-- الحل: إعادة الفحص scope-aware مع الحفاظ على حقول V23
+--        + إضافة relation لتصنيف كل تقييم (self/team/review)
 -- ─────────────────────────────────────────────────────────────────────────────
 begin;
 
@@ -24,7 +26,7 @@ begin
   v_is_full := public.current_is_full_access();
 
   return coalesce((
-    select jsonb_agg(item order by (item->>'periodMonth') desc, (item->>'employeeName'))
+    select jsonb_agg(item order by (item->>'relation'), (item->>'periodMonth') desc, (item->>'employeeName'))
     from (
       select jsonb_build_object(
         'id',               e.id,
@@ -40,7 +42,18 @@ begin
         'hrCompleted',      e.hr_completed,
         'managerCompleted', e.manager_completed,
         'parallelFlow',     coalesce(c.use_parallel_flow, false),
-        'version',          e.version
+        'version',          e.version,
+        'relation',         case
+                              when e.employee_id = v_me then 'self'
+                              when exists(
+                                select 1 from public.manager_relations mr
+                                where mr.manager_employee_id = v_me
+                                  and mr.employee_id = e.employee_id
+                                  and mr.effective_from <= now()
+                                  and (mr.effective_to is null or mr.effective_to >= now())
+                              ) then 'team'
+                              else 'review'
+                            end
       ) item
       from public.kpi_evaluations e
       join public.employees       emp on emp.id = e.employee_id

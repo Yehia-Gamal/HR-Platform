@@ -13,6 +13,11 @@ function pctColor(pct: number) {
   return pct >= 90 ? '#059669' : pct >= 75 ? '#f59e0b' : '#dc2626';
 }
 
+/** يمنع حقن HTML عند بناء المستند بالـ template literals */
+function esc(value: unknown): string {
+  return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 /**
  * يُنشئ مستند HTML منسّق لكشف الحضور ويفتحه في نافذة جديدة مع تشغيل طباعة تلقائي.
  * المستخدم يمكنه حفظه كـ PDF مباشرة من حوار الطباعة.
@@ -44,17 +49,17 @@ export function exportAttendancePDF(data: AttendanceStatement) {
     const statusColor = isWarn ? '#dc2626' : isRest ? '#0369a1' : '#111827';
 
     return `<tr style="border-bottom:1px solid #e5e7eb;${rowBg ? `background:${rowBg};` : ''}">
-      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${d.date}</td>
-      <td style="padding:6px 8px;text-align:center">${d.dayNameAr}</td>
-      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${fmtTime(d.checkIn)}</td>
-      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${fmtTime(d.checkOut)}</td>
-      <td style="padding:6px 8px;text-align:center">${d.shiftName || '—'}</td>
+      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${esc(d.date)}</td>
+      <td style="padding:6px 8px;text-align:center">${esc(d.dayNameAr)}</td>
+      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${esc(fmtTime(d.checkIn))}</td>
+      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${esc(fmtTime(d.checkOut))}</td>
+      <td style="padding:6px 8px;text-align:center">${esc(d.shiftName) || '—'}</td>
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums">${d.workHours ? d.workHours.toFixed(1) : '—'}</td>
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;${d.lateMinutes > 0 ? 'color:#d97706;font-weight:700;' : ''}">${d.lateMinutes ? `${d.lateMinutes} د` : '—'}</td>
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;${d.earlyLeaveMinutes > 0 ? 'color:#d97706;font-weight:700;' : ''}">${d.earlyLeaveMinutes ? `${d.earlyLeaveMinutes} د` : '—'}</td>
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;${d.overtimeMinutes > 0 ? 'color:#059669;font-weight:700;' : ''}">${d.overtimeMinutes ? `${d.overtimeMinutes} د` : '—'}</td>
-      <td style="padding:6px 8px;text-align:center;font-weight:700;color:${statusColor}">${d.status}</td>
-      <td style="padding:6px 8px;text-align:center;font-size:9px">${tags.join('، ') || (d.correctionNote ?? '')}</td>
+      <td style="padding:6px 8px;text-align:center;font-weight:700;color:${statusColor}">${esc(d.status)}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:9px">${tags.join('، ') || esc(d.correctionNote ?? '')}</td>
     </tr>`;
   }).join('\n');
 
@@ -62,7 +67,7 @@ export function exportAttendancePDF(data: AttendanceStatement) {
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <title>كشف حضور — ${emp.fullNameAr} — ${monthName} ${period.year}</title>
+  <title>كشف حضور — ${esc(emp.fullNameAr)} — ${monthName} ${period.year}</title>
   <style>
     @page {
       size: A4 landscape;
@@ -209,7 +214,7 @@ export function exportAttendancePDF(data: AttendanceStatement) {
   <div class="header">
     <div class="header-right">
       <h1>📋 كشف الحضور والانصراف الشهري</h1>
-      <p>${monthName} ${period.year} — من ${period.startDate} إلى ${period.endDate}</p>
+      <p>${monthName} ${period.year} — من ${esc(period.startDate)} إلى ${esc(period.endDate)}</p>
     </div>
     <div class="header-left">
       <div class="org">جمعية خواطر أحلى شباب</div>
@@ -219,13 +224,13 @@ export function exportAttendancePDF(data: AttendanceStatement) {
 
   <!-- بيانات الموظف -->
   <div class="emp-grid">
-    <div class="emp-field"><label>الاسم</label><span>${emp.fullNameAr}</span></div>
-    <div class="emp-field"><label>الكود</label><span>${emp.employeeCode ?? '—'}</span></div>
-    <div class="emp-field"><label>الإدارة</label><span>${emp.department}</span></div>
-    <div class="emp-field"><label>المسمى الوظيفي</label><span>${emp.jobTitle}</span></div>
-    <div class="emp-field"><label>الفرع</label><span>${emp.branch}</span></div>
-    <div class="emp-field"><label>المدير المباشر</label><span>${emp.manager}</span></div>
-    <div class="emp-field"><label>تاريخ التعيين</label><span style="direction:ltr;text-align:right">${emp.hireDate ?? '—'}</span></div>
+    <div class="emp-field"><label>الاسم</label><span>${esc(emp.fullNameAr)}</span></div>
+    <div class="emp-field"><label>الكود</label><span>${esc(emp.employeeCode ?? '—')}</span></div>
+    <div class="emp-field"><label>الإدارة</label><span>${esc(emp.department)}</span></div>
+    <div class="emp-field"><label>المسمى الوظيفي</label><span>${esc(emp.jobTitle)}</span></div>
+    <div class="emp-field"><label>الفرع</label><span>${esc(emp.branch)}</span></div>
+    <div class="emp-field"><label>المدير المباشر</label><span>${esc(emp.manager)}</span></div>
+    <div class="emp-field"><label>تاريخ التعيين</label><span style="direction:ltr;text-align:right">${esc(emp.hireDate ?? '—')}</span></div>
     <div class="emp-field"><label>الفترة</label><span>${monthName} ${period.year}</span></div>
   </div>
 

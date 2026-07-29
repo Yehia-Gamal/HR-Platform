@@ -569,14 +569,11 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
   DateTime? _permitDate;
   String _leaveType = 'annual';
   late String _permitKind;
-  int _minutes = 30;
 
   @override
   void initState() {
     super.initState();
     _permitKind = widget.permitKind ?? 'late_arrival';
-    // الإذن الموحّد: ساعتين ثابتة (120 دقيقة)
-    if (widget.type == 'permit') _minutes = 120;
   }
 
   String get _typeLabel => switch (widget.type) {

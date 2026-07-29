@@ -537,7 +537,6 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
     final requestTitle = title.text.trim();
     final requestReason = reason.text.trim();
     final requestLocation = location.text.trim();
-    final requestMinutes = int.tryParse(minutes.text.trim());
     title.dispose();
     reason.dispose();
     location.dispose();
@@ -643,7 +642,6 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
         type == 'late_permit' ||
         type == 'early_permit') {
       if (permitDate == null) return 'حدد تاريخ الإذن.';
-      }
     }
     return null;
   }

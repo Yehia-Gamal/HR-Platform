@@ -519,8 +519,8 @@ class _RequestPayloadCard extends StatelessWidget {
   };
 
   static String _permitType(String? value) => switch (value) {
-    'late_arrival' => 'تأخير وصول',
-    'early_departure' => 'انصراف مبكر',
+    'late_arrival' => 'إذن حضور',
+    'early_departure' => 'إذن انصراف',
     _ => value ?? '—',
   };
 }

@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
       let employeeQuery = admin.from('employees').select('id').limit(1);
       employeeQuery = normalized.kind === 'phone'
         ? employeeQuery.eq('phone_e164', normalized.value)
-        : employeeQuery.ilike('employee_code', normalized.value);
+        : employeeQuery.eq('employee_code', normalized.value.toUpperCase());
       const { data: employee } = await employeeQuery.maybeSingle();
       if (employee?.id) {
         const { data: profile } = await admin

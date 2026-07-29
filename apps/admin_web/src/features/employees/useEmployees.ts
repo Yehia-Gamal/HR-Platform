@@ -150,6 +150,7 @@ export function useResendInvite() {
 
 export function useChangeManager() {
   const auth = useAuth();
+  const client = useQueryClient();
   return useMutation({
     mutationFn: async ({ employeeId, managerId, reason }: { employeeId: string; managerId: string | null; reason: string }): Promise<void> => {
       if (auth.isMock) return;
@@ -161,6 +162,7 @@ export function useChangeManager() {
       });
       if (error) throw error;
     },
+    onSuccess: () => client.invalidateQueries({ queryKey: ['employees'] }),
   });
 }
 
