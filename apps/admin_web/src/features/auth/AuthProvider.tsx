@@ -80,11 +80,23 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setError(accessError instanceof Error ? accessError.message : 'تعذر تحميل الصلاحيات.');
         setStatus('anonymous');
       }
-      const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!active) return;
+      const { data: listener } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
         setSession(nextSession);
         if (!nextSession) {
           setAccess(null);
           setStatus('anonymous');
+          return;
+        }
+        // تحديث الصلاحيات عند تجديد التوكن أو تحديث المستخدم أو تسجيل دخول خارجي
+        if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+          try {
+            const nextAccess = await loadAccessContext();
+            setAccess(nextAccess);
+            setStatus('authenticated');
+          } catch {
+            // فشل تحديث الصلاحيات — نبقي على القيم الحالية
+          }
         }
       });
       unsubscribe = () => listener.subscription.unsubscribe();

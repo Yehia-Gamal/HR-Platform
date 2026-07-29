@@ -59,10 +59,8 @@ export function useLocationDirectory(search: string) {
         const { mockLocations } = await loadDomainMocks();
         return mockLocations.filter((item) => !term || `${item.name} ${item.employeeCode} ${item.department ?? ''}`.toLocaleLowerCase('ar').includes(term));
       }
-      const supabase = await getSupabase();
-      const result = await supabase.rpc('get_location_directory', { p_search: search.trim() || null, p_limit: 200 });
-      if (result.error) throw result.error;
-      return rows(result.data).map((item) => ({
+      const data = await rpc('get_location_directory', { p_search: search.trim() || null, p_limit: 200 });
+      return rows(data).map((item) => ({
         id: string(item.id),
         name: string(item.name, 'موظف'),
         employeeCode: string(item.employeeCode, '—'),
