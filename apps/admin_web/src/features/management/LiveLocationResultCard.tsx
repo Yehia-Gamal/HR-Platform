@@ -90,7 +90,7 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
               </figure>
             ) : (
               <button type="button" className="btn-secondary mt-4" onClick={() => void loadMapSnapshot()} disabled={mapUrlCmd.isPending}>
-                <MapPin className="size-4" />{mapUrlCmd.isPending ? 'جارٍ تحميل اللقطة…' : 'عرض لقطة الخريطة المحفوظة'}
+                <MapPin className="size-4" aria-hidden="true" />{mapUrlCmd.isPending ? 'جارٍ تحميل اللقطة…' : 'عرض لقطة الخريطة المحفوظة'}
               </button>
             )}
             {mapUrlCmd.isError ? <p className="mt-2 text-sm font-bold text-red-700">لا توجد لقطة خريطة متاحة أو انتهت مدة الاحتفاظ بها.</p> : null}
@@ -115,7 +115,7 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
 function Stat({ icon: Icon, label, value }: { icon: typeof Clock; label: string; value: string }) {
   return (
     <div className="rounded-xl bg-[var(--surface-muted)] p-3">
-      <span className="muted flex items-center gap-1 text-[11px]"><Icon className="size-3" />{label}</span>
+      <span className="muted flex items-center gap-1 text-[11px]"><Icon className="size-3" aria-hidden="true" />{label}</span>
       <strong className="mt-1 block text-sm">{value}</strong>
     </div>
   );

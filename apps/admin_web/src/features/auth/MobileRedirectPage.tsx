@@ -35,11 +35,11 @@ export function MobileRedirectPage() {
       <section className="card max-w-md w-full p-8 text-center space-y-5">
         <div className="grid size-20 place-items-center rounded-3xl bg-brand/10 text-brand mx-auto">
           {status === 'redirecting' ? (
-            <svg xmlns="http://www.w3.org/2000/svg" className="size-10 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="size-10 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 8.25h3m-3 3h3m-3 3h3" />
             </svg>
           ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" className="size-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="size-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
             </svg>
           )}
@@ -71,9 +71,9 @@ export function MobileRedirectPage() {
               تعيين كلمة المرور من المتصفح
             </a>
 
-            <div className="rounded-2xl bg-[var(--surface-muted)] p-4 text-sm text-right space-y-2">
+            <div className="rounded-2xl bg-[var(--surface-muted)] p-4 text-sm text-start space-y-2">
               <p className="font-bold">أو من الجوال:</p>
-              <ol className="muted space-y-1 list-decimal list-inside text-right">
+              <ol className="muted space-y-1 list-decimal list-inside text-start">
                 <li>افتح البريد الإلكتروني على هاتفك.</li>
                 <li>اضغط على رابط التفعيل في رسالة الدعوة.</li>
                 <li>سيفتح التطبيق مباشرة لتعيين كلمة المرور.</li>

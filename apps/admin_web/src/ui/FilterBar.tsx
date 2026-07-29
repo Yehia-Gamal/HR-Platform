@@ -23,10 +23,10 @@ export function FilterBar({
   return (
     <section className="filter-bar" aria-label="البحث والتصفية">
       <div className="filter-bar-heading">
-        <span className="filter-bar-title"><SlidersHorizontal className="size-4" />البحث والتصفية</span>
+        <span className="filter-bar-title"><SlidersHorizontal className="size-4" aria-hidden="true" />البحث والتصفية</span>
         {isDirty && onClear ? (
           <button type="button" className="filter-clear" onClick={onClear}>
-            <X className="size-3.5" />مسح الكل
+            <X className="size-3.5" aria-hidden="true" />مسح الكل
           </button>
         ) : null}
       </div>

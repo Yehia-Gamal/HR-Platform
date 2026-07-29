@@ -222,7 +222,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
             {!collapsed ? <div className="min-w-0 flex-1"><p className="truncate text-sm font-black" title={access.displayName}>{getShortName(access.displayName)}</p><p className="truncate text-xs text-[var(--text-muted)]">{currentWorkspaceLabel}</p></div> : null}
           </div>
           <button type="button" className="sidebar-logout" title="تسجيل الخروج" onClick={() => void auth.signOut()}>
-            <LogOut className="size-4.5" />
+            <LogOut className="size-4.5" aria-hidden="true" />
             {!collapsed ? <span>تسجيل الخروج</span> : null}
           </button>
         </div>
@@ -231,9 +231,9 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
       <div className="app-content">
         <header className="app-header">
           <div className="header-context flex min-w-0 items-center gap-3">
-            <button className="icon-button mobile-nav-control" aria-label="فتح القائمة" onClick={() => setOpen(true)}><Menu className="size-5" /></button>
+            <button className="icon-button mobile-nav-control" aria-label="فتح القائمة" onClick={() => setOpen(true)}><Menu className="size-5" aria-hidden="true" /></button>
             <button className="icon-button desktop-nav-control" aria-label={collapsed ? 'توسيع القائمة' : 'تصغير القائمة'} onClick={toggleCollapsed}>
-              {collapsed ? <PanelRightOpen className="size-4.5" /> : <PanelRightClose className="size-4.5" />}
+              {collapsed ? <PanelRightOpen className="size-4.5" aria-hidden="true" /> : <PanelRightClose className="size-4.5" aria-hidden="true" />}
             </button>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)]">
@@ -247,7 +247,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
             <WorkspaceSearch destinations={allItems.map((item) => ({ label: item.label, to: item.to, group: item.group }))} />
             <ThemeToggle />
             <button type="button" className="icon-button relative" aria-label={unreadCount ? `الإشعارات، ${unreadCount} غير مقروء` : 'الإشعارات'} onClick={() => navigate(workspace === 'hr' ? '/hr/notifications' : '/admin/notifications')}>
-              <Bell className="size-4.5" />
+              <Bell className="size-4.5" aria-hidden="true" />
               {unreadCount ? <span className="notification-count" aria-hidden="true">{unreadCount > 99 ? '99+' : unreadCount}</span> : null}
             </button>
             <details className="profile-menu">
@@ -261,8 +261,8 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
                   <p className="truncate text-sm font-black">{access.displayName}</p>
                   <p className="mt-1 truncate text-xs text-[var(--text-muted)]">{access.employeeCode ?? currentWorkspaceLabel}</p>
                 </div>
-                <button type="button" onClick={() => navigate(workspace === 'hr' ? '/hr/notifications' : '/admin/notifications')}><Bell className="size-4" />الإشعارات{unreadCount ? ` (${unreadCount})` : ''}</button>
-                <button type="button" onClick={() => void auth.signOut()}><LogOut className="size-4" />تسجيل الخروج</button>
+                <button type="button" onClick={() => navigate(workspace === 'hr' ? '/hr/notifications' : '/admin/notifications')}><Bell className="size-4" aria-hidden="true" />الإشعارات{unreadCount ? ` (${unreadCount})` : ''}</button>
+                <button type="button" onClick={() => void auth.signOut()}><LogOut className="size-4" aria-hidden="true" />تسجيل الخروج</button>
               </div>
             </details>
           </div>

@@ -122,7 +122,7 @@ export function RecruitmentPage() {
             <article className="card overflow-hidden">
               <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
                 <div><h2 className="font-black">أحدث طلبات التوظيف</h2><p className="muted mt-1 text-sm">المسودة لا تدخل مسار الموافقة حتى يتم إرسالها رسميًا.</p></div>
-                <button className="btn-secondary" onClick={() => openDraft(false)}><Plus className="size-4" />احتياج جديد</button>
+                <button className="btn-secondary" onClick={() => openDraft(false)}><Plus className="size-4" aria-hidden="true" />احتياج جديد</button>
               </div>
               <div className="divide-y divide-[var(--border)]">
                 {data.recentRequisitions.length ? data.recentRequisitions.map((requisition) => (
@@ -160,7 +160,7 @@ export function RecruitmentPage() {
           </div>
           <div className="overflow-x-auto">
             <table className="data-table min-w-[900px] text-sm">
-              <thead className="bg-[var(--surface-muted)] text-right"><tr><th scope="col" className="p-3">المرشح</th><th scope="col" className="p-3">الوظيفة</th><th scope="col" className="p-3">المرحلة</th><th scope="col" className="p-3">تاريخ التقديم</th><th scope="col" className="p-3">نقل إلى</th></tr></thead>
+              <thead className="bg-[var(--surface-muted)] text-start"><tr><th scope="col" className="p-3">المرشح</th><th scope="col" className="p-3">الوظيفة</th><th scope="col" className="p-3">المرحلة</th><th scope="col" className="p-3">تاريخ التقديم</th><th scope="col" className="p-3">نقل إلى</th></tr></thead>
               <tbody className="divide-y divide-[var(--border)]">
                 {workbench.data.applications.map((application) => {
                   const stages = workbench.data!.stages.filter((stage) => stage.postingId === application.postingId);
@@ -178,7 +178,7 @@ export function RecruitmentPage() {
           <article className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
               <div><h2 className="font-black">المقابلات</h2><p className="muted mt-1 text-sm">جدولة المقابلات ومتابعة نتائجها لكل طلب.</p></div>
-              <button className="btn-secondary" disabled={!applicationOptions.length} onClick={() => setInterviewDraft({ applicationId: applicationOptions[0]?.id ?? '', mode: 'onsite', scheduledAt: '', locationOrLink: '' })}><CalendarPlus className="size-4" />جدولة مقابلة</button>
+              <button className="btn-secondary" disabled={!applicationOptions.length} onClick={() => setInterviewDraft({ applicationId: applicationOptions[0]?.id ?? '', mode: 'onsite', scheduledAt: '', locationOrLink: '' })}><CalendarPlus className="size-4" aria-hidden="true" />جدولة مقابلة</button>
             </div>
             <div className="divide-y divide-[var(--border)]">
               {workbench.data.interviews.length ? workbench.data.interviews.map((interview) => (
@@ -205,7 +205,7 @@ export function RecruitmentPage() {
           <article className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
               <div><h2 className="font-black">العروض الوظيفية والتعيين</h2><p className="muted mt-1 text-sm">إنشاء العرض، اعتماده وإرساله، ثم اعتماد التعيين بعد القبول.</p></div>
-              <button className="btn-secondary" disabled={!applicationOptions.length} onClick={() => setOfferDraft({ applicationId: applicationOptions[0]?.id ?? '', title: '', salary: '', contractType: '', startDate: '', expiresAt: '' })}><FileSignature className="size-4" />عرض جديد</button>
+              <button className="btn-secondary" disabled={!applicationOptions.length} onClick={() => setOfferDraft({ applicationId: applicationOptions[0]?.id ?? '', title: '', salary: '', contractType: '', startDate: '', expiresAt: '' })}><FileSignature className="size-4" aria-hidden="true" />عرض جديد</button>
             </div>
             <div className="divide-y divide-[var(--border)]">
               {workbench.data.offers.length ? workbench.data.offers.map((offer) => {
@@ -246,7 +246,7 @@ export function RecruitmentPage() {
               <label><span className="mb-1.5 block text-sm font-bold">الموعد</span><input className="input" type="datetime-local" required value={interviewDraft.scheduledAt} onChange={(event) => setInterviewDraft({ ...interviewDraft, scheduledAt: event.target.value })} /></label>
             </div>
             <Input label="المكان أو رابط الاجتماع" value={interviewDraft.locationOrLink} onChange={(value) => setInterviewDraft({ ...interviewDraft, locationOrLink: value })} />
-            <button className="btn-primary" disabled={!interviewDraft.applicationId || !interviewDraft.scheduledAt || workbenchCommands.scheduleInterview.isPending}><CalendarPlus className="size-4" />{workbenchCommands.scheduleInterview.isPending ? 'جارٍ الحفظ…' : 'جدولة'}</button>
+            <button className="btn-primary" disabled={!interviewDraft.applicationId || !interviewDraft.scheduledAt || workbenchCommands.scheduleInterview.isPending}><CalendarPlus className="size-4" aria-hidden="true" />{workbenchCommands.scheduleInterview.isPending ? 'جارٍ الحفظ…' : 'جدولة'}</button>
           </form>
         </DialogOverlay>
       ) : null}
@@ -264,7 +264,7 @@ export function RecruitmentPage() {
               <label><span className="mb-1.5 block text-sm font-bold">تاريخ المباشرة</span><input className="input" type="date" value={offerDraft.startDate} onChange={(event) => setOfferDraft({ ...offerDraft, startDate: event.target.value })} /></label>
               <label><span className="mb-1.5 block text-sm font-bold">تنتهي صلاحية العرض</span><input className="input" type="datetime-local" value={offerDraft.expiresAt} onChange={(event) => setOfferDraft({ ...offerDraft, expiresAt: event.target.value })} /></label>
             </div>
-            <button className="btn-primary" disabled={!offerDraft.applicationId || workbenchCommands.createOffer.isPending}><FileSignature className="size-4" />{workbenchCommands.createOffer.isPending ? 'جارٍ الحفظ…' : 'إنشاء العرض'}</button>
+            <button className="btn-primary" disabled={!offerDraft.applicationId || workbenchCommands.createOffer.isPending}><FileSignature className="size-4" aria-hidden="true" />{workbenchCommands.createOffer.isPending ? 'جارٍ الحفظ…' : 'إنشاء العرض'}</button>
           </form>
         </DialogOverlay>
       ) : null}
@@ -282,7 +282,7 @@ export function RecruitmentPage() {
             </div>
             <label><span className="mb-1.5 block text-sm font-bold">سبب الاحتياج</span><textarea className="input min-h-28" value={draft.reason} onChange={(event) => setDraft({ ...draft, reason: event.target.value })} /></label>
             <label className="flex items-center gap-3 rounded-xl bg-[var(--surface-muted)] p-4 text-sm font-bold"><input type="checkbox" checked={draft.submit} onChange={(event) => setDraft({ ...draft, submit: event.target.checked })} />إرسال الطلب للاعتماد فور الحفظ</label>
-            <button className="btn-primary" disabled={commands.createRequisition.isPending}><Send className="size-4" />{commands.createRequisition.isPending ? 'جارٍ الحفظ…' : draft.submit ? 'حفظ وإرسال' : 'حفظ كمسودة'}</button>
+            <button className="btn-primary" disabled={commands.createRequisition.isPending}><Send className="size-4" aria-hidden="true" />{commands.createRequisition.isPending ? 'جارٍ الحفظ…' : draft.submit ? 'حفظ وإرسال' : 'حفظ كمسودة'}</button>
           </form>
         </DialogOverlay>
       ) : null}

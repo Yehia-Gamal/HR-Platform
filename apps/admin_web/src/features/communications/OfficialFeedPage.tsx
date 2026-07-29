@@ -169,7 +169,7 @@ export function OfficialFeedPage() {
             {imagePreview ? (
               <div className="relative mt-2">
                 <img src={imagePreview} alt="معاينة" className="h-40 w-full rounded-xl object-cover" />
-                <button type="button" className="absolute start-2 top-2 rounded-full bg-red-600 p-1 text-white shadow" aria-label="إزالة الصورة" onClick={() => void removeImage()}><Trash2 className="size-4" /></button>
+                <button type="button" className="absolute start-2 top-2 rounded-full bg-red-600 p-1 text-white shadow" aria-label="إزالة الصورة" onClick={() => void removeImage()}><Trash2 className="size-4" aria-hidden="true" /></button>
               </div>
             ) : (
               <button type="button" className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--border)] p-6 text-sm transition hover:border-brand hover:text-brand" disabled={imageUploading} onClick={() => fileInputRef.current?.click()}>

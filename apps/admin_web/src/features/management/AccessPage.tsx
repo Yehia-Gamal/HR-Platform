@@ -132,7 +132,7 @@ export function AccessPage() {
   }
 
   return <div className="space-y-6">
-    <PageHeader title="الأدوار والصلاحيات" description="اضغط على بطاقة دور لتعديل صلاحياته وإدارة المستخدمين المسندين، أو أنشئ دوراً مخصصاً." actions={<button className="btn-primary" onClick={() => openCustomDraft()}><Plus className="size-4"/>دور مخصص</button>}/>
+    <PageHeader title="الأدوار والصلاحيات" description="اضغط على بطاقة دور لتعديل صلاحياته وإدارة المستخدمين المسندين، أو أنشئ دوراً مخصصاً." actions={<button className="btn-primary" onClick={() => openCustomDraft()}><Plus className="size-4" aria-hidden="true"/>دور مخصص</button>}/>
 
     {query.isError ? <ErrorState title="تعذر تحميل الصلاحيات" description={query.error instanceof Error ? query.error.message : 'غير مصرح'} onRetry={() => void query.refetch()} /> : query.isLoading && !data ? <MetricSkeletonRow /> : null}
 
@@ -195,7 +195,7 @@ export function AccessPage() {
             <input className="input" type="date" value={assignment.effectiveTo} onChange={(e) => setAssignment({ ...assignment, effectiveTo: e.target.value })}/>
           </label>
           <button className="btn-primary self-end" disabled={commands.assignRole.isPending}>
-            <UserPlus className="size-4"/>{commands.assignRole.isPending ? 'جارٍ الإسناد…' : 'إسناد'}
+            <UserPlus className="size-4" aria-hidden="true"/>{commands.assignRole.isPending ? 'جارٍ الإسناد…' : 'إسناد'}
           </button>
         </form>
       </section>
@@ -219,7 +219,7 @@ export function AccessPage() {
               <div className="flex flex-wrap gap-2">
                 {user.roles.length ? user.roles.map((role) => <span key={role.roleId} className="inline-flex items-center gap-2 rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-bold">
                   {role.name}{role.effectiveTo ? ` · حتى ${new Date(role.effectiveTo).toLocaleDateString('ar-EG')}` : ''}
-                  <button aria-label="سحب الدور" className="text-[var(--danger)]" onClick={() => void commands.revokeRole.mutateAsync({ userId: user.userId, roleId: role.roleId })}><Trash2 className="size-3"/></button>
+                  <button aria-label="سحب الدور" className="text-[var(--danger)]" onClick={() => void commands.revokeRole.mutateAsync({ userId: user.userId, roleId: role.roleId })}><Trash2 className="size-3" aria-hidden="true"/></button>
                 </span>) : <span className="muted text-sm">بلا دور فعال</span>}
               </div>
             </div>
@@ -289,7 +289,7 @@ export function AccessPage() {
         </div>
 
         <button className="btn-primary" disabled={commands.upsertRole.isPending || commands.setPermissions.isPending}>
-          <Save className="size-4"/>{commands.upsertRole.isPending || commands.setPermissions.isPending ? 'جارٍ الحفظ…' : 'حفظ الدور والصلاحيات'}
+          <Save className="size-4" aria-hidden="true"/>{commands.upsertRole.isPending || commands.setPermissions.isPending ? 'جارٍ الحفظ…' : 'حفظ الدور والصلاحيات'}
         </button>
       </form>
     </DialogOverlay>}
@@ -299,11 +299,11 @@ export function AccessPage() {
 // ─── بطاقة قالب الدور ──────────────────────────────────────────────────────
 function RoleTemplateCard({ template, permissionCount, assignmentCount, onClick }: { template: RoleTemplate & { dbRole?: AccessAdminCatalog['roles'][number] }; permissionCount: number; assignmentCount: number; onClick: () => void }) {
   const Icon = template.icon;
-  return <button type="button" onClick={onClick} className={`card group relative overflow-hidden border-2 p-5 text-right transition-all hover:shadow-lg ${template.borderColor}`}>
+  return <button type="button" onClick={onClick} className={`card group relative overflow-hidden border-2 p-5 text-start transition-all hover:shadow-lg ${template.borderColor}`}>
     <div className={`absolute start-0 top-0 h-full w-1.5 ${template.bgColor}`} style={{ backgroundColor: 'currentColor' }}/>
     <div className="flex items-start gap-3">
       <div className={`flex size-12 shrink-0 items-center justify-center rounded-xl ${template.bgColor} ${template.color}`}>
-        <Icon className="size-6"/>
+        <Icon className="size-6" aria-hidden="true"/>
       </div>
       <div className="min-w-0 flex-1">
         <h3 className="text-base font-black">{template.name}</h3>
@@ -315,7 +315,7 @@ function RoleTemplateCard({ template, permissionCount, assignmentCount, onClick 
         <span className="text-xs"><strong className={template.color}>{permissionCount}</strong> <span className="muted">صلاحية</span></span>
         <span className="text-xs"><strong>{assignmentCount}</strong> <span className="muted">مستخدم</span></span>
       </div>
-      <ChevronLeft className="size-4 text-[var(--text-muted)] transition-transform group-hover:rtl:translate-x-1 group-hover:ltr:-translate-x-1"/>
+      <ChevronLeft className="size-4 text-[var(--text-muted)] transition-transform group-hover:rtl:translate-x-1 group-hover:ltr:-translate-x-1" aria-hidden="true"/>
     </div>
   </button>;
 }
@@ -428,7 +428,7 @@ function RoleManagementDialog({ role, data, commands, onClose }: {
           const moduleLabel = perms[0]?.moduleAr ?? MODULE_AR[module] ?? module;
           const selectedInModule = perms.filter((p) => draft[p.id]).length;
           return <div key={module} className="overflow-hidden rounded-xl border border-[var(--border)]">
-            <button type="button" className="flex w-full items-center justify-between bg-[var(--surface-muted)] px-4 py-3 text-right" onClick={() => setExpandedModules((prev) => { const n = new Set(prev); if (n.has(module)) n.delete(module); else n.add(module); return n; })}>
+            <button type="button" className="flex w-full items-center justify-between bg-[var(--surface-muted)] px-4 py-3 text-start" onClick={() => setExpandedModules((prev) => { const n = new Set(prev); if (n.has(module)) n.delete(module); else n.add(module); return n; })}>
               <div className="flex items-center gap-2">
                 <span className="font-bold">{moduleLabel}</span>
                 <span className="muted text-xs">({selectedInModule}/{perms.length})</span>

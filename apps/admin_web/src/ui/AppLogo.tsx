@@ -9,7 +9,7 @@ export function AppLogo({ compact = false, inverse = false }: AppLogoProps) {
       <span className="brand-mark">
         <img
           src={inverse ? '/brand/association-logo-white.png' : '/brand/association-logo-blue.png'}
-          alt=""
+          alt="شعار جمعية خواطر أحلى شباب"
           width="64"
           height="64"
         />

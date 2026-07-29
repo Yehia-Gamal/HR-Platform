@@ -977,22 +977,22 @@ class _DayDetailSheet extends ConsumerWidget {
       ));
     }
 
-    // ── تأخير → إذن تأخير ──
+    // ── تأخير → إذن حضور ──
     if (!isFuture && day != null && day!.lateMinutes > 0 && !day!.hasPermit) {
       actions.add(_ActionTile(
         icon: Icons.schedule,
-        label: 'طلب إذن تأخير',
+        label: 'طلب إذن حضور',
         subtitle: 'تغطية ${day!.lateMinutes} دقيقة تأخير بإذن مُعتمَد.',
         color: const Color(0xFFF59E0B),
         onTap: () => _openPermitRequest(context, ref, 'late_arrival'),
       ));
     }
 
-    // ── خروج مبكر → إذن خروج ──
+    // ── خروج مبكر → إذن انصراف ──
     if (!isFuture && day != null && day!.earlyLeaveMinutes > 0 && !day!.hasPermit) {
       actions.add(_ActionTile(
         icon: Icons.exit_to_app,
-        label: 'طلب إذن خروج مبكر',
+        label: 'طلب إذن انصراف',
         subtitle: 'تغطية ${day!.earlyLeaveMinutes} دقيقة خروج مبكر.',
         color: const Color(0xFFF59E0B),
         onTap: () => _openPermitRequest(context, ref, 'early_departure'),
@@ -1403,7 +1403,7 @@ class _QuickPermitSheetState extends State<_QuickPermitSheet> {
   final _reasonCtrl = TextEditingController();
 
   String get _kindLabel =>
-      widget.permitKind == 'early_departure' ? 'إذن خروج مبكر' : 'إذن تأخير';
+      widget.permitKind == 'early_departure' ? 'إذن انصراف' : 'إذن حضور';
 
   @override
   void dispose() {

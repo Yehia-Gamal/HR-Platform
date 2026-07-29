@@ -67,7 +67,7 @@ export function WorkspaceSearch({ destinations }: { destinations: SearchDestinat
               {results.length === 0 ? <p className="p-6 text-center text-sm text-[var(--text-muted)]">لا توجد نتائج مطابقة.</p> : results.map((item) => (
                 <button key={item.to} type="button" onClick={() => choose(item.to)} className="command-result">
                   <span className="command-result-dot" />
-                  <span className="min-w-0 flex-1 text-right">
+                  <span className="min-w-0 flex-1 text-start">
                     <strong className="block truncate text-sm">{item.label}</strong>
                     <small className="block truncate text-xs text-[var(--text-muted)]">{item.group}</small>
                   </span>

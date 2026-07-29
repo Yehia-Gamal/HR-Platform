@@ -142,7 +142,7 @@ export function ExecutiveMonitoringPage() {
                   </div>
                   {e.id !== auth.access?.employeeId ? <div className="mt-3 flex flex-wrap gap-2">
                     <button type="button" className="btn-secondary flex-1" disabled={Boolean(e.activeRequestId)} onClick={() => setDraft({ row: e, reason: '' })}>
-                      <Send className="size-4" />{e.activeRequestId ? 'يوجد طلب نشط' : 'طلب موقع حي'}
+                      <Send className="size-4" aria-hidden="true" />{e.activeRequestId ? 'يوجد طلب نشط' : 'طلب موقع حي'}
                     </button>
                     {e.activeRequestId ? <button type="button" className="btn-secondary" onClick={() => setSelectedRequestId(e.activeRequestId)}>عرض النتيجة</button> : null}
                   </div> : null}
@@ -168,7 +168,7 @@ export function ExecutiveMonitoringPage() {
                 <textarea className="input mt-2 min-h-28" required minLength={5} value={draft.reason} onChange={(ev) => setDraft({ ...draft, reason: ev.target.value })} placeholder="سبب تشغيلي واضح…" />
               </label>
               {commands.request.isError ? <p className="rounded-xl bg-red-500/10 p-3 text-sm font-bold text-red-700">{commands.request.error instanceof Error ? commands.request.error.message : 'تعذّر إرسال الطلب.'}</p> : null}
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.request.isPending || draft.reason.trim().length < 5}><Send className="size-4" />{commands.request.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}</button></div>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.request.isPending || draft.reason.trim().length < 5}><Send className="size-4" aria-hidden="true" />{commands.request.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}</button></div>
             </form>
         </DialogOverlay>
       ) : null}

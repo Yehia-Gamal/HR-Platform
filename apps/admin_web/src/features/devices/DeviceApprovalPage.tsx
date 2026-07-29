@@ -349,7 +349,7 @@ function PendingDeviceCard({
             onClick={() => onAction(device, true)}
             aria-label={`الموافقة على جهاز ${device.employeeName}`}
           >
-            <CheckCircle2 className="size-4" />موافقة
+            <CheckCircle2 className="size-4" aria-hidden="true" />موافقة
           </button>
           <button
             type="button"
@@ -358,7 +358,7 @@ function PendingDeviceCard({
             onClick={() => onAction(device, false)}
             aria-label={`رفض جهاز ${device.employeeName}`}
           >
-            <Ban className="size-4" />رفض
+            <Ban className="size-4" aria-hidden="true" />رفض
           </button>
         </div>
       </div>
