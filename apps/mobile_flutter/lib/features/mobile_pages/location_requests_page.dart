@@ -121,7 +121,7 @@ class LocationRequestsPage extends ConsumerWidget {
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: items.length,
-                        separatorBuilder: (_, __) =>
+                        separatorBuilder: (_, _) =>
                             const SizedBox(height: 10),
                         itemBuilder: (context, index) => _RequestCard(
                             request: items[index], access: access),

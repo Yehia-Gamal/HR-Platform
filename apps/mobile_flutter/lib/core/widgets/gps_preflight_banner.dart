@@ -47,7 +47,7 @@ class _GpsPreflightBannerState extends ConsumerState<GpsPreflightBanner>
 
     return preflight.when(
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
       data: (result) {
         if (result.isReady) return const SizedBox.shrink();
 

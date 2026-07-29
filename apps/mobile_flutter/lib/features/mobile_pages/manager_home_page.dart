@@ -152,7 +152,7 @@ class ManagerHomePage extends ConsumerWidget {
                 ),
               ),
             ),
-            error: (_, __) => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
             data: (members) => _TeamAttendanceCard(members: members),
           ),
           const SizedBox(height: 20),

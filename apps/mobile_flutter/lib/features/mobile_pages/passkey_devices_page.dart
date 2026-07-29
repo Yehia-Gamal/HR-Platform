@@ -91,7 +91,7 @@ class _PasskeyDevicesPageState extends ConsumerState<PasskeyDevicesPage> {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
       itemCount: items.length + 1,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         if (index == 0) {
           return const _InfoCard(

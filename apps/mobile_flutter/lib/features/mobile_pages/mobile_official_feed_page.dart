@@ -122,7 +122,7 @@ class MobileOfficialFeedPage extends ConsumerWidget {
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
                   itemCount: items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (context, index) =>
                       _FeedCard(item: items[index]),
                 ),
@@ -289,7 +289,7 @@ class _FeedCard extends StatelessWidget {
                   height: 160,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
                 ),
               Padding(
                 padding: const EdgeInsets.all(16),
