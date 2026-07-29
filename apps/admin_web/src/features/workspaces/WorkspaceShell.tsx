@@ -185,7 +185,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
             >
               {workspaceOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
             </select>
-            {!collapsed ? <ChevronDown className="pointer-events-none absolute left-3 top-3 size-4 text-[var(--text-muted)]" /> : null}
+            {!collapsed ? <ChevronDown className="pointer-events-none absolute start-3 top-3 size-4 text-[var(--text-muted)]" /> : null}
           </div>
         </div>
 

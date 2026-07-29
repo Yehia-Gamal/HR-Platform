@@ -110,7 +110,7 @@ export function EmployeesPage() {
             <div className="overflow-x-auto">
               <table className="data-table w-full min-w-[1020px] text-right text-sm">
                 <thead className="bg-[var(--surface-muted)] text-xs text-[var(--text-muted)]">
-                  <tr><th className="px-4 py-3.5">الموظف</th><th className="px-4 py-3.5">الكود</th><th className="px-4 py-3.5">الإدارة</th><th className="px-4 py-3.5">المسمى الوظيفي</th><th className="px-4 py-3.5">الهاتف</th><th className="px-4 py-3.5">الحالة</th><th className="px-4 py-3.5">تاريخ الإضافة</th><th className="px-4 py-3.5"><span className="sr-only">فتح</span></th></tr>
+                  <tr><th scope="col" className="px-4 py-3.5">الموظف</th><th scope="col" className="px-4 py-3.5">الكود</th><th scope="col" className="px-4 py-3.5">الإدارة</th><th scope="col" className="px-4 py-3.5">المسمى الوظيفي</th><th scope="col" className="px-4 py-3.5">الهاتف</th><th scope="col" className="px-4 py-3.5">الحالة</th><th scope="col" className="px-4 py-3.5">تاريخ الإضافة</th><th scope="col" className="px-4 py-3.5"><span className="sr-only">فتح</span></th></tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border)]">
                   {filtered.map((employee) => (

@@ -5,7 +5,6 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { safeErrorMessage } from '../../core/errorMapper';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
@@ -28,7 +27,7 @@ const transitionLabels: Record<string, string> = {
   request_more_information: 'طلب استكمال بيانات', reject: 'رفض شكلي', start_review: 'بدء/استئناف المراجعة',
   request_respondent_statement: 'طلب إفادة الطرف الآخر', request_witness_statement: 'طلب إفادة شاهد',
   start_deliberation: 'بدء المداولة', escalate: 'تصعيد للمدير التنفيذي', return_to_committee: 'إعادة إلى اللجنة',
-  resolve_friendly: 'حل ودي', close: 'إغلاق بعد التنفيذ', reopen: 'إعادة فتح', extend_review: 'تمديد مهلة المراجعة 24 ساعة', change_priority: 'تغيير الأولوية',
+  close: 'إغلاق بعد التنفيذ', reopen: 'إعادة فتح', extend_review: 'تمديد مهلة المراجعة 24 ساعة', change_priority: 'تغيير الأولوية',
 };
 
 function formatDate(value?: string | null, withTime = true) {
@@ -53,8 +52,7 @@ function actionsFor(item: DisputeCase) {
   }
   if (!terminalStatuses.has(item.status) && item.status !== 'escalated_to_executive') result.push('escalate');
   if (item.status === 'escalated_to_executive') result.push('return_to_committee');
-  if (['under_review', 'waiting_for_respondent', 'waiting_for_witness', 'committee_deliberation'].includes(item.status)) result.push('resolve_friendly');
-  if (['decision_issued', 'settlement_pending', 'executed', 'resolved_friendly'].includes(item.status)) result.push('close');
+  if (['decision_issued', 'settlement_pending', 'executed'].includes(item.status)) result.push('close');
   if (['closed', 'rejected'].includes(item.status)) result.push('reopen');
   if (!terminalStatuses.has(item.status)) result.push('change_priority');
   return [...new Set(result)];
@@ -129,7 +127,7 @@ export function DisputesPage() {
       await task();
       setFeedback({ tone: 'success', text: success });
     } catch (error) {
-      setFeedback({ tone: 'error', text: safeErrorMessage(error) });
+      setFeedback({ tone: 'error', text: error instanceof Error ? error.message : 'تعذر تنفيذ الإجراء.' });
     }
   };
 
@@ -169,7 +167,7 @@ export function DisputesPage() {
         <option value="open">القضايا المفتوحة</option><option value="overdue">المتأخرة</option><option value="submitted">الجديدة</option>
         <option value="under_review">قيد المراجعة</option><option value="waiting_for_respondent">بانتظار الطرف</option>
         <option value="session_scheduled">جلسة محددة</option><option value="committee_deliberation">قيد المداولة</option>
-        <option value="decision_issued">صدر القرار</option><option value="action_proposed">بانتظار قرار تنفيذي</option><option value="pending_execution">بانتظار التنفيذ</option><option value="executed">تم التنفيذ</option><option value="resolved_friendly">حل ودي</option><option value="escalated_to_executive">المصعدة</option><option value="closed">المغلقة</option><option value="all">كل الحالات</option>
+        <option value="decision_issued">صدر القرار</option><option value="action_proposed">بانتظار قرار تنفيذي</option><option value="pending_execution">بانتظار التنفيذ</option><option value="executed">تم التنفيذ</option><option value="escalated_to_executive">المصعدة</option><option value="closed">المغلقة</option><option value="all">كل الحالات</option>
       </select>
       <select className="input" value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)} aria-label="فلتر الأولوية">
         <option value="all">كل الأولويات</option><option value="normal">عادية</option><option value="urgent">عاجلة</option><option value="critical">حرجة</option>
@@ -181,7 +179,7 @@ export function DisputesPage() {
     <section className="grid gap-6 xl:grid-cols-[390px_minmax(0,1fr)]">
       <div className="card p-4">
         <div className="flex items-center justify-between"><h2 className="text-lg font-black">القضايا</h2><span className="muted text-xs">{filteredCases.length} نتيجة</span></div>
-        <div className="mt-4 max-h-[calc(100vh-280px)] space-y-2 overflow-y-auto pl-1">
+        <div className="mt-4 max-h-[calc(100vh-280px)] space-y-2 overflow-y-auto ps-1">
           {query.isLoading ? <ListSkeleton rows={4} label="جارٍ تحميل القضايا" /> : filteredCases.map((item) => <button key={item.id} type="button" onClick={() => chooseCase(item)} className={`w-full rounded-2xl border p-4 text-right transition ${selectedCase === item.id ? 'border-[var(--brand-primary)] bg-[var(--surface-muted)]' : 'border-[var(--border)] hover:border-[var(--border-strong)]'}`}>
             <div className="flex items-start justify-between gap-2"><strong className="line-clamp-2">{item.title}</strong><StatusBadge value={item.status} /></div>
             <p className="muted mt-2 text-xs">{item.caseNumber ?? 'بدون رقم'} · {item.actorName ?? 'مقدم غير محدد'}</p>
@@ -197,7 +195,7 @@ export function DisputesPage() {
         <section className="card p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><StatusBadge value={selected.status} /><StatusBadge value={selected.priority} />{selected.overdue ? <StatusBadge value="overdue" /> : null}</div><h2 className="mt-3 text-xl font-black">{selected.title}</h2><p className="muted mt-1">{selected.caseNumber} · {caseTypes[selected.caseType] ?? selected.caseType}</p></div>
-            <div className="rounded-2xl bg-[var(--surface-muted)] px-4 py-3 text-end"><span className="muted block text-xs">مهلة المراجعة</span><strong className={selected.overdue ? 'text-[var(--danger)]' : ''}>{remainingLabel(selected.reviewDueAt)}</strong></div>
+            <div className="rounded-2xl bg-[var(--surface-muted)] px-4 py-3 text-start"><span className="muted block text-xs">مهلة المراجعة</span><strong className={selected.overdue ? 'text-[var(--danger)]' : ''}>{remainingLabel(selected.reviewDueAt)}</strong></div>
           </div>
           <p className="mt-5 whitespace-pre-wrap leading-8">{selected.description ?? 'لا يوجد وصف.'}</p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

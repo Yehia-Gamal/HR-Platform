@@ -149,12 +149,12 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
         <table className="w-full min-w-[900px] text-right text-sm">
           <thead className="bg-[var(--surface-muted)] text-xs font-black">
             <tr>
-              <th className="p-2.5">التاريخ</th><th className="p-2.5">اليوم</th>
-              <th className="p-2.5">الحضور</th><th className="p-2.5">الانصراف</th>
-              <th className="p-2.5">الوردية</th><th className="p-2.5">ساعات فعلية</th>
-              <th className="p-2.5">التأخير</th><th className="p-2.5">خروج مبكر</th>
-              <th className="p-2.5">إضافي</th><th className="p-2.5">الحالة</th>
-              <th className="p-2.5">ملاحظات</th>
+              <th scope="col" className="p-2.5">التاريخ</th><th scope="col" className="p-2.5">اليوم</th>
+              <th scope="col" className="p-2.5">الحضور</th><th scope="col" className="p-2.5">الانصراف</th>
+              <th scope="col" className="p-2.5">الوردية</th><th scope="col" className="p-2.5">ساعات فعلية</th>
+              <th scope="col" className="p-2.5">التأخير</th><th scope="col" className="p-2.5">خروج مبكر</th>
+              <th scope="col" className="p-2.5">إضافي</th><th scope="col" className="p-2.5">الحالة</th>
+              <th scope="col" className="p-2.5">ملاحظات</th>
             </tr>
           </thead>
           <tbody>

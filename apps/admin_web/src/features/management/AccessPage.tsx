@@ -1,4 +1,4 @@
-import { AlertTriangle, Briefcase, Check, ChevronDown, ChevronLeft, Crown, KeyRound, Pencil, Plus, Save, Scale, Search, Shield, ShieldAlert, ShieldCheck, Trash2, UserPlus, Users, Users2, X } from 'lucide-react';
+import { Briefcase, ChevronDown, ChevronLeft, Crown, KeyRound, Plus, Save, Scale, Search, Shield, ShieldCheck, Trash2, UserPlus, Users, Users2 } from 'lucide-react';
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
@@ -8,8 +8,6 @@ import { PageHeader } from '../../ui/PageHeader';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useAccessAdminCatalog, useAccessCommands } from './useAdminOperations';
 import type { AccessAdminCatalog } from '@ahla/shared-contracts';
-import { env } from '../../core/env';
-import { safeErrorMessage } from '../../core/errorMapper';
 
 // ─── ترجمة النطاقات ────────────────────────────────────────────────────────
 const SCOPE_AR: Record<string, string> = {
@@ -35,18 +33,6 @@ const MODULE_AR: Record<string, string> = {
   workforce: 'القوى العاملة',
 };
 
-const MODULE_ICON: Record<string, string> = {
-  people: '👥', organization: '🏢', access: '🔐', attendance: '⏰', live_location: '📍',
-  requests: '📋', operations: '⚙️', assignments: '📌', performance: '📊', documents: '📄',
-  relations: '⚖️', communications: '📢', reports: '📈', system: '🖥️',
-};
-
-const RISK_CONFIG = {
-  normal: { label: 'عادية', className: 'bg-emerald-50 text-emerald-700' },
-  sensitive: { label: 'حساسة', className: 'bg-amber-50 text-amber-700' },
-  critical: { label: 'حرجة', className: 'bg-red-50 text-red-700' },
-} as const;
-
 // ─── قوالب الأدوار المعتمدة ────────────────────────────────────────────────
 type RoleTemplate = {
   slug: string;
@@ -68,7 +54,7 @@ const ROLE_TEMPLATES: RoleTemplate[] = [
   { slug: 'employee', name: 'موظف', description: 'الخدمة الذاتية — تسجيل حضور، تقديم طلبات، عرض البيانات الشخصية', icon: ShieldCheck, color: 'text-slate-600', bgColor: 'bg-slate-50', borderColor: 'border-slate-200' },
 ];
 
-// ─── النوع الداخلي لمسودة الدور ─────────────────────────────────────────────
+// ─── النوع الداخلي لمسودة الدور المخصص ────────────────────────────────────
 type RoleDraft = {
   id?: string | null;
   slug: string;
@@ -76,7 +62,6 @@ type RoleDraft = {
   nameEn: string;
   description: string;
   fullAccess: boolean;
-  isSystem: boolean;
   selected: Record<string, { scope: string; mfa: boolean; reason: boolean }>;
 };
 
@@ -86,10 +71,14 @@ const scopes = ['self', 'direct_reports', 'management_descendants', 'team', 'dep
 export function AccessPage() {
   const query = useAccessAdminCatalog();
   const commands = useAccessCommands();
-  const [editDraft, setEditDraft] = useState<RoleDraft | null>(null);
+  const [viewRole, setViewRole] = useState<string | null>(null);
+  const [customDraft, setCustomDraft] = useState<RoleDraft | null>(null);
   const [assignment, setAssignment] = useState({ userId: '', roleId: '', effectiveTo: '' });
-  const [saveError, setSaveError] = useState('');
+  const [moduleFilter, setModuleFilter] = useState('all');
+  const [permSearch, setPermSearch] = useState('');
   const data = query.data;
+
+  const modules = useMemo(() => [...new Set((data?.permissions ?? []).map((p) => p.module))].sort(), [data]);
 
   // مطابقة قوالب الأدوار مع البيانات الحقيقية
   const templateRoles = useMemo(() => {
@@ -100,39 +89,38 @@ export function AccessPage() {
     });
   }, [data]);
 
-  // فتح حوار التعديل لدور (نظامي أو مخصص)
-  function openEditor(roleId?: string) {
-    setSaveError('');
+  // الدور المحدد حالياً للعرض (قالب أو DB role)
+  const selectedRole = useMemo(() => {
+    if (!viewRole || !data) return null;
+    return data.roles.find((r) => r.slug === viewRole || r.id === viewRole) ?? null;
+  }, [viewRole, data]);
+
+  function openCustomDraft(roleId?: string) {
     if (roleId && data) {
-      const role = data.roles.find((r) => r.id === roleId || r.slug === roleId);
+      const role = data.roles.find((r) => r.id === roleId);
       if (!role) return;
-      setEditDraft({
+      setCustomDraft({
         id: role.id, slug: role.slug, name: role.name, nameEn: role.nameEn ?? '',
-        description: role.description ?? '', fullAccess: role.fullAccess, isSystem: role.system,
+        description: role.description ?? '', fullAccess: role.fullAccess,
         selected: Object.fromEntries(role.permissions.map((p) => [p.permissionId, { scope: p.scope, mfa: p.requiresMfa, reason: p.requiresReason }])),
       });
     } else {
-      setEditDraft({ slug: '', name: '', nameEn: '', description: '', fullAccess: false, isSystem: false, selected: {} });
+      setCustomDraft({ slug: '', name: '', nameEn: '', description: '', fullAccess: false, selected: {} });
     }
   }
 
   async function saveRole(event: FormEvent) {
     event.preventDefault();
-    if (!editDraft) return;
-    setSaveError('');
-    try {
-      const result = await commands.upsertRole.mutateAsync({ id: editDraft.id, slug: editDraft.slug, name: editDraft.name, nameEn: editDraft.nameEn || null, description: editDraft.description || null, fullAccess: editDraft.fullAccess });
-      const roleId = String((result as { id?: string })?.id ?? editDraft.id ?? '');
-      if (roleId) {
-        await commands.setPermissions.mutateAsync({
-          roleId,
-          items: Object.entries(editDraft.selected).map(([permission_id, v]) => ({ permission_id, scope: v.scope, requires_mfa: v.mfa, requires_reason: v.reason })),
-        });
-      }
-      setEditDraft(null);
-    } catch (err) {
-      setSaveError(safeErrorMessage(err));
+    if (!customDraft) return;
+    const result = await commands.upsertRole.mutateAsync({ id: customDraft.id, slug: customDraft.slug, name: customDraft.name, nameEn: customDraft.nameEn || null, description: customDraft.description || null, fullAccess: customDraft.fullAccess });
+    const roleId = String((result as { id?: string })?.id ?? customDraft.id ?? '');
+    if (roleId) {
+      await commands.setPermissions.mutateAsync({
+        roleId,
+        items: Object.entries(customDraft.selected).map(([permission_id, v]) => ({ permission_id, scope: v.scope, requires_mfa: v.mfa, requires_reason: v.reason })),
+      });
     }
+    setCustomDraft(null);
   }
 
   async function assign(event: FormEvent) {
@@ -142,9 +130,9 @@ export function AccessPage() {
   }
 
   return <div className="space-y-6">
-    <PageHeader title="الأدوار والصلاحيات" description="إدارة أدوار المستخدمين وصلاحياتهم — اختر دوراً للتعديل أو أنشئ دوراً مخصصاً." actions={env.appEnvironment !== 'production' ? <button className="btn-primary" onClick={() => openEditor()}><Plus className="size-4"/>دور مخصص</button> : undefined}/>
+    <PageHeader title="الأدوار والصلاحيات" description="اختر قالب دور لإسناده للمستخدمين، أو أنشئ دوراً مخصصاً بصلاحيات محددة." actions={<button className="btn-primary" onClick={() => openCustomDraft()}><Plus className="size-4"/>دور مخصص</button>}/>
 
-    {query.isError ? <ErrorState title="تعذر تحميل الصلاحيات" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} /> : query.isLoading && !data ? <MetricSkeletonRow /> : null}
+    {query.isError ? <ErrorState title="تعذر تحميل الصلاحيات" description={query.error instanceof Error ? query.error.message : 'غير مصرح'} onRetry={() => void query.refetch()} /> : query.isLoading && !data ? <MetricSkeletonRow /> : null}
 
     {data ? <>
       {/* ── الإحصائيات ── */}
@@ -152,25 +140,25 @@ export function AccessPage() {
         <MetricCard label="الأدوار" value={data.roles.length} icon={ShieldCheck}/>
         <MetricCard label="الصلاحيات" value={data.permissions.length} icon={KeyRound}/>
         <MetricCard label="المستخدمون" value={data.users.length} icon={Users}/>
-        <MetricCard label="الصلاحيات الحساسة" value={data.permissions.filter((p) => p.sensitive).length} icon={ShieldAlert}/>
+        <MetricCard label="الصلاحيات الحساسة" value={data.permissions.filter((p) => p.sensitive).length} icon={ShieldCheck}/>
       </section>
 
       {/* ── بطاقات قوالب الأدوار ── */}
       <section>
         <div className="mb-4">
           <h2 className="text-lg font-black">قوالب الأدوار المعتمدة</h2>
-          <p className="muted mt-1 text-sm">اضغط على قالب لعرض وتعديل صلاحياته.</p>
+          <p className="muted mt-1 text-sm">اختر قالباً لعرض صلاحياته أو إسناده مباشرة للمستخدمين.</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {templateRoles.map((tpl) => <RoleTemplateCard key={tpl.slug} template={tpl} permissionCount={tpl.dbRole?.permissions.length ?? 0} assignmentCount={tpl.dbRole?.assignments ?? 0} onClick={() => openEditor(tpl.dbRole?.id ?? tpl.slug)}/>)}
+          {templateRoles.map((tpl) => <RoleTemplateCard key={tpl.slug} template={tpl} permissionCount={tpl.dbRole?.permissions.length ?? 0} assignmentCount={tpl.dbRole?.assignments ?? 0} onClick={() => setViewRole(tpl.slug)}/>)}
         </div>
       </section>
 
-      {/* ── الأدوار الأخرى (غير القوالب) ── */}
+      {/* ── الأدوار الأخرى (غير القوالب المعتمدة) ── */}
       {data.roles.filter((r) => !ROLE_TEMPLATES.some((t) => t.slug === r.slug)).length > 0 && <section className="card overflow-hidden">
         <div className="border-b border-[var(--border)] p-5">
           <h2 className="font-black">أدوار أخرى</h2>
-          <p className="muted mt-1 text-sm">أدوار نظامية أو مخصصة غير مدرجة في القوالب.</p>
+          <p className="muted mt-1 text-sm">أدوار نظامية أو مخصصة غير مدرجة في القوالب المعتمدة.</p>
         </div>
         <div className="divide-y divide-[var(--border)]">
           {data.roles.filter((r) => !ROLE_TEMPLATES.some((t) => t.slug === r.slug)).map((role) => <div key={role.id} className="flex items-center justify-between p-4">
@@ -180,7 +168,8 @@ export function AccessPage() {
             </div>
             <div className="flex items-center gap-3">
               <span className="muted text-xs">{role.permissions.length} صلاحية · {role.assignments} مستخدم</span>
-              <button className="btn-secondary flex items-center gap-1.5 px-3 py-1.5 text-xs" onClick={() => openEditor(role.id)}><Pencil className="size-3"/>عرض وتعديل</button>
+              <button className="btn-secondary px-3 py-1.5 text-xs" onClick={() => setViewRole(role.id)}>عرض</button>
+              {!role.system && <button className="btn-secondary px-3 py-1.5 text-xs" onClick={() => openCustomDraft(role.id)}>تعديل</button>}
             </div>
           </div>)}
         </div>
@@ -190,7 +179,7 @@ export function AccessPage() {
       <section className="card p-5">
         <div className="mb-5">
           <h2 className="font-black">إسناد دور</h2>
-          <p className="muted mt-1 text-sm">يمكن جعل الإسناد مؤقتًا — يُسحب تلقائيًا بعد تاريخ الانتهاء.</p>
+          <p className="muted mt-1 text-sm">يمكن جعل الإسناد مؤقتًا، ويُسحب تلقائيًا بعد تاريخ الانتهاء.</p>
         </div>
         <form className="grid gap-4 md:grid-cols-[1.2fr_1fr_1fr_auto]" onSubmit={(e) => void assign(e)}>
           <FormSelect label="المستخدم" required value={assignment.userId} onChange={(v) => setAssignment({ ...assignment, userId: v })}>
@@ -214,7 +203,7 @@ export function AccessPage() {
         <div className="border-b border-[var(--border)] p-5">
           <h2 className="font-black">إسنادات المستخدمين</h2>
         </div>
-        {commands.revokeRole.isError && <div className="p-5 pb-0"><ErrorBanner message={`تعذر سحب الدور: ${safeErrorMessage(commands.revokeRole.error)}`} /></div>}
+        {commands.revokeRole.isError && <div className="p-5 pb-0"><ErrorBanner message={`تعذر سحب الدور: ${commands.revokeRole.error instanceof Error ? commands.revokeRole.error.message : 'حدث خطأ غير متوقع'}`} /></div>}
         <div className="divide-y divide-[var(--border)]">
           {data.users.map((user) => <article key={user.userId} className="p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -237,17 +226,81 @@ export function AccessPage() {
       </section>
     </> : null}
 
-    {/* ── حوار تعديل الدور ── */}
-    {editDraft && data && <RoleEditorDialog draft={editDraft} permissions={data.permissions} onDraftChange={setEditDraft} onSave={saveRole} onClose={() => setEditDraft(null)} saving={commands.upsertRole.isPending || commands.setPermissions.isPending} error={saveError}/>}
+    {/* ── حوار عرض تفاصيل الدور ── */}
+    {selectedRole && data && <DialogOverlay title={`صلاحيات: ${selectedRole.name}`} onClose={() => setViewRole(null)} maxWidth="max-w-4xl">
+      <RolePermissionsView role={selectedRole} permissions={data.permissions} />
+    </DialogOverlay>}
+
+    {/* ── حوار إنشاء / تعديل دور مخصص ── */}
+    {customDraft && data && <DialogOverlay title={customDraft.id ? 'تعديل الدور' : 'إنشاء دور مخصص'} onClose={() => setCustomDraft(null)} maxWidth="max-w-5xl">
+      <form className="space-y-5" onSubmit={(e) => void saveRole(e)}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormInput label="Slug" required value={customDraft.slug} disabled={Boolean(customDraft.id)} onChange={(v) => setCustomDraft({ ...customDraft, slug: v.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}/>
+          <FormInput label="الاسم العربي" required value={customDraft.name} onChange={(v) => setCustomDraft({ ...customDraft, name: v })}/>
+          <FormInput label="الاسم الإنجليزي" value={customDraft.nameEn} onChange={(v) => setCustomDraft({ ...customDraft, nameEn: v })}/>
+          <FormInput label="الوصف" value={customDraft.description} onChange={(v) => setCustomDraft({ ...customDraft, description: v })}/>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[var(--border)] py-4">
+          <h3 className="font-black">الصلاحيات</h3>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]"/>
+              <input className="input pe-9" placeholder="بحث…" value={permSearch} onChange={(e) => setPermSearch(e.target.value)}/>
+            </div>
+            <select aria-label="تصفية حسب الوحدة" className="input max-w-xs" value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)}>
+              <option value="all">كل الوحدات</option>
+              {modules.map((m) => <option key={m} value={m}>{MODULE_AR[m] ?? m}</option>)}
+            </select>
+            <p className="muted text-xs" aria-live="polite">{Object.keys(customDraft.selected).length} محددة</p>
+          </div>
+        </div>
+
+        <div className="max-h-[52vh] space-y-2 overflow-y-auto pe-1">
+          {data.permissions
+            .filter((p) => moduleFilter === 'all' || p.module === moduleFilter)
+            .filter((p) => !permSearch || (p.nameAr ?? p.name ?? p.code).includes(permSearch) || p.code.includes(permSearch))
+            .map((permission) => {
+              const selected = customDraft.selected[permission.id];
+              return <article key={permission.id} className="rounded-xl border border-[var(--border)] p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <label className="flex items-start gap-3">
+                    <input className="mt-1 size-4" type="checkbox" checked={Boolean(selected)} onChange={(e) => {
+                      const next = { ...customDraft.selected };
+                      if (e.target.checked) next[permission.id] = { scope: permission.allowedScopes[0] ?? 'self', mfa: permission.sensitive, reason: permission.sensitive };
+                      else delete next[permission.id];
+                      setCustomDraft({ ...customDraft, selected: next });
+                    }}/>
+                    <span>
+                      <strong>{permission.nameAr ?? permission.name}</strong>
+                      <span className="muted mt-1 block font-mono text-xs">{permission.code}</span>
+                    </span>
+                  </label>
+                  {selected && <div className="flex flex-wrap gap-2">
+                    <select className="input w-52" value={selected.scope} onChange={(e) => setCustomDraft({ ...customDraft, selected: { ...customDraft.selected, [permission.id]: { ...selected, scope: e.target.value } } })}>
+                      {(permission.allowedScopes.length ? permission.allowedScopes : scopes).map((s) => <option key={s} value={s}>{SCOPE_AR[s] ?? s}</option>)}
+                    </select>
+                    <Flag checked={selected.mfa} label="MFA" onChange={(mfa) => setCustomDraft({ ...customDraft, selected: { ...customDraft.selected, [permission.id]: { ...selected, mfa } } })}/>
+                    <Flag checked={selected.reason} label="سبب" onChange={(reason) => setCustomDraft({ ...customDraft, selected: { ...customDraft.selected, [permission.id]: { ...selected, reason } } })}/>
+                  </div>}
+                </div>
+              </article>;
+            })}
+        </div>
+
+        <button className="btn-primary" disabled={commands.upsertRole.isPending || commands.setPermissions.isPending}>
+          <Save className="size-4"/>{commands.upsertRole.isPending || commands.setPermissions.isPending ? 'جارٍ الحفظ…' : 'حفظ الدور والصلاحيات'}
+        </button>
+      </form>
+    </DialogOverlay>}
   </div>;
 }
 
 // ─── بطاقة قالب الدور ──────────────────────────────────────────────────────
 function RoleTemplateCard({ template, permissionCount, assignmentCount, onClick }: { template: RoleTemplate & { dbRole?: AccessAdminCatalog['roles'][number] }; permissionCount: number; assignmentCount: number; onClick: () => void }) {
   const Icon = template.icon;
-  const isFullAccess = template.dbRole?.fullAccess === true;
   return <button type="button" onClick={onClick} className={`card group relative overflow-hidden border-2 p-5 text-right transition-all hover:shadow-lg ${template.borderColor}`}>
-    <div className={`absolute left-0 top-0 h-full w-1.5 ${template.bgColor}`} style={{ backgroundColor: 'currentColor' }}/>
+    <div className={`absolute start-0 top-0 h-full w-1.5 ${template.bgColor}`} style={{ backgroundColor: 'currentColor' }}/>
     <div className="flex items-start gap-3">
       <div className={`flex size-12 shrink-0 items-center justify-center rounded-xl ${template.bgColor} ${template.color}`}>
         <Icon className="size-6"/>
@@ -258,48 +311,33 @@ function RoleTemplateCard({ template, permissionCount, assignmentCount, onClick 
       </div>
     </div>
     <div className="mt-4 flex items-center justify-between border-t border-[var(--border)] pt-3">
-      <div className="flex items-center gap-3">
-        {isFullAccess
-          ? <span className="inline-flex items-center gap-1 rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-black text-amber-800">✦ وصول كامل</span>
-          : <span className="text-xs"><strong className={template.color}>{permissionCount}</strong> <span className="muted">صلاحية</span></span>}
+      <div className="flex gap-4">
+        <span className="text-xs"><strong className={template.color}>{permissionCount}</strong> <span className="muted">صلاحية</span></span>
         <span className="text-xs"><strong>{assignmentCount}</strong> <span className="muted">مستخدم</span></span>
       </div>
-      <ChevronLeft className="size-4 text-[var(--text-muted)] transition-transform group-hover:-translate-x-1"/>
+      <ChevronLeft className="size-4 text-[var(--text-muted)] transition-transform group-hover:rtl:translate-x-1 group-hover:ltr:-translate-x-1"/>
     </div>
   </button>;
 }
 
-// ─── حوار تعديل الدور (موحّد: عرض + تعديل) ─────────────────────────────────
-function RoleEditorDialog({ draft, permissions, onDraftChange, onSave, onClose, saving, error }: {
-  draft: RoleDraft;
-  permissions: AccessAdminCatalog['permissions'];
-  onDraftChange: (d: RoleDraft) => void;
-  onSave: (e: FormEvent) => void;
-  onClose: () => void;
-  saving: boolean;
-  error: string;
-}) {
-  const [moduleFilter, setModuleFilter] = useState('all');
-  const [permSearch, setPermSearch] = useState('');
+// ─── عرض صلاحيات الدور مجمعة حسب الوحدة ────────────────────────────────────
+function RolePermissionsView({ role, permissions }: { role: AccessAdminCatalog['roles'][number]; permissions: AccessAdminCatalog['permissions'] }) {
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState('');
 
-  const modules = useMemo(() => [...new Set(permissions.map((p) => p.module))].sort(), [permissions]);
-
-  // تجميع الصلاحيات حسب الوحدة مع تطبيق الفلاتر
   const grouped = useMemo(() => {
-    const map = new Map<string, AccessAdminCatalog['permissions']>();
-    for (const p of permissions) {
-      if (moduleFilter !== 'all' && p.module !== moduleFilter) continue;
-      const nameAr = p.nameAr ?? p.name ?? p.code;
-      if (permSearch && !nameAr.includes(permSearch) && !p.code.includes(permSearch)) continue;
-      if (!map.has(p.module)) map.set(p.module, []);
-      map.get(p.module)!.push(p);
+    const map = new Map<string, Array<typeof role.permissions[number] & { nameAr?: string | null; moduleAr?: string | null }>>();
+    for (const rp of role.permissions) {
+      const fullPerm = permissions.find((p) => p.id === rp.permissionId);
+      const module = fullPerm?.module ?? rp.code.split('.')[0];
+      const entry = { ...rp, nameAr: fullPerm?.nameAr, moduleAr: fullPerm?.moduleAr };
+      if (!search || (entry.nameAr ?? entry.name ?? entry.code).includes(search) || entry.code.includes(search)) {
+        if (!map.has(module)) map.set(module, []);
+        map.get(module)!.push(entry);
+      }
     }
     return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  }, [permissions, moduleFilter, permSearch]);
-
-  const selectedCount = Object.keys(draft.selected).length;
-  const totalVisible = grouped.reduce((sum, [, perms]) => sum + perms.length, 0);
+  }, [role.permissions, permissions, search]);
 
   function toggleModule(module: string) {
     setExpandedModules((prev) => {
@@ -313,132 +351,49 @@ function RoleEditorDialog({ draft, permissions, onDraftChange, onSave, onClose, 
     setExpandedModules(new Set(grouped.map(([m]) => m)));
   }
 
-  // تحديد/إلغاء كل صلاحيات وحدة
-  function toggleModuleAll(module: string, perms: AccessAdminCatalog['permissions']) {
-    const allSelected = perms.every((p) => draft.selected[p.id]);
-    const next = { ...draft.selected };
-    if (allSelected) {
-      for (const p of perms) delete next[p.id];
-    } else {
-      for (const p of perms) {
-        if (!next[p.id]) next[p.id] = { scope: p.allowedScopes[0] ?? 'self', mfa: p.sensitive, reason: p.sensitive };
-      }
-    }
-    onDraftChange({ ...draft, selected: next });
-  }
-
-  return <DialogOverlay title={draft.id ? `تعديل الدور: ${draft.name}` : 'إنشاء دور مخصص'} onClose={onClose} maxWidth="max-w-6xl">
-    <form className="space-y-5" onSubmit={onSave}>
-      {/* ── معلومات الدور ── */}
-      <div className="rounded-xl border border-[var(--border)] p-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormInput label="Slug (معرّف)" required value={draft.slug} disabled={Boolean(draft.id)} onChange={(v) => onDraftChange({ ...draft, slug: v.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}/>
-          <FormInput label="الاسم العربي" required value={draft.name} disabled={draft.isSystem} onChange={(v) => onDraftChange({ ...draft, name: v })}/>
-          <FormInput label="الاسم الإنجليزي" value={draft.nameEn} disabled={draft.isSystem} onChange={(v) => onDraftChange({ ...draft, nameEn: v })}/>
-          <FormInput label="الوصف" value={draft.description} disabled={draft.isSystem} onChange={(v) => onDraftChange({ ...draft, description: v })}/>
+  return <div className="space-y-4">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <p className="text-sm"><strong>{role.permissions.length}</strong> صلاحية في <strong>{grouped.length}</strong> وحدة</p>
+      <div className="flex items-center gap-2">
+        <div className="relative">
+          <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]"/>
+          <input className="input pe-9" placeholder="بحث…" value={search} onChange={(e) => setSearch(e.target.value)}/>
         </div>
-        {draft.isSystem && <p className="muted mt-3 flex items-center gap-1.5 text-xs"><Shield className="size-3.5"/>دور نظامي — يمكن تعديل الصلاحيات فقط.</p>}
-        {draft.fullAccess && <p className="mt-3 flex items-center gap-1.5 text-xs font-bold text-amber-700"><Crown className="size-3.5"/>وصول كامل — جميع الصلاحيات مفعّلة تلقائياً.</p>}
+        <button type="button" className="btn-secondary px-3 py-2 text-xs" onClick={expandAll}>فتح الكل</button>
+        <button type="button" className="btn-secondary px-3 py-2 text-xs" onClick={() => setExpandedModules(new Set())}>إغلاق الكل</button>
       </div>
+    </div>
 
-      {/* ── شريط الأدوات ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[var(--surface-muted)] px-4 py-3">
-        <div className="flex items-center gap-3">
-          <h3 className="font-black">الصلاحيات</h3>
-          <span className="rounded-lg bg-[var(--primary)] px-2.5 py-1 text-xs font-bold text-white">{selectedCount} / {permissions.length}</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]"/>
-            <input className="input pr-9 text-sm" placeholder="بحث بالعربي أو الكود…" value={permSearch} onChange={(e) => setPermSearch(e.target.value)}/>
-          </div>
-          <select aria-label="تصفية حسب الوحدة" className="input max-w-[200px] text-sm" value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)}>
-            <option value="all">كل الوحدات ({permissions.length})</option>
-            {modules.map((m) => <option key={m} value={m}>{MODULE_AR[m] ?? m}</option>)}
-          </select>
-          <button type="button" className="btn-secondary px-2.5 py-1.5 text-xs" onClick={expandAll}>فتح الكل</button>
-          <button type="button" className="btn-secondary px-2.5 py-1.5 text-xs" onClick={() => setExpandedModules(new Set())}>إغلاق الكل</button>
-        </div>
-      </div>
-
-      {/* ── قائمة الصلاحيات مجمعة حسب الوحدة ── */}
-      <div className="max-h-[55vh] space-y-3 overflow-y-auto pl-1">
-        {grouped.map(([module, perms]) => {
-          const isExpanded = expandedModules.has(module);
-          const moduleLabel = perms[0]?.moduleAr ?? MODULE_AR[module] ?? module;
-          const moduleIcon = MODULE_ICON[module] ?? '📦';
-          const selectedInModule = perms.filter((p) => draft.selected[p.id]).length;
-          const allSelected = perms.every((p) => draft.selected[p.id]);
-          return <div key={module} className="overflow-hidden rounded-xl border border-[var(--border)]">
-            {/* رأس الوحدة */}
-            <div className="flex items-center bg-[var(--surface-muted)]">
-              <button type="button" className="flex min-w-0 flex-1 items-center gap-2.5 px-4 py-3 text-right" onClick={() => toggleModule(module)}>
-                <span className="text-lg">{moduleIcon}</span>
-                <span className="font-bold">{moduleLabel}</span>
-                <span className="muted text-xs">({selectedInModule}/{perms.length})</span>
-                <ChevronDown className={`mr-auto size-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}/>
-              </button>
-              {!draft.fullAccess && <button type="button" className={`ml-1 mr-3 rounded-lg px-2.5 py-1 text-xs font-bold transition-colors ${allSelected ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`} onClick={() => toggleModuleAll(module, perms)}>
-                {allSelected ? <span className="flex items-center gap-1"><X className="size-3"/>إلغاء الكل</span> : <span className="flex items-center gap-1"><Check className="size-3"/>تحديد الكل</span>}
-              </button>}
+    <div className="max-h-[60vh] space-y-2 overflow-y-auto">
+      {grouped.map(([module, perms]) => {
+        const isExpanded = expandedModules.has(module);
+        const moduleLabel = perms[0]?.moduleAr ?? MODULE_AR[module] ?? module;
+        return <div key={module} className="rounded-xl border border-[var(--border)] overflow-hidden">
+          <button type="button" className="flex w-full items-center justify-between bg-[var(--surface-muted)] px-4 py-3 text-right" onClick={() => toggleModule(module)}>
+            <div className="flex items-center gap-2">
+              <span className="font-bold">{moduleLabel}</span>
+              <span className="muted text-xs">({perms.length})</span>
             </div>
-            {/* صلاحيات الوحدة */}
-            {isExpanded && <div className="divide-y divide-[var(--border)]">
-              {perms.map((permission) => {
-                const sel = draft.selected[permission.id];
-                const nameAr = permission.nameAr ?? permission.name;
-                const risk = RISK_CONFIG[permission.riskLevel as keyof typeof RISK_CONFIG] ?? RISK_CONFIG.normal;
-                return <div key={permission.id} className={`px-4 py-3 transition-colors ${sel ? 'bg-blue-50/30' : ''}`}>
-                  <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-                    <label className="flex items-start gap-3">
-                      {!draft.fullAccess && <input className="mt-1 size-4 accent-[var(--primary)]" type="checkbox" checked={Boolean(sel)} onChange={(e) => {
-                        const next = { ...draft.selected };
-                        if (e.target.checked) next[permission.id] = { scope: permission.allowedScopes[0] ?? 'self', mfa: permission.sensitive, reason: permission.sensitive };
-                        else delete next[permission.id];
-                        onDraftChange({ ...draft, selected: next });
-                      }}/>}
-                      <span className="min-w-0">
-                        <span className="flex flex-wrap items-center gap-2">
-                          <strong className="text-sm">{nameAr}</strong>
-                          <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold ${risk.className}`}>{risk.label}</span>
-                          {permission.sensitive && <span title="صلاحية حساسة"><AlertTriangle className="size-3.5 text-amber-500"/></span>}
-                        </span>
-                        <span className="muted mt-0.5 block font-mono text-xs leading-relaxed" dir="ltr">{permission.code}</span>
-                      </span>
-                    </label>
-                    {/* أدوات التحكم: النطاق + MFA + سبب */}
-                    {sel && !draft.fullAccess && <div className="flex flex-wrap items-center gap-2 pr-7 lg:pr-0">
-                      <select className="input w-44 text-xs" value={sel.scope} onChange={(e) => onDraftChange({ ...draft, selected: { ...draft.selected, [permission.id]: { ...sel, scope: e.target.value } } })}>
-                        {(permission.allowedScopes.length ? permission.allowedScopes : scopes).map((s) => <option key={s} value={s}>{SCOPE_AR[s] ?? s}</option>)}
-                      </select>
-                      <Flag checked={sel.mfa} label="MFA مطلوب" onChange={(mfa) => onDraftChange({ ...draft, selected: { ...draft.selected, [permission.id]: { ...sel, mfa } } })}/>
-                      <Flag checked={sel.reason} label="سبب مطلوب" onChange={(reason) => onDraftChange({ ...draft, selected: { ...draft.selected, [permission.id]: { ...sel, reason } } })}/>
-                    </div>}
-                    {/* وضع full-access: عرض النطاق فقط */}
-                    {sel && draft.fullAccess && <div className="flex flex-wrap gap-2 pr-7 lg:pr-0">
-                      <span className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 text-xs font-bold">{SCOPE_AR[sel.scope] ?? sel.scope}</span>
-                      {sel.mfa && <span className="rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">MFA</span>}
-                      {sel.reason && <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">سبب مطلوب</span>}
-                    </div>}
-                  </div>
-                </div>;
-              })}
-            </div>}
-          </div>;
-        })}
-        {grouped.length === 0 && <p className="muted py-8 text-center text-sm">لا توجد صلاحيات مطابقة للبحث</p>}
-      </div>
-
-      {/* ── شريط الحفظ ── */}
-      {error && <ErrorBanner message={error}/>}
-      {!draft.fullAccess && <div className="flex items-center justify-between gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3">
-        <p className="text-sm"><strong>{selectedCount}</strong> صلاحية محددة من أصل <strong>{totalVisible}</strong></p>
-        <button className="btn-primary" disabled={saving}>
-          <Save className="size-4"/>{saving ? 'جارٍ الحفظ…' : 'حفظ الدور والصلاحيات'}
-        </button>
-      </div>}
-    </form>
-  </DialogOverlay>;
+            <ChevronDown className={`size-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}/>
+          </button>
+          {isExpanded && <div className="divide-y divide-[var(--border)]">
+            {perms.map((p) => <div key={p.permissionId} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-bold">{p.nameAr ?? p.name}</p>
+                <p className="muted font-mono text-xs">{p.code}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 text-xs font-bold">{SCOPE_AR[p.scope] ?? p.scope}</span>
+                {p.requiresMfa && <span className="rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">MFA</span>}
+                {p.requiresReason && <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">سبب مطلوب</span>}
+              </div>
+            </div>)}
+          </div>}
+        </div>;
+      })}
+      {grouped.length === 0 && <p className="muted py-8 text-center text-sm">لا توجد صلاحيات مطابقة</p>}
+    </div>
+  </div>;
 }
 
 // ─── مكونات مساعدة ──────────────────────────────────────────────────────────
@@ -449,5 +404,5 @@ function FormSelect({ label, value, onChange, required, children }: { label: str
   return <label><span className="mb-1.5 block text-sm font-bold">{label}</span><select className="input" required={required} value={value} onChange={(e) => onChange(e.target.value)}><option value="">اختر…</option>{children}</select></label>;
 }
 function Flag({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
-  return <label className="flex items-center gap-2 rounded-xl bg-[var(--surface-muted)] px-3 py-2 text-xs font-bold cursor-pointer hover:bg-[var(--border)] transition-colors"><input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)}/>{label}</label>;
+  return <label className="flex items-center gap-2 rounded-xl bg-[var(--surface-muted)] px-3 py-2 text-xs font-bold"><input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)}/>{label}</label>;
 }

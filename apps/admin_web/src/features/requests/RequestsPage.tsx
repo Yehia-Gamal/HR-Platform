@@ -15,18 +15,16 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { useMyLeaveBalances, useRequestDecision, useRequests, useWorkAssignments } from './useRequests';
 import { useAttendanceOperations, useAttendanceOperationsCommands } from '../advanced/useAdvancedOperations';
 
-const labels: Record<RequestSummary['requestType'], string> = { leave: 'إجازة', mission: 'مأمورية', convoy: 'قافلة / فاندي', late_permit: 'إذن تأخير', early_permit: 'إذن انصراف مبكر', attendance_correction: 'تصحيح حضور' };
+const labels: Record<RequestSummary['requestType'], string> = { leave: 'إجازة', mission: 'مأمورية', convoy: 'قافلة', attendance_permit: 'إذن حضور', generic: 'طلب عام' };
 const assignmentLabels: Record<WorkAssignment['assignmentType'], string> = { MISSION: 'مأمورية', CONVOY: 'قافلة', FUNDRAISING: 'فاندي' };
-type TypeTab = 'all' | 'leave' | 'mission' | 'convoy' | 'late_permit' | 'early_permit' | 'attendance_correction' | 'corrections';
+type TypeTab = 'all' | 'leave' | 'mission' | 'convoy' | 'attendance_permit' | 'corrections';
 const typeTabs: { key: TypeTab; label: string }[] = [
   { key: 'all', label: 'الكل' },
   { key: 'leave', label: 'الإجازات' },
   { key: 'mission', label: 'المأموريات' },
-  { key: 'convoy', label: 'القوافل / فاندي' },
-  { key: 'late_permit', label: 'إذن تأخير' },
-  { key: 'early_permit', label: 'إذن انصراف مبكر' },
-  { key: 'attendance_correction', label: 'تصحيح حضور' },
-  { key: 'corrections', label: 'تصحيحات (إدارية)' },
+  { key: 'convoy', label: 'القوافل' },
+  { key: 'attendance_permit', label: 'أذونات الحضور' },
+  { key: 'corrections', label: 'تصحيحات الحضور' },
 ];
 
 const currentMonth = new Date().toISOString().slice(0, 7);
@@ -64,7 +62,7 @@ export function RequestsPage() {
   };
 
   return <div className="space-y-6">
-    <PageHeader title="الإجازات والتكليفات" description="صندوق موحد للإجازات وتصحيحات الحضور وتكليفات العمل (مأمورية/قافلة/فاندي) والأذونات، يعمل بمراحل واعتمادات خادمية ومنع الموافقة الذاتية." />
+    <PageHeader title="طلب اجازة" description="صندوق موحد للإجازات وتصحيحات الحضور وتكليفات العمل (مأمورية/قافلة/فاندي) والأذونات، يعمل بمراحل واعتمادات خادمية ومنع الموافقة الذاتية." />
     {balances.isLoading && !balances.data ? <MetricSkeletonRow /> : <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{(balances.data ?? []).map((balance) => <MetricCard key={balance.leaveTypeId} label={`رصيد ${balance.nameAr}`} value={balance.availableUnits} hint={`محجوز ${balance.reservedUnits} · مستهلك ${balance.consumedUnits}`} icon={CalendarDays} />)}</section>}
     <nav className="flex flex-wrap gap-2" aria-label="تصنيف الطلبات">{typeTabs.map((tab) => <button key={tab.key} type="button" aria-pressed={typeTab === tab.key} className={`rounded-xl px-4 py-2 text-sm font-black ${typeTab === tab.key ? 'bg-brand text-white' : 'bg-[var(--surface-muted)]'}`} onClick={() => setTypeTab(tab.key)}>{tab.label}</button>)}</nav>
 
@@ -83,7 +81,7 @@ export function RequestsPage() {
           </div>
           <StatusBadge value={item.status} />
         </div>
-        {item.status === 'pending' && item.employeeId !== auth.access?.employeeId ? <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_auto]">
+        {item.status === 'pending' ? <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_auto]">
           <input className="input" placeholder="ملاحظة القرار" value={reviewNotes[item.id] ?? ''} onChange={(e) => setReviewNotes((v) => ({ ...v, [item.id]: e.target.value }))} />
           <button className="btn-primary" onClick={() => void correctionsCommands.decideCorrection.mutateAsync({ p_id: item.id, p_decision: 'approved', p_note: reviewNotes[item.id] || null })}>اعتماد</button>
           <button className="btn-secondary" onClick={() => void correctionsCommands.decideCorrection.mutateAsync({ p_id: item.id, p_decision: 'rejected', p_note: reviewNotes[item.id] || '' })}>رفض</button>
@@ -92,11 +90,11 @@ export function RequestsPage() {
     </section> : <>
 
     {/* ─── قائمة الطلبات العادية ─── */}
-    <FilterBar searchValue={search} onSearchChange={setSearch} searchPlaceholder="بحث بالاسم أو الكود أو رقم الطلب" resultText={`عرض ${filtered.length} من ${(query.data ?? []).length} طلب`} isDirty={Boolean(search || status !== 'all')} onClear={() => { setSearch(''); setStatus('all'); }}><select className="input" aria-label="تصفية الطلبات حسب الحالة" value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">كل الحالات</option><option value="pending">قيد المراجعة</option><option value="approved">معتمد</option><option value="rejected">مرفوض</option><option value="returned">مُعاد</option><option value="escalated">مُصعَّد</option><option value="cancelled">ملغي</option><option value="withdrawn">مسحوب</option><option value="expired">منتهي</option></select></FilterBar>
+    <FilterBar searchValue={search} onSearchChange={setSearch} searchPlaceholder="بحث بالاسم أو الكود أو رقم الطلب" resultText={`عرض ${filtered.length} من ${(query.data ?? []).length} طلب`} isDirty={Boolean(search || status !== 'all')} onClear={() => { setSearch(''); setStatus('all'); }}><select className="input" aria-label="تصفية الطلبات حسب الحالة" value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">كل الحالات</option><option value="pending">قيد المراجعة</option><option value="approved">معتمد</option><option value="rejected">مرفوض</option><option value="cancelled">ملغي</option></select></FilterBar>
     {query.isError ? <ErrorState description={query.error instanceof Error ? query.error.message : undefined} onRetry={() => void query.refetch()} />
       : query.isLoading && !query.data ? <ListSkeleton rows={4} />
       : filtered.length === 0 ? <EmptyState title="لا توجد طلبات" description="لا توجد عناصر مطابقة للفلاتر الحالية." />
-      : <section className="grid gap-4 xl:grid-cols-2">{filtered.map((item) => <article key={item.id} className="card p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><span className="rounded-lg bg-[var(--surface-muted)] px-2 py-1 text-xs font-black">#{item.requestNumber}</span><StatusBadge value={item.status} /></div><h2 className="mt-3 text-lg font-black">{item.title || labels[item.requestType]}</h2><div className="mt-1 flex items-center gap-2"><UserAvatar displayName={item.employeeName} size="sm" /><p className="muted text-sm">{item.employeeName} · {item.employeeCode || 'بدون كود'}</p></div></div><span className="text-sm font-bold text-brand">{labels[item.requestType]}</span></div><p className="mt-4 line-clamp-2 text-sm leading-7">{item.reason || 'لم يضف الموظف سببًا تفصيليًا.'}</p><div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[var(--border)] pt-4 text-xs"><span className="inline-flex items-center gap-1 muted"><Clock className="size-4" aria-hidden="true" />{item.activeStepName || 'اكتمل المسار'}</span><span className="muted">{new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.createdAt))}</span>{canDecide && item.status === 'pending' && item.employeeId !== auth.access?.employeeId ? <button className="btn-primary mr-auto" onClick={() => setSelected(item)}>مراجعة واتخاذ إجراء</button> : null}</div></article>)}</section>}
+      : <section className="grid gap-4 xl:grid-cols-2">{filtered.map((item) => <article key={item.id} className="card p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><span className="rounded-lg bg-[var(--surface-muted)] px-2 py-1 text-xs font-black">#{item.requestNumber}</span><StatusBadge value={item.status} /></div><h2 className="mt-3 text-lg font-black">{item.title || labels[item.requestType]}</h2><div className="mt-1 flex items-center gap-2"><UserAvatar displayName={item.employeeName} size="sm" /><p className="muted text-sm">{item.employeeName} · {item.employeeCode || 'بدون كود'}</p></div></div><span className="text-sm font-bold text-brand">{labels[item.requestType]}</span></div><p className="mt-4 line-clamp-2 text-sm leading-7">{item.reason || 'لم يضف الموظف سببًا تفصيليًا.'}</p><div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[var(--border)] pt-4 text-xs"><span className="inline-flex items-center gap-1 muted"><Clock className="size-4" aria-hidden="true" />{item.activeStepName || 'اكتمل المسار'}</span><span className="muted">{new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.createdAt))}</span>{canDecide && item.status === 'pending' ? <button className="btn-primary ms-auto" onClick={() => setSelected(item)}>مراجعة واتخاذ إجراء</button> : null}</div></article>)}</section>}
     <section aria-labelledby="wa-heading" className="space-y-3">
       <h2 id="wa-heading" className="flex items-center gap-2 text-lg font-black"><Truck className="size-5 text-brand" aria-hidden="true" />تكليفات العمل (مأمورية / قافلة / فاندي)</h2>
       <p className="muted text-sm">تكليفات عمل رسمية لا تُخصم من رصيد الإجازات ولا تُحتسب غيابًا.</p>

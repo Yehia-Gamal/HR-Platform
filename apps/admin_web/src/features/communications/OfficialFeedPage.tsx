@@ -135,7 +135,9 @@ export function OfficialFeedPage() {
       <ErrorState title="تعذر تحميل القناة" description={query.error instanceof Error ? query.error.message : undefined} onRetry={() => void query.refetch()} />
     ) : query.isLoading && allItems.length === 0 ? (
       <ListSkeleton rows={4} label="جارٍ تحميل القناة الرسمية" />
-    ) : allItems.length > 0 && items.length === 0 ? (
+    ) : allItems.length === 0 ? (
+      <EmptyState title="لا توجد منشورات بعد" description="لم يتم نشر أي خبر أو قرار رسمي حتى الآن." />
+    ) : items.length === 0 ? (
       <EmptyState title="لا توجد نتائج مطابقة" description="جرّب تغيير كلمة البحث أو مسح الفلاتر الحالية." />
     ) : (
     <section className="grid gap-4 xl:grid-cols-2">
