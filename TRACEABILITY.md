@@ -150,15 +150,15 @@
 
 | # | المتطلب | الوكيل | Root Cause | الملفات | Migration | الاختبارات | الحالة |
 |---|---|---|---|---|---|---|---|
-| 13.1 | حذف الخصوصية المستقلة | 5 | V17 §4.2 | `App.tsx` line 32 | — | RemovedFeatures.test.ts | TESTED |
-| 13.2 | حذف التدريب والمهارات | 5 | V17 §4.2 | `LearningPage` (hidden) | — | FeatureGate.test.tsx | TESTED |
-| 13.3 | حذف مستنداتي | 5 | V17 §4.2 | `DocumentStudioPage` (hidden) | — | FeatureGate.test.tsx | TESTED |
-| 13.4 | حذف العهد | 5 | V17 §4.2 | removed from routes | — | RemovedFeatures.test.ts | TESTED |
-| 13.5 | حذف نهاية العقد | 5 | V17 §4.2 | removed from routes | — | RemovedFeatures.test.ts | TESTED |
-| 13.6 | حذف الرواتب | 5 | V17 §4.2 | `PeopleFinancePage` (hidden) | — | FeatureGate.test.tsx | TESTED |
-| 13.7 | حذف المخاطر والحوكمة | 5 | V17 §4.2 | `ReleaseGovernancePage` (hidden) | — | FeatureGate.test.tsx | TESTED |
-| 13.8 | حذف مكتب الخدمات | 5 | V17 §4.2 | `ServiceDeskPage` (hidden) | — | FeatureGate.test.tsx | TESTED |
-| 13.9 | حذف التقارير المكررة الفارغة | 5 | V17 §4.2 | cleaned in routes | — | RemovedFeatures.test.ts | TESTED |
+| 13.1 | حذف الخصوصية المستقلة | 5 | V17 §4.2 | `App.tsx` line 32 | — | RemovedFeatures.test.ts | RUNTIME_VERIFIED |
+| 13.2 | حذف التدريب والمهارات | 5 | V17 §4.2 | `LearningPage` (hidden) | — | FeatureGate.test.tsx | RUNTIME_VERIFIED |
+| 13.3 | حذف مستنداتي | 5 | V17 §4.2 | `DocumentStudioPage` (hidden) | — | FeatureGate.test.tsx | RUNTIME_VERIFIED |
+| 13.4 | حذف العهد | 5 | V17 §4.2 | removed from routes | — | RemovedFeatures.test.ts | RUNTIME_VERIFIED |
+| 13.5 | حذف نهاية العقد | 5 | V17 §4.2 | removed from routes | — | RemovedFeatures.test.ts | RUNTIME_VERIFIED |
+| 13.6 | حذف الرواتب | 5 | V17 §4.2 | `PeopleFinancePage` (hidden) | — | FeatureGate.test.tsx | RUNTIME_VERIFIED |
+| 13.7 | حذف المخاطر والحوكمة | 5 | V17 §4.2 | `ReleaseGovernancePage` (hidden) | — | FeatureGate.test.tsx | RUNTIME_VERIFIED |
+| 13.8 | حذف مكتب الخدمات | 5 | V17 §4.2 | `ServiceDeskPage` (hidden) | — | FeatureGate.test.tsx | RUNTIME_VERIFIED |
+| 13.9 | حذف التقارير المكررة الفارغة | 5 | V17 §4.2 | cleaned in routes | — | RemovedFeatures.test.ts | RUNTIME_VERIFIED |
 
 ---
 
