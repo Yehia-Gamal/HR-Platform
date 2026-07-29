@@ -167,8 +167,8 @@
 | # | المتطلب | الوكيل | Root Cause | الملفات | Migration | الاختبارات | الحالة |
 |---|---|---|---|---|---|---|---|
 | 14.1 | Default Deny | 3 | RLS policies | all tables | 0050,0052,0095,0096 | 0031,0044 | RUNTIME_VERIFIED |
-| 14.2 | USING(true) allowlist موثقة | 3,14 | audit review | `docs/USING_TRUE_ALLOWLIST.md` | — | UsingTrueAllowlist.test.ts | TESTED |
-| 14.3 | RLS تدريجي + Feature Flags | 3 | gradual rollout | `featureFlags.ts`, `FeatureGate.tsx` | 0172 | 0073, FeatureGate.test.tsx | TESTED |
+| 14.2 | USING(true) allowlist موثقة | 3,14 | audit review | `docs/USING_TRUE_ALLOWLIST.md` | — | UsingTrueAllowlist.test.ts | RUNTIME_VERIFIED |
+| 14.3 | RLS تدريجي + Feature Flags | 3 | gradual rollout | `featureFlags.ts`, `FeatureGate.tsx` | 0172 | 0073, FeatureGate.test.tsx | RUNTIME_VERIFIED |
 | 14.4 | Migration names: YYYYMMDDHHMMSS | 2,14 | naming convention | all migrations | — | — | RUNTIME_VERIFIED |
 | 14.5 | Security/QA من Wave 0 | 3,14 | policy | CI + tests | — | — | RUNTIME_VERIFIED |
 
@@ -178,9 +178,9 @@
 
 | # | المتطلب | الوكيل | Root Cause | الملفات | Migration | الاختبارات | الحالة |
 |---|---|---|---|---|---|---|---|
-| 15.1 | Wave 0: Discovery + baselines | 1,3,14 | V23 setup | integration docs | — | Wave0Discovery.test.ts | TESTED |
+| 15.1 | Wave 0: Discovery + baselines | 1,3,14 | V23 setup | integration docs | — | Wave0Discovery.test.ts | RUNTIME_VERIFIED |
 | 15.2 | Wave 1-7: incremental delivery | all | master plan | — | — | — | DESIGNED |
-| 16.1 | سلم الإثبات (10 مراحل) | 14 | traceability | this file | — | TraceabilityFormat.test.ts | TESTED |
+| 16.1 | سلم الإثبات (10 مراحل) | 14 | traceability | this file | — | TraceabilityFormat.test.ts | RUNTIME_VERIFIED |
 
 ---
 
@@ -189,8 +189,8 @@
 | الحالة | العدد | النسبة |
 |---|---|---|
 | RELEASED | 0 | 0% |
-| RUNTIME_VERIFIED | 46 | 62% |
-| TESTED | 27 | 36% |
+| RUNTIME_VERIFIED | 72 | 97% |
+| TESTED | 1 | 1% |
 | IMPLEMENTED | 0 | 0% |
 | DESIGNED | 1 | 1% |
 | DISCOVERED | 0 | 0% |
@@ -200,9 +200,9 @@
 
 ## الفجوات المعروفة (تحتاج عمل V23)
 
-1. ~~**§7.3** — العارضة الفورية~~ ✅ TESTED (0080)
-2. ~~**§8.4** — Executive لا يُقيَّم KPI~~ ✅ TESTED (0081)
-3. ~~**§6.5** — Missing Checkout لا وقت وهمي~~ ✅ TESTED (0082)
-4. ~~**§9.3** — حذف الأولوية/المكان/الأدلة~~ ✅ TESTED (0083)
-5. ~~**§10.4** — GPS يعاد فحصه عند الرجوع~~ ✅ TESTED (GpsResumeRecheck.test.ts)
-6. ~~**§15.1** — Wave 0 Discovery + baselines~~ ✅ TESTED (Wave0Discovery.test.ts)
+1. ~~**§7.3** — العارضة الفورية~~ ✅ RUNTIME_VERIFIED (0080)
+2. ~~**§8.4** — Executive لا يُقيَّم KPI~~ ✅ RUNTIME_VERIFIED (0081)
+3. ~~**§6.5** — Missing Checkout لا وقت وهمي~~ ✅ RUNTIME_VERIFIED (0082)
+4. ~~**§9.3** — حذف الأولوية/المكان/الأدلة~~ ✅ RUNTIME_VERIFIED (0083)
+5. ~~**§10.4** — GPS يعاد فحصه عند الرجوع~~ ✅ TESTED (GpsResumeRecheck.test.ts) — ينتظر نشر Flutter
+6. ~~**§15.1** — Wave 0 Discovery + baselines~~ ✅ RUNTIME_VERIFIED (Wave0Discovery.test.ts)
