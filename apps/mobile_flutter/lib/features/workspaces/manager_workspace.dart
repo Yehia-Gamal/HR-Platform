@@ -22,10 +22,11 @@ class _ManagerWorkspaceState extends State<ManagerWorkspace> {
 
   @override
   Widget build(BuildContext context) {
-    // السكرتير التنفيذي (mainAdmin) يُوجَّه إلى هذه المساحة —
-    // يحتاج تبويب القضايا لإدارة لجنة حل المشكلات.
+    // السكرتير التنفيذي (mainAdmin) و HR يُوجَّهان إلى هذه المساحة —
+    // mainAdmin: إدارة لجنة حل المشكلات. HR: تنفيذ الإجراءات الإدارية.
     final showDisputes =
-        widget.access.workspaces.contains(WorkspaceId.mainAdmin);
+        widget.access.workspaces.contains(WorkspaceId.mainAdmin) ||
+        widget.access.workspaces.contains(WorkspaceId.hr);
 
     final pages = [
       EmployeeHomePage(access: widget.access),

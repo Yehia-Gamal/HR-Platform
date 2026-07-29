@@ -22,12 +22,22 @@ class ExecutiveDisputesPage extends ConsumerWidget {
     'no_action': 'لا إجراء',
   };
 
+  static const _severityLabels = <String, String>{
+    'critical': 'حرجة',
+    'urgent': 'عاجلة',
+    'high': 'مرتفعة',
+    'medium': 'متوسطة',
+    'low': 'منخفضة',
+    'normal': 'عادية',
+  };
+
   static const _severityColors = <String, Color>{
     'critical': Color(0xFFD32F2F),
     'urgent': Color(0xFFF57C00),
     'high': Color(0xFFFFA000),
     'medium': Color(0xFF1976D2),
     'low': Color(0xFF388E3C),
+    'normal': Color(0xFF757575),
   };
 
   @override
@@ -658,7 +668,9 @@ class _AdminActionCard extends StatelessWidget {
                       color: severity.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Text(dispute.severity,
+                    child: Text(
+                        ExecutiveDisputesPage._severityLabels[dispute.severity] ??
+                            dispute.severity,
                         style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,

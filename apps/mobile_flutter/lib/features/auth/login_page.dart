@@ -51,9 +51,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           )
           .timeout(const Duration(seconds: 20));
       if (!mounted) return;
-      final payload = Map<String, dynamic>.from(
-        response.data as Map<dynamic, dynamic>? ?? const {},
-      );
+      // الرد قد لا يكون Map (مثلاً "Invalid API key" كنص عادي من بوابة Supabase).
+      final Map<String, dynamic> payload;
+      final raw = response.data;
+      if (raw is Map) {
+        payload = Map<String, dynamic>.from(raw as Map<dynamic, dynamic>);
+      } else {
+        // نص خطأ عادي — نمرره كرسالة خام لمعالجة الأخطاء.
+        final rawStr = raw?.toString() ?? '';
+        throw StateError(rawStr.isNotEmpty ? rawStr : 'استجابة غير صالحة من الخادم.');
+      }
       final refreshToken = payload['refresh_token'] as String?;
       if (response.status != 200 || refreshToken == null) {
         final code = payload['error'] as String?;

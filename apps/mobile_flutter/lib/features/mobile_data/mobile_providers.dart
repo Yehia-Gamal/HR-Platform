@@ -1367,6 +1367,46 @@ extension ExecutiveDisputeCommands on MobileCommands {
     ref.invalidate(executiveDisputeInboxProvider);
     ref.invalidate(committeeDisputePortalProvider);
     ref.invalidate(myDisputePortalProvider);
+    ref.invalidate(executiveDashboardProvider);
+  }
+
+  /// اقتراح إجراء إداري — يستخدمه مقرر/رئيس اللجنة بعد صدور القرار
+  Future<void> proposeAdminAction({
+    required String caseId,
+    required String action,
+    required String detail,
+  }) async {
+    await _withTimeout(ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
+          'propose_admin_action',
+          params: {
+            'p_case_id': caseId,
+            'p_action': action,
+            'p_detail': detail.trim(),
+          },
+        ));
+    ref.invalidate(committeeDisputePortalProvider);
+    ref.invalidate(executiveDisputeInboxProvider);
+  }
+
+  /// تنفيذ الإجراء الإداري المعتمد — يستخدمه HR
+  Future<void> executeAdminAction({
+    required String caseId,
+    required String notes,
+  }) async {
+    await _withTimeout(ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
+          'execute_admin_action',
+          params: {
+            'p_case_id': caseId,
+            'p_notes': notes.trim(),
+          },
+        ));
+    ref.invalidate(committeeDisputePortalProvider);
+    ref.invalidate(executiveDisputeInboxProvider);
+    ref.invalidate(executiveDashboardProvider);
   }
 }
 

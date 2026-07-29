@@ -1,3 +1,11 @@
+import 'dart:async';
+
+import 'dart:async';
+
+import 'dart:async';
+
+import 'dart:async';
+
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
@@ -53,6 +61,12 @@ class _AuthenticatedGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    void signOut() {
+      ref.read(supabaseProvider).auth.signOut();
+      ref.invalidate(authSessionProvider);
+      ref.invalidate(accessContextProvider);
+    }
+
     final recoveryAsync = ref.watch(passwordRecoveryActiveProvider);
     if (recoveryAsync.value == true) return const SetPasswordPage();
 
@@ -60,8 +74,23 @@ class _AuthenticatedGate extends ConsumerWidget {
     final connectivity = ref.watch(connectivityProvider);
 
     return session.when(
-      loading: () => const _LoadingPage(label: 'جارٍ استعادة الجلسة…'),
-      error: (_, _) => const _ErrorPage(message: 'تعذر استعادة جلسة الدخول بأمان. أعد تسجيل الدخول.'),
+      loading: () => _TimedLoadingPage(
+        label: 'جارٍ استعادة الجلسة…',
+        timeout: const Duration(seconds: 15),
+        onRetry: () {
+          ref.invalidate(authSessionProvider);
+          ref.invalidate(accessContextProvider);
+        },
+        onSignOut: signOut,
+      ),
+      error: (_, _) => _ErrorPage(
+        message: 'تعذر استعادة جلسة الدخول بأمان. أعد تسجيل الدخول.',
+        onRetry: () {
+          ref.invalidate(authSessionProvider);
+          ref.invalidate(accessContextProvider);
+        },
+        onSignOut: signOut,
+      ),
       data: (value) {
         if (value == null) {
           // P0-20: If offline, show connection error instead of login page.
@@ -85,10 +114,16 @@ class _AuthenticatedGate extends ConsumerWidget {
         ref.watch(deviceRegistrationProvider);
         final access = ref.watch(accessContextProvider);
         return access.when(
-          loading: () => const _LoadingPage(label: 'جارٍ تحميل الصلاحيات…'),
+          loading: () => _TimedLoadingPage(
+            label: 'جارٍ تحميل الصلاحيات…',
+            timeout: const Duration(seconds: 20),
+            onRetry: () => ref.invalidate(accessContextProvider),
+            onSignOut: signOut,
+          ),
           error: (_, _) => _ErrorPage(
             message: 'تعذر تحميل صلاحيات الحساب. تحقق من الاتصال وأعد المحاولة.',
             onRetry: () => ref.invalidate(accessContextProvider),
+            onSignOut: signOut,
           ),
           data: (contextData) {
             if (contextData == null) return const LoginPage();
@@ -302,9 +337,10 @@ class _LoadingPage extends StatelessWidget {
 }
 
 class _ErrorPage extends StatelessWidget {
-  const _ErrorPage({required this.message, this.onRetry});
+  const _ErrorPage({required this.message, this.onRetry, this.onSignOut});
   final String message;
   final VoidCallback? onRetry;
+  final VoidCallback? onSignOut;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -327,6 +363,14 @@ class _ErrorPage extends StatelessWidget {
               FilledButton(
                 onPressed: onRetry,
                 child: const Text('إعادة المحاولة'),
+              ),
+            ],
+            if (onSignOut != null) ...[
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: onSignOut,
+                icon: const Icon(Icons.logout),
+                label: const Text('تسجيل الخروج'),
               ),
             ],
           ],
