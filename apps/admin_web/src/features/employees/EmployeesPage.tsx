@@ -12,9 +12,7 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
-import { safeErrorMessage } from '../../core/errorMapper';
 import { useEmployees } from './useEmployees';
-import { safeErrorMessage } from '../../core/errorMapper';
 
 type SortMode = 'newest' | 'name' | 'code';
 

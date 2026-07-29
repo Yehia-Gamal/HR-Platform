@@ -108,7 +108,7 @@ export function OfficialFeedPage() {
   const [search, setSearch] = useState('');
   const [kind, setKind] = useState('all');
   const [priority, setPriority] = useState('all');
-  const feedForm = useOfficialFeedForm(publish, createDecision);
+  const { mode, setMode, form, setForm, bannerUrl, imagePreview, imageUploading, imageError, postType, setPostType, pollOptions, setPollOptions, expiresAt, setExpiresAt, fileInputRef, handleImageSelect, removeImage, submit, isSubmitting, submitError } = useOfficialFeedForm(publish, createDecision);
   const allItems = query.data ?? [];
   const items = useMemo(() => allItems.filter((item) => {
     const queryText = search.trim().toLowerCase();
@@ -218,8 +218,8 @@ export function OfficialFeedPage() {
           </div>
           {mode === 'decision' ? <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">النتيجة المتوقعة<input className="input mt-2" value={form.expectedOutcome} onChange={(e) => setForm({ ...form, expectedOutcome: e.target.value })} /></label><label className="text-sm font-bold">مؤشر قياس النجاح<input className="input mt-2" value={form.successMetric} onChange={(e) => setForm({ ...form, successMetric: e.target.value })} /></label></div> : null}
           <label className="flex items-center gap-3 rounded-xl bg-[var(--surface-muted)] p-4 text-sm font-bold"><input type="checkbox" checked={form.requiresAcknowledgement} onChange={(e) => setForm({ ...form, requiresAcknowledgement: e.target.checked })} />يتطلب إقرارًا بالاطلاع</label>
-          {publish.isError || createDecision.isError ? <ErrorBanner message="تعذر حفظ العنصر الرسمي." /> : null}
-          <button className="btn-primary" disabled={publish.isPending || createDecision.isPending || imageUploading || form.title.trim().length < 3 || form.body.trim().length < 10} onClick={() => void submit()}>{mode === 'decision' ? 'حفظ كمسودة قرار' : 'نشر الآن'}</button>
+          {submitError ? <ErrorBanner message="تعذر حفظ العنصر الرسمي." /> : null}
+          <button className="btn-primary" disabled={isSubmitting || imageUploading || form.title.trim().length < 3 || form.body.trim().length < 10} onClick={() => void submit().then((ok) => { if (ok) setOpen(false); })}>{mode === 'decision' ? 'حفظ كمسودة قرار' : 'نشر الآن'}</button>
         </div>
       </DialogOverlay>
     ) : null}

@@ -38,12 +38,7 @@ export function useAttendanceTodayOverview() {
           lastUpdatedAt: new Date().toISOString(),
         };
       }
-      try {
-        return await rpc<AttendanceTodayOverview>('get_attendance_today_overview', {});
-      } catch {
-        // الدالة قد لا تكون موجودة بعد (migration لم تُنشر) — نعيد قيم فارغة
-        return emptyOverview;
-      }
+      return await rpc<AttendanceTodayOverview>('get_attendance_today_overview', {});
     },
   });
 }

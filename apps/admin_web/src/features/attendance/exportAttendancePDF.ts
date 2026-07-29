@@ -22,7 +22,7 @@ export function esc(value: unknown): string {
  * يُنشئ مستند HTML منسّق لكشف الحضور ويفتحه في نافذة جديدة مع تشغيل طباعة تلقائي.
  * المستخدم يمكنه حفظه كـ PDF مباشرة من حوار الطباعة.
  */
-export function exportAttendancePDF(data: AttendanceStatement) {
+export function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية') {
   const { employee: emp, period, days, summary: s } = data;
   const attendancePct = s.attendanceRate ?? (s.scheduledDays > 0 ? (s.presentDays / s.scheduledDays * 100) : 0);
   const compliancePct = s.hoursComplianceRate ?? 0;
@@ -217,7 +217,7 @@ export function exportAttendancePDF(data: AttendanceStatement) {
       <p>${monthName} ${period.year} — من ${esc(period.startDate)} إلى ${esc(period.endDate)}</p>
     </div>
     <div class="header-left">
-      <div class="org">جمعية خواطر أحلى شباب</div>
+      <div class="org">${esc(orgName)}</div>
       <div class="sub">منظومة الإدارة المؤسسية</div>
     </div>
   </div>
@@ -286,7 +286,7 @@ export function exportAttendancePDF(data: AttendanceStatement) {
 
   <!-- التذييل -->
   <div class="footer">
-    <span>تم الإنشاء بواسطة منظومة أحلى شباب الإدارية</span>
+    <span>تم الإنشاء بواسطة ${esc(systemName)}</span>
     <span>تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
   </div>
 
