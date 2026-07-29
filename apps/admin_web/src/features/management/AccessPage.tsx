@@ -114,21 +114,25 @@ export function AccessPage() {
   async function saveRole(event: FormEvent) {
     event.preventDefault();
     if (!customDraft) return;
-    const result = await commands.upsertRole.mutateAsync({ id: customDraft.id, slug: customDraft.slug, name: customDraft.name, nameEn: customDraft.nameEn || null, description: customDraft.description || null, fullAccess: customDraft.fullAccess });
-    const roleId = String((result as { id?: string })?.id ?? customDraft.id ?? '');
-    if (roleId) {
-      await commands.setPermissions.mutateAsync({
-        roleId,
-        items: Object.entries(customDraft.selected).map(([permission_id, v]) => ({ permission_id, scope: v.scope, requires_mfa: v.mfa, requires_reason: v.reason })),
-      });
-    }
-    setCustomDraft(null);
+    try {
+      const result = await commands.upsertRole.mutateAsync({ id: customDraft.id, slug: customDraft.slug, name: customDraft.name, nameEn: customDraft.nameEn || null, description: customDraft.description || null, fullAccess: customDraft.fullAccess });
+      const roleId = String((result as { id?: string })?.id ?? customDraft.id ?? '');
+      if (roleId) {
+        await commands.setPermissions.mutateAsync({
+          roleId,
+          items: Object.entries(customDraft.selected).map(([permission_id, v]) => ({ permission_id, scope: v.scope, requires_mfa: v.mfa, requires_reason: v.reason })),
+        });
+      }
+      setCustomDraft(null);
+    } catch { /* mutation error surfaced via mutation.isError state */ }
   }
 
   async function assign(event: FormEvent) {
     event.preventDefault();
-    await commands.assignRole.mutateAsync({ userId: assignment.userId, roleId: assignment.roleId, effectiveTo: assignment.effectiveTo ? new Date(`${assignment.effectiveTo}T23:59:59`).toISOString() : null });
-    setAssignment({ userId: '', roleId: '', effectiveTo: '' });
+    try {
+      await commands.assignRole.mutateAsync({ userId: assignment.userId, roleId: assignment.roleId, effectiveTo: assignment.effectiveTo ? new Date(`${assignment.effectiveTo}T23:59:59`).toISOString() : null });
+      setAssignment({ userId: '', roleId: '', effectiveTo: '' });
+    } catch { /* mutation error surfaced via mutation.isError state */ }
   }
 
   return <div className="space-y-6">
@@ -219,7 +223,7 @@ export function AccessPage() {
               <div className="flex flex-wrap gap-2">
                 {user.roles.length ? user.roles.map((role) => <span key={role.roleId} className="inline-flex items-center gap-2 rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-bold">
                   {role.name}{role.effectiveTo ? ` · حتى ${new Date(role.effectiveTo).toLocaleDateString('ar-EG')}` : ''}
-                  <button aria-label="سحب الدور" className="text-[var(--danger)]" onClick={() => void commands.revokeRole.mutateAsync({ userId: user.userId, roleId: role.roleId })}><Trash2 className="size-3" aria-hidden="true"/></button>
+                  <button aria-label="سحب الدور" className="text-[var(--danger)]" onClick={() => commands.revokeRole.mutate({ userId: user.userId, roleId: role.roleId })}><Trash2 className="size-3" aria-hidden="true"/></button>
                 </span>) : <span className="muted text-sm">بلا دور فعال</span>}
               </div>
             </div>
@@ -507,7 +511,7 @@ function RoleManagementDialog({ role, data, commands, onClose }: {
                   <p className="muted text-xs">{user.employeeCode ?? user.userId}{userRole?.effectiveTo ? ` · حتى ${new Date(userRole.effectiveTo).toLocaleDateString('ar-EG')}` : ''}</p>
                 </div>
               </div>
-              <button type="button" className="btn-secondary px-3 py-1.5 text-xs text-[var(--danger)]" onClick={() => void commands.revokeRole.mutateAsync({ userId: user.userId, roleId: role.id })}>
+              <button type="button" className="btn-secondary px-3 py-1.5 text-xs text-[var(--danger)]" onClick={() => commands.revokeRole.mutate({ userId: user.userId, roleId: role.id })}>
                 <Trash2 className="size-3.5"/>سحب
               </button>
             </div>;

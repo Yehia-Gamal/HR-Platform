@@ -94,13 +94,15 @@ export function OfficialFeedPage() {
   }, [bannerUrl]);
 
   const submit = async () => {
-    if (mode === 'announcement') {
-      await publish.mutateAsync({ ...form, bannerUrl, postType, pollOptions, expiresAt: expiresAt || undefined });
-    } else {
-      await createDecision.mutateAsync(form);
-    }
-    setOpen(false);
-    resetAll();
+    try {
+      if (mode === 'announcement') {
+        await publish.mutateAsync({ ...form, bannerUrl, postType, pollOptions, expiresAt: expiresAt || undefined });
+      } else {
+        await createDecision.mutateAsync(form);
+      }
+      setOpen(false);
+      resetAll();
+    } catch { /* mutation error surfaced via isError banner */ }
   };
 
   const nextAction = (status: string): 'submit_review' | 'approve' | 'publish' | 'archive' | null => {
@@ -152,7 +154,7 @@ export function OfficialFeedPage() {
             <p className="mt-3 text-sm leading-8">{item.body}</p>
           </div>
           {item.requiresAcknowledgement ? <div className="p-5"><div className="flex justify-between text-sm"><span>نسبة الاطلاع والإقرار</span><strong>{item.acknowledgedCount}{item.targetCount ? ` / ${item.targetCount}` : ''}</strong></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]" role="progressbar" aria-label="نسبة الاطلاع والإقرار" aria-valuemin={0} aria-valuemax={item.targetCount ?? 0} aria-valuenow={item.acknowledgedCount}><div className="h-full rounded-full bg-brand" style={{ width: `${item.targetCount ? Math.min(100, (item.acknowledgedCount / item.targetCount) * 100) : 0}%` }} /></div></div> : null}
-          {action && canRun ? <div className="border-t border-[var(--border)] p-4"><button className="btn-secondary" disabled={transition.isPending} onClick={() => void transition.mutateAsync({ decisionId: item.id, action })}>{action === 'approve' ? <ShieldCheck className="size-4" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}{actionLabel[action]}</button></div> : null}
+          {action && canRun ? <div className="border-t border-[var(--border)] p-4"><button className="btn-secondary" disabled={transition.isPending} onClick={() => transition.mutate({ decisionId: item.id, action })}>{action === 'approve' ? <ShieldCheck className="size-4" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}{actionLabel[action]}</button></div> : null}
         </article>;
       })}
     </section>

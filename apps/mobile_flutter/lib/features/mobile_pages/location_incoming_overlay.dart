@@ -149,6 +149,7 @@ class _LocationIncomingOverlayState
         },
       );
 
+      if (!mounted) return;
       setState(() => _status = LocationService.phaseLabel(LocationPhase.reverseGeocoding));
       final address = await LocationService.reverseGeocode(
         position.latitude,
@@ -159,6 +160,7 @@ class _LocationIncomingOverlayState
       if (widget.request.isTracking) {
         // tracking mode — accept was enough; location_requests_page handles the rest
       } else {
+        if (!mounted) return;
         setState(() => _status = 'جاري إرسال الموقع...');
         // رابط Google Maps للموقع الحالي
         final mapsUrl =

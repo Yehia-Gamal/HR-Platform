@@ -41,41 +41,47 @@ export function RecruitmentPage() {
   async function submitInterview(event: FormEvent) {
     event.preventDefault();
     if (!interviewDraft) return;
-    await workbenchCommands.scheduleInterview.mutateAsync({
-      applicationId: interviewDraft.applicationId,
-      mode: interviewDraft.mode,
-      scheduledAt: new Date(interviewDraft.scheduledAt).toISOString(),
-      locationOrLink: interviewDraft.locationOrLink || undefined,
-    });
-    setInterviewDraft(null);
+    try {
+      await workbenchCommands.scheduleInterview.mutateAsync({
+        applicationId: interviewDraft.applicationId,
+        mode: interviewDraft.mode,
+        scheduledAt: new Date(interviewDraft.scheduledAt).toISOString(),
+        locationOrLink: interviewDraft.locationOrLink || undefined,
+      });
+      setInterviewDraft(null);
+    } catch { /* mutation error surfaced via mutation.isError state */ }
   }
 
   async function submitOffer(event: FormEvent) {
     event.preventDefault();
     if (!offerDraft) return;
-    await workbenchCommands.createOffer.mutateAsync({
-      applicationId: offerDraft.applicationId,
-      title: offerDraft.title || undefined,
-      salary: offerDraft.salary ? Number(offerDraft.salary) : null,
-      contractType: offerDraft.contractType || undefined,
-      startDate: offerDraft.startDate || null,
-      expiresAt: offerDraft.expiresAt ? new Date(offerDraft.expiresAt).toISOString() : null,
-    });
-    setOfferDraft(null);
+    try {
+      await workbenchCommands.createOffer.mutateAsync({
+        applicationId: offerDraft.applicationId,
+        title: offerDraft.title || undefined,
+        salary: offerDraft.salary ? Number(offerDraft.salary) : null,
+        contractType: offerDraft.contractType || undefined,
+        startDate: offerDraft.startDate || null,
+        expiresAt: offerDraft.expiresAt ? new Date(offerDraft.expiresAt).toISOString() : null,
+      });
+      setOfferDraft(null);
+    } catch { /* mutation error surfaced via mutation.isError state */ }
   }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!draft) return;
-    await commands.createRequisition.mutateAsync({
-      departmentId: draft.departmentId,
-      title: draft.title,
-      headcount: draft.headcount,
-      reason: draft.reason || null,
-      budgetRange: draft.budgetRange || null,
-      submit: draft.submit,
-    });
-    setDraft(null);
+    try {
+      await commands.createRequisition.mutateAsync({
+        departmentId: draft.departmentId,
+        title: draft.title,
+        headcount: draft.headcount,
+        reason: draft.reason || null,
+        budgetRange: draft.budgetRange || null,
+        submit: draft.submit,
+      });
+      setDraft(null);
+    } catch { /* mutation error surfaced via mutation.isError state */ }
   }
 
   const openDraft = (submitNow: boolean) => setDraft({
@@ -222,7 +228,7 @@ export function RecruitmentPage() {
                       {offer.status === 'approved' ? <button className="btn-secondary" onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'send' })}>إرسال للمرشح</button> : null}
                       {offer.status === 'sent' ? <><button className="btn-secondary" onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'accept' })}>تسجيل القبول</button><button className="btn-secondary" onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'decline' })}>تسجيل الرفض</button></> : null}
                       {['draft', 'pending', 'approved', 'sent'].includes(offer.status) ? <button className="btn-secondary" onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'withdraw' })}>سحب</button> : null}
-                      {canHire ? <button className="btn-primary" disabled={workbenchCommands.hireApplicant.isPending} aria-busy={workbenchCommands.hireApplicant.isPending} onClick={() => void workbenchCommands.hireApplicant.mutateAsync({ applicationId: offer.applicationId })}><UserCheck className="size-4" aria-hidden="true" />{workbenchCommands.hireApplicant.isPending ? 'جارٍ…' : 'اعتماد التعيين'}</button> : null}
+                      {canHire ? <button className="btn-primary" disabled={workbenchCommands.hireApplicant.isPending} aria-busy={workbenchCommands.hireApplicant.isPending} onClick={() => workbenchCommands.hireApplicant.mutate({ applicationId: offer.applicationId })}><UserCheck className="size-4" aria-hidden="true" />{workbenchCommands.hireApplicant.isPending ? 'جارٍ…' : 'اعتماد التعيين'}</button> : null}
                     </div>
                   </div>
                 );
