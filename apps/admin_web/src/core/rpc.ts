@@ -1,3 +1,4 @@
+import type { ZodType } from 'zod';
 import { getSupabase } from './supabase';
 
 /**
@@ -5,13 +6,22 @@ import { getSupabase } from './supabase';
  *
  * Previously copy-pasted across six feature hooks with divergent signatures.
  * Centralizing it means error handling / telemetry / typing changes apply once.
- * Callers that validate the result with a zod schema can leave T as the default;
- * callers that want a typed passthrough can supply T.
+ *
+ * When `schema` is provided the raw response is validated at runtime through Zod
+ * before being returned — this catches shape mismatches between the DB function
+ * and the TypeScript type early instead of surfacing them as silent `undefined`
+ * accesses deep in the rendering tree.  Callers that omit it get the old cast
+ * behaviour so adoption can be incremental.
  */
-export async function rpc<T = unknown>(name: string, args?: Record<string, unknown>): Promise<T> {
+export async function rpc<T = unknown>(
+  name: string,
+  args?: Record<string, unknown>,
+  schema?: ZodType<T>,
+): Promise<T> {
   const supabase = await getSupabase();
   const { data, error } = await supabase.rpc(name, args);
   if (error) throw error;
+  if (schema) return schema.parse(data);
   return data as T;
 }
 
@@ -27,6 +37,7 @@ export async function invokeEdgeFunction<T = unknown>(
   body: Record<string, unknown>,
   errorMap: Record<string, string>,
   fallbackMessage: string,
+  schema?: ZodType<T>,
 ): Promise<T> {
   const supabase = await getSupabase();
   const { data, error } = await supabase.functions.invoke(name, { body });
@@ -39,5 +50,6 @@ export async function invokeEdgeFunction<T = unknown>(
     }
     throw new Error(message);
   }
+  if (schema) return schema.parse(data);
   return data as T;
 }

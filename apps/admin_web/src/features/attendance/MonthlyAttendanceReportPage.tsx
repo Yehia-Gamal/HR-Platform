@@ -14,7 +14,6 @@ import {
   UserCheck,
   Users,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -24,11 +23,9 @@ import { PageHeader } from '../../ui/PageHeader';
 import { MetricSkeletonRow, SkeletonCard } from '../../ui/Skeletons';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useEmployees } from '../employees/useEmployees';
+import { AttendancePercentageRing, buildDayTags, DayTag, fmtTime, MONTHS, StatItem, WARN_STATUSES } from './attendanceShared';
 import { exportAttendancePDF } from './exportAttendancePDF';
 import { useEmployeeMonthlyStatement } from './useMonthlyStatement';
-
-const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-const WARN_STATUSES = new Set(['غائب دون إذن', 'يحتاج مراجعة']);
 
 // ─── تصدير CSV ─────────────────────────────────────────────────
 
@@ -351,21 +348,7 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
 
 // ─── صف يوم واحد ────────────────────────────────────────────────
 function DayRow({ d }: { d: AttendanceStatementDay }) {
-  const fmtTime = (t: string | null) => t ? t.slice(0, 5) : '—';
-  const tags: { label: string; variant: 'info' | 'warn' | 'success' | 'purple' }[] = [];
-  if (d.isAbsent) tags.push({ label: 'غائب', variant: 'warn' });
-  if (d.isOfficialHoliday) tags.push({ label: 'عطلة رسمية', variant: 'info' });
-  if (d.hasLeave) tags.push({ label: 'إجازة', variant: 'purple' });
-  if (d.hasMission) tags.push({ label: 'مأمورية', variant: 'info' });
-  // V23: تفصيل إذن حضور وانصراف
-  if (d.hasLatePermit) tags.push({ label: 'إذن حضور', variant: 'warn' });
-  if (d.hasEarlyPermit) tags.push({ label: 'إذن انصراف', variant: 'warn' });
-  if (!d.hasLatePermit && !d.hasEarlyPermit && d.hasPermit) tags.push({ label: 'إذن', variant: 'warn' });
-  if (d.hasConvoyFundi) tags.push({ label: 'قافلة/فاندي', variant: 'purple' });
-  if (d.missingCheckIn) tags.push({ label: 'نقص حضور', variant: 'warn' });
-  if (d.missingCheckOut) tags.push({ label: 'نقص انصراف', variant: 'warn' });
-  if (d.hasCorrection) tags.push({ label: 'تصحيح', variant: 'info' });
-  if (d.penalties > 0) tags.push({ label: `جزاء: ${d.penalties}`, variant: 'warn' });
+  const tags = buildDayTags(d);
 
   return (
     <tr className="border-t border-[var(--border)] odd:bg-[var(--surface-muted)]/30 hover:bg-[var(--surface-muted)]/60 transition-colors print:hover:bg-transparent">
@@ -396,61 +379,12 @@ function DayRow({ d }: { d: AttendanceStatementDay }) {
   );
 }
 
-// ─── مكونات مساعدة ──────────────────────────────────────────────
-function DayTag({ label, variant }: { label: string; variant: 'info' | 'warn' | 'success' | 'purple' }) {
-  const styles = {
-    info: 'bg-sky-50 text-sky-700 border-sky-200',
-    warn: 'bg-amber-50 text-amber-700 border-amber-200',
-    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    purple: 'bg-violet-50 text-violet-700 border-violet-200',
-  };
-  return (
-    <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold border print:text-[7px] print:px-1 ${styles[variant]}`}>
-      {label}
-    </span>
-  );
-}
-
-function AttendancePercentageRing({ percentage, label = 'حضور' }: { percentage: number; label?: string }) {
-  const pct = Math.min(100, Math.max(0, percentage));
-  const color = pct >= 90 ? 'text-emerald-600' : pct >= 75 ? 'text-amber-500' : 'text-red-600';
-  const bgColor = pct >= 90 ? 'stroke-emerald-100' : pct >= 75 ? 'stroke-amber-100' : 'stroke-red-100';
-  const fgColor = pct >= 90 ? 'stroke-emerald-600' : pct >= 75 ? 'stroke-amber-500' : 'stroke-red-600';
-  const r = 40;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (pct / 100) * circ;
-
-  return (
-    <div className="relative flex flex-col items-center gap-1">
-      <svg width="100" height="100" viewBox="0 0 100 100" className="-rotate-90" aria-hidden="true">
-        <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className={bgColor} />
-        <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className={fgColor}
-          strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={`text-2xl font-black ${color}`}>{pct.toFixed(0)}%</span>
-        <span className="text-[10px] text-[var(--text-muted)]">{label}</span>
-      </div>
-    </div>
-  );
-}
-
+// ─── مكون مساعد خاص بالصفحة ─────────────────────────────────────
 function InfoField({ label, value, dir }: { label: string; value: string; dir?: 'ltr' | 'rtl' }) {
   return (
     <div>
       <dt className="text-xs font-bold text-[var(--text-muted)]">{label}</dt>
       <dd className="mt-0.5 text-sm font-bold" dir={dir}>{value}</dd>
-    </div>
-  );
-}
-
-function StatItem({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      {icon}
-      <span className="text-[var(--text-muted)]">{label}:</span>
-      <span className="font-bold">{value}</span>
     </div>
   );
 }

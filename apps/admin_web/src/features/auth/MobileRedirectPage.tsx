@@ -15,8 +15,21 @@ export function MobileRedirectPage() {
   const appLink = useRef(buildAppLink());
 
   useEffect(() => {
+    // SEC: clear Supabase session tokens from the address bar so they don't
+    // linger in browser history / referrer headers after the deep-link fires.
+    if (window.location.hash) {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+    }
+
     // Attempt to open the app via custom URL scheme.
     window.location.href = appLink.current;
+
+    // SEC: clear session tokens from the address bar so they are not leaked via
+    // Referer headers or left in browser history.  The app link ref already
+    // captured the hash before this runs.
+    if (window.location.hash) {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+    }
 
     // If the page is still visible after the delay the app didn't open.
     const timer = setTimeout(() => setStatus('failed'), FALLBACK_DELAY);

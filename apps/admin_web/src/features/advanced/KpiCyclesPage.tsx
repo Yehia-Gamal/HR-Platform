@@ -38,7 +38,7 @@ export function KpiCyclesPage() {
     setPolicyRules((current) => ({ ...current, ...data.policy!.attendanceRules }));
     const byLabel = Object.fromEntries(data.policy.ratingBands.map((band) => [band.label, band.min]));
     setRatingMins({ excellent: byLabel['ممتاز'] ?? 90, veryGood: byLabel['جيد جدًا'] ?? 80, good: byLabel['جيد'] ?? 70, acceptable: byLabel['مقبول'] ?? 60 });
-  }, [data?.policy?.id]);
+  }, [data?.policy]);
 
   const createCycle = async () => {
     if (!data?.officialTemplateId) return;

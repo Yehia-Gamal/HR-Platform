@@ -1,0 +1,87 @@
+import type { AttendanceStatementDay } from '@ahla/shared-contracts';
+import type { ReactNode } from 'react';
+
+// ─── ثوابت مشتركة ─────────────────────────────────────────────────
+export const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+/** حالات اليوم التي تُعرض بلون تحذيري. */
+export const WARN_STATUSES = new Set(['غائب دون إذن', 'يحتاج مراجعة']);
+
+// ─── دوال مساعدة ──────────────────────────────────────────────────
+export function fmtTime(t: string | null) {
+  return t ? t.slice(0, 5) : '—';
+}
+
+export type TagVariant = 'info' | 'warn' | 'success' | 'purple';
+
+/** يبني قائمة العلامات (tags) لصف يوم واحد في جدول الحضور. */
+export function buildDayTags(d: AttendanceStatementDay): { label: string; variant: TagVariant }[] {
+  const tags: { label: string; variant: TagVariant }[] = [];
+  if (d.isAbsent) tags.push({ label: 'غائب', variant: 'warn' });
+  if (d.isOfficialHoliday) tags.push({ label: 'عطلة رسمية', variant: 'info' });
+  if (d.hasLeave) tags.push({ label: 'إجازة', variant: 'purple' });
+  if (d.hasMission) tags.push({ label: 'مأمورية', variant: 'info' });
+  if (d.hasLatePermit) tags.push({ label: 'إذن حضور', variant: 'warn' });
+  if (d.hasEarlyPermit) tags.push({ label: 'إذن انصراف', variant: 'warn' });
+  if (!d.hasLatePermit && !d.hasEarlyPermit && d.hasPermit) tags.push({ label: 'إذن', variant: 'warn' });
+  if (d.hasConvoyFundi) tags.push({ label: 'قافلة/فاندي', variant: 'purple' });
+  if (d.missingCheckIn) tags.push({ label: 'نقص حضور', variant: 'warn' });
+  if (d.missingCheckOut) tags.push({ label: 'نقص انصراف', variant: 'warn' });
+  if (d.hasCorrection) tags.push({ label: 'تصحيح', variant: 'info' });
+  if (d.penalties > 0) tags.push({ label: `جزاء: ${d.penalties}`, variant: 'warn' });
+  return tags;
+}
+
+// ─── مكونات مشتركة ────────────────────────────────────────────────
+
+/** دائرة نسبة مئوية (حضور / التزام). */
+export function AttendancePercentageRing({ percentage, label = 'حضور' }: { percentage: number; label?: string }) {
+  const pct = Math.min(100, Math.max(0, percentage));
+  const color = pct >= 90 ? 'text-emerald-600' : pct >= 75 ? 'text-amber-500' : 'text-red-600';
+  const bgColor = pct >= 90 ? 'stroke-emerald-100' : pct >= 75 ? 'stroke-amber-100' : 'stroke-red-100';
+  const fgColor = pct >= 90 ? 'stroke-emerald-600' : pct >= 75 ? 'stroke-amber-500' : 'stroke-red-600';
+  const r = 40;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (pct / 100) * circ;
+
+  return (
+    <div className="relative flex flex-col items-center gap-1">
+      <svg width="100" height="100" viewBox="0 0 100 100" className="-rotate-90" aria-hidden="true">
+        <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className={bgColor} />
+        <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className={fgColor}
+          strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
+          style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className={`text-2xl font-black ${color}`}>{pct.toFixed(0)}%</span>
+        <span className="text-[10px] text-[var(--text-muted)]">{label}</span>
+      </div>
+    </div>
+  );
+}
+
+/** علامة (tag) صغيرة ملوّنة للجدول. */
+export function DayTag({ label, variant }: { label: string; variant: TagVariant }) {
+  const styles = {
+    info: 'bg-sky-50 text-sky-700 border-sky-200',
+    warn: 'bg-amber-50 text-amber-700 border-amber-200',
+    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    purple: 'bg-violet-50 text-violet-700 border-violet-200',
+  };
+  return (
+    <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold border print:text-[7px] print:px-1 ${styles[variant]}`}>
+      {label}
+    </span>
+  );
+}
+
+/** عنصر إحصائية واحد (أيقونة + عنوان + قيمة). */
+export function StatItem({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      {icon}
+      <span className="text-[var(--text-muted)]">{label}:</span>
+      <span className="font-bold">{value}</span>
+    </div>
+  );
+}

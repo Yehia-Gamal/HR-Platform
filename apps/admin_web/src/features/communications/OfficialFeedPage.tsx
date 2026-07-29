@@ -115,9 +115,12 @@ export function OfficialFeedPage() {
     const matchesSearch = !queryText || `${item.title} ${item.body} ${item.category}`.toLowerCase().includes(queryText);
     return matchesSearch && (kind === 'all' || item.kind === kind) && (priority === 'all' || item.priority === priority);
   }), [allItems, kind, priority, search]);
-  const canPublish = hasPermission(auth.access!, 'comms.announcement.manage') || auth.access!.workspaces.includes('main_admin');
-  const canManageDecision = hasPermission(auth.access!, 'comms.decision.manage') || auth.access!.workspaces.includes('main_admin');
-  const canApproveDecision = hasPermission(auth.access!, 'comms.decision.approve') || auth.access!.workspaces.includes('main_admin');
+  // hasPermission already grants full-access roles via the '*' wildcard,
+  // so the previous `|| workspaces.includes('main_admin')` fallback was
+  // redundant and risked granting capabilities to non-permissioned admins.
+  const canPublish = hasPermission(auth.access!, 'comms.announcement.manage');
+  const canManageDecision = hasPermission(auth.access!, 'comms.decision.manage');
+  const canApproveDecision = hasPermission(auth.access!, 'comms.decision.approve');
 
   const nextAction = (status: string): 'submit_review' | 'approve' | 'publish' | 'archive' | null => {
     if (status === 'draft') return 'submit_review';

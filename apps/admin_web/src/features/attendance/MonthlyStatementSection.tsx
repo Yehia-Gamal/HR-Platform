@@ -1,18 +1,13 @@
 import type { AttendanceStatement } from '@ahla/shared-contracts';
 import { CalendarDays, Clock, AlertTriangle, TrendingUp, UserCheck, Timer, ArrowDownRight, ArrowUpRight, FileDown } from 'lucide-react';
-import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
 import { SkeletonCard } from '../../ui/Skeletons';
+import { AttendancePercentageRing, buildDayTags, DayTag, fmtTime, MONTHS, StatItem, WARN_STATUSES } from './attendanceShared';
 import { exportAttendancePDF } from './exportAttendancePDF';
 import { useEmployeeMonthlyStatement } from './useMonthlyStatement';
-
-const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-
-// حالات اليوم التي تُعرض بلون تحذيري.
-const WARN_STATUSES = new Set(['غائب دون إذن', 'يحتاج مراجعة']);
 
 // كشف الحضور والانصراف الشهري داخل ملف الموظف (V12 §18).
 export function MonthlyStatementSection({ employeeId }: { employeeId: string }) {
@@ -55,55 +50,8 @@ export function MonthlyStatementSection({ employeeId }: { employeeId: string }) 
   );
 }
 
-// ─── دائرة نسبة مئوية (حضور / التزام) ─────────────────────────────
-function AttendancePercentageRing({ percentage, label = 'حضور' }: { percentage: number; label?: string }) {
-  const pct = Math.min(100, Math.max(0, percentage));
-  const color = pct >= 90 ? 'text-emerald-600' : pct >= 75 ? 'text-amber-500' : 'text-red-600';
-  const bgColor = pct >= 90 ? 'stroke-emerald-100' : pct >= 75 ? 'stroke-amber-100' : 'stroke-red-100';
-  const fgColor = pct >= 90 ? 'stroke-emerald-600' : pct >= 75 ? 'stroke-amber-500' : 'stroke-red-600';
-  const r = 40;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (pct / 100) * circ;
-
-  return (
-    <div className="relative flex flex-col items-center gap-1">
-      <svg width="100" height="100" viewBox="0 0 100 100" className="-rotate-90" aria-hidden="true">
-        <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className={bgColor} />
-        <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className={fgColor}
-          strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={`text-2xl font-black ${color}`}>{pct.toFixed(0)}%</span>
-        <span className="text-[10px] text-[var(--text-muted)]">{label}</span>
-      </div>
-    </div>
-  );
-}
-
-// V23: اختصار — ComplianceRing = AttendancePercentageRing بتسمية «التزام»
-function ComplianceRing({ percentage }: { percentage: number }) {
-  return <AttendancePercentageRing percentage={percentage} label="التزام" />;
-}
-
-// ─── علامات (tags) صغيرة للجدول ──────────────────────────────────
-function DayTag({ label, variant }: { label: string; variant: 'info' | 'warn' | 'success' | 'purple' }) {
-  const styles = {
-    info: 'bg-sky-50 text-sky-700 border-sky-200',
-    warn: 'bg-amber-50 text-amber-700 border-amber-200',
-    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    purple: 'bg-violet-50 text-violet-700 border-violet-200',
-  };
-  return (
-    <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold border ${styles[variant]}`}>
-      {label}
-    </span>
-  );
-}
-
 function StatementBody({ data }: { data: AttendanceStatement }) {
   const s = data.summary;
-  const fmtTime = (t: string | null) => t ? t.slice(0, 5) : '—';
   // V23: استخدام النسب من الخادم بدلاً من الحساب المحلي
   const attendancePct = s.attendanceRate ?? (s.scheduledDays > 0 ? (s.presentDays / s.scheduledDays * 100) : 0);
   const compliancePct = s.hoursComplianceRate ?? 0;
@@ -115,7 +63,7 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
         {/* دوائر النسب */}
         <div className="flex items-center justify-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-6">
           <AttendancePercentageRing percentage={attendancePct} />
-          <ComplianceRing percentage={compliancePct} />
+          <AttendancePercentageRing percentage={compliancePct} label="التزام" />
         </div>
 
         {/* بطاقات الملخص */}
@@ -159,21 +107,7 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
           </thead>
           <tbody>
             {data.days.map((d) => {
-              const tags: { label: string; variant: 'info' | 'warn' | 'success' | 'purple' }[] = [];
-              if (d.isOfficialHoliday) tags.push({ label: 'عطلة رسمية', variant: 'info' });
-              if (d.isAbsent) tags.push({ label: 'غائب', variant: 'warn' });
-              if (d.hasLeave) tags.push({ label: 'إجازة', variant: 'purple' });
-              if (d.hasMission) tags.push({ label: 'مأمورية', variant: 'info' });
-              // V23: تفصيل إذن حضور وانصراف
-              if (d.hasLatePermit) tags.push({ label: 'إذن حضور', variant: 'warn' });
-              if (d.hasEarlyPermit) tags.push({ label: 'إذن انصراف', variant: 'warn' });
-              if (!d.hasLatePermit && !d.hasEarlyPermit && d.hasPermit) tags.push({ label: 'إذن', variant: 'warn' });
-              if (d.hasConvoyFundi) tags.push({ label: 'قافلة/فاندي', variant: 'purple' });
-              if (d.missingCheckIn) tags.push({ label: 'نقص حضور', variant: 'warn' });
-              if (d.missingCheckOut) tags.push({ label: 'نقص انصراف', variant: 'warn' });
-              if (d.hasCorrection) tags.push({ label: 'تصحيح', variant: 'info' });
-              if (d.penalties > 0) tags.push({ label: `جزاء: ${d.penalties}`, variant: 'warn' });
-
+              const tags = buildDayTags(d);
               return (
                 <tr key={d.date} className="border-t border-[var(--border)] odd:bg-[var(--surface-muted)]/30 hover:bg-[var(--surface-muted)]/60 transition-colors">
                   <td className="p-2.5 tabular-nums" dir="ltr">{d.date}</td>
@@ -204,16 +138,6 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
           </tbody>
         </table>
       </div>
-    </div>
-  );
-}
-
-function StatItem({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      {icon}
-      <span className="text-[var(--text-muted)]">{label}:</span>
-      <span className="font-bold">{value}</span>
     </div>
   );
 }

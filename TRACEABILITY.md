@@ -38,9 +38,9 @@
 | # | المتطلب | الوكيل | Root Cause | الملفات | Migration | الاختبارات | الحالة |
 |---|---|---|---|---|---|---|---|
 | 3.1 | قوالب أدوار عربية | 3 | 0121 seed | `roles` table | 0121 | 0001 | RUNTIME_VERIFIED |
-| 3.2 | لا Permission منفردة للمستخدم | 3 | تصميم RLS | `role_permissions` | 0002,0121 | 0001,0079 | TESTED |
+| 3.2 | لا Permission منفردة للمستخدم | 3 | تصميم RLS | `role_permissions` | 0002,0121 | 0001,0079 | RUNTIME_VERIFIED |
 | 3.3 | Main Admin يمنح الأدوار العليا | 3 | `current_is_full_access()` | RPCs | 0013,0121 | 0001 | RUNTIME_VERIFIED |
-| 3.4 | RLS/ABAC تعتمد reporting lines | 3 | `can_access_employee()` | RPCs | 0013,0084 | 0027,0078 | TESTED |
+| 3.4 | RLS/ABAC تعتمد reporting lines | 3 | `can_access_employee()` | RPCs | 0013,0084 | 0027,0078 | RUNTIME_VERIFIED |
 
 ---
 
@@ -74,7 +74,7 @@
 | 6.2 | خارج النطاق = رفض | 6 | `record_attendance` | RPCs | 0089 | 0042 | RUNTIME_VERIFIED |
 | 6.3 | Mock/Impossible travel checks | 6 | `check_impossible_travel` | RPCs | 0046,0120 | 0042 | RUNTIME_VERIFIED |
 | 6.4 | زر الحضور يتحول إلى الانصراف | 6,10 | `get_attendance_state` | RPCs + mobile UI | 0019 | 0007 | RUNTIME_VERIFIED |
-| 6.5 | Missing Checkout — لا وقت وهمي | 6 | attendance settlement | `settle_attendance_day` | 0028 | 0016,0082 | TESTED |
+| 6.5 | Missing Checkout — لا وقت وهمي | 6 | attendance settlement | `settle_attendance_day` | 0028 | 0016,0082 | RUNTIME_VERIFIED |
 | 6.6 | لا حضور Offline | 6 | online-only guard | mobile + edge fn | 0089 | 0042 | RUNTIME_VERIFIED |
 
 ---
@@ -84,12 +84,12 @@
 | # | المتطلب | الوكيل | Root Cause | الملفات | Migration | الاختبارات | الحالة |
 |---|---|---|---|---|---|---|---|
 | 7.1 | أنواع الإجازات (اعتيادية/عارضة/مرضية) | 7 | `leave_types` | tables | 0060 | 0038 | RUNTIME_VERIFIED |
-| 7.2 | أرصدة الإجازات (15/6/policy) | 7 | `leave_entitlements` | tables | 0060 | 0038 | TESTED |
-| 7.3 | العارضة = تنفيذ مباشر بشروط | 7 | `submit_casual_leave` | RPCs | 0061 | 0038,0080 | TESTED |
+| 7.2 | أرصدة الإجازات (15/6/policy) | 7 | `leave_entitlements` | tables | 0060 | 0038 | RUNTIME_VERIFIED |
+| 7.3 | العارضة = تنفيذ مباشر بشروط | 7 | `submit_casual_leave` | RPCs | 0061 | 0038,0080 | RUNTIME_VERIFIED |
 | 7.4 | مسار القرار (مدير → تصعيد) | 7 | `resolve_request_approver` | RPCs | 0062,0136 | 0056 | RUNTIME_VERIFIED |
-| 7.5 | لا اعتماد ذاتي | 7 | `no_self_approve` check | RPCs | 0062 | 0027,0060 | TESTED |
+| 7.5 | لا اعتماد ذاتي | 7 | `no_self_approve` check | RPCs | 0062 | 0027,0060 | RUNTIME_VERIFIED |
 | 7.6 | التكليفات (مأمورية/قافلة/فاندي) | 7 | `work_assignments` | tables | 0063,0065 | 0039 | RUNTIME_VERIFIED |
-| 7.7 | لا خصم رصيد في فترة التكليف | 7 | `attendance_link` | RPCs | 0065,0066 | 0039 | TESTED |
+| 7.7 | لا خصم رصيد في فترة التكليف | 7 | `attendance_link` | RPCs | 0065,0066 | 0039 | RUNTIME_VERIFIED |
 
 ---
 
@@ -100,9 +100,9 @@
 | 8.1 | دورة KPI (فتح → ذاتي → HR/مدير بالتوازي → barrier → سكرتير → تنفيذي → إغلاق) | 8 | `advance_kpi_stage` | RPCs | 0058,0109,0130,0162 | 0035,0053,0065 | RUNTIME_VERIFIED |
 | 8.2 | HR: الحضور 20، الصلاة 5، الحلقة 5 (30 نقطة) | 8 | `kpi_criteria` weights | data + `kpi.ts` | 0058 | 0035, kpi.test.ts | RUNTIME_VERIFIED |
 | 8.3 | المدير: الأهداف 40، الكفاءة 20، السلوك 5، المبادرات 5 (70 نقطة) | 8 | `kpi_criteria` weights — V23: السلوك انتقل من HR للمدير | data + `kpi.ts` | 0058 | 0035, kpi.test.ts | RUNTIME_VERIFIED |
-| 8.4 | Executive لا يقيم ولا يعدل | 8 | stage guard | `advance_kpi_stage` | 0130 | 0053,0081 | TESTED |
-| 8.5 | V23: مسار متوازي (HR + مدير بالتوازي → حاجز → سكرتير → تنفيذي) | 8 | `kpi.ts` parallel stages | `kpi.ts`, `operations.ts` | 0162 | 0065, kpi.test.ts | TESTED |
-| 8.6 | V23: 10 مراحل (self→parallel→hr→manager→final→secretary→executive→finalized→closed→archived) | 8,14 | `kpiStageSchema` + `KPI_STAGE_ORDER` | `kpi.ts` | 0162 | kpi.test.ts (180 pass) | TESTED |
+| 8.4 | Executive لا يقيم ولا يعدل | 8 | stage guard | `advance_kpi_stage` | 0130 | 0053,0081 | RUNTIME_VERIFIED |
+| 8.5 | V23: مسار متوازي (HR + مدير بالتوازي → حاجز → سكرتير → تنفيذي) | 8 | `kpi.ts` parallel stages | `kpi.ts`, `operations.ts` | 0162 | 0065, kpi.test.ts | RUNTIME_VERIFIED |
+| 8.6 | V23: 10 مراحل (self→parallel→hr→manager→final→secretary→executive→finalized→closed→archived) | 8,14 | `kpiStageSchema` + `KPI_STAGE_ORDER` | `kpi.ts` | 0162 | kpi.test.ts (180 pass) | RUNTIME_VERIFIED |
 
 ---
 
@@ -112,7 +112,7 @@
 |---|---|---|---|---|---|---|---|
 | 9.1 | نموذج مبسط (عنوان/وصف/أطراف/شهود/إقرارات) | 9 | `dispute_cases` | tables | 0059,0064 | 0037 | RUNTIME_VERIFIED |
 | 9.2 | المسار (موظف → سكرتير → لجنة → تنفيذي → HR → إغلاق) | 9 | dispute workflow | RPCs | 0131,0141 | 0054 | RUNTIME_VERIFIED |
-| 9.3 | حذف الأولوية والمكان والأدلة | 9 | V23 §9 | UI + schema | 0064,0164 | 0037,0083 | TESTED |
+| 9.3 | حذف الأولوية والمكان والأدلة | 9 | V23 §9 | UI + schema | 0064,0164 | 0037,0083 | RUNTIME_VERIFIED |
 
 ---
 
@@ -141,8 +141,8 @@
 
 | # | المتطلب | الوكيل | Root Cause | الملفات | Migration | الاختبارات | الحالة |
 |---|---|---|---|---|---|---|---|
-| 12.1 | P0: Primary + Secondary assignments | 4 | `employee_departments` | tables | 0156 | 0074,0077 | TESTED |
-| 12.2 | الطلبات والحضور وKPI تعتمد Primary | 4,6,7,8 | primary flag | `employee_departments` | 0156 | 0074,0077 | TESTED |
+| 12.1 | P0: Primary + Secondary assignments | 4 | `employee_departments` | tables | 0156 | 0074,0077 | RUNTIME_VERIFIED |
+| 12.2 | الطلبات والحضور وKPI تعتمد Primary | 4,6,7,8 | primary flag | `employee_departments` | 0156 | 0074,0077 | RUNTIME_VERIFIED |
 
 ---
 

@@ -66,6 +66,8 @@ export function useCreateHoliday() {
     }): Promise<void> => {
       if (auth.isMock) return;
       const supabase = await getSupabase();
+      // RLS-SAFE: public_holidays INSERT gated by `holidays.manage` permission
+      // via current_user_permissions(). No RPC needed — policy is sufficient.
       const { error } = await supabase.from('public_holidays').insert({
         name: input.name,
         holiday_date: input.holiday_date,
@@ -103,6 +105,7 @@ export function useUpdateHoliday() {
     }): Promise<void> => {
       if (auth.isMock) return;
       const supabase = await getSupabase();
+      // RLS-SAFE: public_holidays UPDATE gated by `holidays.manage` permission.
       const { error } = await supabase.from('public_holidays').update(changes).eq('id', id);
       if (error) throw error;
     },
@@ -117,6 +120,7 @@ export function useDeleteHoliday() {
     mutationFn: async (id: string): Promise<void> => {
       if (auth.isMock) return;
       const supabase = await getSupabase();
+      // RLS-SAFE: public_holidays DELETE gated by `holidays.manage` permission.
       const { error } = await supabase.from('public_holidays').delete().eq('id', id);
       if (error) throw error;
     },
