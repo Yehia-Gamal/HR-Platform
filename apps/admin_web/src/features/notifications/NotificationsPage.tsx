@@ -20,7 +20,7 @@ export function NotificationsPage() {
         actions={
           <button
             disabled={!unread.length || mark.isPending}
-            onClick={() => void mark.mutateAsync(undefined)}
+            onClick={() => mark.mutate(undefined)}
             className="btn-secondary disabled:opacity-50"
           >
             <CheckCheck className="size-4" aria-hidden="true" />
@@ -96,7 +96,7 @@ export function NotificationsPage() {
                 {n.actionUrl ? (
                   <Link
                     to={n.actionUrl}
-                    onClick={() => !n.isRead && void mark.mutateAsync([n.id])}
+                    onClick={() => !n.isRead && mark.mutate([n.id])}
                     className="btn-primary text-sm"
                   >
                     فتح

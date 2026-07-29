@@ -14,12 +14,14 @@ export class AppErrorBoundary extends Component<PropsWithChildren, State> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     // Avoid logging session tokens or request payloads. Production monitoring may
     // capture only the error name, message and component stack after PII scrubbing.
-    console.error('Application render failure', {
-      name: error.name,
-      message: error.message,
-      componentStack: info.componentStack,
-      errorId: this.state.errorId,
-    });
+    if (import.meta.env.DEV) {
+      console.error('Application render failure', {
+        name: error.name,
+        message: error.message,
+        componentStack: info.componentStack,
+        errorId: this.state.errorId,
+      });
+    }
   }
 
   private recover = () => {
