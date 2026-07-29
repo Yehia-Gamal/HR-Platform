@@ -1,7 +1,7 @@
 import { Clock, Crosshair, MapPin, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
-import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
+import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
@@ -34,7 +34,7 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
     return <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-muted)]" aria-label="جارٍ تحميل النتيجة" />;
   }
   if (response.isError || !data) {
-    return <EmptyState title="تعذّر تحميل النتيجة" description={response.error instanceof Error ? response.error.message : 'تحقق من الصلاحيات.'} />;
+    return <ErrorState title="تعذّر تحميل النتيجة" description={response.error instanceof Error ? response.error.message : 'تحقق من الصلاحيات.'} onRetry={() => void response.refetch()} />;
   }
 
   const request = data.request ?? { status: 'pending', reason: null, requestedAt: null, respondedAt: null };
@@ -96,7 +96,7 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
                 <MapPin className="size-4" aria-hidden="true" />{mapUrlCmd.isPending ? 'جارٍ تحميل اللقطة…' : 'عرض لقطة الخريطة المحفوظة'}
               </button>
             )}
-            {mapUrlCmd.isError ? <p className="mt-2 text-sm font-bold text-red-700">لا توجد لقطة خريطة متاحة أو انتهت مدة الاحتفاظ بها.</p> : null}
+            {mapUrlCmd.isError ? <ErrorBanner message="لا توجد لقطة خريطة متاحة أو انتهت مدة الاحتفاظ بها." /> : null}
             {latest?.addressAr ? (
               <p className="mt-3 flex items-start gap-2 text-sm"><MapPin className="mt-0.5 size-4 shrink-0 text-[var(--brand-primary)]" />
                 <span>الموظف قريب من: <strong>{latest.addressAr}</strong>{num(latest.accuracy) !== null ? <> — دقة تقريبية {Math.round(num(latest.accuracy)!)} متر</> : null}</span>
