@@ -1,8 +1,10 @@
 import React from 'react';
 import type { ReactNode } from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
+
+afterEach(cleanup);
 
 function Bomb(): ReactNode {
   throw new Error('render explosion');
