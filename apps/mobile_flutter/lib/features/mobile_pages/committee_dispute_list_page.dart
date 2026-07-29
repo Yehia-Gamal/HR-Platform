@@ -2529,3 +2529,901 @@ class _ExecuteAdminActionSheetState
     );
   }
 }
+
+// ── Sheet طلب إفادة (مشتكى عليه / شاهد) ──────────────────────────────────────
+
+class _RequestStatementSheet extends ConsumerStatefulWidget {
+  const _RequestStatementSheet({
+    required this.caseItem,
+    required this.statementType,
+  });
+  final CommitteeDisputeCase caseItem;
+
+  /// 'respondent' أو 'witness'
+  final String statementType;
+
+  @override
+  ConsumerState<_RequestStatementSheet> createState() =>
+      _RequestStatementSheetState();
+}
+
+class _RequestStatementSheetState
+    extends ConsumerState<_RequestStatementSheet> {
+  final _summaryController = TextEditingController();
+  String? _selectedEmployeeId;
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _summaryController.dispose();
+    super.dispose();
+  }
+
+  bool get _isWitness => widget.statementType == 'witness';
+
+  String get _title =>
+      _isWitness ? 'طلب إفادة شاهد' : 'طلب إفادة المشتكى عليه';
+
+  String get _actionKey =>
+      _isWitness ? 'request_witness_statement' : 'request_respondent_statement';
+
+  bool get _canSubmit => !_submitting && _selectedEmployeeId != null;
+
+  Future<void> _submit() async {
+    if (!_canSubmit) return;
+    setState(() => _submitting = true);
+    try {
+      final summary = _summaryController.text.trim();
+      await ref.read(mobileCommandsProvider).transitionDisputeCase(
+            caseId: widget.caseItem.id,
+            action: _actionKey,
+            metadata: {
+              'employeeId': _selectedEmployeeId,
+              if (summary.isNotEmpty) 'summary': summary,
+            },
+          );
+      if (mounted) {
+        Navigator.pop(context);
+        Navigator.pop(context); // أغلق الـ detail sheet
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تم: $_title')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(e))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final partiesAsync =
+        ref.watch(disputeCasePartiesProvider(widget.caseItem.id));
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurfaceVariant
+                      .withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            Text(_title,
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(
+              'القضية: ${widget.caseItem.title}',
+              style: theme.textTheme.bodySmall,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 16),
+
+            // قائمة الأطراف
+            Text(
+              _isWitness ? 'اختر الشاهد:' : 'اختر المشتكى عليه:',
+              style: theme.textTheme.titleSmall
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+
+            partiesAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (e, _) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  'خطأ في تحميل الأطراف: ${humanizeError(e)}',
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+              ),
+              data: (parties) {
+                final filtered = parties
+                    .where((p) => p.partyType == widget.statementType)
+                    .toList();
+                if (filtered.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Column(
+                      children: [
+                        Icon(
+                          _isWitness
+                              ? Icons.person_off_outlined
+                              : Icons.person_search_outlined,
+                          size: 48,
+                          color: theme.colorScheme.onSurfaceVariant
+                              .withValues(alpha: 0.4),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _isWitness
+                              ? 'لا يوجد شهود مسجلون في هذه القضية'
+                              : 'لا يوجد مشتكى عليه مسجل في هذه القضية',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                // إذا طرف واحد فقط — اختياره تلقائياً
+                if (filtered.length == 1 &&
+                    _selectedEmployeeId == null) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      setState(() =>
+                          _selectedEmployeeId = filtered.first.employeeId);
+                    }
+                  });
+                }
+
+                return Column(
+                  children: filtered.map((party) {
+                    final selected =
+                        _selectedEmployeeId == party.employeeId;
+                    return Card(
+                      color: selected
+                          ? theme.colorScheme.primaryContainer
+                          : null,
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: selected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.surfaceContainerHighest,
+                          child: Icon(
+                            _isWitness
+                                ? Icons.record_voice_over
+                                : Icons.person,
+                            color: selected
+                                ? theme.colorScheme.onPrimary
+                                : theme.colorScheme.onSurfaceVariant,
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(party.employeeName),
+                        subtitle: Text(
+                          party.notificationStatus == 'notified'
+                              ? 'تم إشعاره سابقاً'
+                              : 'لم يتم إشعاره بعد',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        trailing: selected
+                            ? Icon(Icons.check_circle,
+                                color: theme.colorScheme.primary)
+                            : null,
+                        onTap: () => setState(
+                            () => _selectedEmployeeId = party.employeeId),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // ملخص اختياري يُرسل مع الإشعار
+            TextField(
+              controller: _summaryController,
+              maxLines: 3,
+              maxLength: 500,
+              decoration: const InputDecoration(
+                labelText: 'ملخص للإشعار (اختياري)',
+                hintText: 'يُرسل مع الإشعار للطرف المعني',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            FilledButton.icon(
+              onPressed: _canSubmit ? _submit : null,
+              icon: _submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : Icon(_isWitness
+                      ? Icons.record_voice_over
+                      : Icons.person_search),
+              label: Text(_isWitness
+                  ? 'إرسال طلب إفادة الشاهد'
+                  : 'إرسال طلب إفادة المشتكى عليه'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Sheet تغيير الأولوية ────────────────────────────────────────────────────
+
+class _ChangePrioritySheet extends ConsumerStatefulWidget {
+  const _ChangePrioritySheet({required this.caseItem});
+  final CommitteeDisputeCase caseItem;
+
+  @override
+  ConsumerState<_ChangePrioritySheet> createState() =>
+      _ChangePrioritySheetState();
+}
+
+class _ChangePrioritySheetState extends ConsumerState<_ChangePrioritySheet> {
+  final _reasonController = TextEditingController();
+  late String _selectedPriority;
+  bool _submitting = false;
+
+  static const _priorities = <String, String>{
+    'normal': 'عادية',
+    'urgent': 'عاجلة',
+    'critical': 'حرجة',
+  };
+  static const _priorityIcons = <String, IconData>{
+    'normal': Icons.low_priority,
+    'urgent': Icons.priority_high,
+    'critical': Icons.warning_amber_rounded,
+  };
+  static const _priorityColors = <String, Color>{
+    'normal': Colors.green,
+    'urgent': Colors.orange,
+    'critical': Colors.red,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPriority = widget.caseItem.severity;
+  }
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  bool get _canSubmit =>
+      !_submitting &&
+      _selectedPriority != widget.caseItem.severity &&
+      _reasonController.text.trim().length >= 5;
+
+  Future<void> _submit() async {
+    if (!_canSubmit) return;
+    setState(() => _submitting = true);
+    try {
+      await ref.read(mobileCommandsProvider).transitionDisputeCase(
+            caseId: widget.caseItem.id,
+            action: 'change_priority',
+            reason: _reasonController.text.trim(),
+            metadata: {'priority': _selectedPriority},
+          );
+      if (mounted) {
+        Navigator.pop(context);
+        Navigator.pop(context); // أغلق الـ detail sheet
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  'تم تغيير الأولوية إلى ${_priorities[_selectedPriority]}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(e))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurfaceVariant
+                      .withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            Text('تغيير الأولوية',
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(
+              'القضية: ${widget.caseItem.title}',
+              style: theme.textTheme.bodySmall,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+            // الأولوية الحالية
+            Row(
+              children: [
+                Text('الأولوية الحالية: ',
+                    style: theme.textTheme.bodySmall),
+                Icon(
+                  _priorityIcons[widget.caseItem.severity] ??
+                      Icons.low_priority,
+                  size: 16,
+                  color: _priorityColors[widget.caseItem.severity] ??
+                      Colors.green,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _priorities[widget.caseItem.severity] ?? 'عادية',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: _priorityColors[widget.caseItem.severity] ??
+                        Colors.green,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // اختيار الأولوية الجديدة
+            Text('الأولوية الجديدة:',
+                style: theme.textTheme.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            ...(_priorities.entries.map((entry) {
+              final selected = _selectedPriority == entry.key;
+              final color = _priorityColors[entry.key] ?? Colors.green;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Card(
+                  color: selected
+                      ? color.withValues(alpha: 0.12)
+                      : null,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    side: selected
+                        ? BorderSide(color: color, width: 1.5)
+                        : BorderSide.none,
+                  ),
+                  child: ListTile(
+                    leading: Icon(_priorityIcons[entry.key],
+                        color: color),
+                    title: Text(entry.value,
+                        style: TextStyle(
+                          fontWeight:
+                              selected ? FontWeight.bold : FontWeight.normal,
+                          color: selected ? color : null,
+                        )),
+                    trailing: selected
+                        ? Icon(Icons.check_circle, color: color)
+                        : null,
+                    onTap: () =>
+                        setState(() => _selectedPriority = entry.key),
+                  ),
+                ),
+              );
+            })),
+            const SizedBox(height: 12),
+
+            // سبب التغيير
+            TextField(
+              controller: _reasonController,
+              maxLines: 3,
+              maxLength: 500,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                labelText: 'سبب تغيير الأولوية',
+                hintText: '5 أحرف على الأقل',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            FilledButton.icon(
+              onPressed: _canSubmit ? _submit : null,
+              icon: _submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.priority_high_rounded),
+              label: const Text('تغيير الأولوية'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Sheet طلب إفادة (مشتكى عليه / شاهد) ──────────────────────────────────────
+
+class _RequestStatementSheet extends ConsumerStatefulWidget {
+  const _RequestStatementSheet({
+    required this.caseItem,
+    required this.partyType,
+  });
+  final CommitteeDisputeCase caseItem;
+
+  /// 'respondent' أو 'witness'
+  final String partyType;
+
+  @override
+  ConsumerState<_RequestStatementSheet> createState() =>
+      _RequestStatementSheetState();
+}
+
+class _RequestStatementSheetState
+    extends ConsumerState<_RequestStatementSheet> {
+  final _summaryController = TextEditingController();
+  String? _selectedEmployeeId;
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _summaryController.dispose();
+    super.dispose();
+  }
+
+  String get _actionKey => widget.partyType == 'witness'
+      ? 'request_witness_statement'
+      : 'request_respondent_statement';
+
+  String get _title => widget.partyType == 'witness'
+      ? 'طلب إفادة شاهد'
+      : 'طلب إفادة المشتكى عليه';
+
+  String get _emptyMessage => widget.partyType == 'witness'
+      ? 'لا يوجد شهود مسجلون في هذه القضية'
+      : 'لا يوجد مشتكى عليهم مسجلون في هذه القضية';
+
+  bool get _canSubmit => !_submitting && _selectedEmployeeId != null;
+
+  Future<void> _submit() async {
+    if (!_canSubmit) return;
+    setState(() => _submitting = true);
+    try {
+      final summary = _summaryController.text.trim();
+      await ref.read(mobileCommandsProvider).transitionDisputeCase(
+            caseId: widget.caseItem.id,
+            action: _actionKey,
+            metadata: {
+              'employeeId': _selectedEmployeeId,
+              if (summary.isNotEmpty) 'summary': summary,
+            },
+          );
+      if (mounted) {
+        Navigator.pop(context);
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تم: $_title')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(e))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final partiesAsync = ref.watch(
+      disputeCasePartiesProvider(widget.caseItem.id),
+    );
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurfaceVariant
+                      .withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            Text(_title,
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(
+              'القضية: ${widget.caseItem.title}',
+              style: theme.textTheme.bodySmall,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 16),
+
+            // قائمة الأطراف
+            partiesAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (e, _) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text(
+                    humanizeError(e),
+                    style: TextStyle(color: theme.colorScheme.error),
+                  ),
+                ),
+              ),
+              data: (allParties) {
+                final parties = allParties
+                    .where((p) => p.partyType == widget.partyType)
+                    .toList();
+                if (parties.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Column(
+                      children: [
+                        Icon(Icons.person_off_outlined,
+                            size: 48,
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.4)),
+                        const SizedBox(height: 12),
+                        Text(_emptyMessage,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant)),
+                      ],
+                    ),
+                  );
+                }
+
+                // إذا طرف واحد فقط → اختياره تلقائياً
+                if (parties.length == 1 && _selectedEmployeeId == null) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      setState(() =>
+                          _selectedEmployeeId = parties.first.employeeId);
+                    }
+                  });
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('اختر ${widget.partyType == 'witness' ? 'الشاهد' : 'المشتكى عليه'}:',
+                        style: theme.textTheme.titleSmall),
+                    const SizedBox(height: 8),
+                    ...parties.map((p) => RadioListTile<String>(
+                          value: p.employeeId,
+                          groupValue: _selectedEmployeeId,
+                          onChanged: (v) =>
+                              setState(() => _selectedEmployeeId = v),
+                          title: Text(p.employeeName),
+                          subtitle: Text(
+                            p.notificationStatus == 'notified'
+                                ? 'تم إخطاره مسبقاً'
+                                : 'لم يتم إخطاره بعد',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: p.notificationStatus == 'notified'
+                                  ? Colors.green.shade700
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                        )),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // ملخص اختياري يُرسل مع الإشعار
+            TextField(
+              controller: _summaryController,
+              maxLines: 3,
+              maxLength: 500,
+              decoration: const InputDecoration(
+                labelText: 'ملخص يُرسل مع الإشعار (اختياري)',
+                hintText: 'وصف مختصر للمشكلة يُرسل للطرف...',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            FilledButton.icon(
+              onPressed: _canSubmit ? _submit : null,
+              icon: _submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.send_rounded),
+              label: Text(_title),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Sheet تغيير الأولوية ────────────────────────────────────────────────────
+
+class _ChangePrioritySheet extends ConsumerStatefulWidget {
+  const _ChangePrioritySheet({required this.caseItem});
+  final CommitteeDisputeCase caseItem;
+
+  @override
+  ConsumerState<_ChangePrioritySheet> createState() =>
+      _ChangePrioritySheetState();
+}
+
+class _ChangePrioritySheetState
+    extends ConsumerState<_ChangePrioritySheet> {
+  final _reasonController = TextEditingController();
+  late String _selectedPriority;
+  bool _submitting = false;
+
+  static const _priorities = <String, String>{
+    'normal': 'عادية',
+    'urgent': 'عاجلة',
+    'critical': 'حرجة',
+  };
+
+  static const _priorityIcons = <String, IconData>{
+    'normal': Icons.flag_outlined,
+    'urgent': Icons.flag_rounded,
+    'critical': Icons.warning_amber_rounded,
+  };
+
+  static const _priorityColors = <String, Color>{
+    'normal': Colors.grey,
+    'urgent': Colors.orange,
+    'critical': Colors.red,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPriority = widget.caseItem.severity ?? 'normal';
+  }
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  bool get _canSubmit =>
+      !_submitting &&
+      _reasonController.text.trim().length >= 5 &&
+      _selectedPriority != (widget.caseItem.severity ?? 'normal');
+
+  Future<void> _submit() async {
+    if (!_canSubmit) return;
+    setState(() => _submitting = true);
+    try {
+      await ref.read(mobileCommandsProvider).transitionDisputeCase(
+            caseId: widget.caseItem.id,
+            action: 'change_priority',
+            reason: _reasonController.text.trim(),
+            metadata: {'priority': _selectedPriority},
+          );
+      if (mounted) {
+        Navigator.pop(context);
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'تم تغيير الأولوية إلى ${_priorities[_selectedPriority]}'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(e))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final currentPriority = widget.caseItem.severity ?? 'normal';
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurfaceVariant
+                      .withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            Text('تغيير الأولوية',
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(
+              'القضية: ${widget.caseItem.title}',
+              style: theme.textTheme.bodySmall,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text('الأولوية الحالية: ',
+                    style: theme.textTheme.bodySmall),
+                Icon(_priorityIcons[currentPriority],
+                    size: 16,
+                    color: _priorityColors[currentPriority]),
+                const SizedBox(width: 4),
+                Text(
+                  _priorities[currentPriority] ?? currentPriority,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: _priorityColors[currentPriority],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // اختيار الأولوية الجديدة
+            Text('الأولوية الجديدة:', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            ..._priorities.entries.map((entry) => RadioListTile<String>(
+                  value: entry.key,
+                  groupValue: _selectedPriority,
+                  onChanged: (v) =>
+                      setState(() => _selectedPriority = v ?? entry.key),
+                  title: Row(
+                    children: [
+                      Icon(_priorityIcons[entry.key],
+                          size: 20, color: _priorityColors[entry.key]),
+                      const SizedBox(width: 8),
+                      Text(entry.value),
+                      if (entry.key == currentPriority) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text('الحالية',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: theme.colorScheme.primary)),
+                        ),
+                      ],
+                    ],
+                  ),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                )),
+            const SizedBox(height: 12),
+
+            // سبب التغيير (5 أحرف على الأقل)
+            TextField(
+              controller: _reasonController,
+              maxLines: 3,
+              maxLength: 500,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                labelText: 'سبب تغيير الأولوية',
+                hintText: '5 أحرف على الأقل',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            FilledButton.icon(
+              onPressed: _canSubmit ? _submit : null,
+              icon: _submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.priority_high_rounded),
+              label: const Text('تغيير الأولوية'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

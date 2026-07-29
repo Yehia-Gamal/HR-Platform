@@ -16,8 +16,6 @@ import type { EmployeeOverviewRow, ExecutiveOverviewData } from './controlCenter
 // لوحة المتابعة اليومية للمدير التنفيذي (الأقسام 1 + 2 + 3):
 // ملخص الحضور، فلاتر الحالة، قائمة الموظفين، خريطة حية، وإرسال طلب موقع فوري.
 
-type Row = Record<string, any>;
-
 const STATUS_LABELS: Record<string, string> = {
   present: 'حاضر', late: 'متأخر', not_yet: 'لم يحضر بعد', absent: 'غائب',
   checked_out: 'انصرف', left_early: 'انصرف مبكرًا', on_leave: 'إجازة', assignment: 'مأمورية/قافلة/فاندي',

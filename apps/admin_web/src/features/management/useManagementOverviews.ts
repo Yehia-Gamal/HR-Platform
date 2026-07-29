@@ -1,12 +1,8 @@
 import {
-  accessOverviewSchema,
   dashboardOverviewSchema,
-  organizationOverviewSchema,
   recruitmentOverviewSchema,
   systemOverviewSchema,
-  type AccessOverview,
   type DashboardOverview,
-  type OrganizationOverview,
   type RecruitmentOverview,
   type SystemOverview,
 } from '@ahla/shared-contracts';
@@ -26,14 +22,6 @@ export function useDashboardOverview(workspace: 'hr' | 'main_admin') {
   });
 }
 
-export function useOrganizationOverview() {
-  const auth = useAuth();
-  return useQuery({ queryKey: ['organization-overview', auth.isMock], enabled: auth.status === 'authenticated', queryFn: async (): Promise<OrganizationOverview> => auth.isMock ? organizationOverviewSchema.parse((await loadDomainMocks()).mockOrganizationOverview) : organizationOverviewSchema.parse(await rpc('get_organization_overview')) });
-}
-export function useAccessOverview() {
-  const auth = useAuth();
-  return useQuery({ queryKey: ['access-overview', auth.isMock], enabled: auth.status === 'authenticated', queryFn: async (): Promise<AccessOverview> => auth.isMock ? accessOverviewSchema.parse((await loadDomainMocks()).mockAccessOverview) : accessOverviewSchema.parse(await rpc('get_access_overview')) });
-}
 export function useRecruitmentOverview() {
   const auth = useAuth();
   return useQuery({ queryKey: ['recruitment-overview', auth.isMock], enabled: auth.status === 'authenticated', queryFn: async (): Promise<RecruitmentOverview> => auth.isMock ? recruitmentOverviewSchema.parse((await loadDomainMocks()).mockRecruitmentOverview) : recruitmentOverviewSchema.parse(await rpc('get_recruitment_overview')) });

@@ -1,9 +1,8 @@
 -- تعزيز أمني — الجولة الثالثة
 -- 1. سحب INSERT/UPDATE/DELETE من anon على جميع جداول public
 -- 2. ضبط الصلاحيات الافتراضية لمنع DML المستقبلي على anon
--- 3. جعل bucket employee-avatars خاصاً
+-- 3. جعل bucket employee-avatars خاصاً + إصلاح سياساته
 -- 4. حذف سياسات RLS مكررة/ميتة على public_holidays
--- 5. إضافة سياسات storage لـ employee-avatars (authenticated فقط)
 
 BEGIN;
 
@@ -23,14 +22,35 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
   REVOKE INSERT, UPDATE, DELETE ON TABLES FROM anon;
 
 -- ═══════════════════════════════════════════════════════════════
--- 3. جعل bucket employee-avatars خاصاً
---    (تم تطبيقه على البعيد مباشرة — هنا للمزامنة مع المحلي)
+-- 3. جعل bucket employee-avatars خاصاً + إصلاح السياسات
+--    - حذف public_read (كانت تسمح لأي شخص بقراءة الصور)
+--    - إضافة employee_avatars_select لـ authenticated فقط
+--    - الإبقاء على سياسات _manage_ الحالية (full-access أو
+--      people.employee.create أو المجلد الخاص بالمستخدم)
 -- ═══════════════════════════════════════════════════════════════
 
 UPDATE storage.buckets
    SET public = false
  WHERE id = 'employee-avatars'
    AND public = true;
+
+DROP POLICY IF EXISTS employee_avatars_public_read ON storage.objects;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects'
+      AND policyname = 'employee_avatars_select'
+  ) THEN
+    EXECUTE $pol$
+      CREATE POLICY employee_avatars_select ON storage.objects
+        FOR SELECT TO authenticated
+        USING (bucket_id = 'employee-avatars')
+    $pol$;
+  END IF;
+END
+$$;
 
 -- ═══════════════════════════════════════════════════════════════
 -- 4. حذف سياسات RLS مكررة/ميتة على public_holidays
@@ -43,76 +63,5 @@ DROP POLICY IF EXISTS public_holidays_select_authenticated ON public.public_holi
 DROP POLICY IF EXISTS public_holidays_insert_manage         ON public.public_holidays;
 DROP POLICY IF EXISTS public_holidays_update_manage         ON public.public_holidays;
 DROP POLICY IF EXISTS public_holidays_delete_manage         ON public.public_holidays;
-
--- ═══════════════════════════════════════════════════════════════
--- 5. سياسات storage لـ employee-avatars
---    authenticated يستطيع القراءة؛ full-access يستطيع الإدارة.
---    (IF NOT EXISTS عبر DO block لأن CREATE POLICY لا يدعمها)
--- ═══════════════════════════════════════════════════════════════
-
-DO $$
-BEGIN
-  -- SELECT policy
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'storage' AND tablename = 'objects'
-      AND policyname = 'employee_avatars_select'
-  ) THEN
-    EXECUTE $pol$
-      CREATE POLICY employee_avatars_select ON storage.objects
-        FOR SELECT TO authenticated
-        USING (bucket_id = 'employee-avatars')
-    $pol$;
-  END IF;
-
-  -- INSERT policy (full-access only)
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'storage' AND tablename = 'objects'
-      AND policyname = 'employee_avatars_insert'
-  ) THEN
-    EXECUTE $pol$
-      CREATE POLICY employee_avatars_insert ON storage.objects
-        FOR INSERT TO authenticated
-        WITH CHECK (
-          bucket_id = 'employee-avatars'
-          AND (SELECT public.current_is_full_access())
-        )
-    $pol$;
-  END IF;
-
-  -- UPDATE policy (full-access only)
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'storage' AND tablename = 'objects'
-      AND policyname = 'employee_avatars_update'
-  ) THEN
-    EXECUTE $pol$
-      CREATE POLICY employee_avatars_update ON storage.objects
-        FOR UPDATE TO authenticated
-        USING (
-          bucket_id = 'employee-avatars'
-          AND (SELECT public.current_is_full_access())
-        )
-    $pol$;
-  END IF;
-
-  -- DELETE policy (full-access only)
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'storage' AND tablename = 'objects'
-      AND policyname = 'employee_avatars_delete'
-  ) THEN
-    EXECUTE $pol$
-      CREATE POLICY employee_avatars_delete ON storage.objects
-        FOR DELETE TO authenticated
-        USING (
-          bucket_id = 'employee-avatars'
-          AND (SELECT public.current_is_full_access())
-        )
-    $pol$;
-  END IF;
-END
-$$;
 
 COMMIT;

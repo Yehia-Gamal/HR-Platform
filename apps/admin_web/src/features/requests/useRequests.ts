@@ -94,34 +94,3 @@ export function useWorkAssignments(scope: 'mine' | 'team' = 'team') {
   });
 }
 
-// صلاحيات السكرتير التنفيذي على الطلبات (نقل/تمديد/سحب تصعيد).
-export function useSecretaryRequestActions() {
-  const auth = useAuth();
-  const client = useQueryClient();
-  const invalidate = () => Promise.all([
-    client.invalidateQueries({ queryKey: ['requests'] }),
-    client.invalidateQueries({ queryKey: ['action-center'] }),
-  ]);
-  const reassign = useMutation({
-    mutationFn: async ({ requestId, newManagerId, reason }: { requestId: string; newManagerId: string; reason: string }) => {
-      if (auth.isMock) return { id: requestId };
-      return rpc('reassign_request', { p_request_id: requestId, p_new_manager_id: newManagerId, p_reason: reason });
-    },
-    onSuccess: invalidate,
-  });
-  const extendDeadline = useMutation({
-    mutationFn: async ({ requestId, hours, reason }: { requestId: string; hours: number; reason: string }) => {
-      if (auth.isMock) return { id: requestId };
-      return rpc('extend_request_deadline', { p_request_id: requestId, p_hours: hours, p_reason: reason });
-    },
-    onSuccess: invalidate,
-  });
-  const withdrawEscalation = useMutation({
-    mutationFn: async ({ requestId, reason }: { requestId: string; reason: string }) => {
-      if (auth.isMock) return { id: requestId };
-      return rpc('withdraw_escalation', { p_request_id: requestId, p_reason: reason });
-    },
-    onSuccess: invalidate,
-  });
-  return { reassign, extendDeadline, withdrawEscalation };
-}

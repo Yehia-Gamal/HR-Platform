@@ -2,7 +2,7 @@ import { publicReleasePolicySchema, type PublicReleasePolicy } from '@ahla/share
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { env, hasSupabaseConfig } from '../../core/env';
-import { getSupabase } from '../../core/supabase';
+import { rpc } from '../../core/rpc';
 import { useAuth } from './AuthProvider';
 
 const installationKey = 'management_os_web_installation_id_v1';
@@ -31,13 +31,11 @@ export function useWebReleasePolicy() {
     retry: 2,
     queryFn: async () => {
       if (!hasSupabaseConfig) return localPolicy;
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('get_public_release_policy', {
+      const data = await rpc('get_public_release_policy', {
         p_platform: 'web', p_environment: env.appEnvironment,
         p_current_version: env.appVersion, p_current_build: env.appBuild,
         p_installation_id: installationId(),
       });
-      if (error) throw error;
       return publicReleasePolicySchema.parse(data);
     },
   });
@@ -48,17 +46,15 @@ export function useRegisterWebDevice() {
   useEffect(() => {
     if (auth.status !== 'authenticated' || auth.isMock || !hasSupabaseConfig) return;
     let active = true;
-    void getSupabase().then(async (supabase) => {
-      if (!active) return;
-      const { error } = await supabase.rpc('register_my_device', {
-        p_installation_id: installationId(), p_platform: 'web',
-        p_device_name: navigator.platform || 'Web Browser', p_device_model: navigator.userAgent.slice(0, 180),
-        p_os_version: (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ?? navigator.platform ?? null,
-        p_app_version: env.appVersion, p_app_build: env.appBuild, p_environment: env.appEnvironment,
-        p_push_enabled: Notification.permission === 'granted', p_biometric_available: Boolean(window.PublicKeyCredential),
-        p_metadata: { language: navigator.language, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
-      });
-      if (error && import.meta.env.DEV) console.warn('Managed device registration failed', error.message);
+    void rpc('register_my_device', {
+      p_installation_id: installationId(), p_platform: 'web',
+      p_device_name: navigator.platform || 'Web Browser', p_device_model: navigator.userAgent.slice(0, 180),
+      p_os_version: (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ?? navigator.platform ?? null,
+      p_app_version: env.appVersion, p_app_build: env.appBuild, p_environment: env.appEnvironment,
+      p_push_enabled: Notification.permission === 'granted', p_biometric_available: Boolean(window.PublicKeyCredential),
+      p_metadata: { language: navigator.language, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+    }).catch((err: unknown) => {
+      if (active && import.meta.env.DEV) console.warn('Managed device registration failed', err instanceof Error ? err.message : String(err));
     });
     return () => { active = false; };
   }, [auth.status, auth.isMock, auth.session?.user.id]);

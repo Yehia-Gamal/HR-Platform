@@ -41,8 +41,10 @@ export function OperationsCenterPage() {
   async function createTask(event: FormEvent) {
     event.preventDefault();
     if (!taskDraft) return;
-    await commands.createTask.mutateAsync(taskDraft);
-    setTaskDraft(null);
+    try {
+      await commands.createTask.mutateAsync(taskDraft);
+      setTaskDraft(null);
+    } catch { /* mutation error surfaced via ErrorBanner */ }
   }
 
   return (

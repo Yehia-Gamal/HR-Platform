@@ -78,7 +78,7 @@ export function safeErrorMessage(error: unknown): string {
     : typeof error === 'string' ? error : String(error ?? '');
 
   // تسجيل الخطأ الأصلي مع رمز التتبع — لا يظهر للمستخدم
-  console.error(`[خطأ ${cid}]`, error);
+  if (import.meta.env.DEV) console.error(`[خطأ ${cid}]`, error);
 
   for (const [pattern, arabicMessage] of ERROR_PATTERNS) {
     if (pattern.test(raw)) {
