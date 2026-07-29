@@ -62,6 +62,28 @@ export function AuthProvider({ children }: PropsWithChildren) {
     let unsubscribe: (() => void) | undefined;
 
     void getSupabase().then(async (supabase) => {
+      // تسجيل المستمع أولاً — يجب أن يكون نشطاً دائماً بغض النظر عن وجود جلسة أولية
+      const { data: listener } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
+        if (!active) return;
+        setSession(nextSession);
+        if (!nextSession) {
+          setAccess(null);
+          setStatus('anonymous');
+          return;
+        }
+        // تحديث الصلاحيات عند تجديد التوكن أو تحديث المستخدم أو تسجيل دخول خارجي
+        if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+          try {
+            const nextAccess = await loadAccessContext();
+            setAccess(nextAccess);
+            setStatus('authenticated');
+          } catch {
+            // فشل تحديث الصلاحيات — نبقي على القيم الحالية
+          }
+        }
+      });
+      unsubscribe = () => listener.subscription.unsubscribe();
+
       const { data, error: sessionError } = await supabase.auth.getSession();
       if (!active) return;
       if (sessionError) {
@@ -81,26 +103,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setError(safeErrorMessage(accessError));
         setStatus('anonymous');
       }
-      if (!active) return;
-      const { data: listener } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
-        setSession(nextSession);
-        if (!nextSession) {
-          setAccess(null);
-          setStatus('anonymous');
-          return;
-        }
-        // تحديث الصلاحيات عند تجديد التوكن أو تحديث المستخدم أو تسجيل دخول خارجي
-        if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'SIGNED_IN') {
-          try {
-            const nextAccess = await loadAccessContext();
-            setAccess(nextAccess);
-            setStatus('authenticated');
-          } catch {
-            // فشل تحديث الصلاحيات — نبقي على القيم الحالية
-          }
-        }
-      });
-      unsubscribe = () => listener.subscription.unsubscribe();
     }).catch((loadError: unknown) => {
       if (!active) return;
       setError(safeErrorMessage(loadError));
