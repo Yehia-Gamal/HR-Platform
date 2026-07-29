@@ -149,71 +149,8 @@ export interface LocationPoint {
   isMock: boolean;
 }
 
-// لوحة المتابعة اليومية للمدير التنفيذي
-export interface ExecutiveOverviewSummary {
-  total: number;
-  present: number;
-  late: number;
-  notYet: number;
-  onLeave: number;
-  onMission: number;
-  onConvoy: number;
-  onFundraising: number;
-  checkedOut: number;
-  absent: number;
-  activeLocationRequests: number;
-}
-
-export interface EmployeeOverviewRow {
-  id: string;
-  name: string;
-  employeeCode: string | null;
-  department: string | null;
-  jobTitle: string | null;
-  status: string;
-  managerName: string | null;
-  activeRequestStatus: string | null;
-  activeRequestId: string | null;
-  lastLatitude: number | null;
-  lastLongitude: number | null;
-  lastAccuracy: number | null;
-  lastAddressAr: string | null;
-  lastLocationAt: string | null;
-  checkInAt: string | null;
-  checkOutAt: string | null;
-}
-
-export interface ExecutiveOverviewData {
-  summary: ExecutiveOverviewSummary;
-  employees: EmployeeOverviewRow[];
-}
-
-// نتيجة طلب الموقع الحي
-export interface LocationPoint {
-  id: string;
-  latitude: number;
-  longitude: number;
-  accuracy: number | null;
-  addressAr: string | null;
-  isMock: boolean;
-}
-
-export interface LiveLocationResponseData {
-  request: {
-    status: string;
-    reason: string | null;
-    requestedAt: string | null;
-    respondedAt: string | null;
-  };
-  employee: {
-    name: string | null;
-    employeeCode: string | null;
-    jobTitle: string | null;
-    department: string | null;
-  };
-  requesterName: string | null;
-  points: LocationPoint[];
-}
+// اسم بديل — يُستخدم في useControlCenters
+export type LiveLocationResponseData = LocationRequestData;
 
 export interface IntegrationCenterData {
   integrations: Array<{
