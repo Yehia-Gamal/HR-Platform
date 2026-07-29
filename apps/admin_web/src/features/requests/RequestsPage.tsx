@@ -85,8 +85,8 @@ export function RequestsPage() {
         </div>
         {item.status === 'pending' ? <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_auto]">
           <input className="input" placeholder="ملاحظة القرار" value={reviewNotes[item.id] ?? ''} onChange={(e) => setReviewNotes((v) => ({ ...v, [item.id]: e.target.value }))} />
-          <button className="btn-primary" onClick={() => void correctionsCommands.decideCorrection.mutateAsync({ p_id: item.id, p_decision: 'approved', p_note: reviewNotes[item.id] || null }).catch(() => {})}>اعتماد</button>
-          <button className="btn-secondary" onClick={() => void correctionsCommands.decideCorrection.mutateAsync({ p_id: item.id, p_decision: 'rejected', p_note: reviewNotes[item.id] || '' }).catch(() => {})}>رفض</button>
+          <button className="btn-primary" onClick={() => void correctionsCommands.decideCorrection.mutateAsync({ p_id: item.id, p_decision: 'approved', p_note: reviewNotes[item.id] || null }).catch(() => { /* mutation error surfaced via isError */ })}>اعتماد</button>
+          <button className="btn-secondary" onClick={() => void correctionsCommands.decideCorrection.mutateAsync({ p_id: item.id, p_decision: 'rejected', p_note: reviewNotes[item.id] || '' }).catch(() => { /* mutation error surfaced via isError */ })}>رفض</button>
         </div> : null}
       </article>)}</div>}
     </section> : <>

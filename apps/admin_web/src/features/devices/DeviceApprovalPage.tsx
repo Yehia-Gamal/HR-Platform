@@ -154,7 +154,6 @@ function PendingDevicesPanel() {
             </div>
           ) : null}
           {approve.isError ? <div className="mt-3"><ErrorBanner message={approve.error instanceof Error ? approve.error.message : 'تعذّر تنفيذ الإجراء'} /></div> : null}
-          {approve.isError ? <div className="mt-3"><ErrorBanner message={approve.error instanceof Error ? approve.error.message : 'تعذّر تنفيذ الإجراء'} /></div> : null}
           <div className="mt-4 flex gap-2 justify-end">
             <button type="button" className="btn-secondary" onClick={() => setConfirmAction(null)}>إلغاء</button>
             <button
