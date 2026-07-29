@@ -206,26 +206,25 @@ Deno.serve(async (req) => {
           .eq('id', run.scheduled_report_id)
           .maybeSingle();
         if (schedule?.created_by) {
-          await supabase.from('notifications').insert({
-            user_id: schedule.created_by,
+          const { data: notifRows } = await supabase.from('notifications').insert({
+            recipient_user_id: schedule.created_by,
             title: `تقرير جاهز: ${schedule.name_ar ?? run.report_type}`,
             body: `تم إعداد التقرير بنجاح في ${summary.generatedAt.slice(0, 16).replace('T', ' ')}`,
-            category: 'report',
+            category: 'system',
             priority: 'normal',
             entity_type: 'report_run',
             entity_id: run.id,
-          }).then(({ data: notif }) => {
-            if (notif) {
-              return supabase.from('notification_jobs').insert({
-                notification_id: (notif as { id: string }).id,
-                recipient_user_id: schedule.created_by,
-                channel: 'in_app',
-                status: 'sent',
-                sent_at: new Date().toISOString(),
-                idempotency_key: `report-run:${run.id}:in_app`,
-              });
-            }
-          });
+          }).select('id').maybeSingle();
+          if (notifRows?.id) {
+            await supabase.from('notification_jobs').insert({
+              notification_id: notifRows.id,
+              recipient_user_id: schedule.created_by,
+              channel: 'in_app',
+              status: 'sent',
+              sent_at: new Date().toISOString(),
+              idempotency_key: `report-run:${run.id}:in_app`,
+            });
+          }
         }
       }
       completed += 1;
