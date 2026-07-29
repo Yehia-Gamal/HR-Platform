@@ -70,18 +70,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return;
       }
       setSession(data.session);
-      if (!data.session) {
-        setStatus('anonymous');
-        return;
-      }
-      try {
-        setAccess(await loadAccessContext());
-        setStatus('authenticated');
-      } catch (accessError) {
-        setError(safeErrorMessage(accessError));
+      if (data.session) {
+        try {
+          setAccess(await loadAccessContext());
+          setStatus('authenticated');
+        } catch (accessError) {
+          setError(safeErrorMessage(accessError));
+          setStatus('anonymous');
+        }
+      } else {
         setStatus('anonymous');
       }
       if (!active) return;
+      // تسجيل المستمع دائمًا — حتى لو بدأ المستخدم بدون جلسة (تسجيل دخول لاحق)
       const { data: listener } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
         setSession(nextSession);
         if (!nextSession) {
