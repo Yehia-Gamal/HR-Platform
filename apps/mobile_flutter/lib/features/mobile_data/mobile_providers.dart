@@ -813,29 +813,32 @@ class MobileCommands {
 
   Future<void> registerLocalBiometricDevice() async {
     final localAuth = LocalAuthentication();
-    final supported = await localAuth.isDeviceSupported() &&
-        await localAuth.canCheckBiometrics;
-    if (!supported) {
-      throw StateError('الجهاز لا يدعم بصمة محلية مفعلة. فعّل البصمة وقفل الشاشة أولاً.');
+    final canCheck = await localAuth.canCheckBiometrics;
+    final isSupported = await localAuth.isDeviceSupported();
+    if (!canCheck && !isSupported) {
+      throw StateError('الجهاز لا يدعم البصمة أو قفل الشاشة الآمن. فعّل قفل الشاشة أولاً.');
     }
-    // فحص وجود بصمات مسجلة على الجهاز.
-    final available = await localAuth.getAvailableBiometrics();
-    if (available.isEmpty) {
-      throw StateError(
-        'لا توجد بصمة مسجلة على الجهاز. أضف بصمة من إعدادات الأمان ثم أعد المحاولة.',
-      );
+    // تحقق من توفر بصمة فعلية — إذا لم تتوفر يُسمح بقفل الشاشة كبديل.
+    bool hasBiometrics = false;
+    if (canCheck) {
+      final available = await localAuth.getAvailableBiometrics();
+      hasBiometrics = available.isNotEmpty;
     }
-    // تحقق فعلي من البصمة — يظهر نافذة البصمة للمستخدم.
+    // تحقق فعلي — بصمة إذا متوفرة، وإلا قفل الشاشة (PIN/نمط).
     final didAuthenticate = await localAuth.authenticate(
-      localizedReason: 'تأكيد تسجيل البصمة لنظام الحضور',
-      options: const AuthenticationOptions(
+      localizedReason: hasBiometrics
+          ? 'تأكيد تسجيل البصمة لنظام الحضور'
+          : 'تأكيد تسجيل قفل الشاشة لنظام الحضور',
+      options: AuthenticationOptions(
         stickyAuth: true,
-        biometricOnly: true,
+        biometricOnly: hasBiometrics,
         useErrorDialogs: true,
       ),
     );
     if (!didAuthenticate) {
-      throw StateError('تم إلغاء التحقق بالبصمة. لم يتم التسجيل.');
+      throw StateError(hasBiometrics
+          ? 'تم إلغاء التحقق بالبصمة. لم يتم التسجيل.'
+          : 'تم إلغاء التحقق بقفل الشاشة. لم يتم التسجيل.');
     }
     ref.invalidate(deviceRegistrationProvider);
     await ref.read(deviceRegistrationProvider.future);
