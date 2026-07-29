@@ -367,6 +367,7 @@ class KpiEvaluationForm {
     this.hrCompleted = false,
     this.managerCompleted = false,
     this.version = 1,
+    this.relation,
   });
   factory KpiEvaluationForm.fromJson(Map<String, dynamic> json) =>
       KpiEvaluationForm(
@@ -440,6 +441,8 @@ class KpiEvaluationForm {
   final bool hrCompleted;
   final bool managerCompleted;
   final int version;
+  /// 0204: relation — self/team/review
+  final String? relation;
 }
 
 class AttendanceState {
