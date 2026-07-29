@@ -25,8 +25,10 @@ export function ReportSchedulerPage() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    await commands.upsert.mutateAsync(draft);
-    setOpen(false);
+    try {
+      await commands.upsert.mutateAsync(draft);
+      setOpen(false);
+    } catch { /* mutation error surfaced via ErrorBanner */ }
   }
 
   const data = query.data;
