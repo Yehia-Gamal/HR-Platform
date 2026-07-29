@@ -37,9 +37,9 @@ describe('useNotifications — filter logic & schema validation', () => {
 
   describe('web notification filter logic', () => {
     // Recreate the filter from useNotifications.ts line 59
-    const filterForWeb = (items: Array<{ entityType: string }>) =>
+    const filterForWeb = (items: Array<{ entityType?: string | null }>) =>
       items.filter(
-        (n) => !MOBILE_ONLY_ENTITY_TYPES.includes(n.entityType as typeof MOBILE_ONLY_ENTITY_TYPES[number]),
+        (n) => !n.entityType || !MOBILE_ONLY_ENTITY_TYPES.includes(n.entityType as typeof MOBILE_ONLY_ENTITY_TYPES[number]),
       );
 
     it('passes through non-mobile entity types', () => {
