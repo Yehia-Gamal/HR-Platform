@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getSupabase } from '../../core/supabase';
 import { useAuth } from '../auth/AuthProvider';
+import { loadDomainMocks } from '../mock/loadDomainMocks';
 
 type Option = { id: string; label: string; parentId?: string | null };
 export interface OrganizationLookups {
@@ -15,16 +16,11 @@ export interface OrganizationLookups {
   grades: Option[];
   employmentTypes: Option[];
 }
-const mock: OrganizationLookups = {
-  roles: [{ id: 'role-employee', slug: 'employee', label: 'موظف' }, { id: 'role-manager', slug: 'direct-manager', label: 'مدير مباشر' }, { id: 'role-hr', slug: 'hr-specialist', label: 'HR Specialist' }],
-  managers: [{ id: '30000000-0000-4000-8000-000000000002', label: 'مدير مباشر تجريبي · EMP-002' }],
-  branches: [], workSites: [], departments: [], teams: [], jobTitles: [], positions: [], grades: [], employmentTypes: [],
-};
 const option = (row: Record<string, unknown>, parentKey?: string): Option => ({ id: String(row.id), label: String(row.name ?? row.full_name_ar ?? row.code ?? '—'), parentId: parentKey ? (row[parentKey] as string | null | undefined) : undefined });
 export function useOrganizationLookups() {
   const auth = useAuth();
   return useQuery({ queryKey: ['organization-lookups', auth.isMock], enabled: auth.status === 'authenticated', staleTime: 5 * 60_000, queryFn: async (): Promise<OrganizationLookups> => {
-    if (auth.isMock) return mock;
+    if (auth.isMock) return (await loadDomainMocks()).mockOrganizationLookups;
     const supabase = await getSupabase();
     const [roles, employees, branches, sites, departments, teams, titles, positions, grades, employmentTypes] = await Promise.all([
       supabase.from('roles').select('id,slug,name_ar,is_full_access,is_capability').order('name_ar'),

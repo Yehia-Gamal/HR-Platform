@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSupabase } from '../../core/supabase';
 import { useAuth } from '../auth/AuthProvider';
+import { loadDomainMocks } from '../mock/loadDomainMocks';
 
 export interface Holiday {
   id: string;
@@ -21,32 +22,13 @@ export interface Holiday {
 
 const QUERY_KEY = ['official-holidays'];
 
-const mockHolidays: Holiday[] = [
-  {
-    id: '00000000-0000-4000-8000-000000000001',
-    name: 'عيد الفطر',
-    name_en: 'Eid Al-Fitr',
-    holiday_date: '2026-03-31',
-    end_date: '2026-04-02',
-    scope: 'all',
-    legal_entity_id: null,
-    department_id: null,
-    excluded_department_ids: [],
-    notes: null,
-    is_recurring: true,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    created_by: null,
-  },
-];
-
 export function useHolidays(year?: number) {
   const auth = useAuth();
   return useQuery({
     queryKey: [...QUERY_KEY, year, auth.isMock],
     enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<Holiday[]> => {
-      if (auth.isMock) return mockHolidays;
+      if (auth.isMock) return (await loadDomainMocks()).mockHolidays;
 
       const supabase = await getSupabase();
       let query = supabase
