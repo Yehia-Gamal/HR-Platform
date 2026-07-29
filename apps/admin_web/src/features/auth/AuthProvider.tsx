@@ -7,6 +7,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { env, hasSupabaseConfig } from '../../core/env';
@@ -40,6 +41,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [access, setAccess] = useState<AccessContext | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isMock, setIsMock] = useState(false);
+  // يمنع المستمع من إعادة تحميل الصلاحيات أثناء signIn() — لأنها تحمّلها بنفسها
+  const signingInRef = useRef(false);
 
   const refreshAccess = useCallback(async () => {
     if (isMock) return;
@@ -90,6 +93,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
           setStatus('anonymous');
           return;
         }
+        // signIn() تحمّل الصلاحيات بنفسها — نتجاهل SIGNED_IN الصادر من setSession
+        if (event === 'SIGNED_IN' && signingInRef.current) return;
         // تحديث الصلاحيات عند تجديد التوكن أو تحديث المستخدم أو تسجيل دخول خارجي
         if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'SIGNED_IN') {
           try {
@@ -97,7 +102,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
             setAccess(nextAccess);
             setStatus('authenticated');
           } catch {
-            // فشل تحديث الصلاحيات — نبقي على القيم الحالية
+            // فشل تحميل الصلاحيات — نمسح السياق الحالي حتى لا تبقى صلاحيات ملغية
+            setAccess(null);
+            setStatus('anonymous');
           }
         }
       });
@@ -145,11 +152,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setStatus('anonymous');
       throw new Error(message);
     }
+    // نمنع المستمع من إطلاق loadAccessContext مرة ثانية أثناء signIn
+    signingInRef.current = true;
     const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
       access_token: payload.access_token,
       refresh_token: payload.refresh_token,
     });
     if (sessionError || !sessionData.session) {
+      signingInRef.current = false;
       const message = 'تعذر إنشاء جلسة آمنة. حاول مرة أخرى.';
       setError(message);
       setStatus('anonymous');
@@ -168,6 +178,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setError(message);
       setStatus('anonymous');
       throw new Error(message);
+    } finally {
+      signingInRef.current = false;
     }
   }, []);
 
