@@ -1,6 +1,6 @@
 import { kpiEvaluationFormSchema, kpiEvaluationSummarySchema, type KpiEvaluationSummary } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getSupabase } from '../../core/supabase';
+import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
 import { loadDomainMocks } from '../mock/loadDomainMocks';
 
@@ -11,9 +11,7 @@ export function usePerformance() {
     enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<KpiEvaluationSummary[]> => {
       if (auth.isMock) return (await loadDomainMocks()).mockKpiEvaluations;
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('get_kpi_inbox', { p_limit: 100 });
-      if (error) throw error;
+      const data = await rpc('get_kpi_inbox', { p_limit: 100 });
       return kpiEvaluationSummarySchema.array().parse(data ?? []);
     },
   });
@@ -26,10 +24,7 @@ export function useAdvanceKpi() {
   return useMutation({
     mutationFn: async ({ evaluationId, action, note, scores }: { evaluationId: string; action: string; note: string; scores?: Array<{ criterion_id: string; score: number; note: string }> }) => {
       if (auth.isMock) return { evaluationId, action };
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('advance_kpi_stage', { p_evaluation_id: evaluationId, p_action: action, p_scores: scores ?? null, p_note: note || null });
-      if (error) throw error;
-      return data;
+      return rpc('advance_kpi_stage', { p_evaluation_id: evaluationId, p_action: action, p_scores: scores ?? null, p_note: note || null });
     },
     onSuccess: () => Promise.all([
       client.invalidateQueries({ queryKey: ['kpi-evaluations'] }),
@@ -44,9 +39,7 @@ export function useKpiEvaluationForm(evaluationId: string | null) {
     queryKey: ['kpi-evaluation-form', evaluationId, auth.isMock],
     enabled: auth.status === 'authenticated' && Boolean(evaluationId) && !auth.isMock,
     queryFn: async () => {
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('get_kpi_evaluation_form', { p_evaluation_id: evaluationId! });
-      if (error) throw error;
+      const data = await rpc('get_kpi_evaluation_form', { p_evaluation_id: evaluationId! });
       return kpiEvaluationFormSchema.parse(data);
     },
   });
@@ -63,10 +56,7 @@ export function useKpiFormCommands(evaluationId: string) {
   const call = (name: string) => useMutation({
     mutationFn: async (params: Record<string, unknown>) => {
       if (auth.isMock) return params;
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc(name, params);
-      if (error) throw error;
-      return data;
+      return rpc(name, params);
     },
     onSuccess: refresh,
   });

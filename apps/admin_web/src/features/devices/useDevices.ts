@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getSupabase } from '../../core/supabase';
+import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
 
 export interface PendingDevice {
@@ -41,10 +41,7 @@ export function useDeviceApprovals() {
     enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<PendingDevice[]> => {
       if (auth.isMock) return [];
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('get_pending_devices_admin');
-      if (error) throw error;
-      return (data as PendingDevice[]) ?? [];
+      return (await rpc<PendingDevice[]>('get_pending_devices_admin')) ?? [];
     },
   });
 }
@@ -53,14 +50,11 @@ export function useApproveDevice() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ deviceId, approved, reason }: { deviceId: string; approved: boolean; reason?: string }) => {
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('approve_device', {
+      return rpc('approve_device', {
         p_device_id: deviceId,
         p_approved: approved,
         p_reason: reason ?? null,
       });
-      if (error) throw error;
-      return data;
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['device-approvals'] });
@@ -76,12 +70,9 @@ export function useAllDevices(status?: string) {
     enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<AdminDevice[]> => {
       if (auth.isMock) return [];
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('get_all_devices_admin', {
+      return (await rpc<AdminDevice[]>('get_all_devices_admin', {
         p_status_filter: status ?? null,
-      });
-      if (error) throw error;
-      return (data as AdminDevice[]) ?? [];
+      })) ?? [];
     },
   });
 }
@@ -90,13 +81,10 @@ export function useRevokeDevice() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ deviceId, reason }: { deviceId: string; reason?: string }) => {
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('admin_revoke_device', {
+      return rpc('admin_revoke_device', {
         p_device_id: deviceId,
         p_reason: reason ?? null,
       });
-      if (error) throw error;
-      return data;
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['device-approvals'] });

@@ -2,6 +2,7 @@ import { notificationItemSchema, MOBILE_ONLY_ENTITY_TYPES, type NotificationItem
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { getSupabase } from '../../core/supabase';
+import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
 import { loadDomainMocks } from '../mock/loadDomainMocks';
 
@@ -51,9 +52,7 @@ export function useNotifications() {
     queryKey: ['my-notifications', auth.isMock], enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<NotificationItem[]> => {
       if (auth.isMock) return notificationItemSchema.array().parse((await loadDomainMocks()).mockNotifications);
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('get_my_notifications', { p_limit: 100 });
-      if (error) throw error;
+      const data = await rpc('get_my_notifications', { p_limit: 100 });
       const all = notificationItemSchema.array().parse(data ?? []);
       // فلترة: لوحة الإدارة لا تعرض إشعارات الموبايل الشخصية (تذكير حضور، طلب موقع).
       return all.filter((n) => !MOBILE_ONLY_ENTITY_TYPES.includes(n.entityType as typeof MOBILE_ONLY_ENTITY_TYPES[number]));
@@ -67,9 +66,7 @@ export function useMarkNotificationsRead() {
   return useMutation({
     mutationFn: async (ids?: string[]) => {
       if (auth.isMock) return ids?.length ?? (await loadDomainMocks()).mockNotifications.filter((x) => !x.isRead).length;
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('mark_my_notifications_read', { p_ids: ids ?? null });
-      if (error) throw error;
+      const data = await rpc('mark_my_notifications_read', { p_ids: ids ?? null });
       return Number(data ?? 0);
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['my-notifications'] }),

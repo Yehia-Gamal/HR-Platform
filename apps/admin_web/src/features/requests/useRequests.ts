@@ -6,7 +6,6 @@ import {
   type WorkAssignment,
 } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getSupabase } from '../../core/supabase';
 import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
 import { loadDomainMocks } from '../mock/loadDomainMocks';
@@ -20,9 +19,7 @@ export function useRequests() {
     enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<RequestSummary[]> => {
       if (auth.isMock) return (await loadDomainMocks()).mockRequests;
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('get_request_inbox', { p_limit: 100 });
-      if (error) throw error;
+      const data = await rpc('get_request_inbox', { p_limit: 100 });
       return requestSummarySchema.array().parse(data ?? []);
     },
   });
@@ -34,10 +31,7 @@ export function useRequestDecision() {
   return useMutation({
     mutationFn: async ({ requestId, decision, comment }: { requestId: string; decision: Decision; comment: string }) => {
       if (auth.isMock) return { id: requestId, decision };
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('decide_request', { p_request_id: requestId, p_decision: decision, p_comment: comment || null });
-      if (error) throw error;
-      return data;
+      return rpc('decide_request', { p_request_id: requestId, p_decision: decision, p_comment: comment || null });
     },
     onSuccess: () => Promise.all([
       client.invalidateQueries({ queryKey: ['requests'] }),
@@ -53,9 +47,7 @@ export function useMyLeaveBalances(year = new Date().getFullYear()) {
     enabled: auth.status === 'authenticated',
     queryFn: async () => {
       if (auth.isMock) return (await loadDomainMocks()).mockLeaveBalances;
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('get_my_leave_balances', { p_year: year });
-      if (error) throw error;
+      const data = await rpc<Record<string, unknown>[]>('get_my_leave_balances', { p_year: year });
       return leaveBalanceSchema.array().parse((data ?? []).map((row: Record<string, unknown>) => ({
         leaveTypeId: row.leave_type_id,
         code: row.code,
@@ -77,9 +69,7 @@ export function useWorkAssignments(scope: 'mine' | 'team' = 'team') {
     enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<WorkAssignment[]> => {
       if (auth.isMock) return [];
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('get_work_assignments_inbox', { p_scope: scope, p_limit: 100 });
-      if (error) throw error;
+      const data = await rpc<Record<string, unknown>[]>('get_work_assignments_inbox', { p_scope: scope, p_limit: 100 });
       return workAssignmentSchema.array().parse((data ?? []).map((row: Record<string, unknown>) => ({
         id: row.id,
         assignmentNumber: Number(row.assignment_number ?? 0),

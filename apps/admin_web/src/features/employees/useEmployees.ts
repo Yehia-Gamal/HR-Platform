@@ -1,6 +1,6 @@
 import { employee360Schema, employeeSummarySchema, type Employee360, type EmployeeSummary } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getSupabase } from '../../core/supabase';
+import { rpc } from '../../core/rpc';
 import { invokeEdgeFunction } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
 import { loadDomainMocks } from '../mock/loadDomainMocks';
@@ -13,14 +13,12 @@ export function useEmployees(search?: string, status?: string) {
     queryFn: async (): Promise<EmployeeSummary[]> => {
       if (auth.isMock) return (await loadDomainMocks()).mockDevelopmentEmployees;
 
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('get_employees_enriched', {
+      const data = await rpc('get_employees_enriched', {
         p_search: search?.trim() || null,
         p_status: status && status !== 'all' ? status : null,
         p_limit: 500,
       });
 
-      if (error) throw error;
       const rows = Array.isArray(data) ? data : [];
       return rows.map((row: Record<string, unknown>) => employeeSummarySchema.parse(row));
     },
@@ -63,9 +61,7 @@ export function useEmployee360(employeeId: string | undefined) {
           lastUpdatedAt: new Date().toISOString(),
         });
       }
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('get_employee_360', { p_employee_id: employeeId });
-      if (error) throw error;
+      const data = await rpc('get_employee_360', { p_employee_id: employeeId });
       return employee360Schema.parse(data);
     },
   });
@@ -107,13 +103,11 @@ export function useChangeManager() {
   return useMutation({
     mutationFn: async ({ employeeId, managerId, reason }: { employeeId: string; managerId: string | null; reason: string }): Promise<void> => {
       if (auth.isMock) return;
-      const supabase = await getSupabase();
-      const { error } = await supabase.rpc('change_employee_manager_admin', {
+      await rpc('change_employee_manager_admin', {
         p_employee_id: employeeId,
         p_manager_id: managerId,
         p_reason: reason,
       });
-      if (error) throw error;
     },
     onSuccess: () => client.invalidateQueries({ queryKey: ['employees'] }),
   });
@@ -125,13 +119,11 @@ export function useUpdateEmployee() {
   return useMutation({
     mutationFn: async ({ employeeId, changes, reason }: { employeeId: string; changes: Record<string, unknown>; reason: string }): Promise<void> => {
       if (auth.isMock) return;
-      const supabase = await getSupabase();
-      const { error } = await supabase.rpc('update_employee_admin', {
+      await rpc('update_employee_admin', {
         p_employee_id: employeeId,
         p_changes: changes,
         p_reason: reason,
       });
-      if (error) throw error;
     },
     onSuccess: async () => {
       await Promise.all([
@@ -148,12 +140,10 @@ export function useArchiveEmployee() {
   return useMutation({
     mutationFn: async ({ employeeId, reason }: { employeeId: string; reason: string }): Promise<void> => {
       if (auth.isMock) return;
-      const supabase = await getSupabase();
-      const { error } = await supabase.rpc('archive_employee_secure', {
+      await rpc('archive_employee_secure', {
         p_employee_id: employeeId,
         p_reason: reason,
       });
-      if (error) throw error;
     },
     onSuccess: async () => {
       await Promise.all([
@@ -185,10 +175,7 @@ export function useEmployeeDepartments(employeeId: string | undefined) {
     queryFn: async (): Promise<EmployeeDepartment[]> => {
       if (!employeeId) return [];
       if (auth.isMock) return [];
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('get_employee_departments', { p_employee_id: employeeId });
-      if (error) throw error;
-      return (data as EmployeeDepartment[]) ?? [];
+      return (await rpc<EmployeeDepartment[]>('get_employee_departments', { p_employee_id: employeeId })) ?? [];
     },
   });
 }
@@ -199,16 +186,13 @@ export function useAssignDepartment() {
   return useMutation({
     mutationFn: async (params: { employeeId: string; departmentId: string; jobTitle?: string; isPrimary?: boolean; note?: string }): Promise<string> => {
       if (auth.isMock) return 'mock-id';
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('assign_employee_department', {
+      return await rpc<string>('assign_employee_department', {
         p_employee_id: params.employeeId,
         p_department_id: params.departmentId,
         p_job_title: params.jobTitle ?? null,
         p_is_primary: params.isPrimary ?? false,
         p_note: params.note ?? null,
       });
-      if (error) throw error;
-      return data as string;
     },
     onSuccess: async () => {
       await Promise.all([
@@ -226,12 +210,10 @@ export function useRemoveDepartment() {
   return useMutation({
     mutationFn: async (params: { employeeId: string; departmentId: string }): Promise<void> => {
       if (auth.isMock) return;
-      const supabase = await getSupabase();
-      const { error } = await supabase.rpc('remove_employee_department', {
+      await rpc('remove_employee_department', {
         p_employee_id: params.employeeId,
         p_department_id: params.departmentId,
       });
-      if (error) throw error;
     },
     onSuccess: async () => {
       await Promise.all([
@@ -253,13 +235,11 @@ export function useDeleteEmployee() {
   return useMutation({
     mutationFn: async ({ employeeId, confirmationCode, reason }: { employeeId: string; confirmationCode: string; reason: string }): Promise<void> => {
       if (auth.isMock) return;
-      const supabase = await getSupabase();
-      const { error } = await supabase.rpc('hard_delete_employee_guarded', {
+      await rpc('hard_delete_employee_guarded', {
         p_employee_id: employeeId,
         p_confirmation_code: confirmationCode,
         p_reason: reason,
       });
-      if (error) throw error;
     },
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: ['employees'] });

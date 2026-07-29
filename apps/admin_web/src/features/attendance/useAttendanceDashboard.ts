@@ -1,6 +1,6 @@
 import { attendanceDashboardSchema, type AttendanceDashboard } from '@ahla/shared-contracts';
 import { useQuery } from '@tanstack/react-query';
-import { getSupabase } from '../../core/supabase';
+import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
 import { loadDomainMocks } from '../mock/loadDomainMocks';
 
@@ -12,9 +12,7 @@ export function useAttendanceDashboard() {
     refetchInterval: auth.isMock ? false : 60_000,
     queryFn: async (): Promise<AttendanceDashboard> => {
       if (auth.isMock) return (await loadDomainMocks()).mockAttendanceDashboard;
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.rpc('get_attendance_dashboard', { p_date: new Date().toISOString().slice(0, 10) });
-      if (error) throw error;
+      const data = await rpc('get_attendance_dashboard', { p_date: new Date().toISOString().slice(0, 10) });
       return attendanceDashboardSchema.parse(data);
     },
   });
