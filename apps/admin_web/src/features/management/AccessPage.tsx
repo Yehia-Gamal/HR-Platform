@@ -77,11 +77,7 @@ export function AccessPage() {
   const [viewRole, setViewRole] = useState<string | null>(null);
   const [customDraft, setCustomDraft] = useState<RoleDraft | null>(null);
   const [assignment, setAssignment] = useState({ userId: '', roleId: '', effectiveTo: '' });
-  const [moduleFilter, setModuleFilter] = useState('all');
-  const [permSearch, setPermSearch] = useState('');
   const data = query.data;
-
-  const modules = useMemo(() => [...new Set((data?.permissions ?? []).map((p) => p.module))].sort(), [data]);
 
   // مطابقة قوالب الأدوار مع البيانات الحقيقية
   const templateRoles = useMemo(() => {
@@ -110,22 +106,6 @@ export function AccessPage() {
     } else {
       setCustomDraft({ slug: '', name: '', nameEn: '', description: '', fullAccess: false, selected: {} });
     }
-  }
-
-  async function saveRole(event: FormEvent) {
-    event.preventDefault();
-    if (!customDraft) return;
-    try {
-      const result = await commands.upsertRole.mutateAsync({ id: customDraft.id, slug: customDraft.slug, name: customDraft.name, nameEn: customDraft.nameEn || null, description: customDraft.description || null, fullAccess: customDraft.fullAccess });
-      const roleId = String((result as { id?: string })?.id ?? customDraft.id ?? '');
-      if (roleId) {
-        await commands.setPermissions.mutateAsync({
-          roleId,
-          items: Object.entries(customDraft.selected).map(([permission_id, v]) => ({ permission_id, scope: v.scope, requires_mfa: v.mfa, requires_reason: v.reason })),
-        });
-      }
-      setCustomDraft(null);
-    } catch { /* mutation error surfaced via mutation.isError state */ }
   }
 
   async function assign(event: FormEvent) {
@@ -237,67 +217,7 @@ export function AccessPage() {
     {selectedRole && data && <RoleManagementDialog role={selectedRole} data={data} commands={commands} onClose={() => setViewRole(null)} />}
 
     {/* ── حوار إنشاء / تعديل دور مخصص ── */}
-    {customDraft && data && <DialogOverlay title={customDraft.id ? 'تعديل الدور' : 'إنشاء دور مخصص'} onClose={() => setCustomDraft(null)} maxWidth="max-w-5xl">
-      <form className="space-y-5" onSubmit={(e) => void saveRole(e)}>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormInput label="Slug" required value={customDraft.slug} disabled={Boolean(customDraft.id)} onChange={(v) => setCustomDraft({ ...customDraft, slug: v.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}/>
-          <FormInput label="الاسم العربي" required value={customDraft.name} onChange={(v) => setCustomDraft({ ...customDraft, name: v })}/>
-          <FormInput label="الاسم الإنجليزي" value={customDraft.nameEn} onChange={(v) => setCustomDraft({ ...customDraft, nameEn: v })}/>
-          <FormInput label="الوصف" value={customDraft.description} onChange={(v) => setCustomDraft({ ...customDraft, description: v })}/>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[var(--border)] py-4">
-          <h3 className="font-black">الصلاحيات</h3>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative">
-              <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]"/>
-              <input className="input pe-9" placeholder="بحث…" value={permSearch} onChange={(e) => setPermSearch(e.target.value)}/>
-            </div>
-            <select aria-label="تصفية حسب الوحدة" className="input max-w-xs" value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)}>
-              <option value="all">كل الوحدات</option>
-              {modules.map((m) => <option key={m} value={m}>{MODULE_AR[m] ?? m}</option>)}
-            </select>
-            <p className="muted text-xs" aria-live="polite">{Object.keys(customDraft.selected).length} محددة</p>
-          </div>
-        </div>
-
-        <div className="max-h-[52vh] space-y-2 overflow-y-auto pe-1">
-          {data.permissions
-            .filter((p) => moduleFilter === 'all' || p.module === moduleFilter)
-            .filter((p) => !permSearch || (p.nameAr ?? p.name ?? p.code).includes(permSearch) || p.code.includes(permSearch))
-            .map((permission) => {
-              const selected = customDraft.selected[permission.id];
-              return <article key={permission.id} className="rounded-xl border border-[var(--border)] p-4">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                  <label className="flex items-start gap-3">
-                    <input className="mt-1 size-4" type="checkbox" checked={Boolean(selected)} onChange={(e) => {
-                      const next = { ...customDraft.selected };
-                      if (e.target.checked) next[permission.id] = { scope: permission.allowedScopes[0] ?? 'self', mfa: permission.sensitive, reason: permission.sensitive };
-                      else delete next[permission.id];
-                      setCustomDraft({ ...customDraft, selected: next });
-                    }}/>
-                    <span>
-                      <strong>{permission.nameAr ?? permission.name}</strong>
-                      <span className="muted mt-1 block font-mono text-xs">{permission.code}</span>
-                    </span>
-                  </label>
-                  {selected && <div className="flex flex-wrap gap-2">
-                    <select className="input w-52" value={selected.scope} onChange={(e) => setCustomDraft({ ...customDraft, selected: { ...customDraft.selected, [permission.id]: { ...selected, scope: e.target.value } } })}>
-                      {(permission.allowedScopes.length ? permission.allowedScopes : scopes).map((s) => <option key={s} value={s}>{SCOPE_AR[s] ?? s}</option>)}
-                    </select>
-                    <Flag checked={selected.mfa} label="MFA" onChange={(mfa) => setCustomDraft({ ...customDraft, selected: { ...customDraft.selected, [permission.id]: { ...selected, mfa } } })}/>
-                    <Flag checked={selected.reason} label="سبب" onChange={(reason) => setCustomDraft({ ...customDraft, selected: { ...customDraft.selected, [permission.id]: { ...selected, reason } } })}/>
-                  </div>}
-                </div>
-              </article>;
-            })}
-        </div>
-
-        <button className="btn-primary" disabled={commands.upsertRole.isPending || commands.setPermissions.isPending}>
-          <Save className="size-4" aria-hidden="true"/>{commands.upsertRole.isPending || commands.setPermissions.isPending ? 'جارٍ الحفظ…' : 'حفظ الدور والصلاحيات'}
-        </button>
-      </form>
-    </DialogOverlay>}
+    {customDraft && data && <CustomRoleDraftDialog initialDraft={customDraft} data={data} commands={commands} onClose={() => setCustomDraft(null)} />}
   </div>;
 }
 
@@ -525,6 +445,98 @@ function RoleManagementDialog({ role, data, commands, onClose }: {
 }
 
 // ─── مكونات مساعدة ──────────────────────────────────────────────────────────
+
+// ─── حوار إنشاء / تعديل دور مخصص ──────────────────────────────────────────
+function CustomRoleDraftDialog({ initialDraft, data, commands, onClose }: {
+  initialDraft: RoleDraft;
+  data: AccessAdminCatalog;
+  commands: AccessCommands;
+  onClose: () => void;
+}) {
+  const [draft, setDraft] = useState<RoleDraft>(initialDraft);
+  const [moduleFilter, setModuleFilter] = useState('all');
+  const [permSearch, setPermSearch] = useState('');
+
+  const modules = useMemo(() => [...new Set((data.permissions ?? []).map((p) => p.module))].sort(), [data]);
+
+  async function saveRole(event: FormEvent) {
+    event.preventDefault();
+    try {
+      const result = await commands.upsertRole.mutateAsync({ id: draft.id, slug: draft.slug, name: draft.name, nameEn: draft.nameEn || null, description: draft.description || null, fullAccess: draft.fullAccess });
+      const roleId = String((result as { id?: string })?.id ?? draft.id ?? '');
+      if (roleId) {
+        await commands.setPermissions.mutateAsync({
+          roleId,
+          items: Object.entries(draft.selected).map(([permission_id, v]) => ({ permission_id, scope: v.scope, requires_mfa: v.mfa, requires_reason: v.reason })),
+        });
+      }
+      onClose();
+    } catch { /* mutation error surfaced via mutation.isError state */ }
+  }
+
+  return <DialogOverlay title={draft.id ? 'تعديل الدور' : 'إنشاء دور مخصص'} onClose={onClose} maxWidth="max-w-5xl">
+    <form className="space-y-5" onSubmit={(e) => void saveRole(e)}>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormInput label="Slug" required value={draft.slug} disabled={Boolean(draft.id)} onChange={(v) => setDraft({ ...draft, slug: v.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}/>
+        <FormInput label="الاسم العربي" required value={draft.name} onChange={(v) => setDraft({ ...draft, name: v })}/>
+        <FormInput label="الاسم الإنجليزي" value={draft.nameEn} onChange={(v) => setDraft({ ...draft, nameEn: v })}/>
+        <FormInput label="الوصف" value={draft.description} onChange={(v) => setDraft({ ...draft, description: v })}/>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[var(--border)] py-4">
+        <h3 className="font-black">الصلاحيات</h3>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative">
+            <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]"/>
+            <input className="input pe-9" placeholder="بحث…" value={permSearch} onChange={(e) => setPermSearch(e.target.value)}/>
+          </div>
+          <select aria-label="تصفية حسب الوحدة" className="input max-w-xs" value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)}>
+            <option value="all">كل الوحدات</option>
+            {modules.map((m) => <option key={m} value={m}>{MODULE_AR[m] ?? m}</option>)}
+          </select>
+          <p className="muted text-xs" aria-live="polite">{Object.keys(draft.selected).length} محددة</p>
+        </div>
+      </div>
+
+      <div className="max-h-[52vh] space-y-2 overflow-y-auto pe-1">
+        {data.permissions
+          .filter((p) => moduleFilter === 'all' || p.module === moduleFilter)
+          .filter((p) => !permSearch || (p.nameAr ?? p.name ?? p.code).includes(permSearch) || p.code.includes(permSearch))
+          .map((permission) => {
+            const selected = draft.selected[permission.id];
+            return <article key={permission.id} className="rounded-xl border border-[var(--border)] p-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <label className="flex items-start gap-3">
+                  <input className="mt-1 size-4" type="checkbox" checked={Boolean(selected)} onChange={(e) => {
+                    const next = { ...draft.selected };
+                    if (e.target.checked) next[permission.id] = { scope: permission.allowedScopes[0] ?? 'self', mfa: permission.sensitive, reason: permission.sensitive };
+                    else delete next[permission.id];
+                    setDraft({ ...draft, selected: next });
+                  }}/>
+                  <span>
+                    <strong>{permission.nameAr ?? permission.name}</strong>
+                    <span className="muted mt-1 block font-mono text-xs">{permission.code}</span>
+                  </span>
+                </label>
+                {selected && <div className="flex flex-wrap gap-2">
+                  <select className="input w-52" value={selected.scope} onChange={(e) => setDraft({ ...draft, selected: { ...draft.selected, [permission.id]: { ...selected, scope: e.target.value } } })}>
+                    {(permission.allowedScopes.length ? permission.allowedScopes : scopes).map((s) => <option key={s} value={s}>{SCOPE_AR[s] ?? s}</option>)}
+                  </select>
+                  <Flag checked={selected.mfa} label="MFA" onChange={(mfa) => setDraft({ ...draft, selected: { ...draft.selected, [permission.id]: { ...selected, mfa } } })}/>
+                  <Flag checked={selected.reason} label="سبب" onChange={(reason) => setDraft({ ...draft, selected: { ...draft.selected, [permission.id]: { ...selected, reason } } })}/>
+                </div>}
+              </div>
+            </article>;
+          })}
+      </div>
+
+      <button className="btn-primary" disabled={commands.upsertRole.isPending || commands.setPermissions.isPending}>
+        <Save className="size-4" aria-hidden="true"/>{commands.upsertRole.isPending || commands.setPermissions.isPending ? 'جارٍ الحفظ…' : 'حفظ الدور والصلاحيات'}
+      </button>
+    </form>
+  </DialogOverlay>;
+}
+
 function FormInput({ label, value, onChange, required, disabled }: { label: string; value: string; onChange: (v: string) => void; required?: boolean; disabled?: boolean }) {
   return <label><span className="mb-1.5 block text-sm font-bold">{label}</span><input className="input" required={required} disabled={disabled} value={value} onChange={(e) => onChange(e.target.value)}/></label>;
 }

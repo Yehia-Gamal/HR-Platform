@@ -100,7 +100,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.live-location-video-url]
-verify_jwt = false
+verify_jwt = true
 
 [functions.live-location-map-url]
 verify_jwt = true

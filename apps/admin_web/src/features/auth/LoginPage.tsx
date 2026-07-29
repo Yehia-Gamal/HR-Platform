@@ -7,8 +7,8 @@ import { AppLogo } from '../../ui/AppLogo';
 import { ThemeToggle } from '../../ui/ThemeToggle';
 import { env, hasSupabaseConfig } from '../../core/env';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { ErrorBanner } from '../../ui/ErrorState';
 import { useAuth } from './AuthProvider';
-
 const schema = z.object({
   identifier: z.string().trim().min(2, 'أدخل البريد أو الهاتف أو كود الموظف.'),
   password: z.string().min(8, 'كلمة المرور لا تقل عن 8 أحرف.'),
@@ -95,7 +95,7 @@ export function LoginPage() {
               <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">{mode === 'reset' ? 'أدخل بريدك الإلكتروني وسنرسل لك رابطًا لتعيين كلمة مرور جديدة.' : 'سجل الدخول بحساب المؤسسة، وسيحدد الخادم مساحة العمل المناسبة لصلاحياتك.'}</p>
             </div>
 
-            {auth.error || submitError ? <div role="alert" className="mb-4 rounded-xl border border-[var(--danger)]/30 bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{submitError ?? auth.error}</div> : null}
+            {auth.error || submitError ? <div className="mb-4"><ErrorBanner message={submitError ?? auth.error ?? ''} /></div> : null}
 
             {mode === 'reset' ? (
               resetSent ? (
@@ -106,7 +106,7 @@ export function LoginPage() {
                 </div>
               ) : (
                 <form className="space-y-4" onSubmit={onResetSubmit}>
-                  {resetError ? <div role="alert" className="rounded-xl border border-[var(--danger)]/30 bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{resetError}</div> : null}
+                  {resetError ? <ErrorBanner message={resetError} /> : null}
                   <label className="block"><span className="mb-1.5 block text-sm font-bold">البريد الإلكتروني</span><input className="input" type="email" autoComplete="email" dir="ltr" placeholder="name@example.com" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} /></label>
                   <button type="submit" disabled={resetBusy || !hasSupabaseConfig} className="btn-primary w-full !py-3.5">{resetBusy ? 'جارٍ الإرسال…' : 'إرسال رابط الاستعادة'}</button>
                   <button type="button" className="w-full text-center text-sm font-bold text-[var(--brand-primary)] hover:underline" onClick={() => { setMode('signin'); setResetError(null); }}>العودة لتسجيل الدخول</button>

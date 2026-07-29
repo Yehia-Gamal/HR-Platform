@@ -11,6 +11,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { prepareAvatarFile } from '../../ui/avatarImage';
 import { useAuth } from '../auth/AuthProvider';
+import { ErrorBanner } from '../../ui/ErrorState';
 import { useOrganizationLookups } from './useOrganizationLookups';
 
 type FormInput = z.input<typeof createEmployeeInputSchema>;
@@ -182,7 +183,7 @@ export function CreateEmployeePage() {
     <section className="mx-auto max-w-5xl"><ol className="mb-5 grid grid-cols-3 gap-2">{steps.map((label, index) => <li key={label} className={`rounded-xl border p-3 text-center text-xs font-black ${index === step ? 'border-brand bg-brand text-white' : index < step ? 'border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]' : 'border-[var(--border)] bg-[var(--surface)] muted'}`}>{index < step ? <Check className="mx-auto mb-1 size-4" aria-hidden="true" /> : <span className="mb-1 block">{index + 1}</span>}{label}</li>)}</ol>
       <form onSubmit={submit} className="card p-5 sm:p-7">
         {result ? <div className="mb-5 flex gap-2 rounded-xl border border-[var(--success)] bg-[var(--success-soft)] p-4 text-sm text-[var(--success)]"><CheckCircle2 className="size-5 shrink-0" aria-hidden="true" />{result}</div> : null}
-        {submitError ? <div role="alert" className="mb-5 rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-4 text-sm text-[var(--danger)]">{submitError}</div> : null}
+        {submitError ? <div className="mb-5"><ErrorBanner message={submitError} /></div> : null}
         {step === 0 ? <div><SectionTitle title="الهوية وحساب الدخول" description="البيانات الأساسية والصورة الشخصية ومعرف الدخول." />
           <div className="mb-6 flex items-center gap-5">
             <div className="relative size-24 shrink-0">
@@ -208,7 +209,7 @@ export function CreateEmployeePage() {
             <Field label="تاريخ التعيين" error={form.formState.errors.hireDate?.message}><input type="date" className="input" {...form.register('hireDate', { setValueAs: (v: string) => v || undefined })} /></Field>
             <label className="flex items-center gap-3 self-end rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-semibold"><input type="checkbox" className="size-4" {...form.register('sendInvite')} />إرسال دعوة تفعيل عبر البريد</label>
           </div></div> : null}
-        {step === 1 ? <div><SectionTitle title="الهيكل والوظيفة" description="تحديد الفرع وموقع العمل والمدير المباشر والمسمى الوظيفي والدرجة." />{lookups.isError ? <p role="alert" className="mb-4 rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">تعذر تحميل بيانات الهيكل: {safeErrorMessage(lookups.error)}</p> : null}
+        {step === 1 ? <div><SectionTitle title="الهيكل والوظيفة" description="تحديد الفرع وموقع العمل والمدير المباشر والمسمى الوظيفي والدرجة." />{lookups.isError ? <div className="mb-4"><ErrorBanner message={`تعذر تحميل بيانات الهيكل: ${safeErrorMessage(lookups.error)}`} /></div> : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block"><span className="mb-1.5 block text-sm font-semibold">الفرع</span><input type="text" className="input" list="create-branches" value={branchText} onChange={(e) => setBranchText(e.target.value)} placeholder="اكتب أو اختر الفرع…" /><datalist id="create-branches">{branches.map((b) => <option key={b.id} value={b.label} />)}</datalist></label>
             <SelectField label="موقع العمل" options={workSites} register={form.register('workSiteId', uuidValue)} placeholder="اختر موقع العمل" />

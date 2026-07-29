@@ -17,17 +17,9 @@ import { useCreateDecisionDraft, useOfficialFeed, usePublishAnnouncement, useTra
 
 type PublishMode = 'announcement' | 'decision';
 
-export function OfficialFeedPage() {
-  const auth = useAuth();
-  const query = useOfficialFeed();
-  const publish = usePublishAnnouncement();
-  const createDecision = useCreateDecisionDraft();
-  const transition = useTransitionDecision();
-  const [open, setOpen] = useState(false);
+// ─── هوك حالة النموذج الرسمي ────────────────────────────────────────────────
+function useOfficialFeedForm(publish: ReturnType<typeof usePublishAnnouncement>, createDecision: ReturnType<typeof useCreateDecisionDraft>) {
   const [mode, setMode] = useState<PublishMode>('announcement');
-  const [search, setSearch] = useState('');
-  const [kind, setKind] = useState('all');
-  const [priority, setPriority] = useState('all');
   const [form, setForm] = useState({ title: '', body: '', category: 'general', priority: 'normal', requiresAcknowledgement: false, expectedOutcome: '', successMetric: '' });
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -37,15 +29,7 @@ export function OfficialFeedPage() {
   const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
   const [expiresAt, setExpiresAt] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const allItems = query.data ?? [];
-  const items = useMemo(() => allItems.filter((item) => {
-    const queryText = search.trim().toLowerCase();
-    const matchesSearch = !queryText || `${item.title} ${item.body} ${item.category}`.toLowerCase().includes(queryText);
-    return matchesSearch && (kind === 'all' || item.kind === kind) && (priority === 'all' || item.priority === priority);
-  }), [allItems, kind, priority, search]);
-  const canPublish = hasPermission(auth.access!, 'comms.announcement.manage') || auth.access!.workspaces.includes('main_admin');
-  const canManageDecision = hasPermission(auth.access!, 'comms.decision.manage') || auth.access!.workspaces.includes('main_admin');
-  const canApproveDecision = hasPermission(auth.access!, 'comms.decision.approve') || auth.access!.workspaces.includes('main_admin');
+
   const handleImageSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -78,7 +62,6 @@ export function OfficialFeedPage() {
     setExpiresAt('');
   };
 
-
   const removeImage = useCallback(async () => {
     if (bannerUrl) {
       try {
@@ -94,17 +77,47 @@ export function OfficialFeedPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, [bannerUrl]);
 
-  const submit = async () => {
+  const submit = async (): Promise<boolean> => {
     try {
       if (mode === 'announcement') {
         await publish.mutateAsync({ ...form, bannerUrl, postType, pollOptions, expiresAt: expiresAt || undefined });
       } else {
         await createDecision.mutateAsync(form);
       }
-      setOpen(false);
       resetAll();
-    } catch { /* mutation error surfaced via isError banner */ }
+      return true;
+    } catch { return false; /* mutation error surfaced via isError banner */ }
   };
+
+  return {
+    mode, setMode, form, setForm, bannerUrl, imagePreview, imageUploading, imageError,
+    postType, setPostType, pollOptions, setPollOptions, expiresAt, setExpiresAt,
+    fileInputRef, handleImageSelect, removeImage, resetAll, submit,
+    isSubmitting: publish.isPending || createDecision.isPending,
+    submitError: publish.isError || createDecision.isError,
+  };
+}
+
+export function OfficialFeedPage() {
+  const auth = useAuth();
+  const query = useOfficialFeed();
+  const publish = usePublishAnnouncement();
+  const createDecision = useCreateDecisionDraft();
+  const transition = useTransitionDecision();
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [kind, setKind] = useState('all');
+  const [priority, setPriority] = useState('all');
+  const feedForm = useOfficialFeedForm(publish, createDecision);
+  const allItems = query.data ?? [];
+  const items = useMemo(() => allItems.filter((item) => {
+    const queryText = search.trim().toLowerCase();
+    const matchesSearch = !queryText || `${item.title} ${item.body} ${item.category}`.toLowerCase().includes(queryText);
+    return matchesSearch && (kind === 'all' || item.kind === kind) && (priority === 'all' || item.priority === priority);
+  }), [allItems, kind, priority, search]);
+  const canPublish = hasPermission(auth.access!, 'comms.announcement.manage') || auth.access!.workspaces.includes('main_admin');
+  const canManageDecision = hasPermission(auth.access!, 'comms.decision.manage') || auth.access!.workspaces.includes('main_admin');
+  const canApproveDecision = hasPermission(auth.access!, 'comms.decision.approve') || auth.access!.workspaces.includes('main_admin');
 
   const nextAction = (status: string): 'submit_review' | 'approve' | 'publish' | 'archive' | null => {
     if (status === 'draft') return 'submit_review';

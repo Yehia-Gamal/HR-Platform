@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { EmptyState } from '../../ui/EmptyState';
-import { ErrorState } from '../../ui/ErrorState';
+import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
@@ -206,7 +206,7 @@ function HolidayFormDialog({ holiday, onClose, onSuccess }: { holiday: Holiday |
   return (
     <DialogOverlay title={isEdit ? 'تعديل العطلة' : 'إضافة عطلة رسمية'} onClose={onClose} maxWidth="max-w-lg">
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
-        {error ? <div role="alert" className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
+        {error ? <ErrorBanner message={error} /> : null}
 
         <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">اسم العطلة <span className="text-[var(--danger)]">*</span></span>
