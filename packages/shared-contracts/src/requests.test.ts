@@ -30,7 +30,7 @@ describe('request type contracts — V17 §8', () => {
     const keys = Object.keys(REQUEST_TYPE_LABELS);
     expect(keys).toHaveLength(6);
     expect(REQUEST_TYPE_LABELS.leave).toBe('إجازة');
-    expect(REQUEST_TYPE_LABELS.late_permit).toBe('إذن تأخير');
+    expect(REQUEST_TYPE_LABELS.late_permit).toBe('إذن حضور');
     expect(REQUEST_TYPE_LABELS.attendance_correction).toBe('تصحيح حضور');
   });
 

@@ -175,9 +175,9 @@ export const attendanceStatementDaySchema = z.object({
   /** يوم عطلة رسمية */
   isOfficialHoliday: z.boolean().catch(false),
   hasLeave: z.boolean().catch(false),
-  /** إذن تأخير — V23 §14 */
+  /** إذن حضور — V23 §14 */
   hasLatePermit: z.boolean().catch(false),
-  /** إذن انصراف مبكر — V23 §14 */
+  /** إذن انصراف — V23 §14 */
   hasEarlyPermit: z.boolean().catch(false),
   /** توافق خلفي: hasPermit = hasLatePermit || hasEarlyPermit */
   hasPermit: z.boolean().catch(false),
