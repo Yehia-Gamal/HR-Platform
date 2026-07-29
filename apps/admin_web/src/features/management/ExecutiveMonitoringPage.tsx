@@ -52,7 +52,7 @@ export function ExecutiveMonitoringPage() {
 
   const overview = useExecutiveAttendanceOverview(null);
   const commands = useLiveLocationCommands();
-  const data: ExecutiveOverviewData = overview.data ?? { summary: { total: 0 }, employees: [] };
+  const data = overview.data ?? ({ summary: { total: 0 }, employees: [] } as unknown as ExecutiveOverviewData);
   const summary = data.summary ?? { total: 0 };
   const employees: EmployeeOverviewRow[] = data.employees ?? [];
 
@@ -67,8 +67,8 @@ export function ExecutiveMonitoringPage() {
   }, [employees, search, filter]);
 
   const mapPoints: MapPoint[] = visible
-    .filter((e) => typeof e.lastLatitude === 'number' && typeof e.lastLongitude === 'number')
-    .map((e) => ({ id: e.id, lat: e.lastLatitude, lng: e.lastLongitude, accuracy: e.lastAccuracy, label: e.name, sublabel: e.lastAddressAr ?? e.department }));
+    .filter((e): e is typeof e & { lastLatitude: number; lastLongitude: number } => typeof e.lastLatitude === 'number' && typeof e.lastLongitude === 'number')
+    .map((e) => ({ id: e.id, lat: e.lastLatitude, lng: e.lastLongitude, accuracy: e.lastAccuracy ?? null, label: e.name, sublabel: e.lastAddressAr ?? e.department }));
 
   async function submit(event: FormEvent) {
     event.preventDefault();
