@@ -4,6 +4,7 @@ import type {
   AttendanceDashboard,
   AttendanceOperationsCatalog,
   DisputeOperationsCatalog,
+  EmployeeSummary,
   EnterpriseManagementCatalog,
   KpiAdminCatalog,
   KpiEvaluationSummary,
@@ -15,6 +16,8 @@ import type {
   ReportSchedulerCatalog,
   RequestSummary,
 } from '@ahla/shared-contracts';
+import type { Holiday } from '../holidays/useHolidays';
+import type { OrganizationLookups } from '../employees/useOrganizationLookups';
 import type {
   AuditSecurityData,
   IntegrationCenterData,
@@ -440,3 +443,81 @@ export const mockDisputeOps: DisputeOperationsCatalog = {
   lastUpdatedAt: iso(),
 };
 
+/* ------------------------------------------------------------------ */
+/*  Holidays / Employees / Organization-Lookups (inline → centralised) */
+/* ------------------------------------------------------------------ */
+
+export const mockHolidays: Holiday[] = [
+  {
+    id: '00000000-0000-4000-8000-000000000001',
+    name: 'عيد الفطر',
+    name_en: 'Eid Al-Fitr',
+    holiday_date: '2026-03-31',
+    end_date: '2026-04-02',
+    scope: 'all',
+    legal_entity_id: null,
+    department_id: null,
+    excluded_department_ids: [],
+    notes: null,
+    is_recurring: true,
+    is_active: true,
+    created_at: iso(),
+    created_by: null,
+  },
+];
+
+export const mockOrganizationLookups: OrganizationLookups = {
+  roles: [
+    { id: 'role-employee', slug: 'employee', label: 'موظف' },
+    { id: 'role-manager', slug: 'direct-manager', label: 'مدير مباشر' },
+    { id: 'role-hr', slug: 'hr-specialist', label: 'HR Specialist' },
+  ],
+  managers: [{ id: '30000000-0000-4000-8000-000000000002', label: 'مدير مباشر تجريبي · EMP-002' }],
+  branches: [],
+  workSites: [],
+  departments: [],
+  teams: [],
+  jobTitles: [],
+  positions: [],
+  grades: [],
+  employmentTypes: [],
+};
+
+export const mockDevelopmentEmployees: EmployeeSummary[] = [
+  {
+    id: '30000000-0000-4000-8000-000000000001',
+    employeeCode: 'EMP-001',
+    fullNameAr: 'موظف تجريبي للتطوير',
+    fullNameEn: null,
+    phoneE164: '+201000000001',
+    status: 'active',
+    isActive: true,
+    photoUrl: null,
+    departmentId: null,
+    teamId: null,
+    branchId: null,
+    department: 'الإدارة التجريبية',
+    team: null,
+    branch: 'المقر الرئيسي',
+    jobTitle: 'موظف تجريبي',
+    createdAt: iso(),
+  },
+  {
+    id: '30000000-0000-4000-8000-000000000002',
+    employeeCode: 'EMP-002',
+    fullNameAr: 'مدير مباشر تجريبي',
+    fullNameEn: null,
+    phoneE164: '+201000000002',
+    status: 'onboarding',
+    isActive: true,
+    photoUrl: null,
+    departmentId: null,
+    teamId: null,
+    branchId: null,
+    department: 'الإدارة التجريبية',
+    team: null,
+    branch: 'المقر الرئيسي',
+    jobTitle: 'مدير مباشر',
+    createdAt: iso(),
+  },
+];
