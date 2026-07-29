@@ -164,8 +164,8 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
               if (d.isAbsent) tags.push({ label: 'غائب', variant: 'warn' });
               if (d.hasLeave) tags.push({ label: 'إجازة', variant: 'purple' });
               if (d.hasMission) tags.push({ label: 'مأمورية', variant: 'info' });
-              // V23: تفصيل إذن تأخير وانصراف مبكر
-              if (d.hasLatePermit) tags.push({ label: 'إذن تأخير', variant: 'warn' });
+              // V23: تفصيل إذن حضور وانصراف
+              if (d.hasLatePermit) tags.push({ label: 'إذن حضور', variant: 'warn' });
               if (d.hasEarlyPermit) tags.push({ label: 'إذن انصراف', variant: 'warn' });
               if (!d.hasLatePermit && !d.hasEarlyPermit && d.hasPermit) tags.push({ label: 'إذن', variant: 'warn' });
               if (d.hasConvoyFundi) tags.push({ label: 'قافلة/فاندي', variant: 'purple' });

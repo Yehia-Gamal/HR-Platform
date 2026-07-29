@@ -4,14 +4,18 @@ import { useAuth } from '../auth/AuthProvider';
 import { loadDomainMocks } from '../mock/loadDomainMocks';
 import type {
   AuditSecurityData,
+  ExecutiveOverviewData,
   IntegrationCenterData,
+  LiveLocationResponseData,
   LocationDirectoryItem,
   OperationsCenterData,
 } from './controlCenterTypes';
 
 export type {
   AuditSecurityData,
+  ExecutiveOverviewData,
   IntegrationCenterData,
+  LiveLocationResponseData,
   LocationDirectoryItem,
   OperationsCenterData,
 } from './controlCenterTypes';
@@ -102,12 +106,12 @@ export function useLiveLocationResponse(requestId: string | null, isActive: bool
     queryKey: ['live-location-response', requestId, auth.isMock],
     enabled: auth.status === 'authenticated' && Boolean(requestId) && !auth.isMock,
     refetchInterval: isActive ? 8000 : false,
-    queryFn: async (): Promise<Record<string, unknown> | null> => {
+    queryFn: async (): Promise<LiveLocationResponseData | null> => {
       if (!requestId) return null;
       const supabase = await getSupabase();
       const result = await supabase.rpc('get_live_location_response', { p_request_id: requestId });
       if (result.error) throw result.error;
-      return (result.data ?? null) as Record<string, unknown> | null;
+      return (result.data ?? null) as LiveLocationResponseData | null;
     },
   });
 }
