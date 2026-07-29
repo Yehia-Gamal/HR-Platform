@@ -71,6 +71,10 @@ Deno.serve(async (req) => {
       const config = integration as IntegrationRow;
       if (!config.is_enabled || config.status !== 'active' || !config.webhook_url) throw new Error('INTEGRATION_INACTIVE');
 
+      // SSRF protection: only allow HTTPS URLs to public hosts.
+      // Block private/link-local IPs, cloud metadata endpoints, and non-HTTPS.
+      if (!isAllowedWebhookUrl(config.webhook_url)) throw new Error('WEBHOOK_URL_BLOCKED');
+
       const tokenName = `INTEGRATION_TOKEN_${config.slug.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
       const token = Deno.env.get(tokenName) ?? Deno.env.get('INTEGRATION_WEBHOOK_TOKEN');
       const response = await fetch(config.webhook_url, {
@@ -122,6 +126,37 @@ Deno.serve(async (req) => {
 
   return respond(req, { processed: (candidates ?? []).length, delivered, failed, skipped, worker, completedAt: new Date().toISOString() });
 });
+
+/**
+ * SSRF protection: only allow HTTPS URLs pointing to public (non-private) hosts.
+ * Blocks cloud metadata endpoints (169.254.x.x), private RFC-1918 ranges,
+ * localhost, and non-HTTPS schemes.
+ */
+function isAllowedWebhookUrl(raw: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== 'https:') return false;
+  const host = parsed.hostname.toLowerCase();
+  // Block localhost variants
+  if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host === '0.0.0.0') return false;
+  // Block cloud metadata endpoint (AWS/GCP/Azure link-local)
+  if (host === '169.254.169.254' || host === 'metadata.google.internal') return false;
+  // Block private/reserved IPv4 ranges
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const [, a, b] = ipv4.map(Number);
+    if (a === 10) return false;                         // 10.0.0.0/8
+    if (a === 172 && b >= 16 && b <= 31) return false;  // 172.16.0.0/12
+    if (a === 192 && b === 168) return false;            // 192.168.0.0/16
+    if (a === 169 && b === 254) return false;            // 169.254.0.0/16 link-local
+    if (a === 0 || a >= 224) return false;               // 0.0.0.0/8, multicast, reserved
+  }
+  return true;
+}
 
 function sanitizeHeaders(value: Record<string, string> | null | undefined) {
   const result: Record<string, string> = {};
