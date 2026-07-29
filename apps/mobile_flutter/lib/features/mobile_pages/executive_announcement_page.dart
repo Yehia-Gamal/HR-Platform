@@ -333,7 +333,7 @@ class _ExecutiveAnnouncementPageState
               contentType: _pickedImage!.mimeType ?? 'image/jpeg',
               upsert: false,
             ),
-          );
+          ).timeout(const Duration(seconds: 60));
           bannerUrl = bucket.getPublicUrl(path);
         } finally {
           if (mounted) setState(() => _uploading = false);
