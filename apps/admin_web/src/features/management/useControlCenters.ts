@@ -159,11 +159,11 @@ export function useExecutiveAttendanceOverview(date: string | null) {
     queryKey: ['executive-attendance-overview', date, auth.isMock],
     enabled: auth.status === 'authenticated' && !auth.isMock,
     refetchInterval: 60000,
-    queryFn: async (): Promise<Record<string, unknown>> => {
+    queryFn: async (): Promise<ExecutiveOverviewData> => {
       const supabase = await getSupabase();
       const result = await supabase.rpc('get_executive_attendance_overview', { p_date: date });
       if (result.error) throw result.error;
-      return (result.data ?? { summary: { total: 0 }, employees: [] }) as Record<string, unknown>;
+      return (result.data ?? { summary: { total: 0 }, employees: [] }) as ExecutiveOverviewData;
     },
   });
 }

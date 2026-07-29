@@ -83,12 +83,12 @@ describe('attendance statement contracts — V23 §14', () => {
       hasLatePermit: true,
       hasEarlyPermit: false,
       hasPermit: true,
-      notes: 'إذن تأخير ساعة',
+      notes: 'إذن حضور ساعة',
       penalties: 1,
     });
     expect(day.hasLatePermit).toBe(true);
     expect(day.hasEarlyPermit).toBe(false);
-    expect(day.notes).toBe('إذن تأخير ساعة');
+    expect(day.notes).toBe('إذن حضور ساعة');
     expect(day.penalties).toBe(1);
   });
 
