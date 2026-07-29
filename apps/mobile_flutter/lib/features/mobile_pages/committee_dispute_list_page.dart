@@ -1687,6 +1687,11 @@ class _CaseActionsSection extends ConsumerWidget {
             needsReason: true,
             reasonHint: 'سبب التمديد',
           ),
+          const _ActionDef(
+            key: '_change_priority',
+            label: 'تغيير الأولوية',
+            icon: Icons.priority_high_rounded,
+          ),
         ],
         'needs_more_information' => [
           const _ActionDef(
@@ -1711,14 +1716,50 @@ class _CaseActionsSection extends ConsumerWidget {
             needsReason: true,
             reasonHint: 'سبب الرفض',
           ),
+          const _ActionDef(
+            key: '_change_priority',
+            label: 'تغيير الأولوية',
+            icon: Icons.priority_high_rounded,
+          ),
         ],
-        'accepted' || 'reopened' || 'returned_to_committee' => [
+        // مقبولة — يمكن بدء المراجعة + طلب إفادات (SQL يسمح من accepted)
+        'accepted' => [
           const _ActionDef(
             key: 'start_review',
             label: 'بدء المراجعة',
             icon: Icons.play_arrow_rounded,
             style: _ActionStyle.primary,
             confirmMessage: 'هل تريد بدء مراجعة هذه القضية؟',
+          ),
+          const _ActionDef(
+            key: '_request_respondent_statement',
+            label: 'طلب إفادة المشتكى عليه',
+            icon: Icons.person_search_outlined,
+          ),
+          const _ActionDef(
+            key: '_request_witness_statement',
+            label: 'طلب إفادة شاهد',
+            icon: Icons.record_voice_over_outlined,
+          ),
+          const _ActionDef(
+            key: '_change_priority',
+            label: 'تغيير الأولوية',
+            icon: Icons.priority_high_rounded,
+          ),
+        ],
+        // أعيد فتحها / أعيدت للجنة — بدء المراجعة فقط
+        'reopened' || 'returned_to_committee' => [
+          const _ActionDef(
+            key: 'start_review',
+            label: 'بدء المراجعة',
+            icon: Icons.play_arrow_rounded,
+            style: _ActionStyle.primary,
+            confirmMessage: 'هل تريد بدء مراجعة هذه القضية؟',
+          ),
+          const _ActionDef(
+            key: '_change_priority',
+            label: 'تغيير الأولوية',
+            icon: Icons.priority_high_rounded,
           ),
         ],
         'under_review' ||
@@ -1732,12 +1773,27 @@ class _CaseActionsSection extends ConsumerWidget {
             confirmMessage: 'هل تريد الانتقال لمرحلة المداولة؟',
           ),
           const _ActionDef(
+            key: '_request_respondent_statement',
+            label: 'طلب إفادة المشتكى عليه',
+            icon: Icons.person_search_outlined,
+          ),
+          const _ActionDef(
+            key: '_request_witness_statement',
+            label: 'طلب إفادة شاهد',
+            icon: Icons.record_voice_over_outlined,
+          ),
+          const _ActionDef(
             key: 'resolve_friendly',
             label: 'حل ودي',
             icon: Icons.handshake_outlined,
             style: _ActionStyle.warning,
             needsReason: true,
             reasonHint: 'تفاصيل الحل الودي',
+          ),
+          const _ActionDef(
+            key: '_change_priority',
+            label: 'تغيير الأولوية',
+            icon: Icons.priority_high_rounded,
           ),
         ],
         'committee_deliberation' => [
@@ -1759,6 +1815,11 @@ class _CaseActionsSection extends ConsumerWidget {
             icon: Icons.handshake_outlined,
             needsReason: true,
             reasonHint: 'تفاصيل الحل الودي',
+          ),
+          const _ActionDef(
+            key: '_change_priority',
+            label: 'تغيير الأولوية',
+            icon: Icons.priority_high_rounded,
           ),
         ],
         'escalated_to_executive' => [
@@ -1963,6 +2024,28 @@ class _CaseActionsSection extends ConsumerWidget {
         context: context,
         isScrollControlled: true,
         builder: (_) => _ExecuteAdminActionSheet(caseItem: caseItem),
+      );
+      return;
+    }
+    if (action.key == '_request_respondent_statement' ||
+        action.key == '_request_witness_statement') {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _RequestStatementSheet(
+          caseItem: caseItem,
+          statementType: action.key == '_request_witness_statement'
+              ? 'witness'
+              : 'respondent',
+        ),
+      );
+      return;
+    }
+    if (action.key == '_change_priority') {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _ChangePrioritySheet(caseItem: caseItem),
       );
       return;
     }

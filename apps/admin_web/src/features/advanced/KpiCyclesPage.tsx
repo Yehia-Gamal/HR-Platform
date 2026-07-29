@@ -43,8 +43,8 @@ export function KpiCyclesPage() {
     const officialDeadline = new Date(`${month}-26T00:00:00+03:00`).toISOString();
     try { await commands.createCycle.mutateAsync({ p_month: `${month}-01`, p_template_id: data.officialTemplateId, p_self_due: officialDeadline, p_manager_due: officialDeadline, p_secretary_due: officialDeadline, p_executive_due: officialDeadline, p_open_now: false }); } catch { /* isError surfaced by TanStack */ }
   };
-  const control = (cycleId: string, action: string, extendedUntil: string | null = null) => commands.manageCycle.mutateAsync({ p_cycle_id: cycleId, p_action: action, p_reason: reason[cycleId], p_extended_until: extendedUntil }).catch(() => {});
-  const reschedule = (cycleId: string) => commands.rescheduleCycle.mutateAsync({ p_cycle_id: cycleId, p_open_at: new Date(openAt[cycleId]).toISOString(), p_deadline_at: new Date(deadlineAt[cycleId]).toISOString(), p_reason: reason[cycleId] }).catch(() => {});
+  const control = (cycleId: string, action: string, extendedUntil: string | null = null) => commands.manageCycle.mutateAsync({ p_cycle_id: cycleId, p_action: action, p_reason: reason[cycleId], p_extended_until: extendedUntil }).catch(() => { /* mutation error surfaced via isError */ });
+  const reschedule = (cycleId: string) => commands.rescheduleCycle.mutateAsync({ p_cycle_id: cycleId, p_open_at: new Date(openAt[cycleId]).toISOString(), p_deadline_at: new Date(deadlineAt[cycleId]).toISOString(), p_reason: reason[cycleId] }).catch(() => { /* mutation error surfaced via isError */ });
   const downloadReport = async (cycleId: string) => {
     try {
       const report = await commands.getReport.mutateAsync({ p_cycle_id: cycleId }) as { evaluations?: Array<Record<string, unknown>> };
@@ -53,7 +53,7 @@ export function KpiCyclesPage() {
       const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })); link.download = `kpi-${month}.csv`; link.click(); URL.revokeObjectURL(link.href);
     } catch { /* isError surfaced by TanStack */ }
   };
-  const sendNotifications = (cycleId: string) => commands.sendNotifications.mutateAsync({ p_cycle_id: cycleId }).catch(() => {});
+  const sendNotifications = (cycleId: string) => commands.sendNotifications.mutateAsync({ p_cycle_id: cycleId }).catch(() => { /* mutation error surfaced via isError */ });
   const savePolicy = () => commands.updatePolicy.mutateAsync({
     p_name: 'السياسة الرسمية لتقييم الأداء', p_attendance_rules: policyRules,
     p_rating_bands: [
@@ -64,7 +64,7 @@ export function KpiCyclesPage() {
       { min: 0, max: ratingMins.acceptable - 0.01, label: 'يحتاج إلى تحسين' },
     ],
     p_allow_target_overachievement: false, p_effective_from: new Date().toISOString().slice(0, 10),
-  }).catch(() => {});
+  }).catch(() => { /* mutation error surfaced via isError */ });
 
   return <div className="space-y-6">
     <PageHeader title="دورات KPI الرسمية" description="إدارة دورات تقييم الأداء الشهرية — تجهيز وفتح وإغلاق الدورات وإرسال الإشعارات ومتابعة تقييمات الموظفين." actions={<label className="text-sm font-bold">الشهر<input className="input mt-1" type="month" value={month} onChange={(event) => setMonth(event.target.value)} /></label>} />

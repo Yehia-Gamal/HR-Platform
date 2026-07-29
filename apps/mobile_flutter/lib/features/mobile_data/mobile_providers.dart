@@ -372,6 +372,23 @@ final disputeDirectoryProvider =
       ).map(DisputeDirectoryEmployee.fromJson).toList(growable: false);
     });
 
+/// أطراف القضية (مشتكى عليه / شاهد / مقدّم الشكوى / ذو صلة)
+final disputeCasePartiesProvider =
+    FutureProvider.family<List<DisputeCaseParty>, String>((
+      ref,
+      caseId,
+    ) async {
+      final data = await _withTimeout(ref
+          .watch(supabaseProvider)
+          .from('dispute_parties')
+          .select('id, employee_id, party_type, notification_status, employees(full_name_ar)')
+          .eq('case_id', caseId));
+      return (data as List<dynamic>)
+          .map((e) => DisputeCaseParty.fromJson(
+              Map<String, dynamic>.from(e as Map)))
+          .toList(growable: false);
+    });
+
 final mobileCommandsProvider = Provider<MobileCommands>(
   (ref) => MobileCommands(ref),
 );
