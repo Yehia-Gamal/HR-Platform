@@ -47,13 +47,13 @@ export function ExecutiveMonitoringPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<{ row: Row; reason: string } | null>(null);
+  const [draft, setDraft] = useState<{ row: EmployeeOverviewRow; reason: string } | null>(null);
 
   const overview = useExecutiveAttendanceOverview(null);
   const commands = useLiveLocationCommands();
-  const data = (overview.data as Record<string, any>) ?? { summary: { total: 0 }, employees: [] };
+  const data: ExecutiveOverviewData = overview.data ?? { summary: { total: 0 }, employees: [] };
   const summary = data.summary ?? { total: 0 };
-  const employees: Row[] = Array.isArray(data.employees) ? data.employees : [];
+  const employees: EmployeeOverviewRow[] = data.employees ?? [];
 
   const visible = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('ar');
