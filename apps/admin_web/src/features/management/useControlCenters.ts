@@ -83,14 +83,11 @@ export function useLiveLocationCommands() {
   const request = useMutation({
     mutationFn: async (input: { employeeId: string; reason: string }) => {
       if (auth.isMock) return input;
-      const supabase = await getSupabase();
-      const result = await supabase.rpc('request_live_location', {
+      return rpc('request_live_location', {
         p_employee_id: input.employeeId,
         p_mode: 'snapshot',
         p_reason: input.reason,
       });
-      if (result.error) throw result.error;
-      return result.data;
     },
     onSuccess: async () => client.invalidateQueries({ queryKey: ['location-directory'] }),
   });
@@ -107,10 +104,7 @@ export function useLiveLocationResponse(requestId: string | null, isActive: bool
     refetchInterval: isActive ? 8000 : false,
     queryFn: async (): Promise<LiveLocationResponseData | null> => {
       if (!requestId) return null;
-      const supabase = await getSupabase();
-      const result = await supabase.rpc('get_live_location_response', { p_request_id: requestId });
-      if (result.error) throw result.error;
-      return (result.data ?? null) as LiveLocationResponseData | null;
+      return (await rpc<LiveLocationResponseData | null>('get_live_location_response', { p_request_id: requestId })) ?? null;
     },
   });
 }
@@ -153,10 +147,8 @@ export function useExecutiveAttendanceOverview(date: string | null) {
     enabled: auth.status === 'authenticated' && !auth.isMock,
     refetchInterval: 60000,
     queryFn: async (): Promise<ExecutiveOverviewData> => {
-      const supabase = await getSupabase();
-      const result = await supabase.rpc('get_executive_attendance_overview', { p_date: date });
-      if (result.error) throw result.error;
-      return (result.data ?? { summary: { total: 0 }, employees: [] }) as ExecutiveOverviewData;
+      const data = await rpc<ExecutiveOverviewData | null>('get_executive_attendance_overview', { p_date: date });
+      return (data ?? { summary: { total: 0 }, employees: [] }) as ExecutiveOverviewData;
     },
   });
 }
@@ -293,10 +285,7 @@ export function useAuditSecurityCommands() {
   const revokeDevice = useMutation({
     mutationFn: async (input: { deviceId: string; reason: string }) => {
       if (auth.isMock) return input;
-      const supabase = await getSupabase();
-      const result = await supabase.rpc('revoke_managed_device', { p_device_id: input.deviceId, p_reason: input.reason });
-      if (result.error) throw result.error;
-      return result.data;
+      return rpc('revoke_managed_device', { p_device_id: input.deviceId, p_reason: input.reason });
     },
     onSuccess: async () => client.invalidateQueries({ queryKey: ['audit-security-center'] }),
   });
