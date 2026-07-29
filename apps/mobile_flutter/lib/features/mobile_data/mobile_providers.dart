@@ -857,12 +857,13 @@ class MobileCommands {
     return result;
   }
 
-  /// حضور انفرادي: بصمة محلية + موقع → RPC مبسط (بدون WebAuthn/Samsung Pass).
+  /// حضور انفرادي: بصمة محلية أو قفل شاشة + موقع → RPC مبسط (بدون WebAuthn/Samsung Pass).
+  /// أجهزة بدون بصمة تستخدم PIN/نمط كبديل (biometricOnly: false).
   Future<Map<String, dynamic>> punchAttendanceLocal({
     required String eventType,
   }) async {
     final localAuth = LocalAuthentication();
-    // فحص دعم البصمة قبل المحاولة — يمنع خطأ غير واضح على أجهزة بلا مستشعر.
+    // فحص دعم البصمة أو قفل الشاشة — يمنع خطأ غير واضح على أجهزة بلا أي حماية.
     final canCheck = await localAuth.canCheckBiometrics;
     final isDeviceSupported = await localAuth.isDeviceSupported();
     if (!canCheck && !isDeviceSupported) {
@@ -870,24 +871,26 @@ class MobileCommands {
         'الجهاز لا يدعم البصمة أو قفل الشاشة الآمن. تحقق من إعدادات الأمان.',
       );
     }
+    // تحديد ما إذا كان الجهاز يملك بصمة فعلية (إصبع/وجه)
+    bool hasBiometrics = false;
     if (canCheck) {
       final available = await localAuth.getAvailableBiometrics();
-      if (available.isEmpty) {
-        throw StateError(
-          'لا توجد بصمة مسجلة على الجهاز. أضف بصمة من إعدادات الأمان ثم أعد المحاولة.',
-        );
-      }
+      hasBiometrics = available.isNotEmpty;
     }
     final didAuthenticate = await localAuth.authenticate(
-      localizedReason: 'تأكيد تسجيل الحضور بالبصمة',
-      options: const AuthenticationOptions(
+      localizedReason: hasBiometrics
+          ? 'تأكيد تسجيل الحضور بالبصمة'
+          : 'تأكيد تسجيل الحضور بقفل الشاشة',
+      options: AuthenticationOptions(
         stickyAuth: true,
-        biometricOnly: true,
+        biometricOnly: hasBiometrics,
         useErrorDialogs: true,
       ),
     );
     if (!didAuthenticate) {
-      throw StateError('تم إلغاء التحقق بالبصمة.');
+      throw StateError(
+        hasBiometrics ? 'تم إلغاء التحقق بالبصمة.' : 'تم إلغاء التحقق بقفل الشاشة.',
+      );
     }
 
     final position = await LocationService.current();

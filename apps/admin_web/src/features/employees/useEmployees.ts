@@ -1,6 +1,7 @@
 import { employee360Schema, employeeSummarySchema, type Employee360, type EmployeeSummary } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSupabase } from '../../core/supabase';
+import { invokeEdgeFunction } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
 
 const developmentEmployees: EmployeeSummary[] = [
@@ -130,19 +131,8 @@ export function useResendInvite() {
   return useMutation({
     mutationFn: async (employeeId: string): Promise<string> => {
       if (auth.isMock) return 'وضع التطوير: لم يُرسل بريد فعلي.';
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.functions.invoke('admin-resend-invite', { body: { employeeId } });
-      if (error) {
-        // FunctionsHttpError: استخراج رسالة الخطأ الفعلية من جسم الاستجابة
-        const resp = (error as Record<string, unknown>).context;
-        if (resp instanceof Response) {
-          const body = await resp.json().catch(() => null) as { error?: string } | null;
-          const code = body?.error;
-          if (code && INVITE_ERROR_MESSAGES[code]) throw new Error(INVITE_ERROR_MESSAGES[code]);
-        }
-        throw error;
-      }
-      const email = (data as { email?: string } | null)?.email;
+      const result = await invokeEdgeFunction<{ email?: string }>('admin-resend-invite', { employeeId }, INVITE_ERROR_MESSAGES, 'تعذر إرسال البريد. أعد المحاولة لاحقًا.');
+      const email = result?.email;
       return email ? `أُعيد إرسال رابط التفعيل إلى ${email}.` : 'أُعيد إرسال رابط التفعيل.';
     },
   });
