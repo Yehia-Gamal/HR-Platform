@@ -3,12 +3,10 @@ import {
   disputeOperationsCatalogSchema,
   disputeParticipantDirectorySchema,
   kpiAdminCatalogSchema,
-  lifecycleOperationsCatalogSchema,
   type AttendanceOperationsCatalog,
   type DisputeOperationsCatalog,
   type DisputeParticipant,
   type KpiAdminCatalog,
-  type LifecycleOperationsCatalog,
 } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
@@ -23,8 +21,6 @@ const emptyDisputes: DisputeOperationsCatalog = {
   pendingAppeals: 0,
   lastUpdatedAt: now,
 };
-const emptyLifecycle: LifecycleOperationsCatalog = { documents: [], assets: [], offboarding: [], expiringDocuments: 0, assignedAssets: 0, openOffboarding: 0, lastUpdatedAt: now };
-
 
 export function useAttendanceOperations(month: string) {
   const auth = useAuth();
@@ -51,7 +47,7 @@ export function useKpiAdmin(month: string) {
 export function useKpiAdminCommands() {
   const auth = useAuth(); const client = useQueryClient();
   const mutate = (name: string) => useMutation({ mutationFn: async (params: Record<string, unknown>) => auth.isMock ? params : rpc(name, params), onSuccess: () => Promise.all([client.invalidateQueries({ queryKey: ['kpi-admin'] }), client.invalidateQueries({ queryKey: ['kpi-evaluations'] })]) });
-  return { createCycle: mutate('create_kpi_cycle_admin'), manageCycle: mutate('manage_kpi_cycle'), rescheduleCycle: mutate('reschedule_kpi_cycle'), refreshAttendance: mutate('refresh_kpi_attendance_inputs'), updatePolicy: mutate('create_kpi_policy_version'), decideAppeal: mutate('decide_kpi_appeal'), getReport: mutate('get_kpi_cycle_report') };
+  return { createCycle: mutate('create_kpi_cycle_admin'), manageCycle: mutate('manage_kpi_cycle'), rescheduleCycle: mutate('reschedule_kpi_cycle'), refreshAttendance: mutate('refresh_kpi_attendance_inputs'), updatePolicy: mutate('create_kpi_policy_version'), decideAppeal: mutate('decide_kpi_appeal'), getReport: mutate('get_kpi_cycle_report'), sendNotifications: mutate('send_kpi_notifications_admin') };
 }
 
 export function useDisputeOperations(status?: string) {
@@ -86,19 +82,5 @@ export function useDisputeCommands() {
     proposeAdminAction: mutate('propose_admin_action'),
     decideAdminAction: mutate('decide_admin_action'),
     executeAdminAction: mutate('execute_admin_action'),
-  };
-}
-
-export function useLifecycleOperations(employeeId?: string) {
-  const auth = useAuth();
-  return useQuery({ queryKey: ['lifecycle-operations', employeeId ?? 'all', auth.isMock], enabled: auth.status === 'authenticated', queryFn: async () => auth.isMock ? emptyLifecycle : lifecycleOperationsCatalogSchema.parse(await rpc('get_documents_assets_offboarding_catalog', { p_employee_id: employeeId || null })) });
-}
-
-export function useLifecycleCommands() {
-  const auth = useAuth(); const client = useQueryClient();
-  const mutate = (name: string) => useMutation({ mutationFn: async (params: Record<string, unknown>) => auth.isMock ? params : rpc(name, params), onSuccess: () => Promise.all([client.invalidateQueries({ queryKey: ['lifecycle-operations'] }), client.invalidateQueries({ queryKey: ['employees'] })]) });
-  return {
-    reviewDocument: mutate('review_employee_document'), saveAsset: mutate('save_asset_admin'), assignAsset: mutate('assign_asset_admin'), returnAsset: mutate('return_asset_admin'),
-    startOffboarding: mutate('start_offboarding_case'), transitionClearance: mutate('transition_offboarding_clearance_item'), approveOffboarding: mutate('approve_offboarding_case'),
   };
 }

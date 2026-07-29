@@ -1,6 +1,7 @@
 import { Activity, CalendarClock, MapPin, RefreshCw, Search, Send, Users } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
+import { ErrorState } from '../../ui/ErrorState';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
@@ -71,11 +72,13 @@ export function ExecutiveMonitoringPage() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!draft || draft.reason.trim().length < 5) return;
-    const created = await commands.request.mutateAsync({ employeeId: draft.row.id, reason: draft.reason.trim() });
-    setDraft(null);
-    const id = (created as { id?: string } | null)?.id;
-    if (id) setSelectedRequestId(id);
-    await overview.refetch();
+    try {
+      const created = await commands.request.mutateAsync({ employeeId: draft.row.id, reason: draft.reason.trim() });
+      setDraft(null);
+      const id = (created as { id?: string } | null)?.id;
+      if (id) setSelectedRequestId(id);
+      await overview.refetch();
+    } catch { /* commands.request.isError displayed in dialog UI */ }
   }
 
   return (
@@ -112,7 +115,7 @@ export function ExecutiveMonitoringPage() {
         </div>
       </section>
 
-      {overview.isError ? <EmptyState title="تعذّر تحميل اللوحة" description={overview.error instanceof Error ? overview.error.message : 'تحقق من الصلاحيات.'} /> : null}
+      {overview.isError ? <ErrorState description={overview.error instanceof Error ? overview.error.message : 'تحقق من الصلاحيات.'} onRetry={() => void overview.refetch()} /> : null}
 
       {!overview.isError ? (
         <section className="grid gap-5 2xl:grid-cols-[1.1fr_.9fr]">

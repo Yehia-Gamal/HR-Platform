@@ -38,37 +38,41 @@ export function OrganizationPage() {
   async function saveDepartment(event: FormEvent) {
     event.preventDefault();
     if (!departmentDraft) return;
-    await commands.department.mutateAsync({
-      id: departmentDraft.id,
-      entityId: departmentDraft.entityId,
-      branchId: departmentDraft.branchId || null,
-      parentId: departmentDraft.parentId || null,
-      managerId: departmentDraft.managerId || null,
-      code: departmentDraft.code,
-      name: departmentDraft.name,
-      nameEn: departmentDraft.nameEn || null,
-      active: departmentDraft.active,
-    });
-    setDepartmentDraft(null);
+    try {
+      await commands.department.mutateAsync({
+        id: departmentDraft.id,
+        entityId: departmentDraft.entityId,
+        branchId: departmentDraft.branchId || null,
+        parentId: departmentDraft.parentId || null,
+        managerId: departmentDraft.managerId || null,
+        code: departmentDraft.code,
+        name: departmentDraft.name,
+        nameEn: departmentDraft.nameEn || null,
+        active: departmentDraft.active,
+      });
+      setDepartmentDraft(null);
+    } catch { /* isError handled in dialog UI */ }
   }
 
   async function savePosition(event: FormEvent) {
     event.preventDefault();
     if (!positionDraft) return;
-    await commands.position.mutateAsync({
-      id: positionDraft.id,
-      departmentId: positionDraft.departmentId,
-      teamId: positionDraft.teamId || null,
-      jobTitleId: positionDraft.jobTitleId || null,
-      gradeId: positionDraft.gradeId || null,
-      reportsToId: positionDraft.reportsToId || null,
-      code: positionDraft.code,
-      name: positionDraft.name,
-      nameEn: positionDraft.nameEn || null,
-      headcount: positionDraft.headcount,
-      active: positionDraft.active,
-    });
-    setPositionDraft(null);
+    try {
+      await commands.position.mutateAsync({
+        id: positionDraft.id,
+        departmentId: positionDraft.departmentId,
+        teamId: positionDraft.teamId || null,
+        jobTitleId: positionDraft.jobTitleId || null,
+        gradeId: positionDraft.gradeId || null,
+        reportsToId: positionDraft.reportsToId || null,
+        code: positionDraft.code,
+        name: positionDraft.name,
+        nameEn: positionDraft.nameEn || null,
+        headcount: positionDraft.headcount,
+        active: positionDraft.active,
+      });
+      setPositionDraft(null);
+    } catch { /* isError handled in dialog UI */ }
   }
 
   function openDepartmentEdit(department: DepartmentRow) {

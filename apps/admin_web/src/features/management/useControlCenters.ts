@@ -236,25 +236,6 @@ export function useOperationsCommands() {
   });
   return { createTask, transitionTask };
 }
-
-export function useServiceDeskCommands() {
-  const auth = useAuth();
-  const client = useQueryClient();
-  const transition = useMutation({
-    mutationFn: async (input: { id: string; status: string }) => {
-      if (auth.isMock) return input;
-      const supabase = await getSupabase();
-      const update: { status: string; resolved_at?: string } = { status: input.status };
-      if (input.status === 'resolved') update.resolved_at = new Date().toISOString();
-      const result = await supabase.from('service_requests').update(update).eq('id', input.id);
-      if (result.error) throw result.error;
-      return input;
-    },
-    onSuccess: async () => client.invalidateQueries({ queryKey: ['enterprise-management'] }),
-  });
-  return { transition };
-}
-
 export function useAuditSecurityCenter() {
   const auth = useAuth();
   return useQuery({

@@ -1,8 +1,6 @@
 import {
   enterpriseManagementCatalogSchema,
-  peopleFinanceCatalogSchema,
   type EnterpriseManagementCatalog,
-  type PeopleFinanceCatalog,
 } from '@ahla/shared-contracts';
 import { useQuery } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
@@ -66,15 +64,6 @@ const mockEnterprise: EnterpriseManagementCatalog = {
   lastUpdatedAt: now,
 };
 
-const mockFinance: PeopleFinanceCatalog = {
-  workforcePlans: [],
-  capacity: [],
-  salaryStructures: [],
-  payrollRuns: [],
-  loans: [],
-  campaigns: [],
-  lastUpdatedAt: now,
-};
 
 export function useEnterpriseManagementCatalog() {
   const a = useAuth();
@@ -86,20 +75,6 @@ export function useEnterpriseManagementCatalog() {
         ? mockEnterprise
         : enterpriseManagementCatalogSchema.parse(
             await rpc('get_enterprise_management_catalog'),
-          ),
-  });
-}
-
-export function usePeopleFinanceCatalog() {
-  const a = useAuth();
-  return useQuery({
-    queryKey: ['people-finance', a.isMock],
-    enabled: a.status === 'authenticated',
-    queryFn: async () =>
-      a.isMock
-        ? mockFinance
-        : peopleFinanceCatalogSchema.parse(
-            await rpc('get_people_finance_catalog'),
           ),
   });
 }

@@ -57,8 +57,10 @@ export function RequestsPage() {
   const submitDecision = async (kind: 'approve' | 'reject') => {
     if (!selected) return;
     if (kind === 'reject' && comment.trim().length < 3) return;
-    await decision.mutateAsync({ requestId: selected.id, decision: kind, comment: comment.trim() });
-    setSelected(null); setComment('');
+    try {
+      await decision.mutateAsync({ requestId: selected.id, decision: kind, comment: comment.trim() });
+      setSelected(null); setComment('');
+    } catch { /* decision.isError displayed in dialog via ErrorBanner */ }
   };
 
   return <div className="space-y-6">
@@ -83,8 +85,8 @@ export function RequestsPage() {
         </div>
         {item.status === 'pending' ? <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_auto]">
           <input className="input" placeholder="ملاحظة القرار" value={reviewNotes[item.id] ?? ''} onChange={(e) => setReviewNotes((v) => ({ ...v, [item.id]: e.target.value }))} />
-          <button className="btn-primary" onClick={() => void correctionsCommands.decideCorrection.mutateAsync({ p_id: item.id, p_decision: 'approved', p_note: reviewNotes[item.id] || null })}>اعتماد</button>
-          <button className="btn-secondary" onClick={() => void correctionsCommands.decideCorrection.mutateAsync({ p_id: item.id, p_decision: 'rejected', p_note: reviewNotes[item.id] || '' })}>رفض</button>
+          <button className="btn-primary" onClick={() => void correctionsCommands.decideCorrection.mutateAsync({ p_id: item.id, p_decision: 'approved', p_note: reviewNotes[item.id] || null }).catch(() => {})}>اعتماد</button>
+          <button className="btn-secondary" onClick={() => void correctionsCommands.decideCorrection.mutateAsync({ p_id: item.id, p_decision: 'rejected', p_note: reviewNotes[item.id] || '' }).catch(() => {})}>رفض</button>
         </div> : null}
       </article>)}</div>}
     </section> : <>

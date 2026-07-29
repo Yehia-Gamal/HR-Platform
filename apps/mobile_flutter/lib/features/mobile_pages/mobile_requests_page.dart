@@ -273,12 +273,8 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                     DropdownMenuItem(value: 'leave', child: Text('إجازة')),
                     DropdownMenuItem(value: 'mission', child: Text('مأمورية')),
                     DropdownMenuItem(
-                      value: 'late_permit',
-                      child: Text('إذن تأخير'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'early_permit',
-                      child: Text('إذن خروج مبكر'),
+                      value: 'permit',
+                      child: Text('طلب إذن'),
                     ),
                     DropdownMenuItem(
                       value: 'attendance_correction',
@@ -431,18 +427,20 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                     ),
                   const SizedBox(height: 12),
                 ],
-                if (type == 'late_permit' || type == 'early_permit') ...[
+                if (type == 'permit' ||
+                    type == 'late_permit' ||
+                    type == 'early_permit') ...[
                   DropdownButtonFormField<String>(
                     value: permitKind,
                     decoration: const InputDecoration(labelText: 'نوع الإذن'),
                     items: const [
                       DropdownMenuItem(
                         value: 'late_arrival',
-                        child: Text('تأخير وصول'),
+                        child: Text('إذن حضور'),
                       ),
                       DropdownMenuItem(
                         value: 'early_departure',
-                        child: Text('انصراف مبكر'),
+                        child: Text('إذن انصراف'),
                       ),
                     ],
                     onChanged: (value) => setModalState(
@@ -461,12 +459,34 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                     },
                   ),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: minutes,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'عدد الدقائق',
-                      helperText: 'من دقيقة واحدة إلى 240 دقيقة',
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(sheetContext)
+                          .colorScheme
+                          .primaryContainer
+                          .withValues(alpha: .25),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: 20,
+                          color:
+                              Theme.of(sheetContext).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text(
+                            'كل إذن ساعتين كاملة · 4 أذونات شهريًا',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -538,11 +558,21 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
         'endDate': _dateValue(endDate!),
         'location': requestLocation,
       });
-    } else if (type == 'late_permit' || type == 'early_permit') {
+    } else if (type == 'permit' ||
+        type == 'late_permit' ||
+        type == 'early_permit') {
       payload.addAll({
         'permitDate': _dateValue(permitDate!),
-        'minutes': requestMinutes,
+        'minutes': 120,
+        'permitKind': permitKind,
       });
+    }
+
+    // حل النوع الموحّد "permit" إلى النوع الفعلي للباك إند.
+    var resolvedType = type;
+    if (type == 'permit') {
+      resolvedType =
+          permitKind == 'early_departure' ? 'early_permit' : 'late_permit';
     }
 
     final commands = ref.read(mobileCommandsProvider);
@@ -562,7 +592,8 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
         );
       }
       if (uploaded.isNotEmpty) payload['attachmentPaths'] = uploaded;
-      await commands.submitRequest(type, requestTitle, requestReason, payload);
+      await commands.submitRequest(
+          resolvedType, requestTitle, requestReason, payload);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم إرسال الطلب إلى مسار الاعتماد.')),

@@ -773,32 +773,8 @@ class _CaseDetailSheet extends ConsumerWidget {
         // ── آراء وتوصيات أعضاء اللجنة (0198) ──
         _RecommendationsSection(caseId: c.id),
 
-        // ── Decision button — only for executive / full-access ──
-        if (c.status == 'action_proposed' &&
-            (ref.watch(accessContextProvider).value?.hasAnyPermission(
-                  const [
-                    'disputes.admin_action.decide',
-                    'disputes.executive.manage',
-                  ],
-                ) ??
-                false)) ...[
-          const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: () {
-              Navigator.pop(context); // close detail sheet
-              showModalBottomSheet<void>(
-                context: context,
-                isScrollControlled: true,
-                shape: const RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(20))),
-                builder: (ctx) => _DecisionSheet(caseItem: c),
-              );
-            },
-            icon: const Icon(Icons.gavel),
-            label: const Text('القرار التنفيذي النهائي'),
-          ),
-        ],
+        // ── إجراءات إدارة القضية — حسب الحالة والصلاحيات ──
+        _CaseActionsSection(caseItem: c),
       ],
     );
   }
@@ -1638,6 +1614,830 @@ class _AddRecommendationSheetState
               label: Text(_type == 'recommendation'
                   ? 'إرسال التوصية'
                   : 'إرسال الملاحظة'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── إجراءات إدارة القضية — حسب الحالة والصلاحيات ─────────────────────────────
+
+/// نوع الزر المرئي
+enum _ActionStyle { primary, secondary, warning, danger }
+
+/// تعريف إجراء واحد
+class _ActionDef {
+  const _ActionDef({
+    required this.key,
+    required this.label,
+    required this.icon,
+    this.style = _ActionStyle.secondary,
+    this.needsReason = false,
+    this.reasonHint,
+    this.confirmMessage,
+    this.requiresPermission,
+  });
+  final String key;
+  final String label;
+  final IconData icon;
+  final _ActionStyle style;
+  final bool needsReason;
+  final String? reasonHint;
+  final String? confirmMessage;
+  /// إذا لم يكن null يُطلب صلاحية إضافية فوق transition
+  final List<String>? requiresPermission;
+}
+
+class _CaseActionsSection extends ConsumerWidget {
+  const _CaseActionsSection({required this.caseItem});
+  final CommitteeDisputeCase caseItem;
+
+  // ── إجراءات كل حالة ──────────────────────────────────────────────────────
+  static List<_ActionDef> _actionsForStatus(String status) => switch (status) {
+        'submitted' => [
+          const _ActionDef(
+            key: 'accept',
+            label: 'قبول القضية',
+            icon: Icons.check_circle_outline,
+            style: _ActionStyle.primary,
+            confirmMessage: 'هل تريد قبول هذه القضية؟',
+          ),
+          const _ActionDef(
+            key: 'request_more_information',
+            label: 'طلب معلومات إضافية',
+            icon: Icons.info_outline,
+            needsReason: true,
+            reasonHint: 'ما المعلومات المطلوبة؟',
+          ),
+          const _ActionDef(
+            key: 'reject',
+            label: 'رفض القضية',
+            icon: Icons.cancel_outlined,
+            style: _ActionStyle.danger,
+            needsReason: true,
+            reasonHint: 'سبب الرفض',
+          ),
+          const _ActionDef(
+            key: 'extend_review',
+            label: 'تمديد فترة المراجعة',
+            icon: Icons.more_time,
+            needsReason: true,
+            reasonHint: 'سبب التمديد',
+          ),
+        ],
+        'needs_more_information' => [
+          const _ActionDef(
+            key: 'accept',
+            label: 'قبول القضية',
+            icon: Icons.check_circle_outline,
+            style: _ActionStyle.primary,
+            confirmMessage: 'هل تريد قبول هذه القضية؟',
+          ),
+          const _ActionDef(
+            key: 'request_more_information',
+            label: 'طلب معلومات إضافية',
+            icon: Icons.info_outline,
+            needsReason: true,
+            reasonHint: 'ما المعلومات المطلوبة؟',
+          ),
+          const _ActionDef(
+            key: 'reject',
+            label: 'رفض القضية',
+            icon: Icons.cancel_outlined,
+            style: _ActionStyle.danger,
+            needsReason: true,
+            reasonHint: 'سبب الرفض',
+          ),
+        ],
+        'accepted' || 'reopened' || 'returned_to_committee' => [
+          const _ActionDef(
+            key: 'start_review',
+            label: 'بدء المراجعة',
+            icon: Icons.play_arrow_rounded,
+            style: _ActionStyle.primary,
+            confirmMessage: 'هل تريد بدء مراجعة هذه القضية؟',
+          ),
+        ],
+        'under_review' ||
+        'waiting_for_respondent' ||
+        'waiting_for_witness' => [
+          const _ActionDef(
+            key: 'start_deliberation',
+            label: 'بدء المداولة',
+            icon: Icons.groups_outlined,
+            style: _ActionStyle.primary,
+            confirmMessage: 'هل تريد الانتقال لمرحلة المداولة؟',
+          ),
+          const _ActionDef(
+            key: 'resolve_friendly',
+            label: 'حل ودي',
+            icon: Icons.handshake_outlined,
+            style: _ActionStyle.warning,
+            needsReason: true,
+            reasonHint: 'تفاصيل الحل الودي',
+          ),
+        ],
+        'committee_deliberation' => [
+          const _ActionDef(
+            key: 'escalate',
+            label: 'تصعيد للمدير التنفيذي',
+            icon: Icons.arrow_upward_rounded,
+            style: _ActionStyle.warning,
+            needsReason: true,
+            reasonHint: 'سبب التصعيد',
+            requiresPermission: [
+              'disputes.case.escalate',
+              'disputes.executive.manage',
+            ],
+          ),
+          const _ActionDef(
+            key: 'resolve_friendly',
+            label: 'حل ودي',
+            icon: Icons.handshake_outlined,
+            needsReason: true,
+            reasonHint: 'تفاصيل الحل الودي',
+          ),
+        ],
+        'escalated_to_executive' => [
+          const _ActionDef(
+            key: 'return_to_committee',
+            label: 'إعادة للجنة',
+            icon: Icons.undo_rounded,
+            needsReason: true,
+            reasonHint: 'سبب الإعادة',
+            requiresPermission: [
+              'disputes.case.escalate',
+              'disputes.executive.manage',
+            ],
+          ),
+        ],
+        // صدر القرار → اقتراح إجراء إداري أو إغلاق
+        'decision_issued' => [
+          const _ActionDef(
+            key: '_propose_action',
+            label: 'اقتراح إجراء إداري',
+            icon: Icons.gavel_outlined,
+            style: _ActionStyle.primary,
+          ),
+          const _ActionDef(
+            key: 'close',
+            label: 'إغلاق القضية',
+            icon: Icons.lock_outline,
+            style: _ActionStyle.danger,
+            needsReason: true,
+            reasonHint: 'سبب الإغلاق',
+          ),
+        ],
+        // إجراء مقترح → القرار التنفيذي أو إغلاق
+        'action_proposed' => [
+          const _ActionDef(
+            key: '_executive_decision',
+            label: 'القرار التنفيذي النهائي',
+            icon: Icons.verified_outlined,
+            style: _ActionStyle.primary,
+            requiresPermission: [
+              'disputes.admin_action.decide',
+              'disputes.executive.manage',
+            ],
+          ),
+          const _ActionDef(
+            key: 'close',
+            label: 'إغلاق القضية',
+            icon: Icons.lock_outline,
+            style: _ActionStyle.danger,
+            needsReason: true,
+            reasonHint: 'سبب الإغلاق',
+          ),
+        ],
+        // بانتظار التنفيذ → تنفيذ أو إغلاق
+        'pending_execution' => [
+          const _ActionDef(
+            key: '_execute_action',
+            label: 'تنفيذ الإجراء الإداري',
+            icon: Icons.task_alt,
+            style: _ActionStyle.primary,
+          ),
+          const _ActionDef(
+            key: 'close',
+            label: 'إغلاق القضية',
+            icon: Icons.lock_outline,
+            style: _ActionStyle.danger,
+            needsReason: true,
+            reasonHint: 'سبب الإغلاق',
+          ),
+        ],
+        // حالات يمكن إغلاقها فقط
+        'executed' || 'resolved_friendly' || 'settlement_pending' => [
+          const _ActionDef(
+            key: 'close',
+            label: 'إغلاق القضية',
+            icon: Icons.lock_outline,
+            needsReason: true,
+            reasonHint: 'سبب الإغلاق',
+          ),
+        ],
+        // مغلقة → إعادة فتح
+        'closed' => [
+          const _ActionDef(
+            key: 'reopen',
+            label: 'إعادة فتح القضية',
+            icon: Icons.lock_open_outlined,
+            style: _ActionStyle.warning,
+            needsReason: true,
+            reasonHint: 'سبب إعادة الفتح',
+          ),
+        ],
+        _ => [],
+      };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final accessAsync = ref.watch(accessContextProvider);
+    final access = accessAsync.asData?.value;
+    if (access == null) return const SizedBox.shrink();
+
+    final canTransition = access.hasAnyPermission(const [
+      '*',
+      'disputes.case.transition',
+    ]);
+    if (!canTransition) return const SizedBox.shrink();
+
+    final allActions = _actionsForStatus(caseItem.status);
+    // فلتر الصلاحيات المتخصصة
+    final actions = allActions.where((a) {
+      if (a.requiresPermission == null) return true;
+      return access.hasAnyPermission([...a.requiresPermission!, '*']);
+    }).toList();
+
+    if (actions.isEmpty) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(height: 24),
+        Row(
+          children: [
+            Icon(Icons.settings_outlined,
+                size: 18, color: theme.colorScheme.primary),
+            const SizedBox(width: 6),
+            Text('إجراءات متاحة',
+                style: theme.textTheme.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: actions.map((a) => _buildActionButton(context, ref, a)).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButton(
+      BuildContext context, WidgetRef ref, _ActionDef action) {
+    final theme = Theme.of(context);
+
+    switch (action.style) {
+      case _ActionStyle.primary:
+        return FilledButton.icon(
+          onPressed: () => _handleAction(context, ref, action),
+          icon: Icon(action.icon, size: 18),
+          label: Text(action.label, style: const TextStyle(fontSize: 13)),
+        );
+      case _ActionStyle.warning:
+        return FilledButton.tonalIcon(
+          onPressed: () => _handleAction(context, ref, action),
+          icon: Icon(action.icon, size: 18),
+          label: Text(action.label, style: const TextStyle(fontSize: 13)),
+          style: FilledButton.styleFrom(
+            backgroundColor: Colors.orange.shade100,
+            foregroundColor: Colors.orange.shade900,
+          ),
+        );
+      case _ActionStyle.danger:
+        return OutlinedButton.icon(
+          onPressed: () => _handleAction(context, ref, action),
+          icon: Icon(action.icon, size: 18),
+          label: Text(action.label, style: const TextStyle(fontSize: 13)),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: theme.colorScheme.error,
+            side: BorderSide(color: theme.colorScheme.error.withValues(alpha: 0.5)),
+          ),
+        );
+      case _ActionStyle.secondary:
+        return OutlinedButton.icon(
+          onPressed: () => _handleAction(context, ref, action),
+          icon: Icon(action.icon, size: 18),
+          label: Text(action.label, style: const TextStyle(fontSize: 13)),
+        );
+    }
+  }
+
+  void _handleAction(BuildContext context, WidgetRef ref, _ActionDef action) {
+    // إجراءات خاصة — فتح sheets مخصصة
+    if (action.key == '_propose_action') {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _ProposeAdminActionSheet(caseItem: caseItem),
+      );
+      return;
+    }
+    if (action.key == '_executive_decision') {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _DecisionSheet(caseItem: caseItem),
+      );
+      return;
+    }
+    if (action.key == '_execute_action') {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _ExecuteAdminActionSheet(caseItem: caseItem),
+      );
+      return;
+    }
+
+    // إجراءات انتقال عادية
+    if (action.needsReason) {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _TransitionReasonSheet(
+          caseItem: caseItem,
+          action: action,
+        ),
+      );
+    } else {
+      // تأكيد بسيط
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(action.label),
+          content: Text(action.confirmMessage ?? 'هل أنت متأكد؟'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                try {
+                  await ref.read(mobileCommandsProvider).transitionDisputeCase(
+                        caseId: caseItem.id,
+                        action: action.key,
+                      );
+                  if (context.mounted) {
+                    // أغلق الـ detail sheet
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('تم: ${action.label}')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('خطأ: $e')),
+                    );
+                  }
+                }
+              },
+              child: const Text('تأكيد'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+}
+
+// ── Sheet نقل حالة مع سبب ────────────────────────────────────────────────────
+
+class _TransitionReasonSheet extends ConsumerStatefulWidget {
+  const _TransitionReasonSheet({
+    required this.caseItem,
+    required this.action,
+  });
+  final CommitteeDisputeCase caseItem;
+  final _ActionDef action;
+
+  @override
+  ConsumerState<_TransitionReasonSheet> createState() =>
+      _TransitionReasonSheetState();
+}
+
+class _TransitionReasonSheetState
+    extends ConsumerState<_TransitionReasonSheet> {
+  final _controller = TextEditingController();
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool get _canSubmit =>
+      !_submitting && _controller.text.trim().length >= 5;
+
+  Future<void> _submit() async {
+    if (!_canSubmit) return;
+    setState(() => _submitting = true);
+    try {
+      await ref.read(mobileCommandsProvider).transitionDisputeCase(
+            caseId: widget.caseItem.id,
+            action: widget.action.key,
+            reason: _controller.text.trim(),
+          );
+      if (mounted) {
+        Navigator.pop(context); // أغلق sheet السبب
+        Navigator.pop(context); // أغلق detail sheet
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تم: ${widget.action.label}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurfaceVariant
+                      .withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            Text(widget.action.label,
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(
+              'القضية: ${widget.caseItem.title}',
+              style: theme.textTheme.bodySmall,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: _controller,
+              maxLines: 4,
+              maxLength: 500,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: widget.action.reasonHint ?? 'السبب',
+                hintText: '5 أحرف على الأقل',
+                border: const OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            FilledButton.icon(
+              onPressed: _canSubmit ? _submit : null,
+              icon: _submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : Icon(widget.action.icon),
+              label: Text(widget.action.label),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Sheet اقتراح إجراء إداري ──────────────────────────────────────────────────
+
+class _ProposeAdminActionSheet extends ConsumerStatefulWidget {
+  const _ProposeAdminActionSheet({required this.caseItem});
+  final CommitteeDisputeCase caseItem;
+
+  @override
+  ConsumerState<_ProposeAdminActionSheet> createState() =>
+      _ProposeAdminActionSheetState();
+}
+
+class _ProposeAdminActionSheetState
+    extends ConsumerState<_ProposeAdminActionSheet> {
+  String? _selectedAction;
+  final _detailController = TextEditingController();
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _detailController.dispose();
+    super.dispose();
+  }
+
+  bool get _canSubmit =>
+      !_submitting &&
+      _selectedAction != null &&
+      _detailController.text.trim().length >= 3;
+
+  Future<void> _submit() async {
+    if (!_canSubmit) return;
+    setState(() => _submitting = true);
+    try {
+      await ref.read(mobileCommandsProvider).proposeAdminAction(
+            caseId: widget.caseItem.id,
+            action: _selectedAction!,
+            detail: _detailController.text.trim(),
+          );
+      if (mounted) {
+        Navigator.pop(context);
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم اقتراح الإجراء الإداري')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurfaceVariant
+                      .withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            Text('اقتراح إجراء إداري',
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(
+              'القضية: ${widget.caseItem.title}',
+              style: theme.textTheme.bodySmall,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 16),
+
+            // نوع الإجراء
+            Text('نوع الإجراء المقترح', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            ...CommitteeDisputeListPage._actionLabels.entries.map(
+              (e) => RadioListTile<String>(
+                value: e.key,
+                groupValue: _selectedAction,
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                onChanged: (v) => setState(() => _selectedAction = v),
+                title: Text(e.value),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // تفاصيل
+            TextField(
+              controller: _detailController,
+              maxLines: 4,
+              maxLength: 1000,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                labelText: 'تفاصيل الإجراء المقترح',
+                hintText: '3 أحرف على الأقل',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            FilledButton.icon(
+              onPressed: _canSubmit ? _submit : null,
+              icon: _submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.gavel),
+              label: const Text('إرسال الاقتراح'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Sheet تنفيذ الإجراء الإداري المعتمد ──────────────────────────────────────
+
+class _ExecuteAdminActionSheet extends ConsumerStatefulWidget {
+  const _ExecuteAdminActionSheet({required this.caseItem});
+  final CommitteeDisputeCase caseItem;
+
+  @override
+  ConsumerState<_ExecuteAdminActionSheet> createState() =>
+      _ExecuteAdminActionSheetState();
+}
+
+class _ExecuteAdminActionSheetState
+    extends ConsumerState<_ExecuteAdminActionSheet> {
+  final _notesController = TextEditingController();
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  bool get _canSubmit =>
+      !_submitting && _notesController.text.trim().length >= 3;
+
+  Future<void> _submit() async {
+    if (!_canSubmit) return;
+    setState(() => _submitting = true);
+    try {
+      await ref.read(mobileCommandsProvider).executeAdminAction(
+            caseId: widget.caseItem.id,
+            notes: _notesController.text.trim(),
+          );
+      if (mounted) {
+        Navigator.pop(context);
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تنفيذ الإجراء الإداري')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.caseItem;
+    final theme = Theme.of(context);
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurfaceVariant
+                      .withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            Text('تنفيذ الإجراء الإداري',
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(
+              'القضية: ${c.title}',
+              style: theme.textTheme.bodySmall,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 16),
+
+            // ملخص الإجراء المعتمد
+            Card(
+              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.gavel,
+                            size: 18, color: theme.colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Text('الإجراء المعتمد',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.primary)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      CommitteeDisputeListPage
+                              ._actionLabels[c.approvedAdminAction] ??
+                          c.approvedAdminAction ??
+                          '—',
+                      style: theme.textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    if (c.approvedActionDetail != null) ...[
+                      const SizedBox(height: 4),
+                      Text(c.approvedActionDetail!,
+                          style: theme.textTheme.bodyMedium),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ملاحظات التنفيذ
+            TextField(
+              controller: _notesController,
+              maxLines: 4,
+              maxLength: 1000,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                labelText: 'ملاحظات التنفيذ',
+                hintText: '3 أحرف على الأقل — وثّق ما تم فعلياً',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            FilledButton.icon(
+              onPressed: _canSubmit ? _submit : null,
+              icon: _submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.task_alt),
+              label: const Text('تأكيد التنفيذ'),
             ),
           ],
         ),

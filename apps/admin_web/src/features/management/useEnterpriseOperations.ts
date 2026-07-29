@@ -1,10 +1,6 @@
 import {
-  documentStudioCatalogSchema,
-  learningAdminCatalogSchema,
   recruitmentWorkbenchSchema,
   reportSchedulerCatalogSchema,
-  type DocumentStudioCatalog,
-  type LearningAdminCatalog,
   type RecruitmentWorkbench,
   type ReportSchedulerCatalog,
 } from '@ahla/shared-contracts';
@@ -23,11 +19,6 @@ const mockRecruitment: RecruitmentWorkbench = {
   stages: [{ id: id('6'), postingId: id('3'), name: 'مقابلة', orderIndex: 3, slaDays: 3 }],
   interviews: [], offers: [], lastUpdatedAt: now,
 };
-const mockLearning: LearningAdminCatalog = {
-  courses: [{ id: id('10'), code: 'SAFE-101', title: 'السلامة المهنية', category: 'امتثال', deliveryMode: 'hybrid', durationMinutes: 120, mandatory: true, active: true, enrollments: 12, completed: 8 }],
-  enrollments: [], employees: [{ id: id('11'), name: 'موظف تجريبي', code: 'EMP-001' }], lastUpdatedAt: now,
-};
-const mockDocuments: DocumentStudioCatalog = { templates: [], documents: [], lastUpdatedAt: now };
 const mockReports: ReportSchedulerCatalog = { schedules: [], runs: [], notificationQueue: { queued: 0, failed: 0 }, lastUpdatedAt: now };
 
 export function useRecruitmentWorkbench() {
@@ -63,29 +54,6 @@ export function useRecruitmentWorkbenchCommands() {
     onSuccess: refresh,
   });
   return { moveStage, scheduleInterview, decideInterview, createOffer, transitionOffer, hireApplicant };
-}
-
-export function useLearningAdminCatalog() {
-  const auth = useAuth();
-  return useQuery({ queryKey: ['learning-admin', auth.isMock], enabled: auth.status === 'authenticated', queryFn: async () => auth.isMock ? mockLearning : learningAdminCatalogSchema.parse(await rpc('get_learning_admin_catalog')) });
-}
-export function useLearningCommands() {
-  const auth = useAuth(); const client = useQueryClient();
-  const refresh = async () => client.invalidateQueries({ queryKey: ['learning-admin'] });
-  const upsertCourse = useMutation({ mutationFn: async (input: { id?: string | null; code: string; title: string; category: string; deliveryMode: string; durationMinutes: number; mandatory: boolean; active: boolean }) => auth.isMock ? id('10') : rpc('upsert_learning_course_admin', { p_id: input.id ?? null, p_code: input.code, p_title_ar: input.title, p_title_en: null, p_description: null, p_category: input.category, p_delivery_mode: input.deliveryMode, p_duration_minutes: input.durationMinutes, p_mandatory: input.mandatory, p_passing_score: null, p_validity_months: null, p_active: input.active }), onSuccess: refresh });
-  const enroll = useMutation({ mutationFn: async (input: { employeeId: string; courseId: string }) => auth.isMock ? id('20') : rpc('enroll_employee_course_admin', { p_employee_id: input.employeeId, p_course_id: input.courseId, p_session_id: null }), onSuccess: refresh });
-  const transition = useMutation({ mutationFn: async (input: { enrollmentId: string; status: string }) => auth.isMock ? input : rpc('transition_learning_enrollment', { p_enrollment_id: input.enrollmentId, p_status: input.status, p_progress: input.status === 'completed' ? 100 : null, p_score: null }), onSuccess: refresh });
-  return { upsertCourse, enroll, transition };
-}
-
-export function useDocumentStudioCatalog() {
-  const auth = useAuth();
-  return useQuery({ queryKey: ['document-studio', auth.isMock], enabled: auth.status === 'authenticated', queryFn: async () => auth.isMock ? mockDocuments : documentStudioCatalogSchema.parse(await rpc('get_document_studio_catalog')) });
-}
-export function useDocumentStudioCommands() {
-  const auth = useAuth(); const client = useQueryClient();
-  const upsertTemplate = useMutation({ mutationFn: async (input: { code: string; name: string; documentType: string; body: string; employee: boolean; manager: boolean; hr: boolean; executive: boolean }) => auth.isMock ? id('30') : rpc('upsert_document_template_admin', { p_id: null, p_code: input.code, p_name_ar: input.name, p_document_type: input.documentType, p_body_template: input.body, p_requires_employee: input.employee, p_requires_manager: input.manager, p_requires_hr: input.hr, p_requires_executive: input.executive, p_active: true }), onSuccess: async () => client.invalidateQueries({ queryKey: ['document-studio'] }) });
-  return { upsertTemplate };
 }
 
 export function useReportSchedulerCatalog() {

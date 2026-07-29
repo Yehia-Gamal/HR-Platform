@@ -37,9 +37,15 @@ export const kpiAdminCatalogSchema = z.object({
     scheduledOpenAt: z.string().nullable().optional(), deadlineAt: z.string().nullable().optional(), extendedUntil: z.string().nullable().optional(), effectiveDeadline: z.string().nullable().optional(),
     openedAt: z.string().nullable(), lockedAt: z.string().nullable(), overrideReason: z.string().nullable().optional(), evaluations: z.number(), finalized: z.number(),
     overdue: z.number().optional(), averageScore: z.number().nullable().optional(),
+    employeeEvaluations: z.array(z.object({
+      id: uuid, employeeId: uuid, employeeName: z.string(), employeeCode: z.string().nullable(),
+      stage: z.string(), workflowStatus: z.string().nullable().optional(),
+      finalScore: z.number().nullable().optional(), finalRating: z.string().nullable().optional(),
+      locked: z.boolean().optional(),
+    })).optional(),
   })),
   templates: z.array(z.object({
-    id: uuid, name: z.string(), version: z.number(), active: z.boolean(), criteria: z.array(z.object({
+    id: uuid, name: z.string(), version: z.number(), active: z.boolean(), officialCode: z.string().nullable().optional(), criteria: z.array(z.object({
       id: uuid, code: z.string().nullable().optional(), name: z.string(), weight: z.number(), maxScore: z.number(), sourceType: z.string(), attendanceMetric: z.string().nullable(), evaluatorStage: z.string().nullable().optional(), calculationMethod: z.string().nullable().optional(), requiresEvidence: z.boolean(),
     })),
   })),

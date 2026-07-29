@@ -79,48 +79,22 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _ServiceCard(
-                    icon: Icons.schedule_rounded,
-                    title: 'إذن تأخير',
-                    subtitle: 'تأخير في الحضور',
+                    icon: Icons.access_time_rounded,
+                    title: 'طلب إذن',
+                    subtitle: 'حضور أو انصراف (ساعتين)',
                     color: const Color(0xFFBF6A22),
-                    onTap: () => _submitRequest(
-                      context,
-                      ref,
-                      'late_permit',
-                      permitKind: 'late_arrival',
-                    ),
+                    onTap: () => _submitRequest(context, ref, 'permit'),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: _ServiceCard(
-                    icon: Icons.exit_to_app_rounded,
-                    title: 'إذن خروج مبكر',
-                    subtitle: 'انصراف قبل الموعد',
-                    color: const Color(0xFF8B5CF6),
-                    onTap: () => _submitRequest(
-                      context,
-                      ref,
-                      'early_permit',
-                      permitKind: 'early_departure',
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _ServiceCard(
-                    icon: Icons.fingerprint_rounded,
-                    title: 'تصحيح حضور',
-                    subtitle: 'نسيان بصمة دخول أو خروج',
-                    color: scheme.error,
-                    onTap: () => _submitCorrection(context, ref),
-                  ),
-                ),
-              ],
+            _ServiceCard(
+              icon: Icons.fingerprint_rounded,
+              title: 'تصحيح حضور',
+              subtitle: 'نسيان بصمة دخول أو خروج',
+              color: scheme.error,
+              onTap: () => _submitCorrection(context, ref),
             ),
 
             // ── أرصدة الإجازات ──
@@ -347,9 +321,16 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
     );
     if (result == null || !context.mounted) return;
 
+    // الإذن الموحّد: ترجمة النوع إلى late_permit / early_permit حسب اختيار المستخدم
+    var resolvedType = type;
+    if (type == 'permit') {
+      final kind = (result['payload'] as Map<String, dynamic>)['permitKind'] as String?;
+      resolvedType = kind == 'early_departure' ? 'early_permit' : 'late_permit';
+    }
+
     try {
       await ref.read(mobileCommandsProvider).submitRequest(
-            type,
+            resolvedType,
             result['title'] as String,
             result['reason'] as String,
             result['payload'] as Map<String, dynamic>,
@@ -560,8 +541,9 @@ class _RequestCard extends StatelessWidget {
   static String _typeLabel(String type) => switch (type) {
         'leave' => 'طلب إجازة',
         'mission' => 'مهمة عمل',
-        'late_permit' => 'إذن تأخير',
-        'early_permit' => 'إذن خروج مبكر',
+        'late_permit' => 'إذن حضور',
+        'early_permit' => 'إذن انصراف',
+        'permit' => 'طلب إذن',
         'attendance_correction' => 'تصحيح حضور',
         'convoy' => 'قافلة',
         _ => 'طلب',
@@ -593,14 +575,17 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
   void initState() {
     super.initState();
     _permitKind = widget.permitKind ?? 'late_arrival';
+    // الإذن الموحّد: ساعتين ثابتة (120 دقيقة)
+    if (widget.type == 'permit') _minutes = 120;
   }
 
   String get _typeLabel => switch (widget.type) {
         'leave' => 'طلب إجازة',
         'mission' => 'طلب مهمة عمل',
         'convoy' => 'طلب قافلة / فاندي',
-        'late_permit' => 'إذن تأخير',
-        'early_permit' => 'إذن خروج مبكر',
+        'permit' => 'طلب إذن',
+        'late_permit' => 'إذن حضور',
+        'early_permit' => 'إذن انصراف',
         _ => 'طلب جديد',
       };
 
@@ -656,12 +641,14 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
           'endDate': _endDate!.toIso8601String().substring(0, 10),
           'location': loc,
         };
+      case 'permit':
       case 'late_permit':
       case 'early_permit':
         if (_permitDate == null) return;
         payload = {
           'permitDate': _permitDate!.toIso8601String().substring(0, 10),
-          'minutes': _minutes,
+          'minutes': 120,
+          'permitKind': _permitKind,
         };
       default:
         payload = {};
@@ -774,7 +761,23 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
                 border: OutlineInputBorder(),
               ),
             ),
-          ] else if (widget.type == 'late_permit' || widget.type == 'early_permit') ...[
+          ] else if (widget.type == 'permit' || widget.type == 'late_permit' || widget.type == 'early_permit') ...[
+            // اختيار نوع الإذن (حضور / انصراف)
+            DropdownButtonFormField<String>(
+              value: _permitKind,
+              decoration: const InputDecoration(
+                labelText: 'نوع الإذن',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(
+                    value: 'late_arrival', child: Text('إذن حضور')),
+                DropdownMenuItem(
+                    value: 'early_departure', child: Text('إذن انصراف')),
+              ],
+              onChanged: (v) => setState(() => _permitKind = v!),
+            ),
+            const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: () async {
                 final picked = await showDatePicker(
@@ -792,39 +795,26 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
                   : DateFormat('d/M/y').format(_permitDate!)),
             ),
             const SizedBox(height: 12),
-            // إذا لم يكن النوع مُحدّدًا مسبقًا — أظهر القائمة المنسدلة
-            if (widget.permitKind == null) ...[
-              DropdownButtonFormField<String>(
-                value: _permitKind,
-                decoration: const InputDecoration(
-                  labelText: 'نوع الإذن',
-                  border: OutlineInputBorder(),
-                ),
-                items: const [
-                  DropdownMenuItem(
-                      value: 'late_arrival', child: Text('تأخير في الحضور')),
-                  DropdownMenuItem(
-                      value: 'early_departure', child: Text('خروج مبكر')),
-                ],
-                onChanged: (v) => setState(() => _permitKind = v!),
+            // معلومات الإذن — ساعتين ثابتة و 4 أذونات شهريًا
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: .25),
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(height: 12),
-            ],
-            Row(
-              children: [
-                const Text('المدة (دقائق): '),
-                Expanded(
-                  child: Slider(
-                    value: _minutes.toDouble(),
-                    min: 15,
-                    max: 240,
-                    divisions: 15,
-                    label: '$_minutes دقيقة',
-                    onChanged: (v) => setState(() => _minutes = v.round()),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 20,
+                      color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'كل إذن ساعتين كاملة · 4 أذونات شهريًا',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
                   ),
-                ),
-                Text('$_minutes د'),
-              ],
+                ],
+              ),
             ),
           ],
 

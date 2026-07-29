@@ -7,6 +7,30 @@ import { timingSafeEqual } from '../_shared/secret.ts';
 // للطلبات ذات الأولوية urgent + metadata.fullScreen. يبقى PUSH_PROVIDER_URL
 // كاحتياط إن لم تُضبط أسرار FCM. يكتب سجل التسليم notification_delivery_log.
 
+/** صف من notification_jobs مع العلاقة المرتبطة notifications(priority). */
+interface JobRow {
+  id: string;
+  notification_id: string;
+  recipient_user_id: string;
+  channel: string;
+  attempts: number;
+  notifications: { priority: string } | null;
+}
+
+/** صف إشعار كامل يُجلب لبناء رسالة FCM. */
+interface NotificationRow {
+  id: string;
+  title: string | null;
+  body: string | null;
+  action_url: string | null;
+  priority: string | null;
+  metadata: Record<string, unknown> | null;
+  entity_id: string | null;
+  entity_type: string | null;
+}
+
+type SupabaseClient = ReturnType<typeof createClient>;
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
   if (req.method !== 'POST') return respond(req, { error: 'METHOD_NOT_ALLOWED' }, 405);
@@ -27,9 +51,9 @@ Deno.serve(async (req) => {
   if (error) return respond(req, { error: 'LOAD_FAILED' }, 500);
 
   // إعادة ترتيب: urgent قبل غيره (Supabase لا يرتّب على جدول مرتبط بسهولة).
-  const ordered = (jobs ?? []).slice().sort((a, b) => {
-    const pa = (a as any).notifications?.priority === 'urgent' ? 0 : 1;
-    const pb = (b as any).notifications?.priority === 'urgent' ? 0 : 1;
+  const ordered = (jobs as JobRow[] ?? []).slice().sort((a, b) => {
+    const pa = a.notifications?.priority === 'urgent' ? 0 : 1;
+    const pb = b.notifications?.priority === 'urgent' ? 0 : 1;
     return pa - pb;
   });
 
@@ -44,7 +68,7 @@ Deno.serve(async (req) => {
 
     const { data: notification } = await supabase.from('notifications')
       .select('id,title,body,action_url,priority,metadata,entity_id,entity_type')
-      .eq('id', job.notification_id).maybeSingle();
+      .eq('id', job.notification_id).maybeSingle() as { data: NotificationRow | null };
     const { data: subscriptions } = await supabase.from('push_subscriptions')
       .select('id,fcm_token,endpoint,platform').eq('user_id', job.recipient_user_id).eq('is_active', true);
 
@@ -128,7 +152,7 @@ Deno.serve(async (req) => {
 });
 
 // يبني رسالة FCM v1: تجربة عاجلة (شاشة كاملة/صوت/اهتزاز) عند urgent+fullScreen.
-function buildFcmMessage(token: string, n: any): Record<string, unknown> {
+function buildFcmMessage(token: string, n: NotificationRow | null): Record<string, unknown> {
   const meta = (n?.metadata ?? {}) as Record<string, unknown>;
   const urgent = n?.priority === 'urgent' || meta.fullScreen === true;
   const deepLink = (meta.deepLink as string) ?? n?.action_url ?? '';
@@ -167,7 +191,7 @@ function buildFcmMessage(token: string, n: any): Record<string, unknown> {
 }
 
 async function logDelivery(
-  supabase: any, job: any, subscriptionId: string | null,
+  supabase: SupabaseClient, job: JobRow, subscriptionId: string | null,
   status: 'token_missing' | 'sent' | 'failed' | 'delivered', providerMessageId: string | null, errorDetail: string | null,
 ) {
   const nowIso = new Date().toISOString();
