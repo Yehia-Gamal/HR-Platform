@@ -3,45 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSupabase } from '../../core/supabase';
 import { invokeEdgeFunction } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
-
-const developmentEmployees: EmployeeSummary[] = [
-  {
-    id: '30000000-0000-4000-8000-000000000001',
-    employeeCode: 'EMP-001',
-    fullNameAr: 'موظف تجريبي للتطوير',
-    fullNameEn: null,
-    phoneE164: '+201000000001',
-    status: 'active',
-    isActive: true,
-    photoUrl: null,
-    departmentId: null,
-    teamId: null,
-    branchId: null,
-    department: 'الإدارة التجريبية',
-    team: null,
-    branch: 'المقر الرئيسي',
-    jobTitle: 'موظف تجريبي',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '30000000-0000-4000-8000-000000000002',
-    employeeCode: 'EMP-002',
-    fullNameAr: 'مدير مباشر تجريبي',
-    fullNameEn: null,
-    phoneE164: '+201000000002',
-    status: 'onboarding',
-    isActive: true,
-    photoUrl: null,
-    departmentId: null,
-    teamId: null,
-    branchId: null,
-    department: 'الإدارة التجريبية',
-    team: null,
-    branch: 'المقر الرئيسي',
-    jobTitle: 'مدير مباشر',
-    createdAt: new Date().toISOString(),
-  },
-];
+import { loadDomainMocks } from '../mock/loadDomainMocks';
 
 export function useEmployees(search?: string, status?: string) {
   const auth = useAuth();
@@ -49,7 +11,7 @@ export function useEmployees(search?: string, status?: string) {
     queryKey: ['employees', search, status, auth.isMock],
     enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<EmployeeSummary[]> => {
-      if (auth.isMock) return developmentEmployees;
+      if (auth.isMock) return (await loadDomainMocks()).mockDevelopmentEmployees;
 
       const supabase = await getSupabase();
       const { data, error } = await supabase.rpc('get_employees_enriched', {
@@ -73,7 +35,8 @@ export function useEmployee360(employeeId: string | undefined) {
     queryFn: async (): Promise<Employee360> => {
       if (!employeeId) throw new Error('معرف الموظف غير موجود.');
       if (auth.isMock) {
-        const source = developmentEmployees.find((item) => item.id === employeeId) ?? developmentEmployees[0];
+        const devEmployees = (await loadDomainMocks()).mockDevelopmentEmployees;
+        const source = devEmployees.find((item) => item.id === employeeId) ?? devEmployees[0];
         return employee360Schema.parse({
           ...source,
           hireDate: null,
