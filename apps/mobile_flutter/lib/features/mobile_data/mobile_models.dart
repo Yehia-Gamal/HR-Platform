@@ -1727,6 +1727,34 @@ class DisputeDirectoryEmployee {
   final String? department;
 }
 
+/// طرف في قضية منازعات (مشتكى عليه / شاهد / مقدم شكوى / ذو علاقة)
+class DisputeCaseParty {
+  const DisputeCaseParty({
+    required this.id,
+    required this.employeeId,
+    required this.employeeName,
+    required this.partyType,
+    required this.notificationStatus,
+  });
+  factory DisputeCaseParty.fromJson(Map<String, dynamic> json) {
+    // employees join — PostgREST returns nested object
+    final empData = json['employees'] as Map<String, dynamic>?;
+    return DisputeCaseParty(
+      id: json['id'] as String,
+      employeeId: json['employee_id'] as String,
+      employeeName: empData?['full_name_ar'] as String? ?? 'موظف',
+      partyType: json['party_type'] as String? ?? 'related',
+      notificationStatus:
+          json['notification_status'] as String? ?? 'withheld',
+    );
+  }
+  final String id;
+  final String employeeId;
+  final String employeeName;
+  final String partyType; // complainant, respondent, witness, related
+  final String notificationStatus; // withheld, queued, notified, read
+}
+
 class MobileDisputeDecision {
   const MobileDisputeDecision({
     required this.id,
