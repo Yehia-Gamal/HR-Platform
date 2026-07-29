@@ -130,7 +130,7 @@ export function AccessPage() {
   }
 
   return <div className="space-y-6">
-    <PageHeader title="الأدوار والصلاحيات" description="اختر قالب دور لإسناده للمستخدمين، أو أنشئ دوراً مخصصاً بصلاحيات محددة." actions={<button className="btn-primary" onClick={() => openCustomDraft()}><Plus className="size-4"/>دور مخصص</button>}/>
+    <PageHeader title="الأدوار والصلاحيات" description="اختر قالب دور لإسناده للمستخدمين، أو أنشئ دوراً مخصصاً بصلاحيات محددة." actions={<button className="btn-primary" onClick={() => openCustomDraft()}><Plus className="size-4" aria-hidden="true"/>دور مخصص</button>}/>
 
     {query.isError ? <ErrorState title="تعذر تحميل الصلاحيات" description={query.error instanceof Error ? query.error.message : 'غير مصرح'} onRetry={() => void query.refetch()} /> : query.isLoading && !data ? <MetricSkeletonRow /> : null}
 
@@ -193,7 +193,7 @@ export function AccessPage() {
             <input className="input" type="date" value={assignment.effectiveTo} onChange={(e) => setAssignment({ ...assignment, effectiveTo: e.target.value })}/>
           </label>
           <button className="btn-primary self-end" disabled={commands.assignRole.isPending}>
-            <UserPlus className="size-4"/>{commands.assignRole.isPending ? 'جارٍ الإسناد…' : 'إسناد'}
+            <UserPlus className="size-4" aria-hidden="true"/>{commands.assignRole.isPending ? 'جارٍ الإسناد…' : 'إسناد'}
           </button>
         </form>
       </section>
@@ -217,7 +217,7 @@ export function AccessPage() {
               <div className="flex flex-wrap gap-2">
                 {user.roles.length ? user.roles.map((role) => <span key={role.roleId} className="inline-flex items-center gap-2 rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-bold">
                   {role.name}{role.effectiveTo ? ` · حتى ${new Date(role.effectiveTo).toLocaleDateString('ar-EG')}` : ''}
-                  <button aria-label="سحب الدور" className="text-[var(--danger)]" onClick={() => void commands.revokeRole.mutateAsync({ userId: user.userId, roleId: role.roleId })}><Trash2 className="size-3"/></button>
+                  <button aria-label="سحب الدور" className="text-[var(--danger)]" onClick={() => void commands.revokeRole.mutateAsync({ userId: user.userId, roleId: role.roleId })}><Trash2 className="size-3" aria-hidden="true"/></button>
                 </span>) : <span className="muted text-sm">بلا دور فعال</span>}
               </div>
             </div>
@@ -289,7 +289,7 @@ export function AccessPage() {
         </div>
 
         <button className="btn-primary" disabled={commands.upsertRole.isPending || commands.setPermissions.isPending}>
-          <Save className="size-4"/>{commands.upsertRole.isPending || commands.setPermissions.isPending ? 'جارٍ الحفظ…' : 'حفظ الدور والصلاحيات'}
+          <Save className="size-4" aria-hidden="true"/>{commands.upsertRole.isPending || commands.setPermissions.isPending ? 'جارٍ الحفظ…' : 'حفظ الدور والصلاحيات'}
         </button>
       </form>
     </DialogOverlay>}
@@ -303,7 +303,7 @@ function RoleTemplateCard({ template, permissionCount, assignmentCount, onClick 
     <div className={`absolute start-0 top-0 h-full w-1.5 ${template.bgColor}`} style={{ backgroundColor: 'currentColor' }}/>
     <div className="flex items-start gap-3">
       <div className={`flex size-12 shrink-0 items-center justify-center rounded-xl ${template.bgColor} ${template.color}`}>
-        <Icon className="size-6"/>
+        <Icon className="size-6" aria-hidden="true"/>
       </div>
       <div className="min-w-0 flex-1">
         <h3 className="text-base font-black">{template.name}</h3>
@@ -315,7 +315,7 @@ function RoleTemplateCard({ template, permissionCount, assignmentCount, onClick 
         <span className="text-xs"><strong className={template.color}>{permissionCount}</strong> <span className="muted">صلاحية</span></span>
         <span className="text-xs"><strong>{assignmentCount}</strong> <span className="muted">مستخدم</span></span>
       </div>
-      <ChevronLeft className="size-4 text-[var(--text-muted)] transition-transform group-hover:rtl:translate-x-1 group-hover:ltr:-translate-x-1"/>
+      <ChevronLeft className="size-4 text-[var(--text-muted)] transition-transform group-hover:rtl:translate-x-1 group-hover:ltr:-translate-x-1" aria-hidden="true"/>
     </div>
   </button>;
 }

@@ -50,7 +50,7 @@ export function EmployeesPage() {
         eyebrow="إدارة الأفراد"
         title="دليل الموظفين"
         description="ابحث في ملفات الموظفين وافتح ملف 360°، مع احترام نطاق الوصول الذي يطبقه الخادم."
-        actions={canCreate ? <Link to="/hr/employees/new" className="btn-primary"><Plus className="size-4" />إنشاء موظف</Link> : undefined}
+        actions={canCreate ? <Link to="/hr/employees/new" className="btn-primary"><Plus className="size-4" aria-hidden="true" />إنشاء موظف</Link> : undefined}
       />
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

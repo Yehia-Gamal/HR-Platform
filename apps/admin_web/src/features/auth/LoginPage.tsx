@@ -72,13 +72,13 @@ export function LoginPage() {
           <h1 className="text-4xl font-black leading-[1.35] xl:text-5xl">قرارات أوضح، متابعة أسرع، وتجربة موحدة لكل فريق أحلى شباب.</h1>
           <p className="mt-5 max-w-xl text-sm leading-8 text-[color-mix(in_srgb,var(--brand-accent),white_55%)]">منصة عربية آمنة تجمع الموارد البشرية والحضور والأداء والقرارات والتشغيل في تجربة واحدة.</p>
           <div className="login-feature-grid mt-8 grid gap-4 xl:grid-cols-3">
-            {features.map(({ icon: Icon, title, body }) => <article key={title} className="rounded-2xl border border-white/15 bg-white/[0.08] p-4 backdrop-blur"><span className="login-feature-icon"><Icon className="size-4" /></span><h2 className="mt-3 text-sm font-black">{title}</h2><p className="mt-1 text-xs leading-6 text-[color-mix(in_srgb,var(--brand-accent),white_55%)]">{body}</p></article>)}
+            {features.map(({ icon: Icon, title, body }) => <article key={title} className="rounded-2xl border border-white/15 bg-white/[0.08] p-4 backdrop-blur"><span className="login-feature-icon"><Icon className="size-4" aria-hidden="true" /></span><h2 className="mt-3 text-sm font-black">{title}</h2><p className="mt-1 text-xs leading-6 text-[color-mix(in_srgb,var(--brand-accent),white_55%)]">{body}</p></article>)}
           </div>
         </div>
         <div className="login-brand-footer relative z-10 flex flex-wrap items-center gap-5 text-xs text-[color-mix(in_srgb,var(--brand-accent),white_55%)]">
-          <span className="login-feature"><CheckCircle2 className="size-4" />RTL كامل</span>
-          <span className="login-feature"><CheckCircle2 className="size-4" />تدقيق ومراجعة</span>
-          <span className="login-feature"><CheckCircle2 className="size-4" />وصول حسب الدور</span>
+          <span className="login-feature"><CheckCircle2 className="size-4" aria-hidden="true" />RTL كامل</span>
+          <span className="login-feature"><CheckCircle2 className="size-4" aria-hidden="true" />تدقيق ومراجعة</span>
+          <span className="login-feature"><CheckCircle2 className="size-4" aria-hidden="true" />وصول حسب الدور</span>
         </div>
       </section>
 
@@ -88,7 +88,7 @@ export function LoginPage() {
           <div className="login-form-logo mb-7"><AppLogo /></div>
           <div className="card p-6 sm:p-8">
             <div className="mb-7">
-              <div className="mb-4 grid size-12 place-items-center rounded-2xl bg-[var(--brand-primary-soft)] text-[var(--brand-primary)]"><LockKeyhole className="size-5" /></div>
+              <div className="mb-4 grid size-12 place-items-center rounded-2xl bg-[var(--brand-primary-soft)] text-[var(--brand-primary)]"><LockKeyhole className="size-5" aria-hidden="true" /></div>
               <p className="text-xs font-black text-[var(--brand-primary)]">بوابة آمنة</p>
               <h2 className="mt-1 text-2xl font-black">{mode === 'reset' ? 'استعادة كلمة المرور' : 'مرحبًا بعودتك'}</h2>
               <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">{mode === 'reset' ? 'أدخل بريدك الإلكتروني وسنرسل لك رابطًا لتعيين كلمة مرور جديدة.' : 'سجل الدخول بحساب المؤسسة، وسيحدد الخادم مساحة العمل المناسبة لصلاحياتك.'}</p>
@@ -99,7 +99,7 @@ export function LoginPage() {
             {mode === 'reset' ? (
               resetSent ? (
                 <div className="rounded-xl border border-[var(--success)] bg-[var(--success-soft)] p-4 text-sm leading-7 text-[var(--success)]">
-                  <div className="flex items-center gap-2 font-black"><CheckCircle2 className="size-5" />تم إرسال الرابط</div>
+                  <div className="flex items-center gap-2 font-black"><CheckCircle2 className="size-5" aria-hidden="true" />تم إرسال الرابط</div>
                   <p className="mt-2">إن كان البريد مسجلًا لدينا فستصلك رسالة تتضمن رابط تعيين كلمة مرور جديدة. تحقق من صندوق الوارد وبريد المهملات.</p>
                   <button type="button" className="btn-secondary mt-4" onClick={() => { setMode('signin'); setResetSent(false); setResetEmail(''); }}>العودة لتسجيل الدخول</button>
                 </div>
@@ -114,7 +114,7 @@ export function LoginPage() {
             ) : (
               <form className="space-y-4" onSubmit={onSubmit}>
                 <label className="block"><span className="mb-1.5 block text-sm font-bold">البريد أو الهاتف أو كود الموظف</span><input className="input" autoComplete="username" dir="ltr" placeholder="EMP-001 أو 010... أو البريد" {...form.register('identifier')} /><span className="mt-1 block min-h-4 text-xs text-[var(--danger)]">{form.formState.errors.identifier?.message}</span></label>
-                <label className="block"><span className="mb-1.5 block text-sm font-bold">كلمة المرور</span><span className="relative block"><input type={showPassword ? 'text' : 'password'} className="input !ps-14" autoComplete="current-password" dir="ltr" placeholder="••••••••" {...form.register('password')} /><button type="button" className="password-visibility-button" aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</button></span><span className="mt-1 block min-h-4 text-xs text-[var(--danger)]">{form.formState.errors.password?.message}</span></label>
+                <label className="block"><span className="mb-1.5 block text-sm font-bold">كلمة المرور</span><span className="relative block"><input type={showPassword ? 'text' : 'password'} className="input !ps-14" autoComplete="current-password" dir="ltr" placeholder="••••••••" {...form.register('password')} /><button type="button" className="password-visibility-button" aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}</button></span><span className="mt-1 block min-h-4 text-xs text-[var(--danger)]">{form.formState.errors.password?.message}</span></label>
                 {showForgotLink && <div className="flex justify-end"><button type="button" className="link-button" onClick={() => { setMode('reset'); setSubmitError(null); }}>نسيت كلمة المرور؟</button></div>}
                 <button type="submit" disabled={form.formState.isSubmitting || !hasSupabaseConfig} aria-describedby={!hasSupabaseConfig ? 'login-config-hint' : undefined} className="btn-primary w-full !py-3.5">{form.formState.isSubmitting ? 'جارٍ التحقق…' : 'تسجيل الدخول بأمان'}</button>
               </form>

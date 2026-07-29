@@ -52,7 +52,7 @@ export function OfficialHolidaysPage() {
         eyebrow="الوقت والخدمات"
         title="العطل الرسمية"
         description="إدارة العطل الرسمية مع دعم النطاق (الكل / جهة / إدارة) والاستثناءات — V17 §1.7."
-        actions={<button type="button" className="btn-primary" onClick={() => { setEditing(null); setShowDialog(true); }}><Plus className="size-4" />إضافة عطلة</button>}
+        actions={<button type="button" className="btn-primary" onClick={() => { setEditing(null); setShowDialog(true); }}><Plus className="size-4" aria-hidden="true" />إضافة عطلة</button>}
       />
 
       <section className="grid gap-3 sm:grid-cols-3">
@@ -82,7 +82,7 @@ export function OfficialHolidaysPage() {
       ) : holidays.isLoading ? (
         <ListSkeleton rows={4} label="جارٍ تحميل العطل…" />
       ) : all.length === 0 ? (
-        <EmptyState title="لا توجد عطل مسجلة" description={`لم تتم إضافة أي عطلة رسمية لعام ${year}.`} action={<button type="button" className="btn-primary" onClick={() => { setEditing(null); setShowDialog(true); }}><Plus className="size-4" />إضافة عطلة</button>} />
+        <EmptyState title="لا توجد عطل مسجلة" description={`لم تتم إضافة أي عطلة رسمية لعام ${year}.`} action={<button type="button" className="btn-primary" onClick={() => { setEditing(null); setShowDialog(true); }}><Plus className="size-4" aria-hidden="true" />إضافة عطلة</button>} />
       ) : filtered.length === 0 ? (
         <EmptyState title="لا توجد نتائج مطابقة" description="جرّب تعديل البحث." />
       ) : (
@@ -115,8 +115,8 @@ export function OfficialHolidaysPage() {
                     <td className="px-4 py-3.5"><StatusBadge status={h.is_active ? 'active' : 'archived'} /></td>
                     <td className="px-4 py-3.5">
                       <div className="flex gap-2">
-                        <button type="button" className="btn-secondary !px-2 !py-1.5 text-xs" onClick={() => { setEditing(h); setShowDialog(true); }} aria-label="تعديل"><Pencil className="size-3.5" /></button>
-                        <button type="button" className="btn-secondary !px-2 !py-1.5 text-xs text-[var(--danger)]" onClick={() => setDeleting(h)} aria-label="حذف"><Trash2 className="size-3.5" /></button>
+                        <button type="button" className="btn-secondary !px-2 !py-1.5 text-xs" onClick={() => { setEditing(h); setShowDialog(true); }} aria-label="تعديل"><Pencil className="size-3.5" aria-hidden="true" /></button>
+                        <button type="button" className="btn-secondary !px-2 !py-1.5 text-xs text-[var(--danger)]" onClick={() => setDeleting(h)} aria-label="حذف"><Trash2 className="size-3.5" aria-hidden="true" /></button>
                       </div>
                     </td>
                   </tr>

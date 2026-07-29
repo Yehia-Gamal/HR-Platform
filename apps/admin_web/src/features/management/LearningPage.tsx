@@ -20,7 +20,7 @@ export function LearningPage() {
   async function saveEnrollment(e: FormEvent) { e.preventDefault(); await commands.enroll.mutateAsync(enrollment); setShowEnrollment(false); }
   if (query.isError) return <ErrorState title="تعذر تحميل التدريب" description={query.error instanceof Error ? query.error.message : undefined} onRetry={() => void query.refetch()} />;
   return <div className="space-y-6">
-    <PageHeader title="التدريب والمهارات" description="كتالوج الدورات، التسجيل، الإكمال، الشهادات ومتابعة الدورات الإلزامية." actions={<div className="flex gap-2"><button className="btn-secondary" onClick={() => setShowEnrollment(true)}><Users className="size-4" />تسجيل موظف</button><button className="btn-primary" onClick={() => setShowCourse(true)}><Plus className="size-4" />دورة جديدة</button></div>} />
+    <PageHeader title="التدريب والمهارات" description="كتالوج الدورات، التسجيل، الإكمال، الشهادات ومتابعة الدورات الإلزامية." actions={<div className="flex gap-2"><button className="btn-secondary" onClick={() => setShowEnrollment(true)}><Users className="size-4" aria-hidden="true" />تسجيل موظف</button><button className="btn-primary" onClick={() => setShowCourse(true)}><Plus className="size-4" aria-hidden="true" />دورة جديدة</button></div>} />
     {query.isLoading && !data ? <MetricSkeletonRow count={3} /> : null}
     {data ? <>
       <section className="grid gap-4 sm:grid-cols-3"><MetricCard label="الدورات" value={data.courses.length} icon={GraduationCap} /><MetricCard label="التسجيلات" value={data.enrollments.length} icon={Users} /><MetricCard label="المكتملة" value={data.enrollments.filter(x => x.status === 'completed').length} icon={BookOpenCheck} /></section>

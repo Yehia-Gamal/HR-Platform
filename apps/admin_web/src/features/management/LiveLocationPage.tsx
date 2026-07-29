@@ -100,7 +100,7 @@ export function LiveLocationPage() {
           <article className={`card overflow-hidden ${mobileView === 'directory' ? '' : 'location-mobile-hidden'}`}>
             <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] p-5">
               <div><h2 className="font-black">دليل الموظفين</h2><p className="muted mt-1 text-sm">{query.isLoading ? '…' : `${visible.length} نتيجة`}</p></div>
-              <LocateFixed className="size-5 text-[var(--brand-primary)]" />
+              <LocateFixed className="size-5 text-[var(--brand-primary)]" aria-hidden="true" />
             </div>
             {query.isLoading ? <div className="space-y-3 p-5" aria-label="جارٍ تحميل الموظفين">{[1, 2, 3].map((item) => <div key={item} className="h-28 animate-pulse rounded-2xl bg-[var(--surface-muted)]" />)}</div> : null}
             {!query.isLoading && !visible.length ? <EmptyState title="لا توجد نتائج مطابقة" description="غيّر البحث أو مرشح حالة الإشارة." /> : null}
@@ -122,7 +122,7 @@ export function LiveLocationPage() {
                       <div className="rounded-xl bg-[var(--surface-muted)] p-3"><span className="muted block">دقة GPS</span><strong className="mt-1 block">{item.lastAccuracy === null ? '—' : `${Math.round(item.lastAccuracy)} متر`}</strong></div>
                     </div>
                     <button type="button" className="btn-secondary mt-4 w-full" disabled={Boolean(item.activeRequestId)} onClick={() => setRequestDraft({ employee: item, reason: '' })}>
-                      <Crosshair className="size-4" />{item.activeRequestId ? 'يوجد طلب نشط بالفعل' : 'طلب موقع حي'}
+                      <Crosshair className="size-4" aria-hidden="true" />{item.activeRequestId ? 'يوجد طلب نشط بالفعل' : 'طلب موقع حي'}
                     </button>
                   </article>
                 );
@@ -141,7 +141,7 @@ export function LiveLocationPage() {
               <textarea className="input mt-2 min-h-28" required minLength={5} value={requestDraft.reason} onChange={(event) => setRequestDraft({ ...requestDraft, reason: event.target.value })} placeholder="اكتب سببًا تشغيليًا واضحًا…" />
             </label>
             {commands.request.isError ? <ErrorBanner message={commands.request.error instanceof Error ? commands.request.error.message : 'تعذر إرسال الطلب.'} /> : null}
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setRequestDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.request.isPending || requestDraft.reason.trim().length < 5}><Send className="size-4" />{commands.request.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}</button></div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setRequestDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.request.isPending || requestDraft.reason.trim().length < 5}><Send className="size-4" aria-hidden="true" />{commands.request.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}</button></div>
           </form>
         </DialogOverlay>
       ) : null}
@@ -164,12 +164,12 @@ function LocationMap({ items }: { items: LocationDirectoryItem[] }) {
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] p-5"><div><h2 className="font-black">الخريطة التشغيلية</h2><p className="muted mt-1 text-sm">مواضع تقريبية من آخر نقطة مصرح بعرضها</p></div><div className="flex gap-3 text-xs"><span className="inline-flex items-center gap-1.5"><i className="size-2.5 rounded-full bg-[var(--success)]" aria-hidden="true" />متصل</span><span className="inline-flex items-center gap-1.5"><i className="size-2.5 rounded-full bg-[var(--warning)]" aria-hidden="true" />قديم</span></div></div>
       <div className="location-map" role="img" aria-label={`خريطة تشغيلية تحتوي ${points.length} نقطة`}>
         <div className="map-ring map-ring-one" /><div className="map-ring map-ring-two" />
-        <div className="map-center"><Crosshair className="size-5" /><span>نطاق التشغيل</span></div>
+        <div className="map-center"><Crosshair className="size-5" aria-hidden="true" /><span>نطاق التشغيل</span></div>
         {points.map((item, index) => {
           const left = 10 + (((item.lastLongitude! - minLng) / lngRange) * 76 + index * 7) % 80;
           const top = 12 + ((1 - (item.lastLatitude! - minLat) / latRange) * 65 + index * 11) % 70;
           const state = locationState(item);
-          return <span key={item.id} className={`map-pin map-pin-${state}`} style={{ left: `${left}%`, top: `${top}%` }} title={`${item.name} — ${relativeTime(item.lastRecordedAt)}`}><MapPin className="size-5" /><b>{item.name.split(' ')[0]}</b></span>;
+          return <span key={item.id} className={`map-pin map-pin-${state}`} style={{ left: `${left}%`, top: `${top}%` }} title={`${item.name} — ${relativeTime(item.lastRecordedAt)}`}><MapPin className="size-5" aria-hidden="true" /><b>{item.name.split(' ')[0]}</b></span>;
         })}
         {!points.length ? <div className="absolute inset-0 grid place-items-center"><p className="rounded-xl bg-[var(--surface)]/90 px-4 py-3 text-sm font-bold">لا توجد نقاط متاحة للعرض</p></div> : null}
       </div>

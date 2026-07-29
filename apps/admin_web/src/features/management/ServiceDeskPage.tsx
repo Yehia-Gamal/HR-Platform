@@ -97,9 +97,9 @@ export function ServiceDeskPage() {
 }
 
 function ServiceActions({ status, pending, transition }: { id: string; status: string; pending: boolean; transition: (status: string) => void }) {
-  if (status === 'submitted') return <button type="button" className="btn-primary px-3 py-2 text-xs" disabled={pending} onClick={() => transition('assigned')}><UserRoundCheck className="size-4" />استلام الطلب</button>;
+  if (status === 'submitted') return <button type="button" className="btn-primary px-3 py-2 text-xs" disabled={pending} onClick={() => transition('assigned')}><UserRoundCheck className="size-4" aria-hidden="true" />استلام الطلب</button>;
   if (status === 'assigned') return <button type="button" className="btn-secondary px-3 py-2 text-xs" disabled={pending} onClick={() => transition('in_progress')}>بدء التنفيذ</button>;
-  if (['in_progress', 'waiting_requester'].includes(status)) return <button type="button" className="btn-primary px-3 py-2 text-xs" disabled={pending} onClick={() => transition('resolved')}><CheckCircle2 className="size-4" />تسجيل الحل</button>;
+  if (['in_progress', 'waiting_requester'].includes(status)) return <button type="button" className="btn-primary px-3 py-2 text-xs" disabled={pending} onClick={() => transition('resolved')}><CheckCircle2 className="size-4" aria-hidden="true" />تسجيل الحل</button>;
   if (status === 'resolved') return <button type="button" className="btn-secondary px-3 py-2 text-xs" disabled={pending} onClick={() => transition('closed')}>إغلاق نهائي</button>;
   return null;
 }

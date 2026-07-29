@@ -50,7 +50,7 @@ export function OperationsCenterPage() {
       <PageHeader
         title="مركز العمليات والمهام"
         description="متابعة المهام التشغيلية والمأموريات والقوافل من شاشة واحدة، مع بقاء اعتماد المأموريات والقوافل داخل مسار الطلبات الرسمي."
-        actions={<button className="btn-primary" type="button" onClick={() => setTaskDraft({ ...emptyTask })}><Plus className="size-4" />مهمة جديدة</button>}
+        actions={<button className="btn-primary" type="button" onClick={() => setTaskDraft({ ...emptyTask })}><Plus className="size-4" aria-hidden="true" />مهمة جديدة</button>}
       />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -62,9 +62,9 @@ export function OperationsCenterPage() {
 
       <section className="filter-bar flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2" role="tablist" aria-label="أقسام مركز العمليات">
-          <TabButton active={tab === 'tasks'} onClick={() => setTab('tasks')} icon={<ListTodo className="size-4" />} label={`المهام (${data?.tasks.length ?? 0})`} />
-          <TabButton active={tab === 'missions'} onClick={() => setTab('missions')} icon={<CalendarClock className="size-4" />} label={`المأموريات (${data?.missions.length ?? 0})`} />
-          <TabButton active={tab === 'convoys'} onClick={() => setTab('convoys')} icon={<BusFront className="size-4" />} label={`القوافل (${data?.convoys.length ?? 0})`} />
+          <TabButton active={tab === 'tasks'} onClick={() => setTab('tasks')} icon={<ListTodo className="size-4" aria-hidden="true" />} label={`المهام (${data?.tasks.length ?? 0})`} />
+          <TabButton active={tab === 'missions'} onClick={() => setTab('missions')} icon={<CalendarClock className="size-4" aria-hidden="true" />} label={`المأموريات (${data?.missions.length ?? 0})`} />
+          <TabButton active={tab === 'convoys'} onClick={() => setTab('convoys')} icon={<BusFront className="size-4" aria-hidden="true" />} label={`القوافل (${data?.convoys.length ?? 0})`} />
         </div>
         <div className="flex w-full flex-col gap-2 lg:max-w-sm">
           <label className="relative w-full"><Search aria-hidden="true" className="pointer-events-none absolute end-3 top-3 size-4 text-[var(--text-muted)]" /><input className="input pe-10" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="بحث في القسم الحالي…" aria-label="بحث العمليات" />{search ? <button type="button" className="icon-button absolute start-1.5 top-1.5" aria-label="مسح البحث" onClick={() => setSearch('')}><X className="size-4" /></button> : null}</label>
@@ -103,7 +103,7 @@ export function OperationsCenterPage() {
       ) : null}
 
       {data && tab === 'convoys' ? (
-        <section className="grid gap-4 lg:grid-cols-2">{convoys.map((item) => <article className="card p-5" key={item.id}><div className="flex items-start justify-between gap-3"><div><h2 className="font-black">{item.name}</h2><div className="mt-1 flex items-center gap-2"><UserAvatar displayName={item.employeeName} size="sm" /><p className="muted text-sm">المسؤول: {item.employeeName}</p></div></div><StatusBadge value={item.status} /></div><div className="mt-5 flex items-center gap-3 rounded-2xl bg-[var(--surface-muted)] p-4"><span className="rounded-xl bg-[var(--surface)] p-2"><BusFront className="size-5 text-[var(--brand-primary)]" /></span><div><strong>{item.origin} ← {item.destination}</strong><p className="muted mt-1 text-xs">التحرك {date(item.departureAt, true)}</p></div></div><div className="mt-4 grid grid-cols-2 gap-3 text-sm"><Info label="الركاب" value={`${item.passengers} فرد`} /><Info label="المركبات" value={`${item.vehicles} مركبة`} /></div></article>)}{!convoys.length ? <div className="lg:col-span-2"><EmptyState title="لا توجد قوافل مطابقة" description="تظهر القوافل بعد إنشائها واعتمادها من مسار الطلبات." /></div> : null}</section>
+        <section className="grid gap-4 lg:grid-cols-2">{convoys.map((item) => <article className="card p-5" key={item.id}><div className="flex items-start justify-between gap-3"><div><h2 className="font-black">{item.name}</h2><div className="mt-1 flex items-center gap-2"><UserAvatar displayName={item.employeeName} size="sm" /><p className="muted text-sm">المسؤول: {item.employeeName}</p></div></div><StatusBadge value={item.status} /></div><div className="mt-5 flex items-center gap-3 rounded-2xl bg-[var(--surface-muted)] p-4"><span className="rounded-xl bg-[var(--surface)] p-2"><BusFront className="size-5 text-[var(--brand-primary)]" aria-hidden="true" /></span><div><strong>{item.origin} ← {item.destination}</strong><p className="muted mt-1 text-xs">التحرك {date(item.departureAt, true)}</p></div></div><div className="mt-4 grid grid-cols-2 gap-3 text-sm"><Info label="الركاب" value={`${item.passengers} فرد`} /><Info label="المركبات" value={`${item.vehicles} مركبة`} /></div></article>)}{!convoys.length ? <div className="lg:col-span-2"><EmptyState title="لا توجد قوافل مطابقة" description="تظهر القوافل بعد إنشائها واعتمادها من مسار الطلبات." /></div> : null}</section>
       ) : null}
 
       {taskDraft ? (
@@ -118,7 +118,7 @@ export function OperationsCenterPage() {
                 <label className="block text-sm font-bold">تاريخ الاستحقاق<input className="input mt-2" type="date" value={taskDraft.dueDate} onChange={(event) => setTaskDraft({ ...taskDraft, dueDate: event.target.value })} /></label>
               </div>
               {commands.createTask.isError ? <ErrorBanner message={commands.createTask.error instanceof Error ? commands.createTask.error.message : 'تعذر إنشاء المهمة.'} /> : null}
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setTaskDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.createTask.isPending}><ClipboardCheck className="size-4" />{commands.createTask.isPending ? 'جارٍ الإنشاء…' : 'إنشاء المهمة'}</button></div>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setTaskDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.createTask.isPending}><ClipboardCheck className="size-4" aria-hidden="true" />{commands.createTask.isPending ? 'جارٍ الإنشاء…' : 'إنشاء المهمة'}</button></div>
           </form>
         </DialogOverlay>
       ) : null}
@@ -135,7 +135,7 @@ function Info({ label, value }: { label: string; value: string }) {
 }
 
 function TaskAction({ status, pending, transition }: { id: string; status: string; pending: boolean; transition: (status: string) => void }) {
-  if (status === 'done') return <span className="inline-flex items-center gap-1 text-xs font-bold text-[var(--success)]"><CheckCircle2 className="size-4" />مكتملة</span>;
+  if (status === 'done') return <span className="inline-flex items-center gap-1 text-xs font-bold text-[var(--success)]"><CheckCircle2 className="size-4" aria-hidden="true" />مكتملة</span>;
   if (status === 'cancelled') return <span className="muted text-xs">ملغاة</span>;
-  return <button type="button" disabled={pending} className="btn-secondary whitespace-nowrap px-3 py-2 text-xs" onClick={() => transition(status === 'pending' ? 'in_progress' : 'done')}>{status === 'pending' ? <><TimerReset className="size-4" />بدء</> : <><CheckCircle2 className="size-4" />إكمال</>}</button>;
+  return <button type="button" disabled={pending} className="btn-secondary whitespace-nowrap px-3 py-2 text-xs" onClick={() => transition(status === 'pending' ? 'in_progress' : 'done')}>{status === 'pending' ? <><TimerReset className="size-4" aria-hidden="true" />بدء</> : <><CheckCircle2 className="size-4" aria-hidden="true" />إكمال</>}</button>;
 }
