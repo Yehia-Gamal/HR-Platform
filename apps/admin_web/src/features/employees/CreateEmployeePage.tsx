@@ -50,7 +50,7 @@ export function CreateEmployeePage() {
     if (orphanPath && !auth.isMock) {
       void getSupabase()
         .then((supabase) => supabase.storage.from('employee-avatars').remove([orphanPath]))
-        .catch(() => undefined);
+        .catch(() => undefined /* best-effort cleanup */)
     }
   }, [auth.isMock]);
 

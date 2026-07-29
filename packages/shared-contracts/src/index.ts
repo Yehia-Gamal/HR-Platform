@@ -5,9 +5,9 @@
 // assume a hard tenant boundary exists; any cross-org feature must scope rows
 // through the hierarchy, not a tenant column.
 
-export * from './access';
-export * from './employee';
-export * from './operations';
+export * from './access.js';
+export * from './employee.js';
+export * from './operations.js';
 
 export * from './management.js';
 
