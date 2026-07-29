@@ -11,6 +11,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { LiveLocationMap, type MapPoint } from './LiveLocationMap';
 import { LiveLocationResultCard } from './LiveLocationResultCard';
 import { useExecutiveAttendanceOverview, useLiveLocationCommands } from './useControlCenters';
+import type { EmployeeOverviewRow, ExecutiveOverviewData } from './controlCenterTypes';
 
 // لوحة المتابعة اليومية للمدير التنفيذي (الأقسام 1 + 2 + 3):
 // ملخص الحضور، فلاتر الحالة، قائمة الموظفين، خريطة حية، وإرسال طلب موقع فوري.
