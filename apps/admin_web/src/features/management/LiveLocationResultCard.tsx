@@ -74,7 +74,7 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
         <div className="mt-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
           <Stat icon={Clock} label="أُرسل" value={fmt(request.requestedAt)} />
           <Stat icon={Clock} label="استجاب" value={fmt(request.respondedAt)} />
-          <Stat icon={Crosshair} label="دقة GPS" value={latest && num(latest.accuracy) !== null ? `${Math.round(latest.accuracy)} متر` : '—'} />
+          <Stat icon={Crosshair} label="دقة GPS" value={latest && num(latest.accuracy) !== null ? `${Math.round(num(latest.accuracy)!)} متر` : '—'} />
           <Stat icon={ShieldAlert} label="Mock GPS" value={latest?.isMock ? 'مشتبه' : 'لا'} />
         </div>
       </article>
@@ -97,10 +97,10 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
             {mapUrlCmd.isError ? <p className="mt-2 text-sm font-bold text-red-700">لا توجد لقطة خريطة متاحة أو انتهت مدة الاحتفاظ بها.</p> : null}
             {latest?.addressAr ? (
               <p className="mt-3 flex items-start gap-2 text-sm"><MapPin className="mt-0.5 size-4 shrink-0 text-[var(--brand-primary)]" />
-                <span>الموظف قريب من: <strong>{latest.addressAr}</strong>{num(latest.accuracy) !== null ? <> — دقة تقريبية {Math.round(latest.accuracy)} متر</> : null}</span>
+                <span>الموظف قريب من: <strong>{latest.addressAr}</strong>{num(latest.accuracy) !== null ? <> — دقة تقريبية {Math.round(num(latest.accuracy)!)} متر</> : null}</span>
               </p>
             ) : num(latest?.accuracy) !== null ? (
-              <p className="muted mt-3 text-sm">إحداثيات مسجّلة بدقة تقريبية {Math.round(latest.accuracy)} متر (لم يتوفّر عنوان نصي).</p>
+              <p className="muted mt-3 text-sm">إحداثيات مسجّلة بدقة تقريبية {Math.round(num(latest?.accuracy)!)} متر (لم يتوفّر عنوان نصي).</p>
             ) : null}
           </div>
         </article>

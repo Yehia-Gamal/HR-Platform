@@ -222,8 +222,9 @@ final deviceRegistrationProvider = FutureProvider<void>((ref) async {
   if (!kIsWeb) {
     try {
       final localAuth = LocalAuthentication();
-      biometricHint = await localAuth.isDeviceSupported() &&
-          await localAuth.canCheckBiometrics;
+      // isDeviceSupported = بصمة أو قفل شاشة (PIN/نمط)
+      // نقبل أي نوع من المصادقة المحلية لتسجيل الحضور
+      biometricHint = await localAuth.isDeviceSupported();
     } catch (_) {
       biometricHint = false;
     }
