@@ -4,6 +4,7 @@ import {
   Archive, Gauge, MailCheck, Network, Pencil, Phone, Plus, ShieldCheck, Star, Trash2, UserRound, UsersRound, X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { EmptyState } from '../../ui/EmptyState';
@@ -604,7 +605,7 @@ function DeleteEmployeeDialog({ employeeId, employeeName, onClose, onSuccess }: 
     e.preventDefault();
     setError(null);
     try {
-      await deleteEmployee.mutateAsync({ employeeId });
+      await deleteEmployee.mutateAsync({ employeeId, confirmationCode: confirmText, reason: 'حذف نهائي بواسطة المسؤول' });
       onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'حدث خطأ أثناء الحذف.');
