@@ -97,6 +97,7 @@ function DepartmentsSection({ employeeId, canEdit, onAdd }: { employeeId: string
         <h3 className="font-black flex items-center gap-2"><Building2 className="size-5" aria-hidden="true" />الإدارات ({departments.length})</h3>
         {canEdit ? <button type="button" className="btn-secondary text-sm" onClick={onAdd}><Plus className="size-4" aria-hidden="true" />إضافة إدارة</button> : null}
       </div>
+      {removeDept.isError && <ErrorBanner message={safeErrorMessage(removeDept.error)} />}
       <div className="mt-4 space-y-2">
         {departments.map((dept) => (
           <div key={dept.id} className="flex items-center justify-between gap-3 rounded-xl bg-[var(--surface-muted)] p-3">

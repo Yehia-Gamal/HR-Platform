@@ -163,10 +163,10 @@ export function MonthlyAttendanceReportPage() {
           <label className="text-sm font-bold">
             <span className="block mb-1">بحث سريع</span>
             <div className="relative">
-              <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
+              <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
               <input
                 type="search"
-                className="input w-full pr-9"
+                className="input w-full pe-9"
                 placeholder="فلترة بالاسم أو الكود أو الإدارة…"
                 value={filterText}
                 onChange={(e) => setFilterText(e.target.value)}
@@ -227,7 +227,7 @@ export function MonthlyAttendanceReportPage() {
                     aria-label={`${emp.fullNameAr}${isSelected ? ' — محدد' : ''}`}
                   >
                     {isSelected ? (
-                      <span className="absolute top-2 left-2 flex size-5 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white">
+                      <span className="absolute top-2 start-2 flex size-5 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white">
                         <UserCheck className="size-3" />
                       </span>
                     ) : null}

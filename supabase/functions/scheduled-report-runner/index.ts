@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
 
   // 1. Queue due reports
   const { data: queued, error } = await supabase.rpc('queue_due_scheduled_reports', { p_now: new Date().toISOString() });
-  if (error) { console.error('queue_due_scheduled_reports failed', error.message); return json(req, { error: 'QUEUE_FAILED' }, 500); }
+  if (error) { console.error('queue_due_scheduled_reports failed', { code: error.code, hint: (error as { hint?: string }).hint }); return json(req, { error: 'QUEUE_FAILED' }, 500); }
 
   // 2. Process queued runs
   const { data: runs } = await supabase
@@ -229,7 +229,7 @@ Deno.serve(async (req) => {
       }
       completed += 1;
     } catch (err) {
-      console.error(`Report run ${run.id} failed:`, err);
+      console.error('report run failed', { code: (err as { code?: string })?.code, hint: (err as { hint?: string })?.hint });
       await supabase.from('report_runs')
         .update({ status: 'failed', completed_at: new Date().toISOString(), error_detail: String(err).replace(/https?:\/\/[^\s]+/g, '[URL]').slice(0, 500) })
         .eq('id', run.id).catch(() => {});

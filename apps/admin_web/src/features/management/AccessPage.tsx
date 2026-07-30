@@ -168,6 +168,7 @@ export function AccessPage() {
           <h2 className="font-black">إسناد دور</h2>
           <p className="muted mt-1 text-sm">يمكن جعل الإسناد مؤقتًا، ويُسحب تلقائيًا بعد تاريخ الانتهاء.</p>
         </div>
+        {commands.assignRole.isError && <ErrorBanner message={safeErrorMessage(commands.assignRole.error)} />}
         <form className="grid gap-4 md:grid-cols-[1.2fr_1fr_1fr_auto]" onSubmit={(e) => void assign(e)}>
           <FormSelect label="المستخدم" required value={assignment.userId} onChange={(v) => setAssignment({ ...assignment, userId: v })}>
             {data.users.map((u) => <option key={u.userId} value={u.userId}>{u.name}{u.employeeCode ? ` · ${u.employeeCode}` : ''}</option>)}
@@ -183,6 +184,7 @@ export function AccessPage() {
             <UserPlus className="size-4" aria-hidden="true"/>{commands.assignRole.isPending ? 'جارٍ الإسناد…' : 'إسناد'}
           </button>
         </form>
+        {commands.assignRole.isError && <ErrorBanner message={safeErrorMessage(commands.assignRole.error)} />}
       </section>
 
       {/* ── إسنادات المستخدمين ── */}
@@ -393,6 +395,9 @@ function RoleManagementDialog({ role, data, commands, onClose }: {
         {grouped.length === 0 && <p className="muted py-8 text-center text-sm">لا توجد صلاحيات مطابقة</p>}
       </div>
 
+      {commands.setPermissions.isError && <ErrorBanner message={safeErrorMessage(commands.setPermissions.error)} />}
+      {commands.setPermissions.isError && <ErrorBanner message={safeErrorMessage(commands.setPermissions.error)} />}
+
       {/* زر الحفظ */}
       <div className="flex items-center gap-3 border-t border-[var(--border)] pt-4">
         <button type="button" className="btn-primary" disabled={saving} onClick={() => void savePermissions()}>
@@ -418,6 +423,7 @@ function RoleManagementDialog({ role, data, commands, onClose }: {
         </button>
       </div>
 
+      {commands.assignRole.isError && <ErrorBanner message={safeErrorMessage(commands.assignRole.error)}/>}
       {commands.revokeRole.isError && <ErrorBanner message={`تعذر سحب الدور: ${safeErrorMessage(commands.revokeRole.error)}`}/>}
 
       {/* قائمة المستخدمين المسندين */}
@@ -529,6 +535,11 @@ function CustomRoleDraftDialog({ initialDraft, data, commands, onClose }: {
             </article>;
           })}
       </div>
+
+      {commands.upsertRole.isError && <ErrorBanner message={safeErrorMessage(commands.upsertRole.error)} />}
+      {commands.setPermissions.isError && <ErrorBanner message={safeErrorMessage(commands.setPermissions.error)} />}
+      {commands.upsertRole.isError && <ErrorBanner message={safeErrorMessage(commands.upsertRole.error)} />}
+      {commands.setPermissions.isError && <ErrorBanner message={safeErrorMessage(commands.setPermissions.error)} />}
 
       <button className="btn-primary" disabled={commands.upsertRole.isPending || commands.setPermissions.isPending}>
         <Save className="size-4" aria-hidden="true"/>{commands.upsertRole.isPending || commands.setPermissions.isPending ? 'جارٍ الحفظ…' : 'حفظ الدور والصلاحيات'}

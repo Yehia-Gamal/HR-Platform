@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
       requireUserVerification: true,
     });
   } catch (error) {
-    console.error("passkey registration verification failed", error instanceof Error ? error.message : "unknown error");
+    console.error("passkey registration verification failed", error instanceof Error ? error.name : "unknown");
     return json(req, { error: "registration_verification_failed" }, 403);
   }
   if (!verification.verified || !verification.registrationInfo) {

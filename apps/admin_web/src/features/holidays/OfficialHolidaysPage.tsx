@@ -138,6 +138,7 @@ export function OfficialHolidaysPage() {
       {deleting && (
         <DialogOverlay title="حذف العطلة" onClose={() => setDeleting(null)} maxWidth="max-w-sm">
           <p className="muted mt-2 text-sm">هل أنت متأكد من حذف «{deleting.name}»؟ لا يمكن التراجع.</p>
+          {deleteHoliday.isError && <ErrorBanner message={safeErrorMessage(deleteHoliday.error)} />}
           <div className="mt-6 flex justify-end gap-3">
             <button type="button" className="btn-secondary" onClick={() => setDeleting(null)} disabled={deleteHoliday.isPending}>إلغاء</button>
             <button type="button" className="btn-primary bg-[var(--danger)]" onClick={() => void onDelete()} disabled={deleteHoliday.isPending}>

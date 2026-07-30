@@ -159,6 +159,7 @@ export function OfficialFeedPage() {
       <MetricCard label="تحتاج إقرارًا" value={allItems.filter((x) => x.requiresAcknowledgement).length} icon={CheckCircle2} />
       <MetricCard label="عاجل" value={allItems.filter((x) => x.priority === 'urgent').length} icon={BellRing} />
     </section>
+    {transition.isError && <ErrorBanner message={safeErrorMessage(transition.error)} />}
     <FilterBar searchValue={search} onSearchChange={setSearch} searchPlaceholder="بحث في عنوان أو محتوى المنشور" resultText={`عرض ${items.length} من ${allItems.length} عنصر رسمي`} isDirty={Boolean(search || kind !== 'all' || priority !== 'all')} onClear={() => { setSearch(''); setKind('all'); setPriority('all'); }}><select className="input" aria-label="نوع العنصر الرسمي" value={kind} onChange={(event) => setKind(event.target.value)}><option value="all">كل الأنواع</option><option value="announcement">خبر أو إعلان</option><option value="decision">قرار إداري</option></select><select className="input" aria-label="أولوية العنصر الرسمي" value={priority} onChange={(event) => setPriority(event.target.value)}><option value="all">كل الأولويات</option><option value="normal">عادية</option><option value="high">مرتفعة</option><option value="urgent">عاجلة</option></select></FilterBar>
     {query.isError ? (
       <ErrorState title="تعذر تحميل القناة" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
@@ -231,7 +232,7 @@ export function OfficialFeedPage() {
           </div>
           {mode === 'decision' ? <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">النتيجة المتوقعة<input className="input mt-2" value={form.expectedOutcome} onChange={(e) => setForm({ ...form, expectedOutcome: e.target.value })} /></label><label className="text-sm font-bold">مؤشر قياس النجاح<input className="input mt-2" value={form.successMetric} onChange={(e) => setForm({ ...form, successMetric: e.target.value })} /></label></div> : null}
           <label className="flex items-center gap-3 rounded-xl bg-[var(--surface-muted)] p-4 text-sm font-bold"><input type="checkbox" checked={form.requiresAcknowledgement} onChange={(e) => setForm({ ...form, requiresAcknowledgement: e.target.checked })} />يتطلب إقرارًا بالاطلاع</label>
-          {publish.isError || createDecision.isError ? <ErrorBanner message="تعذر حفظ العنصر الرسمي." /> : null}
+          {publish.isError || createDecision.isError ? <ErrorBanner message={safeErrorMessage(publish.error ?? createDecision.error)} /> : null}
           <button className="btn-primary" disabled={publish.isPending || createDecision.isPending || imageUploading || form.title.trim().length < 3 || form.body.trim().length < 10} onClick={() => void submit()}>{mode === 'decision' ? 'حفظ كمسودة قرار' : 'نشر الآن'}</button>
         </div>
       </DialogOverlay>

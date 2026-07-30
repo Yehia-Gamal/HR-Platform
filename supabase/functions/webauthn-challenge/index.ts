@@ -133,7 +133,7 @@ Deno.serve(async (req) => {
         timeout: 300_000,
       });
   } catch (error) {
-    console.error("webauthn options generation failed", error instanceof Error ? error.message : "unknown error");
+    console.error("webauthn options generation failed", error instanceof Error ? error.name : "unknown");
     return json(req, { error: "options_generation_failed" }, 500);
   }
 

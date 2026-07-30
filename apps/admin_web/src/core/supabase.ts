@@ -16,7 +16,10 @@ export async function getSupabase(): Promise<SupabaseClient> {
         detectSessionInUrl: true,
       },
     }),
-  );
+  ).catch((err) => {
+    clientPromise = null;
+    throw err;
+  });
 
   return clientPromise;
 }

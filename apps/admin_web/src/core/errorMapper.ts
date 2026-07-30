@@ -75,7 +75,10 @@ export function safeErrorMessage(error: unknown): string {
   const cid = correlationId();
   const raw = error instanceof Error
     ? error.message
-    : typeof error === 'string' ? error : String(error ?? '');
+    : typeof error === 'string' ? error
+    : (error && typeof error === 'object' && 'message' in error && typeof (error as Record<string, unknown>).message === 'string')
+      ? (error as Record<string, unknown>).message as string
+      : String(error ?? '');
 
   // تسجيل الخطأ الأصلي مع رمز التتبع — لا يظهر للمستخدم
   if (import.meta.env.DEV) console.error(`[خطأ ${cid}]`, error);

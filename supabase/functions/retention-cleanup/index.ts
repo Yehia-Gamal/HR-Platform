@@ -124,15 +124,3 @@ function safeErrorReason(error: unknown): string {
   return 'UNKNOWN_ERROR';
 }
 
-/** استخراج كود خطأ آمن بدون تسريب تفاصيل داخلية (stack traces, connection strings) */
-function safeErrorReason(err: unknown): string {
-  if (err && typeof err === 'object' && 'code' in err && typeof (err as Record<string, unknown>).code === 'string') {
-    return (err as Record<string, unknown>).code as string;
-  }
-  if (err && typeof err === 'object' && 'message' in err) {
-    const msg = String((err as Record<string, unknown>).message);
-    // اقطع الرسالة وأزل أي مسارات أو تفاصيل تقنية
-    return msg.slice(0, 120).replace(/https?:\/\/\S+/g, '[url]');
-  }
-  return 'UNKNOWN_ERROR';
-}
