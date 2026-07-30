@@ -17,6 +17,7 @@ export function useRecruitmentWorkbenchCommands() {
   const refresh = async () => client.invalidateQueries({ queryKey: ['recruitment-workbench'] });
   const moveStage = useMutation({
     mutationFn: async (input: { applicationId: string; stageId: string; reason?: string }) => auth.isMock ? input : rpc('move_application_stage_admin', { p_application_id: input.applicationId, p_to_stage_id: input.stageId, p_reason: input.reason ?? null }),
+    meta: { successMessage: 'تم نقل المرشح إلى المرحلة التالية بنجاح' },
     onSuccess: refresh,
   });
   const scheduleInterview = useMutation({

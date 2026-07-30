@@ -42,6 +42,7 @@ export function useOrganizationCommands() {
         p_is_active: input.active,
       });
     },
+    meta: { successMessage: 'تم حفظ الإدارة بنجاح' },
     onSuccess: refresh,
   });
   const position = useMutation({
@@ -61,6 +62,7 @@ export function useOrganizationCommands() {
         p_is_active: input.active,
       });
     },
+    meta: { successMessage: 'تم حفظ الوظيفة بنجاح' },
     onSuccess: refresh,
   });
   return { department, position };
@@ -98,6 +100,7 @@ export function useAccessCommands() {
         p_is_full_access: input.fullAccess ?? false,
       });
     },
+    meta: { successMessage: 'تم حفظ الدور بنجاح' },
     onSuccess: refresh,
   });
   const setPermissions = useMutation({
