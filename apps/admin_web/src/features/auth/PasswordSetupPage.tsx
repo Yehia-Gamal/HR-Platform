@@ -1,6 +1,7 @@
 import { CheckCircle2, Eye, EyeOff, KeyRound, ShieldCheck } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { safeErrorMessage } from '../../core/errorMapper';
 import { rpc } from '../../core/rpc';
 import { getSupabase } from '../../core/supabase';
 import { AppLogo } from '../../ui/AppLogo';
@@ -79,7 +80,7 @@ export function PasswordSetupPage() {
         } else if (msg.includes('session') || msg.includes('token') || msg.includes('expired')) {
           setError('انتهت صلاحية رابط التفعيل. اطلب رابط تفعيل جديدًا ثم حاول مرة أخرى.');
         } else {
-          setError('تعذر تعيين كلمة المرور: ' + (updateError.message || 'خطأ غير معروف'));
+          setError(safeErrorMessage(updateError));
         }
         return;
       }

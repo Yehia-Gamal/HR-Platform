@@ -80,6 +80,7 @@ Deno.serve(async (req) => {
       const token = Deno.env.get(tokenName) ?? Deno.env.get('INTEGRATION_WEBHOOK_TOKEN');
       const response = await fetch(config.webhook_url, {
         method: 'POST',
+        redirect: 'error',
         signal: AbortSignal.timeout(15_000),
         headers: {
           'content-type': 'application/json',
@@ -147,14 +148,22 @@ function isAllowedWebhookUrl(raw: string): boolean {
   if (parsed.protocol !== 'https:') return false;
   const host = parsed.hostname.toLowerCase();
   // Block localhost variants
-  if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host === '0.0.0.0') return false;
+  if (host === 'localhost' || host === '0.0.0.0') return false;
   // Block cloud metadata endpoint (AWS/GCP/Azure link-local)
   if (host === '169.254.169.254' || host === 'metadata.google.internal') return false;
+  // Block IPv6 private/reserved ranges (brackets stripped by URL parser)
+  if (host.startsWith('[') || host === '::1') return false;
+  const v6 = host.replace(/^\[|\]$/g, '');
+  if (/^(fc|fd)[0-9a-f]{2}:/i.test(v6)) return false;          // fc00::/7 unique-local
+  if (/^fe[89ab][0-9a-f]:/i.test(v6)) return false;             // fe80::/10 link-local
+  if (/^::ffff:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/i.test(v6)) return false; // IPv4-mapped
+  if (v6 === '::' || v6 === '::1') return false;                // loopback / unspecified
   // Block private/reserved IPv4 ranges
   const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (ipv4) {
     const [, a, b] = ipv4.map(Number);
     if (a === 10) return false;                         // 10.0.0.0/8
+    if (a === 127) return false;                        // 127.0.0.0/8 loopback
     if (a === 172 && b >= 16 && b <= 31) return false;  // 172.16.0.0/12
     if (a === 192 && b === 168) return false;            // 192.168.0.0/16
     if (a === 169 && b === 254) return false;            // 169.254.0.0/16 link-local

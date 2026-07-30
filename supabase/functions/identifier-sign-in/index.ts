@@ -216,6 +216,29 @@ Deno.serve(async (req) => {
     await waitUntil(deadline);
     if (!success || !data.session) return genericFailure(req);
 
+    // ESI-03: for email logins, verify linked employee is not deleted/inactive.
+    // Phone/code paths already filter by is_active/is_deleted during lookup;
+    // email skips that lookup, so we check post-auth. The deadline absorbs this.
+    if (normalized.kind === 'email' && data.user?.id) {
+      const { data: linkedProfile } = await admin
+        .from('profiles')
+        .select('employee_id')
+        .eq('id', data.user.id)
+        .maybeSingle();
+      if (linkedProfile?.employee_id) {
+        const { data: emp } = await admin
+          .from('employees')
+          .select('is_deleted,is_active')
+          .eq('id', linkedProfile.employee_id)
+          .maybeSingle();
+        if (emp && (emp.is_deleted || !emp.is_active)) {
+          await admin.from('login_auth_attempts').update({ success: false, failure_code: 'employee_inactive' })
+            .eq('identifier_hash', identifierHash).eq('success', true).order('attempted_at', { ascending: false }).limit(1);
+          return genericFailure(req);
+        }
+      }
+    }
+
     return json(req, {
       access_token: data.session.access_token,
       refresh_token: data.session.refresh_token,

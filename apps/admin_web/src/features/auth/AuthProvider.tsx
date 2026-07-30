@@ -87,7 +87,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       const { data, error: sessionError } = await supabase.auth.getSession();
       if (!active) return;
       if (sessionError) {
-        setError(sessionError.message);
+        setError(safeErrorMessage(sessionError));
         setStatus('anonymous');
         return;
       }
