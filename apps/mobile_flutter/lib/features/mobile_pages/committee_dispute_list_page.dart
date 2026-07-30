@@ -2083,6 +2083,56 @@ class _CaseActionsSection extends ConsumerWidget {
       return;
     }
 
+    if (action.key == '_schedule_session') {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _SessionScheduleSheet(caseItem: caseItem),
+      );
+      return;
+    }
+    if (action.key == '_issue_decision') {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _IssueDecisionSheet(caseItem: caseItem),
+      );
+      return;
+    }
+    if (action.key == '_record_settlement') {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _SettlementSheet(caseItem: caseItem),
+      );
+      return;
+    }
+
+    if (action.key == '_schedule_session') {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _SessionScheduleSheet(caseItem: caseItem),
+      );
+      return;
+    }
+    if (action.key == '_issue_decision') {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _IssueDecisionSheet(caseItem: caseItem),
+      );
+      return;
+    }
+    if (action.key == '_record_settlement') {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _SettlementSheet(caseItem: caseItem),
+      );
+      return;
+    }
+
     // إجراءات انتقال عادية
     if (action.needsReason) {
       showModalBottomSheet<void>(
@@ -3020,6 +3070,588 @@ class _ChangePrioritySheetState extends ConsumerState<_ChangePrioritySheet> {
                       child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.priority_high_rounded),
               label: const Text('تغيير الأولوية'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// جدولة جلسة استماع
+// ─────────────────────────────────────────────────────────────────────────────
+class _SessionScheduleSheet extends ConsumerStatefulWidget {
+  const _SessionScheduleSheet({required this.caseItem});
+  final CommitteeDisputeCase caseItem;
+
+  @override
+  ConsumerState<_SessionScheduleSheet> createState() =>
+      _SessionScheduleSheetState();
+}
+
+class _SessionScheduleSheetState extends ConsumerState<_SessionScheduleSheet> {
+  final _locationController = TextEditingController();
+  final _notesController = TextEditingController();
+  DateTime? _selectedDate;
+  TimeOfDay? _selectedTime;
+  TimeOfDay? _endTime;
+  String _modality = 'in_person'; // in_person | virtual | hybrid
+  bool _submitting = false;
+
+  static const _modalityLabels = {
+    'in_person': 'حضوري',
+    'virtual': 'عن بعد',
+    'hybrid': 'مختلط',
+  };
+
+  static const _modalityIcons = {
+    'in_person': Icons.location_on_outlined,
+    'virtual': Icons.videocam_outlined,
+    'hybrid': Icons.devices_outlined,
+  };
+
+  @override
+  void dispose() {
+    _locationController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  bool get _canSubmit {
+    if (_submitting) return false;
+    if (_selectedDate == null || _selectedTime == null) return false;
+    if (_modality != 'virtual' &&
+        _locationController.text.trim().length < 3) {
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? now.add(const Duration(days: 1)),
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)),
+      locale: const Locale('ar'),
+    );
+    if (picked != null) setState(() => _selectedDate = picked);
+  }
+
+  Future<void> _pickTime({bool isEnd = false}) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: isEnd
+          ? (_endTime ?? const TimeOfDay(hour: 11, minute: 0))
+          : (_selectedTime ?? const TimeOfDay(hour: 10, minute: 0)),
+    );
+    if (picked != null) {
+      setState(() {
+        if (isEnd) {
+          _endTime = picked;
+        } else {
+          _selectedTime = picked;
+        }
+      });
+    }
+  }
+
+  Future<void> _submit() async {
+    if (!_canSubmit) return;
+    setState(() => _submitting = true);
+    try {
+      final startDt = DateTime(
+        _selectedDate!.year,
+        _selectedDate!.month,
+        _selectedDate!.day,
+        _selectedTime!.hour,
+        _selectedTime!.minute,
+      );
+      DateTime? endDt;
+      if (_endTime != null) {
+        endDt = DateTime(
+          _selectedDate!.year,
+          _selectedDate!.month,
+          _selectedDate!.day,
+          _endTime!.hour,
+          _endTime!.minute,
+        );
+      }
+
+      await ref.read(mobileCommandsProvider).transitionDisputeCase(
+            caseId: widget.caseItem.id,
+            action: 'schedule_session',
+            reason: _notesController.text.trim().isEmpty
+                ? null
+                : _notesController.text.trim(),
+            metadata: {
+              'session_type': 'hearing',
+              'scheduled_at': startDt.toIso8601String(),
+              if (endDt != null) 'ends_at': endDt.toIso8601String(),
+              'location': _locationController.text.trim(),
+              'modality': _modality,
+            },
+          );
+      ref.invalidate(committeeDisputePortalProvider);
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم جدولة الجلسة بنجاح')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(e))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  String _formatDate(DateTime d) =>
+      '${d.year}/${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}';
+
+  String _formatTime(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurfaceVariant
+                      .withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            Text('جدولة جلسة استماع',
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text('القضية: ${widget.caseItem.title}',
+                style: theme.textTheme.bodySmall),
+            const SizedBox(height: 16),
+
+            // نوع الحضور
+            Text('نوع الحضور', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 8),
+            SegmentedButton<String>(
+              segments: _modalityLabels.entries
+                  .map((e) => ButtonSegment(
+                        value: e.key,
+                        label: Text(e.value,
+                            style: const TextStyle(fontSize: 12)),
+                        icon: Icon(_modalityIcons[e.key], size: 18),
+                      ))
+                  .toList(),
+              selected: {_modality},
+              onSelectionChanged: (s) =>
+                  setState(() => _modality = s.first),
+            ),
+            const SizedBox(height: 16),
+
+            // التاريخ
+            OutlinedButton.icon(
+              onPressed: _pickDate,
+              icon: const Icon(Icons.calendar_today, size: 18),
+              label: Text(_selectedDate != null
+                  ? _formatDate(_selectedDate!)
+                  : 'اختيار التاريخ'),
+            ),
+            const SizedBox(height: 8),
+
+            // الوقت
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _pickTime(),
+                    icon: const Icon(Icons.access_time, size: 18),
+                    label: Text(_selectedTime != null
+                        ? _formatTime(_selectedTime!)
+                        : 'وقت البداية'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _pickTime(isEnd: true),
+                    icon: const Icon(Icons.access_time_filled, size: 18),
+                    label: Text(_endTime != null
+                        ? _formatTime(_endTime!)
+                        : 'النهاية (اختياري)'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // الموقع
+            if (_modality != 'virtual') ...[
+              TextField(
+                controller: _locationController,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  labelText: 'مكان الجلسة',
+                  hintText: 'مثال: قاعة الاجتماعات — الطابق الثاني',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.location_on_outlined),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // ملاحظات
+            TextField(
+              controller: _notesController,
+              maxLines: 2,
+              maxLength: 300,
+              decoration: const InputDecoration(
+                labelText: 'ملاحظات (اختياري)',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            FilledButton.icon(
+              onPressed: _canSubmit ? _submit : null,
+              icon: _submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.calendar_month_outlined),
+              label: const Text('جدولة الجلسة'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// إصدار قرار اللجنة
+// ─────────────────────────────────────────────────────────────────────────────
+class _IssueDecisionSheet extends ConsumerStatefulWidget {
+  const _IssueDecisionSheet({required this.caseItem});
+  final CommitteeDisputeCase caseItem;
+
+  @override
+  ConsumerState<_IssueDecisionSheet> createState() =>
+      _IssueDecisionSheetState();
+}
+
+class _IssueDecisionSheetState extends ConsumerState<_IssueDecisionSheet> {
+  final _decisionController = TextEditingController();
+  final _rationaleController = TextEditingController();
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _decisionController.dispose();
+    _rationaleController.dispose();
+    super.dispose();
+  }
+
+  bool get _canSubmit {
+    if (_submitting) return false;
+    if (_decisionController.text.trim().length < 10) return false;
+    if (_rationaleController.text.trim().length < 10) return false;
+    return true;
+  }
+
+  Future<void> _submit() async {
+    if (!_canSubmit) return;
+    setState(() => _submitting = true);
+    try {
+      await ref.read(mobileCommandsProvider).transitionDisputeCase(
+            caseId: widget.caseItem.id,
+            action: 'issue_decision',
+            reason: _rationaleController.text.trim(),
+            metadata: {
+              'decision_text': _decisionController.text.trim(),
+            },
+          );
+      ref.invalidate(committeeDisputePortalProvider);
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم إصدار القرار بنجاح')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(e))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurfaceVariant
+                      .withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            Text('إصدار قرار اللجنة',
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text('القضية: ${widget.caseItem.title}',
+                style: theme.textTheme.bodySmall),
+            const SizedBox(height: 8),
+
+            // تنبيه
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.errorContainer
+                    .withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded,
+                      color: theme.colorScheme.error, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'القرار نهائي ولا يمكن التراجع عنه بعد الإصدار',
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: theme.colorScheme.error),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // نص القرار
+            TextField(
+              controller: _decisionController,
+              maxLines: 5,
+              minLines: 3,
+              maxLength: 2000,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                labelText: 'نص القرار',
+                hintText:
+                    'اكتب نص القرار بالتفصيل (10 أحرف على الأقل)',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // الحيثيات
+            TextField(
+              controller: _rationaleController,
+              maxLines: 4,
+              minLines: 2,
+              maxLength: 1000,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                labelText: 'الحيثيات والمبررات',
+                hintText:
+                    'اشرح الأسباب التي بُني عليها القرار (10 أحرف على الأقل)',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            FilledButton.icon(
+              onPressed: _canSubmit ? _submit : null,
+              icon: _submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.description_outlined),
+              label: const Text('إصدار القرار'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// تسجيل تسوية
+// ─────────────────────────────────────────────────────────────────────────────
+class _SettlementSheet extends ConsumerStatefulWidget {
+  const _SettlementSheet({required this.caseItem});
+  final CommitteeDisputeCase caseItem;
+
+  @override
+  ConsumerState<_SettlementSheet> createState() => _SettlementSheetState();
+}
+
+class _SettlementSheetState extends ConsumerState<_SettlementSheet> {
+  final _termsController = TextEditingController();
+  bool _agreedByParties = false;
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _termsController.dispose();
+    super.dispose();
+  }
+
+  bool get _canSubmit {
+    if (_submitting) return false;
+    if (_termsController.text.trim().length < 10) return false;
+    if (!_agreedByParties) return false;
+    return true;
+  }
+
+  Future<void> _submit() async {
+    if (!_canSubmit) return;
+    setState(() => _submitting = true);
+    try {
+      await ref.read(mobileCommandsProvider).transitionDisputeCase(
+            caseId: widget.caseItem.id,
+            action: 'record_settlement',
+            reason: _termsController.text.trim(),
+            metadata: {
+              'terms': _termsController.text.trim(),
+              'agreed_by_parties': _agreedByParties,
+            },
+          );
+      ref.invalidate(committeeDisputePortalProvider);
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تسجيل التسوية بنجاح')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(e))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurfaceVariant
+                      .withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            Text('تسجيل تسوية',
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text('القضية: ${widget.caseItem.title}',
+                style: theme.textTheme.bodySmall),
+            const SizedBox(height: 16),
+
+            // بنود التسوية
+            TextField(
+              controller: _termsController,
+              maxLines: 6,
+              minLines: 3,
+              maxLength: 2000,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                labelText: 'بنود التسوية',
+                hintText:
+                    'اكتب بنود التسوية المتفق عليها (10 أحرف على الأقل)',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // موافقة الأطراف
+            CheckboxListTile(
+              value: _agreedByParties,
+              onChanged: (v) =>
+                  setState(() => _agreedByParties = v ?? false),
+              title: const Text('تأكيد موافقة جميع الأطراف'),
+              subtitle: const Text(
+                  'يجب أن يكون جميع الأطراف موافقين على بنود التسوية'),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+            ),
+            const SizedBox(height: 14),
+
+            FilledButton.icon(
+              onPressed: _canSubmit ? _submit : null,
+              icon: _submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.handshake),
+              label: const Text('تسجيل التسوية'),
             ),
           ],
         ),
