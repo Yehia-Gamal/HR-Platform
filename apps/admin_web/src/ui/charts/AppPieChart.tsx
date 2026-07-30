@@ -28,10 +28,10 @@ export function AppPieChart({
 
   /** تسمية عربية مخصصة — الاسم + النسبة المئوية */
   const renderLabel = useCallback(
-    (entry: { name: string; value: number; cx: number; cy: number; midAngle: number; outerRadius: number }) => {
+    (entry: { name?: string; value?: number; cx: number; cy: number; midAngle: number; outerRadius: number }) => {
       if (!showLabels || total === 0) return null;
       const RADIAN = Math.PI / 180;
-      const { cx, cy, midAngle, outerRadius, name, value } = entry;
+      const { cx, cy, midAngle, outerRadius, name = '', value = 0 } = entry;
       const radius = outerRadius + 22;
       const x = cx + radius * Math.cos(-midAngle * RADIAN);
       const y = cy + radius * Math.sin(-midAngle * RADIAN);
@@ -79,9 +79,9 @@ export function AppPieChart({
 
       <Tooltip
         contentStyle={TOOLTIP_STYLE}
-        formatter={(value: number, name: string) => [
-          formatAr(value),
-          name,
+        formatter={(value: unknown, name: unknown) => [
+          formatAr(Number(value ?? 0)),
+          String(name ?? ''),
         ]}
         separator=" : "
       />

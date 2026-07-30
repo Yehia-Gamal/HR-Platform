@@ -6,6 +6,7 @@ import { App } from './app/App';
 import { initSentry } from './core/sentry';
 import { AuthProvider } from './features/auth/AuthProvider';
 import { AppErrorBoundary } from './ui/AppErrorBoundary';
+import { ToastProvider } from './ui/Toast';
 import { initializeTheme } from './ui/theme';
 import './styles.css';
 
@@ -23,11 +24,13 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <AppErrorBoundary>
-        <BrowserRouter>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
-        </BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </BrowserRouter>
+        </ToastProvider>
       </AppErrorBoundary>
     </QueryClientProvider>
   </StrictMode>,

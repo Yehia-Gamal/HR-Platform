@@ -2,6 +2,7 @@ import type { WorkspaceId } from '@ahla/shared-contracts';
 import {
   Activity,
   BadgeCheck,
+  BarChart3,
   Bell,
   BriefcaseBusiness,
   Building2,

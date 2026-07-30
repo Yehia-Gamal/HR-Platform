@@ -21,6 +21,8 @@ import { getShortName, getTimeGreeting } from '../../ui/formatDisplayName';
 import { MetricCard } from '../../ui/MetricCard';
 import { MetricSkeletonRow } from '../../ui/Skeletons';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { AppBarChart } from '../../ui/charts/AppBarChart';
+import { ChartCard } from '../../ui/charts/ChartCard';
 import { useAuth } from '../auth/AuthProvider';
 import { useDashboardOverview } from '../management/useManagementOverviews';
 import { useAttendanceTodayOverview } from './useAttendanceTodayOverview';
@@ -134,6 +136,22 @@ n        {attendance.isError && <ErrorBanner message={safeErrorMessage(attendanc
             <div className="section-title-row"><div><h2>أولويات اليوم</h2><p className="mt-1 text-xs text-[var(--text-muted)]">مرتبة وفق الوقت والأثر التشغيلي.</p></div></div>
             {priorities.map((item) => <Link key={item.to + item.title} to={item.to} className="priority-item card-interactive"><span className="priority-icon"><Clock3 className="size-4" aria-hidden="true" /></span><span className="min-w-0 flex-1"><strong className="block text-sm">{item.title}</strong><small className="mt-1 block leading-5 text-[var(--text-muted)]">{item.description}</small></span><ArrowLeft className="mt-2 size-4 text-[var(--text-muted)]" aria-hidden="true" /></Link>)}
           </article>
+        </section> : null}
+
+        {type === 'hr' && data ? <section className="card p-5">
+          <div className="section-title-row"><div><h2>توزيع القوى العاملة</h2><p className="mt-1 text-xs text-[var(--text-muted)]">نظرة سريعة على حالة الموظفين.</p></div></div>
+          <div className="mt-4" style={{ height: 220 }}>
+            <ChartCard title="">
+              <AppBarChart
+                data={[
+                  { name: 'نشط', value: data.activeEmployees },
+                  { name: 'آخر', value: Math.max(0, data.employees - data.activeEmployees) },
+                ]}
+                bars={[{ key: 'value', label: 'العدد' }]}
+                horizontal
+              />
+            </ChartCard>
+          </div>
         </section> : null}
 
         {data ? <section className="card flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-black">نطاق العرض</p><p className="mt-1 text-xs text-[var(--text-muted)]">تظهر المؤشرات والمهام المسموح بها فقط وفق دورك ومسؤولياتك الحالية.</p></div><div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2 text-xs font-bold text-[var(--text-muted)]">آخر مزامنة: {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(data.lastUpdatedAt))}</div></section> : null}

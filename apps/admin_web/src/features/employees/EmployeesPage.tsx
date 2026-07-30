@@ -1,10 +1,12 @@
 import { ArrowUpDown, Plus, RefreshCw, UserRound, UsersRound } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MetricCard } from '../../ui/MetricCard';
 import { FilterBar } from '../../ui/FilterBar';
 import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
+import { DataTable, type DataTableColumn } from '../../ui/DataTable';
+import { Pagination } from '../../ui/Pagination';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { ListSkeleton } from '../../ui/Skeletons';
@@ -21,6 +23,8 @@ export function EmployeesPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [sort, setSort] = useState<SortMode>('newest');
+  const [page, setPage] = useState(1);
+  const pageSize = 25;
   const employees = useEmployees(search, status);
   const canCreate = hasPermission(auth.access!, 'people.employee.create');
   const all = employees.data ?? [];
@@ -43,6 +47,68 @@ export function EmployeesPage() {
   const active = all.filter((employee) => employee.status === 'active' || employee.status === 'invited').length;
   const onboarding = all.filter((employee) => employee.status === 'onboarding').length;
   const inactive = all.filter((employee) => ['suspended', 'terminated', 'archived'].includes(employee.status)).length;
+
+  /* إعادة الصفحة للأولى عند تغيّر البحث أو التصفية أو الترتيب */
+  useEffect(() => { setPage(1); }, [search, status, sort]);
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  const columns: DataTableColumn<(typeof filtered)[number]>[] = useMemo(() => [
+    {
+      key: 'fullNameAr',
+      header: 'الموظف',
+      render: (emp) => (
+        <div className="flex items-center gap-3">
+          <UserAvatar displayName={emp.fullNameAr} photoUrl={emp.photoUrl} announceName={false} />
+          <div className="min-w-0">
+            <Link to={`/hr/employees/${emp.id}`} className="block truncate font-black hover:text-[var(--brand-primary)]">{emp.fullNameAr}</Link>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'employeeCode',
+      header: 'الكود',
+      render: (emp) => <span className="font-mono text-xs">{emp.employeeCode}</span>,
+    },
+    {
+      key: 'department',
+      header: 'الإدارة',
+      render: (emp) => <span className="text-sm">{emp.department ?? '—'}</span>,
+    },
+    {
+      key: 'jobTitle',
+      header: 'المسمى الوظيفي',
+      render: (emp) => <span className="text-sm">{emp.jobTitle ?? '—'}</span>,
+    },
+    {
+      key: 'phoneE164',
+      header: 'الهاتف',
+      render: (emp) => <span dir="ltr">{emp.phoneE164 ?? '—'}</span>,
+    },
+    {
+      key: 'status',
+      header: 'الحالة',
+      render: (emp) => <StatusBadge status={emp.status} />,
+    },
+    {
+      key: 'createdAt',
+      header: 'تاريخ الإضافة',
+      render: (emp) => (
+        <span className="text-[var(--text-muted)]">
+          {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' }).format(new Date(emp.createdAt))}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      render: (emp) => (
+        <Link to={`/hr/employees/${emp.id}`} className="btn-secondary !px-3 !py-2 text-xs">فتح الملف</Link>
+      ),
+    },
+  ], []);
 
   return (
     <div className="space-y-5">

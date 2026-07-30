@@ -80,9 +80,9 @@ export function AppRadarChart({
 
       <Tooltip
         contentStyle={TOOLTIP_STYLE}
-        formatter={(value: number, name: string) => [
-          formatAr(value),
-          name,
+        formatter={(value: unknown, name: unknown) => [
+          formatAr(Number(value ?? 0)),
+          String(name ?? ''),
         ]}
         separator=" : "
         labelStyle={{

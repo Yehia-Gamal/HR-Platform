@@ -148,7 +148,8 @@ export function AppBarChart({
           cursor={{ fill: 'var(--surface-muted)', opacity: 0.6 }}
         />
         <Legend
-          payload={legendPayload}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Recharts Legend payload type mismatch
+          {...{ payload: legendPayload } as any}
           wrapperStyle={{ direction: 'rtl', paddingTop: 12 }}
           iconType="rect"
           iconSize={10}
