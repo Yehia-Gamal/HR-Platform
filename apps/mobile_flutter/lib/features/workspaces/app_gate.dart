@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/auth/login_page.dart';
 import 'package:ahla_shabab_management_os/features/auth/set_password_page.dart';
@@ -92,6 +93,7 @@ class _AuthenticatedGate extends ConsumerWidget {
           if (connectivity == ConnectivityState.offline ||
               connectivity == ConnectivityState.reconnecting) {
             return _ErrorPage(
+              isOffline: true,
               message: 'انقطع الاتصال بالخادم. تحقق من الشبكة وأعد المحاولة.',
               onRetry: () {
                 ref.invalidate(authSessionProvider);
@@ -254,7 +256,7 @@ class _ReleaseStatusPage extends StatelessWidget {
   }
 }
 
-class _ReleaseCheckError extends StatelessWidget {
+class _ReleaseCheckError extends ConsumerWidget {
   const _ReleaseCheckError({
     required this.message,
     required this.allowTemporaryContinue,
@@ -265,45 +267,78 @@ class _ReleaseCheckError extends StatelessWidget {
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.cloud_off_outlined, size: 56),
-              const SizedBox(height: 16),
-              const Text(
-                'تعذر التحقق من حالة الإصدار',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const BrandLogo(compact: true, markSize: 40),
+                  const SizedBox(height: 36),
+                  Container(
+                    width: 96,
+                    height: 96,
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: .10),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.cloud_off_rounded,
+                      size: 46,
+                      color: Colors.orange.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  const Text(
+                    'تعذر التحقق من حالة الإصدار',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'تحقق من الإنترنت ثم أعد المحاولة.\nلا تُعرض بيانات العمل قبل اجتياز بوابة الإصدار.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      height: 1.7,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: onRetry,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('إعادة المحاولة'),
+                    ),
+                  ),
+                  if (allowTemporaryContinue) ...[
+                    const SizedBox(height: 14),
+                    Text(
+                      'بيئة غير إنتاجية: يمكن لفريق التطوير تعطيل بوابة الإصدار مؤقتًا عبر إعداد البيئة.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'تحقق من الإنترنت ثم أعد المحاولة. لا تُعرض بيانات العمل قبل اجتياز بوابة الإصدار.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 18),
-              FilledButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh),
-                label: const Text('إعادة المحاولة'),
-              ),
-              if (allowTemporaryContinue) ...[
-                const SizedBox(height: 10),
-                const Text(
-                  'بيئة غير إنتاجية: يمكن لفريق التطوير تعطيل بوابة الإصدار مؤقتًا عبر إعداد البيئة، وليس من هذه الشاشة.',
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ],
+            ),
           ),
         ),
       ),
@@ -317,61 +352,204 @@ class _LoadingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const CircularProgressIndicator(),
-          const SizedBox(height: 16),
-          Text(label),
-        ],
-      ),
-    ),
-  );
-}
-
-class _ErrorPage extends StatelessWidget {
-  const _ErrorPage({required this.message, this.onRetry, this.onSignOut});
-  final String message;
-  final VoidCallback? onRetry;
-  final VoidCallback? onSignOut;
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    body: Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
+    body: SafeArea(
+      child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 12),
-            const Text(
-              'تعذر تحميل النظام',
-              style: TextStyle(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
-            Text(message, textAlign: TextAlign.center),
-            if (onRetry != null) ...[
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: onRetry,
-                child: const Text('إعادة المحاولة'),
-              ),
-            ],
-            if (onSignOut != null) ...[
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: onSignOut,
-                icon: const Icon(Icons.logout),
-                label: const Text('تسجيل الخروج'),
-              ),
-            ],
+            const BrandLogo(compact: true, markSize: 40),
+            const SizedBox(height: 40),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(label),
           ],
         ),
       ),
     ),
   );
+}
+
+/// صفحة الخطأ/انقطاع الاتصال — تصميم حديث مع إعادة محاولة تلقائية عند عودة الاتصال.
+class _ErrorPage extends ConsumerStatefulWidget {
+  const _ErrorPage({
+    required this.message,
+    this.onRetry,
+    this.onSignOut,
+    this.isOffline = false,
+  });
+  final String message;
+  final VoidCallback? onRetry;
+  final VoidCallback? onSignOut;
+  final bool isOffline;
+
+  @override
+  ConsumerState<_ErrorPage> createState() => _ErrorPageState();
+}
+
+class _ErrorPageState extends ConsumerState<_ErrorPage>
+    with SingleTickerProviderStateMixin {
+  bool _autoRetrying = false;
+  late final AnimationController _pulseController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // إعادة محاولة تلقائية عند عودة الاتصال.
+    ref.listen<ConnectivityState>(connectivityProvider, (prev, next) {
+      if ((prev == ConnectivityState.offline ||
+              prev == ConnectivityState.serverUnavailable) &&
+          (next == ConnectivityState.reconnecting ||
+              next == ConnectivityState.online)) {
+        if (widget.onRetry != null && !_autoRetrying) {
+          setState(() => _autoRetrying = true);
+          _pulseController.repeat();
+          widget.onRetry!();
+        }
+      }
+    });
+
+    final iconData = widget.isOffline
+        ? Icons.wifi_off_rounded
+        : Icons.cloud_off_rounded;
+    final iconColor = widget.isOffline
+        ? Colors.orange.shade700
+        : scheme.error;
+    final iconBgColor = widget.isOffline
+        ? Colors.orange.withValues(alpha: isDark ? .15 : .10)
+        : scheme.errorContainer.withValues(alpha: isDark ? .4 : .35);
+    final title = _autoRetrying
+        ? 'جارٍ إعادة الاتصال…'
+        : widget.isOffline
+            ? 'لا يوجد اتصال'
+            : 'انقطع الاتصال';
+    final subtitle = _autoRetrying
+        ? 'تم اكتشاف عودة الشبكة، يُعاد تحميل البيانات…'
+        : widget.message;
+
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // الشعار
+                  const BrandLogo(compact: true, markSize: 40),
+                  const SizedBox(height: 40),
+
+                  // الأيقونة داخل دائرة ملونة
+                  AnimatedBuilder(
+                    animation: _pulseController,
+                    builder: (context, child) {
+                      final scale = _autoRetrying
+                          ? 1.0 + (_pulseController.value * 0.06)
+                          : 1.0;
+                      return Transform.scale(scale: scale, child: child);
+                    },
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: _autoRetrying
+                            ? scheme.primaryContainer.withValues(alpha: .5)
+                            : iconBgColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: _autoRetrying
+                          ? Padding(
+                              padding: const EdgeInsets.all(28),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                color: scheme.primary,
+                              ),
+                            )
+                          : Icon(iconData, size: 48, color: iconColor),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // العنوان
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: Text(
+                      title,
+                      key: ValueKey(title),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // الوصف
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: Text(
+                      subtitle,
+                      key: ValueKey(subtitle),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        height: 1.7,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+
+                  // الأزرار — تختفي عند إعادة المحاولة التلقائية
+                  if (!_autoRetrying) ...[
+                    const SizedBox(height: 32),
+                    if (widget.onRetry != null)
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: widget.onRetry,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('إعادة المحاولة'),
+                        ),
+                      ),
+                    if (widget.onSignOut != null) ...[
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: widget.onSignOut,
+                          icon: const Icon(Icons.logout_rounded),
+                          label: const Text('تسجيل الخروج'),
+                        ),
+                      ),
+                    ],
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// صفحة تحميل تُظهر أزرار إعادة المحاولة وتسجيل الخروج بعد مهلة زمنية
@@ -411,44 +589,60 @@ class _TimedLoadingPageState extends State<_TimedLoadingPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(widget.label),
-            if (_showFallback) ...[
-              const SizedBox(height: 20),
-              Text(
-                'يبدو أن العملية تأخرت. جرّب الخيارات التالية:',
-                style: Theme.of(context).textTheme.bodySmall,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              if (widget.onRetry != null)
-                FilledButton.icon(
-                  onPressed: widget.onRetry,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('إعادة المحاولة'),
-                ),
-              if (widget.onSignOut != null) ...[
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: widget.onSignOut,
-                  icon: const Icon(Icons.logout),
-                  label: const Text('تسجيل الخروج'),
-                ),
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const BrandLogo(compact: true, markSize: 40),
+                const SizedBox(height: 40),
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(widget.label),
+                if (_showFallback) ...[
+                  const SizedBox(height: 24),
+                  Text(
+                    'يبدو أن العملية تأخرت. جرّب الخيارات التالية:',
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 13,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 14),
+                  if (widget.onRetry != null)
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: widget.onRetry,
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: const Text('إعادة المحاولة'),
+                      ),
+                    ),
+                  if (widget.onSignOut != null) ...[
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: widget.onSignOut,
+                        icon: const Icon(Icons.logout_rounded),
+                        label: const Text('تسجيل الخروج'),
+                      ),
+                    ),
+                  ],
+                ],
               ],
-            ],
-          ],
+            ),
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _WebOnlyPage extends ConsumerWidget {
@@ -457,6 +651,7 @@ class _WebOnlyPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     void signOut() {
       ref.read(supabaseProvider).auth.signOut();
       ref.invalidate(authSessionProvider);
@@ -466,37 +661,61 @@ class _WebOnlyPage extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.desktop_windows_outlined, size: 56),
-                const SizedBox(height: 16),
-                const Text(
-                  'مساحة العمل على الويب فقط',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'مرحبًا ${access.displayName}',
-                  style: Theme.of(context).textTheme.titleMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'صلاحياتك الحالية متاحة فقط على لوحة الويب.\nاستخدم المتصفح للوصول إلى النظام.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(height: 1.7),
-                ),
-                const SizedBox(height: 24),
-                OutlinedButton.icon(
-                  onPressed: signOut,
-                  icon: const Icon(Icons.logout),
-                  label: const Text('تسجيل الخروج'),
-                ),
-              ],
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const BrandLogo(compact: true, markSize: 40),
+                  const SizedBox(height: 36),
+                  Container(
+                    width: 96,
+                    height: 96,
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer.withValues(alpha: .4),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.desktop_windows_outlined,
+                      size: 46,
+                      color: scheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  const Text(
+                    'مساحة العمل على الويب فقط',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'مرحبًا ${access.displayName}',
+                    style: Theme.of(context).textTheme.titleMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'صلاحياتك الحالية متاحة فقط على لوحة الويب.\nاستخدم المتصفح للوصول إلى النظام.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      height: 1.7,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: signOut,
+                      icon: const Icon(Icons.logout_rounded),
+                      label: const Text('تسجيل الخروج'),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -279,7 +279,9 @@ final connectivityRefreshProvider = Provider<void>((ref) {
     if (previous == ConnectivityState.offline &&
         (next == ConnectivityState.reconnecting ||
             next == ConnectivityState.online)) {
-      // Back online — refresh critical data.
+      // Back online — refresh critical data (including auth/access gate).
+      ref.invalidate(authSessionProvider);
+      ref.invalidate(accessContextProvider);
       ref.invalidate(attendanceStateProvider);
       ref.invalidate(employeeHomeProvider);
       ref.invalidate(managerDashboardProvider);
