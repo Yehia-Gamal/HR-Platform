@@ -17,7 +17,7 @@ class KpiUpwardFeedbackPage extends StatefulWidget {
 class _KpiUpwardFeedbackPageState extends State<KpiUpwardFeedbackPage>
     with SingleTickerProviderStateMixin {
   // TODO: جلب اسم المدير وبيانات الدورة من RPC: get_upward_feedback_target
-  late List<UpwardCriterion> _criteria =
+  late final List<UpwardCriterion> _criteria =
       UpwardFeedback.defaultCriteria().toList();
   final _overallController = TextEditingController();
   bool _submitting = false;

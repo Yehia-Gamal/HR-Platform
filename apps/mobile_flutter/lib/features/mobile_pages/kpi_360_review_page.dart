@@ -187,7 +187,7 @@ class _PeerReviewFormPage extends StatefulWidget {
 class _PeerReviewFormPageState extends State<_PeerReviewFormPage>
     with SingleTickerProviderStateMixin {
   // TODO: جلب المعايير من الباك إند عبر RPC: get_360_criteria
-  late List<Kpi360CriterionRating> _ratings = _mockCriteria();
+  late final List<Kpi360CriterionRating> _ratings = _mockCriteria();
   final _overallController = TextEditingController();
   String? _recommendation;
   bool _submitting = false;

@@ -1783,6 +1783,11 @@ class _CaseActionsSection extends ConsumerWidget {
             icon: Icons.record_voice_over_outlined,
           ),
           const _ActionDef(
+            key: '_schedule_session',
+            label: 'جدولة جلسة',
+            icon: Icons.calendar_month_outlined,
+          ),
+          const _ActionDef(
             key: 'resolve_friendly',
             label: 'حل ودي',
             icon: Icons.handshake_outlined,
@@ -1797,6 +1802,17 @@ class _CaseActionsSection extends ConsumerWidget {
           ),
         ],
         'committee_deliberation' => [
+          const _ActionDef(
+            key: '_issue_decision',
+            label: 'إصدار قرار',
+            icon: Icons.description_outlined,
+            style: _ActionStyle.primary,
+          ),
+          const _ActionDef(
+            key: '_record_settlement',
+            label: 'تسجيل تسوية',
+            icon: Icons.handshake,
+          ),
           const _ActionDef(
             key: 'escalate',
             label: 'تصعيد للمدير التنفيذي',
@@ -1891,11 +1907,28 @@ class _CaseActionsSection extends ConsumerWidget {
           ),
         ],
         // حالات يمكن إغلاقها فقط
-        'executed' || 'resolved_friendly' || 'settlement_pending' => [
+        'executed' || 'resolved_friendly' => [
           const _ActionDef(
             key: 'close',
             label: 'إغلاق القضية',
             icon: Icons.lock_outline,
+            needsReason: true,
+            reasonHint: 'سبب الإغلاق',
+          ),
+        ],
+        // تسوية معلقة — تسجيل التسوية أو إغلاق
+        'settlement_pending' => [
+          const _ActionDef(
+            key: '_record_settlement',
+            label: 'تسجيل تسوية',
+            icon: Icons.handshake,
+            style: _ActionStyle.primary,
+          ),
+          const _ActionDef(
+            key: 'close',
+            label: 'إغلاق القضية',
+            icon: Icons.lock_outline,
+            style: _ActionStyle.danger,
             needsReason: true,
             reasonHint: 'سبب الإغلاق',
           ),

@@ -65,7 +65,7 @@ class _OfflineSyncIndicatorState extends ConsumerState<OfflineSyncIndicator> {
     });
 
     final asyncCount = ref.watch(syncQueueCountProvider);
-    final count = asyncCount.valueOrNull ?? 0;
+    final count = asyncCount.value ?? 0;
 
     if (count == 0 && !_syncing) return const SizedBox.shrink();
 

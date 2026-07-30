@@ -174,8 +174,8 @@ class _NotificationCard extends StatelessWidget {
             children: [
               CircleAvatar(child: Icon(_icon(item.category))),
               if (!item.isRead)
-                Positioned(
-                  left: -2,
+                PositionedDirectional(
+                  start: -2,
                   top: -2,
                   child: Container(
                     width: 10,

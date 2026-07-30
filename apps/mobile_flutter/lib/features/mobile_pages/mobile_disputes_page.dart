@@ -135,7 +135,7 @@ class MobileDisputesPage extends ConsumerWidget {
                           ),
                           if (item.canAppeal)
                             Align(
-                              alignment: Alignment.centerLeft,
+                              alignment: AlignmentDirectional.centerStart,
                               child: TextButton.icon(
                                 onPressed: () => _appeal(context, ref, item),
                                 icon: const Icon(Icons.rate_review_outlined),
@@ -359,7 +359,7 @@ class _CaseCard extends StatelessWidget {
             ),
             if (onCancel != null)
               Align(
-                alignment: Alignment.centerLeft,
+                alignment: AlignmentDirectional.centerStart,
                 child: TextButton.icon(
                   onPressed: onCancel,
                   icon: const Icon(Icons.close),

@@ -781,7 +781,7 @@ class _DayDetailSheet extends ConsumerWidget {
                 if (isToday)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    margin: const EdgeInsets.only(left: 8),
+                    margin: const EdgeInsetsDirectional.only(start: 8),
                     decoration: BoxDecoration(
                       color: scheme.primary,
                       borderRadius: BorderRadius.circular(6),

@@ -74,7 +74,7 @@ void main() {
     });
 
     test('يستخدم خط Cairo', () {
-      expect(theme.fontFamily, 'Cairo');
+      expect(theme.textTheme.bodyMedium?.fontFamily, 'Cairo');
     });
 
     test('يستخدم Material 3', () {
@@ -104,7 +104,7 @@ void main() {
     });
 
     test('يستخدم خط Cairo', () {
-      expect(theme.fontFamily, 'Cairo');
+      expect(theme.textTheme.bodyMedium?.fontFamily, 'Cairo');
     });
 
     test('يستخدم Material 3', () {
@@ -131,7 +131,10 @@ void main() {
     });
 
     test('كلاهما يستخدم نفس الخط', () {
-      expect(AppTheme.light().fontFamily, AppTheme.dark().fontFamily);
+      expect(
+        AppTheme.light().textTheme.bodyMedium?.fontFamily,
+        AppTheme.dark().textTheme.bodyMedium?.fontFamily,
+      );
     });
   });
 }

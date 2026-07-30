@@ -56,7 +56,7 @@ class _ManagerWorkspaceState extends State<ManagerWorkspace> {
         NavigationDestination(
           icon: Icon(Icons.trending_up_outlined),
           selectedIcon: Icon(Icons.trending_up),
-          label: 'KPI',
+          label: 'مؤشرات الأداء',
         ),
         NavigationDestination(
           icon: Icon(Icons.person_outlined),

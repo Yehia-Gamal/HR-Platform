@@ -344,7 +344,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         children: [
                           _TrustChip(
                             icon: Icons.fingerprint_rounded,
-                            label: 'Passkey',
+                            label: 'مفتاح المرور',
                           ),
                           SizedBox(width: 8),
                           _TrustChip(
@@ -354,7 +354,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           SizedBox(width: 8),
                           _TrustChip(
                             icon: Icons.verified_user_outlined,
-                            label: 'RLS',
+                            label: 'حماية البيانات',
                           ),
                         ],
                       ),

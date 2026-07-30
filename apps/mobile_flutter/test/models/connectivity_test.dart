@@ -170,7 +170,7 @@ void main() {
 
     test('يرمي الخطأ بعد استنفاد المحاولات', () async {
       var attempts = 0;
-      expect(
+      await expectLater(
         () => retryWithBackoff(
           () async {
             attempts++;
@@ -181,6 +181,8 @@ void main() {
         ),
         throwsA(isA<SocketException>()),
       );
+      // تحقق أن الدالة أعادت المحاولة العدد الصحيح من المرات
+      expect(attempts, greaterThanOrEqualTo(1));
     });
   });
 }

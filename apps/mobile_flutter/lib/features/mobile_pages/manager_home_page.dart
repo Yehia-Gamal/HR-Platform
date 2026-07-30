@@ -152,7 +152,23 @@ class ManagerHomePage extends ConsumerWidget {
                 ),
               ),
             ),
-            error: (_, _) => const SizedBox.shrink(),
+            error: (error, _) => Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error),
+                    const SizedBox(height: 8),
+                    Text('تعذر تحميل حضور الفريق', style: Theme.of(context).textTheme.bodySmall),
+                    TextButton.icon(
+                      onPressed: () => ref.invalidate(mobileTeamProvider),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('إعادة المحاولة'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             data: (members) => _TeamAttendanceCard(members: members),
           ),
           const SizedBox(height: 20),

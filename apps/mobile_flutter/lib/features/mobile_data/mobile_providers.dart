@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/network/offline_cache.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
@@ -350,7 +348,7 @@ final pendingIncomingLocationRequestProvider =
           ).map(MobileLocationRequest.fromJson).toList();
           final pending = all.where((r) => r.status == 'pending').toList();
           yield pending.isEmpty ? null : pending.first;
-        } catch (e, st) {
+        } catch (e) {
           if (kDebugMode) debugPrint('pendingLocationRequest poll failed: $e');
           yield null; // keep polling alive — transient errors self-heal next cycle
         }
@@ -832,32 +830,29 @@ class MobileCommands {
 
   Future<void> registerLocalBiometricDevice() async {
     final localAuth = LocalAuthentication();
-    final canCheck = await localAuth.canCheckBiometrics;
-    final isSupported = await localAuth.isDeviceSupported();
-    if (!canCheck && !isSupported) {
-      throw StateError('الجهاز لا يدعم البصمة أو قفل الشاشة الآمن. فعّل قفل الشاشة أولاً.');
-    }
-    // تحقق من توفر بصمة فعلية — إذا لم تتوفر يُسمح بقفل الشاشة كبديل.
+    // تحقق من توفر بصمة فعلية — إذا لم تتوفر يُسمح بقفل الشاشة (نقش/PIN) كبديل.
     bool hasBiometrics = false;
-    if (canCheck) {
-      final available = await localAuth.getAvailableBiometrics();
-      hasBiometrics = available.isNotEmpty;
+    try {
+      if (await localAuth.canCheckBiometrics) {
+        final available = await localAuth.getAvailableBiometrics();
+        hasBiometrics = available.isNotEmpty;
+      }
+    } catch (_) {
+      // بعض الأجهزة ترمي استثناءً — نتجاهله ونكمل بقفل الشاشة.
     }
-    // تحقق فعلي — بصمة إذا متوفرة، وإلا قفل الشاشة (PIN/نمط).
+    // biometricOnly: false → يسمح بالنقش أو PIN عند عدم توفر بصمة.
     final didAuthenticate = await localAuth.authenticate(
       localizedReason: hasBiometrics
           ? 'تأكيد تسجيل البصمة لنظام الحضور'
-          : 'تأكيد تسجيل قفل الشاشة لنظام الحضور',
-      options: AuthenticationOptions(
+          : 'تأكيد تسجيل الجهاز بالنقش أو PIN لنظام الحضور',
+      options: const AuthenticationOptions(
         stickyAuth: true,
-        biometricOnly: hasBiometrics,
+        biometricOnly: false,
         useErrorDialogs: true,
       ),
     );
     if (!didAuthenticate) {
-      throw StateError(hasBiometrics
-          ? 'تم إلغاء التحقق بالبصمة. لم يتم التسجيل.'
-          : 'تم إلغاء التحقق بقفل الشاشة. لم يتم التسجيل.');
+      throw StateError('تم إلغاء التحقق. لم يتم التسجيل.');
     }
     ref.invalidate(deviceRegistrationProvider);
     await ref.read(deviceRegistrationProvider.future);
@@ -882,34 +877,29 @@ class MobileCommands {
     required String eventType,
   }) async {
     final localAuth = LocalAuthentication();
-    // فحص دعم البصمة أو قفل الشاشة — يمنع خطأ غير واضح على أجهزة بلا أي حماية.
-    final canCheck = await localAuth.canCheckBiometrics;
-    final isDeviceSupported = await localAuth.isDeviceSupported();
-    if (!canCheck && !isDeviceSupported) {
-      throw StateError(
-        'الجهاز لا يدعم البصمة أو قفل الشاشة الآمن. تحقق من إعدادات الأمان.',
-      );
-    }
     // تحديد ما إذا كان الجهاز يملك بصمة فعلية (إصبع/وجه)
     bool hasBiometrics = false;
-    if (canCheck) {
-      final available = await localAuth.getAvailableBiometrics();
-      hasBiometrics = available.isNotEmpty;
+    try {
+      if (await localAuth.canCheckBiometrics) {
+        final available = await localAuth.getAvailableBiometrics();
+        hasBiometrics = available.isNotEmpty;
+      }
+    } catch (_) {
+      // بعض الأجهزة ترمي استثناءً — نتابع بقفل الشاشة.
     }
+    // biometricOnly: false → يسمح بالنقش أو PIN عند عدم توفر بصمة.
     final didAuthenticate = await localAuth.authenticate(
       localizedReason: hasBiometrics
           ? 'تأكيد تسجيل الحضور بالبصمة'
-          : 'تأكيد تسجيل الحضور بقفل الشاشة',
-      options: AuthenticationOptions(
+          : 'تأكيد تسجيل الحضور بالنقش أو PIN',
+      options: const AuthenticationOptions(
         stickyAuth: true,
-        biometricOnly: hasBiometrics,
+        biometricOnly: false,
         useErrorDialogs: true,
       ),
     );
     if (!didAuthenticate) {
-      throw StateError(
-        hasBiometrics ? 'تم إلغاء التحقق بالبصمة.' : 'تم إلغاء التحقق بقفل الشاشة.',
-      );
+      throw StateError('تم إلغاء التحقق.');
     }
 
     final position = await LocationService.current();
@@ -1280,7 +1270,7 @@ extension MobileSelfServiceCommands on MobileCommands {
           'p_description': null,
         },
       ));
-    } catch (e, st) {
+    } catch (e) {
       await client.storage.from('dispute-evidence').remove([path]);
       rethrow;
     }

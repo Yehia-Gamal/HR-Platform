@@ -307,9 +307,9 @@ class _HeaderState extends ConsumerState<_Header> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 else
-                  Positioned(
+                  PositionedDirectional(
                     bottom: 0,
-                    right: 0,
+                    end: 0,
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(

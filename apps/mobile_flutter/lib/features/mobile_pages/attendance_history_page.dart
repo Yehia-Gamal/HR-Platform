@@ -261,7 +261,7 @@ class _HistoryCard extends StatelessWidget {
   };
 
   String _verificationLabel(String value) => switch (value) {
-    'passkey_verified' => 'Passkey',
+    'passkey_verified' => 'مفتاح المرور',
     'biometric_verified' => 'بيومتري',
     'failed' => 'فشل التحقق',
     _ => 'غير موثق',

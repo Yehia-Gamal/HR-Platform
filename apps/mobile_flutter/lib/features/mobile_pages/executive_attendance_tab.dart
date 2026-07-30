@@ -277,9 +277,9 @@ class _AttendanceCard extends StatelessWidget {
                   photoUrl: employee.photoUrl,
                   radius: 22,
                 ),
-                Positioned(
+                PositionedDirectional(
                   bottom: -2,
-                  left: -2,
+                  start: -2,
                   child: Container(
                     width: 18,
                     height: 18,

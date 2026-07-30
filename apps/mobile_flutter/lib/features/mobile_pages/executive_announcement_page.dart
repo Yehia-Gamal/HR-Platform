@@ -170,9 +170,9 @@ class _ExecutiveAnnouncementPageState
                       width: double.infinity,
                       fit: BoxFit.cover),
                 ),
-                Positioned(
+                PositionedDirectional(
                   top: 6,
-                  left: 6,
+                  start: 6,
                   child: CircleAvatar(
                     radius: 16,
                     backgroundColor: scheme.error,
