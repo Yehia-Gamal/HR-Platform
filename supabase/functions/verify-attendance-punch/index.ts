@@ -217,7 +217,22 @@ Deno.serve(async (req) => {
       },
     });
   } catch (error) {
-    console.error("attendance assertion verification failed", error instanceof Error ? error.message : "unknown error");
+    // استخراج الـ origin الفعلي من clientDataJSON لتسهيل التشخيص
+    let actualOrigin = "unknown";
+    try {
+      const cdj = (response as Record<string, unknown>).clientDataJSON;
+      if (typeof cdj === "string") {
+        let src = cdj.replace(/-/g, "+").replace(/_/g, "/");
+        src += "=".repeat((4 - src.length % 4) % 4);
+        const parsed = JSON.parse(atob(src));
+        actualOrigin = parsed?.origin ?? "missing";
+      }
+    } catch { /* تعذر تحليل clientDataJSON */ }
+    console.error("attendance assertion verification failed", {
+      error: error instanceof Error ? error.message : "unknown error",
+      actualOrigin,
+      expectedOrigins,
+    });
     return json(req, { error: "assertion_verification_failed" }, 403);
   }
   if (!verification.verified) return json(req, { error: "assertion_not_verified" }, 403);
