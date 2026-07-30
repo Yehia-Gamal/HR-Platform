@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSupabase } from '../../core/supabase';
 import { rpc, invokeEdgeFunction } from '../../core/rpc';
+import { getSupabase } from '../../core/supabase';
 import { useAuth } from '../auth/AuthProvider';
 import { loadDomainMocks } from '../mock/loadDomainMocks';
 import type {
@@ -227,38 +228,28 @@ export function useAuditSecurityCenter() {
     enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<AuditSecurityData> => {
       if (auth.isMock) return (await loadDomainMocks()).mockAudit;
-      const supabase = await getSupabase();
-      const [securityRows, auditRows, deviceResult] = await Promise.all([
-        tableRows('security_events', 'id,event_type,severity,outcome,handled,occurred_at', 'occurred_at', 100),
-        tableRows('audit_events', 'id,event_type,category,severity,summary_ar,target_table,occurred_at', 'occurred_at', 120),
-        supabase.from('managed_devices')
-          .select('id,device_name,device_model,platform,os_version,app_version,environment,trusted,status,last_seen_at,first_seen_at,employee_id,employees(full_name_ar)')
-          .order('last_seen_at', { ascending: false })
-          .limit(200),
-      ]);
-      if (deviceResult.error) throw deviceResult.error;
-      const deviceRows = rows(deviceResult.data);
+      const raw = await rpc<Record<string, unknown>>('get_audit_security_data');
+      const securityRows = rows(raw.securityEvents);
+      const auditRows = rows(raw.auditEvents);
+      const deviceRows = rows(raw.devices);
       return {
         securityEvents: securityRows.map((item) => ({ id: string(item.id), eventType: string(item.event_type), severity: string(item.severity), outcome: string(item.outcome), handled: boolean(item.handled), occurredAt: string(item.occurred_at) })),
         auditEvents: auditRows.map((item) => ({ id: string(item.id), eventType: string(item.event_type), category: string(item.category), severity: string(item.severity), summary: nullableString(item.summary_ar), targetTable: nullableString(item.target_table), occurredAt: string(item.occurred_at) })),
-        devices: deviceRows.map((item) => {
-          const emp = item.employees as Record<string, unknown> | null;
-          return {
-            id: string(item.id),
-            name: string(item.device_name) || string(item.device_model, 'جهاز غير مسمى'),
-            platform: string(item.platform),
-            appVersion: string(item.app_version),
-            environment: string(item.environment),
-            trusted: boolean(item.trusted),
-            status: string(item.status),
-            lastSeenAt: string(item.last_seen_at),
-            firstSeenAt: string(item.first_seen_at),
-            employeeId: nullableString(item.employee_id),
-            employeeName: emp ? string(emp.full_name_ar) || null : null,
-            deviceModel: nullableString(item.device_model),
-            osVersion: nullableString(item.os_version),
-          };
-        }),
+        devices: deviceRows.map((item) => ({
+          id: string(item.id),
+          name: string(item.device_name) || string(item.device_model, 'جهاز غير مسمى'),
+          platform: string(item.platform),
+          appVersion: string(item.app_version),
+          environment: string(item.environment),
+          trusted: boolean(item.trusted),
+          status: string(item.status),
+          lastSeenAt: string(item.last_seen_at),
+          firstSeenAt: string(item.first_seen_at),
+          employeeId: nullableString(item.employee_id),
+          employeeName: nullableString(item.employee_name),
+          deviceModel: nullableString(item.device_model),
+          osVersion: nullableString(item.os_version),
+        })),
       };
     },
   });
@@ -292,12 +283,11 @@ export function useIntegrationCenter() {
     enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<IntegrationCenterData> => {
       if (auth.isMock) return (await loadDomainMocks()).mockIntegrations;
-      const [integrationRows, logRows, outboxRows, runRows] = await Promise.all([
-        tableRows('integrations', 'id,name_ar,provider,category,status,is_enabled,last_sync_at,last_error', 'created_at', 100),
-        tableRows('integration_logs', 'id,integration_id,operation,direction,status,http_status,duration_ms,occurred_at,error_message', 'occurred_at', 150),
-        tableRows('integration_outbox', 'id,event_type,status,attempts,max_attempts,next_attempt_at,created_at,last_error', 'created_at', 150),
-        tableRows('automation_runs', 'id,status,attempts,created_at,completed_at,error_detail', 'created_at', 100),
-      ]);
+      const raw = await rpc<Record<string, unknown>>('get_integration_center_data');
+      const integrationRows = rows(raw.integrations);
+      const logRows = rows(raw.logs);
+      const outboxRows = rows(raw.outbox);
+      const runRows = rows(raw.automationRuns);
       return {
         integrations: integrationRows.map((item) => ({ id: string(item.id), name: string(item.name_ar), provider: string(item.provider), category: string(item.category), status: string(item.status), enabled: boolean(item.is_enabled), lastSyncAt: nullableString(item.last_sync_at), lastError: nullableString(item.last_error) })),
         logs: logRows.map((item) => ({ id: string(item.id), integrationId: nullableString(item.integration_id), operation: nullableString(item.operation), direction: string(item.direction), status: string(item.status), httpStatus: typeof item.http_status === 'number' ? item.http_status : null, durationMs: typeof item.duration_ms === 'number' ? item.duration_ms : null, occurredAt: string(item.occurred_at), error: nullableString(item.error_message) })),
