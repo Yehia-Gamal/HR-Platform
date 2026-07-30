@@ -1,7 +1,7 @@
 import { Activity, Bot, Boxes, Cable, CheckCircle2, CircleOff, Clock3, RefreshCw, Search, ServerCog, TriangleAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
-import { ErrorState } from '../../ui/ErrorState';
+import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { SkeletonCard } from '../../ui/Skeletons';
@@ -56,6 +56,7 @@ export function IntegrationsJobsPage() {
       </section>
 
       {query.isError ? <ErrorState title="تعذر تحميل مركز التكاملات" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} /> : null}
+      {commands.toggle.isError && <ErrorBanner message={safeErrorMessage(commands.toggle.error)} />}
       {!query.isError && query.isLoading ? (
         <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3" aria-label="جارٍ تحميل التكاملات">
           {Array.from({ length: 6 }).map((_, index) => <SkeletonCard key={index} className="h-52 p-5" />)}

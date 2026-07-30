@@ -1,7 +1,8 @@
 import { Bell, CheckCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { EmptyState } from '../../ui/EmptyState';
-import { ErrorState } from '../../ui/ErrorState';
+import { ListSkeleton } from '../../ui/Skeletons';
+import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
@@ -30,6 +31,8 @@ export function NotificationsPage() {
         }
       />
 
+      {mark.isError ? <ErrorBanner message={safeErrorMessage(mark.error)} /> : null}
+
       {q.isError ? (
         <ErrorState
           title="تعذر تحميل الإشعارات"
@@ -37,13 +40,8 @@ export function NotificationsPage() {
           onRetry={() => void q.refetch()}
         />
       ) : q.isLoading ? (
-        <section className="space-y-3" aria-label="جارٍ تحميل الإشعارات">
-          {[1, 2, 3].map(i => (
-            <div
-              key={i}
-              className="card h-24 animate-pulse bg-[var(--surface-muted)]"
-            />
-          ))}
+        <section aria-label="جارٍ تحميل الإشعارات">
+          <ListSkeleton rows={3} label="جارٍ تحميل الإشعارات…" />
         </section>
       ) : !items.length ? (
         <EmptyState

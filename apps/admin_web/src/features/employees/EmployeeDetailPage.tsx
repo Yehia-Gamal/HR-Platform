@@ -122,6 +122,7 @@ function DepartmentsSection({ employeeId, canEdit, onAdd }: { employeeId: string
           </div>
         ))}
       </div>
+      {removeDept.isError ? <ErrorBanner message={safeErrorMessage(removeDept.error)} /> : null}
     </article>
   );
 }

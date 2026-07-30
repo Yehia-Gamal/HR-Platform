@@ -75,6 +75,7 @@ export function RequestsPage() {
         <h2 className="flex items-center gap-2 text-lg font-black"><RotateCcw className="size-5 text-brand" aria-hidden="true" />تصحيحات الحضور</h2>
         <span className="muted text-sm">الموافقة تعدّل سجل اليوم خادميًا، والرفض يحتاج سببًا.</span>
       </div>
+      {correctionsCommands.decideCorrection.isError ? <ErrorBanner message={safeErrorMessage(correctionsCommands.decideCorrection.error)} /> : null}
       {correctionsQuery.isError ? <ErrorState description={safeErrorMessage(correctionsQuery.error)} onRetry={() => void correctionsQuery.refetch()} /> : correctionsQuery.isLoading ? <ListSkeleton rows={3} /> : corrections.length === 0 ? <EmptyState title="لا توجد تصحيحات" description="لا توجد طلبات تصحيح في الشهر الحالي." /> : <div className="mt-4 space-y-3">{corrections.map((item) => <article key={item.id} className="rounded-2xl border border-[var(--border)] p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">

@@ -88,6 +88,7 @@ export function OperationsCenterPage() {
         </div>
       ) : null}
 
+      {commands.transitionTask.isError && <ErrorBanner message={safeErrorMessage(commands.transitionTask.error)} />}
       {data && tab === 'tasks' ? (
         <section className="card overflow-hidden">
           <div className="hidden overflow-x-auto md:block">
