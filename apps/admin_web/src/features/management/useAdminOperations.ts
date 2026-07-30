@@ -108,6 +108,7 @@ export function useAccessCommands() {
       if (auth.isMock) return input.items.length;
       return rpc('rpc_set_role_permissions', { p_role_id: input.roleId, p_items: input.items });
     },
+    meta: { successMessage: 'تم تحديث صلاحيات الدور بنجاح' },
     onSuccess: refresh,
   });
   const assignRole = useMutation({
@@ -121,6 +122,7 @@ export function useAccessCommands() {
         p_effective_to: input.effectiveTo ?? null,
       });
     },
+    meta: { successMessage: 'تم إسناد الدور بنجاح' },
     onSuccess: refresh,
   });
   const revokeRole = useMutation({
@@ -128,6 +130,7 @@ export function useAccessCommands() {
       if (auth.isMock) return null;
       return rpc('rpc_revoke_role', { p_user_id: input.userId, p_role_id: input.roleId });
     },
+    meta: { successMessage: 'تم سحب الدور بنجاح' },
     onSuccess: refresh,
   });
   return { upsertRole, setPermissions, assignRole, revokeRole };
@@ -161,6 +164,7 @@ export function useOnboardingCommands() {
         p_tasks: input.tasks.map((task) => ({ title: task.title, ownerRole: task.ownerRole ?? null, dueOffsetDays: task.dueOffsetDays ?? 0 })),
       });
     },
+    meta: { successMessage: 'تم إنشاء رحلة التهيئة بنجاح' },
     onSuccess: refresh,
   });
   const transitionTask = useMutation({
@@ -168,6 +172,7 @@ export function useOnboardingCommands() {
       if (auth.isMock) return { completed: input.status === 'completed' };
       return rpc('transition_onboarding_task_admin', { p_task_id: input.taskId, p_status: input.status });
     },
+    meta: { successMessage: 'تم تحديث حالة مهمة التهيئة بنجاح' },
     onSuccess: refresh,
   });
   return { createJourney, transitionTask };
@@ -188,6 +193,7 @@ export function useRecruitmentCommands() {
         p_submit: input.submit,
       });
     },
+    meta: { successMessage: 'تم إنشاء طلب التوظيف بنجاح' },
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: ['recruitment-overview'] });
     },
