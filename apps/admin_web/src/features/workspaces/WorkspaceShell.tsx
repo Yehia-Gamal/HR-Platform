@@ -3,7 +3,6 @@ import {
   Activity,
   BadgeCheck,
   Bell,
-  BookOpenCheck,
   BriefcaseBusiness,
   Building2,
   CalendarClock,
@@ -121,6 +120,14 @@ const adminSections: NavSection[] = [
   ] },
 ];
 
+const committeeSections: NavSection[] = [
+  { title: 'لجنة الخلافات', items: [
+    { label: 'القضايا', to: '/committee', icon: Gavel, permission: 'disputes.portal.access' },
+    { label: 'سجل القضايا', to: '/committee/disputes', icon: ClipboardList, permission: 'disputes.portal.access' },
+    { label: 'الإشعارات', to: '/committee/notifications', icon: Bell },
+  ] },
+];
+
 export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
   const auth = useAuth();
   const navigate = useNavigate();
@@ -129,7 +136,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => window.localStorage.getItem('ahla-sidebar') === 'collapsed');
   const access = auth.access!;
-  const sections = workspace === 'hr' ? hrSections : adminSections;
+  const sections = workspace === 'hr' ? hrSections : workspace === 'committee' ? committeeSections : adminSections;
   const allowedSections = useMemo(() => sections.map((section) => ({
     ...section,
     items: section.items.filter((item) =>
@@ -143,11 +150,12 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
     () => [
       access.workspaces.includes('hr') ? { id: 'hr' as const, label: 'مساحة الموارد البشرية', path: '/hr' } : null,
       access.workspaces.includes('main_admin') ? { id: 'main_admin' as const, label: 'مساحة الإدارة الرئيسية', path: '/admin' } : null,
-    ].filter(Boolean) as Array<{ id: 'hr' | 'main_admin'; label: string; path: string }>,
+      access.workspaces.includes('committee') ? { id: 'committee' as const, label: 'لجنة الخلافات', path: '/committee' } : null,
+    ].filter(Boolean) as Array<{ id: WorkspaceId; label: string; path: string }>,
     [access.workspaces],
   );
 
-  const currentWorkspaceLabel = workspace === 'hr' ? 'الموارد البشرية' : 'الإدارة الرئيسية';
+  const currentWorkspaceLabel = workspace === 'hr' ? 'الموارد البشرية' : workspace === 'committee' ? 'لجنة الخلافات' : 'الإدارة الرئيسية';
   const currentItem = [...allItems].sort((a, b) => b.to.length - a.to.length).find((item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`));
   const userMetadata = auth.session?.user.user_metadata;
   const profilePhotoUrl = access.photoUrl ?? (typeof userMetadata?.photo_url === 'string'
@@ -196,7 +204,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
               <div className="space-y-1">
                 {section.items.map((item) => {
                   const Icon = item.icon;
-                  const exact = item.to === '/hr' || item.to === '/admin';
+                  const exact = item.to === '/hr' || item.to === '/admin' || item.to === '/committee';
                   return (
                     <NavLink
                       key={item.to}
@@ -246,7 +254,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
           <div className="header-actions flex items-center gap-2">
             <WorkspaceSearch destinations={allItems.map((item) => ({ label: item.label, to: item.to, group: item.group }))} />
             <ThemeToggle />
-            <button type="button" className="icon-button relative" aria-label={unreadCount ? `الإشعارات، ${unreadCount} غير مقروء` : 'الإشعارات'} onClick={() => navigate(workspace === 'hr' ? '/hr/notifications' : '/admin/notifications')}>
+            <button type="button" className="icon-button relative" aria-label={unreadCount ? `الإشعارات، ${unreadCount} غير مقروء` : 'الإشعارات'} onClick={() => navigate(workspace === 'hr' ? '/hr/notifications' : workspace === 'committee' ? '/committee/notifications' : '/admin/notifications')}>
               <Bell className="size-4.5" aria-hidden="true" />
               {unreadCount ? <span className="notification-count" aria-hidden="true">{unreadCount > 99 ? '99+' : unreadCount}</span> : null}
             </button>
@@ -261,7 +269,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
                   <p className="truncate text-sm font-black">{access.displayName}</p>
                   <p className="mt-1 truncate text-xs text-[var(--text-muted)]">{access.employeeCode ?? currentWorkspaceLabel}</p>
                 </div>
-                <button type="button" onClick={() => navigate(workspace === 'hr' ? '/hr/notifications' : '/admin/notifications')}><Bell className="size-4" aria-hidden="true" />الإشعارات{unreadCount ? ` (${unreadCount})` : ''}</button>
+                <button type="button" onClick={() => navigate(workspace === 'hr' ? '/hr/notifications' : workspace === 'committee' ? '/committee/notifications' : '/admin/notifications')}><Bell className="size-4" aria-hidden="true" />الإشعارات{unreadCount ? ` (${unreadCount})` : ''}</button>
                 <button type="button" onClick={() => void auth.signOut()}><LogOut className="size-4" aria-hidden="true" />تسجيل الخروج</button>
               </div>
             </details>
