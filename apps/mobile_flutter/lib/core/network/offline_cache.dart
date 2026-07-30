@@ -60,6 +60,14 @@ class OfflineCache {
     }
   }
 
+  /// مسح جميع البيانات المؤقتة (عند تسجيل الخروج).
+  Future<void> clearAll() async {
+    const keys = [attendanceState, employeeHome, managerDashboard, kpiList, myRequests];
+    for (final key in keys) {
+      await remove(key);
+    }
+  }
+
   /// Common cache keys used across the app.
   static const attendanceState = 'attendance_state';
   static const employeeHome = 'employee_home';

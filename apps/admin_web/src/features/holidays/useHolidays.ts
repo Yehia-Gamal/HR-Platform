@@ -78,6 +78,7 @@ export function useCreateHoliday() {
         p_is_recurring: input.is_recurring ?? false,
       });
     },
+    meta: { successMessage: 'تم إنشاء العطلة الرسمية بنجاح' },
     onSuccess: () => void client.invalidateQueries({ queryKey: QUERY_KEY }),
   });
 }
@@ -114,6 +115,7 @@ export function useUpdateHoliday() {
         p_is_active: changes.is_active ?? null,
       });
     },
+    meta: { successMessage: 'تم تحديث العطلة الرسمية بنجاح' },
     onSuccess: () => void client.invalidateQueries({ queryKey: QUERY_KEY }),
   });
 }
@@ -126,6 +128,7 @@ export function useDeleteHoliday() {
       if (auth.isMock) return;
       await rpc('delete_public_holiday', { p_id: id });
     },
+    meta: { successMessage: 'تم حذف العطلة الرسمية بنجاح' },
     onSuccess: () => void client.invalidateQueries({ queryKey: QUERY_KEY }),
   });
 }

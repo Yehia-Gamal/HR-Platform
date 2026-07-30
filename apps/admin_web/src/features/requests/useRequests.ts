@@ -33,6 +33,7 @@ export function useRequestDecision() {
       if (auth.isMock) return { id: requestId, decision };
       return rpc('decide_request', { p_request_id: requestId, p_decision: decision, p_comment: comment || null });
     },
+    meta: { successMessage: 'تم البتّ في الطلب بنجاح' },
     onSuccess: () => Promise.all([
       client.invalidateQueries({ queryKey: ['requests'] }),
       client.invalidateQueries({ queryKey: ['action-center'] }),

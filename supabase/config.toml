@@ -58,7 +58,8 @@ jwt_expiry = 3600
 # self-signup route, so enabling this locally does not create a signup surface.
 enable_signup = true
 enable_anonymous_sign_ins = false
-min_password_length = 8
+# Passwords shorter than this value are rejected. Supabase requires at least 6.
+minimum_password_length = 8
 
 [auth.email]
 enable_signup = true

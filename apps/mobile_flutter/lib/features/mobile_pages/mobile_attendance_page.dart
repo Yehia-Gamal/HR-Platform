@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/gps_preflight_banner.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
@@ -449,7 +451,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       }
     } catch (error, stack) {
       if (mounted) {
-        debugPrint('[_punch] ${error.runtimeType}: $error\n$stack');
+        if (kDebugMode) {
+          debugPrint('[_punch] ${error.runtimeType}: $error\n$stack');
+        }
         final msg = error.toString();
         final isCancelled = msg.contains('إلغاء') ||
             msg.toLowerCase().contains('cancel') ||

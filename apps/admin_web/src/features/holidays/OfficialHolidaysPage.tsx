@@ -9,6 +9,7 @@ import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
+import { useToast } from '../../ui/Toast';
 import { useOrganizationLookups } from '../employees/useOrganizationLookups';
 import type { Holiday } from './useHolidays';
 import { useHolidays, useCreateHoliday, useUpdateHoliday, useDeleteHoliday } from './useHolidays';
@@ -26,6 +27,7 @@ export function OfficialHolidaysPage() {
   const [deleting, setDeleting] = useState<Holiday | null>(null);
   const holidays = useHolidays(year);
   const deleteHoliday = useDeleteHoliday();
+  const { toast } = useToast();
 
   const all = holidays.data ?? [];
 
@@ -42,8 +44,11 @@ export function OfficialHolidaysPage() {
     if (!deleting) return;
     try {
       await deleteHoliday.mutateAsync(deleting.id);
+      toast({ message: 'تم حذف العطلة بنجاح', tone: 'success' });
       setDeleting(null);
-    } catch { /* error handled by mutation */ }
+    } catch (err) {
+      toast({ message: safeErrorMessage(err), tone: 'error' });
+    }
   };
 
   return (
@@ -158,6 +163,7 @@ function HolidayFormDialog({ holiday, onClose, onSuccess }: { holiday: Holiday |
   const lookups = useOrganizationLookups();
   const create = useCreateHoliday();
   const update = useUpdateHoliday();
+  const { toast } = useToast();
   const isEdit = Boolean(holiday);
 
   const [name, setName] = useState(holiday?.name ?? '');
@@ -187,6 +193,7 @@ function HolidayFormDialog({ holiday, onClose, onSuccess }: { holiday: Holiday |
           notes: notes.trim() || null,
           is_recurring: isRecurring,
         });
+        toast({ message: 'تم تعديل العطلة بنجاح', tone: 'success' });
       } else {
         await create.mutateAsync({
           name: name.trim(),
@@ -197,10 +204,12 @@ function HolidayFormDialog({ holiday, onClose, onSuccess }: { holiday: Holiday |
           notes: notes.trim() || null,
           is_recurring: isRecurring,
         });
+        toast({ message: 'تمت إضافة العطلة بنجاح', tone: 'success' });
       }
       onSuccess();
     } catch (err) {
       setError(safeErrorMessage(err));
+      toast({ message: safeErrorMessage(err), tone: 'error' });
     }
   };
 

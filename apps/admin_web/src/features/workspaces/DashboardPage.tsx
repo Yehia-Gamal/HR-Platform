@@ -106,7 +106,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
       <>
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5" aria-label="المؤشرات الرئيسية">
           {cards.map((card) => <MetricCard key={card.label} {...card} />)}
-n        {attendance.isError && <ErrorBanner message={safeErrorMessage(attendance.error)} />}
+          {attendance.isError && <ErrorBanner message={safeErrorMessage(attendance.error)} />}
         </section>
 
         {type === 'hr' && att ? (() => {

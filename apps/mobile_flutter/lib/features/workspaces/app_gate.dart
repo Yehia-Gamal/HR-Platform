@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/network/session_cleanup.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/auth/login_page.dart';
 import 'package:ahla_shabab_management_os/features/auth/set_password_page.dart';
@@ -56,6 +57,7 @@ class _AuthenticatedGate extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     void signOut() {
+      cleanupOnSignOut();
       ref.read(supabaseProvider).auth.signOut();
       ref.invalidate(authSessionProvider);
       ref.invalidate(accessContextProvider);
@@ -534,6 +536,7 @@ class _WebOnlyPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     void signOut() {
+      cleanupOnSignOut();
       ref.read(supabaseProvider).auth.signOut();
       ref.invalidate(authSessionProvider);
       ref.invalidate(accessContextProvider);

@@ -94,6 +94,7 @@ export function useResendInvite() {
       const email = result?.email;
       return email ? `أُعيد إرسال رابط التفعيل إلى ${email}.` : 'أُعيد إرسال رابط التفعيل.';
     },
+    meta: { successMessage: 'تم إرسال رابط التفعيل بنجاح' },
   });
 }
 
@@ -109,6 +110,7 @@ export function useChangeManager() {
         p_reason: reason,
       });
     },
+    meta: { successMessage: 'تم تغيير المدير المباشر بنجاح' },
     onSuccess: () => client.invalidateQueries({ queryKey: ['employees'] }),
   });
 }
@@ -125,6 +127,7 @@ export function useUpdateEmployee() {
         p_reason: reason,
       });
     },
+    meta: { successMessage: 'تم تحديث بيانات الموظف بنجاح' },
     onSuccess: async () => {
       await Promise.all([
         client.invalidateQueries({ queryKey: ['employees'] }),
@@ -145,6 +148,7 @@ export function useArchiveEmployee() {
         p_reason: reason,
       });
     },
+    meta: { successMessage: 'تم أرشفة الموظف بنجاح' },
     onSuccess: async () => {
       await Promise.all([
         client.invalidateQueries({ queryKey: ['employees'] }),
@@ -194,6 +198,7 @@ export function useAssignDepartment() {
         p_note: params.note ?? null,
       });
     },
+    meta: { successMessage: 'تم إسناد الإدارة بنجاح' },
     onSuccess: async () => {
       await Promise.all([
         client.invalidateQueries({ queryKey: ['employee-departments'] }),
@@ -215,6 +220,7 @@ export function useRemoveDepartment() {
         p_department_id: params.departmentId,
       });
     },
+    meta: { successMessage: 'تم إزالة الإدارة بنجاح' },
     onSuccess: async () => {
       await Promise.all([
         client.invalidateQueries({ queryKey: ['employee-departments'] }),
@@ -241,6 +247,7 @@ export function useDeleteEmployee() {
         p_reason: reason,
       });
     },
+    meta: { successMessage: 'تم حذف الموظف نهائيًا بنجاح' },
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: ['employees'] });
     },

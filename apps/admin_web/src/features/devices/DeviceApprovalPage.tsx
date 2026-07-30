@@ -11,6 +11,7 @@ import { ListSkeleton, MetricSkeletonRow } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { useToast } from '../../ui/Toast';
 import type { AdminDevice, PendingDevice } from './useDevices';
 import { useAllDevices, useApproveDevice, useDeviceApprovals, useRevokeDevice } from './useDevices';
 
@@ -46,6 +47,7 @@ export function DeviceApprovalPage() {
 function PendingDevicesPanel() {
   const query = useDeviceApprovals();
   const approve = useApproveDevice();
+  const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [confirmAction, setConfirmAction] = useState<{ device: PendingDevice; approved: boolean } | null>(null);
@@ -68,9 +70,18 @@ function PendingDevicesPanel() {
 
   function executeAction() {
     if (!confirmAction) return;
+    const wasApproved = confirmAction.approved;
     approve.mutate(
       { deviceId: confirmAction.device.id, approved: confirmAction.approved, reason: confirmAction.approved ? undefined : reason || undefined },
-      { onSuccess: () => setConfirmAction(null) },
+      {
+        onSuccess: () => {
+          setConfirmAction(null);
+          toast({ message: wasApproved ? 'تمت الموافقة على الجهاز بنجاح' : 'تم رفض الجهاز بنجاح', tone: 'success' });
+        },
+        onError: (error) => {
+          toast({ message: safeErrorMessage(error), tone: 'error' });
+        },
+      },
     );
   }
 
@@ -178,6 +189,7 @@ function AllDevicesPanel() {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const query = useAllDevices(statusFilter || undefined);
   const revoke = useRevokeDevice();
+  const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [revokeTarget, setRevokeTarget] = useState<AdminDevice | null>(null);
   const [revokeReason, setRevokeReason] = useState('');
@@ -198,7 +210,16 @@ function AllDevicesPanel() {
     if (!revokeTarget) return;
     revoke.mutate(
       { deviceId: revokeTarget.id, reason: revokeReason || undefined },
-      { onSuccess: () => { setRevokeTarget(null); setRevokeReason(''); } },
+      {
+        onSuccess: () => {
+          setRevokeTarget(null);
+          setRevokeReason('');
+          toast({ message: 'تم إلغاء صلاحية الجهاز بنجاح', tone: 'success' });
+        },
+        onError: (error) => {
+          toast({ message: safeErrorMessage(error), tone: 'error' });
+        },
+      },
     );
   }
 

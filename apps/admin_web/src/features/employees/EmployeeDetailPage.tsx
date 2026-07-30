@@ -22,6 +22,7 @@ import {
   useUpdateEmployee, useEmployeeDepartments, useAssignDepartment, useRemoveDepartment, useDeleteEmployee,
 } from './useEmployees';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { useToast } from '../../ui/Toast';
 import { useOrganizationLookups } from './useOrganizationLookups';
 
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
@@ -527,6 +528,7 @@ export function EmployeeDetailPage() {
   const auth = useAuth();
   const query = useEmployee360(employeeId);
   const resend = useResendInvite();
+  const { toast } = useToast();
   const [resendMessage, setResendMessage] = useState<string | null>(null);
   const [resendError, setResendError] = useState<string | null>(null);
   const [showManagerDialog, setShowManagerDialog] = useState(false);
@@ -552,7 +554,8 @@ export function EmployeeDetailPage() {
     hasPermission(auth.access, 'people.employee.update_sensitive')
     || hasPermission(auth.access, 'people.employee.update_basic')
   ));
-  const accountPending = PENDING_ACCOUNT_STATES.has((item.accountStatus ?? item.status ?? '').toLowerCase());
+  const accountPending = PENDING_ACCOUNT_STATES.has((item.accountStatus ?? '').toLowerCase())
+    || PENDING_ACCOUNT_STATES.has((item.status ?? '').toLowerCase());
   const showResend = canInvite && accountPending && Boolean(employeeId);
 
   const onResend = async () => {
@@ -561,11 +564,11 @@ export function EmployeeDetailPage() {
     try {
       const msg = await resend.mutateAsync(employeeId);
       setResendMessage(msg);
-      toast({ title: 'تم إرسال الدعوة', description: msg, variant: 'success' });
+      toast({ message: 'تم إرسال الدعوة: ' + msg, tone: 'success' });
     } catch (error) {
       const msg = safeErrorMessage(error);
       setResendError(msg);
-      toast({ title: 'فشل إرسال الدعوة', description: msg, variant: 'error' });
+      toast({ message: 'فشل إرسال الدعوة: ' + msg, tone: 'error' });
     }
   };
 
@@ -686,7 +689,7 @@ export function EmployeeDetailPage() {
           onClose={() => setShowManagerDialog(false)}
           onSuccess={() => {
             setShowManagerDialog(false);
-            toast({ title: 'تم تغيير المدير المباشر بنجاح', variant: 'success' });
+            toast({ message: 'تم تغيير المدير المباشر بنجاح', tone: 'success' });
             void query.refetch();
           }}
         />
