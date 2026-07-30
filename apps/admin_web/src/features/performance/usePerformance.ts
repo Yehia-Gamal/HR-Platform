@@ -26,6 +26,7 @@ export function useAdvanceKpi() {
       if (auth.isMock) return { evaluationId, action };
       return rpc('advance_kpi_stage', { p_evaluation_id: evaluationId, p_action: action, p_scores: scores ?? null, p_note: note || null });
     },
+    meta: { successMessage: 'تم تقديم تقييم الأداء بنجاح' },
     onSuccess: () => Promise.all([
       client.invalidateQueries({ queryKey: ['kpi-evaluations'] }),
       client.invalidateQueries({ queryKey: ['action-center'] }),
@@ -53,12 +54,14 @@ function kpiFormMutationOpts(
   isMock: boolean,
   name: string,
   refresh: () => Promise<unknown>,
+  successMessage?: string,
 ) {
   return {
     mutationFn: async (params: Record<string, unknown>) => {
       if (isMock) return params;
       return rpc(name, params);
     },
+    meta: successMessage ? { successMessage } : undefined,
     onSuccess: refresh,
   };
 }
@@ -72,12 +75,12 @@ export function useKpiFormCommands(evaluationId: string) {
     client.invalidateQueries({ queryKey: ['kpi-admin'] }),
   ]);
   return {
-    saveGoal: useMutation(kpiFormMutationOpts(auth.isMock, 'save_kpi_goal', refresh)),
-    saveSession: useMutation(kpiFormMutationOpts(auth.isMock, 'save_kpi_review_session', refresh)),
-    saveCompliance: useMutation(kpiFormMutationOpts(auth.isMock, 'save_kpi_compliance_metric', refresh)),
-    acknowledge: useMutation(kpiFormMutationOpts(auth.isMock, 'acknowledge_kpi_evaluation', refresh)),
-    returnStage: useMutation(kpiFormMutationOpts(auth.isMock, 'return_kpi_stage', refresh)),
-    overrideScore: useMutation(kpiFormMutationOpts(auth.isMock, 'override_kpi_score', refresh)),
-    addEvidence: useMutation(kpiFormMutationOpts(auth.isMock, 'add_kpi_evidence', refresh)),
+    saveGoal: useMutation(kpiFormMutationOpts(auth.isMock, 'save_kpi_goal', refresh, 'تم حفظ الهدف بنجاح')),
+    saveSession: useMutation(kpiFormMutationOpts(auth.isMock, 'save_kpi_review_session', refresh, 'تم حفظ جلسة المراجعة بنجاح')),
+    saveCompliance: useMutation(kpiFormMutationOpts(auth.isMock, 'save_kpi_compliance_metric', refresh, 'تم حفظ مؤشر الامتثال بنجاح')),
+    acknowledge: useMutation(kpiFormMutationOpts(auth.isMock, 'acknowledge_kpi_evaluation', refresh, 'تم الاطلاع على التقييم بنجاح')),
+    returnStage: useMutation(kpiFormMutationOpts(auth.isMock, 'return_kpi_stage', refresh, 'تم إرجاع المرحلة بنجاح')),
+    overrideScore: useMutation(kpiFormMutationOpts(auth.isMock, 'override_kpi_score', refresh, 'تم تعديل الدرجة بنجاح')),
+    addEvidence: useMutation(kpiFormMutationOpts(auth.isMock, 'add_kpi_evidence', refresh, 'تمت إضافة المستند الداعم بنجاح')),
   };
 }
