@@ -6,6 +6,7 @@ import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
+import { Tabs } from '../../ui/Tabs';
 import { ListSkeleton, MetricSkeletonRow } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
@@ -23,20 +24,17 @@ export function DeviceApprovalPage() {
       <PageHeader title="أجهزة الموظفين" description="مراجعة وموافقة على أجهزة الموظفين وإدارة الأجهزة المسجلة" />
 
       {/* ألسنة */}
-      <div className="flex gap-2" role="tablist" aria-label="أقسام الأجهزة">
-        <TabButton id="tab-pending" panelId="panel-pending" active={tab === 'pending'} onClick={() => setTab('pending')} label="طلبات الأجهزة" />
-        <TabButton id="tab-all" panelId="panel-all" active={tab === 'all'} onClick={() => setTab('all')} label="كل الأجهزة" />
-      </div>
-
-      {tab === 'pending' ? (
-        <div id="panel-pending" role="tabpanel" aria-labelledby="tab-pending">
-          <PendingDevicesPanel />
-        </div>
-      ) : (
-        <div id="panel-all" role="tabpanel" aria-labelledby="tab-all">
-          <AllDevicesPanel />
-        </div>
-      )}
+      <Tabs
+        tabs={[
+          { id: 'pending', label: 'طلبات الأجهزة' },
+          { id: 'all', label: 'كل الأجهزة' },
+        ]}
+        activeTab={tab}
+        onTabChange={(id) => setTab(id as Tab)}
+        ariaLabel="أقسام الأجهزة"
+      >
+        {tab === 'pending' ? <PendingDevicesPanel /> : <AllDevicesPanel />}
+      </Tabs>
     </div>
   );
 }
@@ -434,7 +432,3 @@ function AdminDeviceCard({
 /* ═══════════════════════════════════════════════════════════════════════════════
    مكونات مساعدة
    ═══════════════════════════════════════════════════════════════════════════════ */
-
-function TabButton({ id, panelId, active, onClick, label }: { id: string; panelId: string; active: boolean; onClick: () => void; label: string }) {
-  return <button type="button" id={id} role="tab" aria-selected={active} aria-controls={panelId} className={`filter-chip ${active ? 'is-active' : ''}`} onClick={onClick}>{label}</button>;
-}
