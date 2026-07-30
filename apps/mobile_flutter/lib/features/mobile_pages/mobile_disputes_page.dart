@@ -366,6 +366,15 @@ class _CaseCard extends StatelessWidget {
                   label: const Text('إلغاء قبل القبول'),
                 ),
               ),
+            if (onRespond != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: FilledButton.icon(
+                  onPressed: onRespond,
+                  icon: const Icon(Icons.reply),
+                  label: const Text('الرد على طلب المعلومات'),
+                ),
+              ),
           ],
         ),
       ),
@@ -819,6 +828,121 @@ class _DirectoryPickerState extends ConsumerState<_DirectoryPicker> {
                   },
                 );
               },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ورقة الرد على طلب معلومات إضافية من اللجنة
+class _RespondToInfoRequestSheet extends ConsumerStatefulWidget {
+  const _RespondToInfoRequestSheet({required this.caseId});
+  final String caseId;
+
+  @override
+  ConsumerState<_RespondToInfoRequestSheet> createState() =>
+      _RespondToInfoRequestSheetState();
+}
+
+class _RespondToInfoRequestSheetState
+    extends ConsumerState<_RespondToInfoRequestSheet> {
+  final _response = TextEditingController();
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _response.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final text = _response.text.trim();
+    if (text.length < 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى كتابة 10 أحرف على الأقل')),
+      );
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await ref.read(mobileCommandsProvider).transitionDisputeCase(
+            caseId: widget.caseId,
+            action: 'resume',
+            reason: text,
+          );
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم إرسال الرد بنجاح')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(e))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: .4),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text('الرد على طلب المعلومات',
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text(
+            'اللجنة طلبت معلومات إضافية حول قضيتك. اكتب ردك أدناه.',
+            style: theme.textTheme.bodySmall,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _response,
+            minLines: 4,
+            maxLines: 8,
+            decoration: const InputDecoration(
+              labelText: 'ردك على طلب المعلومات',
+              hintText: 'اكتب المعلومات المطلوبة هنا...',
+              border: OutlineInputBorder(),
+              alignLabelWithHint: true,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _busy ? null : _submit,
+              icon: _busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.send),
+              label: const Text('إرسال الرد'),
             ),
           ),
         ],
