@@ -28,7 +28,7 @@ select ok(position('employee_devices' in pg_get_functiondef(
   'public.get_my_passkeys()'::regprocedure)) > 0,
   'device list reads the canonical employee_devices registry');
 select ok(position('employee_devices' in pg_get_functiondef(
-  'public.get_my_attendance_state()'::regprocedure)) > 0,
+  'public.get_my_attendance_state(text)'::regprocedure)) > 0,
   'attendance eligibility reads the same canonical device registry');
 select has_function(
   'public', 'set_employee_attendance_device_status', array['uuid','text','text'],
