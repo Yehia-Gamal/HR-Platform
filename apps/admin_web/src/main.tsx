@@ -3,11 +3,13 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './app/App';
+import { initSentry } from './core/sentry';
 import { AuthProvider } from './features/auth/AuthProvider';
 import { AppErrorBoundary } from './ui/AppErrorBoundary';
 import { initializeTheme } from './ui/theme';
 import './styles.css';
 
+initSentry();
 initializeTheme();
 
 const queryClient = new QueryClient({

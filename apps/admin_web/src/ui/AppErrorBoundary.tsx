@@ -1,5 +1,6 @@
 import { AlertTriangle, RefreshCcw } from 'lucide-react';
 import { Component, type ErrorInfo, type PropsWithChildren } from 'react';
+import { captureError } from '../core/sentry';
 import { AppLogo } from './AppLogo';
 
 interface State { hasError: boolean; errorId: string | null }
@@ -12,6 +13,8 @@ export class AppErrorBoundary extends Component<PropsWithChildren, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    captureError(error, { componentStack: info.componentStack });
+
     // Avoid logging session tokens or request payloads. Production monitoring may
     // capture only the error name, message and component stack after PII scrubbing.
     if (import.meta.env.DEV) {

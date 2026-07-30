@@ -1,5 +1,20 @@
 import type { ZodType } from 'zod';
+import { addBreadcrumb } from './sentry';
 import { getSupabase } from './supabase';
+
+/** حقول PII التي تُزال من وسائط RPC قبل التسجيل */
+const PII_KEYS = /name|email|phone/i;
+
+function sanitizeArgs(
+  args: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!args) return undefined;
+  const clean: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(args)) {
+    clean[k] = PII_KEYS.test(k) ? '[REDACTED]' : v;
+  }
+  return clean;
+}
 
 /**
  * Shared Supabase RPC helper (audit ARCH-01).
@@ -19,8 +34,13 @@ export async function rpc<T = unknown>(
   schema?: ZodType<T>,
 ): Promise<T> {
   const supabase = await getSupabase();
+  const sanitized = sanitizeArgs(args);
   const { data, error } = await supabase.rpc(name, args);
-  if (error) throw error;
+  if (error) {
+    addBreadcrumb('rpc', name, { args: sanitized, error: error.message });
+    throw error;
+  }
+  addBreadcrumb('rpc', name, { args: sanitized });
   if (schema) return schema.parse(data);
   return data as T;
 }
