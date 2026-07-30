@@ -161,9 +161,12 @@ Deno.serve(createHandler({ functionName: "notification-dispatcher", version: "1.
 }));
 
 // يبني رسالة FCM v1: تجربة عاجلة (شاشة كاملة/صوت/اهتزاز) عند urgent+fullScreen.
+// إشعارات priority=high (الطلبات/القرارات/التصعيد) تحصل أيضًا على أولوية
+// HIGH في Android لتسليم عاجل مع صوت عبر قناة الإشعار المحلي.
 function buildFcmMessage(token: string, n: NotificationRow | null): Record<string, unknown> {
   const meta = (n?.metadata ?? {}) as Record<string, unknown>;
   const urgent = n?.priority === 'urgent' || meta.fullScreen === true;
+  const high = urgent || n?.priority === 'high';
   const deepLink = (meta.deepLink as string) ?? n?.action_url ?? '';
   const data: Record<string, string> = {
     kind: String(meta.kind ?? n?.entity_type ?? 'notification'),
@@ -182,16 +185,16 @@ function buildFcmMessage(token: string, n: NotificationRow | null): Record<strin
     // the background isolate so it can create the full-screen notification.
     data,
     android: {
-      priority: urgent ? 'HIGH' : 'NORMAL',
-      ttl: urgent ? '300s' : '3600s',
+      priority: high ? 'HIGH' : 'NORMAL',
+      ttl: high ? '300s' : '3600s',
     },
     apns: {
-      headers: { 'apns-priority': urgent ? '10' : '5' },
+      headers: { 'apns-priority': high ? '10' : '5' },
       payload: {
         aps: {
           alert: { title: n?.title ?? '', body: n?.body ?? '' },
           sound: urgent ? { critical: 0, name: 'urgent.caf', volume: 1.0 } : 'default',
-          'interruption-level': urgent ? 'time-sensitive' : 'active',
+          'interruption-level': urgent ? 'time-sensitive' : (high ? 'active' : 'passive'),
           'content-available': 1,
         },
       },

@@ -1,4 +1,4 @@
-import { CheckCircle2, Eye, EyeOff, KeyRound, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Eye, EyeOff, KeyRound, Mail, ShieldCheck } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { safeErrorMessage } from '../../core/errorMapper';
@@ -6,13 +6,30 @@ import { rpc } from '../../core/rpc';
 import { getSupabase } from '../../core/supabase';
 import { AppLogo } from '../../ui/AppLogo';
 
-type RecoveryLocation = Pick<Location, 'pathname' | 'hash'>;
+type RecoveryLocation = Pick<Location, 'pathname' | 'hash'> & Partial<Pick<Location, 'search'>>;
 type PageState = 'checking' | 'ready' | 'invalid' | 'success';
+type RecoveryLinkError = { code: string | null; description: string | null };
+
+function recoveryParams(location: RecoveryLocation) {
+  const params = new URLSearchParams(location.search ?? '');
+  const hash = new URLSearchParams(location.hash.replace(/^#/, ''));
+  hash.forEach((value, key) => params.set(key, value));
+  return params;
+}
+
+export function getPasswordRecoveryError(location: RecoveryLocation = window.location): RecoveryLinkError | null {
+  const params = recoveryParams(location);
+  const code = params.get('error_code');
+  const description = params.get('error_description');
+  const error = params.get('error');
+  if (!code && !description && error !== 'access_denied') return null;
+  return { code, description };
+}
 
 export function isPasswordRecoveryLocation(location: RecoveryLocation = window.location): boolean {
   if (location.pathname === '/auth/setup-password') return true;
-  const hash = new URLSearchParams(location.hash.replace(/^#/, ''));
-  return hash.get('type') === 'recovery';
+  const params = recoveryParams(location);
+  return params.get('type') === 'recovery' || getPasswordRecoveryError(location) !== null;
 }
 
 function clearRecoverySecretsFromAddressBar() {
@@ -22,17 +39,29 @@ function clearRecoverySecretsFromAddressBar() {
 
 export function PasswordSetupPage() {
   const navigate = useNavigate();
+  const [initialLinkError] = useState(() => getPasswordRecoveryError());
   const [pageState, setPageState] = useState<PageState>('checking');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [resending, setResending] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     void getSupabase()
       .then(async (supabase) => {
+        if (initialLinkError) {
+          // قد توجد جلسة قديمة أنشأها رابط سابق؛ لا نسمح لها بالوصول إلى بوابات الويب.
+          await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+          clearRecoverySecretsFromAddressBar();
+          if (active) setPageState('invalid');
+          return;
+        }
         const { data, error: sessionError } = await supabase.auth.getSession();
         clearRecoverySecretsFromAddressBar();
         if (!active) return;
@@ -45,7 +74,24 @@ export function PasswordSetupPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialLinkError]);
+
+  const resendRecoveryLink = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setResendError(null);
+    setResending(true);
+    try {
+      const supabase = await getSupabase();
+      const redirectTo = `${window.location.origin}/auth/setup-password`;
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(recoveryEmail.trim().toLowerCase(), { redirectTo });
+      if (resetError) throw resetError;
+      setResendSent(true);
+    } catch (resetError) {
+      setResendError(safeErrorMessage(resetError));
+    } finally {
+      setResending(false);
+    }
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -150,10 +196,40 @@ export function PasswordSetupPage() {
                 </span>
                 <h2 className="mt-4 text-xl font-black">الرابط غير صالح أو انتهت مدته</h2>
                 <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">
-                  اطلب من مسؤول الموارد البشرية إرسال رابط تفعيل جديد. لا تشارك رابط التفعيل مع أي شخص.
+                  هذا الرابط يُستخدم مرة واحدة وقد انتهت صلاحيته. اكتب بريدك لإرسال رابط جديد، ولا تشارك الرابط مع أي شخص.
                 </p>
-                <button className="btn-primary mt-5 !py-3" onClick={() => navigate('/')}>
-                  الذهاب لصفحة تسجيل الدخول
+                {resendSent ? (
+                  <div className="mt-5 rounded-2xl bg-[var(--success-soft)] p-4 text-sm font-bold leading-7 text-[var(--success)]" aria-live="polite">
+                    إذا كان البريد مسجلًا فسيصلك رابط جديد. افتح أحدث رسالة فقط، واستخدم الرابط مرة واحدة.
+                  </div>
+                ) : (
+                  <form className="mt-5 space-y-3 text-start" onSubmit={resendRecoveryLink}>
+                    <label className="block">
+                      <span className="mb-1.5 block text-sm font-bold">البريد الإلكتروني</span>
+                      <span className="relative block">
+                        <input
+                          className="input !ps-12"
+                          type="email"
+                          value={recoveryEmail}
+                          onChange={(event) => setRecoveryEmail(event.target.value)}
+                          autoComplete="email"
+                          required
+                        />
+                        <Mail className="pointer-events-none absolute start-4 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
+                      </span>
+                    </label>
+                    {resendError ? (
+                      <p className="rounded-xl bg-[var(--danger-soft)] p-3 text-sm font-bold text-[var(--danger)]" role="alert">
+                        {resendError}
+                      </p>
+                    ) : null}
+                    <button className="btn-primary w-full !py-3" type="submit" disabled={resending}>
+                      {resending ? 'جارٍ إرسال الرابط…' : 'إرسال رابط جديد'}
+                    </button>
+                  </form>
+                )}
+                <button className="mt-4 text-sm font-bold text-[var(--brand-primary)] hover:underline" type="button" onClick={() => navigate('/')}>
+                  العودة إلى تسجيل الدخول
                 </button>
               </div>
             ) : null}

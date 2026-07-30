@@ -70,19 +70,25 @@ const AuditTrailPage = lazy(() => import('../features/management/AuditTrailPage'
 const SystemSettingsPage = lazy(() => import('../features/management/SystemSettingsPage').then((m) => ({ default: m.SystemSettingsPage })));
 
 export function App() {
+  // Mobile deep-link redirect — no auth required, shown before any other check.
+  if (window.location.pathname === '/mobile-redirect') return <MobileRedirectPage />;
+
+  // روابط التفعيل والاسترداد (بما فيها الروابط المنتهية) يجب أن تسبق بوابات
+  // الإصدار والمصادقة حتى لا تظهر للموظف شاشة مساحة ويب غير مصرح بها.
+  if (isPasswordRecoveryLocation()) return <PasswordSetupPage />;
+
+  return <AuthenticatedApp />;
+}
+
+function AuthenticatedApp() {
   const auth = useAuth();
   const release = useWebReleasePolicy();
   useRegisterWebDevice();
-
-  // Mobile deep-link redirect — no auth required, shown before any other check.
-  if (window.location.pathname === '/mobile-redirect') return <MobileRedirectPage />;
 
   if (release.isLoading) return <LoadingScreen />;
   if (release.isError) return <WebReleaseCheckError message={safeErrorMessage(release.error)} onRetry={() => void release.refetch()} />;
   if (release.data && ['maintenance', 'update_required', 'blocked'].includes(release.data.action))
     return <WebReleaseStatusPage policy={release.data} onRetry={() => void release.refetch()} />;
-
-  if (isPasswordRecoveryLocation()) return <PasswordSetupPage />;
 
   if (auth.status === 'loading') return <LoadingScreen />;
   if (auth.status === 'anonymous' || !auth.access) return <LoginPage />;
