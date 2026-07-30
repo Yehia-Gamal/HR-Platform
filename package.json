@@ -19,7 +19,11 @@
     "check:all": "npm run check && npm run check:dart-source && node scripts/validate-foundation.mjs && npm run check:secrets",
     "check:secrets": "node scripts/check-no-secrets.mjs",
     "release-gate": "node scripts/release-gate.mjs",
-    "test:e2e": "npx playwright test --config apps/admin_web/playwright.config.ts --project=chromium-desktop"
+    "test:e2e": "npx playwright test --config apps/admin_web/playwright.config.ts --project=chromium-desktop",
+    "lint": "eslint apps/admin_web/src/",
+    "lint:fix": "eslint apps/admin_web/src/ --fix",
+    "format": "prettier --write 'apps/admin_web/src/**/*.{ts,tsx}'",
+    "format:check": "prettier --check 'apps/admin_web/src/**/*.{ts,tsx}'"
   },
   "engines": {
     "node": ">=22.12.0"
