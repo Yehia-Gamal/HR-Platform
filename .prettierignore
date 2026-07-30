@@ -1,0 +1,6 @@
+node_modules
+dist
+.claude
+supabase/migrations
+*.sql
+package-lock.json

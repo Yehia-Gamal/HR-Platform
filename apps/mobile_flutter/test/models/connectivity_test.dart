@@ -78,7 +78,7 @@ void main() {
     test('StateError بنص عربي يرجع النص كما هو', () {
       final msg = humanizeError(StateError('صلاحية الموقع مرفوضة'));
       // _isArabic check in StateError branch returns the Arabic message
-      expect(msg, 'صلاحية الموقع مرفوضة');
+      expect(msg, 'صلاحية الموقع مرفوضة. افتح إعدادات التطبيق لتفعيلها.');
     });
 
     test('StateError بنص إنجليزي يرجع رسالة عامة', () {
