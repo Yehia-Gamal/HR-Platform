@@ -2083,56 +2083,6 @@ class _CaseActionsSection extends ConsumerWidget {
       return;
     }
 
-    if (action.key == '_schedule_session') {
-      showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        builder: (_) => _SessionScheduleSheet(caseItem: caseItem),
-      );
-      return;
-    }
-    if (action.key == '_issue_decision') {
-      showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        builder: (_) => _IssueDecisionSheet(caseItem: caseItem),
-      );
-      return;
-    }
-    if (action.key == '_record_settlement') {
-      showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        builder: (_) => _SettlementSheet(caseItem: caseItem),
-      );
-      return;
-    }
-
-    if (action.key == '_schedule_session') {
-      showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        builder: (_) => _SessionScheduleSheet(caseItem: caseItem),
-      );
-      return;
-    }
-    if (action.key == '_issue_decision') {
-      showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        builder: (_) => _IssueDecisionSheet(caseItem: caseItem),
-      );
-      return;
-    }
-    if (action.key == '_record_settlement') {
-      showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        builder: (_) => _SettlementSheet(caseItem: caseItem),
-      );
-      return;
-    }
-
     // إجراءات انتقال عادية
     if (action.needsReason) {
       showModalBottomSheet<void>(
