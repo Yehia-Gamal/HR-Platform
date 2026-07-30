@@ -335,9 +335,9 @@ class _CaseCard extends StatelessWidget {
     final theme = Theme.of(context);
     final c = caseItem;
     final statusColor =
-        CommitteeDisputeListPage._statusColors[c.status] ?? Colors.grey;
+        DisputeLabels.statusColor(c.status);
     final severityColor =
-        CommitteeDisputeListPage._severityColors[c.severity] ?? Colors.grey;
+        DisputeLabels.severityColor(c.severity);
     final df = DateFormat('d MMM y', 'ar');
 
     return Card(
@@ -369,7 +369,7 @@ class _CaseCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis),
                         Text(
-                          '${c.caseNumber} • ${CommitteeDisputeListPage._caseTypeLabels[c.caseType] ?? c.caseType}',
+                          '${c.caseNumber} • ${DisputeLabels.caseTypeLabel(c.caseType)}',
                           style: theme.textTheme.bodySmall,
                         ),
                       ],
@@ -384,8 +384,7 @@ class _CaseCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      CommitteeDisputeListPage._severityLabels[c.severity] ??
-                          c.severity,
+                      DisputeLabels.severityLabel(c.severity),
                       style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -420,8 +419,7 @@ class _CaseCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      CommitteeDisputeListPage._statusLabels[c.status] ??
-                          c.status,
+                      DisputeLabels.statusLabel(c.status),
                       style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -562,7 +560,7 @@ class _CaseDetailSheet extends ConsumerWidget {
     final c = caseItem;
     final df = DateFormat('d MMM y', 'ar');
     final statusColor =
-        CommitteeDisputeListPage._statusColors[c.status] ?? Colors.grey;
+        DisputeLabels.statusColor(c.status);
 
     return ListView(
       controller: scrollController,
@@ -587,7 +585,7 @@ class _CaseDetailSheet extends ConsumerWidget {
             style: theme.textTheme.titleLarge
                 ?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        Text('${c.caseNumber} • ${CommitteeDisputeListPage._caseTypeLabels[c.caseType] ?? c.caseType}',
+        Text('${c.caseNumber} • ${DisputeLabels.caseTypeLabel(c.caseType)}',
             style: theme.textTheme.bodyMedium
                 ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
         const SizedBox(height: 12),
@@ -603,7 +601,7 @@ class _CaseDetailSheet extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                CommitteeDisputeListPage._statusLabels[c.status] ?? c.status,
+                DisputeLabels.statusLabel(c.status),
                 style: TextStyle(
                     fontWeight: FontWeight.bold, color: statusColor),
               ),
@@ -613,19 +611,16 @@ class _CaseDetailSheet extends ConsumerWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: (CommitteeDisputeListPage._severityColors[c.severity] ??
-                        Colors.grey)
+                color: (DisputeLabels.severityColor(c.severity))
                     .withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                CommitteeDisputeListPage._severityLabels[c.severity] ??
-                    c.severity,
+                DisputeLabels.severityLabel(c.severity),
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color:
-                        CommitteeDisputeListPage._severityColors[c.severity] ??
-                            Colors.grey),
+                        DisputeLabels.severityColor(c.severity)),
               ),
             ),
             if (c.overdue) ...[
@@ -1028,7 +1023,7 @@ class _DecisionSheetState extends ConsumerState<_DecisionSheet> {
                   labelText: 'الإجراء البديل',
                   border: OutlineInputBorder(),
                 ),
-                items: CommitteeDisputeListPage._actionLabels.entries
+                items: DisputeLabels.actionLabels.entries
                     .map((e) => DropdownMenuItem(
                         value: e.key, child: Text(e.value)))
                     .toList(),
@@ -2358,7 +2353,7 @@ class _ProposeAdminActionSheetState
             // نوع الإجراء
             Text('نوع الإجراء المقترح', style: theme.textTheme.titleSmall),
             const SizedBox(height: 8),
-            ...CommitteeDisputeListPage._actionLabels.entries.map(
+            ...DisputeLabels.actionLabels.entries.map(
               (e) => RadioListTile<String>(
                 value: e.key,
                 groupValue: _selectedAction,

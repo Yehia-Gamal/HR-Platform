@@ -559,9 +559,13 @@ export function EmployeeDetailPage() {
     if (!employeeId) return;
     setResendMessage(null); setResendError(null);
     try {
-      setResendMessage(await resend.mutateAsync(employeeId));
+      const msg = await resend.mutateAsync(employeeId);
+      setResendMessage(msg);
+      toast({ title: 'تم إرسال الدعوة', description: msg, variant: 'success' });
     } catch (error) {
-      setResendError(safeErrorMessage(error));
+      const msg = safeErrorMessage(error);
+      setResendError(msg);
+      toast({ title: 'فشل إرسال الدعوة', description: msg, variant: 'error' });
     }
   };
 
