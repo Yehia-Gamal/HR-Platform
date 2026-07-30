@@ -305,11 +305,12 @@ class MobileDisputesPage extends ConsumerWidget {
 }
 
 class _CaseCard extends StatelessWidget {
-  const _CaseCard({required this.item, this.isHighlighted = false, this.onCancel});
+  const _CaseCard({required this.item, this.isHighlighted = false, this.onCancel, this.onRespond});
 
   final MobileDisputeCase item;
   final bool isHighlighted;
   final VoidCallback? onCancel;
+  final VoidCallback? onRespond;
 
   @override
   Widget build(BuildContext context) {
