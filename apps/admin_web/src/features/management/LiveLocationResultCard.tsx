@@ -2,6 +2,7 @@ import { Clock, Crosshair, MapPin, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
+import { SkeletonCard } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { LiveLocationMap, type MapPoint } from './LiveLocationMap';
@@ -31,7 +32,7 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
   const data = response.data as LiveLocationResponseData | null | undefined;
 
   if (response.isLoading) {
-    return <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-muted)]" aria-label="جارٍ تحميل النتيجة" />;
+    return <SkeletonCard className="h-72" />;
   }
   if (response.isError || !data) {
     return <ErrorState title="تعذّر تحميل النتيجة" description={safeErrorMessage(response.error)} onRetry={() => void response.refetch()} />;

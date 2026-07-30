@@ -1,6 +1,7 @@
 import { Activity, CalendarClock, MapPin, RefreshCw, Search, Send, Users } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
+import { ListSkeleton } from '../../ui/Skeletons';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { MetricCard } from '../../ui/MetricCard';
@@ -126,7 +127,7 @@ export function ExecutiveMonitoringPage() {
 
           <article className="card overflow-hidden">
             <div className="border-b border-[var(--border)] p-4"><h2 className="font-black">الموظفون</h2><p className="muted mt-1 text-sm">{visible.length} نتيجة</p></div>
-            {overview.isLoading ? <div className="space-y-3 p-4">{[1, 2, 3].map((i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-[var(--surface-muted)]" />)}</div> : null}
+            {overview.isLoading ? <div className="p-4"><ListSkeleton rows={3} /></div> : null}
             {!overview.isLoading && !visible.length ? <EmptyState title="لا نتائج" description="غيّر البحث أو المرشّح." /> : null}
             <div className="max-h-[620px] divide-y divide-[var(--border)] overflow-y-auto">
               {visible.map((e) => (

@@ -6,6 +6,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { getSupabase } from '../../core/supabase';
+import { invokeEdgeFunction } from '../../core/rpc';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { PageHeader } from '../../ui/PageHeader';
 import { UserAvatar } from '../../ui/UserAvatar';
@@ -18,6 +19,46 @@ type FormInput = z.input<typeof createEmployeeInputSchema>;
 const defaultValues: Partial<FormInput> = { roleSlug: 'employee', sendInvite: false };
 const uuidValue = { setValueAs: (value: string) => value || null };
 const steps = ['الهوية والحساب', 'الهيكل والوظيفة', 'المراجعة والإنشاء'];
+
+/** رسائل خطأ عربية مفهومة بدل الرسائل الإنجليزية العامة من supabase-js */
+const CREATE_EMPLOYEE_ERRORS: Record<string, string> = {
+  account_already_exists: 'يوجد حساب مسجل بهذا البريد الإلكتروني بالفعل.',
+  forbidden: 'ليس لديك صلاحية إنشاء موظفين.',
+  role_not_allowed: 'المنصب المختار غير مسموح به.',
+  phone_already_exists: 'رقم الهاتف مسجل لموظف نشط بالفعل.',
+  employee_code_already_exists: 'كود الموظف مستخدم بالفعل.',
+  employee_provision_failed: 'تعذر إنشاء سجل الموظف. تحقق من البيانات وحاول مرة أخرى.',
+  server_not_configured: 'الخدمة غير مهيأة. تواصل مع الدعم.',
+  invalid_session: 'انتهت صلاحية الجلسة. سجّل الدخول مجددًا.',
+  permission_check_failed: 'تعذر التحقق من الصلاحية.',
+  validation_failed: 'بيانات النموذج غير صالحة. راجع الحقول وحاول مرة أخرى.',
+  role_validation_failed: 'تعذر التحقق من المنصب المختار.',
+  protected_role_not_allowed: 'لا يمكن إسناد هذا المنصب المحمي.',
+  role_authorization_failed: 'تعذر التحقق من صلاحية إسناد المنصب.',
+  role_assignment_forbidden: 'ليس لديك صلاحية إسناد هذا المنصب.',
+  account_create_failed: 'تعذر إنشاء حساب الدخول. أعد المحاولة لاحقًا.',
+  manager_not_active: 'المدير المباشر المختار غير نشط.',
+};
+
+// رسائل خطأ عربية مفهومة بدل الرسائل الإنجليزية العامة من supabase-js
+const CREATE_EMPLOYEE_ERROR_MESSAGES: Record<string, string> = {
+  account_already_exists: 'يوجد حساب مسجل بهذا البريد الإلكتروني بالفعل.',
+  forbidden: 'ليس لديك صلاحية إنشاء موظفين.',
+  role_not_allowed: 'المنصب المختار غير مسموح به.',
+  phone_already_exists: 'رقم الهاتف مسجل لموظف نشط بالفعل.',
+  employee_code_already_exists: 'كود الموظف مستخدم بالفعل.',
+  employee_provision_failed: 'تعذر إنشاء سجل الموظف. تحقق من البيانات وحاول مرة أخرى.',
+  server_not_configured: 'الخدمة غير مهيأة. تواصل مع الدعم.',
+  invalid_session: 'انتهت صلاحية الجلسة. سجّل الدخول مجددًا.',
+  permission_check_failed: 'تعذر التحقق من الصلاحية.',
+  validation_failed: 'بيانات النموذج غير صالحة. راجع الحقول وحاول مرة أخرى.',
+  role_validation_failed: 'تعذر التحقق من المنصب المختار.',
+  protected_role_not_allowed: 'لا يمكن إسناد هذا المنصب المحمي.',
+  role_authorization_failed: 'تعذر التحقق من صلاحية إسناد المنصب.',
+  role_assignment_forbidden: 'ليس لديك صلاحية إسناد هذا المنصب.',
+  account_create_failed: 'تعذر إنشاء حساب الدخول. أعد المحاولة لاحقًا.',
+  manager_not_active: 'المدير المباشر المختار غير نشط.',
+};
 
 export function CreateEmployeePage() {
   const auth = useAuth();
@@ -134,9 +175,12 @@ export function CreateEmployeePage() {
     setResult(null); setSubmitError(null);
     try {
       if (auth.isMock) { setResult('تم التحقق من الرحلة كاملة في وضع التطوير دون حفظ بيانات.'); return; }
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.functions.invoke('admin-create-employee', { body: parsedInput });
-      if (error) throw error;
+      const data = await invokeEdgeFunction<Record<string, unknown>>(
+        'admin-create-employee',
+        parsedInput as unknown as Record<string, unknown>,
+        CREATE_EMPLOYEE_ERRORS,
+        'تعذر إنشاء الموظف.',
+      );
       const parsed = createEmployeeResultSchema.parse(data);
       setResult(parsedInput.sendInvite
         ? parsed.invitationSent
@@ -147,35 +191,7 @@ export function CreateEmployeePage() {
       form.reset(defaultValues); setStep(0); clearObjectPreview(); setPhotoPreview(null);
       setBranchText(''); setGradeText('');
     } catch (error) {
-      // رسائل خطأ عربية مفهومة بدل الرسائل الإنجليزية العامة من supabase-js
-      const errorMessages: Record<string, string> = {
-        account_already_exists: 'يوجد حساب مسجل بهذا البريد الإلكتروني بالفعل.',
-        forbidden: 'ليس لديك صلاحية إنشاء موظفين.',
-        role_not_allowed: 'المنصب المختار غير مسموح به.',
-        phone_already_exists: 'رقم الهاتف مسجل لموظف نشط بالفعل.',
-        employee_code_already_exists: 'كود الموظف مستخدم بالفعل.',
-        employee_provision_failed: 'تعذر إنشاء سجل الموظف. تحقق من البيانات وحاول مرة أخرى.',
-        server_not_configured: 'الخدمة غير مهيأة. تواصل مع الدعم.',
-        invalid_session: 'انتهت صلاحية الجلسة. سجّل الدخول مجددًا.',
-        permission_check_failed: 'تعذر التحقق من الصلاحية.',
-        validation_failed: 'بيانات النموذج غير صالحة. راجع الحقول وحاول مرة أخرى.',
-        role_validation_failed: 'تعذر التحقق من المنصب المختار.',
-        protected_role_not_allowed: 'لا يمكن إسناد هذا المنصب المحمي.',
-        role_authorization_failed: 'تعذر التحقق من صلاحية إسناد المنصب.',
-        role_assignment_forbidden: 'ليس لديك صلاحية إسناد هذا المنصب.',
-        account_create_failed: 'تعذر إنشاء حساب الدخول. أعد المحاولة لاحقًا.',
-        manager_not_active: 'المدير المباشر المختار غير نشط.',
-      };
-      let message = 'تعذر إنشاء الموظف.';
-      if (error && typeof error === 'object' && 'context' in error) {
-        try {
-          const body = await (error as { context: Response }).context.json();
-          message = errorMessages[body?.error] ?? body?.message ?? message;
-        } catch { /* fallback */ }
-      } else if (error instanceof Error) {
-        message = errorMessages[error.message] ?? message;
-      }
-      setSubmitError(message);
+      setSubmitError(error instanceof Error ? error.message : 'تعذر إنشاء الموظف.');
     }
   });
 

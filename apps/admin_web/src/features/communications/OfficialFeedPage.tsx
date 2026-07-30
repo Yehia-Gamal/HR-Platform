@@ -150,6 +150,7 @@ export function OfficialFeedPage() {
       <MetricCard label="عاجل" value={allItems.filter((x) => x.priority === 'urgent').length} icon={BellRing} />
     </section>
     <FilterBar searchValue={search} onSearchChange={setSearch} searchPlaceholder="بحث في عنوان أو محتوى المنشور" resultText={`عرض ${items.length} من ${allItems.length} عنصر رسمي`} isDirty={Boolean(search || kind !== 'all' || priority !== 'all')} onClear={() => { setSearch(''); setKind('all'); setPriority('all'); }}><select className="input" aria-label="نوع العنصر الرسمي" value={kind} onChange={(event) => setKind(event.target.value)}><option value="all">كل الأنواع</option><option value="announcement">خبر أو إعلان</option><option value="decision">قرار إداري</option></select><select className="input" aria-label="أولوية العنصر الرسمي" value={priority} onChange={(event) => setPriority(event.target.value)}><option value="all">كل الأولويات</option><option value="normal">عادية</option><option value="high">مرتفعة</option><option value="urgent">عاجلة</option></select></FilterBar>
+    {transition.isError ? <ErrorBanner message={`تعذر تنفيذ إجراء القرار: ${safeErrorMessage(transition.error)}`} /> : null}
     {query.isError ? (
       <ErrorState title="تعذر تحميل القناة" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
     ) : query.isLoading && allItems.length === 0 ? (
@@ -195,7 +196,7 @@ export function OfficialFeedPage() {
                 {imageUploading ? <span className="animate-pulse">جارٍ رفع الصورة…</span> : <><ImagePlus className="size-5" aria-hidden="true" />اضغط لاختيار صورة</>}
               </button>
             )}
-            {imageError ? <p className="mt-1 text-xs text-red-500">{imageError}</p> : null}
+            {imageError ? <p className="mt-1 text-xs text-[var(--danger)]">{imageError}</p> : null}
           </div> : null}
           {mode === 'announcement' ? <div>
             <span className="text-sm font-bold">نوع المنشور</span>
@@ -208,7 +209,7 @@ export function OfficialFeedPage() {
               {pollOptions.map((opt, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <input className="input flex-1" placeholder={`الخيار ${i + 1}`} value={opt} onChange={(e) => { const next = [...pollOptions]; next[i] = e.target.value; setPollOptions(next); }} />
-                  {pollOptions.length > 2 ? <button type="button" className="rounded-full p-1 text-red-500 hover:bg-red-50" aria-label="حذف الخيار" onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}><X className="size-4" /></button> : null}
+                  {pollOptions.length > 2 ? <button type="button" className="rounded-full p-1 text-[var(--danger)] hover:bg-red-50" aria-label="حذف الخيار" onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}><X className="size-4" /></button> : null}
                 </div>
               ))}
               {pollOptions.length < 6 ? <button type="button" className="text-sm font-bold text-brand hover:underline" onClick={() => setPollOptions([...pollOptions, ''])}>+ إضافة خيار</button> : null}

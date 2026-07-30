@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSupabase } from '../../core/supabase';
+import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
 import { loadDomainMocks } from '../mock/loadDomainMocks';
 
@@ -65,22 +66,17 @@ export function useCreateHoliday() {
       is_recurring?: boolean;
     }): Promise<void> => {
       if (auth.isMock) return;
-      const supabase = await getSupabase();
-      // RLS-SAFE: public_holidays INSERT gated by `holidays.manage` permission
-      // via current_user_permissions(). No RPC needed — policy is sufficient.
-      const { error } = await supabase.from('public_holidays').insert({
-        name: input.name,
-        holiday_date: input.holiday_date,
-        end_date: input.end_date ?? null,
-        scope: input.scope ?? 'all',
-        legal_entity_id: input.legal_entity_id ?? null,
-        department_id: input.department_id ?? null,
-        excluded_department_ids: input.excluded_department_ids ?? [],
-        notes: input.notes ?? null,
-        is_recurring: input.is_recurring ?? false,
-        created_by: (await supabase.auth.getUser()).data.user?.id ?? null,
+      await rpc('create_public_holiday', {
+        p_name: input.name,
+        p_holiday_date: input.holiday_date,
+        p_end_date: input.end_date ?? null,
+        p_scope: input.scope ?? 'all',
+        p_legal_entity_id: input.legal_entity_id ?? null,
+        p_department_id: input.department_id ?? null,
+        p_excluded_department_ids: input.excluded_department_ids ?? [],
+        p_notes: input.notes ?? null,
+        p_is_recurring: input.is_recurring ?? false,
       });
-      if (error) throw error;
     },
     onSuccess: () => void client.invalidateQueries({ queryKey: QUERY_KEY }),
   });
@@ -104,10 +100,19 @@ export function useUpdateHoliday() {
       is_active?: boolean;
     }): Promise<void> => {
       if (auth.isMock) return;
-      const supabase = await getSupabase();
-      // RLS-SAFE: public_holidays UPDATE gated by `holidays.manage` permission.
-      const { error } = await supabase.from('public_holidays').update(changes).eq('id', id);
-      if (error) throw error;
+      await rpc('update_public_holiday', {
+        p_id: id,
+        p_name: changes.name ?? null,
+        p_holiday_date: changes.holiday_date ?? null,
+        p_end_date: changes.end_date,
+        p_scope: changes.scope ?? null,
+        p_legal_entity_id: changes.legal_entity_id,
+        p_department_id: changes.department_id,
+        p_excluded_department_ids: changes.excluded_department_ids ?? null,
+        p_notes: changes.notes,
+        p_is_recurring: changes.is_recurring ?? null,
+        p_is_active: changes.is_active ?? null,
+      });
     },
     onSuccess: () => void client.invalidateQueries({ queryKey: QUERY_KEY }),
   });
@@ -119,10 +124,7 @@ export function useDeleteHoliday() {
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
       if (auth.isMock) return;
-      const supabase = await getSupabase();
-      // RLS-SAFE: public_holidays DELETE gated by `holidays.manage` permission.
-      const { error } = await supabase.from('public_holidays').delete().eq('id', id);
-      if (error) throw error;
+      await rpc('delete_public_holiday', { p_id: id });
     },
     onSuccess: () => void client.invalidateQueries({ queryKey: QUERY_KEY }),
   });

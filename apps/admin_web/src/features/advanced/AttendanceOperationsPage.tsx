@@ -1,7 +1,7 @@
 import { CalendarClock, CheckCircle2, Clock3, Save, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
-import { ErrorState } from '../../ui/ErrorState';
+import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { MetricSkeletonRow, ListSkeleton } from '../../ui/Skeletons';
@@ -29,6 +29,7 @@ export function AttendanceOperationsPage() {
 
   return <div className="space-y-6">
     <PageHeader title="الورديات وإغلاق الحضور" description="إدارة تعريفات الورديات، جداول العمل، العمل الإضافي، وإغلاق الشهر بسجل تدقيق. تصحيحات الحضور انتقلت إلى صفحة طلب إجازة." actions={<label className="text-sm font-bold"><span className="block">الشهر</span><input type="month" aria-label="الشهر" className="input mt-1" value={month} onChange={(e) => setMonth(e.target.value)} /></label>} />
+    {(commands.saveShift.isError || commands.closePeriod.isError || commands.unlockPeriod.isError || commands.decideOvertime.isError) && <ErrorBanner message={safeErrorMessage(commands.saveShift.error ?? commands.closePeriod.error ?? commands.unlockPeriod.error ?? commands.decideOvertime.error)} />}
     {query.isError ? <ErrorState description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} /> : !data ? <><MetricSkeletonRow count={5} /><ListSkeleton rows={3} /></> : <>
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <MetricCard label="الأيام المجدولة" value={data.summary.scheduled} icon={CalendarClock} />

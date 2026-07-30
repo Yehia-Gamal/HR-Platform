@@ -191,6 +191,7 @@ export function AccessPage() {
           <h2 className="font-black">إسنادات المستخدمين</h2>
         </div>
         {commands.revokeRole.isError && <div className="p-5 pb-0"><ErrorBanner message={`تعذر سحب الدور: ${safeErrorMessage(commands.revokeRole.error)}`} /></div>}
+        {commands.assignRole.isError && <div className="p-5 pb-0"><ErrorBanner message={`تعذر إسناد الدور: ${safeErrorMessage(commands.assignRole.error)}`} /></div>}
         <div className="divide-y divide-[var(--border)]">
           {data.users.map((user) => <article key={user.userId} className="p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -322,10 +323,10 @@ function RoleManagementDialog({ role, data, commands, onClose }: {
     {/* ── التبويبات ── */}
     <div className="mb-5 flex gap-1 border-b border-[var(--border)]">
       <button type="button" className={tabClass(tab === 'perms')} onClick={() => setTab('perms')}>
-        <KeyRound className="mb-0.5 inline size-4"/> الصلاحيات <span className="muted text-xs">({Object.keys(draft).length})</span>
+        <KeyRound className="mb-0.5 inline size-4" aria-hidden="true"/> الصلاحيات <span className="muted text-xs">({Object.keys(draft).length})</span>
       </button>
       <button type="button" className={tabClass(tab === 'users')} onClick={() => setTab('users')}>
-        <Users className="mb-0.5 inline size-4"/> المستخدمون <span className="muted text-xs">({assignedUsers.length})</span>
+        <Users className="mb-0.5 inline size-4" aria-hidden="true"/> المستخدمون <span className="muted text-xs">({assignedUsers.length})</span>
       </button>
     </div>
 
@@ -336,8 +337,8 @@ function RoleManagementDialog({ role, data, commands, onClose }: {
         <p className="text-sm"><strong>{Object.keys(draft).length}</strong> صلاحية محددة من أصل <strong>{data.permissions.length}</strong></p>
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
-            <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]"/>
-            <input className="input pe-9" placeholder="بحث…" value={search} onChange={(e) => setSearch(e.target.value)}/>
+            <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true"/>
+            <input className="input pe-9" placeholder="بحث…" aria-label="بحث الصلاحيات" value={search} onChange={(e) => setSearch(e.target.value)}/>
           </div>
           <select aria-label="تصفية حسب الوحدة" className="input max-w-xs" value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)}>
             <option value="all">كل الوحدات</option>
@@ -360,7 +361,7 @@ function RoleManagementDialog({ role, data, commands, onClose }: {
                 <span className="font-bold">{moduleLabel}</span>
                 <span className="muted text-xs">({selectedInModule}/{perms.length})</span>
               </div>
-              <ChevronDown className={`size-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}/>
+              <ChevronDown aria-hidden="true" className={`size-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}/>
             </button>
             {isExpanded && <div className="divide-y divide-[var(--border)]">
               {perms.map((permission) => {
@@ -379,7 +380,7 @@ function RoleManagementDialog({ role, data, commands, onClose }: {
                     </span>
                   </label>
                   {sel && <div className="flex flex-wrap gap-2">
-                    <select className="input w-52" value={sel.scope} onChange={(e) => setDraft({ ...draft, [permission.id]: { ...sel, scope: e.target.value } })}>
+                    <select className="input w-52" aria-label="نطاق الصلاحية" value={sel.scope} onChange={(e) => setDraft({ ...draft, [permission.id]: { ...sel, scope: e.target.value } })}>
                       {(permission.allowedScopes.length ? permission.allowedScopes : scopes).map((s) => <option key={s} value={s}>{SCOPE_AR[s] ?? s}</option>)}
                     </select>
                     <Flag checked={sel.mfa} label="MFA" onChange={(mfa) => setDraft({ ...draft, [permission.id]: { ...sel, mfa } })}/>
@@ -394,9 +395,10 @@ function RoleManagementDialog({ role, data, commands, onClose }: {
       </div>
 
       {/* زر الحفظ */}
+      {commands.setPermissions.isError && <ErrorBanner message={safeErrorMessage(commands.setPermissions.error)} />}
       <div className="flex items-center gap-3 border-t border-[var(--border)] pt-4">
         <button type="button" className="btn-primary" disabled={saving} onClick={() => void savePermissions()}>
-          <Save className="size-4"/>{saving ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}
+          <Save className="size-4" aria-hidden="true"/>{saving ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}
         </button>
         {saved && <span className="text-sm font-bold text-[var(--success)]">✓ تم الحفظ</span>}
       </div>
@@ -414,11 +416,12 @@ function RoleManagementDialog({ role, data, commands, onClose }: {
           </select>
         </label>
         <button type="button" className="btn-primary" disabled={!assignUserId || commands.assignRole.isPending} onClick={() => void assignUser()}>
-          <UserPlus className="size-4"/>{commands.assignRole.isPending ? 'جارٍ الإسناد…' : 'إسناد'}
+          <UserPlus className="size-4" aria-hidden="true"/>{commands.assignRole.isPending ? 'جارٍ الإسناد…' : 'إسناد'}
         </button>
       </div>
 
       {commands.revokeRole.isError && <ErrorBanner message={`تعذر سحب الدور: ${safeErrorMessage(commands.revokeRole.error)}`}/>}
+      {commands.assignRole.isError && <ErrorBanner message={safeErrorMessage(commands.assignRole.error)} />}
 
       {/* قائمة المستخدمين المسندين */}
       {assignedUsers.length === 0
@@ -435,7 +438,7 @@ function RoleManagementDialog({ role, data, commands, onClose }: {
                 </div>
               </div>
               <button type="button" className="btn-secondary px-3 py-1.5 text-xs text-[var(--danger)]" onClick={() => commands.revokeRole.mutate({ userId: user.userId, roleId: role.id })}>
-                <Trash2 className="size-3.5"/>سحب
+                <Trash2 className="size-3.5" aria-hidden="true"/>سحب
               </button>
             </div>;
           })}
@@ -487,8 +490,8 @@ function CustomRoleDraftDialog({ initialDraft, data, commands, onClose }: {
         <h3 className="font-black">الصلاحيات</h3>
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
-            <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]"/>
-            <input className="input pe-9" placeholder="بحث…" value={permSearch} onChange={(e) => setPermSearch(e.target.value)}/>
+            <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true"/>
+            <input className="input pe-9" placeholder="بحث…" aria-label="بحث الصلاحيات" value={permSearch} onChange={(e) => setPermSearch(e.target.value)}/>
           </div>
           <select aria-label="تصفية حسب الوحدة" className="input max-w-xs" value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)}>
             <option value="all">كل الوحدات</option>
@@ -519,7 +522,7 @@ function CustomRoleDraftDialog({ initialDraft, data, commands, onClose }: {
                   </span>
                 </label>
                 {selected && <div className="flex flex-wrap gap-2">
-                  <select className="input w-52" value={selected.scope} onChange={(e) => setDraft({ ...draft, selected: { ...draft.selected, [permission.id]: { ...selected, scope: e.target.value } } })}>
+                  <select className="input w-52" aria-label="نطاق الصلاحية" value={selected.scope} onChange={(e) => setDraft({ ...draft, selected: { ...draft.selected, [permission.id]: { ...selected, scope: e.target.value } } })}>
                     {(permission.allowedScopes.length ? permission.allowedScopes : scopes).map((s) => <option key={s} value={s}>{SCOPE_AR[s] ?? s}</option>)}
                   </select>
                   <Flag checked={selected.mfa} label="MFA" onChange={(mfa) => setDraft({ ...draft, selected: { ...draft.selected, [permission.id]: { ...selected, mfa } } })}/>
@@ -530,6 +533,7 @@ function CustomRoleDraftDialog({ initialDraft, data, commands, onClose }: {
           })}
       </div>
 
+      {(commands.upsertRole.isError || commands.setPermissions.isError) && <ErrorBanner message={safeErrorMessage(commands.upsertRole.error ?? commands.setPermissions.error)} />}
       <button className="btn-primary" disabled={commands.upsertRole.isPending || commands.setPermissions.isPending}>
         <Save className="size-4" aria-hidden="true"/>{commands.upsertRole.isPending || commands.setPermissions.isPending ? 'جارٍ الحفظ…' : 'حفظ الدور والصلاحيات'}
       </button>

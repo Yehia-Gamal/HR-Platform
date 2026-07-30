@@ -16,7 +16,7 @@ import {
   Users,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { ErrorState } from '../../ui/ErrorState';
+import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { getShortName, getTimeGreeting } from '../../ui/formatDisplayName';
 import { MetricCard } from '../../ui/MetricCard';
 import { MetricSkeletonRow } from '../../ui/Skeletons';
@@ -104,6 +104,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
       <>
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5" aria-label="المؤشرات الرئيسية">
           {cards.map((card) => <MetricCard key={card.label} {...card} />)}
+n        {attendance.isError && <ErrorBanner message={safeErrorMessage(attendance.error)} />}
         </section>
 
         {type === 'hr' && att ? (() => {

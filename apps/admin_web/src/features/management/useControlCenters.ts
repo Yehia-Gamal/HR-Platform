@@ -199,28 +199,21 @@ export function useOperationsCommands() {
   const createTask = useMutation({
     mutationFn: async (input: { title: string; description: string; assigneeId: string; priority: string; dueDate: string }) => {
       if (auth.isMock) return input;
-      const supabase = await getSupabase();
-      // RLS-SAFE: tasks INSERT gated by `tasks.write` permission via RLS policy.
-      const result = await supabase.from('tasks').insert({
-        title: input.title,
-        description: input.description || null,
-        assignee_employee_id: input.assigneeId || null,
-        priority: input.priority,
-        due_date: input.dueDate || null,
-        created_by_employee_id: auth.access?.employeeId ?? null,
-      }).select('id').single();
-      if (result.error) throw result.error;
-      return result.data;
+      const id = await rpc<string>('admin_create_task', {
+        p_title: input.title,
+        p_description: input.description || null,
+        p_assignee_id: input.assigneeId || null,
+        p_priority: input.priority,
+        p_due_date: input.dueDate || null,
+      });
+      return { id };
     },
     onSuccess: refresh,
   });
   const transitionTask = useMutation({
     mutationFn: async (input: { id: string; status: string }) => {
       if (auth.isMock) return input;
-      const supabase = await getSupabase();
-      // RLS-SAFE: tasks UPDATE gated by `tasks.write` permission via RLS policy.
-      const result = await supabase.from('tasks').update({ status: input.status }).eq('id', input.id);
-      if (result.error) throw result.error;
+      await rpc('admin_transition_task', { p_id: input.id, p_status: input.status });
       return input;
     },
     onSuccess: refresh,
@@ -277,10 +270,7 @@ export function useAuditSecurityCommands() {
   const handleEvent = useMutation({
     mutationFn: async (id: string) => {
       if (auth.isMock) return id;
-      const supabase = await getSupabase();
-      // RLS-SAFE: security_events UPDATE gated by `security.event.manage` permission via RLS policy.
-      const result = await supabase.from('security_events').update({ handled: true, handled_at: new Date().toISOString(), handled_by: auth.session?.user.id ?? null }).eq('id', id);
-      if (result.error) throw result.error;
+      await rpc('admin_handle_security_event', { p_id: id });
       return id;
     },
     onSuccess: async () => client.invalidateQueries({ queryKey: ['audit-security-center'] }),
@@ -324,10 +314,7 @@ export function useIntegrationCommands() {
   const toggle = useMutation({
     mutationFn: async (input: { id: string; enabled: boolean }) => {
       if (auth.isMock) return input;
-      const supabase = await getSupabase();
-      // RLS-SAFE: integrations UPDATE gated by `system.integration.manage` permission via RLS policy.
-      const result = await supabase.from('integrations').update({ is_enabled: input.enabled, status: input.enabled ? 'active' : 'inactive' }).eq('id', input.id);
-      if (result.error) throw result.error;
+      await rpc('admin_toggle_integration', { p_id: input.id, p_enabled: input.enabled });
       return input;
     },
     onSuccess: async () => client.invalidateQueries({ queryKey: ['integration-center'] }),

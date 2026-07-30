@@ -4,6 +4,7 @@ import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
+import { ListSkeleton } from '../../ui/Skeletons';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
@@ -105,7 +106,7 @@ export function LiveLocationPage() {
               <div><h2 className="font-black">دليل الموظفين</h2><p className="muted mt-1 text-sm">{query.isLoading ? '…' : `${visible.length} نتيجة`}</p></div>
               <LocateFixed className="size-5 text-[var(--brand-primary)]" aria-hidden="true" />
             </div>
-            {query.isLoading ? <div className="space-y-3 p-5" aria-label="جارٍ تحميل الموظفين">{[1, 2, 3].map((item) => <div key={item} className="h-28 animate-pulse rounded-2xl bg-[var(--surface-muted)]" />)}</div> : null}
+            {query.isLoading ? <div className="p-5" aria-label="جارٍ تحميل الموظفين"><ListSkeleton rows={3} label="جارٍ تحميل بيانات الموقع…" /></div> : null}
             {!query.isLoading && !visible.length ? <EmptyState title="لا توجد نتائج مطابقة" description="غيّر البحث أو مرشح حالة الإشارة." /> : null}
             <div className="max-h-[650px] divide-y divide-[var(--border)] overflow-y-auto">
               {visible.map((item) => {

@@ -1,7 +1,8 @@
 import type { KpiEvaluationForm } from '@ahla/shared-contracts';
-import { AlertTriangle, CalendarCheck, CheckCircle2, Link2, RefreshCcw, Save, ShieldCheck, Target } from 'lucide-react';
+import { AlertTriangle, CalendarCheck, CheckCircle2, Link2, Save, ShieldCheck, Target } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
+import { SkeletonCard } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useAdvanceKpi, useKpiEvaluationForm, useKpiFormCommands } from './usePerformance';
@@ -57,7 +58,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
   const editableCriteria = useMemo(() => form?.criteria.filter((item) => item.editable) ?? [], [form]);
   const mutationError = [commands.saveGoal, commands.saveSession, commands.saveCompliance, commands.addEvidence, commands.returnStage, advance].find((m) => m.isError)?.error ?? null;
 
-  if (query.isLoading) return <div className="card grid min-h-64 place-items-center"><RefreshCcw className="size-6 animate-spin text-brand" aria-hidden="true" /></div>;
+  if (query.isLoading) return <SkeletonCard className="min-h-64" />;
   if (query.isError || !form) return <ErrorState title="تعذر فتح نموذج التقييم" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />;
 
   const saveGoal = async (goal: KpiEvaluationForm['goals'][number]) => {
