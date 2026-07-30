@@ -23,7 +23,7 @@ interface DropdownMenuProps {
 const FOCUSABLE_ITEM = '[role="menuitem"]:not([aria-disabled="true"])';
 
 /** حساب موضع القائمة بالنسبة للزر — يراعي RTL ويبقيها داخل الشاشة */
-function computePosition(anchor: DOMRect) {
+function computePosition(anchor: DOMRect): Record<string, number> {
   const GAP = 6;
   const MARGIN = 8;
   const isRtl = document.documentElement.dir === 'rtl' ||
@@ -35,19 +35,22 @@ function computePosition(anchor: DOMRect) {
     top = Math.max(MARGIN, anchor.top - GAP - 200);
   }
 
-  // في RTL: نمحاذي الحافة اليمنى للزر — في LTR: الحافة اليسرى
-  const inlineStart = isRtl
-    ? { right: window.innerWidth - anchor.right }
-    : { left: anchor.left };
+  const style: Record<string, number> = { top };
 
-  // ضمان عدم الخروج عن حدود الشاشة
-  if ('left' in inlineStart) {
-    inlineStart.left = Math.max(MARGIN, Math.min(inlineStart.left, window.innerWidth - 220 - MARGIN));
+  // في RTL: نمحاذي الحافة اليمنى للزر — في LTR: الحافة اليسرى
+  if (isRtl) {
+    style.right = Math.max(MARGIN, Math.min(
+      window.innerWidth - anchor.right,
+      window.innerWidth - 220 - MARGIN,
+    ));
   } else {
-    inlineStart.right = Math.max(MARGIN, Math.min(inlineStart.right, window.innerWidth - 220 - MARGIN));
+    style.left = Math.max(MARGIN, Math.min(
+      anchor.left,
+      window.innerWidth - 220 - MARGIN,
+    ));
   }
 
-  return { top, ...inlineStart };
+  return style;
 }
 
 /* ───────────────────────── المكوّن الرئيسي ───────────────────────── */

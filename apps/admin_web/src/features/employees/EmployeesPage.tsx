@@ -166,44 +166,26 @@ export function EmployeesPage() {
           description="لم تتم إضافة أي ملف موظف داخل نطاقك حتى الآن."
           action={canCreate ? <Link to="/hr/employees/new" className="btn-primary"><Plus className="size-4" aria-hidden="true" />إنشاء موظف</Link> : undefined}
         />
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          title="لا توجد نتائج مطابقة"
-          description="جرّب تعديل البحث أو مسح عوامل التصفية لعرض المزيد من الملفات."
-        />
       ) : (
         <>
-          <section className="card hidden overflow-hidden md:block" aria-busy={employees.isFetching}>
-            <div className="overflow-x-auto">
-              <table className="data-table w-full min-w-[1020px] text-start text-sm">
-                <thead className="bg-[var(--surface-muted)] text-xs text-[var(--text-muted)]">
-                  <tr><th scope="col" className="px-4 py-3.5">الموظف</th><th scope="col" className="px-4 py-3.5">الكود</th><th scope="col" className="px-4 py-3.5">الإدارة</th><th scope="col" className="px-4 py-3.5">المسمى الوظيفي</th><th scope="col" className="px-4 py-3.5">الهاتف</th><th scope="col" className="px-4 py-3.5">الحالة</th><th scope="col" className="px-4 py-3.5">تاريخ الإضافة</th><th scope="col" className="px-4 py-3.5"><span className="sr-only">فتح</span></th></tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border)]">
-                  {filtered.map((employee) => (
-                    <tr key={employee.id}>
-                      <td className="px-4 py-3.5"><div className="flex items-center gap-3"><UserAvatar displayName={employee.fullNameAr} photoUrl={employee.photoUrl} announceName={false} /><div className="min-w-0"><Link to={`/hr/employees/${employee.id}`} className="block truncate font-black hover:text-[var(--brand-primary)]">{employee.fullNameAr}</Link></div></div></td>
-                      <td className="px-4 py-3.5 font-mono text-xs">{employee.employeeCode}</td>
-                      <td className="px-4 py-3.5 text-sm">{employee.department ?? '—'}</td>
-                      <td className="px-4 py-3.5 text-sm">{employee.jobTitle ?? '—'}</td>
-                      <td className="px-4 py-3.5" dir="ltr">{employee.phoneE164 ?? '—'}</td>
-                      <td className="px-4 py-3.5"><StatusBadge status={employee.status} /></td>
-                      <td className="px-4 py-3.5 text-[var(--text-muted)]">{new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' }).format(new Date(employee.createdAt))}</td>
-                      <td className="px-4 py-3.5"><Link to={`/hr/employees/${employee.id}`} className="btn-secondary !px-3 !py-2 text-xs">فتح الملف</Link></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <section className="grid gap-3 md:hidden" aria-busy={employees.isFetching}>
-            {filtered.map((employee) => (
-              <Link key={employee.id} to={`/hr/employees/${employee.id}`} className="mobile-record-card card-interactive">
-                <div className="flex items-start gap-3"><UserAvatar displayName={employee.fullNameAr} photoUrl={employee.photoUrl} announceName={false} /><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div><h2 className="font-black">{employee.fullNameAr}</h2><p className="mt-1 font-mono text-xs text-[var(--text-muted)]">{employee.employeeCode}</p></div><StatusBadge status={employee.status} /></div><div className="mt-3 flex flex-wrap gap-3 text-xs text-[var(--text-muted)]">{employee.department ? <span>{employee.department}</span> : null}{employee.jobTitle ? <span>{employee.jobTitle}</span> : null}<span dir="ltr">{employee.phoneE164 ?? 'بدون هاتف'}</span><span>{new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' }).format(new Date(employee.createdAt))}</span></div></div></div>
-              </Link>
-            ))}
-          </section>
+          <DataTable
+            columns={columns}
+            data={paged}
+            rowKey={(emp) => emp.id}
+            emptyTitle="لا توجد نتائج مطابقة"
+            emptyDescription="جرّب تعديل البحث أو مسح عوامل التصفية لعرض المزيد من الملفات."
+            ariaLabel="جدول الموظفين"
+            minWidth="1020px"
+          />
+          {totalPages > 1 && (
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={filtered.length}
+              pageSize={pageSize}
+              onPageChange={setPage}
+            />
+          )}
         </>
       )}
     </div>

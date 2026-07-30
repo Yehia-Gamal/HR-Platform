@@ -135,7 +135,7 @@ export function AppLineChart({
           cursor={{ stroke: 'var(--border-strong)', strokeDasharray: '4 4' }}
         />
         <Legend
-          payload={legendPayload as React.ComponentProps<typeof Legend>['payload']}
+          {...{ payload: legendPayload } as Record<string, unknown>}
           wrapperStyle={{ direction: 'rtl', paddingTop: 12 }}
           iconType="circle"
           iconSize={10}

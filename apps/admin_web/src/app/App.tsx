@@ -46,7 +46,10 @@ const EnterpriseManagementPage = lazy(() => import('../features/management/Enter
 const OperationsCenterPage = lazy(() => import('../features/management/OperationsCenterPage').then(m => ({ default: m.OperationsCenterPage })));
 const AuditSecurityPage = lazy(() => import('../features/management/AuditSecurityPage').then(m => ({ default: m.AuditSecurityPage })));
 const IntegrationsJobsPage = lazy(() => import('../features/management/IntegrationsJobsPage').then(m => ({ default: m.IntegrationsJobsPage })));
+const AnalyticsDashboardPage = lazy(() => import('../features/analytics/AnalyticsDashboardPage').then(m => ({ default: m.AnalyticsDashboardPage })));
+const AnalyticsDashboardPage = lazy(() => import('../features/analytics/AnalyticsDashboardPage').then(m => ({ default: m.AnalyticsDashboardPage })));
 /* V17 §4.2: feature-flagged pages — shown only when the corresponding flag in featureFlags.ts is true */
+const AnalyticsDashboardPage = lazy(() => import('../features/analytics/AnalyticsDashboardPage').then(m => ({ default: m.AnalyticsDashboardPage })));
 const ComingSoonPage = lazy(() => import('../ui/ComingSoonPage').then(m => ({ default: m.ComingSoonPage })));
 
 export function App() {
@@ -100,6 +103,7 @@ export function App() {
           <Route path="recruitment" element={<RequirePermission perm="recruitment.requisition.read"><RecruitmentPage /></RequirePermission>} />
           <Route path="onboarding" element={<RequirePermission perm="onboarding.journey.read"><OnboardingPage /></RequirePermission>} />
           <Route path="reports" element={<RequirePermission perm="reports.people.read"><ReportsPage /></RequirePermission>} />
+          <Route path="analytics" element={<RequirePermission perm="reports.people.read"><AnalyticsDashboardPage /></RequirePermission>} />
           <Route path="holidays" element={<RequirePermission perm="holidays.manage"><OfficialHolidaysPage /></RequirePermission>} />
           <Route path="requests" element={<RequirePermission perm="requests.request.read"><RequestsPage /></RequirePermission>} />
           <Route path="devices" element={<RequirePermission perm="access.role.read"><DeviceApprovalPage /></RequirePermission>} />
@@ -108,6 +112,7 @@ export function App() {
           <Route path="lifecycle" element={<ComingSoonPage title="دورة حياة الموظف" />} />
           <Route path="documents" element={<ComingSoonPage title="استوديو المستندات" />} />
           <Route path="official-feed" element={<RequirePermission perm={['comms.announcement.read', 'comms.decision.read']}><OfficialFeedPage /></RequirePermission>} />
+          <Route path="analytics" element={<RequirePermission perm="reports.people.read"><AnalyticsDashboardPage /></RequirePermission>} />
           <Route path="notifications" element={<NotificationsPage />} />
         </Route>
       </Route>
@@ -129,6 +134,7 @@ export function App() {
           <Route path="governance" element={<ComingSoonPage title="الحوكمة والمخاطر" />} />
           <Route path="documents" element={<ComingSoonPage title="استوديو المستندات" />} />
           <Route path="reports/scheduler" element={<RequirePermission perm="reports.schedule.manage"><ReportSchedulerPage /></RequirePermission>} />
+          <Route path="analytics" element={<RequirePermission perm="reports.people.read"><AnalyticsDashboardPage /></RequirePermission>} />
           <Route path="enterprise" element={<RequirePermission perm="organization.entity.read"><EnterpriseManagementPage /></RequirePermission>} />
           <Route path="operations" element={<RequirePermission perm="tasks.read"><OperationsCenterPage /></RequirePermission>} />
           <Route path="helpdesk" element={<ComingSoonPage title="مكتب الخدمات" />} />

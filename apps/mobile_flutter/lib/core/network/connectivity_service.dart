@@ -168,10 +168,34 @@ String _humanizePostgrest(PostgrestException error) {
     case 'PGRST203':
       return 'تعذر حفظ العملية حاليًا. أعد المحاولة.';
     default:
-      if (_isArabic(error.message)) {
-        return error.message;
+      // فحص رسالة الخطأ لأخطاء الحضور المعروفة (PostgrestException تلتقط قبل فحص msg العام)
+      final m = error.message;
+      if (m.contains('device_not_active') || m.contains('credential_not_found')) {
+        return 'هذا الجهاز غير معتمد للحضور. حدّث حالة الأجهزة أو تواصل مع المسؤول.';
       }
-      return 'تعذر إتمام العملية. أعد المحاولة بعد لحظات.';
+      if (m.contains('duplicate_attendance_event')) {
+        return 'تم تسجيل هذه العملية بالفعل.';
+      }
+      if (m.contains('executive_attendance_not_required')) {
+        return 'التنفيذيون معفون من تسجيل الحضور.';
+      }
+      if (m.contains('idempotency_conflict')) {
+        return 'تعارض في العملية. أعد المحاولة.';
+      }
+      if (m.contains('invalid_installation_id')) {
+        return 'معرّف الجهاز غير صالح. أعد تسجيل الجهاز.';
+      }
+      if (m.contains('trusted_server_required')) {
+        return 'خطأ في إعدادات الخادم. تواصل مع مسؤول النظام.';
+      }
+      if (_isArabic(m)) {
+        return m;
+      }
+      // تسجيل رسالة الخطأ الفعلية في وضع التطوير للتشخيص
+      if (kDebugMode) {
+        debugPrint('[_humanizePostgrest] Unhandled: code=$code, message=$m');
+      }
+      return 'تعذر إتمام العملية ($code). أعد المحاولة بعد لحظات.';
   }
 }
 
