@@ -447,13 +447,16 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           SnackBar(content: Text(e.message)),
         );
       }
-    } catch (error) {
+    } catch (error, stack) {
       if (mounted) {
-        final msg = error.toString().toLowerCase();
-        final text =
-            msg.contains('cancel') || msg.contains('dismissed')
+        debugPrint('[_punch] ${error.runtimeType}: $error\n$stack');
+        final msg = error.toString();
+        final isCancelled = msg.contains('إلغاء') ||
+            msg.toLowerCase().contains('cancel') ||
+            msg.toLowerCase().contains('dismissed');
+        final text = isCancelled
             ? 'تم إلغاء التحقق.'
-            : humanizeError(error);
+            : humanizeError(error, stack);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(text)));
