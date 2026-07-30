@@ -22,18 +22,22 @@ export function useRecruitmentWorkbenchCommands() {
   });
   const scheduleInterview = useMutation({
     mutationFn: async (input: { applicationId: string; mode: string; scheduledAt: string; locationOrLink?: string; panelists?: string[] }) => auth.isMock ? input : rpc('schedule_interview_admin', { p_application_id: input.applicationId, p_mode: input.mode, p_scheduled_at: input.scheduledAt, p_location_or_link: input.locationOrLink ?? null, p_panelists: input.panelists?.length ? input.panelists : null, p_interview_id: null }),
+    meta: { successMessage: 'تمت جدولة المقابلة بنجاح' },
     onSuccess: refresh,
   });
   const decideInterview = useMutation({
     mutationFn: async (input: { interviewId: string; status: 'completed' | 'cancelled' | 'no_show' }) => auth.isMock ? input : rpc('decide_interview_admin', { p_interview_id: input.interviewId, p_status: input.status }),
+    meta: { successMessage: 'تم تحديث حالة المقابلة بنجاح' },
     onSuccess: refresh,
   });
   const createOffer = useMutation({
     mutationFn: async (input: { applicationId: string; title?: string; salary?: number | null; contractType?: string; startDate?: string | null; expiresAt?: string | null }) => auth.isMock ? input : rpc('create_job_offer_admin', { p_application_id: input.applicationId, p_title: input.title ?? null, p_salary: input.salary ?? null, p_contract_type: input.contractType ?? null, p_start_date: input.startDate ?? null, p_expires_at: input.expiresAt ?? null }),
+    meta: { successMessage: 'تم إنشاء عرض التوظيف بنجاح' },
     onSuccess: refresh,
   });
   const transitionOffer = useMutation({
     mutationFn: async (input: { offerId: string; action: 'submit' | 'approve' | 'send' | 'accept' | 'decline' | 'withdraw' }) => auth.isMock ? input : rpc('transition_job_offer_admin', { p_offer_id: input.offerId, p_action: input.action }),
+    meta: { successMessage: 'تم تحديث حالة العرض بنجاح' },
     onSuccess: refresh,
   });
   const hireApplicant = useMutation({
