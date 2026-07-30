@@ -26,7 +26,7 @@ String resolveNotificationRoute({
   return switch (type) {
     'request' || 'request_decision' => '/action/request/$entityId',
     'kpi' || 'kpi_evaluation'       => '/action/kpi/$entityId',
-    'attendance' || 'attendance_alert' => '/action/attendance/$entityId',
+    'attendance' || 'attendance_alert' || 'punch_reminder' => '/action/attendance/$entityId',
     'location' || 'location_request' => '/action/location/$entityId',
     'dispute'                        => '/action/dispute/$entityId',
     'task'                           => '/action/task/$entityId',
@@ -59,8 +59,9 @@ String resolveNotificationRouteFromData(Map<String, dynamic> data) {
         // تجاهل الروابط غير الصالحة.
       }
     }
-    // إذا كان مساراً نسبياً (يبدأ بـ /).
-    if (deepLink.startsWith('/')) return deepLink;
+    // إذا كان مساراً نسبياً يطابق نمط /action/:kind/:id نمرره مباشرة.
+    // مسارات غير معروفة (مثل /attendance) تسقط للأولوية 2 بدل كراش GoRouter.
+    if (deepLink.startsWith('/action/')) return deepLink;
   }
 
   // أولوية 2: حقول entityType + entityId.

@@ -68,7 +68,8 @@ export function AppPieChart({
         innerRadius={donut ? '60%' : 0}
         outerRadius="75%"
         paddingAngle={data.length > 1 ? 2 : 0}
-        label={showLabels ? renderLabel : false}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Recharts PieLabelRenderProps mismatch
+        label={showLabels ? (renderLabel as any) : false}
         labelLine={showLabels}
         isAnimationActive
       >

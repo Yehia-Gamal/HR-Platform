@@ -57,7 +57,7 @@ function computePosition(anchor: DOMRect): Record<string, number> {
 
 export function DropdownMenu({ trigger, items }: DropdownMenuProps) {
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState<Record<string, number | undefined>>({});
+  const [position, setPosition] = useState<Record<string, number>>({});
   const menuId = useId();
   const triggerRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);

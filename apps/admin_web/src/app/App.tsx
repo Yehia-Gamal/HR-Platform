@@ -47,9 +47,7 @@ const OperationsCenterPage = lazy(() => import('../features/management/Operation
 const AuditSecurityPage = lazy(() => import('../features/management/AuditSecurityPage').then(m => ({ default: m.AuditSecurityPage })));
 const IntegrationsJobsPage = lazy(() => import('../features/management/IntegrationsJobsPage').then(m => ({ default: m.IntegrationsJobsPage })));
 const AnalyticsDashboardPage = lazy(() => import('../features/analytics/AnalyticsDashboardPage').then(m => ({ default: m.AnalyticsDashboardPage })));
-const AnalyticsDashboardPage = lazy(() => import('../features/analytics/AnalyticsDashboardPage').then(m => ({ default: m.AnalyticsDashboardPage })));
 /* V17 §4.2: feature-flagged pages — shown only when the corresponding flag in featureFlags.ts is true */
-const AnalyticsDashboardPage = lazy(() => import('../features/analytics/AnalyticsDashboardPage').then(m => ({ default: m.AnalyticsDashboardPage })));
 const ComingSoonPage = lazy(() => import('../ui/ComingSoonPage').then(m => ({ default: m.ComingSoonPage })));
 
 export function App() {
@@ -112,7 +110,6 @@ export function App() {
           <Route path="lifecycle" element={<ComingSoonPage title="دورة حياة الموظف" />} />
           <Route path="documents" element={<ComingSoonPage title="استوديو المستندات" />} />
           <Route path="official-feed" element={<RequirePermission perm={['comms.announcement.read', 'comms.decision.read']}><OfficialFeedPage /></RequirePermission>} />
-          <Route path="analytics" element={<RequirePermission perm="reports.people.read"><AnalyticsDashboardPage /></RequirePermission>} />
           <Route path="notifications" element={<NotificationsPage />} />
         </Route>
       </Route>

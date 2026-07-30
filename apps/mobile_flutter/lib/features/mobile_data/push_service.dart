@@ -273,8 +273,9 @@ class PushService {
         final kind = parts[idx + 1];
         final id = parts[idx + 2];
         appRouter.go('/action/$kind/$id');
-      } else if (deepLink.startsWith('/')) {
-        appRouter.go(deepLink);
+      } else {
+        // مسارات غير معروفة (مثل /attendance) → الرئيسية بدل كراش GoRouter.
+        appRouter.go('/');
       }
     } catch (_) {
       // تجاهل روابط غير صالحة.

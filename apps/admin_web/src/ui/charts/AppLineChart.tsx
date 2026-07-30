@@ -135,7 +135,8 @@ export function AppLineChart({
           cursor={{ stroke: 'var(--border-strong)', strokeDasharray: '4 4' }}
         />
         <Legend
-          {...{ payload: legendPayload } as Record<string, unknown>}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Recharts Legend payload type mismatch
+          {...{ payload: legendPayload } as any}
           wrapperStyle={{ direction: 'rtl', paddingTop: 12 }}
           iconType="circle"
           iconSize={10}

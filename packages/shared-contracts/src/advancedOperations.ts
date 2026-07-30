@@ -70,34 +70,34 @@ export const disputeParticipantSchema = z.object({
 export const disputeParticipantDirectorySchema = z.array(disputeParticipantSchema);
 export type DisputeParticipant = z.infer<typeof disputeParticipantSchema>;
 
-const disputeMemberSchema = z.object({ id: uuid, employeeId: uuid, name: z.string(), role: z.string(), active: z.boolean() });
-const disputePartySchema = z.object({
+export const disputeMemberSchema = z.object({ id: uuid, employeeId: uuid, name: z.string(), role: z.string(), active: z.boolean() });
+export const disputePartySchema = z.object({
   id: uuid, employeeId: uuid, name: z.string(), type: z.string(), notificationStatus: z.string(),
   notifiedAt: z.string().nullable(), statementSubmittedAt: z.string().nullable(),
 });
-const disputeStatementSchema = z.object({
+export const disputeStatementSchema = z.object({
   id: uuid, submittedBy: uuid, submittedByName: z.string(), type: z.string(), text: z.string(),
   visibility: z.string(), submittedAt: z.string(),
 });
-const disputeEvidenceSchema = z.object({
+export const disputeEvidenceSchema = z.object({
   id: uuid, title: z.string(), description: z.string().nullable(), type: z.string(), mimeType: z.string().nullable(),
   storagePath: z.string().nullable(), visibility: z.string(), submittedAt: z.string(), submittedByName: z.string().nullable(),
 });
-const disputeSessionSchema = z.object({
+export const disputeSessionSchema = z.object({
   id: uuid, type: z.string(), scheduledAt: z.string().nullable(), endsAt: z.string().nullable(), heldAt: z.string().nullable(),
   status: z.string(), location: z.string().nullable(), modality: z.string().nullable(), minutes: z.string().nullable(),
   minutesData: z.record(z.string(), z.unknown()), outcome: z.string().nullable(), recommendation: z.string().nullable(), followUpAt: z.string().nullable(),
   attendance: z.array(z.object({ committeeMemberId: uuid, employeeId: uuid, name: z.string(), status: z.string() })),
 });
-const disputeActionSchema = z.object({
+export const disputeActionSchema = z.object({
   id: uuid, type: z.string(), note: z.string().nullable(), assignedTo: nullableUuid, assignedName: z.string().nullable(),
   dueAt: z.string().nullable(), status: z.string().nullable(), proof: z.string().nullable(), completedAt: z.string().nullable(), createdAt: z.string(),
 });
-const disputeSettlementSchema = z.object({
+export const disputeSettlementSchema = z.object({
   id: uuid, type: z.string(), fromName: z.string().nullable(), toName: z.string().nullable(), text: z.string().nullable(),
   publicationPlace: z.string().nullable(), dueAt: z.string().nullable(), status: z.string(), completedAt: z.string().nullable(),
 });
-const disputeAppealSchema = z.object({
+export const disputeAppealSchema = z.object({
   id: uuid, decisionId: uuid, appellantId: uuid, appellantName: z.string(), reason: z.string(), status: z.string(),
   submittedAt: z.string(), resolution: z.string().nullable(),
 });

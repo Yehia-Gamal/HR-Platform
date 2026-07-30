@@ -84,6 +84,7 @@ const hrSections: NavSection[] = [
   ] },
   { title: 'التواصل والتحليلات', items: [
     { label: 'تقارير HR', to: '/hr/reports', icon: FileClock, permission: 'reports.people.read' },
+    { label: 'التحليلات', to: '/hr/analytics', icon: BarChart3, permission: 'reports.people.read' },
     { label: 'الأخبار والقرارات', to: '/hr/official-feed', icon: Megaphone, permission: ['comms.announcement.read', 'comms.decision.read'] },
     { label: 'الإشعارات', to: '/hr/notifications', icon: Bell },
   ] },
@@ -109,6 +110,7 @@ const adminSections: NavSection[] = [
     { label: 'دورة حياة الموظف', to: '/admin/lifecycle', icon: PackageCheck, featureFlag: 'lifecycle' },
     { label: 'استوديو المستندات', to: '/admin/documents', icon: FileSignature, featureFlag: 'documents' },
     { label: 'جدولة التقارير', to: '/admin/reports/scheduler', icon: TimerReset, permission: 'reports.schedule.manage' },
+    { label: 'التحليلات', to: '/admin/analytics', icon: BarChart3, permission: 'reports.people.read' },
     { label: 'العمليات والمهام', to: '/admin/operations', icon: ClipboardList, permission: 'tasks.read' },
     { label: 'مكتب الخدمات', to: '/admin/helpdesk', icon: Headphones, featureFlag: 'helpdesk' },
     { label: 'الإدارة المؤسسية', to: '/admin/enterprise', icon: Building2, permission: 'organization.entity.read' },

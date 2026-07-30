@@ -1237,7 +1237,7 @@ class MobileNotificationItem {
 
   bool get hasSupportedAction =>
       entityId != null &&
-      const {'request', 'kpi', 'decision', 'announcement', 'dispute', 'task', 'attendance'}.contains(entityType);
+      const {'request', 'kpi', 'decision', 'announcement', 'dispute', 'task', 'attendance', 'punch_reminder'}.contains(entityType);
 }
 
 class MobileLeaveBalance {
