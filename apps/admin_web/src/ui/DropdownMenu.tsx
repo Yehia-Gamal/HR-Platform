@@ -23,7 +23,7 @@ interface DropdownMenuProps {
 const FOCUSABLE_ITEM = '[role="menuitem"]:not([aria-disabled="true"])';
 
 /** حساب موضع القائمة بالنسبة للزر — يراعي RTL ويبقيها داخل الشاشة */
-function computePosition(anchor: DOMRect): Record<string, number> {
+function computePosition(anchor: DOMRect) {
   const GAP = 6;
   const MARGIN = 8;
   const isRtl = document.documentElement.dir === 'rtl' ||
@@ -35,29 +35,26 @@ function computePosition(anchor: DOMRect): Record<string, number> {
     top = Math.max(MARGIN, anchor.top - GAP - 200);
   }
 
-  const style: Record<string, number> = { top };
-
   // في RTL: نمحاذي الحافة اليمنى للزر — في LTR: الحافة اليسرى
-  if (isRtl) {
-    style.right = Math.max(MARGIN, Math.min(
-      window.innerWidth - anchor.right,
-      window.innerWidth - 220 - MARGIN,
-    ));
+  const inlineStart = isRtl
+    ? { right: window.innerWidth - anchor.right }
+    : { left: anchor.left };
+
+  // ضمان عدم الخروج عن حدود الشاشة
+  if ('left' in inlineStart) {
+    inlineStart.left = Math.max(MARGIN, Math.min(inlineStart.left!, window.innerWidth - 220 - MARGIN));
   } else {
-    style.left = Math.max(MARGIN, Math.min(
-      anchor.left,
-      window.innerWidth - 220 - MARGIN,
-    ));
+    inlineStart.right = Math.max(MARGIN, Math.min(inlineStart.right!, window.innerWidth - 220 - MARGIN));
   }
 
-  return style;
+  return { top, ...inlineStart };
 }
 
 /* ───────────────────────── المكوّن الرئيسي ───────────────────────── */
 
 export function DropdownMenu({ trigger, items }: DropdownMenuProps) {
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState<Record<string, number>>({});
+  const [position, setPosition] = useState<Record<string, number | undefined>>({});
   const menuId = useId();
   const triggerRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
