@@ -235,9 +235,14 @@ final kpiEvaluationFormProvider =
     });
 final attendanceStateProvider = FutureProvider<AttendanceState>((ref) async {
   try {
+    // 0226: Pass installation_id so the server checks THIS device specifically,
+    // not all devices. Prevents canPunch=true on a replaced/revoked device.
+    final installationId = await ref.watch(installationIdProvider.future);
     final data = await _withTimeout(ref
         .watch(supabaseProvider)
-        .rpc<dynamic>('get_my_attendance_state'));
+        .rpc<dynamic>('get_my_attendance_state', params: {
+          'p_installation_id': installationId,
+        }));
     final result = AttendanceState.fromJson(_asMap(data));
     // Cache for offline use.
     OfflineCache.instance.put(OfflineCache.attendanceState, _asMap(data));

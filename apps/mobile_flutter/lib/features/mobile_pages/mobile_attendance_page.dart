@@ -484,6 +484,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
         return 'يجب تسجيل الحضور أولاً قبل الانصراف.';
       case 'attendance_check_out_required':
         return 'يجب تسجيل الانصراف أولاً قبل حضور جديد.';
+      // 0226: Device errors now return structured JSON instead of RAISE.
+      case 'local_biometric_device_not_active':
+        return 'هذا الجهاز غير مفعّل للحضور. سجّل الجهاز من جديد أو تواصل مع المسؤول.';
       default:
         return 'حدث خطأ غير متوقع ($code). حاول مرة أخرى.';
     }
