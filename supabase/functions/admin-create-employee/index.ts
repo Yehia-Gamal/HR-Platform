@@ -162,19 +162,45 @@ Deno.serve(async (req) => {
   // ─── إنشاء حساب Auth مع استعادة تلقائية من اليتيم (orphan recovery) ───
   // إذا فشل الإنشاء لأن البريد موجود مسبقًا (من محاولة سابقة فاشلة)،
   // نحذف الحساب اليتيم ونعيد المحاولة مرة واحدة.
-  async function tryCreateAuthUser() {
-    const result = input.sendInvite
-      ? await admin.auth.admin.inviteUserByEmail(normalizedEmail, {
+  // يستخدم GoTRUE REST API مباشرة لتجنب مشاكل supabase-js مع صيغ المفاتيح الجديدة.
+  async function tryCreateAuthUser(): Promise<{
+    data: { user: { id: string; email?: string } | null };
+    error: { message: string; status?: number } | null;
+  }> {
+    if (input.sendInvite) {
+      const result = await admin.auth.admin.inviteUserByEmail(normalizedEmail, {
         redirectTo: INVITE_REDIRECT,
         data: userMetadata,
-      })
-      : await admin.auth.admin.createUser({
+      });
+      return result as { data: { user: { id: string; email?: string } | null }; error: { message: string; status?: number } | null };
+    }
+
+    // استدعاء GoTRUE REST API مباشرة
+    const password = inaccessibleRandomPassword();
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SERVICE_ROLE}`,
+        "apikey": SERVICE_ROLE,
+      },
+      body: JSON.stringify({
         email: normalizedEmail,
-        password: inaccessibleRandomPassword(),
+        password,
         email_confirm: false,
         user_metadata: userMetadata,
-      });
-    return result;
+      }),
+    });
+    const body = await res.json().catch(() => null);
+    if (!res.ok || !body?.id) {
+      const errMsg = body?.msg ?? body?.message ?? body?.error_description ?? body?.error ?? `GoTRUE ${res.status}`;
+      console.error("GoTRUE direct create failed", { status: res.status, body: JSON.stringify(body) });
+      return {
+        data: { user: null },
+        error: { message: String(errMsg), status: res.status },
+      };
+    }
+    return { data: { user: { id: body.id, email: body.email } }, error: null };
   }
 
   function isDuplicateError(err: { message?: string; status?: number } | null): boolean {
@@ -233,7 +259,7 @@ Deno.serve(async (req) => {
     if (isDuplicateError(createError)) {
       return json(req, { error: "account_already_exists" }, 409);
     }
-    return json(req, { error: "account_create_failed" }, 500);
+    return json(req, { error: "account_create_failed", _debug: { msg: createError?.message, status: (createError as { status?: number })?.status, keyPrefix: SERVICE_ROLE.substring(0, 15), urlPrefix: SUPABASE_URL.substring(0, 30) } }, 500);
   }
 
   const userId = created.user.id;

@@ -76,50 +76,61 @@ export function useDisputeParticipantDirectory(search = '') {
   });
 }
 
+// --- مصنع mutation مشترك للعمليات القضائية ---
+
+/** يُنشئ خيارات mutation موحدة لاستدعاء RPC مع إبطال التخزين المؤقت */
+function rpcMutationOpts(isMock: boolean, name: string, onInvalidate: () => Promise<unknown>, successMessage: string) {
+  return {
+    mutationFn: async (params: Record<string, unknown>) => isMock ? params : rpc(name, params),
+    onSuccess: () => void onInvalidate(),
+    meta: { successMessage },
+  };
+}
+
 // --- Domain-grouped dispute hooks ---
 
 /** إدارة القضية: قبول، انتقال حالة، تشكيل لجنة */
 export function useDisputeCaseManagement() {
   const auth = useAuth(); const client = useQueryClient();
-  const mutate = (name: string) => useMutation({ mutationFn: async (params: Record<string, unknown>) => auth.isMock ? params : rpc(name, params), onSuccess: () => Promise.all([client.invalidateQueries({ queryKey: ['dispute-operations'] }), client.invalidateQueries({ queryKey: ['action-center'] })]) });
+  const invalidate = () => Promise.all([client.invalidateQueries({ queryKey: ['dispute-operations'] }), client.invalidateQueries({ queryKey: ['action-center'] })]);
   return {
-    acceptCase: mutate('accept_dispute_case'),
-    transitionCase: mutate('transition_dispute_case'),
-    setCommittee: mutate('set_dispute_committee'),
+    acceptCase: useMutation(rpcMutationOpts(auth.isMock, 'accept_dispute_case', invalidate, 'تم قبول القضية بنجاح')),
+    transitionCase: useMutation(rpcMutationOpts(auth.isMock, 'transition_dispute_case', invalidate, 'تم تحديث حالة القضية بنجاح')),
+    setCommittee: useMutation(rpcMutationOpts(auth.isMock, 'set_dispute_committee', invalidate, 'تم تشكيل اللجنة بنجاح')),
   };
 }
 
 /** الجلسات والإفادات */
 export function useDisputeSessionCommands() {
   const auth = useAuth(); const client = useQueryClient();
-  const mutate = (name: string) => useMutation({ mutationFn: async (params: Record<string, unknown>) => auth.isMock ? params : rpc(name, params), onSuccess: () => Promise.all([client.invalidateQueries({ queryKey: ['dispute-operations'] }), client.invalidateQueries({ queryKey: ['action-center'] })]) });
+  const invalidate = () => Promise.all([client.invalidateQueries({ queryKey: ['dispute-operations'] }), client.invalidateQueries({ queryKey: ['action-center'] })]);
   return {
-    addStatement: mutate('submit_dispute_statement'),
-    scheduleSession: mutate('schedule_dispute_session_v2'),
-    finalizeSession: mutate('finalize_dispute_session_v2'),
+    addStatement: useMutation(rpcMutationOpts(auth.isMock, 'submit_dispute_statement', invalidate, 'تم تقديم الإفادة بنجاح')),
+    scheduleSession: useMutation(rpcMutationOpts(auth.isMock, 'schedule_dispute_session_v2', invalidate, 'تمت جدولة الجلسة بنجاح')),
+    finalizeSession: useMutation(rpcMutationOpts(auth.isMock, 'finalize_dispute_session_v2', invalidate, 'تم إنهاء الجلسة بنجاح')),
   };
 }
 
 /** القرارات: إصدار، تسوية، تنفيذ إجراء، اعتراضات */
 export function useDisputeDecisionCommands() {
   const auth = useAuth(); const client = useQueryClient();
-  const mutate = (name: string) => useMutation({ mutationFn: async (params: Record<string, unknown>) => auth.isMock ? params : rpc(name, params), onSuccess: () => Promise.all([client.invalidateQueries({ queryKey: ['dispute-operations'] }), client.invalidateQueries({ queryKey: ['action-center'] })]) });
+  const invalidate = () => Promise.all([client.invalidateQueries({ queryKey: ['dispute-operations'] }), client.invalidateQueries({ queryKey: ['action-center'] })]);
   return {
-    issueDecision: mutate('issue_dispute_decision'),
-    recordSettlement: mutate('record_dispute_settlement'),
-    completeAction: mutate('complete_dispute_action'),
-    decideAppeal: mutate('decide_dispute_appeal'),
+    issueDecision: useMutation(rpcMutationOpts(auth.isMock, 'issue_dispute_decision', invalidate, 'تم إصدار القرار بنجاح')),
+    recordSettlement: useMutation(rpcMutationOpts(auth.isMock, 'record_dispute_settlement', invalidate, 'تم تسجيل التسوية بنجاح')),
+    completeAction: useMutation(rpcMutationOpts(auth.isMock, 'complete_dispute_action', invalidate, 'تم تنفيذ الإجراء بنجاح')),
+    decideAppeal: useMutation(rpcMutationOpts(auth.isMock, 'decide_dispute_appeal', invalidate, 'تم البتّ في الاعتراض بنجاح')),
   };
 }
 
 /** مسار الإجراء الإداري: اقتراح، قرار تنفيذي، تنفيذ */
 export function useDisputeAdminActionCommands() {
   const auth = useAuth(); const client = useQueryClient();
-  const mutate = (name: string) => useMutation({ mutationFn: async (params: Record<string, unknown>) => auth.isMock ? params : rpc(name, params), onSuccess: () => Promise.all([client.invalidateQueries({ queryKey: ['dispute-operations'] }), client.invalidateQueries({ queryKey: ['action-center'] })]) });
+  const invalidate = () => Promise.all([client.invalidateQueries({ queryKey: ['dispute-operations'] }), client.invalidateQueries({ queryKey: ['action-center'] })]);
   return {
-    proposeAdminAction: mutate('propose_admin_action'),
-    decideAdminAction: mutate('decide_admin_action'),
-    executeAdminAction: mutate('execute_admin_action'),
+    proposeAdminAction: useMutation(rpcMutationOpts(auth.isMock, 'propose_admin_action', invalidate, 'تم اقتراح الإجراء الإداري بنجاح')),
+    decideAdminAction: useMutation(rpcMutationOpts(auth.isMock, 'decide_admin_action', invalidate, 'تم البتّ في الإجراء الإداري بنجاح')),
+    executeAdminAction: useMutation(rpcMutationOpts(auth.isMock, 'execute_admin_action', invalidate, 'تم تنفيذ الإجراء الإداري بنجاح')),
   };
 }
 

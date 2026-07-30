@@ -45,6 +45,24 @@ export function useKpiEvaluationForm(evaluationId: string | null) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// مساعد يُرجع خيارات mutation عادية — لا يستدعي hooks.
+// كل hook يستدعي useMutation مباشرة لضمان التوافق مع Rules of Hooks.
+// ---------------------------------------------------------------------------
+function kpiFormMutationOpts(
+  isMock: boolean,
+  name: string,
+  refresh: () => Promise<unknown>,
+) {
+  return {
+    mutationFn: async (params: Record<string, unknown>) => {
+      if (isMock) return params;
+      return rpc(name, params);
+    },
+    onSuccess: refresh,
+  };
+}
+
 export function useKpiFormCommands(evaluationId: string) {
   const auth = useAuth();
   const client = useQueryClient();
@@ -53,20 +71,13 @@ export function useKpiFormCommands(evaluationId: string) {
     client.invalidateQueries({ queryKey: ['kpi-evaluations'] }),
     client.invalidateQueries({ queryKey: ['kpi-admin'] }),
   ]);
-  const call = (name: string) => useMutation({
-    mutationFn: async (params: Record<string, unknown>) => {
-      if (auth.isMock) return params;
-      return rpc(name, params);
-    },
-    onSuccess: refresh,
-  });
   return {
-    saveGoal: call('save_kpi_goal'),
-    saveSession: call('save_kpi_review_session'),
-    saveCompliance: call('save_kpi_compliance_metric'),
-    acknowledge: call('acknowledge_kpi_evaluation'),
-    returnStage: call('return_kpi_stage'),
-    overrideScore: call('override_kpi_score'),
-    addEvidence: call('add_kpi_evidence'),
+    saveGoal: useMutation(kpiFormMutationOpts(auth.isMock, 'save_kpi_goal', refresh)),
+    saveSession: useMutation(kpiFormMutationOpts(auth.isMock, 'save_kpi_review_session', refresh)),
+    saveCompliance: useMutation(kpiFormMutationOpts(auth.isMock, 'save_kpi_compliance_metric', refresh)),
+    acknowledge: useMutation(kpiFormMutationOpts(auth.isMock, 'acknowledge_kpi_evaluation', refresh)),
+    returnStage: useMutation(kpiFormMutationOpts(auth.isMock, 'return_kpi_stage', refresh)),
+    overrideScore: useMutation(kpiFormMutationOpts(auth.isMock, 'override_kpi_score', refresh)),
+    addEvidence: useMutation(kpiFormMutationOpts(auth.isMock, 'add_kpi_evidence', refresh)),
   };
 }
