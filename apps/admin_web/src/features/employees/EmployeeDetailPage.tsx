@@ -686,6 +686,7 @@ export function EmployeeDetailPage() {
           onClose={() => setShowManagerDialog(false)}
           onSuccess={() => {
             setShowManagerDialog(false);
+            toast({ title: 'تم تغيير المدير المباشر بنجاح', variant: 'success' });
             void query.refetch();
           }}
         />
