@@ -1,7 +1,7 @@
 import { Bell, CheckCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { EmptyState } from '../../ui/EmptyState';
-import { ErrorState } from '../../ui/ErrorState';
+import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
@@ -29,6 +29,8 @@ export function NotificationsPage() {
           </button>
         }
       />
+
+      {mark.isError ? <ErrorBanner message="تعذر تعليم الإشعارات كمقروءة." /> : null}
 
       {q.isError ? (
         <ErrorState

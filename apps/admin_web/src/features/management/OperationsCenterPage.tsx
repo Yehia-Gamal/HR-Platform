@@ -75,6 +75,7 @@ export function OperationsCenterPage() {
         </div>
       </section>
 
+      {commands.transitionTask.isError ? <ErrorBanner message={safeErrorMessage(commands.transitionTask.error)} /> : null}
       {query.isError ? (
         <ErrorState
           title="تعذر تحميل مركز العمليات"

@@ -71,14 +71,14 @@ export function PerformancePage() {
     return matchesSearch && (stage === 'all' || item.currentStage === stage);
   }), [tabItems, search, stage]);
 
-  const counts = {
+  const counts = useMemo(() => ({
     total: tabItems.length,
     parallel: tabItems.filter((item) => item.currentStage === 'parallel_review').length,
     manager: tabItems.filter((item) => item.currentStage === 'manager_review').length,
     hr: tabItems.filter((item) => item.currentStage === 'hr_review').length,
     completed: tabItems.filter((item) => ['finalized', 'closed', 'archived'].includes(item.currentStage)).length,
     overdue: tabItems.filter((item) => (item.workflowStatus as string) === 'OVERDUE').length,
-  };
+  }), [tabItems]);
 
   return <div className="space-y-6">
     <PageHeader eyebrow="الأداء" title="KPI والأداء" description="الموظف يقيّم ذاتيًا، ثم تراجع HR والمدير بالتوازي، ثم السكرتير التنفيذي يراجع والمدير التنفيذي يعتمد." />
