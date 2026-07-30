@@ -48,12 +48,12 @@ class PasskeyAttendanceService {
     } catch (e) {
       final msg = e.toString();
       if (msg.contains('cancel') || msg.contains('dismissed')) {
-        throw StateError('تم إلغاء التحقق بالبصمة.');
+        throw StateError('تم إلغاء التحقق.');
       }
       if (msg.contains('does not support') || msg.contains('لا يدعم')) {
-        throw StateError('جهازك لا يدعم التحقق بالبصمة.');
+        throw StateError('فعّل قفل الشاشة (بصمة أو نقش أو PIN) من إعدادات الجهاز.');
       }
-      throw StateError('تعذر فتح نافذة البصمة على الجهاز. أعد المحاولة.');
+      throw StateError('تعذر فتح نافذة التحقق على الجهاز. أعد المحاولة.');
     }
 
     final finishResponse = await _client.functions
@@ -100,12 +100,12 @@ class PasskeyAttendanceService {
     } catch (e) {
       final msg = e.toString();
       if (msg.contains('cancel') || msg.contains('dismissed')) {
-        throw StateError('تم إلغاء التحقق بالبصمة.');
+        throw StateError('تم إلغاء التحقق.');
       }
       if (msg.contains('does not support') || msg.contains('لا يدعم')) {
-        throw StateError('جهازك لا يدعم التحقق بالبصمة.');
+        throw StateError('فعّل قفل الشاشة (بصمة أو نقش أو PIN) من إعدادات الجهاز.');
       }
-      throw StateError('تعذر فتح نافذة البصمة على الجهاز. أعد المحاولة.');
+      throw StateError('تعذر فتح نافذة التحقق على الجهاز. أعد المحاولة.');
     }
 
     final verifyResponse = await _client.functions

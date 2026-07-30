@@ -311,11 +311,13 @@ class _QuickAction extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
-      child: Padding(
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    child: Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Padding(
         padding: const EdgeInsets.all(15),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,6 +355,7 @@ class _QuickAction extends StatelessWidget {
         ),
       ),
     ),
+  ),
   );
 }
 

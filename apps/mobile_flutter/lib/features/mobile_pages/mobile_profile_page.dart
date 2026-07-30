@@ -289,9 +289,13 @@ class _HeaderState extends ConsumerState<_Header> {
       padding: const EdgeInsets.all(18),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: _isUploading ? null : _pickAndUploadPhoto,
-            child: Stack(
+          Semantics(
+            button: true,
+            enabled: !_isUploading,
+            label: 'تغيير الصورة الشخصية',
+            child: GestureDetector(
+              onTap: _isUploading ? null : _pickAndUploadPhoto,
+              child: Stack(
               children: [
                 AppAvatar(
                   name: widget.item.fullNameAr,
@@ -320,6 +324,7 @@ class _HeaderState extends ConsumerState<_Header> {
                     ),
                   ),
               ],
+            ),
             ),
           ),
           const SizedBox(width: 14),
@@ -473,9 +478,9 @@ class _DeviceSecuritySectionState
       if (mounted) {
         final msg = error.toString();
         final text = msg.contains('cancelled')
-            ? 'تم إلغاء التحقق بالبصمة.'
+            ? 'تم إلغاء التحقق.'
             : msg.contains('الجهاز لا يدعم')
-                ? 'جهازك لا يدعم التحقق بالبصمة.'
+                ? 'فعّل قفل الشاشة (نقش أو PIN) من إعدادات الجهاز.'
                 : 'تعذر تسجيل الجهاز. أعد المحاولة.';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(text)),
@@ -597,7 +602,7 @@ class _DeviceSecuritySectionState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'بصمة هذا الجهاز',
+                          'أمان هذا الجهاز',
                           style: Theme.of(context)
                               .textTheme
                               .labelLarge
@@ -608,7 +613,7 @@ class _DeviceSecuritySectionState
                               ? 'جارٍ الفحص…'
                               : _localBiometricSupported!
                                   ? 'الجهاز يدعم البصمة وقفل الشاشة الآمن'
-                                  : 'الجهاز لا يدعم البصمة أو لم تُسجَّل بصمة بعد',
+                                  : 'لا توجد بصمة — يمكن استخدام النقش أو PIN',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
@@ -667,7 +672,7 @@ class _DeviceSecuritySectionState
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'سجل هذا الجهاز لاستخدام البصمة في إثبات الحضور.',
+                          'سجل هذا الجهاز لاستخدام البصمة أو النقش في إثبات الحضور.',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),

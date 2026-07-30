@@ -7,6 +7,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/location_service.
 import 'package:ahla_shabab_management_os/features/mobile_data/passkey_attendance_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/release_governance.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:uuid/uuid.dart';
@@ -349,8 +350,9 @@ final pendingIncomingLocationRequestProvider =
           ).map(MobileLocationRequest.fromJson).toList();
           final pending = all.where((r) => r.status == 'pending').toList();
           yield pending.isEmpty ? null : pending.first;
-        } catch (_) {
-          yield null;
+        } catch (e, st) {
+          if (kDebugMode) debugPrint('pendingLocationRequest poll failed: $e');
+          yield null; // keep polling alive — transient errors self-heal next cycle
         }
         await Future<void>.delayed(const Duration(seconds: 15));
       }
@@ -1278,7 +1280,7 @@ extension MobileSelfServiceCommands on MobileCommands {
           'p_description': null,
         },
       ));
-    } catch (_) {
+    } catch (e, st) {
       await client.storage.from('dispute-evidence').remove([path]);
       rethrow;
     }

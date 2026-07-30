@@ -26,7 +26,7 @@ class ExecutiveDisputesPage extends ConsumerWidget {
   static const _severityLabels = <String, String>{
     'critical': 'حرجة',
     'urgent': 'عاجلة',
-    'high': 'مرتفعة',
+    'high': 'عالية',
     'medium': 'متوسطة',
     'low': 'منخفضة',
     'normal': 'عادية',
@@ -67,6 +67,15 @@ class ExecutiveDisputesPage extends ConsumerWidget {
                     const SizedBox(height: 12),
                     Text('تعذر تحميل القضايا',
                         style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 4),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        humanizeError(error),
+                        style: theme.textTheme.bodySmall,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     FilledButton.tonal(
                       onPressed: () =>

@@ -126,9 +126,9 @@ class _PasskeyDevicesPageState extends ConsumerState<PasskeyDevicesPage> {
       if (mounted) {
         final msg = error.toString();
         final text = msg.contains('cancelled')
-            ? 'تم إلغاء التحقق بالبصمة.'
+            ? 'تم إلغاء التحقق.'
             : msg.contains('الجهاز لا يدعم')
-                ? 'جهازك لا يدعم التحقق بالبصمة.'
+                ? 'فعّل قفل الشاشة (نقش أو PIN) من إعدادات الجهاز.'
                 : 'تعذر تسجيل الجهاز. أعد المحاولة.';
         ScaffoldMessenger.of(
           context,

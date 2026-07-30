@@ -616,9 +616,12 @@ class _CalendarDayCell extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final (bg, fg, IconData? icon) = _resolveStyle(scheme);
 
-    return GestureDetector(
-      onTap: () => _showDayDetail(context),
-      child: Container(
+    return Semantics(
+      button: true,
+      label: 'يوم $dayNum${dayData?.status != null ? " - ${dayData!.status}" : ""}',
+      child: GestureDetector(
+        onTap: () => _showDayDetail(context),
+        child: Container(
         height: 48,
         margin: const EdgeInsets.all(2),
         decoration: BoxDecoration(
@@ -649,6 +652,7 @@ class _CalendarDayCell extends StatelessWidget {
               ),
           ],
         ),
+      ),
       ),
     );
   }

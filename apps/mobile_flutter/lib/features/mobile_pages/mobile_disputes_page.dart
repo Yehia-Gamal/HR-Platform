@@ -106,6 +106,9 @@ class MobileDisputesPage extends ConsumerWidget {
                     onCancel: item.canCancel
                         ? () => _cancel(context, ref, item)
                         : null,
+                    onRespond: item.status == 'needs_more_information'
+                        ? () => _respondToInfoRequest(context, ref, item)
+                        : null,
                   ),
                 ),
               if (data.decisions.isNotEmpty) ...[
@@ -286,6 +289,18 @@ class MobileDisputesPage extends ConsumerWidget {
     } finally {
       reason.dispose();
     }
+  }
+
+  Future<void> _respondToInfoRequest(
+    BuildContext context,
+    WidgetRef ref,
+    MobileDisputeCase item,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _RespondToInfoRequestSheet(caseId: item.id),
+    );
   }
 }
 

@@ -1,3 +1,4 @@
+import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
@@ -171,6 +172,13 @@ class _RequestContent extends ConsumerWidget {
         ],
         const SizedBox(height: 12),
         const MobileSectionHeader(title: 'مسار الاعتماد'),
+        if (request.steps.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _RequestJourneySummary(
+            steps: request.steps,
+            createdAt: request.createdAt,
+          ),
+        ],
         const SizedBox(height: 12),
         if (request.steps.isEmpty)
           Card(
@@ -196,7 +204,10 @@ class _RequestContent extends ConsumerWidget {
             ),
           )
         else
-          for (final step in request.steps) _StepCard(step: step),
+          _RequestTimeline(
+            steps: request.steps,
+            createdAt: request.createdAt,
+          ),
         if (request.canCancel && request.status == 'pending') ...[
           const SizedBox(height: 12),
           SizedBox(
@@ -525,43 +536,551 @@ class _RequestPayloadCard extends StatelessWidget {
   };
 }
 
-class _StepCard extends StatelessWidget {
-  const _StepCard({required this.step});
+/// ملخص مسار الاعتماد — بطاقة مدمجة تعرض التقدم الإجمالي
+class _RequestJourneySummary extends StatelessWidget {
+  const _RequestJourneySummary({
+    required this.steps,
+    required this.createdAt,
+  });
 
-  final MobileRequestStep step;
+  final List<MobileRequestStep> steps;
+  final DateTime createdAt;
 
   @override
   Widget build(BuildContext context) {
-    final formatter = DateFormat('d MMM، h:mm a', 'ar');
-    final scheme = Theme.of(context).colorScheme;
+    final total = steps.length;
+    final completed = steps
+        .where((s) => s.status == 'approved' || s.status == 'completed')
+        .length;
+    final currentStep = steps.cast<MobileRequestStep?>().firstWhere(
+          (s) => s!.status == 'pending',
+          orElse: () => null,
+        );
+    final progress = total > 0 ? completed / total : 0.0;
+
     return Card(
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: scheme.primaryContainer,
-          child: Text(
-            '${step.order}',
-            style: TextStyle(
-              color: scheme.onPrimaryContainer,
-              fontWeight: FontWeight.w900,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.route_rounded,
+                  color: AppColors.brandPrimary,
+                  size: 22,
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'ملخص المسار',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                ),
+                const Spacer(),
+                Text(
+                  '$completed / $total',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.brandPrimary,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+            if (currentStep != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Text(
+                    'الخطوة الحالية: ',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Flexible(
+                    child: Text(
+                      currentStep.name,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 8,
+                backgroundColor:
+                    Theme.of(context).colorScheme.surfaceContainerHighest,
+                valueColor:
+                    const AlwaysStoppedAnimation(AppColors.statusSuccess),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// الجدول الزمني العمودي — خط عمودي يربط جميع الخطوات (RTL)
+class _RequestTimeline extends StatelessWidget {
+  const _RequestTimeline({
+    required this.steps,
+    required this.createdAt,
+  });
+
+  final List<MobileRequestStep> steps;
+  final DateTime createdAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = DateFormat('d MMMM y، h:mm a', 'ar');
+    // تحديد أول خطوة معلقة لتمييزها كـ "حالية"
+    final firstPendingIndex = steps.indexWhere((s) => s.status == 'pending');
+
+    return Column(
+      children: [
+        // عقدة إنشاء الطلب
+        _TimelineNode(
+          isFirst: true,
+          isLast: steps.isEmpty,
+          nodeColor: AppColors.statusSuccess,
+          icon: Icons.flag_rounded,
+          isPending: false,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 4, top: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'تم إنشاء الطلب',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  formatter.format(createdAt.toLocal()),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        title: Text(
-          step.name,
-          style: const TextStyle(fontWeight: FontWeight.w900),
-        ),
-        subtitle: Column(
+        // خطوات الاعتماد
+        for (var i = 0; i < steps.length; i++)
+          _buildStepNode(context, steps[i], i, firstPendingIndex),
+      ],
+    );
+  }
+
+  Widget _buildStepNode(
+    BuildContext context,
+    MobileRequestStep step,
+    int index,
+    int firstPendingIndex,
+  ) {
+    final formatter = DateFormat('d MMM y، h:mm a', 'ar');
+    final scheme = Theme.of(context).colorScheme;
+
+    // تحديد حالة العقدة ولونها
+    final bool isCurrent = index == firstPendingIndex;
+    final bool isFuture = firstPendingIndex >= 0 &&
+        index > firstPendingIndex &&
+        step.status == 'pending';
+
+    final Color nodeColor;
+    final IconData? icon;
+    final bool isPending;
+
+    switch (step.status) {
+      case 'approved' || 'completed':
+        nodeColor = AppColors.statusSuccess;
+        icon = Icons.check_rounded;
+        isPending = false;
+      case 'rejected':
+        nodeColor = AppColors.statusDanger;
+        icon = Icons.close_rounded;
+        isPending = false;
+      case 'cancelled':
+        nodeColor = AppColors.statusWarning;
+        icon = Icons.block_rounded;
+        isPending = false;
+      case 'pending' when isCurrent:
+        nodeColor = AppColors.statusInfo;
+        icon = null;
+        isPending = true;
+      default: // مستقبلية / في الانتظار
+        nodeColor = scheme.outlineVariant;
+        icon = null;
+        isPending = false;
+    }
+
+    // حساب الوقت المتبقي للخطوات المعلقة
+    String? remainingLabel;
+    if (step.status == 'pending' && step.dueAt != null) {
+      final diff = step.dueAt!.difference(DateTime.now());
+      if (diff.isNegative) {
+        final days = diff.inDays.abs();
+        remainingLabel = days > 0
+            ? 'متأخر ${_arabicNum(days)} ${days == 1 ? "يوم" : "أيام"}'
+            : 'متأخر ${_arabicNum(diff.inHours.abs())} ساعات';
+      } else {
+        final days = diff.inDays;
+        if (days > 0) {
+          remainingLabel =
+              'متبقي ${_arabicNum(days)} ${days == 1 ? "يوم" : "أيام"}';
+        } else {
+          final hours = diff.inHours;
+          remainingLabel = hours > 0
+              ? 'متبقي ${_arabicNum(hours)} ساعات'
+              : 'متبقي أقل من ساعة';
+        }
+      }
+    }
+
+    return _TimelineNode(
+      isFirst: false,
+      isLast: index == steps.length - 1,
+      nodeColor: nodeColor,
+      icon: icon,
+      isPending: isPending,
+      isFuture: isFuture,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 4, top: 4),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(step.decision ?? step.status),
-            if (step.comment?.trim().isNotEmpty == true) Text(step.comment!),
-            if (step.actorName?.trim().isNotEmpty == true)
-              Text('نفذ الإجراء: ${step.actorName}'),
-            if (step.decidedAt != null)
-              Text(formatter.format(step.decidedAt!.toLocal())),
+            // اسم الخطوة + حالة
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    step.name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                      color: isFuture ? scheme.onSurfaceVariant : null,
+                    ),
+                  ),
+                ),
+                MobileStatusPill(step.status),
+              ],
+            ),
+            // القرار
+            if (step.decision?.trim().isNotEmpty == true) ...[
+              const SizedBox(height: 4),
+              Text(
+                step.decision!,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ],
+            // المنفذ
+            if (step.actorName?.trim().isNotEmpty == true) ...[
+              const SizedBox(height: 2),
+              Row(
+                children: [
+                  Icon(Icons.person_outline_rounded,
+                      size: 14, color: scheme.onSurfaceVariant),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      step.actorName!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            // التعليق
+            if (step.comment?.trim().isNotEmpty == true) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest
+                      .withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.comment_outlined,
+                        size: 14, color: scheme.onSurfaceVariant),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        step.comment!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            // التاريخ
+            if (step.decidedAt != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                formatter.format(step.decidedAt!.toLocal()),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+            // الوقت المتبقي
+            if (remainingLabel != null) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: (step.dueAt!.difference(DateTime.now()).isNegative
+                          ? AppColors.statusDanger
+                          : AppColors.statusInfo)
+                      .withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  remainingLabel,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: step.dueAt!.difference(DateTime.now()).isNegative
+                        ? AppColors.statusDanger
+                        : AppColors.statusInfo,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
-        trailing: MobileStatusPill(step.status),
+      ),
+    );
+  }
+
+  /// تحويل رقم إلى أرقام عربية شرقية
+  static String _arabicNum(int n) {
+    const eastern = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    return n
+        .toString()
+        .split('')
+        .map((c) {
+          final d = int.tryParse(c);
+          return d != null ? eastern[d] : c;
+        })
+        .join();
+  }
+}
+
+/// عقدة واحدة في الجدول الزمني — دائرة + خط + محتوى
+class _TimelineNode extends StatelessWidget {
+  const _TimelineNode({
+    required this.isFirst,
+    required this.isLast,
+    required this.nodeColor,
+    required this.icon,
+    required this.isPending,
+    required this.child,
+    this.isFuture = false,
+  });
+
+  final bool isFirst;
+  final bool isLast;
+  final Color nodeColor;
+  final IconData? icon;
+  final bool isPending;
+  final bool isFuture;
+  final Widget child;
+
+  static const double _circleSize = 28.0;
+  static const double _lineWidth = 2.5;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final lineColor = isFuture
+        ? scheme.outlineVariant.withValues(alpha: 0.3)
+        : nodeColor.withValues(alpha: 0.4);
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // عمود المؤشر الزمني (يظهر على اليمين في RTL)
+          SizedBox(
+            width: 40,
+            child: Column(
+              children: [
+                // خط علوي
+                if (!isFirst)
+                  Container(width: _lineWidth, height: 8, color: lineColor)
+                else
+                  const SizedBox(height: 8),
+                // الدائرة
+                if (isPending)
+                  _PulsingDot(color: nodeColor, size: _circleSize)
+                else if (isFuture)
+                  // دائرة مفرغة للخطوات المستقبلية
+                  Container(
+                    width: _circleSize,
+                    height: _circleSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: scheme.outlineVariant,
+                        width: 2,
+                      ),
+                    ),
+                    child: Center(
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: scheme.outlineVariant.withValues(alpha: 0.4),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  // دائرة ملونة مع أيقونة
+                  Container(
+                    width: _circleSize,
+                    height: _circleSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: nodeColor,
+                      boxShadow: [
+                        BoxShadow(
+                          color: nodeColor.withValues(alpha: 0.3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: icon != null
+                        ? Icon(icon, size: 16, color: Colors.white)
+                        : null,
+                  ),
+                // خط سفلي
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: _lineWidth,
+                      color: lineColor,
+                    ),
+                  )
+                else
+                  const Expanded(child: SizedBox()),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          // المحتوى
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
+              child: child,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// دائرة نابضة للخطوة الحالية المعلقة
+class _PulsingDot extends StatefulWidget {
+  const _PulsingDot({required this.color, required this.size});
+
+  final Color color;
+  final double size;
+
+  @override
+  State<_PulsingDot> createState() => _PulsingDotState();
+}
+
+class _PulsingDotState extends State<_PulsingDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scaleAnimation;
+  late final Animation<double> _opacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.35).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+    _opacityAnimation = Tween<double>(begin: 0.6, end: 0.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: widget.size,
+      height: widget.size,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) => Stack(
+          alignment: Alignment.center,
+          children: [
+            // هالة خارجية نابضة
+            Transform.scale(
+              scale: _scaleAnimation.value,
+              child: Container(
+                width: widget.size,
+                height: widget.size,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: widget.color.withValues(
+                    alpha: _opacityAnimation.value,
+                  ),
+                ),
+              ),
+            ),
+            // الدائرة الداخلية الثابتة
+            Container(
+              width: widget.size * 0.65,
+              height: widget.size * 0.65,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: widget.color,
+                boxShadow: [
+                  BoxShadow(
+                    color: widget.color.withValues(alpha: 0.4),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

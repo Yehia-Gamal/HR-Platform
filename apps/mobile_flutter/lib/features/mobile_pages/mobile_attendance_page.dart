@@ -192,7 +192,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       ref.invalidate(attendanceStateProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم تسجيل بصمة الجهاز بنجاح.')),
+          const SnackBar(content: Text('تم تسجيل الجهاز بنجاح.')),
         );
       }
     } on GpsDisabledException {
@@ -203,7 +203,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           builder: (ctx) => AlertDialog(
             title: const Text('الموقع مغلق'),
             content: const Text(
-              'يرجى تفعيل خدمة الموقع (GPS) لتتمكن من تسجيل بصمة الجهاز.',
+              'يرجى تفعيل خدمة الموقع (GPS) لتتمكن من تسجيل الجهاز.',
             ),
             actions: [
               TextButton(
@@ -284,9 +284,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
         final msg = error.toString().toLowerCase();
         final text =
             msg.contains('cancel') || msg.contains('dismissed')
-            ? 'تم إلغاء التحقق بالبصمة.'
+            ? 'تم إلغاء التحقق.'
             : msg.contains('الجهاز لا يدعم')
-            ? 'جهازك لا يدعم التحقق بالبصمة.'
+            ? 'فعّل قفل الشاشة (نقش أو PIN) من إعدادات الجهاز.'
             : humanizeError(error);
         ScaffoldMessenger.of(
           context,
@@ -308,7 +308,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
                 : 'تأكيد تسجيل الانصراف',
           ),
           content: const Text(
-            'سيتم قراءة موقعك الحالي وطلب بصمة أو قفل الجهاز للتحقق.',
+            'سيتم قراءة موقعك الحالي وطلب بصمة أو نقش الجهاز للتحقق.',
           ),
           actions: [
             TextButton(
@@ -452,7 +452,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
         final msg = error.toString().toLowerCase();
         final text =
             msg.contains('cancel') || msg.contains('dismissed')
-            ? 'تم إلغاء التحقق بالبصمة.'
+            ? 'تم إلغاء التحقق.'
             : humanizeError(error);
         ScaffoldMessenger.of(
           context,
@@ -565,7 +565,7 @@ class _PunchCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'بصمة الجهاز + الموقع → التحقق خادمياً',
+                  'بصمة أو نقش + الموقع → التحقق خادمياً',
                   style: TextStyle(
                     color: scheme.onPrimary.withValues(alpha: 0.7),
                     fontSize: 13,
@@ -603,7 +603,7 @@ class _PunchCard extends StatelessWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.fingerprint),
-          label: const Text('تفعيل الحضور ببصمة الجهاز'),
+          label: const Text('تفعيل الحضور بأمان الجهاز'),
         ),
       );
     }
@@ -665,10 +665,10 @@ class _TodayStatusCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // بصمة الجهاز
+            // أمان الجهاز
             _StatusRow(
-              icon: Icons.fingerprint,
-              label: 'بصمة الجهاز',
+              icon: Icons.lock_outline,
+              label: 'أمان الجهاز',
               value: state.hasActiveLocalDevice ? 'مفعلة' : 'غير مفعلة',
               valueColor: state.hasActiveLocalDevice
                   ? const Color(0xFF0F9F6E)
@@ -863,7 +863,7 @@ class _SecurityNote extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: Text(
-            'البصمة تُحقَّق داخل الجهاز فقط، ثم يتحقق الخادم من الجلسة والجهاز والموقع.',
+            'التحقق (بصمة أو نقش) يتم داخل الجهاز فقط، ثم يتحقق الخادم من الجلسة والجهاز والموقع.',
             style: TextStyle(
               fontSize: 12,
               color: scheme.onSurfaceVariant,

@@ -427,16 +427,18 @@ class WorkspaceScaffold extends ConsumerWidget {
                   ),
                   itemBuilder: (context, index) {
                     final item = items[index];
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(20),
-                      onTap: () {
-                        Navigator.pop(sheetContext);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => item.page),
-                        );
-                      },
-                      child: Ink(
+                    return Semantics(
+                      button: true,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () {
+                          Navigator.pop(sheetContext);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => item.page),
+                          );
+                        },
+                        child: Ink(
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
@@ -481,6 +483,7 @@ class WorkspaceScaffold extends ConsumerWidget {
                           ),
                         ),
                       ),
+                    ),
                     );
                   },
                 ),
