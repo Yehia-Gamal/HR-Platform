@@ -101,13 +101,19 @@ Deno.serve(async (req) => {
   if (permissionError) return json(req, { error: "permission_check_failed" }, 500);
   if (canCreate !== true) return json(req, { error: "forbidden" }, 403);
 
+  // حد حجم الجسم — 8 كيلوبايت كافية لكل الحقول المتوقعة.
+  const contentLength = Number(req.headers.get("content-length") ?? "0");
+  if (contentLength > 8_192) return json(req, { error: "payload_too_large" }, 413);
+
   let input: Input;
   try {
     input = inputSchema.parse(await req.json());
   } catch (error) {
     return json(req, {
       error: "validation_failed",
-      details: error instanceof z.ZodError ? error.issues : undefined,
+      details: error instanceof z.ZodError
+        ? error.issues.map((i) => ({ path: i.path, message: i.message }))
+        : undefined,
     }, 400);
   }
 
@@ -177,7 +183,6 @@ Deno.serve(async (req) => {
   // استعادة من حساب يتيم: حذف ثم إعادة إنشاء
   if (createError && isDuplicateError(createError)) {
     console.error("auth.createUser duplicate detected — attempting orphan recovery", {
-      message: createError.message,
       status: (createError as { status?: number }).status,
     });
 
@@ -213,7 +218,6 @@ Deno.serve(async (req) => {
 
   if (createError || !created?.user) {
     console.error("auth.createUser failed", {
-      message: createError?.message,
       status: (createError as { status?: number })?.status,
       name: (createError as { name?: string })?.name,
     });

@@ -124,6 +124,10 @@ Deno.serve(async (req) => {
     return json(req, { error: 'SERVER_CONFIGURATION' }, 500);
   }
 
+  // حد حجم الجسم — identifier + password فقط، 2 كيلوبايت كافٍ.
+  const contentLength = Number(req.headers.get('content-length') ?? '0');
+  if (contentLength > 2_048) return json(req, { error: 'PAYLOAD_TOO_LARGE' }, 413);
+
   let identifier = '';
   let password = '';
   try {

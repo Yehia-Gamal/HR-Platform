@@ -172,7 +172,10 @@ Deno.serve(async (req) => {
         },
       }, { onConflict: "employee_id,device_identifier_hash" });
     if (provisionError) {
-      console.error("auto-provision employee_devices failed", provisionError);
+      console.error("auto-provision employee_devices failed", {
+        code: (provisionError as { code?: string })?.code,
+        hint: (provisionError as { hint?: string })?.hint,
+      });
       return json(req, { error: "device_provision_failed" }, 500);
     }
     // الجهاز أُنشئ بحالة pending — يجب اعتماده من المسؤول أولاً.
@@ -217,7 +220,7 @@ Deno.serve(async (req) => {
       },
     });
   } catch (error) {
-    console.error("attendance assertion verification failed", error instanceof Error ? error.message : "unknown error");
+    console.error("attendance assertion verification failed", error instanceof Error ? error.name : "unknown");
     return json(req, { error: "assertion_verification_failed" }, 403);
   }
   if (!verification.verified) return json(req, { error: "assertion_not_verified" }, 403);

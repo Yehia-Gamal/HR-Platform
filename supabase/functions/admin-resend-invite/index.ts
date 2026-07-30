@@ -42,13 +42,19 @@ Deno.serve(async (req) => {
   if (permissionError) return json(req, { error: "permission_check_failed" }, 500);
   if (canManage !== true) return json(req, { error: "forbidden" }, 403);
 
+  // حد حجم الجسم — UUID واحد فقط، 1 كيلوبايت كافٍ.
+  const contentLength = Number(req.headers.get("content-length") ?? "0");
+  if (contentLength > 1_024) return json(req, { error: "payload_too_large" }, 413);
+
   let input: z.infer<typeof inputSchema>;
   try {
     input = inputSchema.parse(await req.json());
   } catch (error) {
     return json(req, {
       error: "validation_failed",
-      details: error instanceof z.ZodError ? error.issues : undefined,
+      details: error instanceof z.ZodError
+        ? error.issues.map((i) => ({ path: i.path, message: i.message }))
+        : undefined,
     }, 400);
   }
 

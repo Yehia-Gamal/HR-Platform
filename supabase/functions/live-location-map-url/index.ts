@@ -17,6 +17,10 @@ Deno.serve(async (req) => {
   const authorization = req.headers.get("Authorization") ?? "";
   if (!authorization.startsWith("Bearer ")) return json(req, { error: "unauthorized" }, 401);
 
+  // حد حجم الجسم — UUID واحد فقط، 1 كيلوبايت كافٍ.
+  const contentLength = Number(req.headers.get("content-length") ?? "0");
+  if (contentLength > 1_024) return json(req, { error: "PAYLOAD_TOO_LARGE" }, 413);
+
   let body: z.infer<typeof inputSchema>;
   try {
     body = inputSchema.parse(await req.json());
