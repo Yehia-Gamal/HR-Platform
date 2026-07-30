@@ -122,26 +122,26 @@ export type LeaveBalance = z.infer<typeof leaveBalanceSchema>;
 
 // أنواع الإجازات القانونية (تُطابق أكواد leave_types في الترحيل 0060).
 // ملاحظة: 'emergency' القديم يُخرَّط إلى 'casual' في الباك إند للتوافق الخلفي.
-export const leaveTypeCode = z.enum(['annual', 'casual', 'sick', 'unpaid']);
-export type LeaveTypeCode = z.infer<typeof leaveTypeCode>;
+export const leaveTypeCodeSchema = z.enum(['annual', 'casual', 'sick', 'unpaid']);
+export type LeaveTypeCode = z.infer<typeof leaveTypeCodeSchema>;
 
 // تكليفات العمل: مأمورية / قافلة / فاندي (وحدة work_assignments — الترحيل 0063).
-export const workAssignmentType = z.enum(['MISSION', 'CONVOY', 'FUNDRAISING']);
-export type WorkAssignmentType = z.infer<typeof workAssignmentType>;
+export const workAssignmentTypeSchema = z.enum(['MISSION', 'CONVOY', 'FUNDRAISING']);
+export type WorkAssignmentType = z.infer<typeof workAssignmentTypeSchema>;
 
-export const workAssignmentStatus = z.enum([
+export const workAssignmentStatusSchema = z.enum([
   'DRAFT', 'SUBMITTED', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED',
   'IN_PROGRESS', 'COMPLETED', 'REPORT_PENDING', 'REPORT_SUBMITTED', 'CANCELLED',
 ]);
-export type WorkAssignmentStatus = z.infer<typeof workAssignmentStatus>;
+export type WorkAssignmentStatus = z.infer<typeof workAssignmentStatusSchema>;
 
 export const workAssignmentSchema = z.object({
   id: z.string().uuid(),
   assignmentNumber: z.number(),
-  assignmentType: workAssignmentType,
+  assignmentType: workAssignmentTypeSchema,
   title: z.string(),
   description: z.string().nullable(),
-  status: workAssignmentStatus,
+  status: workAssignmentStatusSchema,
   createdByEmployeeId: z.string().uuid().nullable(),
   responsibleEmployeeId: z.string().uuid().nullable(),
   startAt: z.string(),

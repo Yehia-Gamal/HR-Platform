@@ -69,8 +69,8 @@ export const attendanceSettingsSchema = z.object({
 export type AttendanceSettings = z.infer<typeof attendanceSettingsSchema>;
 
 /** الحالات المسموحة لـ attendance_daily.status — V23 §4. */
-export const attendanceDailyStatus = z.enum([
+export const attendanceDailyStatusSchema = z.enum([
   'present', 'absent', 'late', 'on_leave', 'holiday',
   'weekend', 'partial', 'pending', 'missing_checkout',
 ]);
-export type AttendanceDailyStatus = z.infer<typeof attendanceDailyStatus>;
+export type AttendanceDailyStatus = z.infer<typeof attendanceDailyStatusSchema>;

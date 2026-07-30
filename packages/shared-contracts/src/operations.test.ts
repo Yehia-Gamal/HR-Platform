@@ -2,22 +2,22 @@ import { describe, expect, it } from 'vitest';
 import {
   kpiEvaluationFormSchema,
   kpiEvaluationSummarySchema,
-  leaveTypeCode,
+  leaveTypeCodeSchema,
   workAssignmentSchema,
-  workAssignmentType,
+  workAssignmentTypeSchema,
   attendanceStatementDaySchema,
   attendanceStatementSchema,
 } from './operations.js';
 
 describe('leave and work-assignment contracts', () => {
   it('exposes the four legal leave codes and excludes maternity/childcare', () => {
-    expect(leaveTypeCode.options).toEqual(['annual', 'casual', 'sick', 'unpaid']);
-    expect(() => leaveTypeCode.parse('maternity')).toThrow();
-    expect(() => leaveTypeCode.parse('childcare')).toThrow();
+    expect(leaveTypeCodeSchema.options).toEqual(['annual', 'casual', 'sick', 'unpaid']);
+    expect(() => leaveTypeCodeSchema.parse('maternity')).toThrow();
+    expect(() => leaveTypeCodeSchema.parse('childcare')).toThrow();
   });
 
   it('models the three work-assignment types', () => {
-    expect(workAssignmentType.options).toEqual(['MISSION', 'CONVOY', 'FUNDRAISING']);
+    expect(workAssignmentTypeSchema.options).toEqual(['MISSION', 'CONVOY', 'FUNDRAISING']);
   });
 
   it('parses a fundraising assignment with a financial target', () => {
