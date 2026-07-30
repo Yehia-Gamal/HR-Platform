@@ -46,7 +46,8 @@ const EnterpriseManagementPage = lazy(() => import('../features/management/Enter
 const OperationsCenterPage = lazy(() => import('../features/management/OperationsCenterPage').then(m => ({ default: m.OperationsCenterPage })));
 const AuditSecurityPage = lazy(() => import('../features/management/AuditSecurityPage').then(m => ({ default: m.AuditSecurityPage })));
 const IntegrationsJobsPage = lazy(() => import('../features/management/IntegrationsJobsPage').then(m => ({ default: m.IntegrationsJobsPage })));
-/* V17 §4.2: dead imports removed — LifecycleOperationsPage, LearningPage, DocumentStudioPage, PeopleFinancePage, ReleaseGovernancePage, ServiceDeskPage */
+/* V17 §4.2: feature-flagged pages — shown only when the corresponding flag in featureFlags.ts is true */
+const ComingSoonPage = lazy(() => import('../ui/ComingSoonPage').then(m => ({ default: m.ComingSoonPage })));
 
 export function App() {
   const auth = useAuth();
@@ -103,7 +104,9 @@ export function App() {
           <Route path="requests" element={<RequirePermission perm="requests.request.read"><RequestsPage /></RequirePermission>} />
           <Route path="devices" element={<RequirePermission perm="access.role.read"><DeviceApprovalPage /></RequirePermission>} />
           <Route path="organization" element={<RequirePermission perm="organization.org_chart.read"><OrganizationPage /></RequirePermission>} />
-          {/* V17 §4.2: hidden secondary modules — learning, documents, lifecycle */}
+          <Route path="learning" element={<ComingSoonPage title="التدريب والمهارات" />} />
+          <Route path="lifecycle" element={<ComingSoonPage title="دورة حياة الموظف" />} />
+          <Route path="documents" element={<ComingSoonPage title="استوديو المستندات" />} />
           <Route path="official-feed" element={<RequirePermission perm={['comms.announcement.read', 'comms.decision.read']}><OfficialFeedPage /></RequirePermission>} />
           <Route path="notifications" element={<NotificationsPage />} />
         </Route>
@@ -120,14 +123,16 @@ export function App() {
           <Route path="organization" element={<RequirePermission perm="organization.org_chart.read"><OrganizationPage /></RequirePermission>} />
           <Route path="performance/cycles" element={<RequirePermission perm="performance.cycle.manage"><KpiCyclesPage /></RequirePermission>} />
           <Route path="disputes" element={<RequirePermission perm="relations.case.manage"><DisputesPage /></RequirePermission>} />
-          {/* V17 §4.2: lifecycle hidden */}
+          <Route path="lifecycle" element={<ComingSoonPage title="دورة حياة الموظف" />} />
           <Route path="access" element={<RequirePermission perm="access.role.read"><AccessPage /></RequirePermission>} />
           <Route path="settings" element={<RequirePermission perm="system.settings.read"><SystemPage /></RequirePermission>} />
-          {/* V17 §4.2: governance + documents hidden */}
+          <Route path="governance" element={<ComingSoonPage title="الحوكمة والمخاطر" />} />
+          <Route path="documents" element={<ComingSoonPage title="استوديو المستندات" />} />
           <Route path="reports/scheduler" element={<RequirePermission perm="reports.schedule.manage"><ReportSchedulerPage /></RequirePermission>} />
           <Route path="enterprise" element={<RequirePermission perm="organization.entity.read"><EnterpriseManagementPage /></RequirePermission>} />
           <Route path="operations" element={<RequirePermission perm="tasks.read"><OperationsCenterPage /></RequirePermission>} />
-          {/* V17 §4.2: helpdesk + people-finance (payroll ممنوع) hidden */}
+          <Route path="helpdesk" element={<ComingSoonPage title="مكتب الخدمات" />} />
+          <Route path="finance" element={<ComingSoonPage title="الرواتب والمالية" />} />
           <Route path="audit-security" element={<RequirePermission perm="audit.view"><AuditSecurityPage /></RequirePermission>} />
           <Route path="integrations" element={<RequirePermission perm="system.integration.view"><IntegrationsJobsPage /></RequirePermission>} />
           <Route path="notifications" element={<NotificationsPage />} />

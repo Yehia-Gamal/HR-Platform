@@ -62,6 +62,7 @@ const hrSections: NavSection[] = [
   { title: 'نظرة عامة', items: [
     { label: 'لوحة HR', to: '/hr', icon: LayoutDashboard },
     { label: 'الموظفون', to: '/hr/employees', icon: Users, permission: 'people.employee.read' },
+    { label: 'أجهزة الموظفين', to: '/hr/devices', icon: Smartphone, permission: 'access.role.read' },
   ] },
   { title: 'الوقت والخدمات', items: [
     { label: 'الحضور', to: '/hr/attendance', icon: Activity, permission: 'attendance.record.read' },
