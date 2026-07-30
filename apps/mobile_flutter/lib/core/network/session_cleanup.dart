@@ -1,8 +1,8 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
-import 'offline_cache.dart';
-import 'offline_sync_queue.dart';
+import 'package:ahla_shabab_management_os/core/network/offline_cache.dart';
+import 'package:ahla_shabab_management_os/core/network/offline_sync_queue.dart';
 
 /// تنظيف الجلسة عند تسجيل الخروج.
 ///

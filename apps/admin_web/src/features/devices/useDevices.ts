@@ -56,6 +56,7 @@ export function useApproveDevice() {
         p_reason: reason ?? null,
       });
     },
+    meta: { successMessage: 'تم البتّ في طلب الجهاز بنجاح' },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['device-approvals'] });
       void qc.invalidateQueries({ queryKey: ['all-devices'] });
@@ -86,6 +87,7 @@ export function useRevokeDevice() {
         p_reason: reason ?? null,
       });
     },
+    meta: { successMessage: 'تم سحب صلاحية الجهاز بنجاح' },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['device-approvals'] });
       void qc.invalidateQueries({ queryKey: ['all-devices'] });

@@ -177,27 +177,30 @@ Deno.serve(async (req) => {
 
     // استدعاء GoTRUE REST API مباشرة
     const password = inaccessibleRandomPassword();
+    const reqBody = {
+      email: normalizedEmail,
+      password,
+      email_confirm: false,
+      user_metadata: userMetadata,
+    };
     const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${SERVICE_ROLE}`,
         "apikey": SERVICE_ROLE,
       },
-      body: JSON.stringify({
-        email: normalizedEmail,
-        password,
-        email_confirm: false,
-        user_metadata: userMetadata,
-      }),
+      body: JSON.stringify(reqBody),
     });
-    const body = await res.json().catch(() => null);
+    const rawText = await res.text();
+    let body: Record<string, unknown> | null = null;
+    try { body = JSON.parse(rawText); } catch { /* not JSON */ }
     if (!res.ok || !body?.id) {
-      const errMsg = body?.msg ?? body?.message ?? body?.error_description ?? body?.error ?? `GoTRUE ${res.status}`;
-      console.error("GoTRUE direct create failed", { status: res.status, body: JSON.stringify(body) });
       return {
         data: { user: null },
-        error: { message: String(errMsg), status: res.status },
+        error: {
+          message: rawText.substring(0, 500),
+          status: res.status,
+        },
       };
     }
     return { data: { user: { id: body.id, email: body.email } }, error: null };
