@@ -1,6 +1,7 @@
 import { CheckCircle2, Eye, EyeOff, KeyRound, ShieldCheck } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { rpc } from '../../core/rpc';
 import { getSupabase } from '../../core/supabase';
 import { AppLogo } from '../../ui/AppLogo';
 
@@ -84,20 +85,21 @@ export function PasswordSetupPage() {
       }
 
       // 3) تفعيل سجل الموظف (اختياري — لا يُفشل العملية)
-      const { data: activation, error: activationError } = await supabase.rpc(
-        'activate_employee_after_first_login',
-      );
-      const activationResult = activation as { activated?: boolean; reason?: string } | null;
-      // نقبل: activated=true، already_active، أو no_employee_record (حساب ويب بدون سجل موظف)
-      const activationOk =
-        !activationError &&
-        (activationResult?.activated === true ||
+      let activationOk = false;
+      try {
+        const activationResult = await rpc<{ activated?: boolean; reason?: string } | null>(
+          'activate_employee_after_first_login',
+        );
+        // نقبل: activated=true، already_active، أو no_employee_record (حساب ويب بدون سجل موظف)
+        activationOk =
+          activationResult?.activated === true ||
           activationResult?.reason === 'already_active' ||
-          activationResult?.reason === 'no_employee_record');
-      if (!activationOk) {
+          activationResult?.reason === 'no_employee_record';
+      } catch {
         // كلمة المرور تم تعيينها بنجاح لكن التفعيل فشل — نُكمل مع تحذير
         // (لا نمنع المستخدم من إنهاء العملية)
       }
+      void activationOk; // referenced for future logging
 
       // 4) إزالة علامة must_change_password
       const { error: metadataError } = await supabase.auth.updateUser({
