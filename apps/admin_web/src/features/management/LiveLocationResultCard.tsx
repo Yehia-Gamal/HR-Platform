@@ -9,6 +9,7 @@ import { LiveLocationMap, type MapPoint } from './LiveLocationMap';
 import type { LiveLocationResponseData, LocationPoint } from './controlCenterTypes';
 import { useLiveLocationMapUrl, useLiveLocationResponse } from './useControlCenters';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { useToast } from '../../ui/Toast';
 
 // بطاقة نتيجة طلب الموقع الكاملة (القسم 10): خريطة + عنوان تقريبي + دقة + توقيتات.
 // V17 §9: video permanently disabled — video player, legal hold, and URL signing UI removed.
@@ -24,6 +25,7 @@ function num(v: unknown): number | null {
 }
 
 export function LiveLocationResultCard({ requestId }: { requestId: string }) {
+  const { toast } = useToast();
   const [mapSnapshotUrl, setMapSnapshotUrl] = useState<string | null>(null);
   const mapUrlCmd = useLiveLocationMapUrl();
 
@@ -56,7 +58,7 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
   async function loadMapSnapshot() {
     try {
       setMapSnapshotUrl(await mapUrlCmd.mutateAsync(requestId));
-    } catch { /* error surfaced via mapUrlCmd.isError */ }
+    } catch { toast({ message: 'تعذر تحميل لقطة الخريطة', tone: 'error' }); }
   }
 
   return (

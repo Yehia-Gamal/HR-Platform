@@ -11,6 +11,7 @@ import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { ListSkeleton, MetricSkeletonRow } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
+import { useToast } from '../../ui/Toast';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useMyLeaveBalances, useRequestDecision, useRequests, useWorkAssignments } from './useRequests';
 import { useAttendanceOperations, useAttendanceOperationsCommands } from '../advanced/useAdvancedOperations';
@@ -31,6 +32,7 @@ const typeTabs: { key: TypeTab; label: string }[] = [
 const currentMonth = new Date().toISOString().slice(0, 7);
 
 export function RequestsPage() {
+  const { toast } = useToast();
   const auth = useAuth();
   const query = useRequests();
   const decision = useRequestDecision();
@@ -61,6 +63,7 @@ export function RequestsPage() {
     try {
       await decision.mutateAsync({ requestId: selected.id, decision: kind, comment: comment.trim() });
       setSelected(null); setComment('');
+      toast({ message: kind === 'approve' ? 'تم اعتماد الطلب بنجاح' : 'تم رفض الطلب', tone: 'success' });
     } catch { /* decision.isError displayed in dialog via ErrorBanner */ }
   };
 
@@ -87,8 +90,8 @@ export function RequestsPage() {
         </div>
         {item.status === 'pending' ? <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_auto]">
           <input className="input" placeholder="ملاحظة القرار" value={reviewNotes[item.id] ?? ''} onChange={(e) => setReviewNotes((v) => ({ ...v, [item.id]: e.target.value }))} />
-          <button className="btn-primary" onClick={() => correctionsCommands.decideCorrection.mutate({ p_id: item.id, p_decision: 'approved', p_note: reviewNotes[item.id] || null })}>اعتماد</button>
-          <button className="btn-secondary" onClick={() => correctionsCommands.decideCorrection.mutate({ p_id: item.id, p_decision: 'rejected', p_note: reviewNotes[item.id] || '' })}>رفض</button>
+          <button className="btn-primary" onClick={() => correctionsCommands.decideCorrection.mutate({ p_id: item.id, p_decision: 'approved', p_note: reviewNotes[item.id] || null }, { onSuccess: () => toast({ message: 'تم اعتماد التصحيح بنجاح', tone: 'success' }), onError: () => toast({ message: 'تعذر اعتماد التصحيح', tone: 'error' }) })}>اعتماد</button>
+          <button className="btn-secondary" onClick={() => correctionsCommands.decideCorrection.mutate({ p_id: item.id, p_decision: 'rejected', p_note: reviewNotes[item.id] || '' }, { onSuccess: () => toast({ message: 'تم رفض التصحيح', tone: 'success' }), onError: () => toast({ message: 'تعذر رفض التصحيح', tone: 'error' }) })}>رفض</button>
         </div> : null}
       </article>)}</div>}
     </section> : <>

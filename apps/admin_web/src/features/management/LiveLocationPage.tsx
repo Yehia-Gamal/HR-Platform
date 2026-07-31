@@ -11,6 +11,7 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useLiveLocationCommands, useLocationDirectory, type LocationDirectoryItem } from './useControlCenters';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { useToast } from '../../ui/Toast';
 
 type LocationState = 'fresh' | 'stale' | 'no_signal';
 type RequestDraft = { employee: LocationDirectoryItem; reason: string };
@@ -42,6 +43,7 @@ function relativeTime(value: string | null) {
 }
 
 export function LiveLocationPage() {
+  const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<(typeof filters)[number]['id']>('all');
   const [requestDraft, setRequestDraft] = useState<RequestDraft | null>(null);
@@ -60,6 +62,7 @@ export function LiveLocationPage() {
     try {
       await commands.request.mutateAsync({ employeeId: requestDraft.employee.id, reason: requestDraft.reason.trim() });
       setRequestDraft(null);
+      toast({ message: 'تم إرسال طلب الموقع بنجاح', tone: 'success' });
     } catch { /* mutation error surfaced via commands.request.isError */ }
   }
 

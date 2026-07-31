@@ -3,7 +3,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './app/App';
-import { initSentry } from './core/sentry';
+import { initSentry, initWebVitals, attachQueryObservability } from './core/sentry';
 import { AuthProvider } from './features/auth/AuthProvider';
 import { AppErrorBoundary } from './ui/AppErrorBoundary';
 import { ToastProvider } from './ui/Toast';
@@ -19,6 +19,10 @@ const queryClient = new QueryClient({
     mutations: { retry: 0 },
   },
 });
+
+// Attach observability after queryClient creation (cast for internal API access)
+attachQueryObservability(queryClient as unknown as Parameters<typeof attachQueryObservability>[0]);
+void initWebVitals();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

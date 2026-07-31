@@ -8,6 +8,7 @@ import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
+import { useToast } from '../../ui/Toast';
 import { MetricSkeletonRow } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { useOrganizationAdminCatalog, useRecruitmentCommands } from './useAdminOperations';
@@ -26,6 +27,7 @@ type RequisitionDraft = {
 type ApplicationRow = RecruitmentWorkbench['applications'][number];
 
 export function RecruitmentPage() {
+  const { toast } = useToast();
   const overview = useRecruitmentOverview();
   const organization = useOrganizationAdminCatalog();
   const commands = useRecruitmentCommands();
@@ -53,6 +55,7 @@ export function RecruitmentPage() {
         locationOrLink: interviewDraft.locationOrLink || undefined,
       });
       setInterviewDraft(null);
+      toast({ message: 'تم جدولة المقابلة بنجاح', tone: 'success' });
     } catch { /* mutation error surfaced via mutation.isError state */ }
   }
 
@@ -69,6 +72,7 @@ export function RecruitmentPage() {
         expiresAt: offerDraft.expiresAt ? new Date(offerDraft.expiresAt).toISOString() : null,
       });
       setOfferDraft(null);
+      toast({ message: 'تم إنشاء العرض بنجاح', tone: 'success' });
     } catch { /* mutation error surfaced via mutation.isError state */ }
   }
 
@@ -85,6 +89,7 @@ export function RecruitmentPage() {
         submit: draft.submit,
       });
       setDraft(null);
+      toast({ message: 'تم حفظ طلب التوظيف بنجاح', tone: 'success' });
     } catch { /* mutation error surfaced via mutation.isError state */ }
   }
 
@@ -222,7 +227,7 @@ export function RecruitmentPage() {
               <tbody className="divide-y divide-[var(--border)]">
                 {workbench.data.applications.map((application) => {
                   const stages = workbench.data!.stages.filter((stage) => stage.postingId === application.postingId);
-                  return <tr key={application.id}><td className="p-3 font-bold">{application.candidateName}</td><td className="p-3">{application.jobTitle}</td><td className="p-3"><StatusBadge value={application.stageName ?? application.status} /></td><td className="p-3 muted">{new Date(application.appliedAt).toLocaleDateString('ar-EG')}</td><td className="p-3"><select className="input max-w-48" disabled={mutationPending} aria-label={`نقل ${application.candidateName} إلى مرحلة`} value={application.stageId ?? ''} onChange={(event) => { if (event.target.value && event.target.value !== application.stageId) workbenchCommands.moveStage.mutate({ applicationId: application.id, stageId: event.target.value, reason: 'نقل من لوحة ATS' }); }}><option value="">اختر المرحلة</option>{stages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}</select></td></tr>;
+                  return <tr key={application.id}><td className="p-3 font-bold">{application.candidateName}</td><td className="p-3">{application.jobTitle}</td><td className="p-3"><StatusBadge value={application.stageName ?? application.status} /></td><td className="p-3 muted">{new Date(application.appliedAt).toLocaleDateString('ar-EG')}</td><td className="p-3"><select className="input max-w-48" disabled={mutationPending} aria-label={`نقل ${application.candidateName} إلى مرحلة`} value={application.stageId ?? ''} onChange={(event) => { if (event.target.value && event.target.value !== application.stageId) workbenchCommands.moveStage.mutate({ applicationId: application.id, stageId: event.target.value, reason: 'نقل من لوحة ATS' }, { onSuccess: () => toast({ message: 'تم نقل المرشح إلى المرحلة الجديدة', tone: 'success' }), onError: () => toast({ message: 'تعذر نقل المرشح', tone: 'error' }) }); }}><option value="">اختر المرحلة</option>{stages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}</select></td></tr>;
                 })}
                 {!workbench.data.applications.length ? <tr><td colSpan={5} className="p-8"><EmptyState title="لا توجد طلبات مرشحين" description="ستظهر الطلبات بعد نشر وظيفة واستقبال مرشح." /></td></tr> : null}
               </tbody>
@@ -249,9 +254,9 @@ export function RecruitmentPage() {
                     <StatusBadge value={interview.status} />
                     {interview.status === 'scheduled' ? (
                       <>
-                        <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.decideInterview.mutate({ interviewId: interview.id, status: 'completed' })}>إتمام</button>
-                        <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.decideInterview.mutate({ interviewId: interview.id, status: 'no_show' })}>عدم حضور</button>
-                        <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.decideInterview.mutate({ interviewId: interview.id, status: 'cancelled' })}>إلغاء</button>
+                        <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.decideInterview.mutate({ interviewId: interview.id, status: 'completed' }, { onSuccess: () => toast({ message: 'تم تسجيل إتمام المقابلة', tone: 'success' }), onError: () => toast({ message: 'تعذر تحديث المقابلة', tone: 'error' }) })}>إتمام</button>
+                        <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.decideInterview.mutate({ interviewId: interview.id, status: 'no_show' }, { onSuccess: () => toast({ message: 'تم تسجيل عدم الحضور', tone: 'success' }), onError: () => toast({ message: 'تعذر تحديث المقابلة', tone: 'error' }) })}>عدم حضور</button>
+                        <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.decideInterview.mutate({ interviewId: interview.id, status: 'cancelled' }, { onSuccess: () => toast({ message: 'تم إلغاء المقابلة', tone: 'success' }), onError: () => toast({ message: 'تعذر تحديث المقابلة', tone: 'error' }) })}>إلغاء</button>
                       </>
                     ) : null}
                   </div>
@@ -275,12 +280,12 @@ export function RecruitmentPage() {
                       <StatusBadge value={offer.status} />
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {offer.status === 'draft' ? <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'submit' })}>إرسال للاعتماد</button> : null}
-                      {offer.status === 'pending' ? <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'approve' })}>اعتماد</button> : null}
-                      {offer.status === 'approved' ? <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'send' })}>إرسال للمرشح</button> : null}
-                      {offer.status === 'sent' ? <><button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'accept' })}>تسجيل القبول</button><button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'decline' })}>تسجيل الرفض</button></> : null}
-                      {['draft', 'pending', 'approved', 'sent'].includes(offer.status) ? <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'withdraw' })}>سحب</button> : null}
-                      {canHire ? <button className="btn-primary" disabled={workbenchCommands.hireApplicant.isPending} aria-busy={workbenchCommands.hireApplicant.isPending} onClick={() => workbenchCommands.hireApplicant.mutate({ applicationId: offer.applicationId })}><UserCheck className="size-4" aria-hidden="true" />{workbenchCommands.hireApplicant.isPending ? 'جارٍ…' : 'اعتماد التعيين'}</button> : null}
+                      {offer.status === 'draft' ? <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'submit' }, { onSuccess: () => toast({ message: 'تم إرسال العرض للاعتماد', tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ إجراء العرض', tone: 'error' }) })}>إرسال للاعتماد</button> : null}
+                      {offer.status === 'pending' ? <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'approve' }, { onSuccess: () => toast({ message: 'تم اعتماد العرض', tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ إجراء العرض', tone: 'error' }) })}>اعتماد</button> : null}
+                      {offer.status === 'approved' ? <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'send' }, { onSuccess: () => toast({ message: 'تم إرسال العرض للمرشح', tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ إجراء العرض', tone: 'error' }) })}>إرسال للمرشح</button> : null}
+                      {offer.status === 'sent' ? <><button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'accept' }, { onSuccess: () => toast({ message: 'تم تسجيل قبول العرض', tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ إجراء العرض', tone: 'error' }) })}>تسجيل القبول</button><button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'decline' }, { onSuccess: () => toast({ message: 'تم تسجيل رفض العرض', tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ إجراء العرض', tone: 'error' }) })}>تسجيل الرفض</button></> : null}
+                      {['draft', 'pending', 'approved', 'sent'].includes(offer.status) ? <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'withdraw' }, { onSuccess: () => toast({ message: 'تم سحب العرض', tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ إجراء العرض', tone: 'error' }) })}>سحب</button> : null}
+                      {canHire ? <button className="btn-primary" disabled={workbenchCommands.hireApplicant.isPending} aria-busy={workbenchCommands.hireApplicant.isPending} onClick={() => workbenchCommands.hireApplicant.mutate({ applicationId: offer.applicationId }, { onSuccess: () => toast({ message: 'تم اعتماد التعيين بنجاح', tone: 'success' }), onError: () => toast({ message: 'تعذر اعتماد التعيين', tone: 'error' }) })}><UserCheck className="size-4" aria-hidden="true" />{workbenchCommands.hireApplicant.isPending ? 'جارٍ…' : 'اعتماد التعيين'}</button> : null}
                     </div>
                   </div>
                 );
