@@ -23,8 +23,16 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
     css: true,
-    pool: 'threads',
+    // pool 'threads' غير المحدود يُفرط في استهلاك موارد هذا الجهاز فيسقط العامل
+    // (worker timeout / semi-space OOM) ويتخطى ملفات اختبار بصمت. الحل: forks
+    // مع عدد عمّال محدود + رفع كومة V8 صراحةً عبر execArgv (خيار علوي في Vitest 4،
+    // إذ NODE_OPTIONS لا يتوارث عبر npm→vitest→worker).
+    pool: 'forks',
+    maxWorkers: 2,
+    execArgv: ['--max-old-space-size=3072'],
     testTimeout: 30_000,
+    hookTimeout: 30_000,
+    teardownTimeout: 30_000,
     exclude: ['e2e/**', 'node_modules/**', '**/.claude/worktrees/**'],
     server: { deps: { inline: ['react-router-dom', 'react-router'] } },
   },
