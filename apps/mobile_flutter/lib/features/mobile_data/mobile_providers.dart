@@ -924,7 +924,8 @@ class MobileCommands {
               'p_accuracy_meters': position.accuracy,
               'p_is_mock': position.isMocked,
             },
-          ),
+          )
+          .timeout(const Duration(seconds: 20)),
     );
     ref.invalidate(attendanceStateProvider);
     ref.invalidate(myAttendanceHistoryProvider);
