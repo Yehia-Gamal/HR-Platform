@@ -1,6 +1,7 @@
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/dispute_shared_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -10,36 +11,7 @@ import 'package:intl/intl.dart';
 class ExecutiveDisputesPage extends ConsumerWidget {
   const ExecutiveDisputesPage({super.key});
 
-  static const _actionLabels = <String, String>{
-    'verbal_warning': 'إنذار شفهي',
-    'written_warning': 'إنذار كتابي',
-    'final_warning': 'إنذار نهائي',
-    'salary_deduction': 'خصم من الراتب',
-    'suspension': 'إيقاف عن العمل',
-    'demotion': 'تخفيض الدرجة',
-    'termination': 'إنهاء الخدمة',
-    'transfer': 'نقل',
-    'training_requirement': 'تدريب إلزامي',
-    'no_action': 'لا إجراء',
-  };
-
-  static const _severityLabels = <String, String>{
-    'critical': 'حرجة',
-    'urgent': 'عاجلة',
-    'high': 'عالية',
-    'medium': 'متوسطة',
-    'low': 'منخفضة',
-    'normal': 'عادية',
-  };
-
-  static const _severityColors = <String, Color>{
-    'critical': Color(0xFFD32F2F),
-    'urgent': Color(0xFFF57C00),
-    'high': Color(0xFFFFA000),
-    'medium': Color(0xFF1976D2),
-    'low': Color(0xFF388E3C),
-    'normal': Color(0xFF757575),
-  };
+  // ── التسميات والألوان في DisputeLabels (dispute_shared_labels.dart) ──────
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -194,7 +166,7 @@ class ExecutiveDisputesPage extends ConsumerWidget {
               _infoRow(context, 'الحالة', _statusLabel(c.status)),
               if (c.approvedAdminAction != null)
                 _infoRow(context, 'الإجراء المعتمد',
-                    _actionLabels[c.approvedAdminAction] ?? c.approvedAdminAction!),
+                    DisputeLabels.actionLabels[c.approvedAdminAction] ?? c.approvedAdminAction!),
               if (c.approvedActionDetail != null)
                 _infoRow(context, 'التفاصيل', c.approvedActionDetail!),
               if (c.executiveDecisionAt != null)
@@ -408,8 +380,8 @@ class _DecisionSheetState extends ConsumerState<_DecisionSheet> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      ExecutiveDisputesPage
-                              ._actionLabels[c.proposedAdminAction] ??
+                      DisputeLabels
+                              .actionLabels[c.proposedAdminAction] ??
                           c.proposedAdminAction ??
                           '—',
                       style: theme.textTheme.titleMedium
@@ -458,7 +430,7 @@ class _DecisionSheetState extends ConsumerState<_DecisionSheet> {
                   labelText: 'الإجراء البديل',
                   border: OutlineInputBorder(),
                 ),
-                items: ExecutiveDisputesPage._actionLabels.entries
+                items: DisputeLabels.actionLabels.entries
                     .map((e) =>
                         DropdownMenuItem(value: e.key, child: Text(e.value)))
                     .toList(),
@@ -633,12 +605,11 @@ class _AdminActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final actionLabel = ExecutiveDisputesPage
-            ._actionLabels[dispute.proposedAdminAction] ??
+    final actionLabel = DisputeLabels
+            .actionLabels[dispute.proposedAdminAction] ??
         dispute.proposedAdminAction ??
         '';
-    final severity = ExecutiveDisputesPage._severityColors[dispute.severity] ??
-        Colors.grey;
+    final severity = DisputeLabels.severityColor(dispute.severity);
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
@@ -679,8 +650,7 @@ class _AdminActionCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                        ExecutiveDisputesPage._severityLabels[dispute.severity] ??
-                            dispute.severity,
+                        DisputeLabels.severityLabel(dispute.severity),
                         style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -730,7 +700,7 @@ class _TrackingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isExecuted = dispute.status == 'executed';
-    final actionLabel = ExecutiveDisputesPage._actionLabels[
+    final actionLabel = DisputeLabels.actionLabels[
             dispute.approvedAdminAction ?? dispute.proposedAdminAction] ??
         '—';
     return Card(
