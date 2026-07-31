@@ -61,8 +61,9 @@
 | 0244 | `0244_production_observability_cron_health.sql` | مراقبة الإنتاج + صحة cron. |
 | 0245 | `0245_secdef_cross_employee_authz.sql` | حراس صلاحية على دوال SECURITY DEFINER عابرة للموظفين (get_employee_departments…). |
 | 0246 | `0246_fix_auth_admin_execute_handle_new_user.sql` | إصلاح EXECUTE لـ handle_new_user (auth admin). |
-| 0247 | `0247_admin_panel_rpc_capability_guards.sql` | **P0**: إضافة فحص الصلاحية داخل RPCs لوحة الإدارة (get_audit_security_data / get_operations_center_data / get_integration_center_data / get_employee_photo_url) — كانت تُسرّب بيانات النظام لأي موظف مسجّل رغم أن 0227 سحب anon فقط. الحارس يطابق سياسات RLS في 0011. اختبار pgTAP: `0088_admin_panel_rpc_authz.sql`. |
+| 0247 | `0247_harden_cron_http_header_json.sql` | تقوية ترويسة HTTP (JSON) لمهام cron. |
+| 0248 | `0248_admin_panel_rpc_capability_guards.sql` | **P0**: إضافة فحص الصلاحية داخل RPCs لوحة الإدارة (get_audit_security_data / get_operations_center_data / get_integration_center_data / get_employee_photo_url) — كانت تُسرّب بيانات النظام لأي موظف مسجّل رغم أن 0227 سحب anon فقط. الحارس يطابق سياسات RLS في 0011. اختبار pgTAP: `0090_admin_panel_rpc_authz.sql`. |
 
 ---
 
-> ✅ **الحالة:** سلسلة متصلة — 0001 → 0247 — بلا تكرار ولا فجوات نشطة.
+> ✅ **الحالة:** سلسلة متصلة — 0001 → 0248 — بلا تكرار ولا فجوات نشطة.
