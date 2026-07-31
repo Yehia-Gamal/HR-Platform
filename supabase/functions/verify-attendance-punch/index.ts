@@ -217,10 +217,12 @@ Deno.serve(async (req) => {
       },
     });
   } catch (error) {
-    // استخراج الـ origin الفعلي من clientDataJSON لتسهيل التشخيص
+    // استخراج الـ origin الفعلي من clientDataJSON لتسهيل التشخيص.
+    // في استجابة المصادقة يكون clientDataJSON داخل response.response
     let actualOrigin = "unknown";
     try {
-      const cdj = (response as Record<string, unknown>).clientDataJSON;
+      const inner = (response as Record<string, unknown>).response as Record<string, unknown> | undefined;
+      const cdj = inner?.clientDataJSON ?? (response as Record<string, unknown>).clientDataJSON;
       if (typeof cdj === "string") {
         let src = cdj.replace(/-/g, "+").replace(/_/g, "/");
         src += "=".repeat((4 - src.length % 4) % 4);
