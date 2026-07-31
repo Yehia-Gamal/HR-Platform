@@ -262,7 +262,7 @@ Deno.serve(async (req) => {
     if (isDuplicateError(createError)) {
       return json(req, { error: "account_already_exists" }, 409);
     }
-    return json(req, { error: "account_create_failed", _debug: { msg: createError?.message, status: (createError as { status?: number })?.status, keyPrefix: SERVICE_ROLE.substring(0, 15), urlPrefix: SUPABASE_URL.substring(0, 30) } }, 500);
+    return json(req, { error: "account_create_failed" }, 500);
   }
 
   const userId = created.user.id;
