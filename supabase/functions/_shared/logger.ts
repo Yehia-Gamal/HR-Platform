@@ -53,7 +53,15 @@ export interface LogEntry {
 /** مفاتيح تُعد PII وتُجزّأ تلقائياً إن مرّرها المستدعي ضمن data. */
 const PII_KEYS = new Set(["employeeId", "userId", "employee_id", "user_id", "email", "phone"]);
 
-/** يستبدل أي مفتاح PII في كائن الـ data برمز ربط مجزّأ بدل القيمة الخام. */
+/** يستبدل أي مفتاح PII برمز ربط مجزّأ — يشمل الكائنات والمصفوفات المتداخلة. */
+function sanitizeValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sanitizeValue);
+  if (value !== null && typeof value === "object") {
+    return sanitizeExtra(value as Record<string, unknown>);
+  }
+  return value;
+}
+
 function sanitizeExtra(extra?: Record<string, unknown>): Record<string, unknown> | undefined {
   if (!extra) return undefined;
   const out: Record<string, unknown> = {};
@@ -61,7 +69,7 @@ function sanitizeExtra(extra?: Record<string, unknown>): Record<string, unknown>
     if (PII_KEYS.has(key)) {
       if (value != null) out[`${key}_ref`] = correlationToken(String(value));
     } else {
-      out[key] = value;
+      out[key] = sanitizeValue(value);
     }
   }
   return out;
@@ -91,11 +99,24 @@ class Logger {
     if (this.ctx.employeeId) entry.employee_ref = correlationToken(this.ctx.employeeId);
     if (this.ctx.userId) entry.user_ref = correlationToken(this.ctx.userId);
 
-    if (error instanceof Error) {
-      entry.error_name = error.name;
-      entry.error_message = error.message;
-      if (this.env !== "production") {
-        entry.error_stack = error.stack?.split("\n").slice(0, 5).join("\n");
+    if (error != null) {
+      const isProd = this.env === "production";
+      if (error instanceof Error) {
+        entry.error_name = error.name;
+        entry.error_message = error.message;
+        if (!isProd) {
+          entry.error_stack = error.stack?.split("\n").slice(0, 5).join("\n");
+        }
+      } else if (typeof error === "object") {
+        // أخطاء Supabase/PostgREST كائنات عادية {code, message, details} — نلتقط الكود
+        // (غير حساس) دائماً، ونكتم الرسالة الخام في الإنتاج لأنها قد تحمل PII.
+        const e = error as { code?: unknown; message?: unknown };
+        if (e.code != null) entry.error_name = String(e.code);
+        if (e.message != null) {
+          entry.error_message = isProd ? "[redacted-nonprod-only]" : String(e.message);
+        }
+      } else {
+        entry.error_message = isProd ? "[redacted-nonprod-only]" : String(error);
       }
     }
 

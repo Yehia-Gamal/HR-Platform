@@ -9,11 +9,14 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { attachAuthObservability } from '../../core/authObservability';
 import { env, hasSupabaseConfig } from '../../core/env';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { getSupabase } from '../../core/supabase';
 import { loadAccessContext } from './accessService';
 import { mockContexts, type MockPersona } from './mockContexts';
+
+const authObservability = attachAuthObservability();
 
 type AuthStatus = 'loading' | 'anonymous' | 'authenticated';
 
@@ -65,6 +68,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       // تسجيل المستمع أولاً — يجب أن يكون نشطاً دائماً بغض النظر عن وجود جلسة أولية
       const { data: listener } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
         if (!active) return;
+        authObservability.onAuthChange(event, nextSession?.user.id ?? null);
         setSession(nextSession);
         if (!nextSession) {
           setAccess(null);

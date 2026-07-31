@@ -12,8 +12,10 @@ const _months = [
   'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
 ];
 
-// رؤوس أيام الأسبوع (يبدأ بالسبت — معيار المؤسسة)
-const _weekDayHeaders = ['سبت', 'أحد', 'إثن', 'ثلا', 'أرب', 'خمي', 'جمع'];
+// رؤوس أيام الأسبوع كاملة (يبدأ بالسبت — معيار المؤسسة)
+const _weekDayHeaders = [
+  'السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة',
+];
 
 /// كشف الحضور والانصراف الشهري — للموظف عن نفسه (V12 §18).
 class MonthlyAttendanceStatementPage extends ConsumerStatefulWidget {
@@ -549,11 +551,15 @@ class _MonthlyCalendarGrid extends StatelessWidget {
                 child: Center(
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(h, style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: scheme.onSurfaceVariant,
-                    )),
+                    child: Text(h,
+                        maxLines: 1,
+                        overflow: TextOverflow.clip,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0,
+                          color: scheme.onSurfaceVariant,
+                        )),
                   ),
                 ),
               )).toList(),
@@ -614,96 +620,187 @@ class _CalendarDayCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final (bg, fg, IconData? icon) = _resolveStyle(scheme);
+    final style = _resolveStyle(scheme);
 
     return Semantics(
       button: true,
       label: 'يوم $dayNum${dayData?.status != null ? " - ${dayData!.status}" : ""}',
       child: GestureDetector(
         onTap: () => _showDayDetail(context),
-        child: Container(
-        height: 48,
-        margin: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(10),
-          border: isToday
-              ? Border.all(color: scheme.primary, width: 2.5)
-              : null,
-          boxShadow: isToday
-              ? [BoxShadow(color: scheme.primary.withValues(alpha: .2), blurRadius: 6)]
-              : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: 56,
+          margin: const EdgeInsets.all(1.5),
+          decoration: BoxDecoration(
+            color: style.bg,
+            borderRadius: BorderRadius.circular(12),
+            border: isToday
+                ? Border.all(color: style.accent, width: 2.5)
+                : Border.all(color: style.accent.withValues(alpha: .25)),
+            boxShadow: isToday
+                ? [
+                    BoxShadow(
+                      color: style.accent.withValues(alpha: .3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // رقم اليوم — داخل دائرة ممتلئة لليوم الحالي
+              if (isToday)
+                Container(
+                  width: 28,
+                  height: 28,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: style.accent,
+                  ),
+                  child: Text(
+                    '$dayNum',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      height: 1,
+                    ),
+                  ),
+                )
+              else
+                Text(
+                  '$dayNum',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: style.fg,
+                    height: 1.1,
+                  ),
+                ),
+              const SizedBox(height: 4),
+              // نقطة الحالة الملوّنة (بدل الأيقونة الصغيرة)
+              if (style.dot != null)
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: style.dot,
+                  ),
+                )
+              else
+                const SizedBox(height: 6),
+            ],
+          ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '$dayNum',
-              style: TextStyle(
-                fontSize: isToday ? 16 : 14,
-                fontWeight: isToday ? FontWeight.w900 : FontWeight.w600,
-                color: fg,
-              ),
-            ),
-            if (icon != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 1),
-                child: Icon(icon, size: 10, color: fg),
-              ),
-          ],
-        ),
-      ),
       ),
     );
   }
 
-  /// ألوان وأيقونة الخلية حسب الحالة
-  (Color bg, Color fg, IconData? icon) _resolveStyle(ColorScheme scheme) {
-    // أيام مستقبلية — مظللة بدون حالة
+  /// هوية لونية موحّدة لكل حالة: خلفية فاتحة + نص داكن + لون مميّز (حدود/دائرة اليوم) + نقطة صغيرة
+  ({Color bg, Color fg, Color accent, Color? dot}) _resolveStyle(
+      ColorScheme scheme) {
+    // أيام مستقبلية — مظلّلة بهدوء بدون أي حالة
     if (isFuture) {
       return (
-        scheme.surfaceContainerHighest.withValues(alpha: .4),
-        scheme.onSurface.withValues(alpha: .3),
-        null,
+        bg: scheme.surfaceContainerLow,
+        fg: scheme.onSurface.withValues(alpha: .25),
+        accent: scheme.surfaceContainerLow,
+        dot: null,
       );
     }
     if (dayData == null) {
-      return (scheme.surfaceContainerHighest, scheme.onSurfaceVariant, null);
+      return (
+        bg: scheme.surfaceContainerLow,
+        fg: scheme.onSurfaceVariant.withValues(alpha: .5),
+        accent: scheme.surfaceContainerLow,
+        dot: null,
+      );
     }
-    final status = dayData!.status;
-    // حاضر
-    if (status == 'حاضر') {
-      return (const Color(0xFFE8F5E9), const Color(0xFF2E7D32), Icons.check);
-    }
-    // غائب
+    final d = dayData!;
+    final status = d.status;
+    // غائب دون إذن — أحمر
     if (status == 'غائب دون إذن') {
-      return (const Color(0xFFFFEBEE), const Color(0xFFC62828), Icons.close);
+      return (
+        bg: const Color(0xFFFDECEA),
+        fg: const Color(0xFFBA1A1A),
+        accent: const Color(0xFFDC3D4B),
+        dot: const Color(0xFFDC3D4B),
+      );
     }
-    // يحتاج مراجعة
+    // يحتاج مراجعة — كهرمان
     if (status == 'يحتاج مراجعة') {
-      return (const Color(0xFFFFF3E0), const Color(0xFFE65100), Icons.priority_high);
+      return (
+        bg: const Color(0xFFFFF4E5),
+        fg: const Color(0xFF9A5B00),
+        accent: const Color(0xFFF59E0B),
+        dot: const Color(0xFFF59E0B),
+      );
     }
-    // إجازة
-    if (dayData!.hasLeave) {
-      return (const Color(0xFFE8EAF6), const Color(0xFF3949AB), Icons.beach_access);
+    // إجازة — نيلي
+    if (d.hasLeave) {
+      return (
+        bg: const Color(0xFFEEF0FB),
+        fg: const Color(0xFF3D4FA8),
+        accent: const Color(0xFF6366F1),
+        dot: const Color(0xFF6366F1),
+      );
     }
-    // مأمورية
-    if (dayData!.hasMission) {
-      return (const Color(0xFFE0F7FA), const Color(0xFF00838F), Icons.directions_car);
+    // مأمورية — سماوي
+    if (d.hasMission) {
+      return (
+        bg: const Color(0xFFE5F6FB),
+        fg: const Color(0xFF0B6B80),
+        accent: const Color(0xFF0EA5E9),
+        dot: const Color(0xFF0EA5E9),
+      );
     }
-    // قافلة/فاندي
-    if (dayData!.hasConvoyFundi) {
-      return (const Color(0xFFF3E5F5), const Color(0xFF6A1B9A), Icons.groups);
+    // قافلة/فاندي — بنفسجي
+    if (d.hasConvoyFundi) {
+      return (
+        bg: const Color(0xFFF4ECF8),
+        fg: const Color(0xFF6D3FA0),
+        accent: const Color(0xFF8B5CF6),
+        dot: const Color(0xFF8B5CF6),
+      );
     }
-    // عطلة رسمية
+    // عطلة رسمية — بنفسجي باهت بدون نقطة
     if (status == 'عطلة رسمية') {
-      return (const Color(0xFFF3E5F5), const Color(0xFF7B1FA2), null);
+      return (
+        bg: const Color(0xFFF4ECF8),
+        fg: const Color(0xFF8A6BB5),
+        accent: const Color(0xFFDCCBEE),
+        dot: null,
+      );
     }
-    // راحة أسبوعية
+    // راحة أسبوعية — رمادي مزرقّ بدون نقطة
     if (status == 'راحة' || status == 'راحة أسبوعية') {
-      return (const Color(0xFFECEFF1), const Color(0xFF546E7A), null);
+      return (
+        bg: const Color(0xFFF4F6F7),
+        fg: const Color(0xFF90A0A8),
+        accent: const Color(0xFFE1E7EA),
+        dot: null,
+      );
     }
-    return (scheme.surfaceContainerHighest, scheme.onSurfaceVariant, null);
+    // حاضر — أخضر (ومؤشر تأخير كهرماني إن وُجد)
+    if (status == 'حاضر') {
+      final late = d.lateMinutes > 0;
+      return (
+        bg: late ? const Color(0xFFFFF9E9) : const Color(0xFFE9F7F0),
+        fg: late ? const Color(0xFF9A5B00) : const Color(0xFF15734F),
+        accent: late ? const Color(0xFFF59E0B) : const Color(0xFF0F9F6E),
+        dot: late ? const Color(0xFFF59E0B) : const Color(0xFF0F9F6E),
+      );
+    }
+    return (
+      bg: scheme.surfaceContainerHighest,
+      fg: scheme.onSurfaceVariant,
+      accent: scheme.outlineVariant.withValues(alpha: .4),
+      dot: null,
+    );
   }
 
   void _showDayDetail(BuildContext context) {
@@ -793,7 +890,7 @@ class _DayDetailSheet extends ConsumerWidget {
                   ),
                 Expanded(
                   child: Text(
-                    '${day?.dayNameAr ?? _arabicDayName} $_dateStr',
+                    '$_dayNameFull $_dateStr',
                     style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
                   ),
                 ),
@@ -937,10 +1034,15 @@ class _DayDetailSheet extends ConsumerWidget {
     return 'unregistered';
   }
 
-  String get _arabicDayName {
-    final dt = DateTime(year, month, dayNum);
-    const names = ['الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
-    return names[dt.weekday - 1];
+  /// اسم اليوم كاملاً — من الـ backend، أو احتياطي محلي مضبوط على weekday الصحيح
+  String get _dayNameFull {
+    final fromServer = day?.dayNameAr.trim() ?? '';
+    if (fromServer.isNotEmpty) return fromServer;
+    const names = {
+      1: 'الاثنين', 2: 'الثلاثاء', 3: 'الأربعاء', 4: 'الخميس',
+      5: 'الجمعة', 6: 'السبت', 7: 'الأحد',
+    };
+    return names[DateTime(year, month, dayNum).weekday] ?? '';
   }
 
   bool get _hasDetails => day != null && (

@@ -28,12 +28,8 @@ export default defineConfig({
     // انتهاء مهلة بدء الـ worker (Timeout waiting for worker to respond) رغم نجاح
     // كل الاختبارات — نستخدم forks (بدء أكثر موثوقية من threads تحت ضغط الذاكرة)
     // مع تقييد التزامن، ونمنح البدء/الإنهاء مهلة أطول للاستقرار.
-    poolOptions: {
-      forks: {
-        minForks: 1,
-        maxForks: 3,
-      },
-    },
+    // Vitest 4: maxWorkers أصبح خيارًا علويًا بدل poolOptions.
+    maxWorkers: 3,
     testTimeout: 30_000,
     hookTimeout: 30_000,
     teardownTimeout: 30_000,

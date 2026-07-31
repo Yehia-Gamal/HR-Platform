@@ -51,4 +51,15 @@ if __name__ == "__main__":
         print(f"Running query ({len(sql)} chars)...")
 
     result = run_query(sql)
-    print(json.dumps(result, indent=2, ensure_ascii=False))
+    out = json.dumps(result, indent=2, ensure_ascii=False)
+    out_file = os.environ.get("QUERY_OUT_FILE")
+    if out_file:
+        with open(out_file, "w", encoding="utf-8") as f:
+            f.write(out)
+        print(f"Wrote {len(out)} chars to {out_file}")
+    else:
+        try:
+            print(out)
+        except UnicodeEncodeError:
+            sys.stdout.buffer.write(out.encode("utf-8"))
+            sys.stdout.buffer.write(b"\n")

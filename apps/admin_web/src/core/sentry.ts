@@ -185,14 +185,29 @@ export async function initWebVitals(): Promise<void> {
 function sanitizeVariables(vars: unknown): unknown {
   if (vars === null || vars === undefined || typeof vars !== 'object') return vars;
   try {
-    const clone = JSON.parse(JSON.stringify(vars)) as Record<string, unknown>;
-    const sensitiveKeys = ['password', 'token', 'secret', 'key', 'authorization', 'credential'];
-    for (const key of Object.keys(clone)) {
-      if (sensitiveKeys.some(s => key.toLowerCase().includes(s))) {
-        clone[key] = '[REDACTED]';
+    const clone = JSON.parse(JSON.stringify(vars)) as unknown;
+    // مفاتيح حساسة (أسرار) + مفاتيح PII (أسماء/هواتف/بريد/هوية) — تُنقّح على كل
+    // مستويات التداخل، لأن طفرات الموظفين تمرّر PII داخل كائن changes متداخل.
+    const redactKeys = [
+      'password', 'token', 'secret', 'key', 'authorization', 'credential',
+      'name', 'email', 'phone', 'national', 'iban', 'address',
+    ];
+    const scrub = (value: unknown): unknown => {
+      if (Array.isArray(value)) return value.map(scrub);
+      if (value !== null && typeof value === 'object') {
+        const obj = value as Record<string, unknown>;
+        for (const key of Object.keys(obj)) {
+          if (redactKeys.some(s => key.toLowerCase().includes(s))) {
+            obj[key] = '[REDACTED]';
+          } else {
+            obj[key] = scrub(obj[key]);
+          }
+        }
+        return obj;
       }
-    }
-    return clone;
+      return value;
+    };
+    return scrub(clone);
   } catch {
     return '[unserializable]';
   }

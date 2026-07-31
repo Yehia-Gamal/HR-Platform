@@ -37,6 +37,8 @@ as $$
     when lower(ltrim(p_value)) ~ '^(data|file|javascript|blob|vbscript|about|filesystem):' then false
     -- رفض أي مخطط غير https (نسمح فقط بـ https المطلق)
     when p_value ~ '^[a-zA-Z][a-zA-Z0-9+.-]*:' and lower(ltrim(p_value)) !~ '^https://' then false
+    -- رفض الروابط بلا-مخطط (//host) و UNC (\\host) — تُحلّ لمضيف خارجي على صفحة https
+    when ltrim(p_value) ~ '^(//|\\\\)' then false
     -- منع اجتياز المسار في المسارات النسبية
     when p_value ~ '(^|/)\.\.(/|$)' then false
     else true

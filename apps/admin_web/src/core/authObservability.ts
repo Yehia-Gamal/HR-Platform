@@ -2,7 +2,7 @@
 // Hooks AuthProvider state transitions into Sentry (user context + auth breadcrumbs).
 // Indirectly imported via AuthProvider to keep bundle impact minimal when DSN absent.
 
-import { addBreadcrumb, setUserContext, clearUserContext } from "../../core/sentry";
+import { addBreadcrumb, setUserContext, clearUserContext } from './sentry';
 
 export function attachAuthObservability(): {
   onAuthChange(event: string, userId: string | null, role?: string): void;
