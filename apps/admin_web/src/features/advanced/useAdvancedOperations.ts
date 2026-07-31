@@ -17,14 +17,12 @@ export function useAttendanceOperations(month: string) {
 
 export function useAttendanceOperationsCommands() {
   const auth = useAuth(); const client = useQueryClient();
-  const mutate = (name: string) => useMutation({ mutationFn: async (params: Record<string, unknown>) => auth.isMock ? params : rpc(name, params), onSuccess: () => client.invalidateQueries({ queryKey: ['attendance-operations'] }) });
-  return {
-    saveShift: mutate('save_shift_admin'),
-    decideCorrection: mutate('decide_attendance_correction'),
-    decideOvertime: mutate('decide_overtime_record'),
-    closePeriod: mutate('close_attendance_period'),
-    unlockPeriod: mutate('unlock_attendance_period'),
-  };
+  const saveShift = useMutation({ mutationFn: async (params: Record<string, unknown>) => auth.isMock ? params : rpc('save_shift_admin', params), onSuccess: () => client.invalidateQueries({ queryKey: ['attendance-operations'] }) });
+  const decideCorrection = useMutation({ mutationFn: async (params: Record<string, unknown>) => auth.isMock ? params : rpc('decide_attendance_correction', params), onSuccess: () => client.invalidateQueries({ queryKey: ['attendance-operations'] }) });
+  const decideOvertime = useMutation({ mutationFn: async (params: Record<string, unknown>) => auth.isMock ? params : rpc('decide_overtime_record', params), onSuccess: () => client.invalidateQueries({ queryKey: ['attendance-operations'] }) });
+  const closePeriod = useMutation({ mutationFn: async (params: Record<string, unknown>) => auth.isMock ? params : rpc('close_attendance_period', params), onSuccess: () => client.invalidateQueries({ queryKey: ['attendance-operations'] }) });
+  const unlockPeriod = useMutation({ mutationFn: async (params: Record<string, unknown>) => auth.isMock ? params : rpc('unlock_attendance_period', params), onSuccess: () => client.invalidateQueries({ queryKey: ['attendance-operations'] }) });
+  return { saveShift, decideCorrection, decideOvertime, closePeriod, unlockPeriod };
 }
 
 export function useKpiAdmin(month: string) {

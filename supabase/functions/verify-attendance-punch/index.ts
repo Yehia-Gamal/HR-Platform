@@ -69,6 +69,25 @@ Deno.serve(async (req) => {
   if (profileError) return json(req, { error: "profile_lookup_failed" }, 500);
   if (!profile?.employee_id) return json(req, { error: "no_employee_linked" }, 403);
 
+  // Rate limit: 6 distinct punch operations per 60s per employee. Normal usage
+  // is 2/day (check-in + check-out); the headroom covers legitimate transport
+  // retries, which reuse the same operation_id and so are NOT counted twice.
+  // Counts only requests that reached finalize_verified_attendance (rows are
+  // inserted there), not pre-finalize failures — the WebAuthn verify path is
+  // guarded upstream by the per-user webauthn-challenge limit (20/min).
+  {
+    const rlWindow = new Date(Date.now() - 60_000).toISOString();
+    const { count: rlCount, error: rlError } = await admin
+      .from("attendance_punch_attempts")
+      .select("operation_id", { count: "exact", head: true })
+      .eq("employee_id", profile.employee_id)
+      .gte("created_at", rlWindow);
+    if (rlError) return json(req, { error: "rate_limit_check_failed" }, 500);
+    if ((rlCount ?? 0) >= 6) {
+      return json(req, { error: "too_many_attempts", retryAfterSeconds: 60 }, 429);
+    }
+  }
+
   let input: Record<string, unknown>;
   try {
     input = await req.json();

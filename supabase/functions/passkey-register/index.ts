@@ -43,6 +43,23 @@ Deno.serve(async (req) => {
   if (profileError) return json(req, { error: "profile_lookup_failed" }, 500);
   if (!profile?.employee_id) return json(req, { error: "no_employee_linked" }, 403);
 
+  // Rate limit: 5 successful passkey registrations per user per 5 minutes.
+  // Rows land here only on success (via activate_verified_passkey_device), so
+  // this is a defense-in-depth cap on mass device enrollment from a hijacked
+  // session — not a verify-flood throttle. Flooding of the verify path is
+  // already bounded upstream by the webauthn-challenge issuance limit (20/min)
+  // plus the valid-unused-unexpired-challenge + WebAuthn verification gate.
+  const rlWindow = new Date(Date.now() - 5 * 60_000).toISOString();
+  const { count: recentRegistrations, error: rlError } = await admin
+    .from("passkey_credentials")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userData.user.id)
+    .gte("created_at", rlWindow);
+  if (rlError) return json(req, { error: "rate_limit_check_failed" }, 500);
+  if ((recentRegistrations ?? 0) >= 5) {
+    return json(req, { error: "too_many_attempts", retryAfterSeconds: 300 }, 429);
+  }
+
   let input: Record<string, unknown>;
   try {
     input = await req.json();
