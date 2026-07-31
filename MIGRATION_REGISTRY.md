@@ -49,7 +49,20 @@
 |---|---|---|
 | 0233 | `0233_critical_cron_consolidation.sql` | جدولة موحدة idempotent للمهام الحرجة + فحص صحي يومي + تنبيهات `system_alerts` عند الفقد. |
 | 0234 | `0234_revoke_remaining_internal_rpcs.sql` | (موجود) التشديد الأمني على RPC الداخلية. |
+| 0235 | `0235_validate_storage_paths_and_urls.sql` | تحقق من مسارات/روابط التخزين (منع data:/file:/traversal). |
+| 0236 | `0236_finalize_attendance_selfie_path_scope.sql` | تثبيت نطاق مسار selfie الحضور. |
+| 0237 | `0237_fix_work_assignments_rls_recursion.sql` | إصلاح تكرار RLS (42P17) على work_assignments. |
+| 0238 | `0238_batch_size_limits_dos_hardening.sql` | حدود حجم الدفعات (batch) لتقليل مخاطر الإرهاق. |
+| 0239 | `0239_fix_finalize_selfie_nul_check.sql` | إصلاح فحص NUL في مسار selfie عند الإنهاء. |
+| 0240 | `0240_admin_reinstate_device.sql` | إعادة تفعيل جهاز بواسطة المسؤول. |
+| 0241 | `0241_device_reinstate_and_reregister_fix.sql` | إصلاح إعادة التفعيل/إعادة التسجيل للأجهزة. |
+| 0242 | `0242_repair_runtime_rpcs_and_cron_health.sql` | إصلاح RPCs التشغيلية + صحة cron. |
+| 0243 | `0243_validate_announcement_and_kpi_evidence_urls.sql` | تحقق من روابط الإعلانات وأدلة KPI. |
+| 0244 | `0244_production_observability_cron_health.sql` | مراقبة الإنتاج + صحة cron. |
+| 0245 | `0245_secdef_cross_employee_authz.sql` | حراس صلاحية على دوال SECURITY DEFINER عابرة للموظفين (get_employee_departments…). |
+| 0246 | `0246_fix_auth_admin_execute_handle_new_user.sql` | إصلاح EXECUTE لـ handle_new_user (auth admin). |
+| 0247 | `0247_admin_panel_rpc_capability_guards.sql` | **P0**: إضافة فحص الصلاحية داخل RPCs لوحة الإدارة (get_audit_security_data / get_operations_center_data / get_integration_center_data / get_employee_photo_url) — كانت تُسرّب بيانات النظام لأي موظف مسجّل رغم أن 0227 سحب anon فقط. الحارس يطابق سياسات RLS في 0011. اختبار pgTAP: `0088_admin_panel_rpc_authz.sql`. |
 
 ---
 
-> ✅ **الحالة:** سلسلة متصلة — 0001 → 0234 — بلا تكرار ولا فجوات نشطة.
+> ✅ **الحالة:** سلسلة متصلة — 0001 → 0247 — بلا تكرار ولا فجوات نشطة.
