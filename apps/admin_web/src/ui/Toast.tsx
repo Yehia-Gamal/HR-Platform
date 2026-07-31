@@ -20,6 +20,23 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
+/* ───────────── جسر خارج React لـ MutationCache ─────────────
+ * يسمح لكود خارج شجرة React (مثل MutationCache) بإطلاق الإشعارات.
+ * يشترك ToastProvider عند التركيب ويُلغي الاشتراك عند الإزالة. */
+type ToastEmitter = (options: ToastOptions) => void;
+let toastEmitter: ToastEmitter | null = null;
+
+export function subscribeToastEmitter(emitter: ToastEmitter): () => void {
+  toastEmitter = emitter;
+  return () => {
+    if (toastEmitter === emitter) toastEmitter = null;
+  };
+}
+
+export function emitToast(options: ToastOptions): void {
+  toastEmitter?.(options);
+}
+
 const MAX_VISIBLE = 3;
 const DEFAULT_DURATION = 4000;
 const EXIT_MS = 300;
@@ -104,6 +121,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const remove = useCallback((id: number) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
+
+  // ربط الجسر الخارجي بـ MutationCache طوال عمر المزوّد
+  useEffect(() => subscribeToastEmitter(toast), [toast]);
 
   // عرض أول MAX_VISIBLE فقط — الباقي في الطابور
   const visible = toasts.slice(0, MAX_VISIBLE);
