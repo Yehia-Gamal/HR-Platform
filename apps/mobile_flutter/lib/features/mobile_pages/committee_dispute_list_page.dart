@@ -13,18 +13,7 @@ import 'package:intl/intl.dart';
 class CommitteeDisputeListPage extends ConsumerWidget {
   const CommitteeDisputeListPage({super.key});
 
-  static const _actionLabels = <String, String>{
-    'verbal_warning': 'إنذار شفهي',
-    'written_warning': 'إنذار كتابي',
-    'final_warning': 'إنذار نهائي',
-    'salary_deduction': 'خصم من الراتب',
-    'suspension': 'إيقاف عن العمل',
-    'demotion': 'تخفيض الدرجة',
-    'termination': 'إنهاء الخدمة',
-    'transfer': 'نقل',
-    'training_requirement': 'تدريب إلزامي',
-    'no_action': 'لا إجراء',
-  };
+  // ── التسميات في DisputeLabels (dispute_shared_labels.dart) ──
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -389,8 +378,8 @@ class _CaseCard extends StatelessWidget {
                             color: theme.colorScheme.onSurfaceVariant)),
                     Expanded(
                       child: Text(
-                        CommitteeDisputeListPage
-                                ._actionLabels[c.proposedAdminAction] ??
+                        DisputeLabels
+                                .actionLabels[c.proposedAdminAction] ??
                             c.proposedAdminAction!,
                         style: TextStyle(
                             fontSize: 12,
@@ -606,8 +595,8 @@ class _CaseDetailSheet extends ConsumerWidget {
                   _detailRow(
                       context,
                       'المقترح',
-                      CommitteeDisputeListPage
-                              ._actionLabels[c.proposedAdminAction] ??
+                      DisputeLabels
+                              .actionLabels[c.proposedAdminAction] ??
                           c.proposedAdminAction!),
                   if (c.proposedActionDetail != null)
                     _detailRow(
@@ -649,8 +638,8 @@ class _CaseDetailSheet extends ConsumerWidget {
                     _detailRow(
                         context,
                         'الإجراء المعتمد',
-                        CommitteeDisputeListPage
-                                ._actionLabels[c.approvedAdminAction] ??
+                        DisputeLabels
+                                .actionLabels[c.approvedAdminAction] ??
                             c.approvedAdminAction!),
                   if (c.approvedActionDetail != null)
                     _detailRow(context, 'تفاصيل الإجراء',
@@ -890,8 +879,8 @@ class _DecisionSheetState extends ConsumerState<_DecisionSheet> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      CommitteeDisputeListPage
-                              ._actionLabels[c.proposedAdminAction] ??
+                      DisputeLabels
+                              .actionLabels[c.proposedAdminAction] ??
                           c.proposedAdminAction ??
                           '—',
                       style: theme.textTheme.titleMedium
@@ -2425,8 +2414,8 @@ class _ExecuteAdminActionSheetState
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      CommitteeDisputeListPage
-                              ._actionLabels[c.approvedAdminAction] ??
+                      DisputeLabels
+                              .actionLabels[c.approvedAdminAction] ??
                           c.approvedAdminAction ??
                           '—',
                       style: theme.textTheme.titleMedium
