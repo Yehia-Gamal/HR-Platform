@@ -23,8 +23,20 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
     css: true,
-    pool: 'threads',
+    pool: 'forks',
+    // على أجهزة محدودة الموارد، إنشاء عدد كبير من الـ workers دفعةً واحدة يسبب
+    // انتهاء مهلة بدء الـ worker (Timeout waiting for worker to respond) رغم نجاح
+    // كل الاختبارات — نستخدم forks (بدء أكثر موثوقية من threads تحت ضغط الذاكرة)
+    // مع تقييد التزامن، ونمنح البدء/الإنهاء مهلة أطول للاستقرار.
+    poolOptions: {
+      forks: {
+        minForks: 1,
+        maxForks: 3,
+      },
+    },
     testTimeout: 30_000,
+    hookTimeout: 30_000,
+    teardownTimeout: 30_000,
     exclude: ['e2e/**', 'node_modules/**', '**/.claude/worktrees/**'],
     server: { deps: { inline: ['react-router-dom', 'react-router'] } },
   },
