@@ -109,6 +109,11 @@ export function OfficialFeedPage() {
   const [kind, setKind] = useState('all');
   const [priority, setPriority] = useState('all');
   const feedForm = useOfficialFeedForm(publish, createDecision);
+  const {
+    mode, setMode, form, setForm, imagePreview, imageUploading, imageError,
+    postType, setPostType, pollOptions, setPollOptions, expiresAt, setExpiresAt,
+    fileInputRef, handleImageSelect, removeImage, submit,
+  } = feedForm;
   const allItems = query.data ?? [];
   const items = useMemo(() => allItems.filter((item) => {
     const queryText = search.trim().toLowerCase();
