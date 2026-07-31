@@ -4,6 +4,7 @@ import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
+import { useToast } from '../../ui/Toast';
 import { SkeletonCard } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { safeErrorMessage } from '../../core/errorMapper';
@@ -16,6 +17,7 @@ function date(value: string | null) {
 }
 
 export function IntegrationsJobsPage() {
+  const { toast } = useToast();
   const query = useIntegrationCenter();
   const commands = useIntegrationCommands();
   const [tab, setTab] = useState<Tab>('connectors');
@@ -65,7 +67,7 @@ export function IntegrationsJobsPage() {
 
       {data && tab === 'connectors' ? (
         <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-          {connectors.map((item) => <article className="card p-5" key={item.id}><div className="flex items-start justify-between gap-3"><span className={`rounded-2xl p-3 ${item.status === 'error' ? 'bg-[var(--danger-soft)] text-[var(--danger)]' : 'bg-[var(--surface-muted)] text-[var(--brand-primary)]'}`}><ServerCog className="size-6" aria-hidden="true" /></span><StatusBadge value={item.status} /></div><h2 className="mt-5 font-black">{item.name}</h2><p className="muted mt-1 text-sm">{item.provider} · {item.category}</p><div className="mt-4 rounded-xl bg-[var(--surface-muted)] p-3 text-xs"><span className="muted">آخر مزامنة</span><strong className="mt-1 block">{date(item.lastSyncAt)}</strong>{item.lastError ? <p className="mt-2 font-bold text-[var(--danger)]">{item.lastError}</p> : null}</div><label className="mt-4 flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[var(--border)] p-3 text-sm font-bold"><span>{item.enabled ? 'الموصل مفعّل' : 'الموصل متوقف'}</span><input type="checkbox" className="size-5 accent-[var(--brand-primary)]" aria-label={`تفعيل الموصل ${item.name}`} checked={item.enabled} disabled={commands.toggle.isPending} onChange={(event) => commands.toggle.mutate({ id: item.id, enabled: event.target.checked })} /></label></article>)}
+          {connectors.map((item) => <article className="card p-5" key={item.id}><div className="flex items-start justify-between gap-3"><span className={`rounded-2xl p-3 ${item.status === 'error' ? 'bg-[var(--danger-soft)] text-[var(--danger)]' : 'bg-[var(--surface-muted)] text-[var(--brand-primary)]'}`}><ServerCog className="size-6" aria-hidden="true" /></span><StatusBadge value={item.status} /></div><h2 className="mt-5 font-black">{item.name}</h2><p className="muted mt-1 text-sm">{item.provider} · {item.category}</p><div className="mt-4 rounded-xl bg-[var(--surface-muted)] p-3 text-xs"><span className="muted">آخر مزامنة</span><strong className="mt-1 block">{date(item.lastSyncAt)}</strong>{item.lastError ? <p className="mt-2 font-bold text-[var(--danger)]">{item.lastError}</p> : null}</div><label className="mt-4 flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[var(--border)] p-3 text-sm font-bold"><span>{item.enabled ? 'الموصل مفعّل' : 'الموصل متوقف'}</span><input type="checkbox" className="size-5 accent-[var(--brand-primary)]" aria-label={`تفعيل الموصل ${item.name}`} checked={item.enabled} disabled={commands.toggle.isPending} onChange={(event) => commands.toggle.mutate({ id: item.id, enabled: event.target.checked }, { onSuccess: () => toast({ message: event.target.checked ? 'تم تفعيل الموصل' : 'تم إيقاف الموصل', tone: 'success' }), onError: () => toast({ message: 'تعذر تغيير حالة الموصل', tone: 'error' }) })} /></label></article>)}
           {!connectors.length ? <div className="lg:col-span-2 xl:col-span-3"><EmptyState title="لا توجد موصلات مطابقة" description="غيّر عبارة البحث أو أضف الموصل من إعدادات البيئة." /></div> : null}
         </section>
       ) : null}

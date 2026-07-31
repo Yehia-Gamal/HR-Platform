@@ -9,6 +9,7 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useKpiAdmin, useKpiAdminCommands } from './useAdvancedOperations';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { useToast } from '../../ui/Toast';
 
 const monthNow = new Date().toISOString().slice(0, 7);
 
@@ -18,6 +19,7 @@ const stageLabels: Record<string, string> = {
 };
 
 export function KpiCyclesPage() {
+  const { toast } = useToast();
   const [month, setMonth] = useState(monthNow);
   const query = useKpiAdmin(month);
   const commands = useKpiAdminCommands();
@@ -43,20 +45,21 @@ export function KpiCyclesPage() {
   const createCycle = async () => {
     if (!data?.officialTemplateId) return;
     const officialDeadline = new Date(`${month}-26T00:00:00+03:00`).toISOString();
-    try { await commands.createCycle.mutateAsync({ p_month: `${month}-01`, p_template_id: data.officialTemplateId, p_self_due: officialDeadline, p_manager_due: officialDeadline, p_secretary_due: officialDeadline, p_executive_due: officialDeadline, p_open_now: false }); } catch { /* isError surfaced by TanStack */ }
+    try { await commands.createCycle.mutateAsync({ p_month: `${month}-01`, p_template_id: data.officialTemplateId, p_self_due: officialDeadline, p_manager_due: officialDeadline, p_secretary_due: officialDeadline, p_executive_due: officialDeadline, p_open_now: false }); toast({ message: 'تم تجهيز الدورة بنجاح', tone: 'success' }); } catch { toast({ message: 'تعذر تجهيز الدورة', tone: 'error' }); }
   };
-  const control = (cycleId: string, action: string, extendedUntil: string | null = null) => commands.manageCycle.mutate({ p_cycle_id: cycleId, p_action: action, p_reason: reason[cycleId], p_extended_until: extendedUntil });
-  const reschedule = (cycleId: string) => commands.rescheduleCycle.mutate({ p_cycle_id: cycleId, p_open_at: new Date(openAt[cycleId]).toISOString(), p_deadline_at: new Date(deadlineAt[cycleId]).toISOString(), p_reason: reason[cycleId] });
+  const control = (cycleId: string, action: string, extendedUntil: string | null = null) => commands.manageCycle.mutate({ p_cycle_id: cycleId, p_action: action, p_reason: reason[cycleId], p_extended_until: extendedUntil }, { onSuccess: () => toast({ message: 'تم تنفيذ الإجراء بنجاح', tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ الإجراء', tone: 'error' }) });
+  const reschedule = (cycleId: string) => commands.rescheduleCycle.mutate({ p_cycle_id: cycleId, p_open_at: new Date(openAt[cycleId]).toISOString(), p_deadline_at: new Date(deadlineAt[cycleId]).toISOString(), p_reason: reason[cycleId] }, { onSuccess: () => toast({ message: 'تم تعديل مواعيد الدورة بنجاح', tone: 'success' }), onError: () => toast({ message: 'تعذر تعديل المواعيد', tone: 'error' }) });
   const downloadReport = async (cycleId: string) => {
     try {
       const report = await commands.getReport.mutateAsync({ p_cycle_id: cycleId }) as { evaluations?: Array<Record<string, unknown>> };
       const rows = report.evaluations ?? [];
       const csv = ['الموظف,الكود,المرحلة,الحالة,النتيجة,التقدير', ...rows.map((row) => [row.employeeName, row.employeeCode, row.stage, row.workflowStatus, row.finalScore, row.finalRating].map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(','))].join('\n');
       const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })); link.download = `kpi-${month}.csv`; link.click(); URL.revokeObjectURL(link.href);
-    } catch { /* isError surfaced by TanStack */ }
+    } catch { toast({ message: 'تعذر تنزيل التقرير', tone: 'error' }); }
   };
-  const sendNotifications = (cycleId: string) => commands.sendNotifications.mutate({ p_cycle_id: cycleId });
-  const savePolicy = () => commands.updatePolicy.mutate({
+  const sendNotifications = (cycleId: string) => commands.sendNotifications.mutate({ p_cycle_id: cycleId }, { onSuccess: () => toast({ message: 'تم إرسال الإشعارات بنجاح', tone: 'success' }), onError: () => toast({ message: 'تعذر إرسال الإشعارات', tone: 'error' }) });
+  const savePolicy = () => commands.updatePolicy.mutate(policyPayload(), { onSuccess: () => toast({ message: 'تم حفظ إصدار السياسة الجديد', tone: 'success' }), onError: () => toast({ message: 'تعذر حفظ السياسة', tone: 'error' }) });
+  const policyPayload = () => ({
     p_name: 'السياسة الرسمية لتقييم الأداء', p_attendance_rules: policyRules,
     p_rating_bands: [
       { min: ratingMins.excellent, max: 100, label: 'ممتاز' },
@@ -83,7 +86,7 @@ export function KpiCyclesPage() {
         return <article key={cycle.id} className="card p-5">
           <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><strong>{new Intl.DateTimeFormat('ar-EG', { month: 'long', year: 'numeric' }).format(new Date(cycle.periodMonth))}</strong><StatusBadge value={cycle.status} /></div><p className="muted mt-1 text-sm">{cycle.finalized}/{cycle.evaluations} مدرج · {cycle.overdue ?? 0} متأخر · المتوسط {cycle.averageScore ?? '—'}</p><p className="muted mt-1 text-xs">الفتح: {cycle.scheduledOpenAt ? new Date(cycle.scheduledOpenAt).toLocaleString('ar-EG') : '—'} · النهاية: {cycle.effectiveDeadline ? new Date(cycle.effectiveDeadline).toLocaleString('ar-EG') : '—'}</p>{cycle.overrideReason ? <p className="mt-2 text-xs text-[var(--warning)]">آخر سبب إداري: {cycle.overrideReason}</p> : null}</div><div className="flex flex-wrap gap-2">
             {data.canManageCycles ? <button className="btn-secondary" disabled={commands.sendNotifications.isPending} onClick={() => void sendNotifications(cycle.id)}><Bell className="size-4" aria-hidden="true" />إرسال إشعارات</button> : null}
-            <button className="btn-secondary" onClick={() => commands.refreshAttendance.mutate({ p_cycle_id: cycle.id })}><RefreshCcw className="size-4" aria-hidden="true" />تحديث الحضور</button>
+            <button className="btn-secondary" onClick={() => commands.refreshAttendance.mutate({ p_cycle_id: cycle.id }, { onSuccess: () => toast({ message: 'تم تحديث الحضور بنجاح', tone: 'success' }), onError: () => toast({ message: 'تعذر تحديث الحضور', tone: 'error' }) })}><RefreshCcw className="size-4" aria-hidden="true" />تحديث الحضور</button>
             <button className="btn-secondary" onClick={() => void downloadReport(cycle.id)}><Download className="size-4" aria-hidden="true" />CSV</button>
             {evals.length > 0 ? <button className="btn-secondary" onClick={() => setExpandedCycle(isExpanded ? null : cycle.id)}>{isExpanded ? <ChevronUp className="size-4" aria-hidden="true" /> : <ChevronDown className="size-4" aria-hidden="true" />}{isExpanded ? 'إخفاء التقييمات' : `عرض التقييمات (${evals.length})`}</button> : null}
           </div></div>
@@ -122,7 +125,7 @@ export function KpiCyclesPage() {
 
       {data?.canManageCycles && data.policy ? <section className="card p-5"><h2 className="text-lg font-black">سياسة الخصم والتصنيف</h2><p className="muted mt-1 text-sm">الحفظ ينشئ إصدارًا جديدًا ويحافظ على نتائج الدورات السابقة.</p><div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">{([['late', 'التأخير'], ['earlyLeave', 'الانصراف المبكر'], ['unexcusedAbsence', 'الغياب'], ['missingPunch', 'البصمة الناقصة'], ['shortagePerHour', 'نقص الساعة'], ['maxShortagePerDay', 'حد النقص اليومي']] as const).map(([key, label]) => <label className="text-xs font-bold" key={key}>{label}<input className="input mt-1" type="number" min={0} step="0.25" value={policyRules[key]} onChange={(event) => setPolicyRules({ ...policyRules, [key]: Number(event.target.value) })} /></label>)}</div><div className="mt-4 grid gap-3 sm:grid-cols-4"><input className="input" type="number" aria-label="بداية ممتاز" value={ratingMins.excellent} onChange={(event) => setRatingMins({ ...ratingMins, excellent: Number(event.target.value) })} /><input className="input" type="number" aria-label="بداية جيد جدًا" value={ratingMins.veryGood} onChange={(event) => setRatingMins({ ...ratingMins, veryGood: Number(event.target.value) })} /><input className="input" type="number" aria-label="بداية جيد" value={ratingMins.good} onChange={(event) => setRatingMins({ ...ratingMins, good: Number(event.target.value) })} /><input className="input" type="number" aria-label="بداية مقبول" value={ratingMins.acceptable} onChange={(event) => setRatingMins({ ...ratingMins, acceptable: Number(event.target.value) })} /></div><button className="btn-primary mt-4" disabled={commands.updatePolicy.isPending || !(ratingMins.excellent > ratingMins.veryGood && ratingMins.veryGood > ratingMins.good && ratingMins.good > ratingMins.acceptable)} onClick={() => void savePolicy()}>حفظ إصدار سياسة جديد</button></section> : null}
 
-      <section className="card p-5"><h2 className="text-lg font-black">اعتراضات التقييم</h2>{data?.appeals.length === 0 ? <EmptyState title="لا توجد اعتراضات معلقة" description="تظهر هنا الاعتراضات على النتائج المعتمدة." /> : <div className="mt-4 space-y-3">{data?.appeals.map((appeal) => <article key={appeal.id} className="rounded-2xl border border-[var(--border)] p-4"><div className="flex items-start justify-between gap-3"><div className="flex items-center gap-2"><UserAvatar displayName={appeal.employeeName} size="sm" /><strong>{appeal.employeeName}</strong><p className="muted mt-1 text-sm">{appeal.reason}</p></div><StatusBadge value={appeal.status} /></div><div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_auto]"><input className="input" placeholder="قرار ومبررات المراجعة" value={appealNotes[appeal.id] ?? ''} onChange={(event) => setAppealNotes((old) => ({ ...old, [appeal.id]: event.target.value }))} /><button className="btn-primary" disabled={(appealNotes[appeal.id]?.trim().length ?? 0) < 8} onClick={() => commands.decideAppeal.mutate({ p_appeal_id: appeal.id, p_decision: 'accepted', p_note: appealNotes[appeal.id] })}>قبول وإعادة للمدير</button><button className="btn-secondary" disabled={(appealNotes[appeal.id]?.trim().length ?? 0) < 8} onClick={() => commands.decideAppeal.mutate({ p_appeal_id: appeal.id, p_decision: 'rejected', p_note: appealNotes[appeal.id] })}>رفض</button></div></article>)}</div>}</section>
+      <section className="card p-5"><h2 className="text-lg font-black">اعتراضات التقييم</h2>{data?.appeals.length === 0 ? <EmptyState title="لا توجد اعتراضات معلقة" description="تظهر هنا الاعتراضات على النتائج المعتمدة." /> : <div className="mt-4 space-y-3">{data?.appeals.map((appeal) => <article key={appeal.id} className="rounded-2xl border border-[var(--border)] p-4"><div className="flex items-start justify-between gap-3"><div className="flex items-center gap-2"><UserAvatar displayName={appeal.employeeName} size="sm" /><strong>{appeal.employeeName}</strong><p className="muted mt-1 text-sm">{appeal.reason}</p></div><StatusBadge value={appeal.status} /></div><div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_auto]"><input className="input" placeholder="قرار ومبررات المراجعة" value={appealNotes[appeal.id] ?? ''} onChange={(event) => setAppealNotes((old) => ({ ...old, [appeal.id]: event.target.value }))} /><button className="btn-primary" disabled={(appealNotes[appeal.id]?.trim().length ?? 0) < 8} onClick={() => commands.decideAppeal.mutate({ p_appeal_id: appeal.id, p_decision: 'accepted', p_note: appealNotes[appeal.id] }, { onSuccess: () => toast({ message: 'تم قبول الاعتراض وإعادته للمدير', tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ القرار', tone: 'error' }) })}>قبول وإعادة للمدير</button><button className="btn-secondary" disabled={(appealNotes[appeal.id]?.trim().length ?? 0) < 8} onClick={() => commands.decideAppeal.mutate({ p_appeal_id: appeal.id, p_decision: 'rejected', p_note: appealNotes[appeal.id] }, { onSuccess: () => toast({ message: 'تم رفض الاعتراض', tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ القرار', tone: 'error' }) })}>رفض</button></div></article>)}</div>}</section>
     </>}
   </div>;
 }

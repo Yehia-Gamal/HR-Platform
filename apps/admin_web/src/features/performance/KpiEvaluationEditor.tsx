@@ -8,6 +8,7 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { useAdvanceKpi, useKpiEvaluationForm, useKpiFormCommands } from './usePerformance';
 import { kpiWorkflowStatusText } from './workflowStatus';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { useToast } from '../../ui/Toast';
 
 type ScoreDraft = Record<string, { score: number; note: string }>;
 type ComplianceDraft = Record<'PRAYER' | 'HALAQA', { required: number; actual: number; exempt: number; cancelled: number; note: string }>;
@@ -24,6 +25,7 @@ const stageLabel: Record<string, string> = {
 const tabCls = (active: boolean) => `rounded-lg px-4 py-2 text-sm font-bold transition ${active ? 'bg-white shadow text-brand dark:bg-[var(--surface)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`;
 
 export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: string; onDone: () => void }) {
+  const { toast } = useToast();
   const query = useKpiEvaluationForm(evaluationId);
   const commands = useKpiFormCommands(evaluationId);
   const advance = useAdvanceKpi();
@@ -65,6 +67,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
     const draft = goalDrafts[goal.id];
     try {
       await commands.saveGoal.mutateAsync({ p_evaluation_id: form.id, p_goal_id: goal.id, p_title: goal.title, p_description: goal.description, p_target_value: goal.targetValue, p_achieved_value: draft.achieved, p_unit: goal.unit, p_weight: goal.weight, p_due_date: goal.dueDate, p_evidence_source: draft.evidence || null, p_employee_note: draft.employeeNote || null, p_manager_note: goal.managerNote, p_status: draft.status });
+      toast({ message: 'تم حفظ تقدم الهدف بنجاح', tone: 'success' });
     } catch { /* mutation error surfaced via mutation.isError state */ }
   };
 
@@ -72,24 +75,28 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
     try {
       await commands.saveGoal.mutateAsync({ p_evaluation_id: form.id, p_goal_id: null, p_title: newGoal.title, p_description: newGoal.description || null, p_target_value: newGoal.target, p_achieved_value: newGoal.achieved, p_unit: newGoal.unit, p_weight: newGoal.weight, p_due_date: newGoal.dueDate || null, p_evidence_source: newGoal.evidence || null, p_employee_note: newGoal.employeeNote || null, p_manager_note: newGoal.managerNote || null, p_status: newGoal.status });
       setNewGoal({ title: '', description: '', target: 1, achieved: 0, unit: 'عدد', weight: 10, dueDate: '', evidence: '', employeeNote: '', managerNote: '', status: 'NOT_STARTED' });
+      toast({ message: 'تمت إضافة الهدف بنجاح', tone: 'success' });
     } catch { /* mutation error surfaced via mutation.isError state */ }
   };
 
   const saveSession = async () => {
     try {
       await commands.saveSession.mutateAsync({ p_evaluation_id: form.id, p_session: { ...session, heldAt: session.heldAt ? new Date(session.heldAt).toISOString() : null, scheduledAt: null } });
+      toast({ message: 'تم حفظ الجلسة بنجاح', tone: 'success' });
     } catch { /* mutation error surfaced via mutation.isError state */ }
   };
   const saveCompliance = async (metric: 'PRAYER' | 'HALAQA') => {
     const value = compliance[metric];
     try {
       await commands.saveCompliance.mutateAsync({ p_evaluation_id: form.id, p_metric: metric, p_required: value.required, p_actual: value.actual, p_exempt: value.exempt, p_cancelled: value.cancelled, p_note: value.note || null });
+      toast({ message: 'تم حساب واعتماد الدرجة بنجاح', tone: 'success' });
     } catch { /* mutation error surfaced via mutation.isError state */ }
   };
   const addEvidence = async () => {
     try {
       await commands.addEvidence.mutateAsync({ p_evaluation_id: form.id, p_criterion_id: evidenceDraft.criterionId || null, p_type: evidenceDraft.url ? 'link' : 'note', p_title: evidenceDraft.title, p_description: evidenceDraft.description || null, p_storage_path: null, p_external_url: evidenceDraft.url || null });
       setEvidenceDraft({ criterionId: '', title: '', url: '', description: '' });
+      toast({ message: 'تمت إضافة الدليل بنجاح', tone: 'success' });
     } catch { /* mutation error surfaced via mutation.isError state */ }
   };
   const submit = async () => {
@@ -101,6 +108,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
         note,
         scores: ['self', 'manager_review'].includes(form.editableStage) ? editableCriteria.map((criterion) => ({ criterion_id: criterion.id, score: scores[criterion.id]?.score ?? 0, note: scores[criterion.id]?.note ?? '' })) : undefined,
       });
+      toast({ message: 'تم اعتماد المرحلة بنجاح', tone: 'success' });
       onDone();
     } catch { /* mutation error surfaced via mutation.isError state */ }
   };
@@ -143,7 +151,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
 
         {form.validationErrors.length ? <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950"><h3 className="flex items-center gap-2 font-black"><AlertTriangle className="size-5" aria-hidden="true" />متطلبات الاعتماد غير المكتملة</h3><ul className="mt-2 list-disc space-y-1 pe-5 text-sm">{form.validationErrors.map((item) => <li key={item}>{item}</li>)}</ul></section> : <p className="flex items-center gap-2 text-green-700"><CheckCircle2 className="size-5" aria-hidden="true" />كل متطلبات الاعتماد مكتملة.</p>}
 
-        {form.editableStage ? <section className="rounded-2xl border border-[var(--border)] p-4"><label className="text-sm font-bold">ملاحظة المرحلة<textarea className="input mt-2 min-h-20" value={note} onChange={(event) => setNote(event.target.value)} /></label><div className="mt-3 flex flex-wrap gap-2">{form.editableStage !== 'self' ? <button className="btn-secondary" disabled={pending || note.trim().length < 5} onClick={() => { const target = form.editableStage === 'hr_review' ? 'self' : form.editableStage === 'manager_review' ? 'hr_review' : 'self'; commands.returnStage.mutate({ p_evaluation_id: form.id, p_target_stage: target, p_note: note }); }}>إعادة للتصحيح</button> : null}<button className="btn-primary" disabled={pending} onClick={() => void submit()}><CheckCircle2 className="size-4" aria-hidden="true" />{form.editableStage === 'manager_review' ? 'اعتماد النتيجة وإدراجها في التقرير' : 'اعتماد المرحلة وإرسال'}</button></div></section> : null}
+        {form.editableStage ? <section className="rounded-2xl border border-[var(--border)] p-4"><label className="text-sm font-bold">ملاحظة المرحلة<textarea className="input mt-2 min-h-20" value={note} onChange={(event) => setNote(event.target.value)} /></label><div className="mt-3 flex flex-wrap gap-2">{form.editableStage !== 'self' ? <button className="btn-secondary" disabled={pending || note.trim().length < 5} onClick={() => { const target = form.editableStage === 'hr_review' ? 'self' : form.editableStage === 'manager_review' ? 'hr_review' : 'self'; commands.returnStage.mutate({ p_evaluation_id: form.id, p_target_stage: target, p_note: note }, { onSuccess: () => toast({ message: 'تمت إعادة التقييم للتصحيح', tone: 'success' }), onError: () => toast({ message: 'تعذر إعادة التقييم', tone: 'error' }) }); }}>إعادة للتصحيح</button> : null}<button className="btn-primary" disabled={pending} onClick={() => void submit()}><CheckCircle2 className="size-4" aria-hidden="true" />{form.editableStage === 'manager_review' ? 'اعتماد النتيجة وإدراجها في التقرير' : 'اعتماد المرحلة وإرسال'}</button></div></section> : null}
       </div>
     </div>
   </section>;

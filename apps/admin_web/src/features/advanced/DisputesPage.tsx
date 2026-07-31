@@ -14,6 +14,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { useDisputeCommands, useDisputeOperations, useDisputeParticipantDirectory } from './useAdvancedOperations';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { useToast } from '../../ui/Toast';
 
 type DisputeCase = DisputeOperationsCatalog['cases'][number];
 type Commands = ReturnType<typeof useDisputeCommands>;
@@ -352,6 +353,7 @@ function PartiesPanel({ selected }: { selected: DisputeCase }) {
 /* ─── الصفحة الرئيسية ─── */
 
 export function DisputesPage() {
+  const { toast } = useToast();
   const query = useDisputeOperations();
   const directory = useDisputeParticipantDirectory();
   const commands = useDisputeCommands();
@@ -397,8 +399,10 @@ export function DisputesPage() {
     try {
       await task();
       setFeedback({ tone: 'success', text: success });
+      toast({ message: success, tone: 'success' });
     } catch (error) {
       setFeedback({ tone: 'error', text: safeErrorMessage(error) });
+      toast({ message: safeErrorMessage(error), tone: 'error' });
     }
   };
 

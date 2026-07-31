@@ -9,10 +9,12 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useAttendanceOperations, useAttendanceOperationsCommands } from './useAdvancedOperations';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { useToast } from '../../ui/Toast';
 
 const currentMonth = new Date().toISOString().slice(0, 7);
 
 export function AttendanceOperationsPage() {
+  const { toast } = useToast();
   const [month, setMonth] = useState(currentMonth);
   const query = useAttendanceOperations(month);
   const commands = useAttendanceOperationsCommands();
@@ -24,6 +26,7 @@ export function AttendanceOperationsPage() {
     try {
       await commands.saveShift.mutateAsync({ p_shift_id: shift.id || null, p_name: shift.name, p_start: shift.start, p_end: shift.end, p_break_minutes: shift.breakMinutes, p_grace_in: shift.graceIn, p_grace_out: shift.graceOut, p_active: shift.active });
       setShift(emptyShift);
+      toast({ message: 'تم حفظ الوردية بنجاح', tone: 'success' });
     } catch { /* mutation error surfaced via mutation.isError state */ }
   };
 
@@ -55,8 +58,8 @@ export function AttendanceOperationsPage() {
     </section>
 
 
-    <section className="grid gap-6 lg:grid-cols-2"><div className="card p-5"><h2 className="text-lg font-black">فترات الحضور</h2>{data && data.periods.length === 0 ? <EmptyState title="لا توجد فترات" description="ستظهر فترات الحضور المفتوحة والمغلقة هنا." /> : <div className="mt-4 space-y-3">{data?.periods.map((period) => <article key={period.id} className="rounded-2xl border border-[var(--border)] p-4"><div className="flex items-center justify-between"><strong>{period.periodMonth}</strong><StatusBadge value={period.status} /></div>{period.status === 'closed' ? <button className="btn-secondary mt-3 w-full" onClick={() => { const reason = window.prompt('سبب إعادة فتح الفترة (8 أحرف على الأقل)'); if (reason) commands.unlockPeriod.mutate({ p_period_id: period.id, p_reason: reason }); }}>إعادة فتح الفترة</button> : null}</article>)}</div>}<button className="btn-primary mt-4 w-full" disabled={commands.closePeriod.isPending} onClick={() => commands.closePeriod.mutate({ p_month: `${month}-01`, p_legal_entity_id: null, p_branch_id: null })}>إغلاق الشهر</button></div>
-      <div className="card p-5"><h2 className="text-lg font-black">العمل الإضافي</h2>{data && data.overtime.length === 0 ? <EmptyState title="لا يوجد عمل إضافي" description="طلبات العمل الإضافي في الشهر المحدد ستظهر هنا." /> : <div className="mt-4 space-y-3">{data?.overtime.map((item) => <article key={item.id} className="rounded-2xl border border-[var(--border)] p-4"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><UserAvatar displayName={item.employeeName} size="sm" /><strong>{item.employeeName}</strong><p className="muted text-sm">{item.workDate} · {item.requestedMinutes} دقيقة</p></div><StatusBadge value={item.status} /></div>{item.status === 'pending' ? <div className="mt-3 flex gap-2"><button className="btn-primary flex-1" onClick={() => commands.decideOvertime.mutate({ p_id: item.id, p_decision: 'approved', p_approved_minutes: item.requestedMinutes, p_note: null })}>اعتماد</button><button className="btn-secondary flex-1" onClick={() => commands.decideOvertime.mutate({ p_id: item.id, p_decision: 'rejected', p_approved_minutes: 0, p_note: 'غير معتمد' })}>رفض</button></div> : null}</article>)}</div>}</div>
+    <section className="grid gap-6 lg:grid-cols-2"><div className="card p-5"><h2 className="text-lg font-black">فترات الحضور</h2>{data && data.periods.length === 0 ? <EmptyState title="لا توجد فترات" description="ستظهر فترات الحضور المفتوحة والمغلقة هنا." /> : <div className="mt-4 space-y-3">{data?.periods.map((period) => <article key={period.id} className="rounded-2xl border border-[var(--border)] p-4"><div className="flex items-center justify-between"><strong>{period.periodMonth}</strong><StatusBadge value={period.status} /></div>{period.status === 'closed' ? <button className="btn-secondary mt-3 w-full" onClick={() => { const reason = window.prompt('سبب إعادة فتح الفترة (8 أحرف على الأقل)'); if (reason) commands.unlockPeriod.mutate({ p_period_id: period.id, p_reason: reason }, { onSuccess: () => toast({ message: 'تم إعادة فتح الفترة بنجاح', tone: 'success' }), onError: () => toast({ message: 'تعذر إعادة فتح الفترة', tone: 'error' }) }); }}>إعادة فتح الفترة</button> : null}</article>)}</div>}<button className="btn-primary mt-4 w-full" disabled={commands.closePeriod.isPending} onClick={() => commands.closePeriod.mutate({ p_month: `${month}-01`, p_legal_entity_id: null, p_branch_id: null }, { onSuccess: () => toast({ message: 'تم إغلاق الشهر بنجاح', tone: 'success' }), onError: () => toast({ message: 'تعذر إغلاق الشهر', tone: 'error' }) })}>إغلاق الشهر</button></div>
+      <div className="card p-5"><h2 className="text-lg font-black">العمل الإضافي</h2>{data && data.overtime.length === 0 ? <EmptyState title="لا يوجد عمل إضافي" description="طلبات العمل الإضافي في الشهر المحدد ستظهر هنا." /> : <div className="mt-4 space-y-3">{data?.overtime.map((item) => <article key={item.id} className="rounded-2xl border border-[var(--border)] p-4"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><UserAvatar displayName={item.employeeName} size="sm" /><strong>{item.employeeName}</strong><p className="muted text-sm">{item.workDate} · {item.requestedMinutes} دقيقة</p></div><StatusBadge value={item.status} /></div>{item.status === 'pending' ? <div className="mt-3 flex gap-2"><button className="btn-primary flex-1" onClick={() => commands.decideOvertime.mutate({ p_id: item.id, p_decision: 'approved', p_approved_minutes: item.requestedMinutes, p_note: null }, { onSuccess: () => toast({ message: 'تم اعتماد العمل الإضافي', tone: 'success' }), onError: () => toast({ message: 'تعذر اعتماد العمل الإضافي', tone: 'error' }) })}>اعتماد</button><button className="btn-secondary flex-1" onClick={() => commands.decideOvertime.mutate({ p_id: item.id, p_decision: 'rejected', p_approved_minutes: 0, p_note: 'غير معتمد' }, { onSuccess: () => toast({ message: 'تم رفض العمل الإضافي', tone: 'success' }), onError: () => toast({ message: 'تعذر رفض العمل الإضافي', tone: 'error' }) })}>رفض</button></div> : null}</article>)}</div>}</div>
     </section>
     </>}
   </div>;

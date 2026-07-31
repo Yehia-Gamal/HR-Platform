@@ -9,6 +9,7 @@ import { SkeletonCard } from '../../ui/Skeletons';
 import { useAuditSecurityCenter, useAuditSecurityCommands } from './useControlCenters';
 import type { AuditSecurityData } from './controlCenterTypes';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { useToast } from '../../ui/Toast';
 
 type Tab = 'security' | 'audit' | 'devices';
 
@@ -29,6 +30,7 @@ function eventLabel(value: string) {
 }
 
 export function AuditSecurityPage() {
+  const { toast } = useToast();
   const query = useAuditSecurityCenter();
   const commands = useAuditSecurityCommands();
   const [tab, setTab] = useState<Tab>('security');
@@ -86,7 +88,7 @@ export function AuditSecurityPage() {
       {data && tab === 'security' ? (
         <section className="card overflow-hidden" role="tabpanel" id="panel-security" aria-labelledby="tab-security" tabIndex={0}>
           <div className="divide-y divide-[var(--border)]">
-            {securityEvents.map((item) => <article key={item.id} className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between"><div className="flex min-w-0 items-start gap-3"><span className="rounded-xl p-2.5" style={item.handled ? { background: 'var(--success-soft)', color: 'var(--success)' } : { background: 'var(--danger-soft)', color: 'var(--danger)' }}>{item.handled ? <ShieldCheck className="size-5" aria-hidden="true" /> : <ShieldAlert className="size-5" aria-hidden="true" />}</span><div><div className="flex flex-wrap items-center gap-2"><strong>{eventLabel(item.eventType)}</strong><StatusBadge value={item.severity} /><StatusBadge value={item.outcome} /></div><p className="muted mt-2 text-xs">{date(item.occurredAt)} · {item.handled ? 'تمت المعالجة' : 'بانتظار المراجعة'}</p></div></div>{!item.handled ? <button type="button" className="btn-secondary self-start lg:self-auto" disabled={commands.handleEvent.isPending} onClick={() => commands.handleEvent.mutate(item.id)}>{commands.handleEvent.isPending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <CheckCircle2 className="size-4" aria-hidden="true" />}{commands.handleEvent.isPending ? 'جارٍ المعالجة…' : 'تأكيد المعالجة'}</button> : null}</article>)}
+            {securityEvents.map((item) => <article key={item.id} className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between"><div className="flex min-w-0 items-start gap-3"><span className="rounded-xl p-2.5" style={item.handled ? { background: 'var(--success-soft)', color: 'var(--success)' } : { background: 'var(--danger-soft)', color: 'var(--danger)' }}>{item.handled ? <ShieldCheck className="size-5" aria-hidden="true" /> : <ShieldAlert className="size-5" aria-hidden="true" />}</span><div><div className="flex flex-wrap items-center gap-2"><strong>{eventLabel(item.eventType)}</strong><StatusBadge value={item.severity} /><StatusBadge value={item.outcome} /></div><p className="muted mt-2 text-xs">{date(item.occurredAt)} · {item.handled ? 'تمت المعالجة' : 'بانتظار المراجعة'}</p></div></div>{!item.handled ? <button type="button" className="btn-secondary self-start lg:self-auto" disabled={commands.handleEvent.isPending} onClick={() => commands.handleEvent.mutate(item.id, { onSuccess: () => toast({ message: 'تمت معالجة الحدث بنجاح', tone: 'success' }), onError: () => toast({ message: 'تعذر معالجة الحدث', tone: 'error' }) })}>{commands.handleEvent.isPending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <CheckCircle2 className="size-4" aria-hidden="true" />}{commands.handleEvent.isPending ? 'جارٍ المعالجة…' : 'تأكيد المعالجة'}</button> : null}</article>)}
           </div>
           {!securityEvents.length ? <EmptyState title="لا توجد أحداث مطابقة" description="لا توجد أحداث أمنية ضمن نتيجة البحث الحالية." /> : null}
         </section>
@@ -124,6 +126,7 @@ function deduplicateDevices(items: DeviceItem[]): DeviceItem[] {
 }
 
 function DevicesPanel({ devices, commands }: { devices: DeviceItem[]; commands: ReturnType<typeof useAuditSecurityCommands> }) {
+  const { toast } = useToast();
   const deduplicated = useMemo(() => deduplicateDevices(devices), [devices]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [revokeTarget, setRevokeTarget] = useState<DeviceItem | null>(null);
@@ -142,10 +145,12 @@ function DevicesPanel({ devices, commands }: { devices: DeviceItem[]; commands: 
       await commands.revokeDevice.mutateAsync({ deviceId: revokeTarget.id, reason });
       setRevokeTarget(null);
       setRevokeReason('');
+      toast({ message: 'تم إلغاء تسجيل الجهاز بنجاح', tone: 'success' });
     } catch {
       setRevokeError('تعذّر إلغاء تسجيل الجهاز. تحقق من صلاحياتك.');
+      toast({ message: 'تعذّر إلغاء تسجيل الجهاز', tone: 'error' });
     }
-  }, [revokeTarget, revokeReason, commands.revokeDevice]);
+  }, [revokeTarget, revokeReason, commands.revokeDevice, toast]);
 
   return (
     <>

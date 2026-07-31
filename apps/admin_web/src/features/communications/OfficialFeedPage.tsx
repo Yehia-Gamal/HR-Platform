@@ -8,6 +8,7 @@ import { FilterBar } from '../../ui/FilterBar';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
+import { useToast } from '../../ui/Toast';
 import { preparePostImage } from '../../ui/postImage';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { safeErrorMessage } from '../../core/errorMapper';
@@ -99,6 +100,7 @@ function useOfficialFeedForm(publish: ReturnType<typeof usePublishAnnouncement>,
 }
 
 export function OfficialFeedPage() {
+  const { toast } = useToast();
   const auth = useAuth();
   const query = useOfficialFeed();
   const publish = usePublishAnnouncement();
@@ -172,7 +174,7 @@ export function OfficialFeedPage() {
             <p className="mt-3 text-sm leading-8">{item.body}</p>
           </div>
           {item.requiresAcknowledgement ? <div className="p-5"><div className="flex justify-between text-sm"><span>نسبة الاطلاع والإقرار</span><strong>{item.acknowledgedCount}{item.targetCount ? ` / ${item.targetCount}` : ''}</strong></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]" role="progressbar" aria-label="نسبة الاطلاع والإقرار" aria-valuemin={0} aria-valuemax={item.targetCount ?? 0} aria-valuenow={item.acknowledgedCount}><div className="h-full rounded-full bg-brand" style={{ width: `${item.targetCount ? Math.min(100, (item.acknowledgedCount / item.targetCount) * 100) : 0}%` }} /></div></div> : null}
-          {action && canRun ? <div className="border-t border-[var(--border)] p-4"><button className="btn-secondary" disabled={transition.isPending} onClick={() => transition.mutate({ decisionId: item.id, action })}>{action === 'approve' ? <ShieldCheck className="size-4" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}{actionLabel[action]}</button></div> : null}
+          {action && canRun ? <div className="border-t border-[var(--border)] p-4"><button className="btn-secondary" disabled={transition.isPending} onClick={() => transition.mutate({ decisionId: item.id, action }, { onSuccess: () => toast({ message: `${actionLabel[action]} بنجاح`, tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ إجراء القرار', tone: 'error' }) })}>{action === 'approve' ? <ShieldCheck className="size-4" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}{actionLabel[action]}</button></div> : null}
         </article>;
       })}
     </section>
@@ -223,7 +225,7 @@ export function OfficialFeedPage() {
           {mode === 'decision' ? <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">النتيجة المتوقعة<input className="input mt-2" value={form.expectedOutcome} onChange={(e) => setForm({ ...form, expectedOutcome: e.target.value })} /></label><label className="text-sm font-bold">مؤشر قياس النجاح<input className="input mt-2" value={form.successMetric} onChange={(e) => setForm({ ...form, successMetric: e.target.value })} /></label></div> : null}
           <label className="flex items-center gap-3 rounded-xl bg-[var(--surface-muted)] p-4 text-sm font-bold"><input type="checkbox" checked={form.requiresAcknowledgement} onChange={(e) => setForm({ ...form, requiresAcknowledgement: e.target.checked })} />يتطلب إقرارًا بالاطلاع</label>
           {submitError ? <ErrorBanner message="تعذر حفظ العنصر الرسمي." /> : null}
-          <button className="btn-primary" disabled={isSubmitting || imageUploading || form.title.trim().length < 3 || form.body.trim().length < 10} onClick={() => void submit().then((ok) => { if (ok) setOpen(false); })}>{mode === 'decision' ? 'حفظ كمسودة قرار' : 'نشر الآن'}</button>
+          <button className="btn-primary" disabled={isSubmitting || imageUploading || form.title.trim().length < 3 || form.body.trim().length < 10} onClick={() => void submit().then((ok) => { if (ok) { setOpen(false); toast({ message: mode === 'decision' ? 'تم حفظ مسودة القرار بنجاح' : 'تم نشر العنصر الرسمي بنجاح', tone: 'success' }); } else { toast({ message: 'تعذر حفظ العنصر الرسمي', tone: 'error' }); } })}>{mode === 'decision' ? 'حفظ كمسودة قرار' : 'نشر الآن'}</button>
         </div>
       </DialogOverlay>
     ) : null}

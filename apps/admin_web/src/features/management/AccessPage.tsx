@@ -9,6 +9,7 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { useAccessAdminCatalog, useAccessCommands } from './useAdminOperations';
 import type { AccessAdminCatalog } from '@ahla/shared-contracts';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { useToast } from '../../ui/Toast';
 
 // ─── ترجمة النطاقات ────────────────────────────────────────────────────────
 const SCOPE_AR: Record<string, string> = {
@@ -72,6 +73,7 @@ type AccessCommands = ReturnType<typeof useAccessCommands>;
 
 // ─── المكون الرئيسي ────────────────────────────────────────────────────────
 export function AccessPage() {
+  const { toast } = useToast();
   const query = useAccessAdminCatalog();
   const commands = useAccessCommands();
   const [viewRole, setViewRole] = useState<string | null>(null);
@@ -113,6 +115,7 @@ export function AccessPage() {
     try {
       await commands.assignRole.mutateAsync({ userId: assignment.userId, roleId: assignment.roleId, effectiveTo: assignment.effectiveTo ? new Date(`${assignment.effectiveTo}T23:59:59`).toISOString() : null });
       setAssignment({ userId: '', roleId: '', effectiveTo: '' });
+      toast({ message: 'تم إسناد الدور بنجاح', tone: 'success' });
     } catch { /* mutation error surfaced via mutation.isError state */ }
   }
 
@@ -205,7 +208,7 @@ export function AccessPage() {
               <div className="flex flex-wrap gap-2">
                 {user.roles.length ? user.roles.map((role) => <span key={role.roleId} className="inline-flex items-center gap-2 rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-bold">
                   {role.name}{role.effectiveTo ? ` · حتى ${new Date(role.effectiveTo).toLocaleDateString('ar-EG')}` : ''}
-                  <button aria-label="سحب الدور" className="text-[var(--danger)]" onClick={() => commands.revokeRole.mutate({ userId: user.userId, roleId: role.roleId })}><Trash2 className="size-3" aria-hidden="true"/></button>
+                  <button aria-label="سحب الدور" className="text-[var(--danger)]" onClick={() => commands.revokeRole.mutate({ userId: user.userId, roleId: role.roleId }, { onSuccess: () => toast({ message: 'تم سحب الدور بنجاح', tone: 'success' }), onError: () => toast({ message: 'تعذر سحب الدور', tone: 'error' }) })}><Trash2 className="size-3" aria-hidden="true"/></button>
                 </span>) : <span className="muted text-sm">بلا دور فعال</span>}
               </div>
             </div>
@@ -255,6 +258,7 @@ function RoleManagementDialog({ role, data, commands, onClose }: {
   commands: AccessCommands;
   onClose: () => void;
 }) {
+  const { toast } = useToast();
   const [tab, setTab] = useState<'perms' | 'users'>('perms');
   const [search, setSearch] = useState('');
   const [moduleFilter, setModuleFilter] = useState('all');
@@ -303,6 +307,7 @@ function RoleManagementDialog({ role, data, commands, onClose }: {
         items: Object.entries(draft).map(([permission_id, v]) => ({ permission_id, scope: v.scope, requires_mfa: v.mfa, requires_reason: v.reason })),
       });
       setSaved(true);
+      toast({ message: 'تم حفظ الصلاحيات بنجاح', tone: 'success' });
       setTimeout(() => setSaved(false), 2500);
     } catch { /* mutation error surfaced via mutation.isError state */ } finally {
       setSaving(false);
@@ -314,6 +319,7 @@ function RoleManagementDialog({ role, data, commands, onClose }: {
     try {
       await commands.assignRole.mutateAsync({ userId: assignUserId, roleId: role.id });
       setAssignUserId('');
+      toast({ message: 'تم إسناد الدور للمستخدم بنجاح', tone: 'success' });
     } catch { /* mutation error surfaced via mutation.isError state */ }
   }
 
@@ -437,7 +443,7 @@ function RoleManagementDialog({ role, data, commands, onClose }: {
                   <p className="muted text-xs">{user.employeeCode ?? user.userId}{userRole?.effectiveTo ? ` · حتى ${new Date(userRole.effectiveTo).toLocaleDateString('ar-EG')}` : ''}</p>
                 </div>
               </div>
-              <button type="button" className="btn-secondary px-3 py-1.5 text-xs text-[var(--danger)]" onClick={() => commands.revokeRole.mutate({ userId: user.userId, roleId: role.id })}>
+              <button type="button" className="btn-secondary px-3 py-1.5 text-xs text-[var(--danger)]" onClick={() => commands.revokeRole.mutate({ userId: user.userId, roleId: role.id }, { onSuccess: () => toast({ message: 'تم سحب الدور بنجاح', tone: 'success' }), onError: () => toast({ message: 'تعذر سحب الدور', tone: 'error' }) })}>
                 <Trash2 className="size-3.5" aria-hidden="true"/>سحب
               </button>
             </div>;
@@ -456,6 +462,7 @@ function CustomRoleDraftDialog({ initialDraft, data, commands, onClose }: {
   commands: AccessCommands;
   onClose: () => void;
 }) {
+  const { toast } = useToast();
   const [draft, setDraft] = useState<RoleDraft>(initialDraft);
   const [moduleFilter, setModuleFilter] = useState('all');
   const [permSearch, setPermSearch] = useState('');
@@ -473,6 +480,7 @@ function CustomRoleDraftDialog({ initialDraft, data, commands, onClose }: {
           items: Object.entries(draft.selected).map(([permission_id, v]) => ({ permission_id, scope: v.scope, requires_mfa: v.mfa, requires_reason: v.reason })),
         });
       }
+      toast({ message: 'تم حفظ الدور والصلاحيات بنجاح', tone: 'success' });
       onClose();
     } catch { /* mutation error surfaced via mutation.isError state */ }
   }

@@ -7,6 +7,7 @@ import { FilterBar } from '../../ui/FilterBar';
 import { LoadingScreen } from '../../ui/LoadingScreen';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
+import { useToast } from '../../ui/Toast';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useOrganizationAdminCatalog, useOrganizationCommands } from './useAdminOperations';
@@ -27,6 +28,7 @@ type ViewMode = 'table' | 'tree';
 type DepartmentRow = { id: string; entityId: string; branchId: string | null; parentId: string | null; managerId: string | null; code: string; name: string; nameEn: string | null; active: boolean; employeeCount: number; positionCount: number };
 
 export function OrganizationPage() {
+  const { toast } = useToast();
   const query = useOrganizationAdminCatalog();
   const commands = useOrganizationCommands();
   const [departmentDraft, setDepartmentDraft] = useState<DepartmentDraft | null>(null);
@@ -52,6 +54,7 @@ export function OrganizationPage() {
         active: departmentDraft.active,
       });
       setDepartmentDraft(null);
+      toast({ message: 'تم حفظ الإدارة بنجاح', tone: 'success' });
     } catch { /* isError handled in dialog UI */ }
   }
 
@@ -73,6 +76,7 @@ export function OrganizationPage() {
         active: positionDraft.active,
       });
       setPositionDraft(null);
+      toast({ message: 'تم حفظ المنصب بنجاح', tone: 'success' });
     } catch { /* isError handled in dialog UI */ }
   }
 

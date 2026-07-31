@@ -1,7 +1,18 @@
 import { render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+import { ToastProvider } from '../../../ui/Toast';
 import { RequestsPage } from '../RequestsPage';
+
+// RequestsPage يستدعي useToast() الذي يتطلب ToastProvider — نلفّه مع MemoryRouter.
+function Wrapper({ children }: { children: ReactNode }) {
+  return (
+    <MemoryRouter>
+      <ToastProvider>{children}</ToastProvider>
+    </MemoryRouter>
+  );
+}
 
 const mockAccess = {
   userId: '00000000-0000-0000-0000-000000000001',
@@ -56,9 +67,9 @@ describe('RequestsPage', () => {
   it('يُعرض بدون أخطاء', () => {
     requestsOverrideFn = () => dataQuery;
     const { container } = render(
-      <MemoryRouter>
+      <Wrapper>
         <RequestsPage />
-      </MemoryRouter>,
+      </Wrapper>,
     );
     expect(container.firstChild).toBeTruthy();
   });
@@ -66,9 +77,9 @@ describe('RequestsPage', () => {
   it('يعرض عنوان الصفحة', () => {
     requestsOverrideFn = () => dataQuery;
     render(
-      <MemoryRouter>
+      <Wrapper>
         <RequestsPage />
-      </MemoryRouter>,
+      </Wrapper>,
     );
     expect(screen.getByText('طلب اجازة')).toBeDefined();
   });
@@ -76,9 +87,9 @@ describe('RequestsPage', () => {
   it('يعرض تبويبات تصنيف الطلبات', () => {
     requestsOverrideFn = () => dataQuery;
     render(
-      <MemoryRouter>
+      <Wrapper>
         <RequestsPage />
-      </MemoryRouter>,
+      </Wrapper>,
     );
     expect(screen.getByText('الكل')).toBeDefined();
     expect(screen.getByText('الإجازات')).toBeDefined();
@@ -91,9 +102,9 @@ describe('RequestsPage', () => {
   it('يعرض قسم التنقل بين التصنيفات مع aria-label', () => {
     requestsOverrideFn = () => dataQuery;
     const { container } = render(
-      <MemoryRouter>
+      <Wrapper>
         <RequestsPage />
-      </MemoryRouter>,
+      </Wrapper>,
     );
     const nav = container.querySelector('nav[aria-label="تصنيف الطلبات"]');
     expect(nav).toBeTruthy();
@@ -102,9 +113,9 @@ describe('RequestsPage', () => {
   it('يعرض حالة فارغة عند عدم وجود طلبات', () => {
     requestsOverrideFn = () => emptyQuery;
     render(
-      <MemoryRouter>
+      <Wrapper>
         <RequestsPage />
-      </MemoryRouter>,
+      </Wrapper>,
     );
     expect(screen.getByText('لا توجد طلبات')).toBeDefined();
   });
@@ -112,9 +123,9 @@ describe('RequestsPage', () => {
   it('يعرض حالة التحميل أثناء جلب الطلبات', () => {
     requestsOverrideFn = () => loadingQuery;
     const { container } = render(
-      <MemoryRouter>
+      <Wrapper>
         <RequestsPage />
-      </MemoryRouter>,
+      </Wrapper>,
     );
     // ListSkeleton يعرض عناصر skeleton أثناء التحميل
     expect(container.querySelector('.animate-pulse')).toBeTruthy();

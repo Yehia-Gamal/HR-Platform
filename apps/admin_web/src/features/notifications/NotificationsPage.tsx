@@ -4,11 +4,13 @@ import { EmptyState } from '../../ui/EmptyState';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { useToast } from '../../ui/Toast';
 import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { useMarkNotificationsRead, useNotifications } from './useNotifications';
 
 export function NotificationsPage() {
+  const { toast } = useToast();
   const q = useNotifications();
   const mark = useMarkNotificationsRead();
   const items = q.data ?? [];
@@ -22,7 +24,7 @@ export function NotificationsPage() {
         actions={
           <button
             disabled={!unread.length || mark.isPending}
-            onClick={() => mark.mutate(undefined)}
+            onClick={() => mark.mutate(undefined, { onSuccess: () => toast({ message: 'تم تعليم كل الإشعارات كمقروءة', tone: 'success' }), onError: () => toast({ message: 'تعذر تعليم الإشعارات', tone: 'error' }) })}
             className="btn-secondary disabled:opacity-50"
           >
             <CheckCheck className="size-4" aria-hidden="true" />
