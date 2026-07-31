@@ -25,7 +25,7 @@ export function Tabs({ tabs, activeTab, onTabChange, children, ariaLabel = 'أل
     const currentIndex = tabs.findIndex((t) => t.id === activeTab);
     if (currentIndex === -1) return;
 
-    let nextIndex: number | null = null;
+    let nextIndex: number;
 
     /* RTL: ArrowRight = السابق، ArrowLeft = التالي */
     switch (e.key) {

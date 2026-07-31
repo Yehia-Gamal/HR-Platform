@@ -6,7 +6,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { EmptyState } from '../../ui/EmptyState';
-import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
+import { ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { MetricCard } from '../../ui/MetricCard';

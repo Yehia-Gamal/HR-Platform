@@ -1,7 +1,5 @@
-import { BriefcaseBusiness, CalendarPlus, CheckCircle2, FileClock, FileSignature, Plus, Send, UserCheck, UserPlus, Users, X } from 'lucide-react';
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import type { RecruitmentWorkbench } from '@ahla/shared-contracts';
-import { DataTable, type DataTableColumn } from '../../ui/DataTable';
+import { BriefcaseBusiness, CalendarPlus, CheckCircle2, FileClock, FileSignature, Plus, Send, UserCheck, UserPlus, Users } from 'lucide-react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
@@ -23,8 +21,6 @@ type RequisitionDraft = {
   budgetRange: string;
   submit: boolean;
 };
-
-type ApplicationRow = RecruitmentWorkbench['applications'][number];
 
 export function RecruitmentPage() {
   const { toast } = useToast();
@@ -105,50 +101,6 @@ export function RecruitmentPage() {
   const error = overview.error ?? organization.error ?? workbench.error;
   const mutationError = [commands.createRequisition, workbenchCommands.scheduleInterview, workbenchCommands.createOffer, workbenchCommands.decideInterview, workbenchCommands.transitionOffer, workbenchCommands.moveStage, workbenchCommands.hireApplicant].find((m) => m.isError)?.error ?? null;
   const mutationPending = workbenchCommands.decideInterview.isPending || workbenchCommands.transitionOffer.isPending || workbenchCommands.moveStage.isPending;
-
-  const applicationColumns = useMemo((): DataTableColumn<ApplicationRow>[] => [
-    {
-      key: 'candidateName',
-      header: 'المرشح',
-      render: (row) => <span className="font-bold">{row.candidateName}</span>,
-    },
-    {
-      key: 'jobTitle',
-      header: 'الوظيفة',
-    },
-    {
-      key: 'stageName',
-      header: 'المرحلة',
-      render: (row) => <StatusBadge value={row.stageName ?? row.status} />,
-    },
-    {
-      key: 'appliedAt',
-      header: 'تاريخ التقديم',
-      render: (row) => <span className="muted">{new Date(row.appliedAt).toLocaleDateString('ar-EG')}</span>,
-    },
-    {
-      key: 'moveStage',
-      header: 'نقل إلى',
-      render: (row) => {
-        const rowStages = (workbench.data?.stages ?? []).filter((s) => s.postingId === row.postingId);
-        return (
-          <select
-            className="input max-w-48"
-            disabled={mutationPending}
-            aria-label={`نقل ${row.candidateName} إلى مرحلة`}
-            value={row.stageId ?? ''}
-            onChange={(event) => {
-              if (event.target.value && event.target.value !== row.stageId)
-                workbenchCommands.moveStage.mutate({ applicationId: row.id, stageId: event.target.value, reason: 'نقل من لوحة ATS' });
-            }}
-          >
-            <option value="">اختر المرحلة</option>
-            {rowStages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}
-          </select>
-        );
-      },
-    },
-  ], [workbench.data?.stages, mutationPending, workbenchCommands.moveStage]);
 
   return (
     <div className="space-y-6">

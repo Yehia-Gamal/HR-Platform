@@ -15,13 +15,6 @@ interface AttendanceTodayOverview {
   lastUpdatedAt: string;
 }
 
-const emptyOverview: AttendanceTodayOverview = {
-  date: new Date().toISOString().slice(0, 10),
-  totalActive: 0, expected: 0, present: 0, late: 0,
-  notCheckedIn: 0, onLeave: 0, onAssignment: 0, absent: 0,
-  lastUpdatedAt: new Date().toISOString(),
-};
-
 export function useAttendanceTodayOverview() {
   const auth = useAuth();
   return useQuery({

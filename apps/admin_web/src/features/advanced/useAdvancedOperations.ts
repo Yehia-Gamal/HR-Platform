@@ -31,27 +31,45 @@ export function useKpiAdmin(month: string) {
 }
 
 /** مصنع mutation مشترك لعمليات KPI — يوحّد الإبطال والمحاكاة */
-function useKpiMutationFactory() {
-  const auth = useAuth(); const client = useQueryClient();
-  return (name: string) => useMutation({ mutationFn: async (params: Record<string, unknown>) => auth.isMock ? params : rpc(name, params), onSuccess: () => Promise.all([client.invalidateQueries({ queryKey: ['kpi-admin'] }), client.invalidateQueries({ queryKey: ['kpi-evaluations'] })]) });
+/** خيارات mutation موحّدة لعمليات KPI — دالة عادية (ليست hook) تُبنى منها الخيارات */
+function kpiMutationOptions(name: string, isMock: boolean, client: ReturnType<typeof useQueryClient>) {
+  return {
+    mutationFn: async (params: Record<string, unknown>) => (isMock ? params : rpc(name, params)),
+    onSuccess: () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: ['kpi-admin'] }),
+        client.invalidateQueries({ queryKey: ['kpi-evaluations'] }),
+      ]),
+  };
 }
 
 /** إدارة دورات KPI — إنشاء وجدولة والتحكم بالحالة */
 export function useKpiCycleCommands() {
-  const mutate = useKpiMutationFactory();
-  return { createCycle: mutate('create_kpi_cycle_admin'), manageCycle: mutate('manage_kpi_cycle'), rescheduleCycle: mutate('reschedule_kpi_cycle') };
+  const auth = useAuth(); const client = useQueryClient();
+  return {
+    createCycle: useMutation(kpiMutationOptions('create_kpi_cycle_admin', auth.isMock, client)),
+    manageCycle: useMutation(kpiMutationOptions('manage_kpi_cycle', auth.isMock, client)),
+    rescheduleCycle: useMutation(kpiMutationOptions('reschedule_kpi_cycle', auth.isMock, client)),
+  };
 }
 
 /** سياسة KPI والاعتراضات — تحديث السياسة والبتّ في الاعتراضات */
 export function useKpiPolicyCommands() {
-  const mutate = useKpiMutationFactory();
-  return { updatePolicy: mutate('create_kpi_policy_version'), decideAppeal: mutate('decide_kpi_appeal') };
+  const auth = useAuth(); const client = useQueryClient();
+  return {
+    updatePolicy: useMutation(kpiMutationOptions('create_kpi_policy_version', auth.isMock, client)),
+    decideAppeal: useMutation(kpiMutationOptions('decide_kpi_appeal', auth.isMock, client)),
+  };
 }
 
 /** عمليات تشغيلية — تحديث الحضور، التقارير، الإشعارات */
 export function useKpiOperationsCommands() {
-  const mutate = useKpiMutationFactory();
-  return { refreshAttendance: mutate('refresh_kpi_attendance_inputs'), getReport: mutate('get_kpi_cycle_report'), sendNotifications: mutate('send_kpi_notifications_admin') };
+  const auth = useAuth(); const client = useQueryClient();
+  return {
+    refreshAttendance: useMutation(kpiMutationOptions('refresh_kpi_attendance_inputs', auth.isMock, client)),
+    getReport: useMutation(kpiMutationOptions('get_kpi_cycle_report', auth.isMock, client)),
+    sendNotifications: useMutation(kpiMutationOptions('send_kpi_notifications_admin', auth.isMock, client)),
+  };
 }
 
 /** واجهة موحدة — تجمع كل أوامر KPI الإدارية للتوافق مع المستهلكين الحاليين */

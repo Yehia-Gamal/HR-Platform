@@ -44,6 +44,31 @@ function validateCoordinates(latitude: unknown, longitude: unknown, accuracy: un
   return null;
 }
 
+// Defense-in-depth mirror of the finalize_verified_attendance selfie-path guard.
+// The RPC is the authoritative check (it holds employee_id); this rejects obviously
+// malformed paths early. Returns the validated path, or null if absent/blank.
+// Throws a string error code (caught by the caller) on a malformed non-empty path.
+function validateSelfiePath(value: unknown, employeeId: string): string | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "string") throw "invalid_selfie_path";
+  if (value.length === 0) return null;
+  // JS `$` (without /m) also matches just before a trailing "\n", so anchor with
+  // an explicit control-char reject to keep parity with the DB check, whose POSIX
+  // `$` binds to the true string end.
+  const pattern = new RegExp(`^${employeeId}/[0-9]{4}/[A-Za-z0-9._-]+$`);
+  if (
+    value.length > 512 ||
+    /[\x00-\x1f\x7f]/.test(value) ||
+    value.includes("\\") ||
+    value.includes("://") ||
+    value.includes("..") ||
+    !pattern.test(value)
+  ) {
+    throw "invalid_selfie_path";
+  }
+  return value;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight(req);
   try {
@@ -112,6 +137,16 @@ Deno.serve(async (req) => {
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (!uuidPattern.test(operationId) || !uuidPattern.test(correlationId) || !uuidPattern.test(challengeId)) {
     return json(req, { error: "invalid_operation_context" }, 400);
+  }
+
+  // مسار السيلفي (إن وُجد) يجب أن يكون مفتاح كائن مقيَّداً بمجلّد الموظف نفسه
+  // <employee_id>/<yyyy>/<اسم_الملف> — نرفض المخططات والمسارات المطلقة والاجتياز
+  // ومجلّد موظف آخر قبل الوصول إلى قاعدة البيانات (دفاع في العمق؛ الـ RPC هو المرجع).
+  let rawSelfiePath: string | null;
+  try {
+    rawSelfiePath = validateSelfiePath(input.selfiePath, String(profile.employee_id));
+  } catch {
+    return json(req, { error: "invalid_selfie_path", correlationId }, 400);
   }
 
   // A transport retry after commit must return the stored result without
@@ -254,7 +289,7 @@ Deno.serve(async (req) => {
     p_longitude: longitude,
     p_accuracy_meters: accuracy,
     p_new_sign_count: verification.authenticationInfo.newCounter,
-    p_selfie_path: typeof input.selfiePath === "string" ? input.selfiePath : null,
+    p_selfie_path: rawSelfiePath,
     p_is_mock: isMockLocation,
   });
   if (rpcError) {
