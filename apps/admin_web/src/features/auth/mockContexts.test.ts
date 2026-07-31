@@ -135,9 +135,7 @@ describe('mockContexts', () => {
     });
 
     it('both personas share the same attendancePolicy', () => {
-      expect(mockContexts.hr.attendancePolicy).toEqual(
-        mockContexts.admin.attendancePolicy,
-      );
+      expect(mockContexts.hr.attendancePolicy).toEqual(mockContexts.admin.attendancePolicy);
     });
   });
 });

@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  kpiWorkflowStatusLabel,
-  kpiWorkflowStatusText,
-} from './workflowStatus';
+import { kpiWorkflowStatusLabel, kpiWorkflowStatusText } from './workflowStatus';
 
 describe('kpiWorkflowStatusLabel', () => {
   it('is defined and is an object', () => {
@@ -27,9 +24,7 @@ describe('kpiWorkflowStatusLabel', () => {
 
   it('values are all non-empty strings', () => {
     for (const [key, value] of Object.entries(kpiWorkflowStatusLabel)) {
-      expect(value, `value for "${key}" should be a non-empty string`).toEqual(
-        expect.any(String),
-      );
+      expect(value, `value for "${key}" should be a non-empty string`).toEqual(expect.any(String));
       expect(value.length, `value for "${key}" should not be empty`).toBeGreaterThan(0);
     }
   });
@@ -63,27 +58,13 @@ describe('kpiWorkflowStatusLabel', () => {
     });
 
     it('kpiWorkflowStatusText resolves V23 codes to Arabic labels', () => {
-      expect(kpiWorkflowStatusText('PARALLEL_REVIEW_IN_PROGRESS')).toBe(
-        'مراجعة HR والمدير جارية بالتوازي',
-      );
-      expect(kpiWorkflowStatusText('HR_COMPLETED')).toBe(
-        'أنهى HR مراجعته — بانتظار المدير',
-      );
-      expect(kpiWorkflowStatusText('MANAGER_COMPLETED')).toBe(
-        'أنهى المدير مراجعته — بانتظار HR',
-      );
-      expect(kpiWorkflowStatusText('SECRETARY_REVIEW')).toBe(
-        'قيد مراجعة السكرتير التنفيذي',
-      );
-      expect(kpiWorkflowStatusText('EXECUTIVE_REVIEW')).toBe(
-        'بانتظار إقرار المدير التنفيذي',
-      );
-      expect(kpiWorkflowStatusText('EXECUTIVE_ACKNOWLEDGED')).toBe(
-        'أقرّ المدير التنفيذي',
-      );
-      expect(kpiWorkflowStatusText('RETURNED_BY_EXECUTIVE')).toBe(
-        'أعاده المدير التنفيذي للمراجعة',
-      );
+      expect(kpiWorkflowStatusText('PARALLEL_REVIEW_IN_PROGRESS')).toBe('مراجعة HR والمدير جارية بالتوازي');
+      expect(kpiWorkflowStatusText('HR_COMPLETED')).toBe('أنهى HR مراجعته — بانتظار المدير');
+      expect(kpiWorkflowStatusText('MANAGER_COMPLETED')).toBe('أنهى المدير مراجعته — بانتظار HR');
+      expect(kpiWorkflowStatusText('SECRETARY_REVIEW')).toBe('قيد مراجعة السكرتير التنفيذي');
+      expect(kpiWorkflowStatusText('EXECUTIVE_REVIEW')).toBe('بانتظار إقرار المدير التنفيذي');
+      expect(kpiWorkflowStatusText('EXECUTIVE_ACKNOWLEDGED')).toBe('أقرّ المدير التنفيذي');
+      expect(kpiWorkflowStatusText('RETURNED_BY_EXECUTIVE')).toBe('أعاده المدير التنفيذي للمراجعة');
     });
   });
 });
@@ -127,26 +108,12 @@ describe('kpiWorkflowStatusText', () => {
   });
 
   it('resolves V23 parallel-flow codes to Arabic labels', () => {
-    expect(kpiWorkflowStatusText('PARALLEL_REVIEW_IN_PROGRESS')).toBe(
-      'مراجعة HR والمدير جارية بالتوازي',
-    );
-    expect(kpiWorkflowStatusText('HR_COMPLETED')).toBe(
-      'أنهى HR مراجعته — بانتظار المدير',
-    );
-    expect(kpiWorkflowStatusText('MANAGER_COMPLETED')).toBe(
-      'أنهى المدير مراجعته — بانتظار HR',
-    );
-    expect(kpiWorkflowStatusText('SECRETARY_REVIEW')).toBe(
-      'قيد مراجعة السكرتير التنفيذي',
-    );
-    expect(kpiWorkflowStatusText('EXECUTIVE_REVIEW')).toBe(
-      'بانتظار إقرار المدير التنفيذي',
-    );
-    expect(kpiWorkflowStatusText('EXECUTIVE_ACKNOWLEDGED')).toBe(
-      'أقرّ المدير التنفيذي',
-    );
-    expect(kpiWorkflowStatusText('RETURNED_BY_EXECUTIVE')).toBe(
-      'أعاده المدير التنفيذي للمراجعة',
-    );
+    expect(kpiWorkflowStatusText('PARALLEL_REVIEW_IN_PROGRESS')).toBe('مراجعة HR والمدير جارية بالتوازي');
+    expect(kpiWorkflowStatusText('HR_COMPLETED')).toBe('أنهى HR مراجعته — بانتظار المدير');
+    expect(kpiWorkflowStatusText('MANAGER_COMPLETED')).toBe('أنهى المدير مراجعته — بانتظار HR');
+    expect(kpiWorkflowStatusText('SECRETARY_REVIEW')).toBe('قيد مراجعة السكرتير التنفيذي');
+    expect(kpiWorkflowStatusText('EXECUTIVE_REVIEW')).toBe('بانتظار إقرار المدير التنفيذي');
+    expect(kpiWorkflowStatusText('EXECUTIVE_ACKNOWLEDGED')).toBe('أقرّ المدير التنفيذي');
+    expect(kpiWorkflowStatusText('RETURNED_BY_EXECUTIVE')).toBe('أعاده المدير التنفيذي للمراجعة');
   });
 });

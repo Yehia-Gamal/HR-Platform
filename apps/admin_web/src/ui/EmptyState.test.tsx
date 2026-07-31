@@ -10,20 +10,12 @@ describe('EmptyState', () => {
   });
 
   it('يعرض زر الإجراء عند توفره', () => {
-    render(
-      <EmptyState
-        title="لا توجد بيانات"
-        description="لم يتم العثور على نتائج"
-        action={<button>إضافة جديد</button>}
-      />,
-    );
+    render(<EmptyState title="لا توجد بيانات" description="لم يتم العثور على نتائج" action={<button>إضافة جديد</button>} />);
     expect(screen.getByText('إضافة جديد')).toBeDefined();
   });
 
   it('لا يعرض زر إجراء عند عدم توفره', () => {
-    const { container } = render(
-      <EmptyState title="لا توجد بيانات" description="لم يتم العثور على نتائج" />,
-    );
+    const { container } = render(<EmptyState title="لا توجد بيانات" description="لم يتم العثور على نتائج" />);
     expect(container.querySelectorAll('button')).toHaveLength(0);
   });
 });

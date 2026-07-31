@@ -1,4 +1,24 @@
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Clock, Cpu, Fingerprint, History, Laptop, Loader2, Monitor, Search, ShieldAlert, ShieldCheck, ShieldX, Smartphone, Trash2, User, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Cpu,
+  Fingerprint,
+  History,
+  Laptop,
+  Loader2,
+  Monitor,
+  Search,
+  ShieldAlert,
+  ShieldCheck,
+  ShieldX,
+  Smartphone,
+  Trash2,
+  User,
+  X,
+} from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
@@ -37,19 +57,45 @@ export function AuditSecurityPage() {
   const [search, setSearch] = useState('');
   const data = query.data;
   const term = search.trim().toLocaleLowerCase('ar');
-  const securityEvents = useMemo(() => (data?.securityEvents ?? []).filter((item) => !term || `${eventLabel(item.eventType)} ${item.severity} ${item.outcome}`.toLocaleLowerCase('ar').includes(term)), [data, term]);
-  const auditEvents = useMemo(() => (data?.auditEvents ?? []).filter((item) => !term || `${eventLabel(item.eventType)} ${item.summary ?? ''} ${item.category} ${item.targetTable ?? ''}`.toLocaleLowerCase('ar').includes(term)), [data, term]);
-  const devices = useMemo(() => (data?.devices ?? []).filter((item) => !term || `${item.name} ${item.employeeName ?? ''} ${item.platform} ${item.environment} ${item.appVersion} ${item.deviceModel ?? ''}`.toLocaleLowerCase('ar').includes(term)), [data, term]);
+  const securityEvents = useMemo(
+    () =>
+      (data?.securityEvents ?? []).filter(
+        (item) => !term || `${eventLabel(item.eventType)} ${item.severity} ${item.outcome}`.toLocaleLowerCase('ar').includes(term),
+      ),
+    [data, term],
+  );
+  const auditEvents = useMemo(
+    () =>
+      (data?.auditEvents ?? []).filter(
+        (item) =>
+          !term || `${eventLabel(item.eventType)} ${item.summary ?? ''} ${item.category} ${item.targetTable ?? ''}`.toLocaleLowerCase('ar').includes(term),
+      ),
+    [data, term],
+  );
+  const devices = useMemo(
+    () =>
+      (data?.devices ?? []).filter(
+        (item) =>
+          !term ||
+          `${item.name} ${item.employeeName ?? ''} ${item.platform} ${item.environment} ${item.appVersion} ${item.deviceModel ?? ''}`
+            .toLocaleLowerCase('ar')
+            .includes(term),
+      ),
+    [data, term],
+  );
   const unhandled = (data?.securityEvents ?? []).filter((item) => !item.handled).length;
   const critical = (data?.securityEvents ?? []).filter((item) => ['high', 'critical'].includes(item.severity) && !item.handled).length;
   const activeDevices = (data?.devices ?? []).filter((item) => item.status === 'active').length;
   const untrusted = (data?.devices ?? []).filter((item) => !item.trusted && item.status === 'active').length;
   const shownCount = tab === 'security' ? securityEvents.length : tab === 'audit' ? auditEvents.length : devices.length;
-  const totalCount = tab === 'security' ? data?.securityEvents.length ?? 0 : tab === 'audit' ? data?.auditEvents.length ?? 0 : data?.devices.length ?? 0;
+  const totalCount = tab === 'security' ? (data?.securityEvents.length ?? 0) : tab === 'audit' ? (data?.auditEvents.length ?? 0) : (data?.devices.length ?? 0);
 
   return (
     <div className="space-y-6">
-      <PageHeader title="التدقيق والأمان" description="مركز قراءة ومعالجة للأحداث الأمنية، وسجل تغييرات غير قابل للتعديل، والأجهزة المسجلة دون إظهار المعرّفات أو الأسرار الحساسة." />
+      <PageHeader
+        title="التدقيق والأمان"
+        description="مركز قراءة ومعالجة للأحداث الأمنية، وسجل تغييرات غير قابل للتعديل، والأجهزة المسجلة دون إظهار المعرّفات أو الأسرار الحساسة."
+      />
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="أحداث غير معالجة" value={unhandled} icon={ShieldAlert} />
         <MetricCard label="عالية الخطورة" value={critical} icon={AlertTriangle} />
@@ -59,21 +105,49 @@ export function AuditSecurityPage() {
 
       <section className="filter-bar flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2" role="tablist" aria-label="أقسام التدقيق والأمان">
-          <TabButton id="tab-security" panelId="panel-security" active={tab === 'security'} onClick={() => setTab('security')} label={`الأحداث الأمنية (${data?.securityEvents.length ?? 0})`} />
-          <TabButton id="tab-audit" panelId="panel-audit" active={tab === 'audit'} onClick={() => setTab('audit')} label={`سجل التدقيق (${data?.auditEvents.length ?? 0})`} />
-          <TabButton id="tab-devices" panelId="panel-devices" active={tab === 'devices'} onClick={() => setTab('devices')} label={`الأجهزة (${data?.devices.length ?? 0})`} />
+          <TabButton
+            id="tab-security"
+            panelId="panel-security"
+            active={tab === 'security'}
+            onClick={() => setTab('security')}
+            label={`الأحداث الأمنية (${data?.securityEvents.length ?? 0})`}
+          />
+          <TabButton
+            id="tab-audit"
+            panelId="panel-audit"
+            active={tab === 'audit'}
+            onClick={() => setTab('audit')}
+            label={`سجل التدقيق (${data?.auditEvents.length ?? 0})`}
+          />
+          <TabButton
+            id="tab-devices"
+            panelId="panel-devices"
+            active={tab === 'devices'}
+            onClick={() => setTab('devices')}
+            label={`الأجهزة (${data?.devices.length ?? 0})`}
+          />
         </div>
         <div className="flex w-full flex-col gap-2 lg:max-w-sm">
           <label className="relative block w-full">
             <Search className="pointer-events-none absolute end-3 top-3 size-4 text-[var(--text-muted)]" aria-hidden="true" />
-            <input className={`input ps-3 ${search ? 'pe-16' : 'pe-10'}`} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ابحث في القسم الحالي…" aria-label="البحث في التدقيق والأمان" />
+            <input
+              className={`input ps-3 ${search ? 'pe-16' : 'pe-10'}`}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="ابحث في القسم الحالي…"
+              aria-label="البحث في التدقيق والأمان"
+            />
             {search ? (
               <button type="button" className="icon-button absolute end-9 top-1.5 size-7" onClick={() => setSearch('')} aria-label="مسح البحث">
                 <X className="size-4" aria-hidden="true" />
               </button>
             ) : null}
           </label>
-          {data && term ? <p className="muted text-xs" aria-live="polite">عرض {shownCount} من {totalCount}</p> : null}
+          {data && term ? (
+            <p className="muted text-xs" aria-live="polite">
+              عرض {shownCount} من {totalCount}
+            </p>
+          ) : null}
         </div>
       </section>
 
@@ -88,7 +162,52 @@ export function AuditSecurityPage() {
       {data && tab === 'security' ? (
         <section className="card overflow-hidden" role="tabpanel" id="panel-security" aria-labelledby="tab-security" tabIndex={0}>
           <div className="divide-y divide-[var(--border)]">
-            {securityEvents.map((item) => <article key={item.id} className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between"><div className="flex min-w-0 items-start gap-3"><span className="rounded-xl p-2.5" style={item.handled ? { background: 'var(--success-soft)', color: 'var(--success)' } : { background: 'var(--danger-soft)', color: 'var(--danger)' }}>{item.handled ? <ShieldCheck className="size-5" aria-hidden="true" /> : <ShieldAlert className="size-5" aria-hidden="true" />}</span><div><div className="flex flex-wrap items-center gap-2"><strong>{eventLabel(item.eventType)}</strong><StatusBadge value={item.severity} /><StatusBadge value={item.outcome} /></div><p className="muted mt-2 text-xs">{date(item.occurredAt)} · {item.handled ? 'تمت المعالجة' : 'بانتظار المراجعة'}</p></div></div>{!item.handled ? <button type="button" className="btn-secondary self-start lg:self-auto" disabled={commands.handleEvent.isPending} onClick={() => commands.handleEvent.mutate(item.id, { onSuccess: () => toast({ message: 'تمت معالجة الحدث بنجاح', tone: 'success' }), onError: () => toast({ message: 'تعذر معالجة الحدث', tone: 'error' }) })}>{commands.handleEvent.isPending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <CheckCircle2 className="size-4" aria-hidden="true" />}{commands.handleEvent.isPending ? 'جارٍ المعالجة…' : 'تأكيد المعالجة'}</button> : null}</article>)}
+            {securityEvents.map((item) => (
+              <article key={item.id} className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span
+                    className="rounded-xl p-2.5"
+                    style={
+                      item.handled
+                        ? { background: 'var(--success-soft)', color: 'var(--success)' }
+                        : { background: 'var(--danger-soft)', color: 'var(--danger)' }
+                    }
+                  >
+                    {item.handled ? <ShieldCheck className="size-5" aria-hidden="true" /> : <ShieldAlert className="size-5" aria-hidden="true" />}
+                  </span>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <strong>{eventLabel(item.eventType)}</strong>
+                      <StatusBadge value={item.severity} />
+                      <StatusBadge value={item.outcome} />
+                    </div>
+                    <p className="muted mt-2 text-xs">
+                      {date(item.occurredAt)} · {item.handled ? 'تمت المعالجة' : 'بانتظار المراجعة'}
+                    </p>
+                  </div>
+                </div>
+                {!item.handled ? (
+                  <button
+                    type="button"
+                    className="btn-secondary self-start lg:self-auto"
+                    disabled={commands.handleEvent.isPending}
+                    onClick={() =>
+                      commands.handleEvent.mutate(item.id, {
+                        onSuccess: () => toast({ message: 'تمت معالجة الحدث بنجاح', tone: 'success' }),
+                        onError: () => toast({ message: 'تعذر معالجة الحدث', tone: 'error' }),
+                      })
+                    }
+                  >
+                    {commands.handleEvent.isPending ? (
+                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <CheckCircle2 className="size-4" aria-hidden="true" />
+                    )}
+                    {commands.handleEvent.isPending ? 'جارٍ المعالجة…' : 'تأكيد المعالجة'}
+                  </button>
+                ) : null}
+              </article>
+            ))}
           </div>
           {!securityEvents.length ? <EmptyState title="لا توجد أحداث مطابقة" description="لا توجد أحداث أمنية ضمن نتيجة البحث الحالية." /> : null}
         </section>
@@ -96,15 +215,60 @@ export function AuditSecurityPage() {
 
       {data && tab === 'audit' ? (
         <section className="card overflow-hidden" role="tabpanel" id="panel-audit" aria-labelledby="tab-audit" tabIndex={0}>
-          <div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[820px] text-start text-sm"><thead className="bg-[var(--surface-muted)]"><tr><th className="p-4">الحدث</th><th className="p-4">التصنيف</th><th className="p-4">الملخص</th><th className="p-4">الكيان</th><th className="p-4">الوقت</th></tr></thead><tbody>{auditEvents.map((item) => <tr key={item.id} className="border-t border-[var(--border)]"><td className="p-4"><strong>{eventLabel(item.eventType)}</strong></td><td className="p-4"><div className="flex gap-2"><StatusBadge value={item.category} /><StatusBadge value={item.severity} /></div></td><td className="p-4">{item.summary ?? '—'}</td><td className="p-4 font-mono text-xs">{item.targetTable ?? '—'}</td><td className="p-4 whitespace-nowrap">{date(item.occurredAt)}</td></tr>)}</tbody></table></div>
-          <div className="divide-y divide-[var(--border)] md:hidden">{auditEvents.map((item) => <article key={item.id} className="p-5"><div className="flex items-start gap-3"><History className="mt-0.5 size-5 shrink-0 text-[var(--brand-primary)]" aria-hidden="true" /><div><strong>{eventLabel(item.eventType)}</strong><p className="mt-2 text-sm">{item.summary ?? 'دون ملخص'}</p><div className="mt-3 flex flex-wrap gap-2"><StatusBadge value={item.category} /><StatusBadge value={item.severity} /></div><p className="muted mt-3 text-xs">{date(item.occurredAt)}</p></div></div></article>)}</div>
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[820px] text-start text-sm">
+              <thead className="bg-[var(--surface-muted)]">
+                <tr>
+                  <th className="p-4">الحدث</th>
+                  <th className="p-4">التصنيف</th>
+                  <th className="p-4">الملخص</th>
+                  <th className="p-4">الكيان</th>
+                  <th className="p-4">الوقت</th>
+                </tr>
+              </thead>
+              <tbody>
+                {auditEvents.map((item) => (
+                  <tr key={item.id} className="border-t border-[var(--border)]">
+                    <td className="p-4">
+                      <strong>{eventLabel(item.eventType)}</strong>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex gap-2">
+                        <StatusBadge value={item.category} />
+                        <StatusBadge value={item.severity} />
+                      </div>
+                    </td>
+                    <td className="p-4">{item.summary ?? '—'}</td>
+                    <td className="p-4 font-mono text-xs">{item.targetTable ?? '—'}</td>
+                    <td className="p-4 whitespace-nowrap">{date(item.occurredAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="divide-y divide-[var(--border)] md:hidden">
+            {auditEvents.map((item) => (
+              <article key={item.id} className="p-5">
+                <div className="flex items-start gap-3">
+                  <History className="mt-0.5 size-5 shrink-0 text-[var(--brand-primary)]" aria-hidden="true" />
+                  <div>
+                    <strong>{eventLabel(item.eventType)}</strong>
+                    <p className="mt-2 text-sm">{item.summary ?? 'دون ملخص'}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <StatusBadge value={item.category} />
+                      <StatusBadge value={item.severity} />
+                    </div>
+                    <p className="muted mt-3 text-xs">{date(item.occurredAt)}</p>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
           {!auditEvents.length ? <EmptyState title="لا توجد أحداث تدقيق مطابقة" description="جرّب عبارة بحث مختلفة." /> : null}
         </section>
       ) : null}
 
-      {data && tab === 'devices' ? (
-        <DevicesPanel devices={devices} commands={commands} />
-      ) : null}
+      {data && tab === 'devices' ? <DevicesPanel devices={devices} commands={commands} /> : null}
     </div>
   );
 }
@@ -161,19 +325,52 @@ function DevicesPanel({ devices, commands }: { devices: DeviceItem[]; commands: 
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setRevokeTarget(null)}>
           <div className="card w-full max-w-md space-y-4 p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3">
-              <span className="rounded-xl bg-[var(--danger-soft)] p-2.5 text-[var(--danger)]"><ShieldX className="size-5" aria-hidden="true" /></span>
+              <span className="rounded-xl bg-[var(--danger-soft)] p-2.5 text-[var(--danger)]">
+                <ShieldX className="size-5" aria-hidden="true" />
+              </span>
               <h3 className="text-lg font-black">إلغاء تسجيل الجهاز</h3>
             </div>
-            <p className="text-sm">سيتم إلغاء تسجيل <strong>{revokeTarget.name}</strong>{revokeTarget.employeeName ? <> — <span className="text-[var(--brand-primary)]">{revokeTarget.employeeName}</span></> : null}. لا يمكن التراجع عن هذا الإجراء.</p>
+            <p className="text-sm">
+              سيتم إلغاء تسجيل <strong>{revokeTarget.name}</strong>
+              {revokeTarget.employeeName ? (
+                <>
+                  {' '}
+                  — <span className="text-[var(--brand-primary)]">{revokeTarget.employeeName}</span>
+                </>
+              ) : null}
+              . لا يمكن التراجع عن هذا الإجراء.
+            </p>
             <label className="block">
-              <span className="mb-1 block text-sm font-medium">سبب الإلغاء <span className="text-[var(--danger)]">*</span></span>
-              <textarea className="input w-full" rows={3} value={revokeReason} onChange={(e) => setRevokeReason(e.target.value)} placeholder="اكتب سبب الإلغاء (10 أحرف على الأقل)…" />
+              <span className="mb-1 block text-sm font-medium">
+                سبب الإلغاء <span className="text-[var(--danger)]">*</span>
+              </span>
+              <textarea
+                className="input w-full"
+                rows={3}
+                value={revokeReason}
+                onChange={(e) => setRevokeReason(e.target.value)}
+                placeholder="اكتب سبب الإلغاء (10 أحرف على الأقل)…"
+              />
             </label>
             {revokeError ? <p className="text-sm text-[var(--danger)]">{revokeError}</p> : null}
             <div className="flex justify-end gap-2">
-              <button type="button" className="btn-secondary" onClick={() => { setRevokeTarget(null); setRevokeReason(''); setRevokeError(''); }}>إلغاء</button>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  setRevokeTarget(null);
+                  setRevokeReason('');
+                  setRevokeError('');
+                }}
+              >
+                إلغاء
+              </button>
               <button type="button" className="btn-danger" disabled={commands.revokeDevice.isPending} onClick={() => void handleRevoke()}>
-                {commands.revokeDevice.isPending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Trash2 className="size-4" aria-hidden="true" />}
+                {commands.revokeDevice.isPending ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Trash2 className="size-4" aria-hidden="true" />
+                )}
                 {commands.revokeDevice.isPending ? 'جارٍ الإلغاء…' : 'تأكيد الإلغاء'}
               </button>
             </div>
@@ -191,7 +388,13 @@ function DevicesPanel({ devices, commands }: { devices: DeviceItem[]; commands: 
                 {/* رأس البطاقة: أيقونة + حالة */}
                 <div className="flex items-start justify-between gap-3">
                   <span className="rounded-2xl bg-[var(--surface-muted)] p-3">
-                    {item.platform === 'web' ? <Monitor className="size-6" aria-hidden="true" /> : item.platform === 'ios' ? <Smartphone className="size-6" aria-hidden="true" /> : <Smartphone className="size-6" aria-hidden="true" />}
+                    {item.platform === 'web' ? (
+                      <Monitor className="size-6" aria-hidden="true" />
+                    ) : item.platform === 'ios' ? (
+                      <Smartphone className="size-6" aria-hidden="true" />
+                    ) : (
+                      <Smartphone className="size-6" aria-hidden="true" />
+                    )}
                   </span>
                   <div className="flex flex-wrap justify-end gap-2">
                     <StatusBadge value={item.status} />
@@ -209,22 +412,33 @@ function DevicesPanel({ devices, commands }: { devices: DeviceItem[]; commands: 
                 </div>
 
                 {/* معلومات أساسية */}
-                <p className="muted mt-2 text-sm">{item.platform.toUpperCase()}{item.deviceModel ? ` · ${item.deviceModel}` : ''} · الإصدار {item.appVersion}</p>
+                <p className="muted mt-2 text-sm">
+                  {item.platform.toUpperCase()}
+                  {item.deviceModel ? ` · ${item.deviceModel}` : ''} · الإصدار {item.appVersion}
+                </p>
 
                 {/* شبكة المعلومات المختصرة */}
                 <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                   <div className="rounded-xl bg-[var(--surface-muted)] p-3">
-                    <span className="muted flex items-center gap-1"><Clock className="size-3" aria-hidden="true" /> آخر ظهور</span>
+                    <span className="muted flex items-center gap-1">
+                      <Clock className="size-3" aria-hidden="true" /> آخر ظهور
+                    </span>
                     <strong className="mt-1 block">{date(item.lastSeenAt)}</strong>
                   </div>
                   <div className="rounded-xl bg-[var(--surface-muted)] p-3">
-                    <span className="muted flex items-center gap-1"><Cpu className="size-3" aria-hidden="true" /> البيئة</span>
+                    <span className="muted flex items-center gap-1">
+                      <Cpu className="size-3" aria-hidden="true" /> البيئة
+                    </span>
                     <strong className="mt-1 block">{item.environment}</strong>
                   </div>
                 </div>
 
                 {/* زر عرض/إخفاء التفاصيل */}
-                <button type="button" className="mt-3 flex w-full items-center justify-center gap-1 rounded-xl py-2 text-xs font-medium text-[var(--brand-primary)] transition hover:bg-[var(--surface-muted)]" onClick={() => setExpandedId(isExpanded ? null : item.id)}>
+                <button
+                  type="button"
+                  className="mt-3 flex w-full items-center justify-center gap-1 rounded-xl py-2 text-xs font-medium text-[var(--brand-primary)] transition hover:bg-[var(--surface-muted)]"
+                  onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                >
                   {isExpanded ? <ChevronUp className="size-4" aria-hidden="true" /> : <ChevronDown className="size-4" aria-hidden="true" />}
                   {isExpanded ? 'إخفاء التفاصيل' : 'عرض التفاصيل'}
                 </button>
@@ -246,7 +460,15 @@ function DevicesPanel({ devices, commands }: { devices: DeviceItem[]; commands: 
 
                   {/* زر إلغاء التسجيل */}
                   {!isRevoked ? (
-                    <button type="button" className="btn-danger mt-4 w-full" onClick={() => { setRevokeTarget(item); setRevokeReason(''); setRevokeError(''); }}>
+                    <button
+                      type="button"
+                      className="btn-danger mt-4 w-full"
+                      onClick={() => {
+                        setRevokeTarget(item);
+                        setRevokeReason('');
+                        setRevokeError('');
+                      }}
+                    >
                       <Trash2 className="size-4" aria-hidden="true" /> إلغاء تسجيل الجهاز
                     </button>
                   ) : (
@@ -259,7 +481,11 @@ function DevicesPanel({ devices, commands }: { devices: DeviceItem[]; commands: 
             </article>
           );
         })}
-        {!deduplicated.length ? <div className="lg:col-span-2 xl:col-span-3"><EmptyState title="لا توجد أجهزة مطابقة" description="لا توجد أجهزة ضمن البحث الحالي." /></div> : null}
+        {!deduplicated.length ? (
+          <div className="lg:col-span-2 xl:col-span-3">
+            <EmptyState title="لا توجد أجهزة مطابقة" description="لا توجد أجهزة ضمن البحث الحالي." />
+          </div>
+        ) : null}
       </section>
     </>
   );
@@ -275,5 +501,17 @@ function DetailItem({ label, value }: { label: string; value: string }) {
 }
 
 function TabButton({ id, panelId, active, onClick, label }: { id: string; panelId: string; active: boolean; onClick: () => void; label: string }) {
-  return <button type="button" id={id} role="tab" aria-selected={active} aria-controls={panelId} className={`filter-chip ${active ? 'is-active' : ''}`} onClick={onClick}>{label}</button>;
+  return (
+    <button
+      type="button"
+      id={id}
+      role="tab"
+      aria-selected={active}
+      aria-controls={panelId}
+      className={`filter-chip ${active ? 'is-active' : ''}`}
+      onClick={onClick}
+    >
+      {label}
+    </button>
+  );
 }

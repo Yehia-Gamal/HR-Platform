@@ -15,7 +15,11 @@ export function pctColor(pct: number) {
 
 /** يمنع حقن HTML عند بناء المستند بالـ template literals */
 export function esc(value: unknown): string {
-  return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 /**
@@ -24,31 +28,32 @@ export function esc(value: unknown): string {
  */
 export function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية') {
   const { employee: emp, period, days, summary: s } = data;
-  const attendancePct = s.attendanceRate ?? (s.scheduledDays > 0 ? (s.presentDays / s.scheduledDays * 100) : 0);
+  const attendancePct = s.attendanceRate ?? (s.scheduledDays > 0 ? (s.presentDays / s.scheduledDays) * 100 : 0);
   const compliancePct = s.hoursComplianceRate ?? 0;
   const monthName = MONTHS[period.month - 1] ?? '';
 
-  const dayRows = days.map((d) => {
-    const tags: string[] = [];
-    if (d.isAbsent) tags.push('غائب');
-    if (d.isOfficialHoliday) tags.push('عطلة رسمية');
-    if (d.hasLeave) tags.push('إجازة');
-    if (d.hasMission) tags.push('مأمورية');
-    if (d.hasLatePermit) tags.push('إذن حضور');
-    if (d.hasEarlyPermit) tags.push('إذن انصراف');
-    if (!d.hasLatePermit && !d.hasEarlyPermit && d.hasPermit) tags.push('إذن');
-    if (d.hasConvoyFundi) tags.push('قافلة/فاندي');
-    if (d.missingCheckIn) tags.push('نقص حضور');
-    if (d.missingCheckOut) tags.push('نقص انصراف');
-    if (d.hasCorrection) tags.push('تصحيح');
-    if (d.penalties > 0) tags.push(`جزاء: ${d.penalties}`);
+  const dayRows = days
+    .map((d) => {
+      const tags: string[] = [];
+      if (d.isAbsent) tags.push('غائب');
+      if (d.isOfficialHoliday) tags.push('عطلة رسمية');
+      if (d.hasLeave) tags.push('إجازة');
+      if (d.hasMission) tags.push('مأمورية');
+      if (d.hasLatePermit) tags.push('إذن حضور');
+      if (d.hasEarlyPermit) tags.push('إذن انصراف');
+      if (!d.hasLatePermit && !d.hasEarlyPermit && d.hasPermit) tags.push('إذن');
+      if (d.hasConvoyFundi) tags.push('قافلة/فاندي');
+      if (d.missingCheckIn) tags.push('نقص حضور');
+      if (d.missingCheckOut) tags.push('نقص انصراف');
+      if (d.hasCorrection) tags.push('تصحيح');
+      if (d.penalties > 0) tags.push(`جزاء: ${d.penalties}`);
 
-    const isRest = d.status === 'راحة أسبوعية' || d.status === 'عطلة رسمية';
-    const isWarn = WARN_STATUSES.has(d.status);
-    const rowBg = isRest ? '#f0f9ff' : isWarn ? '#fef2f2' : '';
-    const statusColor = isWarn ? '#dc2626' : isRest ? '#0369a1' : '#111827';
+      const isRest = d.status === 'راحة أسبوعية' || d.status === 'عطلة رسمية';
+      const isWarn = WARN_STATUSES.has(d.status);
+      const rowBg = isRest ? '#f0f9ff' : isWarn ? '#fef2f2' : '';
+      const statusColor = isWarn ? '#dc2626' : isRest ? '#0369a1' : '#111827';
 
-    return `<tr style="border-bottom:1px solid #e5e7eb;${rowBg ? `background:${rowBg};` : ''}">
+      return `<tr style="border-bottom:1px solid #e5e7eb;${rowBg ? `background:${rowBg};` : ''}">
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${esc(d.date)}</td>
       <td style="padding:6px 8px;text-align:center">${esc(d.dayNameAr)}</td>
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${esc(fmtTime(d.checkIn))}</td>
@@ -61,7 +66,8 @@ export function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمع
       <td style="padding:6px 8px;text-align:center;font-weight:700;color:${statusColor}">${esc(d.status)}</td>
       <td style="padding:6px 8px;text-align:center;font-size:9px">${tags.join('، ') || esc(d.correctionNote ?? '')}</td>
     </tr>`;
-  }).join('\n');
+    })
+    .join('\n');
 
   const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">

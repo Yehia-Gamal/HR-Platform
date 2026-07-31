@@ -10,7 +10,10 @@ import { Component, type ErrorInfo, type PropsWithChildren } from 'react';
  * التي تُسقط كل التطبيق.
  */
 
-interface State { hasError: boolean; errorId: string | null }
+interface State {
+  hasError: boolean;
+  errorId: string | null;
+}
 
 export class RouteErrorBoundary extends Component<PropsWithChildren, State> {
   state: State = { hasError: false, errorId: null };

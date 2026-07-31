@@ -253,16 +253,16 @@ do $$ begin
 end $$;
 set local role anon;
 
-select is(
-  (select count(*)::int from public.employee_compensation),
-  0,
-  '5.1 المستخدم المجهول لا يقرأ بيانات التعويضات'
+select throws_ok(
+  $$select count(*) from public.employee_compensation$$,
+  '42501', null,
+  '5.1 المستخدم المجهول لا يملك صلاحية مباشرة على بيانات التعويضات'
 );
 
-select is(
-  (select count(*)::int from public.payslips),
-  0,
-  '5.2 المستخدم المجهول لا يقرأ كشوف الرواتب'
+select throws_ok(
+  $$select count(*) from public.payslips$$,
+  '42501', null,
+  '5.2 المستخدم المجهول لا يملك صلاحية مباشرة على كشوف الرواتب'
 );
 
 -- =====================================================================

@@ -41,14 +41,8 @@ function FitBounds({ points }: { points: MapPoint[] }) {
 }
 
 // خريطة Leaflet/OSM حقيقية (بلا مفتاح API). تعرض الدبابيس + دائرة الدقة.
-export function LiveLocationMap({ points, height = 420, showAccuracy = true }: {
-  points: MapPoint[];
-  height?: number;
-  showAccuracy?: boolean;
-}) {
-  const center: [number, number] = points.length
-    ? [points[0].lat, points[0].lng]
-    : [26.8206, 30.8025]; // مركز مصر افتراضيًا
+export function LiveLocationMap({ points, height = 420, showAccuracy = true }: { points: MapPoint[]; height?: number; showAccuracy?: boolean }) {
+  const center: [number, number] = points.length ? [points[0].lat, points[0].lng] : [26.8206, 30.8025]; // مركز مصر افتراضيًا
 
   return (
     <div style={{ height }} className="overflow-hidden rounded-2xl">
@@ -66,8 +60,18 @@ export function LiveLocationMap({ points, height = 420, showAccuracy = true }: {
             <Marker position={[p.lat, p.lng]} icon={icon}>
               <Popup>
                 <strong>{p.label}</strong>
-                {p.sublabel ? <><br />{p.sublabel}</> : null}
-                {typeof p.accuracy === 'number' ? <><br />دقة ≈ {Math.round(p.accuracy)} متر</> : null}
+                {p.sublabel ? (
+                  <>
+                    <br />
+                    {p.sublabel}
+                  </>
+                ) : null}
+                {typeof p.accuracy === 'number' ? (
+                  <>
+                    <br />
+                    دقة ≈ {Math.round(p.accuracy)} متر
+                  </>
+                ) : null}
               </Popup>
             </Marker>
           </span>

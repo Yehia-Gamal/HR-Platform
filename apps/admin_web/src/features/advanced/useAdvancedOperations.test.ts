@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  attendanceOperationsCatalogSchema,
-  kpiAdminCatalogSchema,
-  disputeOperationsCatalogSchema,
-} from '@ahla/shared-contracts';
+import { attendanceOperationsCatalogSchema, kpiAdminCatalogSchema, disputeOperationsCatalogSchema } from '@ahla/shared-contracts';
 
 /**
  * Validates the empty/default mock data in useAdvancedOperations against
@@ -35,8 +31,17 @@ describe('useAdvancedOperations mock data', () => {
   const emptyDisputes = {
     cases: [],
     summary: {
-      new: 0, overdue: 0, urgent: 0, critical: 0, waitingStatements: 0, escalated: 0,
-      pendingExecution: 0, actionProposed: 0, awaitingExecution: 0, executed: 0, closed: 0,
+      new: 0,
+      overdue: 0,
+      urgent: 0,
+      critical: 0,
+      waitingStatements: 0,
+      escalated: 0,
+      pendingExecution: 0,
+      actionProposed: 0,
+      awaitingExecution: 0,
+      executed: 0,
+      closed: 0,
       averageResolutionHours: 0,
     },
     pendingAppeals: 0,

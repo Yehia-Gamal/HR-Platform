@@ -22,18 +22,8 @@ function getVisiblePages(current: number, total: number): (number | 'ellipsis-st
   return [1, 'ellipsis-start', current - 1, current, current + 1, 'ellipsis-end', total];
 }
 
-export function Pagination({
-  currentPage,
-  totalPages,
-  totalItems,
-  pageSize,
-  onPageChange,
-  onPageSizeChange,
-}: PaginationProps) {
-  const visiblePages = useMemo(
-    () => getVisiblePages(currentPage, totalPages),
-    [currentPage, totalPages],
-  );
+export function Pagination({ currentPage, totalPages, totalItems, pageSize, onPageChange, onPageSizeChange }: PaginationProps) {
+  const visiblePages = useMemo(() => getVisiblePages(currentPage, totalPages), [currentPage, totalPages]);
 
   const isFirst = currentPage <= 1;
   const isLast = currentPage >= totalPages;
@@ -59,7 +49,9 @@ export function Pagination({
               aria-label="عدد العناصر في الصفحة"
             >
               {PAGE_SIZE_OPTIONS.map((size) => (
-                <option key={size} value={size}>{size.toLocaleString('ar-EG')}</option>
+                <option key={size} value={size}>
+                  {size.toLocaleString('ar-EG')}
+                </option>
               ))}
             </select>
           </label>
@@ -68,13 +60,7 @@ export function Pagination({
         {/* أزرار التنقل */}
         <div className="flex items-center gap-1" role="group" aria-label="أرقام الصفحات">
           {/* السابق — في RTL السهم لليمين يعني الرجوع */}
-          <button
-            type="button"
-            className="filter-chip !px-2"
-            disabled={isFirst}
-            onClick={() => onPageChange(currentPage - 1)}
-            aria-label="الصفحة السابقة"
-          >
+          <button type="button" className="filter-chip !px-2" disabled={isFirst} onClick={() => onPageChange(currentPage - 1)} aria-label="الصفحة السابقة">
             <ChevronRight className="size-4" aria-hidden="true" />
           </button>
 
@@ -107,13 +93,7 @@ export function Pagination({
           })}
 
           {/* التالي — في RTL السهم لليسار يعني التقدم */}
-          <button
-            type="button"
-            className="filter-chip !px-2"
-            disabled={isLast}
-            onClick={() => onPageChange(currentPage + 1)}
-            aria-label="الصفحة التالية"
-          >
+          <button type="button" className="filter-chip !px-2" disabled={isLast} onClick={() => onPageChange(currentPage + 1)} aria-label="الصفحة التالية">
             <ChevronLeft className="size-4" aria-hidden="true" />
           </button>
         </div>

@@ -29,7 +29,7 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
   const [mapSnapshotUrl, setMapSnapshotUrl] = useState<string | null>(null);
   const mapUrlCmd = useLiveLocationMapUrl();
 
-  const req = (typeof requestId === 'string' ? requestId : null);
+  const req = typeof requestId === 'string' ? requestId : null;
   const response = useLiveLocationResponse(req, true);
   const data = response.data as LiveLocationResponseData | null | undefined;
 
@@ -50,7 +50,9 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
     .filter((p) => num(p.latitude) !== null && num(p.longitude) !== null)
     .map((p, i) => ({
       id: p.id ?? String(i),
-      lat: p.latitude, lng: p.longitude, accuracy: num(p.accuracy),
+      lat: p.latitude,
+      lng: p.longitude,
+      accuracy: num(p.accuracy),
       label: employee.name ?? 'الموظف',
       sublabel: p.addressAr ?? null,
     }));
@@ -58,7 +60,9 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
   async function loadMapSnapshot() {
     try {
       setMapSnapshotUrl(await mapUrlCmd.mutateAsync(requestId));
-    } catch { toast({ message: 'تعذر تحميل لقطة الخريطة', tone: 'error' }); }
+    } catch {
+      toast({ message: 'تعذر تحميل لقطة الخريطة', tone: 'error' });
+    }
   }
 
   return (
@@ -68,12 +72,14 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
           <div className="flex items-center gap-3">
             <UserAvatar displayName={employee.name ?? 'الموظف'} />
             <div>
-            <h2 className="text-lg font-black">{employee.name ?? 'الموظف'}</h2>
-            <p className="muted mt-1 text-xs">
-              {employee.employeeCode ?? '—'} · {employee.jobTitle ?? 'دون مسمى'} · {employee.department ?? 'دون إدارة'}
-            </p>
+              <h2 className="text-lg font-black">{employee.name ?? 'الموظف'}</h2>
+              <p className="muted mt-1 text-xs">
+                {employee.employeeCode ?? '—'} · {employee.jobTitle ?? 'دون مسمى'} · {employee.department ?? 'دون إدارة'}
+              </p>
             </div>
-            <p className="muted mt-1 text-xs">طلب من: {data.requesterName ?? '—'} · السبب: {request.reason ?? '—'}</p>
+            <p className="muted mt-1 text-xs">
+              طلب من: {data.requesterName ?? '—'} · السبب: {request.reason ?? '—'}
+            </p>
           </div>
           <StatusBadge value={request.status ?? 'pending'} />
         </div>
@@ -88,7 +94,9 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
 
       {mapPoints.length ? (
         <article className="card overflow-hidden">
-          <div className="border-b border-[var(--border)] p-4"><h3 className="font-black">الموقع على الخريطة</h3></div>
+          <div className="border-b border-[var(--border)] p-4">
+            <h3 className="font-black">الموقع على الخريطة</h3>
+          </div>
           <div className="p-4">
             <LiveLocationMap points={mapPoints} height={360} />
             {mapSnapshotUrl ? (
@@ -98,13 +106,18 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
               </figure>
             ) : (
               <button type="button" className="btn-secondary mt-4" onClick={() => void loadMapSnapshot()} disabled={mapUrlCmd.isPending}>
-                <MapPin className="size-4" aria-hidden="true" />{mapUrlCmd.isPending ? 'جارٍ تحميل اللقطة…' : 'عرض لقطة الخريطة المحفوظة'}
+                <MapPin className="size-4" aria-hidden="true" />
+                {mapUrlCmd.isPending ? 'جارٍ تحميل اللقطة…' : 'عرض لقطة الخريطة المحفوظة'}
               </button>
             )}
             {mapUrlCmd.isError ? <ErrorBanner message="لا توجد لقطة خريطة متاحة أو انتهت مدة الاحتفاظ بها." /> : null}
             {latest?.addressAr ? (
-              <p className="mt-3 flex items-start gap-2 text-sm"><MapPin className="mt-0.5 size-4 shrink-0 text-[var(--brand-primary)]" />
-                <span>الموظف قريب من: <strong>{latest.addressAr}</strong>{num(latest.accuracy) !== null ? <> — دقة تقريبية {Math.round(num(latest.accuracy)!)} متر</> : null}</span>
+              <p className="mt-3 flex items-start gap-2 text-sm">
+                <MapPin className="mt-0.5 size-4 shrink-0 text-[var(--brand-primary)]" />
+                <span>
+                  الموظف قريب من: <strong>{latest.addressAr}</strong>
+                  {num(latest.accuracy) !== null ? <> — دقة تقريبية {Math.round(num(latest.accuracy)!)} متر</> : null}
+                </span>
               </p>
             ) : num(latest?.accuracy) !== null ? (
               <p className="muted mt-3 text-sm">إحداثيات مسجّلة بدقة تقريبية {Math.round(num(latest?.accuracy)!)} متر (لم يتوفّر عنوان نصي).</p>
@@ -123,7 +136,10 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
 function Stat({ icon: Icon, label, value }: { icon: typeof Clock; label: string; value: string }) {
   return (
     <div className="rounded-xl bg-[var(--surface-muted)] p-3">
-      <span className="muted flex items-center gap-1 text-[11px]"><Icon className="size-3" aria-hidden="true" />{label}</span>
+      <span className="muted flex items-center gap-1 text-[11px]">
+        <Icon className="size-3" aria-hidden="true" />
+        {label}
+      </span>
       <strong className="mt-1 block text-sm">{value}</strong>
     </div>
   );

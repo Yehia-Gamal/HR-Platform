@@ -31,7 +31,14 @@ export function RecruitmentPage() {
   const workbenchCommands = useRecruitmentWorkbenchCommands();
   const [draft, setDraft] = useState<RequisitionDraft | null>(null);
   const [interviewDraft, setInterviewDraft] = useState<{ applicationId: string; mode: string; scheduledAt: string; locationOrLink: string } | null>(null);
-  const [offerDraft, setOfferDraft] = useState<{ applicationId: string; title: string; salary: string; contractType: string; startDate: string; expiresAt: string } | null>(null);
+  const [offerDraft, setOfferDraft] = useState<{
+    applicationId: string;
+    title: string;
+    salary: string;
+    contractType: string;
+    startDate: string;
+    expiresAt: string;
+  } | null>(null);
   const data = overview.data;
 
   const applicationOptions = workbench.data?.applications ?? [];
@@ -52,7 +59,9 @@ export function RecruitmentPage() {
       });
       setInterviewDraft(null);
       toast({ message: 'تم جدولة المقابلة بنجاح', tone: 'success' });
-    } catch { /* mutation error surfaced via mutation.isError state */ }
+    } catch {
+      /* mutation error surfaced via mutation.isError state */
+    }
   }
 
   async function submitOffer(event: FormEvent) {
@@ -69,7 +78,9 @@ export function RecruitmentPage() {
       });
       setOfferDraft(null);
       toast({ message: 'تم إنشاء العرض بنجاح', tone: 'success' });
-    } catch { /* mutation error surfaced via mutation.isError state */ }
+    } catch {
+      /* mutation error surfaced via mutation.isError state */
+    }
   }
 
   async function submit(event: FormEvent) {
@@ -86,20 +97,32 @@ export function RecruitmentPage() {
       });
       setDraft(null);
       toast({ message: 'تم حفظ طلب التوظيف بنجاح', tone: 'success' });
-    } catch { /* mutation error surfaced via mutation.isError state */ }
+    } catch {
+      /* mutation error surfaced via mutation.isError state */
+    }
   }
 
-  const openDraft = (submitNow: boolean) => setDraft({
-    departmentId: organization.data?.departments[0]?.id ?? '',
-    title: '',
-    headcount: 1,
-    reason: '',
-    budgetRange: '',
-    submit: submitNow,
-  });
+  const openDraft = (submitNow: boolean) =>
+    setDraft({
+      departmentId: organization.data?.departments[0]?.id ?? '',
+      title: '',
+      headcount: 1,
+      reason: '',
+      budgetRange: '',
+      submit: submitNow,
+    });
 
   const error = overview.error ?? organization.error ?? workbench.error;
-  const mutationError = [commands.createRequisition, workbenchCommands.scheduleInterview, workbenchCommands.createOffer, workbenchCommands.decideInterview, workbenchCommands.transitionOffer, workbenchCommands.moveStage, workbenchCommands.hireApplicant].find((m) => m.isError)?.error ?? null;
+  const mutationError =
+    [
+      commands.createRequisition,
+      workbenchCommands.scheduleInterview,
+      workbenchCommands.createOffer,
+      workbenchCommands.decideInterview,
+      workbenchCommands.transitionOffer,
+      workbenchCommands.moveStage,
+      workbenchCommands.hireApplicant,
+    ].find((m) => m.isError)?.error ?? null;
   const mutationPending = workbenchCommands.decideInterview.isPending || workbenchCommands.transitionOffer.isPending || workbenchCommands.moveStage.isPending;
 
   return (
@@ -108,7 +131,18 @@ export function RecruitmentPage() {
         eyebrow="إدارة الموارد"
         title="التوظيف وATS"
         description="إنشاء احتياج وظيفي موثق، حفظه كمسودة أو إرساله للاعتماد، ثم متابعة الإعلانات والمرشحين حتى التعيين."
-        actions={<div className="flex flex-wrap gap-2"><button className="btn-secondary" onClick={() => openDraft(false)}><Plus className="size-4" aria-hidden="true" />مسودة</button><button className="btn-primary" onClick={() => openDraft(true)}><Send className="size-4" aria-hidden="true" />طلب توظيف</button></div>}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <button className="btn-secondary" onClick={() => openDraft(false)}>
+              <Plus className="size-4" aria-hidden="true" />
+              مسودة
+            </button>
+            <button className="btn-primary" onClick={() => openDraft(true)}>
+              <Send className="size-4" aria-hidden="true" />
+              طلب توظيف
+            </button>
+          </div>
+        }
       />
 
       {mutationError ? <ErrorBanner message={safeErrorMessage(mutationError)} /> : null}
@@ -117,7 +151,11 @@ export function RecruitmentPage() {
         <ErrorState
           title="تعذر تحميل التوظيف"
           description={safeErrorMessage(error)}
-          onRetry={() => { void overview.refetch(); void organization.refetch(); void workbench.refetch(); }}
+          onRetry={() => {
+            void overview.refetch();
+            void organization.refetch();
+            void workbench.refetch();
+          }}
         />
       ) : overview.isLoading || organization.isLoading ? (
         <MetricSkeletonRow count={5} />
@@ -136,16 +174,31 @@ export function RecruitmentPage() {
           <section className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
             <article className="card overflow-hidden">
               <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
-                <div><h2 className="font-black">أحدث طلبات التوظيف</h2><p className="muted mt-1 text-sm">المسودة لا تدخل مسار الموافقة حتى يتم إرسالها رسميًا.</p></div>
-                <button className="btn-secondary" onClick={() => openDraft(false)}><Plus className="size-4" aria-hidden="true" />احتياج جديد</button>
+                <div>
+                  <h2 className="font-black">أحدث طلبات التوظيف</h2>
+                  <p className="muted mt-1 text-sm">المسودة لا تدخل مسار الموافقة حتى يتم إرسالها رسميًا.</p>
+                </div>
+                <button className="btn-secondary" onClick={() => openDraft(false)}>
+                  <Plus className="size-4" aria-hidden="true" />
+                  احتياج جديد
+                </button>
               </div>
               <div className="divide-y divide-[var(--border)]">
-                {data.recentRequisitions.length ? data.recentRequisitions.map((requisition) => (
-                  <div key={requisition.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
-                    <div><p className="font-black">{requisition.title}</p><p className="muted mt-1 text-sm">{requisition.department} · العدد {requisition.headcount}</p></div>
-                    <StatusBadge value={requisition.status} />
-                  </div>
-                )) : <EmptyState title="لا توجد طلبات توظيف" description="أنشئ أول احتياج وحدد الإدارة والعدد وسبب الطلب." />}
+                {data.recentRequisitions.length ? (
+                  data.recentRequisitions.map((requisition) => (
+                    <div key={requisition.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="font-black">{requisition.title}</p>
+                        <p className="muted mt-1 text-sm">
+                          {requisition.department} · العدد {requisition.headcount}
+                        </p>
+                      </div>
+                      <StatusBadge value={requisition.status} />
+                    </div>
+                  ))
+                ) : (
+                  <EmptyState title="لا توجد طلبات توظيف" description="أنشئ أول احتياج وحدد الإدارة والعدد وسبب الطلب." />
+                )}
               </div>
             </article>
 
@@ -155,8 +208,16 @@ export function RecruitmentPage() {
               <div className="mt-5 space-y-4">
                 {data.pipeline.map((item) => (
                   <div key={item.stage}>
-                    <div className="flex justify-between text-sm"><span>{item.stage}</span><strong>{item.count}</strong></div>
-                    <div className="mt-2 h-2 rounded-full bg-[var(--surface-muted)]"><div className="h-full rounded-full bg-brand" style={{ width: `${Math.min(100, data.activeApplications ? Math.max(8, item.count / data.activeApplications * 100) : 0)}%` }} /></div>
+                    <div className="flex justify-between text-sm">
+                      <span>{item.stage}</span>
+                      <strong>{item.count}</strong>
+                    </div>
+                    <div className="mt-2 h-2 rounded-full bg-[var(--surface-muted)]">
+                      <div
+                        className="h-full rounded-full bg-brand"
+                        style={{ width: `${Math.min(100, data.activeApplications ? Math.max(8, (item.count / data.activeApplications) * 100) : 0)}%` }}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -164,8 +225,6 @@ export function RecruitmentPage() {
           </section>
         </>
       ) : null}
-
-
 
       {workbench.data ? (
         <section className="card overflow-hidden">
@@ -175,13 +234,71 @@ export function RecruitmentPage() {
           </div>
           <div className="overflow-x-auto">
             <table className="data-table min-w-[900px] text-sm">
-              <thead className="bg-[var(--surface-muted)] text-start"><tr><th scope="col" className="p-3">المرشح</th><th scope="col" className="p-3">الوظيفة</th><th scope="col" className="p-3">المرحلة</th><th scope="col" className="p-3">تاريخ التقديم</th><th scope="col" className="p-3">نقل إلى</th></tr></thead>
+              <thead className="bg-[var(--surface-muted)] text-start">
+                <tr>
+                  <th scope="col" className="p-3">
+                    المرشح
+                  </th>
+                  <th scope="col" className="p-3">
+                    الوظيفة
+                  </th>
+                  <th scope="col" className="p-3">
+                    المرحلة
+                  </th>
+                  <th scope="col" className="p-3">
+                    تاريخ التقديم
+                  </th>
+                  <th scope="col" className="p-3">
+                    نقل إلى
+                  </th>
+                </tr>
+              </thead>
               <tbody className="divide-y divide-[var(--border)]">
                 {workbench.data.applications.map((application) => {
                   const stages = workbench.data!.stages.filter((stage) => stage.postingId === application.postingId);
-                  return <tr key={application.id}><td className="p-3 font-bold">{application.candidateName}</td><td className="p-3">{application.jobTitle}</td><td className="p-3"><StatusBadge value={application.stageName ?? application.status} /></td><td className="p-3 muted">{new Date(application.appliedAt).toLocaleDateString('ar-EG')}</td><td className="p-3"><select className="input max-w-48" disabled={mutationPending} aria-label={`نقل ${application.candidateName} إلى مرحلة`} value={application.stageId ?? ''} onChange={(event) => { if (event.target.value && event.target.value !== application.stageId) workbenchCommands.moveStage.mutate({ applicationId: application.id, stageId: event.target.value, reason: 'نقل من لوحة ATS' }, { onSuccess: () => toast({ message: 'تم نقل المرشح إلى المرحلة الجديدة', tone: 'success' }), onError: () => toast({ message: 'تعذر نقل المرشح', tone: 'error' }) }); }}><option value="">اختر المرحلة</option>{stages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}</select></td></tr>;
+                  return (
+                    <tr key={application.id}>
+                      <td className="p-3 font-bold">{application.candidateName}</td>
+                      <td className="p-3">{application.jobTitle}</td>
+                      <td className="p-3">
+                        <StatusBadge value={application.stageName ?? application.status} />
+                      </td>
+                      <td className="p-3 muted">{new Date(application.appliedAt).toLocaleDateString('ar-EG')}</td>
+                      <td className="p-3">
+                        <select
+                          className="input max-w-48"
+                          disabled={mutationPending}
+                          aria-label={`نقل ${application.candidateName} إلى مرحلة`}
+                          value={application.stageId ?? ''}
+                          onChange={(event) => {
+                            if (event.target.value && event.target.value !== application.stageId)
+                              workbenchCommands.moveStage.mutate(
+                                { applicationId: application.id, stageId: event.target.value, reason: 'نقل من لوحة ATS' },
+                                {
+                                  onSuccess: () => toast({ message: 'تم نقل المرشح إلى المرحلة الجديدة', tone: 'success' }),
+                                  onError: () => toast({ message: 'تعذر نقل المرشح', tone: 'error' }),
+                                },
+                              );
+                          }}
+                        >
+                          <option value="">اختر المرحلة</option>
+                          {stages.map((stage) => (
+                            <option key={stage.id} value={stage.id}>
+                              {stage.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                  );
                 })}
-                {!workbench.data.applications.length ? <tr><td colSpan={5} className="p-8"><EmptyState title="لا توجد طلبات مرشحين" description="ستظهر الطلبات بعد نشر وظيفة واستقبال مرشح." /></td></tr> : null}
+                {!workbench.data.applications.length ? (
+                  <tr>
+                    <td colSpan={5} className="p-8">
+                      <EmptyState title="لا توجد طلبات مرشحين" description="ستظهر الطلبات بعد نشر وظيفة واستقبال مرشح." />
+                    </td>
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </div>
@@ -192,56 +309,253 @@ export function RecruitmentPage() {
         <section className="grid gap-5 xl:grid-cols-2">
           <article className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
-              <div><h2 className="font-black">المقابلات</h2><p className="muted mt-1 text-sm">جدولة المقابلات ومتابعة نتائجها لكل طلب.</p></div>
-              <button className="btn-secondary" disabled={!applicationOptions.length} onClick={() => setInterviewDraft({ applicationId: applicationOptions[0]?.id ?? '', mode: 'onsite', scheduledAt: '', locationOrLink: '' })}><CalendarPlus className="size-4" aria-hidden="true" />جدولة مقابلة</button>
+              <div>
+                <h2 className="font-black">المقابلات</h2>
+                <p className="muted mt-1 text-sm">جدولة المقابلات ومتابعة نتائجها لكل طلب.</p>
+              </div>
+              <button
+                className="btn-secondary"
+                disabled={!applicationOptions.length}
+                onClick={() => setInterviewDraft({ applicationId: applicationOptions[0]?.id ?? '', mode: 'onsite', scheduledAt: '', locationOrLink: '' })}
+              >
+                <CalendarPlus className="size-4" aria-hidden="true" />
+                جدولة مقابلة
+              </button>
             </div>
             <div className="divide-y divide-[var(--border)]">
-              {workbench.data.interviews.length ? workbench.data.interviews.map((interview) => (
-                <div key={interview.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="font-black">{interview.candidateName}</p>
-                    <p className="muted mt-1 text-sm">{interview.mode === 'remote' ? 'عن بُعد' : 'حضوري'} · {interview.scheduledAt ? new Date(interview.scheduledAt).toLocaleString('ar-EG') : 'غير مجدولة'}{interview.locationOrLink ? ` · ${interview.locationOrLink}` : ''}</p>
+              {workbench.data.interviews.length ? (
+                workbench.data.interviews.map((interview) => (
+                  <div key={interview.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-black">{interview.candidateName}</p>
+                      <p className="muted mt-1 text-sm">
+                        {interview.mode === 'remote' ? 'عن بُعد' : 'حضوري'} ·{' '}
+                        {interview.scheduledAt ? new Date(interview.scheduledAt).toLocaleString('ar-EG') : 'غير مجدولة'}
+                        {interview.locationOrLink ? ` · ${interview.locationOrLink}` : ''}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge value={interview.status} />
+                      {interview.status === 'scheduled' ? (
+                        <>
+                          <button
+                            className="btn-secondary"
+                            disabled={mutationPending}
+                            onClick={() =>
+                              workbenchCommands.decideInterview.mutate(
+                                { interviewId: interview.id, status: 'completed' },
+                                {
+                                  onSuccess: () => toast({ message: 'تم تسجيل إتمام المقابلة', tone: 'success' }),
+                                  onError: () => toast({ message: 'تعذر تحديث المقابلة', tone: 'error' }),
+                                },
+                              )
+                            }
+                          >
+                            إتمام
+                          </button>
+                          <button
+                            className="btn-secondary"
+                            disabled={mutationPending}
+                            onClick={() =>
+                              workbenchCommands.decideInterview.mutate(
+                                { interviewId: interview.id, status: 'no_show' },
+                                {
+                                  onSuccess: () => toast({ message: 'تم تسجيل عدم الحضور', tone: 'success' }),
+                                  onError: () => toast({ message: 'تعذر تحديث المقابلة', tone: 'error' }),
+                                },
+                              )
+                            }
+                          >
+                            عدم حضور
+                          </button>
+                          <button
+                            className="btn-secondary"
+                            disabled={mutationPending}
+                            onClick={() =>
+                              workbenchCommands.decideInterview.mutate(
+                                { interviewId: interview.id, status: 'cancelled' },
+                                {
+                                  onSuccess: () => toast({ message: 'تم إلغاء المقابلة', tone: 'success' }),
+                                  onError: () => toast({ message: 'تعذر تحديث المقابلة', tone: 'error' }),
+                                },
+                              )
+                            }
+                          >
+                            إلغاء
+                          </button>
+                        </>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <StatusBadge value={interview.status} />
-                    {interview.status === 'scheduled' ? (
-                      <>
-                        <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.decideInterview.mutate({ interviewId: interview.id, status: 'completed' }, { onSuccess: () => toast({ message: 'تم تسجيل إتمام المقابلة', tone: 'success' }), onError: () => toast({ message: 'تعذر تحديث المقابلة', tone: 'error' }) })}>إتمام</button>
-                        <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.decideInterview.mutate({ interviewId: interview.id, status: 'no_show' }, { onSuccess: () => toast({ message: 'تم تسجيل عدم الحضور', tone: 'success' }), onError: () => toast({ message: 'تعذر تحديث المقابلة', tone: 'error' }) })}>عدم حضور</button>
-                        <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.decideInterview.mutate({ interviewId: interview.id, status: 'cancelled' }, { onSuccess: () => toast({ message: 'تم إلغاء المقابلة', tone: 'success' }), onError: () => toast({ message: 'تعذر تحديث المقابلة', tone: 'error' }) })}>إلغاء</button>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-              )) : <EmptyState title="لا توجد مقابلات" description="جدول مقابلة لأحد المرشحين النشطين." />}
+                ))
+              ) : (
+                <EmptyState title="لا توجد مقابلات" description="جدول مقابلة لأحد المرشحين النشطين." />
+              )}
             </div>
           </article>
 
           <article className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
-              <div><h2 className="font-black">العروض الوظيفية والتعيين</h2><p className="muted mt-1 text-sm">إنشاء العرض، اعتماده وإرساله، ثم اعتماد التعيين بعد القبول.</p></div>
-              <button className="btn-secondary" disabled={!applicationOptions.length} onClick={() => setOfferDraft({ applicationId: applicationOptions[0]?.id ?? '', title: '', salary: '', contractType: '', startDate: '', expiresAt: '' })}><FileSignature className="size-4" aria-hidden="true" />عرض جديد</button>
+              <div>
+                <h2 className="font-black">العروض الوظيفية والتعيين</h2>
+                <p className="muted mt-1 text-sm">إنشاء العرض، اعتماده وإرساله، ثم اعتماد التعيين بعد القبول.</p>
+              </div>
+              <button
+                className="btn-secondary"
+                disabled={!applicationOptions.length}
+                onClick={() =>
+                  setOfferDraft({ applicationId: applicationOptions[0]?.id ?? '', title: '', salary: '', contractType: '', startDate: '', expiresAt: '' })
+                }
+              >
+                <FileSignature className="size-4" aria-hidden="true" />
+                عرض جديد
+              </button>
             </div>
             <div className="divide-y divide-[var(--border)]">
-              {workbench.data.offers.length ? workbench.data.offers.map((offer) => {
-                const canHire = offer.status === 'accepted';
-                return (
-                  <div key={offer.id} className="flex flex-col gap-3 p-5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div><p className="font-black">{offer.candidateName}</p><p className="muted mt-1 text-sm">{offer.title ?? 'عرض توظيف'} · نسخة {offer.version}{offer.startDate ? ` · يبدأ ${offer.startDate}` : ''}</p></div>
-                      <StatusBadge value={offer.status} />
+              {workbench.data.offers.length ? (
+                workbench.data.offers.map((offer) => {
+                  const canHire = offer.status === 'accepted';
+                  return (
+                    <div key={offer.id} className="flex flex-col gap-3 p-5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-black">{offer.candidateName}</p>
+                          <p className="muted mt-1 text-sm">
+                            {offer.title ?? 'عرض توظيف'} · نسخة {offer.version}
+                            {offer.startDate ? ` · يبدأ ${offer.startDate}` : ''}
+                          </p>
+                        </div>
+                        <StatusBadge value={offer.status} />
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {offer.status === 'draft' ? (
+                          <button
+                            className="btn-secondary"
+                            disabled={mutationPending}
+                            onClick={() =>
+                              workbenchCommands.transitionOffer.mutate(
+                                { offerId: offer.id, action: 'submit' },
+                                {
+                                  onSuccess: () => toast({ message: 'تم إرسال العرض للاعتماد', tone: 'success' }),
+                                  onError: () => toast({ message: 'تعذر تنفيذ إجراء العرض', tone: 'error' }),
+                                },
+                              )
+                            }
+                          >
+                            إرسال للاعتماد
+                          </button>
+                        ) : null}
+                        {offer.status === 'pending' ? (
+                          <button
+                            className="btn-secondary"
+                            disabled={mutationPending}
+                            onClick={() =>
+                              workbenchCommands.transitionOffer.mutate(
+                                { offerId: offer.id, action: 'approve' },
+                                {
+                                  onSuccess: () => toast({ message: 'تم اعتماد العرض', tone: 'success' }),
+                                  onError: () => toast({ message: 'تعذر تنفيذ إجراء العرض', tone: 'error' }),
+                                },
+                              )
+                            }
+                          >
+                            اعتماد
+                          </button>
+                        ) : null}
+                        {offer.status === 'approved' ? (
+                          <button
+                            className="btn-secondary"
+                            disabled={mutationPending}
+                            onClick={() =>
+                              workbenchCommands.transitionOffer.mutate(
+                                { offerId: offer.id, action: 'send' },
+                                {
+                                  onSuccess: () => toast({ message: 'تم إرسال العرض للمرشح', tone: 'success' }),
+                                  onError: () => toast({ message: 'تعذر تنفيذ إجراء العرض', tone: 'error' }),
+                                },
+                              )
+                            }
+                          >
+                            إرسال للمرشح
+                          </button>
+                        ) : null}
+                        {offer.status === 'sent' ? (
+                          <>
+                            <button
+                              className="btn-secondary"
+                              disabled={mutationPending}
+                              onClick={() =>
+                                workbenchCommands.transitionOffer.mutate(
+                                  { offerId: offer.id, action: 'accept' },
+                                  {
+                                    onSuccess: () => toast({ message: 'تم تسجيل قبول العرض', tone: 'success' }),
+                                    onError: () => toast({ message: 'تعذر تنفيذ إجراء العرض', tone: 'error' }),
+                                  },
+                                )
+                              }
+                            >
+                              تسجيل القبول
+                            </button>
+                            <button
+                              className="btn-secondary"
+                              disabled={mutationPending}
+                              onClick={() =>
+                                workbenchCommands.transitionOffer.mutate(
+                                  { offerId: offer.id, action: 'decline' },
+                                  {
+                                    onSuccess: () => toast({ message: 'تم تسجيل رفض العرض', tone: 'success' }),
+                                    onError: () => toast({ message: 'تعذر تنفيذ إجراء العرض', tone: 'error' }),
+                                  },
+                                )
+                              }
+                            >
+                              تسجيل الرفض
+                            </button>
+                          </>
+                        ) : null}
+                        {['draft', 'pending', 'approved', 'sent'].includes(offer.status) ? (
+                          <button
+                            className="btn-secondary"
+                            disabled={mutationPending}
+                            onClick={() =>
+                              workbenchCommands.transitionOffer.mutate(
+                                { offerId: offer.id, action: 'withdraw' },
+                                {
+                                  onSuccess: () => toast({ message: 'تم سحب العرض', tone: 'success' }),
+                                  onError: () => toast({ message: 'تعذر تنفيذ إجراء العرض', tone: 'error' }),
+                                },
+                              )
+                            }
+                          >
+                            سحب
+                          </button>
+                        ) : null}
+                        {canHire ? (
+                          <button
+                            className="btn-primary"
+                            disabled={workbenchCommands.hireApplicant.isPending}
+                            aria-busy={workbenchCommands.hireApplicant.isPending}
+                            onClick={() =>
+                              workbenchCommands.hireApplicant.mutate(
+                                { applicationId: offer.applicationId },
+                                {
+                                  onSuccess: () => toast({ message: 'تم اعتماد التعيين بنجاح', tone: 'success' }),
+                                  onError: () => toast({ message: 'تعذر اعتماد التعيين', tone: 'error' }),
+                                },
+                              )
+                            }
+                          >
+                            <UserCheck className="size-4" aria-hidden="true" />
+                            {workbenchCommands.hireApplicant.isPending ? 'جارٍ…' : 'اعتماد التعيين'}
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {offer.status === 'draft' ? <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'submit' }, { onSuccess: () => toast({ message: 'تم إرسال العرض للاعتماد', tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ إجراء العرض', tone: 'error' }) })}>إرسال للاعتماد</button> : null}
-                      {offer.status === 'pending' ? <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'approve' }, { onSuccess: () => toast({ message: 'تم اعتماد العرض', tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ إجراء العرض', tone: 'error' }) })}>اعتماد</button> : null}
-                      {offer.status === 'approved' ? <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'send' }, { onSuccess: () => toast({ message: 'تم إرسال العرض للمرشح', tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ إجراء العرض', tone: 'error' }) })}>إرسال للمرشح</button> : null}
-                      {offer.status === 'sent' ? <><button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'accept' }, { onSuccess: () => toast({ message: 'تم تسجيل قبول العرض', tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ إجراء العرض', tone: 'error' }) })}>تسجيل القبول</button><button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'decline' }, { onSuccess: () => toast({ message: 'تم تسجيل رفض العرض', tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ إجراء العرض', tone: 'error' }) })}>تسجيل الرفض</button></> : null}
-                      {['draft', 'pending', 'approved', 'sent'].includes(offer.status) ? <button className="btn-secondary" disabled={mutationPending} onClick={() => workbenchCommands.transitionOffer.mutate({ offerId: offer.id, action: 'withdraw' }, { onSuccess: () => toast({ message: 'تم سحب العرض', tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ إجراء العرض', tone: 'error' }) })}>سحب</button> : null}
-                      {canHire ? <button className="btn-primary" disabled={workbenchCommands.hireApplicant.isPending} aria-busy={workbenchCommands.hireApplicant.isPending} onClick={() => workbenchCommands.hireApplicant.mutate({ applicationId: offer.applicationId }, { onSuccess: () => toast({ message: 'تم اعتماد التعيين بنجاح', tone: 'success' }), onError: () => toast({ message: 'تعذر اعتماد التعيين', tone: 'error' }) })}><UserCheck className="size-4" aria-hidden="true" />{workbenchCommands.hireApplicant.isPending ? 'جارٍ…' : 'اعتماد التعيين'}</button> : null}
-                    </div>
-                  </div>
-                );
-              }) : <EmptyState title="لا توجد عروض" description="أنشئ عرضًا لمرشح اجتاز المقابلات." />}
+                  );
+                })
+              ) : (
+                <EmptyState title="لا توجد عروض" description="أنشئ عرضًا لمرشح اجتاز المقابلات." />
+              )}
             </div>
           </article>
         </section>
@@ -250,18 +564,46 @@ export function RecruitmentPage() {
       {interviewDraft ? (
         <DialogOverlay title="جدولة مقابلة" onClose={() => setInterviewDraft(null)} maxWidth="max-w-4xl">
           <form className="space-y-5" onSubmit={(event) => void submitInterview(event)}>
-            <Select label="الطلب/المرشح" required value={interviewDraft.applicationId} onChange={(value) => setInterviewDraft({ ...interviewDraft, applicationId: value })}>
-              {applicationOptions.map((app) => <option key={app.id} value={app.id}>{applicationLabel(app.id)}</option>)}
+            <Select
+              label="الطلب/المرشح"
+              required
+              value={interviewDraft.applicationId}
+              onChange={(value) => setInterviewDraft({ ...interviewDraft, applicationId: value })}
+            >
+              {applicationOptions.map((app) => (
+                <option key={app.id} value={app.id}>
+                  {applicationLabel(app.id)}
+                </option>
+              ))}
             </Select>
             <div className="grid gap-4 sm:grid-cols-2">
               <Select label="النمط" required value={interviewDraft.mode} onChange={(value) => setInterviewDraft({ ...interviewDraft, mode: value })}>
                 <option value="onsite">حضوري</option>
                 <option value="remote">عن بُعد</option>
               </Select>
-              <label><span className="mb-1.5 block text-sm font-bold">الموعد</span><input className="input" type="datetime-local" required value={interviewDraft.scheduledAt} onChange={(event) => setInterviewDraft({ ...interviewDraft, scheduledAt: event.target.value })} /></label>
+              <label>
+                <span className="mb-1.5 block text-sm font-bold">الموعد</span>
+                <input
+                  className="input"
+                  type="datetime-local"
+                  required
+                  value={interviewDraft.scheduledAt}
+                  onChange={(event) => setInterviewDraft({ ...interviewDraft, scheduledAt: event.target.value })}
+                />
+              </label>
             </div>
-            <Input label="المكان أو رابط الاجتماع" value={interviewDraft.locationOrLink} onChange={(value) => setInterviewDraft({ ...interviewDraft, locationOrLink: value })} />
-            <button className="btn-primary" disabled={!interviewDraft.applicationId || !interviewDraft.scheduledAt || workbenchCommands.scheduleInterview.isPending}><CalendarPlus className="size-4" aria-hidden="true" />{workbenchCommands.scheduleInterview.isPending ? 'جارٍ الحفظ…' : 'جدولة'}</button>
+            <Input
+              label="المكان أو رابط الاجتماع"
+              value={interviewDraft.locationOrLink}
+              onChange={(value) => setInterviewDraft({ ...interviewDraft, locationOrLink: value })}
+            />
+            <button
+              className="btn-primary"
+              disabled={!interviewDraft.applicationId || !interviewDraft.scheduledAt || workbenchCommands.scheduleInterview.isPending}
+            >
+              <CalendarPlus className="size-4" aria-hidden="true" />
+              {workbenchCommands.scheduleInterview.isPending ? 'جارٍ الحفظ…' : 'جدولة'}
+            </button>
           </form>
         </DialogOverlay>
       ) : null}
@@ -270,16 +612,53 @@ export function RecruitmentPage() {
         <DialogOverlay title="عرض توظيف جديد" onClose={() => setOfferDraft(null)} maxWidth="max-w-4xl">
           <form className="space-y-5" onSubmit={(event) => void submitOffer(event)}>
             <Select label="الطلب/المرشح" required value={offerDraft.applicationId} onChange={(value) => setOfferDraft({ ...offerDraft, applicationId: value })}>
-              {applicationOptions.map((app) => <option key={app.id} value={app.id}>{applicationLabel(app.id)}</option>)}
+              {applicationOptions.map((app) => (
+                <option key={app.id} value={app.id}>
+                  {applicationLabel(app.id)}
+                </option>
+              ))}
             </Select>
             <div className="grid gap-4 sm:grid-cols-2">
               <Input label="المسمى الوظيفي" value={offerDraft.title} onChange={(value) => setOfferDraft({ ...offerDraft, title: value })} />
-              <Input label="نوع العقد" value={offerDraft.contractType} onChange={(value) => setOfferDraft({ ...offerDraft, contractType: value })} placeholder="مثال: دائم / مؤقت" />
-              <label><span className="mb-1.5 block text-sm font-bold">الراتب</span><input className="input" type="number" min={0} value={offerDraft.salary} onChange={(event) => setOfferDraft({ ...offerDraft, salary: event.target.value })} /></label>
-              <label><span className="mb-1.5 block text-sm font-bold">تاريخ المباشرة</span><input className="input" type="date" value={offerDraft.startDate} onChange={(event) => setOfferDraft({ ...offerDraft, startDate: event.target.value })} /></label>
-              <label><span className="mb-1.5 block text-sm font-bold">تنتهي صلاحية العرض</span><input className="input" type="datetime-local" value={offerDraft.expiresAt} onChange={(event) => setOfferDraft({ ...offerDraft, expiresAt: event.target.value })} /></label>
+              <Input
+                label="نوع العقد"
+                value={offerDraft.contractType}
+                onChange={(value) => setOfferDraft({ ...offerDraft, contractType: value })}
+                placeholder="مثال: دائم / مؤقت"
+              />
+              <label>
+                <span className="mb-1.5 block text-sm font-bold">الراتب</span>
+                <input
+                  className="input"
+                  type="number"
+                  min={0}
+                  value={offerDraft.salary}
+                  onChange={(event) => setOfferDraft({ ...offerDraft, salary: event.target.value })}
+                />
+              </label>
+              <label>
+                <span className="mb-1.5 block text-sm font-bold">تاريخ المباشرة</span>
+                <input
+                  className="input"
+                  type="date"
+                  value={offerDraft.startDate}
+                  onChange={(event) => setOfferDraft({ ...offerDraft, startDate: event.target.value })}
+                />
+              </label>
+              <label>
+                <span className="mb-1.5 block text-sm font-bold">تنتهي صلاحية العرض</span>
+                <input
+                  className="input"
+                  type="datetime-local"
+                  value={offerDraft.expiresAt}
+                  onChange={(event) => setOfferDraft({ ...offerDraft, expiresAt: event.target.value })}
+                />
+              </label>
             </div>
-            <button className="btn-primary" disabled={!offerDraft.applicationId || workbenchCommands.createOffer.isPending}><FileSignature className="size-4" aria-hidden="true" />{workbenchCommands.createOffer.isPending ? 'جارٍ الحفظ…' : 'إنشاء العرض'}</button>
+            <button className="btn-primary" disabled={!offerDraft.applicationId || workbenchCommands.createOffer.isPending}>
+              <FileSignature className="size-4" aria-hidden="true" />
+              {workbenchCommands.createOffer.isPending ? 'جارٍ الحفظ…' : 'إنشاء العرض'}
+            </button>
           </form>
         </DialogOverlay>
       ) : null}
@@ -289,15 +668,35 @@ export function RecruitmentPage() {
           <form className="space-y-5" onSubmit={(event) => void submit(event)}>
             <div className="grid gap-4 sm:grid-cols-2">
               <Select label="الإدارة" required value={draft.departmentId} onChange={(value) => setDraft({ ...draft, departmentId: value })}>
-                {organization.data.departments.filter((item) => item.active).map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
+                {organization.data.departments
+                  .filter((item) => item.active)
+                  .map((department) => (
+                    <option key={department.id} value={department.id}>
+                      {department.name}
+                    </option>
+                  ))}
               </Select>
               <Input label="المسمى المطلوب" required value={draft.title} onChange={(value) => setDraft({ ...draft, title: value })} />
               <NumberInput label="العدد" min={1} value={draft.headcount} onChange={(value) => setDraft({ ...draft, headcount: value })} />
-              <Input label="نطاق الميزانية" value={draft.budgetRange} onChange={(value) => setDraft({ ...draft, budgetRange: value })} placeholder="مثال: وفق الدرجة G4" />
+              <Input
+                label="نطاق الميزانية"
+                value={draft.budgetRange}
+                onChange={(value) => setDraft({ ...draft, budgetRange: value })}
+                placeholder="مثال: وفق الدرجة G4"
+              />
             </div>
-            <label><span className="mb-1.5 block text-sm font-bold">سبب الاحتياج</span><textarea className="input min-h-28" value={draft.reason} onChange={(event) => setDraft({ ...draft, reason: event.target.value })} /></label>
-            <label className="flex items-center gap-3 rounded-xl bg-[var(--surface-muted)] p-4 text-sm font-bold"><input type="checkbox" checked={draft.submit} onChange={(event) => setDraft({ ...draft, submit: event.target.checked })} />إرسال الطلب للاعتماد فور الحفظ</label>
-            <button className="btn-primary" disabled={commands.createRequisition.isPending}><Send className="size-4" aria-hidden="true" />{commands.createRequisition.isPending ? 'جارٍ الحفظ…' : draft.submit ? 'حفظ وإرسال' : 'حفظ كمسودة'}</button>
+            <label>
+              <span className="mb-1.5 block text-sm font-bold">سبب الاحتياج</span>
+              <textarea className="input min-h-28" value={draft.reason} onChange={(event) => setDraft({ ...draft, reason: event.target.value })} />
+            </label>
+            <label className="flex items-center gap-3 rounded-xl bg-[var(--surface-muted)] p-4 text-sm font-bold">
+              <input type="checkbox" checked={draft.submit} onChange={(event) => setDraft({ ...draft, submit: event.target.checked })} />
+              إرسال الطلب للاعتماد فور الحفظ
+            </label>
+            <button className="btn-primary" disabled={commands.createRequisition.isPending}>
+              <Send className="size-4" aria-hidden="true" />
+              {commands.createRequisition.isPending ? 'جارٍ الحفظ…' : draft.submit ? 'حفظ وإرسال' : 'حفظ كمسودة'}
+            </button>
           </form>
         </DialogOverlay>
       ) : null}
@@ -305,6 +704,61 @@ export function RecruitmentPage() {
   );
 }
 
-function Input({ label, value, onChange, required, placeholder }: { label: string; value: string; onChange: (value: string) => void; required?: boolean; placeholder?: string }) { return <label><span className="mb-1.5 block text-sm font-bold">{label}</span><input className="input" required={required} placeholder={placeholder} value={value} onChange={(event) => onChange(event.target.value)} /></label>; }
-function NumberInput({ label, value, onChange, min }: { label: string; value: number; onChange: (value: number) => void; min: number }) { return <label><span className="mb-1.5 block text-sm font-bold">{label}</span><input className="input" type="number" min={min} required value={value} onChange={(event) => onChange(Math.max(min, Number(event.target.value) || min))} /></label>; }
-function Select({ label, value, onChange, required, children }: { label: string; value: string; onChange: (value: string) => void; required?: boolean; children: ReactNode }) { return <label><span className="mb-1.5 block text-sm font-bold">{label}</span><select className="input" required={required} value={value} onChange={(event) => onChange(event.target.value)}><option value="">اختر…</option>{children}</select></label>; }
+function Input({
+  label,
+  value,
+  onChange,
+  required,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+  placeholder?: string;
+}) {
+  return (
+    <label>
+      <span className="mb-1.5 block text-sm font-bold">{label}</span>
+      <input className="input" required={required} placeholder={placeholder} value={value} onChange={(event) => onChange(event.target.value)} />
+    </label>
+  );
+}
+function NumberInput({ label, value, onChange, min }: { label: string; value: number; onChange: (value: number) => void; min: number }) {
+  return (
+    <label>
+      <span className="mb-1.5 block text-sm font-bold">{label}</span>
+      <input
+        className="input"
+        type="number"
+        min={min}
+        required
+        value={value}
+        onChange={(event) => onChange(Math.max(min, Number(event.target.value) || min))}
+      />
+    </label>
+  );
+}
+function Select({
+  label,
+  value,
+  onChange,
+  required,
+  children,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <label>
+      <span className="mb-1.5 block text-sm font-bold">{label}</span>
+      <select className="input" required={required} value={value} onChange={(event) => onChange(event.target.value)}>
+        <option value="">اختر…</option>
+        {children}
+      </select>
+    </label>
+  );
+}

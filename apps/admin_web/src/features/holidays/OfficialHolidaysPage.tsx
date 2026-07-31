@@ -29,7 +29,7 @@ export function OfficialHolidaysPage() {
   const deleteHoliday = useDeleteHoliday();
   const { toast } = useToast();
 
-  const all = holidays.data ?? [];
+  const all = useMemo(() => holidays.data ?? [], [holidays.data]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -57,7 +57,19 @@ export function OfficialHolidaysPage() {
         eyebrow="الوقت والخدمات"
         title="العطل الرسمية"
         description="إدارة العطل الرسمية مع دعم النطاق (الكل / جهة / إدارة) والاستثناءات — V17 §1.7."
-        actions={<button type="button" className="btn-primary" onClick={() => { setEditing(null); setShowDialog(true); }}><Plus className="size-4" aria-hidden="true" />إضافة عطلة</button>}
+        actions={
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => {
+              setEditing(null);
+              setShowDialog(true);
+            }}
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            إضافة عطلة
+          </button>
+        }
       />
 
       <section className="grid gap-3 sm:grid-cols-3">
@@ -72,13 +84,21 @@ export function OfficialHolidaysPage() {
         searchPlaceholder="بحث باسم العطلة"
         resultText={`عرض ${filtered.length} من ${all.length} عطلة`}
         isDirty={Boolean(search || year !== currentYear)}
-        onClear={() => { setSearch(''); setYear(currentYear); }}
+        onClear={() => {
+          setSearch('');
+          setYear(currentYear);
+        }}
       >
         <select className="input" value={year} onChange={(e) => setYear(Number(e.target.value))} aria-label="السنة">
-          {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+          {yearOptions.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
         </select>
         <button type="button" onClick={() => void holidays.refetch()} className="btn-secondary" disabled={holidays.isFetching}>
-          <RefreshCw className={`size-4 ${holidays.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />تحديث
+          <RefreshCw className={`size-4 ${holidays.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
+          تحديث
         </button>
       </FilterBar>
 
@@ -87,7 +107,23 @@ export function OfficialHolidaysPage() {
       ) : holidays.isLoading ? (
         <ListSkeleton rows={4} label="جارٍ تحميل العطل…" />
       ) : all.length === 0 ? (
-        <EmptyState title="لا توجد عطل مسجلة" description={`لم تتم إضافة أي عطلة رسمية لعام ${year}.`} action={<button type="button" className="btn-primary" onClick={() => { setEditing(null); setShowDialog(true); }}><Plus className="size-4" aria-hidden="true" />إضافة عطلة</button>} />
+        <EmptyState
+          title="لا توجد عطل مسجلة"
+          description={`لم تتم إضافة أي عطلة رسمية لعام ${year}.`}
+          action={
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => {
+                setEditing(null);
+                setShowDialog(true);
+              }}
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              إضافة عطلة
+            </button>
+          }
+        />
       ) : filtered.length === 0 ? (
         <EmptyState title="لا توجد نتائج مطابقة" description="جرّب تعديل البحث." />
       ) : (
@@ -102,7 +138,9 @@ export function OfficialHolidaysPage() {
                   <th className="px-4 py-3.5">النطاق</th>
                   <th className="px-4 py-3.5">متكررة</th>
                   <th className="px-4 py-3.5">الحالة</th>
-                  <th className="px-4 py-3.5"><span className="sr-only">إجراءات</span></th>
+                  <th className="px-4 py-3.5">
+                    <span className="sr-only">إجراءات</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -110,18 +148,41 @@ export function OfficialHolidaysPage() {
                   <tr key={h.id}>
                     <td className="px-4 py-3.5">
                       <p className="font-bold">{h.name}</p>
-                      {h.name_en ? <p className="mt-0.5 text-xs text-[var(--text-muted)]" dir="ltr">{h.name_en}</p> : null}
+                      {h.name_en ? (
+                        <p className="mt-0.5 text-xs text-[var(--text-muted)]" dir="ltr">
+                          {h.name_en}
+                        </p>
+                      ) : null}
                       {h.notes ? <p className="mt-1 text-xs text-[var(--text-muted)]">{h.notes}</p> : null}
                     </td>
                     <td className="px-4 py-3.5">{dateFormatter.format(new Date(h.holiday_date))}</td>
                     <td className="px-4 py-3.5">{h.end_date ? dateFormatter.format(new Date(h.end_date)) : '—'}</td>
                     <td className="px-4 py-3.5">{SCOPE_LABELS[h.scope] ?? h.scope}</td>
                     <td className="px-4 py-3.5">{h.is_recurring ? 'نعم' : 'لا'}</td>
-                    <td className="px-4 py-3.5"><StatusBadge status={h.is_active ? 'active' : 'archived'} /></td>
+                    <td className="px-4 py-3.5">
+                      <StatusBadge status={h.is_active ? 'active' : 'archived'} />
+                    </td>
                     <td className="px-4 py-3.5">
                       <div className="flex gap-2">
-                        <button type="button" className="btn-secondary !px-2 !py-1.5 text-xs" onClick={() => { setEditing(h); setShowDialog(true); }} aria-label="تعديل"><Pencil className="size-3.5" aria-hidden="true" /></button>
-                        <button type="button" className="btn-secondary !px-2 !py-1.5 text-xs text-[var(--danger)]" onClick={() => setDeleting(h)} aria-label="حذف"><Trash2 className="size-3.5" aria-hidden="true" /></button>
+                        <button
+                          type="button"
+                          className="btn-secondary !px-2 !py-1.5 text-xs"
+                          onClick={() => {
+                            setEditing(h);
+                            setShowDialog(true);
+                          }}
+                          aria-label="تعديل"
+                        >
+                          <Pencil className="size-3.5" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-secondary !px-2 !py-1.5 text-xs text-[var(--danger)]"
+                          onClick={() => setDeleting(h)}
+                          aria-label="حذف"
+                        >
+                          <Trash2 className="size-3.5" aria-hidden="true" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -135,8 +196,15 @@ export function OfficialHolidaysPage() {
       {showDialog && (
         <HolidayFormDialog
           holiday={editing}
-          onClose={() => { setShowDialog(false); setEditing(null); }}
-          onSuccess={() => { setShowDialog(false); setEditing(null); void holidays.refetch(); }}
+          onClose={() => {
+            setShowDialog(false);
+            setEditing(null);
+          }}
+          onSuccess={() => {
+            setShowDialog(false);
+            setEditing(null);
+            void holidays.refetch();
+          }}
         />
       )}
 
@@ -145,7 +213,9 @@ export function OfficialHolidaysPage() {
           <p className="muted mt-2 text-sm">هل أنت متأكد من حذف «{deleting.name}»؟ لا يمكن التراجع.</p>
           {deleteHoliday.isError && <ErrorBanner message={safeErrorMessage(deleteHoliday.error)} />}
           <div className="mt-6 flex justify-end gap-3">
-            <button type="button" className="btn-secondary" onClick={() => setDeleting(null)} disabled={deleteHoliday.isPending}>إلغاء</button>
+            <button type="button" className="btn-secondary" onClick={() => setDeleting(null)} disabled={deleteHoliday.isPending}>
+              إلغاء
+            </button>
             <button type="button" className="btn-primary bg-[var(--danger)]" onClick={() => void onDelete()} disabled={deleteHoliday.isPending}>
               {deleteHoliday.isPending ? 'جارٍ الحذف…' : 'تأكيد الحذف'}
             </button>
@@ -219,13 +289,26 @@ function HolidayFormDialog({ holiday, onClose, onSuccess }: { holiday: Holiday |
         {error ? <ErrorBanner message={error} /> : null}
 
         <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold">اسم العطلة <span className="text-[var(--danger)]">*</span></span>
-          <input type="text" className="input w-full" required minLength={3} maxLength={200} value={name} onChange={(e) => setName(e.target.value)} disabled={isPending} />
+          <span className="mb-1.5 block text-sm font-semibold">
+            اسم العطلة <span className="text-[var(--danger)]">*</span>
+          </span>
+          <input
+            type="text"
+            className="input w-full"
+            required
+            minLength={3}
+            maxLength={200}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={isPending}
+          />
         </label>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold">تاريخ البداية <span className="text-[var(--danger)]">*</span></span>
+            <span className="mb-1.5 block text-sm font-semibold">
+              تاريخ البداية <span className="text-[var(--danger)]">*</span>
+            </span>
             <input type="date" className="input w-full" required value={holidayDate} onChange={(e) => setHolidayDate(e.target.value)} disabled={isPending} />
           </label>
           <label className="block">
@@ -245,10 +328,16 @@ function HolidayFormDialog({ holiday, onClose, onSuccess }: { holiday: Holiday |
           </label>
           {scope === 'department' ? (
             <label className="block">
-              <span className="mb-1.5 block text-sm font-semibold">الإدارة <span className="text-[var(--danger)]">*</span></span>
+              <span className="mb-1.5 block text-sm font-semibold">
+                الإدارة <span className="text-[var(--danger)]">*</span>
+              </span>
               <select className="input w-full" required value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} disabled={isPending}>
                 <option value="">— اختر —</option>
-                {departments.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.label}
+                  </option>
+                ))}
               </select>
             </label>
           ) : null}
@@ -265,7 +354,9 @@ function HolidayFormDialog({ holiday, onClose, onSuccess }: { holiday: Holiday |
         </label>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border)]">
-          <button type="button" className="btn-secondary" onClick={onClose} disabled={isPending}>إلغاء</button>
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={isPending}>
+            إلغاء
+          </button>
           <button type="submit" className="btn-primary" disabled={isPending}>
             {isPending ? 'جارٍ الحفظ…' : isEdit ? 'حفظ التعديلات' : 'إضافة العطلة'}
           </button>

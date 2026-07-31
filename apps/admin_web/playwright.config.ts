@@ -35,15 +35,14 @@ export default defineConfig({
   /* تشغيل dev server تلقائياً في CI */
   webServer: process.env.CI
     ? {
-        command: 'npm run build && npx vite preview --port 4173',
+        command: 'npm run dev -- --host 127.0.0.1 --port 4173',
         port: 4173,
         cwd: '.',
         reuseExistingServer: false,
         timeout: 120_000,
         env: {
-          VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || 'https://test.supabase.co',
-          VITE_SUPABASE_PUBLISHABLE_KEY: process.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'test-key',
           VITE_ENABLE_DEV_MOCKS: 'true',
+          VITE_APP_ENVIRONMENT: 'development',
         },
       }
     : undefined,

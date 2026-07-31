@@ -17,8 +17,7 @@ export function getPreferredTheme(): AppTheme {
 export function applyTheme(theme: AppTheme, persist = true) {
   document.documentElement.dataset.theme = theme;
   document.documentElement.style.colorScheme = theme;
-  document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
-    ?.setAttribute('content', theme === 'dark' ? '#060B16' : '#0B4FA2');
+  document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#060B16' : '#0B4FA2');
   if (persist) window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   window.dispatchEvent(new CustomEvent<AppTheme>(THEME_CHANGE_EVENT, { detail: theme }));
 }

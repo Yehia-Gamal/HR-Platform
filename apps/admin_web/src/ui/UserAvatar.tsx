@@ -38,14 +38,7 @@ export function UserAvatar({
       aria-label={announceName ? `الصورة الشخصية: ${displayName}` : undefined}
     >
       {canShowImage ? (
-        <img
-          src={photoUrl!}
-          alt=""
-          loading={eager ? 'eager' : 'lazy'}
-          decoding="async"
-          onLoad={() => setLoaded(true)}
-          onError={() => setFailed(true)}
-        />
+        <img src={photoUrl!} alt="" loading={eager ? 'eager' : 'lazy'} decoding="async" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} />
       ) : displayName.trim() ? (
         <span aria-hidden="true">{avatarInitial(displayName)}</span>
       ) : (

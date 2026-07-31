@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  accessContextSchema,
-  canUseWorkspace,
-  isWebWorkspace,
-  workspaceIdSchema,
-} from '@ahla/shared-contracts';
+import { accessContextSchema, canUseWorkspace, isWebWorkspace, workspaceIdSchema } from '@ahla/shared-contracts';
 import { ZodError } from 'zod';
 
 describe('accessService — schema & pure function validation', () => {
@@ -45,15 +40,7 @@ describe('accessService — schema & pure function validation', () => {
   });
 
   it('workspaceIdSchema validates all valid workspace IDs', () => {
-    const validIds = [
-      'employee',
-      'manager',
-      'executive',
-      'hr',
-      'main_admin',
-      'committee',
-      'field_operations',
-    ];
+    const validIds = ['employee', 'manager', 'executive', 'hr', 'main_admin', 'committee', 'field_operations'];
     for (const id of validIds) {
       expect(workspaceIdSchema.parse(id)).toBe(id);
     }
@@ -89,7 +76,7 @@ describe('accessService — schema & pure function validation', () => {
   });
 
   it('photoUrl defaults to null when omitted', () => {
-    const { photoUrl: _, ...withoutPhoto } = validFixture;
+    const withoutPhoto = Object.fromEntries(Object.entries(validFixture).filter(([key]) => key !== 'photoUrl'));
     const parsed = accessContextSchema.parse(withoutPhoto);
     expect(parsed.photoUrl).toBeNull();
   });

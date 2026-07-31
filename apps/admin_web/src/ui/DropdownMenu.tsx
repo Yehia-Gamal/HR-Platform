@@ -26,8 +26,7 @@ const FOCUSABLE_ITEM = '[role="menuitem"]:not([aria-disabled="true"])';
 function computePosition(anchor: DOMRect) {
   const GAP = 6;
   const MARGIN = 8;
-  const isRtl = document.documentElement.dir === 'rtl' ||
-    getComputedStyle(document.documentElement).direction === 'rtl';
+  const isRtl = document.documentElement.dir === 'rtl' || getComputedStyle(document.documentElement).direction === 'rtl';
 
   let top = anchor.bottom + GAP;
   // لو القائمة ستتجاوز أسفل الشاشة — نعرضها فوق الزر
@@ -36,9 +35,7 @@ function computePosition(anchor: DOMRect) {
   }
 
   // في RTL: نمحاذي الحافة اليمنى للزر — في LTR: الحافة اليسرى
-  const inlineStart = isRtl
-    ? { right: window.innerWidth - anchor.right }
-    : { left: anchor.left };
+  const inlineStart = isRtl ? { right: window.innerWidth - anchor.right } : { left: anchor.left };
 
   // ضمان عدم الخروج عن حدود الشاشة
   if ('left' in inlineStart) {
@@ -62,7 +59,7 @@ export function DropdownMenu({ trigger, items }: DropdownMenuProps) {
   /* ─── فتح / إغلاق ─── */
 
   const toggle = useCallback(() => {
-    setOpen(prev => {
+    setOpen((prev) => {
       if (!prev && triggerRef.current) {
         setPosition(computePosition(triggerRef.current.getBoundingClientRect()));
       }
@@ -117,9 +114,7 @@ export function DropdownMenu({ trigger, items }: DropdownMenuProps) {
         const focusable = Array.from(menu.querySelectorAll<HTMLElement>(FOCUSABLE_ITEM));
         if (!focusable.length) return;
         const idx = focusable.indexOf(document.activeElement as HTMLElement);
-        const next = e.key === 'ArrowDown'
-          ? focusable[(idx + 1) % focusable.length]
-          : focusable[(idx - 1 + focusable.length) % focusable.length];
+        const next = e.key === 'ArrowDown' ? focusable[(idx + 1) % focusable.length] : focusable[(idx - 1 + focusable.length) % focusable.length];
         next.focus();
       }
     };
@@ -160,65 +155,50 @@ export function DropdownMenu({ trigger, items }: DropdownMenuProps) {
   return (
     <>
       {/* زر التفعيل */}
-      <div
-        ref={triggerRef}
-        onClick={toggle}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
-        className="inline-flex"
-      >
+      <div ref={triggerRef} onClick={toggle} aria-haspopup="menu" aria-expanded={open} aria-controls={open ? menuId : undefined} className="inline-flex">
         {trigger}
       </div>
 
       {/* القائمة المنسدلة */}
-      {open && createPortal(
-        <div
-          ref={menuRef}
-          id={menuId}
-          role="menu"
-          aria-label="قائمة الإجراءات"
-          className="fixed z-[150] min-w-[200px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-lg"
-          style={position}
-        >
-          {items.map((item, i) => {
-            if (item.divider) {
+      {open &&
+        createPortal(
+          <div
+            ref={menuRef}
+            id={menuId}
+            role="menu"
+            aria-label="قائمة الإجراءات"
+            className="fixed z-[150] min-w-[200px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-lg"
+            style={position}
+          >
+            {items.map((item, i) => {
+              if (item.divider) {
+                return <div key={`divider-${i}`} role="separator" className="my-1.5 border-t border-[var(--border)]" />;
+              }
+
+              const Icon = item.icon;
+
               return (
-                <div
-                  key={`divider-${i}`}
-                  role="separator"
-                  className="my-1.5 border-t border-[var(--border)]"
-                />
-              );
-            }
-
-            const Icon = item.icon;
-
-            return (
-              <button
-                key={`${item.label}-${i}`}
-                role="menuitem"
-                type="button"
-                tabIndex={-1}
-                aria-disabled={item.disabled || undefined}
-                disabled={item.disabled}
-                onClick={() => handleItemClick(item)}
-                className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-bold transition-colors
-                  ${item.danger
-                    ? 'text-[var(--danger)] hover:bg-[var(--danger-soft)]'
-                    : 'text-[var(--text-primary)] hover:bg-[var(--surface-muted)]'
-                  }
+                <button
+                  key={`${item.label}-${i}`}
+                  role="menuitem"
+                  type="button"
+                  tabIndex={-1}
+                  aria-disabled={item.disabled || undefined}
+                  disabled={item.disabled}
+                  onClick={() => handleItemClick(item)}
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-bold transition-colors
+                  ${item.danger ? 'text-[var(--danger)] hover:bg-[var(--danger-soft)]' : 'text-[var(--text-primary)] hover:bg-[var(--surface-muted)]'}
                   ${item.disabled ? 'pointer-events-none opacity-40' : 'cursor-pointer'}
                 `}
-              >
-                {Icon && <Icon className="size-4 shrink-0" aria-hidden="true" />}
-                {item.label}
-              </button>
-            );
-          })}
-        </div>,
-        document.body,
-      )}
+                >
+                  {Icon && <Icon className="size-4 shrink-0" aria-hidden="true" />}
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

@@ -28,8 +28,8 @@ interface HeatMapProps {
 /* ألوان القاعدة لكل مقياس — تعمل في الوضعين الفاتح والداكن */
 const BASE_COLORS: Record<string, string> = {
   green: 'var(--success)',
-  blue:  'var(--brand-primary)',
-  red:   'var(--danger)',
+  blue: 'var(--brand-primary)',
+  red: 'var(--danger)',
 };
 
 /** تنسيق الأرقام بالعربية */
@@ -39,18 +39,12 @@ function formatNumber(value: number): string {
 
 /** تحويل الساعة إلى نص عربي (مثال: ٠٣:٠٠) */
 function formatHour(h: number): string {
-  return `${h.toString().padStart(2, '0')}:00`.replace(/\d/g, (d) =>
-    String.fromCharCode(0x0660 + Number(d)),
-  );
+  return `${h.toString().padStart(2, '0')}:00`.replace(/\d/g, (d) => String.fromCharCode(0x0660 + Number(d)));
 }
 
 /* ───────────────── المكون ───────────────── */
 
-export function HeatMap({
-  data,
-  height = 18,
-  colorScale = 'green',
-}: HeatMapProps) {
+export function HeatMap({ data, height = 18, colorScale = 'green' }: HeatMapProps) {
   const [tooltip, setTooltip] = useState<{
     day: string;
     hour: number;
@@ -106,10 +100,7 @@ export function HeatMap({
         {/* ── صف رأس الأيام ── */}
         <div />
         {ARABIC_DAYS.map((day) => (
-          <div
-            key={day}
-            className="grid place-items-center text-[0.65rem] font-extrabold text-[var(--text-muted)]"
-          >
+          <div key={day} className="grid place-items-center text-[0.65rem] font-extrabold text-[var(--text-muted)]">
             {day}
           </div>
         ))}
@@ -118,10 +109,7 @@ export function HeatMap({
         {hours.map((h) => (
           <>
             {/* تسمية الساعة */}
-            <div
-              key={`h-${h}`}
-              className="grid place-items-center text-[0.6rem] font-bold text-[var(--text-muted)]"
-            >
+            <div key={`h-${h}`} className="grid place-items-center text-[0.6rem] font-bold text-[var(--text-muted)]">
               {h % 3 === 0 ? formatHour(h) : ''}
             </div>
 

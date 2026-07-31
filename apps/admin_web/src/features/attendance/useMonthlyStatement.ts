@@ -5,11 +5,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { loadDomainMocks } from '../mock/loadDomainMocks';
 
 // كشف الحضور والانصراف الشهري لموظف محدد (V12 §18 — HR/Main Admin/المدير).
-export function useEmployeeMonthlyStatement(
-  employeeId: string | null,
-  year: number,
-  month: number,
-) {
+export function useEmployeeMonthlyStatement(employeeId: string | null, year: number, month: number) {
   const auth = useAuth();
   return useQuery({
     queryKey: ['attendance-statement', employeeId, year, month, auth.isMock],

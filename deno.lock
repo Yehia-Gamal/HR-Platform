@@ -18,7 +18,12 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
-        "npm:supabase@^2.109.1"
+        "npm:@eslint/js@^10.0.1",
+        "npm:eslint-plugin-react-hooks@^7.1.1",
+        "npm:eslint@^10.8.0",
+        "npm:prettier@^3.9.6",
+        "npm:supabase@^2.109.1",
+        "npm:typescript-eslint@^8.65.0"
       ]
     },
     "members": {
@@ -28,9 +33,12 @@
             "npm:@ahla/design-tokens@*",
             "npm:@ahla/shared-contracts@*",
             "npm:@hookform/resolvers@^5.2.2",
+            "npm:@playwright/test@1.62.1",
+            "npm:@sentry/react@^10.69.0",
             "npm:@supabase/supabase-js@^2.86.0",
             "npm:@tailwindcss/vite@^4.3.0",
             "npm:@tanstack/react-query@^5.90.10",
+            "npm:@tanstack/react-virtual@^3.14.9",
             "npm:@testing-library/jest-dom@^6.9.1",
             "npm:@testing-library/react@^16.3.0",
             "npm:@types/leaflet@^1.9.21",
@@ -45,12 +53,14 @@
             "npm:react-dom@^19.2.0",
             "npm:react-hook-form@^7.66.1",
             "npm:react-leaflet@5",
-            "npm:react-router-dom@^7.9.6",
+            "npm:react-router-dom@7.18.2",
             "npm:react@^19.2.0",
+            "npm:recharts@^3.10.1",
             "npm:tailwindcss@^4.3.0",
             "npm:typescript@^5.9.3",
             "npm:vite@^8.1.4",
             "npm:vitest@^4.0.14",
+            "npm:web-vitals@^6.0.1",
             "npm:zod@^4.1.12"
           ]
         }

@@ -1,16 +1,6 @@
 import type { ReactNode } from 'react';
 
-export function PageHeader({
-  title,
-  description,
-  actions,
-  eyebrow,
-}: {
-  title: string;
-  description?: string;
-  actions?: ReactNode;
-  eyebrow?: string;
-}) {
+export function PageHeader({ title, description, actions, eyebrow }: { title: string; description?: string; actions?: ReactNode; eyebrow?: string }) {
   return (
     <header className="mb-5 space-y-3">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

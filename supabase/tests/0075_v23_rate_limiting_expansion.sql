@@ -1,6 +1,8 @@
 -- pgTAP: V23 §1E — rate limiting expansion (migration 0174)
 -- تتحقق من: جدول rate_limit_log، دالة check_rate_limit، الدوال المتخصصة
 BEGIN;
+CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
+SET LOCAL search_path = public, extensions, pg_temp;
 SELECT plan(22);
 
 -- ═══════════════════════════════════════════════════════════════════════

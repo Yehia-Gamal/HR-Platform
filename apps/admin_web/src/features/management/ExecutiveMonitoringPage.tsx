@@ -20,8 +20,14 @@ import type { EmployeeOverviewRow, ExecutiveOverviewData } from './controlCenter
 // ملخص الحضور، فلاتر الحالة، قائمة الموظفين، خريطة حية، وإرسال طلب موقع فوري.
 
 const STATUS_LABELS: Record<string, string> = {
-  present: 'حاضر', late: 'متأخر', not_yet: 'لم يحضر بعد', absent: 'غائب',
-  checked_out: 'انصرف', left_early: 'انصرف مبكرًا', on_leave: 'إجازة', assignment: 'مأمورية/قافلة/فاندي',
+  present: 'حاضر',
+  late: 'متأخر',
+  not_yet: 'لم يحضر بعد',
+  absent: 'غائب',
+  checked_out: 'انصرف',
+  left_early: 'انصرف مبكرًا',
+  on_leave: 'إجازة',
+  assignment: 'مأمورية/قافلة/فاندي',
 };
 
 const FILTERS: Array<{ id: string; label: string; key?: string }> = [
@@ -56,7 +62,7 @@ export function ExecutiveMonitoringPage() {
   const commands = useLiveLocationCommands();
   const data = overview.data ?? ({ summary: { total: 0 }, employees: [] } as unknown as ExecutiveOverviewData);
   const summary = data.summary ?? { total: 0 };
-  const employees: EmployeeOverviewRow[] = data.employees ?? [];
+  const employees: EmployeeOverviewRow[] = useMemo(() => data.employees ?? [], [data.employees]);
 
   const visible = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('ar');
@@ -70,7 +76,14 @@ export function ExecutiveMonitoringPage() {
 
   const mapPoints: MapPoint[] = visible
     .filter((e): e is typeof e & { lastLatitude: number; lastLongitude: number } => typeof e.lastLatitude === 'number' && typeof e.lastLongitude === 'number')
-    .map((e) => ({ id: e.id, lat: e.lastLatitude, lng: e.lastLongitude, accuracy: e.lastAccuracy ?? null, label: e.name, sublabel: e.lastAddressAr ?? e.department }));
+    .map((e) => ({
+      id: e.id,
+      lat: e.lastLatitude,
+      lng: e.lastLongitude,
+      accuracy: e.lastAccuracy ?? null,
+      label: e.name,
+      sublabel: e.lastAddressAr ?? e.department,
+    }));
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -82,7 +95,9 @@ export function ExecutiveMonitoringPage() {
       if (id) setSelectedRequestId(id);
       await overview.refetch();
       toast({ message: 'تم إرسال طلب الموقع بنجاح', tone: 'success' });
-    } catch { /* commands.request.isError displayed in dialog UI */ }
+    } catch {
+      /* commands.request.isError displayed in dialog UI */
+    }
   }
 
   return (
@@ -90,7 +105,12 @@ export function ExecutiveMonitoringPage() {
       <PageHeader
         title="متابعة الموظفين اليومية"
         description="من حضر ومن تأخّر ومن تغيّب ومن في إجازة أو مأمورية، مع آخر موقع مصرّح به وإمكانية طلب موقع فوري."
-        actions={<button className="btn-secondary" type="button" onClick={() => void overview.refetch()} disabled={overview.isFetching}><RefreshCw className={`size-4 ${overview.isFetching ? 'animate-spin' : ''}`} />تحديث</button>}
+        actions={
+          <button className="btn-secondary" type="button" onClick={() => void overview.refetch()} disabled={overview.isFetching}>
+            <RefreshCw className={`size-4 ${overview.isFetching ? 'animate-spin' : ''}`} />
+            تحديث
+          </button>
+        }
       />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -112,10 +132,20 @@ export function ExecutiveMonitoringPage() {
       <section className="filter-bar">
         <label className="relative min-w-0 flex-1 sm:max-w-md">
           <Search className="pointer-events-none absolute end-3 top-3 size-4 text-[var(--text-muted)]" />
-          <input className="input pe-10" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ابحث بالاسم أو الكود أو الإدارة…" aria-label="بحث" />
+          <input
+            className="input pe-10"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="ابحث بالاسم أو الكود أو الإدارة…"
+            aria-label="بحث"
+          />
         </label>
         <div className="flex flex-wrap gap-2" role="group" aria-label="تصفية الحالة">
-          {FILTERS.map((f) => <button key={f.id} type="button" onClick={() => setFilter(f.id)} className={`filter-chip ${filter === f.id ? 'is-active' : ''}`}>{f.label}</button>)}
+          {FILTERS.map((f) => (
+            <button key={f.id} type="button" onClick={() => setFilter(f.id)} className={`filter-chip ${filter === f.id ? 'is-active' : ''}`}>
+              {f.label}
+            </button>
+          ))}
         </div>
       </section>
 
@@ -124,13 +154,25 @@ export function ExecutiveMonitoringPage() {
       {!overview.isError ? (
         <section className="grid gap-5 2xl:grid-cols-[1.1fr_.9fr]">
           <article className="card overflow-hidden">
-            <div className="border-b border-[var(--border)] p-4"><h2 className="font-black">الخريطة الحية</h2><p className="muted mt-1 text-sm">آخر موقع مصرّح بعرضه لكل موظف</p></div>
-            <div className="p-4"><LiveLocationMap points={mapPoints} height={460} /></div>
+            <div className="border-b border-[var(--border)] p-4">
+              <h2 className="font-black">الخريطة الحية</h2>
+              <p className="muted mt-1 text-sm">آخر موقع مصرّح بعرضه لكل موظف</p>
+            </div>
+            <div className="p-4">
+              <LiveLocationMap points={mapPoints} height={460} />
+            </div>
           </article>
 
           <article className="card overflow-hidden">
-            <div className="border-b border-[var(--border)] p-4"><h2 className="font-black">الموظفون</h2><p className="muted mt-1 text-sm">{visible.length} نتيجة</p></div>
-            {overview.isLoading ? <div className="p-4"><ListSkeleton rows={3} /></div> : null}
+            <div className="border-b border-[var(--border)] p-4">
+              <h2 className="font-black">الموظفون</h2>
+              <p className="muted mt-1 text-sm">{visible.length} نتيجة</p>
+            </div>
+            {overview.isLoading ? (
+              <div className="p-4">
+                <ListSkeleton rows={3} />
+              </div>
+            ) : null}
             {!overview.isLoading && !visible.length ? <EmptyState title="لا نتائج" description="غيّر البحث أو المرشّح." /> : null}
             <div className="max-h-[620px] divide-y divide-[var(--border)] overflow-y-auto">
               {visible.map((e) => (
@@ -138,18 +180,38 @@ export function ExecutiveMonitoringPage() {
                   <div className="flex items-start justify-between gap-3">
                     <UserAvatar displayName={e.name ?? ''} size="sm" />
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2"><strong className="truncate">{e.name}</strong><StatusBadge value={e.status} label={STATUS_LABELS[e.status] ?? e.status} /></div>
-                      <p className="muted mt-1 text-xs">{e.employeeCode ?? '—'} · {e.department ?? 'دون إدارة'} · مدير: {e.managerName ?? '—'}</p>
-                      <p className="muted mt-1 text-xs">آخر موقع: {relative(e.lastLocationAt)}{e.lastAddressAr ? ` · ${e.lastAddressAr}` : ''}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <strong className="truncate">{e.name}</strong>
+                        <StatusBadge value={e.status} label={STATUS_LABELS[e.status] ?? e.status} />
+                      </div>
+                      <p className="muted mt-1 text-xs">
+                        {e.employeeCode ?? '—'} · {e.department ?? 'دون إدارة'} · مدير: {e.managerName ?? '—'}
+                      </p>
+                      <p className="muted mt-1 text-xs">
+                        آخر موقع: {relative(e.lastLocationAt)}
+                        {e.lastAddressAr ? ` · ${e.lastAddressAr}` : ''}
+                      </p>
                     </div>
                     {e.activeRequestStatus ? <StatusBadge value={e.activeRequestStatus} /> : null}
                   </div>
-                  {e.id !== auth.access?.employeeId ? <div className="mt-3 flex flex-wrap gap-2">
-                    <button type="button" className="btn-secondary flex-1" disabled={Boolean(e.activeRequestId)} onClick={() => setDraft({ row: e, reason: '' })}>
-                      <Send className="size-4" aria-hidden="true" />{e.activeRequestId ? 'يوجد طلب نشط' : 'طلب موقع حي'}
-                    </button>
-                    {e.activeRequestId ? <button type="button" className="btn-secondary" onClick={() => setSelectedRequestId(e.activeRequestId)}>عرض النتيجة</button> : null}
-                  </div> : null}
+                  {e.id !== auth.access?.employeeId ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="btn-secondary flex-1"
+                        disabled={Boolean(e.activeRequestId)}
+                        onClick={() => setDraft({ row: e, reason: '' })}
+                      >
+                        <Send className="size-4" aria-hidden="true" />
+                        {e.activeRequestId ? 'يوجد طلب نشط' : 'طلب موقع حي'}
+                      </button>
+                      {e.activeRequestId ? (
+                        <button type="button" className="btn-secondary" onClick={() => setSelectedRequestId(e.activeRequestId)}>
+                          عرض النتيجة
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </article>
               ))}
             </div>
@@ -167,13 +229,29 @@ export function ExecutiveMonitoringPage() {
         <DialogOverlay title={`طلب موقع حي من ${draft.row.name}`} onClose={() => setDraft(null)} maxWidth="max-w-xl">
           <p className="muted mb-4 text-sm">يصل إشعار عاجل لهاتف الموظف لإرسال موقعه الحالي فقط. لا فيديو ولا كاميرا (V12 §9).</p>
           <form className="space-y-4" onSubmit={(ev) => void submit(ev)}>
-              <p className="rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-bold">نوع التحقق: موقع حديث عالي الدقة فقط (بدون فيديو).</p>
-              <label className="block text-sm font-bold">سبب الطلب
-                <textarea className="input mt-2 min-h-28" required minLength={5} value={draft.reason} onChange={(ev) => setDraft({ ...draft, reason: ev.target.value })} placeholder="سبب تشغيلي واضح…" />
-              </label>
-              {commands.request.isError ? <ErrorBanner message={safeErrorMessage(commands.request.error)} /> : null}
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" onClick={() => setDraft(null)}>إلغاء</button><button className="btn-primary" disabled={commands.request.isPending || draft.reason.trim().length < 5}><Send className="size-4" aria-hidden="true" />{commands.request.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}</button></div>
-            </form>
+            <p className="rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-bold">نوع التحقق: موقع حديث عالي الدقة فقط (بدون فيديو).</p>
+            <label className="block text-sm font-bold">
+              سبب الطلب
+              <textarea
+                className="input mt-2 min-h-28"
+                required
+                minLength={5}
+                value={draft.reason}
+                onChange={(ev) => setDraft({ ...draft, reason: ev.target.value })}
+                placeholder="سبب تشغيلي واضح…"
+              />
+            </label>
+            {commands.request.isError ? <ErrorBanner message={safeErrorMessage(commands.request.error)} /> : null}
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button type="button" className="btn-secondary" onClick={() => setDraft(null)}>
+                إلغاء
+              </button>
+              <button className="btn-primary" disabled={commands.request.isPending || draft.reason.trim().length < 5}>
+                <Send className="size-4" aria-hidden="true" />
+                {commands.request.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}
+              </button>
+            </div>
+          </form>
         </DialogOverlay>
       ) : null}
     </div>
@@ -181,5 +259,10 @@ export function ExecutiveMonitoringPage() {
 }
 
 function MiniStat({ label, value }: { label: string; value: number }) {
-  return <div className="card p-3"><span className="muted block text-xs">{label}</span><strong className="mt-1 block text-xl font-black">{value}</strong></div>;
+  return (
+    <div className="card p-3">
+      <span className="muted block text-xs">{label}</span>
+      <strong className="mt-1 block text-xl font-black">{value}</strong>
+    </div>
+  );
 }

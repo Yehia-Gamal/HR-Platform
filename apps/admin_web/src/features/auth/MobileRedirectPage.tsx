@@ -48,11 +48,31 @@ export function MobileRedirectPage() {
       <section className="card max-w-md w-full p-8 text-center space-y-5">
         <div className="grid size-20 place-items-center rounded-3xl bg-brand/10 text-brand mx-auto">
           {status === 'redirecting' ? (
-            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="size-10 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 8.25h3m-3 3h3m-3 3h3" />
+            <svg
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg"
+              className="size-10 animate-pulse"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 8.25h3m-3 3h3m-3 3h3"
+              />
             </svg>
           ) : (
-            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="size-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <svg
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg"
+              className="size-10"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
             </svg>
           )}
@@ -61,9 +81,7 @@ export function MobileRedirectPage() {
         {status === 'redirecting' ? (
           <>
             <h1 className="text-xl font-black">جارٍ فتح تطبيق أحلى شباب…</h1>
-            <p className="muted leading-7 text-sm">
-              يتم توجيهك تلقائياً لتطبيق الموبايل لإكمال تعيين كلمة المرور.
-            </p>
+            <p className="muted leading-7 text-sm">يتم توجيهك تلقائياً لتطبيق الموبايل لإكمال تعيين كلمة المرور.</p>
             <div className="flex justify-center">
               <span className="inline-block size-2 rounded-full bg-brand animate-bounce mx-0.5 [animation-delay:0ms]" />
               <span className="inline-block size-2 rounded-full bg-brand animate-bounce mx-0.5 [animation-delay:150ms]" />
@@ -73,14 +91,9 @@ export function MobileRedirectPage() {
         ) : (
           <>
             <h1 className="text-xl font-black">لم يفتح التطبيق تلقائياً</h1>
-            <p className="muted leading-7 text-sm">
-              يمكنك تعيين كلمة المرور من المتصفح مباشرة، أو فتح الرابط من هاتفك إذا كان التطبيق مثبتاً.
-            </p>
+            <p className="muted leading-7 text-sm">يمكنك تعيين كلمة المرور من المتصفح مباشرة، أو فتح الرابط من هاتفك إذا كان التطبيق مثبتاً.</p>
 
-            <a
-              href="/auth/setup-password"
-              className="block w-full rounded-xl bg-brand px-4 py-3 font-bold text-white text-sm text-center"
-            >
+            <a href="/auth/setup-password" className="block w-full rounded-xl bg-brand px-4 py-3 font-bold text-white text-sm text-center">
               تعيين كلمة المرور من المتصفح
             </a>
 
@@ -96,7 +109,9 @@ export function MobileRedirectPage() {
             <button
               type="button"
               className="w-full rounded-xl border border-brand/30 px-4 py-3 font-bold text-brand text-sm"
-              onClick={() => { window.location.href = appLink.current; }}
+              onClick={() => {
+                window.location.href = appLink.current;
+              }}
             >
               حاول فتح التطبيق مجدداً
             </button>

@@ -216,14 +216,13 @@ select lives_ok(
 
 select is(
   (select status from public.employee_devices where id = 'b6300000-0000-4000-8000-000000000302'),
-  'revoked',
-  'active device becomes revoked after replacement request'
+  'active',
+  'active device remains usable until the replacement is approved'
 );
 
-select is(
-  (select revocation_source from public.employee_devices where id = 'b6300000-0000-4000-8000-000000000302'),
-  'employee',
-  'revocation_source is employee after replacement request'
+select ok(
+  (select revocation_source is null from public.employee_devices where id = 'b6300000-0000-4000-8000-000000000302'),
+  'replacement request does not mark the active device as revoked'
 );
 
 -- ═══════════════════════════════════════════════════════════════════════════════
@@ -231,8 +230,8 @@ select is(
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 select ok(
-  (select (public.get_my_device_status()->>'hasActiveDevice')::boolean = false),
-  'get_my_device_status shows no active device after replacement'
+  (select (public.get_my_device_status()->>'hasActiveDevice')::boolean = true),
+  'get_my_device_status keeps the current active device during replacement review'
 );
 
 select ok(

@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  organizationAdminCatalogSchema,
-  accessAdminCatalogSchema,
-  onboardingAdminCatalogSchema,
-} from '@ahla/shared-contracts';
+import { organizationAdminCatalogSchema, accessAdminCatalogSchema, onboardingAdminCatalogSchema } from '@ahla/shared-contracts';
 
 /**
  * Validates that the mock data embedded in useAdminOperations conforms
@@ -29,9 +25,38 @@ describe('useAdminOperations mock data', () => {
   const mockOrganization = {
     entities: [{ id: ids.entity, code: 'AHLA', name: 'جمعية خواطر أحلى شباب', active: true }],
     branches: [{ id: ids.branch, entityId: ids.entity, code: 'HQ', name: 'المقر الرئيسي', active: true }],
-    departments: [{ id: ids.department, entityId: ids.entity, branchId: ids.branch, parentId: null, managerId: ids.employee, code: 'OPS', name: 'إدارة التشغيل', nameEn: 'Operations', active: true, employeeCount: 12, positionCount: 4 }],
+    departments: [
+      {
+        id: ids.department,
+        entityId: ids.entity,
+        branchId: ids.branch,
+        parentId: null,
+        managerId: ids.employee,
+        code: 'OPS',
+        name: 'إدارة التشغيل',
+        nameEn: 'Operations',
+        active: true,
+        employeeCount: 12,
+        positionCount: 4,
+      },
+    ],
     teams: [],
-    positions: [{ id: ids.position, departmentId: ids.department, teamId: null, jobTitleId: null, gradeId: null, reportsToId: null, code: 'OPS-MGR', name: 'مدير التشغيل', nameEn: null, headcount: 1, active: true, assignedCount: 1 }],
+    positions: [
+      {
+        id: ids.position,
+        departmentId: ids.department,
+        teamId: null,
+        jobTitleId: null,
+        gradeId: null,
+        reportsToId: null,
+        code: 'OPS-MGR',
+        name: 'مدير التشغيل',
+        nameEn: null,
+        headcount: 1,
+        active: true,
+        assignedCount: 1,
+      },
+    ],
     employees: [{ id: ids.employee, code: 'EMP-001', name: 'موظف تجريبي', departmentId: ids.department, teamId: null, positionId: ids.position, active: true }],
     jobTitles: [],
     grades: [],
@@ -39,29 +64,68 @@ describe('useAdminOperations mock data', () => {
   };
 
   const mockAccess = {
-    roles: [{
-      id: ids.role, slug: 'employee', name: 'موظف', nameEn: 'Employee', description: 'الخدمة الذاتية',
-      color: null, icon: null, system: true, fullAccess: false, assignments: 10,
-      permissions: [{ permissionId: ids.permission, code: 'people.employee.read', name: 'عرض الموظف', scope: 'self', requiresMfa: false, requiresReason: false }],
-    }],
-    permissions: [{
-      id: ids.permission, code: 'people.employee.read', module: 'people', resource: 'employee', action: 'read',
-      name: 'عرض بيانات الموظف', nameAr: 'عرض بيانات الموظف', description: null, riskLevel: 'normal',
-      sensitive: false, allowedScopes: ['self', 'direct_reports', 'organization'], moduleAr: 'شؤون الموظفين',
-    }],
-    users: [{
-      userId: ids.user, employeeId: ids.employee, name: 'موظف تجريبي', employeeCode: 'EMP-001', status: 'active',
-      roles: [{ roleId: ids.role, slug: 'employee', name: 'موظف', effectiveFrom: now, effectiveTo: null, scopeOverride: null }],
-    }],
+    roles: [
+      {
+        id: ids.role,
+        slug: 'employee',
+        name: 'موظف',
+        nameEn: 'Employee',
+        description: 'الخدمة الذاتية',
+        color: null,
+        icon: null,
+        system: true,
+        fullAccess: false,
+        assignments: 10,
+        permissions: [
+          { permissionId: ids.permission, code: 'people.employee.read', name: 'عرض الموظف', scope: 'self', requiresMfa: false, requiresReason: false },
+        ],
+      },
+    ],
+    permissions: [
+      {
+        id: ids.permission,
+        code: 'people.employee.read',
+        module: 'people',
+        resource: 'employee',
+        action: 'read',
+        name: 'عرض بيانات الموظف',
+        nameAr: 'عرض بيانات الموظف',
+        description: null,
+        riskLevel: 'normal',
+        sensitive: false,
+        allowedScopes: ['self', 'direct_reports', 'organization'],
+        moduleAr: 'شؤون الموظفين',
+      },
+    ],
+    users: [
+      {
+        userId: ids.user,
+        employeeId: ids.employee,
+        name: 'موظف تجريبي',
+        employeeCode: 'EMP-001',
+        status: 'active',
+        roles: [{ roleId: ids.role, slug: 'employee', name: 'موظف', effectiveFrom: now, effectiveTo: null, scopeOverride: null }],
+      },
+    ],
     lastUpdatedAt: now,
   };
 
   const mockOnboarding = {
-    journeys: [{
-      id: ids.journey, employeeId: ids.employee, employeeName: 'موظف تجريبي', employeeCode: 'EMP-001',
-      startedAt: now, probationEnd: null, status: 'in_progress', progress: 50, totalTasks: 2, completedTasks: 1,
-      tasks: [{ id: ids.task, title: 'توقيع السياسات', ownerRole: 'HR', assigneeId: null, dueOffsetDays: 1, status: 'completed', completedAt: now }],
-    }],
+    journeys: [
+      {
+        id: ids.journey,
+        employeeId: ids.employee,
+        employeeName: 'موظف تجريبي',
+        employeeCode: 'EMP-001',
+        startedAt: now,
+        probationEnd: null,
+        status: 'in_progress',
+        progress: 50,
+        totalTasks: 2,
+        completedTasks: 1,
+        tasks: [{ id: ids.task, title: 'توقيع السياسات', ownerRole: 'HR', assigneeId: null, dueOffsetDays: 1, status: 'completed', completedAt: now }],
+      },
+    ],
     eligibleEmployees: [{ id: ids.employee, name: 'موظف تجريبي', code: 'EMP-001', status: 'onboarding', probationEnd: null }],
     lastUpdatedAt: now,
   };

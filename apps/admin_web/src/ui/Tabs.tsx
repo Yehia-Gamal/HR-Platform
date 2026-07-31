@@ -21,37 +21,40 @@ interface TabsProps {
 export function Tabs({ tabs, activeTab, onTabChange, children, ariaLabel = 'ألسنة التصفية' }: TabsProps) {
   const tablistRef = useRef<HTMLDivElement>(null);
 
-  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
-    const currentIndex = tabs.findIndex((t) => t.id === activeTab);
-    if (currentIndex === -1) return;
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLDivElement>) => {
+      const currentIndex = tabs.findIndex((t) => t.id === activeTab);
+      if (currentIndex === -1) return;
 
-    let nextIndex: number | null = null;
+      let nextIndex: number;
 
-    /* RTL: ArrowRight = السابق، ArrowLeft = التالي */
-    switch (e.key) {
-      case 'ArrowRight':
-        nextIndex = currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
-        break;
-      case 'ArrowLeft':
-        nextIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
-        break;
-      case 'Home':
-        nextIndex = 0;
-        break;
-      case 'End':
-        nextIndex = tabs.length - 1;
-        break;
-      default:
-        return;
-    }
+      /* RTL: ArrowRight = السابق، ArrowLeft = التالي */
+      switch (e.key) {
+        case 'ArrowRight':
+          nextIndex = currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
+          break;
+        case 'ArrowLeft':
+          nextIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
+          break;
+        case 'Home':
+          nextIndex = 0;
+          break;
+        case 'End':
+          nextIndex = tabs.length - 1;
+          break;
+        default:
+          return;
+      }
 
-    e.preventDefault();
-    const next = tabs[nextIndex];
-    onTabChange(next.id);
+      e.preventDefault();
+      const next = tabs[nextIndex];
+      onTabChange(next.id);
 
-    const btn = tablistRef.current?.querySelector<HTMLButtonElement>(`#tab-${next.id}`);
-    btn?.focus();
-  }, [tabs, activeTab, onTabChange]);
+      const btn = tablistRef.current?.querySelector<HTMLButtonElement>(`#tab-${next.id}`);
+      btn?.focus();
+    },
+    [tabs, activeTab, onTabChange],
+  );
 
   return (
     <div className="space-y-4">
@@ -69,16 +72,14 @@ export function Tabs({ tabs, activeTab, onTabChange, children, ariaLabel = 'أل
             onClick={() => onTabChange(tab.id)}
           >
             {tab.label}
-            {tab.count != null ? <span className="mr-1.5 rounded-full bg-current/10 px-1.5 py-0.5 text-[.65rem] font-black leading-none">{tab.count}</span> : null}
+            {tab.count != null ? (
+              <span className="mr-1.5 rounded-full bg-current/10 px-1.5 py-0.5 text-[.65rem] font-black leading-none">{tab.count}</span>
+            ) : null}
           </button>
         ))}
       </div>
 
-      <div
-        id={`panel-${activeTab}`}
-        role="tabpanel"
-        aria-labelledby={`tab-${activeTab}`}
-      >
+      <div id={`panel-${activeTab}`} role="tabpanel" aria-labelledby={`tab-${activeTab}`}>
         {children}
       </div>
     </div>

@@ -302,6 +302,10 @@ Future<void> exportAttendancePdf(MonthlyAttendanceStatement statement) async {
   final fileName =
       'كشف-حضور-${statement.employeeCode ?? statement.employeeNameAr}-${statement.year}-$monthName.pdf';
 
+  // TODO(pdf-refactor): convertHtml deprecated في printing >= 6. الحل النهائي هو بناء
+  // المستند مباشرة بـ package:pdf بدلاً من تمرير HTML. حالياً نُكتم التحذير لأن البديل
+  // من نفس إصدار printing المثبّت غير متاح.
+  // ignore: deprecated_member_use
   final pdfBytes = await Printing.convertHtml(
     html: html,
     format: PdfPageFormat.a4.landscape,

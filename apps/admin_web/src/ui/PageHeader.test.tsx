@@ -20,9 +20,7 @@ describe('PageHeader', () => {
   });
 
   it('يعرض أزرار الإجراءات عند توفرها', () => {
-    render(
-      <PageHeader title="الموظفون" actions={<button>إضافة موظف</button>} />,
-    );
+    render(<PageHeader title="الموظفون" actions={<button>إضافة موظف</button>} />);
     expect(screen.getByText('إضافة موظف')).toBeDefined();
   });
 

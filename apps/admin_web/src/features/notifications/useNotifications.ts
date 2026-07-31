@@ -24,13 +24,17 @@ function useNotificationsRealtime() {
       if (cancelled) return;
       channelRef.current = supabase
         .channel('notifications-realtime')
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-        }, () => {
-          void queryClient.invalidateQueries({ queryKey: ['my-notifications'] });
-        })
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+          },
+          () => {
+            void queryClient.invalidateQueries({ queryKey: ['my-notifications'] });
+          },
+        )
         .subscribe();
     })();
 
@@ -49,13 +53,14 @@ export function useNotifications() {
   // اشتراك Realtime لتحديث الإشعارات فوراً بدون polling
   useNotificationsRealtime();
   return useQuery({
-    queryKey: ['my-notifications', auth.isMock], enabled: auth.status === 'authenticated',
+    queryKey: ['my-notifications', auth.isMock],
+    enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<NotificationItem[]> => {
       if (auth.isMock) return notificationItemSchema.array().parse((await loadDomainMocks()).mockNotifications);
       const data = await rpc('get_my_notifications', { p_limit: 100 });
       const all = notificationItemSchema.array().parse(data ?? []);
       // فلترة: لوحة الإدارة لا تعرض إشعارات الموبايل الشخصية (تذكير حضور، طلب موقع).
-      return all.filter((n) => !MOBILE_ONLY_ENTITY_TYPES.includes(n.entityType as typeof MOBILE_ONLY_ENTITY_TYPES[number]));
+      return all.filter((n) => !MOBILE_ONLY_ENTITY_TYPES.includes(n.entityType as (typeof MOBILE_ONLY_ENTITY_TYPES)[number]));
     },
   });
 }

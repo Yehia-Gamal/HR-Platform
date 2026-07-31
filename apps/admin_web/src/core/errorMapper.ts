@@ -74,9 +74,7 @@ function correlationId(): string {
  */
 export function safeErrorMessage(error: unknown): string {
   const cid = correlationId();
-  const raw = error instanceof Error
-    ? error.message
-    : typeof error === 'string' ? error : String(error ?? '');
+  const raw = error instanceof Error ? error.message : typeof error === 'string' ? error : String(error ?? '');
 
   // تسجيل الخطأ الأصلي مع رمز التتبع — لا يظهر للمستخدم
   if (import.meta.env.DEV) console.error(`[خطأ ${cid}]`, error);

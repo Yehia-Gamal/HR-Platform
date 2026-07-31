@@ -1,13 +1,5 @@
 import { useCallback } from 'react';
-import {
-  RadarChart,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Tooltip,
-  Legend,
-} from 'recharts';
+import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend } from 'recharts';
 import { getChartColors, TOOLTIP_STYLE } from './chartTheme';
 
 type RadarSeries = { key: string; label: string; color?: string };
@@ -15,31 +7,13 @@ type RadarSeries = { key: string; label: string; color?: string };
 /**
  * رسم بياني شبكي (Radar) مع دعم سلاسل متعددة وتسميات عربية.
  */
-export function AppRadarChart({
-  data,
-  series,
-  height = 300,
-}: {
-  data: Record<string, unknown>[];
-  series: RadarSeries[];
-  height?: number;
-}) {
+export function AppRadarChart({ data, series, height = 300 }: { data: Record<string, unknown>[]; series: RadarSeries[]; height?: number }) {
   const palette = getChartColors();
 
-  const formatAr = useCallback(
-    (v: number) => new Intl.NumberFormat('ar-SA').format(v),
-    [],
-  );
+  const formatAr = useCallback((v: number) => new Intl.NumberFormat('ar-SA').format(v), []);
 
   return (
-    <RadarChart
-      width={500}
-      height={height}
-      data={data}
-      cx="50%"
-      cy="50%"
-      outerRadius="70%"
-    >
+    <RadarChart width={500} height={height} data={data} cx="50%" cy="50%" outerRadius="70%">
       <PolarGrid stroke="var(--border)" strokeDasharray="4 4" />
 
       <PolarAngleAxis
@@ -64,26 +38,12 @@ export function AppRadarChart({
 
       {series.map((s, i) => {
         const color = s.color ?? palette[i % palette.length];
-        return (
-          <Radar
-            key={s.key}
-            name={s.label}
-            dataKey={s.key}
-            stroke={color}
-            fill={color}
-            fillOpacity={0.15}
-            strokeWidth={2}
-            isAnimationActive
-          />
-        );
+        return <Radar key={s.key} name={s.label} dataKey={s.key} stroke={color} fill={color} fillOpacity={0.15} strokeWidth={2} isAnimationActive />;
       })}
 
       <Tooltip
         contentStyle={TOOLTIP_STYLE}
-        formatter={(value: unknown, name: unknown) => [
-          formatAr(Number(value ?? 0)),
-          String(name ?? ''),
-        ]}
+        formatter={(value: unknown, name: unknown) => [formatAr(Number(value ?? 0)), String(name ?? '')]}
         separator=" : "
         labelStyle={{
           direction: 'rtl',

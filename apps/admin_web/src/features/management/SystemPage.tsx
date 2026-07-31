@@ -13,17 +13,10 @@ export function SystemPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="إعدادات وصحة النظام"
-        description="Feature Flags والأخطاء والنسخ الاحتياطية وإعدادات المنصة في شاشة تشغيل تقنية واحدة."
-      />
+      <PageHeader title="إعدادات وصحة النظام" description="Feature Flags والأخطاء والنسخ الاحتياطية وإعدادات المنصة في شاشة تشغيل تقنية واحدة." />
 
       {q.isError ? (
-        <ErrorState
-          title="تعذر تحميل الحالة التقنية"
-          description={safeErrorMessage(q.error)}
-          onRetry={() => void q.refetch()}
-        />
+        <ErrorState title="تعذر تحميل الحالة التقنية" description={safeErrorMessage(q.error)} onRetry={() => void q.refetch()} />
       ) : q.isLoading && !d ? (
         <div className="space-y-6">
           <MetricSkeletonRow count={5} />
@@ -32,48 +25,21 @@ export function SystemPage() {
       ) : d ? (
         <>
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            <MetricCard
-              label="الميزات المفعلة"
-              value={`${d.enabledFlags}/${d.totalFlags}`}
-              icon={Flag}
-            />
-            <MetricCard
-              label="أخطاء غير محلولة"
-              value={d.unresolvedErrors}
-              icon={ShieldAlert}
-              trend={d.unresolvedErrors > 0 ? 'يتطلب متابعة' : undefined}
-            />
-            <MetricCard
-              label="أخطاء حرجة"
-              value={d.fatalErrors}
-              icon={Activity}
-              hint={d.fatalErrors > 0 ? 'يتطلب تدخلاً فورياً' : undefined}
-            />
-            <MetricCard
-              label="آخر نسخة احتياطية"
-              value={d.latestBackupStatus ?? 'لا يوجد'}
-              icon={DatabaseBackup}
-            />
-            <MetricCard
-              label="إعدادات النظام"
-              value={d.settingsCount}
-              icon={Settings}
-            />
+            <MetricCard label="الميزات المفعلة" value={`${d.enabledFlags}/${d.totalFlags}`} icon={Flag} />
+            <MetricCard label="أخطاء غير محلولة" value={d.unresolvedErrors} icon={ShieldAlert} trend={d.unresolvedErrors > 0 ? 'يتطلب متابعة' : undefined} />
+            <MetricCard label="أخطاء حرجة" value={d.fatalErrors} icon={Activity} hint={d.fatalErrors > 0 ? 'يتطلب تدخلاً فورياً' : undefined} />
+            <MetricCard label="آخر نسخة احتياطية" value={d.latestBackupStatus ?? 'لا يوجد'} icon={DatabaseBackup} />
+            <MetricCard label="إعدادات النظام" value={d.settingsCount} icon={Settings} />
           </section>
 
           <section className="grid gap-5 xl:grid-cols-2">
             <article className="card p-5">
               <h2 className="font-black">Feature Flags</h2>
-              <p className="muted mt-1 text-sm">
-                حالة الميزات ونسب إطلاقها عبر البيئات.
-              </p>
+              <p className="muted mt-1 text-sm">حالة الميزات ونسب إطلاقها عبر البيئات.</p>
               <div className="mt-4 space-y-3">
                 {d.flags.length ? (
                   d.flags.map((f) => (
-                    <div
-                      key={f.id}
-                      className="rounded-xl bg-[var(--surface-muted)] p-4"
-                    >
+                    <div key={f.id} className="rounded-xl bg-[var(--surface-muted)] p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="font-black">{f.name ?? f.key}</p>
@@ -81,16 +47,12 @@ export function SystemPage() {
                             {f.key} · {f.environment}
                           </p>
                         </div>
-                        <StatusBadge
-                          value={f.enabled ? 'active' : 'inactive'}
-                        />
+                        <StatusBadge value={f.enabled ? 'active' : 'inactive'} />
                       </div>
                       <div className="mt-3">
                         <div className="flex items-center justify-between gap-2">
                           <span className="muted text-xs">نسبة الإطلاق</span>
-                          <span className="text-xs font-black">
-                            {f.rolloutPercent}%
-                          </span>
+                          <span className="text-xs font-black">{f.rolloutPercent}%</span>
                         </div>
                         <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
                           <div
@@ -111,16 +73,11 @@ export function SystemPage() {
 
             <article className="card p-5">
               <h2 className="font-black">أحدث الأخطاء المفتوحة</h2>
-              <p className="muted mt-1 text-sm">
-                آخر الأخطاء غير المحلولة عبر المنصة.
-              </p>
+              <p className="muted mt-1 text-sm">آخر الأخطاء غير المحلولة عبر المنصة.</p>
               <div className="mt-4 space-y-3">
                 {d.recentErrors.length ? (
                   d.recentErrors.map((e) => (
-                    <div
-                      key={e.id}
-                      className="rounded-xl border border-[var(--border)] p-4"
-                    >
+                    <div key={e.id} className="rounded-xl border border-[var(--border)] p-4">
                       <div className="flex gap-2">
                         <StatusBadge value={e.level} />
                         <span className="muted text-xs">{e.source}</span>

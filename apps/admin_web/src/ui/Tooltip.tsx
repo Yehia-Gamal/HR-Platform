@@ -6,7 +6,12 @@ const DEFAULT_DELAY = 300;
 
 /* ───────────────────────── مكون التلميح ───────────────────────── */
 
-export function Tooltip({ content, children, position = 'top', delay = DEFAULT_DELAY }: {
+export function Tooltip({
+  content,
+  children,
+  position = 'top',
+  delay = DEFAULT_DELAY,
+}: {
   content: string;
   children: ReactNode;
   position?: TooltipPosition;
@@ -35,31 +40,23 @@ export function Tooltip({ content, children, position = 'top', delay = DEFAULT_D
 
   // اتجاه التلميح + سهم التوجيه
   const positionClasses: Record<TooltipPosition, string> = {
-    top:    'bottom-full mb-2 start-1/2 -translate-x-1/2',
+    top: 'bottom-full mb-2 start-1/2 -translate-x-1/2',
     bottom: 'top-full mt-2 start-1/2 -translate-x-1/2',
-    start:  'end-full me-2 top-1/2 -translate-y-1/2',
-    end:    'start-full ms-2 top-1/2 -translate-y-1/2',
+    start: 'end-full me-2 top-1/2 -translate-y-1/2',
+    end: 'start-full ms-2 top-1/2 -translate-y-1/2',
   };
 
   const arrowClasses: Record<TooltipPosition, string> = {
-    top:    'top-full start-1/2 -translate-x-1/2 border-t-[var(--text-primary)] border-x-transparent border-b-transparent',
+    top: 'top-full start-1/2 -translate-x-1/2 border-t-[var(--text-primary)] border-x-transparent border-b-transparent',
     bottom: 'bottom-full start-1/2 -translate-x-1/2 border-b-[var(--text-primary)] border-x-transparent border-t-transparent',
-    start:  'start-full top-1/2 -translate-y-1/2 border-s-[var(--text-primary)] border-y-transparent border-e-transparent',
-    end:    'end-full top-1/2 -translate-y-1/2 border-e-[var(--text-primary)] border-y-transparent border-s-transparent',
+    start: 'start-full top-1/2 -translate-y-1/2 border-s-[var(--text-primary)] border-y-transparent border-e-transparent',
+    end: 'end-full top-1/2 -translate-y-1/2 border-e-[var(--text-primary)] border-y-transparent border-s-transparent',
   };
 
   return (
-    <span
-      className="relative inline-flex"
-      onMouseEnter={show}
-      onMouseLeave={hide}
-      onFocus={show}
-      onBlur={hide}
-    >
+    <span className="relative inline-flex" onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}>
       {/* العنصر الملفوف */}
-      <span aria-describedby={visible ? tooltipId : undefined}>
-        {children}
-      </span>
+      <span aria-describedby={visible ? tooltipId : undefined}>{children}</span>
 
       {/* فقاعة التلميح */}
       <span
@@ -77,10 +74,7 @@ export function Tooltip({ content, children, position = 'top', delay = DEFAULT_D
       >
         {content}
         {/* سهم التوجيه */}
-        <span
-          className={`absolute size-0 border-4 ${arrowClasses[position]}`}
-          aria-hidden="true"
-        />
+        <span className={`absolute size-0 border-4 ${arrowClasses[position]}`} aria-hidden="true" />
       </span>
     </span>
   );

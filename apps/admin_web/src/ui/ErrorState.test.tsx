@@ -36,9 +36,7 @@ describe('ErrorState', () => {
   });
 
   it('يعرض action مخصص بدلاً من زر إعادة المحاولة', () => {
-    const { container } = render(
-      <ErrorState onRetry={() => {}} action={<a href="/home">الرئيسية</a>} />,
-    );
+    const { container } = render(<ErrorState onRetry={() => {}} action={<a href="/home">الرئيسية</a>} />);
     // action يتجاوز onRetry
     expect(container.textContent).toContain('الرئيسية');
     expect(container.textContent).not.toContain('إعادة المحاولة');

@@ -9,19 +9,10 @@ const traceabilityPath = path.resolve(__dirname, '../../../../TRACEABILITY.md');
 const source = fs.readFileSync(traceabilityPath, 'utf-8');
 
 // استخراج جميع صفوف المتطلبات (تبدأ بـ | رقم.رقم |)
-const requirementRows = source
-  .split('\n')
-  .filter((line) => /^\| \d+\.\d+ \|/.test(line));
+const requirementRows = source.split('\n').filter((line) => /^\| \d+\.\d+ \|/.test(line));
 
 // الحالات المعتمدة في سلم الإثبات
-const VALID_STATUSES = [
-  'DISCOVERED',
-  'DESIGNED',
-  'IMPLEMENTED',
-  'TESTED',
-  'RUNTIME_VERIFIED',
-  'RELEASED',
-];
+const VALID_STATUSES = ['DISCOVERED', 'DESIGNED', 'IMPLEMENTED', 'TESTED', 'RUNTIME_VERIFIED', 'RELEASED'];
 
 describe('V23 §16.1: سلم الإثبات — بنية مصفوفة التتبع', () => {
   it('§16.1.1: الملف يحتوي تعريف مراحل سلم الإثبات', () => {
@@ -31,9 +22,7 @@ describe('V23 §16.1: سلم الإثبات — بنية مصفوفة التتب
   });
 
   it('§16.1.2: الأقسام الرئيسية موجودة (§1 إلى §16)', () => {
-    const sectionHeaders = [...source.matchAll(/## §(\d+)/g)].map((m) =>
-      parseInt(m[1]),
-    );
+    const sectionHeaders = [...source.matchAll(/## §(\d+)/g)].map((m) => parseInt(m[1]));
     // على الأقل الأقسام 1-14 موجودة
     for (let i = 1; i <= 14; i++) {
       expect(sectionHeaders).toContain(i);
@@ -45,10 +34,7 @@ describe('V23 §16.1: سلم الإثبات — بنية مصفوفة التتب
     for (const row of requirementRows) {
       const cells = row.split('|').map((c) => c.trim());
       const status = cells[cells.length - 2]; // الحالة هي العمود الأخير قبل |
-      expect(
-        VALID_STATUSES.includes(status),
-        `حالة غير صالحة "${status}" في: ${cells[1]}`,
-      ).toBe(true);
+      expect(VALID_STATUSES.includes(status), `حالة غير صالحة "${status}" في: ${cells[1]}`).toBe(true);
     }
   });
 
@@ -69,10 +55,7 @@ describe('V23 §16.1: سلم الإثبات — بنية مصفوفة التتب
     }
 
     // تحقق أن الإجمالي يساوي عدد الصفوف
-    const total = Object.values(statusCounts).reduce(
-      (a, b) => (a as number) + (b as number),
-      0,
-    ) as number;
+    const total = Object.values(statusCounts).reduce((a, b) => (a as number) + (b as number), 0) as number;
     expect(total).toBe(requirementRows.length);
   });
 

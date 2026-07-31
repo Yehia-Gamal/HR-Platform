@@ -4,7 +4,12 @@ import { X } from 'lucide-react';
 
 const FOCUSABLE = 'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
-export function DialogOverlay({ title, onClose, children, maxWidth = 'max-w-3xl' }: {
+export function DialogOverlay({
+  title,
+  onClose,
+  children,
+  maxWidth = 'max-w-3xl',
+}: {
   title: string;
   onClose: () => void;
   children: ReactNode;
@@ -26,7 +31,10 @@ export function DialogOverlay({ title, onClose, children, maxWidth = 'max-w-3xl'
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
 
       // حبس التركيز داخل المودال — Tab و Shift+Tab يدوران داخلها فقط
       if (e.key === 'Tab' && dialog) {
@@ -35,9 +43,15 @@ export function DialogOverlay({ title, onClose, children, maxWidth = 'max-w-3xl'
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
         if (e.shiftKey) {
-          if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
         } else {
-          if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
         }
       }
     };
@@ -61,12 +75,18 @@ export function DialogOverlay({ title, onClose, children, maxWidth = 'max-w-3xl'
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <section ref={dialogRef} className={`card ${maxWidth} w-full max-h-[90vh] overflow-y-auto p-6`}>
         <div className="mb-5 flex items-center justify-between">
-          <h2 id={titleId} className="text-xl font-black">{title}</h2>
-          <button className="icon-button" onClick={onClose} aria-label="إغلاق"><X className="size-5" /></button>
+          <h2 id={titleId} className="text-xl font-black">
+            {title}
+          </h2>
+          <button className="icon-button" onClick={onClose} aria-label="إغلاق">
+            <X className="size-5" />
+          </button>
         </div>
         {children}
       </section>

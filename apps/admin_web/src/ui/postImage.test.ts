@@ -12,7 +12,7 @@ beforeEach(() => {
 
   vi.stubGlobal(
     'createImageBitmap',
-    vi.fn((_src: unknown) => Promise.resolve(makeMockBitmap(800, 600))),
+    vi.fn(() => Promise.resolve(makeMockBitmap(800, 600))),
   );
 
   vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
@@ -21,7 +21,7 @@ beforeEach(() => {
         width: 0,
         height: 0,
         getContext: () => lastCanvasCtx,
-        toBlob: (cb: (b: Blob | null) => void, _type: string, _q: number) => {
+        toBlob: (cb: (b: Blob | null) => void) => {
           cb(new Blob(['fake'], { type: 'image/webp' }));
         },
       } as unknown as HTMLCanvasElement;
@@ -42,9 +42,7 @@ function fakeFile(name: string, type: string, sizeKB = 100): File {
 
 describe('preparePostImage', () => {
   it('يرفض الصيغ غير المدعومة', async () => {
-    await expect(preparePostImage(fakeFile('test.bmp', 'image/bmp'))).rejects.toThrow(
-      'الصيغة غير مدعومة',
-    );
+    await expect(preparePostImage(fakeFile('test.bmp', 'image/bmp'))).rejects.toThrow('الصيغة غير مدعومة');
   });
 
   it('يرفض الملفات الأكبر من 5MB', async () => {
@@ -59,18 +57,14 @@ describe('preparePostImage', () => {
   });
 
   it('لا يغيّر حجم صورة أصغر من 1600px عرض', async () => {
-    vi.mocked(globalThis.createImageBitmap).mockResolvedValueOnce(
-      makeMockBitmap(800, 600) as unknown as ImageBitmap,
-    );
+    vi.mocked(globalThis.createImageBitmap).mockResolvedValueOnce(makeMockBitmap(800, 600) as unknown as ImageBitmap);
     const result = await preparePostImage(fakeFile('small.png', 'image/png'));
     expect(result).toBeTruthy();
     // Canvas should be set to original dimensions
   });
 
   it('يصغّر صورة أعرض من 1600px مع الحفاظ على النسبة', async () => {
-    vi.mocked(globalThis.createImageBitmap).mockResolvedValueOnce(
-      makeMockBitmap(3200, 2400) as unknown as ImageBitmap,
-    );
+    vi.mocked(globalThis.createImageBitmap).mockResolvedValueOnce(makeMockBitmap(3200, 2400) as unknown as ImageBitmap);
     await preparePostImage(fakeFile('wide.png', 'image/png'));
     // drawImage should be called with scaled dimensions
     expect(lastCanvasCtx.drawImage).toHaveBeenCalled();
@@ -78,9 +72,7 @@ describe('preparePostImage', () => {
 
   it('يغلق bitmap بعد المعالجة', async () => {
     const bitmap = makeMockBitmap(800, 600);
-    vi.mocked(globalThis.createImageBitmap).mockResolvedValueOnce(
-      bitmap as unknown as ImageBitmap,
-    );
+    vi.mocked(globalThis.createImageBitmap).mockResolvedValueOnce(bitmap as unknown as ImageBitmap);
     await preparePostImage(fakeFile('a.jpg', 'image/jpeg'));
     expect(bitmap.close).toHaveBeenCalledOnce();
   });

@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
   let verification;
   try {
     verification = await verifyRegistrationResponse({
-      response: response as RegistrationResponse,
+      response: response as unknown as RegistrationResponse,
       expectedChallenge: challenge.challenge,
       expectedOrigin: expectedOrigins,
       expectedRPID: challenge.relying_party_id ?? RP_ID,

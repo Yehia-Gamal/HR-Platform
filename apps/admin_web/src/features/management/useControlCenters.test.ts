@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest';
 describe('useControlCenters helpers', () => {
   // Recreate the helpers exactly as in the source
   function rows(value: unknown): Array<Record<string, unknown>> {
-    return Array.isArray(value) ? value as Array<Record<string, unknown>> : [];
+    return Array.isArray(value) ? (value as Array<Record<string, unknown>>) : [];
   }
 
   function str(value: unknown, fallback = ''): string {

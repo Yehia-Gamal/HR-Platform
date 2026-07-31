@@ -6,20 +6,13 @@
 export type ChartDataPoint = { name: string; value: number; [key: string]: unknown };
 
 /** أسماء الأشهر بالعربية (يناير = 0) */
-export const ARABIC_MONTHS = [
-  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
-] as const;
+export const ARABIC_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'] as const;
 
 /** أسماء أيام الأسبوع بالعربية (الأحد = 0) */
-export const ARABIC_DAYS = [
-  'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت',
-] as const;
+export const ARABIC_DAYS = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'] as const;
 
 /** أسماء مختصرة للأيام */
-export const ARABIC_DAYS_SHORT = [
-  'أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت',
-] as const;
+export const ARABIC_DAYS_SHORT = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'] as const;
 
 // ── ألوان ثابتة تعمل في الوضعين الفاتح والداكن ──────────────────────────
 const FALLBACK_PALETTE = [
@@ -34,14 +27,7 @@ const FALLBACK_PALETTE = [
 ] as const;
 
 /** CSS variable names mapped to palette slots */
-const CSS_VAR_SLOTS = [
-  '--brand-primary',
-  '--brand-accent',
-  '--success',
-  '--warning',
-  '--danger',
-  '--info',
-] as const;
+const CSS_VAR_SLOTS = ['--brand-primary', '--brand-accent', '--success', '--warning', '--danger', '--info'] as const;
 
 function readCssVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();

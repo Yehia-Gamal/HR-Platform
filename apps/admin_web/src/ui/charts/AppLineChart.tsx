@@ -1,16 +1,5 @@
 import { useMemo } from 'react';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { Area, AreaChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 /** تعريف خط واحد في الرسم البياني */
 export interface LineDef {
@@ -29,14 +18,7 @@ interface AppLineChartProps {
 }
 
 /* ألوان افتراضية مأخوذة من متغيرات التصميم */
-const PALETTE = [
-  'var(--brand-primary)',
-  'var(--success)',
-  'var(--warning)',
-  'var(--danger)',
-  'var(--info)',
-  'var(--brand-accent)',
-];
+const PALETTE = ['var(--brand-primary)', 'var(--success)', 'var(--warning)', 'var(--danger)', 'var(--info)', 'var(--brand-accent)'];
 
 /** تنسيق الأرقام بالعربية */
 function formatNumber(value: unknown): string {
@@ -62,17 +44,11 @@ function ChartTooltip({
   const labelMap = new Map(lines.map((l) => [l.key, l.label]));
 
   return (
-    <div
-      className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2.5 text-xs shadow-lg"
-      style={{ direction: 'rtl' }}
-    >
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2.5 text-xs shadow-lg" style={{ direction: 'rtl' }}>
       <p className="mb-1.5 font-extrabold text-[var(--text-primary)]">{label}</p>
       {payload.map((entry) => (
         <div key={entry.dataKey} className="flex items-center gap-2 py-0.5">
-          <span
-            className="inline-block size-2.5 shrink-0 rounded-full"
-            style={{ background: entry.color }}
-          />
+          <span className="inline-block size-2.5 shrink-0 rounded-full" style={{ background: entry.color }} />
           <span className="text-[var(--text-muted)]">{labelMap.get(entry.dataKey) ?? entry.dataKey}</span>
           <span className="mr-auto font-bold text-[var(--text-primary)]">{formatNumber(entry.value)}</span>
         </div>
@@ -83,23 +59,10 @@ function ChartTooltip({
 
 /* ───────────────── مكون الرسم البياني الخطي ───────────────── */
 
-export function AppLineChart({
-  data,
-  lines,
-  xKey = 'name',
-  height = 320,
-  area = false,
-  curved = true,
-}: AppLineChartProps) {
-  const resolvedLines = useMemo(
-    () => lines.map((l, i) => ({ ...l, color: l.color ?? PALETTE[i % PALETTE.length] })),
-    [lines],
-  );
+export function AppLineChart({ data, lines, xKey = 'name', height = 320, area = false, curved = true }: AppLineChartProps) {
+  const resolvedLines = useMemo(() => lines.map((l, i) => ({ ...l, color: l.color ?? PALETTE[i % PALETTE.length] })), [lines]);
 
-  const legendPayload = useMemo(
-    () => resolvedLines.map((l) => ({ value: l.label, type: 'circle' as const, color: l.color })),
-    [resolvedLines],
-  );
+  const legendPayload = useMemo(() => resolvedLines.map((l) => ({ value: l.label, type: 'circle' as const, color: l.color })), [resolvedLines]);
 
   const curveType = curved ? 'monotone' : 'linear';
 
@@ -108,11 +71,7 @@ export function AppLineChart({
   return (
     <ResponsiveContainer width="100%" height={height}>
       <Chart data={data} margin={{ top: 8, left: 4, right: 4, bottom: 4 }}>
-        <CartesianGrid
-          strokeDasharray="6 4"
-          stroke="var(--border)"
-          vertical={false}
-        />
+        <CartesianGrid strokeDasharray="6 4" stroke="var(--border)" vertical={false} />
         <XAxis
           dataKey={xKey}
           reversed
@@ -130,19 +89,14 @@ export function AppLineChart({
           tickFormatter={(v: number) => formatNumber(v)}
           dx={4}
         />
-        <Tooltip
-          content={<ChartTooltip lines={resolvedLines} />}
-          cursor={{ stroke: 'var(--border-strong)', strokeDasharray: '4 4' }}
-        />
+        <Tooltip content={<ChartTooltip lines={resolvedLines} />} cursor={{ stroke: 'var(--border-strong)', strokeDasharray: '4 4' }} />
         <Legend
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          {...{ payload: legendPayload } as any}
+          {...({ payload: legendPayload } as any)}
           wrapperStyle={{ direction: 'rtl', paddingTop: 12 }}
           iconType="circle"
           iconSize={10}
-          formatter={(value: string) => (
-            <span className="text-xs font-bold text-[var(--text-muted)]">{value}</span>
-          )}
+          formatter={(value: string) => <span className="text-xs font-bold text-[var(--text-muted)]">{value}</span>}
         />
         {area
           ? resolvedLines.map((l) => (

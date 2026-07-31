@@ -90,7 +90,12 @@ export function useResendInvite() {
   return useMutation({
     mutationFn: async (employeeId: string): Promise<string> => {
       if (auth.isMock) return 'وضع التطوير: لم يُرسل بريد فعلي.';
-      const result = await invokeEdgeFunction<{ email?: string }>('admin-resend-invite', { employeeId }, INVITE_ERROR_MESSAGES, 'تعذر إرسال البريد. أعد المحاولة لاحقًا.');
+      const result = await invokeEdgeFunction<{ email?: string }>(
+        'admin-resend-invite',
+        { employeeId },
+        INVITE_ERROR_MESSAGES,
+        'تعذر إرسال البريد. أعد المحاولة لاحقًا.',
+      );
       const email = result?.email;
       return email ? `أُعيد إرسال رابط التفعيل إلى ${email}.` : 'أُعيد إرسال رابط التفعيل.';
     },
@@ -129,10 +134,7 @@ export function useUpdateEmployee() {
     },
     meta: { successMessage: 'تم تحديث بيانات الموظف بنجاح' },
     onSuccess: async () => {
-      await Promise.all([
-        client.invalidateQueries({ queryKey: ['employees'] }),
-        client.invalidateQueries({ queryKey: ['employee-360'] }),
-      ]);
+      await Promise.all([client.invalidateQueries({ queryKey: ['employees'] }), client.invalidateQueries({ queryKey: ['employee-360'] })]);
     },
   });
 }
@@ -150,10 +152,7 @@ export function useArchiveEmployee() {
     },
     meta: { successMessage: 'تم أرشفة الموظف بنجاح' },
     onSuccess: async () => {
-      await Promise.all([
-        client.invalidateQueries({ queryKey: ['employees'] }),
-        client.invalidateQueries({ queryKey: ['employee-360'] }),
-      ]);
+      await Promise.all([client.invalidateQueries({ queryKey: ['employees'] }), client.invalidateQueries({ queryKey: ['employee-360'] })]);
     },
   });
 }

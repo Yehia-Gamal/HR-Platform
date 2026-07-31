@@ -28,7 +28,7 @@ export async function prepareAvatarFile(file: File): Promise<File> {
     context.drawImage(bitmap, sourceX, sourceY, sourceEdge, sourceEdge, 0, 0, outputEdge, outputEdge);
 
     const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((value) => value ? resolve(value) : reject(new Error('تعذر ضغط الصورة.')), 'image/webp', 0.86);
+      canvas.toBlob((value) => (value ? resolve(value) : reject(new Error('تعذر ضغط الصورة.'))), 'image/webp', 0.86);
     });
     const stem = file.name.replace(/\.[^.]+$/, '') || 'avatar';
     return new File([blob], `${stem}.webp`, { type: 'image/webp', lastModified: Date.now() });

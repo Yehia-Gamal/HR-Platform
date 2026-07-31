@@ -26,7 +26,8 @@ export function OfflineState({
         {onRetry ? (
           <div className="mt-4 flex justify-center">
             <button type="button" className="btn-secondary" onClick={onRetry}>
-              <RefreshCw className="size-4" />إعادة المحاولة
+              <RefreshCw className="size-4" />
+              إعادة المحاولة
             </button>
           </div>
         ) : null}

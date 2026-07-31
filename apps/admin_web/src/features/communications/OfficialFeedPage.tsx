@@ -21,7 +21,15 @@ type PublishMode = 'announcement' | 'decision';
 // ─── هوك حالة النموذج الرسمي ────────────────────────────────────────────────
 function useOfficialFeedForm(publish: ReturnType<typeof usePublishAnnouncement>, createDecision: ReturnType<typeof useCreateDecisionDraft>) {
   const [mode, setMode] = useState<PublishMode>('announcement');
-  const [form, setForm] = useState({ title: '', body: '', category: 'general', priority: 'normal', requiresAcknowledgement: false, expectedOutcome: '', successMetric: '' });
+  const [form, setForm] = useState({
+    title: '',
+    body: '',
+    category: 'general',
+    priority: 'normal',
+    requiresAcknowledgement: false,
+    expectedOutcome: '',
+    successMetric: '',
+  });
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
@@ -70,7 +78,9 @@ function useOfficialFeedForm(publish: ReturnType<typeof usePublishAnnouncement>,
         const urlPath = new URL(bannerUrl).pathname;
         const storagePath = urlPath.split('/announcement-images/')[1];
         if (storagePath) await supabase.storage.from('announcement-images').remove([storagePath]);
-      } catch { /* best effort cleanup */ }
+      } catch {
+        /* best effort cleanup */
+      }
     }
     setBannerUrl(null);
     setImagePreview(null);
@@ -87,13 +97,31 @@ function useOfficialFeedForm(publish: ReturnType<typeof usePublishAnnouncement>,
       }
       resetAll();
       return true;
-    } catch { return false; /* mutation error surfaced via isError banner */ }
+    } catch {
+      return false; /* mutation error surfaced via isError banner */
+    }
   };
 
   return {
-    mode, setMode, form, setForm, bannerUrl, imagePreview, imageUploading, imageError,
-    postType, setPostType, pollOptions, setPollOptions, expiresAt, setExpiresAt,
-    fileInputRef, handleImageSelect, removeImage, resetAll, submit,
+    mode,
+    setMode,
+    form,
+    setForm,
+    bannerUrl,
+    imagePreview,
+    imageUploading,
+    imageError,
+    postType,
+    setPostType,
+    pollOptions,
+    setPollOptions,
+    expiresAt,
+    setExpiresAt,
+    fileInputRef,
+    handleImageSelect,
+    removeImage,
+    resetAll,
+    submit,
     isSubmitting: publish.isPending || createDecision.isPending,
     submitError: publish.isError || createDecision.isError,
   };
@@ -110,13 +138,37 @@ export function OfficialFeedPage() {
   const [search, setSearch] = useState('');
   const [kind, setKind] = useState('all');
   const [priority, setPriority] = useState('all');
-  const { mode, setMode, form, setForm, imagePreview, imageUploading, imageError, postType, setPostType, pollOptions, setPollOptions, expiresAt, setExpiresAt, fileInputRef, handleImageSelect, removeImage, submit, isSubmitting, submitError } = useOfficialFeedForm(publish, createDecision);
+  const {
+    mode,
+    setMode,
+    form,
+    setForm,
+    imagePreview,
+    imageUploading,
+    imageError,
+    postType,
+    setPostType,
+    pollOptions,
+    setPollOptions,
+    expiresAt,
+    setExpiresAt,
+    fileInputRef,
+    handleImageSelect,
+    removeImage,
+    submit,
+    isSubmitting,
+    submitError,
+  } = useOfficialFeedForm(publish, createDecision);
   const allItems = useMemo(() => query.data ?? [], [query.data]);
-  const items = useMemo(() => allItems.filter((item) => {
-    const queryText = search.trim().toLowerCase();
-    const matchesSearch = !queryText || `${item.title} ${item.body} ${item.category}`.toLowerCase().includes(queryText);
-    return matchesSearch && (kind === 'all' || item.kind === kind) && (priority === 'all' || item.priority === priority);
-  }), [allItems, kind, priority, search]);
+  const items = useMemo(
+    () =>
+      allItems.filter((item) => {
+        const queryText = search.trim().toLowerCase();
+        const matchesSearch = !queryText || `${item.title} ${item.body} ${item.category}`.toLowerCase().includes(queryText);
+        return matchesSearch && (kind === 'all' || item.kind === kind) && (priority === 'all' || item.priority === priority);
+      }),
+    [allItems, kind, priority, search],
+  );
   // hasPermission already grants full-access roles via the '*' wildcard,
   // so the previous `|| workspaces.includes('main_admin')` fallback was
   // redundant and risked granting capabilities to non-permissioned admins.
@@ -139,95 +191,313 @@ export function OfficialFeedPage() {
     archive: 'أرشفة القرار',
   };
 
-  return <div className="space-y-6">
-    <PageHeader
-      title="القناة الرسمية للأخبار والقرارات"
-      description="قناة أحادية الاتجاه، مع دورة قرار رسمية: مسودة ← مراجعة ← اعتماد ← نشر، وإصدارات وسجل تدقيق."
-      actions={canPublish ? <button className="btn-primary" onClick={() => setOpen(true)}><Plus className="size-4" aria-hidden="true" />عنصر رسمي جديد</button> : undefined}
-    />
-    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <MetricCard label="المنشورات" value={allItems.length} icon={Megaphone} />
-      <MetricCard label="القرارات" value={allItems.filter((x) => x.kind === 'decision').length} icon={FileText} />
-      <MetricCard label="تحتاج إقرارًا" value={allItems.filter((x) => x.requiresAcknowledgement).length} icon={CheckCircle2} />
-      <MetricCard label="عاجل" value={allItems.filter((x) => x.priority === 'urgent').length} icon={BellRing} />
-    </section>
-    <FilterBar searchValue={search} onSearchChange={setSearch} searchPlaceholder="بحث في عنوان أو محتوى المنشور" resultText={`عرض ${items.length} من ${allItems.length} عنصر رسمي`} isDirty={Boolean(search || kind !== 'all' || priority !== 'all')} onClear={() => { setSearch(''); setKind('all'); setPriority('all'); }}><select className="input" aria-label="نوع العنصر الرسمي" value={kind} onChange={(event) => setKind(event.target.value)}><option value="all">كل الأنواع</option><option value="announcement">خبر أو إعلان</option><option value="decision">قرار إداري</option></select><select className="input" aria-label="أولوية العنصر الرسمي" value={priority} onChange={(event) => setPriority(event.target.value)}><option value="all">كل الأولويات</option><option value="normal">عادية</option><option value="high">مرتفعة</option><option value="urgent">عاجلة</option></select></FilterBar>
-    {transition.isError ? <ErrorBanner message={`تعذر تنفيذ إجراء القرار: ${safeErrorMessage(transition.error)}`} /> : null}
-    {query.isError ? (
-      <ErrorState title="تعذر تحميل القناة" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
-    ) : query.isLoading && allItems.length === 0 ? (
-      <ListSkeleton rows={4} label="جارٍ تحميل القناة الرسمية" />
-    ) : allItems.length === 0 ? (
-      <EmptyState title="لا توجد منشورات بعد" description="لم يتم نشر أي خبر أو قرار رسمي حتى الآن." />
-    ) : items.length === 0 ? (
-      <EmptyState title="لا توجد نتائج مطابقة" description="جرّب تغيير كلمة البحث أو مسح الفلاتر الحالية." />
-    ) : (
-    <section className="grid gap-4 xl:grid-cols-2">
-      {items.map((item) => {
-        const action = item.kind === 'decision' ? nextAction(item.status) : null;
-        const canRun = action === 'approve' ? canApproveDecision : canManageDecision;
-        return <article key={`${item.kind}-${item.id}`} className="card overflow-hidden">
-          <div className="border-b border-[var(--border)] p-5">
-            <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><StatusBadge value={item.kind} /><StatusBadge value={item.priority} /><StatusBadge value={item.status} /></div><span className="muted text-xs">{item.publishedAt ? new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.publishedAt)) : 'غير منشور'}</span></div>
-            <h2 className="mt-4 text-xl font-black">{item.title}</h2>
-            {item.imageUrl ? <img src={item.imageUrl} alt={item.title} className="mt-3 h-44 w-full rounded-2xl object-cover" /> : null}
-            <p className="mt-3 text-sm leading-8">{item.body}</p>
-          </div>
-          {item.requiresAcknowledgement ? <div className="p-5"><div className="flex justify-between text-sm"><span>نسبة الاطلاع والإقرار</span><strong>{item.acknowledgedCount}{item.targetCount ? ` / ${item.targetCount}` : ''}</strong></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]" role="progressbar" aria-label="نسبة الاطلاع والإقرار" aria-valuemin={0} aria-valuemax={item.targetCount ?? 0} aria-valuenow={item.acknowledgedCount}><div className="h-full rounded-full bg-brand" style={{ width: `${item.targetCount ? Math.min(100, (item.acknowledgedCount / item.targetCount) * 100) : 0}%` }} /></div></div> : null}
-          {action && canRun ? <div className="border-t border-[var(--border)] p-4"><button className="btn-secondary" disabled={transition.isPending} onClick={() => transition.mutate({ decisionId: item.id, action }, { onSuccess: () => toast({ message: `${actionLabel[action]} بنجاح`, tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ إجراء القرار', tone: 'error' }) })}>{action === 'approve' ? <ShieldCheck className="size-4" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}{actionLabel[action]}</button></div> : null}
-        </article>;
-      })}
-    </section>
-    )}
-    {open ? (
-      <DialogOverlay title="إنشاء عنصر رسمي" onClose={() => setOpen(false)} maxWidth="max-w-2xl">
-        <div className="grid grid-cols-2 gap-2 rounded-2xl bg-[var(--surface-muted)] p-1"><button type="button" className={`rounded-xl px-3 py-2 font-black ${mode === 'announcement' ? 'bg-[var(--surface-raised)] text-brand shadow-sm' : ''}`} onClick={() => setMode('announcement')}>خبر أو إعلان</button><button type="button" className={`rounded-xl px-3 py-2 font-black ${mode === 'decision' ? 'bg-[var(--surface-raised)] text-brand shadow-sm' : ''}`} onClick={() => setMode('decision')}>قرار إداري</button></div>
-        <div className="mt-5 grid gap-4">
-          <label className="text-sm font-bold">العنوان<input className="input mt-2" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
-          <label className="text-sm font-bold">المحتوى<textarea className="input mt-2 min-h-36 resize-y" value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} /></label>
-          {mode === 'announcement' ? <div>
-            <span className="text-sm font-bold">صورة الإعلان (اختياري)</span>
-            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageSelect} />
-            {imagePreview ? (
-              <div className="relative mt-2">
-                <img src={imagePreview} alt="معاينة" className="h-40 w-full rounded-xl object-cover" />
-                <button type="button" className="absolute start-2 top-2 rounded-full bg-red-600 p-1 text-white shadow" aria-label="إزالة الصورة" onClick={() => void removeImage()}><Trash2 className="size-4" aria-hidden="true" /></button>
-              </div>
-            ) : (
-              <button type="button" className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--border)] p-6 text-sm transition hover:border-brand hover:text-brand" disabled={imageUploading} onClick={() => fileInputRef.current?.click()}>
-                {imageUploading ? <span className="animate-pulse">جارٍ رفع الصورة…</span> : <><ImagePlus className="size-5" aria-hidden="true" />اضغط لاختيار صورة</>}
-              </button>
-            )}
-            {imageError ? <p className="mt-1 text-xs text-[var(--danger)]">{imageError}</p> : null}
-          </div> : null}
-          {mode === 'announcement' ? <div>
-            <span className="text-sm font-bold">نوع المنشور</span>
-            <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl bg-[var(--surface-muted)] p-1">
-              <button type="button" className={`rounded-lg px-3 py-1.5 text-sm font-bold ${postType === 'standard' ? 'bg-[var(--surface-raised)] text-brand shadow-sm' : ''}`} onClick={() => setPostType('standard')}>منشور عادي</button>
-              <button type="button" className={`rounded-lg px-3 py-1.5 text-sm font-bold ${postType === 'poll' ? 'bg-[var(--surface-raised)] text-brand shadow-sm' : ''}`} onClick={() => setPostType('poll')}><ListPlus className="inline size-4 me-1" aria-hidden="true" />تصويت</button>
-            </div>
-            {postType === 'poll' ? <div className="mt-3 space-y-2">
-              <span className="text-sm font-bold">خيارات التصويت</span>
-              {pollOptions.map((opt, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <input className="input flex-1" placeholder={`الخيار ${i + 1}`} value={opt} onChange={(e) => { const next = [...pollOptions]; next[i] = e.target.value; setPollOptions(next); }} />
-                  {pollOptions.length > 2 ? <button type="button" className="rounded-full p-1 text-[var(--danger)] hover:bg-red-50" aria-label="حذف الخيار" onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}><X className="size-4" /></button> : null}
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="القناة الرسمية للأخبار والقرارات"
+        description="قناة أحادية الاتجاه، مع دورة قرار رسمية: مسودة ← مراجعة ← اعتماد ← نشر، وإصدارات وسجل تدقيق."
+        actions={
+          canPublish ? (
+            <button className="btn-primary" onClick={() => setOpen(true)}>
+              <Plus className="size-4" aria-hidden="true" />
+              عنصر رسمي جديد
+            </button>
+          ) : undefined
+        }
+      />
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="المنشورات" value={allItems.length} icon={Megaphone} />
+        <MetricCard label="القرارات" value={allItems.filter((x) => x.kind === 'decision').length} icon={FileText} />
+        <MetricCard label="تحتاج إقرارًا" value={allItems.filter((x) => x.requiresAcknowledgement).length} icon={CheckCircle2} />
+        <MetricCard label="عاجل" value={allItems.filter((x) => x.priority === 'urgent').length} icon={BellRing} />
+      </section>
+      <FilterBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="بحث في عنوان أو محتوى المنشور"
+        resultText={`عرض ${items.length} من ${allItems.length} عنصر رسمي`}
+        isDirty={Boolean(search || kind !== 'all' || priority !== 'all')}
+        onClear={() => {
+          setSearch('');
+          setKind('all');
+          setPriority('all');
+        }}
+      >
+        <select className="input" aria-label="نوع العنصر الرسمي" value={kind} onChange={(event) => setKind(event.target.value)}>
+          <option value="all">كل الأنواع</option>
+          <option value="announcement">خبر أو إعلان</option>
+          <option value="decision">قرار إداري</option>
+        </select>
+        <select className="input" aria-label="أولوية العنصر الرسمي" value={priority} onChange={(event) => setPriority(event.target.value)}>
+          <option value="all">كل الأولويات</option>
+          <option value="normal">عادية</option>
+          <option value="high">مرتفعة</option>
+          <option value="urgent">عاجلة</option>
+        </select>
+      </FilterBar>
+      {transition.isError ? <ErrorBanner message={`تعذر تنفيذ إجراء القرار: ${safeErrorMessage(transition.error)}`} /> : null}
+      {query.isError ? (
+        <ErrorState title="تعذر تحميل القناة" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
+      ) : query.isLoading && allItems.length === 0 ? (
+        <ListSkeleton rows={4} label="جارٍ تحميل القناة الرسمية" />
+      ) : allItems.length === 0 ? (
+        <EmptyState title="لا توجد منشورات بعد" description="لم يتم نشر أي خبر أو قرار رسمي حتى الآن." />
+      ) : items.length === 0 ? (
+        <EmptyState title="لا توجد نتائج مطابقة" description="جرّب تغيير كلمة البحث أو مسح الفلاتر الحالية." />
+      ) : (
+        <section className="grid gap-4 xl:grid-cols-2">
+          {items.map((item) => {
+            const action = item.kind === 'decision' ? nextAction(item.status) : null;
+            const canRun = action === 'approve' ? canApproveDecision : canManageDecision;
+            return (
+              <article key={`${item.kind}-${item.id}`} className="card overflow-hidden">
+                <div className="border-b border-[var(--border)] p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <StatusBadge value={item.kind} />
+                      <StatusBadge value={item.priority} />
+                      <StatusBadge value={item.status} />
+                    </div>
+                    <span className="muted text-xs">
+                      {item.publishedAt
+                        ? new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.publishedAt))
+                        : 'غير منشور'}
+                    </span>
+                  </div>
+                  <h2 className="mt-4 text-xl font-black">{item.title}</h2>
+                  {item.imageUrl ? <img src={item.imageUrl} alt={item.title} className="mt-3 h-44 w-full rounded-2xl object-cover" /> : null}
+                  <p className="mt-3 text-sm leading-8">{item.body}</p>
                 </div>
-              ))}
-              {pollOptions.length < 6 ? <button type="button" className="text-sm font-bold text-brand hover:underline" onClick={() => setPollOptions([...pollOptions, ''])}>+ إضافة خيار</button> : null}
-              <label className="block text-sm font-bold">تاريخ انتهاء التصويت (اختياري)<input type="datetime-local" className="input mt-2" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} /></label>
-            </div> : null}
-          </div> : null}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="text-sm font-bold">التصنيف<select className="input mt-2" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}><option value="general">عام</option><option value="hr">موارد بشرية</option><option value="policy">سياسة</option><option value="organizational">تنظيمي</option><option value="financial">مالي</option></select></label>
-            {mode === 'announcement' ? <label className="text-sm font-bold">الأولوية<select className="input mt-2" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}><option value="normal">عادية</option><option value="high">مرتفعة</option><option value="urgent">عاجلة</option></select></label> : null}
+                {item.requiresAcknowledgement ? (
+                  <div className="p-5">
+                    <div className="flex justify-between text-sm">
+                      <span>نسبة الاطلاع والإقرار</span>
+                      <strong>
+                        {item.acknowledgedCount}
+                        {item.targetCount ? ` / ${item.targetCount}` : ''}
+                      </strong>
+                    </div>
+                    <div
+                      className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]"
+                      role="progressbar"
+                      aria-label="نسبة الاطلاع والإقرار"
+                      aria-valuemin={0}
+                      aria-valuemax={item.targetCount ?? 0}
+                      aria-valuenow={item.acknowledgedCount}
+                    >
+                      <div
+                        className="h-full rounded-full bg-brand"
+                        style={{ width: `${item.targetCount ? Math.min(100, (item.acknowledgedCount / item.targetCount) * 100) : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                ) : null}
+                {action && canRun ? (
+                  <div className="border-t border-[var(--border)] p-4">
+                    <button
+                      className="btn-secondary"
+                      disabled={transition.isPending}
+                      onClick={() =>
+                        transition.mutate(
+                          { decisionId: item.id, action },
+                          {
+                            onSuccess: () => toast({ message: `${actionLabel[action]} بنجاح`, tone: 'success' }),
+                            onError: () => toast({ message: 'تعذر تنفيذ إجراء القرار', tone: 'error' }),
+                          },
+                        )
+                      }
+                    >
+                      {action === 'approve' ? <ShieldCheck className="size-4" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}
+                      {actionLabel[action]}
+                    </button>
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
+        </section>
+      )}
+      {open ? (
+        <DialogOverlay title="إنشاء عنصر رسمي" onClose={() => setOpen(false)} maxWidth="max-w-2xl">
+          <div className="grid grid-cols-2 gap-2 rounded-2xl bg-[var(--surface-muted)] p-1">
+            <button
+              type="button"
+              className={`rounded-xl px-3 py-2 font-black ${mode === 'announcement' ? 'bg-[var(--surface-raised)] text-brand shadow-sm' : ''}`}
+              onClick={() => setMode('announcement')}
+            >
+              خبر أو إعلان
+            </button>
+            <button
+              type="button"
+              className={`rounded-xl px-3 py-2 font-black ${mode === 'decision' ? 'bg-[var(--surface-raised)] text-brand shadow-sm' : ''}`}
+              onClick={() => setMode('decision')}
+            >
+              قرار إداري
+            </button>
           </div>
-          {mode === 'decision' ? <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">النتيجة المتوقعة<input className="input mt-2" value={form.expectedOutcome} onChange={(e) => setForm({ ...form, expectedOutcome: e.target.value })} /></label><label className="text-sm font-bold">مؤشر قياس النجاح<input className="input mt-2" value={form.successMetric} onChange={(e) => setForm({ ...form, successMetric: e.target.value })} /></label></div> : null}
-          <label className="flex items-center gap-3 rounded-xl bg-[var(--surface-muted)] p-4 text-sm font-bold"><input type="checkbox" checked={form.requiresAcknowledgement} onChange={(e) => setForm({ ...form, requiresAcknowledgement: e.target.checked })} />يتطلب إقرارًا بالاطلاع</label>
-          {submitError ? <ErrorBanner message="تعذر حفظ العنصر الرسمي." /> : null}
-          <button className="btn-primary" disabled={isSubmitting || imageUploading || form.title.trim().length < 3 || form.body.trim().length < 10} onClick={() => void submit().then((ok) => { if (ok) { setOpen(false); toast({ message: mode === 'decision' ? 'تم حفظ مسودة القرار بنجاح' : 'تم نشر العنصر الرسمي بنجاح', tone: 'success' }); } else { toast({ message: 'تعذر حفظ العنصر الرسمي', tone: 'error' }); } })}>{mode === 'decision' ? 'حفظ كمسودة قرار' : 'نشر الآن'}</button>
-        </div>
-      </DialogOverlay>
-    ) : null}
-  </div>;
+          <div className="mt-5 grid gap-4">
+            <label className="text-sm font-bold">
+              العنوان
+              <input className="input mt-2" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+            </label>
+            <label className="text-sm font-bold">
+              المحتوى
+              <textarea className="input mt-2 min-h-36 resize-y" value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} />
+            </label>
+            {mode === 'announcement' ? (
+              <div>
+                <span className="text-sm font-bold">صورة الإعلان (اختياري)</span>
+                <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageSelect} />
+                {imagePreview ? (
+                  <div className="relative mt-2">
+                    <img src={imagePreview} alt="معاينة" className="h-40 w-full rounded-xl object-cover" />
+                    <button
+                      type="button"
+                      className="absolute start-2 top-2 rounded-full bg-red-600 p-1 text-white shadow"
+                      aria-label="إزالة الصورة"
+                      onClick={() => void removeImage()}
+                    >
+                      <Trash2 className="size-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--border)] p-6 text-sm transition hover:border-brand hover:text-brand"
+                    disabled={imageUploading}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {imageUploading ? (
+                      <span className="animate-pulse">جارٍ رفع الصورة…</span>
+                    ) : (
+                      <>
+                        <ImagePlus className="size-5" aria-hidden="true" />
+                        اضغط لاختيار صورة
+                      </>
+                    )}
+                  </button>
+                )}
+                {imageError ? <p className="mt-1 text-xs text-[var(--danger)]">{imageError}</p> : null}
+              </div>
+            ) : null}
+            {mode === 'announcement' ? (
+              <div>
+                <span className="text-sm font-bold">نوع المنشور</span>
+                <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl bg-[var(--surface-muted)] p-1">
+                  <button
+                    type="button"
+                    className={`rounded-lg px-3 py-1.5 text-sm font-bold ${postType === 'standard' ? 'bg-[var(--surface-raised)] text-brand shadow-sm' : ''}`}
+                    onClick={() => setPostType('standard')}
+                  >
+                    منشور عادي
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded-lg px-3 py-1.5 text-sm font-bold ${postType === 'poll' ? 'bg-[var(--surface-raised)] text-brand shadow-sm' : ''}`}
+                    onClick={() => setPostType('poll')}
+                  >
+                    <ListPlus className="inline size-4 me-1" aria-hidden="true" />
+                    تصويت
+                  </button>
+                </div>
+                {postType === 'poll' ? (
+                  <div className="mt-3 space-y-2">
+                    <span className="text-sm font-bold">خيارات التصويت</span>
+                    {pollOptions.map((opt, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <input
+                          className="input flex-1"
+                          placeholder={`الخيار ${i + 1}`}
+                          value={opt}
+                          onChange={(e) => {
+                            const next = [...pollOptions];
+                            next[i] = e.target.value;
+                            setPollOptions(next);
+                          }}
+                        />
+                        {pollOptions.length > 2 ? (
+                          <button
+                            type="button"
+                            className="rounded-full p-1 text-[var(--danger)] hover:bg-red-50"
+                            aria-label="حذف الخيار"
+                            onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}
+                          >
+                            <X className="size-4" />
+                          </button>
+                        ) : null}
+                      </div>
+                    ))}
+                    {pollOptions.length < 6 ? (
+                      <button type="button" className="text-sm font-bold text-brand hover:underline" onClick={() => setPollOptions([...pollOptions, ''])}>
+                        + إضافة خيار
+                      </button>
+                    ) : null}
+                    <label className="block text-sm font-bold">
+                      تاريخ انتهاء التصويت (اختياري)
+                      <input type="datetime-local" className="input mt-2" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+                    </label>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-bold">
+                التصنيف
+                <select className="input mt-2" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                  <option value="general">عام</option>
+                  <option value="hr">موارد بشرية</option>
+                  <option value="policy">سياسة</option>
+                  <option value="organizational">تنظيمي</option>
+                  <option value="financial">مالي</option>
+                </select>
+              </label>
+              {mode === 'announcement' ? (
+                <label className="text-sm font-bold">
+                  الأولوية
+                  <select className="input mt-2" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
+                    <option value="normal">عادية</option>
+                    <option value="high">مرتفعة</option>
+                    <option value="urgent">عاجلة</option>
+                  </select>
+                </label>
+              ) : null}
+            </div>
+            {mode === 'decision' ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="text-sm font-bold">
+                  النتيجة المتوقعة
+                  <input className="input mt-2" value={form.expectedOutcome} onChange={(e) => setForm({ ...form, expectedOutcome: e.target.value })} />
+                </label>
+                <label className="text-sm font-bold">
+                  مؤشر قياس النجاح
+                  <input className="input mt-2" value={form.successMetric} onChange={(e) => setForm({ ...form, successMetric: e.target.value })} />
+                </label>
+              </div>
+            ) : null}
+            <label className="flex items-center gap-3 rounded-xl bg-[var(--surface-muted)] p-4 text-sm font-bold">
+              <input type="checkbox" checked={form.requiresAcknowledgement} onChange={(e) => setForm({ ...form, requiresAcknowledgement: e.target.checked })} />
+              يتطلب إقرارًا بالاطلاع
+            </label>
+            {submitError ? <ErrorBanner message="تعذر حفظ العنصر الرسمي." /> : null}
+            <button
+              className="btn-primary"
+              disabled={isSubmitting || imageUploading || form.title.trim().length < 3 || form.body.trim().length < 10}
+              onClick={() =>
+                void submit().then((ok) => {
+                  if (ok) {
+                    setOpen(false);
+                    toast({ message: mode === 'decision' ? 'تم حفظ مسودة القرار بنجاح' : 'تم نشر العنصر الرسمي بنجاح', tone: 'success' });
+                  } else {
+                    toast({ message: 'تعذر حفظ العنصر الرسمي', tone: 'error' });
+                  }
+                })
+              }
+            >
+              {mode === 'decision' ? 'حفظ كمسودة قرار' : 'نشر الآن'}
+            </button>
+          </div>
+        </DialogOverlay>
+      ) : null}
+    </div>
+  );
 }

@@ -14,7 +14,7 @@ interface JobRow {
   recipient_user_id: string;
   channel: string;
   attempts: number;
-  notifications: { priority: string } | null;
+  notifications: { priority: string } | Array<{ priority: string }> | null;
 }
 
 /** صف إشعار كامل يُجلب لبناء رسالة FCM. */
@@ -29,7 +29,11 @@ interface NotificationRow {
   entity_type: string | null;
 }
 
-type SupabaseClient = ReturnType<typeof createClient>;
+function createAdminClient(url: string, key: string) {
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+type SupabaseAdminClient = ReturnType<typeof createAdminClient>;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
@@ -39,7 +43,7 @@ Deno.serve(async (req) => {
   if (!await timingSafeEqual(req.headers.get('x-cron-secret'), cronSecret)) return respond(req, { error: 'UNAUTHORIZED' }, 401);
   const url = Deno.env.get('SUPABASE_URL'); const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   if (!url || !key) return respond(req, { error: 'SERVER_CONFIGURATION' }, 500);
-  const supabase = createClient(url, key, { auth: { persistSession: false } });
+  const supabase = createAdminClient(url, key);
   const worker = crypto.randomUUID(); const now = new Date().toISOString();
 
   // طلب العاجل أولًا: نرتّب حسب أولوية الإشعار المرتبط ثم وقت التوفر.
@@ -52,9 +56,11 @@ Deno.serve(async (req) => {
   if (error) return respond(req, { error: 'LOAD_FAILED' }, 500);
 
   // إعادة ترتيب: urgent قبل غيره (Supabase لا يرتّب على جدول مرتبط بسهولة).
-  const ordered = (jobs as JobRow[] ?? []).slice().sort((a, b) => {
-    const pa = a.notifications?.priority === 'urgent' ? 0 : 1;
-    const pb = b.notifications?.priority === 'urgent' ? 0 : 1;
+  const ordered = ((jobs ?? []) as JobRow[]).slice().sort((a, b) => {
+    const aNotification = Array.isArray(a.notifications) ? a.notifications[0] : a.notifications;
+    const bNotification = Array.isArray(b.notifications) ? b.notifications[0] : b.notifications;
+    const pa = aNotification?.priority === 'urgent' ? 0 : 1;
+    const pb = bNotification?.priority === 'urgent' ? 0 : 1;
     return pa - pb;
   });
 
@@ -196,7 +202,7 @@ function buildFcmMessage(token: string, n: NotificationRow | null): Record<strin
 }
 
 async function logDelivery(
-  supabase: SupabaseClient, job: JobRow, subscriptionId: string | null,
+  supabase: SupabaseAdminClient, job: JobRow, subscriptionId: string | null,
   status: 'token_missing' | 'sent' | 'failed' | 'delivered', providerMessageId: string | null, errorDetail: string | null,
 ) {
   const nowIso = new Date().toISOString();

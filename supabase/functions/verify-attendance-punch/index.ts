@@ -30,7 +30,7 @@ const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") ?? "")
   .split(",").map((value) => value.trim()).filter(Boolean);
 const MAX_BODY_BYTES = 256 * 1024;
 
-function b64urlToBytes(value: string): Uint8Array {
+function b64urlToBytes(value: string): Uint8Array<ArrayBuffer> {
   let source = value.replace(/-/g, "+").replace(/_/g, "/");
   source += "=".repeat((4 - source.length % 4) % 4);
   const binary = atob(source);
@@ -47,16 +47,17 @@ function validateCoordinates(latitude: unknown, longitude: unknown, accuracy: un
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight(req);
   try {
-  if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
-  const authorization = req.headers.get("Authorization") ?? "";
-  const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
-  if (!token) return json(req, { error: "unauthorized" }, 401);
+    if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
 
-  if (!SUPABASE_URL || !SERVICE_ROLE || !RP_ID || ALLOWED_ORIGINS.length === 0) {
-    return json(req, { error: "server_not_configured" }, 500);
-  }
-  const contentLength = Number(req.headers.get("content-length") ?? "0");
-  if (contentLength > MAX_BODY_BYTES) return json(req, { error: "payload_too_large" }, 413);
+    const authorization = req.headers.get("Authorization") ?? "";
+    const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+    if (!token) return json(req, { error: "unauthorized" }, 401);
+
+    if (!SUPABASE_URL || !SERVICE_ROLE || !RP_ID || ALLOWED_ORIGINS.length === 0) {
+      return json(req, { error: "server_not_configured" }, 500);
+    }
+    const contentLength = Number(req.headers.get("content-length") ?? "0");
+    if (contentLength > MAX_BODY_BYTES) return json(req, { error: "payload_too_large" }, 413);
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -205,7 +206,7 @@ Deno.serve(async (req) => {
   let verification;
   try {
     verification = await verifyAuthenticationResponse({
-      response: response as AuthenticationResponse,
+      response: response as unknown as AuthenticationResponse,
       expectedChallenge: challenge.challenge,
       expectedOrigin: expectedOrigins,
       expectedRPID: challenge.relying_party_id ?? RP_ID,

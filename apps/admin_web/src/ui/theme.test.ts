@@ -1,10 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  applyTheme,
-  getPreferredTheme,
-  THEME_CHANGE_EVENT,
-  THEME_STORAGE_KEY,
-} from './theme';
+import { applyTheme, getPreferredTheme, THEME_CHANGE_EVENT, THEME_STORAGE_KEY } from './theme';
 
 describe('getPreferredTheme', () => {
   beforeEach(() => {

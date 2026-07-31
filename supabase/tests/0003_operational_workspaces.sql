@@ -5,7 +5,7 @@ select has_function('public','get_request_inbox',array['integer'],'request inbox
 select has_function('public','get_kpi_inbox',array['integer'],'KPI inbox RPC exists');
 select has_function('public','get_official_feed_admin',array['integer'],'official feed RPC exists');
 select has_function('public','get_universal_action_center',array['integer'],'action center RPC exists');
-select has_function('public','publish_official_announcement',array['text','text','text','text','boolean'],'publish RPC exists');
+select has_function('public','publish_official_announcement',array['text','text','text','text','boolean','text','text','jsonb','timestamp with time zone'],'canonical publish RPC exists');
 select has_function('public','advance_kpi_stage',array['uuid','text','jsonb','text'],'canonical KPI transition RPC exists');
 select col_is_pk('public','requests','id','requests has PK');
 select col_is_pk('public','kpi_evaluations','id','KPI evaluation has PK');

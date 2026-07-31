@@ -34,7 +34,10 @@ export function BulkActionBar({ selectedCount, actions, onClearSelection }: Bulk
 
   // حركة الظهور: enter → visible بعد التركيب
   useEffect(() => {
-    if (!visible) { setPhase('enter'); return; }
+    if (!visible) {
+      setPhase('enter');
+      return;
+    }
     const frame = requestAnimationFrame(() => {
       requestAnimationFrame(() => setPhase('visible'));
     });
@@ -43,9 +46,7 @@ export function BulkActionBar({ selectedCount, actions, onClearSelection }: Bulk
 
   if (!visible) return null;
 
-  const animClass = phase === 'visible'
-    ? 'translate-y-0 opacity-100'
-    : 'translate-y-4 opacity-0';
+  const animClass = phase === 'visible' ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0';
 
   return createPortal(
     <div
@@ -59,9 +60,7 @@ export function BulkActionBar({ selectedCount, actions, onClearSelection }: Bulk
       >
         {/* عدد العناصر المحددة + زر إلغاء التحديد */}
         <div className="flex items-center gap-2">
-          <span className="whitespace-nowrap text-sm font-black text-[var(--text-primary)]">
-            تم تحديد {selectedCount} عنصر
-          </span>
+          <span className="whitespace-nowrap text-sm font-black text-[var(--text-primary)]">تم تحديد {selectedCount} عنصر</span>
           <button
             type="button"
             className="grid size-7 shrink-0 place-items-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
@@ -81,13 +80,7 @@ export function BulkActionBar({ selectedCount, actions, onClearSelection }: Bulk
             const Icon = action.icon;
             const btnClass = toneBtnClass[action.tone ?? 'default'];
             return (
-              <button
-                key={action.label}
-                type="button"
-                className={`${btnClass} text-xs`}
-                onClick={action.onClick}
-                disabled={action.disabled}
-              >
+              <button key={action.label} type="button" className={`${btnClass} text-xs`} onClick={action.onClick} disabled={action.disabled}>
                 {Icon && <Icon className="size-4" aria-hidden="true" />}
                 {action.label}
               </button>

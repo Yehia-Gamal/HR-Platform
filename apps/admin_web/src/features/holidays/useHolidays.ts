@@ -32,15 +32,10 @@ export function useHolidays(year?: number) {
       if (auth.isMock) return (await loadDomainMocks()).mockHolidays;
 
       const supabase = await getSupabase();
-      let query = supabase
-        .from('public_holidays')
-        .select('*')
-        .order('holiday_date', { ascending: false });
+      let query = supabase.from('public_holidays').select('*').order('holiday_date', { ascending: false });
 
       if (year) {
-        query = query
-          .gte('holiday_date', `${year}-01-01`)
-          .lte('holiday_date', `${year}-12-31`);
+        query = query.gte('holiday_date', `${year}-01-01`).lte('holiday_date', `${year}-12-31`);
       }
 
       const { data, error } = await query;
@@ -87,7 +82,10 @@ export function useUpdateHoliday() {
   const auth = useAuth();
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...changes }: {
+    mutationFn: async ({
+      id,
+      ...changes
+    }: {
       id: string;
       name?: string;
       holiday_date?: string;

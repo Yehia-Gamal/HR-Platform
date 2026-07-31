@@ -10,10 +10,10 @@ export function attachAuthObservability(): {
   return {
     onAuthChange(event, userId, role) {
       // لا نضع userId في بيانات الـ breadcrumb (PII). الهوية تُرفق عبر setUserContext فقط.
-      addBreadcrumb("auth", `Auth event: ${event}`, { event });
-      if (event === "SIGNED_IN" && userId) {
+      addBreadcrumb('auth', `Auth event: ${event}`, { event });
+      if (event === 'SIGNED_IN' && userId) {
         setUserContext(userId, role);
-      } else if (event === "SIGNED_OUT") {
+      } else if (event === 'SIGNED_OUT') {
         clearUserContext();
       }
     },

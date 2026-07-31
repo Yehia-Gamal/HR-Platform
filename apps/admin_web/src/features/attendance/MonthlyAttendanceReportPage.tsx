@@ -49,22 +49,35 @@ function exportCSV(data: AttendanceStatement) {
     'التاريخ,اليوم,الحضور,الانصراف,الوردية,ساعات فعلية,ساعات مطلوبة,التأخير (د),خروج مبكر (د),إضافي (د),الحالة,غائب,عطلة رسمية,إجازة,إذن حضور,إذن انصراف,مأمورية,قافلة/فاندي,نقص حضور,نقص انصراف,تصحيح,جزاءات,ملاحظة',
   ].join('\n');
 
-  const rows = days.map((d) =>
-    [
-      d.date, d.dayNameAr,
-      d.checkIn?.slice(0, 5) ?? '', d.checkOut?.slice(0, 5) ?? '',
-      csvSafe(d.shiftName), d.workHours.toFixed(1), d.requiredHours.toFixed(1),
-      d.lateMinutes, d.earlyLeaveMinutes, d.overtimeMinutes,
-      csvSafe(d.status),
-      d.isAbsent ? 'نعم' : '', d.isOfficialHoliday ? 'نعم' : '',
-      d.hasLeave ? 'نعم' : '', d.hasLatePermit ? 'نعم' : '', d.hasEarlyPermit ? 'نعم' : '',
-      d.hasMission ? 'نعم' : '',
-      d.hasConvoyFundi ? 'نعم' : '', d.missingCheckIn ? 'نعم' : '',
-      d.missingCheckOut ? 'نعم' : '', d.hasCorrection ? 'نعم' : '',
-      d.penalties > 0 ? d.penalties : '',
-      csvSafe(d.correctionNote ?? ''),
-    ].join(','),
-  ).join('\n');
+  const rows = days
+    .map((d) =>
+      [
+        d.date,
+        d.dayNameAr,
+        d.checkIn?.slice(0, 5) ?? '',
+        d.checkOut?.slice(0, 5) ?? '',
+        csvSafe(d.shiftName),
+        d.workHours.toFixed(1),
+        d.requiredHours.toFixed(1),
+        d.lateMinutes,
+        d.earlyLeaveMinutes,
+        d.overtimeMinutes,
+        csvSafe(d.status),
+        d.isAbsent ? 'نعم' : '',
+        d.isOfficialHoliday ? 'نعم' : '',
+        d.hasLeave ? 'نعم' : '',
+        d.hasLatePermit ? 'نعم' : '',
+        d.hasEarlyPermit ? 'نعم' : '',
+        d.hasMission ? 'نعم' : '',
+        d.hasConvoyFundi ? 'نعم' : '',
+        d.missingCheckIn ? 'نعم' : '',
+        d.missingCheckOut ? 'نعم' : '',
+        d.hasCorrection ? 'نعم' : '',
+        d.penalties > 0 ? d.penalties : '',
+        csvSafe(d.correctionNote ?? ''),
+      ].join(','),
+    )
+    .join('\n');
 
   const summaryBlock = [
     '',
@@ -122,10 +135,8 @@ export function MonthlyAttendanceReportPage() {
     const all = employeesQuery.data ?? [];
     if (!filterText.trim()) return all;
     const q = filterText.trim().toLowerCase();
-    return all.filter((e) =>
-      e.fullNameAr.toLowerCase().includes(q)
-      || (e.employeeCode ?? '').toLowerCase().includes(q)
-      || (e.department ?? '').toLowerCase().includes(q),
+    return all.filter(
+      (e) => e.fullNameAr.toLowerCase().includes(q) || (e.employeeCode ?? '').toLowerCase().includes(q) || (e.department ?? '').toLowerCase().includes(q),
     );
   }, [employeesQuery.data, filterText]);
 
@@ -139,13 +150,16 @@ export function MonthlyAttendanceReportPage() {
             {statementQuery.data ? (
               <>
                 <button className="btn-secondary" onClick={handlePrint}>
-                  <Printer className="size-4" aria-hidden="true" />طباعة
+                  <Printer className="size-4" aria-hidden="true" />
+                  طباعة
                 </button>
                 <button className="btn-secondary" onClick={() => exportAttendancePDF(statementQuery.data!)}>
-                  <FileDown className="size-4" aria-hidden="true" />تصدير PDF
+                  <FileDown className="size-4" aria-hidden="true" />
+                  تصدير PDF
                 </button>
                 <button className="btn-primary" onClick={() => exportCSV(statementQuery.data!)}>
-                  <Download className="size-4" aria-hidden="true" />تصدير CSV
+                  <Download className="size-4" aria-hidden="true" />
+                  تصدير CSV
                 </button>
               </>
             ) : null}
@@ -176,7 +190,11 @@ export function MonthlyAttendanceReportPage() {
           <label className="text-sm font-bold">
             <span className="block mb-1">الشهر</span>
             <select className="input" value={month} onChange={(e) => setMonth(Number(e.target.value))} aria-label="الشهر">
-              {MONTHS.map((label, index) => <option key={label} value={index + 1}>{label}</option>)}
+              {MONTHS.map((label, index) => (
+                <option key={label} value={index + 1}>
+                  {label}
+                </option>
+              ))}
             </select>
           </label>
 
@@ -184,7 +202,11 @@ export function MonthlyAttendanceReportPage() {
           <label className="text-sm font-bold">
             <span className="block mb-1">السنة</span>
             <select className="input" value={year} onChange={(e) => setYear(Number(e.target.value))} aria-label="السنة">
-              {[now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2].map((y) => <option key={y} value={y}>{y}</option>)}
+              {[now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2].map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
             </select>
           </label>
         </div>
@@ -194,7 +216,9 @@ export function MonthlyAttendanceReportPage() {
       <section className="print:hidden" aria-label="اختيار الموظف">
         {employeesQuery.isLoading ? (
           <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} className="h-24" />)}
+            {Array.from({ length: 10 }).map((_, i) => (
+              <SkeletonCard key={i} className="h-24" />
+            ))}
           </div>
         ) : employeesQuery.isError ? (
           <ErrorState description="تعذر تحميل قائمة الموظفين." onRetry={() => void employeesQuery.refetch()} />
@@ -246,7 +270,10 @@ export function MonthlyAttendanceReportPage() {
       {!selectedEmployeeId ? null : statementQuery.isError ? (
         <ErrorState description={safeErrorMessage(statementQuery.error)} onRetry={() => void statementQuery.refetch()} />
       ) : statementQuery.isLoading ? (
-        <><MetricSkeletonRow count={4} /><SkeletonCard className="h-64" /></>
+        <>
+          <MetricSkeletonRow count={4} />
+          <SkeletonCard className="h-64" />
+        </>
       ) : !statementQuery.data ? (
         <EmptyState title="لا يوجد كشف" description="لا توجد بيانات كشف لهذا الشهر." />
       ) : (
@@ -260,7 +287,7 @@ export function MonthlyAttendanceReportPage() {
 function StatementReport({ data }: { data: AttendanceStatement }) {
   const { employee: emp, period, summary: s } = data;
   // V23: استخدام النسب من الخادم بدلاً من الحساب المحلي
-  const attendancePct = s.attendanceRate ?? (s.scheduledDays > 0 ? (s.presentDays / s.scheduledDays * 100) : 0);
+  const attendancePct = s.attendanceRate ?? (s.scheduledDays > 0 ? (s.presentDays / s.scheduledDays) * 100 : 0);
   const compliancePct = s.hoursComplianceRate ?? 0;
 
   return (
@@ -268,9 +295,15 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
       {/* رأس التقرير للطباعة */}
       <div className="hidden print:block text-center mb-4">
         <h1 className="text-xl font-black">كشف الحضور والانصراف الشهري</h1>
-        <p className="text-sm mt-1">{emp.fullNameAr} — {emp.employeeCode}</p>
-        <p className="text-xs text-gray-500">{emp.department} · {emp.jobTitle}</p>
-        <p className="text-xs text-gray-500">{MONTHS[period.month - 1]} {period.year} ({period.startDate} — {period.endDate})</p>
+        <p className="text-sm mt-1">
+          {emp.fullNameAr} — {emp.employeeCode}
+        </p>
+        <p className="text-xs text-gray-500">
+          {emp.department} · {emp.jobTitle}
+        </p>
+        <p className="text-xs text-gray-500">
+          {MONTHS[period.month - 1]} {period.year} ({period.startDate} — {period.endDate})
+        </p>
       </div>
 
       {/* بطاقة بيانات الموظف */}
@@ -300,7 +333,12 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
           <MetricCard label="أيام المأموريات" value={s.missionDays} icon={TrendingUp} />
           <MetricCard label="إذنات" value={s.permitCount} icon={Clock} />
           <MetricCard label="قوافل/فاندي" value={s.convoyFundiDays} icon={CalendarDays} />
-          <MetricCard label="ساعات العمل" value={s.totalWorkHours.toFixed(1)} hint={`مطلوب ${(s.totalRequiredHours ?? 0).toFixed(1)} | متوسط ${s.averageWorkHours.toFixed(1)} س/يوم`} icon={Timer} />
+          <MetricCard
+            label="ساعات العمل"
+            value={s.totalWorkHours.toFixed(1)}
+            hint={`مطلوب ${(s.totalRequiredHours ?? 0).toFixed(1)} | متوسط ${s.averageWorkHours.toFixed(1)} س/يوم`}
+            icon={Timer}
+          />
           <MetricCard label="ساعات إضافية" value={`${s.totalOvertimeMinutes} د`} icon={ArrowUpRight} />
         </div>
       </div>
@@ -338,7 +376,9 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
             </tr>
           </thead>
           <tbody>
-            {data.days.map((d) => <DayRow key={d.date} d={d} />)}
+            {data.days.map((d) => (
+              <DayRow key={d.date} d={d} />
+            ))}
           </tbody>
         </table>
       </section>
@@ -352,16 +392,20 @@ function DayRow({ d }: { d: AttendanceStatementDay }) {
 
   return (
     <tr className="border-t border-[var(--border)] odd:bg-[var(--surface-muted)]/30 hover:bg-[var(--surface-muted)]/60 transition-colors print:hover:bg-transparent">
-      <td className="p-2.5 tabular-nums print:p-1" dir="ltr">{d.date}</td>
+      <td className="p-2.5 tabular-nums print:p-1" dir="ltr">
+        {d.date}
+      </td>
       <td className="p-2.5 print:p-1">{d.dayNameAr}</td>
-      <td className="p-2.5 tabular-nums print:p-1" dir="ltr">{fmtTime(d.checkIn)}</td>
-      <td className="p-2.5 tabular-nums print:p-1" dir="ltr">{fmtTime(d.checkOut)}</td>
+      <td className="p-2.5 tabular-nums print:p-1" dir="ltr">
+        {fmtTime(d.checkIn)}
+      </td>
+      <td className="p-2.5 tabular-nums print:p-1" dir="ltr">
+        {fmtTime(d.checkOut)}
+      </td>
       <td className="p-2.5 print:p-1">{d.shiftName || '—'}</td>
       <td className="p-2.5 tabular-nums print:p-1">{d.workHours ? d.workHours.toFixed(1) : '—'}</td>
       <td className="p-2.5 tabular-nums print:p-1">{d.requiredHours ? d.requiredHours.toFixed(1) : '—'}</td>
-      <td className={`p-2.5 tabular-nums print:p-1 ${d.lateMinutes > 0 ? 'text-amber-600 font-bold' : ''}`}>
-        {d.lateMinutes ? `${d.lateMinutes} د` : '—'}
-      </td>
+      <td className={`p-2.5 tabular-nums print:p-1 ${d.lateMinutes > 0 ? 'text-amber-600 font-bold' : ''}`}>{d.lateMinutes ? `${d.lateMinutes} د` : '—'}</td>
       <td className={`p-2.5 tabular-nums print:p-1 ${d.earlyLeaveMinutes > 0 ? 'text-amber-600 font-bold' : ''}`}>
         {d.earlyLeaveMinutes ? `${d.earlyLeaveMinutes} د` : '—'}
       </td>
@@ -371,7 +415,9 @@ function DayRow({ d }: { d: AttendanceStatementDay }) {
       <td className={`p-2.5 font-bold print:p-1 ${WARN_STATUSES.has(d.status) ? 'text-red-600' : ''}`}>{d.status}</td>
       <td className="p-2.5 print:p-1">
         <div className="flex flex-wrap gap-1">
-          {tags.map((t) => <DayTag key={t.label} label={t.label} variant={t.variant} />)}
+          {tags.map((t) => (
+            <DayTag key={t.label} label={t.label} variant={t.variant} />
+          ))}
           {d.correctionNote && !tags.length && <span className="text-xs text-[var(--text-muted)]">{d.correctionNote}</span>}
         </div>
       </td>
@@ -384,7 +430,9 @@ function InfoField({ label, value, dir }: { label: string; value: string; dir?: 
   return (
     <div>
       <dt className="text-xs font-bold text-[var(--text-muted)]">{label}</dt>
-      <dd className="mt-0.5 text-sm font-bold" dir={dir}>{value}</dd>
+      <dd className="mt-0.5 text-sm font-bold" dir={dir}>
+        {value}
+      </dd>
     </div>
   );
 }

@@ -13,7 +13,11 @@ import { timingSafeEqual } from '../_shared/secret.ts';
 //   manager_weekly   — team attendance, pending requests, team KPI
 //   hr_monthly       — headcount trends, hires/terms, attendance overview
 
-type SupabaseClient = ReturnType<typeof createClient>;
+function createAdminClient(url: string, key: string) {
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+type SupabaseAdminClient = ReturnType<typeof createAdminClient>;
 
 interface ReportRun {
   id: string;
@@ -24,7 +28,7 @@ interface ReportRun {
 
 /** Report data generator registry — maps report_type to a function that
  *  queries real tables and returns structured JSON for result_summary. */
-type ReportGenerator = (sb: SupabaseClient, run: ReportRun) => Promise<Record<string, unknown>>;
+type ReportGenerator = (sb: SupabaseAdminClient, run: ReportRun) => Promise<Record<string, unknown>>;
 
 const generators: Record<string, ReportGenerator> = {
   executive_daily: generateExecutiveDaily,
@@ -34,7 +38,7 @@ const generators: Record<string, ReportGenerator> = {
 
 // ─── Report generators ──────────────────────────────────────────────
 
-async function generateExecutiveDaily(sb: SupabaseClient, _run: ReportRun) {
+async function generateExecutiveDaily(sb: SupabaseAdminClient, _run: ReportRun) {
   const today = new Date().toISOString().slice(0, 10);
 
   const [headcount, attendanceToday, disputes, pendingRequests, kpiCycles] = await Promise.all([
@@ -68,7 +72,7 @@ async function generateExecutiveDaily(sb: SupabaseClient, _run: ReportRun) {
   };
 }
 
-async function generateManagerWeekly(sb: SupabaseClient, _run: ReportRun) {
+async function generateManagerWeekly(sb: SupabaseAdminClient, _run: ReportRun) {
   const now = new Date();
   const weekStart = new Date(now);
   weekStart.setDate(now.getDate() - now.getDay()); // Sunday
@@ -104,7 +108,7 @@ async function generateManagerWeekly(sb: SupabaseClient, _run: ReportRun) {
   };
 }
 
-async function generateHrMonthly(sb: SupabaseClient, _run: ReportRun) {
+async function generateHrMonthly(sb: SupabaseAdminClient, _run: ReportRun) {
   const now = new Date();
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
   const todayStr = now.toISOString().slice(0, 10);
@@ -155,7 +159,7 @@ Deno.serve(async (req) => {
   if (!await timingSafeEqual(cron, cronSecret)) return json(req, { error: 'UNAUTHORIZED' }, 401);
   const url = Deno.env.get('SUPABASE_URL'); const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   if (!url || !key) return json(req, { error: 'SERVER_CONFIGURATION' }, 500);
-  const supabase = createClient(url, key, { auth: { persistSession: false } });
+  const supabase = createAdminClient(url, key);
 
   // 1. Queue due reports
   const { data: queued, error } = await supabase.rpc('queue_due_scheduled_reports', { p_now: new Date().toISOString() });
@@ -231,9 +235,12 @@ Deno.serve(async (req) => {
       completed += 1;
     } catch (err) {
       console.error(`Report run ${run.id} failed:`, err);
-      await supabase.from('report_runs')
+      const { error: markFailedError } = await supabase.from('report_runs')
         .update({ status: 'failed', completed_at: new Date().toISOString(), error_detail: String(err) })
-        .eq('id', run.id).catch(() => {});
+        .eq('id', run.id);
+      if (markFailedError) {
+        console.error(`Could not mark report run ${run.id} as failed:`, markFailedError.message);
+      }
       failed += 1;
     }
   }

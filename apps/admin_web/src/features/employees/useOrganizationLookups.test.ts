@@ -33,9 +33,7 @@ const mock: OrganizationLookups = {
     { id: 'role-manager', slug: 'direct-manager', label: 'مدير مباشر' },
     { id: 'role-hr', slug: 'hr-specialist', label: 'HR Specialist' },
   ],
-  managers: [
-    { id: '30000000-0000-4000-8000-000000000002', label: 'مدير مباشر تجريبي · EMP-002' },
-  ],
+  managers: [{ id: '30000000-0000-4000-8000-000000000002', label: 'مدير مباشر تجريبي · EMP-002' }],
   branches: [],
   workSites: [],
   departments: [],

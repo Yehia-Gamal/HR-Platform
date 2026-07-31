@@ -83,8 +83,6 @@ describe('esc', () => {
   });
 
   it('handles combined escaping', () => {
-    expect(esc('<script>"alert(1)"</script>')).toBe(
-      '&lt;script&gt;&quot;alert(1)&quot;&lt;/script&gt;',
-    );
+    expect(esc('<script>"alert(1)"</script>')).toBe('&lt;script&gt;&quot;alert(1)&quot;&lt;/script&gt;');
   });
 });

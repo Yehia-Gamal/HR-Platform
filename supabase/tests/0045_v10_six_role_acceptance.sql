@@ -178,7 +178,7 @@ select ok(public.has_permission('people.employee.update_basic'),'HR can edit per
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"91000000-0000-4000-8000-000000000006","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','91000000-0000-4000-8000-000000000006',true);
-select ok((public.get_my_access_context()->'workspaces') ? 'main_admin' and not (public.get_my_access_context()#>>'{attendancePolicy,attendanceRequired}')::boolean,'executive secretary uses Main Admin web without attendance');
+select ok((public.get_my_access_context()->'workspaces') ? 'main_admin' and (public.get_my_access_context()#>>'{attendancePolicy,attendanceRequired}')::boolean,'executive secretary uses Main Admin web and follows the employee attendance policy');
 select ok(public.current_is_executive_secretary(),'executive secretary is the exclusive KPI controller');
 select lives_ok($$select public.manage_kpi_cycle('94000000-0000-4000-8000-000000000001','open','فتح دورة قبول V10',null)$$,'secretary opens the KPI cycle');
 select lives_ok($$select public.manage_kpi_cycle('94000000-0000-4000-8000-000000000001','extend','تمديد دورة قبول V10',now()+interval '40 days')$$,'secretary extends the KPI cycle');

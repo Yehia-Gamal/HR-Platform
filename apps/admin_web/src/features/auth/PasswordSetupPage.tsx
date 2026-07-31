@@ -31,16 +31,20 @@ export function PasswordSetupPage() {
 
   useEffect(() => {
     let active = true;
-    void getSupabase().then(async (supabase) => {
-      const { data, error: sessionError } = await supabase.auth.getSession();
-      clearRecoverySecretsFromAddressBar();
-      if (!active) return;
-      setPageState(sessionError || !data.session ? 'invalid' : 'ready');
-    }).catch(() => {
-      clearRecoverySecretsFromAddressBar();
-      if (active) setPageState('invalid');
-    });
-    return () => { active = false; };
+    void getSupabase()
+      .then(async (supabase) => {
+        const { data, error: sessionError } = await supabase.auth.getSession();
+        clearRecoverySecretsFromAddressBar();
+        if (!active) return;
+        setPageState(sessionError || !data.session ? 'invalid' : 'ready');
+      })
+      .catch(() => {
+        clearRecoverySecretsFromAddressBar();
+        if (active) setPageState('invalid');
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -88,14 +92,10 @@ export function PasswordSetupPage() {
       // 3) تفعيل سجل الموظف (اختياري — لا يُفشل العملية)
       let activationOk = false;
       try {
-        const activationResult = await rpc<{ activated?: boolean; reason?: string } | null>(
-          'activate_employee_after_first_login',
-        );
+        const activationResult = await rpc<{ activated?: boolean; reason?: string } | null>('activate_employee_after_first_login');
         // نقبل: activated=true، already_active، أو no_employee_record (حساب ويب بدون سجل موظف)
         activationOk =
-          activationResult?.activated === true ||
-          activationResult?.reason === 'already_active' ||
-          activationResult?.reason === 'no_employee_record';
+          activationResult?.activated === true || activationResult?.reason === 'already_active' || activationResult?.reason === 'no_employee_record';
       } catch {
         // كلمة المرور تم تعيينها بنجاح لكن التفعيل فشل — نُكمل مع تحذير
         // (لا نمنع المستخدم من إنهاء العملية)
@@ -124,10 +124,14 @@ export function PasswordSetupPage() {
   return (
     <main className="grid min-h-screen place-items-center bg-[var(--app-bg)] p-4 sm:p-6">
       <div className="w-full max-w-lg">
-        <div className="mb-6 flex justify-center"><AppLogo /></div>
+        <div className="mb-6 flex justify-center">
+          <AppLogo />
+        </div>
         <section className="card overflow-hidden">
           <div className="bg-[var(--brand-gradient)] px-6 py-7 text-white sm:px-8">
-            <span className="mb-4 grid size-12 place-items-center rounded-2xl bg-white/12"><KeyRound className="size-6" aria-hidden="true" /></span>
+            <span className="mb-4 grid size-12 place-items-center rounded-2xl bg-white/12">
+              <KeyRound className="size-6" aria-hidden="true" />
+            </span>
             <h1 className="text-2xl font-black">تفعيل حساب الموظف</h1>
             <p className="mt-2 text-sm leading-7 text-blue-100">أنشئ كلمة مرور جديدة لحسابك، ثم استخدمها في تطبيق جمعية خواطر أحلى شباب.</p>
           </div>
@@ -142,10 +146,16 @@ export function PasswordSetupPage() {
 
             {pageState === 'invalid' ? (
               <div className="py-4 text-center" role="alert">
-                <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-[var(--danger-soft)] text-[var(--danger)]"><KeyRound className="size-7" aria-hidden="true" /></span>
+                <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-[var(--danger-soft)] text-[var(--danger)]">
+                  <KeyRound className="size-7" aria-hidden="true" />
+                </span>
                 <h2 className="mt-4 text-xl font-black">الرابط غير صالح أو انتهت مدته</h2>
-                <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">اطلب من مسؤول الموارد البشرية إرسال رابط تفعيل جديد. لا تشارك رابط التفعيل مع أي شخص.</p>
-                <button className="btn-primary mt-5 !py-3" onClick={() => navigate('/')}>الذهاب لصفحة تسجيل الدخول</button>
+                <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">
+                  اطلب من مسؤول الموارد البشرية إرسال رابط تفعيل جديد. لا تشارك رابط التفعيل مع أي شخص.
+                </p>
+                <button className="btn-primary mt-5 !py-3" onClick={() => navigate('/')}>
+                  الذهاب لصفحة تسجيل الدخول
+                </button>
               </div>
             ) : null}
 
@@ -158,25 +168,58 @@ export function PasswordSetupPage() {
                 <label className="block">
                   <span className="mb-1.5 block text-sm font-bold">كلمة المرور الجديدة</span>
                   <span className="relative block">
-                    <input className="input !ps-12" type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={8} required />
-                    <button type="button" className="absolute start-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-muted)]" aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}</button>
+                    <input
+                      className="input !ps-12"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      autoComplete="new-password"
+                      minLength={8}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="absolute start-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-muted)]"
+                      aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                      onClick={() => setShowPassword((value) => !value)}
+                    >
+                      {showPassword ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+                    </button>
                   </span>
                 </label>
                 <label className="block">
                   <span className="mb-1.5 block text-sm font-bold">تأكيد كلمة المرور</span>
-                  <input className="input" type={showPassword ? 'text' : 'password'} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="new-password" minLength={8} required />
+                  <input
+                    className="input"
+                    type={showPassword ? 'text' : 'password'}
+                    value={confirmation}
+                    onChange={(event) => setConfirmation(event.target.value)}
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                  />
                 </label>
-                {error ? <p className="rounded-xl bg-[var(--danger-soft)] p-3 text-sm font-bold text-[var(--danger)]" role="alert">{error}</p> : null}
-                <button className="btn-primary w-full !py-3.5" type="submit" disabled={submitting}>{submitting ? 'جارٍ الحفظ…' : 'تعيين كلمة المرور وتفعيل الحساب'}</button>
+                {error ? (
+                  <p className="rounded-xl bg-[var(--danger-soft)] p-3 text-sm font-bold text-[var(--danger)]" role="alert">
+                    {error}
+                  </p>
+                ) : null}
+                <button className="btn-primary w-full !py-3.5" type="submit" disabled={submitting}>
+                  {submitting ? 'جارٍ الحفظ…' : 'تعيين كلمة المرور وتفعيل الحساب'}
+                </button>
               </form>
             ) : null}
 
             {pageState === 'success' ? (
               <div className="py-4 text-center">
-                <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-[var(--success-soft)] text-[var(--success)]"><CheckCircle2 className="size-8" aria-hidden="true" /></span>
+                <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-[var(--success-soft)] text-[var(--success)]">
+                  <CheckCircle2 className="size-8" aria-hidden="true" />
+                </span>
                 <h2 className="mt-4 text-xl font-black">تم تفعيل الحساب بنجاح</h2>
                 <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">افتح تطبيق أحلى شباب وسجّل الدخول بالبريد أو كود الموظف وكلمة المرور الجديدة.</p>
-                <button className="btn-primary mx-auto mt-5 !py-3 px-8" type="button" onClick={() => navigate('/')}>تسجيل الدخول من المتصفح</button>
+                <button className="btn-primary mx-auto mt-5 !py-3 px-8" type="button" onClick={() => navigate('/')}>
+                  تسجيل الدخول من المتصفح
+                </button>
               </div>
             ) : null}
           </div>

@@ -53,12 +53,16 @@ function PendingDevicesPanel() {
   const [confirmAction, setConfirmAction] = useState<{ device: PendingDevice; approved: boolean } | null>(null);
   const [reason, setReason] = useState('');
 
-  const allDevices = query.data ?? [];
-  const filtered = useMemo(() => allDevices.filter((d) => {
-    const q = search.trim().toLowerCase();
-    const matchesSearch = !q || `${d.employeeName} ${d.employeeCode ?? ''} ${d.deviceName ?? ''} ${d.platform}`.toLowerCase().includes(q);
-    return matchesSearch && (statusFilter === 'all' || d.status === statusFilter);
-  }), [allDevices, search, statusFilter]);
+  const allDevices = useMemo(() => query.data ?? [], [query.data]);
+  const filtered = useMemo(
+    () =>
+      allDevices.filter((d) => {
+        const q = search.trim().toLowerCase();
+        const matchesSearch = !q || `${d.employeeName} ${d.employeeCode ?? ''} ${d.deviceName ?? ''} ${d.platform}`.toLowerCase().includes(q);
+        return matchesSearch && (statusFilter === 'all' || d.status === statusFilter);
+      }),
+    [allDevices, search, statusFilter],
+  );
 
   const pendingCount = allDevices.filter((d) => d.status === 'pending').length;
   const blockedCount = allDevices.filter((d) => d.status === 'blocked').length;
@@ -114,14 +118,12 @@ function PendingDevicesPanel() {
         searchPlaceholder="بحث باسم الموظف أو الكود أو اسم الجهاز..."
         resultText={`${filtered.length} من ${allDevices.length} جهاز`}
         isDirty={search !== '' || statusFilter !== 'all'}
-        onClear={() => { setSearch(''); setStatusFilter('all'); }}
+        onClear={() => {
+          setSearch('');
+          setStatusFilter('all');
+        }}
       >
-        <select
-          className="input"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          aria-label="تصفية حسب الحالة"
-        >
+        <select className="input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="تصفية حسب الحالة">
           <option value="all">كل الحالات</option>
           <option value="pending">بانتظار الموافقة</option>
           <option value="blocked">محظور</option>
@@ -152,7 +154,9 @@ function PendingDevicesPanel() {
           </p>
           {!confirmAction.approved ? (
             <div className="mt-4">
-              <label className="text-sm font-bold" htmlFor="rejection-reason">سبب الرفض (اختياري)</label>
+              <label className="text-sm font-bold" htmlFor="rejection-reason">
+                سبب الرفض (اختياري)
+              </label>
               <textarea
                 id="rejection-reason"
                 className="input mt-1 w-full"
@@ -163,15 +167,16 @@ function PendingDevicesPanel() {
               />
             </div>
           ) : null}
-          {approve.isError ? <div className="mt-3"><ErrorBanner message={safeErrorMessage(approve.error)} /></div> : null}
+          {approve.isError ? (
+            <div className="mt-3">
+              <ErrorBanner message={safeErrorMessage(approve.error)} />
+            </div>
+          ) : null}
           <div className="mt-4 flex gap-2 justify-end">
-            <button type="button" className="btn-secondary" onClick={() => setConfirmAction(null)}>إلغاء</button>
-            <button
-              type="button"
-              className={confirmAction.approved ? 'btn-primary' : 'btn-danger'}
-              disabled={approve.isPending}
-              onClick={executeAction}
-            >
+            <button type="button" className="btn-secondary" onClick={() => setConfirmAction(null)}>
+              إلغاء
+            </button>
+            <button type="button" className={confirmAction.approved ? 'btn-primary' : 'btn-danger'} disabled={approve.isPending} onClick={executeAction}>
               {approve.isPending ? 'جارٍ التنفيذ...' : confirmAction.approved ? 'موافقة' : 'رفض'}
             </button>
           </div>
@@ -194,13 +199,11 @@ function AllDevicesPanel() {
   const [revokeTarget, setRevokeTarget] = useState<AdminDevice | null>(null);
   const [revokeReason, setRevokeReason] = useState('');
 
-  const allDevices = query.data ?? [];
+  const allDevices = useMemo(() => query.data ?? [], [query.data]);
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return allDevices;
-    return allDevices.filter((d) =>
-      `${d.employeeName} ${d.employeeCode ?? ''} ${d.deviceName ?? ''} ${d.platform}`.toLowerCase().includes(q),
-    );
+    return allDevices.filter((d) => `${d.employeeName} ${d.employeeCode ?? ''} ${d.deviceName ?? ''} ${d.platform}`.toLowerCase().includes(q));
   }, [allDevices, search]);
 
   const activeCount = allDevices.filter((d) => d.status === 'active').length;
@@ -252,14 +255,12 @@ function AllDevicesPanel() {
         searchPlaceholder="بحث باسم الموظف أو الكود أو اسم الجهاز..."
         resultText={`${filtered.length} من ${allDevices.length} جهاز`}
         isDirty={search !== '' || statusFilter !== ''}
-        onClear={() => { setSearch(''); setStatusFilter(''); }}
+        onClear={() => {
+          setSearch('');
+          setStatusFilter('');
+        }}
       >
-        <select
-          className="input"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          aria-label="تصفية حسب الحالة"
-        >
+        <select className="input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="تصفية حسب الحالة">
           <option value="">كل الحالات</option>
           <option value="pending">بانتظار الموافقة</option>
           <option value="active">نشط</option>
@@ -272,10 +273,7 @@ function AllDevicesPanel() {
 
       {/* قائمة الأجهزة */}
       {filtered.length === 0 ? (
-        <EmptyState
-          title="لا توجد أجهزة"
-          description={allDevices.length === 0 ? 'لم يسجّل أي موظف جهازاً بعد.' : 'لا توجد نتائج مطابقة للبحث.'}
-        />
+        <EmptyState title="لا توجد أجهزة" description={allDevices.length === 0 ? 'لم يسجّل أي موظف جهازاً بعد.' : 'لا توجد نتائج مطابقة للبحث.'} />
       ) : (
         <section className="space-y-3" aria-label="كل الأجهزة">
           {filtered.map((device) => (
@@ -288,11 +286,13 @@ function AllDevicesPanel() {
       {revokeTarget ? (
         <DialogOverlay title="إلغاء صلاحية الجهاز" onClose={() => setRevokeTarget(null)} maxWidth="max-w-md">
           <p className="text-sm leading-7 text-[var(--text-muted)]">
-            هل تريد إلغاء صلاحية جهاز &quot;{revokeTarget.deviceName ?? revokeTarget.platform}&quot; للموظف {revokeTarget.employeeName}؟
-            سيتم تسجيل خروج الموظف من جميع الجلسات وإلغاء إشعارات الجهاز.
+            هل تريد إلغاء صلاحية جهاز &quot;{revokeTarget.deviceName ?? revokeTarget.platform}&quot; للموظف {revokeTarget.employeeName}؟ سيتم تسجيل خروج الموظف
+            من جميع الجلسات وإلغاء إشعارات الجهاز.
           </p>
           <div className="mt-4">
-            <label className="text-sm font-bold" htmlFor="revoke-reason">سبب الإلغاء (اختياري)</label>
+            <label className="text-sm font-bold" htmlFor="revoke-reason">
+              سبب الإلغاء (اختياري)
+            </label>
             <textarea
               id="revoke-reason"
               className="input mt-1 w-full"
@@ -302,15 +302,16 @@ function AllDevicesPanel() {
               placeholder="مثال: جهاز مفقود أو مشبوه"
             />
           </div>
-          {revoke.isError ? <div className="mt-3"><ErrorBanner message={safeErrorMessage(revoke.error)} /></div> : null}
+          {revoke.isError ? (
+            <div className="mt-3">
+              <ErrorBanner message={safeErrorMessage(revoke.error)} />
+            </div>
+          ) : null}
           <div className="mt-4 flex gap-2 justify-end">
-            <button type="button" className="btn-secondary" onClick={() => setRevokeTarget(null)}>إلغاء</button>
-            <button
-              type="button"
-              className="btn-danger"
-              disabled={revoke.isPending}
-              onClick={executeRevoke}
-            >
+            <button type="button" className="btn-secondary" onClick={() => setRevokeTarget(null)}>
+              إلغاء
+            </button>
+            <button type="button" className="btn-danger" disabled={revoke.isPending} onClick={executeRevoke}>
               {revoke.isPending ? 'جارٍ الإلغاء...' : 'إلغاء الصلاحية'}
             </button>
           </div>
@@ -347,16 +348,19 @@ function PendingDeviceCard({
             <p className="font-black truncate">{device.employeeName}</p>
             <p className="text-sm text-[var(--text-muted)]">{device.employeeCode ?? 'بدون كود'}</p>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[var(--text-muted)]">
-              <span className="flex items-center gap-1"><Smartphone className="size-3.5" aria-hidden="true" />{device.deviceName ?? platformLabel}</span>
+              <span className="flex items-center gap-1">
+                <Smartphone className="size-3.5" aria-hidden="true" />
+                {device.deviceName ?? platformLabel}
+              </span>
               <span className="text-xs">•</span>
               <span>{platformLabel}</span>
               <span className="text-xs">•</span>
               <StatusBadge status={device.status} />
             </div>
-            {device.rejectionReason ? (
-              <p className="mt-1 text-xs text-[var(--danger)]">سبب الرفض: {device.rejectionReason}</p>
-            ) : null}
-            <p className="mt-1 text-xs text-[var(--text-muted)]">تاريخ التسجيل: {dateStr} — {timeStr}</p>
+            {device.rejectionReason ? <p className="mt-1 text-xs text-[var(--danger)]">سبب الرفض: {device.rejectionReason}</p> : null}
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              تاريخ التسجيل: {dateStr} — {timeStr}
+            </p>
           </div>
         </div>
 
@@ -368,7 +372,8 @@ function PendingDeviceCard({
             onClick={() => onAction(device, true)}
             aria-label={`الموافقة على جهاز ${device.employeeName}`}
           >
-            <CheckCircle2 className="size-4" aria-hidden="true" />موافقة
+            <CheckCircle2 className="size-4" aria-hidden="true" />
+            موافقة
           </button>
           <button
             type="button"
@@ -377,7 +382,8 @@ function PendingDeviceCard({
             onClick={() => onAction(device, false)}
             aria-label={`رفض جهاز ${device.employeeName}`}
           >
-            <Ban className="size-4" aria-hidden="true" />رفض
+            <Ban className="size-4" aria-hidden="true" />
+            رفض
           </button>
         </div>
       </div>
@@ -391,15 +397,7 @@ const revocationSourceLabels: Record<string, string> = {
   replacement: 'استبدال بجهاز جديد',
 };
 
-function AdminDeviceCard({
-  device,
-  onRevoke,
-  isPending,
-}: {
-  device: AdminDevice;
-  onRevoke: (device: AdminDevice) => void;
-  isPending: boolean;
-}) {
+function AdminDeviceCard({ device, onRevoke, isPending }: { device: AdminDevice; onRevoke: (device: AdminDevice) => void; isPending: boolean }) {
   const registeredDate = new Date(device.registeredAt);
   const dateStr = registeredDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
   const platformLabel = device.platform === 'android' ? 'أندرويد' : device.platform === 'ios' ? 'آيفون' : device.platform;
@@ -425,10 +423,12 @@ function AdminDeviceCard({
             {device.revocationSource ? (
               <p className="mt-1 text-xs text-[var(--text-muted)]">سبب الإلغاء: {revocationSourceLabels[device.revocationSource] ?? device.revocationSource}</p>
             ) : null}
-            {device.rejectionReason ? (
-              <p className="mt-1 text-xs text-[var(--danger)]">ملاحظة: {device.rejectionReason}</p>
-            ) : null}
-            <p className="mt-1 text-xs text-[var(--text-muted)]">تاريخ التسجيل: {dateStr}{device.approvedAt ? ` — تمت الموافقة: ${new Date(device.approvedAt).toLocaleDateString('ar-EG')}` : ''}{device.revokedAt ? ` — تم الإلغاء: ${new Date(device.revokedAt).toLocaleDateString('ar-EG')}` : ''}</p>
+            {device.rejectionReason ? <p className="mt-1 text-xs text-[var(--danger)]">ملاحظة: {device.rejectionReason}</p> : null}
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              تاريخ التسجيل: {dateStr}
+              {device.approvedAt ? ` — تمت الموافقة: ${new Date(device.approvedAt).toLocaleDateString('ar-EG')}` : ''}
+              {device.revokedAt ? ` — تم الإلغاء: ${new Date(device.revokedAt).toLocaleDateString('ar-EG')}` : ''}
+            </p>
           </div>
         </div>
 
@@ -441,7 +441,8 @@ function AdminDeviceCard({
               onClick={() => onRevoke(device)}
               aria-label={`إلغاء صلاحية جهاز ${device.employeeName}`}
             >
-              <ShieldOff className="size-4" />إلغاء الصلاحية
+              <ShieldOff className="size-4" />
+              إلغاء الصلاحية
             </button>
           </div>
         ) : null}

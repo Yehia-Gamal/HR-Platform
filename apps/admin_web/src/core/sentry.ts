@@ -29,10 +29,7 @@ export function initSentry(): void {
     dsn,
     environment: import.meta.env.MODE,
     release: `admin-web@${RELEASE}`,
-    integrations: [
-      Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration({ maskAllText: true, blockAllMedia: true }),
-    ],
+    integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration({ maskAllText: true, blockAllMedia: true })],
     tracesSampleRate: isProduction ? 0.15 : 1.0,
     replaysSessionSampleRate: 0.05,
     replaysOnErrorSampleRate: 1.0,
@@ -97,10 +94,7 @@ export function initSentry(): void {
 /**
  * تسجيل خطأ في Sentry مع سياق إضافي اختياري.
  */
-export function captureError(
-  error: unknown,
-  context?: Record<string, unknown>,
-): void {
+export function captureError(error: unknown, context?: Record<string, unknown>): void {
   if (!_enabled) return;
   Sentry.captureException(error, context ? { extra: context } : undefined);
 }
@@ -108,11 +102,7 @@ export function captureError(
 /**
  * إضافة فتات خبز لتتبع مسار المستخدم قبل وقوع الخطأ.
  */
-export function addBreadcrumb(
-  category: string,
-  message: string,
-  data?: Record<string, unknown>,
-): void {
+export function addBreadcrumb(category: string, message: string, data?: Record<string, unknown>): void {
   if (!_enabled) return;
   Sentry.addBreadcrumb({ category, message, data, level: 'info' });
 }
@@ -120,11 +110,7 @@ export function addBreadcrumb(
 /**
  * تسجيل رسالة حدث.
  */
-export function captureEvent(
-  message: string,
-  level: 'debug' | 'info' | 'warning' | 'error' = 'info',
-  extra?: Record<string, unknown>,
-): void {
+export function captureEvent(message: string, level: 'debug' | 'info' | 'warning' | 'error' = 'info', extra?: Record<string, unknown>): void {
   if (!_enabled) return;
   Sentry.captureMessage(message, { level, extra });
 }
@@ -223,17 +209,32 @@ function sanitizeTelemetryValue(value: unknown): unknown {
     // مفاتيح حساسة (أسرار) + مفاتيح PII (أسماء/هواتف/بريد/هوية) — تُنقّح على كل
     // مستويات التداخل، لأن بيانات الموظفين قد تمر داخل كائنات متداخلة.
     const redactKeys = [
-      'password', 'token', 'secret', 'key', 'authorization', 'credential',
-      'name', 'email', 'phone', 'national', 'iban', 'address',
+      'password',
+      'token',
+      'secret',
+      'key',
+      'authorization',
+      'credential',
+      'name',
+      'email',
+      'phone',
+      'national',
+      'iban',
+      'address',
       // حقول نصّية حرّة قد تحمل PII (ملاحظات المراجعين، أسباب القرارات...)
-      'note', 'comment', 'reason', 'message', 'body', 'text',
+      'note',
+      'comment',
+      'reason',
+      'message',
+      'body',
+      'text',
     ];
     const scrub = (value: unknown): unknown => {
       if (Array.isArray(value)) return value.map(scrub);
       if (value !== null && typeof value === 'object') {
         const obj = value as Record<string, unknown>;
         for (const key of Object.keys(obj)) {
-          if (redactKeys.some(s => key.toLowerCase().includes(s))) {
+          if (redactKeys.some((s) => key.toLowerCase().includes(s))) {
             obj[key] = '[REDACTED]';
           } else {
             obj[key] = scrub(obj[key]);
@@ -268,7 +269,7 @@ function sanitizeUrl(url: string): string {
   try {
     const u = new URL(url, window.location.origin);
     const sensitive = ['token', 'code', 'state', 'session', 'password', 'secret'];
-    sensitive.forEach(key => u.searchParams.delete(key));
+    sensitive.forEach((key) => u.searchParams.delete(key));
     return u.pathname + u.search;
   } catch {
     return url;

@@ -44,14 +44,17 @@ export function DataTable<T>({
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('ascending');
 
-  const handleSort = useCallback((key: string) => {
-    if (sortKey === key) {
-      setSortDir((prev) => (prev === 'ascending' ? 'descending' : 'ascending'));
-    } else {
-      setSortKey(key);
-      setSortDir('ascending');
-    }
-  }, [sortKey]);
+  const handleSort = useCallback(
+    (key: string) => {
+      if (sortKey === key) {
+        setSortDir((prev) => (prev === 'ascending' ? 'descending' : 'ascending'));
+      } else {
+        setSortKey(key);
+        setSortDir('ascending');
+      }
+    },
+    [sortKey],
+  );
 
   const sorted = useMemo(() => {
     if (!sortKey) return data;
@@ -78,12 +81,16 @@ export function DataTable<T>({
     onSelectionChange(allSelected ? new Set() : new Set(allKeys));
   }, [allSelected, allKeys, onSelectionChange]);
 
-  const toggleRow = useCallback((key: string) => {
-    if (!onSelectionChange || !selectedKeys) return;
-    const next = new Set(selectedKeys);
-    if (next.has(key)) next.delete(key); else next.add(key);
-    onSelectionChange(next);
-  }, [selectedKeys, onSelectionChange]);
+  const toggleRow = useCallback(
+    (key: string) => {
+      if (!onSelectionChange || !selectedKeys) return;
+      const next = new Set(selectedKeys);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      onSelectionChange(next);
+    },
+    [selectedKeys, onSelectionChange],
+  );
 
   /* حالة التحميل — هيكل عظمي */
   if (loading) {
@@ -93,14 +100,26 @@ export function DataTable<T>({
           <table className="data-table w-full text-start text-sm" style={{ minWidth }}>
             <thead className="bg-[var(--surface-muted)] text-xs text-[var(--text-muted)]">
               <tr>
-                {selectable ? <th scope="col" className="w-12 px-4 py-3.5"><span className="sr-only">تحديد</span></th> : null}
-                {columns.map((col) => <th key={col.key} scope="col" className="px-4 py-3.5">{col.header}</th>)}
+                {selectable ? (
+                  <th scope="col" className="w-12 px-4 py-3.5">
+                    <span className="sr-only">تحديد</span>
+                  </th>
+                ) : null}
+                {columns.map((col) => (
+                  <th key={col.key} scope="col" className="px-4 py-3.5">
+                    {col.header}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
               {Array.from({ length: 3 }).map((_, rowIdx) => (
                 <tr key={rowIdx} aria-hidden="true">
-                  {selectable ? <td className="px-4 py-3.5"><div className="h-4 w-4 animate-pulse rounded bg-[var(--surface-muted)]" /></td> : null}
+                  {selectable ? (
+                    <td className="px-4 py-3.5">
+                      <div className="h-4 w-4 animate-pulse rounded bg-[var(--surface-muted)]" />
+                    </td>
+                  ) : null}
                   {columns.map((col, colIdx) => (
                     <td key={col.key} className="px-4 py-3.5">
                       <div className={`h-4 animate-pulse rounded bg-[var(--surface-muted)] ${colIdx === 0 ? 'w-2/3' : 'w-1/2'}`} />
@@ -131,7 +150,9 @@ export function DataTable<T>({
                   <input
                     type="checkbox"
                     checked={allSelected}
-                    ref={(el) => { if (el) el.indeterminate = Boolean(someSelected); }}
+                    ref={(el) => {
+                      if (el) el.indeterminate = Boolean(someSelected);
+                    }}
                     onChange={toggleAll}
                     aria-label="تحديد الكل"
                     className="size-4 accent-[var(--brand-primary)]"
@@ -141,12 +162,7 @@ export function DataTable<T>({
               {columns.map((col) => {
                 const ariaSortValue = col.sortable && sortKey === col.key ? sortDir : undefined;
                 return (
-                  <th
-                    key={col.key}
-                    scope="col"
-                    className="px-4 py-3.5"
-                    aria-sort={ariaSortValue}
-                  >
+                  <th key={col.key} scope="col" className="px-4 py-3.5" aria-sort={ariaSortValue}>
                     {col.sortable ? (
                       <button
                         type="button"
@@ -155,11 +171,15 @@ export function DataTable<T>({
                         aria-label={`ترتيب حسب ${col.header}`}
                       >
                         {col.header}
-                        {sortKey === col.key
-                          ? sortDir === 'ascending'
-                            ? <ArrowDownAZ className="size-3.5" aria-hidden="true" />
-                            : <ArrowUpAZ className="size-3.5" aria-hidden="true" />
-                          : <ArrowDownUp className="size-3.5 opacity-40" aria-hidden="true" />}
+                        {sortKey === col.key ? (
+                          sortDir === 'ascending' ? (
+                            <ArrowDownAZ className="size-3.5" aria-hidden="true" />
+                          ) : (
+                            <ArrowUpAZ className="size-3.5" aria-hidden="true" />
+                          )
+                        ) : (
+                          <ArrowDownUp className="size-3.5 opacity-40" aria-hidden="true" />
+                        )}
                       </button>
                     ) : (
                       col.header

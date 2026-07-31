@@ -6,10 +6,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const css = readFileSync(
-  resolve(import.meta.dirname, '../../../../packages/design-tokens/theme.css'),
-  'utf8',
-);
+const css = readFileSync(resolve(import.meta.dirname, '../../../../packages/design-tokens/theme.css'), 'utf8');
 const darkBlock = css.match(/\[data-theme='dark'\]\s*\{([\s\S]*?)\}/)?.[1] ?? '';
 
 function token(name: string) {
@@ -19,8 +16,11 @@ function token(name: string) {
 }
 
 function luminance(hex: string) {
-  const channels = hex.slice(1).match(/../g)!.map((value) => parseInt(value, 16) / 255);
-  const linear = channels.map((value) => value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+  const channels = hex
+    .slice(1)
+    .match(/../g)!
+    .map((value) => parseInt(value, 16) / 255);
+  const linear = channels.map((value) => (value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4));
   return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
 }
 

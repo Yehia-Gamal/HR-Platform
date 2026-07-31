@@ -6,13 +6,7 @@ import {
   recruitmentOverviewSchema,
   systemOverviewSchema,
 } from '@ahla/shared-contracts';
-import {
-  mockDashboardOverview,
-  mockOrganizationOverview,
-  mockAccessOverview,
-  mockRecruitmentOverview,
-  mockSystemOverview,
-} from '../mock/domainMocks';
+import { mockDashboardOverview, mockOrganizationOverview, mockAccessOverview, mockRecruitmentOverview, mockSystemOverview } from '../mock/domainMocks';
 
 describe('useManagementOverviews — mock data schema validation', () => {
   describe('dashboardOverview', () => {

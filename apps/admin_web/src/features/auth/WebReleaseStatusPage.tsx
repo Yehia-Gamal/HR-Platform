@@ -48,11 +48,7 @@ export function WebReleaseStatusPage({ policy, onRetry }: { policy: PublicReleas
   const blocked = policy.action === 'blocked';
   const maintenance = policy.action === 'maintenance';
   const Icon = blocked ? ShieldX : maintenance ? Construction : Download;
-  const iconClassName = blocked
-    ? 'text-[var(--danger)]'
-    : maintenance
-      ? 'text-[var(--warning)]'
-      : 'text-[var(--brand-primary)]';
+  const iconClassName = blocked ? 'text-[var(--danger)]' : maintenance ? 'text-[var(--warning)]' : 'text-[var(--brand-primary)]';
   const title = blocked ? 'تم إبطال هذا المتصفح' : maintenance ? 'لوحة الإدارة تحت الصيانة' : 'يجب تحديث لوحة الويب';
   const message =
     policy.messageAr ??

@@ -22,7 +22,7 @@ export type {
 } from './controlCenterTypes';
 
 function rows(value: unknown): Array<Record<string, unknown>> {
-  return Array.isArray(value) ? value as Array<Record<string, unknown>> : [];
+  return Array.isArray(value) ? (value as Array<Record<string, unknown>>) : [];
 }
 
 function string(value: unknown, fallback = ''): string {
@@ -164,7 +164,12 @@ export function useOperationsCenter() {
         tableRows('employees', 'id,full_name_ar', 'full_name_ar', 500),
         tableRows('tasks', 'id,title,description,assignee_employee_id,priority,due_date,status', 'created_at', 200),
         tableRows('missions', 'id,request_id,employee_id,destination,purpose,start_at,end_at,transport_mode', 'start_at', 100),
-        tableRows('convoy_requests', 'id,request_id,employee_id,convoy_name,origin,destination,departure_at,return_at,passengers_count,vehicles_count', 'departure_at', 100),
+        tableRows(
+          'convoy_requests',
+          'id,request_id,employee_id,convoy_name,origin,destination,departure_at,return_at,passengers_count,vehicles_count',
+          'departure_at',
+          100,
+        ),
         tableRows('requests', 'id,status', 'created_at', 300),
       ]);
       const employees = employeeRows.map((item) => ({ id: string(item.id), name: string(item.full_name_ar, 'موظف') }));
@@ -173,19 +178,36 @@ export function useOperationsCenter() {
       return {
         employees,
         tasks: taskRows.map((item) => ({
-          id: string(item.id), title: string(item.title), description: nullableString(item.description),
-          assigneeId: nullableString(item.assignee_employee_id), assigneeName: employeeNames.get(string(item.assignee_employee_id)) ?? 'غير مسندة',
-          priority: string(item.priority, 'medium'), dueDate: nullableString(item.due_date), status: string(item.status, 'pending'),
+          id: string(item.id),
+          title: string(item.title),
+          description: nullableString(item.description),
+          assigneeId: nullableString(item.assignee_employee_id),
+          assigneeName: employeeNames.get(string(item.assignee_employee_id)) ?? 'غير مسندة',
+          priority: string(item.priority, 'medium'),
+          dueDate: nullableString(item.due_date),
+          status: string(item.status, 'pending'),
         })),
         missions: missionRows.map((item) => ({
-          id: string(item.id), employeeName: employeeNames.get(string(item.employee_id)) ?? 'موظف',
-          destination: string(item.destination), purpose: string(item.purpose), startAt: string(item.start_at), endAt: string(item.end_at),
-          status: requestStatuses.get(string(item.request_id)) ?? 'pending', transportMode: nullableString(item.transport_mode),
+          id: string(item.id),
+          employeeName: employeeNames.get(string(item.employee_id)) ?? 'موظف',
+          destination: string(item.destination),
+          purpose: string(item.purpose),
+          startAt: string(item.start_at),
+          endAt: string(item.end_at),
+          status: requestStatuses.get(string(item.request_id)) ?? 'pending',
+          transportMode: nullableString(item.transport_mode),
         })),
         convoys: convoyRows.map((item) => ({
-          id: string(item.id), employeeName: employeeNames.get(string(item.employee_id)) ?? 'موظف', name: string(item.convoy_name),
-          origin: string(item.origin), destination: string(item.destination), departureAt: string(item.departure_at), returnAt: nullableString(item.return_at),
-          passengers: number(item.passengers_count, 1), vehicles: number(item.vehicles_count, 1), status: requestStatuses.get(string(item.request_id)) ?? 'pending',
+          id: string(item.id),
+          employeeName: employeeNames.get(string(item.employee_id)) ?? 'موظف',
+          name: string(item.convoy_name),
+          origin: string(item.origin),
+          destination: string(item.destination),
+          departureAt: string(item.departure_at),
+          returnAt: nullableString(item.return_at),
+          passengers: number(item.passengers_count, 1),
+          vehicles: number(item.vehicles_count, 1),
+          status: requestStatuses.get(string(item.request_id)) ?? 'pending',
         })),
       };
     },
@@ -232,8 +254,23 @@ export function useAuditSecurityCenter() {
       const auditRows = rows(raw.auditEvents);
       const deviceRows = rows(raw.devices);
       return {
-        securityEvents: securityRows.map((item) => ({ id: string(item.id), eventType: string(item.event_type), severity: string(item.severity), outcome: string(item.outcome), handled: boolean(item.handled), occurredAt: string(item.occurred_at) })),
-        auditEvents: auditRows.map((item) => ({ id: string(item.id), eventType: string(item.event_type), category: string(item.category), severity: string(item.severity), summary: nullableString(item.summary_ar), targetTable: nullableString(item.target_table), occurredAt: string(item.occurred_at) })),
+        securityEvents: securityRows.map((item) => ({
+          id: string(item.id),
+          eventType: string(item.event_type),
+          severity: string(item.severity),
+          outcome: string(item.outcome),
+          handled: boolean(item.handled),
+          occurredAt: string(item.occurred_at),
+        })),
+        auditEvents: auditRows.map((item) => ({
+          id: string(item.id),
+          eventType: string(item.event_type),
+          category: string(item.category),
+          severity: string(item.severity),
+          summary: nullableString(item.summary_ar),
+          targetTable: nullableString(item.target_table),
+          occurredAt: string(item.occurred_at),
+        })),
         devices: deviceRows.map((item) => ({
           id: string(item.id),
           name: string(item.device_name) || string(item.device_model, 'جهاز غير مسمى'),
@@ -288,10 +325,45 @@ export function useIntegrationCenter() {
       const outboxRows = rows(raw.outbox);
       const runRows = rows(raw.automationRuns);
       return {
-        integrations: integrationRows.map((item) => ({ id: string(item.id), name: string(item.name_ar), provider: string(item.provider), category: string(item.category), status: string(item.status), enabled: boolean(item.is_enabled), lastSyncAt: nullableString(item.last_sync_at), lastError: nullableString(item.last_error) })),
-        logs: logRows.map((item) => ({ id: string(item.id), integrationId: nullableString(item.integration_id), operation: nullableString(item.operation), direction: string(item.direction), status: string(item.status), httpStatus: typeof item.http_status === 'number' ? item.http_status : null, durationMs: typeof item.duration_ms === 'number' ? item.duration_ms : null, occurredAt: string(item.occurred_at), error: nullableString(item.error_message) })),
-        outbox: outboxRows.map((item) => ({ id: string(item.id), eventType: string(item.event_type), status: string(item.status), attempts: number(item.attempts), maxAttempts: number(item.max_attempts, 8), nextAttemptAt: string(item.next_attempt_at), createdAt: string(item.created_at), error: nullableString(item.last_error) })),
-        automationRuns: runRows.map((item) => ({ id: string(item.id), status: string(item.status), attempts: number(item.attempts), createdAt: string(item.created_at), completedAt: nullableString(item.completed_at), error: nullableString(item.error_detail) })),
+        integrations: integrationRows.map((item) => ({
+          id: string(item.id),
+          name: string(item.name_ar),
+          provider: string(item.provider),
+          category: string(item.category),
+          status: string(item.status),
+          enabled: boolean(item.is_enabled),
+          lastSyncAt: nullableString(item.last_sync_at),
+          lastError: nullableString(item.last_error),
+        })),
+        logs: logRows.map((item) => ({
+          id: string(item.id),
+          integrationId: nullableString(item.integration_id),
+          operation: nullableString(item.operation),
+          direction: string(item.direction),
+          status: string(item.status),
+          httpStatus: typeof item.http_status === 'number' ? item.http_status : null,
+          durationMs: typeof item.duration_ms === 'number' ? item.duration_ms : null,
+          occurredAt: string(item.occurred_at),
+          error: nullableString(item.error_message),
+        })),
+        outbox: outboxRows.map((item) => ({
+          id: string(item.id),
+          eventType: string(item.event_type),
+          status: string(item.status),
+          attempts: number(item.attempts),
+          maxAttempts: number(item.max_attempts, 8),
+          nextAttemptAt: string(item.next_attempt_at),
+          createdAt: string(item.created_at),
+          error: nullableString(item.last_error),
+        })),
+        automationRuns: runRows.map((item) => ({
+          id: string(item.id),
+          status: string(item.status),
+          attempts: number(item.attempts),
+          createdAt: string(item.created_at),
+          completedAt: nullableString(item.completed_at),
+          error: nullableString(item.error_detail),
+        })),
       };
     },
   });

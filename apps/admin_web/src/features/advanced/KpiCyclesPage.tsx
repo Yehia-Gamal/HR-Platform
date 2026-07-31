@@ -1,4 +1,19 @@
-import { Archive, Bell, CalendarDays, CheckCircle2, ChevronDown, ChevronUp, Download, Lock, PauseCircle, RefreshCcw, Scale, Unlock, UsersRound, XCircle } from 'lucide-react';
+import {
+  Archive,
+  Bell,
+  CalendarDays,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Download,
+  Lock,
+  PauseCircle,
+  RefreshCcw,
+  Scale,
+  Unlock,
+  UsersRound,
+  XCircle,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
@@ -14,8 +29,14 @@ import { useToast } from '../../ui/Toast';
 const monthNow = new Date().toISOString().slice(0, 7);
 
 const stageLabels: Record<string, string> = {
-  self: 'تقييم ذاتي', manager: 'المدير المباشر', secretary: 'السكرتير', executive: 'المدير التنفيذي',
-  hr_review: 'مراجعة HR', finalized: 'مُعتمد', closed: 'مغلق', archived: 'مؤرشف',
+  self: 'تقييم ذاتي',
+  manager: 'المدير المباشر',
+  secretary: 'السكرتير',
+  executive: 'المدير التنفيذي',
+  hr_review: 'مراجعة HR',
+  finalized: 'مُعتمد',
+  closed: 'مغلق',
+  archived: 'مؤرشف',
 };
 
 export function KpiCyclesPage() {
@@ -32,8 +53,26 @@ export function KpiCyclesPage() {
   const [policyRules, setPolicyRules] = useState({ late: 1, earlyLeave: 1, unexcusedAbsence: 4, missingPunch: 1, shortagePerHour: 1, maxShortagePerDay: 2 });
   const [ratingMins, setRatingMins] = useState({ excellent: 90, veryGood: 80, good: 70, acceptable: 60 });
   const data = query.data;
-  const totals = useMemo(() => ({ cycles: data?.cycles.length ?? 0, evaluations: data?.cycles.reduce((sum, item) => sum + item.evaluations, 0) ?? 0, finalized: data?.cycles.reduce((sum, item) => sum + item.finalized, 0) ?? 0, appeals: data?.appeals.length ?? 0 }), [data]);
-  const mutationError = [commands.createCycle, commands.manageCycle, commands.rescheduleCycle, commands.sendNotifications, commands.refreshAttendance, commands.updatePolicy, commands.getReport, commands.decideAppeal].find((m) => m.isError)?.error ?? null;
+  const totals = useMemo(
+    () => ({
+      cycles: data?.cycles.length ?? 0,
+      evaluations: data?.cycles.reduce((sum, item) => sum + item.evaluations, 0) ?? 0,
+      finalized: data?.cycles.reduce((sum, item) => sum + item.finalized, 0) ?? 0,
+      appeals: data?.appeals.length ?? 0,
+    }),
+    [data],
+  );
+  const mutationError =
+    [
+      commands.createCycle,
+      commands.manageCycle,
+      commands.rescheduleCycle,
+      commands.sendNotifications,
+      commands.refreshAttendance,
+      commands.updatePolicy,
+      commands.getReport,
+      commands.decideAppeal,
+    ].find((m) => m.isError)?.error ?? null;
 
   useEffect(() => {
     if (!data?.policy) return;
@@ -45,22 +84,79 @@ export function KpiCyclesPage() {
   const createCycle = async () => {
     if (!data?.officialTemplateId) return;
     const officialDeadline = new Date(`${month}-26T00:00:00+03:00`).toISOString();
-    try { await commands.createCycle.mutateAsync({ p_month: `${month}-01`, p_template_id: data.officialTemplateId, p_self_due: officialDeadline, p_manager_due: officialDeadline, p_secretary_due: officialDeadline, p_executive_due: officialDeadline, p_open_now: false }); toast({ message: 'تم تجهيز الدورة بنجاح', tone: 'success' }); } catch { toast({ message: 'تعذر تجهيز الدورة', tone: 'error' }); }
+    try {
+      await commands.createCycle.mutateAsync({
+        p_month: `${month}-01`,
+        p_template_id: data.officialTemplateId,
+        p_self_due: officialDeadline,
+        p_manager_due: officialDeadline,
+        p_secretary_due: officialDeadline,
+        p_executive_due: officialDeadline,
+        p_open_now: false,
+      });
+      toast({ message: 'تم تجهيز الدورة بنجاح', tone: 'success' });
+    } catch {
+      toast({ message: 'تعذر تجهيز الدورة', tone: 'error' });
+    }
   };
-  const control = (cycleId: string, action: string, extendedUntil: string | null = null) => commands.manageCycle.mutate({ p_cycle_id: cycleId, p_action: action, p_reason: reason[cycleId], p_extended_until: extendedUntil }, { onSuccess: () => toast({ message: 'تم تنفيذ الإجراء بنجاح', tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ الإجراء', tone: 'error' }) });
-  const reschedule = (cycleId: string) => commands.rescheduleCycle.mutate({ p_cycle_id: cycleId, p_open_at: new Date(openAt[cycleId]).toISOString(), p_deadline_at: new Date(deadlineAt[cycleId]).toISOString(), p_reason: reason[cycleId] }, { onSuccess: () => toast({ message: 'تم تعديل مواعيد الدورة بنجاح', tone: 'success' }), onError: () => toast({ message: 'تعذر تعديل المواعيد', tone: 'error' }) });
+  const control = (cycleId: string, action: string, extendedUntil: string | null = null) =>
+    commands.manageCycle.mutate(
+      { p_cycle_id: cycleId, p_action: action, p_reason: reason[cycleId], p_extended_until: extendedUntil },
+      {
+        onSuccess: () => toast({ message: 'تم تنفيذ الإجراء بنجاح', tone: 'success' }),
+        onError: () => toast({ message: 'تعذر تنفيذ الإجراء', tone: 'error' }),
+      },
+    );
+  const reschedule = (cycleId: string) =>
+    commands.rescheduleCycle.mutate(
+      {
+        p_cycle_id: cycleId,
+        p_open_at: new Date(openAt[cycleId]).toISOString(),
+        p_deadline_at: new Date(deadlineAt[cycleId]).toISOString(),
+        p_reason: reason[cycleId],
+      },
+      {
+        onSuccess: () => toast({ message: 'تم تعديل مواعيد الدورة بنجاح', tone: 'success' }),
+        onError: () => toast({ message: 'تعذر تعديل المواعيد', tone: 'error' }),
+      },
+    );
   const downloadReport = async (cycleId: string) => {
     try {
-      const report = await commands.getReport.mutateAsync({ p_cycle_id: cycleId }) as { evaluations?: Array<Record<string, unknown>> };
+      const report = (await commands.getReport.mutateAsync({ p_cycle_id: cycleId })) as { evaluations?: Array<Record<string, unknown>> };
       const rows = report.evaluations ?? [];
-      const csv = ['الموظف,الكود,المرحلة,الحالة,النتيجة,التقدير', ...rows.map((row) => [row.employeeName, row.employeeCode, row.stage, row.workflowStatus, row.finalScore, row.finalRating].map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(','))].join('\n');
-      const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })); link.download = `kpi-${month}.csv`; link.click(); URL.revokeObjectURL(link.href);
-    } catch { toast({ message: 'تعذر تنزيل التقرير', tone: 'error' }); }
+      const csv = [
+        'الموظف,الكود,المرحلة,الحالة,النتيجة,التقدير',
+        ...rows.map((row) =>
+          [row.employeeName, row.employeeCode, row.stage, row.workflowStatus, row.finalScore, row.finalRating]
+            .map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`)
+            .join(','),
+        ),
+      ].join('\n');
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+      link.download = `kpi-${month}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } catch {
+      toast({ message: 'تعذر تنزيل التقرير', tone: 'error' });
+    }
   };
-  const sendNotifications = (cycleId: string) => commands.sendNotifications.mutate({ p_cycle_id: cycleId }, { onSuccess: () => toast({ message: 'تم إرسال الإشعارات بنجاح', tone: 'success' }), onError: () => toast({ message: 'تعذر إرسال الإشعارات', tone: 'error' }) });
-  const savePolicy = () => commands.updatePolicy.mutate(policyPayload(), { onSuccess: () => toast({ message: 'تم حفظ إصدار السياسة الجديد', tone: 'success' }), onError: () => toast({ message: 'تعذر حفظ السياسة', tone: 'error' }) });
+  const sendNotifications = (cycleId: string) =>
+    commands.sendNotifications.mutate(
+      { p_cycle_id: cycleId },
+      {
+        onSuccess: () => toast({ message: 'تم إرسال الإشعارات بنجاح', tone: 'success' }),
+        onError: () => toast({ message: 'تعذر إرسال الإشعارات', tone: 'error' }),
+      },
+    );
+  const savePolicy = () =>
+    commands.updatePolicy.mutate(policyPayload(), {
+      onSuccess: () => toast({ message: 'تم حفظ إصدار السياسة الجديد', tone: 'success' }),
+      onError: () => toast({ message: 'تعذر حفظ السياسة', tone: 'error' }),
+    });
   const policyPayload = () => ({
-    p_name: 'السياسة الرسمية لتقييم الأداء', p_attendance_rules: policyRules,
+    p_name: 'السياسة الرسمية لتقييم الأداء',
+    p_attendance_rules: policyRules,
     p_rating_bands: [
       { min: ratingMins.excellent, max: 100, label: 'ممتاز' },
       { min: ratingMins.veryGood, max: ratingMins.excellent - 0.01, label: 'جيد جدًا' },
@@ -68,64 +164,384 @@ export function KpiCyclesPage() {
       { min: ratingMins.acceptable, max: ratingMins.good - 0.01, label: 'مقبول' },
       { min: 0, max: ratingMins.acceptable - 0.01, label: 'يحتاج إلى تحسين' },
     ],
-    p_allow_target_overachievement: false, p_effective_from: new Date().toISOString().slice(0, 10),
+    p_allow_target_overachievement: false,
+    p_effective_from: new Date().toISOString().slice(0, 10),
   });
 
-  return <div className="space-y-6">
-    <PageHeader title="دورات KPI الرسمية" description="إدارة دورات تقييم الأداء الشهرية — تجهيز وفتح وإغلاق الدورات وإرسال الإشعارات ومتابعة تقييمات الموظفين." actions={<label className="text-sm font-bold">الشهر<input className="input mt-1" type="month" value={month} onChange={(event) => setMonth(event.target.value)} /></label>} />
-    {mutationError ? <ErrorBanner message={safeErrorMessage(mutationError)} /> : null}
-    {query.isError ? <ErrorState title="تعذر تحميل دورات KPI" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} /> : query.isLoading && !data ? <><MetricSkeletonRow /><ListSkeleton rows={3} /></> : <>
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="الدورات" value={totals.cycles} icon={CalendarDays} /><MetricCard label="التقييمات" value={totals.evaluations} icon={UsersRound} /><MetricCard label="المدرجة في التقارير" value={totals.finalized} icon={CheckCircle2} /><MetricCard label="الاعتراضات" value={totals.appeals} icon={Scale} /></section>
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="دورات KPI الرسمية"
+        description="إدارة دورات تقييم الأداء الشهرية — تجهيز وفتح وإغلاق الدورات وإرسال الإشعارات ومتابعة تقييمات الموظفين."
+        actions={
+          <label className="text-sm font-bold">
+            الشهر
+            <input className="input mt-1" type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
+          </label>
+        }
+      />
+      {mutationError ? <ErrorBanner message={safeErrorMessage(mutationError)} /> : null}
+      {query.isError ? (
+        <ErrorState title="تعذر تحميل دورات KPI" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
+      ) : query.isLoading && !data ? (
+        <>
+          <MetricSkeletonRow />
+          <ListSkeleton rows={3} />
+        </>
+      ) : (
+        <>
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <MetricCard label="الدورات" value={totals.cycles} icon={CalendarDays} />
+            <MetricCard label="التقييمات" value={totals.evaluations} icon={UsersRound} />
+            <MetricCard label="المدرجة في التقارير" value={totals.finalized} icon={CheckCircle2} />
+            <MetricCard label="الاعتراضات" value={totals.appeals} icon={Scale} />
+          </section>
 
-      {data?.canManageCycles ? <form className="card flex flex-wrap items-center justify-between gap-4 p-5" onSubmit={(event) => { event.preventDefault(); void createCycle(); }}><div><h2 className="text-lg font-black">تجهيز دورة الشهر</h2><p className="muted text-sm">القالب الرسمي سبعة بنود بإجمالي 100 درجة، والفتح المجدول يوم 20.</p></div><button className="btn-primary" disabled={commands.createCycle.isPending || !data.officialTemplateId}>تجهيز الدورة</button></form> : null}
+          {data?.canManageCycles ? (
+            <form
+              className="card flex flex-wrap items-center justify-between gap-4 p-5"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void createCycle();
+              }}
+            >
+              <div>
+                <h2 className="text-lg font-black">تجهيز دورة الشهر</h2>
+                <p className="muted text-sm">القالب الرسمي سبعة بنود بإجمالي 100 درجة، والفتح المجدول يوم 20.</p>
+              </div>
+              <button className="btn-primary" disabled={commands.createCycle.isPending || !data.officialTemplateId}>
+                تجهيز الدورة
+              </button>
+            </form>
+          ) : null}
 
-      <section className="space-y-3">{data?.cycles.length === 0 ? <EmptyState title="لا توجد دورات" description="جهّز دورة الشهر من البطاقة السابقة." /> : data?.cycles.map((cycle) => {
-        const validReason = (reason[cycle.id]?.trim().length ?? 0) >= 5;
-        const isExpanded = expandedCycle === cycle.id;
-        const evals = cycle.employeeEvaluations ?? [];
-        return <article key={cycle.id} className="card p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><strong>{new Intl.DateTimeFormat('ar-EG', { month: 'long', year: 'numeric' }).format(new Date(cycle.periodMonth))}</strong><StatusBadge value={cycle.status} /></div><p className="muted mt-1 text-sm">{cycle.finalized}/{cycle.evaluations} مدرج · {cycle.overdue ?? 0} متأخر · المتوسط {cycle.averageScore ?? '—'}</p><p className="muted mt-1 text-xs">الفتح: {cycle.scheduledOpenAt ? new Date(cycle.scheduledOpenAt).toLocaleString('ar-EG') : '—'} · النهاية: {cycle.effectiveDeadline ? new Date(cycle.effectiveDeadline).toLocaleString('ar-EG') : '—'}</p>{cycle.overrideReason ? <p className="mt-2 text-xs text-[var(--warning)]">آخر سبب إداري: {cycle.overrideReason}</p> : null}</div><div className="flex flex-wrap gap-2">
-            {data.canManageCycles ? <button className="btn-secondary" disabled={commands.sendNotifications.isPending} onClick={() => void sendNotifications(cycle.id)}><Bell className="size-4" aria-hidden="true" />إرسال إشعارات</button> : null}
-            <button className="btn-secondary" onClick={() => commands.refreshAttendance.mutate({ p_cycle_id: cycle.id }, { onSuccess: () => toast({ message: 'تم تحديث الحضور بنجاح', tone: 'success' }), onError: () => toast({ message: 'تعذر تحديث الحضور', tone: 'error' }) })}><RefreshCcw className="size-4" aria-hidden="true" />تحديث الحضور</button>
-            <button className="btn-secondary" onClick={() => void downloadReport(cycle.id)}><Download className="size-4" aria-hidden="true" />CSV</button>
-            {evals.length > 0 ? <button className="btn-secondary" onClick={() => setExpandedCycle(isExpanded ? null : cycle.id)}>{isExpanded ? <ChevronUp className="size-4" aria-hidden="true" /> : <ChevronDown className="size-4" aria-hidden="true" />}{isExpanded ? 'إخفاء التقييمات' : `عرض التقييمات (${evals.length})`}</button> : null}
-          </div></div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]"><div className="h-full bg-brand" style={{ width: `${cycle.evaluations ? Math.round(cycle.finalized / cycle.evaluations * 100) : 0}%` }} /></div>
+          <section className="space-y-3">
+            {data?.cycles.length === 0 ? (
+              <EmptyState title="لا توجد دورات" description="جهّز دورة الشهر من البطاقة السابقة." />
+            ) : (
+              data?.cycles.map((cycle) => {
+                const validReason = (reason[cycle.id]?.trim().length ?? 0) >= 5;
+                const isExpanded = expandedCycle === cycle.id;
+                const evals = cycle.employeeEvaluations ?? [];
+                return (
+                  <article key={cycle.id} className="card p-5">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <strong>{new Intl.DateTimeFormat('ar-EG', { month: 'long', year: 'numeric' }).format(new Date(cycle.periodMonth))}</strong>
+                          <StatusBadge value={cycle.status} />
+                        </div>
+                        <p className="muted mt-1 text-sm">
+                          {cycle.finalized}/{cycle.evaluations} مدرج · {cycle.overdue ?? 0} متأخر · المتوسط {cycle.averageScore ?? '—'}
+                        </p>
+                        <p className="muted mt-1 text-xs">
+                          الفتح: {cycle.scheduledOpenAt ? new Date(cycle.scheduledOpenAt).toLocaleString('ar-EG') : '—'} · النهاية:{' '}
+                          {cycle.effectiveDeadline ? new Date(cycle.effectiveDeadline).toLocaleString('ar-EG') : '—'}
+                        </p>
+                        {cycle.overrideReason ? <p className="mt-2 text-xs text-[var(--warning)]">آخر سبب إداري: {cycle.overrideReason}</p> : null}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {data.canManageCycles ? (
+                          <button className="btn-secondary" disabled={commands.sendNotifications.isPending} onClick={() => void sendNotifications(cycle.id)}>
+                            <Bell className="size-4" aria-hidden="true" />
+                            إرسال إشعارات
+                          </button>
+                        ) : null}
+                        <button
+                          className="btn-secondary"
+                          onClick={() =>
+                            commands.refreshAttendance.mutate(
+                              { p_cycle_id: cycle.id },
+                              {
+                                onSuccess: () => toast({ message: 'تم تحديث الحضور بنجاح', tone: 'success' }),
+                                onError: () => toast({ message: 'تعذر تحديث الحضور', tone: 'error' }),
+                              },
+                            )
+                          }
+                        >
+                          <RefreshCcw className="size-4" aria-hidden="true" />
+                          تحديث الحضور
+                        </button>
+                        <button className="btn-secondary" onClick={() => void downloadReport(cycle.id)}>
+                          <Download className="size-4" aria-hidden="true" />
+                          CSV
+                        </button>
+                        {evals.length > 0 ? (
+                          <button className="btn-secondary" onClick={() => setExpandedCycle(isExpanded ? null : cycle.id)}>
+                            {isExpanded ? <ChevronUp className="size-4" aria-hidden="true" /> : <ChevronDown className="size-4" aria-hidden="true" />}
+                            {isExpanded ? 'إخفاء التقييمات' : `عرض التقييمات (${evals.length})`}
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]">
+                      <div
+                        className="h-full bg-brand"
+                        style={{ width: `${cycle.evaluations ? Math.round((cycle.finalized / cycle.evaluations) * 100) : 0}%` }}
+                      />
+                    </div>
 
-          {/* جدول تقييمات الموظفين */}
-          {isExpanded && evals.length > 0 ? <div className="mt-4 overflow-x-auto rounded-2xl border border-[var(--border)]">
-            <table className="w-full text-sm">
-              <thead className="bg-[var(--surface-muted)] text-xs"><tr>
-                <th className="p-3 text-start font-bold">الموظف</th>
-                <th className="p-3 text-start font-bold">الكود</th>
-                <th className="p-3 text-start font-bold">المرحلة</th>
-                <th className="p-3 text-start font-bold">الحالة</th>
-                <th className="p-3 text-start font-bold">النتيجة</th>
-                <th className="p-3 text-start font-bold">التقدير</th>
-              </tr></thead>
-              <tbody className="divide-y divide-[var(--border)]">{evals.map((ev) => <tr key={ev.id} className={ev.locked ? 'opacity-60' : ''}>
-                <td className="p-3"><div className="flex items-center gap-2"><UserAvatar displayName={ev.employeeName} size="sm" /><span>{ev.employeeName}</span></div></td>
-                <td className="p-3 text-xs font-mono">{ev.employeeCode ?? '—'}</td>
-                <td className="p-3"><StatusBadge value={stageLabels[ev.stage] ?? ev.stage} /></td>
-                <td className="p-3">{ev.workflowStatus ? <StatusBadge value={ev.workflowStatus} /> : '—'}</td>
-                <td className="p-3 font-bold">{ev.finalScore ?? '—'}</td>
-                <td className="p-3">{ev.finalRating ?? '—'}</td>
-              </tr>)}</tbody>
-            </table>
-          </div> : null}
+                    {/* جدول تقييمات الموظفين */}
+                    {isExpanded && evals.length > 0 ? (
+                      <div className="mt-4 overflow-x-auto rounded-2xl border border-[var(--border)]">
+                        <table className="w-full text-sm">
+                          <thead className="bg-[var(--surface-muted)] text-xs">
+                            <tr>
+                              <th className="p-3 text-start font-bold">الموظف</th>
+                              <th className="p-3 text-start font-bold">الكود</th>
+                              <th className="p-3 text-start font-bold">المرحلة</th>
+                              <th className="p-3 text-start font-bold">الحالة</th>
+                              <th className="p-3 text-start font-bold">النتيجة</th>
+                              <th className="p-3 text-start font-bold">التقدير</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[var(--border)]">
+                            {evals.map((ev) => (
+                              <tr key={ev.id} className={ev.locked ? 'opacity-60' : ''}>
+                                <td className="p-3">
+                                  <div className="flex items-center gap-2">
+                                    <UserAvatar displayName={ev.employeeName} size="sm" />
+                                    <span>{ev.employeeName}</span>
+                                  </div>
+                                </td>
+                                <td className="p-3 text-xs font-mono">{ev.employeeCode ?? '—'}</td>
+                                <td className="p-3">
+                                  <StatusBadge value={stageLabels[ev.stage] ?? ev.stage} />
+                                </td>
+                                <td className="p-3">{ev.workflowStatus ? <StatusBadge value={ev.workflowStatus} /> : '—'}</td>
+                                <td className="p-3 font-bold">{ev.finalScore ?? '—'}</td>
+                                <td className="p-3">{ev.finalRating ?? '—'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : null}
 
-          {data.canManageCycles ? <div className="mt-4 space-y-3 rounded-2xl bg-[var(--surface-muted)] p-4">
-            <input className="input" placeholder="سبب الإجراء الإداري — إلزامي" value={reason[cycle.id] ?? ''} onChange={(event) => setReason((old) => ({ ...old, [cycle.id]: event.target.value }))} />
-            <div className="flex flex-wrap gap-2"><button className="btn-secondary" disabled={!validReason} onClick={() => void control(cycle.id, cycle.status === 'locked' ? 'reopen' : 'open')}><Unlock className="size-4" aria-hidden="true" />فتح/إعادة فتح</button><button className="btn-secondary" disabled={!validReason || cycle.status !== 'open'} onClick={() => void control(cycle.id, 'suspend')}><PauseCircle className="size-4" aria-hidden="true" />تعليق</button><button className="btn-secondary" disabled={!validReason || !['open', 'draft'].includes(cycle.status)} onClick={() => void control(cycle.id, 'cancel_open')}><XCircle className="size-4" aria-hidden="true" />إلغاء الفتح</button><button className="btn-secondary" disabled={!validReason} onClick={() => void control(cycle.id, 'close')}><Lock className="size-4" aria-hidden="true" />إغلاق</button><button className="btn-secondary" disabled={!validReason || cycle.status !== 'locked'} onClick={() => void control(cycle.id, 'archive')}><Archive className="size-4" aria-hidden="true" />أرشفة</button></div>
-            <div className="grid gap-2 md:grid-cols-[1fr_auto]"><input className="input" type="datetime-local" value={extension[cycle.id] ?? ''} onChange={(event) => setExtension((old) => ({ ...old, [cycle.id]: event.target.value }))} /><button className="btn-secondary" disabled={!validReason || !extension[cycle.id]} onClick={() => void control(cycle.id, 'extend', new Date(extension[cycle.id]).toISOString())}>تمديد الموعد</button></div>
-            <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]"><input className="input" type="datetime-local" aria-label="موعد الفتح الجديد" value={openAt[cycle.id] ?? ''} onChange={(event) => setOpenAt((old) => ({ ...old, [cycle.id]: event.target.value }))} /><input className="input" type="datetime-local" aria-label="موعد الإغلاق الجديد" value={deadlineAt[cycle.id] ?? ''} onChange={(event) => setDeadlineAt((old) => ({ ...old, [cycle.id]: event.target.value }))} /><button className="btn-secondary" disabled={!validReason || !openAt[cycle.id] || !deadlineAt[cycle.id]} onClick={() => void reschedule(cycle.id)}>تعديل البداية والنهاية</button></div>
-          </div> : null}
-        </article>;
-      })}</section>
+                    {data.canManageCycles ? (
+                      <div className="mt-4 space-y-3 rounded-2xl bg-[var(--surface-muted)] p-4">
+                        <input
+                          className="input"
+                          placeholder="سبب الإجراء الإداري — إلزامي"
+                          value={reason[cycle.id] ?? ''}
+                          onChange={(event) => setReason((old) => ({ ...old, [cycle.id]: event.target.value }))}
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            className="btn-secondary"
+                            disabled={!validReason}
+                            onClick={() => void control(cycle.id, cycle.status === 'locked' ? 'reopen' : 'open')}
+                          >
+                            <Unlock className="size-4" aria-hidden="true" />
+                            فتح/إعادة فتح
+                          </button>
+                          <button
+                            className="btn-secondary"
+                            disabled={!validReason || cycle.status !== 'open'}
+                            onClick={() => void control(cycle.id, 'suspend')}
+                          >
+                            <PauseCircle className="size-4" aria-hidden="true" />
+                            تعليق
+                          </button>
+                          <button
+                            className="btn-secondary"
+                            disabled={!validReason || !['open', 'draft'].includes(cycle.status)}
+                            onClick={() => void control(cycle.id, 'cancel_open')}
+                          >
+                            <XCircle className="size-4" aria-hidden="true" />
+                            إلغاء الفتح
+                          </button>
+                          <button className="btn-secondary" disabled={!validReason} onClick={() => void control(cycle.id, 'close')}>
+                            <Lock className="size-4" aria-hidden="true" />
+                            إغلاق
+                          </button>
+                          <button
+                            className="btn-secondary"
+                            disabled={!validReason || cycle.status !== 'locked'}
+                            onClick={() => void control(cycle.id, 'archive')}
+                          >
+                            <Archive className="size-4" aria-hidden="true" />
+                            أرشفة
+                          </button>
+                        </div>
+                        <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+                          <input
+                            className="input"
+                            type="datetime-local"
+                            value={extension[cycle.id] ?? ''}
+                            onChange={(event) => setExtension((old) => ({ ...old, [cycle.id]: event.target.value }))}
+                          />
+                          <button
+                            className="btn-secondary"
+                            disabled={!validReason || !extension[cycle.id]}
+                            onClick={() => void control(cycle.id, 'extend', new Date(extension[cycle.id]).toISOString())}
+                          >
+                            تمديد الموعد
+                          </button>
+                        </div>
+                        <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+                          <input
+                            className="input"
+                            type="datetime-local"
+                            aria-label="موعد الفتح الجديد"
+                            value={openAt[cycle.id] ?? ''}
+                            onChange={(event) => setOpenAt((old) => ({ ...old, [cycle.id]: event.target.value }))}
+                          />
+                          <input
+                            className="input"
+                            type="datetime-local"
+                            aria-label="موعد الإغلاق الجديد"
+                            value={deadlineAt[cycle.id] ?? ''}
+                            onChange={(event) => setDeadlineAt((old) => ({ ...old, [cycle.id]: event.target.value }))}
+                          />
+                          <button
+                            className="btn-secondary"
+                            disabled={!validReason || !openAt[cycle.id] || !deadlineAt[cycle.id]}
+                            onClick={() => void reschedule(cycle.id)}
+                          >
+                            تعديل البداية والنهاية
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })
+            )}
+          </section>
 
-      {data?.canManageCycles && data.policy ? <section className="card p-5"><h2 className="text-lg font-black">سياسة الخصم والتصنيف</h2><p className="muted mt-1 text-sm">الحفظ ينشئ إصدارًا جديدًا ويحافظ على نتائج الدورات السابقة.</p><div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">{([['late', 'التأخير'], ['earlyLeave', 'الانصراف المبكر'], ['unexcusedAbsence', 'الغياب'], ['missingPunch', 'البصمة الناقصة'], ['shortagePerHour', 'نقص الساعة'], ['maxShortagePerDay', 'حد النقص اليومي']] as const).map(([key, label]) => <label className="text-xs font-bold" key={key}>{label}<input className="input mt-1" type="number" min={0} step="0.25" value={policyRules[key]} onChange={(event) => setPolicyRules({ ...policyRules, [key]: Number(event.target.value) })} /></label>)}</div><div className="mt-4 grid gap-3 sm:grid-cols-4"><input className="input" type="number" aria-label="بداية ممتاز" value={ratingMins.excellent} onChange={(event) => setRatingMins({ ...ratingMins, excellent: Number(event.target.value) })} /><input className="input" type="number" aria-label="بداية جيد جدًا" value={ratingMins.veryGood} onChange={(event) => setRatingMins({ ...ratingMins, veryGood: Number(event.target.value) })} /><input className="input" type="number" aria-label="بداية جيد" value={ratingMins.good} onChange={(event) => setRatingMins({ ...ratingMins, good: Number(event.target.value) })} /><input className="input" type="number" aria-label="بداية مقبول" value={ratingMins.acceptable} onChange={(event) => setRatingMins({ ...ratingMins, acceptable: Number(event.target.value) })} /></div><button className="btn-primary mt-4" disabled={commands.updatePolicy.isPending || !(ratingMins.excellent > ratingMins.veryGood && ratingMins.veryGood > ratingMins.good && ratingMins.good > ratingMins.acceptable)} onClick={() => void savePolicy()}>حفظ إصدار سياسة جديد</button></section> : null}
+          {data?.canManageCycles && data.policy ? (
+            <section className="card p-5">
+              <h2 className="text-lg font-black">سياسة الخصم والتصنيف</h2>
+              <p className="muted mt-1 text-sm">الحفظ ينشئ إصدارًا جديدًا ويحافظ على نتائج الدورات السابقة.</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+                {(
+                  [
+                    ['late', 'التأخير'],
+                    ['earlyLeave', 'الانصراف المبكر'],
+                    ['unexcusedAbsence', 'الغياب'],
+                    ['missingPunch', 'البصمة الناقصة'],
+                    ['shortagePerHour', 'نقص الساعة'],
+                    ['maxShortagePerDay', 'حد النقص اليومي'],
+                  ] as const
+                ).map(([key, label]) => (
+                  <label className="text-xs font-bold" key={key}>
+                    {label}
+                    <input
+                      className="input mt-1"
+                      type="number"
+                      min={0}
+                      step="0.25"
+                      value={policyRules[key]}
+                      onChange={(event) => setPolicyRules({ ...policyRules, [key]: Number(event.target.value) })}
+                    />
+                  </label>
+                ))}
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-4">
+                <input
+                  className="input"
+                  type="number"
+                  aria-label="بداية ممتاز"
+                  value={ratingMins.excellent}
+                  onChange={(event) => setRatingMins({ ...ratingMins, excellent: Number(event.target.value) })}
+                />
+                <input
+                  className="input"
+                  type="number"
+                  aria-label="بداية جيد جدًا"
+                  value={ratingMins.veryGood}
+                  onChange={(event) => setRatingMins({ ...ratingMins, veryGood: Number(event.target.value) })}
+                />
+                <input
+                  className="input"
+                  type="number"
+                  aria-label="بداية جيد"
+                  value={ratingMins.good}
+                  onChange={(event) => setRatingMins({ ...ratingMins, good: Number(event.target.value) })}
+                />
+                <input
+                  className="input"
+                  type="number"
+                  aria-label="بداية مقبول"
+                  value={ratingMins.acceptable}
+                  onChange={(event) => setRatingMins({ ...ratingMins, acceptable: Number(event.target.value) })}
+                />
+              </div>
+              <button
+                className="btn-primary mt-4"
+                disabled={
+                  commands.updatePolicy.isPending ||
+                  !(ratingMins.excellent > ratingMins.veryGood && ratingMins.veryGood > ratingMins.good && ratingMins.good > ratingMins.acceptable)
+                }
+                onClick={() => void savePolicy()}
+              >
+                حفظ إصدار سياسة جديد
+              </button>
+            </section>
+          ) : null}
 
-      <section className="card p-5"><h2 className="text-lg font-black">اعتراضات التقييم</h2>{data?.appeals.length === 0 ? <EmptyState title="لا توجد اعتراضات معلقة" description="تظهر هنا الاعتراضات على النتائج المعتمدة." /> : <div className="mt-4 space-y-3">{data?.appeals.map((appeal) => <article key={appeal.id} className="rounded-2xl border border-[var(--border)] p-4"><div className="flex items-start justify-between gap-3"><div className="flex items-center gap-2"><UserAvatar displayName={appeal.employeeName} size="sm" /><strong>{appeal.employeeName}</strong><p className="muted mt-1 text-sm">{appeal.reason}</p></div><StatusBadge value={appeal.status} /></div><div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_auto]"><input className="input" placeholder="قرار ومبررات المراجعة" value={appealNotes[appeal.id] ?? ''} onChange={(event) => setAppealNotes((old) => ({ ...old, [appeal.id]: event.target.value }))} /><button className="btn-primary" disabled={(appealNotes[appeal.id]?.trim().length ?? 0) < 8} onClick={() => commands.decideAppeal.mutate({ p_appeal_id: appeal.id, p_decision: 'accepted', p_note: appealNotes[appeal.id] }, { onSuccess: () => toast({ message: 'تم قبول الاعتراض وإعادته للمدير', tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ القرار', tone: 'error' }) })}>قبول وإعادة للمدير</button><button className="btn-secondary" disabled={(appealNotes[appeal.id]?.trim().length ?? 0) < 8} onClick={() => commands.decideAppeal.mutate({ p_appeal_id: appeal.id, p_decision: 'rejected', p_note: appealNotes[appeal.id] }, { onSuccess: () => toast({ message: 'تم رفض الاعتراض', tone: 'success' }), onError: () => toast({ message: 'تعذر تنفيذ القرار', tone: 'error' }) })}>رفض</button></div></article>)}</div>}</section>
-    </>}
-  </div>;
+          <section className="card p-5">
+            <h2 className="text-lg font-black">اعتراضات التقييم</h2>
+            {data?.appeals.length === 0 ? (
+              <EmptyState title="لا توجد اعتراضات معلقة" description="تظهر هنا الاعتراضات على النتائج المعتمدة." />
+            ) : (
+              <div className="mt-4 space-y-3">
+                {data?.appeals.map((appeal) => (
+                  <article key={appeal.id} className="rounded-2xl border border-[var(--border)] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <UserAvatar displayName={appeal.employeeName} size="sm" />
+                        <strong>{appeal.employeeName}</strong>
+                        <p className="muted mt-1 text-sm">{appeal.reason}</p>
+                      </div>
+                      <StatusBadge value={appeal.status} />
+                    </div>
+                    <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_auto]">
+                      <input
+                        className="input"
+                        placeholder="قرار ومبررات المراجعة"
+                        value={appealNotes[appeal.id] ?? ''}
+                        onChange={(event) => setAppealNotes((old) => ({ ...old, [appeal.id]: event.target.value }))}
+                      />
+                      <button
+                        className="btn-primary"
+                        disabled={(appealNotes[appeal.id]?.trim().length ?? 0) < 8}
+                        onClick={() =>
+                          commands.decideAppeal.mutate(
+                            { p_appeal_id: appeal.id, p_decision: 'accepted', p_note: appealNotes[appeal.id] },
+                            {
+                              onSuccess: () => toast({ message: 'تم قبول الاعتراض وإعادته للمدير', tone: 'success' }),
+                              onError: () => toast({ message: 'تعذر تنفيذ القرار', tone: 'error' }),
+                            },
+                          )
+                        }
+                      >
+                        قبول وإعادة للمدير
+                      </button>
+                      <button
+                        className="btn-secondary"
+                        disabled={(appealNotes[appeal.id]?.trim().length ?? 0) < 8}
+                        onClick={() =>
+                          commands.decideAppeal.mutate(
+                            { p_appeal_id: appeal.id, p_decision: 'rejected', p_note: appealNotes[appeal.id] },
+                            {
+                              onSuccess: () => toast({ message: 'تم رفض الاعتراض', tone: 'success' }),
+                              onError: () => toast({ message: 'تعذر تنفيذ القرار', tone: 'error' }),
+                            },
+                          )
+                        }
+                      >
+                        رفض
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        </>
+      )}
+    </div>
+  );
 }

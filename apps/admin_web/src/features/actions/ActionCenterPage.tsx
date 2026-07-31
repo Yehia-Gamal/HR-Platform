@@ -27,39 +27,21 @@ export function ActionCenterPage() {
       ) : (
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="إجمالي العناصر" value={items.length} icon={Inbox} />
-          <MetricCard
-            label="عاجل"
-            value={items.filter((x) => x.priority === 'urgent').length}
-            icon={AlertCircle}
-          />
-          <MetricCard
-            label="مرتفع"
-            value={items.filter((x) => x.priority === 'high').length}
-            icon={Clock3}
-          />
+          <MetricCard label="عاجل" value={items.filter((x) => x.priority === 'urgent').length} icon={AlertCircle} />
+          <MetricCard label="مرتفع" value={items.filter((x) => x.priority === 'high').length} icon={Clock3} />
         </section>
       )}
 
       {query.isError ? (
-        <ErrorState
-          title="تعذر تحميل مركز الإجراءات"
-          description={safeErrorMessage(query.error)}
-          onRetry={() => void query.refetch()}
-        />
+        <ErrorState title="تعذر تحميل مركز الإجراءات" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
       ) : isInitialLoading ? (
         <ListSkeleton rows={3} label="جارٍ تحميل الإجراءات" />
       ) : items.length === 0 ? (
-        <EmptyState
-          title="لا توجد إجراءات معلقة"
-          description="لا توجد عناصر تحتاج تدخلك حاليًا."
-        />
+        <EmptyState title="لا توجد إجراءات معلقة" description="لا توجد عناصر تحتاج تدخلك حاليًا." />
       ) : (
         <section className="space-y-3">
           {items.map((item) => (
-            <article
-              key={item.id}
-              className="card flex flex-col gap-4 p-5 md:flex-row md:items-center"
-            >
+            <article key={item.id} className="card flex flex-col gap-4 p-5 md:flex-row md:items-center">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge value={item.kind} />
@@ -69,9 +51,7 @@ export function ActionCenterPage() {
 
                 <h2 className="mt-3 font-black">{item.title}</h2>
 
-                {item.subtitle ? (
-                  <p className="muted mt-1 text-sm">{item.subtitle}</p>
-                ) : null}
+                {item.subtitle ? <p className="muted mt-1 text-sm">{item.subtitle}</p> : null}
 
                 {item.dueAt ? (
                   <p className="mt-2 text-xs font-bold text-[var(--warning)]">

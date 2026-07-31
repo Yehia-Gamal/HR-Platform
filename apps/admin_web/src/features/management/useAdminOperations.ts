@@ -1,8 +1,4 @@
-import {
-  accessAdminCatalogSchema,
-  onboardingAdminCatalogSchema,
-  organizationAdminCatalogSchema,
-} from '@ahla/shared-contracts';
+import { accessAdminCatalogSchema, onboardingAdminCatalogSchema, organizationAdminCatalogSchema } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
@@ -13,7 +9,8 @@ export function useOrganizationAdminCatalog() {
   return useQuery({
     queryKey: ['organization-admin-catalog', auth.isMock],
     enabled: auth.status === 'authenticated',
-    queryFn: async () => auth.isMock ? (await loadDomainMocks()).mockOrganizationAdmin : organizationAdminCatalogSchema.parse(await rpc('get_organization_admin_catalog')),
+    queryFn: async () =>
+      auth.isMock ? (await loadDomainMocks()).mockOrganizationAdmin : organizationAdminCatalogSchema.parse(await rpc('get_organization_admin_catalog')),
   });
 }
 
@@ -28,7 +25,17 @@ export function useOrganizationCommands() {
     ]);
   };
   const department = useMutation({
-    mutationFn: async (input: { id?: string | null; entityId: string; branchId?: string | null; parentId?: string | null; managerId?: string | null; code: string; name: string; nameEn?: string | null; active: boolean }) => {
+    mutationFn: async (input: {
+      id?: string | null;
+      entityId: string;
+      branchId?: string | null;
+      parentId?: string | null;
+      managerId?: string | null;
+      code: string;
+      name: string;
+      nameEn?: string | null;
+      active: boolean;
+    }) => {
       if (auth.isMock) return '10000000-0000-4000-8000-000000000003';
       return rpc('upsert_department_admin', {
         p_id: input.id ?? null,
@@ -46,7 +53,19 @@ export function useOrganizationCommands() {
     onSuccess: refresh,
   });
   const position = useMutation({
-    mutationFn: async (input: { id?: string | null; departmentId: string; teamId?: string | null; jobTitleId?: string | null; gradeId?: string | null; reportsToId?: string | null; code: string; name: string; nameEn?: string | null; headcount: number; active: boolean }) => {
+    mutationFn: async (input: {
+      id?: string | null;
+      departmentId: string;
+      teamId?: string | null;
+      jobTitleId?: string | null;
+      gradeId?: string | null;
+      reportsToId?: string | null;
+      code: string;
+      name: string;
+      nameEn?: string | null;
+      headcount: number;
+      active: boolean;
+    }) => {
       if (auth.isMock) return '10000000-0000-4000-8000-000000000004';
       return rpc('upsert_position_admin', {
         p_id: input.id ?? null,
@@ -73,7 +92,7 @@ export function useAccessAdminCatalog() {
   return useQuery({
     queryKey: ['access-admin-catalog', auth.isMock],
     enabled: auth.status === 'authenticated',
-    queryFn: async () => auth.isMock ? (await loadDomainMocks()).mockAccessAdmin : accessAdminCatalogSchema.parse(await rpc('get_access_admin_catalog')),
+    queryFn: async () => (auth.isMock ? (await loadDomainMocks()).mockAccessAdmin : accessAdminCatalogSchema.parse(await rpc('get_access_admin_catalog'))),
   });
 }
 
@@ -81,13 +100,19 @@ export function useAccessCommands() {
   const auth = useAuth();
   const client = useQueryClient();
   const refresh = async () => {
-    await Promise.all([
-      client.invalidateQueries({ queryKey: ['access-admin-catalog'] }),
-      client.invalidateQueries({ queryKey: ['access-overview'] }),
-    ]);
+    await Promise.all([client.invalidateQueries({ queryKey: ['access-admin-catalog'] }), client.invalidateQueries({ queryKey: ['access-overview'] })]);
   };
   const upsertRole = useMutation({
-    mutationFn: async (input: { id?: string | null; slug: string; name: string; nameEn?: string | null; description?: string | null; color?: string | null; icon?: string | null; fullAccess?: boolean }) => {
+    mutationFn: async (input: {
+      id?: string | null;
+      slug: string;
+      name: string;
+      nameEn?: string | null;
+      description?: string | null;
+      color?: string | null;
+      icon?: string | null;
+      fullAccess?: boolean;
+    }) => {
       if (auth.isMock) return { id: input.id ?? '20000000-0000-4000-8000-000000000001' };
       return rpc('rpc_upsert_role', {
         p_id: input.id ?? null,
@@ -138,7 +163,10 @@ export function useOnboardingAdminCatalog() {
   return useQuery({
     queryKey: ['onboarding-admin-catalog', auth.isMock],
     enabled: auth.status === 'authenticated',
-    queryFn: async () => auth.isMock ? (await loadDomainMocks()).mockOnboardingAdmin : onboardingAdminCatalogSchema.parse(await rpc('get_onboarding_admin_catalog', { p_limit: 150 })),
+    queryFn: async () =>
+      auth.isMock
+        ? (await loadDomainMocks()).mockOnboardingAdmin
+        : onboardingAdminCatalogSchema.parse(await rpc('get_onboarding_admin_catalog', { p_limit: 150 })),
   });
 }
 
@@ -146,13 +174,14 @@ export function useOnboardingCommands() {
   const auth = useAuth();
   const client = useQueryClient();
   const refresh = async () => {
-    await Promise.all([
-      client.invalidateQueries({ queryKey: ['onboarding-admin-catalog'] }),
-      client.invalidateQueries({ queryKey: ['employees'] }),
-    ]);
+    await Promise.all([client.invalidateQueries({ queryKey: ['onboarding-admin-catalog'] }), client.invalidateQueries({ queryKey: ['employees'] })]);
   };
   const createJourney = useMutation({
-    mutationFn: async (input: { employeeId: string; probationEnd?: string | null; tasks: Array<{ title: string; ownerRole?: string | null; dueOffsetDays?: number }> }) => {
+    mutationFn: async (input: {
+      employeeId: string;
+      probationEnd?: string | null;
+      tasks: Array<{ title: string; ownerRole?: string | null; dueOffsetDays?: number }>;
+    }) => {
       if (auth.isMock) return '50000000-0000-4000-8000-000000000001';
       return rpc('create_onboarding_journey_admin', {
         p_employee_id: input.employeeId,
@@ -177,7 +206,14 @@ export function useRecruitmentCommands() {
   const auth = useAuth();
   const client = useQueryClient();
   const createRequisition = useMutation({
-    mutationFn: async (input: { departmentId: string; title: string; headcount: number; reason?: string | null; budgetRange?: string | null; submit: boolean }) => {
+    mutationFn: async (input: {
+      departmentId: string;
+      title: string;
+      headcount: number;
+      reason?: string | null;
+      budgetRange?: string | null;
+      submit: boolean;
+    }) => {
       if (auth.isMock) return '60000000-0000-4000-8000-000000000001';
       return rpc('create_job_requisition_admin', {
         p_department_id: input.departmentId,

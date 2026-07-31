@@ -14,7 +14,7 @@ export function NotificationsPage() {
   const q = useNotifications();
   const mark = useMarkNotificationsRead();
   const items = q.data ?? [];
-  const unread = items.filter(x => !x.isRead);
+  const unread = items.filter((x) => !x.isRead);
 
   return (
     <div className="space-y-6">
@@ -24,7 +24,12 @@ export function NotificationsPage() {
         actions={
           <button
             disabled={!unread.length || mark.isPending}
-            onClick={() => mark.mutate(undefined, { onSuccess: () => toast({ message: 'تم تعليم كل الإشعارات كمقروءة', tone: 'success' }), onError: () => toast({ message: 'تعذر تعليم الإشعارات', tone: 'error' }) })}
+            onClick={() =>
+              mark.mutate(undefined, {
+                onSuccess: () => toast({ message: 'تم تعليم كل الإشعارات كمقروءة', tone: 'success' }),
+                onError: () => toast({ message: 'تعذر تعليم الإشعارات', tone: 'error' }),
+              })
+            }
             className="btn-secondary disabled:opacity-50"
           >
             <CheckCheck className="size-4" aria-hidden="true" />
@@ -36,33 +41,23 @@ export function NotificationsPage() {
       {mark.isError ? <ErrorBanner message={safeErrorMessage(mark.error)} /> : null}
 
       {q.isError ? (
-        <ErrorState
-          title="تعذر تحميل الإشعارات"
-          description={safeErrorMessage(q.error)}
-          onRetry={() => void q.refetch()}
-        />
+        <ErrorState title="تعذر تحميل الإشعارات" description={safeErrorMessage(q.error)} onRetry={() => void q.refetch()} />
       ) : q.isLoading ? (
         <section aria-label="جارٍ تحميل الإشعارات">
           <ListSkeleton rows={3} label="جارٍ تحميل الإشعارات…" />
         </section>
       ) : !items.length ? (
-        <EmptyState
-          title="لا توجد إشعارات"
-          description="ستظهر هنا التنبيهات الموجهة إلى حسابك."
-        />
+        <EmptyState title="لا توجد إشعارات" description="ستظهر هنا التنبيهات الموجهة إلى حسابك." />
       ) : (
         <section className="space-y-3">
-          {items.map(n => (
+          {items.map((n) => (
             <article
               key={n.id}
               aria-label={n.isRead ? undefined : 'إشعار غير مقروء'}
               className={`card p-5 ${n.isRead ? 'opacity-75' : 'border-[var(--brand-primary)]/40'}`}
             >
               <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                <span
-                  aria-hidden="true"
-                  className="grid size-11 shrink-0 place-items-center rounded-xl bg-[var(--surface-muted)] text-[var(--brand-primary)]"
-                >
+                <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-xl bg-[var(--surface-muted)] text-[var(--brand-primary)]">
                   <Bell className="size-5" />
                 </span>
 
@@ -70,23 +65,14 @@ export function NotificationsPage() {
                   <div className="flex flex-wrap gap-2">
                     <StatusBadge value={n.priority} />
                     <span className="muted text-xs">{n.category}</span>
-                    {!n.isRead ? (
-                      <span className="rounded-full bg-[var(--brand-primary)] px-2 py-0.5 text-xs font-bold text-white">
-                        جديد
-                      </span>
-                    ) : null}
+                    {!n.isRead ? <span className="rounded-full bg-[var(--brand-primary)] px-2 py-0.5 text-xs font-bold text-white">جديد</span> : null}
                   </div>
 
                   <h2 className="mt-2 font-black">{n.title}</h2>
 
-                  {n.body ? (
-                    <p className="muted mt-1 text-sm">{n.body}</p>
-                  ) : null}
+                  {n.body ? <p className="muted mt-1 text-sm">{n.body}</p> : null}
 
-                  <time
-                    dateTime={new Date(n.createdAt).toISOString()}
-                    className="muted mt-2 block text-xs"
-                  >
+                  <time dateTime={new Date(n.createdAt).toISOString()} className="muted mt-2 block text-xs">
                     {new Intl.DateTimeFormat('ar-EG', {
                       dateStyle: 'medium',
                       timeStyle: 'short',
@@ -95,11 +81,7 @@ export function NotificationsPage() {
                 </div>
 
                 {n.actionUrl ? (
-                  <Link
-                    to={n.actionUrl}
-                    onClick={() => !n.isRead && mark.mutate([n.id])}
-                    className="btn-primary text-sm"
-                  >
+                  <Link to={n.actionUrl} onClick={() => !n.isRead && mark.mutate([n.id])} className="btn-primary text-sm">
                     فتح
                   </Link>
                 ) : null}

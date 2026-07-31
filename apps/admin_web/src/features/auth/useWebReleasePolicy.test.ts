@@ -63,9 +63,7 @@ describe('useWebReleasePolicy — localPolicy schema validation', () => {
   });
 
   it('messageAr and storeUrl are nullable', () => {
-    expect(() =>
-      publicReleasePolicySchema.parse({ ...localPolicy, messageAr: null, storeUrl: null }),
-    ).not.toThrow();
+    expect(() => publicReleasePolicySchema.parse({ ...localPolicy, messageAr: null, storeUrl: null })).not.toThrow();
   });
 
   it('checkedAt is a valid ISO timestamp', () => {
@@ -74,20 +72,14 @@ describe('useWebReleasePolicy — localPolicy schema validation', () => {
   });
 
   it('schema rejects invalid action', () => {
-    expect(() =>
-      publicReleasePolicySchema.parse({ ...localPolicy, action: 'invalid' }),
-    ).toThrow();
+    expect(() => publicReleasePolicySchema.parse({ ...localPolicy, action: 'invalid' })).toThrow();
   });
 
   it('schema rejects invalid platform', () => {
-    expect(() =>
-      publicReleasePolicySchema.parse({ ...localPolicy, platform: 'desktop' }),
-    ).toThrow();
+    expect(() => publicReleasePolicySchema.parse({ ...localPolicy, platform: 'desktop' })).toThrow();
   });
 
   it('schema rejects negative build number', () => {
-    expect(() =>
-      publicReleasePolicySchema.parse({ ...localPolicy, currentBuild: -1 }),
-    ).toThrow();
+    expect(() => publicReleasePolicySchema.parse({ ...localPolicy, currentBuild: -1 })).toThrow();
   });
 });

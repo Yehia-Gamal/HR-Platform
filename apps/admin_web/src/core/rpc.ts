@@ -5,9 +5,7 @@ import { getSupabase } from './supabase';
 /** حقول PII التي تُزال من وسائط RPC قبل التسجيل */
 const PII_KEYS = /name|email|phone/i;
 
-function sanitizeArgs(
-  args: Record<string, unknown> | undefined,
-): Record<string, unknown> | undefined {
+function sanitizeArgs(args: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
   if (!args) return undefined;
   const clean: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(args)) {
@@ -28,11 +26,7 @@ function sanitizeArgs(
  * accesses deep in the rendering tree.  Callers that omit it get the old cast
  * behaviour so adoption can be incremental.
  */
-export async function rpc<T = unknown>(
-  name: string,
-  args?: Record<string, unknown>,
-  schema?: ZodType<T>,
-): Promise<T> {
+export async function rpc<T = unknown>(name: string, args?: Record<string, unknown>, schema?: ZodType<T>): Promise<T> {
   const supabase = await getSupabase();
   const sanitized = sanitizeArgs(args);
   const { data, error } = await supabase.rpc(name, args);
@@ -65,7 +59,7 @@ export async function invokeEdgeFunction<T = unknown>(
     let message = fallbackMessage;
     const resp = (error as Record<string, unknown>).context;
     if (resp instanceof Response) {
-      const parsed = await resp.json().catch(() => null) as { error?: string } | null;
+      const parsed = (await resp.json().catch(() => null)) as { error?: string } | null;
       if (parsed?.error && errorMap[parsed.error]) message = errorMap[parsed.error];
     }
     throw new Error(message);

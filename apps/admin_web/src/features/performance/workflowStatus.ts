@@ -36,5 +36,4 @@ export const kpiWorkflowStatusLabel: Record<string, string> = {
   RETURNED_BY_EXECUTIVE: 'أعاده المدير التنفيذي للمراجعة',
 };
 
-export const kpiWorkflowStatusText = (value?: string | null): string =>
-  (value && kpiWorkflowStatusLabel[value]) || value || '';
+export const kpiWorkflowStatusText = (value?: string | null): string => (value && kpiWorkflowStatusLabel[value]) || value || '';

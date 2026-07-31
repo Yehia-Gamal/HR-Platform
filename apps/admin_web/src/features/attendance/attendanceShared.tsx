@@ -48,9 +48,18 @@ export function AttendancePercentageRing({ percentage, label = 'حضور' }: { p
     <div className="relative flex flex-col items-center gap-1">
       <svg width="100" height="100" viewBox="0 0 100 100" className="-rotate-90" aria-hidden="true">
         <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className={bgColor} />
-        <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className={fgColor}
-          strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
+        <circle
+          cx="50"
+          cy="50"
+          r={r}
+          fill="none"
+          strokeWidth="8"
+          className={fgColor}
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={offset}
+          style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+        />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className={`text-2xl font-black ${color}`}>{pct.toFixed(0)}%</span>
@@ -68,11 +77,7 @@ export function DayTag({ label, variant }: { label: string; variant: TagVariant 
     success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     purple: 'bg-violet-50 text-violet-700 border-violet-200',
   };
-  return (
-    <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold border print:text-[7px] print:px-1 ${styles[variant]}`}>
-      {label}
-    </span>
-  );
+  return <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold border print:text-[7px] print:px-1 ${styles[variant]}`}>{label}</span>;
 }
 
 /** عنصر إحصائية واحد (أيقونة + عنوان + قيمة). */

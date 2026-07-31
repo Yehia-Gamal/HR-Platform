@@ -5,14 +5,8 @@ import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
-const mobilePages = path.resolve(
-  __dirname,
-  '../../../../apps/mobile_flutter/lib/features/mobile_pages',
-);
-const coreWidgets = path.resolve(
-  __dirname,
-  '../../../../apps/mobile_flutter/lib/core/widgets',
-);
+const mobilePages = path.resolve(__dirname, '../../../../apps/mobile_flutter/lib/features/mobile_pages');
+const coreWidgets = path.resolve(__dirname, '../../../../apps/mobile_flutter/lib/core/widgets');
 
 // الصفحات التي يجب أن تعيد فحص GPS عند الرجوع
 const GPS_PAGES = [
@@ -48,9 +42,7 @@ describe('V23 §10.4: GPS يعاد فحصه عند الرجوع', () => {
 
       it('يعيد فحص GPS أو يبطل المزوّد', () => {
         // إما _recheckAndRetry أو invalidate (للـ banner)
-        const hasRecheck =
-          source.includes('_recheckAndRetry') ||
-          source.includes('invalidate');
+        const hasRecheck = source.includes('_recheckAndRetry') || source.includes('invalidate');
         expect(hasRecheck).toBe(true);
       });
     });
@@ -58,10 +50,7 @@ describe('V23 §10.4: GPS يعاد فحصه عند الرجوع', () => {
 
   it('جميع الصفحات تسجّل المراقب (addObserver) وتلغيه (removeObserver)', () => {
     for (const page of GPS_PAGES) {
-      const source = fs.readFileSync(
-        path.join(page.dir, page.file),
-        'utf-8',
-      );
+      const source = fs.readFileSync(path.join(page.dir, page.file), 'utf-8');
       expect(source).toContain('addObserver');
       expect(source).toContain('removeObserver');
     }

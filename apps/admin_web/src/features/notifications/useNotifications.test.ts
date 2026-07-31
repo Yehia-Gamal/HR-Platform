@@ -38,53 +38,34 @@ describe('useNotifications — filter logic & schema validation', () => {
   describe('web notification filter logic', () => {
     // Recreate the filter from useNotifications.ts line 59
     const filterForWeb = (items: Array<{ entityType?: string | null }>) =>
-      items.filter(
-        (n) => !n.entityType || !MOBILE_ONLY_ENTITY_TYPES.includes(n.entityType as typeof MOBILE_ONLY_ENTITY_TYPES[number]),
-      );
+      items.filter((n) => !n.entityType || !MOBILE_ONLY_ENTITY_TYPES.includes(n.entityType as (typeof MOBILE_ONLY_ENTITY_TYPES)[number]));
 
     it('passes through non-mobile entity types', () => {
-      const items = [
-        { entityType: 'request_approved' },
-        { entityType: 'kpi_assigned' },
-        { entityType: 'decision_published' },
-      ];
+      const items = [{ entityType: 'request_approved' }, { entityType: 'kpi_assigned' }, { entityType: 'decision_published' }];
       expect(filterForWeb(items)).toHaveLength(3);
     });
 
     it('filters out punch_reminder', () => {
-      const items = [
-        { entityType: 'request_approved' },
-        { entityType: 'punch_reminder' },
-      ];
+      const items = [{ entityType: 'request_approved' }, { entityType: 'punch_reminder' }];
       expect(filterForWeb(items)).toHaveLength(1);
       expect(filterForWeb(items)[0].entityType).toBe('request_approved');
     });
 
     it('filters out live_location_request', () => {
-      const items = [
-        { entityType: 'live_location_request' },
-        { entityType: 'kpi_assigned' },
-      ];
+      const items = [{ entityType: 'live_location_request' }, { entityType: 'kpi_assigned' }];
       expect(filterForWeb(items)).toHaveLength(1);
       expect(filterForWeb(items)[0].entityType).toBe('kpi_assigned');
     });
 
     it('filters out all mobile-only types at once', () => {
-      const items = [
-        { entityType: 'punch_reminder' },
-        { entityType: 'live_location_request' },
-        { entityType: 'request_approved' },
-      ];
+      const items = [{ entityType: 'punch_reminder' }, { entityType: 'live_location_request' }, { entityType: 'request_approved' }];
       const result = filterForWeb(items);
       expect(result).toHaveLength(1);
       expect(result[0].entityType).toBe('request_approved');
     });
 
     it('returns empty array when all items are mobile-only', () => {
-      const items = [
-        { entityType: 'punch_reminder' },
-        { entityType: 'live_location_request' },
-      ];
+      const items = [{ entityType: 'punch_reminder' }, { entityType: 'live_location_request' }];
       expect(filterForWeb(items)).toHaveLength(0);
     });
 

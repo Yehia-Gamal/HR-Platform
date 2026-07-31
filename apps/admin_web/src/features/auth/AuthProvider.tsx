@@ -1,14 +1,6 @@
 import type { AccessContext } from '@ahla/shared-contracts';
 import type { Session } from '@supabase/supabase-js';
-import {
-  createContext,
-  type PropsWithChildren,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { attachAuthObservability } from '../../core/authObservability';
 import { env, hasSupabaseConfig } from '../../core/env';
 import { safeErrorMessage } from '../../core/errorMapper';
@@ -64,54 +56,56 @@ export function AuthProvider({ children }: PropsWithChildren) {
     let active = true;
     let unsubscribe: (() => void) | undefined;
 
-    void getSupabase().then(async (supabase) => {
-      // تسجيل المستمع أولاً — يجب أن يكون نشطاً دائماً بغض النظر عن وجود جلسة أولية
-      const { data: listener } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
+    void getSupabase()
+      .then(async (supabase) => {
+        // تسجيل المستمع أولاً — يجب أن يكون نشطاً دائماً بغض النظر عن وجود جلسة أولية
+        const { data: listener } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
+          if (!active) return;
+          authObservability.onAuthChange(event, nextSession?.user.id ?? null);
+          setSession(nextSession);
+          if (!nextSession) {
+            setAccess(null);
+            setStatus('anonymous');
+            return;
+          }
+          // تحديث الصلاحيات عند تجديد التوكن أو تحديث المستخدم أو تسجيل دخول خارجي
+          if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+            try {
+              const nextAccess = await loadAccessContext();
+              setAccess(nextAccess);
+              setStatus('authenticated');
+            } catch {
+              // فشل تحديث الصلاحيات — نبقي على القيم الحالية
+            }
+          }
+        });
+        unsubscribe = () => listener.subscription.unsubscribe();
+
+        const { data, error: sessionError } = await supabase.auth.getSession();
         if (!active) return;
-        authObservability.onAuthChange(event, nextSession?.user.id ?? null);
-        setSession(nextSession);
-        if (!nextSession) {
-          setAccess(null);
+        if (sessionError) {
+          setError(safeErrorMessage(sessionError));
           setStatus('anonymous');
           return;
         }
-        // تحديث الصلاحيات عند تجديد التوكن أو تحديث المستخدم أو تسجيل دخول خارجي
-        if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'SIGNED_IN') {
-          try {
-            const nextAccess = await loadAccessContext();
-            setAccess(nextAccess);
-            setStatus('authenticated');
-          } catch {
-            // فشل تحديث الصلاحيات — نبقي على القيم الحالية
-          }
+        setSession(data.session);
+        if (!data.session) {
+          setStatus('anonymous');
+          return;
         }
+        try {
+          setAccess(await loadAccessContext());
+          setStatus('authenticated');
+        } catch (accessError) {
+          setError(safeErrorMessage(accessError));
+          setStatus('anonymous');
+        }
+      })
+      .catch((loadError: unknown) => {
+        if (!active) return;
+        setError(safeErrorMessage(loadError));
+        setStatus('anonymous');
       });
-      unsubscribe = () => listener.subscription.unsubscribe();
-
-      const { data, error: sessionError } = await supabase.auth.getSession();
-      if (!active) return;
-      if (sessionError) {
-        setError(safeErrorMessage(sessionError));
-        setStatus('anonymous');
-        return;
-      }
-      setSession(data.session);
-      if (!data.session) {
-        setStatus('anonymous');
-        return;
-      }
-      try {
-        setAccess(await loadAccessContext());
-        setStatus('authenticated');
-      } catch (accessError) {
-        setError(safeErrorMessage(accessError));
-        setStatus('anonymous');
-      }
-    }).catch((loadError: unknown) => {
-      if (!active) return;
-      setError(safeErrorMessage(loadError));
-      setStatus('anonymous');
-    });
 
     return () => {
       active = false;
@@ -137,15 +131,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (!errorCode && invokeError) {
         const resp = (invokeError as Record<string, unknown>).context;
         if (resp instanceof Response) {
-          const body = await resp.json().catch(() => null) as { error?: string } | null;
+          const body = (await resp.json().catch(() => null)) as { error?: string } | null;
           errorCode = body?.error;
         }
       }
-      const message = errorCode === 'TOO_MANY_ATTEMPTS'
-        ? 'محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.'
-        : errorCode === 'SERVER_CONFIGURATION'
-          ? 'الخدمة غير مهيأة. تواصل مع الدعم.'
-          : 'بيانات الدخول غير صحيحة أو الحساب غير متاح.';
+      const message =
+        errorCode === 'TOO_MANY_ATTEMPTS'
+          ? 'محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.'
+          : errorCode === 'SERVER_CONFIGURATION'
+            ? 'الخدمة غير مهيأة. تواصل مع الدعم.'
+            : 'بيانات الدخول غير صحيحة أو الحساب غير متاح.';
       setError(message);
       setStatus('anonymous');
       throw new Error(message);

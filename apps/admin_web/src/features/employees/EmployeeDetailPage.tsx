@@ -1,7 +1,25 @@
 import type { Employee360 } from '@ahla/shared-contracts';
 import {
-  ArrowRight, BadgeCheck, BriefcaseBusiness, Building2, CalendarDays, Clock3, FileText,
-  Archive, Gauge, MailCheck, Network, Pencil, Phone, Plus, ShieldCheck, Star, Trash2, UserRound, UsersRound, X,
+  ArrowRight,
+  BadgeCheck,
+  BriefcaseBusiness,
+  Building2,
+  CalendarDays,
+  Clock3,
+  FileText,
+  Archive,
+  Gauge,
+  MailCheck,
+  Network,
+  Pencil,
+  Phone,
+  Plus,
+  ShieldCheck,
+  Star,
+  Trash2,
+  UserRound,
+  UsersRound,
+  X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -18,8 +36,16 @@ import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { MonthlyStatementSection } from '../attendance/MonthlyStatementSection';
 import {
-  useEmployee360, useResendInvite, useEmployees, useChangeManager, useArchiveEmployee,
-  useUpdateEmployee, useEmployeeDepartments, useAssignDepartment, useRemoveDepartment, useDeleteEmployee,
+  useEmployee360,
+  useResendInvite,
+  useEmployees,
+  useChangeManager,
+  useArchiveEmployee,
+  useUpdateEmployee,
+  useEmployeeDepartments,
+  useAssignDepartment,
+  useRemoveDepartment,
+  useDeleteEmployee,
 } from './useEmployees';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useToast } from '../../ui/Toast';
@@ -47,14 +73,30 @@ const STATUS_LABELS: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 function Info({ icon: Icon, label, dir }: { icon: typeof UserRound; label: string; dir?: 'ltr' | 'rtl' }) {
-  return <span className="inline-flex items-center gap-2"><Icon className="size-4 muted" aria-hidden="true" /><span dir={dir}>{label}</span></span>;
+  return (
+    <span className="inline-flex items-center gap-2">
+      <Icon className="size-4 muted" aria-hidden="true" />
+      <span dir={dir}>{label}</span>
+    </span>
+  );
 }
 
 function Data({ label, value }: { label: string; value: string | null }) {
-  return <div className="rounded-xl bg-[var(--surface-muted)] p-3"><p className="muted text-xs">{label}</p><p className="mt-1 font-bold">{value ?? '—'}</p></div>;
+  return (
+    <div className="rounded-xl bg-[var(--surface-muted)] p-3">
+      <p className="muted text-xs">{label}</p>
+      <p className="mt-1 font-bold">{value ?? '—'}</p>
+    </div>
+  );
 }
 
-function LookupSelect({ label, value, options, onChange, disabled }: {
+function LookupSelect({
+  label,
+  value,
+  options,
+  onChange,
+  disabled,
+}: {
   label: string;
   value: string;
   options: Array<{ id: string; label: string }>;
@@ -66,7 +108,11 @@ function LookupSelect({ label, value, options, onChange, disabled }: {
       <span className="mb-1.5 block text-sm font-semibold">{label}</span>
       <select className="input w-full" value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
         <option value="">— غير محدد —</option>
-        {options.map((opt) => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
+        {options.map((opt) => (
+          <option key={opt.id} value={opt.id}>
+            {opt.label}
+          </option>
+        ))}
       </select>
     </label>
   );
@@ -84,8 +130,16 @@ function DepartmentsSection({ employeeId, canEdit, onAdd }: { employeeId: string
     return (
       <article className="card p-5">
         <div className="flex items-center justify-between">
-          <h3 className="font-black flex items-center gap-2"><Building2 className="size-5" aria-hidden="true" />الإدارات</h3>
-          {canEdit ? <button type="button" className="btn-secondary text-sm" onClick={onAdd}><Plus className="size-4" aria-hidden="true" />إضافة إدارة</button> : null}
+          <h3 className="font-black flex items-center gap-2">
+            <Building2 className="size-5" aria-hidden="true" />
+            الإدارات
+          </h3>
+          {canEdit ? (
+            <button type="button" className="btn-secondary text-sm" onClick={onAdd}>
+              <Plus className="size-4" aria-hidden="true" />
+              إضافة إدارة
+            </button>
+          ) : null}
         </div>
         <p className="muted mt-3 text-sm">لم يُسنَد لأي إدارة بعد.</p>
       </article>
@@ -95,8 +149,16 @@ function DepartmentsSection({ employeeId, canEdit, onAdd }: { employeeId: string
   return (
     <article className="card p-5">
       <div className="flex items-center justify-between">
-        <h3 className="font-black flex items-center gap-2"><Building2 className="size-5" aria-hidden="true" />الإدارات ({departments.length})</h3>
-        {canEdit ? <button type="button" className="btn-secondary text-sm" onClick={onAdd}><Plus className="size-4" aria-hidden="true" />إضافة إدارة</button> : null}
+        <h3 className="font-black flex items-center gap-2">
+          <Building2 className="size-5" aria-hidden="true" />
+          الإدارات ({departments.length})
+        </h3>
+        {canEdit ? (
+          <button type="button" className="btn-secondary text-sm" onClick={onAdd}>
+            <Plus className="size-4" aria-hidden="true" />
+            إضافة إدارة
+          </button>
+        ) : null}
       </div>
       <div className="mt-4 space-y-2">
         {departments.map((dept) => (
@@ -104,7 +166,12 @@ function DepartmentsSection({ employeeId, canEdit, onAdd }: { employeeId: string
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <p className="font-bold">{dept.departmentName}</p>
-                {dept.isPrimary ? <span className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-soft)] px-2 py-0.5 text-xs font-bold text-[var(--brand)]"><Star className="size-3" aria-hidden="true" />أساسية</span> : null}
+                {dept.isPrimary ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-soft)] px-2 py-0.5 text-xs font-bold text-[var(--brand)]">
+                    <Star className="size-3" aria-hidden="true" />
+                    أساسية
+                  </span>
+                ) : null}
               </div>
               {dept.jobTitle ? <p className="muted mt-1 text-xs">{dept.jobTitle}</p> : null}
             </div>
@@ -231,7 +298,9 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
 
   return (
     <DialogOverlay title="تعديل بيانات الموظف" onClose={onClose} maxWidth="max-w-2xl">
-      <p className="muted -mt-2 mb-5 text-sm">{item.fullNameAr} — {item.employeeCode}</p>
+      <p className="muted -mt-2 mb-5 text-sm">
+        {item.fullNameAr} — {item.employeeCode}
+      </p>
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-6">
         {error ? <ErrorBanner message={error} /> : null}
 
@@ -240,16 +309,43 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
           <legend className="mb-3 font-black">البيانات الشخصية</legend>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1.5 block text-sm font-semibold">الاسم بالعربية <span className="text-[var(--danger)]">*</span></span>
-              <input type="text" className="input w-full" required minLength={3} maxLength={160} value={fullNameAr} onChange={(e) => setFullNameAr(e.target.value)} disabled={update.isPending} />
+              <span className="mb-1.5 block text-sm font-semibold">
+                الاسم بالعربية <span className="text-[var(--danger)]">*</span>
+              </span>
+              <input
+                type="text"
+                className="input w-full"
+                required
+                minLength={3}
+                maxLength={160}
+                value={fullNameAr}
+                onChange={(e) => setFullNameAr(e.target.value)}
+                disabled={update.isPending}
+              />
             </label>
             <label className="block">
               <span className="mb-1.5 block text-sm font-semibold">الاسم بالإنجليزية</span>
-              <input type="text" className="input w-full" maxLength={160} value={fullNameEn} onChange={(e) => setFullNameEn(e.target.value)} disabled={update.isPending} dir="ltr" />
+              <input
+                type="text"
+                className="input w-full"
+                maxLength={160}
+                value={fullNameEn}
+                onChange={(e) => setFullNameEn(e.target.value)}
+                disabled={update.isPending}
+                dir="ltr"
+              />
             </label>
             <label className="block sm:col-span-2">
               <span className="mb-1.5 block text-sm font-semibold">رقم الهاتف</span>
-              <input type="tel" className="input w-full" value={phoneE164} onChange={(e) => setPhoneE164(e.target.value)} disabled={update.isPending} dir="ltr" placeholder="+201XXXXXXXXX" />
+              <input
+                type="tel"
+                className="input w-full"
+                value={phoneE164}
+                onChange={(e) => setPhoneE164(e.target.value)}
+                disabled={update.isPending}
+                dir="ltr"
+                placeholder="+201XXXXXXXXX"
+              />
             </label>
           </div>
         </fieldset>
@@ -259,14 +355,32 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
           <fieldset>
             <legend className="mb-3 font-black">البيانات الوظيفية</legend>
             <div className="grid gap-4 sm:grid-cols-2">
-              <LookupSelect label="الإدارة" value={departmentId} options={lookups.data?.departments ?? []} onChange={onDepartmentChange} disabled={update.isPending} />
+              <LookupSelect
+                label="الإدارة"
+                value={departmentId}
+                options={lookups.data?.departments ?? []}
+                onChange={onDepartmentChange}
+                disabled={update.isPending}
+              />
               <LookupSelect label="الفريق" value={teamId} options={teams} onChange={setTeamId} disabled={update.isPending} />
               <LookupSelect label="الفرع" value={branchId} options={lookups.data?.branches ?? []} onChange={onBranchChange} disabled={update.isPending} />
               <LookupSelect label="موقع العمل" value={workSiteId} options={workSites} onChange={setWorkSiteId} disabled={update.isPending} />
-              <LookupSelect label="المسمى الوظيفي" value={jobTitleId} options={lookups.data?.jobTitles ?? []} onChange={setJobTitleId} disabled={update.isPending} />
+              <LookupSelect
+                label="المسمى الوظيفي"
+                value={jobTitleId}
+                options={lookups.data?.jobTitles ?? []}
+                onChange={setJobTitleId}
+                disabled={update.isPending}
+              />
               <LookupSelect label="المنصب" value={positionId} options={positions} onChange={setPositionId} disabled={update.isPending} />
               <LookupSelect label="الدرجة" value={gradeId} options={lookups.data?.grades ?? []} onChange={setGradeId} disabled={update.isPending} />
-              <LookupSelect label="نوع التوظيف" value={employmentTypeId} options={lookups.data?.employmentTypes ?? []} onChange={setEmploymentTypeId} disabled={update.isPending} />
+              <LookupSelect
+                label="نوع التوظيف"
+                value={employmentTypeId}
+                options={lookups.data?.employmentTypes ?? []}
+                onChange={setEmploymentTypeId}
+                disabled={update.isPending}
+              />
             </div>
           </fieldset>
         ) : null}
@@ -285,13 +399,21 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
               </label>
               <label className="block">
                 <span className="mb-1.5 block text-sm font-semibold">نهاية فترة الاختبار</span>
-                <input type="date" className="input w-full" value={probationEnd} onChange={(e) => setProbationEnd(e.target.value)} disabled={update.isPending} />
+                <input
+                  type="date"
+                  className="input w-full"
+                  value={probationEnd}
+                  onChange={(e) => setProbationEnd(e.target.value)}
+                  disabled={update.isPending}
+                />
               </label>
               <label className="block">
                 <span className="mb-1.5 block text-sm font-semibold">الحالة</span>
                 <select className="input w-full" value={status} onChange={(e) => setStatus(e.target.value as typeof status)} disabled={update.isPending}>
                   {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -301,12 +423,24 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
 
         {/* سبب التعديل */}
         <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold">سبب التعديل <span className="text-[var(--danger)]">*</span></span>
-          <textarea className="input min-h-20 w-full" required minLength={5} value={reason} onChange={(e) => setReason(e.target.value)} disabled={update.isPending} placeholder="اذكر سبب التعديل للتدقيق…" />
+          <span className="mb-1.5 block text-sm font-semibold">
+            سبب التعديل <span className="text-[var(--danger)]">*</span>
+          </span>
+          <textarea
+            className="input min-h-20 w-full"
+            required
+            minLength={5}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            disabled={update.isPending}
+            placeholder="اذكر سبب التعديل للتدقيق…"
+          />
         </label>
 
         <div className="flex justify-end gap-3 border-t border-[var(--border)] pt-4">
-          <button type="button" className="btn-secondary" onClick={onClose} disabled={update.isPending}>إلغاء</button>
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={update.isPending}>
+            إلغاء
+          </button>
           <button type="submit" className="btn-primary" disabled={update.isPending || reason.trim().length < 5}>
             {update.isPending ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}
           </button>
@@ -319,32 +453,77 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
 // ---------------------------------------------------------------------------
 // ArchiveEmployeeDialog — أرشفة الموظف
 // ---------------------------------------------------------------------------
-function ArchiveEmployeeDialog({ employeeId, employeeName, onClose, onSuccess }: { employeeId: string; employeeName: string; onClose: () => void; onSuccess: () => void }) {
+function ArchiveEmployeeDialog({
+  employeeId,
+  employeeName,
+  onClose,
+  onSuccess,
+}: {
+  employeeId: string;
+  employeeName: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
   const archive = useArchiveEmployee();
   const [reason, setReason] = useState('');
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const submit = async (event: React.FormEvent) => {
-    event.preventDefault(); setError(null);
-    try { await archive.mutateAsync({ employeeId, reason: reason.trim() }); onSuccess(); }
-    catch { setError('تعذر أرشفة الموظف بأمان. تحقق من الصلاحية وأعد المحاولة.'); }
+    event.preventDefault();
+    setError(null);
+    try {
+      await archive.mutateAsync({ employeeId, reason: reason.trim() });
+      onSuccess();
+    } catch {
+      setError('تعذر أرشفة الموظف بأمان. تحقق من الصلاحية وأعد المحاولة.');
+    }
   };
-  return createPortal(<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-    <form onSubmit={(event) => void submit(event)} className="card w-full max-w-md p-6" role="dialog" aria-modal="true">
-      <h2 className="text-lg font-black">أرشفة الموظف</h2>
-      <p className="muted mt-2 text-sm">سيُعطّل حساب {employeeName} وتُسحب جلساته وأجهزته، مع الاحتفاظ بالسجل التاريخي.</p>
-      {error ? <div className="mt-4"><ErrorBanner message={error} /></div> : null}
-      <label className="mt-4 block"><span className="mb-1.5 block text-sm font-semibold">سبب الأرشفة</span><textarea className="input min-h-24 w-full" required minLength={5} value={reason} onChange={(event) => setReason(event.target.value)} /></label>
-      <label className="mt-4 flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /><span>أؤكد تعطيل الحساب وسحب الجلسات والأجهزة الموثوقة.</span></label>
-      <div className="mt-6 flex justify-end gap-3"><button type="button" className="btn-secondary" onClick={onClose} disabled={archive.isPending}>إلغاء</button><button type="submit" className="btn-primary" disabled={archive.isPending || !confirmed || reason.trim().length < 5}>{archive.isPending ? 'جارٍ الأرشفة…' : 'تأكيد الأرشفة'}</button></div>
-    </form>
-  </div>, document.body);
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <form onSubmit={(event) => void submit(event)} className="card w-full max-w-md p-6" role="dialog" aria-modal="true">
+        <h2 className="text-lg font-black">أرشفة الموظف</h2>
+        <p className="muted mt-2 text-sm">سيُعطّل حساب {employeeName} وتُسحب جلساته وأجهزته، مع الاحتفاظ بالسجل التاريخي.</p>
+        {error ? (
+          <div className="mt-4">
+            <ErrorBanner message={error} />
+          </div>
+        ) : null}
+        <label className="mt-4 block">
+          <span className="mb-1.5 block text-sm font-semibold">سبب الأرشفة</span>
+          <textarea className="input min-h-24 w-full" required minLength={5} value={reason} onChange={(event) => setReason(event.target.value)} />
+        </label>
+        <label className="mt-4 flex items-start gap-2 text-sm">
+          <input type="checkbox" className="mt-1" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
+          <span>أؤكد تعطيل الحساب وسحب الجلسات والأجهزة الموثوقة.</span>
+        </label>
+        <div className="mt-6 flex justify-end gap-3">
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={archive.isPending}>
+            إلغاء
+          </button>
+          <button type="submit" className="btn-primary" disabled={archive.isPending || !confirmed || reason.trim().length < 5}>
+            {archive.isPending ? 'جارٍ الأرشفة…' : 'تأكيد الأرشفة'}
+          </button>
+        </div>
+      </form>
+    </div>,
+    document.body,
+  );
 }
 
 // ---------------------------------------------------------------------------
 // ChangeManagerDialog — تغيير المدير المباشر
 // ---------------------------------------------------------------------------
-function ChangeManagerDialog({ employeeId, currentManagerName, onClose, onSuccess }: { employeeId: string; currentManagerName: string | null; onClose: () => void; onSuccess: () => void }) {
+function ChangeManagerDialog({
+  employeeId,
+  currentManagerName,
+  onClose,
+  onSuccess,
+}: {
+  employeeId: string;
+  currentManagerName: string | null;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
   const { data: employees } = useEmployees();
   const changeManager = useChangeManager();
   const [selectedManagerId, setSelectedManagerId] = useState<string>('');
@@ -370,19 +549,20 @@ function ChangeManagerDialog({ employeeId, currentManagerName, onClose, onSucces
         <h2 className="text-lg font-black">تغيير المدير المباشر</h2>
         <p className="muted mt-2 text-sm">المدير الحالي: {currentManagerName ?? 'غير معين'}</p>
 
-        {error ? <div className="mt-4"><ErrorBanner message={error} /></div> : null}
+        {error ? (
+          <div className="mt-4">
+            <ErrorBanner message={error} />
+          </div>
+        ) : null}
 
         <label className="mt-4 block">
           <span className="mb-1.5 block text-sm font-semibold">اختر المدير الجديد</span>
-          <select
-            className="input w-full"
-            value={selectedManagerId}
-            onChange={(e) => setSelectedManagerId(e.target.value)}
-            disabled={changeManager.isPending}
-          >
+          <select className="input w-full" value={selectedManagerId} onChange={(e) => setSelectedManagerId(e.target.value)} disabled={changeManager.isPending}>
             <option value="">بدون مدير مباشر</option>
             {availableManagers.map((emp) => (
-              <option key={emp.id} value={emp.id}>{emp.fullNameAr} ({emp.employeeCode})</option>
+              <option key={emp.id} value={emp.id}>
+                {emp.fullNameAr} ({emp.employeeCode})
+              </option>
             ))}
           </select>
         </label>
@@ -400,7 +580,9 @@ function ChangeManagerDialog({ employeeId, currentManagerName, onClose, onSucces
         </label>
 
         <div className="mt-6 flex justify-end gap-3">
-          <button type="button" onClick={onClose} disabled={changeManager.isPending} className="btn-secondary">إلغاء</button>
+          <button type="button" onClick={onClose} disabled={changeManager.isPending} className="btn-secondary">
+            إلغاء
+          </button>
           <button type="submit" disabled={changeManager.isPending || reason.trim().length < 3} className="btn-primary">
             {changeManager.isPending ? 'جارٍ الحفظ...' : 'حفظ التغييرات'}
           </button>
@@ -414,7 +596,17 @@ function ChangeManagerDialog({ employeeId, currentManagerName, onClose, onSucces
 // ---------------------------------------------------------------------------
 // DeleteEmployeeDialog — حذف الموظف نهائياً
 // ---------------------------------------------------------------------------
-function DeleteEmployeeDialog({ employeeId, employeeName, onClose, onSuccess }: { employeeId: string; employeeName: string; onClose: () => void; onSuccess: () => void }) {
+function DeleteEmployeeDialog({
+  employeeId,
+  employeeName,
+  onClose,
+  onSuccess,
+}: {
+  employeeId: string;
+  employeeName: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
   const deleteEmployee = useDeleteEmployee();
   const [confirmText, setConfirmText] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -431,10 +623,17 @@ function DeleteEmployeeDialog({ employeeId, employeeName, onClose, onSuccess }: 
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <form onSubmit={(e) => void onSubmit(e)} className="card w-full max-w-md space-y-4 p-6" role="dialog" aria-modal="true">
         <h2 className="text-lg font-black text-[var(--danger)]">⚠️ حذف الموظف نهائياً</h2>
-        <p className="text-sm">سيتم حذف <strong>{employeeName}</strong> نهائياً من النظام. لا يمكن التراجع عن هذا الإجراء.</p>
+        <p className="text-sm">
+          سيتم حذف <strong>{employeeName}</strong> نهائياً من النظام. لا يمكن التراجع عن هذا الإجراء.
+        </p>
         {error ? <ErrorBanner message={error} /> : null}
         <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">اكتب «حذف» للتأكيد</span>
@@ -447,8 +646,14 @@ function DeleteEmployeeDialog({ employeeId, employeeName, onClose, onSuccess }: 
           />
         </label>
         <div className="flex justify-end gap-3">
-          <button type="button" onClick={onClose} disabled={deleteEmployee.isPending} className="btn-secondary">إلغاء</button>
-          <button type="submit" disabled={deleteEmployee.isPending || confirmText !== 'حذف'} className="btn-primary bg-[var(--danger)] hover:bg-[var(--danger)]">
+          <button type="button" onClick={onClose} disabled={deleteEmployee.isPending} className="btn-secondary">
+            إلغاء
+          </button>
+          <button
+            type="submit"
+            disabled={deleteEmployee.isPending || confirmText !== 'حذف'}
+            className="btn-primary bg-[var(--danger)] hover:bg-[var(--danger)]"
+          >
             {deleteEmployee.isPending ? 'جارٍ الحذف...' : 'حذف نهائي'}
           </button>
         </div>
@@ -489,27 +694,50 @@ function AddDepartmentDialog({ employeeId, onClose, onSuccess }: { employeeId: s
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <form onSubmit={(e) => void onSubmit(e)} className="card w-full max-w-md space-y-4 p-6" role="dialog" aria-modal="true">
         <h2 className="text-lg font-black">إضافة إدارة للموظف</h2>
         {error ? <ErrorBanner message={error} /> : null}
         <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">الإدارة</span>
-          <select className="input w-full" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} required disabled={assignDept.isPending || lookups.isLoading}>
+          <select
+            className="input w-full"
+            value={departmentId}
+            onChange={(e) => setDepartmentId(e.target.value)}
+            required
+            disabled={assignDept.isPending || lookups.isLoading}
+          >
             <option value="">اختر إدارة…</option>
-            {departments.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.label}
+              </option>
+            ))}
           </select>
         </label>
         <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">المسمى الوظيفي في هذه الإدارة (اختياري)</span>
-          <input className="input w-full" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} disabled={assignDept.isPending} placeholder="مثال: مسؤول مشتريات" />
+          <input
+            className="input w-full"
+            value={jobTitle}
+            onChange={(e) => setJobTitle(e.target.value)}
+            disabled={assignDept.isPending}
+            placeholder="مثال: مسؤول مشتريات"
+          />
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={isPrimary} onChange={(e) => setIsPrimary(e.target.checked)} disabled={assignDept.isPending} />
           <span>تعيين كإدارة أساسية</span>
         </label>
         <div className="flex justify-end gap-3">
-          <button type="button" onClick={onClose} disabled={assignDept.isPending} className="btn-secondary">إلغاء</button>
+          <button type="button" onClick={onClose} disabled={assignDept.isPending} className="btn-secondary">
+            إلغاء
+          </button>
           <button type="submit" disabled={assignDept.isPending || !departmentId} className="btn-primary">
             {assignDept.isPending ? 'جارٍ الإضافة...' : 'إضافة'}
           </button>
@@ -550,17 +778,16 @@ export function EmployeeDetailPage() {
   }
 
   const canInvite = Boolean(auth.access && hasPermission(auth.access, 'people.employee.create'));
-  const canEdit = Boolean(auth.access && (
-    hasPermission(auth.access, 'people.employee.update_sensitive')
-    || hasPermission(auth.access, 'people.employee.update_basic')
-  ));
-  const accountPending = PENDING_ACCOUNT_STATES.has((item.accountStatus ?? '').toLowerCase())
-    || PENDING_ACCOUNT_STATES.has((item.status ?? '').toLowerCase());
+  const canEdit = Boolean(
+    auth.access && (hasPermission(auth.access, 'people.employee.update_sensitive') || hasPermission(auth.access, 'people.employee.update_basic')),
+  );
+  const accountPending = PENDING_ACCOUNT_STATES.has((item.accountStatus ?? '').toLowerCase()) || PENDING_ACCOUNT_STATES.has((item.status ?? '').toLowerCase());
   const showResend = canInvite && accountPending && Boolean(employeeId);
 
   const onResend = async () => {
     if (!employeeId) return;
-    setResendMessage(null); setResendError(null);
+    setResendMessage(null);
+    setResendError(null);
     try {
       const msg = await resend.mutateAsync(employeeId);
       setResendMessage(msg);
@@ -577,23 +804,58 @@ export function EmployeeDetailPage() {
       <PageHeader
         title="ملف الموظف 360°"
         description="ملخص موحّد للبيانات الوظيفية والحضور والطلبات والأداء والمستندات والعهد، بعد تطبيق RLS والنطاق الفعلي."
-        actions={<div className="flex flex-wrap gap-2">
-          {showResend ? <button type="button" className="btn-secondary" disabled={resend.isPending} onClick={() => void onResend()}><MailCheck className="size-4" aria-hidden="true" />{resend.isPending ? 'جارٍ الإرسال…' : 'إعادة إرسال دعوة التفعيل'}</button> : null}
-          {canEdit ? <button type="button" className="btn-primary" onClick={() => setShowEditDialog(true)}><Pencil className="size-4" aria-hidden="true" />تعديل البيانات</button> : null}
-          {canEdit && item.isActive ? <button type="button" className="btn-secondary text-[var(--danger)]" onClick={() => setShowArchiveDialog(true)}><Archive className="size-4" aria-hidden="true" />أرشفة الموظف</button> : null}
-          {canEdit ? <button type="button" className="btn-secondary text-[var(--danger)]" onClick={() => setShowDeleteDialog(true)}><Trash2 className="size-4" aria-hidden="true" />حذف الموظف</button> : null}
-          <Link to="/hr/employees" className="btn-secondary"><ArrowRight className="size-4" aria-hidden="true" />عودة للموظفين</Link>
-        </div>}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            {showResend ? (
+              <button type="button" className="btn-secondary" disabled={resend.isPending} onClick={() => void onResend()}>
+                <MailCheck className="size-4" aria-hidden="true" />
+                {resend.isPending ? 'جارٍ الإرسال…' : 'إعادة إرسال دعوة التفعيل'}
+              </button>
+            ) : null}
+            {canEdit ? (
+              <button type="button" className="btn-primary" onClick={() => setShowEditDialog(true)}>
+                <Pencil className="size-4" aria-hidden="true" />
+                تعديل البيانات
+              </button>
+            ) : null}
+            {canEdit && item.isActive ? (
+              <button type="button" className="btn-secondary text-[var(--danger)]" onClick={() => setShowArchiveDialog(true)}>
+                <Archive className="size-4" aria-hidden="true" />
+                أرشفة الموظف
+              </button>
+            ) : null}
+            {canEdit ? (
+              <button type="button" className="btn-secondary text-[var(--danger)]" onClick={() => setShowDeleteDialog(true)}>
+                <Trash2 className="size-4" aria-hidden="true" />
+                حذف الموظف
+              </button>
+            ) : null}
+            <Link to="/hr/employees" className="btn-secondary">
+              <ArrowRight className="size-4" aria-hidden="true" />
+              عودة للموظفين
+            </Link>
+          </div>
+        }
       />
 
-      {resendMessage ? <div className="flex gap-2 rounded-xl border border-[var(--success)] bg-[var(--success-soft)] p-4 text-sm text-[var(--success)]"><MailCheck className="size-5 shrink-0" aria-hidden="true" />{resendMessage}</div> : null}
+      {resendMessage ? (
+        <div className="flex gap-2 rounded-xl border border-[var(--success)] bg-[var(--success-soft)] p-4 text-sm text-[var(--success)]">
+          <MailCheck className="size-5 shrink-0" aria-hidden="true" />
+          {resendMessage}
+        </div>
+      ) : null}
       {resendError ? <ErrorBanner message={resendError} /> : null}
 
       <section className="card flex flex-col gap-5 p-5 lg:flex-row lg:items-center">
         <UserAvatar displayName={item.fullNameAr} photoUrl={item.photoUrl} size="lg" eager />
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-3"><h2 className="text-2xl font-black">{item.fullNameAr}</h2><StatusBadge status={item.status} /></div>
-          <p className="muted mt-1">{item.jobTitle ?? item.position ?? 'بدون مسمى وظيفي'} • {item.employeeCode}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-2xl font-black">{item.fullNameAr}</h2>
+            <StatusBadge status={item.status} />
+          </div>
+          <p className="muted mt-1">
+            {item.jobTitle ?? item.position ?? 'بدون مسمى وظيفي'} • {item.employeeCode}
+          </p>
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
             <Info icon={Network} label={item.department ?? 'بدون إدارة'} />
             <Info icon={UsersRound} label={item.team ?? 'بدون فريق'} />
@@ -604,13 +866,23 @@ export function EmployeeDetailPage() {
         <div className="rounded-2xl bg-[var(--surface-muted)] p-4 text-sm lg:min-w-64">
           <p className="font-black">العلاقة الإدارية</p>
           <div className="mt-2 flex items-center justify-between gap-2">
-            <p className="muted">المدير المباشر: <span className="font-bold text-[var(--text)]">{item.managerName ?? 'غير معين'}</span></p>
-            {canEdit ? <button type="button" onClick={() => setShowManagerDialog(true)} className="text-brand font-bold text-xs">تغيير</button> : null}
+            <p className="muted">
+              المدير المباشر: <span className="font-bold text-[var(--text)]">{item.managerName ?? 'غير معين'}</span>
+            </p>
+            {canEdit ? (
+              <button type="button" onClick={() => setShowManagerDialog(true)} className="text-brand font-bold text-xs">
+                تغيير
+              </button>
+            ) : null}
           </div>
           <p className="muted mt-1">المرؤوسون المباشرون: {item.directReports}</p>
           <div className="mt-1 flex items-center justify-between gap-2">
             <p className="muted">الأدوار: {item.roles.map((role) => role.name).join('، ') || 'لا توجد'}</p>
-            {hasPermission(auth.access!, 'access.role.read') ? <Link to="/admin/access" className="text-brand font-bold text-xs">إدارة الصلاحيات</Link> : null}
+            {hasPermission(auth.access!, 'access.role.read') ? (
+              <Link to="/admin/access" className="text-brand font-bold text-xs">
+                إدارة الصلاحيات
+              </Link>
+            ) : null}
           </div>
         </div>
       </section>
@@ -619,7 +891,12 @@ export function EmployeeDetailPage() {
         <MetricCard label="أيام الحضور — 30 يومًا" value={item.attendance30.present} hint={`${item.attendance30.lateDays} أيام تأخير`} icon={BadgeCheck} />
         <MetricCard label="أيام الغياب" value={item.attendance30.absent} icon={Clock3} />
         <MetricCard label="الطلبات المعلقة" value={item.requestCounts.pending} hint={`${item.requestCounts.approved} معتمدة`} icon={FileText} />
-        <MetricCard label="أحدث تقييم" value={item.latestKpi?.finalScore ?? item.latestKpi?.currentStage ?? '—'} hint={item.latestKpi?.finalRating ?? undefined} icon={Gauge} />
+        <MetricCard
+          label="أحدث تقييم"
+          value={item.latestKpi?.finalScore ?? item.latestKpi?.currentStage ?? '—'}
+          hint={item.latestKpi?.finalRating ?? undefined}
+          icon={Gauge}
+        />
       </section>
 
       <section className="grid gap-5 xl:grid-cols-2">
@@ -641,35 +918,70 @@ export function EmployeeDetailPage() {
             {item.documents.length === 0 ? <p className="muted text-sm">لا توجد مستندات متاحة.</p> : null}
             {item.documents.slice(0, 5).map((doc) => (
               <div key={doc.id} className="flex items-center justify-between rounded-xl bg-[var(--surface-muted)] p-3">
-                <div><p className="font-bold">{doc.title}</p><p className="muted mt-1 text-xs">{doc.expiryDate ? `ينتهي ${dateFormatter.format(new Date(doc.expiryDate))}` : doc.type}</p></div>
+                <div>
+                  <p className="font-bold">{doc.title}</p>
+                  <p className="muted mt-1 text-xs">{doc.expiryDate ? `ينتهي ${dateFormatter.format(new Date(doc.expiryDate))}` : doc.type}</p>
+                </div>
                 <StatusBadge value={doc.status} />
               </div>
             ))}
-            {item.assets.filter((asset) => !asset.returnedAt).map((asset) => (
-              <div key={asset.id} className="flex items-center justify-between rounded-xl border border-[var(--border)] p-3">
-                <div><p className="font-bold">{asset.assetName}</p><p className="muted mt-1 text-xs">{asset.serial ?? asset.assetType}</p></div><BriefcaseBusiness className="size-5 text-[var(--text-muted)]" aria-label="عهدة قيد الاستلام" />
-              </div>
-            ))}
+            {item.assets
+              .filter((asset) => !asset.returnedAt)
+              .map((asset) => (
+                <div key={asset.id} className="flex items-center justify-between rounded-xl border border-[var(--border)] p-3">
+                  <div>
+                    <p className="font-bold">{asset.assetName}</p>
+                    <p className="muted mt-1 text-xs">{asset.serial ?? asset.assetType}</p>
+                  </div>
+                  <BriefcaseBusiness className="size-5 text-[var(--text-muted)]" aria-label="عهدة قيد الاستلام" />
+                </div>
+              ))}
           </div>
         </article>
       </section>
 
       <section className="grid gap-5 xl:grid-cols-2">
         <article className="card overflow-hidden">
-          <div className="border-b border-[var(--border)] p-5"><h3 className="font-black">أحدث الطلبات</h3></div>
+          <div className="border-b border-[var(--border)] p-5">
+            <h3 className="font-black">أحدث الطلبات</h3>
+          </div>
           <div className="divide-y divide-[var(--border)]">
-            {item.recentRequests.length === 0 ? <p className="muted p-5 text-sm">لا توجد طلبات.</p> : item.recentRequests.map((request) => (
-              <div key={request.id} className="flex items-center justify-between gap-3 p-4"><div><p className="font-bold">{request.title ?? request.requestType}</p><p className="muted mt-1 text-xs">طلب #{request.requestNumber} • {dateFormatter.format(new Date(request.createdAt))}</p></div><StatusBadge value={request.status} /></div>
-            ))}
+            {item.recentRequests.length === 0 ? (
+              <p className="muted p-5 text-sm">لا توجد طلبات.</p>
+            ) : (
+              item.recentRequests.map((request) => (
+                <div key={request.id} className="flex items-center justify-between gap-3 p-4">
+                  <div>
+                    <p className="font-bold">{request.title ?? request.requestType}</p>
+                    <p className="muted mt-1 text-xs">
+                      طلب #{request.requestNumber} • {dateFormatter.format(new Date(request.createdAt))}
+                    </p>
+                  </div>
+                  <StatusBadge value={request.status} />
+                </div>
+              ))
+            )}
           </div>
         </article>
 
         <article className="card overflow-hidden">
-          <div className="border-b border-[var(--border)] p-5"><h3 className="font-black">أحدث المهام</h3></div>
+          <div className="border-b border-[var(--border)] p-5">
+            <h3 className="font-black">أحدث المهام</h3>
+          </div>
           <div className="divide-y divide-[var(--border)]">
-            {item.recentTasks.length === 0 ? <p className="muted p-5 text-sm">لا توجد مهام.</p> : item.recentTasks.map((task) => (
-              <div key={task.id} className="flex items-center justify-between gap-3 p-4"><div><p className="font-bold">{task.title}</p><p className="muted mt-1 text-xs">{task.dueDate ? `الاستحقاق ${dateFormatter.format(new Date(task.dueDate))}` : 'بدون موعد'}</p></div><StatusBadge value={task.status} /></div>
-            ))}
+            {item.recentTasks.length === 0 ? (
+              <p className="muted p-5 text-sm">لا توجد مهام.</p>
+            ) : (
+              item.recentTasks.map((task) => (
+                <div key={task.id} className="flex items-center justify-between gap-3 p-4">
+                  <div>
+                    <p className="font-bold">{task.title}</p>
+                    <p className="muted mt-1 text-xs">{task.dueDate ? `الاستحقاق ${dateFormatter.format(new Date(task.dueDate))}` : 'بدون موعد'}</p>
+                  </div>
+                  <StatusBadge value={task.status} />
+                </div>
+              ))
+            )}
           </div>
         </article>
       </section>
@@ -680,7 +992,10 @@ export function EmployeeDetailPage() {
       {/* كشف الحضور والانصراف الشهري (V12 §18) */}
       {employeeId && <MonthlyStatementSection employeeId={employeeId} />}
 
-      <p className="muted flex items-center gap-2 text-xs"><CalendarDays className="size-4" aria-hidden="true" />آخر تحديث: {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.lastUpdatedAt))}</p>
+      <p className="muted flex items-center gap-2 text-xs">
+        <CalendarDays className="size-4" aria-hidden="true" />
+        آخر تحديث: {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.lastUpdatedAt))}
+      </p>
 
       {showManagerDialog && employeeId && (
         <ChangeManagerDialog
@@ -695,15 +1010,24 @@ export function EmployeeDetailPage() {
         />
       )}
       {showArchiveDialog && employeeId && (
-        <ArchiveEmployeeDialog employeeId={employeeId} employeeName={item.fullNameAr}
+        <ArchiveEmployeeDialog
+          employeeId={employeeId}
+          employeeName={item.fullNameAr}
           onClose={() => setShowArchiveDialog(false)}
-          onSuccess={() => { setShowArchiveDialog(false); void query.refetch(); }} />
+          onSuccess={() => {
+            setShowArchiveDialog(false);
+            void query.refetch();
+          }}
+        />
       )}
       {showEditDialog && employeeId && (
         <EditEmployeeDialog
           item={item}
           onClose={() => setShowEditDialog(false)}
-          onSuccess={() => { setShowEditDialog(false); void query.refetch(); }}
+          onSuccess={() => {
+            setShowEditDialog(false);
+            void query.refetch();
+          }}
         />
       )}
       {showDeleteDialog && employeeId && (
@@ -711,14 +1035,20 @@ export function EmployeeDetailPage() {
           employeeId={employeeId}
           employeeName={item.fullNameAr}
           onClose={() => setShowDeleteDialog(false)}
-          onSuccess={() => { setShowDeleteDialog(false); void navigate('/hr/employees'); }}
+          onSuccess={() => {
+            setShowDeleteDialog(false);
+            void navigate('/hr/employees');
+          }}
         />
       )}
       {showAddDeptDialog && employeeId && (
         <AddDepartmentDialog
           employeeId={employeeId}
           onClose={() => setShowAddDeptDialog(false)}
-          onSuccess={() => { setShowAddDeptDialog(false); void query.refetch(); }}
+          onSuccess={() => {
+            setShowAddDeptDialog(false);
+            void query.refetch();
+          }}
         />
       )}
     </div>

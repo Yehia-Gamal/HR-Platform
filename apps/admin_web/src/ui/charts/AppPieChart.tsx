@@ -21,10 +21,7 @@ export function AppPieChart({
   const palette = getChartColors();
   const total = data.reduce((s, d) => s + d.value, 0);
 
-  const formatAr = useCallback(
-    (v: number) => new Intl.NumberFormat('ar-SA').format(v),
-    [],
-  );
+  const formatAr = useCallback((v: number) => new Intl.NumberFormat('ar-SA').format(v), []);
 
   /** تسمية عربية مخصصة — الاسم + النسبة المئوية */
   const renderLabel = useCallback(
@@ -78,14 +75,7 @@ export function AppPieChart({
         ))}
       </Pie>
 
-      <Tooltip
-        contentStyle={TOOLTIP_STYLE}
-        formatter={(value: unknown, name: unknown) => [
-          formatAr(Number(value ?? 0)),
-          String(name ?? ''),
-        ]}
-        separator=" : "
-      />
+      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(value: unknown, name: unknown) => [formatAr(Number(value ?? 0)), String(name ?? '')]} separator=" : " />
 
       <Legend
         verticalAlign="bottom"

@@ -27,21 +27,24 @@ export function EmployeesPage() {
   const pageSize = 25;
   const employees = useEmployees(search, status);
   const canCreate = hasPermission(auth.access!, 'people.employee.create');
-  const all = employees.data ?? [];
+  const all = useMemo(() => employees.data ?? [], [employees.data]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return all.filter((employee) => {
-      const matchesQuery = !query
-        || employee.fullNameAr.toLowerCase().includes(query)
-        || employee.employeeCode.toLowerCase().includes(query)
-        || employee.phoneE164?.includes(query);
-      return matchesQuery && (status === 'all' || employee.status === status);
-    }).sort((a, b) => {
-      if (sort === 'name') return a.fullNameAr.localeCompare(b.fullNameAr, 'ar');
-      if (sort === 'code') return a.employeeCode.localeCompare(b.employeeCode);
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
+    return all
+      .filter((employee) => {
+        const matchesQuery =
+          !query ||
+          employee.fullNameAr.toLowerCase().includes(query) ||
+          employee.employeeCode.toLowerCase().includes(query) ||
+          employee.phoneE164?.includes(query);
+        return matchesQuery && (status === 'all' || employee.status === status);
+      })
+      .sort((a, b) => {
+        if (sort === 'name') return a.fullNameAr.localeCompare(b.fullNameAr, 'ar');
+        if (sort === 'code') return a.employeeCode.localeCompare(b.employeeCode);
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
   }, [all, search, sort, status]);
 
   const active = all.filter((employee) => employee.status === 'active' || employee.status === 'invited').length;
@@ -49,66 +52,73 @@ export function EmployeesPage() {
   const inactive = all.filter((employee) => ['suspended', 'terminated', 'archived'].includes(employee.status)).length;
 
   /* إعادة الصفحة للأولى عند تغيّر البحث أو التصفية أو الترتيب */
-  useEffect(() => { setPage(1); }, [search, status, sort]);
+  useEffect(() => {
+    setPage(1);
+  }, [search, status, sort]);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const columns: DataTableColumn<(typeof filtered)[number]>[] = useMemo(() => [
-    {
-      key: 'fullNameAr',
-      header: 'الموظف',
-      render: (emp) => (
-        <div className="flex items-center gap-3">
-          <UserAvatar displayName={emp.fullNameAr} photoUrl={emp.photoUrl} announceName={false} />
-          <div className="min-w-0">
-            <Link to={`/hr/employees/${emp.id}`} className="block truncate font-black hover:text-[var(--brand-primary)]">{emp.fullNameAr}</Link>
+  const columns: DataTableColumn<(typeof filtered)[number]>[] = useMemo(
+    () => [
+      {
+        key: 'fullNameAr',
+        header: 'الموظف',
+        render: (emp) => (
+          <div className="flex items-center gap-3">
+            <UserAvatar displayName={emp.fullNameAr} photoUrl={emp.photoUrl} announceName={false} />
+            <div className="min-w-0">
+              <Link to={`/hr/employees/${emp.id}`} className="block truncate font-black hover:text-[var(--brand-primary)]">
+                {emp.fullNameAr}
+              </Link>
+            </div>
           </div>
-        </div>
-      ),
-    },
-    {
-      key: 'employeeCode',
-      header: 'الكود',
-      render: (emp) => <span className="font-mono text-xs">{emp.employeeCode}</span>,
-    },
-    {
-      key: 'department',
-      header: 'الإدارة',
-      render: (emp) => <span className="text-sm">{emp.department ?? '—'}</span>,
-    },
-    {
-      key: 'jobTitle',
-      header: 'المسمى الوظيفي',
-      render: (emp) => <span className="text-sm">{emp.jobTitle ?? '—'}</span>,
-    },
-    {
-      key: 'phoneE164',
-      header: 'الهاتف',
-      render: (emp) => <span dir="ltr">{emp.phoneE164 ?? '—'}</span>,
-    },
-    {
-      key: 'status',
-      header: 'الحالة',
-      render: (emp) => <StatusBadge status={emp.status} />,
-    },
-    {
-      key: 'createdAt',
-      header: 'تاريخ الإضافة',
-      render: (emp) => (
-        <span className="text-[var(--text-muted)]">
-          {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' }).format(new Date(emp.createdAt))}
-        </span>
-      ),
-    },
-    {
-      key: 'actions',
-      header: '',
-      render: (emp) => (
-        <Link to={`/hr/employees/${emp.id}`} className="btn-secondary !px-3 !py-2 text-xs">فتح الملف</Link>
-      ),
-    },
-  ], []);
+        ),
+      },
+      {
+        key: 'employeeCode',
+        header: 'الكود',
+        render: (emp) => <span className="font-mono text-xs">{emp.employeeCode}</span>,
+      },
+      {
+        key: 'department',
+        header: 'الإدارة',
+        render: (emp) => <span className="text-sm">{emp.department ?? '—'}</span>,
+      },
+      {
+        key: 'jobTitle',
+        header: 'المسمى الوظيفي',
+        render: (emp) => <span className="text-sm">{emp.jobTitle ?? '—'}</span>,
+      },
+      {
+        key: 'phoneE164',
+        header: 'الهاتف',
+        render: (emp) => <span dir="ltr">{emp.phoneE164 ?? '—'}</span>,
+      },
+      {
+        key: 'status',
+        header: 'الحالة',
+        render: (emp) => <StatusBadge status={emp.status} />,
+      },
+      {
+        key: 'createdAt',
+        header: 'تاريخ الإضافة',
+        render: (emp) => (
+          <span className="text-[var(--text-muted)]">{new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' }).format(new Date(emp.createdAt))}</span>
+        ),
+      },
+      {
+        key: 'actions',
+        header: '',
+        render: (emp) => (
+          <Link to={`/hr/employees/${emp.id}`} className="btn-secondary !px-3 !py-2 text-xs">
+            فتح الملف
+          </Link>
+        ),
+      },
+    ],
+    [],
+  );
 
   return (
     <div className="space-y-5">
@@ -116,12 +126,24 @@ export function EmployeesPage() {
         eyebrow="إدارة الأفراد"
         title="دليل الموظفين"
         description="ابحث في ملفات الموظفين وافتح ملف 360°، مع احترام نطاق الوصول الذي يطبقه الخادم."
-        actions={canCreate ? <Link to="/hr/employees/new" className="btn-primary"><Plus className="size-4" aria-hidden="true" />إنشاء موظف</Link> : undefined}
+        actions={
+          canCreate ? (
+            <Link to="/hr/employees/new" className="btn-primary">
+              <Plus className="size-4" aria-hidden="true" />
+              إنشاء موظف
+            </Link>
+          ) : undefined
+        }
       />
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="إجمالي الملفات" value={all.length} icon={UsersRound} hint="جميع الحالات داخل نطاقك" />
-        <MetricCard label="موظفون نشطون" value={active} icon={UserRound} hint={all.length ? `${Math.round((active / all.length) * 100)}% من الملفات` : 'لا توجد بيانات'} />
+        <MetricCard
+          label="موظفون نشطون"
+          value={active}
+          icon={UserRound}
+          hint={all.length ? `${Math.round((active / all.length) * 100)}% من الملفات` : 'لا توجد بيانات'}
+        />
         <MetricCard label="تهيئة ودعوات" value={onboarding} icon={RefreshCw} hint="لم تكتمل رحلة التفعيل" />
         <MetricCard label="موقوف أو منتهي" value={inactive} icon={ArrowUpDown} hint="سجلات محفوظة للتاريخ والتدقيق" />
       </section>
@@ -132,39 +154,48 @@ export function EmployeesPage() {
         searchPlaceholder="بحث بالاسم أو الكود أو الهاتف"
         resultText={`عرض ${filtered.length} من ${all.length} ملف`}
         isDirty={Boolean(search || status !== 'all' || sort !== 'newest')}
-        onClear={() => { setSearch(''); setStatus('all'); setSort('newest'); }}
+        onClear={() => {
+          setSearch('');
+          setStatus('all');
+          setSort('newest');
+        }}
       >
-          <select className="input" value={status} onChange={(event) => setStatus(event.target.value)} aria-label="تصفية حسب الحالة">
-            <option value="all">كل الحالات</option>
-            <option value="active">نشط</option>
-            <option value="onboarding">قيد التهيئة</option>
-            <option value="suspended">موقوف</option>
-            <option value="notice_period">فترة إخطار</option>
-            <option value="terminated">منتهي</option>
-            <option value="archived">مؤرشف</option>
-          </select>
-          <select className="input" value={sort} onChange={(event) => setSort(event.target.value as SortMode)} aria-label="ترتيب الموظفين">
-            <option value="newest">الأحدث إضافة</option>
-            <option value="name">الاسم أبجديًا</option>
-            <option value="code">كود الموظف</option>
-          </select>
-          <button onClick={() => void employees.refetch()} className="btn-secondary" disabled={employees.isFetching} aria-busy={employees.isFetching}>
-            <RefreshCw className={`size-4 ${employees.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />تحديث
-          </button>
+        <select className="input" value={status} onChange={(event) => setStatus(event.target.value)} aria-label="تصفية حسب الحالة">
+          <option value="all">كل الحالات</option>
+          <option value="active">نشط</option>
+          <option value="onboarding">قيد التهيئة</option>
+          <option value="suspended">موقوف</option>
+          <option value="notice_period">فترة إخطار</option>
+          <option value="terminated">منتهي</option>
+          <option value="archived">مؤرشف</option>
+        </select>
+        <select className="input" value={sort} onChange={(event) => setSort(event.target.value as SortMode)} aria-label="ترتيب الموظفين">
+          <option value="newest">الأحدث إضافة</option>
+          <option value="name">الاسم أبجديًا</option>
+          <option value="code">كود الموظف</option>
+        </select>
+        <button onClick={() => void employees.refetch()} className="btn-secondary" disabled={employees.isFetching} aria-busy={employees.isFetching}>
+          <RefreshCw className={`size-4 ${employees.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
+          تحديث
+        </button>
       </FilterBar>
 
       {employees.isError ? (
-        <ErrorState
-          description={safeErrorMessage(employees.error)}
-          onRetry={() => void employees.refetch()}
-        />
+        <ErrorState description={safeErrorMessage(employees.error)} onRetry={() => void employees.refetch()} />
       ) : employees.isLoading ? (
         <ListSkeleton rows={5} label="جارٍ تحميل الموظفين…" />
       ) : all.length === 0 ? (
         <EmptyState
           title="لا يوجد موظفون بعد"
           description="لم تتم إضافة أي ملف موظف داخل نطاقك حتى الآن."
-          action={canCreate ? <Link to="/hr/employees/new" className="btn-primary"><Plus className="size-4" aria-hidden="true" />إنشاء موظف</Link> : undefined}
+          action={
+            canCreate ? (
+              <Link to="/hr/employees/new" className="btn-primary">
+                <Plus className="size-4" aria-hidden="true" />
+                إنشاء موظف
+              </Link>
+            ) : undefined
+          }
         />
       ) : (
         <>
@@ -177,15 +208,7 @@ export function EmployeesPage() {
             ariaLabel="جدول الموظفين"
             minWidth="1020px"
           />
-          {totalPages > 1 && (
-            <Pagination
-              currentPage={page}
-              totalPages={totalPages}
-              totalItems={filtered.length}
-              pageSize={pageSize}
-              onPageChange={setPage}
-            />
-          )}
+          {totalPages > 1 && <Pagination currentPage={page} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} />}
         </>
       )}
     </div>

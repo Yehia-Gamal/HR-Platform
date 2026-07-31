@@ -22,14 +22,21 @@ export function useAdvanceKpi() {
   const auth = useAuth();
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async ({ evaluationId, action, note, scores }: { evaluationId: string; action: string; note: string; scores?: Array<{ criterion_id: string; score: number; note: string }> }) => {
+    mutationFn: async ({
+      evaluationId,
+      action,
+      note,
+      scores,
+    }: {
+      evaluationId: string;
+      action: string;
+      note: string;
+      scores?: Array<{ criterion_id: string; score: number; note: string }>;
+    }) => {
       if (auth.isMock) return { evaluationId, action };
       return rpc('advance_kpi_stage', { p_evaluation_id: evaluationId, p_action: action, p_scores: scores ?? null, p_note: note || null });
     },
-    onSuccess: () => Promise.all([
-      client.invalidateQueries({ queryKey: ['kpi-evaluations'] }),
-      client.invalidateQueries({ queryKey: ['action-center'] }),
-    ]),
+    onSuccess: () => Promise.all([client.invalidateQueries({ queryKey: ['kpi-evaluations'] }), client.invalidateQueries({ queryKey: ['action-center'] })]),
   });
 }
 
@@ -49,11 +56,7 @@ export function useKpiEvaluationForm(evaluationId: string | null) {
 // مساعد يُرجع خيارات mutation عادية — لا يستدعي hooks.
 // كل hook يستدعي useMutation مباشرة لضمان التوافق مع Rules of Hooks.
 // ---------------------------------------------------------------------------
-function kpiFormMutationOpts(
-  isMock: boolean,
-  name: string,
-  refresh: () => Promise<unknown>,
-) {
+function kpiFormMutationOpts(isMock: boolean, name: string, refresh: () => Promise<unknown>) {
   return {
     mutationFn: async (params: Record<string, unknown>) => {
       if (isMock) return params;
@@ -66,11 +69,12 @@ function kpiFormMutationOpts(
 export function useKpiFormCommands(evaluationId: string) {
   const auth = useAuth();
   const client = useQueryClient();
-  const refresh = () => Promise.all([
-    client.invalidateQueries({ queryKey: ['kpi-evaluation-form', evaluationId] }),
-    client.invalidateQueries({ queryKey: ['kpi-evaluations'] }),
-    client.invalidateQueries({ queryKey: ['kpi-admin'] }),
-  ]);
+  const refresh = () =>
+    Promise.all([
+      client.invalidateQueries({ queryKey: ['kpi-evaluation-form', evaluationId] }),
+      client.invalidateQueries({ queryKey: ['kpi-evaluations'] }),
+      client.invalidateQueries({ queryKey: ['kpi-admin'] }),
+    ]);
   return {
     saveGoal: useMutation(kpiFormMutationOpts(auth.isMock, 'save_kpi_goal', refresh)),
     saveSession: useMutation(kpiFormMutationOpts(auth.isMock, 'save_kpi_review_session', refresh)),

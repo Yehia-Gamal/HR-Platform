@@ -101,5 +101,10 @@ export function StatusBadge({ status, value, label }: { status?: string; value?:
   const key = value ?? status ?? 'unknown';
   const meta = map[key] ?? { label: key, tone: 'neutral' as const, icon: CircleMinus };
   const Icon = meta.icon;
-  return <span className={`status-badge status-${meta.tone}`}><Icon className="size-3.5" aria-hidden="true" />{label ?? meta.label}</span>;
+  return (
+    <span className={`status-badge status-${meta.tone}`}>
+      <Icon className="size-3.5" aria-hidden="true" />
+      {label ?? meta.label}
+    </span>
+  );
 }

@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  recruitmentWorkbenchSchema,
-  reportSchedulerCatalogSchema,
-} from '@ahla/shared-contracts';
+import { recruitmentWorkbenchSchema, reportSchedulerCatalogSchema } from '@ahla/shared-contracts';
 
 /**
  * Validates that the mock data embedded in useEnterpriseOperations conforms
@@ -15,9 +12,35 @@ describe('useEnterpriseOperations mock data', () => {
 
   const mockRecruitment = {
     requisitions: [{ id: id('1'), title: 'أخصائي تشغيل', departmentId: id('2'), departmentName: 'التشغيل', headcount: 2, status: 'approved', createdAt: now }],
-    postings: [{ id: id('3'), requisitionId: id('1'), title: 'أخصائي تشغيل', slug: 'operations-specialist', visibility: 'external', status: 'published', publishedAt: now, closesAt: null }],
-    applications: [{ id: id('4'), candidateId: id('5'), candidateName: 'مرشح تجريبي', postingId: id('3'), jobTitle: 'أخصائي تشغيل', status: 'active', stageId: id('6'), stageName: 'مقابلة', appliedAt: now, assigneeId: null }],
-    candidates: [{ id: id('5'), name: 'مرشح تجريبي', email: 'candidate@example.com', phone: '+201000000000', source: 'referral', tags: ['تشغيل'], createdAt: now }],
+    postings: [
+      {
+        id: id('3'),
+        requisitionId: id('1'),
+        title: 'أخصائي تشغيل',
+        slug: 'operations-specialist',
+        visibility: 'external',
+        status: 'published',
+        publishedAt: now,
+        closesAt: null,
+      },
+    ],
+    applications: [
+      {
+        id: id('4'),
+        candidateId: id('5'),
+        candidateName: 'مرشح تجريبي',
+        postingId: id('3'),
+        jobTitle: 'أخصائي تشغيل',
+        status: 'active',
+        stageId: id('6'),
+        stageName: 'مقابلة',
+        appliedAt: now,
+        assigneeId: null,
+      },
+    ],
+    candidates: [
+      { id: id('5'), name: 'مرشح تجريبي', email: 'candidate@example.com', phone: '+201000000000', source: 'referral', tags: ['تشغيل'], createdAt: now },
+    ],
     stages: [{ id: id('6'), postingId: id('3'), name: 'مقابلة', orderIndex: 3, slaDays: 3 }],
     interviews: [],
     offers: [],

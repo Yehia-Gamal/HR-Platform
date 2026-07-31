@@ -74,16 +74,7 @@ describe('useAttendanceTodayOverview — mock data validation', () => {
   });
 
   it('all numeric fields are non-negative', () => {
-    const numericKeys: (keyof AttendanceTodayOverview)[] = [
-      'totalActive',
-      'expected',
-      'present',
-      'late',
-      'notCheckedIn',
-      'onLeave',
-      'onAssignment',
-      'absent',
-    ];
+    const numericKeys: (keyof AttendanceTodayOverview)[] = ['totalActive', 'expected', 'present', 'late', 'notCheckedIn', 'onLeave', 'onAssignment', 'absent'];
     for (const key of numericKeys) {
       expect(mockOverview[key]).toBeGreaterThanOrEqual(0);
       expect(emptyOverview[key]).toBeGreaterThanOrEqual(0);

@@ -47,7 +47,9 @@ export function WorkspaceSearch({ destinations }: { destinations: SearchDestinat
       <button type="button" className="workspace-search-trigger" onClick={() => setOpen(true)}>
         <Search className="size-4" />
         <span className="hidden lg:inline whitespace-nowrap">بحث سريع في النظام</span>
-        <kbd className="hidden lg:inline-flex"><Command className="size-3" />K</kbd>
+        <kbd className="hidden lg:inline-flex">
+          <Command className="size-3" />K
+        </kbd>
       </button>
       {open ? (
         <div className="command-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
@@ -64,15 +66,19 @@ export function WorkspaceSearch({ destinations }: { destinations: SearchDestinat
               <span className="command-esc">ESC</span>
             </div>
             <div className="command-results">
-              {results.length === 0 ? <p className="p-6 text-center text-sm text-[var(--text-muted)]">لا توجد نتائج مطابقة.</p> : results.map((item) => (
-                <button key={item.to} type="button" onClick={() => choose(item.to)} className="command-result">
-                  <span className="command-result-dot" />
-                  <span className="min-w-0 flex-1 text-start">
-                    <strong className="block truncate text-sm">{item.label}</strong>
-                    <small className="block truncate text-xs text-[var(--text-muted)]">{item.group}</small>
-                  </span>
-                </button>
-              ))}
+              {results.length === 0 ? (
+                <p className="p-6 text-center text-sm text-[var(--text-muted)]">لا توجد نتائج مطابقة.</p>
+              ) : (
+                results.map((item) => (
+                  <button key={item.to} type="button" onClick={() => choose(item.to)} className="command-result">
+                    <span className="command-result-dot" />
+                    <span className="min-w-0 flex-1 text-start">
+                      <strong className="block truncate text-sm">{item.label}</strong>
+                      <small className="block truncate text-xs text-[var(--text-muted)]">{item.group}</small>
+                    </span>
+                  </button>
+                ))
+              )}
             </div>
           </section>
         </div>

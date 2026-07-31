@@ -1,0 +1,8 @@
+[2m5:20:46 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22m[خطأ 2C2E1213] Error: بيانات الدخول غير صحيحة أو الحساب غير متاح.
+    at Object.signIn (http://127.0.0.1:5180/src/features/auth/AuthProvider.tsx?t=1785593961211:110:10)
+    at async http://127.0.0.1:5180/src/features/auth/LoginPage.tsx?t=1785593961211:34:4
+    at async http://127.0.0.1:5180/node_modules/.vite/deps/react-hook-form.js?v=e40f0b70:1896:5
+[2m5:35:46 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22m[خطأ 80AA2252] Error: بيانات الدخول غير صحيحة أو الحساب غير متاح.
+    at Object.signIn (http://127.0.0.1:5180/src/features/auth/AuthProvider.tsx?t=1785593961211:110:10)
+    at async http://127.0.0.1:5180/src/features/auth/LoginPage.tsx?t=1785593961211:34:4
+    at async http://127.0.0.1:5180/node_modules/.vite/deps/react-hook-form.js?v=e40f0b70:1896:5

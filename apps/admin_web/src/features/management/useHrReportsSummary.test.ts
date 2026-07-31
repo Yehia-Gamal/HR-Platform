@@ -50,9 +50,7 @@ describe('useHrReportsSummary — mock data validation', () => {
     });
 
     it('thisMonth <= totalEvents', () => {
-      expect(Number(mockSummary.attendance.thisMonth)).toBeLessThanOrEqual(
-        Number(mockSummary.attendance.totalEvents),
-      );
+      expect(Number(mockSummary.attendance.thisMonth)).toBeLessThanOrEqual(Number(mockSummary.attendance.totalEvents));
     });
   });
 
@@ -96,9 +94,7 @@ describe('useHrReportsSummary — mock data validation', () => {
     });
 
     it('escalated <= open', () => {
-      expect(Number(mockSummary.disputes.escalated)).toBeLessThanOrEqual(
-        Number(mockSummary.disputes.open),
-      );
+      expect(Number(mockSummary.disputes.escalated)).toBeLessThanOrEqual(Number(mockSummary.disputes.open));
     });
   });
 
@@ -111,14 +107,7 @@ describe('useHrReportsSummary — mock data validation', () => {
   });
 
   it('all section values are numbers (not strings)', () => {
-    const sections = [
-      mockSummary.attendance,
-      mockSummary.leaves,
-      mockSummary.assignments,
-      mockSummary.kpi,
-      mockSummary.disputes,
-      mockSummary.location,
-    ];
+    const sections = [mockSummary.attendance, mockSummary.leaves, mockSummary.assignments, mockSummary.kpi, mockSummary.disputes, mockSummary.location];
     for (const section of sections) {
       for (const [, value] of Object.entries(section)) {
         expect(typeof value).toBe('number');

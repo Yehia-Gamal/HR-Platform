@@ -71,9 +71,11 @@ export function useAllDevices(status?: string) {
     enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<AdminDevice[]> => {
       if (auth.isMock) return [];
-      return (await rpc<AdminDevice[]>('get_all_devices_admin', {
-        p_status_filter: status ?? null,
-      })) ?? [];
+      return (
+        (await rpc<AdminDevice[]>('get_all_devices_admin', {
+          p_status_filter: status ?? null,
+        })) ?? []
+      );
     },
   });
 }

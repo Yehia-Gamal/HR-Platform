@@ -13,7 +13,7 @@ beforeEach(() => {
 
   vi.stubGlobal(
     'createImageBitmap',
-    vi.fn((_src: unknown) => Promise.resolve(makeMockBitmap(1024, 1024))),
+    vi.fn(() => Promise.resolve(makeMockBitmap(1024, 1024))),
   );
 
   vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
@@ -22,7 +22,7 @@ beforeEach(() => {
         width: 0,
         height: 0,
         getContext: () => lastCanvasCtx,
-        toBlob: (cb: (b: Blob | null) => void, _type: string, _q: number) => {
+        toBlob: (cb: (b: Blob | null) => void) => {
           cb(new Blob(['fake'], { type: 'image/webp' }));
         },
       } as unknown as HTMLCanvasElement;
@@ -43,9 +43,7 @@ function fakeFile(name: string, type: string, sizeKB = 100): File {
 
 describe('prepareAvatarFile', () => {
   it('يرفض الصيغ غير المدعومة', async () => {
-    await expect(prepareAvatarFile(fakeFile('test.gif', 'image/gif'))).rejects.toThrow(
-      'الصيغة غير مدعومة',
-    );
+    await expect(prepareAvatarFile(fakeFile('test.gif', 'image/gif'))).rejects.toThrow('الصيغة غير مدعومة');
   });
 
   it('يرفض الملفات الأكبر من 5MB', async () => {
@@ -54,12 +52,8 @@ describe('prepareAvatarFile', () => {
   });
 
   it('يرفض الصور الأصغر من 512px', async () => {
-    vi.mocked(globalThis.createImageBitmap).mockResolvedValueOnce(
-      makeMockBitmap(256, 256) as unknown as ImageBitmap,
-    );
-    await expect(prepareAvatarFile(fakeFile('small.png', 'image/png'))).rejects.toThrow(
-      '512×512',
-    );
+    vi.mocked(globalThis.createImageBitmap).mockResolvedValueOnce(makeMockBitmap(256, 256) as unknown as ImageBitmap);
+    await expect(prepareAvatarFile(fakeFile('small.png', 'image/png'))).rejects.toThrow('512×512');
   });
 
   it('يعيد ملف WebP بالاسم الصحيح', async () => {
@@ -78,18 +72,14 @@ describe('prepareAvatarFile', () => {
 
   it('يغلق bitmap بعد المعالجة', async () => {
     const bitmap = makeMockBitmap(1024, 1024);
-    vi.mocked(globalThis.createImageBitmap).mockResolvedValueOnce(
-      bitmap as unknown as ImageBitmap,
-    );
+    vi.mocked(globalThis.createImageBitmap).mockResolvedValueOnce(bitmap as unknown as ImageBitmap);
     await prepareAvatarFile(fakeFile('a.jpg', 'image/jpeg'));
     expect(bitmap.close).toHaveBeenCalledOnce();
   });
 
   it('يغلق bitmap حتى عند حدوث خطأ', async () => {
     const bitmap = makeMockBitmap(100, 100); // too small → will throw
-    vi.mocked(globalThis.createImageBitmap).mockResolvedValueOnce(
-      bitmap as unknown as ImageBitmap,
-    );
+    vi.mocked(globalThis.createImageBitmap).mockResolvedValueOnce(bitmap as unknown as ImageBitmap);
     await expect(prepareAvatarFile(fakeFile('a.jpg', 'image/jpeg'))).rejects.toThrow();
     expect(bitmap.close).toHaveBeenCalledOnce();
   });

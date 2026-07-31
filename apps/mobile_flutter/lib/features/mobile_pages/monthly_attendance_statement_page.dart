@@ -8,13 +8,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // الشهور بالعربية
 const _months = [
-  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
+  'يناير',
+  'فبراير',
+  'مارس',
+  'أبريل',
+  'مايو',
+  'يونيو',
+  'يوليو',
+  'أغسطس',
+  'سبتمبر',
+  'أكتوبر',
+  'نوفمبر',
+  'ديسمبر',
 ];
 
 // رؤوس أيام الأسبوع كاملة (يبدأ بالسبت — معيار المؤسسة)
 const _weekDayHeaders = [
-  'السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة',
+  'السبت',
+  'الأحد',
+  'الاثنين',
+  'الثلاثاء',
+  'الأربعاء',
+  'الخميس',
+  'الجمعة',
 ];
 
 /// كشف الحضور والانصراف الشهري — للموظف عن نفسه (V12 §18).
@@ -72,9 +88,20 @@ class _MonthlyAttendanceStatementPageState
                 Expanded(
                   child: DropdownButtonFormField<int>(
                     value: _month,
-                    decoration:
-                        const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-                    items: List.generate(12, (i) => DropdownMenuItem(value: i + 1, child: Text(_months[i]))),
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                    items: List.generate(
+                      12,
+                      (i) => DropdownMenuItem(
+                        value: i + 1,
+                        child: Text(_months[i]),
+                      ),
+                    ),
                     onChanged: (v) => setState(() => _month = v!),
                   ),
                 ),
@@ -82,10 +109,17 @@ class _MonthlyAttendanceStatementPageState
                 Expanded(
                   child: DropdownButtonFormField<int>(
                     value: _year,
-                    decoration:
-                        const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
                     items: [_now.year, _now.year - 1, _now.year - 2]
-                        .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
+                        .map(
+                          (y) => DropdownMenuItem(value: y, child: Text('$y')),
+                        )
                         .toList(),
                     onChanged: (v) => setState(() => _year = v!),
                   ),
@@ -105,11 +139,17 @@ class _MonthlyAttendanceStatementPageState
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: 40, color: Theme.of(context).colorScheme.error),
+                  Icon(
+                    Icons.error_outline,
+                    size: 40,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                   const SizedBox(height: 8),
                   Text(humanizeError(error), textAlign: TextAlign.center),
                   TextButton(
-                    onPressed: () => ref.invalidate(myMonthlyStatementProvider((_year, _month))),
+                    onPressed: () => ref.invalidate(
+                      myMonthlyStatementProvider((_year, _month)),
+                    ),
                     child: const Text('إعادة المحاولة'),
                   ),
                 ],
@@ -146,8 +186,12 @@ class _StatementBody extends StatelessWidget {
         const SizedBox(height: 16),
 
         // ───── بطاقات الملخص الرئيسية ─────
-        Text('ملخص الشهر',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+        Text(
+          'ملخص الشهر',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 8),
         GridView.count(
           crossAxisCount: 3,
@@ -157,19 +201,53 @@ class _StatementBody extends StatelessWidget {
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
           children: [
-            _MetricTile(icon: Icons.check_circle_outline, label: 'حضور', value: '${s.presentDays}', color: const Color(0xFF0F9F6E)),
-            _MetricTile(icon: Icons.cancel_outlined, label: 'غياب', value: '${s.absentDays}', color: scheme.error),
-            _MetricTile(icon: Icons.beach_access_outlined, label: 'إجازات', value: '${s.leaveDays}', color: const Color(0xFF6366F1)),
-            _MetricTile(icon: Icons.directions_car_outlined, label: 'مأموريات', value: '${s.missionDays}', color: const Color(0xFF0EA5E9)),
-            _MetricTile(icon: Icons.assignment_outlined, label: 'إذنات', value: '${s.permitCount}', color: const Color(0xFFF59E0B)),
-            _MetricTile(icon: Icons.groups_outlined, label: 'قوافل/فاندي', value: '${s.convoyFundiDays}', color: const Color(0xFF8B5CF6)),
+            _MetricTile(
+              icon: Icons.check_circle_outline,
+              label: 'حضور',
+              value: '${s.presentDays}',
+              color: const Color(0xFF0F9F6E),
+            ),
+            _MetricTile(
+              icon: Icons.cancel_outlined,
+              label: 'غياب',
+              value: '${s.absentDays}',
+              color: scheme.error,
+            ),
+            _MetricTile(
+              icon: Icons.beach_access_outlined,
+              label: 'إجازات',
+              value: '${s.leaveDays}',
+              color: const Color(0xFF6366F1),
+            ),
+            _MetricTile(
+              icon: Icons.directions_car_outlined,
+              label: 'مأموريات',
+              value: '${s.missionDays}',
+              color: const Color(0xFF0EA5E9),
+            ),
+            _MetricTile(
+              icon: Icons.assignment_outlined,
+              label: 'إذنات',
+              value: '${s.permitCount}',
+              color: const Color(0xFFF59E0B),
+            ),
+            _MetricTile(
+              icon: Icons.groups_outlined,
+              label: 'قوافل/فاندي',
+              value: '${s.convoyFundiDays}',
+              color: const Color(0xFF8B5CF6),
+            ),
           ],
         ),
         const SizedBox(height: 16),
 
         // ───── بطاقات الساعات والتأخيرات ─────
-        Text('الساعات والمخالفات',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+        Text(
+          'الساعات والمخالفات',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 8),
         GridView.count(
           crossAxisCount: 2,
@@ -179,12 +257,36 @@ class _StatementBody extends StatelessWidget {
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
           children: [
-            _SummaryTile(label: 'إجمالي الساعات', value: s.totalWorkHours.toStringAsFixed(1), unit: 'ساعة'),
-            _SummaryTile(label: 'متوسط يومي', value: s.averageWorkHours.toStringAsFixed(1), unit: 'ساعة/يوم'),
-            _SummaryTile(label: 'إجمالي التأخير', value: '${s.totalLateMinutes}', unit: 'دقيقة'),
-            _SummaryTile(label: 'خروج مبكر', value: '${s.totalEarlyLeaveMinutes}', unit: 'دقيقة'),
-            _SummaryTile(label: 'ساعات إضافية', value: '${s.totalOvertimeMinutes}', unit: 'دقيقة'),
-            _SummaryTile(label: 'تصحيحات', value: '${s.correctionCount}', unit: ''),
+            _SummaryTile(
+              label: 'إجمالي الساعات',
+              value: s.totalWorkHours.toStringAsFixed(1),
+              unit: 'ساعة',
+            ),
+            _SummaryTile(
+              label: 'متوسط يومي',
+              value: s.averageWorkHours.toStringAsFixed(1),
+              unit: 'ساعة/يوم',
+            ),
+            _SummaryTile(
+              label: 'إجمالي التأخير',
+              value: '${s.totalLateMinutes}',
+              unit: 'دقيقة',
+            ),
+            _SummaryTile(
+              label: 'خروج مبكر',
+              value: '${s.totalEarlyLeaveMinutes}',
+              unit: 'دقيقة',
+            ),
+            _SummaryTile(
+              label: 'ساعات إضافية',
+              value: '${s.totalOvertimeMinutes}',
+              unit: 'دقيقة',
+            ),
+            _SummaryTile(
+              label: 'تصحيحات',
+              value: '${s.correctionCount}',
+              unit: '',
+            ),
           ],
         ),
 
@@ -198,12 +300,18 @@ class _StatementBody extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, size: 20, color: scheme.error),
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    size: 20,
+                    color: scheme.error,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'نسيان بصمة حضور: ${s.missingCheckInCount} · نسيان بصمة انصراف: ${s.missingCheckOutCount}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.error),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: scheme.error),
                     ),
                   ),
                 ],
@@ -215,12 +323,19 @@ class _StatementBody extends StatelessWidget {
         const SizedBox(height: 20),
 
         // ───── التقويم الشهري ─────
-        Text('التقويم الشهري',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+        Text(
+          'التقويم الشهري',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 4),
-        Text('اضغط على أي يوم لعرض التفاصيل والإجراءات المتاحة.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant)),
+        Text(
+          'اضغط على أي يوم لعرض التفاصيل والإجراءات المتاحة.',
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+        ),
         const SizedBox(height: 10),
         _MonthlyCalendarGrid(
           days: statement.days,
@@ -257,7 +372,9 @@ class _EmployeeHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final muted = Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant);
+    final muted = Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant);
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -270,15 +387,23 @@ class _EmployeeHeader extends StatelessWidget {
                 CircleAvatar(
                   radius: 22,
                   backgroundColor: scheme.primaryContainer,
-                  child: Icon(Icons.person_outline, color: scheme.onPrimaryContainer),
+                  child: Icon(
+                    Icons.person_outline,
+                    color: scheme.onPrimaryContainer,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(statement.employeeNameAr,
-                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                      Text(
+                        statement.employeeNameAr,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                        ),
+                      ),
                       if (statement.employeeCode != null)
                         Text('كود: ${statement.employeeCode}', style: muted),
                     ],
@@ -290,10 +415,26 @@ class _EmployeeHeader extends StatelessWidget {
             const Divider(height: 1),
             const SizedBox(height: 12),
             // تفاصيل وظيفية
-            _InfoRow(icon: Icons.work_outline, label: 'المسمى الوظيفي', value: statement.jobTitle),
-            _InfoRow(icon: Icons.business_outlined, label: 'القسم', value: statement.department),
-            _InfoRow(icon: Icons.location_city_outlined, label: 'الفرع', value: statement.branch),
-            _InfoRow(icon: Icons.supervisor_account_outlined, label: 'المدير المباشر', value: statement.manager),
+            _InfoRow(
+              icon: Icons.work_outline,
+              label: 'المسمى الوظيفي',
+              value: statement.jobTitle,
+            ),
+            _InfoRow(
+              icon: Icons.business_outlined,
+              label: 'القسم',
+              value: statement.department,
+            ),
+            _InfoRow(
+              icon: Icons.location_city_outlined,
+              label: 'الفرع',
+              value: statement.branch,
+            ),
+            _InfoRow(
+              icon: Icons.supervisor_account_outlined,
+              label: 'المدير المباشر',
+              value: statement.manager,
+            ),
             _InfoRow(
               icon: Icons.calendar_month_outlined,
               label: 'الفترة',
@@ -307,7 +448,11 @@ class _EmployeeHeader extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.label, required this.value});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
   final IconData icon;
   final String label;
   final String value;
@@ -316,15 +461,25 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     if (value.isEmpty) return const SizedBox.shrink();
     final muted = Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant);
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          Icon(
+            icon,
+            size: 16,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(width: 8),
           Text('$label: ', style: muted),
-          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
+          ),
         ],
       ),
     );
@@ -345,8 +500,8 @@ class _AttendancePercentageCard extends StatelessWidget {
     final pctColor = pct >= 90
         ? const Color(0xFF0F9F6E)
         : pct >= 75
-            ? const Color(0xFFF59E0B)
-            : scheme.error;
+        ? const Color(0xFFF59E0B)
+        : scheme.error;
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -372,10 +527,20 @@ class _AttendancePercentageCard extends StatelessWidget {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('${pct.toStringAsFixed(0)}%',
-                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: pctColor)),
-                      Text('حضور', style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: scheme.onSurfaceVariant)),
+                      Text(
+                        '${pct.toStringAsFixed(0)}%',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 22,
+                          color: pctColor,
+                        ),
+                      ),
+                      Text(
+                        'حضور',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -387,12 +552,22 @@ class _AttendancePercentageCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('نسبة الحضور الشهرية',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900)),
+                  Text(
+                    'نسبة الحضور الشهرية',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  _PctDetailRow(label: 'أيام مجدولة', value: '${s.scheduledDays}'),
+                  _PctDetailRow(
+                    label: 'أيام مجدولة',
+                    value: '${s.scheduledDays}',
+                  ),
                   _PctDetailRow(label: 'أيام حضور', value: '${s.presentDays}'),
-                  _PctDetailRow(label: 'أيام عطل رسمية', value: '${s.holidayDays}'),
+                  _PctDetailRow(
+                    label: 'أيام عطل رسمية',
+                    value: '${s.holidayDays}',
+                  ),
                   _PctDetailRow(label: 'أيام راحة', value: '${s.restDays}'),
                 ],
               ),
@@ -416,9 +591,16 @@ class _PctDetailRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          ),
         ],
       ),
     );
@@ -450,11 +632,22 @@ class _MetricTile extends StatelessWidget {
           children: [
             Icon(icon, size: 24, color: color),
             const SizedBox(height: 4),
-            Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: color)),
+            Text(
+              value,
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 20,
+                color: color,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant),
-                textAlign: TextAlign.center),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
@@ -465,7 +658,11 @@ class _MetricTile extends StatelessWidget {
 // ─── بطاقة ملخص (قيمة + وحدة) ────────────────────────────────────
 
 class _SummaryTile extends StatelessWidget {
-  const _SummaryTile({required this.label, required this.value, required this.unit});
+  const _SummaryTile({
+    required this.label,
+    required this.value,
+    required this.unit,
+  });
   final String label;
   final String value;
   final String unit;
@@ -481,18 +678,32 @@ class _SummaryTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
+            Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+            ),
             const SizedBox(height: 2),
             Row(
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                  ),
+                ),
                 if (unit.isNotEmpty) ...[
                   const SizedBox(width: 4),
-                  Text(unit, style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant)),
+                  Text(
+                    unit,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -547,22 +758,28 @@ class _MonthlyCalendarGrid extends StatelessWidget {
           children: [
             // ─ رأس الأسبوع ─
             Row(
-              children: _weekDayHeaders.map((h) => Expanded(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(h,
-                        maxLines: 1,
-                        overflow: TextOverflow.clip,
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0,
-                          color: scheme.onSurfaceVariant,
-                        )),
-                  ),
-                ),
-              )).toList(),
+              children: _weekDayHeaders
+                  .map(
+                    (h) => Expanded(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            h,
+                            maxLines: 1,
+                            overflow: TextOverflow.clip,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
             // ─ صفوف الأيام ─
             ...List.generate(rows, (row) {
@@ -624,7 +841,8 @@ class _CalendarDayCell extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: 'يوم $dayNum${dayData?.status != null ? " - ${dayData!.status}" : ""}',
+      label:
+          'يوم $dayNum${dayData?.status != null ? " - ${dayData!.status}" : ""}',
       child: GestureDetector(
         onTap: () => _showDayDetail(context),
         child: AnimatedContainer(
@@ -702,7 +920,8 @@ class _CalendarDayCell extends StatelessWidget {
 
   /// هوية لونية موحّدة لكل حالة: خلفية فاتحة + نص داكن + لون مميّز (حدود/دائرة اليوم) + نقطة صغيرة
   ({Color bg, Color fg, Color accent, Color? dot}) _resolveStyle(
-      ColorScheme scheme) {
+    ColorScheme scheme,
+  ) {
     // أيام مستقبلية — مظلّلة بهدوء بدون أي حالة
     if (isFuture) {
       return (
@@ -848,7 +1067,8 @@ class _DayDetailSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    String fmt(String? t) => (t == null || t.length < 5) ? '—' : t.substring(0, 5);
+    String fmt(String? t) =>
+        (t == null || t.length < 5) ? '—' : t.substring(0, 5);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.55,
@@ -863,7 +1083,8 @@ class _DayDetailSheet extends ConsumerWidget {
             // ─ المقبض ─
             Center(
               child: Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
                   color: scheme.onSurfaceVariant.withValues(alpha: .3),
@@ -877,24 +1098,35 @@ class _DayDetailSheet extends ConsumerWidget {
               children: [
                 if (isToday)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     margin: const EdgeInsetsDirectional.only(start: 8),
                     decoration: BoxDecoration(
                       color: scheme.primary,
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Text('اليوم', style: TextStyle(
-                      fontSize: 11, fontWeight: FontWeight.w700,
-                      color: scheme.onPrimary,
-                    )),
+                    child: Text(
+                      'اليوم',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onPrimary,
+                      ),
+                    ),
                   ),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(_dayNameFull,
-                          style: const TextStyle(
-                              fontSize: 17, fontWeight: FontWeight.w900)),
+                      Text(
+                        _dayNameFull,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                       Text(
                         '${_months[month - 1]} $dayNum، $year',
                         style: TextStyle(
@@ -917,16 +1149,21 @@ class _DayDetailSheet extends ConsumerWidget {
                 (day!.shiftName.trim().isNotEmpty || day!.requiredHours > 0))
               Container(
                 margin: const EdgeInsets.only(bottom: 12),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: scheme.primaryContainer.withValues(alpha: .35),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.schedule_outlined,
-                        size: 16, color: scheme.onPrimaryContainer),
+                    Icon(
+                      Icons.schedule_outlined,
+                      size: 16,
+                      color: scheme.onPrimaryContainer,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -967,28 +1204,60 @@ class _DayDetailSheet extends ConsumerWidget {
                         Expanded(
                           child: Column(
                             children: [
-                              const Icon(Icons.login, size: 20, color: Color(0xFF0F9F6E)),
+                              const Icon(
+                                Icons.login,
+                                size: 20,
+                                color: Color(0xFF0F9F6E),
+                              ),
                               const SizedBox(height: 4),
-                              Text('حضور', style: TextStyle(
-                                fontSize: 11, color: scheme.onSurfaceVariant),
-                                textDirection: TextDirection.rtl),
-                              Text(fmt(day!.checkIn), style: const TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 16)),
+                              Text(
+                                'حضور',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                                textDirection: TextDirection.rtl,
+                              ),
+                              Text(
+                                fmt(day!.checkIn),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        Icon(Icons.arrow_forward, size: 16, color: scheme.onSurfaceVariant),
+                        Icon(
+                          Icons.arrow_forward,
+                          size: 16,
+                          color: scheme.onSurfaceVariant,
+                        ),
                         // انصراف
                         Expanded(
                           child: Column(
                             children: [
-                              Icon(Icons.logout, size: 20, color: scheme.onSurfaceVariant),
+                              Icon(
+                                Icons.logout,
+                                size: 20,
+                                color: scheme.onSurfaceVariant,
+                              ),
                               const SizedBox(height: 4),
-                              Text('انصراف', style: TextStyle(
-                                fontSize: 11, color: scheme.onSurfaceVariant),
-                                textDirection: TextDirection.rtl),
-                              Text(fmt(day!.checkOut), style: const TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 16)),
+                              Text(
+                                'انصراف',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                                textDirection: TextDirection.rtl,
+                              ),
+                              Text(
+                                fmt(day!.checkOut),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -996,19 +1265,32 @@ class _DayDetailSheet extends ConsumerWidget {
                         if (day!.workHours > 0) ...[
                           const SizedBox(width: 12),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               color: scheme.primaryContainer,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Column(
                               children: [
-                                Text(day!.workHours.toStringAsFixed(1),
-                                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16,
-                                        color: scheme.onPrimaryContainer)),
-                                Text('ساعة', style: TextStyle(fontSize: 10,
-                                    color: scheme.onPrimaryContainer),
-                                    textDirection: TextDirection.rtl),
+                                Text(
+                                  day!.workHours.toStringAsFixed(1),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 16,
+                                    color: scheme.onPrimaryContainer,
+                                  ),
+                                ),
+                                Text(
+                                  'ساعة',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: scheme.onPrimaryContainer,
+                                  ),
+                                  textDirection: TextDirection.rtl,
+                                ),
                               ],
                             ),
                           ),
@@ -1028,44 +1310,92 @@ class _DayDetailSheet extends ConsumerWidget {
                 runSpacing: 6,
                 children: [
                   if (day!.lateMinutes > 0)
-                    _DetailChip(icon: Icons.schedule, label: 'تأخير ${day!.lateMinutes} د',
-                        color: _warn.contains(day!.status) ? scheme.error : const Color(0xFFF59E0B)),
+                    _DetailChip(
+                      icon: Icons.schedule,
+                      label: 'تأخير ${day!.lateMinutes} د',
+                      color: _warn.contains(day!.status)
+                          ? scheme.error
+                          : const Color(0xFFF59E0B),
+                    ),
                   if (day!.earlyLeaveMinutes > 0)
-                    _DetailChip(icon: Icons.exit_to_app, label: 'خروج مبكر ${day!.earlyLeaveMinutes} د',
-                        color: const Color(0xFFF59E0B)),
+                    _DetailChip(
+                      icon: Icons.exit_to_app,
+                      label: 'خروج مبكر ${day!.earlyLeaveMinutes} د',
+                      color: const Color(0xFFF59E0B),
+                    ),
                   if (day!.overtimeMinutes > 0)
-                    _DetailChip(icon: Icons.more_time, label: 'إضافي ${day!.overtimeMinutes} د',
-                        color: const Color(0xFF0F9F6E)),
+                    _DetailChip(
+                      icon: Icons.more_time,
+                      label: 'إضافي ${day!.overtimeMinutes} د',
+                      color: const Color(0xFF0F9F6E),
+                    ),
                   if (day!.hasLeave)
-                    _DetailChip(icon: Icons.beach_access, label: 'إجازة', color: const Color(0xFF6366F1)),
+                    _DetailChip(
+                      icon: Icons.beach_access,
+                      label: 'إجازة',
+                      color: const Color(0xFF6366F1),
+                    ),
                   if (day!.hasPermit)
-                    _DetailChip(icon: Icons.assignment_turned_in, label: 'إذن', color: const Color(0xFFF59E0B)),
+                    _DetailChip(
+                      icon: Icons.assignment_turned_in,
+                      label: 'إذن',
+                      color: const Color(0xFFF59E0B),
+                    ),
                   if (day!.hasMission)
-                    _DetailChip(icon: Icons.directions_car, label: 'مأمورية', color: const Color(0xFF0EA5E9)),
+                    _DetailChip(
+                      icon: Icons.directions_car,
+                      label: 'مأمورية',
+                      color: const Color(0xFF0EA5E9),
+                    ),
                   if (day!.hasConvoyFundi)
-                    _DetailChip(icon: Icons.groups, label: 'قافلة/فاندي', color: const Color(0xFF8B5CF6)),
+                    _DetailChip(
+                      icon: Icons.groups,
+                      label: 'قافلة/فاندي',
+                      color: const Color(0xFF8B5CF6),
+                    ),
                   if (day!.missingCheckIn)
-                    _DetailChip(icon: Icons.warning_amber, label: 'لم يسجل حضور', color: scheme.error),
+                    _DetailChip(
+                      icon: Icons.warning_amber,
+                      label: 'لم يسجل حضور',
+                      color: scheme.error,
+                    ),
                   if (day!.missingCheckOut)
-                    _DetailChip(icon: Icons.warning_amber, label: 'لم يسجل انصراف', color: scheme.error),
+                    _DetailChip(
+                      icon: Icons.warning_amber,
+                      label: 'لم يسجل انصراف',
+                      color: scheme.error,
+                    ),
                   if (day!.hasCorrection)
-                    _DetailChip(icon: Icons.edit_note, label: 'تصحيح', color: const Color(0xFF64748B)),
+                    _DetailChip(
+                      icon: Icons.edit_note,
+                      label: 'تصحيح',
+                      color: const Color(0xFF64748B),
+                    ),
                 ],
               ),
               const SizedBox(height: 8),
             ],
 
             // ─ ملاحظة التصحيح ─
-            if (day?.correctionNote != null && day!.correctionNote!.isNotEmpty) ...[
-              Text('📝 ${day!.correctionNote}',
-                  style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant)),
+            if (day?.correctionNote != null &&
+                day!.correctionNote!.isNotEmpty) ...[
+              Text(
+                '📝 ${day!.correctionNote}',
+                style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+              ),
               const SizedBox(height: 8),
             ],
 
             // ─ الإجراءات المتاحة ─
             const Divider(height: 24),
-            Text('الإجراءات المتاحة',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: scheme.primary)),
+            Text(
+              'الإجراءات المتاحة',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 15,
+                color: scheme.primary,
+              ),
+            ),
             const SizedBox(height: 10),
             ..._buildActions(context, ref, scheme),
           ],
@@ -1092,91 +1422,131 @@ class _DayDetailSheet extends ConsumerWidget {
     final fromServer = day?.dayNameAr.trim() ?? '';
     if (fromServer.isNotEmpty) return fromServer;
     const names = {
-      1: 'الاثنين', 2: 'الثلاثاء', 3: 'الأربعاء', 4: 'الخميس',
-      5: 'الجمعة', 6: 'السبت', 7: 'الأحد',
+      1: 'الاثنين',
+      2: 'الثلاثاء',
+      3: 'الأربعاء',
+      4: 'الخميس',
+      5: 'الجمعة',
+      6: 'السبت',
+      7: 'الأحد',
     };
     return names[DateTime(year, month, dayNum).weekday] ?? '';
   }
 
-  bool get _hasDetails => day != null && (
-      day!.lateMinutes > 0 || day!.earlyLeaveMinutes > 0 || day!.overtimeMinutes > 0 ||
-      day!.hasLeave || day!.hasPermit || day!.hasMission || day!.hasConvoyFundi ||
-      day!.missingCheckIn || day!.missingCheckOut || day!.hasCorrection);
+  bool get _hasDetails =>
+      day != null &&
+      (day!.lateMinutes > 0 ||
+          day!.earlyLeaveMinutes > 0 ||
+          day!.overtimeMinutes > 0 ||
+          day!.hasLeave ||
+          day!.hasPermit ||
+          day!.hasMission ||
+          day!.hasConvoyFundi ||
+          day!.missingCheckIn ||
+          day!.missingCheckOut ||
+          day!.hasCorrection);
 
-  List<Widget> _buildActions(BuildContext context, WidgetRef ref, ColorScheme scheme) {
+  List<Widget> _buildActions(
+    BuildContext context,
+    WidgetRef ref,
+    ColorScheme scheme,
+  ) {
     final actions = <Widget>[];
 
     // ── يوم ماضٍ غائب → طلب إجازة أو نسيان بصمة ──
     if (!isFuture && day != null && day!.status == 'غائب دون إذن') {
-      actions.add(_ActionTile(
-        icon: Icons.beach_access_outlined,
-        label: 'طلب إجازة لتغطية هذا اليوم',
-        subtitle: 'تقديم طلب إجازة بأثر رجعي يعتمده المدير المباشر.',
-        color: const Color(0xFF6366F1),
-        onTap: () => _openLeaveRequest(context, ref),
-      ));
-      actions.add(_ActionTile(
-        icon: Icons.fingerprint,
-        label: 'نسيان بصمة',
-        subtitle: 'طلب تصحيح حضور — يُراجَع ويُعتمَد من المدير.',
-        color: const Color(0xFFDC3D4B),
-        onTap: () => _openCorrectionRequest(context, ref),
-      ));
+      actions.add(
+        _ActionTile(
+          icon: Icons.beach_access_outlined,
+          label: 'طلب إجازة لتغطية هذا اليوم',
+          subtitle: 'تقديم طلب إجازة بأثر رجعي يعتمده المدير المباشر.',
+          color: const Color(0xFF6366F1),
+          onTap: () => _openLeaveRequest(context, ref),
+        ),
+      );
+      actions.add(
+        _ActionTile(
+          icon: Icons.fingerprint,
+          label: 'نسيان بصمة',
+          subtitle: 'طلب تصحيح حضور — يُراجَع ويُعتمَد من المدير.',
+          color: const Color(0xFFDC3D4B),
+          onTap: () => _openCorrectionRequest(context, ref),
+        ),
+      );
     }
 
     // ── نسيان بصمة (حضور أو انصراف) وليس غائباً بالكامل ──
-    if (!isFuture && day != null && day!.status != 'غائب دون إذن' &&
+    if (!isFuture &&
+        day != null &&
+        day!.status != 'غائب دون إذن' &&
         (day!.missingCheckIn || day!.missingCheckOut)) {
-      actions.add(_ActionTile(
-        icon: Icons.fingerprint,
-        label: 'تسجيل بصمة منسية',
-        subtitle: day!.missingCheckIn ? 'نسيان بصمة الحضور.' : 'نسيان بصمة الانصراف.',
-        color: const Color(0xFFDC3D4B),
-        onTap: () => _openCorrectionRequest(context, ref),
-      ));
+      actions.add(
+        _ActionTile(
+          icon: Icons.fingerprint,
+          label: 'تسجيل بصمة منسية',
+          subtitle: day!.missingCheckIn
+              ? 'نسيان بصمة الحضور.'
+              : 'نسيان بصمة الانصراف.',
+          color: const Color(0xFFDC3D4B),
+          onTap: () => _openCorrectionRequest(context, ref),
+        ),
+      );
     }
 
     // ── تأخير → إذن حضور ──
     if (!isFuture && day != null && day!.lateMinutes > 0 && !day!.hasPermit) {
-      actions.add(_ActionTile(
-        icon: Icons.schedule,
-        label: 'طلب إذن حضور',
-        subtitle: 'تغطية ${day!.lateMinutes} دقيقة تأخير بإذن مُعتمَد.',
-        color: const Color(0xFFF59E0B),
-        onTap: () => _openPermitRequest(context, ref, 'late_arrival'),
-      ));
+      actions.add(
+        _ActionTile(
+          icon: Icons.schedule,
+          label: 'طلب إذن حضور',
+          subtitle: 'تغطية ${day!.lateMinutes} دقيقة تأخير بإذن مُعتمَد.',
+          color: const Color(0xFFF59E0B),
+          onTap: () => _openPermitRequest(context, ref, 'late_arrival'),
+        ),
+      );
     }
 
     // ── خروج مبكر → إذن انصراف ──
-    if (!isFuture && day != null && day!.earlyLeaveMinutes > 0 && !day!.hasPermit) {
-      actions.add(_ActionTile(
-        icon: Icons.exit_to_app,
-        label: 'طلب إذن انصراف',
-        subtitle: 'تغطية ${day!.earlyLeaveMinutes} دقيقة خروج مبكر.',
-        color: const Color(0xFFF59E0B),
-        onTap: () => _openPermitRequest(context, ref, 'early_departure'),
-      ));
+    if (!isFuture &&
+        day != null &&
+        day!.earlyLeaveMinutes > 0 &&
+        !day!.hasPermit) {
+      actions.add(
+        _ActionTile(
+          icon: Icons.exit_to_app,
+          label: 'طلب إذن انصراف',
+          subtitle: 'تغطية ${day!.earlyLeaveMinutes} دقيقة خروج مبكر.',
+          color: const Color(0xFFF59E0B),
+          onTap: () => _openPermitRequest(context, ref, 'early_departure'),
+        ),
+      );
     }
 
     // ── يوم قادم → طلب إجازة مسبقة ──
     if (isFuture) {
-      actions.add(_ActionTile(
-        icon: Icons.beach_access_outlined,
-        label: 'طلب إجازة مسبقة',
-        subtitle: 'تقديم طلب إجازة لهذا اليوم — يعتمده المدير المباشر.',
-        color: const Color(0xFF6366F1),
-        onTap: () => _openLeaveRequest(context, ref),
-      ));
+      actions.add(
+        _ActionTile(
+          icon: Icons.beach_access_outlined,
+          label: 'طلب إجازة مسبقة',
+          subtitle: 'تقديم طلب إجازة لهذا اليوم — يعتمده المدير المباشر.',
+          color: const Color(0xFF6366F1),
+          onTap: () => _openLeaveRequest(context, ref),
+        ),
+      );
     }
 
     if (actions.isEmpty) {
-      actions.add(Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Center(
-          child: Text('لا توجد إجراءات متاحة لهذا اليوم.',
-              style: TextStyle(color: scheme.onSurfaceVariant)),
+      actions.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Center(
+            child: Text(
+              'لا توجد إجراءات متاحة لهذا اليوم.',
+              style: TextStyle(color: scheme.onSurfaceVariant),
+            ),
+          ),
         ),
-      ));
+      );
     }
 
     return actions;
@@ -1195,7 +1565,9 @@ class _DayDetailSheet extends ConsumerWidget {
     );
     if (result == null || !context.mounted) return;
     try {
-      await ref.read(mobileCommandsProvider).submitRequest(
+      await ref
+          .read(mobileCommandsProvider)
+          .submitRequest(
             'leave',
             result['title'] as String,
             result['reason'] as String,
@@ -1209,17 +1581,21 @@ class _DayDetailSheet extends ConsumerWidget {
       }
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(error))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     }
   }
 
   // ── فتح نموذج تصحيح حضور سريع ──
-  Future<void> _openCorrectionRequest(BuildContext context, WidgetRef ref) async {
+  Future<void> _openCorrectionRequest(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     Navigator.pop(context);
-    final preselect = (day?.missingCheckOut == true && day?.missingCheckIn != true)
+    final preselect =
+        (day?.missingCheckOut == true && day?.missingCheckIn != true)
         ? 'missing_check_out'
         : 'missing_check_in';
     final result = await showModalBottomSheet<Map<String, dynamic>>(
@@ -1228,14 +1604,14 @@ class _DayDetailSheet extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _QuickCorrectionSheet(
-        dateStr: _dateStr,
-        preselectType: preselect,
-      ),
+      builder: (_) =>
+          _QuickCorrectionSheet(dateStr: _dateStr, preselectType: preselect),
     );
     if (result == null || !context.mounted) return;
     try {
-      await ref.read(mobileCommandsProvider).requestAttendanceCorrection(
+      await ref
+          .read(mobileCommandsProvider)
+          .requestAttendanceCorrection(
             workDate: DateTime.parse(_dateStr),
             type: result['type'] as String,
             reason: result['reason'] as String,
@@ -1248,16 +1624,19 @@ class _DayDetailSheet extends ConsumerWidget {
       }
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(error))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     }
   }
 
   // ── فتح نموذج إذن سريع ──
   Future<void> _openPermitRequest(
-      BuildContext context, WidgetRef ref, String permitKind) async {
+    BuildContext context,
+    WidgetRef ref,
+    String permitKind,
+  ) async {
     Navigator.pop(context);
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
@@ -1265,15 +1644,17 @@ class _DayDetailSheet extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _QuickPermitSheet(
-        dateStr: _dateStr,
-        permitKind: permitKind,
-      ),
+      builder: (_) =>
+          _QuickPermitSheet(dateStr: _dateStr, permitKind: permitKind),
     );
     if (result == null || !context.mounted) return;
-    final resolvedType = permitKind == 'early_departure' ? 'early_permit' : 'late_permit';
+    final resolvedType = permitKind == 'early_departure'
+        ? 'early_permit'
+        : 'late_permit';
     try {
-      await ref.read(mobileCommandsProvider).submitRequest(
+      await ref
+          .read(mobileCommandsProvider)
+          .submitRequest(
             resolvedType,
             result['title'] as String,
             result['reason'] as String,
@@ -1287,9 +1668,9 @@ class _DayDetailSheet extends ConsumerWidget {
       }
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(error))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     }
   }
@@ -1343,10 +1724,21 @@ class _ActionTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(label, style: TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 14, color: color)),
-                      Text(subtitle, style: TextStyle(
-                        fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: color,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1396,18 +1788,30 @@ class _QuickLeaveSheetState extends State<_QuickLeaveSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(child: Container(
-            width: 40, height: 4,
-            decoration: BoxDecoration(
-              color: scheme.onSurfaceVariant.withValues(alpha: .3),
-              borderRadius: BorderRadius.circular(2)),
-          )),
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: scheme.onSurfaceVariant.withValues(alpha: .3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
-          Text('طلب إجازة', style: TextStyle(
-            fontSize: 18, fontWeight: FontWeight.w900, color: scheme.primary)),
+          Text(
+            'طلب إجازة',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: scheme.primary,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('اليوم: ${widget.dateStr}', style: TextStyle(
-            fontSize: 13, color: scheme.onSurfaceVariant)),
+          Text(
+            'اليوم: ${widget.dateStr}',
+            style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+          ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             value: _leaveType,
@@ -1415,9 +1819,11 @@ class _QuickLeaveSheetState extends State<_QuickLeaveSheet> {
               labelText: 'نوع الإجازة',
               isDense: true,
             ),
-            items: _leaveTypes.entries.map((e) =>
-              DropdownMenuItem(value: e.key, child: Text(e.value)),
-            ).toList(),
+            items: _leaveTypes.entries
+                .map(
+                  (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
+                )
+                .toList(),
             onChanged: (v) => setState(() => _leaveType = v!),
           ),
           const SizedBox(height: 12),
@@ -1444,7 +1850,9 @@ class _QuickLeaveSheetState extends State<_QuickLeaveSheet> {
     final reason = _reasonCtrl.text.trim();
     if (reason.length < 3) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال سبب الطلب (3 أحرف على الأقل)')),
+        const SnackBar(
+          content: Text('يرجى إدخال سبب الطلب (3 أحرف على الأقل)'),
+        ),
       );
       return;
     }
@@ -1499,23 +1907,41 @@ class _QuickCorrectionSheetState extends State<_QuickCorrectionSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(child: Container(
-            width: 40, height: 4,
-            decoration: BoxDecoration(
-              color: scheme.onSurfaceVariant.withValues(alpha: .3),
-              borderRadius: BorderRadius.circular(2)),
-          )),
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: scheme.onSurfaceVariant.withValues(alpha: .3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
-          Text('نسيان بصمة', style: TextStyle(
-            fontSize: 18, fontWeight: FontWeight.w900, color: scheme.error)),
+          Text(
+            'نسيان بصمة',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: scheme.error,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('اليوم: ${widget.dateStr}', style: TextStyle(
-            fontSize: 13, color: scheme.onSurfaceVariant)),
+          Text(
+            'اليوم: ${widget.dateStr}',
+            style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+          ),
           const SizedBox(height: 16),
           SegmentedButton<String>(
             segments: const [
-              ButtonSegment(value: 'missing_check_in', label: Text('نسيان حضور')),
-              ButtonSegment(value: 'missing_check_out', label: Text('نسيان انصراف')),
+              ButtonSegment(
+                value: 'missing_check_in',
+                label: Text('نسيان حضور'),
+              ),
+              ButtonSegment(
+                value: 'missing_check_out',
+                label: Text('نسيان انصراف'),
+              ),
             ],
             selected: {_type},
             onSelectionChanged: (v) => setState(() => _type = v.first),
@@ -1544,24 +1970,20 @@ class _QuickCorrectionSheetState extends State<_QuickCorrectionSheet> {
     final reason = _reasonCtrl.text.trim();
     if (reason.length < 3) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال سبب التصحيح (3 أحرف على الأقل)')),
+        const SnackBar(
+          content: Text('يرجى إدخال سبب التصحيح (3 أحرف على الأقل)'),
+        ),
       );
       return;
     }
-    Navigator.pop(context, {
-      'type': _type,
-      'reason': reason,
-    });
+    Navigator.pop(context, {'type': _type, 'reason': reason});
   }
 }
 
 // ─── نموذج إذن سريع ─────────────────────────────────────────────────
 
 class _QuickPermitSheet extends StatefulWidget {
-  const _QuickPermitSheet({
-    required this.dateStr,
-    required this.permitKind,
-  });
+  const _QuickPermitSheet({required this.dateStr, required this.permitKind});
   final String dateStr;
   final String permitKind;
   @override
@@ -1590,18 +2012,30 @@ class _QuickPermitSheetState extends State<_QuickPermitSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(child: Container(
-            width: 40, height: 4,
-            decoration: BoxDecoration(
-              color: scheme.onSurfaceVariant.withValues(alpha: .3),
-              borderRadius: BorderRadius.circular(2)),
-          )),
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: scheme.onSurfaceVariant.withValues(alpha: .3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
-          Text(_kindLabel, style: const TextStyle(
-            fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFFF59E0B))),
+          Text(
+            _kindLabel,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFFF59E0B),
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('اليوم: ${widget.dateStr}', style: TextStyle(
-            fontSize: 13, color: scheme.onSurfaceVariant)),
+          Text(
+            'اليوم: ${widget.dateStr}',
+            style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+          ),
           const SizedBox(height: 16),
           TextFormField(
             controller: _reasonCtrl,
@@ -1626,7 +2060,9 @@ class _QuickPermitSheetState extends State<_QuickPermitSheet> {
     final reason = _reasonCtrl.text.trim();
     if (reason.length < 3) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال سبب الطلب (3 أحرف على الأقل)')),
+        const SnackBar(
+          content: Text('يرجى إدخال سبب الطلب (3 أحرف على الأقل)'),
+        ),
       );
       return;
     }
@@ -1655,12 +2091,18 @@ class _LegendDot extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 10, height: 10,
+          width: 10,
+          height: 10,
           decoration: BoxDecoration(shape: BoxShape.circle, color: color),
         ),
         const SizedBox(width: 4),
-        Text(label, style: TextStyle(
-          fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
       ],
     );
   }
@@ -1669,7 +2111,11 @@ class _LegendDot extends StatelessWidget {
 // ─── شريحة تفاصيل صغيرة (chip) ────────────────────────────────────
 
 class _DetailChip extends StatelessWidget {
-  const _DetailChip({required this.icon, required this.label, required this.color});
+  const _DetailChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
   final IconData icon;
   final String label;
   final Color color;
@@ -1688,7 +2134,14 @@ class _DetailChip extends StatelessWidget {
         children: [
           Icon(icon, size: 13, color: color),
           const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
         ],
       ),
     );

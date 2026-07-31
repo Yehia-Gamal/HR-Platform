@@ -25,10 +25,10 @@ const DEFAULT_DURATION = 4000;
 const EXIT_MS = 300;
 
 const toneConfig: Record<ToastTone, { icon: typeof CheckCircle2; bg: string; accent: string }> = {
-  success: { icon: CheckCircle2,  bg: 'var(--success-soft)',       accent: 'var(--success)' },
-  error:   { icon: XCircle,       bg: 'var(--danger-soft)',        accent: 'var(--danger)' },
-  warning: { icon: AlertTriangle, bg: 'var(--warning-soft)',       accent: 'var(--warning)' },
-  info:    { icon: Info,          bg: 'var(--brand-accent-soft)',  accent: 'var(--info)' },
+  success: { icon: CheckCircle2, bg: 'var(--success-soft)', accent: 'var(--success)' },
+  error: { icon: XCircle, bg: 'var(--danger-soft)', accent: 'var(--danger)' },
+  warning: { icon: AlertTriangle, bg: 'var(--warning-soft)', accent: 'var(--warning)' },
+  info: { icon: Info, bg: 'var(--brand-accent-soft)', accent: 'var(--info)' },
 };
 
 /* ───────────────────────── عنصر إشعار واحد ───────────────────────── */
@@ -59,9 +59,7 @@ function ToastItem({ entry, onRemove }: { entry: ToastEntry; onRemove: (id: numb
     return () => clearTimeout(fallback);
   }, [phase, entry.id, onRemove]);
 
-  const animClass = phase === 'visible'
-    ? 'translate-y-0 opacity-100'
-    : '-translate-y-2 opacity-0';
+  const animClass = phase === 'visible' ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0';
 
   return (
     <div
@@ -94,15 +92,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const idRef = useRef(0);
 
   const toast = useCallback((opts: ToastOptions) => {
-    setToasts(prev => [...prev, {
-      ...opts,
-      id: ++idRef.current,
-      duration: opts.duration ?? DEFAULT_DURATION,
-    }]);
+    setToasts((prev) => [
+      ...prev,
+      {
+        ...opts,
+        id: ++idRef.current,
+        duration: opts.duration ?? DEFAULT_DURATION,
+      },
+    ]);
   }, []);
 
   const remove = useCallback((id: number) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   // عرض أول MAX_VISIBLE فقط — الباقي في الطابور
@@ -111,16 +112,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      {toasts.length > 0 && createPortal(
-        <div className="pointer-events-none fixed inset-x-0 top-0 z-[200] flex flex-col items-center gap-2 p-4">
-          {visible.map(entry => (
-            <div key={entry.id} className="pointer-events-auto w-full max-w-md">
-              <ToastItem entry={entry} onRemove={remove} />
-            </div>
-          ))}
-        </div>,
-        document.body,
-      )}
+      {toasts.length > 0 &&
+        createPortal(
+          <div className="pointer-events-none fixed inset-x-0 top-0 z-[200] flex flex-col items-center gap-2 p-4">
+            {visible.map((entry) => (
+              <div key={entry.id} className="pointer-events-auto w-full max-w-md">
+                <ToastItem entry={entry} onRemove={remove} />
+              </div>
+            ))}
+          </div>,
+          document.body,
+        )}
     </ToastContext.Provider>
   );
 }

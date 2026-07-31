@@ -22,14 +22,18 @@ export function usePublishAnnouncement() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: async (input: {
-      title: string; body: string; category: string; priority: string;
-      requiresAcknowledgement: boolean; bannerUrl?: string | null;
-      postType?: string; pollOptions?: string[]; expiresAt?: string;
+      title: string;
+      body: string;
+      category: string;
+      priority: string;
+      requiresAcknowledgement: boolean;
+      bannerUrl?: string | null;
+      postType?: string;
+      pollOptions?: string[];
+      expiresAt?: string;
     }) => {
       if (auth.isMock) return input;
-      const pollOpts = input.postType === 'poll' && input.pollOptions?.length
-        ? input.pollOptions.filter((o) => o.trim())
-        : null;
+      const pollOpts = input.postType === 'poll' && input.pollOptions?.length ? input.pollOptions.filter((o) => o.trim()) : null;
       return rpc('publish_official_announcement', {
         p_title: input.title,
         p_body: input.body,
@@ -50,7 +54,14 @@ export function useCreateDecisionDraft() {
   const auth = useAuth();
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { title: string; body: string; category: string; requiresAcknowledgement: boolean; expectedOutcome?: string; successMetric?: string }) => {
+    mutationFn: async (input: {
+      title: string;
+      body: string;
+      category: string;
+      requiresAcknowledgement: boolean;
+      expectedOutcome?: string;
+      successMetric?: string;
+    }) => {
       if (auth.isMock) return input;
       return rpc('create_decision_draft', {
         p_title: input.title,

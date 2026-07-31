@@ -27,17 +27,9 @@ function getTrendColor(data: number[]): string {
   return 'var(--brand-primary)';
 }
 
-export function Sparkline({
-  data,
-  color,
-  height = 32,
-  width = 120,
-}: SparklineProps) {
+export function Sparkline({ data, color, height = 32, width = 120 }: SparklineProps) {
   /* تحويل المصفوفة لنقاط بيانات recharts */
-  const points = useMemo(
-    () => data.map((v, i) => ({ i, v })),
-    [data],
-  );
+  const points = useMemo(() => data.map((v, i) => ({ i, v })), [data]);
 
   const strokeColor = color ?? getTrendColor(data);
 
@@ -49,15 +41,7 @@ export function Sparkline({
         <LineChart data={points} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
           {/* محور Y مخفي لضبط النطاق تلقائياً */}
           <YAxis hide domain={['dataMin', 'dataMax']} />
-          <Line
-            type="monotone"
-            dataKey="v"
-            stroke={strokeColor}
-            strokeWidth={2}
-            dot={false}
-            activeDot={false}
-            isAnimationActive={false}
-          />
+          <Line type="monotone" dataKey="v" stroke={strokeColor} strokeWidth={2} dot={false} activeDot={false} isAnimationActive={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>

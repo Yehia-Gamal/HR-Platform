@@ -25,27 +25,36 @@ export function MonthlyStatementSection({ employeeId }: { employeeId: string }) 
         </h2>
         <div className="flex gap-2">
           <select className="input" aria-label="الشهر" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
-            {MONTHS.map((label, index) => <option key={label} value={index + 1}>{label}</option>)}
+            {MONTHS.map((label, index) => (
+              <option key={label} value={index + 1}>
+                {label}
+              </option>
+            ))}
           </select>
           <select className="input" aria-label="السنة" value={year} onChange={(e) => setYear(Number(e.target.value))}>
-            {[now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2].map((y) => <option key={y} value={y}>{y}</option>)}
+            {[now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2].map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
           </select>
           {query.data && (
-            <button
-              type="button"
-              className="btn btn-secondary flex items-center gap-1.5 text-xs"
-              onClick={() => exportAttendancePDF(query.data!)}
-            >
+            <button type="button" className="btn btn-secondary flex items-center gap-1.5 text-xs" onClick={() => exportAttendancePDF(query.data!)}>
               <FileDown className="size-4" aria-hidden="true" />
               تصدير PDF
             </button>
           )}
         </div>
       </div>
-      {query.isError ? <ErrorState description="تعذر تحميل كشف الحضور. أعد المحاولة أو تواصل مع الدعم." onRetry={() => void query.refetch()} />
-        : query.isLoading ? <SkeletonCard className="h-64" />
-        : !query.data ? <EmptyState title="لا يوجد كشف" description="لا توجد بيانات كشف لهذا الشهر." />
-        : <StatementBody data={query.data} />}
+      {query.isError ? (
+        <ErrorState description="تعذر تحميل كشف الحضور. أعد المحاولة أو تواصل مع الدعم." onRetry={() => void query.refetch()} />
+      ) : query.isLoading ? (
+        <SkeletonCard className="h-64" />
+      ) : !query.data ? (
+        <EmptyState title="لا يوجد كشف" description="لا توجد بيانات كشف لهذا الشهر." />
+      ) : (
+        <StatementBody data={query.data} />
+      )}
     </section>
   );
 }
@@ -53,7 +62,7 @@ export function MonthlyStatementSection({ employeeId }: { employeeId: string }) 
 function StatementBody({ data }: { data: AttendanceStatement }) {
   const s = data.summary;
   // V23: استخدام النسب من الخادم بدلاً من الحساب المحلي
-  const attendancePct = s.attendanceRate ?? (s.scheduledDays > 0 ? (s.presentDays / s.scheduledDays * 100) : 0);
+  const attendancePct = s.attendanceRate ?? (s.scheduledDays > 0 ? (s.presentDays / s.scheduledDays) * 100 : 0);
   const compliancePct = s.hoursComplianceRate ?? 0;
 
   return (
@@ -74,7 +83,12 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
           <MetricCard label="أيام المأموريات" value={s.missionDays} icon={TrendingUp} />
           <MetricCard label="إذنات" value={s.permitCount} icon={Clock} />
           <MetricCard label="قوافل/فاندي" value={s.convoyFundiDays} icon={CalendarDays} />
-          <MetricCard label="ساعات العمل" value={s.totalWorkHours.toFixed(1)} hint={`مطلوب ${(s.totalRequiredHours ?? 0).toFixed(1)} | متوسط ${s.averageWorkHours.toFixed(1)} س/يوم`} icon={Timer} />
+          <MetricCard
+            label="ساعات العمل"
+            value={s.totalWorkHours.toFixed(1)}
+            hint={`مطلوب ${(s.totalRequiredHours ?? 0).toFixed(1)} | متوسط ${s.averageWorkHours.toFixed(1)} س/يوم`}
+            icon={Timer}
+          />
           <MetricCard label="ساعات إضافية" value={`${s.totalOvertimeMinutes} د`} icon={ArrowUpRight} />
         </div>
       </div>
@@ -97,28 +111,62 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
         <table className="w-full min-w-[900px] text-start text-sm">
           <thead className="bg-[var(--surface-muted)] text-xs font-black">
             <tr>
-              <th scope="col" className="p-2.5">التاريخ</th><th scope="col" className="p-2.5">اليوم</th>
-              <th scope="col" className="p-2.5">الحضور</th><th scope="col" className="p-2.5">الانصراف</th>
-              <th scope="col" className="p-2.5">الوردية</th><th scope="col" className="p-2.5">ساعات فعلية</th>
-              <th scope="col" className="p-2.5">التأخير</th><th scope="col" className="p-2.5">خروج مبكر</th>
-              <th scope="col" className="p-2.5">إضافي</th><th scope="col" className="p-2.5">الحالة</th>
-              <th scope="col" className="p-2.5">ملاحظات</th>
+              <th scope="col" className="p-2.5">
+                التاريخ
+              </th>
+              <th scope="col" className="p-2.5">
+                اليوم
+              </th>
+              <th scope="col" className="p-2.5">
+                الحضور
+              </th>
+              <th scope="col" className="p-2.5">
+                الانصراف
+              </th>
+              <th scope="col" className="p-2.5">
+                الوردية
+              </th>
+              <th scope="col" className="p-2.5">
+                ساعات فعلية
+              </th>
+              <th scope="col" className="p-2.5">
+                التأخير
+              </th>
+              <th scope="col" className="p-2.5">
+                خروج مبكر
+              </th>
+              <th scope="col" className="p-2.5">
+                إضافي
+              </th>
+              <th scope="col" className="p-2.5">
+                الحالة
+              </th>
+              <th scope="col" className="p-2.5">
+                ملاحظات
+              </th>
             </tr>
           </thead>
           <tbody>
             {data.days.map((d) => {
               const tags = buildDayTags(d);
               return (
-                <tr key={d.date} className="border-t border-[var(--border)] odd:bg-[var(--surface-muted)]/30 hover:bg-[var(--surface-muted)]/60 transition-colors">
-                  <td className="p-2.5 tabular-nums" dir="ltr">{d.date}</td>
+                <tr
+                  key={d.date}
+                  className="border-t border-[var(--border)] odd:bg-[var(--surface-muted)]/30 hover:bg-[var(--surface-muted)]/60 transition-colors"
+                >
+                  <td className="p-2.5 tabular-nums" dir="ltr">
+                    {d.date}
+                  </td>
                   <td className="p-2.5">{d.dayNameAr}</td>
-                  <td className="p-2.5 tabular-nums" dir="ltr">{fmtTime(d.checkIn)}</td>
-                  <td className="p-2.5 tabular-nums" dir="ltr">{fmtTime(d.checkOut)}</td>
+                  <td className="p-2.5 tabular-nums" dir="ltr">
+                    {fmtTime(d.checkIn)}
+                  </td>
+                  <td className="p-2.5 tabular-nums" dir="ltr">
+                    {fmtTime(d.checkOut)}
+                  </td>
                   <td className="p-2.5">{d.shiftName || '—'}</td>
                   <td className="p-2.5 tabular-nums">{d.workHours ? d.workHours.toFixed(1) : '—'}</td>
-                  <td className={`p-2.5 tabular-nums ${d.lateMinutes > 0 ? 'text-amber-600 font-bold' : ''}`}>
-                    {d.lateMinutes ? `${d.lateMinutes} د` : '—'}
-                  </td>
+                  <td className={`p-2.5 tabular-nums ${d.lateMinutes > 0 ? 'text-amber-600 font-bold' : ''}`}>{d.lateMinutes ? `${d.lateMinutes} د` : '—'}</td>
                   <td className={`p-2.5 tabular-nums ${d.earlyLeaveMinutes > 0 ? 'text-amber-600 font-bold' : ''}`}>
                     {d.earlyLeaveMinutes ? `${d.earlyLeaveMinutes} د` : '—'}
                   </td>
@@ -128,7 +176,9 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
                   <td className={`p-2.5 font-bold ${WARN_STATUSES.has(d.status) ? 'text-red-600' : ''}`}>{d.status}</td>
                   <td className="p-2.5">
                     <div className="flex flex-wrap gap-1">
-                      {tags.map((t) => <DayTag key={t.label} label={t.label} variant={t.variant} />)}
+                      {tags.map((t) => (
+                        <DayTag key={t.label} label={t.label} variant={t.variant} />
+                      ))}
                       {d.correctionNote && !tags.length && <span className="text-xs text-[var(--text-muted)]">{d.correctionNote}</span>}
                     </div>
                   </td>

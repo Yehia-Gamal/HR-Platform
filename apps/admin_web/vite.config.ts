@@ -30,6 +30,10 @@ export default defineConfig({
     // مع تقييد التزامن، ونمنح البدء/الإنهاء مهلة أطول للاستقرار.
     // Vitest 4: maxWorkers أصبح خيارًا علويًا بدل poolOptions.
     maxWorkers: 3,
+    // على هذا الجهاز، ملفات jsdom (~68) تستنفد كومة V8 الافتراضية وتُسقط الـ worker
+    // بخطأ "Committing semi space failed / heap out of memory" (ليس فشل اختبار).
+    // NODE_OPTIONS لا ينتشر عبر npm→vitest→worker المتفرّع، فنمرّر الحد عبر execArgv.
+    execArgv: ['--max-old-space-size=4096'],
     testTimeout: 30_000,
     hookTimeout: 30_000,
     teardownTimeout: 30_000,

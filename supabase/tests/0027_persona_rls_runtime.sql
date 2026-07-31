@@ -299,10 +299,14 @@ do $$ begin
 end $$;
 set local role anon;
 
-select is((select count(*)::int from public.employees), 0,
-  'anonymous sees no employees');
-select is((select count(*)::int from public.requests), 0,
-  'anonymous sees no requests');
+select throws_ok(
+  $$select count(*) from public.employees$$,
+  '42501', null,
+  'anonymous has no direct table privilege on employees');
+select throws_ok(
+  $$select count(*) from public.requests$$,
+  '42501', null,
+  'anonymous has no direct table privilege on requests');
 
 reset role;
 select * from finish();

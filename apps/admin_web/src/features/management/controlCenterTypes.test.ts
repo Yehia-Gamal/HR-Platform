@@ -79,38 +79,44 @@ describe('controlCenterTypes', () => {
   it('OperationsCenterData task has all required fields', () => {
     const data: OperationsCenterData = {
       employees: [],
-      tasks: [{
-        id: 't1',
-        title: 'مهمة تجريبية',
-        description: 'وصف المهمة',
-        assigneeId: 'emp1',
-        assigneeName: 'أحمد',
-        priority: 'urgent',
-        dueDate: '2026-08-01',
-        status: 'in_progress',
-      }],
-      missions: [{
-        id: 'm1',
-        employeeName: 'سارة',
-        destination: 'فرع الجيزة',
-        purpose: 'متابعة',
-        startAt: '2026-08-01T08:00:00Z',
-        endAt: '2026-08-01T16:00:00Z',
-        status: 'approved',
-        transportMode: 'company_vehicle',
-      }],
-      convoys: [{
-        id: 'c1',
-        employeeName: 'محمود',
-        name: 'قافلة خدمة',
-        origin: 'المقر',
-        destination: 'فرع أكتوبر',
-        departureAt: '2026-08-01T06:00:00Z',
-        returnAt: '2026-08-01T18:00:00Z',
-        passengers: 10,
-        vehicles: 2,
-        status: 'approved',
-      }],
+      tasks: [
+        {
+          id: 't1',
+          title: 'مهمة تجريبية',
+          description: 'وصف المهمة',
+          assigneeId: 'emp1',
+          assigneeName: 'أحمد',
+          priority: 'urgent',
+          dueDate: '2026-08-01',
+          status: 'in_progress',
+        },
+      ],
+      missions: [
+        {
+          id: 'm1',
+          employeeName: 'سارة',
+          destination: 'فرع الجيزة',
+          purpose: 'متابعة',
+          startAt: '2026-08-01T08:00:00Z',
+          endAt: '2026-08-01T16:00:00Z',
+          status: 'approved',
+          transportMode: 'company_vehicle',
+        },
+      ],
+      convoys: [
+        {
+          id: 'c1',
+          employeeName: 'محمود',
+          name: 'قافلة خدمة',
+          origin: 'المقر',
+          destination: 'فرع أكتوبر',
+          departureAt: '2026-08-01T06:00:00Z',
+          returnAt: '2026-08-01T18:00:00Z',
+          passengers: 10,
+          vehicles: 2,
+          status: 'approved',
+        },
+      ],
     };
     expect(data.tasks[0].priority).toBe('urgent');
     expect(data.missions[0].transportMode).toBe('company_vehicle');

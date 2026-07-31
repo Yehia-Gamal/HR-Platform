@@ -5,9 +5,9 @@ import { DialogOverlay } from './DialogOverlay';
 type Tone = 'danger' | 'warning' | 'info';
 
 const toneConfig: Record<Tone, { icon: typeof AlertTriangle; color: string; softColor: string; btnClass: string }> = {
-  danger:  { icon: AlertTriangle, color: 'var(--danger)',  softColor: 'var(--danger-soft)',  btnClass: 'btn-danger' },
+  danger: { icon: AlertTriangle, color: 'var(--danger)', softColor: 'var(--danger-soft)', btnClass: 'btn-danger' },
   warning: { icon: AlertTriangle, color: 'var(--warning)', softColor: 'var(--warning-soft)', btnClass: 'btn-primary' },
-  info:    { icon: Info,          color: 'var(--info)',    softColor: 'var(--info-soft)',    btnClass: 'btn-primary' },
+  info: { icon: Info, color: 'var(--info)', softColor: 'var(--info-soft)', btnClass: 'btn-primary' },
 };
 
 export function ConfirmDialog({
@@ -46,10 +46,7 @@ export function ConfirmDialog({
     <DialogOverlay title={title} onClose={loading ? () => {} : onCancel} maxWidth="max-w-md">
       <div className="grid place-items-center text-center">
         {/* أيقونة النبرة */}
-        <span
-          className="mx-auto grid size-14 place-items-center rounded-2xl"
-          style={{ background: cfg.softColor, color: cfg.color }}
-        >
+        <span className="mx-auto grid size-14 place-items-center rounded-2xl" style={{ background: cfg.softColor, color: cfg.color }}>
           <Icon className="size-6" aria-hidden="true" />
         </span>
 
@@ -61,31 +58,17 @@ export function ConfirmDialog({
             <label className="mb-1.5 block text-xs font-bold text-[var(--text-muted)]">
               اكتب <span className="font-black text-[var(--text-primary)]">{requireTypedConfirmation}</span> للتأكيد
             </label>
-            <input
-              className="input w-full text-center"
-              value={typed}
-              onChange={(e) => setTyped(e.target.value)}
-              disabled={loading}
-              autoFocus
-            />
+            <input className="input w-full text-center" value={typed} onChange={(e) => setTyped(e.target.value)} disabled={loading} autoFocus />
           </div>
         )}
       </div>
 
       {/* أزرار الإجراء */}
       <div className="mt-6 flex gap-3">
-        <button
-          className="btn-secondary flex-1"
-          onClick={onCancel}
-          disabled={loading}
-        >
+        <button className="btn-secondary flex-1" onClick={onCancel} disabled={loading}>
           {cancelLabel}
         </button>
-        <button
-          className={`${cfg.btnClass} flex-1`}
-          onClick={onConfirm}
-          disabled={loading || !typingMatch}
-        >
+        <button className={`${cfg.btnClass} flex-1`} onClick={onConfirm} disabled={loading || !typingMatch}>
           {loading && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
           {confirmLabel}
         </button>
