@@ -110,8 +110,8 @@ export function OfficialFeedPage() {
   const [search, setSearch] = useState('');
   const [kind, setKind] = useState('all');
   const [priority, setPriority] = useState('all');
-  const { mode, setMode, form, setForm, bannerUrl, imagePreview, imageUploading, imageError, postType, setPostType, pollOptions, setPollOptions, expiresAt, setExpiresAt, fileInputRef, handleImageSelect, removeImage, submit, isSubmitting, submitError } = useOfficialFeedForm(publish, createDecision);
-  const allItems = query.data ?? [];
+  const { mode, setMode, form, setForm, imagePreview, imageUploading, imageError, postType, setPostType, pollOptions, setPollOptions, expiresAt, setExpiresAt, fileInputRef, handleImageSelect, removeImage, submit, isSubmitting, submitError } = useOfficialFeedForm(publish, createDecision);
+  const allItems = useMemo(() => query.data ?? [], [query.data]);
   const items = useMemo(() => allItems.filter((item) => {
     const queryText = search.trim().toLowerCase();
     const matchesSearch = !queryText || `${item.title} ${item.body} ${item.category}`.toLowerCase().includes(queryText);

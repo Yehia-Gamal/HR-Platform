@@ -38,7 +38,7 @@ export function initSentry(): void {
     replaysOnErrorSampleRate: 1.0,
     maxBreadcrumbs: 100,
 
-    /** إزالة بيانات التعريف الشخصية قبل الإرسال */
+    /** إزالة بيانات التعريف الشخصية وتفاصيل الأخطاء الداخلية قبل الإرسال */
     beforeSend(event) {
       if (event.user) {
         delete event.user.email;
@@ -49,6 +49,25 @@ export function initSentry(): void {
         delete event.request.headers['authorization'];
         delete event.request.headers['x-supabase-auth'];
       }
+      if (event.request?.url) {
+        event.request.url = sanitizeUrl(event.request.url);
+      }
+      if (event.request?.data) {
+        event.request.data = sanitizeTelemetryValue(event.request.data);
+      }
+      if (event.extra) {
+        event.extra = sanitizeTelemetryRecord(event.extra);
+      }
+      if (event.contexts) {
+        event.contexts = sanitizeTelemetryRecord(event.contexts);
+      }
+      event.exception?.values?.forEach((exception) => {
+        if (exception.value) exception.value = '[ERROR DETAILS REDACTED]';
+      });
+      event.breadcrumbs?.forEach((breadcrumb) => {
+        if (breadcrumb.message) breadcrumb.message = sanitizeTelemetryText(breadcrumb.message);
+        if (breadcrumb.data) breadcrumb.data = sanitizeTelemetryRecord(breadcrumb.data);
+      });
       return event;
     },
 
@@ -56,6 +75,8 @@ export function initSentry(): void {
       if (breadcrumb.category === 'navigation' && breadcrumb.data?.to) {
         breadcrumb.data.to = sanitizeUrl(String(breadcrumb.data.to));
       }
+      if (breadcrumb.message) breadcrumb.message = sanitizeTelemetryText(breadcrumb.message);
+      if (breadcrumb.data) breadcrumb.data = sanitizeTelemetryRecord(breadcrumb.data);
       return breadcrumb;
     },
 
@@ -131,9 +152,10 @@ export function attachQueryObservability(queryClient: {
     const q = query as { queryHash?: string; queryKey?: unknown[] };
     addBreadcrumb('query.error', `Query failed: ${q.queryHash ?? 'unknown'}`, {
       queryKey: JSON.stringify(q.queryKey ?? []),
-      errorMessage: error instanceof Error ? error.message : String(error),
+      errorType: error instanceof Error ? error.name : 'UnknownError',
+      status: readErrorStatus(error),
     });
-    const status = (error as { status?: number })?.status ?? 0;
+    const status = readErrorStatus(error);
     if (![401, 403, 404, 422].includes(status)) {
       captureError(error, { queryKey: q.queryKey });
     }
@@ -142,7 +164,8 @@ export function attachQueryObservability(queryClient: {
   queryClient.getMutationCache().config.onError = (error, variables, _context, mutation) => {
     const m = mutation as { options?: { mutationKey?: unknown[] } };
     addBreadcrumb('mutation.error', `Mutation failed: ${String(m.options?.mutationKey?.[0] ?? 'unknown')}`, {
-      errorMessage: error instanceof Error ? error.message : String(error),
+      errorType: error instanceof Error ? error.name : 'UnknownError',
+      status: readErrorStatus(error),
       variables: sanitizeVariables(variables),
     });
     captureError(error, { mutationKey: m.options?.mutationKey });
@@ -182,15 +205,28 @@ export async function initWebVitals(): Promise<void> {
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
 
-function sanitizeVariables(vars: unknown): unknown {
-  if (vars === null || vars === undefined || typeof vars !== 'object') return vars;
+function readErrorStatus(error: unknown): number {
+  const value = (error as { status?: unknown } | null)?.status;
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function sanitizeTelemetryRecord<T extends Record<string, unknown>>(value: T): T {
+  return sanitizeTelemetryValue(value) as T;
+}
+
+function sanitizeTelemetryValue(value: unknown): unknown {
+  if (value === null || value === undefined) return value;
+  if (typeof value === 'string') return sanitizeTelemetryText(value);
+  if (typeof value !== 'object') return value;
   try {
-    const clone = JSON.parse(JSON.stringify(vars)) as unknown;
+    const clone = JSON.parse(JSON.stringify(value)) as unknown;
     // مفاتيح حساسة (أسرار) + مفاتيح PII (أسماء/هواتف/بريد/هوية) — تُنقّح على كل
-    // مستويات التداخل، لأن طفرات الموظفين تمرّر PII داخل كائن changes متداخل.
+    // مستويات التداخل، لأن بيانات الموظفين قد تمر داخل كائنات متداخلة.
     const redactKeys = [
       'password', 'token', 'secret', 'key', 'authorization', 'credential',
       'name', 'email', 'phone', 'national', 'iban', 'address',
+      // حقول نصّية حرّة قد تحمل PII (ملاحظات المراجعين، أسباب القرارات...)
+      'note', 'comment', 'reason', 'message', 'body', 'text',
     ];
     const scrub = (value: unknown): unknown => {
       if (Array.isArray(value)) return value.map(scrub);
@@ -205,12 +241,27 @@ function sanitizeVariables(vars: unknown): unknown {
         }
         return obj;
       }
-      return value;
+      return typeof value === 'string' ? sanitizeTelemetryText(value) : value;
     };
     return scrub(clone);
   } catch {
     return '[unserializable]';
   }
+}
+
+function sanitizeVariables(vars: unknown): unknown {
+  return sanitizeTelemetryValue(vars);
+}
+
+function sanitizeTelemetryText(value: string): string {
+  if (/sqlstate|postgres|duplicate key|row-level security|violates .+ constraint|\b(select|insert into|update|delete from)\b/i.test(value)) {
+    return '[ERROR DETAILS REDACTED]';
+  }
+  return value
+    .replace(/\bBearer\s+\S+/gi, 'Bearer [REDACTED]')
+    .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[REDACTED_TOKEN]')
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[REDACTED_EMAIL]')
+    .replace(/([?&](?:token|code|state|session|password|secret)=)[^&#\s]+/gi, '$1[REDACTED]');
 }
 
 function sanitizeUrl(url: string): string {

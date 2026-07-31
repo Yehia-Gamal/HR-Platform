@@ -26,7 +26,16 @@ const inputSchema = z.object({
   phoneE164: z.string().trim().regex(/^(01\d{9}|\+[1-9]\d{7,14})$/),
   roleSlug: z.string().trim().min(2),
   jobTitleName: z.string().trim().max(160).optional(),
-  photoUrl: z.string().url().max(1000).optional(),
+  // رابط الصورة: يجب أن يكون https فقط — نرفض data:/file:/javascript:/blob:
+  // (z.url() وحده يقبلها). التحقق الخادمي في DB يوفّر طبقة ثانية.
+  photoUrl: z
+    .string()
+    .url()
+    .max(1000)
+    .refine((value) => /^https:\/\//i.test(value), {
+      message: "photoUrl must be an https URL",
+    })
+    .optional(),
   managerEmployeeId: nullableUuid,
   departmentId: nullableUuid,
   teamId: nullableUuid,
@@ -163,10 +172,10 @@ Deno.serve(async (req) => {
   // إذا فشل الإنشاء لأن البريد موجود مسبقًا (من محاولة سابقة فاشلة)،
   // نحذف الحساب اليتيم ونعيد المحاولة مرة واحدة.
   // يستخدم GoTRUE REST API مباشرة لتجنب مشاكل supabase-js مع صيغ المفاتيح الجديدة.
-  async function tryCreateAuthUser(): Promise<{
+  const tryCreateAuthUser = async (): Promise<{
     data: { user: { id: string; email?: string } | null };
     error: { message: string; status?: number } | null;
-  }> {
+  }> => {
     if (input.sendInvite) {
       const result = await admin.auth.admin.inviteUserByEmail(normalizedEmail, {
         redirectTo: INVITE_REDIRECT,
@@ -194,7 +203,9 @@ Deno.serve(async (req) => {
     const rawText = await res.text();
     let body: Record<string, unknown> | null = null;
     try { body = JSON.parse(rawText); } catch { /* not JSON */ }
-    if (!res.ok || !body?.id) {
+    const createdUserId = typeof body?.id === "string" ? body.id : null;
+    const createdUserEmail = typeof body?.email === "string" ? body.email : undefined;
+    if (!res.ok || !createdUserId) {
       return {
         data: { user: null },
         error: {
@@ -203,16 +214,19 @@ Deno.serve(async (req) => {
         },
       };
     }
-    return { data: { user: { id: body.id, email: body.email } }, error: null };
-  }
+    return {
+      data: { user: { id: createdUserId, email: createdUserEmail } },
+      error: null,
+    };
+  };
 
-  function isDuplicateError(err: { message?: string; status?: number } | null): boolean {
+  const isDuplicateError = (err: { message?: string; status?: number } | null): boolean => {
     if (!err) return false;
     const msg = (err.message ?? "").toLowerCase();
     return msg.includes("already") || msg.includes("registered") ||
       msg.includes("exists") || msg.includes("duplicate") ||
       msg.includes("unique") || (err as { status?: number }).status === 422;
-  }
+  };
 
   let { data: created, error: createError } = await tryCreateAuthUser();
 
@@ -262,7 +276,7 @@ Deno.serve(async (req) => {
     if (isDuplicateError(createError)) {
       return json(req, { error: "account_already_exists" }, 409);
     }
-    return json(req, { error: "account_create_failed", _debug: { msg: createError?.message, status: (createError as { status?: number })?.status, keyPrefix: SERVICE_ROLE.substring(0, 15), urlPrefix: SUPABASE_URL.substring(0, 30) } }, 500);
+    return json(req, { error: "account_create_failed" }, 500);
   }
 
   const userId = created.user.id;

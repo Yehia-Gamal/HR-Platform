@@ -41,6 +41,8 @@ select ok(not public.is_safe_url_or_path('http://insecure.example.com/a.png'),
   '0235: non-https scheme (http) rejected');
 select ok(not public.is_safe_url_or_path('../../secret/a.png'),
   '0235: path traversal rejected');
+select ok(not public.is_safe_url_or_path('//attacker.example/payload.js'),
+  '0235: protocol-relative URL (//host) rejected');
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- ② is_safe_storage_path

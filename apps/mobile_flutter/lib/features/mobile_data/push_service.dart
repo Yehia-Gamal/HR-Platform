@@ -272,6 +272,11 @@ class PushService {
       if (idx >= 0 && parts.length >= idx + 3) {
         final kind = parts[idx + 1];
         final id = parts[idx + 2];
+        // تحقق أمني: المعرّف يجب أن يكون UUID صالحاً لمنع حقن مسارات.
+        if (!_isValidUuid(id)) {
+          appRouter.go('/');
+          return;
+        }
         appRouter.go('/action/$kind/$id');
       } else {
         // مسارات غير معروفة (مثل /attendance) → الرئيسية بدل كراش GoRouter.
@@ -281,6 +286,13 @@ class PushService {
       // تجاهل روابط غير صالحة.
     }
   }
+
+  static final RegExp _uuidRegExp = RegExp(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    caseSensitive: false,
+  );
+
+  static bool _isValidUuid(String value) => _uuidRegExp.hasMatch(value);
 
   /// هل التطبيق معفى من تحسين البطارية؟
   /// يعود `true` إذا كان معفى، `false` إذا لا، `null` على غير Android.

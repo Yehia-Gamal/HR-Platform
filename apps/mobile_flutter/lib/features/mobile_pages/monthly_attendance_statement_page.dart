@@ -889,9 +889,20 @@ class _DayDetailSheet extends ConsumerWidget {
                     )),
                   ),
                 Expanded(
-                  child: Text(
-                    '$_dayNameFull $_dateStr',
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_dayNameFull,
+                          style: const TextStyle(
+                              fontSize: 17, fontWeight: FontWeight.w900)),
+                      Text(
+                        '${_months[month - 1]} $dayNum، $year',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 MobileStatusPill(isFuture ? 'scheduled' : _statusPillKey),
@@ -899,6 +910,48 @@ class _DayDetailSheet extends ConsumerWidget {
             ),
 
             const SizedBox(height: 16),
+
+            // ─ بطاقة الوردية (اسم الوردية + الساعات المطلوبة) ─
+            if (!isFuture &&
+                day != null &&
+                (day!.shiftName.trim().isNotEmpty || day!.requiredHours > 0))
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer.withValues(alpha: .35),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.schedule_outlined,
+                        size: 16, color: scheme.onPrimaryContainer),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        day!.shiftName.trim().isNotEmpty
+                            ? 'وردية: ${day!.shiftName}'
+                            : 'وردية اليوم',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
+                    if (day!.requiredHours > 0)
+                      Text(
+                        '${day!.requiredHours.toStringAsFixed(1)} س',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: scheme.onPrimaryContainer,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
 
             // ─ بطاقة الحضور/الانصراف (أيام فائتة فقط) ─
             if (!isFuture && day != null) ...[
