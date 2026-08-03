@@ -824,9 +824,11 @@ class _MonthlyCalendarGrid extends StatelessWidget {
                   final dayData = dayMap[dayNum];
                   final isToday = isCurrentMonth && today.day == dayNum;
                   final dayDate = DateTime(year, month, dayNum);
-                  final isFuture = dayData?.isFuture ?? dayDate.isAfter(
-                    DateTime(today.year, today.month, today.day),
-                  );
+                  final isFuture =
+                      dayData?.isFuture ??
+                      dayDate.isAfter(
+                        DateTime(today.year, today.month, today.day),
+                      );
                   return Expanded(
                     child: _CalendarDayCell(
                       dayNum: dayNum,
@@ -1494,6 +1496,15 @@ class _DayDetailSheet extends ConsumerWidget {
           day!.missingCheckOut ||
           day!.hasCorrection);
 
+  bool get _hasDayDetails =>
+      day != null &&
+      ((day!.leaveDetail?.isNotEmpty ?? false) ||
+          (day!.assignmentDetail?.isNotEmpty ?? false) ||
+          (day!.permitDetail?.isNotEmpty ?? false) ||
+          (day!.correctionDetail?.isNotEmpty ?? false) ||
+          day!.missingCheckIn ||
+          day!.missingCheckOut);
+
   List<Widget> _buildActions(
     BuildContext context,
     WidgetRef ref,
@@ -1726,6 +1737,171 @@ class _DayDetailSheet extends ConsumerWidget {
   void _invalidateProviders(WidgetRef ref) {
     ref.invalidate(mobileRequestsProvider);
     ref.invalidate(myMonthlyStatementProvider((year, month)));
+  }
+}
+
+class _DayDetailsCard extends StatelessWidget {
+  const _DayDetailsCard({required this.day});
+
+  final AttendanceStatementDay day;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final rows = <Widget>[
+      if (day.leaveDetail case final detail?)
+        _DayDetailLine(
+          icon: Icons.beach_access,
+          title: _text(detail, 'typeLabel') ?? 'إجازة',
+          subtitle: _join([
+            _dateRange(detail, 'startDate', 'endDate'),
+            _bool(detail, 'isHalfDay') ? 'نصف يوم' : null,
+            _labeled(detail, 'daysCount', 'عدد الأيام'),
+            _text(detail, 'reason'),
+          ]),
+        ),
+      if (day.assignmentDetail case final detail?)
+        _DayDetailLine(
+          icon: Icons.work_outline,
+          title: _text(detail, 'typeLabel') ?? 'تكليف عمل',
+          subtitle: _join([
+            _text(detail, 'title'),
+            _text(detail, 'location'),
+            _dateRange(detail, 'startAt', 'endAt'),
+          ]),
+        ),
+      if (day.permitDetail case final detail?)
+        _DayDetailLine(
+          icon: Icons.assignment_turned_in_outlined,
+          title: _text(detail, 'kindLabel') ?? 'إذن حضور',
+          subtitle: _join([
+            _labeled(detail, 'minutes', 'الدقائق'),
+            _text(detail, 'reason'),
+          ]),
+        ),
+      if (day.correctionDetail case final detail?)
+        _DayDetailLine(
+          icon: Icons.edit_note,
+          title: _text(detail, 'typeLabel') ?? 'تصحيح حضور',
+          subtitle: _text(detail, 'reason'),
+        ),
+      if (day.missingCheckIn || day.missingCheckOut)
+        _DayDetailLine(
+          icon: Icons.warning_amber_rounded,
+          title: 'بصمة غير مكتملة',
+          subtitle: _join([
+            if (day.missingCheckIn) 'لم تُسجل بصمة الحضور',
+            if (day.missingCheckOut) 'لم تُسجل بصمة الانصراف',
+          ]),
+        ),
+    ];
+
+    if (rows.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: .45),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'تفاصيل اليوم',
+            style: TextStyle(
+              color: scheme.primary,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (var index = 0; index < rows.length; index++) ...[
+            if (index > 0) const Divider(height: 16),
+            rows[index],
+          ],
+        ],
+      ),
+    );
+  }
+
+  static String? _text(Map<String, dynamic> detail, String key) {
+    final value = detail[key];
+    if (value == null) return null;
+    final text = value.toString().trim();
+    return text.isEmpty ? null : text;
+  }
+
+  static bool _bool(Map<String, dynamic> detail, String key) =>
+      detail[key] == true;
+
+  static String? _labeled(
+    Map<String, dynamic> detail,
+    String key,
+    String label,
+  ) {
+    final value = _text(detail, key);
+    return value == null ? null : '$label: $value';
+  }
+
+  static String? _dateRange(
+    Map<String, dynamic> detail,
+    String startKey,
+    String endKey,
+  ) {
+    final start = _text(detail, startKey);
+    final end = _text(detail, endKey);
+    if (start == null) return end;
+    if (end == null || end == start) return start;
+    return '$start — $end';
+  }
+
+  static String? _join(Iterable<String?> values) {
+    final parts = values.whereType<String>().where((value) => value.isNotEmpty);
+    return parts.isEmpty ? null : parts.join(' • ');
+  }
+}
+
+class _DayDetailLine extends StatelessWidget {
+  const _DayDetailLine({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: scheme.primary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+              if (subtitle case final text?) ...[
+                const SizedBox(height: 2),
+                Text(
+                  text,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 

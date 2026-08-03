@@ -65,14 +65,14 @@ function sourceFiles(directory, extensions) {
   return files;
 }
 
-function firstMatches(files, pattern, { exclude = () => false, limit = 5 } = {}) {
+function firstMatches(files, pattern, { exclude = () => false, normalizeLine = (line) => line, limit = 5 } = {}) {
   const matches = [];
   for (const file of files) {
     if (exclude(file)) continue;
     const lines = readFileSync(file, 'utf8').split(/\r?\n/);
     for (let index = 0; index < lines.length; index += 1) {
       pattern.lastIndex = 0;
-      if (pattern.test(lines[index])) {
+      if (pattern.test(normalizeLine(lines[index]))) {
         matches.push(`${file}:${index + 1}`);
         if (matches.length >= limit) return matches;
       }
@@ -203,7 +203,11 @@ check(
   'لا TODO/FIXME في الـ Migrations',
   () => {
     const migrationsDir = join(ROOT, 'supabase', 'migrations');
-    const matches = firstMatches(sourceFiles(migrationsDir, ['.sql']), /\b(?:TODO|FIXME|HACK|XXX)\b/i);
+    const matches = firstMatches(sourceFiles(migrationsDir, ['.sql']), /\b(?:TODO|FIXME|HACK|XXX)\b/i, {
+      // SQL enum/text values such as status = 'todo' are domain data, not
+      // unfinished-work markers. Remove quoted literals before scanning.
+      normalizeLine: (line) => line.replace(/'(?:''|[^'])*'/g, "''").replace(/"(?:""|[^"])*"/g, '""'),
+    });
     if (matches.length > 0) {
       throw new Error(`وُجد TODO/FIXME:\n${matches.join('\n')}`);
     }

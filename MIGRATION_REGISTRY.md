@@ -7,7 +7,7 @@
 
 | العنصر | العدد |
 |---|---|
-| إجمالي الملفات `.sql` المرقمة | 257: 0001–0257 (يشمل placeholders الموثقة) |
+| إجمالي الملفات `.sql` المرقمة | 258: 0001–0258 (يشمل placeholders الموثقة) |
 | تكرارات نشطة | ✅ لا شيء |
 | فجوات | ✅ لا شيء (جسور موثقة: 0119, 0122, 0194, 0219) |
 | ملفات مركونة في `_v23_parking/` | ✅ يجب أن تكون فارغة — إن وُجدت تُعاد جدوَلتها عبر Integration Lead |
@@ -66,13 +66,14 @@
 | 0249 | `0249_harden_url_path_validators.sql` | تشديد التحقق من المسارات والروابط ضد المسافات السابقة والشرطات المختلطة والاجتياز. |
 | 0250 | `0250_harden_external_link_validator.sql` | توحيد تشديد روابط KPI الخارجية مع مدققات المسارات. |
 | 0251 | `0251_fix_monthly_attendance_as_of_date.sql` | احتساب تقرير الشهر الحالي حتى تاريخ ووقت التنفيذ دون تحويل المستقبل إلى غياب. |
-| 0252 | `0252_attendance_day_detail_explainability.sql` | إضافة تفاصيل تفسيرية لكل يوم في كشف الحضور الشهري. |
-| 0253 | `0253_leave_workflow_and_device_reinstate.sql` | استعادة سير الإجازة ذي الخطوتين وإصلاح دورة إعادة تفعيل الجهاز. |
+| 0252 | `0252_attendance_day_detail_explainability.sql` | إضافة تفاصيل تفسيرية لكل يوم في كشف الحضور الشهري. اختبار pgTAP: `0097_attendance_day_detail_explainability.sql`. |
+| 0253 | `0253_leave_workflow_and_device_reinstate.sql` | استعادة سير الإجازة ذي الخطوتين وإصلاح دورة إعادة تفعيل الجهاز. اختبار pgTAP: `0098_leave_workflow_two_step.sql`. |
 | 0254 | `0254_restrict_employee_departments_read.sql` | تشديد RLS لقراءة ربط الموظفين بالإدارات. |
-| 0255 | `0255_payroll_formula_templates_schema.sql` | مخطط قوالب معادلات الرواتب وقواعد التحقق الأساسية. |
+| 0255 | `0255_payroll_formula_templates_schema.sql` | قائمة أنواع عقد DSL المسموحة وواجهة قراءتها للخدمة فقط. |
 | 0256 | `0256_admin_panel_rpc_capability_guards.sql` | **P0**: فحص الصلاحية داخل RPCs لوحة الإدارة. اختبار pgTAP: `0090_admin_panel_rpc_authz.sql`. |
 | 0257 | `0257_attendance_rate_exclude_open_shift.sql` | استبعاد الوردية الحالية المفتوحة من مقامي نسب الحضور والالتزام بالساعات. |
+| 0258 | `0258_payroll_dsl_security_foundation.sql` | جداول قوالب معادلات الرواتب وموافقاتها مع JSON constraints وRLS/ACL. اختبار pgTAP: `0099_payroll_dsl_validation.sql`. |
 
 ---
 
-> ✅ **الحالة:** سلسلة متصلة — 0001 → 0257 — بلا تكرار ولا فجوات نشطة.
+> ✅ **الحالة:** سلسلة متصلة — 0001 → 0258 — بلا تكرار ولا فجوات نشطة.
