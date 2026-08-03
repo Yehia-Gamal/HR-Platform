@@ -27,6 +27,8 @@ export function buildDayTags(d: AttendanceStatementDay): { label: string; varian
   if (d.hasConvoyFundi) tags.push({ label: 'قافلة/فاندي', variant: 'purple' });
   if (d.missingCheckIn) tags.push({ label: 'نقص حضور', variant: 'warn' });
   if (d.missingCheckOut) tags.push({ label: 'نقص انصراف', variant: 'warn' });
+  if (d.isOpenShift) tags.push({ label: 'بانتظار الانصراف', variant: 'info' });
+  if (d.isFuture) tags.push({ label: 'قادم', variant: 'info' });
   if (d.hasCorrection) tags.push({ label: 'تصحيح', variant: 'info' });
   if (d.penalties > 0) tags.push({ label: `جزاء: ${d.penalties}`, variant: 'warn' });
   return tags;
@@ -35,8 +37,21 @@ export function buildDayTags(d: AttendanceStatementDay): { label: string; varian
 // ─── مكونات مشتركة ────────────────────────────────────────────────
 
 /** دائرة نسبة مئوية (حضور / التزام). */
-export function AttendancePercentageRing({ percentage, label = 'حضور' }: { percentage: number; label?: string }) {
+export function AttendancePercentageRing({ percentage, label = 'حضور', available = true }: { percentage: number; label?: string; available?: boolean }) {
   const pct = Math.min(100, Math.max(0, percentage));
+  if (!available) {
+    return (
+      <div className="relative flex flex-col items-center gap-1">
+        <svg width="100" height="100" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="40" fill="none" strokeWidth="8" className="stroke-slate-200" />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-base font-black text-slate-500">غير متاح</span>
+          <span className="text-[10px] text-[var(--text-muted)]">{label}</span>
+        </div>
+      </div>
+    );
+  }
   const color = pct >= 90 ? 'text-emerald-600' : pct >= 75 ? 'text-amber-500' : 'text-red-600';
   const bgColor = pct >= 90 ? 'stroke-emerald-100' : pct >= 75 ? 'stroke-amber-100' : 'stroke-red-100';
   const fgColor = pct >= 90 ? 'stroke-emerald-600' : pct >= 75 ? 'stroke-amber-500' : 'stroke-red-600';

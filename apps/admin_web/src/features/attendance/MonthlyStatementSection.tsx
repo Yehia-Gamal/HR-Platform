@@ -62,8 +62,9 @@ export function MonthlyStatementSection({ employeeId }: { employeeId: string }) 
 function StatementBody({ data }: { data: AttendanceStatement }) {
   const s = data.summary;
   // V23: استخدام النسب من الخادم بدلاً من الحساب المحلي
-  const attendancePct = s.attendanceRate ?? (s.scheduledDays > 0 ? (s.presentDays / s.scheduledDays) * 100 : 0);
+  const attendancePct = s.attendanceRate ?? (s.dueScheduledDays > 0 ? (s.presentDays / s.dueScheduledDays) * 100 : 0);
   const compliancePct = s.hoursComplianceRate ?? 0;
+  const complianceAvailable = s.hoursComplianceAvailable || s.totalRequiredHours > 0;
 
   return (
     <div className="space-y-5">
@@ -72,13 +73,15 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
         {/* دوائر النسب */}
         <div className="flex items-center justify-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-6">
           <AttendancePercentageRing percentage={attendancePct} />
-          <AttendancePercentageRing percentage={compliancePct} label="التزام" />
+          <AttendancePercentageRing percentage={compliancePct} label="التزام" available={complianceAvailable} />
         </div>
 
         {/* بطاقات الملخص */}
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="أيام الحضور" value={s.presentDays} hint={`من ${s.scheduledDays} مجدولة`} icon={UserCheck} />
+          <MetricCard label="أيام الحضور" value={s.presentDays} hint={`من ${s.dueScheduledDays} مستحقة حتى الآن`} icon={UserCheck} />
           <MetricCard label="أيام الغياب" value={s.absentDays} icon={AlertTriangle} />
+          <MetricCard label="وردية مفتوحة" value={s.openShiftDays} hint="حاضر — بانتظار الانصراف" icon={Clock} />
+          <MetricCard label="أيام قادمة" value={s.upcomingDays} hint={`من ${s.scheduledDays} مجدولة شهريًا`} icon={CalendarDays} />
           <MetricCard label="أيام الإجازات" value={s.leaveDays} icon={CalendarDays} />
           <MetricCard label="أيام المأموريات" value={s.missionDays} icon={TrendingUp} />
           <MetricCard label="إذنات" value={s.permitCount} icon={Clock} />
@@ -86,7 +89,11 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
           <MetricCard
             label="ساعات العمل"
             value={s.totalWorkHours.toFixed(1)}
-            hint={`مطلوب ${(s.totalRequiredHours ?? 0).toFixed(1)} | متوسط ${s.averageWorkHours.toFixed(1)} س/يوم`}
+            hint={
+              complianceAvailable
+                ? `مطلوب ${(s.totalRequiredHours ?? 0).toFixed(1)} | متوسط ${s.averageWorkHours.toFixed(1)} س/يوم مكتمل`
+                : 'الساعات المطلوبة غير متاحة'
+            }
             icon={Timer}
           />
           <MetricCard label="ساعات إضافية" value={`${s.totalOvertimeMinutes} د`} icon={ArrowUpRight} />
@@ -98,7 +105,11 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
         <StatItem label="تأخير كلي" value={`${s.totalLateMinutes} د`} icon={<ArrowDownRight className="size-3.5 text-amber-500" aria-hidden="true" />} />
         <StatItem label="خروج مبكر" value={`${s.totalEarlyLeaveMinutes} د`} icon={<ArrowUpRight className="size-3.5 text-amber-500" aria-hidden="true" />} />
         <StatItem label="نسبة الحضور" value={`${attendancePct.toFixed(0)}%`} icon={<UserCheck className="size-3.5 text-emerald-500" aria-hidden="true" />} />
-        <StatItem label="التزام الساعات" value={`${compliancePct.toFixed(0)}%`} icon={<Timer className="size-3.5 text-blue-500" aria-hidden="true" />} />
+        <StatItem
+          label="التزام الساعات"
+          value={complianceAvailable ? `${compliancePct.toFixed(0)}%` : 'غير متاح'}
+          icon={<Timer className="size-3.5 text-blue-500" aria-hidden="true" />}
+        />
         <StatItem label="نسيان حضور" value={`${s.missingCheckInCount}`} icon={<AlertTriangle className="size-3.5 text-red-500" aria-hidden="true" />} />
         <StatItem label="نسيان انصراف" value={`${s.missingCheckOutCount}`} icon={<AlertTriangle className="size-3.5 text-red-500" aria-hidden="true" />} />
         <StatItem label="عطل رسمية" value={`${s.holidayDays}`} icon={<CalendarDays className="size-3.5 text-[var(--text-muted)]" aria-hidden="true" />} />
@@ -152,7 +163,7 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
               return (
                 <tr
                   key={d.date}
-                  className="border-t border-[var(--border)] odd:bg-[var(--surface-muted)]/30 hover:bg-[var(--surface-muted)]/60 transition-colors"
+                  className={`border-t border-[var(--border)] transition-colors ${d.isFuture ? 'bg-slate-50/80 text-slate-400' : d.isOpenShift ? 'bg-sky-50/70 hover:bg-sky-50' : 'odd:bg-[var(--surface-muted)]/30 hover:bg-[var(--surface-muted)]/60'}`}
                 >
                   <td className="p-2.5 tabular-nums" dir="ltr">
                     {d.date}

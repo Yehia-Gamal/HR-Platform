@@ -29,9 +29,8 @@ String _buildAttendanceHtml(MonthlyAttendanceStatement stmt) {
       ? _months[stmt.month - 1]
       : '';
   final attendancePct = stmt.attendancePercentage;
-  final compliancePct = s.scheduledDays > 0
-      ? (s.totalWorkHours / (s.scheduledDays * 8) * 100).clamp(0.0, 100.0)
-      : 0.0;
+  final compliancePct = s.hoursComplianceRate;
+  final complianceAvailable = s.hoursComplianceAvailable;
 
   final dayRows = StringBuffer();
   for (final d in stmt.days) {
@@ -45,11 +44,21 @@ String _buildAttendanceHtml(MonthlyAttendanceStatement stmt) {
     if (d.hasConvoyFundi) tags.add('قافلة/فاندي');
     if (d.missingCheckIn) tags.add('نقص حضور');
     if (d.missingCheckOut) tags.add('نقص انصراف');
+    if (d.isOpenShift) tags.add('بانتظار الانصراف');
+    if (d.isFuture) tags.add('قادم');
     if (d.hasCorrection) tags.add('تصحيح');
 
     final isRest = d.status == 'راحة أسبوعية' || d.status == 'عطلة رسمية';
     final isWarn = _warnStatuses.contains(d.status);
-    final rowBg = isRest ? '#f0f9ff' : isWarn ? '#fef2f2' : '';
+    final rowBg = d.isFuture
+        ? '#f8fafc'
+        : d.isOpenShift
+        ? '#f0f9ff'
+        : isRest
+        ? '#f0f9ff'
+        : isWarn
+        ? '#fef2f2'
+        : '';
     final statusColor = isWarn ? '#dc2626' : isRest ? '#0369a1' : '#111827';
 
     dayRows.writeln('''<tr style="border-bottom:1px solid #e5e7eb;${rowBg.isNotEmpty ? 'background:$rowBg;' : ''}">
@@ -239,19 +248,21 @@ String _buildAttendanceHtml(MonthlyAttendanceStatement stmt) {
     </div>
     <div style="width:1px;height:40px;background:#bfdbfe"></div>
     <div class="rate-item">
-      <div class="pct" style="color:${_pctColor(compliancePct)}">${compliancePct.toStringAsFixed(0)}%</div>
+      <div class="pct" style="color:${complianceAvailable ? _pctColor(compliancePct) : '#64748b'}">${complianceAvailable ? '${compliancePct.toStringAsFixed(0)}%' : 'غير متاح'}</div>
       <div class="lbl">التزام الساعات</div>
     </div>
   </div>
 
   <div class="summary-grid">
-    <div class="metric"><div class="label">أيام الحضور</div><div class="value">${s.presentDays}</div><div class="hint">من ${s.scheduledDays} مجدولة</div></div>
+    <div class="metric"><div class="label">أيام الحضور</div><div class="value">${s.presentDays}</div><div class="hint">من ${s.dueScheduledDays} مستحقة حتى الآن</div></div>
     <div class="metric${s.absentDays > 0 ? ' warn' : ''}"><div class="label">أيام الغياب</div><div class="value">${s.absentDays}</div></div>
+    <div class="metric"><div class="label">وردية مفتوحة</div><div class="value">${s.openShiftDays}</div><div class="hint">بانتظار الانصراف</div></div>
+    <div class="metric"><div class="label">أيام قادمة</div><div class="value">${s.upcomingDays}</div><div class="hint">لا تُحسب غيابًا</div></div>
     <div class="metric"><div class="label">أيام الإجازات</div><div class="value">${s.leaveDays}</div></div>
     <div class="metric"><div class="label">أيام المأموريات</div><div class="value">${s.missionDays}</div></div>
     <div class="metric"><div class="label">إذنات</div><div class="value">${s.permitCount}</div></div>
     <div class="metric"><div class="label">قوافل/فاندي</div><div class="value">${s.convoyFundiDays}</div></div>
-    <div class="metric"><div class="label">ساعات العمل</div><div class="value">${s.totalWorkHours.toStringAsFixed(1)}</div><div class="hint">متوسط ${s.averageWorkHours.toStringAsFixed(1)} س/يوم</div></div>
+    <div class="metric"><div class="label">ساعات العمل</div><div class="value">${s.totalWorkHours.toStringAsFixed(1)}</div><div class="hint">${complianceAvailable ? 'متوسط ${s.averageWorkHours.toStringAsFixed(1)} س/يوم مكتمل' : 'الساعات المطلوبة غير متاحة'}</div></div>
     <div class="metric good"><div class="label">ساعات إضافية</div><div class="value">${s.totalOvertimeMinutes} د</div></div>
   </div>
 

@@ -1338,6 +1338,8 @@ class AttendanceStatementDay {
     required this.earlyLeaveMinutes,
     required this.overtimeMinutes,
     required this.status,
+    required this.isAbsent,
+    required this.isOfficialHoliday,
     required this.hasLeave,
     required this.hasPermit,
     required this.hasMission,
@@ -1346,6 +1348,10 @@ class AttendanceStatementDay {
     required this.missingCheckOut,
     required this.hasCorrection,
     required this.correctionNote,
+    required this.isFuture,
+    required this.isDue,
+    required this.isOpenShift,
+    required this.isCompleted,
   });
 
   factory AttendanceStatementDay.fromJson(Map<String, dynamic> json) =>
@@ -1361,6 +1367,8 @@ class AttendanceStatementDay {
         earlyLeaveMinutes: (json['earlyLeaveMinutes'] as num?)?.toInt() ?? 0,
         overtimeMinutes: (json['overtimeMinutes'] as num?)?.toInt() ?? 0,
         status: json['status'] as String? ?? '',
+        isAbsent: json['isAbsent'] as bool? ?? false,
+        isOfficialHoliday: json['isOfficialHoliday'] as bool? ?? false,
         hasLeave: json['hasLeave'] as bool? ?? false,
         hasPermit: json['hasPermit'] as bool? ?? false,
         hasMission: json['hasMission'] as bool? ?? false,
@@ -1369,6 +1377,10 @@ class AttendanceStatementDay {
         missingCheckOut: json['missingCheckOut'] as bool? ?? false,
         hasCorrection: json['hasCorrection'] as bool? ?? false,
         correctionNote: json['correctionNote'] as String?,
+        isFuture: json['isFuture'] as bool? ?? false,
+        isDue: json['isDue'] as bool? ?? false,
+        isOpenShift: json['isOpenShift'] as bool? ?? false,
+        isCompleted: json['isCompleted'] as bool? ?? false,
       );
 
   final String date;
@@ -1382,6 +1394,8 @@ class AttendanceStatementDay {
   final int earlyLeaveMinutes;
   final int overtimeMinutes;
   final String status;
+  final bool isAbsent;
+  final bool isOfficialHoliday;
   final bool hasLeave;
   final bool hasPermit;
   final bool hasMission;
@@ -1390,6 +1404,10 @@ class AttendanceStatementDay {
   final bool missingCheckOut;
   final bool hasCorrection;
   final String? correctionNote;
+  final bool isFuture;
+  final bool isDue;
+  final bool isOpenShift;
+  final bool isCompleted;
 }
 
 /// ملخص شهري للكشف.
@@ -1397,8 +1415,12 @@ class AttendanceStatementSummary {
   const AttendanceStatementSummary({
     required this.totalDays,
     required this.scheduledDays,
+    required this.dueScheduledDays,
+    required this.upcomingDays,
     required this.presentDays,
     required this.absentDays,
+    required this.openShiftDays,
+    required this.completedPresenceDays,
     required this.leaveDays,
     required this.missionDays,
     required this.permitCount,
@@ -1406,6 +1428,7 @@ class AttendanceStatementSummary {
     required this.holidayDays,
     required this.restDays,
     required this.totalWorkHours,
+    required this.totalRequiredHours,
     required this.averageWorkHours,
     required this.totalLateMinutes,
     required this.totalEarlyLeaveMinutes,
@@ -1413,14 +1436,24 @@ class AttendanceStatementSummary {
     required this.missingCheckInCount,
     required this.missingCheckOutCount,
     required this.correctionCount,
+    required this.attendanceRate,
+    required this.hoursComplianceRate,
+    required this.hoursComplianceAvailable,
   });
 
   factory AttendanceStatementSummary.fromJson(Map<String, dynamic> json) =>
       AttendanceStatementSummary(
         totalDays: (json['totalDays'] as num?)?.toInt() ?? 0,
         scheduledDays: (json['scheduledDays'] as num?)?.toInt() ?? 0,
+        dueScheduledDays: (json['dueScheduledDays'] as num?)?.toInt() ??
+            (json['scheduledDays'] as num?)?.toInt() ??
+            0,
+        upcomingDays: (json['upcomingDays'] as num?)?.toInt() ?? 0,
         presentDays: (json['presentDays'] as num?)?.toInt() ?? 0,
         absentDays: (json['absentDays'] as num?)?.toInt() ?? 0,
+        openShiftDays: (json['openShiftDays'] as num?)?.toInt() ?? 0,
+        completedPresenceDays:
+            (json['completedPresenceDays'] as num?)?.toInt() ?? 0,
         leaveDays: (json['leaveDays'] as num?)?.toInt() ?? 0,
         missionDays: (json['missionDays'] as num?)?.toInt() ?? 0,
         permitCount: (json['permitCount'] as num?)?.toInt() ?? 0,
@@ -1428,6 +1461,8 @@ class AttendanceStatementSummary {
         holidayDays: (json['holidayDays'] as num?)?.toInt() ?? 0,
         restDays: (json['restDays'] as num?)?.toInt() ?? 0,
         totalWorkHours: (json['totalWorkHours'] as num?)?.toDouble() ?? 0,
+        totalRequiredHours:
+            (json['totalRequiredHours'] as num?)?.toDouble() ?? 0,
         averageWorkHours: (json['averageWorkHours'] as num?)?.toDouble() ?? 0,
         totalLateMinutes: (json['totalLateMinutes'] as num?)?.toInt() ?? 0,
         totalEarlyLeaveMinutes: (json['totalEarlyLeaveMinutes'] as num?)?.toInt() ?? 0,
@@ -1435,12 +1470,22 @@ class AttendanceStatementSummary {
         missingCheckInCount: (json['missingCheckInCount'] as num?)?.toInt() ?? 0,
         missingCheckOutCount: (json['missingCheckOutCount'] as num?)?.toInt() ?? 0,
         correctionCount: (json['correctionCount'] as num?)?.toInt() ?? 0,
+        attendanceRate: (json['attendanceRate'] as num?)?.toDouble(),
+        hoursComplianceRate:
+            (json['hoursComplianceRate'] as num?)?.toDouble() ?? 0,
+        hoursComplianceAvailable:
+            json['hoursComplianceAvailable'] as bool? ??
+            ((json['totalRequiredHours'] as num?)?.toDouble() ?? 0) > 0,
       );
 
   final int totalDays;
   final int scheduledDays;
+  final int dueScheduledDays;
+  final int upcomingDays;
   final int presentDays;
   final int absentDays;
+  final int openShiftDays;
+  final int completedPresenceDays;
   final int leaveDays;
   final int missionDays;
   final int permitCount;
@@ -1448,6 +1493,7 @@ class AttendanceStatementSummary {
   final int holidayDays;
   final int restDays;
   final double totalWorkHours;
+  final double totalRequiredHours;
   final double averageWorkHours;
   final int totalLateMinutes;
   final int totalEarlyLeaveMinutes;
@@ -1455,6 +1501,9 @@ class AttendanceStatementSummary {
   final int missingCheckInCount;
   final int missingCheckOutCount;
   final int correctionCount;
+  final double? attendanceRate;
+  final double hoursComplianceRate;
+  final bool hoursComplianceAvailable;
 }
 
 /// كشف الحضور والانصراف الشهري الكامل (V12 §18).
@@ -1516,11 +1565,12 @@ class MonthlyAttendanceStatement {
   final List<AttendanceStatementDay> days;
   final AttendanceStatementSummary summary;
 
-  /// نسبة الحضور المئوية (أيام الحضور ÷ أيام العمل المجدولة × 100).
+  /// نسبة الحضور حتى الآن (الحضور ÷ أيام العمل المستحقة، دون المستقبل).
   double get attendancePercentage =>
-      summary.scheduledDays > 0
-          ? (summary.presentDays / summary.scheduledDays * 100)
-          : 0;
+      summary.attendanceRate ??
+      (summary.dueScheduledDays > 0
+          ? (summary.presentDays / summary.dueScheduledDays * 100)
+          : 0);
 }
 
 class MobileScheduleDay {

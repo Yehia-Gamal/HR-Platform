@@ -214,6 +214,18 @@ class _StatementBody extends StatelessWidget {
               color: scheme.error,
             ),
             _MetricTile(
+              icon: Icons.timelapse_rounded,
+              label: 'وردية مفتوحة',
+              value: '${s.openShiftDays}',
+              color: const Color(0xFF0284C7),
+            ),
+            _MetricTile(
+              icon: Icons.event_available_outlined,
+              label: 'أيام قادمة',
+              value: '${s.upcomingDays}',
+              color: const Color(0xFF64748B),
+            ),
+            _MetricTile(
               icon: Icons.beach_access_outlined,
               label: 'إجازات',
               value: '${s.leaveDays}',
@@ -263,9 +275,16 @@ class _StatementBody extends StatelessWidget {
               unit: 'ساعة',
             ),
             _SummaryTile(
-              label: 'متوسط يومي',
+              label: 'متوسط يوم مكتمل',
               value: s.averageWorkHours.toStringAsFixed(1),
               unit: 'ساعة/يوم',
+            ),
+            _SummaryTile(
+              label: 'التزام الساعات',
+              value: s.hoursComplianceAvailable
+                  ? '${s.hoursComplianceRate.toStringAsFixed(0)}%'
+                  : 'غير متاح',
+              unit: '',
             ),
             _SummaryTile(
               label: 'إجمالي التأخير',
@@ -560,10 +579,22 @@ class _AttendancePercentageCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   _PctDetailRow(
-                    label: 'أيام مجدولة',
-                    value: '${s.scheduledDays}',
+                    label: 'أيام مستحقة حتى الآن',
+                    value: '${s.dueScheduledDays}',
                   ),
                   _PctDetailRow(label: 'أيام حضور', value: '${s.presentDays}'),
+                  _PctDetailRow(
+                    label: 'ورديات مفتوحة',
+                    value: '${s.openShiftDays}',
+                  ),
+                  _PctDetailRow(
+                    label: 'أيام قادمة',
+                    value: '${s.upcomingDays}',
+                  ),
+                  _PctDetailRow(
+                    label: 'إجمالي الشهر المجدول',
+                    value: '${s.scheduledDays}',
+                  ),
                   _PctDetailRow(
                     label: 'أيام عطل رسمية',
                     value: '${s.holidayDays}',
@@ -793,7 +824,7 @@ class _MonthlyCalendarGrid extends StatelessWidget {
                   final dayData = dayMap[dayNum];
                   final isToday = isCurrentMonth && today.day == dayNum;
                   final dayDate = DateTime(year, month, dayNum);
-                  final isFuture = dayDate.isAfter(
+                  final isFuture = dayData?.isFuture ?? dayDate.isAfter(
                     DateTime(today.year, today.month, today.day),
                   );
                   return Expanded(
@@ -941,6 +972,14 @@ class _CalendarDayCell extends StatelessWidget {
     }
     final d = dayData!;
     final status = d.status;
+    if (d.isOpenShift) {
+      return (
+        bg: const Color(0xFFEFF6FF),
+        fg: const Color(0xFF075985),
+        accent: const Color(0xFF0284C7),
+        dot: const Color(0xFF0284C7),
+      );
+    }
     // غائب دون إذن — أحمر
     if (status == 'غائب دون إذن') {
       return (
@@ -1406,6 +1445,8 @@ class _DayDetailSheet extends ConsumerWidget {
 
   String get _statusPillKey {
     if (day == null) return 'absent';
+    if (day!.isOpenShift) return 'in_progress';
+    if (day!.isFuture) return 'scheduled';
     final s = day!.status;
     if (s == 'حاضر') return 'present';
     if (s == 'غائب دون إذن') return 'absent';

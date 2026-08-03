@@ -55,8 +55,12 @@ const mockStatement = {
   summary: {
     totalDays: 30,
     scheduledDays: 22,
+    dueScheduledDays: 22,
+    upcomingDays: 0,
     presentDays: 20,
     absentDays: 1,
+    openShiftDays: 0,
+    completedPresenceDays: 20,
     leaveDays: 1,
     permitCount: 2,
     missionDays: 0,
@@ -74,6 +78,7 @@ const mockStatement = {
     correctionCount: 0,
     attendanceRate: 90.91,
     hoursComplianceRate: 95.45,
+    hoursComplianceAvailable: true,
   },
 };
 
@@ -113,6 +118,8 @@ describe('useMonthlyStatement — attendanceStatementSchema validation', () => {
     const { summary } = parsed;
     expect(summary.totalDays).toBeGreaterThanOrEqual(0);
     expect(summary.scheduledDays).toBeGreaterThanOrEqual(0);
+    expect(summary.dueScheduledDays).toBeGreaterThanOrEqual(0);
+    expect(summary.upcomingDays).toBeGreaterThanOrEqual(0);
     expect(summary.presentDays).toBeGreaterThanOrEqual(0);
     expect(summary.absentDays).toBeGreaterThanOrEqual(0);
     expect(summary.leaveDays).toBeGreaterThanOrEqual(0);
@@ -142,6 +149,26 @@ describe('useMonthlyStatement — attendanceStatementSchema validation', () => {
     const parsed = attendanceStatementSchema.parse(mockStatement);
     expect(parsed.summary.attendanceRate).toBeGreaterThanOrEqual(0);
     expect(parsed.summary.attendanceRate).toBeLessThanOrEqual(100);
+  });
+
+  it('current-month rate uses due days and keeps future days separate', () => {
+    const current = attendanceStatementSchema.parse({
+      ...mockStatement,
+      summary: {
+        ...mockStatement.summary,
+        scheduledDays: 27,
+        dueScheduledDays: 3,
+        upcomingDays: 24,
+        presentDays: 2,
+        absentDays: 1,
+        openShiftDays: 1,
+        completedPresenceDays: 1,
+        attendanceRate: 66.67,
+      },
+    });
+    expect(current.summary.attendanceRate).toBe(66.67);
+    expect(current.summary.upcomingDays).toBe(24);
+    expect(current.summary.openShiftDays).toBe(1);
   });
 
   it('hoursComplianceRate is between 0 and 100', () => {
@@ -179,6 +206,8 @@ describe('useMonthlyStatement — attendanceStatementSchema validation', () => {
     expect(parsed.hasCorrection).toBe(false);
     expect(parsed.notes).toBeNull();
     expect(parsed.penalties).toBe(0);
+    expect(parsed.isFuture).toBe(false);
+    expect(parsed.isOpenShift).toBe(false);
   });
 
   it('checkIn and checkOut are nullable', () => {

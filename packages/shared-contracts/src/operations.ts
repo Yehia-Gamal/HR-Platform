@@ -191,6 +191,14 @@ export const attendanceStatementDaySchema = z.object({
   notes: z.string().nullable().default(null),
   /** الجزاءات (مثلاً خصم ساعات) — V23 §14 */
   penalties: z.number().catch(0),
+  /** يوم عمل قادم؛ لا يُعد غيابًا ولا يدخل في النسب الحالية. */
+  isFuture: z.boolean().catch(false),
+  /** يوم عمل مستحق حتى وقت إنشاء التقرير. */
+  isDue: z.boolean().catch(false),
+  /** تم تسجيل الحضور وما زالت الوردية مفتوحة. */
+  isOpenShift: z.boolean().catch(false),
+  /** حضور مكتمل ببصمتي دخول وخروج. */
+  isCompleted: z.boolean().catch(false),
 });
 export type AttendanceStatementDay = z.infer<typeof attendanceStatementDaySchema>;
 
@@ -216,8 +224,16 @@ export const attendanceStatementSchema = z.object({
   summary: z.object({
     totalDays: z.number(),
     scheduledDays: z.number(),
+    /** أيام العمل المستحقة حتى تاريخ إنشاء التقرير. */
+    dueScheduledDays: z.number().nonnegative().default(0),
+    /** أيام العمل القادمة المتبقية في الشهر. */
+    upcomingDays: z.number().nonnegative().default(0),
     presentDays: z.number(),
     absentDays: z.number(),
+    /** ورديات اليوم التي بدأ حضورها ولم يحن/يُسجّل انصرافها بعد. */
+    openShiftDays: z.number().nonnegative().default(0),
+    /** أيام الحضور المكتملة المستخدمة في متوسط الساعات. */
+    completedPresenceDays: z.number().nonnegative().default(0),
     leaveDays: z.number(),
     permitCount: z.number(),
     missionDays: z.number(),
@@ -238,6 +254,8 @@ export const attendanceStatementSchema = z.object({
     attendanceRate: z.number().min(0).max(100).default(0),
     /** نسبة الالتزام بالساعات — V23 §14 */
     hoursComplianceRate: z.number().min(0).max(100).default(0),
+    /** false يعني أن المقام غير متوفر، فتُعرض النسبة «غير متاحة» لا 0%. */
+    hoursComplianceAvailable: z.boolean().default(false),
   }),
 });
 export type AttendanceStatement = z.infer<typeof attendanceStatementSchema>;

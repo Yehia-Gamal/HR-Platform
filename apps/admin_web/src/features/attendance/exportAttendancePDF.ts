@@ -28,8 +28,9 @@ export function esc(value: unknown): string {
  */
 export function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية') {
   const { employee: emp, period, days, summary: s } = data;
-  const attendancePct = s.attendanceRate ?? (s.scheduledDays > 0 ? (s.presentDays / s.scheduledDays) * 100 : 0);
+  const attendancePct = s.attendanceRate ?? (s.dueScheduledDays > 0 ? (s.presentDays / s.dueScheduledDays) * 100 : 0);
   const compliancePct = s.hoursComplianceRate ?? 0;
+  const complianceAvailable = s.hoursComplianceAvailable || s.totalRequiredHours > 0;
   const monthName = MONTHS[period.month - 1] ?? '';
 
   const dayRows = days
@@ -45,12 +46,14 @@ export function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمع
       if (d.hasConvoyFundi) tags.push('قافلة/فاندي');
       if (d.missingCheckIn) tags.push('نقص حضور');
       if (d.missingCheckOut) tags.push('نقص انصراف');
+      if (d.isOpenShift) tags.push('بانتظار الانصراف');
+      if (d.isFuture) tags.push('قادم');
       if (d.hasCorrection) tags.push('تصحيح');
       if (d.penalties > 0) tags.push(`جزاء: ${d.penalties}`);
 
       const isRest = d.status === 'راحة أسبوعية' || d.status === 'عطلة رسمية';
       const isWarn = WARN_STATUSES.has(d.status);
-      const rowBg = isRest ? '#f0f9ff' : isWarn ? '#fef2f2' : '';
+      const rowBg = d.isFuture ? '#f8fafc' : d.isOpenShift ? '#f0f9ff' : isRest ? '#f0f9ff' : isWarn ? '#fef2f2' : '';
       const statusColor = isWarn ? '#dc2626' : isRest ? '#0369a1' : '#111827';
 
       return `<tr style="border-bottom:1px solid #e5e7eb;${rowBg ? `background:${rowBg};` : ''}">
@@ -248,20 +251,22 @@ export function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمع
     </div>
     <div style="width:1px;height:40px;background:#bfdbfe"></div>
     <div class="rate-item">
-      <div class="pct" style="color:${pctColor(compliancePct)}">${compliancePct.toFixed(0)}%</div>
+      <div class="pct" style="color:${complianceAvailable ? pctColor(compliancePct) : '#64748b'}">${complianceAvailable ? `${compliancePct.toFixed(0)}%` : 'غير متاح'}</div>
       <div class="lbl">التزام الساعات</div>
     </div>
   </div>
 
   <!-- ملخص الأرقام -->
   <div class="summary-grid">
-    <div class="metric"><div class="label">أيام الحضور</div><div class="value">${s.presentDays}</div><div class="hint">من ${s.scheduledDays} مجدولة</div></div>
+    <div class="metric"><div class="label">أيام الحضور</div><div class="value">${s.presentDays}</div><div class="hint">من ${s.dueScheduledDays} مستحقة حتى الآن</div></div>
     <div class="metric${s.absentDays > 0 ? ' warn' : ''}"><div class="label">أيام الغياب</div><div class="value">${s.absentDays}</div></div>
+    <div class="metric"><div class="label">وردية مفتوحة</div><div class="value">${s.openShiftDays}</div><div class="hint">بانتظار الانصراف</div></div>
+    <div class="metric"><div class="label">أيام قادمة</div><div class="value">${s.upcomingDays}</div><div class="hint">لا تُحسب غيابًا</div></div>
     <div class="metric"><div class="label">أيام الإجازات</div><div class="value">${s.leaveDays}</div></div>
     <div class="metric"><div class="label">أيام المأموريات</div><div class="value">${s.missionDays}</div></div>
     <div class="metric"><div class="label">إذنات</div><div class="value">${s.permitCount}</div></div>
     <div class="metric"><div class="label">قوافل/فاندي</div><div class="value">${s.convoyFundiDays}</div></div>
-    <div class="metric"><div class="label">ساعات العمل</div><div class="value">${s.totalWorkHours.toFixed(1)}</div><div class="hint">مطلوب ${(s.totalRequiredHours ?? 0).toFixed(1)}</div></div>
+    <div class="metric"><div class="label">ساعات العمل</div><div class="value">${s.totalWorkHours.toFixed(1)}</div><div class="hint">${complianceAvailable ? `مطلوب ${(s.totalRequiredHours ?? 0).toFixed(1)}` : 'الساعات المطلوبة غير متاحة'}</div></div>
     <div class="metric good"><div class="label">ساعات إضافية</div><div class="value">${s.totalOvertimeMinutes} د</div></div>
   </div>
 

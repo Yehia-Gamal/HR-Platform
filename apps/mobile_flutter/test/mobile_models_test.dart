@@ -225,9 +225,17 @@ void main() {
       'summary': {
         'presentDays': 1,
         'scheduledDays': 2,
+        'dueScheduledDays': 2,
+        'upcomingDays': 0,
+        'openShiftDays': 0,
+        'completedPresenceDays': 1,
         'missionDays': 1,
         'totalWorkHours': 7.5,
+        'totalRequiredHours': 8,
         'totalLateMinutes': 5,
+        'attendanceRate': 50,
+        'hoursComplianceRate': 93.75,
+        'hoursComplianceAvailable': true,
       },
     });
     expect(stmt.employeeNameAr, 'موظف تجريبي');
@@ -236,6 +244,8 @@ void main() {
     expect(stmt.days[1].hasConvoyFundi, isTrue);
     expect(stmt.summary.totalWorkHours, 7.5);
     expect(stmt.summary.missionDays, 1);
+    expect(stmt.attendancePercentage, 50);
+    expect(stmt.summary.hoursComplianceAvailable, isTrue);
   });
 
   MobileLocationRequest req(String mode) => MobileLocationRequest.fromJson({
