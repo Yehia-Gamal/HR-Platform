@@ -52,6 +52,35 @@ function run(cmd, opts = {}) {
   }).trim();
 }
 
+function sourceFiles(directory, extensions) {
+  const files = [];
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const fullPath = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...sourceFiles(fullPath, extensions));
+    } else if (extensions.some((extension) => entry.name.endsWith(extension))) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
+
+function firstMatches(files, pattern, { exclude = () => false, limit = 5 } = {}) {
+  const matches = [];
+  for (const file of files) {
+    if (exclude(file)) continue;
+    const lines = readFileSync(file, 'utf8').split(/\r?\n/);
+    for (let index = 0; index < lines.length; index += 1) {
+      pattern.lastIndex = 0;
+      if (pattern.test(lines[index])) {
+        matches.push(`${file}:${index + 1}`);
+        if (matches.length >= limit) return matches;
+      }
+    }
+  }
+  return matches;
+}
+
 console.log('╔══════════════════════════════════════════════╗');
 console.log('║   Release Gate — أحلى شباب HR              ║');
 console.log('╚══════════════════════════════════════════════╝');
@@ -82,7 +111,9 @@ check('TypeScript typecheck', () => {
 
 // 3. Web tests
 check('اختبارات الويب (Vitest)', () => {
-  run('npm run test');
+  // The admin suite is intentionally split into bounded shards for stability
+  // on Windows. Give the complete four-shard run enough time to finish.
+  run('npm run test', { timeout: 900_000 });
 });
 
 // 4. Build
@@ -108,25 +139,24 @@ check('التحقق من مصادر Dart', () => {
 // 8. No console.log in production
 check('لا console.log في كود الإنتاج', () => {
   const webSrc = join(ROOT, 'apps', 'admin_web', 'src');
-  try {
-    const result = run(
-      `grep -rn "console\\.log" "${webSrc}" --include="*.ts" --include="*.tsx" | grep -v ".test." | grep -v "test/" | grep -v "node_modules" | head -5`
-    );
-    if (result) {
-      throw new Error(`وُجد console.log في:\n${result}`);
-    }
-  } catch (e) {
-    // grep returns exit code 1 when no matches — that's success
-    if (e.status === 1) return true;
-    throw e;
+  const matches = firstMatches(sourceFiles(webSrc, ['.ts', '.tsx']), /console\.log\s*\(/, {
+    exclude: (file) => /(?:^|[\\/])(?:__tests__|test)(?:[\\/])|\.(?:test|spec)\.[cm]?[jt]sx?$/.test(file),
+  });
+  if (matches.length > 0) {
+    throw new Error(`وُجد console.log في:\n${matches.join('\n')}`);
   }
+});
+
+// 9. Migration filenames, sequence, and placeholder governance
+check('Migration integrity', () => {
+  run('node scripts/check-migrations-integrity.mjs');
 });
 
 // ━━━━━━━━━━━━━━━━━━━━ P1: الشروط المهمة ━━━━━━━━━━━━━━━━━━━━
 
 console.log('\n── P1: الشروط المهمة ──\n');
 
-// 9. Flutter analyze
+// 10. Flutter analyze
 check(
   'Flutter analyze',
   () => {
@@ -134,19 +164,19 @@ check(
       cwd: join(ROOT, 'apps', 'mobile_flutter'),
     });
   },
-  STRICT
+  STRICT,
 );
 
-// 10. Flutter tests
+// 11. Flutter tests
 check(
   'اختبارات Flutter',
   () => {
     run('flutter test', { cwd: join(ROOT, 'apps', 'mobile_flutter') });
   },
-  STRICT
+  STRICT,
 );
 
-// 11. CODEOWNERS exists
+// 12. CODEOWNERS exists
 check(
   'ملف CODEOWNERS موجود',
   () => {
@@ -154,10 +184,10 @@ check(
       throw new Error('ملف .github/CODEOWNERS غير موجود');
     }
   },
-  STRICT
+  STRICT,
 );
 
-// 12. Migration README up to date
+// 13. Migration README up to date
 check(
   'README الـ Migrations موجود',
   () => {
@@ -165,27 +195,20 @@ check(
       throw new Error('supabase/migrations/README.md غير موجود');
     }
   },
-  STRICT
+  STRICT,
 );
 
-// 13. No TODO/FIXME/HACK in migrations
+// 14. No TODO/FIXME/HACK in migrations
 check(
   'لا TODO/FIXME في الـ Migrations',
   () => {
     const migrationsDir = join(ROOT, 'supabase', 'migrations');
-    try {
-      const result = run(
-        `grep -rn "TODO\\|FIXME\\|HACK\\|XXX" "${migrationsDir}" --include="*.sql" | head -5`
-      );
-      if (result) {
-        throw new Error(`وُجد TODO/FIXME:\n${result}`);
-      }
-    } catch (e) {
-      if (e.status === 1) return true;
-      throw e;
+    const matches = firstMatches(sourceFiles(migrationsDir, ['.sql']), /\b(?:TODO|FIXME|HACK|XXX)\b/i);
+    if (matches.length > 0) {
+      throw new Error(`وُجد TODO/FIXME:\n${matches.join('\n')}`);
     }
   },
-  STRICT
+  STRICT,
 );
 
 // ━━━━━━━━━━━━━━━━━━━━ النتيجة ━━━━━━━━━━━━━━━━━━━━

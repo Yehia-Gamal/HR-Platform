@@ -1352,6 +1352,10 @@ class AttendanceStatementDay {
     required this.isDue,
     required this.isOpenShift,
     required this.isCompleted,
+    this.leaveDetail,
+    this.assignmentDetail,
+    this.permitDetail,
+    this.correctionDetail,
   });
 
   factory AttendanceStatementDay.fromJson(Map<String, dynamic> json) =>
@@ -1381,7 +1385,19 @@ class AttendanceStatementDay {
         isDue: json['isDue'] as bool? ?? false,
         isOpenShift: json['isOpenShift'] as bool? ?? false,
         isCompleted: json['isCompleted'] as bool? ?? false,
+        leaveDetail: _mapDayDetail(json['details'], 'leave'),
+        assignmentDetail: _mapDayDetail(json['details'], 'assignment'),
+        permitDetail: _mapDayDetail(json['details'], 'permit'),
+        correctionDetail: _mapDayDetail(json['details'], 'correction'),
       );
+
+  /// قراءة آمنة لكائن فرعي داخل details (يرجع null إن غاب)
+  static Map<String, dynamic>? _mapDayDetail(dynamic details, String key) {
+    if (details is! Map) return null;
+    final v = details[key];
+    if (v is Map) return Map<String, dynamic>.from(v);
+    return null;
+  }
 
   final String date;
   final String dayNameAr;
@@ -1408,6 +1424,12 @@ class AttendanceStatementDay {
   final bool isDue;
   final bool isOpenShift;
   final bool isCompleted;
+
+  /// تفاصيل إيضاحية تعبَّأ من backend (0252) — كلها اختيارية.
+  final Map<String, dynamic>? leaveDetail;
+  final Map<String, dynamic>? assignmentDetail;
+  final Map<String, dynamic>? permitDetail;
+  final Map<String, dynamic>? correctionDetail;
 }
 
 /// ملخص شهري للكشف.

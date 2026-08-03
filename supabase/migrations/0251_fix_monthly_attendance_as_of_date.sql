@@ -195,17 +195,7 @@ begin
         -- preserved and excluded from attendance/hours denominators. Only
         -- ordinary attendance days are normalized here.
         if not v_is_excused then
-          if coalesce((v_day_obj->>'hasCorrection')::boolean, false)
-             and not coalesce((v_day_obj->>'isAbsent')::boolean, false) then
-            v_is_due := true;
-            v_present_days := v_present_days + 1;
-            if v_daily.first_check_in is not null and v_daily.last_check_out is not null then
-              v_is_completed := true;
-              v_completed_presence_days := v_completed_presence_days + 1;
-              v_completed_work_minutes :=
-                v_completed_work_minutes + coalesce(v_daily.work_minutes, 0);
-            end if;
-          elsif v_daily.first_check_in is not null then
+          if v_daily.first_check_in is not null then
             v_is_due := true;
             v_present_days := v_present_days + 1;
 
@@ -223,6 +213,13 @@ begin
               v_missing_checkout := v_missing_checkout + 1;
               v_status := 'حضور ناقص — لم يسجل الانصراف';
             end if;
+          elsif coalesce((v_day_obj->>'hasCorrection')::boolean, false)
+                and not coalesce((v_day_obj->>'isAbsent')::boolean, false) then
+            -- A correction can establish presence without a physical check-in.
+            -- When a physical punch exists, the branch above must remain
+            -- authoritative so an active shift still appears as open.
+            v_is_due := true;
+            v_present_days := v_present_days + 1;
           elsif v_daily.id is not null and v_daily.status = 'absent' then
             v_is_due := true;
             v_absent_days := v_absent_days + 1;

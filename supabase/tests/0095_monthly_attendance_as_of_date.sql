@@ -85,6 +85,16 @@ begin
     insert into public.attendance_daily(
       employee_id, work_date, shift_id, first_check_in, status, work_minutes
     ) values(v_emp, current_date, v_shift, now() - interval '1 hour', 'present', 0);
+
+    insert into public.attendance_corrections(
+      employee_id, attendance_daily_id, work_date, correction_type,
+      reason, status
+    )
+    select
+      v_emp, ad.id, current_date, 'wrong_time',
+      'تصحيح معتمد لا يجب أن يخفي الوردية المفتوحة', 'approved'
+    from public.attendance_daily ad
+    where ad.employee_id = v_emp and ad.work_date = current_date;
   end if;
 
   if extract(isodow from current_date - 1) <> 5 then

@@ -1,4 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
+
+const webRoot = fileURLToPath(new URL('.', import.meta.url));
 
 /**
  * Playwright E2E configuration — أحلى شباب HR
@@ -32,18 +35,16 @@ export default defineConfig({
     },
   ],
 
-  /* تشغيل dev server تلقائياً في CI */
-  webServer: process.env.CI
-    ? {
-        command: 'npm run dev -- --host 127.0.0.1 --port 4173',
-        port: 4173,
-        cwd: '.',
-        reuseExistingServer: false,
-        timeout: 120_000,
-        env: {
-          VITE_ENABLE_DEV_MOCKS: 'true',
-          VITE_APP_ENVIRONMENT: 'development',
-        },
-      }
-    : undefined,
+  /* Start the same isolated test server locally and in CI. */
+  webServer: {
+    command: 'npm run dev -- --host 127.0.0.1 --port 4173 --strictPort',
+    url: 'http://127.0.0.1:4173',
+    cwd: webRoot,
+    reuseExistingServer: false,
+    timeout: 120_000,
+    env: {
+      VITE_ENABLE_DEV_MOCKS: 'true',
+      VITE_APP_ENVIRONMENT: 'development',
+    },
+  },
 });

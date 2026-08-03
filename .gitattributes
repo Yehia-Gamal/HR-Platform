@@ -1,0 +1,18 @@
+# Normalize line endings: store LF in the repository, use native
+# (CRLF on Windows) in working checkouts.
+* text=auto
+
+# Explicit binary — never renormalize.
+*.apk binary
+*.jks binary
+*.keystore binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
