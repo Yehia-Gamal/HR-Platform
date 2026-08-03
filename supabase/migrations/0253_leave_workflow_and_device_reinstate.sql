@@ -228,18 +228,15 @@ begin
     );
 
   -- V25: تجاوز المدير بعد 12 ساعة — صلاحية HR للخطوة الأولى المنتهية
-  if not v_authorized and v_step.step_order = 1 and v_step.due_at < now() then
-    v_authorized := exists (
-      select 1
-      from public.user_roles ur
-      join public.roles r on r.id = ur.role_id
-      where ur.user_id = auth.uid()
-        and r.slug in ('hr-manager', 'hr-specialist')
-        and ur.effective_from <= now()
-        and (ur.effective_to is null or ur.effective_to > now())
-    )
-    and public.can_access_employee(v_req.employee_id, 'requests.approve');
-    v_bypass_hr := v_authorized;
+  -- ملاحظة: HR يكون مخوّلاً أصلاً عبر approver_permission (requests.approve بنطاق
+  -- organization)، لذا نفحص التجاوز بغضّ النظر عن v_authorized — الحارس السابق
+  -- `if not v_authorized` كان يمنع التفعيل لأن v_authorized صحيح دائماً لـ HR.
+  if v_step.step_order = 1
+     and v_step.due_at < now()
+     and public.current_has_active_role(array['hr-manager', 'hr-specialist'])
+     and public.can_access_employee(v_req.employee_id, 'requests.approve') then
+    v_authorized := true;
+    v_bypass_hr  := true;
   end if;
 
   if not v_authorized then

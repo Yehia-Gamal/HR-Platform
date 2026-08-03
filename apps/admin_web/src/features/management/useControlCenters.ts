@@ -89,6 +89,7 @@ export function useLiveLocationCommands() {
         p_reason: input.reason,
       });
     },
+    meta: { successMessage: 'تم إرسال طلب الموقع بنجاح' },
     onSuccess: async () => client.invalidateQueries({ queryKey: ['location-directory'] }),
   });
   return { request };
@@ -230,6 +231,7 @@ export function useOperationsCommands() {
       });
       return { id };
     },
+    meta: { successMessage: 'تم إنشاء المهمة بنجاح' },
     onSuccess: refresh,
   });
   const transitionTask = useMutation({

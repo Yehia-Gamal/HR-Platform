@@ -1,5 +1,6 @@
 :root {
   color-scheme: light;
+  /* ── الهوية الأساسية ── */
   --brand-primary: #0b4fa2;
   --brand-primary-strong: #073b7a;
   --brand-primary-soft: #e8f1ff;
@@ -8,16 +9,33 @@
   --action-primary-fg: #ffffff;
   --brand-accent: #00a8d6;
   --brand-accent-soft: #e1f8ff;
+
+  /* ── درجات دقيقة للتفاعل (hover/active) — لا تكسر الوضع الحالي ── */
+  --brand-primary-hover: #0a468f;        /* 8% أعمق من primary */
+  --brand-primary-active: #083b7d;       /* 15% أعمق */
+  --brand-accent-hover: #00a2cf;
+  --brand-accent-active: #0095be;
+
+  /* ── السطوح ── */
   --app-bg: #f3f6fb;
   --surface: #ffffff;
   --surface-raised: #ffffff;
   --surface-muted: #eef3f9;
   --surface-subtle: #f8fafd;
+  --surface-overlay: rgb(255 255 255 / 82%);
+
+  /* ── النصوص ── */
   --text-primary: #10233f;
   --text-secondary: #334b68;
   --text-muted: #6a7d94;
+  --text-disabled: #9aaabb;
+
+  /* ── الحدود — ثلاث درجات بدل اثنتين ── */
   --border: #dce5f0;
   --border-strong: #c3d2e4;
+  --border-subtle: #e8eff6;
+
+  /* ── Semantic — مع soft backgrounds ── */
   --success: #0f9f6e;
   --success-soft: #e4f8f0;
   --warning: #d98508;
@@ -26,9 +44,25 @@
   --danger-soft: #ffeaec;
   --info: #6d56d9;
   --info-soft: #efedff;
+
+  /* ── الظلال — نظام elevation متدرج ── */
+  --shadow-xs: 0 1px 2px rgb(15 23 42 / 5%);
   --shadow-card: 0 10px 30px rgb(16 35 63 / 6%);
   --shadow-raised: 0 20px 55px rgb(16 35 63 / 14%);
+  --shadow-overlay: 0 32px 72px rgb(16 35 63 / 18%);
+
+  /* ── حلقة التركيز الموحدة ── */
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--brand-accent) 32%, transparent);
+  --focus-ring-strong: 0 0 0 4px color-mix(in srgb, var(--brand-accent) 40%, transparent);
+
+  /* ── التدرجات ── */
   --brand-gradient: linear-gradient(135deg, #073b7a 0%, #0b4fa2 54%, #00a8d6 140%);
+  --gradient-subtle: linear-gradient(180deg, var(--surface) 0%, var(--surface-subtle) 100%);
+
+  /* ── تتبع (tracking) ── */
+  --tracking-tight: -0.015em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.025em;
 }
 
 [data-theme='dark'] {
@@ -38,18 +72,25 @@
   --surface-raised: #101c31;
   --surface-muted: #132139;
   --surface-subtle: #0d182a;
+  --surface-overlay: rgb(11 20 37 / 78%);
   --text-primary: #f5f8ff;
   --text-secondary: #d0dbeb;
   --text-muted: #93a5bd;
+  --text-disabled: #5c6b83;
   --border: #243652;
   --border-strong: #365071;
+  --border-subtle: #1a2941;
   --brand-primary: #8ab9ff;
   --brand-primary-strong: #b7d2ff;
   --brand-primary-soft: #102b51;
   --on-brand-soft: #8ab9ff;
+  --brand-primary-hover: #a5c8ff;
+  --brand-primary-active: #c3d9ff;
   --action-primary-bg: #1e6bb8;
   --action-primary-fg: #ffffff;
   --brand-accent: #5bd6ff;
+  --brand-accent-hover: #7cdcff;
+  --brand-accent-active: #98e2ff;
   --brand-accent-soft: #083645;
   --success: #55d6a5;
   --success-soft: #0d3429;
@@ -59,7 +100,15 @@
   --danger-soft: #421822;
   --info: #b7a8ff;
   --info-soft: #272244;
+
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 40%);
   --shadow-card: 0 14px 38px rgb(0 0 0 / 22%);
   --shadow-raised: 0 24px 60px rgb(0 0 0 / 40%);
+  --shadow-overlay: 0 32px 76px rgb(0 0 0 / 55%);
+
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--brand-accent) 40%, transparent);
+  --focus-ring-strong: 0 0 0 4px color-mix(in srgb, var(--brand-accent) 48%, transparent);
+
   --brand-gradient: linear-gradient(135deg, #123f75 0%, #1e6bb8 60%, #087d9d 140%);
+  --gradient-subtle: linear-gradient(180deg, var(--surface) 0%, var(--surface-subtle) 100%);
 }

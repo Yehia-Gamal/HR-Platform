@@ -1425,6 +1425,13 @@ class _DayDetailSheet extends ConsumerWidget {
               const SizedBox(height: 8),
             ],
 
+            // ─ تفاصيل هذا اليوم (إجازة/مأمورية/إذن/تصحيح/منسيات) ─
+            if (day != null && _hasDayDetails)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _DayDetailsCard(day: day!),
+              ),
+
             // ─ الإجراءات المتاحة ─
             const Divider(height: 24),
             Text(
