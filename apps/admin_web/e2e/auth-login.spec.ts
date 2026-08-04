@@ -26,6 +26,27 @@ test.describe('تسجيل الدخول', () => {
     await expect(loginButton).toBeVisible();
   });
 
+  test('لا تتجاوز صفحة تسجيل الدخول عرض الشاشة', async ({ page }) => {
+    const card = page.locator('.login-card');
+    await expect(card).toBeVisible();
+
+    const layout = await page.evaluate(() => {
+      const loginCard = document.querySelector<HTMLElement>('.login-card');
+      const bounds = loginCard?.getBoundingClientRect();
+
+      return {
+        viewportWidth: document.documentElement.clientWidth,
+        pageWidth: document.documentElement.scrollWidth,
+        cardLeft: bounds?.left ?? -1,
+        cardRight: bounds?.right ?? Number.POSITIVE_INFINITY,
+      };
+    });
+
+    expect(layout.pageWidth).toBeLessThanOrEqual(layout.viewportWidth);
+    expect(layout.cardLeft).toBeGreaterThanOrEqual(0);
+    expect(layout.cardRight).toBeLessThanOrEqual(layout.viewportWidth);
+  });
+
   test('يظهر خطأ عند إرسال نموذج فارغ', async ({ page }) => {
     const loginButton = page.getByRole('button', { name: /دخول|تسجيل/i });
     await loginButton.click();

@@ -120,7 +120,11 @@ select is(jsonb_array_length(public.get_mobile_request_detail((select id from ac
 select is(public.get_mobile_request_detail((select id from acceptance_runtime where kind='employee_leave'))#>>'{decisionContext,substitute,name}','مسؤول Operations الفعلي','manager sees the substitute name');
 select ok((public.get_mobile_request_detail((select id from acceptance_runtime where kind='employee_leave'))#>>'{decisionContext,hasConflict}')::boolean,'manager sees the overlapping mission conflict');
 select lives_ok($$select public.decide_request((select id from acceptance_runtime where kind='employee_leave'),'approve','موافقة المدير المباشر')$$,'manager approves direct report leave');
-select is((select status from public.requests where id=(select id from acceptance_runtime where kind='employee_leave')),'approved','leave approval is persisted');
+select is(
+  (select status from public.requests where id=(select id from acceptance_runtime where kind='employee_leave')),
+  'pending',
+  'manager approval advances leave to HR review without prematurely approving it'
+);
 select throws_ok($$select public.decide_request((select id from acceptance_runtime where kind='employee_mission'),'reject',null)$$,'22023',null,'server requires a rejection reason');
 select lives_ok($$select public.decide_request((select id from acceptance_runtime where kind='employee_mission'),'reject','تعارض مع خطة التشغيل')$$,'manager rejects mission with a reason');
 select is((select status from public.requests where id=(select id from acceptance_runtime where kind='employee_mission')),'rejected','mission rejection is persisted');

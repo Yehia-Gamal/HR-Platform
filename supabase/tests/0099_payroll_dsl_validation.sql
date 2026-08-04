@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
 
-select plan(10);
+select plan(13);
 
 select has_table('public', 'payroll_formula_templates', 'formula templates table exists');
 select has_table('public', 'payroll_formula_approvals', 'formula approvals table exists');
@@ -44,10 +44,42 @@ select throws_ok(
   'template code constraint rejects executable-style identifiers'
 );
 
-select results_eq(
-  $$select jsonb_array_length(public.payroll_dsl_get_allowed_types())$$,
-  $$values (5)$$,
-  'DSL node allow-list contains the five supported node types'
+select set_eq(
+  $$select jsonb_array_elements_text(public.payroll_dsl_get_allowed_types())$$,
+  $$values
+      ('fixed_amount'::text),
+      ('percentage_of_basic'::text),
+      ('tiered_tax'::text),
+      ('conditional'::text),
+      ('attendance_deduction'::text)$$,
+  'DSL node allow-list contains exactly the five supported node types'
+);
+
+select ok(
+  not has_function_privilege(
+    'anon',
+    'public.payroll_dsl_get_allowed_types()',
+    'EXECUTE'
+  ),
+  'anon cannot read the service-only DSL allow-list'
+);
+
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.payroll_dsl_get_allowed_types()',
+    'EXECUTE'
+  ),
+  'authenticated cannot read the service-only DSL allow-list'
+);
+
+select ok(
+  has_function_privilege(
+    'service_role',
+    'public.payroll_dsl_get_allowed_types()',
+    'EXECUTE'
+  ),
+  'service role can read the DSL allow-list'
 );
 
 select * from finish();

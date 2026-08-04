@@ -1,8 +1,10 @@
 -- 0097: 0252 — إثراء كل يوم في كشف الحضور الشهري بكائن "details" توضيحي
 -- يثبت أن الواجهة النهائية _build_attendance_statement:
---   1) تستدعي المُجمع 0251 الخاص (v251) وتُبقي summary دون تغيير.
+--   1) تستدعي الغلاف v252 (مجمّع 0252) الذي يستدعي المُجمع 0251 الخاص (v251).
 --   2) تضيف لكل يوم details: { leave, assignment, permit, correction, missing }.
---   3) تحافظ على منح الوصول الحصري (service_role فقط، وv251 خاصة).
+--   3) تحفظ حقول summary الصادرة من v251 وتضيف مفاتيح 0257 التفسيرية
+--      (attendanceRateBasis, requiredMinutes, compliantWorkMinutes).
+--   4) تحافظ على منح الوصول الحصري (service_role فقط، وv251/v252 خاصة).
 
 begin;
 create extension if not exists pgtap with schema extensions;
@@ -65,17 +67,23 @@ select ok(
 
 select lives_ok(
   $live$do $t$
-  declare v_src text;
+  declare v_final text;
+          v_v252  text;
   begin
-    select prosrc into v_src from pg_proc
+    select prosrc into v_final from pg_proc
     where proname='_build_attendance_statement' and pronamespace='public'::regnamespace;
-    if v_src not ilike '%details%'
-       or v_src not ilike '%typeLabel%'
-       or v_src not ilike '%_build_attendance_statement_v251%' then
-      raise exception 'الواجهة النهائية لا تحوي منطق التفاصيل التوضيحية';
+    if v_final not ilike '%_build_attendance_statement_v252%' then
+      raise exception 'الواجهة النهائية لا تستدعي الغلاف 0252 (v252)';
+    end if;
+    select prosrc into v_v252 from pg_proc
+    where proname='_build_attendance_statement_v252' and pronamespace='public'::regnamespace;
+    if v_v252 not ilike '%details%'
+       or v_v252 not ilike '%typeLabel%'
+       or v_v252 not ilike '%_build_attendance_statement_v251%' then
+      raise exception 'الغلاف 0252 لا يحوي منطق التفاصيل التوضيحية عبر v251';
     end if;
   end $t$$live$,
-  'الواجهة النهائية تحوي بناء details عبر استدعاء v251'
+  'الواجهة النهائية تبني التفاصيل عبر الغلاف v252 الذي يستدعي v251'
 );
 
 -- =====================================================================
@@ -275,19 +283,27 @@ select ok(
   'missing.checkOut = false عند تسجيل الانصراف'
 );
 
-select is(
-  public._build_attendance_statement(
-    '97000000-0000-4000-8000-000000000010',
-    extract(year from (select day from att_detail_fixture))::integer,
-    extract(month from (select day from att_detail_fixture))::integer
-  )->'summary',
-  public._build_attendance_statement_v251(
-    '97000000-0000-4000-8000-000000000010',
-    extract(year from (select day from att_detail_fixture))::integer,
-    extract(month from (select day from att_detail_fixture))::integer
-  )->'summary',
-  'summary لا يتغير بين v251 والواجهة النهائية'
-);
+with s as (
+  select
+    public._build_attendance_statement(
+      '97000000-0000-4000-8000-000000000010',
+      extract(year from (select day from att_detail_fixture))::integer,
+      extract(month from (select day from att_detail_fixture))::integer
+    )->'summary' as final_summary,
+    public._build_attendance_statement_v251(
+      '97000000-0000-4000-8000-000000000010',
+      extract(year from (select day from att_detail_fixture))::integer,
+      extract(month from (select day from att_detail_fixture))::integer
+    )->'summary' as v251_summary
+)
+select ok(
+  (s.final_summary @> s.v251_summary)
+  and (s.final_summary ? 'attendanceRateBasis')
+  and (s.final_summary ? 'requiredMinutes')
+  and (s.final_summary ? 'compliantWorkMinutes'),
+  'الملخص النهائي يحفظ حقول v251 ويضيف أساس النسبة والدقائق المطلوبة'
+)
+from s;
 
 select is(
   (select count(*)::integer
