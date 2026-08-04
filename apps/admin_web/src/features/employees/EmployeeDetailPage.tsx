@@ -12,7 +12,6 @@ import {
   Eye,
   EyeOff,
   Gauge,
-  KeyRound,
   MailCheck,
   Network,
   Pencil,
@@ -231,6 +230,36 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  // --- كلمة المرور (قسم مستقل داخل الحوار) ---
+  const passwordMutation = useSetEmployeePassword();
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
+  const [pwdError, setPwdError] = useState<string | null>(null);
+  const [pwdSuccess, setPwdSuccess] = useState(false);
+
+  const onPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwdError(null);
+    setPwdSuccess(false);
+    if (newPassword.length < 8 || newPassword.length > 72) {
+      setPwdError('كلمة المرور يجب أن تكون بين 8 و72 حرفًا.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwdError('كلمتا المرور غير متطابقتين.');
+      return;
+    }
+    try {
+      await passwordMutation.mutateAsync({ employeeId: item.id, password: newPassword });
+      setPwdSuccess(true);
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      setPwdError(safeErrorMessage(err));
+    }
+  };
+
   // Filter child lookups by parent selection
   const teams = useMemo(() => {
     const opts = lookups.data?.teams ?? [];
@@ -422,6 +451,64 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
                 </select>
               </label>
             </div>
+          </fieldset>
+        ) : null}
+
+        {canSensitive ? (
+          <fieldset>
+            <legend className="mb-3 font-black">تعيين كلمة المرور</legend>
+            <p className="muted mb-3 text-xs">ستعمل كلمة المرور الجديدة في أول دخول فقط، ثم يُجبر الموظف على تغييرها.</p>
+            {pwdError ? <ErrorBanner message={pwdError} /> : null}
+            {pwdSuccess ? (
+              <p className="mb-3 rounded-lg bg-[var(--success-soft)] px-3 py-2 text-sm text-[var(--success)]">تم تعيين كلمة المرور بنجاح.</p>
+            ) : null}
+            <form onSubmit={(e) => void onPasswordSubmit(e)} className="grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-semibold">كلمة المرور الجديدة (8–72 حرفًا)</span>
+                <div className="relative">
+                  <input
+                    className="input w-full pl-10"
+                    type={showPwd ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => { setNewPassword(e.target.value); setPwdSuccess(false); }}
+                    autoComplete="new-password"
+                    minLength={8}
+                    maxLength={72}
+                    disabled={passwordMutation.isPending}
+                  />
+                  <button
+                    type="button"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)]"
+                    onClick={() => setShowPwd((v) => !v)}
+                    aria-label={showPwd ? 'إخفاء' : 'إظهار'}
+                  >
+                    {showPwd ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+                  </button>
+                </div>
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-semibold">تأكيد كلمة المرور</span>
+                <input
+                  className="input w-full"
+                  type={showPwd ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => { setConfirmPassword(e.target.value); setPwdSuccess(false); }}
+                  autoComplete="new-password"
+                  minLength={8}
+                  maxLength={72}
+                  disabled={passwordMutation.isPending}
+                />
+              </label>
+              <div className="sm:col-span-2">
+                <button
+                  type="submit"
+                  disabled={passwordMutation.isPending || newPassword.length < 8 || newPassword !== confirmPassword}
+                  className="btn-primary"
+                >
+                  {passwordMutation.isPending ? 'جارٍ التعيين…' : 'تعيين كلمة المرور'}
+                </button>
+              </div>
+            </form>
           </fieldset>
         ) : null}
 
@@ -753,109 +840,6 @@ function AddDepartmentDialog({ employeeId, onClose, onSuccess }: { employeeId: s
 }
 
 // ---------------------------------------------------------------------------
-// SetPasswordDialog — تعيين كلمة مرور الموظف من لوحة الإداري
-// ---------------------------------------------------------------------------
-function SetPasswordDialog({
-  employeeId,
-  employeeName,
-  onClose,
-  onSuccess,
-}: {
-  employeeId: string;
-  employeeName: string;
-  onClose: () => void;
-  onSuccess: () => void;
-}) {
-  const passwordMutation = useSetEmployeePassword();
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [show, setShow] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    if (password.length < 8 || password.length > 72) {
-      setError('كلمة المرور يجب أن تكون بين 8 و72 حرفًا.');
-      return;
-    }
-    if (password !== confirm) {
-      setError('كلمتا المرور غير متطابقتين.');
-      return;
-    }
-    try {
-      await passwordMutation.mutateAsync({ employeeId, password });
-      onSuccess();
-    } catch (err) {
-      setError(safeErrorMessage(err));
-    }
-  };
-
-  const passwordType = show ? 'text' : 'password';
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <form onSubmit={(e) => void onSubmit(e)} className="card w-full max-w-md space-y-4 p-6" role="dialog" aria-modal="true">
-        <h2 className="text-lg font-black">تعيين كلمة مرور</h2>
-        <p className="text-sm">
-          كلمة مرور جديدة للموظف <strong>{employeeName}</strong>. سيسجّل بها الدخول لأول مرة، وسيُجبر على تغييرها بعدها.
-        </p>
-        {error ? <ErrorBanner message={error} /> : null}
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold">كلمة المرور الجديدة (8–72 حرفًا)</span>
-          <div className="relative">
-            <input
-              className="input w-full pl-10"
-              type={passwordType}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="new-password"
-              minLength={8}
-              maxLength={72}
-              disabled={passwordMutation.isPending}
-            />
-            <button
-              type="button"
-              className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)]"
-              onClick={() => setShow((value) => !value)}
-              aria-label={show ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
-            >
-              {show ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
-            </button>
-          </div>
-        </label>
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold">تأكيد كلمة المرور</span>
-          <input
-            className="input w-full"
-            type={passwordType}
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            autoComplete="new-password"
-            minLength={8}
-            maxLength={72}
-            disabled={passwordMutation.isPending}
-          />
-        </label>
-        <div className="flex justify-end gap-3">
-          <button type="button" onClick={onClose} disabled={passwordMutation.isPending} className="btn-secondary">
-            إلغاء
-          </button>
-          <button type="submit" disabled={passwordMutation.isPending || password.length < 8 || password !== confirm} className="btn-primary">
-            {passwordMutation.isPending ? 'جارٍ التعيين...' : 'تعيين كلمة المرور'}
-          </button>
-        </div>
-      </form>
-    </div>,
-    document.body,
-  );
-}
-
-// ---------------------------------------------------------------------------
 // EmployeeDetailPage — Main component
 // ---------------------------------------------------------------------------
 export function EmployeeDetailPage() {
@@ -871,7 +855,6 @@ export function EmployeeDetailPage() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showAddDeptDialog, setShowAddDeptDialog] = useState(false);
-  const [showSetPasswordDialog, setShowSetPasswordDialog] = useState(false);
   const navigate = useNavigate();
   const item = query.data;
 
@@ -889,7 +872,6 @@ export function EmployeeDetailPage() {
   const canEdit = Boolean(
     auth.access && (hasPermission(auth.access, 'people.employee.update_sensitive') || hasPermission(auth.access, 'people.employee.update_basic')),
   );
-  const canSetPassword = Boolean(auth.access && hasPermission(auth.access, 'people.employee.update_sensitive'));
   const accountPending = PENDING_ACCOUNT_STATES.has((item.accountStatus ?? '').toLowerCase()) || PENDING_ACCOUNT_STATES.has((item.status ?? '').toLowerCase());
   const showResend = canInvite && accountPending && Boolean(employeeId);
 
@@ -925,12 +907,6 @@ export function EmployeeDetailPage() {
               <button type="button" className="btn-primary" onClick={() => setShowEditDialog(true)}>
                 <Pencil className="size-4" aria-hidden="true" />
                 تعديل البيانات
-              </button>
-            ) : null}
-            {canSetPassword ? (
-              <button type="button" className="btn-secondary" onClick={() => setShowSetPasswordDialog(true)}>
-                <KeyRound className="size-4" aria-hidden="true" />
-                تعيين كلمة المرور
               </button>
             ) : null}
             {canEdit && item.isActive ? (
@@ -1162,18 +1138,6 @@ export function EmployeeDetailPage() {
           onClose={() => setShowAddDeptDialog(false)}
           onSuccess={() => {
             setShowAddDeptDialog(false);
-            void query.refetch();
-          }}
-        />
-      )}
-      {showSetPasswordDialog && employeeId && (
-        <SetPasswordDialog
-          employeeId={employeeId}
-          employeeName={item.fullNameAr}
-          onClose={() => setShowSetPasswordDialog(false)}
-          onSuccess={() => {
-            setShowSetPasswordDialog(false);
-            toast({ message: 'تم تعيين كلمة المرور بنجاح', tone: 'success' });
             void query.refetch();
           }}
         />
