@@ -105,6 +105,38 @@ export function useResendInvite() {
   });
 }
 
+// خريطة أخطاء تعيين كلمة المرور → رسائل عربية
+const SET_PASSWORD_ERROR_MESSAGES: Record<string, string> = {
+  forbidden: 'ليس لديك صلاحية تعيين كلمة مرور هذا الموظف.',
+  no_linked_account: 'الموظف ليس لديه حساب مربوط بعد.',
+  account_lookup_failed: 'تعذر العثور على حساب الموظف.',
+  password_update_failed: 'تعذر تحديث كلمة المرور. أعد المحاولة لاحقًا.',
+  permission_check_failed: 'تعذر التحقق من الصلاحية.',
+  validation_failed: 'كلمة المرور يجب أن تكون بين 8 و72 حرفًا.',
+  lookup_failed: 'تعذر البحث عن بيانات الموظف.',
+  server_not_configured: 'الخدمة غير مهيأة. تواصل مع الدعم.',
+  invalid_session: 'انتهت صلاحية الجلسة. سجّل الدخول مجددًا.',
+};
+
+// Sets an employee's password from the admin panel. The edge function is
+// permission-gated (update_sensitive) and forces the employee to change the
+// password on first sign-in so the admin-chosen value does not stay in use.
+export function useSetEmployeePassword() {
+  const auth = useAuth();
+  return useMutation({
+    mutationFn: async ({ employeeId, password }: { employeeId: string; password: string }): Promise<void> => {
+      if (auth.isMock) return;
+      await invokeEdgeFunction(
+        'admin-set-password',
+        { employeeId, password },
+        SET_PASSWORD_ERROR_MESSAGES,
+        'تعذر تعيين كلمة المرور. أعد المحاولة لاحقًا.',
+      );
+    },
+    meta: { successMessage: 'تم تعيين كلمة المرور بنجاح' },
+  });
+}
+
 export function useChangeManager() {
   const auth = useAuth();
   const client = useQueryClient();

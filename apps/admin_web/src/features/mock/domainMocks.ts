@@ -1186,6 +1186,7 @@ export const mockAttendanceStatement: AttendanceStatement = {
       isCompleted: false,
     },
   ],
+  capabilities: { canEditDays: false },
   summary: {
     totalDays: 31,
     scheduledDays: 22,
@@ -1211,8 +1212,19 @@ export const mockAttendanceStatement: AttendanceStatement = {
     missingCheckOutCount: 0,
     correctionCount: 1,
     attendanceRate: 81.8,
+    attendanceRateBasis: {
+      presentInDue: 18,
+      dueDays: 22,
+      presentDays: 18,
+      absentDays: 1,
+      openShiftDays: 0,
+      upcomingDays: 0,
+    },
     hoursComplianceRate: 80.9,
     hoursComplianceAvailable: true,
+    coverageRate: 81.8,
+    coverageDays: 18,
+    totalDeficitMinutes: 40,
   },
 };
 
