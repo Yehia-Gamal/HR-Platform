@@ -4,7 +4,7 @@
  * عند الحاجة لتفعيل صفحة، غيّر القيمة إلى true.
  */
 export const FEATURE_FLAGS = {
-  learning: false,
+  learning: true,
   documents: false,
   lifecycle: false,
   governance: false,

@@ -43,11 +43,12 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
             icon: Users,
             hint: `${data.activeEmployees} موظفًا نشطًا`,
             trend: data.employees ? `${Math.round((data.activeEmployees / data.employees) * 100)}% نشط` : undefined,
+            to: '/hr/employees',
           },
-          { label: 'طلبات معلقة', value: data.pendingRequests, icon: BadgeCheck, hint: 'وفق نطاق وصلاحيات المستخدم' },
-          { label: 'حضور يحتاج مراجعة', value: data.attendancePendingReview, icon: Clock3, hint: 'تصحيحات واستثناءات اليوم' },
-          { label: 'تقييمات قيد الدورة', value: data.pendingKpi, icon: Activity, hint: 'لم تصل للاعتماد النهائي' },
-          { label: 'طلبات توظيف مفتوحة', value: data.openRequisitions, icon: BriefcaseBusiness, hint: 'طلبات معتمدة أو قيد النشر' },
+          { label: 'طلبات معلقة', value: data.pendingRequests, icon: BadgeCheck, hint: 'وفق نطاق وصلاحيات المستخدم', to: '/hr/requests' },
+          { label: 'حضور يحتاج مراجعة', value: data.attendancePendingReview, icon: Clock3, hint: 'تصحيحات واستثناءات اليوم', to: '/hr/attendance' },
+          { label: 'تقييمات قيد الدورة', value: data.pendingKpi, icon: Activity, hint: 'لم تصل للاعتماد النهائي', to: '/hr/performance' },
+          { label: 'طلبات توظيف مفتوحة', value: data.openRequisitions, icon: BriefcaseBusiness, hint: 'طلبات معتمدة أو قيد النشر', to: '/hr/recruitment' },
         ]
       : [
           {
@@ -56,11 +57,12 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
             icon: Users,
             hint: `${data.activeEmployees} موظفًا نشطًا`,
             trend: data.employees ? `${Math.round((data.activeEmployees / data.employees) * 100)}% نشط` : undefined,
+            to: '/admin/enterprise',
           },
-          { label: 'إجراءات عاجلة', value: data.urgentActions, icon: ShieldAlert, hint: 'مهلتها خلال أربع ساعات' },
-          { label: 'طلبات معلقة', value: data.pendingRequests, icon: BadgeCheck, hint: 'عبر المسارات المصرح بها' },
-          { label: 'قرارات منشورة', value: data.publishedDecisions, icon: Activity, hint: 'داخل القناة الرسمية' },
-          { label: 'أخطاء غير محلولة', value: data.unresolvedErrors, icon: FileWarning, hint: 'من مركز المراقبة التقنية' },
+          { label: 'إجراءات عاجلة', value: data.urgentActions, icon: ShieldAlert, hint: 'مهلتها خلال أربع ساعات', to: '/admin/actions' },
+          { label: 'طلبات معلقة', value: data.pendingRequests, icon: BadgeCheck, hint: 'عبر المسارات المصرح بها', to: '/admin/actions' },
+          { label: 'قرارات منشورة', value: data.publishedDecisions, icon: Activity, hint: 'داخل القناة الرسمية', to: '/admin/official-feed' },
+          { label: 'أخطاء غير محلولة', value: data.unresolvedErrors, icon: FileWarning, hint: 'من مركز المراقبة التقنية', to: '/admin/audit-security' },
         ]
     : [];
 
@@ -148,12 +150,12 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
           {type === 'hr' && att
             ? (() => {
                 const breakdownCards = [
-                  { label: 'حاضر', value: att.present, icon: UserCheck, hint: `من ${att.expected} متوقع` },
-                  { label: 'متأخر', value: att.late, icon: Clock3, hint: 'سجّل حضور بعد الموعد' },
-                  { label: 'لم يسجّل بعد', value: att.notCheckedIn, icon: UserMinus, hint: 'لم يسجّل دخول حتى الآن' },
-                  { label: 'إجازة', value: att.onLeave, icon: CalendarDays, hint: 'في إجازة معتمدة' },
-                  { label: 'تكليف خارجي', value: att.onAssignment, icon: MapPin, hint: 'مكلف خارج المقر' },
-                  { label: 'غياب', value: att.absent, icon: UserX, hint: 'غير مبرر حتى الآن' },
+                  { label: 'حاضر', value: att.present, icon: UserCheck, hint: `من ${att.expected} متوقع`, to: '/hr/attendance/report' },
+                  { label: 'متأخر', value: att.late, icon: Clock3, hint: 'سجّل حضور بعد الموعد', to: '/hr/attendance/report' },
+                  { label: 'لم يسجّل بعد', value: att.notCheckedIn, icon: UserMinus, hint: 'لم يسجّل دخول حتى الآن', to: '/hr/attendance/operations' },
+                  { label: 'إجازة', value: att.onLeave, icon: CalendarDays, hint: 'في إجازة معتمدة', to: '/hr/holidays' },
+                  { label: 'تكليف خارجي', value: att.onAssignment, icon: MapPin, hint: 'مكلف خارج المقر', to: '/hr/attendance' },
+                  { label: 'غياب', value: att.absent, icon: UserX, hint: 'غير مبرر حتى الآن', to: '/hr/attendance/report' },
                 ].filter((c) => c.value > 0);
                 return breakdownCards.length > 0 ? (
                   <section>

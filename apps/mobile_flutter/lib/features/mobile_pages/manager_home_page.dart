@@ -4,12 +4,17 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_team_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
+import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ManagerHomePage extends ConsumerWidget {
-  const ManagerHomePage({super.key});
+  const ManagerHomePage({required this.access, super.key});
+
+  final AccessContext access;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -114,25 +119,45 @@ class ManagerHomePage extends ConsumerWidget {
                   'أعضاء الفريق',
                   item.teamMembers.toString(),
                   Icons.groups_rounded,
-                  null,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const MobileTeamPage(),
+                    ),
+                  ),
                 ),
                 (
                   'طلبات تنتظرني',
                   item.pendingRequests.toString(),
                   Icons.approval_rounded,
-                  null,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const MobileRequestsPage(allowDecision: false),
+                    ),
+                  ),
                 ),
                 (
                   'تقييمات معلقة',
                   item.pendingKpi.toString(),
                   Icons.rate_review_rounded,
-                  null,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MobileKpiPage(access: access, employeeOnly: false),
+                    ),
+                  ),
                 ),
                 (
                   'تأخيرات اليوم',
                   item.lateToday.toString(),
                   Icons.schedule_rounded,
-                  null,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const MobileTeamPage(),
+                    ),
+                  ),
                 ),
               ],
             ),

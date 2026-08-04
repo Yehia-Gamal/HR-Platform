@@ -1,6 +1,10 @@
 node_modules
 **/node_modules
 apps/mobile_flutter
+supabase
+debug-artifacts
+**.apk
+**.aab
 supabase/.temp
 supabase/.branches
 **/dist

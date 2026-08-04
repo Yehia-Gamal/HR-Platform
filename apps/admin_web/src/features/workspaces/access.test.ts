@@ -1,7 +1,7 @@
 import { accessContextSchema, type AccessContext } from '@ahla/shared-contracts';
 import { describe, expect, it } from 'vitest';
 import { mockContexts } from '../auth/mockContexts';
-import { firstWebWorkspace, hasPermission } from './access';
+import { firstWebWorkspace, hasPermission, hrPathToAdmin, isUnifiedAdminActive } from './access';
 
 function makeContext(overrides: Partial<AccessContext> = {}): AccessContext {
   return {
@@ -88,5 +88,36 @@ describe('mock personas', () => {
   it('resolves each persona to a web workspace', () => {
     expect(firstWebWorkspace(mockContexts.hr)).toBe('hr');
     expect(firstWebWorkspace(mockContexts.admin)).toBe('main_admin');
+  });
+});
+
+describe('hrPathToAdmin', () => {
+  it('maps the HR dashboard to the unified admin dashboard', () => {
+    expect(hrPathToAdmin('/hr')).toBe('/admin/hr');
+  });
+
+  it('maps nested HR pages under /admin/hr and preserves ids', () => {
+    expect(hrPathToAdmin('/hr/employees')).toBe('/admin/hr/employees');
+    expect(hrPathToAdmin('/hr/employees/abc-123')).toBe('/admin/hr/employees/abc-123');
+    expect(hrPathToAdmin('/hr/attendance/operations')).toBe('/admin/hr/attendance/operations');
+  });
+
+  it('returns null for non-HR paths', () => {
+    expect(hrPathToAdmin('/admin/actions')).toBeNull();
+    expect(hrPathToAdmin('/committee')).toBeNull();
+  });
+});
+
+describe('isUnifiedAdminActive', () => {
+  it('is active on /admin and any /admin sub-path when the user owns main_admin', () => {
+    expect(isUnifiedAdminActive(['main_admin'], '/admin')).toBe(true);
+    expect(isUnifiedAdminActive(['main_admin', 'hr'], '/admin/hr/employees')).toBe(true);
+    expect(isUnifiedAdminActive(['main_admin'], '/admin/audit-security')).toBe(true);
+  });
+
+  it('is inactive outside the admin area or without the main_admin workspace', () => {
+    expect(isUnifiedAdminActive(['main_admin'], '/hr')).toBe(false);
+    expect(isUnifiedAdminActive(['main_admin'], '/committee/disputes')).toBe(false);
+    expect(isUnifiedAdminActive(['hr'], '/admin')).toBe(false);
   });
 });

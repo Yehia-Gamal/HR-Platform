@@ -6,6 +6,11 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/executive_brief_
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_people_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_decisions_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_disputes_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_attendance_tab.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
+import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,7 +19,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 const Color _kBrandAccent = AppColors.accent;
 
 class ExecutiveHomePage extends ConsumerWidget {
-  const ExecutiveHomePage({super.key});
+  const ExecutiveHomePage({required this.access, super.key});
+
+  final AccessContext access;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -178,48 +185,82 @@ class ExecutiveHomePage extends ConsumerWidget {
             ),
             data: (item) => MetricGrid(
               cards: [
-                // بطاقة نسبة الحضور — أولى لتأخذ التأكيد البصري
                 (
                   'نسبة الحضور',
                   '${item.attendanceRate}%',
                   Icons.groups_rounded,
-                  null,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ExecutiveAttendanceTab(),
+                    ),
+                  ),
                 ),
                 (
                   'عاجل الآن',
                   item.urgentActions.toString(),
                   Icons.priority_high_rounded,
-                  null,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ExecutiveBriefPage(),
+                    ),
+                  ),
                 ),
                 (
                   'اعتمادات',
                   item.pendingApprovals.toString(),
                   Icons.approval_rounded,
-                  null,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const MobileActionInboxPage(),
+                    ),
+                  ),
                 ),
                 (
                   'تقارير KPI',
                   item.pendingFinalKpi.toString(),
                   Icons.fact_check_outlined,
-                  null,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MobileKpiPage(access: access, employeeOnly: false),
+                    ),
+                  ),
                 ),
                 (
                   'قرارات منشورة',
                   item.publishedDecisions.toString(),
                   Icons.gavel_rounded,
-                  null,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ExecutiveDecisionsPage(),
+                    ),
+                  ),
                 ),
                 (
                   'قضايا مفتوحة',
                   item.openCases.toString(),
                   Icons.balance_rounded,
-                  null,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ExecutiveDisputesPage(),
+                    ),
+                  ),
                 ),
                 (
                   'طلبات موقع',
                   item.activeLocationRequests.toString(),
                   Icons.location_searching_rounded,
-                  null,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ExecutiveLocationPage(),
+                    ),
+                  ),
                 ),
               ],
             ),

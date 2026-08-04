@@ -1,14 +1,15 @@
 /// يربط بيانات الإشعار (payload) بمسار GoRouter للتنقل العميق.
 ///
-/// الأنواع المدعومة:
-/// - request_decision → /action/request/{id}
-/// - kpi_evaluation   → /action/kpi/{id}
-/// - attendance_alert → /action/attendance/{id}
-/// - location_request → /action/location/{id}
-/// - dispute          → /action/dispute/{id}
-/// - task             → /action/task/{id}
-/// - announcement     → /action/announcement/{id}
-/// - general          → / (الرئيسية)
+/// الأنواع المدعومة (kind في `/action/kind/id`):
+/// - request / request_decision           → طلبات الموظف
+/// - kpi / kpi_evaluation                 → تقييمات الأداء
+/// - attendance / attendance_alert / punch_reminder → الحضور والبصمة
+/// - location / location_request / live_location_request → طلبات الموقع
+/// - dispute                              → النزاعات
+/// - task                                 → المهام
+/// - decision                             → القرارات
+/// - announcement                         → الإعلانات
+/// - recognition                          → التقدير
 library;
 
 final RegExp _uuidRegExp = RegExp(
@@ -47,6 +48,11 @@ String resolveRouteFromDeepLink(String deepLink) {
 /// يُستخدم من [NotificationService] ومن صفحة الإشعارات
 /// لتحويل الضغط على الإشعار إلى تنقل داخل التطبيق.
 ///
+/// **مهم: يطابق القيم المرسلة من الـ Backend** (entity_type في جدول notifications
+/// وkind في FCM payload)، ويطابق أيضاً قائمة resolve_mobile_action_target في
+/// migration 0087 (request, kpi, decision, live_location_request) مع fallback
+/// للأنواع الأخرى التي تعمل عبر RPC get_mobile_action_target العام.
+///
 /// إذا كان النوع غير معروف أو المعرّف فارغ أو غير صالح يعود إلى `/`.
 String resolveNotificationRoute({
   required String? type,
@@ -59,7 +65,7 @@ String resolveNotificationRoute({
     'request' || 'request_decision' => '/action/request/$entityId',
     'kpi' || 'kpi_evaluation'       => '/action/kpi/$entityId',
     'attendance' || 'attendance_alert' || 'punch_reminder' => '/action/attendance/$entityId',
-    'location' || 'location_request' => '/action/location/$entityId',
+    'location' || 'location_request' || 'live_location_request' => '/action/live_location_request/$entityId',
     'dispute'                        => '/action/dispute/$entityId',
     'task'                           => '/action/task/$entityId',
     'decision'                       => '/action/decision/$entityId',

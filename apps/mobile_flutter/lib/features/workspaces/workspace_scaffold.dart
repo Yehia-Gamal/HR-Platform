@@ -308,7 +308,7 @@ class WorkspaceScaffold extends ConsumerWidget {
           label: 'إدارة فريقي',
           page: Scaffold(
             appBar: AppBar(title: const Text('إدارة فريقي')),
-            body: const ManagerHomePage(),
+            body: ManagerHomePage(access: contextData),
           ),
         ),
         _MoreItem(

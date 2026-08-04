@@ -24,7 +24,7 @@ class _ExecutiveWorkspaceState extends State<ExecutiveWorkspace> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      const ExecutiveHomePage(),
+      ExecutiveHomePage(access: widget.access),
       const MobileActionInboxPage(),
       const CommitteeDisputeListPage(),
       const ExecutiveLocationPage(),

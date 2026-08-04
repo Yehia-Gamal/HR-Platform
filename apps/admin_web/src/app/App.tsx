@@ -1,6 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import type { WorkspaceId } from '@ahla/shared-contracts';
-import { Navigate, Outlet, Route, Routes } from 'react-router';
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import { safeErrorMessage } from '../core/errorMapper';
 import { useAuth } from '../features/auth/AuthProvider';
@@ -9,7 +9,7 @@ import { isPasswordRecoveryLocation, PasswordSetupPage } from '../features/auth/
 import { MobileRedirectPage } from '../features/auth/MobileRedirectPage';
 import { WebReleaseCheckError, WebReleaseStatusPage } from '../features/auth/WebReleaseStatusPage';
 import { useRegisterWebDevice, useWebReleasePolicy } from '../features/auth/useWebReleasePolicy';
-import { firstWebWorkspace, hasAnyPermission } from '../features/workspaces/access';
+import { firstWebWorkspace, hasAnyPermission, hrPathToAdmin } from '../features/workspaces/access';
 import { WorkspaceShell } from '../features/workspaces/WorkspaceShell';
 import { ForbiddenState } from '../ui/ForbiddenState';
 
@@ -51,6 +51,7 @@ const IntegrationsJobsPage = lazy(() => import('../features/management/Integrati
 const AnalyticsDashboardPage = lazy(() => import('../features/analytics/AnalyticsDashboardPage').then((m) => ({ default: m.AnalyticsDashboardPage })));
 /* V17 §4.2: feature-flagged pages — shown only when the corresponding flag in featureFlags.ts is true */
 const ComingSoonPage = lazy(() => import('../ui/ComingSoonPage').then((m) => ({ default: m.ComingSoonPage })));
+const LearningPage = lazy(() => import('../features/learning/LearningPage').then((m) => ({ default: m.LearningPage })));
 
 export function App() {
   const auth = useAuth();
@@ -93,147 +94,23 @@ export function App() {
       <Routes>
         <Route path="/" element={<Navigate to={workspacePath(defaultWorkspace)} replace />} />
 
-        <Route element={<WorkspaceGuard workspace="hr" />}>
-          <Route path="/hr" element={<WorkspaceShell workspace="hr" />}>
-            <Route index element={<DashboardPage type="hr" />} />
-            <Route
-              path="employees"
-              element={
-                <RequirePermission perm="people.employee.read">
-                  <EmployeesPage />
-                </RequirePermission>
-              }
-            />
-            <Route
-              path="employees/new"
-              element={
-                <RequirePermission perm="people.employee.create">
-                  <CreateEmployeePage />
-                </RequirePermission>
-              }
-            />
-            <Route
-              path="employees/:employeeId"
-              element={
-                <RequirePermission perm="people.employee.read">
-                  <EmployeeDetailPage />
-                </RequirePermission>
-              }
-            />
-            <Route
-              path="attendance"
-              element={
-                <RequirePermission perm="attendance.record.read">
-                  <AttendancePage />
-                </RequirePermission>
-              }
-            />
-            <Route
-              path="attendance/operations"
-              element={
-                <RequirePermission perm="attendance.roster.read">
-                  <AttendanceOperationsPage />
-                </RequirePermission>
-              }
-            />
-            <Route
-              path="attendance/report"
-              element={
-                <RequirePermission perm="attendance.record.read">
-                  <MonthlyAttendanceReportPage />
-                </RequirePermission>
-              }
-            />
-            <Route
-              path="performance"
-              element={
-                <RequirePermission perm="performance.kpi.read">
-                  <PerformancePage />
-                </RequirePermission>
-              }
-            />
-            <Route
-              path="recruitment"
-              element={
-                <RequirePermission perm="recruitment.requisition.read">
-                  <RecruitmentPage />
-                </RequirePermission>
-              }
-            />
-            <Route
-              path="onboarding"
-              element={
-                <RequirePermission perm="onboarding.journey.read">
-                  <OnboardingPage />
-                </RequirePermission>
-              }
-            />
-            <Route
-              path="reports"
-              element={
-                <RequirePermission perm="reports.people.read">
-                  <ReportsPage />
-                </RequirePermission>
-              }
-            />
-            <Route
-              path="analytics"
-              element={
-                <RequirePermission perm="reports.people.read">
-                  <AnalyticsDashboardPage />
-                </RequirePermission>
-              }
-            />
-            <Route
-              path="holidays"
-              element={
-                <RequirePermission perm="holidays.manage">
-                  <OfficialHolidaysPage />
-                </RequirePermission>
-              }
-            />
-            <Route
-              path="requests"
-              element={
-                <RequirePermission perm="requests.request.read">
-                  <RequestsPage />
-                </RequirePermission>
-              }
-            />
-            <Route
-              path="devices"
-              element={
-                <RequirePermission perm="access.role.read">
-                  <DeviceApprovalPage />
-                </RequirePermission>
-              }
-            />
-            <Route
-              path="organization"
-              element={
-                <RequirePermission perm="organization.org_chart.read">
-                  <OrganizationPage />
-                </RequirePermission>
-              }
-            />
-            <Route path="learning" element={<ComingSoonPage title="التدريب والمهارات" />} />
-            <Route path="lifecycle" element={<ComingSoonPage title="دورة حياة الموظف" />} />
-            <Route path="documents" element={<ComingSoonPage title="استوديو المستندات" />} />
-            <Route
-              path="official-feed"
-              element={
-                <RequirePermission perm={['comms.announcement.read', 'comms.decision.read']}>
-                  <OfficialFeedPage />
-                </RequirePermission>
-              }
-            />
-            <Route path="notifications" element={<NotificationsPage />} />
+        {/* مساحة الموارد البشرية المستقلة — تبقى كما هي لحسابات HR التي لا تملك main_admin */}
+        <Route element={<LegacyHrRedirect />}>
+          <Route element={<WorkspaceGuard workspace="hr" />}>
+            <Route path="/hr" element={<WorkspaceShell workspace="hr" />}>
+              <Route index element={<DashboardPage type="hr" />} />
+              <Route path="*" element={<HrWorkspaceRoutes />} />
+            </Route>
           </Route>
         </Route>
 
+        {/* المساحة الموحّدة للأدمن الرئيسي — تجمع الإدارة + HR + اللجنة في قائمة واحدة */}
         <Route element={<WorkspaceGuard workspace="main_admin" />}>
           <Route path="/admin" element={<WorkspaceShell workspace="main_admin" />}>
             <Route index element={<DashboardPage type="admin" />} />
+            {/* صفحات HR داخل القائمة الموحّدة */}
+            <Route path="hr" element={<DashboardPage type="hr" />} />
+            <Route path="hr/*" element={<HrWorkspaceRoutes />} />
             <Route
               path="actions"
               element={
@@ -293,7 +170,7 @@ export function App() {
             <Route
               path="disputes"
               element={
-                <RequirePermission perm="disputes.case.manage">
+                <RequirePermission perm={['disputes.case.manage', 'disputes.portal.access']}>
                   <DisputesPage />
                 </RequirePermission>
               }
@@ -399,6 +276,166 @@ export function App() {
       </Routes>
     </Suspense>
   );
+}
+
+/**
+ * جميع مسارات صفحات الموارد البشرية — تُستعمل مرتين:
+ * داخل /hr (لحسابات HR المستقلة) وداخل /admin/hr (للأدمن الرئيسي).
+ */
+function HrWorkspaceRoutes() {
+  return (
+    <Routes>
+      <Route
+        path="employees"
+        element={
+          <RequirePermission perm="people.employee.read">
+            <EmployeesPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="employees/new"
+        element={
+          <RequirePermission perm="people.employee.create">
+            <CreateEmployeePage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="employees/:employeeId"
+        element={
+          <RequirePermission perm="people.employee.read">
+            <EmployeeDetailPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="attendance"
+        element={
+          <RequirePermission perm="attendance.record.read">
+            <AttendancePage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="attendance/operations"
+        element={
+          <RequirePermission perm="attendance.roster.read">
+            <AttendanceOperationsPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="attendance/report"
+        element={
+          <RequirePermission perm="attendance.record.read">
+            <MonthlyAttendanceReportPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="performance"
+        element={
+          <RequirePermission perm="performance.kpi.read">
+            <PerformancePage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="recruitment"
+        element={
+          <RequirePermission perm="recruitment.requisition.read">
+            <RecruitmentPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="onboarding"
+        element={
+          <RequirePermission perm="onboarding.journey.read">
+            <OnboardingPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="reports"
+        element={
+          <RequirePermission perm="reports.people.read">
+            <ReportsPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="analytics"
+        element={
+          <RequirePermission perm="reports.people.read">
+            <AnalyticsDashboardPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="holidays"
+        element={
+          <RequirePermission perm="holidays.manage">
+            <OfficialHolidaysPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="requests"
+        element={
+          <RequirePermission perm="requests.request.read">
+            <RequestsPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="devices"
+        element={
+          <RequirePermission perm="access.role.read">
+            <DeviceApprovalPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="organization"
+        element={
+          <RequirePermission perm="organization.org_chart.read">
+            <OrganizationPage />
+          </RequirePermission>
+        }
+      />
+      <Route path="learning" element={<LearningPage />} />
+      <Route path="lifecycle" element={<ComingSoonPage title="دورة حياة الموظف" />} />
+      <Route path="documents" element={<ComingSoonPage title="استوديو المستندات" />} />
+      <Route
+        path="official-feed"
+        element={
+          <RequirePermission perm={['comms.announcement.read', 'comms.decision.read']}>
+            <OfficialFeedPage />
+          </RequirePermission>
+        }
+      />
+      <Route path="notifications" element={<NotificationsPage />} />
+      <Route path="*" element={<Navigate to="employees" replace />} />
+    </Routes>
+  );
+}
+
+/**
+ * إعادة توجيه تلقائية: الأدمن الرئيسي الذي يزور أي مسار /hr/*
+ * يُنقل إلى نفس الصفحة داخل القائمة الموحّدة /admin/hr/*
+ * حتى لا يغادر واجهته الموحّدة. حسابات HR المستقلة لا تتأثر.
+ */
+function LegacyHrRedirect() {
+  const auth = useAuth();
+  const location = useLocation();
+  const isMainAdmin = auth.access?.workspaces.includes('main_admin') ?? false;
+  const target = isMainAdmin ? hrPathToAdmin(location.pathname) : null;
+  if (target) {
+    return <Navigate to={`${target}${location.search}${location.hash}`} replace />;
+  }
+  return <Outlet />;
 }
 
 function WorkspaceGuard({ workspace }: { workspace: WorkspaceId }) {

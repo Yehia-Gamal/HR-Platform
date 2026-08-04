@@ -138,13 +138,13 @@ Deno.serve(async (req) => {
   const phoneE164 = normalizePhone(input.phoneE164);
   // كود الموظف: صريح إن وُجد، وإلا يُشتق من الهاتف المطبّع (فريد بطبيعته).
   const employeeCode = input.employeeCode?.trim() || phoneE164;
-  const normalizedEmailPreValidate = input.email.toLowerCase();
+  const normalizedEmail = input.email.toLowerCase();
 
   // SEC: تحقق معمّق من قوة كلمة المرور بعد pass الـ zod — zod يفرض الطول فقط،
   // لكننا نريد رفض أنماط شائعة (كلمات قاموسية عربية/لاتينية، سلاسل رقمية، تكرار)
   // ومنع تضمين معرّفات الموظف داخل كلمة المرور.
   const pwdCheck = validateHrIssuedPassword(input.initialPassword, {
-    email: normalizedEmailPreValidate,
+    email: normalizedEmail,
     phone: phoneE164,
     employeeCode,
     fullNameAr: input.fullNameAr,
@@ -182,8 +182,6 @@ Deno.serve(async (req) => {
     must_change_password: true,
   };
 
-  const normalizedEmail = input.email.toLowerCase();
-
   // SEC: كلمة المرور الأولية تُستَلم يدوياً من HR — لا نشتقّها من رقم الهاتف
   // أو أي بيانات أخرى. must_change_password يفرض على الموظف تغييرها في أول
   // دخول، لذا تبقى مجرد بذرة (seed) لا قيمة دائمة.
@@ -202,11 +200,11 @@ Deno.serve(async (req) => {
         redirectTo: INVITE_REDIRECT,
         data: userMetadata,
       });
-      // مع إرسال الدعوة أيضًا نجعل كلمة المرور المؤقتة = رقم الهاتف ونؤكد البريد،
-      // كي يعمل الدخول بالهاتف فورًا حتى لو لم يصل البريد/تعطل.
+      // مع إرسال الدعوة أيضاً نضبط كلمة المرور الأولية (التي أدخلها HR من لوحة
+      // الويب) ونؤكد البريد، كي يعمل الدخول بها فوراً حتى لو لم يصل البريد.
       if (!result.error && result.data.user?.id) {
         const { error: tempError } = await admin.auth.admin.updateUserById(result.data.user.id, {
-          password: temporaryPassword,
+          password: initialPassword,
           email_confirm: true,
         });
         if (tempError) {
@@ -217,7 +215,7 @@ Deno.serve(async (req) => {
     }
 
     // استدعاء GoTRUE REST API مباشرة
-    const password = temporaryPassword;
+    const password = initialPassword;
     const reqBody = {
       email: normalizedEmail,
       password,

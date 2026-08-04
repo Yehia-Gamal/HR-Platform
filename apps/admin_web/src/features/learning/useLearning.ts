@@ -47,6 +47,7 @@ export const learningCatalogSchema = z.object({
 
 export type LearningCourse = z.infer<typeof learningCourseSchema>;
 export type LearningEnrollment = z.infer<typeof learningEnrollmentSchema>;
+export type LearningEmployee = z.infer<typeof learningEmployeeSchema>;
 export type LearningCatalog = z.infer<typeof learningCatalogSchema>;
 
 /* ─── Queries ─── */
