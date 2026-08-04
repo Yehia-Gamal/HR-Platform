@@ -26,8 +26,11 @@ SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $$
 BEGIN
-  IF current_setting('request.jwt.claim.role', true) = 'service_role'
-     OR current_user IN ('postgres', 'supabase_admin') THEN
+  -- SECURITY DEFINER يجعل current_user = المالك (postgres) دائمًا، لذا لا يمكن
+  -- التمييز عبر current_user. نستبدل بالتحقق من غياب JWT claims (وصول صيانة مباشر)
+  -- أو service_role (Edge Functions) — الحالة الصحيحة للتجاوز.
+  IF current_setting('request.jwt.claims', true) IS NULL
+     OR current_setting('request.jwt.claim.role', true) = 'service_role' THEN
     RETURN NEW;
   END IF;
 

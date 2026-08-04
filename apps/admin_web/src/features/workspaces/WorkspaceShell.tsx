@@ -45,7 +45,7 @@ import { WorkspaceSearch } from '../../ui/WorkspaceSearch';
 import { getShortName } from '../../ui/formatDisplayName';
 import { useAuth } from '../auth/AuthProvider';
 import { useNotifications } from '../notifications/useNotifications';
-import { hasAnyPermission } from './access';
+import { hasAnyPermission, isUnifiedAdminActive } from './access';
 import { isFeatureEnabled, type FeatureFlagKey } from '../../ui/featureFlags';
 
 interface NavItem {
@@ -110,46 +110,74 @@ const hrSections: NavSection[] = [
 
 const adminSections: NavSection[] = [
   {
-    title: 'القيادة',
+    title: 'نظرة عامة',
     items: [
-      { label: 'لوحة الإدارة', to: '/admin', icon: LayoutDashboard },
+      { label: 'لوحة التحكم', to: '/admin', icon: LayoutDashboard },
       { label: 'مركز الإجراءات', to: '/admin/actions', icon: BadgeCheck, permission: 'access.role.read' },
+      { label: 'الإشعارات', to: '/admin/notifications', icon: Bell },
+    ],
+  },
+  {
+    title: 'الموظفون',
+    items: [
+      { label: 'الموظفون', to: '/admin/hr/employees', icon: Users, permission: 'people.employee.read' },
+      { label: 'أجهزة الموظفين', to: '/admin/hr/devices', icon: Smartphone, permission: 'access.role.read' },
+      { label: 'اعتمادات الأجهزة', to: '/admin/device-approvals', icon: Smartphone, permission: 'access.role.read' },
+      { label: 'التوظيف', to: '/admin/hr/recruitment', icon: BriefcaseBusiness, permission: 'recruitment.requisition.read' },
+      { label: 'Onboarding', to: '/admin/hr/onboarding', icon: ListChecks, permission: 'onboarding.journey.read' },
+      { label: 'الهيكل المؤسسي', to: '/admin/hr/organization', icon: Network, permission: 'organization.org_chart.read' },
+      { label: 'دورة حياة الموظف', to: '/admin/hr/lifecycle', icon: PackageCheck, featureFlag: 'lifecycle' },
+      { label: 'استوديو المستندات', to: '/admin/hr/documents', icon: FileSignature, featureFlag: 'documents' },
+    ],
+  },
+  {
+    title: 'الوقت والحضور',
+    items: [
+      { label: 'الحضور', to: '/admin/hr/attendance', icon: Activity, permission: 'attendance.record.read' },
+      { label: 'الورديات وإغلاق الحضور', to: '/admin/hr/attendance/operations', icon: CalendarClock, permission: 'attendance.roster.read' },
+      { label: 'كشف الحضور الشهري', to: '/admin/hr/attendance/report', icon: FileSignature, permission: 'attendance.record.read' },
+      { label: 'طلبات الإجازات', to: '/admin/hr/requests', icon: ClipboardList, permission: 'requests.request.read' },
+      { label: 'العطل الرسمية', to: '/admin/hr/holidays', icon: CalendarClock, permission: 'holidays.manage' },
+    ],
+  },
+  {
+    title: 'الأداء والتطوير',
+    items: [
+      { label: 'KPI والأداء', to: '/admin/hr/performance', icon: Gauge, permission: 'performance.kpi.read' },
+      { label: 'دورات KPI والاعتراضات', to: '/admin/performance/cycles', icon: BadgeCheck, permission: 'performance.cycle.manage' },
+      { label: 'التدريب والمهارات', to: '/admin/hr/learning', icon: Sparkles, featureFlag: 'learning' },
+    ],
+  },
+  {
+    title: 'القيادة والرقابة',
+    items: [
       { label: 'مركز الموقع الحي', to: '/admin/live-location', icon: MapPin, permission: 'live_location.request' },
       { label: 'متابعة الموظفين اليومية', to: '/admin/live-location/monitoring', icon: MapPin, permission: 'live_location.request' },
-      { label: 'الأخبار والقرارات', to: '/admin/official-feed', icon: Megaphone, permission: ['comms.announcement.read', 'comms.decision.read'] },
-      { label: 'أجهزة الموظفين', to: '/admin/device-approvals', icon: Smartphone, permission: 'access.role.read' },
-    ],
-  },
-  {
-    title: 'الحوكمة والتنظيم',
-    items: [
-      { label: 'الهيكل المؤسسي', to: '/admin/organization', icon: Network, permission: 'organization.org_chart.read' },
-      { label: 'دورات KPI والاعتراضات', to: '/admin/performance/cycles', icon: BadgeCheck, permission: 'performance.cycle.manage' },
-      { label: 'لجنة الخلافات', to: '/admin/disputes', icon: Gavel, permission: 'relations.case.manage' },
-      { label: 'الأدوار والصلاحيات', to: '/admin/access', icon: ShieldCheck, permission: 'access.role.read' },
-      { label: 'الحوكمة والمخاطر', to: '/admin/governance', icon: ShieldAlert, featureFlag: 'governance' },
-    ],
-  },
-  {
-    title: 'الخدمات المؤسسية',
-    items: [
-      { label: 'دورة حياة الموظف', to: '/admin/lifecycle', icon: PackageCheck, featureFlag: 'lifecycle' },
-      { label: 'استوديو المستندات', to: '/admin/documents', icon: FileSignature, featureFlag: 'documents' },
-      { label: 'جدولة التقارير', to: '/admin/reports/scheduler', icon: TimerReset, permission: 'reports.schedule.manage' },
-      { label: 'التحليلات', to: '/admin/analytics', icon: BarChart3, permission: 'reports.people.read' },
       { label: 'العمليات والمهام', to: '/admin/operations', icon: ClipboardList, permission: ['reports.read', 'operations.mission.manage', 'operations.convoy.manage'] },
+      { label: 'لجنة الخلافات', to: '/admin/disputes', icon: Gavel, permission: ['disputes.case.manage', 'disputes.portal.access'] },
       { label: 'مكتب الخدمات', to: '/admin/helpdesk', icon: Headphones, featureFlag: 'helpdesk' },
-      { label: 'الإدارة المؤسسية', to: '/admin/enterprise', icon: Building2, permission: 'organization.entity.read' },
       { label: 'الرواتب والمالية', to: '/admin/finance', icon: WalletCards, featureFlag: 'peopleFinance' },
     ],
   },
   {
-    title: 'النظام',
+    title: 'الحوكمة والنظام',
     items: [
+      { label: 'الهيكل التنظيمي المتقدم', to: '/admin/organization', icon: Network, permission: 'organization.org_chart.read' },
+      { label: 'الأدوار والصلاحيات', to: '/admin/access', icon: ShieldCheck, permission: 'access.role.read' },
+      { label: 'الإدارة المؤسسية', to: '/admin/enterprise', icon: Building2, permission: 'organization.entity.read' },
       { label: 'التدقيق والأمان', to: '/admin/audit-security', icon: ShieldCheck, permission: 'audit.view' },
-      { label: 'التكاملات والمهام الخلفية', to: '/admin/integrations', icon: Cable, permission: 'system.integration.view' },
       { label: 'إعدادات النظام', to: '/admin/settings', icon: Settings, permission: 'system.settings.read' },
-      { label: 'الإشعارات', to: '/admin/notifications', icon: Bell },
+      { label: 'التكاملات والمهام الخلفية', to: '/admin/integrations', icon: Cable, permission: 'system.integration.view' },
+      { label: 'الحوكمة والمخاطر', to: '/admin/governance', icon: ShieldAlert, featureFlag: 'governance' },
+    ],
+  },
+  {
+    title: 'التقارير والتواصل',
+    items: [
+      { label: 'تقارير HR', to: '/admin/hr/reports', icon: FileClock, permission: 'reports.people.read' },
+      { label: 'التحليلات', to: '/admin/analytics', icon: BarChart3, permission: 'reports.people.read' },
+      { label: 'جدولة التقارير', to: '/admin/reports/scheduler', icon: TimerReset, permission: 'reports.schedule.manage' },
+      { label: 'الأخبار والقرارات', to: '/admin/hr/official-feed', icon: Megaphone, permission: ['comms.announcement.read', 'comms.decision.read'] },
     ],
   },
 ];
@@ -173,6 +201,9 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => window.localStorage.getItem('ahla-sidebar') === 'collapsed');
   const access = auth.access!;
+  // الأدمن الرئيسي يرى قائمة موحّدة واحدة تجمع الإدارة + HR + اللجنة —
+  // بدون الحاجة لتبديل مساحات العمل.
+  const unifiedAdmin = isUnifiedAdminActive(access.workspaces, location.pathname);
   const sections = workspace === 'hr' ? hrSections : workspace === 'committee' ? committeeSections : adminSections;
   const allowedSections = useMemo(
     () =>
@@ -198,7 +229,8 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
     [access.workspaces],
   );
 
-  const currentWorkspaceLabel = workspace === 'hr' ? 'الموارد البشرية' : workspace === 'committee' ? 'لجنة الخلافات' : 'الإدارة الرئيسية';
+  const currentWorkspaceLabel =
+    workspace === 'hr' ? 'الموارد البشرية' : workspace === 'committee' ? 'لجنة الخلافات' : unifiedAdmin ? 'المنصة الموحّدة' : 'الإدارة الرئيسية';
   const currentItem = [...allItems]
     .sort((a, b) => b.to.length - a.to.length)
     .find((item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`));
@@ -228,30 +260,42 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
         </div>
 
         <div className="workspace-switcher-wrap">
-          {!collapsed ? (
-            <label className="sidebar-caption" htmlFor="workspace-switcher">
-              مساحة العمل الحالية
-            </label>
-          ) : null}
-          <div className="relative">
-            <select
-              id="workspace-switcher"
-              aria-label="تبديل مساحة العمل"
-              value={workspace}
-              onChange={(event) => {
-                const option = workspaceOptions.find((item) => item.id === event.target.value);
-                if (option) navigate(option.path);
-              }}
-              className="workspace-switcher"
-            >
-              {workspaceOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            {!collapsed ? <ChevronDown className="pointer-events-none absolute start-3 top-3 size-4 text-[var(--text-muted)]" /> : null}
-          </div>
+          {/* الأدمن الرئيسي لديه قائمة موحّدة تجمع كل شيء — لا حاجة لتبديل مساحة العمل */}
+          {unifiedAdmin ? (
+            !collapsed ? (
+              <div className="workspace-switcher-static">
+                <ShieldCheck className="size-4 text-[var(--brand-primary)]" aria-hidden="true" />
+                <span>المنصة الموحّدة — كل الصفحات</span>
+              </div>
+            ) : null
+          ) : (
+            <>
+              {!collapsed ? (
+                <label className="sidebar-caption" htmlFor="workspace-switcher">
+                  مساحة العمل الحالية
+                </label>
+              ) : null}
+              <div className="relative">
+                <select
+                  id="workspace-switcher"
+                  aria-label="تبديل مساحة العمل"
+                  value={workspace}
+                  onChange={(event) => {
+                    const option = workspaceOptions.find((item) => item.id === event.target.value);
+                    if (option) navigate(option.path);
+                  }}
+                  className="workspace-switcher"
+                >
+                  {workspaceOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                {!collapsed ? <ChevronDown className="pointer-events-none absolute start-3 top-3 size-4 text-[var(--text-muted)]" /> : null}
+              </div>
+            </>
+          )}
         </div>
 
         <nav className="sidebar-nav" aria-label={currentWorkspaceLabel}>

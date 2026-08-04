@@ -742,7 +742,7 @@ class MobileCommands {
           'request_live_location',
           params: {
             'p_employee_id': employeeId,
-            'p_mode': 'location_video',
+            'p_mode': 'snapshot',
             'p_reason': reason,
           },
         ));

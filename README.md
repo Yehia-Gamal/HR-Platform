@@ -34,7 +34,7 @@
 | المكوّن | العدد |
 |---|---|
 | Migrations | 266 |
-| pgTAP tests (assertions) | 100 ملف (1454 assertion) |
+| pgTAP tests (assertions) | 100 ملف (1457 assertion) |
 | Edge Functions | 12 + مجلد `_shared` مشترك |
 | Dart files | 90 |
 | TypeScript/TSX files (web) | 190 |

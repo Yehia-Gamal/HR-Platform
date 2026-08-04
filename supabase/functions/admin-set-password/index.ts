@@ -73,18 +73,36 @@ Deno.serve(async (req) => {
     if (getUserError || !authUser.user) return json(req, { error: "account_lookup_failed" }, 404);
 
     // نضبط كلمة المرور ونُجبر التغيير عند أول دخول. لا نسجّل كلمة المرور أبدًا.
+    // نستخدم GoTRUE REST API مباشرة (نمط admin-create-employee) بدلاً من
+    // supabase-js updateUserById — الأخير قد يُسقط email_confirm/يفشل بصمت.
     // email_confirm: true — بدونها يبقى البريد غير مؤكد ويرفض GoTrue تسجيل الدخول
-    // ("Email not confirmed") حتى مع كلمة المرور الصحيحة (نفس نمط admin-create-employee).
-    const { error: updateError } = await admin.auth.admin.updateUserById(profile.id, {
-      password: input.password,
-      email_confirm: true,
-      user_metadata: {
-        ...(authUser.user?.user_metadata ?? {}),
-        must_change_password: true,
+    // ("Email not confirmed") حتى مع كلمة المرور الصحيحة.
+    const updateRes = await fetch(
+      `${SUPABASE_URL}/auth/v1/admin/users/${profile.id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SERVICE_ROLE,
+          "Authorization": `Bearer ${SERVICE_ROLE}`,
+        },
+        body: JSON.stringify({
+          password: input.password,
+          email_confirm: true,
+          user_metadata: {
+            ...(authUser.user?.user_metadata ?? {}),
+            must_change_password: true,
+          },
+        }),
       },
-    });
-    if (updateError) {
-      console.error("admin-set-password update failed", updateError.code);
+    );
+    if (!updateRes.ok) {
+      const rawText = await updateRes.text();
+      console.error(
+        "admin-set-password update failed",
+        updateRes.status,
+        rawText.substring(0, 300),
+      );
       return json(req, { error: "password_update_failed" }, 502);
     }
 
