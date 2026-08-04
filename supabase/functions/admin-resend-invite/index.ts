@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { json, preflight } from "../_shared/cors.ts";
+import { temporaryPasswordFromPhone } from "../_shared/phone.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const PUBLISHABLE_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -65,11 +66,36 @@ Deno.serve(async (req) => {
   const { data: authUser, error: getUserError } = await admin.auth.admin.getUserById(profile.id);
   if (getUserError || !authUser.user?.email) return json(req, { error: "account_email_missing" }, 404);
 
+  // رقم هاتف الموظف لإعادة ضبط كلمة المرور المؤقتة عليه.
+  const { data: employee, error: employeeError } = await admin
+    .from("employees")
+    .select("phone_e164")
+    .eq("id", input.employeeId)
+    .maybeSingle();
+  if (employeeError) return json(req, { error: "lookup_failed" }, 500);
+
   // إصلاح الحسابات القديمة: بعضها أُنشئ بـ email_confirm=false (قبل إصلاح
   // admin-create-employee). دون تأكيد البريد، يستطيع الموظف تعيين كلمة مرور
   // من رابط الاسترداد لكن تسجيل الدخول لاحقاً يفشل ("Email not confirmed").
   // نؤكد البريد الآن كي ينجح الدخول بعد تعيين كلمة المرور.
-  const { error: confirmError } = await admin.auth.admin.updateUserById(profile.id, { email_confirm: true });
+  //
+  // ونعيد ضبط كلمة المرور المؤقتة = رقم هاتف الموظف: حتى لو تعثر وصول رابط
+  // البريد، يدخل الموظف برقم هاتفه (المعرّف) + رقم هاتفه (كلمة المرور)، ويُجبر
+  // على تغييرها عند أول دخول عبر must_change_password فلا تبقى سارية.
+  const phone = employee?.phone_e164 ?? null;
+  const password = phone ? temporaryPasswordFromPhone(phone) : null;
+  const { error: confirmError } = await admin.auth.admin.updateUserById(profile.id, {
+    email_confirm: true,
+    ...(password
+      ? {
+          password,
+          user_metadata: {
+            ...(authUser.user?.user_metadata ?? {}),
+            must_change_password: true,
+          },
+        }
+      : {}),
+  });
   if (confirmError) {
     console.error("admin-resend-invite email_confirm update failed", confirmError.code);
   }

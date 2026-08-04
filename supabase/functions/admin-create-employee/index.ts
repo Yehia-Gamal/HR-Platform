@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { json, preflight } from "../_shared/cors.ts";
-import { normalizePhone } from "../_shared/phone.ts";
+import { normalizePhone, temporaryPasswordFromPhone } from "../_shared/phone.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const PUBLISHABLE_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -76,12 +76,6 @@ const ALLOWED_EMPLOYEE_ROLES = new Set([
   ...STANDARD_EMPLOYEE_ROLES,
   ...ELEVATED_EMPLOYEE_ROLES,
 ]);
-
-function inaccessibleRandomPassword(): string {
-  // The value is never returned or logged. Two UUIDs provide enough entropy,
-  // while the fixed character classes satisfy common password policies.
-  return `Cdx!9-${crypto.randomUUID()}-${crypto.randomUUID()}-aZ`;
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight(req);
@@ -168,6 +162,11 @@ Deno.serve(async (req) => {
 
   const normalizedEmail = input.email.toLowerCase();
 
+  // كلمة المرور المؤقتة عند الإنشاء = رقم هاتف الموظف، كي يتمكن من الدخول
+  // برقمه مباشرة حتى لو تعثر وصول البريد. must_change_password (في userMetadata)
+  // يفرض تغييرها عند أول دخول من المتصفح أو التطبيق فلا تبقى سارية.
+  const temporaryPassword = temporaryPasswordFromPhone(phoneE164);
+
   // ─── إنشاء حساب Auth مع استعادة تلقائية من اليتيم (orphan recovery) ───
   // إذا فشل الإنشاء لأن البريد موجود مسبقًا (من محاولة سابقة فاشلة)،
   // نحذف الحساب اليتيم ونعيد المحاولة مرة واحدة.
@@ -181,11 +180,22 @@ Deno.serve(async (req) => {
         redirectTo: INVITE_REDIRECT,
         data: userMetadata,
       });
+      // مع إرسال الدعوة أيضًا نجعل كلمة المرور المؤقتة = رقم الهاتف ونؤكد البريد،
+      // كي يعمل الدخول بالهاتف فورًا حتى لو لم يصل البريد/تعطل.
+      if (!result.error && result.data.user?.id) {
+        const { error: tempError } = await admin.auth.admin.updateUserById(result.data.user.id, {
+          password: temporaryPassword,
+          email_confirm: true,
+        });
+        if (tempError) {
+          console.error("admin-create-employee temp password update failed", tempError.code);
+        }
+      }
       return result as { data: { user: { id: string; email?: string } | null }; error: { message: string; status?: number } | null };
     }
 
     // استدعاء GoTRUE REST API مباشرة
-    const password = inaccessibleRandomPassword();
+    const password = temporaryPassword;
     const reqBody = {
       email: normalizedEmail,
       password,

@@ -4,7 +4,7 @@ import type { z } from 'zod';
 import { ArrowRight, Check, CheckCircle2, ChevronLeft, ChevronRight, ImagePlus, Loader2, UserPlus, X } from 'lucide-react';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { getSupabase } from '../../core/supabase';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { PageHeader } from '../../ui/PageHeader';
@@ -148,9 +148,9 @@ export function CreateEmployeePage() {
       setResult(
         parsedInput.sendInvite
           ? parsed.invitationSent
-            ? `تم إنشاء الموظف والحساب وإرسال رابط التفعيل بنجاح. المعرّف: ${parsed.employeeId}`
-            : `تم إنشاء الموظف والحساب، لكن تعذر إرسال رابط التفعيل. راجع إعداد عنوان التفعيل ثم أعد الإرسال. المعرّف: ${parsed.employeeId}`
-          : `تم إنشاء الموظف بنجاح — نشط وجاهز للعمل فوراً. المعرّف: ${parsed.employeeId}`,
+            ? `تم إنشاء الموظف والحساب وإرسال رابط التفعيل بنجاح. كلمة المرور المؤقتة = رقم هاتف الموظف. المعرّف: ${parsed.employeeId}`
+            : `تم إنشاء الموظف والحساب، لكن تعذر إرسال رابط التفعيل. كلمة المرور المؤقتة = رقم هاتف الموظف. المعرّف: ${parsed.employeeId}`
+          : `تم إنشاء الموظف بنجاح — نشط وجاهز للعمل فوراً. كلمة المرور المؤقتة = رقم هاتف الموظف، ويُجبر على تغييرها عند أول دخول. المعرّف: ${parsed.employeeId}`,
       );
       uploadedPhotoPathRef.current = null;
       form.reset(defaultValues);
@@ -390,7 +390,7 @@ export function CreateEmployeePage() {
               </div>
               <div className="mt-5 rounded-xl bg-[var(--surface-muted)] p-4 text-sm leading-7">
                 سيتم إنشاء Auth User وEmployee وProfile وإسناد الدور والمدير داخل مسار خادمي. عند فشل أي جزء تُنفذ عملية تعويض ولا يُترك حساب يتيم. كود الموظف
-                يُشتق تلقائياً من رقم الهاتف.
+                يُشتق تلقائياً من رقم الهاتف، وكلمة المرور المؤقتة = رقم هاتف الموظف (يُجبر على تغييرها عند أول دخول من المتصفح أو التطبيق).
               </div>
             </div>
           ) : null}

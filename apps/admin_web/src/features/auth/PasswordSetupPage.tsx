@@ -1,6 +1,6 @@
 import { CheckCircle2, Eye, EyeOff, KeyRound, ShieldCheck } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { rpc } from '../../core/rpc';
 import { getSupabase } from '../../core/supabase';
@@ -216,7 +216,7 @@ export function PasswordSetupPage() {
                   <CheckCircle2 className="size-8" aria-hidden="true" />
                 </span>
                 <h2 className="mt-4 text-xl font-black">تم تفعيل الحساب بنجاح</h2>
-                <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">افتح تطبيق أحلى شباب وسجّل الدخول بالبريد أو كود الموظف وكلمة المرور الجديدة.</p>
+                <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">افتح تطبيق أحلى شباب وسجّل الدخول بالبريد أو رقم الهاتف أو كود الموظف وكلمة المرور الجديدة.</p>
                 <button className="btn-primary mx-auto mt-5 !py-3 px-8" type="button" onClick={() => navigate('/')}>
                   تسجيل الدخول من المتصفح
                 </button>

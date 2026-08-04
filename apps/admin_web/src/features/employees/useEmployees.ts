@@ -97,7 +97,9 @@ export function useResendInvite() {
         'تعذر إرسال البريد. أعد المحاولة لاحقًا.',
       );
       const email = result?.email;
-      return email ? `أُعيد إرسال رابط التفعيل إلى ${email}.` : 'أُعيد إرسال رابط التفعيل.';
+      return email
+        ? `أُعيد إرسال رابط التفعيل إلى ${email}، وضُبطت كلمة المرور المؤقتة = رقم هاتف الموظف.`
+        : `أُعيد إرسال رابط التفعيل، وضُبطت كلمة المرور المؤقتة = رقم هاتف الموظف.`;
     },
     meta: { successMessage: 'تم إرسال رابط التفعيل بنجاح' },
   });
@@ -248,7 +250,7 @@ export function useDeleteEmployee() {
     },
     meta: { successMessage: 'تم حذف الموظف نهائيًا بنجاح' },
     onSuccess: async () => {
-      await client.invalidateQueries({ queryKey: ['employees'] });
+      await Promise.all([client.invalidateQueries({ queryKey: ['employees'] }), client.invalidateQueries({ queryKey: ['employee-360'] })]);
     },
   });
 }
