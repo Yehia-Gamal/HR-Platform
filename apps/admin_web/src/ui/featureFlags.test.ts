@@ -7,14 +7,16 @@ describe('featureFlags', () => {
     expect(Object.keys(FEATURE_FLAGS)).toHaveLength(13);
   });
 
-  it('جميع الأعلام معطّلة حالياً', () => {
+  it('علم learning مفعّل وبقية الأعلام معطّلة', () => {
+    expect(FEATURE_FLAGS.learning).toBe(true);
     for (const key of Object.keys(FEATURE_FLAGS) as FeatureFlagKey[]) {
+      if (key === 'learning') continue;
       expect(FEATURE_FLAGS[key]).toBe(false);
     }
   });
 
-  it('isFeatureEnabled يعيد false لكل الأعلام المعطّلة', () => {
-    expect(isFeatureEnabled('learning')).toBe(false);
+  it('isFeatureEnabled يعيد قيمة العلم الصحيحة', () => {
+    expect(isFeatureEnabled('learning')).toBe(true);
     expect(isFeatureEnabled('documents')).toBe(false);
     expect(isFeatureEnabled('peopleFinance')).toBe(false);
     expect(isFeatureEnabled('salaries')).toBe(false);

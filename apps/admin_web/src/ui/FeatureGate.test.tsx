@@ -13,17 +13,19 @@ describe('featureFlags', () => {
     expect(FEATURE_FLAGS).toHaveProperty('peopleFinance');
   });
 
-  it('returns false for all disabled flags', () => {
+  it('returns false for all disabled flags and true for learning', () => {
     for (const key of Object.keys(FEATURE_FLAGS) as Array<keyof typeof FEATURE_FLAGS>) {
+      if (key === 'learning') continue;
       expect(isFeatureEnabled(key)).toBe(false);
     }
+    expect(isFeatureEnabled('learning')).toBe(true);
   });
 });
 
 describe('FeatureGate', () => {
   it('renders nothing when feature is disabled', () => {
     const { container } = render(
-      <FeatureGate feature="learning">
+      <FeatureGate feature="documents">
         <p>محتوى مخفي</p>
       </FeatureGate>,
     );
@@ -32,7 +34,7 @@ describe('FeatureGate', () => {
 
   it('renders fallback when feature is disabled and fallback provided', () => {
     render(
-      <FeatureGate feature="learning" fallback={<p>قريبًا</p>}>
+      <FeatureGate feature="documents" fallback={<p>قريبًا</p>}>
         <p>محتوى مخفي</p>
       </FeatureGate>,
     );
