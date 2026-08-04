@@ -36,7 +36,7 @@ import {
   X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { AppLogo } from '../../ui/AppLogo';
 import { RouteErrorBoundary } from '../../ui/RouteErrorBoundary';
 import { ThemeToggle } from '../../ui/ThemeToggle';
@@ -137,7 +137,7 @@ const adminSections: NavSection[] = [
       { label: 'استوديو المستندات', to: '/admin/documents', icon: FileSignature, featureFlag: 'documents' },
       { label: 'جدولة التقارير', to: '/admin/reports/scheduler', icon: TimerReset, permission: 'reports.schedule.manage' },
       { label: 'التحليلات', to: '/admin/analytics', icon: BarChart3, permission: 'reports.people.read' },
-      { label: 'العمليات والمهام', to: '/admin/operations', icon: ClipboardList, permission: 'tasks.read' },
+      { label: 'العمليات والمهام', to: '/admin/operations', icon: ClipboardList, permission: ['reports.read', 'operations.mission.manage', 'operations.convoy.manage'] },
       { label: 'مكتب الخدمات', to: '/admin/helpdesk', icon: Headphones, featureFlag: 'helpdesk' },
       { label: 'الإدارة المؤسسية', to: '/admin/enterprise', icon: Building2, permission: 'organization.entity.read' },
       { label: 'الرواتب والمالية', to: '/admin/finance', icon: WalletCards, featureFlag: 'peopleFinance' },

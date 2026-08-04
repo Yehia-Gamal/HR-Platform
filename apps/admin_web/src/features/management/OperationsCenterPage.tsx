@@ -10,6 +10,8 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useToast } from '../../ui/Toast';
+import { useAuth } from '../auth/AuthProvider';
+import { hasPermission } from '../workspaces/access';
 import { useOperationsCenter, useOperationsCommands } from './useControlCenters';
 
 type Tab = 'tasks' | 'missions' | 'convoys';
@@ -30,8 +32,10 @@ function transport(value: string | null) {
 
 export function OperationsCenterPage() {
   const { toast } = useToast();
+  const auth = useAuth();
   const query = useOperationsCenter();
   const commands = useOperationsCommands();
+  const canManageTasks = Boolean(auth.access && hasPermission(auth.access, 'tasks.write'));
   const [tab, setTab] = useState<Tab>('tasks');
   const [search, setSearch] = useState('');
   const [taskDraft, setTaskDraft] = useState<TaskDraft | null>(null);
@@ -73,10 +77,12 @@ export function OperationsCenterPage() {
         title="مركز العمليات والمهام"
         description="متابعة المهام التشغيلية والمأموريات والقوافل من شاشة واحدة، مع بقاء اعتماد المأموريات والقوافل داخل مسار الطلبات الرسمي."
         actions={
-          <button className="btn-primary" type="button" onClick={() => setTaskDraft({ ...emptyTask })}>
-            <Plus className="size-4" aria-hidden="true" />
-            مهمة جديدة
-          </button>
+          canManageTasks ? (
+            <button className="btn-primary" type="button" onClick={() => setTaskDraft({ ...emptyTask })}>
+              <Plus className="size-4" aria-hidden="true" />
+              مهمة جديدة
+            </button>
+          ) : null
         }
       />
 
@@ -187,20 +193,24 @@ export function OperationsCenterPage() {
                       <StatusBadge value={item.status} />
                     </td>
                     <td className="p-4">
-                      <TaskAction
-                        id={item.id}
-                        status={item.status}
-                        pending={commands.transitionTask.isPending}
-                        transition={(status) =>
-                          commands.transitionTask.mutate(
-                            { id: item.id, status },
-                            {
-                              onSuccess: () => toast({ message: 'تم تحديث حالة المهمة', tone: 'success' }),
-                              onError: () => toast({ message: 'تعذر تحديث حالة المهمة', tone: 'error' }),
-                            },
-                          )
-                        }
-                      />
+                      {canManageTasks ? (
+                        <TaskAction
+                          id={item.id}
+                          status={item.status}
+                          pending={commands.transitionTask.isPending}
+                          transition={(status) =>
+                            commands.transitionTask.mutate(
+                              { id: item.id, status },
+                              {
+                                onSuccess: () => toast({ message: 'تم تحديث حالة المهمة', tone: 'success' }),
+                                onError: () => toast({ message: 'تعذر تحديث حالة المهمة', tone: 'error' }),
+                              },
+                            )
+                          }
+                        />
+                      ) : (
+                        <span className="muted text-xs">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -224,20 +234,22 @@ export function OperationsCenterPage() {
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <StatusBadge value={item.status} />
-                  <TaskAction
-                    id={item.id}
-                    status={item.status}
-                    pending={commands.transitionTask.isPending}
-                    transition={(status) =>
-                      commands.transitionTask.mutate(
-                        { id: item.id, status },
-                        {
-                          onSuccess: () => toast({ message: 'تم تحديث حالة المهمة', tone: 'success' }),
-                          onError: () => toast({ message: 'تعذر تحديث حالة المهمة', tone: 'error' }),
-                        },
-                      )
-                    }
-                  />
+                  {canManageTasks ? (
+                    <TaskAction
+                      id={item.id}
+                      status={item.status}
+                      pending={commands.transitionTask.isPending}
+                      transition={(status) =>
+                        commands.transitionTask.mutate(
+                          { id: item.id, status },
+                          {
+                            onSuccess: () => toast({ message: 'تم تحديث حالة المهمة', tone: 'success' }),
+                            onError: () => toast({ message: 'تعذر تحديث حالة المهمة', tone: 'error' }),
+                          },
+                        )
+                      }
+                    />
+                  ) : null}
                 </div>
               </article>
             ))}

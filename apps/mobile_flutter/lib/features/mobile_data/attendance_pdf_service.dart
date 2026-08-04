@@ -254,7 +254,7 @@ String _buildAttendanceHtml(MonthlyAttendanceStatement stmt) {
   </div>
 
   <div class="summary-grid">
-    <div class="metric"><div class="label">أيام الحضور</div><div class="value">${s.presentDays}</div><div class="hint">من ${s.dueScheduledDays} مستحقة حتى الآن</div></div>
+    <div class="metric"><div class="label">أيام الحضور</div><div class="value">${s.attendanceRatePresentDays}</div><div class="hint">من ${s.attendanceRateDueDays} يوم عمل في الشهر</div></div>
     <div class="metric${s.absentDays > 0 ? ' warn' : ''}"><div class="label">أيام الغياب</div><div class="value">${s.absentDays}</div></div>
     <div class="metric"><div class="label">وردية مفتوحة</div><div class="value">${s.openShiftDays}</div><div class="hint">بانتظار الانصراف</div></div>
     <div class="metric"><div class="label">أيام قادمة</div><div class="value">${s.upcomingDays}</div><div class="hint">لا تُحسب غيابًا</div></div>
@@ -262,7 +262,8 @@ String _buildAttendanceHtml(MonthlyAttendanceStatement stmt) {
     <div class="metric"><div class="label">أيام المأموريات</div><div class="value">${s.missionDays}</div></div>
     <div class="metric"><div class="label">إذنات</div><div class="value">${s.permitCount}</div></div>
     <div class="metric"><div class="label">قوافل/فاندي</div><div class="value">${s.convoyFundiDays}</div></div>
-    <div class="metric"><div class="label">ساعات العمل</div><div class="value">${s.totalWorkHours.toStringAsFixed(1)}</div><div class="hint">${complianceAvailable ? 'متوسط ${s.averageWorkHours.toStringAsFixed(1)} س/يوم مكتمل' : 'الساعات المطلوبة غير متاحة'}</div></div>
+    <div class="metric"><div class="label">ساعات العمل</div><div class="value">${(s.hoursRateWorkedMinutes / 60).toStringAsFixed(1)}</div><div class="hint">من ${(s.hoursRateRequiredMinutes / 60).toStringAsFixed(1)} ساعة شهرية — ${compliancePct.toStringAsFixed(0)}%</div></div>
+    <div class="metric"><div class="label">تغطية أيام العمل</div><div class="value">${s.coverageRate.toStringAsFixed(0)}%</div><div class="hint">${s.coverageDays} من ${s.scheduledDays}</div></div>
     <div class="metric good"><div class="label">ساعات إضافية</div><div class="value">${s.totalOvertimeMinutes} د</div></div>
   </div>
 

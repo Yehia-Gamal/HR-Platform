@@ -25,8 +25,9 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { useKpiAdmin, useKpiAdminCommands } from './useAdvancedOperations';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useToast } from '../../ui/Toast';
+import { cairoMonthIso, cairoTodayIso } from '../../core/cairoTime';
 
-const monthNow = new Date().toISOString().slice(0, 7);
+const monthNow = cairoMonthIso();
 
 const stageLabels: Record<string, string> = {
   self: 'تقييم ذاتي',
@@ -165,7 +166,7 @@ export function KpiCyclesPage() {
       { min: 0, max: ratingMins.acceptable - 0.01, label: 'يحتاج إلى تحسين' },
     ],
     p_allow_target_overachievement: false,
-    p_effective_from: new Date().toISOString().slice(0, 10),
+    p_effective_from: cairoTodayIso(),
   });
 
   return (

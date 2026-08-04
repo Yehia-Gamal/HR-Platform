@@ -9,6 +9,8 @@ import { SkeletonCard } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useIntegrationCenter, useIntegrationCommands } from './useControlCenters';
+import { useAuth } from '../auth/AuthProvider';
+import { hasPermission } from '../workspaces/access';
 
 type Tab = 'connectors' | 'outbox' | 'logs' | 'automations';
 
@@ -18,8 +20,10 @@ function date(value: string | null) {
 
 export function IntegrationsJobsPage() {
   const { toast } = useToast();
+  const auth = useAuth();
   const query = useIntegrationCenter();
   const commands = useIntegrationCommands();
+  const canManageIntegrations = Boolean(auth.access && hasPermission(auth.access, 'system.integration.manage'));
   const [tab, setTab] = useState<Tab>('connectors');
   const [search, setSearch] = useState('');
   const data = query.data;
@@ -120,25 +124,31 @@ export function IntegrationsJobsPage() {
                 <strong className="mt-1 block">{date(item.lastSyncAt)}</strong>
                 {item.lastError ? <p className="mt-2 font-bold text-[var(--danger)]">{item.lastError}</p> : null}
               </div>
-              <label className="mt-4 flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[var(--border)] p-3 text-sm font-bold">
-                <span>{item.enabled ? 'الموصل مفعّل' : 'الموصل متوقف'}</span>
-                <input
-                  type="checkbox"
-                  className="size-5 accent-[var(--brand-primary)]"
-                  aria-label={`تفعيل الموصل ${item.name}`}
-                  checked={item.enabled}
-                  disabled={commands.toggle.isPending}
-                  onChange={(event) =>
-                    commands.toggle.mutate(
-                      { id: item.id, enabled: event.target.checked },
-                      {
-                        onSuccess: () => toast({ message: event.target.checked ? 'تم تفعيل الموصل' : 'تم إيقاف الموصل', tone: 'success' }),
-                        onError: () => toast({ message: 'تعذر تغيير حالة الموصل', tone: 'error' }),
-                      },
-                    )
-                  }
-                />
-              </label>
+              {canManageIntegrations ? (
+                <label className="mt-4 flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[var(--border)] p-3 text-sm font-bold">
+                  <span>{item.enabled ? 'الموصل مفعّل' : 'الموصل متوقف'}</span>
+                  <input
+                    type="checkbox"
+                    className="size-5 accent-[var(--brand-primary)]"
+                    aria-label={`تفعيل الموصل ${item.name}`}
+                    checked={item.enabled}
+                    disabled={commands.toggle.isPending}
+                    onChange={(event) =>
+                      commands.toggle.mutate(
+                        { id: item.id, enabled: event.target.checked },
+                        {
+                          onSuccess: () => toast({ message: event.target.checked ? 'تم تفعيل الموصل' : 'تم إيقاف الموصل', tone: 'success' }),
+                          onError: () => toast({ message: 'تعذر تغيير حالة الموصل', tone: 'error' }),
+                        },
+                      )
+                    }
+                  />
+                </label>
+              ) : (
+                <p className="muted mt-4 rounded-xl border border-[var(--border)] p-3 text-sm font-bold">
+                  {item.enabled ? 'الموصل مفعّل' : 'الموصل متوقف'}
+                </p>
+              )}
             </article>
           ))}
           {!connectors.length ? (

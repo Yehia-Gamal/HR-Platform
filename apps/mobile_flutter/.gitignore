@@ -47,3 +47,7 @@ app.*.map.json
 # dart-define config files hold environment values — keep only the *.example.json templates.
 dart_define/*.json
 !dart_define/*.example.json
+
+# Firebase config is generated per-environment — never commit.
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/network/offline_cache.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
@@ -318,7 +320,18 @@ final myLocationRequestsProvider = FutureProvider<List<MobileLocationRequest>>((
 
 final locationRequestByIdProvider = FutureProvider.autoDispose
     .family<MobileLocationRequest, String>((ref, requestId) async {
-      final requests = await ref.watch(myLocationRequestsProvider.future);
+      // جلب مباشر بالمعرّف بنافذة أوسع بدل الاعتماد على قائمة الـ 30 الأخيرة
+      // حتى يصل الرابط العميق إلى الطلبات الأقدم أو غير المعلّقة.
+      final data = await ref
+          .watch(supabaseProvider)
+          .rpc<dynamic>(
+            'get_my_live_location_requests',
+            params: {'p_limit': 100},
+          )
+          .timeout(const Duration(seconds: 15));
+      final requests = _asList(data)
+          .map(MobileLocationRequest.fromJson)
+          .toList(growable: false);
       return requests.firstWhere(
         (request) => request.id == requestId,
         orElse: () => throw StateError('location_request_not_available'),
@@ -340,7 +353,7 @@ final executiveAttendanceTodayProvider =
 /// يستطلع طلبات الموقع المعلقة للمستخدم الحالي كل 15 ثانية.
 /// يُستخدم بواسطة [LocationIncomingListener] لعرض الشاشة المنبثقة عند ورود طلب.
 final pendingIncomingLocationRequestProvider =
-    StreamProvider<MobileLocationRequest?>((ref) async* {
+    StreamProvider.autoDispose<MobileLocationRequest?>((ref) async* {
       final supabase = ref.watch(supabaseProvider);
       while (true) {
         try {
@@ -729,7 +742,7 @@ class MobileCommands {
           'request_live_location',
           params: {
             'p_employee_id': employeeId,
-            'p_mode': 'snapshot',
+            'p_mode': 'location_video',
             'p_reason': reason,
           },
         ));
@@ -808,7 +821,58 @@ class MobileCommands {
     ref.invalidate(myLocationRequestsProvider);
   }
 
-  // V17 §9: registerLocationVideo removed — video permanently disabled.
+  Future<void> uploadLocationVideo(
+    String requestId, {
+    required String employeeId,
+    required String filePath,
+    required int durationSeconds,
+    required double latitude,
+    required double longitude,
+    required double accuracy,
+  }) async {
+    final file = File(filePath);
+    if (!await file.exists()) {
+      throw StateError('لم يتم العثور على ملف الفيديو. أعد التسجيل.');
+    }
+    final sizeBytes = await file.length();
+    if (sizeBytes <= 0) {
+      throw StateError('ملف الفيديو فارغ. أعد التسجيل.');
+    }
+    if (sizeBytes > 15 * 1024 * 1024) {
+      throw StateError('حجم الفيديو أكبر من الحد المسموح. أعد التسجيل.');
+    }
+
+    final storagePath =
+        '$employeeId/$requestId/${DateTime.now().toUtc().microsecondsSinceEpoch}.mp4';
+    final client = ref.read(supabaseProvider);
+    await _withTimeout(
+      client.storage.from('live-location-videos').upload(
+            storagePath,
+            file,
+            fileOptions: const FileOptions(
+              contentType: 'video/mp4',
+              upsert: false,
+            ),
+          ),
+      const Duration(seconds: 60),
+    );
+    await _withTimeout(ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
+          'register_live_location_video',
+          params: {
+            'p_request_id': requestId,
+            'p_storage_path': storagePath,
+            'p_duration_seconds': durationSeconds,
+            'p_size_bytes': sizeBytes,
+            'p_mime_type': 'video/mp4',
+            'p_latitude': latitude,
+            'p_longitude': longitude,
+            'p_accuracy': accuracy,
+          },
+        ));
+    ref.invalidate(myLocationRequestsProvider);
+  }
 
   Future<void> registerLocationMapSnapshot(
     String requestId, {
@@ -1120,7 +1184,8 @@ final myLeaveBalancesProvider = FutureProvider<List<MobileLeaveBalance>>((
 final myAttendanceServicesProvider = FutureProvider<MobileAttendanceServices>((
   ref,
 ) async {
-  final now = DateTime.now();
+  // نطاق زمني UTC ليظل متوافقاً مع الطابع الزمني المخزّن في قاعدة البيانات.
+  final now = DateTime.now().toUtc();
   final from = now.subtract(const Duration(days: 31));
   final to = now.add(const Duration(days: 45));
   String date(DateTime value) =>

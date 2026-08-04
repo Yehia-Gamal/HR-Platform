@@ -22,6 +22,7 @@
   --surface-raised: #ffffff;
   --surface-muted: #eef3f9;
   --surface-subtle: #f8fafd;
+  --surface-hover: #f4f8fc;
   --surface-overlay: rgb(255 255 255 / 82%);
 
   /* ── النصوص ── */
@@ -59,6 +60,24 @@
   --brand-gradient: linear-gradient(135deg, #073b7a 0%, #0b4fa2 54%, #00a8d6 140%);
   --gradient-subtle: linear-gradient(180deg, var(--surface) 0%, var(--surface-subtle) 100%);
 
+  /* ── نصوص معكوسة على التدرج (الهيرو + login) ── */
+  --on-gradient-fg: #ffffff;
+  --on-gradient-soft: #c9f4ff;            /* hero-eyebrow */
+  --on-gradient-muted: #c9e5ff;           /* brand-subtitle */
+  --on-gradient-feature: #e0f7ff;         /* login-feature */
+  --on-gradient-ring: rgb(255 255 255 / 22%);
+  --on-gradient-overlay-weak: rgb(255 255 255 / 8%);
+  --on-gradient-overlay: rgb(255 255 255 / 12%);
+  --on-gradient-overlay-strong: rgb(255 255 255 / 19%);
+  --on-gradient-inverse-shadow: rgb(1 18 48 / 22%);
+
+  /* ── أوزان الخط الموحّدة ── */
+  --font-medium: 500;
+  --font-bold: 700;
+  --font-extrabold: 800;
+  --font-black: 900;
+  --font-heavy: 950;
+
   /* ── تتبع (tracking) ── */
   --tracking-tight: -0.015em;
   --tracking-normal: 0;
@@ -72,6 +91,7 @@
   --surface-raised: #101c31;
   --surface-muted: #132139;
   --surface-subtle: #0d182a;
+  --surface-hover: #152238;
   --surface-overlay: rgb(11 20 37 / 78%);
   --text-primary: #f5f8ff;
   --text-secondary: #d0dbeb;
@@ -111,4 +131,15 @@
 
   --brand-gradient: linear-gradient(135deg, #123f75 0%, #1e6bb8 60%, #087d9d 140%);
   --gradient-subtle: linear-gradient(180deg, var(--surface) 0%, var(--surface-subtle) 100%);
+
+  /* ــ نصوص معكوسة على التدرج — dark mode ── */
+  --on-gradient-fg: #ffffff;
+  --on-gradient-soft: #c9f4ff;
+  --on-gradient-muted: #c9e5ff;
+  --on-gradient-feature: #e0f7ff;
+  --on-gradient-ring: rgb(255 255 255 / 22%);
+  --on-gradient-overlay-weak: rgb(255 255 255 / 8%);
+  --on-gradient-overlay: rgb(255 255 255 / 12%);
+  --on-gradient-overlay-strong: rgb(255 255 255 / 19%);
+  --on-gradient-inverse-shadow: rgb(1 18 48 / 22%);
 }

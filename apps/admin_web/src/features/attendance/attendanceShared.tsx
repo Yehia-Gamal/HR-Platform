@@ -1,4 +1,4 @@
-import type { AttendanceStatementDay } from '@ahla/shared-contracts';
+import type { AttendanceStatement, AttendanceStatementDay } from '@ahla/shared-contracts';
 import type { ReactNode } from 'react';
 
 // ─── ثوابت مشتركة ─────────────────────────────────────────────────
@@ -6,6 +6,20 @@ export const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', '
 
 /** حالات اليوم التي تُعرض بلون تحذيري. */
 export const WARN_STATUSES = new Set(['غائب دون إذن', 'يحتاج مراجعة']);
+
+export function attendanceRateParts(summary: AttendanceStatement['summary']) {
+  const dueDays = summary.attendanceRateBasis?.dueDays ?? summary.scheduledDays;
+  const presentInDue = summary.attendanceRateBasis?.presentInDue ?? Math.max(0, summary.presentDays - summary.openShiftDays);
+  return { dueDays, presentInDue };
+}
+
+export function hoursRateParts(summary: AttendanceStatement['summary']) {
+  return {
+    workedHours: (summary.hoursRateBasis?.workedMinutes ?? Math.round(summary.totalWorkHours * 60)) / 60,
+    requiredHours: (summary.hoursRateBasis?.requiredMinutes ?? Math.round(summary.totalRequiredHours * 60)) / 60,
+    deficitHours: (summary.hoursRateBasis?.deficitMinutes ?? summary.totalDeficitMinutes) / 60,
+  };
+}
 
 // ─── دوال مساعدة ──────────────────────────────────────────────────
 export function fmtTime(t: string | null) {

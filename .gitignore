@@ -38,5 +38,5 @@ lint.log
 playwright-report/
 test-results/
 COMBINED_PUSH_*.sql
-debug-artifacts/app-inspection-20260803/
+debug-artifacts/
 

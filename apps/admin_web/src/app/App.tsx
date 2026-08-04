@@ -1,6 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import type { WorkspaceId } from '@ahla/shared-contracts';
-import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes } from 'react-router';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import { safeErrorMessage } from '../core/errorMapper';
 import { useAuth } from '../features/auth/AuthProvider';
@@ -293,7 +293,7 @@ export function App() {
             <Route
               path="disputes"
               element={
-                <RequirePermission perm="relations.case.manage">
+                <RequirePermission perm="disputes.case.manage">
                   <DisputesPage />
                 </RequirePermission>
               }
@@ -344,7 +344,9 @@ export function App() {
             <Route
               path="operations"
               element={
-                <RequirePermission perm="tasks.read">
+                <RequirePermission
+                  perm={['reports.read', 'operations.mission.manage', 'operations.convoy.manage']}
+                >
                   <OperationsCenterPage />
                 </RequirePermission>
               }

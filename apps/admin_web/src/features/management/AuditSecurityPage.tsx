@@ -20,6 +20,7 @@ import {
   X,
 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
+import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
@@ -30,6 +31,8 @@ import { useAuditSecurityCenter, useAuditSecurityCommands } from './useControlCe
 import type { AuditSecurityData } from './controlCenterTypes';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useToast } from '../../ui/Toast';
+import { useAuth } from '../auth/AuthProvider';
+import { hasPermission } from '../workspaces/access';
 
 type Tab = 'security' | 'audit' | 'devices';
 
@@ -51,8 +54,11 @@ function eventLabel(value: string) {
 
 export function AuditSecurityPage() {
   const { toast } = useToast();
+  const auth = useAuth();
   const query = useAuditSecurityCenter();
   const commands = useAuditSecurityCommands();
+  const canManageEvents = Boolean(auth.access && hasPermission(auth.access, 'security.event.manage'));
+  const canRevokeDevices = Boolean(auth.access && hasPermission(auth.access, 'system.release.manage'));
   const [tab, setTab] = useState<Tab>('security');
   const [search, setSearch] = useState('');
   const data = query.data;
@@ -186,7 +192,7 @@ export function AuditSecurityPage() {
                     </p>
                   </div>
                 </div>
-                {!item.handled ? (
+                {!item.handled && canManageEvents ? (
                   <button
                     type="button"
                     className="btn-secondary self-start lg:self-auto"
@@ -268,7 +274,7 @@ export function AuditSecurityPage() {
         </section>
       ) : null}
 
-      {data && tab === 'devices' ? <DevicesPanel devices={devices} commands={commands} /> : null}
+      {data && tab === 'devices' ? <DevicesPanel devices={devices} commands={commands} canRevoke={canRevokeDevices} /> : null}
     </div>
   );
 }
@@ -289,7 +295,7 @@ function deduplicateDevices(items: DeviceItem[]): DeviceItem[] {
   return Array.from(map.values());
 }
 
-function DevicesPanel({ devices, commands }: { devices: DeviceItem[]; commands: ReturnType<typeof useAuditSecurityCommands> }) {
+function DevicesPanel({ devices, commands, canRevoke }: { devices: DeviceItem[]; commands: ReturnType<typeof useAuditSecurityCommands>; canRevoke: boolean }) {
   const { toast } = useToast();
   const deduplicated = useMemo(() => deduplicateDevices(devices), [devices]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -320,15 +326,22 @@ function DevicesPanel({ devices, commands }: { devices: DeviceItem[]; commands: 
     <>
       {commands.revokeDevice.isError && !revokeTarget ? <ErrorBanner message="تعذّر إلغاء تسجيل الجهاز." /> : null}
 
-      {/* حوار تأكيد الإلغاء */}
+      {/* حوار تأكيد الإلغاء — يستخدم DialogOverlay المشترك (role=dialog, aria-modal, إغلاق بـ Escape) */}
       {revokeTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setRevokeTarget(null)}>
-          <div className="card w-full max-w-md space-y-4 p-6" onClick={(e) => e.stopPropagation()}>
+        <DialogOverlay
+          title="إلغاء تسجيل الجهاز"
+          onClose={() => {
+            setRevokeTarget(null);
+            setRevokeReason('');
+            setRevokeError('');
+          }}
+          maxWidth="max-w-md"
+        >
+          <div className="space-y-4">
             <div className="flex items-center gap-3">
               <span className="rounded-xl bg-[var(--danger-soft)] p-2.5 text-[var(--danger)]">
                 <ShieldX className="size-5" aria-hidden="true" />
               </span>
-              <h3 className="text-lg font-black">إلغاء تسجيل الجهاز</h3>
             </div>
             <p className="text-sm">
               سيتم إلغاء تسجيل <strong>{revokeTarget.name}</strong>
@@ -352,7 +365,7 @@ function DevicesPanel({ devices, commands }: { devices: DeviceItem[]; commands: 
                 placeholder="اكتب سبب الإلغاء (10 أحرف على الأقل)…"
               />
             </label>
-            {revokeError ? <p className="text-sm text-[var(--danger)]">{revokeError}</p> : null}
+            {revokeError ? <p className="text-sm text-[var(--danger)]" role="alert">{revokeError}</p> : null}
             <div className="flex justify-end gap-2">
               <button
                 type="button"
@@ -375,7 +388,7 @@ function DevicesPanel({ devices, commands }: { devices: DeviceItem[]; commands: 
               </button>
             </div>
           </div>
-        </div>
+        </DialogOverlay>
       ) : null}
 
       <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3" role="tabpanel" id="panel-devices" aria-labelledby="tab-devices" tabIndex={0}>
@@ -459,7 +472,7 @@ function DevicesPanel({ devices, commands }: { devices: DeviceItem[]; commands: 
                   </dl>
 
                   {/* زر إلغاء التسجيل */}
-                  {!isRevoked ? (
+                  {!isRevoked && canRevoke ? (
                     <button
                       type="button"
                       className="btn-danger mt-4 w-full"

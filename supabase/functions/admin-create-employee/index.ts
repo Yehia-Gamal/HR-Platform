@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { json, preflight } from "../_shared/cors.ts";
-import { normalizePhone, temporaryPasswordFromPhone } from "../_shared/phone.ts";
+import { normalizePhone, validateHrIssuedPassword } from "../_shared/phone.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const PUBLISHABLE_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -26,6 +26,14 @@ const inputSchema = z.object({
   phoneE164: z.string().trim().regex(/^(01\d{9}|\+[1-9]\d{7,14})$/),
   roleSlug: z.string().trim().min(2),
   jobTitleName: z.string().trim().max(160).optional(),
+  // كلمة المرور الأولية: يُدخلها مسؤول HR يدوياً من لوحة الويب — نرفض أي
+  // اشتقاق تلقائي من بيانات تعريفية (رقم الهاتف/الكود) حتى لا يصبح الوصول
+  // متوقعاً من أي مسرِّب بيانات. تُمرَّر إلى GoTrue كما هي (لا نخزّنها في DB)
+  // وتبقى must_change_password=true تفرض تغييرها في أول دخول.
+  initialPassword: z
+    .string()
+    .min(12, "password_min_length")
+    .max(72, "password_too_long"),
   // رابط الصورة: يجب أن يكون https فقط — نرفض data:/file:/javascript:/blob:
   // (z.url() وحده يقبلها). التحقق الخادمي في DB يوفّر طبقة ثانية.
   photoUrl: z
@@ -130,6 +138,20 @@ Deno.serve(async (req) => {
   const phoneE164 = normalizePhone(input.phoneE164);
   // كود الموظف: صريح إن وُجد، وإلا يُشتق من الهاتف المطبّع (فريد بطبيعته).
   const employeeCode = input.employeeCode?.trim() || phoneE164;
+  const normalizedEmailPreValidate = input.email.toLowerCase();
+
+  // SEC: تحقق معمّق من قوة كلمة المرور بعد pass الـ zod — zod يفرض الطول فقط،
+  // لكننا نريد رفض أنماط شائعة (كلمات قاموسية عربية/لاتينية، سلاسل رقمية، تكرار)
+  // ومنع تضمين معرّفات الموظف داخل كلمة المرور.
+  const pwdCheck = validateHrIssuedPassword(input.initialPassword, {
+    email: normalizedEmailPreValidate,
+    phone: phoneE164,
+    employeeCode,
+    fullNameAr: input.fullNameAr,
+  });
+  if (!pwdCheck.ok) {
+    return json(req, { error: pwdCheck.reason ?? "weak_password" }, 400);
+  }
 
   if (!ALLOWED_EMPLOYEE_ROLES.has(input.roleSlug)) {
     return json(req, { error: "role_not_allowed" }, 400);
@@ -162,10 +184,10 @@ Deno.serve(async (req) => {
 
   const normalizedEmail = input.email.toLowerCase();
 
-  // كلمة المرور المؤقتة عند الإنشاء = رقم هاتف الموظف، كي يتمكن من الدخول
-  // برقمه مباشرة حتى لو تعثر وصول البريد. must_change_password (في userMetadata)
-  // يفرض تغييرها عند أول دخول من المتصفح أو التطبيق فلا تبقى سارية.
-  const temporaryPassword = temporaryPasswordFromPhone(phoneE164);
+  // SEC: كلمة المرور الأولية تُستَلم يدوياً من HR — لا نشتقّها من رقم الهاتف
+  // أو أي بيانات أخرى. must_change_password يفرض على الموظف تغييرها في أول
+  // دخول، لذا تبقى مجرد بذرة (seed) لا قيمة دائمة.
+  const initialPassword = input.initialPassword;
 
   // ─── إنشاء حساب Auth مع استعادة تلقائية من اليتيم (orphan recovery) ───
   // إذا فشل الإنشاء لأن البريد موجود مسبقًا (من محاولة سابقة فاشلة)،

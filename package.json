@@ -12,6 +12,7 @@
     "dev:web": "npm run dev --workspace @ahla/admin-web",
     "build": "npm run build --workspace @ahla/shared-contracts && npm run build --workspace @ahla/admin-web",
     "test": "npm run test --workspace @ahla/shared-contracts && npm run test --workspace @ahla/admin-web",
+    "test:coverage": "npm run test:coverage --workspace @ahla/admin-web",
     "typecheck": "npm run typecheck --workspace @ahla/shared-contracts && npm run typecheck --workspace @ahla/admin-web",
     "check": "npm run typecheck && npm run test && npm run build",
     "manifest": "node scripts/generate-manifest.mjs",
@@ -24,8 +25,20 @@
     "lint": "eslint apps/admin_web/src/",
     "lint:fix": "eslint apps/admin_web/src/ --fix",
     "format": "prettier --write 'apps/admin_web/src/**/*.{ts,tsx}'",
-    "format:check": "prettier --check 'apps/admin_web/src/**/*.{ts,tsx}'"
+    "format:check": "prettier --check 'apps/admin_web/src/**/*.{ts,tsx}'",
+    "size": "size-limit",
+    "size:why": "size-limit --why"
   },
+  "size-limit": [
+    {
+      "path": "apps/admin_web/dist/assets/*.js",
+      "limit": "450 KB"
+    },
+    {
+      "path": "apps/admin_web/dist/assets/*.css",
+      "limit": "60 KB"
+    }
+  ],
   "engines": {
     "node": ">=22.12.0"
   },

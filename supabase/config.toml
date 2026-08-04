@@ -45,26 +45,46 @@ enabled = true
 # can set the remote value (export SUPABASE_AUTH_SITE_URL=<vercel>) while local
 # `supabase start` keeps the localhost default.
 site_url = "env(SUPABASE_AUTH_SITE_URL)"
+# SEC: strict allowlist. Wildcards ("/**") let attackers redirect recovery links
+# to attacker-controlled sub-paths. List the exact routes that legitimately
+# receive auth tokens: the mobile deep-link hand-off and the password-setup form.
 additional_redirect_urls = [
-  "http://localhost:4173/**",
-  "http://127.0.0.1:4173/**",
-  "https://ahla-shabab-management-os.vercel.app/**",
+  "http://localhost:4173/auth/setup-password",
+  "http://127.0.0.1:4173/auth/setup-password",
+  "http://localhost:4173/mobile-redirect",
+  "http://127.0.0.1:4173/mobile-redirect",
+  "https://ahla-shabab-management-os.vercel.app/auth/setup-password",
+  "https://ahla-shabab-management-os.vercel.app/mobile-redirect",
   "ahlashabab://action",
-  "ahlashabab://**",
 ]
 jwt_expiry = 3600
-# Local dev: the provider must be enabled for password sign-IN to work
-# (identifier-sign-in uses signInWithPassword). The admin panel exposes no
-# self-signup route, so enabling this locally does not create a signup surface.
-enable_signup = true
+# SEC: account creation is exclusively driven by `admin-create-employee` /
+# `admin-resend-invite` Edge Functions using the service role. Public signup
+# MUST stay disabled — anyone holding the publishable key + project URL could
+# otherwise mint accounts and probe `handle_new_user` / RLS for weaknesses.
+# Password sign-IN does not require signup to be enabled; existing users still
+# authenticate with signInWithPassword.
+enable_signup = false
 enable_anonymous_sign_ins = false
 # Passwords shorter than this value are rejected. Supabase requires at least 6.
+# HR-issued initial passwords are validated server-side (12+ chars, mixed
+# alphabet + digit + symbol) before reaching GoTrue; this is the bare floor.
 minimum_password_length = 8
 
 [auth.email]
-enable_signup = true
+enable_signup = false
 double_confirm_changes = true
-enable_confirmations = false
+# SEC: even though every account created by HR has email_confirm=true (so the
+# employee can sign in immediately), we keep confirmation infrastructure on so
+# future flows (self-serve password change, delegated admin onboarding) get a
+# verified channel instead of unverified plaintext mail.
+enable_confirmations = true
+# SEC: credentials carried by recovery/invite links must be short-lived. The
+# platform previously relied on Supabase's 24h default, which is far too wide a
+# window for an HR onboarding link. 1 hour forces the link to be used promptly
+# or have HR resend — the resend path is already rate-limited via
+# auth_invite_log.
+otp_expiry = 3600
 secure_password_change = true
 
 [storage]

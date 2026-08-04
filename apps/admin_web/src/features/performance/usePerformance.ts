@@ -18,6 +18,18 @@ export function usePerformance() {
 }
 
 // V23: وسّعنا نوع action ليشمل مراحل المسار المتوازي الجديدة.
+export type KpiAdvanceAction =
+  | 'self'
+  | 'hr'
+  | 'hr_review'
+  | 'manager'
+  | 'manager_review'
+  | 'manager_final'
+  | 'finalize'
+  | 'parallel_review'
+  | 'secretary_review'
+  | 'executive_review';
+
 export function useAdvanceKpi() {
   const auth = useAuth();
   const client = useQueryClient();
@@ -29,7 +41,7 @@ export function useAdvanceKpi() {
       scores,
     }: {
       evaluationId: string;
-      action: string;
+      action: KpiAdvanceAction;
       note: string;
       scores?: Array<{ criterion_id: string; score: number; note: string }>;
     }) => {

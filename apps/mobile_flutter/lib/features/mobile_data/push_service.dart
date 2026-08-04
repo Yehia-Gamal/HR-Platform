@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:ahla_shabab_management_os/app.dart';
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
+import 'package:ahla_shabab_management_os/core/notifications/notification_handler.dart';
 import 'package:ahla_shabab_management_os/core/security/secure_session_storage.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -262,37 +263,10 @@ class PushService {
   }
 
   void _route(String deepLink) {
-    try {
-      final uri = Uri.parse(deepLink);
-      final segments = uri.pathSegments;
-      final parts = deepLink.contains('://')
-          ? [uri.host, ...segments]
-          : segments;
-      final idx = parts.indexOf('action');
-      if (idx >= 0 && parts.length >= idx + 3) {
-        final kind = parts[idx + 1];
-        final id = parts[idx + 2];
-        // تحقق أمني: المعرّف يجب أن يكون UUID صالحاً لمنع حقن مسارات.
-        if (!_isValidUuid(id)) {
-          appRouter.go('/');
-          return;
-        }
-        appRouter.go('/action/$kind/$id');
-      } else {
-        // مسارات غير معروفة (مثل /attendance) → الرئيسية بدل كراش GoRouter.
-        appRouter.go('/');
-      }
-    } catch (_) {
-      // تجاهل روابط غير صالحة.
-    }
+    // استخدام المحلل الموحّد من notification_handler للتحقق الأمني من UUID.
+    final route = resolveNotificationRouteFromData({'deepLink': deepLink});
+    appRouter.go(route);
   }
-
-  static final RegExp _uuidRegExp = RegExp(
-    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-    caseSensitive: false,
-  );
-
-  static bool _isValidUuid(String value) => _uuidRegExp.hasMatch(value);
 
   /// هل التطبيق معفى من تحسين البطارية؟
   /// يعود `true` إذا كان معفى، `false` إذا لا، `null` على غير Android.

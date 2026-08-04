@@ -2,6 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
 
 const webRoot = fileURLToPath(new URL('.', import.meta.url));
+const playwrightPort = process.env.PLAYWRIGHT_PORT || '4173';
+const playwrightUrl = `http://127.0.0.1:${playwrightPort}`;
 
 /**
  * Playwright E2E configuration — أحلى شباب HR
@@ -17,7 +19,7 @@ export default defineConfig({
   timeout: 30_000,
 
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:4173',
+    baseURL: process.env.BASE_URL || playwrightUrl,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     locale: 'ar',
@@ -37,8 +39,8 @@ export default defineConfig({
 
   /* Start the same isolated test server locally and in CI. */
   webServer: {
-    command: 'npm run dev -- --host 127.0.0.1 --port 4173 --strictPort',
-    url: 'http://127.0.0.1:4173',
+    command: `npm run dev -- --host 127.0.0.1 --port ${playwrightPort} --strictPort`,
+    url: playwrightUrl,
     cwd: webRoot,
     reuseExistingServer: false,
     timeout: 120_000,

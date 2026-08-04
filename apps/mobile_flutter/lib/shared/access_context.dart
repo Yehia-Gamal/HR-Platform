@@ -55,10 +55,11 @@ class AccessContext {
   });
 
   factory AccessContext.fromJson(Map<String, dynamic> json) {
+    final defaultWorkspaceRaw = json['defaultWorkspace'];
     return AccessContext(
-      userId: json['userId'] as String,
+      userId: json['userId'] as String? ?? '',
       employeeId: json['employeeId'] as String?,
-      displayName: json['displayName'] as String,
+      displayName: json['displayName'] as String? ?? '',
       employeeCode: json['employeeCode'] as String?,
       photoUrl: json['photoUrl'] as String?,
       roles: List<String>.from(json['roles'] as List<dynamic>? ?? const []),
@@ -69,12 +70,13 @@ class AccessContext {
           .map((value) => WorkspaceId.fromWire(value as String))
           .whereType<WorkspaceId>()
           .toList(growable: false),
-      defaultWorkspace: WorkspaceId.fromWire(
-        json['defaultWorkspace'] as String,
-      ) ?? WorkspaceId.employee,
+      defaultWorkspace: defaultWorkspaceRaw == null
+          ? WorkspaceId.employee
+          : WorkspaceId.fromWire(defaultWorkspaceRaw as String) ??
+              WorkspaceId.employee,
       attendancePolicy: AttendancePolicy.fromJson(
         Map<String, dynamic>.from(
-          json['attendancePolicy'] as Map<dynamic, dynamic>,
+          json['attendancePolicy'] as Map<dynamic, dynamic>? ?? const {},
         ),
       ),
     );

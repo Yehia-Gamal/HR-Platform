@@ -1,5 +1,5 @@
 import { Bell, CheckCheck } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { EmptyState } from '../../ui/EmptyState';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';

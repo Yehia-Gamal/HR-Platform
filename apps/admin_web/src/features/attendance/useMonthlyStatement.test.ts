@@ -164,11 +164,20 @@ describe('useMonthlyStatement — attendanceStatementSchema validation', () => {
         openShiftDays: 1,
         completedPresenceDays: 1,
         attendanceRate: 66.67,
+        attendanceRateBasis: {
+          presentInDue: 2,
+          dueDays: 3,
+          presentDays: 3,
+          absentDays: 1,
+          openShiftDays: 1,
+          upcomingDays: 24,
+        },
       },
     });
     expect(current.summary.attendanceRate).toBe(66.67);
     expect(current.summary.upcomingDays).toBe(24);
     expect(current.summary.openShiftDays).toBe(1);
+    expect(current.summary.attendanceRateBasis?.presentInDue).toBe(2);
   });
 
   it('hoursComplianceRate is between 0 and 100', () => {

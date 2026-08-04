@@ -1,0 +1,22 @@
+{
+  "reporter": ["text", "json", "html", "lcov"],
+  "exclude": [
+    "node_modules/",
+    "dist/",
+    "**/*.d.ts",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/test/**",
+    "**/tests/**",
+    "**/mockContexts.ts",
+    "**/mockData.ts"
+  ],
+  "thresholds": {
+    "statements": 70,
+    "branches": 65,
+    "functions": 70,
+    "lines": 70
+  }
+}

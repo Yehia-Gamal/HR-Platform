@@ -3,6 +3,7 @@
 export const kpiWorkflowStatusLabel: Record<string, string> = {
   DRAFT: 'مسودة قبل فتح الدورة',
   OPEN_FOR_SELF_EVALUATION: 'مفتوح للتقييم الذاتي',
+  SUBMITTED_TO_HR: 'أُرسل إلى الموارد البشرية',
   SUBMITTED_TO_DIRECT_MANAGER: 'أُرسل إلى المدير المباشر',
   MANAGER_REVIEW: 'قيد مراجعة المدير المباشر',
   HR_REVIEW: 'قيد مراجعة الموارد البشرية',
@@ -24,6 +25,7 @@ export const kpiWorkflowStatusLabel: Record<string, string> = {
   SENT_TO_EXECUTIVE_DIRECTOR: 'مُرسل للمدير التنفيذي',
   RETURNED_FOR_REVISION: 'أُعيد للتصحيح',
   APPROVED: 'معتمد',
+  REJECTED: 'مرفوض',
   CLOSED: 'مؤرشف',
   OVERDUE: 'متأخر عن الموعد',
   // V23: حالات المسار المتوازي

@@ -199,6 +199,17 @@ export const attendanceStatementDaySchema = z.object({
   isOpenShift: z.boolean().catch(false),
   /** حضور مكتمل ببصمتي دخول وخروج. */
   isCompleted: z.boolean().catch(false),
+  /** تعديل إداري فعّال مع بقاء البصمات الخام محفوظة. */
+  adminOverride: z
+    .object({
+      id: z.string().uuid(),
+      dayType: z.enum(['work', 'leave', 'mission', 'convoy', 'fundraising', 'holiday', 'rest', 'absent']),
+      reason: z.string(),
+      notes: z.string().nullable(),
+      updatedAt: z.string(),
+    })
+    .nullable()
+    .optional(),
 });
 export type AttendanceStatementDay = z.infer<typeof attendanceStatementDaySchema>;
 
@@ -221,10 +232,15 @@ export const attendanceStatementSchema = z.object({
     generatedAt: z.string(),
   }),
   days: attendanceStatementDaySchema.array(),
+  capabilities: z
+    .object({
+      canEditDays: z.boolean().default(false),
+    })
+    .default({ canEditDays: false }),
   summary: z.object({
     totalDays: z.number(),
     scheduledDays: z.number(),
-    /** أيام العمل المستحقة حتى تاريخ إنشاء التقرير. */
+    /** كامل أيام العمل في الشهر بعد استبعاد الجمعة والعطلات الرسمية. */
     dueScheduledDays: z.number().nonnegative().default(0),
     /** أيام العمل القادمة المتبقية في الشهر. */
     upcomingDays: z.number().nonnegative().default(0),
@@ -250,12 +266,36 @@ export const attendanceStatementSchema = z.object({
     missingCheckInCount: z.number(),
     missingCheckOutCount: z.number(),
     correctionCount: z.number(),
-    /** نسبة الحضور — V23 §14 */
+    /** نسبة الحضور الفعلي من كامل أيام العمل الشهرية. */
     attendanceRate: z.number().min(0).max(100).default(0),
-    /** نسبة الالتزام بالساعات — V23 §14 */
+    /** مكونات نسبة الحضور الشهرية الكاملة. */
+    attendanceRateBasis: z
+      .object({
+        presentInDue: z.number().nonnegative(),
+        dueDays: z.number().nonnegative(),
+        presentDays: z.number().nonnegative(),
+        absentDays: z.number().nonnegative(),
+        openShiftDays: z.number().nonnegative(),
+        upcomingDays: z.number().nonnegative(),
+      })
+      .optional(),
+    /** نسبة تغطية أيام العمل (حضور/إجازة/مأمورية/قافلة/فاندي). */
+    coverageRate: z.number().min(0).max(100).default(0),
+    coverageDays: z.number().nonnegative().default(0),
+    /** نسبة الساعات المنجزة من إجمالي ساعات الشهر. */
     hoursComplianceRate: z.number().min(0).max(100).default(0),
     /** false يعني أن المقام غير متوفر، فتُعرض النسبة «غير متاحة» لا 0%. */
     hoursComplianceAvailable: z.boolean().default(false),
+    totalDeficitMinutes: z.number().nonnegative().default(0),
+    hoursRateBasis: z
+      .object({
+        workedMinutes: z.number().nonnegative(),
+        requiredMinutes: z.number().nonnegative(),
+        scheduledDays: z.number().nonnegative(),
+        deficitMinutes: z.number().nonnegative(),
+        overtimeMinutes: z.number().nonnegative(),
+      })
+      .optional(),
   }),
 });
 export type AttendanceStatement = z.infer<typeof attendanceStatementSchema>;

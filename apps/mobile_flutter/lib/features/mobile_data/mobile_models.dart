@@ -658,8 +658,7 @@ class MobileLocationRequest {
   final int durationMinutes;
   final DateTime requestedAt;
   final DateTime? expiresAt;
-  // V12 §9: الفيديو ملغى نهائيًا — needsVideo دائمًا false.
-  bool get needsVideo => false;
+  bool get needsVideo => mode == 'video_5s' || mode == 'location_video';
   bool get needsPoint => mode == 'snapshot' || mode == 'location_video';
   bool get isTracking => mode.startsWith('track_');
 }
@@ -1459,8 +1458,15 @@ class AttendanceStatementSummary {
     required this.missingCheckOutCount,
     required this.correctionCount,
     required this.attendanceRate,
+    required this.attendanceRatePresentDays,
+    required this.attendanceRateDueDays,
     required this.hoursComplianceRate,
     required this.hoursComplianceAvailable,
+    required this.coverageRate,
+    required this.coverageDays,
+    required this.totalDeficitMinutes,
+    required this.hoursRateWorkedMinutes,
+    required this.hoursRateRequiredMinutes,
   });
 
   factory AttendanceStatementSummary.fromJson(Map<String, dynamic> json) =>
@@ -1493,11 +1499,32 @@ class AttendanceStatementSummary {
         missingCheckOutCount: (json['missingCheckOutCount'] as num?)?.toInt() ?? 0,
         correctionCount: (json['correctionCount'] as num?)?.toInt() ?? 0,
         attendanceRate: (json['attendanceRate'] as num?)?.toDouble(),
+        attendanceRatePresentDays:
+            ((json['attendanceRateBasis'] as Map<String, dynamic>?)?['presentInDue'] as num?)?.toInt() ??
+            (((json['presentDays'] as num?)?.toInt() ?? 0) -
+                    ((json['openShiftDays'] as num?)?.toInt() ?? 0))
+                .clamp(0, 1 << 30)
+                .toInt(),
+        attendanceRateDueDays:
+            ((json['attendanceRateBasis'] as Map<String, dynamic>?)?['dueDays'] as num?)?.toInt() ??
+            (json['dueScheduledDays'] as num?)?.toInt() ??
+            (json['scheduledDays'] as num?)?.toInt() ??
+            0,
         hoursComplianceRate:
             (json['hoursComplianceRate'] as num?)?.toDouble() ?? 0,
         hoursComplianceAvailable:
             json['hoursComplianceAvailable'] as bool? ??
             ((json['totalRequiredHours'] as num?)?.toDouble() ?? 0) > 0,
+        coverageRate: (json['coverageRate'] as num?)?.toDouble() ?? 0,
+        coverageDays: (json['coverageDays'] as num?)?.toInt() ?? 0,
+        totalDeficitMinutes:
+            (json['totalDeficitMinutes'] as num?)?.toInt() ?? 0,
+        hoursRateWorkedMinutes:
+            (((json['hoursRateBasis'] as Map<String, dynamic>?)?['workedMinutes']) as num?)?.toInt() ??
+            (((json['totalWorkHours'] as num?)?.toDouble() ?? 0) * 60).round(),
+        hoursRateRequiredMinutes:
+            (((json['hoursRateBasis'] as Map<String, dynamic>?)?['requiredMinutes']) as num?)?.toInt() ??
+            (((json['totalRequiredHours'] as num?)?.toDouble() ?? 0) * 60).round(),
       );
 
   final int totalDays;
@@ -1524,8 +1551,15 @@ class AttendanceStatementSummary {
   final int missingCheckOutCount;
   final int correctionCount;
   final double? attendanceRate;
+  final int attendanceRatePresentDays;
+  final int attendanceRateDueDays;
   final double hoursComplianceRate;
   final bool hoursComplianceAvailable;
+  final double coverageRate;
+  final int coverageDays;
+  final int totalDeficitMinutes;
+  final int hoursRateWorkedMinutes;
+  final int hoursRateRequiredMinutes;
 }
 
 /// كشف الحضور والانصراف الشهري الكامل (V12 §18).
@@ -1590,9 +1624,13 @@ class MonthlyAttendanceStatement {
   /// نسبة الحضور حتى الآن (الحضور ÷ أيام العمل المستحقة، دون المستقبل).
   double get attendancePercentage =>
       summary.attendanceRate ??
-      (summary.dueScheduledDays > 0
-          ? (summary.presentDays / summary.dueScheduledDays * 100)
+      (summary.attendanceRateDueDays > 0
+          ? (summary.attendanceRatePresentDays /
+              summary.attendanceRateDueDays *
+              100)
           : 0);
+
+  double get hoursPercentage => summary.hoursComplianceRate;
 }
 
 class MobileScheduleDay {

@@ -1,11 +1,12 @@
 import type { AttendanceStatement } from '@ahla/shared-contracts';
-import { CalendarDays, Clock, AlertTriangle, TrendingUp, UserCheck, Timer, ArrowDownRight, ArrowUpRight, FileDown } from 'lucide-react';
+import { CalendarDays, Clock, AlertTriangle, TrendingUp, UserCheck, Timer, ArrowDownRight, ArrowUpRight, FileDown, Printer } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
 import { SkeletonCard } from '../../ui/Skeletons';
-import { AttendancePercentageRing, buildDayTags, DayTag, fmtTime, MONTHS, StatItem, WARN_STATUSES } from './attendanceShared';
+import { AttendancePercentageRing, attendanceRateParts, buildDayTags, DayTag, fmtTime, hoursRateParts, MONTHS, StatItem, WARN_STATUSES } from './attendanceShared';
+import { AttendanceDayEditor } from './AttendanceDayEditor';
 import { exportAttendancePDF } from './exportAttendancePDF';
 import { useEmployeeMonthlyStatement } from './useMonthlyStatement';
 
@@ -39,10 +40,26 @@ export function MonthlyStatementSection({ employeeId }: { employeeId: string }) 
             ))}
           </select>
           {query.data && (
-            <button type="button" className="btn btn-secondary flex items-center gap-1.5 text-xs" onClick={() => exportAttendancePDF(query.data!)}>
-              <FileDown className="size-4" aria-hidden="true" />
-              تصدير PDF
-            </button>
+            <>
+              <button
+                type="button"
+                className="btn btn-secondary flex items-center gap-1.5 text-xs"
+                onClick={() => exportAttendancePDF(query.data!)}
+                title="تنزيل نسخة PDF من كشف الحضور والانصراف"
+              >
+                <FileDown className="size-4" aria-hidden="true" />
+                تصدير PDF
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary flex items-center gap-1.5 text-xs"
+                onClick={() => exportAttendancePDF(query.data!)}
+                title="فتح نسخة قابلة للطباعة فوراً"
+              >
+                <Printer className="size-4" aria-hidden="true" />
+                طباعة
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -61,8 +78,10 @@ export function MonthlyStatementSection({ employeeId }: { employeeId: string }) 
 
 function StatementBody({ data }: { data: AttendanceStatement }) {
   const s = data.summary;
+  const { dueDays, presentInDue } = attendanceRateParts(s);
+  const { workedHours, requiredHours, deficitHours } = hoursRateParts(s);
   // V23: استخدام النسب من الخادم بدلاً من الحساب المحلي
-  const attendancePct = s.attendanceRate ?? (s.dueScheduledDays > 0 ? (s.presentDays / s.dueScheduledDays) * 100 : 0);
+  const attendancePct = s.attendanceRate ?? (dueDays > 0 ? (presentInDue / dueDays) * 100 : 0);
   const compliancePct = s.hoursComplianceRate ?? 0;
   const complianceAvailable = s.hoursComplianceAvailable || s.totalRequiredHours > 0;
 
@@ -72,13 +91,14 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
       <div className="grid gap-4 lg:grid-cols-[auto_1fr]">
         {/* دوائر النسب */}
         <div className="flex items-center justify-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-6">
-          <AttendancePercentageRing percentage={attendancePct} />
-          <AttendancePercentageRing percentage={compliancePct} label="التزام" available={complianceAvailable} />
+          <AttendancePercentageRing percentage={attendancePct} label="حضور الشهر" />
+          <AttendancePercentageRing percentage={compliancePct} label="ساعات الشهر" available={complianceAvailable} />
+          <AttendancePercentageRing percentage={s.coverageRate} label="تغطية الأيام" />
         </div>
 
         {/* بطاقات الملخص */}
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="أيام الحضور" value={s.presentDays} hint={`من ${s.dueScheduledDays} مستحقة حتى الآن`} icon={UserCheck} />
+          <MetricCard label="أيام الحضور" value={presentInDue} hint={`من ${dueDays} يوم عمل في الشهر`} icon={UserCheck} />
           <MetricCard label="أيام الغياب" value={s.absentDays} icon={AlertTriangle} />
           <MetricCard label="وردية مفتوحة" value={s.openShiftDays} hint="حاضر — بانتظار الانصراف" icon={Clock} />
           <MetricCard label="أيام قادمة" value={s.upcomingDays} hint={`من ${s.scheduledDays} مجدولة شهريًا`} icon={CalendarDays} />
@@ -88,10 +108,10 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
           <MetricCard label="قوافل/فاندي" value={s.convoyFundiDays} icon={CalendarDays} />
           <MetricCard
             label="ساعات العمل"
-            value={s.totalWorkHours.toFixed(1)}
+            value={workedHours.toFixed(1)}
             hint={
               complianceAvailable
-                ? `مطلوب ${(s.totalRequiredHours ?? 0).toFixed(1)} | متوسط ${s.averageWorkHours.toFixed(1)} س/يوم مكتمل`
+                ? `من ${requiredHours.toFixed(1)} س شهريًا | عجز ${deficitHours.toFixed(1)} س`
                 : 'الساعات المطلوبة غير متاحة'
             }
             icon={Timer}
@@ -155,6 +175,7 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
               <th scope="col" className="p-2.5">
                 ملاحظات
               </th>
+              {data.capabilities.canEditDays ? <th scope="col" className="p-2.5">إدارة اليوم</th> : null}
             </tr>
           </thead>
           <tbody>
@@ -193,6 +214,7 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
                       {d.correctionNote && !tags.length && <span className="text-xs text-[var(--text-muted)]">{d.correctionNote}</span>}
                     </div>
                   </td>
+                  {data.capabilities.canEditDays ? <td className="p-2.5"><AttendanceDayEditor employeeId={data.employee.id} day={d} /></td> : null}
                 </tr>
               );
             })}

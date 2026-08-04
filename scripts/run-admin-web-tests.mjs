@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url';
 const vitest = fileURLToPath(new URL('../node_modules/vitest/vitest.mjs', import.meta.url));
 const webRoot = fileURLToPath(new URL('../apps/admin_web/', import.meta.url));
 const shardCount = 4;
-const concurrency = 2;
+// Windows CI and low-disk developer machines can time out while starting two
+// jsdom fork workers at once. Keep the bounded shards, but run them serially.
+const concurrency = 1;
 
 function runShard(index) {
   return new Promise((resolve, reject) => {

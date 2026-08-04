@@ -10,6 +10,7 @@ describe('kpiWorkflowStatusLabel', () => {
   it.each([
     'DRAFT',
     'OPEN_FOR_SELF_EVALUATION',
+    'SUBMITTED_TO_HR',
     'SUBMITTED_TO_DIRECT_MANAGER',
     'MANAGER_REVIEW',
     'HR_REVIEW',
@@ -17,6 +18,7 @@ describe('kpiWorkflowStatusLabel', () => {
     'ARCHIVED',
     'NOT_STARTED',
     'APPROVED',
+    'REJECTED',
     'CLOSED',
   ])('has expected key "%s"', (key) => {
     expect(kpiWorkflowStatusLabel).toHaveProperty(key);
@@ -33,8 +35,8 @@ describe('kpiWorkflowStatusLabel', () => {
     expect(Object.keys(kpiWorkflowStatusLabel).length).toBeGreaterThanOrEqual(25);
   });
 
-  it('contains exactly 32 entries', () => {
-    expect(Object.keys(kpiWorkflowStatusLabel).length).toBe(32);
+  it('contains exactly 34 entries', () => {
+    expect(Object.keys(kpiWorkflowStatusLabel).length).toBe(34);
   });
 
   it('every value contains at least one Arabic character', () => {
@@ -85,6 +87,8 @@ describe('kpiWorkflowStatusText', () => {
   it('returns the Arabic label for additional known codes', () => {
     expect(kpiWorkflowStatusText('OPEN_FOR_SELF_EVALUATION')).toBe('مفتوح للتقييم الذاتي');
     expect(kpiWorkflowStatusText('HR_REVIEW')).toBe('قيد مراجعة الموارد البشرية');
+    expect(kpiWorkflowStatusText('SUBMITTED_TO_HR')).toBe('أُرسل إلى الموارد البشرية');
+    expect(kpiWorkflowStatusText('REJECTED')).toBe('مرفوض');
     expect(kpiWorkflowStatusText('CLOSED')).toBe('مؤرشف');
     expect(kpiWorkflowStatusText('OVERDUE')).toBe('متأخر عن الموعد');
   });

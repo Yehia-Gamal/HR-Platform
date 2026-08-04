@@ -43,7 +43,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [isMock]);
 
   useEffect(() => {
-    if (env.devMocksEnabled && !hasSupabaseConfig) {
+    // Local preview/E2E must stay deterministic even when a developer has a
+    // real Supabase `.env.local`. Otherwise startup waits on getSession() and
+    // the login screen intermittently remains behind the loading splash.
+    if (env.devMocksEnabled) {
       setStatus('anonymous');
       return;
     }

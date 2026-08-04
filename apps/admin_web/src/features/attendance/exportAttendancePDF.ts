@@ -1,4 +1,5 @@
 import type { AttendanceStatement } from '@ahla/shared-contracts';
+import { attendanceRateParts } from './attendanceShared';
 
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
@@ -24,11 +25,16 @@ export function esc(value: unknown): string {
 
 /**
  * يُنشئ مستند HTML منسّق لكشف الحضور ويفتحه في نافذة جديدة مع تشغيل طباعة تلقائي.
- * المستخدم يمكنه حفظه كـ PDF مباشرة من حوار الطباعة.
+ * المستخدم يمكنه حفظه كـ PDF مباشرة من حوار الطباعة (نفس السلوك لكل من زر «تصدير PDF» و«طباعة»).
  */
-export function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية') {
+export function exportAttendancePDF(
+  data: AttendanceStatement,
+  orgName = 'جمعية خواطر أحلى شباب',
+  systemName = 'منظومة أحلى شباب الإدارية',
+) {
   const { employee: emp, period, days, summary: s } = data;
-  const attendancePct = s.attendanceRate ?? (s.dueScheduledDays > 0 ? (s.presentDays / s.dueScheduledDays) * 100 : 0);
+  const { dueDays, presentInDue } = attendanceRateParts(s);
+  const attendancePct = s.attendanceRate ?? (dueDays > 0 ? (presentInDue / dueDays) * 100 : 0);
   const compliancePct = s.hoursComplianceRate ?? 0;
   const complianceAvailable = s.hoursComplianceAvailable || s.totalRequiredHours > 0;
   const monthName = MONTHS[period.month - 1] ?? '';
@@ -258,7 +264,7 @@ export function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمع
 
   <!-- ملخص الأرقام -->
   <div class="summary-grid">
-    <div class="metric"><div class="label">أيام الحضور</div><div class="value">${s.presentDays}</div><div class="hint">من ${s.dueScheduledDays} مستحقة حتى الآن</div></div>
+    <div class="metric"><div class="label">الحضور المحتسب</div><div class="value">${presentInDue}</div><div class="hint">من ${dueDays} أيام مستحقة ومقفلة</div></div>
     <div class="metric${s.absentDays > 0 ? ' warn' : ''}"><div class="label">أيام الغياب</div><div class="value">${s.absentDays}</div></div>
     <div class="metric"><div class="label">وردية مفتوحة</div><div class="value">${s.openShiftDays}</div><div class="hint">بانتظار الانصراف</div></div>
     <div class="metric"><div class="label">أيام قادمة</div><div class="value">${s.upcomingDays}</div><div class="hint">لا تُحسب غيابًا</div></div>

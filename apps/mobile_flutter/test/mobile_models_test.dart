@@ -234,6 +234,14 @@ void main() {
         'totalRequiredHours': 8,
         'totalLateMinutes': 5,
         'attendanceRate': 50,
+        'attendanceRateBasis': {
+          'presentInDue': 1,
+          'dueDays': 2,
+          'presentDays': 1,
+          'absentDays': 1,
+          'openShiftDays': 0,
+          'upcomingDays': 0,
+        },
         'hoursComplianceRate': 93.75,
         'hoursComplianceAvailable': true,
       },
@@ -245,6 +253,7 @@ void main() {
     expect(stmt.summary.totalWorkHours, 7.5);
     expect(stmt.summary.missionDays, 1);
     expect(stmt.attendancePercentage, 50);
+    expect(stmt.summary.attendanceRatePresentDays, 1);
     expect(stmt.summary.hoursComplianceAvailable, isTrue);
   });
 

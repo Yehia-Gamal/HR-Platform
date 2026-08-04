@@ -16,6 +16,7 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { useMyLeaveBalances, useRequestDecision, useRequests, useWorkAssignments } from './useRequests';
 import { useAttendanceOperations, useAttendanceOperationsCommands } from '../advanced/useAdvancedOperations';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { cairoMonthIso } from '../../core/cairoTime';
 
 const labels: Record<RequestSummary['requestType'], string> = {
   leave: 'إجازة',
@@ -36,7 +37,7 @@ const typeTabs: { key: TypeTab; label: string }[] = [
   { key: 'corrections', label: 'تصحيحات الحضور' },
 ];
 
-const currentMonth = new Date().toISOString().slice(0, 7);
+const currentMonth = cairoMonthIso();
 
 export function RequestsPage() {
   const { toast } = useToast();

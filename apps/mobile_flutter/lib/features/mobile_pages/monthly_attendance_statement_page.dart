@@ -249,6 +249,12 @@ class _StatementBody extends StatelessWidget {
               value: '${s.convoyFundiDays}',
               color: const Color(0xFF8B5CF6),
             ),
+            _MetricTile(
+              icon: Icons.event_available_rounded,
+              label: 'تغطية الأيام',
+              value: '${s.coverageDays}/${s.scheduledDays}',
+              color: const Color(0xFF2563EB),
+            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -514,6 +520,7 @@ class _AttendancePercentageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pct = statement.attendancePercentage;
+    final hoursPct = statement.hoursPercentage;
     final s = statement.summary;
     final scheme = Theme.of(context).colorScheme;
     final pctColor = pct >= 90
@@ -525,46 +532,21 @@ class _AttendancePercentageCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        child: Row(
+        child: Column(
           children: [
-            // دائرة النسبة
-            SizedBox(
-              width: 90,
-              height: 90,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox.expand(
-                    child: CircularProgressIndicator(
-                      value: pct / 100,
-                      strokeWidth: 8,
-                      backgroundColor: scheme.surfaceContainerHighest,
-                      valueColor: AlwaysStoppedAnimation(pctColor),
-                      strokeCap: StrokeCap.round,
-                    ),
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${pct.toStringAsFixed(0)}%',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 22,
-                          color: pctColor,
-                        ),
-                      ),
-                      Text(
-                        'حضور',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _PercentageGauge(label: 'حضور الشهر', percentage: pct, color: pctColor),
+                const SizedBox(width: 16),
+                _PercentageGauge(label: 'ساعات الشهر', percentage: hoursPct, color: const Color(0xFF2563EB)),
+                const SizedBox(width: 16),
+                _PercentageGauge(label: 'تغطية الأيام', percentage: s.coverageRate, color: const Color(0xFF7C3AED)),
+              ],
             ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
             const SizedBox(width: 20),
             // تفاصيل جانبية
             Expanded(
@@ -579,10 +561,14 @@ class _AttendancePercentageCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   _PctDetailRow(
-                    label: 'أيام مستحقة حتى الآن',
-                    value: '${s.dueScheduledDays}',
+                    label: 'إجمالي أيام العمل بالشهر',
+                    value: '${s.attendanceRateDueDays}',
                   ),
-                  _PctDetailRow(label: 'أيام حضور', value: '${s.presentDays}'),
+                  _PctDetailRow(
+                    label: 'أيام بها بصمة حضور',
+                    value: '${s.attendanceRatePresentDays}',
+                  ),
+                  _PctDetailRow(label: 'إجمالي الحضور', value: '${s.presentDays}'),
                   _PctDetailRow(
                     label: 'ورديات مفتوحة',
                     value: '${s.openShiftDays}',
@@ -592,8 +578,9 @@ class _AttendancePercentageCard extends StatelessWidget {
                     value: '${s.upcomingDays}',
                   ),
                   _PctDetailRow(
-                    label: 'إجمالي الشهر المجدول',
-                    value: '${s.scheduledDays}',
+                    label: 'الساعات المنجزة / المطلوبة',
+                    value:
+                        '${(s.hoursRateWorkedMinutes / 60).toStringAsFixed(1)} / ${(s.hoursRateRequiredMinutes / 60).toStringAsFixed(1)}',
                   ),
                   _PctDetailRow(
                     label: 'أيام عطل رسمية',
@@ -603,8 +590,47 @@ class _AttendancePercentageCard extends StatelessWidget {
                 ],
               ),
             ),
+              ],
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _PercentageGauge extends StatelessWidget {
+  const _PercentageGauge({required this.label, required this.percentage, required this.color});
+  final String label;
+  final double percentage;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = percentage.clamp(0, 100).toDouble();
+    return SizedBox(
+      width: 82,
+      height: 82,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox.expand(
+            child: CircularProgressIndicator(
+              value: pct / 100,
+              strokeWidth: 7,
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+              valueColor: AlwaysStoppedAnimation(color),
+              strokeCap: StrokeCap.round,
+            ),
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('${pct.toStringAsFixed(0)}%', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: color)),
+              Text(label, textAlign: TextAlign.center, style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 9)),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -19,3 +19,44 @@ export function firstWebWorkspace(context: AccessContext): WorkspaceId | null {
   if (context.workspaces.includes('committee')) return 'committee';
   return null;
 }
+
+/**
+ * صفحات الموارد البشرية المتاحة أيضًا داخل القائمة الموحّدة للأدمن الرئيسي.
+ * تُستخدم لترجمة المسار بين /hr/... و/admin/hr/... عند إعادة التوجيه.
+ */
+export const HR_PAGE_SEGMENTS = [
+  'employees',
+  'attendance',
+  'attendance/operations',
+  'attendance/report',
+  'performance',
+  'recruitment',
+  'onboarding',
+  'reports',
+  'holidays',
+  'requests',
+  'devices',
+  'organization',
+  'official-feed',
+  'learning',
+  'lifecycle',
+  'documents',
+] as const;
+
+/**
+ * يحوّل مسارًا يبدأ بـ /hr إلى ما يقابله داخل /admin/hr، أو يعيد null إذا لم يكن مسار HR.
+ */
+export function hrPathToAdmin(path: string): string | null {
+  if (path === '/hr') return '/admin/hr';
+  if (!path.startsWith('/hr/')) return null;
+  return `/admin/hr/${path.slice('/hr/'.length)}`;
+}
+
+/**
+ * يعيد true إذا كانت القائمة الموحّدة للأدمن الرئيسي تغطي المسار الحالي،
+ * بما يشمل /admin نفسها والصفحات الـ HR المثبّتة تحت /admin/hr.
+ */
+export function isUnifiedAdminActive(workspaces: readonly WorkspaceId[], pathname: string): boolean {
+  if (!workspaces.includes('main_admin')) return false;
+  return pathname === '/admin' || pathname.startsWith('/admin/');
+}

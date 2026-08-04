@@ -23,7 +23,8 @@ import { PageHeader } from '../../ui/PageHeader';
 import { MetricSkeletonRow, SkeletonCard } from '../../ui/Skeletons';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useEmployees } from '../employees/useEmployees';
-import { AttendancePercentageRing, buildDayTags, DayTag, fmtTime, MONTHS, StatItem, WARN_STATUSES } from './attendanceShared';
+import { AttendancePercentageRing, attendanceRateParts, buildDayTags, DayTag, fmtTime, hoursRateParts, MONTHS, StatItem, WARN_STATUSES } from './attendanceShared';
+import { AttendanceDayEditor } from './AttendanceDayEditor';
 import { exportAttendancePDF } from './exportAttendancePDF';
 import { useEmployeeMonthlyStatement } from './useMonthlyStatement';
 
@@ -41,6 +42,7 @@ function csvSafe(v: unknown): string {
 
 function exportCSV(data: AttendanceStatement) {
   const { employee: emp, period, days, summary: s } = data;
+  const { presentInDue } = attendanceRateParts(s);
   const header = [
     `كشف الحضور والانصراف الشهري — ${csvSafe(emp.fullNameAr)}`,
     `الكود: ${csvSafe(emp.employeeCode ?? '—')} | الإدارة: ${csvSafe(emp.department)} | المسمى: ${csvSafe(emp.jobTitle)}`,
@@ -87,6 +89,7 @@ function exportCSV(data: AttendanceStatement) {
     `الأيام المستحقة حتى الآن,${s.dueScheduledDays}`,
     `الأيام القادمة,${s.upcomingDays}`,
     `أيام الحضور,${s.presentDays}`,
+    `الحضور المحتسب في النسبة,${presentInDue}`,
     `أيام الغياب,${s.absentDays}`,
     `ورديات مفتوحة,${s.openShiftDays}`,
     `أيام الإجازات,${s.leaveDays}`,
@@ -289,8 +292,10 @@ export function MonthlyAttendanceReportPage() {
 // ─── عرض الكشف الكامل ──────────────────────────────────────────
 function StatementReport({ data }: { data: AttendanceStatement }) {
   const { employee: emp, period, summary: s } = data;
+  const { dueDays, presentInDue } = attendanceRateParts(s);
+  const { workedHours, requiredHours, deficitHours } = hoursRateParts(s);
   // V23: استخدام النسب من الخادم بدلاً من الحساب المحلي
-  const attendancePct = s.attendanceRate ?? (s.dueScheduledDays > 0 ? (s.presentDays / s.dueScheduledDays) * 100 : 0);
+  const attendancePct = s.attendanceRate ?? (dueDays > 0 ? (presentInDue / dueDays) * 100 : 0);
   const compliancePct = s.hoursComplianceRate ?? 0;
   const complianceAvailable = s.hoursComplianceAvailable || s.totalRequiredHours > 0;
 
@@ -326,12 +331,13 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
 
       {/* V23: نسب الحضور والالتزام + ملخص رئيسي */}
       <div className="grid gap-4 lg:grid-cols-[auto_1fr]">
-        <div className="flex items-center justify-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-6 print:p-3">
-          <AttendancePercentageRing percentage={attendancePct} />
-          <AttendancePercentageRing percentage={compliancePct} label="التزام" available={complianceAvailable} />
+        <div className="flex flex-wrap items-center justify-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-6 print:p-3">
+          <AttendancePercentageRing percentage={attendancePct} label="حضور الشهر" />
+          <AttendancePercentageRing percentage={compliancePct} label="ساعات الشهر" available={complianceAvailable} />
+          <AttendancePercentageRing percentage={s.coverageRate} label="تغطية الأيام" />
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 print:grid-cols-4">
-          <MetricCard label="أيام الحضور" value={s.presentDays} hint={`من ${s.dueScheduledDays} مستحقة حتى الآن`} icon={UserCheck} />
+          <MetricCard label="أيام الحضور" value={presentInDue} hint={`من ${dueDays} يوم عمل في الشهر`} icon={UserCheck} />
           <MetricCard label="أيام الغياب" value={s.absentDays} icon={AlertTriangle} />
           <MetricCard label="وردية مفتوحة" value={s.openShiftDays} hint="حاضر — بانتظار الانصراف" icon={Clock} />
           <MetricCard label="أيام قادمة" value={s.upcomingDays} hint={`من ${s.scheduledDays} مجدولة شهريًا`} icon={CalendarDays} />
@@ -341,10 +347,10 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
           <MetricCard label="قوافل/فاندي" value={s.convoyFundiDays} icon={CalendarDays} />
           <MetricCard
             label="ساعات العمل"
-            value={s.totalWorkHours.toFixed(1)}
+            value={workedHours.toFixed(1)}
             hint={
               complianceAvailable
-                ? `مطلوب ${(s.totalRequiredHours ?? 0).toFixed(1)} | متوسط ${s.averageWorkHours.toFixed(1)} س/يوم مكتمل`
+                ? `من ${requiredHours.toFixed(1)} س شهريًا | عجز ${deficitHours.toFixed(1)} س`
                 : 'الساعات المطلوبة غير متاحة'
             }
             icon={Timer}
@@ -387,11 +393,12 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
               <th className="p-2.5 print:p-1">إضافي</th>
               <th className="p-2.5 print:p-1">الحالة</th>
               <th className="p-2.5 print:p-1">ملاحظات</th>
+              {data.capabilities.canEditDays ? <th className="p-2.5 print:hidden">إدارة اليوم</th> : null}
             </tr>
           </thead>
           <tbody>
             {data.days.map((d) => (
-              <DayRow key={d.date} d={d} />
+              <DayRow key={d.date} d={d} employeeId={emp.id} canEdit={data.capabilities.canEditDays} />
             ))}
           </tbody>
         </table>
@@ -401,7 +408,7 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
 }
 
 // ─── صف يوم واحد ────────────────────────────────────────────────
-function DayRow({ d }: { d: AttendanceStatementDay }) {
+function DayRow({ d, employeeId, canEdit }: { d: AttendanceStatementDay; employeeId: string; canEdit: boolean }) {
   const tags = buildDayTags(d);
 
   return (
@@ -437,6 +444,7 @@ function DayRow({ d }: { d: AttendanceStatementDay }) {
           {d.correctionNote && !tags.length && <span className="text-xs text-[var(--text-muted)]">{d.correctionNote}</span>}
         </div>
       </td>
+      {canEdit ? <td className="p-2.5 print:hidden"><AttendanceDayEditor employeeId={employeeId} day={d} /></td> : null}
     </tr>
   );
 }

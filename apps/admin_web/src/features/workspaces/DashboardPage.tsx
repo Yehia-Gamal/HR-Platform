@@ -15,7 +15,7 @@ import {
   UserX,
   Users,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { getShortName, getTimeGreeting } from '../../ui/formatDisplayName';
 import { MetricCard } from '../../ui/MetricCard';

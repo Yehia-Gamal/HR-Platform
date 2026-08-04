@@ -60,10 +60,16 @@ class OfflineSyncQueue {
   static const _storageKey = 'offline_sync_queue_v1';
   static const _lastSyncKey = 'offline_sync_last_ts';
   static const _maxRetries = 5;
+  static const _maxCriticalRetries = 25;
   static const _uuid = Uuid();
 
   /// يُخطر المستمعين عند تغيّر الطابور (إضافة/حذف/معالجة).
   final ValueNotifier<int> countNotifier = ValueNotifier<int>(0);
+
+  /// يُخطر المستمعين عند إسقاط عنصر تجاوز الحد الأقصى للمحاولات.
+  /// حتى لا تُفقد البصمات/العمليات الحساسة بصمت.
+  final ValueNotifier<SyncQueueItem?> droppedNotifier =
+      ValueNotifier<SyncQueueItem?>(null);
 
   /// أضف عملية جديدة إلى الطابور.
   Future<void> enqueue(String action, Map<String, dynamic> payload) async {
@@ -132,20 +138,23 @@ class OfflineSyncQueue {
         successCount++;
       } catch (e) {
         item.retryCount++;
-        if (item.retryCount >= _maxRetries) {
-          // تجاوز الحد الأقصى — نحذف العنصر لمنع التراكم.
+        // البصمات (حضور/انصراف) عمليات حرجة — تمنح حصة محاولات أوسع.
+        final maxRetries = item.action == 'punch_attendance'
+            ? _maxCriticalRetries
+            : _maxRetries;
+        if (item.retryCount >= maxRetries) {
+          // تجاوز الحد الأقصى — نحذف العنصر لمنع التراكم،
+          // لكن مع إشعار صريح للمستخدم بدل الإسقاط الصامت.
           toRemove.add(item.id);
-          if (kDebugMode) {
-            debugPrint(
-              '[OfflineSyncQueue] تجاوز الحد الأقصى للمحاولات: '
-              '${item.action} (${item.id})',
-            );
-          }
-        }
-        if (kDebugMode) {
+          droppedNotifier.value = item;
+          debugPrint(
+            '[OfflineSyncQueue] تجاوز الحد الأقصى للمحاولات: '
+            '${item.action} (${item.id})',
+          );
+        } else {
           debugPrint(
             '[OfflineSyncQueue] فشل ${item.action}: $e '
-            '(محاولة ${item.retryCount}/$_maxRetries)',
+            '(محاولة ${item.retryCount}/$maxRetries)',
           );
         }
       }

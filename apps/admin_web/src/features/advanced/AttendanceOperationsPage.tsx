@@ -10,8 +10,9 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { useAttendanceOperations, useAttendanceOperationsCommands } from './useAdvancedOperations';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useToast } from '../../ui/Toast';
+import { cairoMonthIso } from '../../core/cairoTime';
 
-const currentMonth = new Date().toISOString().slice(0, 7);
+const currentMonth = cairoMonthIso();
 
 export function AttendanceOperationsPage() {
   const { toast } = useToast();

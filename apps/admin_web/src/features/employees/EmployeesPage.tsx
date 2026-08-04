@@ -1,6 +1,6 @@
 import { ArrowUpDown, Plus, RefreshCw, UserRound, UsersRound } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { MetricCard } from '../../ui/MetricCard';
 import { FilterBar } from '../../ui/FilterBar';
 import { PageHeader } from '../../ui/PageHeader';

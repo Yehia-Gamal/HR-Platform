@@ -218,6 +218,8 @@ class _RequestCardState extends ConsumerState<_RequestCard>
   }
 
   Future<void> _respond(bool accept) async {
+    // حارس ضد الإرسال المزدوج: منع إعادة الدخول أثناء تنفيذ استجابة حالية.
+    if (busy) return;
     setState(() {
       busy = true;
       error = null;

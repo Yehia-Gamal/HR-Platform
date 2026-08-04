@@ -5,6 +5,7 @@ import { MetricSkeletonRow } from '../../ui/Skeletons';
 import { PageHeader } from '../../ui/PageHeader';
 import { useHrReportsSummary } from './useHrReportsSummary';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { cairoTodayIso } from '../../core/cairoTime';
 
 /** مساعد لتحويل قسم تقرير إلى صفوف CSV */
 function sectionToCsv(title: string, data: Record<string, number | string | undefined>): string[] {
@@ -33,7 +34,7 @@ export function ReportsPage() {
     ];
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8' }));
-    a.download = `hr-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `hr-report-${cairoTodayIso()}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
   };

@@ -20,6 +20,7 @@ dependencies:
   flutter_secure_storage: ^10.3.1
   intl: ^0.20.2
   geolocator: ">=14.0.2 <14.0.3"
+  camera: ">=0.11.0 <0.12.0"
   # 0.11.3+ requires Dart 3.9; this app still supports the declared Dart 3.8 floor.
   passkeys: ^2.21.1
   local_auth: ^2.3.0

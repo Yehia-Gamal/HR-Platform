@@ -7,7 +7,7 @@
 
 | العنصر | العدد |
 |---|---|
-| إجمالي الملفات `.sql` المرقمة | 258: 0001–0258 (يشمل placeholders الموثقة) |
+| إجمالي الملفات `.sql` المرقمة | 262: 0001–0262 (يشمل placeholders الموثقة) |
 | تكرارات نشطة | ✅ لا شيء |
 | فجوات | ✅ لا شيء (جسور موثقة: 0119, 0122, 0194, 0219) |
 | ملفات مركونة في `_v23_parking/` | ✅ يجب أن تكون فارغة — إن وُجدت تُعاد جدوَلتها عبر Integration Lead |
@@ -73,7 +73,15 @@
 | 0256 | `0256_admin_panel_rpc_capability_guards.sql` | **P0**: فحص الصلاحية داخل RPCs لوحة الإدارة. اختبار pgTAP: `0090_admin_panel_rpc_authz.sql`. |
 | 0257 | `0257_attendance_rate_exclude_open_shift.sql` | استبعاد الوردية الحالية المفتوحة من مقامي نسب الحضور والالتزام بالساعات. |
 | 0258 | `0258_payroll_dsl_security_foundation.sql` | جداول قوالب معادلات الرواتب وموافقاتها مع JSON constraints وRLS/ACL. اختبار pgTAP: `0099_payroll_dsl_validation.sql`. |
+| 0259 | `0259_payroll_dsl_interpreter.sql` | مفسر JSON صرف للأنواع الخمسة المسموحة دون SQL ديناميكي أو lookup. اختبار pgTAP: `0100_payroll_dsl_interpreter.sql`. |
+| 0260 | `0260_rls_gap_closure.sql` | إغلاق محافظ لفجوات RLS المتبقية مع حفظ السياسات الدقيقة القائمة. اختبار pgTAP: `0101_rls_gap_closure.sql`. |
+| 0261 | `0261_fix_ops_center_guard.sql` | استبدال حارس `tasks.read` الواسع بصلاحيات تشغيل/تقارير إدارية لمركز العمليات. اختبار pgTAP: `0102_ops_center_guard.sql`. |
+| 0262 | `0262_fix_payroll_dsl_fail_open.sql` | إغلاق فخ Fail-Open في `payroll_validate_dsl_spec` (نتيجة NULL عند نقص حقل). اختبار pgTAP: `0103_payroll_dsl_fail_closed.sql`. |
+| 0263 | `0263_audit_fix_rpc_grants_self_guard.sql` | منح EXECUTE لأربع دوال لوحة إدارة كانت محظورة، وحماية `is_deleted`/`national_id_enc` من التعديل الذاتي، وتحصين `rpc_revoke_role` (أدوار full-access)، وفرض `tasks.write` على مهام لوحة العمليات، وتوسيع بوابة كتالوج المؤسسة. اختبار pgTAP: `0104_audit_fix_rpc_grants_self_guard.sql`. |
+| 0264 | `0264_cron_http_from_system_settings.sql` | مهام cron HTTP تقرأ الإعدادات من `system_settings` بدل custom GUC (غير مسموح على Supabase المدارة). |
+| 0265 | `0265_restore_live_location_video_verification.sql` | استعادة تدقيق فيديو التحقق من البث الحي: طلب الموقع → دفع عالي الأولوية → موظف يُرسل موقعه + فيديو كاميرا أمامية 5 ثوانٍ. |
+| 0266 | `0266_monthly_attendance_full_month_rates_and_day_overrides.sql` | نسب حضور/ساعات الشهر الكامل + تعديلات يومية إدارية مع تدقيق. Friday هو الراحة الأسبوعية الوحيدة؛ الوردية الرسمية 10:00-18:00. |
 
 ---
 
-> ✅ **الحالة:** سلسلة متصلة — 0001 → 0258 — بلا تكرار ولا فجوات نشطة.
+> ✅ **الحالة:** سلسلة متصلة — 0001 → 0266 — بلا تكرار أو ملفات قيد الترقيم.
