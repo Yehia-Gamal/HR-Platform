@@ -23,7 +23,7 @@ jobs:
       - run: flutter test
       # Debug APK build gate (plan P0.7): catches Gradle/Manifest/SDK breakage
       # that analyze/test cannot see. Dummy dart-defines: never real secrets.
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
