@@ -8,7 +8,7 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
@@ -26,7 +26,7 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: apps/mobile_flutter } }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with: { channel: stable, cache: true }
       - run: flutter create . --project-name ahla_shabab_management_os --org org.ahlashabab --platforms android,ios
@@ -85,7 +85,7 @@ jobs:
     runs-on: macos-latest
     defaults: { run: { working-directory: apps/mobile_flutter } }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with: { channel: stable, cache: true }
       - run: flutter create . --project-name ahla_shabab_management_os --org org.ahlashabab --platforms ios
