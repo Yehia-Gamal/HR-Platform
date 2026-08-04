@@ -45,6 +45,11 @@ const HASH_PEPPER = Deno.env.get('LOGIN_HASH_PEPPER') ?? '';
 
 const IP_WINDOW_MS = 60_000;
 const IP_MAX_ATTEMPTS = 10;
+// ESI-02: بدون TRUSTED_PROXY=1 كل الطلبات تشترك في سلة واحدة ('untrusted-network').
+// حدّ ضيّق (10) على سلة مشتركة يُقفل تسجيل الدخول على المنظمة كلها دفعة واحدة
+// (كل محاولات الموظفين تُحسب في نفس السلة). نرفع حد السلة المشتركة بينما يبقى
+// الحد الفردي لكل معرّف (6/5د) هو الحاجز الأساسي ضد الهجمات.
+const SHARED_IP_MAX_ATTEMPTS = 120;
 const IDENTIFIER_WINDOW_MS = 5 * 60_000;
 const IDENTIFIER_MAX_ATTEMPTS = 6;
 
@@ -158,7 +163,10 @@ Deno.serve(async (req) => {
     admin.from('login_auth_attempts').select('id', { count: 'exact', head: true }).eq('identifier_hash', identifierHash).gte('attempted_at', identifierWindow),
   ]);
 
-  if ((ipCountResult.count ?? 0) >= IP_MAX_ATTEMPTS || (identifierCountResult.count ?? 0) >= IDENTIFIER_MAX_ATTEMPTS) {
+  // ESI-02: السلة المشتركة تُحصى لكل المنظمة — نطبق عليها حداً أوسع حتى لا
+  // نُقفل الموظفين الشرعيين، مع الإبقاء على الحد الفردي الصارم للمعرّف.
+  const ipMaxAttempts = ip === 'untrusted-network' ? SHARED_IP_MAX_ATTEMPTS : IP_MAX_ATTEMPTS;
+  if ((ipCountResult.count ?? 0) >= ipMaxAttempts || (identifierCountResult.count ?? 0) >= IDENTIFIER_MAX_ATTEMPTS) {
     await admin.from('login_auth_attempts').insert({
       identifier_hash: identifierHash,
       ip_hash: ipHash,

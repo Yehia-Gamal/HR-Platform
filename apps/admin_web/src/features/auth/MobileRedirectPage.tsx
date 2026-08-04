@@ -13,6 +13,9 @@ function buildAppLink(): string {
 export function MobileRedirectPage() {
   const [status, setStatus] = useState<'redirecting' | 'failed'>('redirecting');
   const appLink = useRef(buildAppLink());
+  // الرابط البديل لتعيين كلمة المرور من المتصفح يجب أن يحمل نفس الـ hash
+  // (توكنات جلسة الاسترداد). بدونها تظهر صفحة "الرابط غير صالح أو انتهت مدته".
+  const setupUrl = useRef(`/auth/setup-password${window.location.hash || ''}`);
 
   useEffect(() => {
     // SEC: clear Supabase session tokens from the address bar so they don't
@@ -93,7 +96,7 @@ export function MobileRedirectPage() {
             <h1 className="text-xl font-black">لم يفتح التطبيق تلقائياً</h1>
             <p className="muted leading-7 text-sm">يمكنك تعيين كلمة المرور من المتصفح مباشرة، أو فتح الرابط من هاتفك إذا كان التطبيق مثبتاً.</p>
 
-            <a href="/auth/setup-password" className="block w-full rounded-xl bg-brand px-4 py-3 font-bold text-white text-sm text-center">
+            <a href={setupUrl.current} className="block w-full rounded-xl bg-brand px-4 py-3 font-bold text-white text-sm text-center">
               تعيين كلمة المرور من المتصفح
             </a>
 

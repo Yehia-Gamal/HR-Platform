@@ -65,6 +65,15 @@ Deno.serve(async (req) => {
   const { data: authUser, error: getUserError } = await admin.auth.admin.getUserById(profile.id);
   if (getUserError || !authUser.user?.email) return json(req, { error: "account_email_missing" }, 404);
 
+  // إصلاح الحسابات القديمة: بعضها أُنشئ بـ email_confirm=false (قبل إصلاح
+  // admin-create-employee). دون تأكيد البريد، يستطيع الموظف تعيين كلمة مرور
+  // من رابط الاسترداد لكن تسجيل الدخول لاحقاً يفشل ("Email not confirmed").
+  // نؤكد البريد الآن كي ينجح الدخول بعد تعيين كلمة المرور.
+  const { error: confirmError } = await admin.auth.admin.updateUserById(profile.id, { email_confirm: true });
+  if (confirmError) {
+    console.error("admin-resend-invite email_confirm update failed", confirmError.code);
+  }
+
   // Rate limit: at most one invite per employee per 60 seconds.
   const { data: recentInvite, error: recentError } = await admin
     .from("auth_invite_log")

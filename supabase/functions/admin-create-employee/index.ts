@@ -189,7 +189,10 @@ Deno.serve(async (req) => {
     const reqBody = {
       email: normalizedEmail,
       password,
-      email_confirm: false,
+      // الحساب يُنشأ بواسطة إداري مصادَق يحق له إنشاء الموظف — نؤكد البريد فوراً.
+      // بدون هذا، يستطيع الموظف تعيين كلمة مرور عبر رابط الاسترداد (إعادة الدعوة)
+      // لكن تسجيل الدخول لاحقاً يفشل لأن GoTrue يرفض "Email not confirmed".
+      email_confirm: true,
       user_metadata: userMetadata,
     };
     const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
