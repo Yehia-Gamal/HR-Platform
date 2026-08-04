@@ -12,6 +12,9 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
+      # Admin-web tests import the workspace package through its dist export.
+      # A fresh runner has no generated dist directory after npm ci.
+      - run: npm run build --workspace @ahla/shared-contracts
       - run: npm run check:all
       - run: npx supabase start
       - run: npx supabase db reset
