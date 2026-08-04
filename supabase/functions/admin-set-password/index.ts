@@ -73,8 +73,11 @@ Deno.serve(async (req) => {
     if (getUserError || !authUser.user) return json(req, { error: "account_lookup_failed" }, 404);
 
     // نضبط كلمة المرور ونُجبر التغيير عند أول دخول. لا نسجّل كلمة المرور أبدًا.
+    // email_confirm: true — بدونها يبقى البريد غير مؤكد ويرفض GoTrue تسجيل الدخول
+    // ("Email not confirmed") حتى مع كلمة المرور الصحيحة (نفس نمط admin-create-employee).
     const { error: updateError } = await admin.auth.admin.updateUserById(profile.id, {
       password: input.password,
+      email_confirm: true,
       user_metadata: {
         ...(authUser.user?.user_metadata ?? {}),
         must_change_password: true,
