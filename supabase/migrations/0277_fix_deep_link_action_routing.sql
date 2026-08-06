@@ -1,4 +1,4 @@
--- 0267: إصلاح عميق لمسارات الإشعارات العميقة (deep links) من الإشعارات
+-- 0277: إصلاح عميق لمسارات الإشعارات العميقة (deep links) من الإشعارات
 --
 -- الخلفية: كان الضغط على إشعار (بصمة، موقع حي، طلب، KPI...) يقود إلى شاشة سوداء
 -- لأن سلسلة التوجيه كانت منقطعة في ثلاث نقاط:
@@ -176,7 +176,7 @@ end;
 $$;
 
 comment on function public.get_mobile_action_target(text,text) is
-  'محلل مسارات التطبيق العميق — يدعم request/kpi/decision/attendance/dispute/task/announcement/recognition مع تخويل لكل نوع. (0267)';
+  'محلل مسارات التطبيق العميق — يدعم request/kpi/decision/attendance/dispute/task/announcement/recognition مع تخويل لكل نوع. (0277)';
 
 -- ─── 2) توسيع RPC resolve_mobile_action_target ───────────────────────────────
 -- يقبل الآن كل الأنواع الجديدة، ويحافظ على مسار live_location_request الخاص
@@ -261,7 +261,7 @@ end;
 $$;
 
 comment on function public.resolve_mobile_action_target(text,text) is
-  'واجهة RPC لتحليل إجراءات الإشعارات — يقبل كل أنواع deepLink مع تطبيع المترادفات وتخويل لكل نوع. (0267)';
+  'واجهة RPC لتحليل إجراءات الإشعارات — يقبل كل أنواع deepLink مع تطبيع المترادفات وتخويل لكل نوع. (0277)';
 
 revoke execute on function public.resolve_mobile_action_target(text, text) from public, anon;
 grant execute on function public.resolve_mobile_action_target(text, text) to authenticated;

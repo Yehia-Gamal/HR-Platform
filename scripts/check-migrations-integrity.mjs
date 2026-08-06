@@ -32,6 +32,11 @@ const BRIDGE_FILENAMES = new Set([
   '0274_bridge_placeholder.sql',
   '0275_bridge_placeholder.sql',
   '0276_bridge_placeholder.sql',
+  // 0297-0300 → جسور ترقيم أثناء أعمال الدمج (deep-link + attendance fixes).
+  '0297_bridge_placeholder.sql',
+  '0298_bridge_placeholder.sql',
+  '0299_bridge_placeholder.sql',
+  '0300_bridge_placeholder.sql',
 ]);
 
 const FILE_RE = /^(\d{4})_([a-z0-9][a-z0-9_]*)\.sql$/i;

@@ -12,6 +12,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { LiveLocationMap, type MapPoint } from './LiveLocationMap';
 import { LiveLocationResultCard } from './LiveLocationResultCard';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { relativeTime as relative } from '../../core/formatTime';
 import { ATTENDANCE_STATUS_LABELS } from './statusLabels';
 import { useToast } from '../../ui/Toast';
 import { useExecutiveAttendanceOverview, useLiveLocationCommands } from './useControlCenters';
@@ -32,15 +33,6 @@ const FILTERS: Array<{ id: string; label: string; key?: string }> = [
   { id: 'assignment', label: 'مأمورية', key: 'assignment' },
   { id: 'no_response', label: 'لم يستجب لطلب' },
 ];
-
-function relative(value: string | null): string {
-  if (!value) return '—';
-  const m = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 60000));
-  if (m < 1) return 'الآن';
-  if (m < 60) return `منذ ${m} د`;
-  const h = Math.round(m / 60);
-  return h < 24 ? `منذ ${h} س` : `منذ ${Math.round(h / 24)} يوم`;
-}
 
 export function ExecutiveMonitoringPage() {
   const { toast } = useToast();

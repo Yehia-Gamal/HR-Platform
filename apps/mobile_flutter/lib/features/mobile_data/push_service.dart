@@ -143,26 +143,18 @@ class PushService {
     // رسائل المقدمة → إشعار محلي عاجل.
     FirebaseMessaging.onMessage.listen(_onForegroundMessage);
 
-    // فتح التطبيق من إشعار (خلفية).
+    // فتح التطبيق من إشعار (خلفية) — التوجيه الموحّد يستخرج المسار من كل الحقول.
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
       unawaited(_markPushDelivery(message, 'opened'));
-      final link = message.data['deepLink'];
-      if (link is String && link.isNotEmpty) {
-        _local.cancel(_stableNotificationId(link));
-        _route(link);
-      }
+      _routeFromMessage(message);
     });
 
-    // فتح التطبيق من حالة الإنهاء التام.
+    // فتح التطبيق من حالة الإنهاء التام — تأخير بسيط لاستقبال GoRouter للشجرة.
     final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
     if (initialMessage != null) {
       unawaited(_markPushDelivery(initialMessage, 'opened'));
-    }
-    final link = initialMessage?.data['deepLink'];
-    if (link is String && link.isNotEmpty) {
       Future<void>.delayed(const Duration(milliseconds: 400), () {
-        _local.cancel(_stableNotificationId(link));
-        _route(link);
+        _routeFromMessage(initialMessage);
       });
     }
 
@@ -262,10 +254,42 @@ class PushService {
     );
   }
 
+  /// توجيه موحد من FCM message: يستخرج deepLink إن وُجد، ثم يحسب المسار من
+  /// entityType/entityId/(kind+requestId) كـ fallback حتى تعمل الإشعارات التي
+  /// لا تحمل deepLink (مثل الإشعارات القديمة ذات action_url = '/location-requests').
+  void _routeFromMessage(RemoteMessage message) {
+    final data = message.data;
+    final deepLink = data['deepLink'];
+    if (deepLink is String && deepLink.isNotEmpty) {
+      _local.cancel(_stableNotificationId(deepLink));
+      _route(deepLink);
+      return;
+    }
+    // لا يوجد deepLink — استنتج المسار من الحقول المنفصلة.
+    final route = resolveNotificationRouteFromData(data);
+    if (route == '/') return; // لا يوجد شيء نستطيع عرضه بأمان.
+    final idLike =
+        (data['entityId'] as String?) ?? (data['requestId'] as String?) ?? '';
+    if (idLike.isNotEmpty) {
+      _local.cancel(_stableNotificationId(route));
+    }
+    try {
+      appRouter.go(route);
+    } catch (e) {
+      if (kDebugMode) debugPrint('Push routing fallback failed: $e');
+    }
+  }
+
+  /// توجيه من رابط نصي (قد يكون مطلق أو نسبي):
+  /// يمر عبر resolveRouteFromDeepLink المتوحّد لضمان التحقق من UUID.
+  /// '/' هو fallback آمن يعرض عتبة الجلسة بدل الشاشة السوداء.
   void _route(String deepLink) {
-    // استخدام المحلل الموحّد من notification_handler للتحقق الأمني من UUID.
-    final route = resolveNotificationRouteFromData({'deepLink': deepLink});
-    appRouter.go(route);
+    final route = resolveRouteFromDeepLink(deepLink);
+    try {
+      appRouter.go(route);
+    } catch (e) {
+      if (kDebugMode) debugPrint('Router navigation failed for $deepLink: $e');
+    }
   }
 
   /// هل التطبيق معفى من تحسين البطارية؟

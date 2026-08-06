@@ -1,0 +1,142 @@
+[
+  {
+    "severity": "PASS",
+    "category": "recon",
+    "finding": "OpenAPI محمي",
+    "evidence": "HTTP 401",
+    "fix": ""
+  },
+  {
+    "severity": "HIGH",
+    "category": "storage",
+    "finding": "قوائم buckets مرئية — 0 buckets",
+    "evidence": "[]",
+    "fix": "فرض RLS على storage.objects"
+  },
+  {
+    "severity": "INFO",
+    "category": "auth",
+    "finding": "Signup endpoint status: 422",
+    "evidence": "{\"code\":422,\"error_code\":\"signup_disabled\",\"msg\":\"Signups not allowed for this instance\"}",
+    "fix": "—"
+  },
+  {
+    "severity": "PASS",
+    "category": "RLS-gap",
+    "finding": "Table employees RLS enforced",
+    "evidence": "401",
+    "fix": ""
+  },
+  {
+    "severity": "PASS",
+    "category": "RLS-gap",
+    "finding": "Table departments RLS enforced",
+    "evidence": "401",
+    "fix": ""
+  },
+  {
+    "severity": "PASS",
+    "category": "RLS-gap",
+    "finding": "Table legal_entities RLS enforced",
+    "evidence": "401",
+    "fix": ""
+  },
+  {
+    "severity": "PASS",
+    "category": "RLS-gap",
+    "finding": "Table security_events RLS enforced",
+    "evidence": "401",
+    "fix": ""
+  },
+  {
+    "severity": "PASS",
+    "category": "RLS-gap",
+    "finding": "Table audit_events RLS enforced",
+    "evidence": "401",
+    "fix": ""
+  },
+  {
+    "severity": "PASS",
+    "category": "sqli",
+    "finding": "PostgREST OR 1=1",
+    "evidence": "HTTP 403",
+    "fix": ""
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "sqli",
+    "finding": "PostgREST UNION SELECT",
+    "evidence": "HTTP 400",
+    "fix": "Verify PostgREST version"
+  },
+  {
+    "severity": "PASS",
+    "category": "sqli",
+    "finding": "PostgREST Comment drop",
+    "evidence": "HTTP 401",
+    "fix": ""
+  },
+  {
+    "severity": "PASS",
+    "category": "xss",
+    "finding": "notify_employee XSS payload",
+    "evidence": "HTTP 404",
+    "fix": ""
+  },
+  {
+    "severity": "INFO",
+    "category": "proto-poll",
+    "finding": "prototype pollution probe",
+    "evidence": "HTTP 404",
+    "fix": "—"
+  },
+  {
+    "severity": "PASS",
+    "category": "IDOR",
+    "finding": "employees?id=a8600000-0000-4000-8000-000000000202",
+    "evidence": "HTTP 401",
+    "fix": ""
+  },
+  {
+    "severity": "PASS",
+    "category": "IDOR",
+    "finding": "employees?id=00000000-0000-0000-0000-000000000000",
+    "evidence": "HTTP 401",
+    "fix": ""
+  },
+  {
+    "severity": "PASS",
+    "category": "IDOR",
+    "finding": "employees?id=ffffffff-ffff-ffff-ffff-ffffffffffff",
+    "evidence": "HTTP 401",
+    "fix": ""
+  },
+  {
+    "severity": "PASS",
+    "category": "priv-esc",
+    "finding": "rpc_assign_role by anon",
+    "evidence": "HTTP 401",
+    "fix": ""
+  },
+  {
+    "severity": "INFO",
+    "category": "cross-tenant",
+    "finding": "employee_devices access",
+    "evidence": "HTTP 401",
+    "fix": "—"
+  },
+  {
+    "severity": "INFO",
+    "category": "rate-limit",
+    "finding": "50 rapid requests: 50 ok, 0 err, 19.015s",
+    "evidence": "~3 req/s",
+    "fix": "Consider edge WAF rules"
+  },
+  {
+    "severity": "INFO",
+    "category": "web",
+    "finding": "Admin web fetched",
+    "evidence": "1294 bytes",
+    "fix": "—"
+  }
+]

@@ -11,6 +11,7 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useLiveLocationCommands, useLocationDirectory, type LocationDirectoryItem } from './useControlCenters';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { relativeTime } from '../../core/formatTime';
 import { useToast } from '../../ui/Toast';
 
 type LocationState = 'fresh' | 'stale' | 'no_signal';
@@ -33,14 +34,7 @@ function stateLabel(state: LocationState) {
   return state === 'fresh' ? 'متصل' : state === 'stale' ? 'إشارة قديمة' : 'لا توجد إشارة';
 }
 
-function relativeTime(value: string | null) {
-  if (!value) return 'لم يُسجل موقع بعد';
-  const minutes = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 60_000));
-  if (minutes < 1) return 'الآن';
-  if (minutes < 60) return `منذ ${minutes} دقيقة`;
-  const hours = Math.round(minutes / 60);
-  return hours < 24 ? `منذ ${hours} ساعة` : `منذ ${Math.round(hours / 24)} يوم`;
-}
+const NO_LOCATION = 'لم يُسجل موقع بعد';
 
 export function LiveLocationPage() {
   const { toast } = useToast();
@@ -174,7 +168,7 @@ export function LiveLocationPage() {
                     <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                       <div className="rounded-xl bg-[var(--surface-muted)] p-3">
                         <span className="muted block">آخر تحديث</span>
-                        <strong className="mt-1 block">{relativeTime(item.lastRecordedAt)}</strong>
+                        <strong className="mt-1 block">{relativeTime(item.lastRecordedAt, NO_LOCATION)}</strong>
                       </div>
                       <div className="rounded-xl bg-[var(--surface-muted)] p-3">
                         <span className="muted block">دقة GPS</span>
@@ -278,7 +272,7 @@ function LocationMap({ items }: { items: LocationDirectoryItem[] }) {
               key={item.id}
               className={`map-pin map-pin-${state}`}
               style={{ left: `${left}%`, top: `${top}%` }}
-              title={`${item.name} — ${relativeTime(item.lastRecordedAt)}`}
+              title={`${item.name} — ${relativeTime(item.lastRecordedAt, NO_LOCATION)}`}
             >
               <MapPin className="size-5" aria-hidden="true" />
               <b>{item.name.split(' ')[0]}</b>

@@ -1,9 +1,10 @@
-import { CheckCircle2, Clock3, MapPin, UserMinus } from 'lucide-react';
+import { CheckCircle2, Clock3, MapPin, RefreshCw, UserMinus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
 import { cairoTodayIso } from '../../core/cairoTime';
+import { relativeTime, formatClock } from '../../core/formatTime';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useAuth } from '../auth/AuthProvider';
 import { hasAnyPermission } from '../workspaces/access';
@@ -49,6 +50,13 @@ export function presentPercent(employees: EmployeeOverviewRow[]): number {
   return Math.round((presentEmployees(employees).length / employees.length) * 100);
 }
 
+// الطلبات النشطة في الـ RPC لا تشمل 'completed' — فنعدّ 'accepted'/'active' كاستجابة.
+const RESPONDED_STATUSES = ['accepted', 'active', 'completed'];
+
+export function respondedCount(employees: EmployeeOverviewRow[]): number {
+  return locationRequestEmployees(employees).filter((e) => e.activeRequestStatus && RESPONDED_STATUSES.includes(e.activeRequestStatus)).length;
+}
+
 export function useTodayPulse(enabled: boolean) {
   const auth = useAuth();
   return useQuery({
@@ -62,20 +70,6 @@ export function useTodayPulse(enabled: boolean) {
       return (data ?? { summary: { total: 0 }, employees: [] }) as ExecutiveOverviewData;
     },
   });
-}
-
-function relative(value: string | null): string {
-  if (!value) return '—';
-  const m = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 60000));
-  if (m < 1) return 'الآن';
-  if (m < 60) return `منذ ${m} د`;
-  const h = Math.round(m / 60);
-  return h < 24 ? `منذ ${h} س` : `منذ ${Math.round(h / 24)} يوم`;
-}
-
-function time(value: string | null): string {
-  if (!value) return '—';
-  return new Intl.DateTimeFormat('ar-EG', { hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 }
 
 const DIALOG_META: Record<PulseDialogKind, { title: string; empty: string }> = {
@@ -92,6 +86,13 @@ function dialogEmployees(kind: PulseDialogKind, employees: EmployeeOverviewRow[]
   return locationRequestEmployees(employees);
 }
 
+const CARD_TONES: Record<PulseDialogKind, string> = {
+  present: 'text-[var(--success)]',
+  absent: 'text-[var(--danger)]',
+  late: 'text-[var(--warning)]',
+  location: 'text-[var(--brand-primary)]',
+};
+
 export function TodayPulseSection() {
   const auth = useAuth();
   const allowed = auth.access ? hasAnyPermission(auth.access, ['reports.attendance.read', 'live_location.request']) : false;
@@ -104,10 +105,7 @@ export function TodayPulseSection() {
   const absent = useMemo(() => absentEmployees(employees), [employees]);
   const late = useMemo(() => lateEmployees(employees), [employees]);
   const locationSents = useMemo(() => locationRequestEmployees(employees), [employees]);
-  const locationResponded = useMemo(
-    () => locationSents.filter((e) => e.activeRequestStatus === 'completed').length,
-    [locationSents],
-  );
+  const responded = useMemo(() => respondedCount(employees), [employees]);
   const lateMinutes = useMemo(() => totalLateMinutes(employees), [employees]);
   const pct = useMemo(() => presentPercent(employees), [employees]);
 
@@ -131,7 +129,7 @@ export function TodayPulseSection() {
       label: 'أُرسل لهم طلب موقع',
       value: locationSents.length,
       icon: MapPin,
-      hint: locationSents.length ? `${locationResponded} من ${locationSents.length} استجابوا` : 'لا توجد طلبات نشطة',
+      hint: locationSents.length ? `${responded} من ${locationSents.length} استجابوا` : 'لا توجد طلبات نشطة',
     },
   ];
 
@@ -139,7 +137,9 @@ export function TodayPulseSection() {
     <section className="space-y-3" aria-label="نبض اليوم">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-black text-[var(--text-muted)]">نبض اليوم — الحضور وطلبات الموقع</h2>
-        {query.isFetching ? <span className="text-xs text-[var(--text-muted)]">جارٍ التحديث…</span> : null}
+        <button type="button" className="icon-button" onClick={() => void query.refetch()} disabled={query.isFetching} aria-busy={query.isFetching} aria-label="تحديث نبض اليوم">
+          <RefreshCw className={`size-4 ${query.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
+        </button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
@@ -156,7 +156,7 @@ export function TodayPulseSection() {
                 <p className="mt-2 text-3xl font-black tracking-tight">{card.value}</p>
               </div>
               <span className="metric-icon">
-                <card.icon className="size-5" aria-hidden="true" />
+                <card.icon className={`size-5 ${CARD_TONES[card.kind]}`} aria-hidden="true" />
               </span>
             </div>
             <p className="mt-3 text-xs leading-5 text-[var(--text-muted)]">{card.hint}</p>
@@ -205,16 +205,22 @@ function PulseDialogBody({
                   {e.name}
                 </Link>
                 <StatusBadge value={e.status} label={ATTENDANCE_STATUS_LABELS[e.status] ?? e.status} />
-                {kind === 'late' && typeof e.lateMinutes === 'number' && e.lateMinutes > 0 ? (
-                  <span className="status-badge status-warning">{e.status === 'left_early' ? 'انصرف مبكرًا' : `متأخر ${e.lateMinutes} د`}</span>
+                {/* شارة التأخير — تظهر للمتأخر بغضون عن left_early */}
+                {e.status === 'late' && typeof e.lateMinutes === 'number' && e.lateMinutes > 0 ? (
+                  <span className="status-badge status-warning">متأخر {e.lateMinutes} د</span>
+                ) : null}
+                {/* شارة الانصراف المبكر — مستقلة عن دقائق التأخير */}
+                {e.status === 'left_early' ? (
+                  <span className="status-badge status-warning">انصرف مبكرًا</span>
                 ) : null}
               </div>
               <p className="muted mt-1 text-xs">
-                {e.employeeCode ?? '—'} · {e.department ?? 'دون إدارة'}
+                {e.employeeCode ?? '—'} · {e.department ?? 'دون إدارة'}{e.managerName ? ` · مدير: ${e.managerName}` : ''}
               </p>
               <p className="muted mt-1 text-xs">
-                {e.checkInAt ? `حضر ${time(e.checkInAt)}` : 'لم يسجّل حضورًا بعد'}
-                {e.lastLocationAt ? ` · آخر موقع: ${relative(e.lastLocationAt)}` : ''}
+                {e.checkInAt ? `حضر ${formatClock(e.checkInAt)}` : 'لم يسجّل حضورًا بعد'}
+                {e.checkOutAt ? ` · انصرف ${formatClock(e.checkOutAt)}` : ''}
+                {e.lastLocationAt ? ` · آخر موقع: ${relativeTime(e.lastLocationAt)}` : ''}
                 {e.lastAddressAr ? ` — ${e.lastAddressAr}` : ''}
               </p>
             </div>

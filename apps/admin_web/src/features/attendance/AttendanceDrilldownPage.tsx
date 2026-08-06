@@ -313,6 +313,7 @@ export function AttendanceDrilldownPage() {
 }
 
 function Row({ item }: { item: AttendanceRosterItem }) {
+  const hrPrefix = useHrPrefix();
   const hasExcuse = Boolean(item.hasApprovedLeave) || Boolean(item.hasMission);
   return (
     <tr>
@@ -366,7 +367,7 @@ function Row({ item }: { item: AttendanceRosterItem }) {
         ) : '—'}
       </td>
       <td>
-        <Link to={`/hr/employees/${item.employeeId}`} className="btn-ghost btn-xs whitespace-nowrap">
+        <Link to={`${hrPrefix}/employees/${item.employeeId}`} className="btn-ghost btn-xs whitespace-nowrap">
           فتح الملف
         </Link>
       </td>

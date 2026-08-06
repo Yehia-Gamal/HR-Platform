@@ -6,6 +6,7 @@ import {
   locationRequestEmployees,
   presentEmployees,
   presentPercent,
+  respondedCount,
   totalLateMinutes,
 } from './TodayPulseSection';
 
@@ -90,5 +91,18 @@ describe('TodayPulseSection classification', () => {
     // 6 من 10 حضروا (present, late, left_early, checked_out, with-request, responded)
     expect(presentPercent(employees)).toBe(60);
     expect(presentPercent([])).toBe(0);
+  });
+
+  it('respondedCount يعدّ accepted/active/completed فقط من أصحاب الطلبات', () => {
+    // 10-responded = completed, 9-with-request = pending → 1 مستجاب
+    expect(respondedCount(employees)).toBe(1);
+    expect(
+      respondedCount([
+        makeEmployee({ id: 'a', status: 'present', activeRequestId: 'r1', activeRequestStatus: 'accepted' }),
+        makeEmployee({ id: 'b', status: 'present', activeRequestId: 'r2', activeRequestStatus: 'pending' }),
+        makeEmployee({ id: 'c', status: 'present', activeRequestId: 'r3', activeRequestStatus: 'active' }),
+        makeEmployee({ id: 'd', status: 'present', activeRequestId: null, activeRequestStatus: null }),
+      ]),
+    ).toBe(2);
   });
 });

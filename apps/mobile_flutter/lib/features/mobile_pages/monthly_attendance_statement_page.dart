@@ -1162,6 +1162,14 @@ class _DayDetailSheet extends ConsumerWidget {
 
   static const _warn = {'غائب دون إذن', 'يحتاج مراجعة'};
 
+  /// تنسيق عدد الساعات: يعرض رقماً صحيحاً بدون كسور عند الإمكان.
+  static String _fmtHoursStatic(num value) {
+    if (value == value.roundToDouble()) {
+      return '${value.toInt()} س';
+    }
+    return '${value.toStringAsFixed(1)} س';
+  }
+
   String get _dateStr =>
       '$year-${month.toString().padLeft(2, '0')}-${dayNum.toString().padLeft(2, '0')}';
 
@@ -1377,7 +1385,7 @@ class _DayDetailSheet extends ConsumerWidget {
                             child: Column(
                               children: [
                                 Text(
-                                  day!.workHours.toStringAsFixed(1),
+                                  _fmtHoursStatic(day!.workHours),
                                   style: TextStyle(
                                     fontWeight: FontWeight.w900,
                                     fontSize: 16,
@@ -1385,7 +1393,7 @@ class _DayDetailSheet extends ConsumerWidget {
                                   ),
                                 ),
                                 Text(
-                                  'ساعة',
+                                  'ساعات العمل',
                                   style: TextStyle(
                                     fontSize: 10,
                                     color: scheme.onPrimaryContainer,

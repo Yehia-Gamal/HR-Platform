@@ -121,6 +121,7 @@ describe('useEmployees — mock data & constants', () => {
         recentRequests: [],
         recentTasks: [],
         lastUpdatedAt: new Date().toISOString(),
+        email: 'dev@example.com',
       };
       expect(() => employee360Schema.parse(mock360)).not.toThrow();
     });

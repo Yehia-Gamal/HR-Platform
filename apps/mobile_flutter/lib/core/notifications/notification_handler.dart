@@ -78,6 +78,9 @@ String resolveNotificationRoute({
 /// يستخرج مسار التنقل من بيانات الإشعار (data map) مباشرة.
 ///
 /// يدعم حقلي `deepLink` (رابط كامل) و `entityType`/`entityId` (حقول منفصلة).
+/// كما يتعامل مع روابط الـ action_url المخزنة قديماً (مثل `/location-requests`)
+/// بمحاولة دمجها مع entityId/requestId لبناء `/action/{kind}/{id}` صالح.
+///
 /// الأولوية لـ `deepLink` إن وُجد — يُمرَّر عبر المحلل الموحّد
 /// [resolveRouteFromDeepLink] للتحقق الأمني من UUID.
 String resolveNotificationRouteFromData(Map<String, dynamic> data) {
@@ -86,10 +89,53 @@ String resolveNotificationRouteFromData(Map<String, dynamic> data) {
   if (deepLink != null && deepLink.isNotEmpty) {
     final route = resolveRouteFromDeepLink(deepLink);
     if (route != '/') return route;
+    // إن كان الرابط موجوداً لكن غير قابل للحل (legacy أو بدون معرّف)،
+    // نُكمل ونحاول بناء المسار من الحقول المنفصلة.
   }
 
-  // أولوية 2: حقول entityType + entityId.
+  // أولوية 2: action_url قديم من قاعدة البيانات + حقول المعرّف.
+  // بعض الإشعارات القديمة تخزن action_url = '/location-requests' بدون معرّف.
+  final rawActionUrl = (data['action_url'] ?? data['actionUrl']) as String?;
+  final entityId =
+      data['entityId'] as String? ??
+      data['requestId'] as String? ??
+      (data['metadata'] is Map
+          ? ((data['metadata'] as Map)['entityId'] ??
+                (data['metadata'] as Map)['requestId'])
+              as String?
+          : null);
+
+  if (rawActionUrl != null && rawActionUrl.isNotEmpty) {
+    final legacyKind = _kindFromLegacyPath(rawActionUrl);
+    if (legacyKind != null &&
+        entityId != null &&
+        _uuidRegExp.hasMatch(entityId)) {
+      return '/action/$legacyKind/$entityId';
+    }
+  }
+
+  // أولوية 3: حقول entityType + entityId.
   final entityType = data['entityType'] as String? ?? data['kind'] as String?;
-  final entityId = data['entityId'] as String? ?? data['requestId'] as String?;
   return resolveNotificationRoute(type: entityType, entityId: entityId);
+}
+
+/// يحوّل مسار action_url القديم (web/admin paths) إلى kind في التطبيق.
+/// يُستخدم لمعالجة الإشعارات المخزّنة قبل توحيد بروتوكول deep link.
+String? _kindFromLegacyPath(String actionUrl) {
+  final normalized = actionUrl.toLowerCase().trim();
+  return switch (normalized) {
+    '/location-requests' => 'live_location_request',
+    '/attendance' => 'attendance',
+    '/attendance-requests' => 'attendance',
+    '/requests' => 'request',
+    '/hr/requests' => 'request',
+    '/kpi' => 'kpi',
+    '/kpi-evaluations' => 'kpi',
+    '/disputes' => 'dispute',
+    '/tasks' => 'task',
+    '/decisions' => 'decision',
+    '/announcements' => 'announcement',
+    '/recognitions' => 'recognition',
+    _ => null,
+  };
 }
