@@ -1,3 +1,4 @@
+import { useLocation } from 'react-router';
 import type { AccessContext, WorkspaceId } from '@ahla/shared-contracts';
 
 export function hasPermission(context: AccessContext | null, permission: string): boolean {
@@ -60,4 +61,16 @@ export function hrPathToAdmin(path: string): string | null {
 export function isUnifiedAdminActive(workspaces: readonly WorkspaceId[], pathname: string): boolean {
   if (!workspaces.includes('main_admin')) return false;
   return pathname === '/admin' || pathname.startsWith('/admin/');
+}
+
+/**
+ * Hook يُعيد سابقة مسار HR الصحيحة حسب المسار الحالي:
+ * '/admin/hr' داخل المساحة الموحّدة للأدمن الرئيسي، أو '/hr' خلاف ذلك.
+ * تُستخدم لبناء روابط مطلقة تعمل من أي مسار دون قفزات إعادة توجيه.
+ *
+ * مثال: useHrPrefix() + `/employees/${id}` يُعطي الرابط الصحيح في كلا الحالتين.
+ */
+export function useHrPrefix(): string {
+  const location = useLocation();
+  return location.pathname.startsWith('/admin/hr') ? '/admin/hr' : '/hr';
 }

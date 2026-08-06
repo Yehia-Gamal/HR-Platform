@@ -37,6 +37,16 @@ const typeTabs: { key: TypeTab; label: string }[] = [
   { key: 'corrections', label: 'تصحيحات الحضور' },
 ];
 
+/// كشف ما إذا كان النص المخزن في حقل الكود هو في الحقيقة رقم هاتف أو قيمة بلا فائدة —
+/// يحدث هذا لدى بعض السجلات القديمة حيث حُفظ الهاتف في خانة الكود.
+function isPhoneLikeCode(code: string | null | undefined): boolean {
+  if (!code) return true;
+  const trimmed = code.trim();
+  if (!trimmed) return true;
+  // رقم دولي أو رقم طويل تسلسلي لا يشبه كود الموظف
+  return /^\+?\d{9,}$/.test(trimmed);
+}
+
 const currentMonth = cairoMonthIso();
 
 export function RequestsPage() {
@@ -228,34 +238,50 @@ export function RequestsPage() {
           ) : (
             <section className="grid gap-4 xl:grid-cols-2">
               {filtered.map((item) => (
-                <article key={item.id} className="card p-5">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-lg bg-[var(--surface-muted)] px-2 py-1 text-xs font-black">#{item.requestNumber}</span>
-                        <StatusBadge value={item.status} />
-                      </div>
-                      <h2 className="mt-3 text-lg font-black">{item.title || labels[item.requestType]}</h2>
-                      <div className="mt-1 flex items-center gap-2">
-                        <UserAvatar displayName={item.employeeName} size="sm" />
-                        <p className="muted text-sm">
-                          {item.employeeName} · {item.employeeCode || 'بدون كود'}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-sm font-bold text-brand">{labels[item.requestType]}</span>
+                <article key={item.id} className="card flex flex-col gap-3 p-5">
+                  {/* صف علوي: النوع + رقم الطلب + الحالة */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-lg bg-brand/10 px-2.5 py-1 text-xs font-black text-brand">
+                      {labels[item.requestType]}
+                    </span>
+                    <span className="rounded-lg bg-[var(--surface-muted)] px-2 py-1 text-xs font-black">
+                      #{item.requestNumber}
+                    </span>
+                    <StatusBadge value={item.status} />
                   </div>
-                  <p className="mt-4 line-clamp-2 text-sm leading-7">{item.reason || 'لم يضف الموظف سببًا تفصيليًا.'}</p>
-                  <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[var(--border)] pt-4 text-xs">
-                    <span className="inline-flex items-center gap-1 muted">
-                      <Clock className="size-4" aria-hidden="true" />
+
+                  {/* العنوان */}
+                  <h2 className="text-lg font-black leading-snug">
+                    {item.title || labels[item.requestType]}
+                  </h2>
+
+                  {/* الموظف */}
+                  <div className="flex items-center gap-2">
+                    <UserAvatar displayName={item.employeeName} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold">{item.employeeName}</p>
+                      {!isPhoneLikeCode(item.employeeCode) ? (
+                        <p className="muted truncate text-xs">كود: {item.employeeCode}</p>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {/* السبب */}
+                  <p className="line-clamp-2 text-sm leading-7 text-[var(--foreground)]/90">
+                    {item.reason || 'لم يضف الموظف سببًا تفصيليًا.'}
+                  </p>
+
+                  {/* تذييل: الوقت + الخطوة الحالية + زر الإجراء */}
+                  <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--border)] pt-3 text-xs">
+                    <span className="inline-flex items-center gap-1.5 muted">
+                      <Clock className="size-3.5" aria-hidden="true" />
                       {item.activeStepName || 'اكتمل المسار'}
                     </span>
                     <span className="muted">
                       {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.createdAt))}
                     </span>
                     {canDecide && item.status === 'pending' ? (
-                      <button className="btn-primary ms-auto" onClick={() => setSelected(item)}>
+                      <button className="btn-primary ms-auto text-xs" onClick={() => setSelected(item)}>
                         مراجعة واتخاذ إجراء
                       </button>
                     ) : null}

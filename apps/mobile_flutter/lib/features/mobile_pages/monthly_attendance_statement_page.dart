@@ -1280,7 +1280,7 @@ class _DayDetailSheet extends ConsumerWidget {
                     ),
                     if (day!.requiredHours > 0)
                       Text(
-                        '${day!.requiredHours.toStringAsFixed(1)} س',
+                        _fmtHoursStatic(day!.requiredHours),
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w800,

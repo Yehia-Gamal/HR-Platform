@@ -28,6 +28,7 @@ import { Pagination } from '../../ui/Pagination';
 import { SkeletonCard } from '../../ui/Skeletons';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useOrganizationLookups } from '../employees/useOrganizationLookups';
+import { useHrPrefix } from '../workspaces/access';
 import { useAttendanceRosterPage } from './useAttendanceDashboard';
 
 const CATEGORIES: { key: AttendanceRosterCategory; label: string; icon: typeof Users }[] = [

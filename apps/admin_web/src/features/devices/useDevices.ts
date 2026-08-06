@@ -64,16 +64,17 @@ export function useApproveDevice() {
   });
 }
 
-export function useAllDevices(status?: string) {
+export function useAllDevices(status?: string, includeTerminated = false) {
   const auth = useAuth();
   return useQuery({
-    queryKey: ['all-devices', status, auth.isMock],
+    queryKey: ['all-devices', status, includeTerminated, auth.isMock],
     enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<AdminDevice[]> => {
       if (auth.isMock) return [];
       return (
         (await rpc<AdminDevice[]>('get_all_devices_admin', {
           p_status_filter: status ?? null,
+          p_include_terminated: includeTerminated,
         })) ?? []
       );
     },
@@ -90,6 +91,23 @@ export function useRevokeDevice() {
       });
     },
     meta: { successMessage: 'تم سحب صلاحية الجهاز بنجاح' },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['device-approvals'] });
+      void qc.invalidateQueries({ queryKey: ['all-devices'] });
+    },
+  });
+}
+
+export function useDeleteDevice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ deviceId, reason }: { deviceId: string; reason?: string }) => {
+      return rpc('admin_delete_device', {
+        p_device_id: deviceId,
+        p_reason: reason ?? null,
+      });
+    },
+    meta: { successMessage: 'تم حذف الجهاز نهائياً' },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['device-approvals'] });
       void qc.invalidateQueries({ queryKey: ['all-devices'] });

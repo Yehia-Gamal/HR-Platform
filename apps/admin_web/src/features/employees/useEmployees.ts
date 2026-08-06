@@ -106,26 +106,30 @@ export function useResendInvite() {
   });
 }
 
-// خريطة أخطاء تعيين كلمة المرور → رسائل عربية
+// خريطة أخطاء تعيين كلمة المرور → رسائل عربية. تطابق أكواد validateHrIssuedPassword
+// في admin-set-password Edge Function + errors العامة.
 const SET_PASSWORD_ERROR_MESSAGES: Record<string, string> = {
   forbidden: 'ليس لديك صلاحية تعيين كلمة مرور هذا الموظف.',
   no_linked_account: 'الموظف ليس لديه حساب مربوط بعد.',
   account_lookup_failed: 'تعذر العثور على حساب الموظف.',
   password_update_failed: 'تعذر تحديث كلمة المرور. أعد المحاولة لاحقًا.',
   permission_check_failed: 'تعذر التحقق من الصلاحية.',
-  validation_failed: 'كلمة المرور يجب أن تكون بين 8 و15 حرفًا.',
-  password_too_short_min_8: 'كلمة المرور يجب ألا تقل عن 8 أحرف.',
-  password_too_long_max_15: 'كلمة المرور يجب ألا تزيد عن 15 حرفًا.',
-  password_needs_uppercase: 'كلمة المرور يجب أن تحتوي حرفًا كبيرًا واحدًا على الأقل.',
-  password_needs_lowercase: 'كلمة المرور يجب أن تحتوي حرفًا صغيرًا واحدًا على الأقل.',
-  password_needs_digit: 'كلمة المرور يجب أن تحتوي رقمًا واحدًا على الأقل.',
-  password_keyboard_sequence: 'كلمة المرور تحتوي تسلسلًا شائعًا من لوحة المفاتيح.',
-  password_contains_common_word: 'كلمة المرور تحتوي كلمة شائعة ممنوعة.',
-  password_contains_identifier: 'كلمة المرور تشبه بيانات الموظف (الاسم/الهاتف/البريد/الكود).',
-  password_too_repetitive: 'كلمة المرور تحتوي تكرارًا مفرطًا لنفس الحرف.',
+  validation_failed: 'كلمة المرور غير صالحة. راجع الشروط بالأسفل.',
+  password_too_short_min_12: 'كلمة المرور يجب ألا تقل عن 12 حرفًا.',
+  password_too_long_max_72: 'كلمة المرور يجب ألا تزيد عن 72 حرفًا.',
+  password_needs_uppercase: 'كلمة المرور يجب أن تحتوي حرفًا كبيرًا واحدًا على الأقل (A-Z).',
+  password_needs_lowercase: 'كلمة المرور يجب أن تحتوي حرفًا صغيرًا واحدًا على الأقل (a-z).',
+  password_needs_digit: 'كلمة المرور يجب أن تحتوي رقمًا واحدًا على الأقل (0-9).',
+  password_needs_symbol: 'كلمة المرور يجب أن تحتوي رمزًا خاصًا واحدًا على الأقل (!@#$%^&*...).',
+  password_too_repetitive: 'كلمة المرور تحتوي تكرارًا مفرطًا لنفس الحرف (5+ على التوالي).',
+  password_keyboard_sequence: 'كلمة المرور تحتوي تسلسلًا مألوفًا من لوحة المفاتيح أو أرقام.',
+  password_contains_common_word: 'كلمة المرور تحتوي كلمة شائعة يسهل تخمينها.',
+  password_contains_identifier: 'كلمة المرور تشبه بيانات الموظف (الاسم/الهاتف/البريد/الكود). اختر كلمة مختلفة.',
+  weak_password: 'كلمة المرور ضعيفة. استخدم 12+ حرفًا بأحرف كبيرة وصغيرة وأرقام ورموز.',
   lookup_failed: 'تعذر البحث عن بيانات الموظف.',
   server_not_configured: 'الخدمة غير مهيأة. تواصل مع الدعم.',
   invalid_session: 'انتهت صلاحية الجلسة. سجّل الدخول مجددًا.',
+  INTERNAL_ERROR: 'حدث خطأ غير متوقع في الخادم. أعد المحاولة أو تواصل مع الدعم.',
 };
 
 // Sets an employee's password from the admin panel. The edge function is

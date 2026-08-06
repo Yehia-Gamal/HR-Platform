@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
     // تفعيل سجل الموظف (profile/employee) بعد نجاح ضبط كلمة المرور — بدونها يبقى
     // الموظف في حالة invited/pending ويفشل دخوله برسالة "انتهت صلاحية الجلسة".
     // الدالة public.admin_activate_employee_after_password_set معرّفة في
-    // migration 0281 (مطبّقة على الإنتاج). نستدعيها بتحمّل: لو لم تكن موجودة
+    // migration 0278. نستدعيها بتحمّل: لو لم تكن موجودة
     // في بيئة أخرى (PGRST202) نُسجّل ونُكمل بدل إفشال العملية.
     try {
       const { error: activationError } = await admin.rpc(
@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
       if (activationError) {
         const msg = activationError.message ?? "";
         if (msg.includes("does not exist") || msg.includes("PGRST202") || msg.includes("Unknown")) {
-          console.error("admin-set-password activation RPC not deployed yet (migration 0281 pending)");
+          console.error("admin-set-password activation RPC not deployed yet (migration 0278 pending)");
         } else {
           console.error("admin-set-password activation failed", activationError.code, msg.substring(0, 300));
         }

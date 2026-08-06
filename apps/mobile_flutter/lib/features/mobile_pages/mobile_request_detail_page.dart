@@ -153,7 +153,11 @@ class _RequestContent extends ConsumerWidget {
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 8),
-                  for (var index = 0; index < request.attachments.length; index++)
+                  for (
+                    var index = 0;
+                    index < request.attachments.length;
+                    index++
+                  )
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(Icons.attachment_rounded),
@@ -204,10 +208,7 @@ class _RequestContent extends ConsumerWidget {
             ),
           )
         else
-          _RequestTimeline(
-            steps: request.steps,
-            createdAt: request.createdAt,
-          ),
+          _RequestTimeline(steps: request.steps, createdAt: request.createdAt),
         if (request.canCancel && request.status == 'pending') ...[
           const SizedBox(height: 12),
           SizedBox(
@@ -280,7 +281,9 @@ class _RequestContent extends ConsumerWidget {
             FilledButton(
               onPressed: () {
                 if (controller.text.trim().length < 3) {
-                  setState(() => errorText = 'يرجى إدخال سبب لا يقل عن 3 أحرف.');
+                  setState(
+                    () => errorText = 'يرجى إدخال سبب لا يقل عن 3 أحرف.',
+                  );
                   return;
                 }
                 Navigator.pop(dialogContext, true);
@@ -327,8 +330,8 @@ class _RequestContent extends ConsumerWidget {
             decision == 'approve'
                 ? 'اعتماد الطلب'
                 : decision == 'return'
-                    ? 'إرجاع الطلب'
-                    : 'رفض الطلب',
+                ? 'إرجاع الطلب'
+                : 'رفض الطلب',
           ),
           content: TextField(
             controller: controller,
@@ -337,8 +340,8 @@ class _RequestContent extends ConsumerWidget {
               labelText: decision == 'approve'
                   ? 'ملاحظة اختيارية'
                   : decision == 'return'
-                      ? 'سبب الإرجاع (إلزامي)'
-                      : 'سبب الرفض (إلزامي)',
+                  ? 'سبب الإرجاع (إلزامي)'
+                  : 'سبب الرفض (إلزامي)',
               errorText: errorText,
             ),
           ),
@@ -538,10 +541,7 @@ class _RequestPayloadCard extends StatelessWidget {
 
 /// ملخص مسار الاعتماد — بطاقة مدمجة تعرض التقدم الإجمالي
 class _RequestJourneySummary extends StatelessWidget {
-  const _RequestJourneySummary({
-    required this.steps,
-    required this.createdAt,
-  });
+  const _RequestJourneySummary({required this.steps, required this.createdAt});
 
   final List<MobileRequestStep> steps;
   final DateTime createdAt;
@@ -553,9 +553,9 @@ class _RequestJourneySummary extends StatelessWidget {
         .where((s) => s.status == 'approved' || s.status == 'completed')
         .length;
     final currentStep = steps.cast<MobileRequestStep?>().firstWhere(
-          (s) => s!.status == 'pending',
-          orElse: () => null,
-        );
+      (s) => s!.status == 'pending',
+      orElse: () => null,
+    );
     final progress = total > 0 ? completed / total : 0.0;
 
     return Card(
@@ -613,10 +613,12 @@ class _RequestJourneySummary extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 8,
-                backgroundColor:
-                    Theme.of(context).colorScheme.surfaceContainerHighest,
-                valueColor:
-                    const AlwaysStoppedAnimation(AppColors.statusSuccess),
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest,
+                valueColor: const AlwaysStoppedAnimation(
+                  AppColors.statusSuccess,
+                ),
               ),
             ),
           ],
@@ -628,10 +630,7 @@ class _RequestJourneySummary extends StatelessWidget {
 
 /// الجدول الزمني العمودي — خط عمودي يربط جميع الخطوات (RTL)
 class _RequestTimeline extends StatelessWidget {
-  const _RequestTimeline({
-    required this.steps,
-    required this.createdAt,
-  });
+  const _RequestTimeline({required this.steps, required this.createdAt});
 
   final List<MobileRequestStep> steps;
   final DateTime createdAt;
@@ -690,7 +689,8 @@ class _RequestTimeline extends StatelessWidget {
 
     // تحديد حالة العقدة ولونها
     final bool isCurrent = index == firstPendingIndex;
-    final bool isFuture = firstPendingIndex >= 0 &&
+    final bool isFuture =
+        firstPendingIndex >= 0 &&
         index > firstPendingIndex &&
         step.status == 'pending';
 
@@ -785,8 +785,11 @@ class _RequestTimeline extends StatelessWidget {
               const SizedBox(height: 2),
               Row(
                 children: [
-                  Icon(Icons.person_outline_rounded,
-                      size: 14, color: scheme.onSurfaceVariant),
+                  Icon(
+                    Icons.person_outline_rounded,
+                    size: 14,
+                    color: scheme.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 4),
                   Flexible(
                     child: Text(
@@ -806,15 +809,17 @@ class _RequestTimeline extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: scheme.surfaceContainerHighest
-                      .withValues(alpha: 0.5),
+                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.comment_outlined,
-                        size: 14, color: scheme.onSurfaceVariant),
+                    Icon(
+                      Icons.comment_outlined,
+                      size: 14,
+                      color: scheme.onSurfaceVariant,
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -834,23 +839,20 @@ class _RequestTimeline extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 formatter.format(step.decidedAt!.toLocal()),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: scheme.onSurfaceVariant,
-                ),
+                style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
               ),
             ],
             // الوقت المتبقي
             if (remainingLabel != null) ...[
               const SizedBox(height: 4),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: (step.dueAt!.difference(DateTime.now()).isNegative
-                          ? AppColors.statusDanger
-                          : AppColors.statusInfo)
-                      .withValues(alpha: 0.12),
+                  color:
+                      (step.dueAt!.difference(DateTime.now()).isNegative
+                              ? AppColors.statusDanger
+                              : AppColors.statusInfo)
+                          .withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -874,14 +876,10 @@ class _RequestTimeline extends StatelessWidget {
   /// تحويل رقم إلى أرقام عربية شرقية
   static String _arabicNum(int n) {
     const eastern = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-    return n
-        .toString()
-        .split('')
-        .map((c) {
-          final d = int.tryParse(c);
-          return d != null ? eastern[d] : c;
-        })
-        .join();
+    return n.toString().split('').map((c) {
+      final d = int.tryParse(c);
+      return d != null ? eastern[d] : c;
+    }).join();
   }
 }
 
@@ -978,10 +976,7 @@ class _TimelineNode extends StatelessWidget {
                 // خط سفلي
                 if (!isLast)
                   Expanded(
-                    child: Container(
-                      width: _lineWidth,
-                      color: lineColor,
-                    ),
+                    child: Container(width: _lineWidth, color: lineColor),
                   )
                 else
                   const Expanded(child: SizedBox()),
@@ -1026,12 +1021,14 @@ class _PulsingDotState extends State<_PulsingDot>
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.35).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-    _opacityAnimation = Tween<double>(begin: 0.6, end: 0.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.35,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    _opacityAnimation = Tween<double>(
+      begin: 0.6,
+      end: 0.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
