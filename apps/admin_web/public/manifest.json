@@ -10,10 +10,10 @@
   "background_color": "#ffffff",
   "icons": [
     {
-      "src": "/logo-mark.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/brand/association-logo-blue.png",
+      "sizes": "1000x1000",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "categories": ["business", "productivity"]

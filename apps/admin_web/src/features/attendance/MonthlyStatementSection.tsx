@@ -5,7 +5,7 @@ import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
 import { SkeletonCard } from '../../ui/Skeletons';
-import { AttendancePercentageRing, attendanceRateParts, buildDayTags, DayTag, fmtTime, hoursRateParts, MONTHS, StatItem, WARN_STATUSES } from './attendanceShared';
+import { AttendancePercentageRing, attendanceRateParts, buildDayTags, DayTag, fmtTime, fmtHoursLong, fmtMinutesLong, hoursRateParts, MONTHS, StatItem, WARN_STATUSES } from './attendanceShared';
 import { AttendanceDayEditor } from './AttendanceDayEditor';
 import { exportAttendancePDF } from './exportAttendancePDF';
 import { useEmployeeMonthlyStatement } from './useMonthlyStatement';
@@ -198,7 +198,7 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
                     {fmtTime(d.checkOut)}
                   </td>
                   <td className="p-2.5">{d.shiftName || '—'}</td>
-                  <td className="p-2.5 tabular-nums">{d.workHours ? d.workHours.toFixed(1) : '—'}</td>
+                  <td className="p-2.5 tabular-nums">{d.workHours ? fmtHoursLong(d.workHours) : '—'}</td>
                   <td className={`p-2.5 tabular-nums ${d.lateMinutes > 0 ? 'text-amber-600 font-bold' : ''}`}>{d.lateMinutes ? `${d.lateMinutes} د` : '—'}</td>
                   <td className={`p-2.5 tabular-nums ${d.earlyLeaveMinutes > 0 ? 'text-amber-600 font-bold' : ''}`}>
                     {d.earlyLeaveMinutes ? `${d.earlyLeaveMinutes} د` : '—'}

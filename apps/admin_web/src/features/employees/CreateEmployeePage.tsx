@@ -207,7 +207,7 @@ export function CreateEmployeePage() {
     <div>
       <PageHeader
         title="إنشاء موظف وحساب دخول"
-        description="رحلة واحدة تنشئ ملف الموظف والحساب والدور والصورة الشخصية داخل عملية خادمية آمنة."
+        description="إنشاء ملف الموظف وحساب الدخول في رحلة موحدة بخطوات واضحة."
         actions={
           <Link to="/hr/employees" className="btn-secondary text-sm">
             <ArrowRight className="size-4" aria-hidden="true" />

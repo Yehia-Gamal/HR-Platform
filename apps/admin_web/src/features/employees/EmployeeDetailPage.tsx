@@ -729,6 +729,7 @@ function DeleteEmployeeDialog({
 }) {
   const deleteEmployee = useDeleteEmployee();
   const [confirmText, setConfirmText] = useState('');
+  const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
   const codeMatches = confirmText.trim() === employeeCode;
 
@@ -736,7 +737,7 @@ function DeleteEmployeeDialog({
     e.preventDefault();
     setError(null);
     try {
-      await deleteEmployee.mutateAsync({ employeeId, confirmationCode: confirmText.trim(), reason: 'حذف نهائي بواسطة المسؤول' });
+      await deleteEmployee.mutateAsync({ employeeId, confirmationCode: confirmText.trim(), reason: reason.trim() });
       onSuccess();
     } catch (err) {
       setError(safeErrorMessage(err));
@@ -757,6 +758,10 @@ function DeleteEmployeeDialog({
         </p>
         {error ? <ErrorBanner message={error} /> : null}
         <label className="block">
+          <span className="mb-1.5 block text-sm font-semibold">سبب الحذف النهائي</span>
+          <textarea className="input min-h-24 w-full" required minLength={10} value={reason} onChange={(e) => setReason(e.target.value)} />
+        </label>
+        <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">
             اكتب كود الموظف للتأكيد: <span dir="ltr" className="font-mono">{employeeCode}</span>
           </span>
@@ -775,7 +780,7 @@ function DeleteEmployeeDialog({
           </button>
           <button
             type="submit"
-            disabled={deleteEmployee.isPending || !codeMatches}
+            disabled={deleteEmployee.isPending || !codeMatches || reason.trim().length < 10}
             className="btn-primary bg-[var(--danger)] hover:bg-[var(--danger)]"
           >
             {deleteEmployee.isPending ? 'جارٍ الحذف...' : 'حذف نهائي'}
@@ -926,8 +931,8 @@ export function EmployeeDetailPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="ملف الموظف 360°"
-        description="ملخص موحّد للبيانات الوظيفية والحضور والطلبات والأداء والمستندات والعهد، بعد تطبيق RLS والنطاق الفعلي."
+        title="ملف الموظف"
+        description="عرض شامل للبيانات الوظيفية والحضور والطلبات والأداء والمستندات."
         actions={
           <div className="flex flex-wrap gap-2">
             {showResend ? (

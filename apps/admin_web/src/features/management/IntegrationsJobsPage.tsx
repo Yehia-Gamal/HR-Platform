@@ -59,7 +59,7 @@ export function IntegrationsJobsPage() {
     <div className="space-y-6">
       <PageHeader
         title="التكاملات والمهام الخلفية"
-        description="مراقبة الموصلات، Outbox المعاملاتي، سجل الاتصالات وتشغيل الأتمتة دون إظهار بيانات الاعتماد أو حمولات تحتوي معلومات شخصية."
+        description="مراقبة حالة التكاملات الخارجية وسجل إرسال واستقبال البيانات مع الأنظمة الأخرى."
         actions={
           <button type="button" className="btn-secondary" disabled={query.isFetching} onClick={() => void query.refetch()}>
             <RefreshCw className={`size-4 ${query.isFetching ? 'animate-spin' : ''}`} />

@@ -75,7 +75,7 @@ export function LiveLocationPage() {
     <div className="space-y-6">
       <PageHeader
         title="مركز الموقع الحي"
-        description="صورة تشغيلية لحالة موظفي الميدان وطلبات التحقق النشطة، مع سبب إلزامي ونطاق وصول خادمي لكل طلب."
+        description="تتبع حالة موظفي الميدان وطلبات التحقق النشطة في الوقت الفعلي."
         actions={
           <button className="btn-secondary" type="button" onClick={() => void query.refetch()} disabled={query.isFetching}>
             <RefreshCw className={`size-4 ${query.isFetching ? 'animate-spin' : ''}`} />

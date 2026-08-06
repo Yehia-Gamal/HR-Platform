@@ -13,7 +13,7 @@ export function SystemPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="إعدادات وصحة النظام" description="Feature Flags والأخطاء والنسخ الاحتياطية وإعدادات المنصة في شاشة تشغيل تقنية واحدة." />
+      <PageHeader title="إعدادات وصحة النظام" description="مفاتيح الميزات والأخطاء والنسخ الاحتياطي وإعدادات المنصة." />
 
       {q.isError ? (
         <ErrorState title="تعذر تحميل الحالة التقنية" description={safeErrorMessage(q.error)} onRetry={() => void q.refetch()} />

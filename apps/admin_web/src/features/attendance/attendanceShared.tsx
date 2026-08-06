@@ -53,6 +53,29 @@ export function fmtTime(t: string | null) {
   return t ? t.slice(0, 5) : '—';
 }
 
+/** تنسيق عدد الساعات بصيغة عربية طويلة: 8.5 → "8 ساعة و 30 دقيقة" */
+export function fmtHoursLong(hours: number | null | undefined): string {
+  if (hours == null) return '—';
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  if (h === 0 && m === 0) return '0 دقيقة';
+  if (h === 0) return `${m} دقيقة`;
+  if (m === 0) return `${h} ساعة`;
+  return `${h} ساعة و ${m} دقيقة`;
+}
+
+/** تنسيق عدد الدقائق بصيغة عربية طويلة: 125 → "ساعتان و 5 دقائق" */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function fmtMinutesLong(totalMinutes: number | null | undefined): string {
+  if (totalMinutes == null) return '—';
+  const h = Math.floor(totalMinutes / 60);
+  const m = Math.round(totalMinutes % 60);
+  if (h === 0 && m === 0) return '0 دقيقة';
+  if (h === 0) return `${m} دقيقة`;
+  if (m === 0) return `${h} ساعة`;
+  return `${h} ساعة و ${m} دقيقة`;
+}
+
 export type TagVariant = 'info' | 'warn' | 'success' | 'purple';
 
 /** يبني قائمة العلامات (tags) لصف يوم واحد في جدول الحضور. */

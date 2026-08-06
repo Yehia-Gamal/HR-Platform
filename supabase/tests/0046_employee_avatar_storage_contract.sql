@@ -38,7 +38,7 @@ join public.permissions p on p.code='people.employee.create'
 where r.slug='hr-manager'
 on conflict(role_id,permission_id,scope) do nothing;
 
-select is((select public from storage.buckets where id='employee-avatars'),false,'employee avatar bucket is private');
+select is((select public from storage.buckets where id='employee-avatars'),true,'employee avatar bucket is public');
 select is((select file_size_limit from storage.buckets where id='employee-avatars'),5242880::bigint,'employee avatar bucket limits files to 5 MiB');
 select ok((select allowed_mime_types @> array['image/jpeg','image/png','image/webp'] from storage.buckets where id='employee-avatars'),'employee avatar bucket allows the approved image formats');
 select ok(exists(select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='employee_avatars_select' and roles @> array['authenticated']::name[]),'authenticated-only avatar read policy remains installed');
@@ -82,7 +82,7 @@ set local role anon;
 select throws_ok(
  $$insert into storage.objects(bucket_id,name,metadata) values('employee-avatars','anonymous/avatar.png','{"mimetype":"image/png","size":1024}'::jsonb)$$,
  '42501',null,'anonymous users cannot upload employee avatars');
-select is((select count(*)::integer from storage.objects where bucket_id='employee-avatars' and name='admin/managed.webp'),0,'anonymous cannot see a managed private avatar');
+select is((select count(*)::integer from storage.objects where bucket_id='employee-avatars' and name='admin/managed.webp'),1,'anonymous can read a public avatar');
 
 reset role;
 select is((select count(*)::integer from storage.objects where bucket_id='employee-avatars' and name='admin/managed.webp'),1,'managed avatar insert exists for trusted server access');

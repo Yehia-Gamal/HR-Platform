@@ -92,7 +92,7 @@ export function RequestsPage() {
     <div className="space-y-6">
       <PageHeader
         title="طلب اجازة"
-        description="صندوق موحد للإجازات وتصحيحات الحضور وتكليفات العمل (مأمورية/قافلة/فاندي) والأذونات، يعمل بمراحل واعتمادات خادمية ومنع الموافقة الذاتية."
+        description="صندوق موحد للإجازات وتصحيحات الحضور والتكليفات (مأمورية، قافلة) والأذونات، مع مسار اعتماد واضح."
       />
       {balances.isLoading && !balances.data ? (
         <MetricSkeletonRow />

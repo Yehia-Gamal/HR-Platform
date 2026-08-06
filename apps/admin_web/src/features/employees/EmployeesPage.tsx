@@ -126,7 +126,7 @@ export function EmployeesPage() {
       <PageHeader
         eyebrow="إدارة الأفراد"
         title="دليل الموظفين"
-        description="ابحث في ملفات الموظفين وافتح ملف 360°، مع احترام نطاق الوصول الذي يطبقه الخادم."
+        description="ابحث في ملفات الموظفين وافتح الملف الشخصي لأي منهم."
         actions={
           canCreate ? (
             <Link to="/hr/employees/new" className="btn-primary">

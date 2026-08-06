@@ -13,7 +13,7 @@ export function AttendancePage() {
     <div className="space-y-6">
       <PageHeader
         title="الحضور والورديات"
-        description="ملخص اليوم من المصدر الخادمي، مع فصل الحالات التي تحتاج مراجعة عن الأحكام النهائية."
+        description="تصفح سجل اليوم، وراجع الحالات المعلقة والأحكام النهائية."
         actions={
           <button className="btn-secondary" onClick={() => void query.refetch()} disabled={query.isFetching} aria-busy={query.isFetching} aria-label="تحديث">
             <RefreshCcw className={`size-4 ${query.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />

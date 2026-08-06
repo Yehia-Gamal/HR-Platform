@@ -24,7 +24,7 @@ select has_function(
   'get_my_device_status RPC exists'
 );
 select has_function(
-  'public', 'get_all_devices_admin', array['text'],
+  'public', 'get_all_devices_admin', array['text','boolean'],
   'get_all_devices_admin RPC exists'
 );
 select has_column('employee_devices', 'revocation_source',
@@ -173,7 +173,7 @@ select throws_ok(
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 select ok(
-  (select jsonb_array_length(public.get_all_devices_admin(null)) >= 2),
+  (select jsonb_array_length(public.get_all_devices_admin(null, true)) >= 2),
   'admin sees all devices via get_all_devices_admin'
 );
 
@@ -182,7 +182,7 @@ select ok(
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 select is(
-  (select jsonb_array_length(public.get_all_devices_admin('pending'))),
+  (select jsonb_array_length(public.get_all_devices_admin('pending', true))),
   1,
   'get_all_devices_admin(pending) returns only pending devices'
 );

@@ -52,6 +52,7 @@ const AnalyticsDashboardPage = lazy(() => import('../features/analytics/Analytic
 /* V17 §4.2: feature-flagged pages — shown only when the corresponding flag in featureFlags.ts is true */
 const ComingSoonPage = lazy(() => import('../ui/ComingSoonPage').then((m) => ({ default: m.ComingSoonPage })));
 const LearningPage = lazy(() => import('../features/learning/LearningPage').then((m) => ({ default: m.LearningPage })));
+const LifecyclePage = lazy(() => import('../features/lifecycle/LifecyclePage').then((m) => ({ default: m.LifecyclePage })));
 
 export function App() {
   const auth = useAuth();
@@ -175,7 +176,7 @@ export function App() {
                 </RequirePermission>
               }
             />
-            <Route path="lifecycle" element={<ComingSoonPage title="دورة حياة الموظف" />} />
+            <Route path="lifecycle" element={<RequirePermission perm="people.employee.read"><LifecyclePage /></RequirePermission>} />
             <Route
               path="access"
               element={
@@ -406,7 +407,7 @@ function HrWorkspaceRoutes() {
         }
       />
       <Route path="learning" element={<LearningPage />} />
-      <Route path="lifecycle" element={<ComingSoonPage title="دورة حياة الموظف" />} />
+      <Route path="lifecycle" element={<RequirePermission perm="people.employee.read"><LifecyclePage /></RequirePermission>} />
       <Route path="documents" element={<ComingSoonPage title="استوديو المستندات" />} />
       <Route
         path="official-feed"

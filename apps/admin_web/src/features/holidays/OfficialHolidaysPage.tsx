@@ -56,7 +56,7 @@ export function OfficialHolidaysPage() {
       <PageHeader
         eyebrow="الوقت والخدمات"
         title="العطل الرسمية"
-        description="إدارة العطل الرسمية مع دعم النطاق (الكل / جهة / إدارة) والاستثناءات — V17 §1.7."
+        description="إدارة العطل الرسمية والاستثناءات على مستوى الجمعية أو الجهة."
         actions={
           <button
             type="button"

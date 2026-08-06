@@ -4,7 +4,7 @@ select has_table('public','kpi_evidence','KPI evidence exists');
 select has_table('public','kpi_stage_history','KPI stage history exists');
 select has_table('public','kpi_appeals','KPI appeals exist');
 select has_function('public','get_kpi_admin_catalog',array['date'],'KPI admin catalog exists');
-select has_function('public','create_kpi_cycle_admin',array['date','uuid','timestamp with time zone','timestamp with time zone','timestamp with time zone','timestamp with time zone','boolean'],'cycle creation exists');
+select has_function('public','create_kpi_cycle_admin',array['date','uuid','timestamp with time zone','timestamp with time zone','timestamp with time zone','timestamp with time zone','boolean','boolean'],'cycle creation exists');
 select has_function('public','refresh_kpi_attendance_inputs',array['uuid'],'attendance KPI refresh exists');
 select has_function('public','add_kpi_evidence',array['uuid','uuid','text','text','text','text','text'],'KPI evidence command exists');
 select has_function('public','submit_kpi_appeal',array['uuid','text','text'],'KPI appeal submission exists');

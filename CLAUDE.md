@@ -103,3 +103,8 @@ npx vercel --prod                  # يتطلب VERCEL_TOKEN
 - عند الـ commit أضف `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
 - Vercel URL: `https://ahla-shabab-management-os.vercel.app`
 - Supabase ref: `ujzzvqsodyhnnnpkoaml`
+
+### Supabase محلي — عقبات على Windows/WSL2
+- **Studio قد يرفض الإقلاع** (crash-loop بخطأ `ERR_INVALID_PACKAGE_CONFIG` أو `container is not ready: unhealthy`) مع CLI 2.111.0 وصورة `studio:2026.07.06` — خلل upstream (supabase/cli#4254) يظهر تحت الإقلاع المتوازي. لا يُصلح بترقية CLI (أحدثها 2.111.0). الحل البديل: عطّل مؤقتاً `[studio] enabled = false` في `supabase/config.toml` → `npx supabase start` يعمل (DB/API/storage/auth لا تحتاج Studio) → ثم أعد التفعيل إذا أردت.
+- **`supabase db reset` قد يفشل** بـ `LegacyDbResetNotRunningError` ("supabase start is not running") لغياب `~/.supabase/profile` — يعمل عادةً عندما يكون الـ stack قائماً وصحياً. البديل اليدوي: `docker exec supabase_db_ahla-shabab-management-os-v8 psql -U postgres -d postgres -f <migration>` ثم إدراج السطر في `supabase_migrations.schema_migrations(version, name, statements)`.
+- Docker Desktop قد يعطي 500 على كل الطلبات بعد إقلاع الـ engine — أعد تشغيل Docker Desktop بالكامل.

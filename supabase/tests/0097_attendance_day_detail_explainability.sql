@@ -1,9 +1,9 @@
 -- 0097: 0252 — إثراء كل يوم في كشف الحضور الشهري بكائن "details" توضيحي
 -- يثبت أن الواجهة النهائية _build_attendance_statement:
---   1) تستدعي v287 (0287) الذي يستدعي v266 الذي يستدعي v252 الذي يستدعي v251.
+--   1) تستدعي v286 (0291) الذي يستدعي v287 (0287) الذي يستدعي v266 الذي يستدعي v252 الذي يستدعي v251.
 --   2) تضيف لكل يوم details: { leave, assignment, permit, correction, missing }.
 --   3) تحمل مفاتيح التفسيرية (attendanceRateBasis, requiredMinutes, compliantWorkMinutes).
---   4) تحافظ على منح الوصول الحصري (service_role فقط، وال版本es الخاصة).
+--   4) تحافظ على منح الوصول الحصري (service_role فقط، والنسخ الخاصة).
 
 begin;
 create extension if not exists pgtap with schema extensions;
@@ -67,14 +67,20 @@ select ok(
 select lives_ok(
   $live$do $t$
   declare v_final text;
+          v_v286  text;
           v_v287  text;
           v_v266  text;
           v_v252  text;
   begin
     select prosrc into v_final from pg_proc
     where proname='_build_attendance_statement' and pronamespace='public'::regnamespace;
-    if v_final not ilike '%_build_attendance_statement_v287%' then
-      raise exception 'الواجهة النهائية لا تستدعي v287';
+    if v_final not ilike '%_build_attendance_statement_v286%' then
+      raise exception 'الواجهة النهائية لا تستدعي v286';
+    end if;
+    select prosrc into v_v286 from pg_proc
+    where proname='_build_attendance_statement_v286' and pronamespace='public'::regnamespace;
+    if v_v286 not ilike '%_build_attendance_statement_v287%' then
+      raise exception 'v286 لا تستدعي v287';
     end if;
     select prosrc into v_v287 from pg_proc
     where proname='_build_attendance_statement_v287' and pronamespace='public'::regnamespace;
@@ -94,7 +100,7 @@ select lives_ok(
       raise exception 'v252 لا يحوي منطق التفاصيل التوضيحية عبر v251';
     end if;
   end $t$$live$,
-  'السلسلة: final → v287 → v266 → v252 → v251 مع تفاصيل توضيحية'
+  'السلسلة: final → v286 → v287 → v266 → v252 → v251 مع تفاصيل توضيحية'
 );
 
 -- =====================================================================

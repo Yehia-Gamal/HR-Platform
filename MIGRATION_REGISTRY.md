@@ -81,7 +81,29 @@
 | 0264 | `0264_cron_http_from_system_settings.sql` | مهام cron HTTP تقرأ الإعدادات من `system_settings` بدل custom GUC (غير مسموح على Supabase المدارة). |
 | 0265 | `0265_restore_live_location_video_verification.sql` | استعادة تدقيق فيديو التحقق من البث الحي: طلب الموقع → دفع عالي الأولوية → موظف يُرسل موقعه + فيديو كاميرا أمامية 5 ثوانٍ. |
 | 0266 | `0266_monthly_attendance_full_month_rates_and_day_overrides.sql` | نسب حضور/ساعات الشهر الكامل + تعديلات يومية إدارية مع تدقيق. Friday هو الراحة الأسبوعية الوحيدة؛ الوردية الرسمية 10:00-18:00. |
+| 0267 | *(مُعاد ترقيمه إلى `0277` — إصلاح توجيه الروابط العميقة)* | — |
+| 0268 | `0268_fix_monthly_attendance_status_labels.sql` | تسميات الإصدارات والمنقولة والإجازات في التحليل اليومي. اختبار pgTAP: `0086_*`. |
+| 0269 | `0269_revert_live_location_video_verification.sql` | عكس تفعيل التحقق بالفيديو. |
+| 0270–0276 | `027x_bridge_placeholder.sql` | جسور ترقيم أثناء إعادة هيكلة سلسلة الحضور. |
+| 0277 | `0277_fix_deep_link_action_routing.sql` | إصلاح توجيه الروابط العميقة (كان 0267). |
+| 0278 | `0278_weekly_rest_comp_and_holidays_hardening.sql` | تعويض الراحة الأسبوعية وتحصين العطل. |
+| 0279 | *(رقم متخطَّى مقصود — مساحة احتياطية)* | — |
+| 0280 | `0280_request_live_location_drop_channel_v4.sql` | طلب الموقع الحي — قناة دفع v4. |
+| 0281 | `0281_fix_phone_normalization_and_password_activation.sql` | توحيد تطبيع الهاتف + تفعيل الحساب بكلمة مرور. |
+| 0282 | `0282_hard_delete_confirmation_and_manager_guards.sql` | تأكيد الحذف النهائي + حراس تغيير المدير. |
+| 0283 | `0283_attendance_day_roster_and_dashboard.sql` | رستر اليوم وحضوره في لوحات الحضور. |
+| 0284 | `0284_employee_email_in_360.sql` | البريد في تقرير الموظف 360. |
+| 0285 | `0285_update_employee_admin_optional_reason.sql` | جعل سبب التعديل الإداري اختيارياً. |
+| 0286 | `0286_restore_full_access_live_location_request.sql` | استعادة الصلاحيات الكاملة لطلب الموقع الحي. |
+| 0287 | `0287_monthly_attendance_full_month_finalization.sql` | إنهاء كشف حضور الشهر الكامل. |
+| 0288 | `0288_restore_lost_0273_diag_function.sql` | استعادة دالة التشخيص المفقودة (0273). |
+| 0289 | `0289_fix_profile_activation_trigger.sql` | إصلاح مُشغّل تفعيل الملف (كان 0294 بعد إعادة الترتيب). |
+| 0290 | `0290_fix_kpi_cycle_create_grants_and_diagnostics.sql` | منح إنشاء دورة KPI + تشخيص فشلها (كان 0282_fix_kpi). |
+| 0291 | `0291_attendance_formatted_display_fields.sql` | حقول العرض المنسّقة (كان 0290). |
+| 0292 | `0292_device_cleanup_admin_delete.sql` | حذف إداري للجهاز (كان 0291). |
+| 0293 | `0293_restore_public_employee_avatars_bucket.sql` | استعادة سلة صور الموظفين العامة (كان 0289_restore_public...). |
 
 ---
 
-> ✅ **الحالة:** سلسلة متصلة — 0001 → 0266 — بلا تكرار أو ملفات قيد الترقيم.
+> ✅ **الحالة:** سلسلة متصلة — 0001 → 0293 — بلا تكرار أو فجوات. تم إعادة ترقيم 0288–0293 من فروع متوازية لتوحيد التسلسل.
+

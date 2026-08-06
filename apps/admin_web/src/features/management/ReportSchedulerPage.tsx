@@ -43,7 +43,7 @@ export function ReportSchedulerPage() {
     <div className="space-y-6">
       <PageHeader
         title="التقارير المجدولة والتسليم"
-        description="جدولة يومية وأسبوعية وشهرية، تشغيل Idempotent، وتتبّع طابور الإشعارات والتسليم."
+        description="جدولة يومية وأسبوعية وشهرية للتقارير التنفيذية، مع تتبع التسليم التلقائي."
         actions={
           <button className="btn-primary" onClick={() => setOpen(true)}>
             <Plus className="size-4" aria-hidden="true" />
