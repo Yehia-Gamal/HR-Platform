@@ -73,7 +73,9 @@ export const createEmployeeInputSchema = z.object({
   const pwd = data.initialPassword;
   const path = ['initialPassword'];
 
-  const fail = (message: string) => ctx.addIssue({ code: 'custom', message, path });
+  const fail = (message: string): void => {
+    ctx.addIssue({ code: 'custom', message, path });
+  };
 
   if (!pwd) return;
 
