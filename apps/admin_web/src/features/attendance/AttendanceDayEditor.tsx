@@ -26,14 +26,14 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
   const [checkOut, setCheckOut] = useState(day.checkOut?.slice(0, 5) ?? '');
   const [clearCheckIn, setClearCheckIn] = useState(false);
   const [clearCheckOut, setClearCheckOut] = useState(false);
-  const [reason, setReason] = useState(day.adminOverride?.reason ?? 'تصحيح إداري موثق');
+  const [reason, setReason] = useState(day.adminOverride?.reason ?? '');
   const [notes, setNotes] = useState(day.adminOverride?.notes ?? '');
 
   useEffect(() => {
     setDayType((day.adminOverride?.dayType as DayType | undefined) ?? 'work');
     setCheckIn(day.checkIn?.slice(0, 5) ?? '');
     setCheckOut(day.checkOut?.slice(0, 5) ?? '');
-    setReason(day.adminOverride?.reason ?? 'تصحيح إداري موثق');
+    setReason(day.adminOverride?.reason ?? '');
     setNotes(day.adminOverride?.notes ?? '');
     setClearCheckIn(false);
     setClearCheckOut(false);

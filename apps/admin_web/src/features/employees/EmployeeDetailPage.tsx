@@ -714,7 +714,7 @@ function ChangeManagerDialog({
 // ---------------------------------------------------------------------------
 // DeleteEmployeeDialog — حذف الموظف نهائياً
 // ---------------------------------------------------------------------------
-function DeleteEmployeeDialog({
+export function DeleteEmployeeDialog({
   employeeId,
   employeeCode,
   employeeName,

@@ -44,6 +44,7 @@ const ERROR_PATTERNS: Array<[RegExp, string]> = [
   [/INVALID_CYCLE_STATE/i, 'حالة الدورة الحالية لا تسمح بهذا الإجراء.'],
   [/INVALID_CYCLE_ACTION/i, 'الإجراء المطلوب على الدورة غير معروف.'],
   [/CONTROL_REASON_REQUIRED/i, 'سبب الإجراء الإداري مطلوب (٥ أحرف على الأقل).'],
+  [/\bREASON_REQUIRED\b/i, 'سبب التعديل مطلوب (٥ أحرف على الأقل).'],
   [/CYCLE_ALREADY_STARTED/i, 'لا يمكن إلغاء فتح الدورة — بدأها بعض الموظفين بالفعل.'],
   [/CYCLE_MUST_BE_CLOSED/i, 'يجب إغلاق الدورة قبل هذه الخطوة.'],
   [/CYCLE_NOT_FOUND/i, 'لم يُعثر على دورة KPI المطلوبة.'],

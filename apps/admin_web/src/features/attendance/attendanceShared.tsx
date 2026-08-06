@@ -65,7 +65,6 @@ export function fmtHoursLong(hours: number | null | undefined): string {
 }
 
 /** تنسيق عدد الدقائق بصيغة عربية طويلة: 125 → "ساعتان و 5 دقائق" */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function fmtMinutesLong(totalMinutes: number | null | undefined): string {
   if (totalMinutes == null) return '—';
   const h = Math.floor(totalMinutes / 60);

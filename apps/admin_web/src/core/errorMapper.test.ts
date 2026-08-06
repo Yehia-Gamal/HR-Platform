@@ -124,6 +124,7 @@ describe('safeErrorMessage', () => {
     expect(safeErrorMessage(new Error('ONLY_OFFICIAL_KPI_TEMPLATE_IS_ALLOWED'))).toContain('القالب الرسمي');
     expect(safeErrorMessage(new Error('INVALID_CYCLE_STATE'))).toContain('حالة الدورة');
     expect(safeErrorMessage(new Error('CONTROL_REASON_REQUIRED'))).toContain('سبب الإجراء الإداري');
+    expect(safeErrorMessage(new Error('REASON_REQUIRED'))).toContain('سبب التعديل مطلوب');
     expect(safeErrorMessage(new Error('CYCLE_ALREADY_STARTED'))).toContain('إلغاء فتح الدورة');
     expect(safeErrorMessage(new Error('CYCLE_MUST_BE_CLOSED'))).toContain('إغلاق الدورة');
     expect(safeErrorMessage(new Error('APPEAL_ALREADY_DECIDED'))).toContain('الاعتراض');

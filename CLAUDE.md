@@ -105,6 +105,10 @@ npx vercel --prod                  # يتطلب VERCEL_TOKEN
 - Supabase ref: `ujzzvqsodyhnnnpkoaml`
 
 ### Supabase محلي — عقبات على Windows/WSL2
-- **Studio قد يرفض الإقلاع** (crash-loop بخطأ `ERR_INVALID_PACKAGE_CONFIG` أو `container is not ready: unhealthy`) مع CLI 2.111.0 وصورة `studio:2026.07.06` — خلل upstream (supabase/cli#4254) يظهر تحت الإقلاع المتوازي. لا يُصلح بترقية CLI (أحدثها 2.111.0). الحل البديل: عطّل مؤقتاً `[studio] enabled = false` في `supabase/config.toml` → `npx supabase start` يعمل (DB/API/storage/auth لا تحتاج Studio) → ثم أعد التفعيل إذا أردت.
+- **Studio crash-loop بـ `ERR_INVALID_PACKAGE_CONFIG`** — الجذر الحقيقي (مُصلح): صورة `public.ecr.aws/supabase/studio:2026.07.27-sha-cbb076d` (التي يربطها CLI 2.111.0) صادرة **مكسورة upstream**: فيها `/app/apps/studio/package.json` و`server.js` فارغان (0 بايت) → عطل إقلاع. الصورة السابقة `2026.07.06-sha-66cf431` سليمة (8100/15393 بايت) وتعمل. **الحل (محلي، بلا تغيير في المستودع):** أعد الوسْم فوق الوسم المكسور
+  ```powershell
+  docker tag public.ecr.aws/supabase/studio:2026.07.06-sha-66cf431 public.ecr.aws/supabase/studio:2026.07.27-sha-cbb076d
+  ```
+  ثم `npx supabase stop` + `npx supabase start` (CLI لا يعيد إنشاء الحاويات في الـ fast-path — لازم stop أولاً). يظهر `STUDIO_URL` في المخرجات ويصبح `supabase_studio_...` (healthy). لا تجعل Docker يسحب الوسم من جديد بعد إعادة الوسْم (compose يستخدم المحلي إذا وُجد). ملاحظة: `supabase start` على stack قائم لا يعيد إنشاء Studio — يُعاد عبر stop/start فقط.
 - **`supabase db reset` قد يفشل** بـ `LegacyDbResetNotRunningError` ("supabase start is not running") لغياب `~/.supabase/profile` — يعمل عادةً عندما يكون الـ stack قائماً وصحياً. البديل اليدوي: `docker exec supabase_db_ahla-shabab-management-os-v8 psql -U postgres -d postgres -f <migration>` ثم إدراج السطر في `supabase_migrations.schema_migrations(version, name, statements)`.
 - Docker Desktop قد يعطي 500 على كل الطلبات بعد إقلاع الـ engine — أعد تشغيل Docker Desktop بالكامل.

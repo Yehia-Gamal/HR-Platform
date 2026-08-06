@@ -5,7 +5,7 @@ import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
 import { SkeletonCard } from '../../ui/Skeletons';
-import { AttendancePercentageRing, attendanceRateParts, buildDayTags, DayTag, fmtTime, fmtHoursLong, fmtMinutesLong, hoursRateParts, MONTHS, StatItem, WARN_STATUSES } from './attendanceShared';
+import { AttendancePercentageRing, attendanceRateParts, buildDayTags, DayTag, fmtTime, fmtHoursLong, hoursRateParts, MONTHS, StatItem, WARN_STATUSES } from './attendanceShared';
 import { AttendanceDayEditor } from './AttendanceDayEditor';
 import { exportAttendancePDF } from './exportAttendancePDF';
 import { useEmployeeMonthlyStatement } from './useMonthlyStatement';
