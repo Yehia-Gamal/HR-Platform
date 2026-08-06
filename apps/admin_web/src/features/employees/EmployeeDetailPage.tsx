@@ -12,6 +12,9 @@ import {
   Eye,
   EyeOff,
   Gauge,
+  ImagePlus,
+  Lock,
+  Mail,
   MailCheck,
   Network,
   Pencil,
@@ -20,10 +23,10 @@ import {
   ShieldCheck,
   Star,
   Trash2,
-  UsersRound,
   X,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -34,6 +37,9 @@ import { PageHeader } from '../../ui/PageHeader';
 import { SkeletonCard } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
+import { getSupabase } from '../../core/supabase';
+import { prepareAvatarFile } from '../../ui/avatarImage';
+import { fixIntlPhoneOrder, renderSafeIntlPhoneText } from '../../ui/phoneDisplay';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { MonthlyStatementSection } from '../attendance/MonthlyStatementSection';
@@ -49,7 +55,9 @@ import {
   useRemoveDepartment,
   useDeleteEmployee,
   useSetEmployeePassword,
+  useUpdateEmployeeEmail,
 } from './useEmployees';
+import { normalizePhoneForSubmit, EmployeeEditHistory } from './employeeDetailShared';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useToast } from '../../ui/Toast';
 import { useOrganizationLookups } from './useOrganizationLookups';
@@ -59,23 +67,11 @@ const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
 // Accounts that have not finished activation can still be re-invited.
 const PENDING_ACCOUNT_STATES = new Set(['invited', 'onboarding', 'pending', 'draft']);
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'مسودة',
-  invited: 'تمت الدعوة',
-  onboarding: 'قيد التهيئة',
-  active: 'نشط',
-  suspended: 'موقوف',
-  notice_period: 'فترة إخطار',
-  terminated: 'منتهي',
-  archived: 'مؤرشف',
-  probation_failed: 'فشل فترة الاختبار',
-};
-
 // ---------------------------------------------------------------------------
 // Small helpers
 // ---------------------------------------------------------------------------
 
-function Info({ icon: Icon, label, dir }: { icon: LucideIcon; label: string; dir?: 'ltr' | 'rtl' }) {
+function Info({ icon: Icon, label, dir }: { icon: LucideIcon; label: ReactNode; dir?: 'ltr' | 'rtl' }) {
   return (
     <span className="inline-flex items-center gap-2">
       <Icon className="size-4 muted" aria-hidden="true" />
@@ -205,29 +201,43 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
   const auth = useAuth();
   const lookups = useOrganizationLookups();
   const update = useUpdateEmployee();
+  const updateEmail = useUpdateEmployeeEmail();
 
   const canSensitive = Boolean(auth.access && hasPermission(auth.access, 'people.employee.update_sensitive'));
 
   // --- Basic fields ---
   const [fullNameAr, setFullNameAr] = useState(item.fullNameAr);
-  const [fullNameEn, setFullNameEn] = useState(item.fullNameEn ?? '');
-  const [phoneE164, setPhoneE164] = useState(item.phoneE164 ?? '');
+  // نصلّح أي رقم محفوظ بترتيب مقلوب (خوارزمية bidi) قبل عرضه في حقل الإدخال.
+  const [phoneE164, setPhoneE164] = useState(item.phoneE164 ? fixIntlPhoneOrder(item.phoneE164) : '');
+  const [email, setEmail] = useState(item.email ?? '');
+
+  // --- الصورة الشخصية (تُرفع لـ storage وتُحفظ عبر update_employee_admin) ---
+  const [photoUrl, setPhotoUrl] = useState(item.photoUrl ?? '');
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadedPhotoPathRef = useRef<string | null>(null);
+  const didSaveRef = useRef(false);
+
+  // تنظيف الصورة المرفوعة حديثاً إذا أُغلق الحوار دون حفظ.
+  useEffect(() => {
+    const path = uploadedPhotoPathRef.current;
+    return () => {
+      if (path && !didSaveRef.current) {
+        void getSupabase()
+          .then((supabase) => supabase.storage.from('employee-avatars').remove([path]))
+          .catch(() => undefined);
+      }
+    };
+  }, []);
 
   // --- Sensitive fields ---
   const [departmentId, setDepartmentId] = useState(item.departmentId ?? '');
-  const [teamId, setTeamId] = useState(item.teamId ?? '');
   const [branchId, setBranchId] = useState(item.branchId ?? '');
   const [workSiteId, setWorkSiteId] = useState(item.workSiteId ?? '');
   const [jobTitleId, setJobTitleId] = useState(item.jobTitleId ?? '');
-  const [positionId, setPositionId] = useState(item.positionId ?? '');
-  const [gradeId, setGradeId] = useState(item.gradeId ?? '');
-  const [employmentTypeId, setEmploymentTypeId] = useState(item.employmentTypeId ?? '');
   const [hireDate, setHireDate] = useState(item.hireDate ?? '');
-  const [contractEnd, setContractEnd] = useState(item.contractEnd ?? '');
-  const [probationEnd, setProbationEnd] = useState(item.probationEnd ?? '');
-  const [status, setStatus] = useState(item.status);
 
-  const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   // --- كلمة المرور (قسم مستقل داخل الحوار) ---
@@ -242,8 +252,8 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
     e.preventDefault();
     setPwdError(null);
     setPwdSuccess(false);
-    if (newPassword.length < 8 || newPassword.length > 72) {
-      setPwdError('كلمة المرور يجب أن تكون بين 8 و72 حرفًا.');
+    if (newPassword.length < 8 || newPassword.length > 15) {
+      setPwdError('كلمة المرور يجب أن تكون بين 8 و15 حرفًا.');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -261,33 +271,44 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
   };
 
   // Filter child lookups by parent selection
-  const teams = useMemo(() => {
-    const opts = lookups.data?.teams ?? [];
-    return departmentId ? opts.filter((t) => t.parentId === departmentId) : opts;
-  }, [lookups.data?.teams, departmentId]);
-
-  const positions = useMemo(() => {
-    const opts = lookups.data?.positions ?? [];
-    return departmentId ? opts.filter((p) => p.parentId === departmentId) : opts;
-  }, [lookups.data?.positions, departmentId]);
-
   const workSites = useMemo(() => {
     const opts = lookups.data?.workSites ?? [];
     return branchId ? opts.filter((s) => s.parentId === branchId) : opts;
   }, [lookups.data?.workSites, branchId]);
 
   // Reset child when parent changes
-  const onDepartmentChange = (value: string) => {
-    setDepartmentId(value);
-    const nextTeams = (lookups.data?.teams ?? []).filter((t) => !value || t.parentId === value);
-    if (teamId && nextTeams.every((t) => t.id !== teamId)) setTeamId('');
-    const nextPositions = (lookups.data?.positions ?? []).filter((p) => !value || p.parentId === value);
-    if (positionId && nextPositions.every((p) => p.id !== positionId)) setPositionId('');
-  };
   const onBranchChange = (value: string) => {
     setBranchId(value);
     const nextSites = (lookups.data?.workSites ?? []).filter((s) => !value || s.parentId === value);
     if (workSiteId && nextSites.every((s) => s.id !== workSiteId)) setWorkSiteId('');
+  };
+
+  // رفع صورة شخصية جديدة إلى storage ثم عرضها مؤقتاً حتى الحفظ.
+  const onAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setPhotoError(null);
+    try {
+      setPhotoUploading(true);
+      const prepared = await prepareAvatarFile(file);
+      const supabase = await getSupabase();
+      const path = `admin/${crypto.randomUUID()}.webp`;
+      const { error } = await supabase.storage.from('employee-avatars').upload(path, prepared, { upsert: false, contentType: prepared.type });
+      if (error) throw error;
+      // حذف الصورة المؤقتة السابقة إن وُجدت.
+      const prev = uploadedPhotoPathRef.current;
+      if (prev && prev !== path) {
+        void supabase.storage.from('employee-avatars').remove([prev]).catch(() => undefined);
+      }
+      const { data } = supabase.storage.from('employee-avatars').getPublicUrl(path);
+      uploadedPhotoPathRef.current = path;
+      setPhotoUrl(data.publicUrl);
+    } catch (err) {
+      setPhotoError(safeErrorMessage(err));
+    } finally {
+      setPhotoUploading(false);
+    }
   };
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -298,31 +319,41 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
     const changes: Record<string, unknown> = {};
     // Basic
     if (fullNameAr.trim() !== item.fullNameAr) changes.fullNameAr = fullNameAr.trim();
-    if ((fullNameEn.trim() || null) !== (item.fullNameEn ?? null)) changes.fullNameEn = fullNameEn.trim() || null;
-    if ((phoneE164.trim() || null) !== (item.phoneE164 ?? null)) changes.phoneE164 = phoneE164.trim() || null;
+    if ((photoUrl || null) !== (item.photoUrl ?? null)) changes.photoUrl = photoUrl || null;
+    const phoneNext = normalizePhoneForSubmit(phoneE164);
+    if (phoneNext !== (item.phoneE164 ?? '')) changes.phoneE164 = phoneNext || null;
     // Sensitive
     if (canSensitive) {
       if ((departmentId || null) !== (item.departmentId ?? null)) changes.departmentId = departmentId || null;
-      if ((teamId || null) !== (item.teamId ?? null)) changes.teamId = teamId || null;
       if ((branchId || null) !== (item.branchId ?? null)) changes.branchId = branchId || null;
       if ((workSiteId || null) !== (item.workSiteId ?? null)) changes.workSiteId = workSiteId || null;
       if ((jobTitleId || null) !== (item.jobTitleId ?? null)) changes.jobTitleId = jobTitleId || null;
-      if ((positionId || null) !== (item.positionId ?? null)) changes.positionId = positionId || null;
-      if ((gradeId || null) !== (item.gradeId ?? null)) changes.gradeId = gradeId || null;
-      if ((employmentTypeId || null) !== (item.employmentTypeId ?? null)) changes.employmentTypeId = employmentTypeId || null;
       if ((hireDate || null) !== (item.hireDate ?? null)) changes.hireDate = hireDate || null;
-      if ((contractEnd || null) !== (item.contractEnd ?? null)) changes.contractEnd = contractEnd || null;
-      if ((probationEnd || null) !== (item.probationEnd ?? null)) changes.probationEnd = probationEnd || null;
-      if (status !== item.status) changes.status = status;
     }
 
-    if (Object.keys(changes).length === 0) {
+    const emailChanged = email.trim().toLowerCase() !== (item.email ?? '').toLowerCase();
+
+    if (Object.keys(changes).length === 0 && !emailChanged) {
       setError('لم يتم تغيير أي حقل.');
       return;
     }
 
     try {
-      await update.mutateAsync({ employeeId: item.id, changes, reason: reason.trim() });
+      if (emailChanged) {
+        if (!canSensitive) {
+          setError('تعديل البريد الإلكتروني يتطلب صلاحية تحديث البيانات الحساسة.');
+          return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+          setError('البريد الإلكتروني المدخل غير صالح.');
+          return;
+        }
+        await updateEmail.mutateAsync({ employeeId: item.id, email: email.trim() });
+      }
+      if (Object.keys(changes).length > 0) {
+        await update.mutateAsync({ employeeId: item.id, changes });
+      }
+      didSaveRef.current = true;
       onSuccess();
     } catch (err) {
       setError(safeErrorMessage(err));
@@ -356,28 +387,80 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
                 disabled={update.isPending}
               />
             </label>
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-semibold">الاسم بالإنجليزية</span>
+            {/* الصورة الشخصية */}
+            <div className="flex items-center gap-4 sm:col-span-2">
+              {photoUrl ? (
+                <img
+                  src={photoUrl}
+                  alt="الصورة الشخصية"
+                  className="size-16 rounded-full border object-cover"
+                />
+              ) : (
+                <div className="grid size-16 place-items-center rounded-full bg-[var(--surface)] text-lg font-black text-[var(--muted)]">
+                  {item.fullNameAr.charAt(0)}
+                </div>
+              )}
               <input
-                type="text"
-                className="input w-full"
-                maxLength={160}
-                value={fullNameEn}
-                onChange={(e) => setFullNameEn(e.target.value)}
-                disabled={update.isPending}
-                dir="ltr"
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={onAvatarChange}
               />
-            </label>
-            <label className="block sm:col-span-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={photoUploading}
+                >
+                  <ImagePlus className="size-4" aria-hidden="true" />
+                  {photoUploading ? 'جارٍ رفع الصورة…' : 'تغيير الصورة'}
+                </button>
+                {photoUrl && photoUrl !== item.photoUrl ? (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setPhotoUrl(item.photoUrl ?? '')}
+                    disabled={photoUploading}
+                  >
+                    إلغاء الصورة الجديدة
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            {photoError ? <p className="mt-1 text-xs text-[var(--danger)]">{photoError}</p> : null}
+            <label className="block">
               <span className="mb-1.5 block text-sm font-semibold">رقم الهاتف</span>
               <input
                 type="tel"
-                className="input w-full"
+                className="input w-full max-w-44"
                 value={phoneE164}
                 onChange={(e) => setPhoneE164(e.target.value)}
                 disabled={update.isPending}
                 dir="ltr"
+                maxLength={15}
                 placeholder="+201XXXXXXXXX"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-semibold">
+                البريد الإلكتروني
+                {canSensitive ? null : (
+                  <span className="ms-2 inline-flex items-center gap-1 text-xs font-normal text-[var(--muted)]">
+                    <Lock className="size-3" aria-hidden="true" /> تتطلب صلاحية حساسة
+                  </span>
+                )}
+              </span>
+              <input
+                type="email"
+                className="input w-full"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={update.isPending || !canSensitive}
+                dir="ltr"
+                maxLength={254}
+                placeholder="name@example.com"
               />
             </label>
           </div>
@@ -392,10 +475,9 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
                 label="الإدارة"
                 value={departmentId}
                 options={lookups.data?.departments ?? []}
-                onChange={onDepartmentChange}
+                onChange={setDepartmentId}
                 disabled={update.isPending}
               />
-              <LookupSelect label="الفريق" value={teamId} options={teams} onChange={setTeamId} disabled={update.isPending} />
               <LookupSelect label="الفرع" value={branchId} options={lookups.data?.branches ?? []} onChange={onBranchChange} disabled={update.isPending} />
               <LookupSelect label="موقع العمل" value={workSiteId} options={workSites} onChange={setWorkSiteId} disabled={update.isPending} />
               <LookupSelect
@@ -405,138 +487,83 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
                 onChange={setJobTitleId}
                 disabled={update.isPending}
               />
-              <LookupSelect label="المنصب" value={positionId} options={positions} onChange={setPositionId} disabled={update.isPending} />
-              <LookupSelect label="الدرجة" value={gradeId} options={lookups.data?.grades ?? []} onChange={setGradeId} disabled={update.isPending} />
-              <LookupSelect
-                label="نوع التوظيف"
-                value={employmentTypeId}
-                options={lookups.data?.employmentTypes ?? []}
-                onChange={setEmploymentTypeId}
-                disabled={update.isPending}
-              />
-            </div>
-          </fieldset>
-        ) : null}
-
-        {canSensitive ? (
-          <fieldset>
-            <legend className="mb-3 font-black">التواريخ والحالة</legend>
-            <div className="grid gap-4 sm:grid-cols-2">
               <label className="block">
                 <span className="mb-1.5 block text-sm font-semibold">تاريخ التعيين</span>
                 <input type="date" className="input w-full" value={hireDate} onChange={(e) => setHireDate(e.target.value)} disabled={update.isPending} />
               </label>
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-semibold">نهاية العقد</span>
-                <input type="date" className="input w-full" value={contractEnd} onChange={(e) => setContractEnd(e.target.value)} disabled={update.isPending} />
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-semibold">نهاية فترة الاختبار</span>
-                <input
-                  type="date"
-                  className="input w-full"
-                  value={probationEnd}
-                  onChange={(e) => setProbationEnd(e.target.value)}
-                  disabled={update.isPending}
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-semibold">الحالة</span>
-                <select className="input w-full" value={status} onChange={(e) => setStatus(e.target.value as typeof status)} disabled={update.isPending}>
-                  {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
             </div>
           </fieldset>
         ) : null}
-
-        {canSensitive ? (
-          <fieldset>
-            <legend className="mb-3 font-black">تعيين كلمة المرور</legend>
-            <p className="muted mb-3 text-xs">ستعمل كلمة المرور الجديدة في أول دخول فقط، ثم يُجبر الموظف على تغييرها.</p>
-            {pwdError ? <ErrorBanner message={pwdError} /> : null}
-            {pwdSuccess ? (
-              <p className="mb-3 rounded-lg bg-[var(--success-soft)] px-3 py-2 text-sm text-[var(--success)]">تم تعيين كلمة المرور بنجاح.</p>
-            ) : null}
-            <form onSubmit={(e) => void onPasswordSubmit(e)} className="grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-semibold">كلمة المرور الجديدة (8–72 حرفًا)</span>
-                <div className="relative">
-                  <input
-                    className="input w-full pl-10"
-                    type={showPwd ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={(e) => { setNewPassword(e.target.value); setPwdSuccess(false); }}
-                    autoComplete="new-password"
-                    minLength={8}
-                    maxLength={72}
-                    disabled={passwordMutation.isPending}
-                  />
-                  <button
-                    type="button"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)]"
-                    onClick={() => setShowPwd((v) => !v)}
-                    aria-label={showPwd ? 'إخفاء' : 'إظهار'}
-                  >
-                    {showPwd ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
-                  </button>
-                </div>
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-semibold">تأكيد كلمة المرور</span>
-                <input
-                  className="input w-full"
-                  type={showPwd ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => { setConfirmPassword(e.target.value); setPwdSuccess(false); }}
-                  autoComplete="new-password"
-                  minLength={8}
-                  maxLength={72}
-                  disabled={passwordMutation.isPending}
-                />
-              </label>
-              <div className="sm:col-span-2">
-                <button
-                  type="submit"
-                  disabled={passwordMutation.isPending || newPassword.length < 8 || newPassword !== confirmPassword}
-                  className="btn-primary"
-                >
-                  {passwordMutation.isPending ? 'جارٍ التعيين…' : 'تعيين كلمة المرور'}
-                </button>
-              </div>
-            </form>
-          </fieldset>
-        ) : null}
-
-        {/* سبب التعديل */}
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold">
-            سبب التعديل <span className="text-[var(--danger)]">*</span>
-          </span>
-          <textarea
-            className="input min-h-20 w-full"
-            required
-            minLength={5}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            disabled={update.isPending}
-            placeholder="اذكر سبب التعديل للتدقيق…"
-          />
-        </label>
 
         <div className="flex justify-end gap-3 border-t border-[var(--border)] pt-4">
           <button type="button" className="btn-secondary" onClick={onClose} disabled={update.isPending}>
             إلغاء
           </button>
-          <button type="submit" className="btn-primary" disabled={update.isPending || reason.trim().length < 5}>
+          <button type="submit" className="btn-primary" disabled={update.isPending}>
             {update.isPending ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}
           </button>
         </div>
       </form>
+
+      {/* قسم كلمة المرور — نموذج منفصل عن نموذج الحفظ الرئيسي حتى لا يُغلق الحوار قبل الحفظ */}
+      {canSensitive ? (
+        <form onSubmit={(e) => void onPasswordSubmit(e)} className="mt-6 space-y-4 border-t border-[var(--border)] pt-5">
+          <h3 className="font-black">تعيين كلمة المرور</h3>
+          <p className="muted text-xs">ستعمل كلمة المرور الجديدة في أول دخول فقط، ثم يُجبر الموظف على تغييرها.</p>
+          {pwdError ? <ErrorBanner message={pwdError} /> : null}
+          {pwdSuccess ? (
+            <p className="rounded-lg bg-[var(--success-soft)] px-3 py-2 text-sm text-[var(--success)]">تم تعيين كلمة المرور بنجاح.</p>
+          ) : null}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-semibold">كلمة المرور الجديدة (8–15 حرفًا)</span>
+              <div className="relative">
+                <input
+                  className="input w-full pl-10"
+                  type={showPwd ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => { setNewPassword(e.target.value); setPwdSuccess(false); }}
+                  autoComplete="new-password"
+                  minLength={8}
+                  maxLength={15}
+                  disabled={passwordMutation.isPending}
+                />
+                <button
+                  type="button"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)]"
+                  onClick={() => setShowPwd((v) => !v)}
+                  aria-label={showPwd ? 'إخفاء' : 'إظهار'}
+                >
+                  {showPwd ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+                </button>
+              </div>
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-semibold">تأكيد كلمة المرور</span>
+              <input
+                className="input w-full"
+                type={showPwd ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => { setConfirmPassword(e.target.value); setPwdSuccess(false); }}
+                autoComplete="new-password"
+                minLength={8}
+                maxLength={15}
+                disabled={passwordMutation.isPending}
+              />
+            </label>
+            <div className="sm:col-span-2">
+              <button
+                type="submit"
+                disabled={passwordMutation.isPending || newPassword.length < 8 || newPassword !== confirmPassword}
+                className="btn-primary"
+              >
+                {passwordMutation.isPending ? 'جارٍ التعيين…' : 'تعيين كلمة المرور'}
+              </button>
+            </div>
+          </div>
+        </form>
+      ) : null}
+
     </DialogOverlay>
   );
 }
@@ -565,8 +592,8 @@ function ArchiveEmployeeDialog({
     try {
       await archive.mutateAsync({ employeeId, reason: reason.trim() });
       onSuccess();
-    } catch {
-      setError('تعذر أرشفة الموظف بأمان. تحقق من الصلاحية وأعد المحاولة.');
+    } catch (err) {
+      setError(safeErrorMessage(err));
     }
   };
   return createPortal(
@@ -689,11 +716,13 @@ function ChangeManagerDialog({
 // ---------------------------------------------------------------------------
 function DeleteEmployeeDialog({
   employeeId,
+  employeeCode,
   employeeName,
   onClose,
   onSuccess,
 }: {
   employeeId: string;
+  employeeCode: string;
   employeeName: string;
   onClose: () => void;
   onSuccess: () => void;
@@ -701,12 +730,13 @@ function DeleteEmployeeDialog({
   const deleteEmployee = useDeleteEmployee();
   const [confirmText, setConfirmText] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const codeMatches = confirmText.trim() === employeeCode;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     try {
-      await deleteEmployee.mutateAsync({ employeeId, confirmationCode: confirmText, reason: 'حذف نهائي بواسطة المسؤول' });
+      await deleteEmployee.mutateAsync({ employeeId, confirmationCode: confirmText.trim(), reason: 'حذف نهائي بواسطة المسؤول' });
       onSuccess();
     } catch (err) {
       setError(safeErrorMessage(err));
@@ -727,12 +757,15 @@ function DeleteEmployeeDialog({
         </p>
         {error ? <ErrorBanner message={error} /> : null}
         <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold">اكتب «حذف» للتأكيد</span>
+          <span className="mb-1.5 block text-sm font-semibold">
+            اكتب كود الموظف للتأكيد: <span dir="ltr" className="font-mono">{employeeCode}</span>
+          </span>
           <input
             className="input w-full"
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
-            placeholder="حذف"
+            placeholder={employeeCode}
+            autoComplete="off"
             disabled={deleteEmployee.isPending}
           />
         </label>
@@ -742,7 +775,7 @@ function DeleteEmployeeDialog({
           </button>
           <button
             type="submit"
-            disabled={deleteEmployee.isPending || confirmText !== 'حذف'}
+            disabled={deleteEmployee.isPending || !codeMatches}
             className="btn-primary bg-[var(--danger)] hover:bg-[var(--danger)]"
           >
             {deleteEmployee.isPending ? 'جارٍ الحذف...' : 'حذف نهائي'}
@@ -945,12 +978,12 @@ export function EmployeeDetailPage() {
             <StatusBadge status={item.status} />
           </div>
           <p className="muted mt-1">
-            {item.jobTitle ?? item.position ?? 'بدون مسمى وظيفي'} • {item.employeeCode}
+            {item.jobTitle ?? 'بدون مسمى وظيفي'} • {item.employeeCode}
           </p>
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
             <Info icon={Network} label={item.department ?? 'بدون إدارة'} />
-            <Info icon={UsersRound} label={item.team ?? 'بدون فريق'} />
-            <Info icon={Phone} label={item.phoneE164 ?? 'بدون هاتف'} dir="ltr" />
+            <Info icon={Phone} label={item.phoneE164 ? renderSafeIntlPhoneText(item.phoneE164) : 'بدون هاتف'} />
+            <Info icon={Mail} label={item.email ?? 'بدون بريد'} />
             <Info icon={ShieldCheck} label={`الحساب: ${item.accountStatus ?? 'غير مرتبط'}`} />
           </div>
         </div>
@@ -969,7 +1002,7 @@ export function EmployeeDetailPage() {
           <p className="muted mt-1">المرؤوسون المباشرون: {item.directReports}</p>
           <div className="mt-1 flex items-center justify-between gap-2">
             <p className="muted">الأدوار: {item.roles.map((role) => role.name).join('، ') || 'لا توجد'}</p>
-            {hasPermission(auth.access!, 'access.role.read') ? (
+            {hasPermission(auth.access, 'access.role.read') ? (
               <Link to="/admin/access" className="text-brand font-bold text-xs">
                 إدارة الصلاحيات
               </Link>
@@ -994,12 +1027,10 @@ export function EmployeeDetailPage() {
         <article className="card p-5">
           <h3 className="font-black">البيانات الوظيفية</h3>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <Data label="المنصب" value={item.position} />
-            <Data label="الدرجة" value={item.grade} />
+            <Data label="الإدارة" value={item.department} />
             <Data label="الفرع" value={item.branch} />
             <Data label="موقع العمل" value={item.workSite} />
             <Data label="تاريخ التعيين" value={item.hireDate ? dateFormatter.format(new Date(item.hireDate)) : null} />
-            <Data label="نهاية العقد" value={item.contractEnd ? dateFormatter.format(new Date(item.contractEnd)) : null} />
           </div>
         </article>
 
@@ -1083,6 +1114,9 @@ export function EmployeeDetailPage() {
       {/* كشف الحضور والانصراف الشهري (V12 §18) */}
       {employeeId && <MonthlyStatementSection employeeId={employeeId} />}
 
+      {/* آخر التعديلات الهامة على الملف */}
+      {employeeId && <EmployeeEditHistory employeeId={employeeId} />}
+
       <p className="muted flex items-center gap-2 text-xs">
         <CalendarDays className="size-4" aria-hidden="true" />
         آخر تحديث: {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.lastUpdatedAt))}
@@ -1124,6 +1158,7 @@ export function EmployeeDetailPage() {
       {showDeleteDialog && employeeId && (
         <DeleteEmployeeDialog
           employeeId={employeeId}
+          employeeCode={item.employeeCode}
           employeeName={item.fullNameAr}
           onClose={() => setShowDeleteDialog(false)}
           onSuccess={() => {

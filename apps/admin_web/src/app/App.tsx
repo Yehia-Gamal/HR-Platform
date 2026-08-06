@@ -441,7 +441,7 @@ function LegacyHrRedirect() {
 function WorkspaceGuard({ workspace }: { workspace: WorkspaceId }) {
   const auth = useAuth();
   if (!auth.access?.workspaces.includes(workspace)) {
-    const fallback = firstWebWorkspace(auth.access!);
+    const fallback = auth.access ? firstWebWorkspace(auth.access) : undefined;
     return <Navigate to={workspacePath(fallback ?? 'hr')} replace />;
   }
   return <Outlet />;

@@ -200,7 +200,8 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => window.localStorage.getItem('ahla-sidebar') === 'collapsed');
-  const access = auth.access!;
+  const access = auth.access;
+  if (!access) throw new Error('WorkspaceShell requires an authenticated session');
   // الأدمن الرئيسي يرى قائمة موحّدة واحدة تجمع الإدارة + HR + اللجنة —
   // بدون الحاجة لتبديل مساحات العمل.
   const unifiedAdmin = isUnifiedAdminActive(access.workspaces, location.pathname);

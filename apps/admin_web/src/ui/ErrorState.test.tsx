@@ -31,7 +31,7 @@ describe('ErrorState', () => {
     expect(container.textContent).toContain('إعادة المحاولة');
     const button = container.querySelector('button');
     expect(button).toBeTruthy();
-    fireEvent.click(button!);
+    fireEvent.click(button as HTMLElement);
     expect(onRetry).toHaveBeenCalledOnce();
   });
 

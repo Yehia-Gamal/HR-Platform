@@ -51,9 +51,10 @@ export function RequestsPage() {
   const [selected, setSelected] = useState<RequestSummary | null>(null);
   const [comment, setComment] = useState('');
   const canDecide =
-    hasPermission(auth.access!, 'requests.request.approve') ||
-    hasPermission(auth.access!, 'requests.approve') ||
-    auth.access!.workspaces.includes('main_admin');
+    auth.access != null &&
+    (hasPermission(auth.access, 'requests.request.approve') ||
+      hasPermission(auth.access, 'requests.approve') ||
+      auth.access.workspaces.includes('main_admin'));
   const assignments = useWorkAssignments('team');
   // تصحيحات الحضور
   const correctionsQuery = useAttendanceOperations(currentMonth);

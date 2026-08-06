@@ -84,13 +84,17 @@ class ExecutiveDashboardSummary {
   final int publishedDecisions;
   final int openCases;
   final int activeLocationRequests;
+
   /// عدد الحاضرين اليوم (من dailyReport.attendance.present)
   final int attendancePresent;
+
   /// العدد المطلوب اليوم (من dailyReport.employees.requiredToday)
   final int attendanceRequired;
+
   /// نسبة الحضور المحسوبة (0-100)
-  int get attendanceRate =>
-      attendanceRequired > 0 ? (attendancePresent * 100 ~/ attendanceRequired) : 0;
+  int get attendanceRate => attendanceRequired > 0
+      ? (attendancePresent * 100 ~/ attendanceRequired)
+      : 0;
 }
 
 class MobileRequest {
@@ -441,6 +445,7 @@ class KpiEvaluationForm {
   final bool hrCompleted;
   final bool managerCompleted;
   final int version;
+
   /// 0204: relation — self/team/review
   final String? relation;
 }
@@ -463,10 +468,12 @@ class AttendanceState {
       AttendanceState(
         attendanceRequired: json['attendanceRequired'] as bool? ?? false,
         selfPunchEnabled: json['selfPunchEnabled'] as bool? ?? false,
-        activeLocalDevices: (json['activeLocalDevices'] as num?)?.toInt() ??
+        activeLocalDevices:
+            (json['activeLocalDevices'] as num?)?.toInt() ??
             (json['activePasskeys'] as num?)?.toInt() ??
             0,
-        hasActiveLocalDevice: json['hasActiveLocalDevice'] as bool? ??
+        hasActiveLocalDevice:
+            json['hasActiveLocalDevice'] as bool? ??
             json['hasActivePasskey'] as bool? ??
             false,
         canPunch: json['canPunch'] as bool? ?? false,
@@ -658,7 +665,8 @@ class MobileLocationRequest {
   final int durationMinutes;
   final DateTime requestedAt;
   final DateTime? expiresAt;
-  bool get needsVideo => mode == 'video_5s' || mode == 'location_video';
+  // V12 §9 / 0269: تسجيل الفيديو ملغى نهائيًا — التطبيق لا يطلب فيديو التحقق أبدًا.
+  bool get needsVideo => false;
   bool get needsPoint => mode == 'snapshot' || mode == 'location_video';
   bool get isTracking => mode.startsWith('track_');
 }
@@ -806,7 +814,8 @@ class MobileRequestDetail {
                     const [])
                 .map(
                   (item) =>
-                      (item as Map<dynamic, dynamic>)['message'] as String? ?? '',
+                      (item as Map<dynamic, dynamic>)['message'] as String? ??
+                      '',
                 )
                 .where((item) => item.isNotEmpty)
                 .toList(growable: false),
@@ -1236,7 +1245,16 @@ class MobileNotificationItem {
 
   bool get hasSupportedAction =>
       entityId != null &&
-      const {'request', 'kpi', 'decision', 'announcement', 'dispute', 'task', 'attendance', 'punch_reminder'}.contains(entityType);
+      const {
+        'request',
+        'kpi',
+        'decision',
+        'announcement',
+        'dispute',
+        'task',
+        'attendance',
+        'punch_reminder',
+      }.contains(entityType);
 }
 
 class MobileLeaveBalance {
@@ -1317,10 +1335,10 @@ class MobileWorkAssignment {
   final double? targetAmount;
 
   String get typeLabel => switch (assignmentType) {
-        'CONVOY' => 'قافلة',
-        'FUNDRAISING' => 'فاندي',
-        _ => 'مأمورية',
-      };
+    'CONVOY' => 'قافلة',
+    'FUNDRAISING' => 'فاندي',
+    _ => 'مأمورية',
+  };
 }
 
 /// صف واحد في كشف الحضور اليومي (V12 §18).
@@ -1469,63 +1487,69 @@ class AttendanceStatementSummary {
     required this.hoursRateRequiredMinutes,
   });
 
-  factory AttendanceStatementSummary.fromJson(Map<String, dynamic> json) =>
-      AttendanceStatementSummary(
-        totalDays: (json['totalDays'] as num?)?.toInt() ?? 0,
-        scheduledDays: (json['scheduledDays'] as num?)?.toInt() ?? 0,
-        dueScheduledDays: (json['dueScheduledDays'] as num?)?.toInt() ??
-            (json['scheduledDays'] as num?)?.toInt() ??
-            0,
-        upcomingDays: (json['upcomingDays'] as num?)?.toInt() ?? 0,
-        presentDays: (json['presentDays'] as num?)?.toInt() ?? 0,
-        absentDays: (json['absentDays'] as num?)?.toInt() ?? 0,
-        openShiftDays: (json['openShiftDays'] as num?)?.toInt() ?? 0,
-        completedPresenceDays:
-            (json['completedPresenceDays'] as num?)?.toInt() ?? 0,
-        leaveDays: (json['leaveDays'] as num?)?.toInt() ?? 0,
-        missionDays: (json['missionDays'] as num?)?.toInt() ?? 0,
-        permitCount: (json['permitCount'] as num?)?.toInt() ?? 0,
-        convoyFundiDays: (json['convoyFundiDays'] as num?)?.toInt() ?? 0,
-        holidayDays: (json['holidayDays'] as num?)?.toInt() ?? 0,
-        restDays: (json['restDays'] as num?)?.toInt() ?? 0,
-        totalWorkHours: (json['totalWorkHours'] as num?)?.toDouble() ?? 0,
-        totalRequiredHours:
-            (json['totalRequiredHours'] as num?)?.toDouble() ?? 0,
-        averageWorkHours: (json['averageWorkHours'] as num?)?.toDouble() ?? 0,
-        totalLateMinutes: (json['totalLateMinutes'] as num?)?.toInt() ?? 0,
-        totalEarlyLeaveMinutes: (json['totalEarlyLeaveMinutes'] as num?)?.toInt() ?? 0,
-        totalOvertimeMinutes: (json['totalOvertimeMinutes'] as num?)?.toInt() ?? 0,
-        missingCheckInCount: (json['missingCheckInCount'] as num?)?.toInt() ?? 0,
-        missingCheckOutCount: (json['missingCheckOutCount'] as num?)?.toInt() ?? 0,
-        correctionCount: (json['correctionCount'] as num?)?.toInt() ?? 0,
-        attendanceRate: (json['attendanceRate'] as num?)?.toDouble(),
-        attendanceRatePresentDays:
-            ((json['attendanceRateBasis'] as Map<String, dynamic>?)?['presentInDue'] as num?)?.toInt() ??
-            (((json['presentDays'] as num?)?.toInt() ?? 0) -
-                    ((json['openShiftDays'] as num?)?.toInt() ?? 0))
-                .clamp(0, 1 << 30)
-                .toInt(),
-        attendanceRateDueDays:
-            ((json['attendanceRateBasis'] as Map<String, dynamic>?)?['dueDays'] as num?)?.toInt() ??
-            (json['dueScheduledDays'] as num?)?.toInt() ??
-            (json['scheduledDays'] as num?)?.toInt() ??
-            0,
-        hoursComplianceRate:
-            (json['hoursComplianceRate'] as num?)?.toDouble() ?? 0,
-        hoursComplianceAvailable:
-            json['hoursComplianceAvailable'] as bool? ??
-            ((json['totalRequiredHours'] as num?)?.toDouble() ?? 0) > 0,
-        coverageRate: (json['coverageRate'] as num?)?.toDouble() ?? 0,
-        coverageDays: (json['coverageDays'] as num?)?.toInt() ?? 0,
-        totalDeficitMinutes:
-            (json['totalDeficitMinutes'] as num?)?.toInt() ?? 0,
-        hoursRateWorkedMinutes:
-            (((json['hoursRateBasis'] as Map<String, dynamic>?)?['workedMinutes']) as num?)?.toInt() ??
-            (((json['totalWorkHours'] as num?)?.toDouble() ?? 0) * 60).round(),
-        hoursRateRequiredMinutes:
-            (((json['hoursRateBasis'] as Map<String, dynamic>?)?['requiredMinutes']) as num?)?.toInt() ??
-            (((json['totalRequiredHours'] as num?)?.toDouble() ?? 0) * 60).round(),
-      );
+  factory AttendanceStatementSummary.fromJson(
+    Map<String, dynamic> json,
+  ) => AttendanceStatementSummary(
+    totalDays: (json['totalDays'] as num?)?.toInt() ?? 0,
+    scheduledDays: (json['scheduledDays'] as num?)?.toInt() ?? 0,
+    dueScheduledDays:
+        (json['dueScheduledDays'] as num?)?.toInt() ??
+        (json['scheduledDays'] as num?)?.toInt() ??
+        0,
+    upcomingDays: (json['upcomingDays'] as num?)?.toInt() ?? 0,
+    presentDays: (json['presentDays'] as num?)?.toInt() ?? 0,
+    absentDays: (json['absentDays'] as num?)?.toInt() ?? 0,
+    openShiftDays: (json['openShiftDays'] as num?)?.toInt() ?? 0,
+    completedPresenceDays:
+        (json['completedPresenceDays'] as num?)?.toInt() ?? 0,
+    leaveDays: (json['leaveDays'] as num?)?.toInt() ?? 0,
+    missionDays: (json['missionDays'] as num?)?.toInt() ?? 0,
+    permitCount: (json['permitCount'] as num?)?.toInt() ?? 0,
+    convoyFundiDays: (json['convoyFundiDays'] as num?)?.toInt() ?? 0,
+    holidayDays: (json['holidayDays'] as num?)?.toInt() ?? 0,
+    restDays: (json['restDays'] as num?)?.toInt() ?? 0,
+    totalWorkHours: (json['totalWorkHours'] as num?)?.toDouble() ?? 0,
+    totalRequiredHours: (json['totalRequiredHours'] as num?)?.toDouble() ?? 0,
+    averageWorkHours: (json['averageWorkHours'] as num?)?.toDouble() ?? 0,
+    totalLateMinutes: (json['totalLateMinutes'] as num?)?.toInt() ?? 0,
+    totalEarlyLeaveMinutes:
+        (json['totalEarlyLeaveMinutes'] as num?)?.toInt() ?? 0,
+    totalOvertimeMinutes: (json['totalOvertimeMinutes'] as num?)?.toInt() ?? 0,
+    missingCheckInCount: (json['missingCheckInCount'] as num?)?.toInt() ?? 0,
+    missingCheckOutCount: (json['missingCheckOutCount'] as num?)?.toInt() ?? 0,
+    correctionCount: (json['correctionCount'] as num?)?.toInt() ?? 0,
+    attendanceRate: (json['attendanceRate'] as num?)?.toDouble(),
+    attendanceRatePresentDays:
+        ((json['attendanceRateBasis'] as Map<String, dynamic>?)?['presentInDue']
+                as num?)
+            ?.toInt() ??
+        (json['presentDays'] as num?)?.toInt() ??
+        0,
+    attendanceRateDueDays:
+        ((json['attendanceRateBasis'] as Map<String, dynamic>?)?['dueDays']
+                as num?)
+            ?.toInt() ??
+        (json['scheduledDays'] as num?)?.toInt() ??
+        (json['dueScheduledDays'] as num?)?.toInt() ??
+        0,
+    hoursComplianceRate: (json['hoursComplianceRate'] as num?)?.toDouble() ?? 0,
+    hoursComplianceAvailable:
+        json['hoursComplianceAvailable'] as bool? ??
+        ((json['totalRequiredHours'] as num?)?.toDouble() ?? 0) > 0,
+    coverageRate: (json['coverageRate'] as num?)?.toDouble() ?? 0,
+    coverageDays: (json['coverageDays'] as num?)?.toInt() ?? 0,
+    totalDeficitMinutes: (json['totalDeficitMinutes'] as num?)?.toInt() ?? 0,
+    hoursRateWorkedMinutes:
+        (((json['hoursRateBasis'] as Map<String, dynamic>?)?['workedMinutes'])
+                as num?)
+            ?.toInt() ??
+        (((json['totalWorkHours'] as num?)?.toDouble() ?? 0) * 60).round(),
+    hoursRateRequiredMinutes:
+        (((json['hoursRateBasis'] as Map<String, dynamic>?)?['requiredMinutes'])
+                as num?)
+            ?.toInt() ??
+        (((json['totalRequiredHours'] as num?)?.toDouble() ?? 0) * 60).round(),
+  );
 
   final int totalDays;
   final int scheduledDays;
@@ -1600,7 +1624,9 @@ class MonthlyAttendanceStatement {
       endDate: period['endDate'] as String? ?? '',
       generatedAt: period['generatedAt'] as String? ?? '',
       days: daysJson
-          .map((e) => AttendanceStatementDay.fromJson(e as Map<String, dynamic>))
+          .map(
+            (e) => AttendanceStatementDay.fromJson(e as Map<String, dynamic>),
+          )
           .toList(growable: false),
       summary: AttendanceStatementSummary.fromJson(sumJson),
     );
@@ -1621,13 +1647,13 @@ class MonthlyAttendanceStatement {
   final List<AttendanceStatementDay> days;
   final AttendanceStatementSummary summary;
 
-  /// نسبة الحضور حتى الآن (الحضور ÷ أيام العمل المستحقة، دون المستقبل).
+  /// نسبة الحضور الشهرية (كل يوم به بصمة دخول ÷ كل أيام عمل الشهر).
   double get attendancePercentage =>
       summary.attendanceRate ??
       (summary.attendanceRateDueDays > 0
           ? (summary.attendanceRatePresentDays /
-              summary.attendanceRateDueDays *
-              100)
+                summary.attendanceRateDueDays *
+                100)
           : 0);
 
   double get hoursPercentage => summary.hoursComplianceRate;
@@ -1771,21 +1797,30 @@ class MobileDisputeCase {
         caseType: json['caseType'] as String? ?? 'grievance',
         status: json['status'] as String? ?? 'submitted',
         // get_my_dispute_portal يرسل 'priority' بينما باقي RPCs ترسل 'severity'
-        severity: json['severity'] as String? ?? json['priority'] as String? ?? 'normal',
+        severity:
+            json['severity'] as String? ??
+            json['priority'] as String? ??
+            'normal',
         respondentName: json['respondentName'] as String?,
         openedAt: _reqDate(json['openedAt']),
         canCancel: json['canCancel'] as bool? ?? false,
         isCommitteeMember: json['isCommitteeMember'] as bool? ?? false,
         proposedAdminAction: json['proposedAdminAction'] as String?,
         proposedActionDetail: json['proposedActionDetail'] as String?,
-        proposedAt: json['proposedAt'] != null ? DateTime.parse(json['proposedAt'] as String) : null,
+        proposedAt: json['proposedAt'] != null
+            ? DateTime.parse(json['proposedAt'] as String)
+            : null,
         proposedByName: json['proposedByName'] as String?,
         executiveDecision: json['executiveDecision'] as String?,
         executiveDecisionReason: json['executiveDecisionReason'] as String?,
-        executiveDecisionAt: json['executiveDecisionAt'] != null ? DateTime.parse(json['executiveDecisionAt'] as String) : null,
+        executiveDecisionAt: json['executiveDecisionAt'] != null
+            ? DateTime.parse(json['executiveDecisionAt'] as String)
+            : null,
         approvedAdminAction: json['approvedAdminAction'] as String?,
         approvedActionDetail: json['approvedActionDetail'] as String?,
-        executedAt: json['executedAt'] != null ? DateTime.parse(json['executedAt'] as String) : null,
+        executedAt: json['executedAt'] != null
+            ? DateTime.parse(json['executedAt'] as String)
+            : null,
         executedByName: json['executedByName'] as String?,
         executionNotes: json['executionNotes'] as String?,
         actorName: json['actorName'] as String?,
@@ -1854,8 +1889,7 @@ class DisputeCaseParty {
       employeeId: json['employee_id'] as String,
       employeeName: empData?['full_name_ar'] as String? ?? 'موظف',
       partyType: json['party_type'] as String? ?? 'related',
-      notificationStatus:
-          json['notification_status'] as String? ?? 'withheld',
+      notificationStatus: json['notification_status'] as String? ?? 'withheld',
     );
   }
   final String id;
@@ -1981,7 +2015,8 @@ class ExecutiveDisputeInbox {
         recentlyExecuted: _parseCases(json['recentlyExecuted']),
         counts: ExecutiveDisputeCounts.fromJson(
           Map<String, dynamic>.from(
-              (json['counts'] as Map<dynamic, dynamic>?) ?? const {}),
+            (json['counts'] as Map<dynamic, dynamic>?) ?? const {},
+          ),
         ),
       );
   final List<MobileDisputeCase> awaitingDecision;
@@ -1991,8 +2026,11 @@ class ExecutiveDisputeInbox {
 
   static List<MobileDisputeCase> _parseCases(dynamic raw) =>
       (raw as List<dynamic>? ?? const [])
-          .map((e) => MobileDisputeCase.fromJson(
-              Map<String, dynamic>.from(e as Map<dynamic, dynamic>)))
+          .map(
+            (e) => MobileDisputeCase.fromJson(
+              Map<String, dynamic>.from(e as Map<dynamic, dynamic>),
+            ),
+          )
           .toList(growable: false);
 }
 
@@ -2157,18 +2195,19 @@ class CommitteeDisputeSummary {
 }
 
 class CommitteeDisputePortal {
-  const CommitteeDisputePortal({
-    required this.cases,
-    required this.summary,
-  });
+  const CommitteeDisputePortal({required this.cases, required this.summary});
   factory CommitteeDisputePortal.fromJson(Map<String, dynamic> j) =>
       CommitteeDisputePortal(
         cases: (j['cases'] as List<dynamic>? ?? [])
-            .map((e) => CommitteeDisputeCase.fromJson(
-                Map<String, dynamic>.from(e as Map)))
+            .map(
+              (e) => CommitteeDisputeCase.fromJson(
+                Map<String, dynamic>.from(e as Map),
+              ),
+            )
             .toList(growable: false),
         summary: CommitteeDisputeSummary.fromJson(
-            Map<String, dynamic>.from(j['summary'] as Map? ?? const {})),
+          Map<String, dynamic>.from(j['summary'] as Map? ?? const {}),
+        ),
       );
 
   final List<CommitteeDisputeCase> cases;
@@ -2221,11 +2260,13 @@ class DisputeCaseRecommendations {
   factory DisputeCaseRecommendations.fromJson(Map<String, dynamic> j) =>
       DisputeCaseRecommendations(
         recommendations: (j['recommendations'] as List<dynamic>? ?? [])
-            .map((e) => DisputeRecommendation.fromJson(
-                Map<String, dynamic>.from(e as Map)))
+            .map(
+              (e) => DisputeRecommendation.fromJson(
+                Map<String, dynamic>.from(e as Map),
+              ),
+            )
             .toList(growable: false),
-        myRecommendationExists:
-            j['myRecommendationExists'] as bool? ?? false,
+        myRecommendationExists: j['myRecommendationExists'] as bool? ?? false,
         totalCount: (j['totalCount'] as num?)?.toInt() ?? 0,
       );
 
@@ -2589,15 +2630,15 @@ class AttendanceTodayEmployee {
   String get statusAr {
     if (isOnMission) return 'مأمورية خارجية';
     return switch (attendanceStatus) {
-      'present'  => 'حضر',
-      'late'     => 'متأخر',
-      'absent'   => 'غائب',
+      'present' => 'حضر',
+      'late' => 'متأخر',
+      'absent' => 'غائب',
       'on_leave' => 'إجازة',
-      'holiday'  => 'عطلة',
-      'weekend'  => 'إجازة أسبوعية',
-      'partial'  => 'حضور جزئي',
-      'pending'  => 'في انتظار التحقق',
-      _          => attendanceStatus,
+      'holiday' => 'عطلة',
+      'weekend' => 'إجازة أسبوعية',
+      'partial' => 'حضور جزئي',
+      'pending' => 'في انتظار التحقق',
+      _ => attendanceStatus,
     };
   }
 }

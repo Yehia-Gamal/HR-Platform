@@ -255,7 +255,7 @@ export function RecruitmentPage() {
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
                 {workbench.data.applications.map((application) => {
-                  const stages = workbench.data!.stages.filter((stage) => stage.postingId === application.postingId);
+                  const stages = workbench.data.stages.filter((stage) => stage.postingId === application.postingId);
                   return (
                     <tr key={application.id}>
                       <td className="p-3 font-bold">{application.candidateName}</td>

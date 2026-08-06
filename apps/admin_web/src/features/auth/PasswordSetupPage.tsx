@@ -78,7 +78,7 @@ export function PasswordSetupPage() {
         // رسائل خطأ محددة لسياسات كلمة المرور
         const msg = updateError.message?.toLowerCase() ?? '';
         if (msg.includes('weak') || msg.includes('strength') || msg.includes('policy') || msg.includes('short')) {
-          setError('كلمة المرور ضعيفة. استخدم مزيجًا من الأحرف الكبيرة والصغيرة والأرقام والرموز (مثل @#$).');
+          setError('كلمة المرور ضعيفة. استخدم مزيجًا من الأحرف الكبيرة والصغيرة والأرقام، بطول لا يقل عن 8 أحرف.');
         } else if (msg.includes('same') || msg.includes('previous') || msg.includes('reuse')) {
           setError('لا يمكن إعادة استخدام نفس كلمة المرور السابقة. اختر كلمة مرور مختلفة.');
         } else if (msg.includes('session') || msg.includes('token') || msg.includes('expired')) {

@@ -45,6 +45,7 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
   const points: LocationPoint[] = Array.isArray(data.points) ? data.points : [];
   // V17 §9: video data ignored — video permanently disabled.
   const latest = points.length ? points[points.length - 1] : null;
+  const latestAccuracy = latest ? num(latest.accuracy) : null;
 
   const mapPoints: MapPoint[] = points
     .filter((p) => num(p.latitude) !== null && num(p.longitude) !== null)
@@ -87,7 +88,7 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
         <div className="mt-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
           <Stat icon={Clock} label="أُرسل" value={fmt(request.requestedAt)} />
           <Stat icon={Clock} label="استجاب" value={fmt(request.respondedAt)} />
-          <Stat icon={Crosshair} label="دقة GPS" value={latest && num(latest.accuracy) !== null ? `${Math.round(num(latest.accuracy)!)} متر` : '—'} />
+          <Stat icon={Crosshair} label="دقة GPS" value={latestAccuracy !== null ? `${Math.round(latestAccuracy)} متر` : '—'} />
           <Stat icon={ShieldAlert} label="Mock GPS" value={latest?.isMock ? 'مشتبه' : 'لا'} />
         </div>
       </article>
@@ -116,11 +117,11 @@ export function LiveLocationResultCard({ requestId }: { requestId: string }) {
                 <MapPin className="mt-0.5 size-4 shrink-0 text-[var(--brand-primary)]" />
                 <span>
                   الموظف قريب من: <strong>{latest.addressAr}</strong>
-                  {num(latest.accuracy) !== null ? <> — دقة تقريبية {Math.round(num(latest.accuracy)!)} متر</> : null}
+                  {latestAccuracy !== null ? <> — دقة تقريبية {Math.round(latestAccuracy)} متر</> : null}
                 </span>
               </p>
-            ) : num(latest?.accuracy) !== null ? (
-              <p className="muted mt-3 text-sm">إحداثيات مسجّلة بدقة تقريبية {Math.round(num(latest?.accuracy)!)} متر (لم يتوفّر عنوان نصي).</p>
+            ) : latestAccuracy !== null ? (
+              <p className="muted mt-3 text-sm">إحداثيات مسجّلة بدقة تقريبية {Math.round(latestAccuracy)} متر (لم يتوفّر عنوان نصي).</p>
             ) : null}
           </div>
         </article>

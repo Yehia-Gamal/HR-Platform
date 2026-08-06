@@ -97,4 +97,52 @@ describe('safeErrorMessage', () => {
     expect(spy).toHaveBeenCalledWith('[خطأ AAAAAAAA]', err);
     spy.mockRestore();
   });
+
+  it('يترجم 42501 (SQLSTATE صلاحية) إلى رسالة صلاحية عربية', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(safeErrorMessage(new Error('permission denied for function create_kpi_cycle_admin (SQLSTATE 42501)'))).toContain('ليس لديك صلاحية');
+    spy.mockRestore();
+  });
+
+  it('يترجم PGRST202 / schema cache إلى رسالة تحديث مخزن الخدمة', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(safeErrorMessage(new Error('Could not find the function public.create_kpi_cycle_admin in the schema cache'))).toContain('لم تُحدَّث بعد آخر تغيير');
+    expect(safeErrorMessage(new Error('PGRST202'))).toContain('لم تُحدَّث بعد آخر تغيير');
+    spy.mockRestore();
+  });
+
+  it('يترجم أخطاء قيود DB الموسّعة', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(safeErrorMessage(new Error('null value in column "policy_version_id" violates not-null constraint'))).toContain('حقل مطلوب');
+    expect(safeErrorMessage(new Error('column "use_parallel_flow" does not exist'))).toContain('عمود في قاعدة البيانات');
+    expect(safeErrorMessage(new Error('relation "kpi_cycles" does not exist'))).toContain('جدول في قاعدة البيانات');
+    spy.mockRestore();
+  });
+
+  it('يترجم أخطاء إجراء KPI المخزن إلى العربية', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(safeErrorMessage(new Error('ONLY_OFFICIAL_KPI_TEMPLATE_IS_ALLOWED'))).toContain('القالب الرسمي');
+    expect(safeErrorMessage(new Error('INVALID_CYCLE_STATE'))).toContain('حالة الدورة');
+    expect(safeErrorMessage(new Error('CONTROL_REASON_REQUIRED'))).toContain('سبب الإجراء الإداري');
+    expect(safeErrorMessage(new Error('CYCLE_ALREADY_STARTED'))).toContain('إلغاء فتح الدورة');
+    expect(safeErrorMessage(new Error('CYCLE_MUST_BE_CLOSED'))).toContain('إغلاق الدورة');
+    expect(safeErrorMessage(new Error('APPEAL_ALREADY_DECIDED'))).toContain('الاعتراض');
+    expect(safeErrorMessage(new Error('CYCLE_NOT_FOUND'))).toContain('دورة KPI');
+    expect(safeErrorMessage(new Error('INVALID_SCHEDULE'))).toContain('تواريخ الجدولة');
+    spy.mockRestore();
+  });
+
+  it('يترجم أخطاء أرشفة/حذف الموظف المخزّنة إلى العربية', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(safeErrorMessage(new Error('delete_confirmation_mismatch'))).toContain('رمز التأكيد');
+    expect(safeErrorMessage(new Error('employee_history_requires_archive'))).toContain('أرشِف الموظف');
+    expect(safeErrorMessage(new Error('manager_has_direct_reports'))).toContain('مرؤوسون');
+    expect(safeErrorMessage(new Error('main_admin_required'))).toContain('ليست لديك صلاحية حذف');
+    expect(safeErrorMessage(new Error('self_delete_not_allowed'))).toContain('حسابك الحالي');
+    expect(safeErrorMessage(new Error('delete_reason_required'))).toContain('سبب الحذف');
+    expect(safeErrorMessage(new Error('self_archive_not_allowed'))).toContain('حسابك الحالي');
+    expect(safeErrorMessage(new Error('archive_reason_required'))).toContain('سبب الأرشفة');
+    expect(safeErrorMessage(new Error('employee_not_found'))).toContain('لم يُعثر على الموظف');
+    spy.mockRestore();
+  });
 });

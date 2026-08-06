@@ -172,9 +172,9 @@ export function OfficialFeedPage() {
   // hasPermission already grants full-access roles via the '*' wildcard,
   // so the previous `|| workspaces.includes('main_admin')` fallback was
   // redundant and risked granting capabilities to non-permissioned admins.
-  const canPublish = hasPermission(auth.access!, 'comms.announcement.manage');
-  const canManageDecision = hasPermission(auth.access!, 'comms.decision.manage');
-  const canApproveDecision = hasPermission(auth.access!, 'comms.decision.approve');
+  const canPublish = hasPermission(auth.access, 'comms.announcement.manage');
+  const canManageDecision = hasPermission(auth.access, 'comms.decision.manage');
+  const canApproveDecision = hasPermission(auth.access, 'comms.decision.approve');
 
   const nextAction = (status: string): 'submit_review' | 'approve' | 'publish' | 'archive' | null => {
     if (status === 'draft') return 'submit_review';

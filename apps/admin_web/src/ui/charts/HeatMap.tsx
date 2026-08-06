@@ -60,8 +60,12 @@ export function HeatMap({ data, height = 18, colorScale = 'green' }: HeatMapProp
     let mx = -Infinity;
 
     for (const d of data) {
-      if (!map.has(d.day)) map.set(d.day, new Map());
-      map.get(d.day)!.set(d.hour, d.value);
+      let bucket = map.get(d.day);
+      if (!bucket) {
+        bucket = new Map();
+        map.set(d.day, bucket);
+      }
+      bucket.set(d.hour, d.value);
       if (d.value < mn) mn = d.value;
       if (d.value > mx) mx = d.value;
     }

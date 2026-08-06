@@ -3,6 +3,8 @@ import type {
   ActionCenterItem,
   AttendanceDashboard,
   AttendanceOperationsCatalog,
+  AttendanceRosterCategory,
+  AttendanceRosterItem,
   AttendanceStatement,
   DisputeOperationsCatalog,
   EmployeeSummary,
@@ -21,6 +23,7 @@ import type { Holiday } from '../holidays/useHolidays';
 import type { OrganizationLookups } from '../employees/useOrganizationLookups';
 import type { HrReportsSummary } from '../management/useHrReportsSummary';
 import type { AuditSecurityData, IntegrationCenterData, LocationDirectoryItem, OperationsCenterData } from '../management/controlCenterTypes';
+import type { ExecutiveOverviewData } from '../management/controlCenterTypes';
 
 const now = new Date();
 const iso = (offsetHours = 0) => new Date(now.getTime() + offsetHours * 3_600_000).toISOString();
@@ -30,9 +33,93 @@ export const mockAttendanceDashboard: AttendanceDashboard = {
   present: 45,
   late: 5,
   absent: 4,
+  unexcusedAbsent: 1,
   incomplete: 3,
   pendingReview: 2,
+  locationRequestsToday: 4,
+  locationRespondedToday: 3,
   lastUpdatedAt: iso(),
+};
+
+const rosterItem = (employeeId: string, employeeName: string, employeeCode: string, status: string | null, partial: Partial<AttendanceRosterItem> = {}): AttendanceRosterItem => ({
+  employeeId,
+  employeeName,
+  employeeCode,
+  photoUrl: null,
+  departmentName: 'خدمات الشباب',
+  status,
+  lateMinutes: null,
+  firstCheckIn: null,
+  lastCheckOut: null,
+  locationRequestStatus: null,
+  ...partial,
+});
+
+export const mockAttendanceRoster: Record<AttendanceRosterCategory, AttendanceRosterItem[]> = {
+  scheduled: [
+    rosterItem('30000000-0000-4000-8000-000000000001', 'أحمد محمود', 'EMP-104', 'present', { firstCheckIn: iso(-7), lastCheckOut: iso(-1), departmentName: 'الحسابات' }),
+    rosterItem('30000000-0000-4000-8000-000000000002', 'محمود علي', 'EMP-087', 'late', { lateMinutes: 25, firstCheckIn: iso(-6), lastCheckOut: iso(-1), departmentName: 'البرامج الميدانية' }),
+    rosterItem('30000000-0000-4000-8000-000000000003', 'سارة حسن', 'EMP-132', 'absent', { departmentName: 'الموارد البشرية' }),
+    rosterItem('30000000-0000-4000-8000-000000000004', 'ليلى إبراهيم', 'EMP-041', 'present', { firstCheckIn: iso(-8), lastCheckOut: iso(-1), departmentName: 'الإعلام والتوثيق' }),
+  ],
+  present: [
+    rosterItem('30000000-0000-4000-8000-000000000001', 'أحمد محمود', 'EMP-104', 'present', { firstCheckIn: iso(-7), lastCheckOut: iso(-1), departmentName: 'الحسابات' }),
+    rosterItem('30000000-0000-4000-8000-000000000004', 'ليلى إبراهيم', 'EMP-041', 'present', { firstCheckIn: iso(-8), lastCheckOut: iso(-1), departmentName: 'الإعلام والتوثيق' }),
+    rosterItem('30000000-0000-4000-8000-000000000005', 'خالد سعيد', 'EMP-118', 'present', { firstCheckIn: iso(-9), lastCheckOut: iso(-1), departmentName: 'خدمات الشباب' }),
+  ],
+  late: [
+    rosterItem('30000000-0000-4000-8000-000000000002', 'محمود علي', 'EMP-087', 'late', { lateMinutes: 25, firstCheckIn: iso(-6), lastCheckOut: iso(-1), departmentName: 'البرامج الميدانية' }),
+    rosterItem('30000000-0000-4000-8000-000000000006', 'نور هاني', 'EMP-076', 'late', { lateMinutes: 12, firstCheckIn: iso(-5), lastCheckOut: iso(-1), departmentName: 'خدمات الشباب' }),
+  ],
+  absent: [
+    rosterItem('30000000-0000-4000-8000-000000000003', 'سارة حسن', 'EMP-132', 'absent', { departmentName: 'الموارد البشرية' }),
+    rosterItem('30000000-0000-4000-8000-000000000007', 'عمر فتحي', 'EMP-053', 'absent', { departmentName: 'البرامج الميدانية' }),
+  ],
+  unexcused_absent: [
+    rosterItem('30000000-0000-4000-8000-000000000007', 'عمر فتحي', 'EMP-053', 'absent', { departmentName: 'البرامج الميدانية' }),
+  ],
+  incomplete: [
+    rosterItem('30000000-0000-4000-8000-000000000008', 'منى عادل', 'EMP-092', 'partial', { firstCheckIn: iso(-7), departmentName: 'الحسابات' }),
+    rosterItem('30000000-0000-4000-8000-000000000006', 'نور هاني', 'EMP-076', 'partial', { firstCheckIn: iso(-5), departmentName: 'خدمات الشباب' }),
+  ],
+  pending_review: [
+    rosterItem('30000000-0000-4000-8000-000000000005', 'خالد سعيد', 'EMP-118', 'pending', { locationRequestStatus: 'pending', departmentName: 'خدمات الشباب' }),
+  ],
+  location_requests: [
+    rosterItem('30000000-0000-4000-8000-000000000002', 'محمود علي', 'EMP-087', 'late', { locationRequestStatus: 'pending', lateMinutes: 25, firstCheckIn: iso(-6), departmentName: 'البرامج الميدانية' }),
+    rosterItem('30000000-0000-4000-8000-000000000004', 'ليلى إبراهيم', 'EMP-041', 'present', { locationRequestStatus: 'active', firstCheckIn: iso(-8), departmentName: 'الإعلام والتوثيق' }),
+  ],
+  location_responded: [
+    rosterItem('30000000-0000-4000-8000-000000000001', 'أحمد محمود', 'EMP-104', 'present', { locationRequestStatus: 'accepted', firstCheckIn: iso(-7), lastCheckOut: iso(-1), departmentName: 'الحسابات' }),
+    rosterItem('30000000-0000-4000-8000-000000000005', 'خالد سعيد', 'EMP-118', 'present', { locationRequestStatus: 'accepted', firstCheckIn: iso(-9), lastCheckOut: iso(-1), departmentName: 'خدمات الشباب' }),
+  ],
+};
+
+// نبض اليوم في دليل الموظفين — يعكس get_executive_attendance_overview.
+export const mockDailyPulse: ExecutiveOverviewData = {
+  summary: {
+    total: 8,
+    present: 4,
+    late: 2,
+    notYet: 0,
+    onLeave: 0,
+    onMission: 0,
+    onConvoy: 0,
+    onFundraising: 0,
+    checkedOut: 1,
+    absent: 2,
+    activeLocationRequests: 3,
+  },
+  employees: [
+    { id: '30000000-0000-4000-8000-000000000001', name: 'أحمد محمود', employeeCode: 'EMP-104', department: 'الحسابات', jobTitle: 'محاسب أول', status: 'present', managerName: 'عبد الرحمن سالم', activeRequestStatus: 'accepted', activeRequestId: '41000000-0000-4000-8000-000000000101', lateMinutes: null, lastLatitude: 30.0444, lastLongitude: 31.2357, lastAccuracy: 12, lastAddressAr: 'القاهرة — وسط البلد', lastLocationAt: iso(-1), checkInAt: iso(-7), checkOutAt: iso(-1) },
+    { id: '30000000-0000-4000-8000-000000000004', name: 'ليلى إبراهيم', employeeCode: 'EMP-041', department: 'الإعلام والتوثيق', jobTitle: 'مصورة صحفية', status: 'present', managerName: 'سامح فؤاد', activeRequestStatus: 'active', activeRequestId: '41000000-0000-4000-8000-000000000102', lateMinutes: null, lastLatitude: 30.0549, lastLongitude: 31.2403, lastAccuracy: 9, lastAddressAr: 'القاهرة — الأوبرا', lastLocationAt: iso(-1), checkInAt: iso(-8), checkOutAt: iso(-1) },
+    { id: '30000000-0000-4000-8000-000000000005', name: 'خالد سعيد', employeeCode: 'EMP-118', department: 'خدمات الشباب', jobTitle: 'منسق نشاط', status: 'present', managerName: 'سامح فؤاد', activeRequestStatus: 'accepted', activeRequestId: '41000000-0000-4000-8000-000000000103', lateMinutes: null, lastLatitude: 30.0609, lastLongitude: 31.2201, lastAccuracy: 15, lastAddressAr: 'الجيزة — المنيل', lastLocationAt: iso(-1), checkInAt: iso(-9), checkOutAt: iso(-1) },
+    { id: '30000000-0000-4000-8000-000000000008', name: 'منى عادل', employeeCode: 'EMP-092', department: 'الحسابات', jobTitle: 'مراجع داخلي', status: 'checked_out', managerName: 'عبد الرحمن سالم', activeRequestStatus: null, activeRequestId: null, lateMinutes: null, lastLatitude: null, lastLongitude: null, lastAccuracy: null, lastAddressAr: null, lastLocationAt: null, checkInAt: iso(-7), checkOutAt: iso(-2) },
+    { id: '30000000-0000-4000-8000-000000000002', name: 'محمود علي', employeeCode: 'EMP-087', department: 'البرامج الميدانية', jobTitle: 'منسق ميداني', status: 'late', managerName: 'طارق زيدان', activeRequestStatus: 'pending', activeRequestId: '41000000-0000-4000-8000-000000000104', lateMinutes: 25, lastLatitude: 30.034, lastLongitude: 31.204, lastAccuracy: 20, lastAddressAr: 'الجيزة — فيصل', lastLocationAt: iso(-1), checkInAt: iso(-6), checkOutAt: iso(-1) },
+    { id: '30000000-0000-4000-8000-000000000006', name: 'نور هاني', employeeCode: 'EMP-076', department: 'خدمات الشباب', jobTitle: 'أخصائي أنشطة', status: 'late', managerName: 'سامح فؤاد', activeRequestStatus: null, activeRequestId: null, lateMinutes: 12, lastLatitude: 30.07, lastLongitude: 31.23, lastAccuracy: 11, lastAddressAr: 'القاهرة — مدينة نصر', lastLocationAt: iso(-1), checkInAt: iso(-5), checkOutAt: iso(-1) },
+    { id: '30000000-0000-4000-8000-000000000003', name: 'سارة حسن', employeeCode: 'EMP-132', department: 'الموارد البشرية', jobTitle: 'أخصائي موارد بشرية', status: 'absent', managerName: 'هدى مصطفى', activeRequestStatus: null, activeRequestId: null, lateMinutes: null, lastLatitude: null, lastLongitude: null, lastAccuracy: null, lastAddressAr: null, lastLocationAt: null, checkInAt: null, checkOutAt: null },
+    { id: '30000000-0000-4000-8000-000000000007', name: 'عمر فتحي', employeeCode: 'EMP-053', department: 'البرامج الميدانية', jobTitle: 'مشرف مواقع', status: 'absent', managerName: 'طارق زيدان', activeRequestStatus: null, activeRequestId: null, lateMinutes: null, lastLatitude: null, lastLongitude: null, lastAccuracy: null, lastAddressAr: null, lastLocationAt: null, checkInAt: null, checkOutAt: null },
+  ],
 };
 
 export const mockRequests: RequestSummary[] = [

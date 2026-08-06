@@ -3,13 +3,24 @@ import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 
 const _months = [
-  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
+  'يناير',
+  'فبراير',
+  'مارس',
+  'أبريل',
+  'مايو',
+  'يونيو',
+  'يوليو',
+  'أغسطس',
+  'سبتمبر',
+  'أكتوبر',
+  'نوفمبر',
+  'ديسمبر',
 ];
 
 const _warnStatuses = {'غائب دون إذن', 'يحتاج مراجعة'};
 
-String _fmtTime(String? t) => (t != null && t.length >= 5) ? t.substring(0, 5) : '—';
+String _fmtTime(String? t) =>
+    (t != null && t.length >= 5) ? t.substring(0, 5) : '—';
 
 /// يهرّب محارف HTML الخاصة لمنع XSS/injection عند إدراج نصوص المستخدم في قوالب HTML.
 String _escapeHtml(String text) => text
@@ -19,8 +30,11 @@ String _escapeHtml(String text) => text
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 
-String _pctColor(double pct) =>
-    pct >= 90 ? '#059669' : pct >= 75 ? '#f59e0b' : '#dc2626';
+String _pctColor(double pct) => pct >= 90
+    ? '#059669'
+    : pct >= 75
+    ? '#f59e0b'
+    : '#dc2626';
 
 /// يُنشئ HTML منسّق لكشف الحضور الشهري — نفس تصميم نسخة الويب بالضبط.
 String _buildAttendanceHtml(MonthlyAttendanceStatement stmt) {
@@ -59,9 +73,14 @@ String _buildAttendanceHtml(MonthlyAttendanceStatement stmt) {
         : isWarn
         ? '#fef2f2'
         : '';
-    final statusColor = isWarn ? '#dc2626' : isRest ? '#0369a1' : '#111827';
+    final statusColor = isWarn
+        ? '#dc2626'
+        : isRest
+        ? '#0369a1'
+        : '#111827';
 
-    dayRows.writeln('''<tr style="border-bottom:1px solid #e5e7eb;${rowBg.isNotEmpty ? 'background:$rowBg;' : ''}">
+    dayRows.writeln(
+      '''<tr style="border-bottom:1px solid #e5e7eb;${rowBg.isNotEmpty ? 'background:$rowBg;' : ''}">
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${_escapeHtml(d.date)}</td>
       <td style="padding:6px 8px;text-align:center">${_escapeHtml(d.dayNameAr)}</td>
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${_fmtTime(d.checkIn)}</td>
@@ -73,7 +92,8 @@ String _buildAttendanceHtml(MonthlyAttendanceStatement stmt) {
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;${d.overtimeMinutes > 0 ? 'color:#059669;font-weight:700;' : ''}">${d.overtimeMinutes > 0 ? '${d.overtimeMinutes} د' : '—'}</td>
       <td style="padding:6px 8px;text-align:center;font-weight:700;color:$statusColor">${_escapeHtml(d.status)}</td>
       <td style="padding:6px 8px;text-align:center;font-size:9px">${tags.isNotEmpty ? tags.join('، ') : _escapeHtml(d.correctionNote ?? '')}</td>
-    </tr>''');
+    </tr>''',
+    );
   }
 
   final now = DateTime.now();

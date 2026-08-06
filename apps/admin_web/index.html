@@ -6,19 +6,7 @@
     <meta name="theme-color" content="#2563eb" />
     <meta name="description" content="منصة أحلى شباب الموحدة للموارد البشرية والتشغيل والحوكمة." />
     <meta name="color-scheme" content="light dark" />
-    <script>
-      (() => {
-        try {
-          const saved = localStorage.getItem('ahla-theme');
-          const theme = saved === 'light' || saved === 'dark'
-            ? saved
-            : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-          document.documentElement.dataset.theme = theme;
-          document.documentElement.style.colorScheme = theme;
-          document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#060B16' : '#2563eb');
-        } catch { /* The application bootstrap applies the default theme. */ }
-      })();
-    </script>
+    <script src="/theme-init.js"></script>
     <link rel="icon" href="/logo-mark.svg" type="image/svg+xml" />
     <link rel="manifest" href="/manifest.json" />
     <title>أحلى شباب — لوحة الإدارة</title>

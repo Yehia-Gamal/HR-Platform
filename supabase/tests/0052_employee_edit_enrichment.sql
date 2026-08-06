@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(12);
+select plan(13);
 
 select has_function(
   'public', 'update_employee_admin', array['uuid','jsonb','text'],
@@ -121,13 +121,23 @@ select throws_ok(
   '22023', null, 'unknown patch field is rejected'
 );
 
-select throws_ok(
+select lives_ok(
   $$select public.update_employee_admin(
     'a5200000-0000-4000-8000-000000000202',
-    '{"fullNameAr":"اسم آخر"}'::jsonb,
+    '{"fullNameAr":"اسم بلا سبب"}'::jsonb,
     ' '
   )$$,
-  '22023', null, 'change reason is mandatory'
+  'empty change reason is tolerated since 0285 (default audit reason)'
+);
+
+select is(
+  (select description from public.audit_events
+   where target_table='employees'
+     and target_id='a5200000-0000-4000-8000-000000000202'
+     and metadata->'after'->>'fullNameAr' = 'اسم بلا سبب'
+   limit 1),
+  'تعديل عبر لوحة التحكم',
+  'default audit reason recorded when change reason is empty'
 );
 
 select is(

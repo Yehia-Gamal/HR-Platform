@@ -36,7 +36,9 @@ const queryClient = new QueryClient({
 attachQueryObservability(queryClient as unknown as Parameters<typeof attachQueryObservability>[0]);
 void initWebVitals();
 
-createRoot(document.getElementById('root')!).render(
+const rootElement = document.getElementById('root');
+if (!rootElement) throw new Error('Root element #root not found');
+createRoot(rootElement).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <AppErrorBoundary>

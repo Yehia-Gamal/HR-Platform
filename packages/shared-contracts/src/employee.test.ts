@@ -6,6 +6,7 @@ const base = {
   email: 'ahmed@example.com',
   phoneE164: '01154869616',
   roleSlug: 'employee',
+  initialPassword: 'StrongP@ss1',
 };
 
 describe('createEmployeeInputSchema — phone', () => {
@@ -59,6 +60,39 @@ describe('createEmployeeInputSchema — fields', () => {
   });
 });
 
+describe('createEmployeeInputSchema — initialPassword', () => {
+  it('is optional — omission allowed (server generates temporary password)', () => {
+    const { initialPassword: _omit, ...rest } = base;
+    const parsed = createEmployeeInputSchema.parse(rest);
+    expect(parsed.initialPassword).toBeUndefined();
+  });
+
+  it('rejects raw empty string (clients must normalize to undefined)', () => {
+    expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: '' })).toThrow();
+  });
+
+  it('enforces min 8 / max 15', () => {
+    expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'Abc123' })).toThrow();
+    expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'A1'.repeat(9) })).toThrow();
+  });
+
+  it('requires upper + lower + digit', () => {
+    expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'strongpassword1' })).toThrow();
+    expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'STRONGPASSWORD1' })).toThrow();
+    expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'Strongpassword' })).toThrow();
+  });
+
+  it('rejects identifier leakage (phone/email/code/name parts)', () => {
+    expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'Ahmed11Strong' })).toThrow();
+    expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: '01154869616Q' })).toThrow();
+  });
+
+  it('rejects common words and keyboard sequences', () => {
+    expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'Password1' })).toThrow();
+    expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'Qwerty12A' })).toThrow();
+  });
+});
+
 describe('createEmployeeResultSchema', () => {
   it('validates a well-formed result', () => {
     const result = createEmployeeResultSchema.parse({
@@ -67,6 +101,16 @@ describe('createEmployeeResultSchema', () => {
       invitationSent: true,
     });
     expect(result.invitationSent).toBe(true);
+  });
+
+  it('exposes a generated temporary password when returned', () => {
+    const result = createEmployeeResultSchema.parse({
+      employeeId: '11111111-1111-4111-8111-111111111111',
+      userId: '22222222-2222-4222-8222-222222222222',
+      invitationSent: true,
+      temporaryPassword: 'S0meTemp!9',
+    });
+    expect(result.temporaryPassword).toBe('S0meTemp!9');
   });
 
   it('rejects a non-uuid employeeId', () => {

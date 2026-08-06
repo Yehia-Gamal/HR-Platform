@@ -232,9 +232,12 @@ export function LiveLocationPage() {
 }
 
 function LocationMap({ items }: { items: LocationDirectoryItem[] }) {
-  const points = items.filter((item) => item.lastLatitude !== null && item.lastLongitude !== null);
-  const latitudes = points.map((item) => item.lastLatitude!);
-  const longitudes = points.map((item) => item.lastLongitude!);
+  const points = items.filter(
+    (item): item is LocationDirectoryItem & { lastLatitude: number; lastLongitude: number } =>
+      item.lastLatitude !== null && item.lastLongitude !== null,
+  );
+  const latitudes = points.map((item) => item.lastLatitude);
+  const longitudes = points.map((item) => item.lastLongitude);
   const minLat = points.length ? Math.min(...latitudes) : 0;
   const maxLat = points.length ? Math.max(...latitudes) : 0;
   const minLng = points.length ? Math.min(...longitudes) : 0;
@@ -267,8 +270,8 @@ function LocationMap({ items }: { items: LocationDirectoryItem[] }) {
           <span>نطاق التشغيل</span>
         </div>
         {points.map((item, index) => {
-          const left = 10 + ((((item.lastLongitude! - minLng) / lngRange) * 76 + index * 7) % 80);
-          const top = 12 + (((1 - (item.lastLatitude! - minLat) / latRange) * 65 + index * 11) % 70);
+          const left = 10 + ((((item.lastLongitude - minLng) / lngRange) * 76 + index * 7) % 80);
+          const top = 12 + (((1 - (item.lastLatitude - minLat) / latRange) * 65 + index * 11) % 70);
           const state = locationState(item);
           return (
             <span

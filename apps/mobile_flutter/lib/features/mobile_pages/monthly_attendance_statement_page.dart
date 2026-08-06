@@ -537,59 +537,74 @@ class _AttendancePercentageCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _PercentageGauge(label: 'حضور الشهر', percentage: pct, color: pctColor),
+                _PercentageGauge(
+                  label: 'حضور الشهر',
+                  percentage: pct,
+                  color: pctColor,
+                ),
                 const SizedBox(width: 16),
-                _PercentageGauge(label: 'ساعات الشهر', percentage: hoursPct, color: const Color(0xFF2563EB)),
+                _PercentageGauge(
+                  label: 'ساعات الشهر',
+                  percentage: hoursPct,
+                  color: const Color(0xFF2563EB),
+                ),
                 const SizedBox(width: 16),
-                _PercentageGauge(label: 'تغطية الأيام', percentage: s.coverageRate, color: const Color(0xFF7C3AED)),
+                _PercentageGauge(
+                  label: 'تغطية الأيام',
+                  percentage: s.coverageRate,
+                  color: const Color(0xFF7C3AED),
+                ),
               ],
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-            const SizedBox(width: 20),
-            // تفاصيل جانبية
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'نسبة الحضور الشهرية',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                const SizedBox(width: 20),
+                // تفاصيل جانبية
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'نسبة الحضور الشهرية',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _PctDetailRow(
+                        label: 'إجمالي أيام العمل بالشهر',
+                        value: '${s.attendanceRateDueDays}',
+                      ),
+                      _PctDetailRow(
+                        label: 'أيام بها بصمة حضور',
+                        value: '${s.attendanceRatePresentDays}',
+                      ),
+                      _PctDetailRow(
+                        label: 'إجمالي الحضور',
+                        value: '${s.presentDays}',
+                      ),
+                      _PctDetailRow(
+                        label: 'ورديات مفتوحة',
+                        value: '${s.openShiftDays}',
+                      ),
+                      _PctDetailRow(
+                        label: 'أيام قادمة',
+                        value: '${s.upcomingDays}',
+                      ),
+                      _PctDetailRow(
+                        label: 'الساعات المنجزة / المطلوبة',
+                        value:
+                            '${(s.hoursRateWorkedMinutes / 60).toStringAsFixed(1)} / ${(s.hoursRateRequiredMinutes / 60).toStringAsFixed(1)}',
+                      ),
+                      _PctDetailRow(
+                        label: 'أيام عطل رسمية',
+                        value: '${s.holidayDays}',
+                      ),
+                      _PctDetailRow(label: 'أيام راحة', value: '${s.restDays}'),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  _PctDetailRow(
-                    label: 'إجمالي أيام العمل بالشهر',
-                    value: '${s.attendanceRateDueDays}',
-                  ),
-                  _PctDetailRow(
-                    label: 'أيام بها بصمة حضور',
-                    value: '${s.attendanceRatePresentDays}',
-                  ),
-                  _PctDetailRow(label: 'إجمالي الحضور', value: '${s.presentDays}'),
-                  _PctDetailRow(
-                    label: 'ورديات مفتوحة',
-                    value: '${s.openShiftDays}',
-                  ),
-                  _PctDetailRow(
-                    label: 'أيام قادمة',
-                    value: '${s.upcomingDays}',
-                  ),
-                  _PctDetailRow(
-                    label: 'الساعات المنجزة / المطلوبة',
-                    value:
-                        '${(s.hoursRateWorkedMinutes / 60).toStringAsFixed(1)} / ${(s.hoursRateRequiredMinutes / 60).toStringAsFixed(1)}',
-                  ),
-                  _PctDetailRow(
-                    label: 'أيام عطل رسمية',
-                    value: '${s.holidayDays}',
-                  ),
-                  _PctDetailRow(label: 'أيام راحة', value: '${s.restDays}'),
-                ],
-              ),
-            ),
+                ),
               ],
             ),
           ],
@@ -600,7 +615,11 @@ class _AttendancePercentageCard extends StatelessWidget {
 }
 
 class _PercentageGauge extends StatelessWidget {
-  const _PercentageGauge({required this.label, required this.percentage, required this.color});
+  const _PercentageGauge({
+    required this.label,
+    required this.percentage,
+    required this.color,
+  });
   final String label;
   final double percentage;
   final Color color;
@@ -618,7 +637,9 @@ class _PercentageGauge extends StatelessWidget {
             child: CircularProgressIndicator(
               value: pct / 100,
               strokeWidth: 7,
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest,
               valueColor: AlwaysStoppedAnimation(color),
               strokeCap: StrokeCap.round,
             ),
@@ -626,8 +647,21 @@ class _PercentageGauge extends StatelessWidget {
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('${pct.toStringAsFixed(0)}%', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: color)),
-              Text(label, textAlign: TextAlign.center, style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 9)),
+              Text(
+                '${pct.toStringAsFixed(0)}%',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                  color: color,
+                ),
+              ),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(fontSize: 9),
+              ),
             ],
           ),
         ],

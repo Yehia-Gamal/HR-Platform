@@ -483,8 +483,9 @@ function buildTree(departments: DepartmentRow[]): TreeDept[] {
   for (const d of departments) map.set(d.id, { ...d, children: [] });
   const roots: TreeDept[] = [];
   for (const node of map.values()) {
-    if (node.parentId && map.has(node.parentId)) {
-      map.get(node.parentId)!.children.push(node);
+    const parent = node.parentId ? map.get(node.parentId) : undefined;
+    if (parent) {
+      parent.children.push(node);
     } else {
       roots.push(node);
     }

@@ -16,6 +16,7 @@ export function MonthlyStatementSection({ employeeId }: { employeeId: string }) 
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const query = useEmployeeMonthlyStatement(employeeId, year, month);
+  const statementData = query.data;
 
   return (
     <section aria-labelledby="stmt-heading" className="card space-y-4 p-5">
@@ -39,12 +40,12 @@ export function MonthlyStatementSection({ employeeId }: { employeeId: string }) 
               </option>
             ))}
           </select>
-          {query.data && (
+          {statementData && (
             <>
               <button
                 type="button"
                 className="btn btn-secondary flex items-center gap-1.5 text-xs"
-                onClick={() => exportAttendancePDF(query.data!)}
+                onClick={() => exportAttendancePDF(statementData)}
                 title="تنزيل نسخة PDF من كشف الحضور والانصراف"
               >
                 <FileDown className="size-4" aria-hidden="true" />
@@ -53,7 +54,7 @@ export function MonthlyStatementSection({ employeeId }: { employeeId: string }) 
               <button
                 type="button"
                 className="btn btn-primary flex items-center gap-1.5 text-xs"
-                onClick={() => exportAttendancePDF(query.data!)}
+                onClick={() => exportAttendancePDF(statementData)}
                 title="فتح نسخة قابلة للطباعة فوراً"
               >
                 <Printer className="size-4" aria-hidden="true" />

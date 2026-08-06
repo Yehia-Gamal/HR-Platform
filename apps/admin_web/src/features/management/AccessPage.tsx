@@ -521,8 +521,9 @@ function RoleManagementDialog({
   const grouped = useMemo(() => {
     const map = new Map<string, typeof filtered>();
     for (const p of filtered) {
-      if (!map.has(p.module)) map.set(p.module, []);
-      map.get(p.module)!.push(p);
+      const bucket = map.get(p.module);
+      if (bucket) bucket.push(p);
+      else map.set(p.module, [p]);
     }
     return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   }, [filtered]);

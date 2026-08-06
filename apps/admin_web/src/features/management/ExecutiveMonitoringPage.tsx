@@ -12,6 +12,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { LiveLocationMap, type MapPoint } from './LiveLocationMap';
 import { LiveLocationResultCard } from './LiveLocationResultCard';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { ATTENDANCE_STATUS_LABELS } from './statusLabels';
 import { useToast } from '../../ui/Toast';
 import { useExecutiveAttendanceOverview, useLiveLocationCommands } from './useControlCenters';
 import type { EmployeeOverviewRow, ExecutiveOverviewData } from './controlCenterTypes';
@@ -19,16 +20,7 @@ import type { EmployeeOverviewRow, ExecutiveOverviewData } from './controlCenter
 // لوحة المتابعة اليومية للمدير التنفيذي (الأقسام 1 + 2 + 3):
 // ملخص الحضور، فلاتر الحالة، قائمة الموظفين، خريطة حية، وإرسال طلب موقع فوري.
 
-const STATUS_LABELS: Record<string, string> = {
-  present: 'حاضر',
-  late: 'متأخر',
-  not_yet: 'لم يحضر بعد',
-  absent: 'غائب',
-  checked_out: 'انصرف',
-  left_early: 'انصرف مبكرًا',
-  on_leave: 'إجازة',
-  assignment: 'مأمورية/قافلة/فاندي',
-};
+const STATUS_LABELS = ATTENDANCE_STATUS_LABELS;
 
 const FILTERS: Array<{ id: string; label: string; key?: string }> = [
   { id: 'all', label: 'الكل' },

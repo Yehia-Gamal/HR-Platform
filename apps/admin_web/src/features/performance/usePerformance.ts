@@ -58,7 +58,8 @@ export function useKpiEvaluationForm(evaluationId: string | null) {
     queryKey: ['kpi-evaluation-form', evaluationId, auth.isMock],
     enabled: auth.status === 'authenticated' && Boolean(evaluationId) && !auth.isMock,
     queryFn: async () => {
-      const data = await rpc('get_kpi_evaluation_form', { p_evaluation_id: evaluationId! });
+      if (!evaluationId) throw new Error('evaluationId is required');
+      const data = await rpc('get_kpi_evaluation_form', { p_evaluation_id: evaluationId });
       return kpiEvaluationFormSchema.parse(data);
     },
   });

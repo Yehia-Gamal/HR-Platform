@@ -34,15 +34,11 @@ function computePosition(anchor: DOMRect) {
     top = Math.max(MARGIN, anchor.top - GAP - 200);
   }
 
-  // في RTL: نمحاذي الحافة اليمنى للزر — في LTR: الحافة اليسرى
-  const inlineStart = isRtl ? { right: window.innerWidth - anchor.right } : { left: anchor.left };
-
-  // ضمان عدم الخروج عن حدود الشاشة
-  if ('left' in inlineStart) {
-    inlineStart.left = Math.max(MARGIN, Math.min(inlineStart.left!, window.innerWidth - 220 - MARGIN));
-  } else {
-    inlineStart.right = Math.max(MARGIN, Math.min(inlineStart.right!, window.innerWidth - 220 - MARGIN));
-  }
+  // في RTL: نمحاذي الحافة اليمنى للزر — في LTR: الحافة اليسرى، مع ضمان عدم الخروج عن حدود الشاشة
+  const maxCoord = window.innerWidth - 220 - MARGIN;
+  const inlineStart = isRtl
+    ? { right: Math.max(MARGIN, Math.min(window.innerWidth - anchor.right, maxCoord)) }
+    : { left: Math.max(MARGIN, Math.min(anchor.left, maxCoord)) };
 
   return { top, ...inlineStart };
 }

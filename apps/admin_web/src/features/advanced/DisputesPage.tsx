@@ -712,7 +712,8 @@ function DecisionForm({ selected, people, commands, run }: { selected: DisputeCa
 }
 
 function DecisionDisplay({ selected }: { selected: DisputeCase }) {
-  const d = selected.decision!;
+  const d = selected.decision;
+  if (!d) return null;
   return (
     <section className="card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">

@@ -10,34 +10,32 @@ export function normalizePhone(raw: string): string {
 /**
  * التحقق من قوة كلمة المرور التي يحددها مسؤول HR يدوياً.
  * نفرض:
- *  - طول ≥ 12 حرف
- *  - حرف كبير + حرف صغير + رقم + رمز على الأقل واحد من كل
+ *  - طول بين 8 و15 حرفاً (نطاق UX-friendly — الموظف سيتمكن من تذكرها وكتابتها)
+ *  - حرف كبير واحد على الأقل + حرف صغير واحد على الأقل + رقم واحد على الأقل
  *  - لا تحتوي على جزء ≥ 4 أحرف متطابق مع بريد/هاتف/كود الموظف/اسمه
  *  - لا تتكون من كلمات قاموسية شائعة (عربية/لاتينية)
  *  - لا تتكون من سلاسل لوحة مفاتيح مألوفة (qwerty, 123456, …)
- *  - لا تكرار أكثر من 4 مرات لنفس الحرف على التوالي
+ *  - لا تكرار أكثر من 3 مرات لنفس الحرف على التوالي
+ * ملاحظة: الرمز (symbol) ليس إلزامياً — كونه مطلوباً كان يمنع HR من
+ * إصدار كلمات مرور سهلة الكتابة على موبايل لموظفي الميدان.
  */
 export function validateHrIssuedPassword(
   password: string,
   identifiers: { email?: string; phone?: string; employeeCode?: string; fullNameAr?: string },
 ): { ok: true } | { ok: false; reason: string } {
-  if (typeof password !== "string" || password.length < 12) {
-    return { ok: false, reason: "password_too_short_min_12" };
+  if (typeof password !== "string" || password.length < 8) {
+    return { ok: false, reason: "password_too_short_min_8" };
   }
-  if (password.length > 72) {
-    // GoTrue/argon2 يقوّم ما بعد 72 بايت — نقيّد مسبقاً لتجنب مفاجآت.
-    return { ok: false, reason: "password_too_long_max_72" };
+  if (password.length > 15) {
+    return { ok: false, reason: "password_too_long_max_15" };
   }
 
   if (!/[A-Z]/.test(password)) return { ok: false, reason: "password_needs_uppercase" };
   if (!/[a-z]/.test(password)) return { ok: false, reason: "password_needs_lowercase" };
   if (!/\d/.test(password)) return { ok: false, reason: "password_needs_digit" };
-  if (!/[!@#$%^&*()_\-+=[\]{};':"\\|,.<>/?`~]/.test(password)) {
-    return { ok: false, reason: "password_needs_symbol" };
-  }
 
-  // رفض التكرار المفرط: 5+ من نفس الحرب على التوالي ضعيف.
-  if (/(.)\1{4,}/.test(password)) {
+  // رفض التكرار المفرط: 4+ من نفس الحرف على التوالي ضعيف.
+  if (/(.)\1{3,}/.test(password)) {
     return { ok: false, reason: "password_too_repetitive" };
   }
 
@@ -90,7 +88,8 @@ export function validateHrIssuedPassword(
     if (s.startsWith("+2")) parts.push(s.slice(2));
     if (s.startsWith("+")) parts.push(s.slice(1));
   }
-  parts.push(password.slice(0, 6).toLowerCase()); // منع self-match trivial
+  // ملاحظة: لا نضيف أجزاءً من كلمة المرور نفسها إلى parts — أي جزء منها
+  // سيُطابق دائماً (password.includes(first6)) ويرفض كل كلمة مرور صحيحة.
 
   for (const p of parts) {
     if (!p || p.length < 4) continue;
@@ -100,4 +99,38 @@ export function validateHrIssuedPassword(
   }
 
   return { ok: true };
+}
+
+// مجموعات أحرف لكلمات المرور المؤقتة (نستبعد المحيّرة: 0/O, 1/l/I).
+const TEMP_POOL = {
+  upper: "ABCDEFGHJKLMNPQRSTUVWXYZ",
+  lower: "abcdefghjkmnpqrstuvwxyz",
+  digit: "23456789",
+};
+
+function tempRand(max: number): number {
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  return buf[0] % max;
+}
+
+/**
+ * كلمة مرور مؤقتة عشوائية آمنة (12 حرفاً) تُمرَّر للموظف عبر رابط البريد فقط.
+ * نضمن حرفاً كبيراً وصغيراً ورقماً واحداً على الأقل؛ لا رمز إلزامياً (سياسة
+ * الميدان) ولا أي معرّف للموظف. تُفرض تغييرها عند أول دخول عبر
+ * must_change_password فلا تبقى سارية. لا نعتمد أبداً على اشتقاق من رقم
+ * الهاتف/الكود (كان ذلك قابلاً للتخمين من مسرِّب بيانات).
+ */
+export function generateSecureTemporaryPassword(): string {
+  const length = 12;
+  const pool = TEMP_POOL.upper + TEMP_POOL.lower + TEMP_POOL.digit;
+  const chars: string[] = [];
+  for (const cat of Object.values(TEMP_POOL)) chars.push(cat[tempRand(cat.length)]);
+  while (chars.length < length) chars.push(pool[tempRand(pool.length)]);
+  // Fisher–Yates بخلط حقيقي عشوائي (لا نكتفي بالـ push البسيط).
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = tempRand(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join("");
 }

@@ -135,6 +135,7 @@ export function MonthlyAttendanceReportPage() {
   // تحميل كل الموظفين النشطين مرة واحدة
   const employeesQuery = useEmployees(undefined, 'active');
   const statementQuery = useEmployeeMonthlyStatement(selectedEmployeeId, year, month);
+  const statementData = statementQuery.data;
 
   // فلترة محلية للبطاقات حسب النص
   const filteredEmployees = useMemo(() => {
@@ -153,17 +154,17 @@ export function MonthlyAttendanceReportPage() {
         description="عرض وتصدير كشف الحضور التفصيلي لأي موظف. اختر الموظف والشهر لعرض البيانات."
         actions={
           <div className="flex gap-2 print:hidden">
-            {statementQuery.data ? (
+            {statementData ? (
               <>
                 <button className="btn-secondary" onClick={handlePrint}>
                   <Printer className="size-4" aria-hidden="true" />
                   طباعة
                 </button>
-                <button className="btn-secondary" onClick={() => exportAttendancePDF(statementQuery.data!)}>
+                <button className="btn-secondary" onClick={() => exportAttendancePDF(statementData)}>
                   <FileDown className="size-4" aria-hidden="true" />
                   تصدير PDF
                 </button>
-                <button className="btn-primary" onClick={() => exportCSV(statementQuery.data!)}>
+                <button className="btn-primary" onClick={() => exportCSV(statementData)}>
                   <Download className="size-4" aria-hidden="true" />
                   تصدير CSV
                 </button>

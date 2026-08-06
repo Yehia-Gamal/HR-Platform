@@ -21,11 +21,18 @@ const migrations = (await readdir(join(root, 'supabase/migrations')))
   .filter((name) => /^\d{4}_.+\.sql$/.test(name))
   .sort();
 
-for (let index = 0; index < migrations.length; index += 1) {
-  const expected = String(index + 1).padStart(4, '0');
-  if (!migrations[index].startsWith(expected)) {
-    throw new Error(`Migration sequence gap: expected ${expected}, found ${migrations[index]}`);
+// فجوات مقصودة موثقة (مطابقة لـ check-migrations-integrity.mjs):
+// 0267 → أعيد ترقيمه إلى 0277؛ 0279 → رقم متخطى احتياطيًا.
+const ACCEPTABLE_GAPS = new Set([267, 279]);
+
+let expected = 1;
+for (const file of migrations) {
+  while (ACCEPTABLE_GAPS.has(expected)) expected += 1;
+  const prefix = String(expected).padStart(4, '0');
+  if (!file.startsWith(prefix)) {
+    throw new Error(`Migration sequence gap: expected ${prefix}, found ${file}`);
   }
+  expected += 1;
 }
 
 const appFiles = [

@@ -10,7 +10,7 @@ describe('UserAvatar', () => {
 
   it('falls back to the initial when the remote image fails', () => {
     render(<UserAvatar displayName="أحمد" photoUrl="https://example.com/missing.jpg" />);
-    fireEvent.error(document.querySelector('img')!);
+    fireEvent.error(document.querySelector('img') as HTMLImageElement);
     expect(screen.getByText('أ')).toBeTruthy();
     expect(screen.getByRole('img', { name: 'الصورة الشخصية: أحمد' })).toBeTruthy();
   });

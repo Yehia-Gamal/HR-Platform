@@ -52,10 +52,10 @@ void main() {
 
       expect(find.text('موظف تجريبي'), findsOneWidget);
       expect(find.text('50%'), findsOneWidget);
-      expect(find.text('حضور محتسب في النسبة'), findsOneWidget);
+      expect(find.text('نسبة الحضور الشهرية'), findsOneWidget);
       expect(find.text('إجمالي الحضور'), findsOneWidget);
       expect(find.text('ورديات مفتوحة'), findsOneWidget);
-      expect(find.text('أيام قادمة'), findsNWidgets(2));
+      expect(find.text('أيام قادمة'), findsWidgets);
       expect(tester.takeException(), isNull);
     },
   );

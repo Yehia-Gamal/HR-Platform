@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { json, preflight } from "../_shared/cors.ts";
-import { normalizePhone, validateHrIssuedPassword } from "../_shared/phone.ts";
+import { generateSecureTemporaryPassword, normalizePhone, validateHrIssuedPassword } from "../_shared/phone.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const PUBLISHABLE_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -26,14 +26,14 @@ const inputSchema = z.object({
   phoneE164: z.string().trim().regex(/^(01\d{9}|\+[1-9]\d{7,14})$/),
   roleSlug: z.string().trim().min(2),
   jobTitleName: z.string().trim().max(160).optional(),
-  // كلمة المرور الأولية: يُدخلها مسؤول HR يدوياً من لوحة الويب — نرفض أي
-  // اشتقاق تلقائي من بيانات تعريفية (رقم الهاتف/الكود) حتى لا يصبح الوصول
-  // متوقعاً من أي مسرِّب بيانات. تُمرَّر إلى GoTrue كما هي (لا نخزّنها في DB)
+  // كلمة المرور الأولية (اختيارية): إن أدخلها مسؤول HR تُفحص قوّتها، وإن تُركت
+  // فارغة تُولَّد كلمة مرور مؤقتة آمنة تلقائياً (12 حرفاً) وتُعاد في الاستجابة
+  // لعرضها مرة واحدة فقط. لا نشتقّها أبداً من بيانات تعريفية (هاتف/كود/اسم)،
   // وتبقى must_change_password=true تفرض تغييرها في أول دخول.
-  initialPassword: z
-    .string()
-    .min(12, "password_min_length")
-    .max(72, "password_too_long"),
+  initialPassword: z.preprocess(
+    (v) => (v === "" || v == null ? undefined : v),
+    z.string().trim().min(8, "password_min_length").max(15, "password_too_long").optional(),
+  ),
   // رابط الصورة: يجب أن يكون https فقط — نرفض data:/file:/javascript:/blob:
   // (z.url() وحده يقبلها). التحقق الخادمي في DB يوفّر طبقة ثانية.
   photoUrl: z
@@ -140,10 +140,18 @@ Deno.serve(async (req) => {
   const employeeCode = input.employeeCode?.trim() || phoneE164;
   const normalizedEmail = input.email.toLowerCase();
 
+  // كلمة المرور الفعلية: إن أدخلها HR تُستخدم كما هي، وإلا نولّد كلمة مرور
+  // مؤقتة آمنة عشوائية (لا اشتقاق من بيانات تعريفية) ونعيدها في الاستجابة
+  // لعرضها مرة واحدة على شاشة الإنشاء. must_change_password يفرض تغييرها عند
+  // أول دخول فلا تبقى سارية.
+  const hrPassword = input.initialPassword?.trim() ?? "";
+  const generatedTemporaryPassword = hrPassword ? undefined : generateSecureTemporaryPassword();
+  const initialPassword = generatedTemporaryPassword ?? hrPassword;
+
   // SEC: تحقق معمّق من قوة كلمة المرور بعد pass الـ zod — zod يفرض الطول فقط،
   // لكننا نريد رفض أنماط شائعة (كلمات قاموسية عربية/لاتينية، سلاسل رقمية، تكرار)
-  // ومنع تضمين معرّفات الموظف داخل كلمة المرور.
-  const pwdCheck = validateHrIssuedPassword(input.initialPassword, {
+  // ومنع تضمين معرّفات الموظف داخل كلمة المرور. (الكلمة المولّدة تجتاز دائماً).
+  const pwdCheck = validateHrIssuedPassword(initialPassword, {
     email: normalizedEmail,
     phone: phoneE164,
     employeeCode,
@@ -181,11 +189,6 @@ Deno.serve(async (req) => {
     employee_code: employeeCode,
     must_change_password: true,
   };
-
-  // SEC: كلمة المرور الأولية تُستَلم يدوياً من HR — لا نشتقّها من رقم الهاتف
-  // أو أي بيانات أخرى. must_change_password يفرض على الموظف تغييرها في أول
-  // دخول، لذا تبقى مجرد بذرة (seed) لا قيمة دائمة.
-  const initialPassword = input.initialPassword;
 
   // ─── إنشاء حساب Auth مع استعادة تلقائية من اليتيم (orphan recovery) ───
   // إذا فشل الإنشاء لأن البريد موجود مسبقًا (من محاولة سابقة فاشلة)،
@@ -363,6 +366,9 @@ Deno.serve(async (req) => {
     employeeId: result?.employeeId,
     userId: result?.userId ?? userId,
     invitationSent: input.sendInvite,
+    // كلمة مرور مؤقتة مولّدة تلقائياً (عند ترك الحقل فارغاً) — تُعرض مرة واحدة
+    // فقط على شاشة الإنشاء ولا تُعاد ثانية.
+    ...(generatedTemporaryPassword ? { temporaryPassword: generatedTemporaryPassword } : {}),
   }, 201);
   } catch (err) {
     console.error("admin-create-employee unhandled error", err instanceof Error ? err.message : String(err));

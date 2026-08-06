@@ -10,7 +10,13 @@ const PARKING_DIRS = [
 ];
 const REGISTRY_FILE = path.resolve(process.cwd(), 'MIGRATION_REGISTRY.md');
 
-const ACCEPTABLE_GAPS = new Set([]);
+const ACCEPTABLE_GAPS = new Set([
+  // 0267 → أُعيد ترقيمه إلى 0277 (fix_deep_link_action_routing) ضمن إعادة
+  // ترتيب سلسلة الحضور/العمليات؛ محتواه موجود في 0277.
+  267,
+  // 0279 → رقم مُتخطَّى مقصودًا بين 0278 و0280 (مساحة احتياطية).
+  279,
+]);
 const BRIDGE_FILENAMES = new Set([
   '0119_bridge_placeholder.sql',
   '0122_bridge_placeholder.sql',
@@ -18,6 +24,14 @@ const BRIDGE_FILENAMES = new Set([
   '0219_placeholder_sequence_fix.sql',
   '0231_bridge_placeholder.sql',
   '0232_bridge_placeholder.sql',
+  // 0270-0276 → جسور ترقيم أثناء إعادة هيكلة سلسلة الحضور (تُملأ تباعًا).
+  '0270_bridge_placeholder.sql',
+  '0271_bridge_placeholder.sql',
+  '0272_bridge_placeholder.sql',
+  '0273_bridge_placeholder.sql',
+  '0274_bridge_placeholder.sql',
+  '0275_bridge_placeholder.sql',
+  '0276_bridge_placeholder.sql',
 ]);
 
 const FILE_RE = /^(\d{4})_([a-z0-9][a-z0-9_]*)\.sql$/i;

@@ -15,6 +15,7 @@ import { safeErrorMessage } from '../../core/errorMapper';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { useEmployees } from './useEmployees';
+import { renderSafeIntlPhoneText } from '../../ui/phoneDisplay';
 
 type SortMode = 'newest' | 'name' | 'code';
 
@@ -26,7 +27,7 @@ export function EmployeesPage() {
   const [page, setPage] = useState(1);
   const pageSize = 25;
   const employees = useEmployees(search, status);
-  const canCreate = hasPermission(auth.access!, 'people.employee.create');
+  const canCreate = hasPermission(auth.access, 'people.employee.create');
   const all = useMemo(() => employees.data ?? [], [employees.data]);
 
   const filtered = useMemo(() => {
@@ -93,7 +94,7 @@ export function EmployeesPage() {
       {
         key: 'phoneE164',
         header: 'الهاتف',
-        render: (emp) => <span dir="ltr">{emp.phoneE164 ?? '—'}</span>,
+        render: (emp) => (emp.phoneE164 ? renderSafeIntlPhoneText(emp.phoneE164) : <span>—</span>),
       },
       {
         key: 'status',

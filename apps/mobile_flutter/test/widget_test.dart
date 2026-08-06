@@ -14,14 +14,15 @@ void main() {
     expect(find.text('SUPABASE_URL is missing'), findsOneWidget);
   });
 
-  // V12 §17: «نسيت كلمة المرور» مخفي ابتداءً ويظهر فقط بعد فشل بيانات الاعتماد.
-  testWidgets('mobile login hides password recovery until credential failure',
+  // الرابط ظاهر دائماً بنص أوضح — "إعادة تعيين كلمة السر؟" يقود المستخدم
+  // للإجراء مباشرة بدل أن ينتظر فشل محاولة دخول أولاً (V12 §17 لم يعد سارياً).
+  testWidgets('mobile login shows password reset link permanently',
       (tester) async {
     await tester.pumpWidget(
       const ProviderScope(child: MaterialApp(home: LoginPage())),
     );
 
-    // الرابط مخفي عند فتح الشاشة (V12 §17.1).
-    expect(find.text('نسيت كلمة المرور؟'), findsNothing);
+    // الرابط ظاهر منذ فتح الشاشة — قابل للنقر فوراً.
+    expect(find.text('إعادة تعيين كلمة السر؟'), findsOneWidget);
   });
 }

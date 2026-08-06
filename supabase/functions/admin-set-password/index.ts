@@ -1,16 +1,19 @@
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { json, preflight } from "../_shared/cors.ts";
+import { validateHrIssuedPassword } from "../_shared/phone.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const PUBLISHABLE_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 // كلمة مرور موظف يضعها الإداري من لوحة الويب. تُفرض تغييرها عند أول دخول
-// (must_change_password) فلا تبقى سارية بعد ذلك — نفس نهج كلمة مرور الهاتف المؤقتة.
+// (must_change_password) فلا تبقى سارية بعد ذلك. السياسة 8–15 حرفاً متوافقة
+// مع validateHrIssuedPassword (لا معرّفات الموظف، لا قواميس، لا أنماط لوحة
+// مفاتيح، وأحرف مختلطة — الرمز غير إلزامي لسهولة الكتابة على الموبايل).
 const inputSchema = z.object({
   employeeId: z.string().uuid(),
-  password: z.string().min(8).max(72),
+  password: z.string().min(8).max(15),
 });
 
 Deno.serve(async (req) => {
@@ -72,6 +75,23 @@ Deno.serve(async (req) => {
     const { data: authUser, error: getUserError } = await admin.auth.admin.getUserById(profile.id);
     if (getUserError || !authUser.user) return json(req, { error: "account_lookup_failed" }, 404);
 
+    // SEC: تحقق معمّق من قوة كلمة المرور — نرفض أنماطاً شائعة أو تضمين
+    // معرّفات الموظف (بريد/هاتف/كود/اسم) داخلها. البريد لا يُخزَّن في جدول
+    // employees — مصدره authUser.user.email (auth.users) فقط.
+    const { data: empRow, error: empErr } = await admin
+      .from("employees")
+      .select("phone_e164, employee_code, full_name_ar")
+      .eq("id", input.employeeId)
+      .maybeSingle();
+    if (empErr) return json(req, { error: "lookup_failed" }, 500);
+    const pwdCheck = validateHrIssuedPassword(input.password, {
+      email: authUser.user.email ?? undefined,
+      phone: empRow?.phone_e164 ?? undefined,
+      employeeCode: empRow?.employee_code ?? undefined,
+      fullNameAr: empRow?.full_name_ar ?? undefined,
+    });
+    if (!pwdCheck.ok) return json(req, { error: pwdCheck.reason ?? "weak_password" }, 400);
+
     // نضبط كلمة المرور ونُجبر التغيير عند أول دخول. لا نسجّل كلمة المرور أبدًا.
     // نستخدم GoTRUE REST API مباشرة (نمط admin-create-employee) بدلاً من
     // supabase-js updateUserById — الأخير قد يُسقط email_confirm/يفشل بصمت.
@@ -104,6 +124,28 @@ Deno.serve(async (req) => {
         rawText.substring(0, 300),
       );
       return json(req, { error: "password_update_failed" }, 502);
+    }
+
+    // تفعيل سجل الموظف (profile/employee) بعد نجاح ضبط كلمة المرور — بدونها يبقى
+    // الموظف في حالة invited/pending ويفشل دخوله برسالة "انتهت صلاحية الجلسة".
+    // الدالة public.admin_activate_employee_after_password_set معرّفة في
+    // migration 0281 (مطبّقة على الإنتاج). نستدعيها بتحمّل: لو لم تكن موجودة
+    // في بيئة أخرى (PGRST202) نُسجّل ونُكمل بدل إفشال العملية.
+    try {
+      const { error: activationError } = await admin.rpc(
+        "admin_activate_employee_after_password_set",
+        { p_employee_id: input.employeeId },
+      );
+      if (activationError) {
+        const msg = activationError.message ?? "";
+        if (msg.includes("does not exist") || msg.includes("PGRST202") || msg.includes("Unknown")) {
+          console.error("admin-set-password activation RPC not deployed yet (migration 0281 pending)");
+        } else {
+          console.error("admin-set-password activation failed", activationError.code, msg.substring(0, 300));
+        }
+      }
+    } catch (activationErr) {
+      console.error("admin-set-password activation unhandled error", activationErr instanceof Error ? activationErr.message : String(activationErr));
     }
 
     return json(req, { updated: true }, 200);

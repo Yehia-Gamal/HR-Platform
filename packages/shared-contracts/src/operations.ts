@@ -103,11 +103,43 @@ export const attendanceDashboardSchema = z.object({
   present: z.number(),
   late: z.number(),
   absent: z.number(),
+  unexcusedAbsent: z.number().optional(),
   incomplete: z.number(),
   pendingReview: z.number(),
+  locationRequestsToday: z.number().optional(),
+  locationRespondedToday: z.number().optional(),
   lastUpdatedAt: z.string(),
 });
 export type AttendanceDashboard = z.infer<typeof attendanceDashboardSchema>;
+
+// فئات لوحة الحضور التفصيلية — تُستخدم لفتح قائمة الموظفين لكل بطاقة.
+export const attendanceRosterCategorySchema = z.enum([
+  'scheduled',
+  'present',
+  'late',
+  'absent',
+  'unexcused_absent',
+  'incomplete',
+  'pending_review',
+  'location_requests',
+  'location_responded',
+]);
+export type AttendanceRosterCategory = z.infer<typeof attendanceRosterCategorySchema>;
+
+// صف قائمة الحضور التفصيلية — يعكس أعمدة public.get_attendance_day_roster.
+export const attendanceRosterItemSchema = z.object({
+  employeeId: z.string().uuid(),
+  employeeName: z.string(),
+  employeeCode: z.string().nullable(),
+  photoUrl: z.string().nullable().optional(),
+  departmentName: z.string().nullable(),
+  status: z.string().nullable(),
+  lateMinutes: z.number().nullable(),
+  firstCheckIn: z.string().nullable(),
+  lastCheckOut: z.string().nullable(),
+  locationRequestStatus: z.string().nullable(),
+});
+export type AttendanceRosterItem = z.infer<typeof attendanceRosterItemSchema>;
 
 export const leaveBalanceSchema = z.object({
   leaveTypeId: z.string().uuid(),

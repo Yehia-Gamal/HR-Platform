@@ -151,7 +151,7 @@ describe('useMonthlyStatement — attendanceStatementSchema validation', () => {
     expect(parsed.summary.attendanceRate).toBeLessThanOrEqual(100);
   });
 
-  it('current-month rate uses due days and keeps future days separate', () => {
+  it('current-month rate uses all month work days and counts an open check-in', () => {
     const current = attendanceStatementSchema.parse({
       ...mockStatement,
       summary: {
@@ -159,14 +159,14 @@ describe('useMonthlyStatement — attendanceStatementSchema validation', () => {
         scheduledDays: 27,
         dueScheduledDays: 3,
         upcomingDays: 24,
-        presentDays: 2,
+        presentDays: 3,
         absentDays: 1,
         openShiftDays: 1,
         completedPresenceDays: 1,
-        attendanceRate: 66.67,
+        attendanceRate: 11.11,
         attendanceRateBasis: {
-          presentInDue: 2,
-          dueDays: 3,
+          presentInDue: 3,
+          dueDays: 27,
           presentDays: 3,
           absentDays: 1,
           openShiftDays: 1,
@@ -174,10 +174,11 @@ describe('useMonthlyStatement — attendanceStatementSchema validation', () => {
         },
       },
     });
-    expect(current.summary.attendanceRate).toBe(66.67);
+    expect(current.summary.attendanceRate).toBe(11.11);
     expect(current.summary.upcomingDays).toBe(24);
     expect(current.summary.openShiftDays).toBe(1);
-    expect(current.summary.attendanceRateBasis?.presentInDue).toBe(2);
+    expect(current.summary.attendanceRateBasis?.presentInDue).toBe(3);
+    expect(current.summary.attendanceRateBasis?.dueDays).toBe(27);
   });
 
   it('hoursComplianceRate is between 0 and 100', () => {

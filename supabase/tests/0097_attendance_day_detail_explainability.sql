@@ -1,6 +1,6 @@
 -- 0097: 0252 — إثراء كل يوم في كشف الحضور الشهري بكائن "details" توضيحي
 -- يثبت أن الواجهة النهائية _build_attendance_statement:
---   1) تستدعي v266 (0266) الذي يستدعي v252 الذي يستدعي v251.
+--   1) تستدعي v287 (0287) الذي يستدعي v266 الذي يستدعي v252 الذي يستدعي v251.
 --   2) تضيف لكل يوم details: { leave, assignment, permit, correction, missing }.
 --   3) تحمل مفاتيح التفسيرية (attendanceRateBasis, requiredMinutes, compliantWorkMinutes).
 --   4) تحافظ على منح الوصول الحصري (service_role فقط، وال版本es الخاصة).
@@ -67,13 +67,19 @@ select ok(
 select lives_ok(
   $live$do $t$
   declare v_final text;
+          v_v287  text;
           v_v266  text;
           v_v252  text;
   begin
     select prosrc into v_final from pg_proc
     where proname='_build_attendance_statement' and pronamespace='public'::regnamespace;
-    if v_final not ilike '%_build_attendance_statement_v266%' then
-      raise exception 'الواجهة النهائية لا تستدعي v266';
+    if v_final not ilike '%_build_attendance_statement_v287%' then
+      raise exception 'الواجهة النهائية لا تستدعي v287';
+    end if;
+    select prosrc into v_v287 from pg_proc
+    where proname='_build_attendance_statement_v287' and pronamespace='public'::regnamespace;
+    if v_v287 not ilike '%_build_attendance_statement_v266%' then
+      raise exception 'v287 لا تستدعي v266';
     end if;
     select prosrc into v_v266 from pg_proc
     where proname='_build_attendance_statement_v266' and pronamespace='public'::regnamespace;
@@ -88,7 +94,7 @@ select lives_ok(
       raise exception 'v252 لا يحوي منطق التفاصيل التوضيحية عبر v251';
     end if;
   end $t$$live$,
-  'السلسلة: final → v266 → v252 → v251 مع تفاصيل توضيحية'
+  'السلسلة: final → v287 → v266 → v252 → v251 مع تفاصيل توضيحية'
 );
 
 -- =====================================================================

@@ -2,6 +2,7 @@ import { employee360Schema, employeeSummarySchema, type Employee360, type Employ
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
 import { invokeEdgeFunction } from '../../core/rpc';
+import { getSupabase } from '../../core/supabase';
 import { useAuth } from '../auth/AuthProvider';
 import { loadDomainMocks } from '../mock/loadDomainMocks';
 
@@ -98,8 +99,8 @@ export function useResendInvite() {
       );
       const email = result?.email;
       return email
-        ? `أُعيد إرسال رابط التفعيل إلى ${email}، وضُبطت كلمة المرور المؤقتة = رقم هاتف الموظف.`
-        : `أُعيد إرسال رابط التفعيل، وضُبطت كلمة المرور المؤقتة = رقم هاتف الموظف.`;
+        ? `أُعيد إرسال رابط التفعيل إلى ${email} — الموظف يضبط كلمة مروره من الرابط.`
+        : 'أُعيد إرسال رابط التفعيل — الموظف يضبط كلمة مروره من الرابط.';
     },
     meta: { successMessage: 'تم إرسال رابط التفعيل بنجاح' },
   });
@@ -112,7 +113,16 @@ const SET_PASSWORD_ERROR_MESSAGES: Record<string, string> = {
   account_lookup_failed: 'تعذر العثور على حساب الموظف.',
   password_update_failed: 'تعذر تحديث كلمة المرور. أعد المحاولة لاحقًا.',
   permission_check_failed: 'تعذر التحقق من الصلاحية.',
-  validation_failed: 'كلمة المرور يجب أن تكون بين 8 و72 حرفًا.',
+  validation_failed: 'كلمة المرور يجب أن تكون بين 8 و15 حرفًا.',
+  password_too_short_min_8: 'كلمة المرور يجب ألا تقل عن 8 أحرف.',
+  password_too_long_max_15: 'كلمة المرور يجب ألا تزيد عن 15 حرفًا.',
+  password_needs_uppercase: 'كلمة المرور يجب أن تحتوي حرفًا كبيرًا واحدًا على الأقل.',
+  password_needs_lowercase: 'كلمة المرور يجب أن تحتوي حرفًا صغيرًا واحدًا على الأقل.',
+  password_needs_digit: 'كلمة المرور يجب أن تحتوي رقمًا واحدًا على الأقل.',
+  password_keyboard_sequence: 'كلمة المرور تحتوي تسلسلًا شائعًا من لوحة المفاتيح.',
+  password_contains_common_word: 'كلمة المرور تحتوي كلمة شائعة ممنوعة.',
+  password_contains_identifier: 'كلمة المرور تشبه بيانات الموظف (الاسم/الهاتف/البريد/الكود).',
+  password_too_repetitive: 'كلمة المرور تحتوي تكرارًا مفرطًا لنفس الحرف.',
   lookup_failed: 'تعذر البحث عن بيانات الموظف.',
   server_not_configured: 'الخدمة غير مهيأة. تواصل مع الدعم.',
   invalid_session: 'انتهت صلاحية الجلسة. سجّل الدخول مجددًا.',
@@ -123,6 +133,7 @@ const SET_PASSWORD_ERROR_MESSAGES: Record<string, string> = {
 // password on first sign-in so the admin-chosen value does not stay in use.
 export function useSetEmployeePassword() {
   const auth = useAuth();
+  const client = useQueryClient();
   return useMutation({
     mutationFn: async ({ employeeId, password }: { employeeId: string; password: string }): Promise<void> => {
       if (auth.isMock) return;
@@ -134,6 +145,49 @@ export function useSetEmployeePassword() {
       );
     },
     meta: { successMessage: 'تم تعيين كلمة المرور بنجاح' },
+    onSuccess: async (_, { employeeId }) => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['employee-360'] }),
+        client.invalidateQueries({ queryKey: ['employees'] }),
+        client.invalidateQueries({ queryKey: ['employee-audit', employeeId] }),
+      ]);
+    },
+  });
+}
+
+// خريطة أخطاء تعديل البريد الإلكتروني → رسائل عربية
+const UPDATE_EMAIL_ERROR_MESSAGES: Record<string, string> = {
+  forbidden: 'ليس لديك صلاحية تعديل بريد الموظف.',
+  no_linked_account: 'الموظف ليس لديه حساب مربوط بعد.',
+  account_lookup_failed: 'تعذر العثور على حساب الموظف.',
+  email_already_exists: 'هذا البريد الإلكتروني مستخدم لحساب آخر.',
+  email_update_failed: 'تعذر تحديث البريد الإلكتروني. أعد المحاولة لاحقًا.',
+  permission_check_failed: 'تعذر التحقق من الصلاحية.',
+  validation_failed: 'البريد الإلكتروني غير صالح.',
+  lookup_failed: 'تعذر البحث عن بيانات الموظف.',
+  server_not_configured: 'الخدمة غير مهيأة. تواصل مع الدعم.',
+  invalid_session: 'انتهت صلاحية الجلسة. سجّل الدخول مجددًا.',
+};
+
+// Updates an employee's sign-in email. The edge function is permission-gated
+// (update_sensitive) and updates auth.users via the GoTrue admin REST API.
+export function useUpdateEmployeeEmail() {
+  const auth = useAuth();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ employeeId, email }: { employeeId: string; email: string }): Promise<void> => {
+      if (auth.isMock) return;
+      await invokeEdgeFunction(
+        'admin-update-email',
+        { employeeId, email },
+        UPDATE_EMAIL_ERROR_MESSAGES,
+        'تعذر تحديث البريد الإلكتروني. أعد المحاولة لاحقًا.',
+      );
+    },
+    meta: { successMessage: 'تم تحديث البريد الإلكتروني بنجاح' },
+    onSuccess: async () => {
+      await Promise.all([client.invalidateQueries({ queryKey: ['employees'] }), client.invalidateQueries({ queryKey: ['employee-360'] })]);
+    },
   });
 }
 
@@ -158,12 +212,12 @@ export function useUpdateEmployee() {
   const auth = useAuth();
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async ({ employeeId, changes, reason }: { employeeId: string; changes: Record<string, unknown>; reason: string }): Promise<void> => {
+    mutationFn: async ({ employeeId, changes, reason }: { employeeId: string; changes: Record<string, unknown>; reason?: string }): Promise<void> => {
       if (auth.isMock) return;
       await rpc('update_employee_admin', {
         p_employee_id: employeeId,
         p_changes: changes,
-        p_reason: reason,
+        p_reason: reason ?? '',
       });
     },
     meta: { successMessage: 'تم تحديث بيانات الموظف بنجاح' },
@@ -184,7 +238,7 @@ export function useArchiveEmployee() {
         p_reason: reason,
       });
     },
-    meta: { successMessage: 'تم أرشفة الموظف بنجاح' },
+    meta: { successMessage: 'تم أرشفة الموظف بنجاح', silentError: true },
     onSuccess: async () => {
       await Promise.all([client.invalidateQueries({ queryKey: ['employees'] }), client.invalidateQueries({ queryKey: ['employee-360'] })]);
     },
@@ -280,9 +334,48 @@ export function useDeleteEmployee() {
         p_reason: reason,
       });
     },
-    meta: { successMessage: 'تم حذف الموظف نهائيًا بنجاح' },
+    meta: { successMessage: 'تم حذف الموظف نهائيًا بنجاح', silentError: true },
     onSuccess: async () => {
       await Promise.all([client.invalidateQueries({ queryKey: ['employees'] }), client.invalidateQueries({ queryKey: ['employee-360'] })]);
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// سجل التدقيق الخاص بملف موظف — قراءة من audit_events (RLS: audit.view).
+// ---------------------------------------------------------------------------
+export interface EmployeeAuditEvent {
+  id: string;
+  summary: string | null;
+  occurredAt: string;
+  description: string | null;
+  metadata: Record<string, unknown> | null;
+}
+
+export function useEmployeeAuditTrail(employeeId: string | undefined) {
+  const auth = useAuth();
+  return useQuery({
+    queryKey: ['employee-audit', employeeId, auth.isMock],
+    enabled: auth.status === 'authenticated' && Boolean(employeeId),
+    queryFn: async (): Promise<EmployeeAuditEvent[]> => {
+      if (!employeeId) return [];
+      if (auth.isMock) return [];
+      const supabase = await getSupabase();
+      const { data, error } = await supabase
+        .from('audit_events')
+        .select('id, summary_ar, occurred_at, description, metadata')
+        .eq('target_table', 'employees')
+        .eq('target_id', employeeId)
+        .order('occurred_at', { ascending: false })
+        .limit(50);
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((row) => ({
+        id: row.id,
+        summary: row.summary_ar,
+        occurredAt: row.occurred_at,
+        description: row.description,
+        metadata: (row.metadata ?? null) as Record<string, unknown> | null,
+      }));
     },
   });
 }

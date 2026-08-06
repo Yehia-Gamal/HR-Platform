@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(11);
+select plan(13);
 select has_function('public','archive_employee_secure',array['uuid','text'],'secure archive RPC exists');
 select has_function('public','hard_delete_employee_guarded',array['uuid','text','text'],'guarded delete RPC exists');
 select function_privs_are('public','archive_employee_secure',array['uuid','text'],'authenticated',array['EXECUTE'],'archive is permission-gated inside RPC');
@@ -13,5 +13,7 @@ select ok(position('push_subscriptions' in pg_get_functiondef('public.archive_em
 select ok(position('employee_devices' in pg_get_functiondef('public.archive_employee_secure(uuid,text)'::regprocedure))>0,'archive revokes devices');
 select ok(position('attendance_events' in pg_get_functiondef('public.hard_delete_employee_guarded(uuid,text,text)'::regprocedure))>0,'delete checks history');
 select ok(position('current_is_full_access' in pg_get_functiondef('public.hard_delete_employee_guarded(uuid,text,text)'::regprocedure))>0,'delete requires Main Admin');
+select ok(position('delete_confirmation_mismatch' in pg_get_functiondef('public.hard_delete_employee_guarded(uuid,text,text)'::regprocedure))>0,'delete guards confirmation code');
+select ok(position('manager_has_direct_reports' in pg_get_functiondef('public.hard_delete_employee_guarded(uuid,text,text)'::regprocedure))>0,'delete blocks manager with active reports');
 select * from finish();
 rollback;

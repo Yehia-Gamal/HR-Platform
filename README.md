@@ -33,12 +33,12 @@
 
 | المكوّن | العدد |
 |---|---|
-| Migrations | 266 |
-| pgTAP tests (assertions) | 100 ملف (1457 assertion) |
-| Edge Functions | 12 + مجلد `_shared` مشترك |
+| Migrations | 285 |
+| pgTAP tests (assertions) | 102 ملف (1483 assertion) |
+| Edge Functions | 13 + مجلد `_shared` مشترك |
 | Dart files | 90 |
-| TypeScript/TSX files (web) | 190 |
-| اختبارات كود (web + contracts + Flutter) | 772 اختبار عبر 85 ملف ويب/عقود + 142 اختبار Flutter عبر 12 ملف |
+| TypeScript/TSX files (web) | 204 |
+| اختبارات كود (web + contracts + Flutter) | 802 اختبار عبر 88 ملف ويب/عقود + 142 اختبار Flutter عبر 12 ملف |
 
 ## فحص المصدر
 

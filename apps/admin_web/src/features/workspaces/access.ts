@@ -1,6 +1,7 @@
 import type { AccessContext, WorkspaceId } from '@ahla/shared-contracts';
 
-export function hasPermission(context: AccessContext, permission: string): boolean {
+export function hasPermission(context: AccessContext | null, permission: string): boolean {
+  if (!context) return false;
   return context.permissions.includes('*') || context.permissions.includes(permission);
 }
 

@@ -26,7 +26,7 @@ describe('FilterBar', () => {
     const { container } = render(<FilterBar searchValue="أحمد" onSearchChange={() => {}} searchPlaceholder="ابحث..." isDirty={true} onClear={onClear} />);
     const clearButton = container.querySelector('.filter-clear');
     expect(clearButton).toBeTruthy();
-    fireEvent.click(clearButton!);
+    fireEvent.click(clearButton as HTMLElement);
     expect(onClear).toHaveBeenCalledOnce();
   });
 

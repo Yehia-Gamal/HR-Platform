@@ -1,7 +1,7 @@
 import { createEmployeeInputSchema, createEmployeeResultSchema } from '@ahla/shared-contracts';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { z } from 'zod';
-import { ArrowRight, Check, CheckCircle2, ChevronLeft, ChevronRight, ImagePlus, Loader2, UserPlus, X } from 'lucide-react';
+import { ArrowRight, Check, CheckCircle2, ChevronLeft, ChevronRight, Eye, EyeOff, ImagePlus, Loader2, UserPlus, X } from 'lucide-react';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router';
@@ -15,7 +15,7 @@ import { ErrorBanner } from '../../ui/ErrorState';
 import { useOrganizationLookups } from './useOrganizationLookups';
 
 type FormInput = z.input<typeof createEmployeeInputSchema>;
-const defaultValues: Partial<FormInput> = { roleSlug: 'employee', sendInvite: false };
+const defaultValues: Partial<FormInput> = { roleSlug: 'employee', sendInvite: false, initialPassword: '' };
 const uuidValue = { setValueAs: (value: string) => value || null };
 const steps = ['الهوية والحساب', 'الهيكل والوظيفة', 'المراجعة والإنشاء'];
 
@@ -35,11 +35,9 @@ export function CreateEmployeePage() {
   const values = form.watch();
   const options = lookups.data;
   const [branchText, setBranchText] = useState('');
-  const [gradeText, setGradeText] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const branches = useMemo(() => options?.branches ?? [], [options?.branches]);
   const matchedBranch = useMemo(() => branches.find((b) => b.label === branchText.trim()) ?? null, [branches, branchText]);
-  const grades = useMemo(() => options?.grades ?? [], [options?.grades]);
-  const matchedGrade = useMemo(() => grades.find((g) => g.label === gradeText.trim()) ?? null, [grades, gradeText]);
   const workSites = useMemo(() => {
     const all = options?.workSites ?? [];
     return matchedBranch ? all.filter((item) => item.parentId === matchedBranch.id) : all;
@@ -65,7 +63,7 @@ export function CreateEmployeePage() {
 
   const next = async () => {
     if (photoUploading) return;
-    const fields: Array<keyof FormInput> = step === 0 ? ['fullNameAr', 'email', 'phoneE164'] : [];
+    const fields: Array<keyof FormInput> = step === 0 ? ['fullNameAr', 'email', 'phoneE164', 'initialPassword'] : [];
     if (fields.length && !(await form.trigger(fields))) return;
     setStep((current) => Math.min(2, current + 1));
   };
@@ -132,7 +130,6 @@ export function CreateEmployeePage() {
   const submit = form.handleSubmit(async (raw) => {
     // حل النص الحر → معرّف قبل التحقق
     raw.branchId = matchedBranch?.id ?? null;
-    raw.gradeId = matchedGrade?.id ?? null;
     const parsedInput = createEmployeeInputSchema.parse(raw);
     setResult(null);
     setSubmitError(null);
@@ -145,20 +142,22 @@ export function CreateEmployeePage() {
       const { data, error } = await supabase.functions.invoke('admin-create-employee', { body: parsedInput });
       if (error) throw error;
       const parsed = createEmployeeResultSchema.parse(data);
-      setResult(
+      const baseMessage =
         parsedInput.sendInvite
           ? parsed.invitationSent
-            ? `تم إنشاء الموظف والحساب وإرسال رابط التفعيل بنجاح. كلمة المرور المؤقتة = رقم هاتف الموظف. المعرّف: ${parsed.employeeId}`
-            : `تم إنشاء الموظف والحساب، لكن تعذر إرسال رابط التفعيل. كلمة المرور المؤقتة = رقم هاتف الموظف. المعرّف: ${parsed.employeeId}`
-          : `تم إنشاء الموظف بنجاح — نشط وجاهز للعمل فوراً. كلمة المرور المؤقتة = رقم هاتف الموظف، ويُجبر على تغييرها عند أول دخول. المعرّف: ${parsed.employeeId}`,
-      );
+            ? 'تم إنشاء الموظف والحساب وإرسال رابط التفعيل بنجاح.'
+            : 'تم إنشاء الموظف والحساب، لكن تعذر إرسال رابط التفعيل.'
+          : 'تم إنشاء الموظف بنجاح — نشط وجاهز للعمل فوراً.';
+      const passwordMessage = parsed.temporaryPassword
+        ? ` كلمة المرور المؤقتة: ${parsed.temporaryPassword} — تُعرض الآن مرة واحدة فقط.`
+        : '';
+      setResult(`${baseMessage}${passwordMessage} سيتحتم على الموظف تغيير كلمة المرور عند أول دخول. المعرّف: ${parsed.employeeId}`);
       uploadedPhotoPathRef.current = null;
       form.reset(defaultValues);
       setStep(0);
       clearObjectPreview();
       setPhotoPreview(null);
       setBranchText('');
-      setGradeText('');
     } catch (error) {
       // رسائل خطأ عربية مفهومة بدل الرسائل الإنجليزية العامة من supabase-js
       const errorMessages: Record<string, string> = {
@@ -178,6 +177,16 @@ export function CreateEmployeePage() {
         role_assignment_forbidden: 'ليس لديك صلاحية إسناد هذا المنصب.',
         account_create_failed: 'تعذر إنشاء حساب الدخول. أعد المحاولة لاحقًا.',
         manager_not_active: 'المدير المباشر المختار غير نشط.',
+        password_too_short_min_8: 'كلمة المرور يجب ألا تقل عن 8 أحرف.',
+        password_too_long_max_15: 'كلمة المرور يجب ألا تزيد عن 15 حرفًا.',
+        password_needs_uppercase: 'كلمة المرور يجب أن تحتوي حرفًا كبيرًا واحدًا على الأقل.',
+        password_needs_lowercase: 'كلمة المرور يجب أن تحتوي حرفًا صغيرًا واحدًا على الأقل.',
+        password_needs_digit: 'كلمة المرور يجب أن تحتوي رقمًا واحدًا على الأقل.',
+        password_keyboard_sequence: 'كلمة المرور تحتوي تسلسلًا شائعًا من لوحة المفاتيح.',
+        password_contains_common_word: 'كلمة المرور تحتوي كلمة شائعة ممنوعة.',
+        password_contains_identifier: 'كلمة المرور تشبه بيانات الموظف (الاسم/الهاتف/البريد/الكود).',
+        password_too_repetitive: 'كلمة المرور تحتوي تكرارًا مفرطًا لنفس الحرف.',
+        weak_password: 'كلمة المرور غير آمنة. اختر كلمة مرور أقوى.',
       };
       let message = 'تعذر إنشاء الموظف.';
       if (error && typeof error === 'object' && 'context' in error) {
@@ -288,10 +297,34 @@ export function CreateEmployeePage() {
                   <input className="input" {...form.register('fullNameAr')} />
                 </Field>
                 <Field label="الهاتف" error={form.formState.errors.phoneE164?.message}>
-                  <input className="input" dir="ltr" inputMode="tel" placeholder="01154869616" {...form.register('phoneE164')} />
+                  <input className="input" dir="ltr" inputMode="tel" autoComplete="tel" placeholder="01154869616" {...form.register('phoneE164')} />
                 </Field>
                 <Field label="البريد الإلكتروني" error={form.formState.errors.email?.message}>
-                  <input type="email" className="input" dir="ltr" {...form.register('email')} />
+                  <input type="email" className="input" dir="ltr" autoComplete="email" {...form.register('email')} />
+                </Field>
+                <Field
+                  label="كلمة المرور الأولية"
+                  error={form.formState.errors.initialPassword?.message}
+                  hint="اختياري — اتركه فارغاً لتولّد الخادم كلمة مرور مؤقتة آمنة. إن أدخلتها: 8–15 حرفًا بحرف كبير وصغير ورقم."
+                >
+                  <span className="relative block">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      className="input !ps-14"
+                      dir="ltr"
+                      autoComplete="new-password"
+                      placeholder="اختياري — تُولَّد تلقائيًا"
+                      {...form.register('initialPassword', { setValueAs: (v: string) => v.trim() || undefined })}
+                    />
+                    <button
+                      type="button"
+                      className="password-visibility-button"
+                      aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                      onClick={() => setShowPassword((value) => !value)}
+                    >
+                      {showPassword ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+                    </button>
+                  </span>
                 </Field>
                 <input type="hidden" value="employee" {...form.register('roleSlug')} />
                 <Field label="تاريخ التعيين" error={form.formState.errors.hireDate?.message}>
@@ -306,7 +339,7 @@ export function CreateEmployeePage() {
           ) : null}
           {step === 1 ? (
             <div>
-              <SectionTitle title="الهيكل والوظيفة" description="تحديد الفرع وموقع العمل والمدير المباشر والمسمى الوظيفي والدرجة." />
+              <SectionTitle title="الهيكل والوظيفة" description="تحديد الفرع وموقع العمل والمدير المباشر والمسمى الوظيفي." />
               {lookups.isError ? (
                 <div className="mb-4">
                   <ErrorBanner message={`تعذر تحميل بيانات الهيكل: ${safeErrorMessage(lookups.error)}`} />
@@ -337,27 +370,6 @@ export function CreateEmployeePage() {
                   placeholder="بدون مدير"
                 />
                 <JobTitleField label="المسمى الوظيفي" options={options?.jobTitles ?? []} register={form.register('jobTitleName')} />
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-semibold">الدرجة الوظيفية</span>
-                  <input
-                    type="text"
-                    className="input"
-                    list="create-grades"
-                    value={gradeText}
-                    onChange={(e) => setGradeText(e.target.value)}
-                    placeholder="اكتب أو اختر الدرجة…"
-                  />
-                  <datalist id="create-grades">
-                    <option value="موظف" />
-                    <option value="مدير" />
-                    <option value="أوبريشن" />
-                    {grades
-                      .filter((g) => !['موظف', 'مدير', 'أوبريشن'].includes(g.label))
-                      .map((g) => (
-                        <option key={g.id} value={g.label} />
-                      ))}
-                  </datalist>
-                </label>
               </div>
             </div>
           ) : null}
@@ -384,13 +396,13 @@ export function CreateEmployeePage() {
                 <Review label="موقع العمل" value={options?.workSites.find((x) => x.id === values.workSiteId)?.label} />
                 <Review label="المدير" value={options?.managers.find((x) => x.id === values.managerEmployeeId)?.label} />
                 <Review label="المسمى الوظيفي" value={values.jobTitleName} />
-                <Review label="الدرجة الوظيفية" value={gradeText || undefined} />
                 <Review label="تاريخ التعيين" value={values.hireDate as string | undefined} />
+                <Review label="كلمة المرور الأولية" value={values.initialPassword ? 'أُدخلت يدويًا (لا تظهر هنا)' : 'تُولَّد تلقائيًا'} />
                 <Review label="دعوة التفعيل" value={values.sendInvite ? 'نعم — سيُرسل رابط تفعيل' : 'لا'} />
               </div>
               <div className="mt-5 rounded-xl bg-[var(--surface-muted)] p-4 text-sm leading-7">
                 سيتم إنشاء Auth User وEmployee وProfile وإسناد الدور والمدير داخل مسار خادمي. عند فشل أي جزء تُنفذ عملية تعويض ولا يُترك حساب يتيم. كود الموظف
-                يُشتق تلقائياً من رقم الهاتف، وكلمة المرور المؤقتة = رقم هاتف الموظف (يُجبر على تغييرها عند أول دخول من المتصفح أو التطبيق).
+                يُشتق تلقائياً من رقم الهاتف، وكلمة المرور (أو المؤقتة المولّدة) تُجبر على التغيير عند أول دخول من المتصفح أو التطبيق ولا تبقى سارية.
               </div>
             </div>
           ) : null}
@@ -424,11 +436,12 @@ function SectionTitle({ title, description }: { title: string; description: stri
     </div>
   );
 }
-function Field({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
+function Field({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: ReactNode }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-sm font-semibold">{label}</span>
       {children}
+      {hint ? <span className="muted mt-1 block text-xs">{hint}</span> : null}
       <span className="mt-1 block min-h-4 text-xs text-[var(--danger)]">{error}</span>
     </label>
   );

@@ -219,38 +219,23 @@ select is(
       'f9500000-0000-4000-8000-000000000010',
       extract(year from current_date)::integer,
       extract(month from current_date)::integer
-    )->'summary'->>'dueScheduledDays')::integer > 0
+    )->'summary'->>'scheduledDays')::integer > 0
     then round(
-      coalesce(
-        (public._build_attendance_statement(
-          'f9500000-0000-4000-8000-000000000010',
-          extract(year from current_date)::integer,
-          extract(month from current_date)::integer
-        )->'summary'->'attendanceRateBasis'->>'presentInDue')::numeric,
-        (
-          (public._build_attendance_statement(
-            'f9500000-0000-4000-8000-000000000010',
-            extract(year from current_date)::integer,
-            extract(month from current_date)::integer
-          )->'summary'->>'presentDays')::numeric
-          -
-          (public._build_attendance_statement(
-            'f9500000-0000-4000-8000-000000000010',
-            extract(year from current_date)::integer,
-            extract(month from current_date)::integer
-          )->'summary'->>'openShiftDays')::numeric
-        )
-      ) * 100 /
       (public._build_attendance_statement(
         'f9500000-0000-4000-8000-000000000010',
         extract(year from current_date)::integer,
         extract(month from current_date)::integer
-      )->'summary'->>'dueScheduledDays')::numeric,
+      )->'summary'->>'presentDays')::numeric * 100 /
+      (public._build_attendance_statement(
+        'f9500000-0000-4000-8000-000000000010',
+        extract(year from current_date)::integer,
+        extract(month from current_date)::integer
+      )->'summary'->>'scheduledDays')::numeric,
       2
     )
     else 0::numeric
   end,
-  'attendanceRate uses closed due days and excludes an open shift'
+  'attendanceRate uses all month work days and includes an open check-in'
 );
 
 select is(

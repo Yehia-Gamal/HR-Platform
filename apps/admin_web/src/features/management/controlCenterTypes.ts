@@ -108,6 +108,7 @@ export interface EmployeeOverviewRow {
   managerName: string | null;
   activeRequestStatus: string | null;
   activeRequestId: string | null;
+  lateMinutes: number | null;
   lastLatitude: number | null;
   lastLongitude: number | null;
   lastAccuracy: number | null;
