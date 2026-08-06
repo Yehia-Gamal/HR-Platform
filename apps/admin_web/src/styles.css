@@ -232,6 +232,8 @@ a { color: inherit; text-decoration: none; }
 .metric-card--linked { cursor: pointer; }
 .metric-card--linked:hover { border-color: var(--brand-primary); }
 a.no-underline:hover .metric-card--linked { transform: translateY(-3px); box-shadow: var(--shadow-raised); }
+.metric-card--action:hover .metric-card { transform: translateY(-3px); box-shadow: var(--shadow-raised); }
+.metric-card--action:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 3px; border-radius: 1.1rem; }
 .metric-icon { display: grid; width: 43px; height: 43px; place-items: center; border-radius: 0.9rem; background: var(--brand-primary-soft); color: var(--brand-primary); }
 .metric-trend { display: inline-flex; align-items: center; gap: 0.25rem; border-radius: 999px; background: var(--success-soft); color: var(--success); padding: 0.25rem 0.5rem; font-size: 0.66rem; font-weight: var(--font-black); }
 .section-title-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }

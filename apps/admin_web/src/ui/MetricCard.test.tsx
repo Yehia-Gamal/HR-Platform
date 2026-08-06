@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
+import { describe, expect, it, vi } from 'vitest';
 import { Users } from 'lucide-react';
 import { MetricCard } from './MetricCard';
 
@@ -30,5 +31,25 @@ describe('MetricCard', () => {
     const paragraphs = container.querySelectorAll('p');
     // label + value فقط
     expect(paragraphs.length).toBeLessThanOrEqual(2);
+  });
+
+  it('يعرض كرابط عند تمرير to ويضع aria-label', () => {
+    render(
+      <MemoryRouter>
+        <MetricCard label="الحضور" value={45} icon={Users} to="/hr/attendance" />
+      </MemoryRouter>,
+    );
+    const link = screen.getByRole('link', { name: /عرض تفاصيل الحضور/ });
+    expect(link.getAttribute('href')).toBe('/hr/attendance');
+    expect(screen.getByText('عرض التفاصيل')).toBeDefined();
+  });
+
+  it('يستدعي onClick عند الضغط كزر مع دعم لوحة المفاتيح', () => {
+    const onClick = vi.fn();
+    render(<MetricCard label="الغياب" value={3} icon={Users} onClick={onClick} />);
+    const button = screen.getByRole('button', { name: /عرض تفاصيل الغياب/ });
+    expect(button.getAttribute('type')).toBe('button');
+    fireEvent.click(button);
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 });

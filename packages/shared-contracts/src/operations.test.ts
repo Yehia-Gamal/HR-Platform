@@ -7,6 +7,9 @@ import {
   workAssignmentTypeSchema,
   attendanceStatementDaySchema,
   attendanceStatementSchema,
+  attendanceRosterCategorySchema,
+  attendanceRosterPageSchema,
+  attendanceRosterSortSchema,
 } from './operations.js';
 
 describe('leave and work-assignment contracts', () => {
@@ -255,5 +258,71 @@ describe('attendance statement contracts — V23 §14', () => {
         hoursComplianceRate: 50,
       },
     })).toThrow();
+  });
+});
+
+describe('attendance drill-down contracts (0294)', () => {
+  it('exposes the nine roster categories in the documented order', () => {
+    expect(attendanceRosterCategorySchema.options).toEqual([
+      'scheduled',
+      'present',
+      'late',
+      'absent',
+      'unexcused_absent',
+      'incomplete',
+      'pending_review',
+      'location_requests',
+      'location_responded',
+    ]);
+    expect(() => attendanceRosterCategorySchema.parse('unknown')).toThrow();
+  });
+
+  it('exposes the four sort keys and both directions', () => {
+    expect(attendanceRosterSortSchema.options).toEqual(['name', 'check_in', 'late', 'status']);
+    expect(() => attendanceRosterSortSchema.parse('date')).toThrow();
+  });
+
+  it('parses a paginated page with rich items', () => {
+    const now = new Date().toISOString();
+    const page = attendanceRosterPageSchema.parse({
+      items: [
+        {
+          employeeId: '30000000-0000-4000-8000-000000000001',
+          employeeName: 'أحمد محمود',
+          employeeCode: 'EMP-104',
+          photoUrl: null,
+          departmentId: null,
+          departmentName: 'الحسابات',
+          branchId: null,
+          branchName: null,
+          jobTitle: 'محاسب أول',
+          managerId: null,
+          managerName: null,
+          status: 'late',
+          lateMinutes: 25,
+          firstCheckIn: now,
+          lastCheckOut: null,
+          shiftName: 'صباحية',
+          shiftStartAt: '09:00:00',
+          shiftEndAt: '17:00:00',
+          requiresReview: false,
+          reviewReason: null,
+          hasApprovedLeave: false,
+          leaveCode: null,
+          leaveIsPaid: null,
+          hasMission: false,
+          locationRequestStatus: null,
+          locationRequestedAt: null,
+          locationRespondedAt: null,
+        },
+      ],
+      total: 1,
+      limit: 25,
+      offset: 0,
+    });
+    const first = page.items[0];
+    expect(first?.lateMinutes).toBe(25);
+    expect(first?.shiftStartAt).toBe('09:00:00');
+    expect(page.total).toBe(1);
   });
 });

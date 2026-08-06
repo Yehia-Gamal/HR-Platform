@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 /* ─── mock الحالات المختلفة للـ hook ─────────────────────────────── */
@@ -25,19 +26,19 @@ import { AttendancePage } from '../AttendancePage';
 describe('AttendancePage', () => {
   it('يعرض عنوان الصفحة والوصف', () => {
     hookReturn = { data: mockDashboardData, isLoading: false, isError: false, isFetching: false, refetch: mockRefetch };
-    render(<AttendancePage />);
+    render(<MemoryRouter><AttendancePage /></MemoryRouter>);
     expect(screen.getByText('الحضور والورديات')).toBeDefined();
   });
 
   it('يعرض زر التحديث', () => {
     hookReturn = { data: mockDashboardData, isLoading: false, isError: false, isFetching: false, refetch: mockRefetch };
-    render(<AttendancePage />);
+    render(<MemoryRouter><AttendancePage /></MemoryRouter>);
     expect(screen.getByLabelText('تحديث')).toBeDefined();
   });
 
   it('يعرض مقاييس لوحة التحكم عند توفر البيانات', () => {
     hookReturn = { data: mockDashboardData, isLoading: false, isError: false, isFetching: false, refetch: mockRefetch };
-    render(<AttendancePage />);
+    render(<MemoryRouter><AttendancePage /></MemoryRouter>);
     expect(screen.getByText('المجدولون اليوم')).toBeDefined();
     expect(screen.getByText('حاضرون')).toBeDefined();
     expect(screen.getByText('متأخرون')).toBeDefined();
@@ -46,7 +47,7 @@ describe('AttendancePage', () => {
 
   it('يعرض القيم العددية الصحيحة للمقاييس', () => {
     hookReturn = { data: mockDashboardData, isLoading: false, isError: false, isFetching: false, refetch: mockRefetch };
-    render(<AttendancePage />);
+    render(<MemoryRouter><AttendancePage /></MemoryRouter>);
     expect(screen.getByText('54')).toBeDefined();
     expect(screen.getByText('45')).toBeDefined();
     expect(screen.getByText('5')).toBeDefined();
@@ -55,7 +56,7 @@ describe('AttendancePage', () => {
 
   it('يعرض قسم جودة السجلات', () => {
     hookReturn = { data: mockDashboardData, isLoading: false, isError: false, isFetching: false, refetch: mockRefetch };
-    render(<AttendancePage />);
+    render(<MemoryRouter><AttendancePage /></MemoryRouter>);
     expect(screen.getByText('جودة سجلات اليوم')).toBeDefined();
     expect(screen.getByText('بصمات غير مكتملة')).toBeDefined();
     expect(screen.getByText('تحتاج مراجعة بشرية')).toBeDefined();
@@ -63,7 +64,7 @@ describe('AttendancePage', () => {
 
   it('يعرض قسم قواعد التشغيل', () => {
     hookReturn = { data: mockDashboardData, isLoading: false, isError: false, isFetching: false, refetch: mockRefetch };
-    render(<AttendancePage />);
+    render(<MemoryRouter><AttendancePage /></MemoryRouter>);
     expect(screen.getByText('قواعد التشغيل')).toBeDefined();
   });
 
@@ -78,7 +79,7 @@ describe('AttendancePage', () => {
 
   it('يعرض حالة الخطأ عند فشل الطلب', () => {
     hookReturn = { data: undefined, isLoading: false, isError: true, error: new Error('فشل'), isFetching: false, refetch: mockRefetch };
-    render(<AttendancePage />);
+    render(<MemoryRouter><AttendancePage /></MemoryRouter>);
     expect(screen.getByText('تعذر تحميل الحضور')).toBeDefined();
   });
 });

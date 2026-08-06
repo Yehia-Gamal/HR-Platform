@@ -70,7 +70,7 @@ export function AttendanceRosterDialog({ category, dateIso, onClose }: Props) {
     );
   }, [data, search]);
 
-  const employeeLink = (item: AttendanceRosterItem) => `/admin/hr/employees/${item.employeeId}`;
+  const employeeLink = (item: AttendanceRosterItem) => `/hr/employees/${item.employeeId}`;
 
   const headerStats = useMemo(() => {
     if (!data) return null;

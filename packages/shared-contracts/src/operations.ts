@@ -126,20 +126,54 @@ export const attendanceRosterCategorySchema = z.enum([
 ]);
 export type AttendanceRosterCategory = z.infer<typeof attendanceRosterCategorySchema>;
 
-// صف قائمة الحضور التفصيلية — يعكس أعمدة public.get_attendance_day_roster.
+// صف قائمة الحضور التفصيلية — يعكس أعمدة public.get_attendance_day_roster
+// (النسخة الموسّعة في الترحيل 0294). الحقول الجديدة اختيارية للتوافق الخلفي
+// مع النتيجة القديمة (date, text) التي تُرجع مصفوفة مباشرة.
 export const attendanceRosterItemSchema = z.object({
   employeeId: z.string().uuid(),
   employeeName: z.string(),
   employeeCode: z.string().nullable(),
   photoUrl: z.string().nullable().optional(),
+  departmentId: z.string().uuid().nullable().optional(),
   departmentName: z.string().nullable(),
+  branchId: z.string().uuid().nullable().optional(),
+  branchName: z.string().nullable().optional(),
+  jobTitle: z.string().nullable().optional(),
+  managerId: z.string().uuid().nullable().optional(),
+  managerName: z.string().nullable().optional(),
   status: z.string().nullable(),
   lateMinutes: z.number().nullable(),
   firstCheckIn: z.string().nullable(),
   lastCheckOut: z.string().nullable(),
+  shiftName: z.string().nullable().optional(),
+  shiftStartAt: z.string().nullable().optional(),
+  shiftEndAt: z.string().nullable().optional(),
+  requiresReview: z.boolean().optional(),
+  reviewReason: z.string().nullable().optional(),
+  hasApprovedLeave: z.boolean().optional(),
+  leaveCode: z.string().nullable().optional(),
+  leaveIsPaid: z.boolean().nullable().optional(),
+  hasMission: z.boolean().optional(),
   locationRequestStatus: z.string().nullable(),
+  locationRequestedAt: z.string().nullable().optional(),
+  locationRespondedAt: z.string().nullable().optional(),
 });
 export type AttendanceRosterItem = z.infer<typeof attendanceRosterItemSchema>;
+
+// نتيجة الترحيم (pagination) من get_attendance_day_roster الموسّع.
+// يضمن التطابق بين «الرقم في البطاقة» و«عدد نتائج القائمة»:
+// total محسوب من نفس استعلام items (بعد الفلاتر وقبل limit/offset).
+export const attendanceRosterPageSchema = z.object({
+  items: attendanceRosterItemSchema.array(),
+  total: z.number(),
+  limit: z.number(),
+  offset: z.number(),
+});
+export type AttendanceRosterPage = z.infer<typeof attendanceRosterPageSchema>;
+
+// خيارات ترتيب قائمة الحضور — تعكس معاملات p_sort/p_direction في RPC.
+export const attendanceRosterSortSchema = z.enum(['name', 'check_in', 'late', 'status']);
+export type AttendanceRosterSort = z.infer<typeof attendanceRosterSortSchema>;
 
 export const leaveBalanceSchema = z.object({
   leaveTypeId: z.string().uuid(),

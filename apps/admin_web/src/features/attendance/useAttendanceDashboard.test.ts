@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { attendanceDashboardSchema } from '@ahla/shared-contracts';
-import { mockAttendanceDashboard } from '../mock/domainMocks';
+import { attendanceDashboardSchema, attendanceRosterItemSchema, attendanceRosterPageSchema } from '@ahla/shared-contracts';
+import { mockAttendanceDashboard, mockAttendanceRoster } from '../mock/domainMocks';
 
 describe('useAttendanceDashboard — mock data schema validation', () => {
   it('parses against attendanceDashboardSchema', () => {
@@ -34,5 +34,27 @@ describe('useAttendanceDashboard — mock data schema validation', () => {
     const parsed = attendanceDashboardSchema.parse(mockAttendanceDashboard);
     expect(parsed.scheduled).toBeGreaterThanOrEqual(parsed.present);
     expect(parsed.scheduled).toBeGreaterThanOrEqual(parsed.absent);
+  });
+});
+
+describe('attendance roster mocks vs expanded schema (0294)', () => {
+  it('every mock roster item parses against the expanded attendanceRosterItemSchema', () => {
+    for (const category of Object.values(mockAttendanceRoster)) {
+      for (const item of category) {
+        expect(() => attendanceRosterItemSchema.parse(item)).not.toThrow();
+      }
+    }
+  });
+
+  it('attendanceRosterPageSchema accepts the {items,total,limit,offset} shape', () => {
+    const page = attendanceRosterPageSchema.parse({
+      items: mockAttendanceRoster.present,
+      total: mockAttendanceRoster.present.length,
+      limit: 25,
+      offset: 0,
+    });
+    expect(page.total).toBe(mockAttendanceRoster.present.length);
+    expect(page.limit).toBe(25);
+    expect(page.offset).toBe(0);
   });
 });

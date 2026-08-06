@@ -8,6 +8,8 @@ export function MetricCard({
   icon: Icon,
   trend,
   to,
+  onClick,
+  ariaLabel,
 }: {
   label: string;
   value: number | string;
@@ -15,9 +17,13 @@ export function MetricCard({
   icon: LucideIcon;
   trend?: string;
   to?: string;
+  onClick?: () => void;
+  ariaLabel?: string;
 }) {
+  const clickable = Boolean(to) || Boolean(onClick);
+  const a11yLabel = ariaLabel ?? `عرض تفاصيل ${label}`;
   const card = (
-    <article className={`metric-card${to ? ' metric-card--linked' : ''}`}>
+    <article className={`metric-card${clickable ? ' metric-card--linked' : ''}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-xs font-extrabold text-[var(--text-muted)]">{label}</p>
@@ -36,18 +42,28 @@ export function MetricCard({
         </span>
       </div>
       {hint ? <p className="mt-3 text-xs leading-5 text-[var(--text-muted)]">{hint}</p> : null}
-      {to ? (
+      {clickable ? (
         <span className="mt-2 flex items-center gap-1 text-xs font-bold text-[var(--brand-primary)]">
           <ArrowLeft className="size-3" aria-hidden="true" />
-          عرض
+          عرض التفاصيل
         </span>
       ) : null}
     </article>
   );
 
-  return to ? (
-    <Link to={to} className="block no-underline text-inherit">{card}</Link>
-  ) : (
-    card
-  );
+  if (to) {
+    return (
+      <Link to={to} className="block no-underline text-inherit" aria-label={a11yLabel}>
+        {card}
+      </Link>
+    );
+  }
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} aria-label={a11yLabel} className="metric-card--action block w-full text-start text-inherit">
+        {card}
+      </button>
+    );
+  }
+  return card;
 }

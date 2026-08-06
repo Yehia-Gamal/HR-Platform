@@ -22,6 +22,9 @@ const EmployeesPage = lazy(() => import('../features/employees/EmployeesPage').t
 const CreateEmployeePage = lazy(() => import('../features/employees/CreateEmployeePage').then((m) => ({ default: m.CreateEmployeePage })));
 const EmployeeDetailPage = lazy(() => import('../features/employees/EmployeeDetailPage').then((m) => ({ default: m.EmployeeDetailPage })));
 const AttendancePage = lazy(() => import('../features/attendance/AttendancePage').then((m) => ({ default: m.AttendancePage })));
+const AttendanceDrilldownPage = lazy(() =>
+  import('../features/attendance/AttendanceDrilldownPage').then((m) => ({ default: m.AttendanceDrilldownPage })),
+);
 const AttendanceOperationsPage = lazy(() => import('../features/advanced/AttendanceOperationsPage').then((m) => ({ default: m.AttendanceOperationsPage })));
 const MonthlyAttendanceReportPage = lazy(() =>
   import('../features/attendance/MonthlyAttendanceReportPage').then((m) => ({ default: m.MonthlyAttendanceReportPage })),
@@ -315,6 +318,14 @@ function HrWorkspaceRoutes() {
         element={
           <RequirePermission perm="attendance.record.read">
             <AttendancePage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="attendance/details"
+        element={
+          <RequirePermission perm="attendance.record.read">
+            <AttendanceDrilldownPage />
           </RequirePermission>
         }
       />
