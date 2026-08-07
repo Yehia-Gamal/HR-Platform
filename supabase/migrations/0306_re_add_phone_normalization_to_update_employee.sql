@@ -15,27 +15,24 @@
 
 begin;
 
--- التأكد من وجود دالة التطبيع (من 0281؛ إن لم تكن موجودة نُنشئها)
-do $$
+-- ─── دالة تطبيع الهاتف (CREATE OR REPLACE كافية، لا حاجة لـ DO block) ───
+-- إن وُجدت من 0281 تُستبدل، وإن لم تُوجد تُنشأ. CREATE OR REPLACE idempotent.
+create or replace function public.normalize_phone_e164(p_raw text)
+returns text
+language plpgsql
+immutable
+strict
+as $$
 begin
-  if not exists (select 1 from pg_proc where proname = 'normalize_phone_e164') then
-    create or replace function public.normalize_phone_e164(p_raw text)
-    returns text
-    language plpgsql
-    immutable
-    strict
-    as $$
-    begin
-      if p_raw ~ '^01[0-9]{9}$' then
-        return '+20' || substring(p_raw from 2);
-      end if;
-      return p_raw;
-    end;
-    $$;
-    comment on function public.normalize_phone_e164(text) is
-      'يُطبّع رقم الهاتف إلى E.164 — المحلي المصري 01XXXXXXXXX ← +20XXXXXXXXX.';
+  if p_raw ~ '^01[0-9]{9}$' then
+    return '+20' || substring(p_raw from 2);
   end if;
-end $$;
+  return p_raw;
+end;
+$$;
+
+comment on function public.normalize_phone_e164(text) is
+  'يُطبّع رقم الهاتف إلى E.164 — المحلي المصري 01XXXXXXXXX ← +20XXXXXXXXX.';
 
 -- ─── إعادة تعريف update_employee_admin مع تطبيع الهاتف ───────────────────
 -- نأخذ نسخة 0302 حرفياً (سبب اختياري + نفس الحقول) ونُضيف سطر تطبيع الهاتف

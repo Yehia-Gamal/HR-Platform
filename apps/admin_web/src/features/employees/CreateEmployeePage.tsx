@@ -10,6 +10,7 @@ import { safeErrorMessage } from '../../core/errorMapper';
 import { PageHeader } from '../../ui/PageHeader';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { prepareAvatarFile } from '../../ui/avatarImage';
+import { fixIntlPhoneOrder, renderSafeIntlPhoneText, sanitizePhoneInput } from '../../ui/phoneDisplay';
 import { useAuth } from '../auth/AuthProvider';
 import { ErrorBanner } from '../../ui/ErrorState';
 import { useOrganizationLookups } from './useOrganizationLookups';
@@ -297,7 +298,17 @@ export function CreateEmployeePage() {
                   <input className="input" {...form.register('fullNameAr')} />
                 </Field>
                 <Field label="الهاتف" error={form.formState.errors.phoneE164?.message}>
-                  <input className="input" dir="ltr" inputMode="tel" autoComplete="tel" placeholder="01154869616" {...form.register('phoneE164')} />
+                  <input
+                    className="input"
+                    dir="ltr"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="01154869616"
+                    maxLength={15}
+                    {...form.register('phoneE164', {
+                      setValueAs: (v: string) => sanitizePhoneInput(v, 15),
+                    })}
+                  />
                 </Field>
                 <Field label="البريد الإلكتروني" error={form.formState.errors.email?.message}>
                   <input type="email" className="input" dir="ltr" autoComplete="email" {...form.register('email')} />
@@ -390,7 +401,7 @@ export function CreateEmployeePage() {
               ) : null}
               <div className="grid gap-3 sm:grid-cols-2">
                 <Review label="الاسم" value={values.fullNameAr} />
-                <Review label="الهاتف" value={values.phoneE164} />
+                <Review label="الهاتف" value={values.phoneE164 ? fixIntlPhoneOrder(values.phoneE164) : undefined} />
                 <Review label="البريد" value={values.email} />
                 <Review label="الفرع" value={branchText || undefined} />
                 <Review label="موقع العمل" value={options?.workSites.find((x) => x.id === values.workSiteId)?.label} />

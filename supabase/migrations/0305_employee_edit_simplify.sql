@@ -337,17 +337,19 @@ begin
       select jsonb_agg(jsonb_build_object(
         'id', r.id, 'requestNumber', r.request_number, 'requestType', r.request_type,
         'title', r.title, 'status', r.status, 'createdAt', r.created_at
-      ) order by r.created_at desc limit 10)
-      from public.requests r
-      where r.employee_id=e.id
+      ) order by r.created_at desc)
+      from (
+        select * from public.requests where employee_id=e.id order by created_at desc limit 10
+      ) r
     ), '[]'::jsonb),
     'recentTasks', coalesce((
       select jsonb_agg(jsonb_build_object(
         'id', t.id, 'title', t.title, 'status', t.status,
         'priority', t.priority, 'dueDate', t.due_date
-      ) order by t.created_at desc limit 10)
-      from public.tasks t
-      where t.assignee_employee_id=e.id
+      ) order by t.created_at desc)
+      from (
+        select * from public.tasks where assignee_employee_id=e.id order by created_at desc limit 10
+      ) t
     ), '[]'::jsonb),
     'departments', coalesce((
       select jsonb_agg(jsonb_build_object(

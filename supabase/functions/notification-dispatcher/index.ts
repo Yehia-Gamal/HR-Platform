@@ -156,11 +156,7 @@ Deno.serve(createHandler({ functionName: "notification-dispatcher", version: "1.
     }
   }
   return respond(req, { processed: ordered.length, sent, failed });
-  } catch (err) {
-    console.error('notification-dispatcher unhandled error', err instanceof Error ? err.message : String(err));
-    return respond(req, { error: 'INTERNAL_ERROR' }, 500);
-  }
-});
+}));
 
 // يبني رسالة FCM v1: تجربة عاجلة (شاشة كاملة/صوت/اهتزاز) عند urgent+fullScreen.
 function buildFcmMessage(token: string, n: NotificationRow | null): Record<string, unknown> {

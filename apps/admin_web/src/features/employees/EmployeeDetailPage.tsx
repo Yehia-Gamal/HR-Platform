@@ -557,7 +557,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
                   onChange={(e) => { setNewPassword(e.target.value); setPwdSuccess(false); }}
                   autoComplete="new-password"
                   minLength={12}
-                  maxLength={15}
+                  maxLength={72}
                   disabled={passwordMutation.isPending}
                 />
                 <button
@@ -578,15 +578,15 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
                 value={confirmPassword}
                 onChange={(e) => { setConfirmPassword(e.target.value); setPwdSuccess(false); }}
                 autoComplete="new-password"
-                minLength={8}
-                maxLength={15}
+                minLength={12}
+                maxLength={72}
                 disabled={passwordMutation.isPending}
               />
             </label>
             <div className="sm:col-span-2">
               <button
                 type="submit"
-                disabled={passwordMutation.isPending || newPassword.length < 8 || newPassword !== confirmPassword}
+                disabled={passwordMutation.isPending || newPassword.length < 12 || newPassword !== confirmPassword}
                 className="btn-primary"
               >
                 {passwordMutation.isPending ? 'جارٍ التعيين…' : 'تعيين كلمة المرور'}

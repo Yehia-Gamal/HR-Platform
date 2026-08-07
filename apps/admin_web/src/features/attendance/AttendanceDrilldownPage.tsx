@@ -179,6 +179,7 @@ export function AttendanceDrilldownPage() {
         </button>
       </header>
 
+      {/* ─── تبويبات الفئات ─── */}
       <div className="flex flex-wrap gap-2" aria-label="فئات الحضور">
         {CATEGORIES.map((c) => {
           const active = c.key === category;
@@ -199,20 +200,23 @@ export function AttendanceDrilldownPage() {
       </div>
 
       <div className="card space-y-4 p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="relative flex-1 min-w-56">
-            <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
-            <input
-              type="search"
-              className="input w-full ps-3 pe-9 text-sm"
-              placeholder="ابحث بالاسم أو الرقم الوظيفي أو الإدارة..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              aria-label="بحث في القائمة"
-            />
-          </label>
+        {/* ─── البحث (صف مستقل) ─── */}
+        <label className="relative block">
+          <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
+          <input
+            type="search"
+            className="input w-full ps-3 pe-9 text-sm"
+            placeholder="ابحث بالاسم أو الرقم الوظيفي أو الإدارة..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            aria-label="بحث في القائمة"
+          />
+        </label>
+
+        {/* ─── الفلاتر (صف ثانٍ) ─── */}
+        <div className="flex flex-wrap items-center gap-2">
           <select
-            className="input min-w-40 text-sm"
+            className="input min-w-36 text-sm"
             value={branch}
             onChange={(e) => updateParams({ branch: e.target.value })}
             aria-label="تصفية حسب الفرع"
@@ -223,7 +227,7 @@ export function AttendanceDrilldownPage() {
             ))}
           </select>
           <select
-            className="input min-w-40 text-sm"
+            className="input min-w-36 text-sm"
             value={dept}
             onChange={(e) => updateParams({ dept: e.target.value })}
             aria-label="تصفية حسب الإدارة"
@@ -234,7 +238,7 @@ export function AttendanceDrilldownPage() {
             ))}
           </select>
           <select
-            className="input min-w-40 text-sm"
+            className="input min-w-32 text-sm"
             value={sort}
             onChange={(e) => updateParams({ sort: e.target.value })}
             aria-label="ترتيب القائمة"

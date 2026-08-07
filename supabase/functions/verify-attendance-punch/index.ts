@@ -22,6 +22,7 @@ function normalizeTransports(value: unknown): AuthenticatorTransport[] | undefin
   return transports.length > 0 ? transports : undefined;
 }
 import { json, preflight } from "../_shared/cors.ts";
+import { createHandler } from "../_shared/withHandler.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -69,9 +70,8 @@ function validateSelfiePath(value: unknown, employeeId: string): string | null {
   return value;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(createHandler({ functionName: "verify-attendance-punch", version: "1.0.0" }, async (req, ctx) => {
   if (req.method === "OPTIONS") return preflight(req);
-  try {
     if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
 
     const authorization = req.headers.get("Authorization") ?? "";
@@ -228,7 +228,7 @@ Deno.serve(async (req) => {
         },
       }, { onConflict: "employee_id,device_identifier_hash" });
     if (provisionError) {
-      console.error("auto-provision employee_devices failed", provisionError);
+      ctx.log.error("auto-provision employee_devices failed", provisionError);
       return json(req, { error: "device_provision_failed" }, 500);
     }
     // الجهاز أُنشئ بحالة pending — يجب اعتماده من المسؤول أولاً.
@@ -273,7 +273,7 @@ Deno.serve(async (req) => {
       },
     });
   } catch (error) {
-    console.error("attendance assertion verification failed", error instanceof Error ? error.message : "unknown error");
+    ctx.log.error("attendance assertion verification failed", error);
     return json(req, { error: "assertion_verification_failed" }, 403);
   }
   if (!verification.verified) return json(req, { error: "assertion_not_verified" }, 403);
@@ -294,10 +294,7 @@ Deno.serve(async (req) => {
     p_is_mock: isMockLocation,
   });
   if (rpcError) {
-    console.error("finalize_verified_attendance failed", {
-      code: rpcError.code,
-      correlationId,
-    });
+    ctx.log.error("finalize_verified_attendance failed", rpcError, { correlationId });
     return json(req, { error: "record_failed", correlationId }, 500);
   }
   const finalized = result as Record<string, unknown>;
@@ -305,8 +302,4 @@ Deno.serve(async (req) => {
     return json(req, finalized, 400);
   }
   return json(req, finalized, 200);
-  } catch (err) {
-    console.error("verify-attendance-punch unhandled error", err instanceof Error ? err.message : String(err));
-    return json(req, { error: "INTERNAL_ERROR" }, 500);
-  }
-});
+}));

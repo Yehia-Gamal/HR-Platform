@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { json, preflight } from '../_shared/cors.ts';
+import { createHandler } from '../_shared/withHandler.ts';
 
 // ─── identifier-sign-in ────────────────────────────────────────────
 // Timing-safe credential gateway: resolves email / phone / employee_code
@@ -116,7 +117,7 @@ async function waitUntil(deadlineAt: number) {
   if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
 }
 
-Deno.serve(async (req) => {
+Deno.serve(createHandler({ functionName: 'identifier-sign-in', version: '1.0.0' }, async (req, ctx) => {
   if (req.method === 'OPTIONS') return preflight(req);
   if (req.method !== 'POST') return json(req, { error: 'METHOD_NOT_ALLOWED' }, 405);
   const startedAt = Date.now();
@@ -289,8 +290,8 @@ Deno.serve(async (req) => {
     return genericFailure(req);
   }
   } catch (err) {
-    console.error('identifier-sign-in unhandled error', err instanceof Error ? err.message : String(err));
+    ctx.log.error('identifier-sign-in unhandled error', err);
     await waitUntil(deadline);
     return genericFailure(req);
   }
-});
+}));

@@ -9,6 +9,7 @@ export const ATTENDANCE_STATUS_LABELS: Record<string, string> = {
   left_early: 'انصرف مبكرًا',
   on_leave: 'إجازة',
   assignment: 'مأمورية/قافلة/فاندي',
+  weekend: 'راحة أسبوعية',
 };
 
 export function attendanceStatusLabel(status: string): string {

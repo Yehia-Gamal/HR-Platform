@@ -36,3 +36,5 @@ export * from './holidays.js';
 export * from './postPublishing.js';
 
 export * from './validation.js';
+
+export * from './orgChart.js';

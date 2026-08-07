@@ -420,7 +420,7 @@ class _SummaryChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(start: 6),
+      padding: const EdgeInsetsDirectional.only(start: 6),
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(

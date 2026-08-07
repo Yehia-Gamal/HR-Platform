@@ -41,7 +41,6 @@ const OfficialFeedPage = lazy(() => import('../features/communications/OfficialF
 const NotificationsPage = lazy(() => import('../features/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })));
 const ActionCenterPage = lazy(() => import('../features/actions/ActionCenterPage').then((m) => ({ default: m.ActionCenterPage })));
 const LiveLocationPage = lazy(() => import('../features/management/LiveLocationPage').then((m) => ({ default: m.LiveLocationPage })));
-const ExecutiveMonitoringPage = lazy(() => import('../features/management/ExecutiveMonitoringPage').then((m) => ({ default: m.ExecutiveMonitoringPage })));
 const KpiCyclesPage = lazy(() => import('../features/advanced/KpiCyclesPage').then((m) => ({ default: m.KpiCyclesPage })));
 const DisputesPage = lazy(() => import('../features/advanced/DisputesPage').then((m) => ({ default: m.DisputesPage })));
 const AccessPage = lazy(() => import('../features/management/AccessPage').then((m) => ({ default: m.AccessPage })));
@@ -128,22 +127,6 @@ export function App() {
               element={
                 <RequirePermission perm="live_location.request">
                   <LiveLocationPage />
-                </RequirePermission>
-              }
-            />
-            <Route
-              path="live-location/monitoring"
-              element={
-                <RequirePermission perm="live_location.request">
-                  <ExecutiveMonitoringPage />
-                </RequirePermission>
-              }
-            />
-            <Route
-              path="device-approvals"
-              element={
-                <RequirePermission perm="access.role.read">
-                  <DeviceApprovalPage />
                 </RequirePermission>
               }
             />
