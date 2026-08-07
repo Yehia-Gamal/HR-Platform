@@ -216,7 +216,7 @@ export function IntegrationsJobsPage() {
               </article>
             ))}
           </div>
-          {!outbox.length ? <EmptyState title="طابور التكامل فارغ" description="لا توجد رسائل مطابقة في Outbox." /> : null}
+          {!outbox.length ? <EmptyState title="طابور التكامل فارغ" description="لا توجد رسائل في الانتظار حالياً." /> : null}
         </section>
       ) : null}
 

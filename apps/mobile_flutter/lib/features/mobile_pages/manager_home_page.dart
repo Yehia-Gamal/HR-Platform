@@ -265,7 +265,7 @@ class ManagerHomePage extends ConsumerWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'كل رقم وملف هنا يمر عبر RLS ونطاق المدير الحقيقي؛ إخفاء الشاشة وحده ليس هو الحماية.',
+                      'بياناتك محمية وفق صلاحياتك المخصصة. لا شيء يظهر لك إلا ما تحتاجه لعملك.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                         height: 1.5,

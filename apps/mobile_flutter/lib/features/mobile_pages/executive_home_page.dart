@@ -156,7 +156,7 @@ class ExecutiveHomePage extends ConsumerWidget {
           const SizedBox(height: 20),
           const MobileSectionHeader(
             title: 'مؤشرات تحتاج الانتباه',
-            subtitle: 'أرقام خادمية مرتبطة بنطاق المدير التنفيذي.',
+            subtitle: 'مؤشرات مرتبطة بصلاحياتك كمدير تنفيذي.',
           ),
           const SizedBox(height: 12),
           data.when(

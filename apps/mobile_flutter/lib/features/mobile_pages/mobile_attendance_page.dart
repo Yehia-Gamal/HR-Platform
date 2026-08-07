@@ -581,7 +581,7 @@ class _PunchCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'بصمة أو نقش + الموقع → التحقق خادمياً',
+                  'بصمة أو نقش + الموقع → يتم التحقق تلقائياً',
                   style: TextStyle(
                     color: scheme.onPrimary.withValues(alpha: 0.7),
                     fontSize: 13,
