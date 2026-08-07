@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
@@ -351,19 +352,10 @@ class _FeedCard extends StatelessWidget {
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          CircleAvatar(
+                          AppAvatar(
+                            name: item.authorName!,
+                            photoUrl: item.authorPhotoUrl,
                             radius: 12,
-                            backgroundImage: item.authorPhotoUrl != null &&
-                                    item.authorPhotoUrl!.isNotEmpty
-                                ? NetworkImage(item.authorPhotoUrl!)
-                                : null,
-                            child: item.authorPhotoUrl == null ||
-                                    item.authorPhotoUrl!.isEmpty
-                                ? Text(
-                                    item.authorName!.characters.first,
-                                    style: const TextStyle(fontSize: 11),
-                                  )
-                                : null,
                           ),
                           const SizedBox(width: 8),
                           Flexible(

@@ -277,10 +277,20 @@ class _HeaderState extends ConsumerState<_Header> {
 
   String? _employeeAvatarPath(String? url) {
     if (url == null || url.isEmpty) return null;
-    const marker = '/storage/v1/object/public/employee-avatars/';
-    final index = url.indexOf(marker);
-    if (index < 0) return null;
-    return Uri.decodeComponent(url.substring(index + marker.length));
+    for (final marker in [
+      '/storage/v1/object/public/employee-avatars/',
+      '/storage/v1/object/authenticated/employee-avatars/',
+    ]) {
+      final index = url.indexOf(marker);
+      if (index < 0) continue;
+      final raw = url.substring(index + marker.length).split('?').first;
+      try {
+        return Uri.decodeComponent(raw);
+      } catch (_) {
+        return raw;
+      }
+    }
+    return null;
   }
 
   @override
