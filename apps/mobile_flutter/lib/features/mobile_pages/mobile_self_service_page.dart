@@ -70,13 +70,27 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                 Expanded(
                   child: _ServiceCard(
                     icon: Icons.directions_bus_rounded,
-                    title: 'قافلة / فاندي',
+                    title: 'قافلة',
                     subtitle: 'تكليف ميداني',
                     color: const Color(0xFF0D7C66),
                     onTap: () => _submitRequest(context, ref, 'convoy'),
                   ),
                 ),
                 const SizedBox(width: 10),
+                Expanded(
+                  child: _ServiceCard(
+                    icon: Icons.volunteer_activism_rounded,
+                    title: 'فاندي',
+                    subtitle: 'نشاط تشغيلي',
+                    color: const Color(0xFF7C3AED),
+                    onTap: () => _submitRequest(context, ref, 'fundraising'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
                 Expanded(
                   child: _ServiceCard(
                     icon: Icons.access_time_rounded,
@@ -86,15 +100,17 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                     onTap: () => _submitRequest(context, ref, 'permit'),
                   ),
                 ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _ServiceCard(
+                    icon: Icons.fingerprint_rounded,
+                    title: 'تصحيح حضور',
+                    subtitle: 'نسيان بصمة دخول أو خروج',
+                    color: scheme.error,
+                    onTap: () => _submitCorrection(context, ref),
+                  ),
+                ),
               ],
-            ),
-            const SizedBox(height: 10),
-            _ServiceCard(
-              icon: Icons.fingerprint_rounded,
-              title: 'تصحيح حضور',
-              subtitle: 'نسيان بصمة دخول أو خروج',
-              color: scheme.error,
-              onTap: () => _submitCorrection(context, ref),
             ),
 
             // ── أرصدة الإجازات ──
@@ -567,6 +583,8 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
   DateTime? _startDate;
   DateTime? _endDate;
   DateTime? _permitDate;
+  TimeOfDay? _startTime;
+  TimeOfDay? _endTime;
   String _leaveType = 'annual';
   late String _permitKind;
 
@@ -579,7 +597,8 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
   String get _typeLabel => switch (widget.type) {
         'leave' => 'طلب إجازة',
         'mission' => 'طلب مهمة عمل',
-        'convoy' => 'طلب قافلة / فاندي',
+        'convoy' => 'طلب قافلة',
+        'fundraising' => 'طلب فاندي',
         'permit' => 'طلب إذن',
         'late_permit' => 'إذن حضور',
         'early_permit' => 'إذن انصراف',
@@ -613,6 +632,27 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
       }
     });
   }
+
+  Future<void> _pickTime(bool isStart) async {
+    final initial = isStart ? _startTime : (_endTime ?? _startTime);
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial ?? const TimeOfDay(hour: 9, minute: 0),
+    );
+    if (picked == null) return;
+    setState(() {
+      if (isStart) {
+        _startTime = picked;
+        if (_endTime != null && _endTime!.isBefore(picked)) _endTime = picked;
+      } else {
+        _endTime = picked;
+      }
+    });
+  }
+
+  /// صيغة HH:MM ثابتة (الخادم يرفض "9:00" — يتطلب خانتين).
+  String _formatTime(TimeOfDay value) =>
+      '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
 
   void _submit() {
     final title = _titleController.text.trim();
@@ -652,6 +692,7 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
         };
       case 'mission':
       case 'convoy':
+      case 'fundraising':
         if (_startDate == null || _endDate == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('يرجى تحديد تاريخ البداية والنهاية')),
@@ -669,6 +710,8 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
           'startDate': _startDate!.toIso8601String().substring(0, 10),
           'endDate': _endDate!.toIso8601String().substring(0, 10),
           'location': loc,
+          if (_startTime != null) 'startTime': _formatTime(_startTime!),
+          if (_endTime != null) 'endTime': _formatTime(_endTime!),
         };
       case 'permit':
       case 'late_permit':
@@ -766,7 +809,9 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
                 ),
               ],
             ),
-          ] else if (widget.type == 'mission' || widget.type == 'convoy') ...[
+          ] else if (widget.type == 'mission' ||
+              widget.type == 'convoy' ||
+              widget.type == 'fundraising') ...[
             Row(
               children: [
                 Expanded(
@@ -797,6 +842,30 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
                 labelText: 'الموقع / الوجهة',
                 border: OutlineInputBorder(),
               ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _pickTime(true),
+                    icon: const Icon(Icons.schedule, size: 18),
+                    label: Text(_startTime == null
+                        ? 'وقت البداية (اختياري)'
+                        : _formatTime(_startTime!)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _pickTime(false),
+                    icon: const Icon(Icons.schedule, size: 18),
+                    label: Text(_endTime == null
+                        ? 'وقت النهاية (اختياري)'
+                        : _formatTime(_endTime!)),
+                  ),
+                ),
+              ],
             ),
           ] else if (widget.type == 'permit' || widget.type == 'late_permit' || widget.type == 'early_permit') ...[
             // اختيار نوع الإذن (حضور / انصراف)

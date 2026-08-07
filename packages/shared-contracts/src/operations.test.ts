@@ -10,6 +10,8 @@ import {
   attendanceRosterCategorySchema,
   attendanceRosterPageSchema,
   attendanceRosterSortSchema,
+  requestSummarySchema,
+  missionExecutionSchema,
 } from './operations.js';
 
 describe('leave and work-assignment contracts', () => {
@@ -34,6 +36,63 @@ describe('leave and work-assignment contracts', () => {
     });
     expect(asg.assignmentType).toBe('FUNDRAISING');
     expect(asg.targetAmount).toBe(50000);
+  });
+});
+
+describe('request summary + mission execution (0318)', () => {
+  it('parses a request summary with optional payload and missionExecution', () => {
+    const summary = requestSummarySchema.parse({
+      id: '66000000-0000-4000-8000-000000000001',
+      requestNumber: 42,
+      requestType: 'mission',
+      employeeId: '66000000-0000-4000-8000-000000000002',
+      employeeName: 'موظف المأمورية',
+      employeeCode: 'ME-EMP',
+      title: 'مأمورية إدارية',
+      reason: 'تسليم مستندات',
+      status: 'approved',
+      workflowStatus: 'completed',
+      currentStepOrder: 1,
+      activeStepName: null,
+      decisionDueAt: null,
+      createdAt: new Date().toISOString(),
+      payload: { startDate: '2026-09-01', location: 'مقر الجهة', startTime: '10:00', endTime: '14:30' },
+      missionExecution: {
+        id: '66000000-0000-4000-8000-000000000003',
+        status: 'completed',
+        startedAt: '2026-09-01T08:05:00+02:00',
+        endedAt: '2026-09-01T10:15:00+02:00',
+        actualMinutes: 130,
+        report: 'تم التسليم',
+        outcome: 'successful',
+      },
+    });
+    expect(summary.payload?.startTime).toBe('10:00');
+    expect(summary.missionExecution?.status).toBe('completed');
+  });
+
+  it('tolerates a summary without missionExecution (لم تُبدأ)', () => {
+    const summary = requestSummarySchema.parse({
+      id: '66000000-0000-4000-8000-000000000004',
+      requestNumber: 43,
+      requestType: 'leave',
+      employeeId: '66000000-0000-4000-8000-000000000002',
+      employeeName: 'موظف الإجازة',
+      employeeCode: null,
+      title: 'إجازة',
+      reason: 'سبب',
+      status: 'pending',
+      workflowStatus: 'submitted',
+      currentStepOrder: 1,
+      activeStepName: null,
+      decisionDueAt: null,
+      createdAt: new Date().toISOString(),
+    });
+    expect(summary.missionExecution).toBeUndefined();
+  });
+
+  it('accepts an explicitly null missionExecution', () => {
+    expect(missionExecutionSchema.parse(null)).toBeNull();
   });
 });
 

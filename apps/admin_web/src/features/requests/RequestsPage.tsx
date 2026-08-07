@@ -1,5 +1,5 @@
-import type { RequestSummary, WorkAssignment } from '@ahla/shared-contracts';
-import { CalendarDays, Check, Clock, RotateCcw, Truck, X } from 'lucide-react';
+import { MISSION_EXECUTION_STATUS_LABELS, type RequestSummary, type WorkAssignment } from '@ahla/shared-contracts';
+import { CalendarDays, Check, Clock, MapPin, RotateCcw, Truck, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { useAuth } from '../auth/AuthProvider';
@@ -22,17 +22,19 @@ const labels: Record<RequestSummary['requestType'], string> = {
   leave: 'إجازة',
   mission: 'مأمورية',
   convoy: 'قافلة',
+  fundraising: 'فاندي',
   late_permit: 'إذن حضور',
   early_permit: 'إذن انصراف',
   attendance_correction: 'تصحيح حضور',
 };
 const assignmentLabels: Record<WorkAssignment['assignmentType'], string> = { MISSION: 'مأمورية', CONVOY: 'قافلة', FUNDRAISING: 'فاندي' };
-type TypeTab = 'all' | 'leave' | 'mission' | 'convoy' | 'attendance_permit' | 'corrections';
+type TypeTab = 'all' | 'leave' | 'mission' | 'convoy' | 'fundraising' | 'attendance_permit' | 'corrections';
 const typeTabs: { key: TypeTab; label: string }[] = [
   { key: 'all', label: 'الكل' },
   { key: 'leave', label: 'الإجازات' },
   { key: 'mission', label: 'المأموريات' },
   { key: 'convoy', label: 'القوافل' },
+  { key: 'fundraising', label: 'الفاندي' },
   { key: 'attendance_permit', label: 'أذونات الحضور' },
   { key: 'corrections', label: 'تصحيحات الحضور' },
 ];
@@ -271,6 +273,35 @@ export function RequestsPage() {
                     {item.reason || 'لم يضف الموظف سببًا تفصيليًا.'}
                   </p>
 
+                  {/* التكليف: المكان + الوقت المخطط + حالة التنفيذ */}
+                  {item.requestType === 'mission' || item.requestType === 'convoy' || item.requestType === 'fundraising' ? (
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-[var(--surface-muted)] px-3 py-2 text-sm">
+                      {typeof item.payload?.location === 'string' ? (
+                        <span className="inline-flex items-center gap-1.5 font-bold">
+                          <MapPin className="size-3.5 text-brand" aria-hidden="true" />
+                          {item.payload.location}
+                        </span>
+                      ) : null}
+                      {typeof item.payload?.startTime === 'string' || typeof item.payload?.endTime === 'string' ? (
+                        <span className="muted inline-flex items-center gap-1.5">
+                          <Clock className="size-3.5" aria-hidden="true" />
+                          {typeof item.payload?.startTime === 'string' ? item.payload.startTime : '?'}
+                          {' — '}
+                          {typeof item.payload?.endTime === 'string' ? item.payload.endTime : '?'}
+                        </span>
+                      ) : null}
+                      {item.missionExecution?.status && item.missionExecution.status !== 'not_started' ? (
+                        <span
+                          className={`ms-auto rounded-lg px-2 py-1 text-xs font-black ${
+                            item.missionExecution.status === 'completed' ? 'bg-[var(--success)]/15 text-[var(--success)]' : 'bg-[var(--warning)]/15 text-[var(--warning)]'
+                          }`}
+                        >
+                          {MISSION_EXECUTION_STATUS_LABELS[item.missionExecution.status]}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
+
                   {/* تذييل: الوقت + الخطوة الحالية + زر الإجراء */}
                   <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--border)] pt-3 text-xs">
                     <span className="inline-flex items-center gap-1.5 muted">
@@ -346,6 +377,48 @@ export function RequestsPage() {
           <p id="decision-reason" className="rounded-2xl bg-[var(--surface-muted)] p-4 text-sm leading-7">
             {selected.reason || 'لا يوجد سبب تفصيلي.'}
           </p>
+          {(selected.requestType === 'mission' || selected.requestType === 'convoy' || selected.requestType === 'fundraising') && selected.missionExecution ? (
+            <div className="mt-4 space-y-2 rounded-2xl border border-[var(--border)] p-4 text-sm">
+              <p className="flex flex-wrap items-center gap-2">
+                <strong>سجل التنفيذ:</strong>
+                <span
+                  className={`rounded-lg px-2 py-0.5 text-xs font-black ${
+                    selected.missionExecution.status === 'completed'
+                      ? 'bg-[var(--success)]/15 text-[var(--success)]'
+                      : selected.missionExecution.status === 'in_progress'
+                        ? 'bg-[var(--warning)]/15 text-[var(--warning)]'
+                        : 'bg-[var(--surface-muted)]'
+                  }`}
+                >
+                  {MISSION_EXECUTION_STATUS_LABELS[selected.missionExecution.status]}
+                </span>
+              </p>
+              {selected.missionExecution.startedAt ? (
+                <p className="muted">
+                  بدأت:{' '}
+                  {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(
+                    new Date(selected.missionExecution.startedAt),
+                  )}
+                </p>
+              ) : null}
+              {selected.missionExecution.endedAt ? (
+                <p className="muted">
+                  انتهت:{' '}
+                  {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(
+                    new Date(selected.missionExecution.endedAt),
+                  )}
+                </p>
+              ) : null}
+              {selected.missionExecution.actualMinutes != null ? (
+                <p className="muted">المدة الفعلية: {selected.missionExecution.actualMinutes} دقيقة</p>
+              ) : null}
+              {selected.missionExecution.report ? (
+                <p className="leading-7">
+                  <strong>التقرير:</strong> {selected.missionExecution.report}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           <label className="mt-5 block text-sm font-bold">
             ملاحظة القرار
             <textarea

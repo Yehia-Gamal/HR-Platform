@@ -1,8 +1,12 @@
 import { z } from 'zod';
 import { kpiEvaluationSummarySchema, type KpiEvaluationSummary } from './kpi.js';
+import { missionExecutionSchema, type MissionExecution } from './requests.js';
 
 // إعادة تصدير مخطط ملخص تقييم KPI الرسمي من kpi.ts (المصدر الوحيد للحقيقة — V17 §10).
 export { kpiEvaluationSummarySchema, type KpiEvaluationSummary };
+
+// عقود طلبات تنفيذ المأمورية (0318).
+export { missionExecutionSchema, type MissionExecution };
 
 export const actionPrioritySchema = z.enum(['low', 'normal', 'high', 'urgent']);
 export const actionCenterItemSchema = z.object({
@@ -21,7 +25,7 @@ export type ActionCenterItem = z.infer<typeof actionCenterItemSchema>;
 export const requestSummarySchema = z.object({
   id: z.string().uuid(),
   requestNumber: z.number(),
-  requestType: z.enum(['leave', 'mission', 'convoy', 'late_permit', 'early_permit', 'attendance_correction']),
+  requestType: z.enum(['leave', 'mission', 'convoy', 'fundraising', 'late_permit', 'early_permit', 'attendance_correction']),
   employeeId: z.string().uuid(),
   employeeName: z.string(),
   employeeCode: z.string().nullable(),
@@ -33,6 +37,9 @@ export const requestSummarySchema = z.object({
   activeStepName: z.string().nullable(),
   decisionDueAt: z.string().nullable(),
   createdAt: z.string(),
+  // 0318: بيانات الطلب التفصيلية + سجل تنفيذ المأمورية.
+  payload: z.record(z.string(), z.unknown()).optional(),
+  missionExecution: missionExecutionSchema.optional(),
 });
 export type RequestSummary = z.infer<typeof requestSummarySchema>;
 
@@ -365,3 +372,43 @@ export const attendanceStatementSchema = z.object({
   }),
 });
 export type AttendanceStatement = z.infer<typeof attendanceStatementSchema>;
+
+// عنصر خلاصة التقارير اليومية العامة — يعكس نتيجة public.get_public_daily_reports_feed
+// في الترحيل 0324 (jsonb مبني بـ jsonb_build_object في قاعدة البيانات).
+export const dailyReportCommentSchema = z.object({
+  id: z.string().uuid(),
+  employeeId: z.string().uuid(),
+  employeeName: z.string(),
+  comment: z.string(),
+  createdAt: z.string(),
+});
+export type DailyReportComment = z.infer<typeof dailyReportCommentSchema>;
+
+export const dailyReportFeedItemSchema = z.object({
+  id: z.string().uuid(),
+  employeeId: z.string().uuid(),
+  employeeName: z.string(),
+  employeeCode: z.string().nullable(),
+  photoUrl: z.string().nullable(),
+  jobTitle: z.string().nullable(),
+  department: z.string().nullable(),
+  managerName: z.string().nullable(),
+  reportDate: z.string(),
+  achievements: z.string(),
+  blockers: z.string().nullable(),
+  tomorrowPlan: z.string().nullable(),
+  managerComment: z.string().nullable(),
+  reviewedByName: z.string().nullable(),
+  reviewedAt: z.string().nullable(),
+  createdAt: z.string(),
+  likesCount: z.number(),
+  isLikedByMe: z.boolean(),
+  comments: z.array(dailyReportCommentSchema),
+});
+export type DailyReportFeedItem = z.infer<typeof dailyReportFeedItemSchema>;
+
+export const toggleLikeResultSchema = z.object({
+  liked: z.boolean(),
+  count: z.number(),
+});
+export type ToggleLikeResult = z.infer<typeof toggleLikeResultSchema>;

@@ -107,6 +107,11 @@ class _RequestContent extends ConsumerWidget {
             payload: request.payload,
           ),
         ],
+        if (request.type == 'mission' ||
+            request.type == 'convoy') ...[
+          const SizedBox(height: 12),
+          _MissionExecutionCard(request: request),
+        ],
         if (request.substituteName != null || request.conflicts.isNotEmpty) ...[
           const SizedBox(height: 12),
           Card(
@@ -415,6 +420,7 @@ class _RequestContent extends ConsumerWidget {
     'early_permit' => 'إذن انصراف',
     'attendance_correction' => 'تصحيح حضور',
     'convoy' => 'تكليف قافلة',
+    'fundraising' => 'فاندي',
     _ => 'طلب عام',
   };
 
@@ -435,9 +441,235 @@ class _RequestContent extends ConsumerWidget {
   }
 }
 
+/// بطاقة تنفيذ المأمورية/القافلة: بدء، إنهاء بالتقرير، أو عرض نتيجة منجزة.
+class _MissionExecutionCard extends ConsumerWidget {
+  const _MissionExecutionCard({required this.request});
+
+  final MobileRequestDetail request;
+
+  String _statusLabel(BuildContext context, String status) => switch (status) {
+        'in_progress' => 'قيد التنفيذ',
+        'completed' => 'منجزة',
+        _ => 'لم تبدأ',
+      };
+
+  Widget _row(String label, String value) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: 110, child: Text(label)),
+            Expanded(
+              child: Text(
+                value,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Future<void> _start(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref.read(mobileCommandsProvider).startMission(request.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('بدأت المأمورية بنجاح')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر البدء: ${humanizeError(error)}')),
+        );
+      }
+    }
+  }
+
+  Future<void> _end(BuildContext context, WidgetRef ref) async {
+    final report = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => _EndMissionSheet(),
+    );
+    if (report == null) return;
+    try {
+      await ref
+          .read(mobileCommandsProvider)
+          .endMission(requestId: request.id, report: report);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم إنهاء المأمورية وحفظ التقرير')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر الإنهاء: ${humanizeError(error)}')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final execution = request.missionExecution;
+    final formatter = DateFormat('d MMMM y، h:mm a', 'ar');
+    final isOwner = request.status == 'approved';
+    final canStart = isOwner && (execution == null || !execution.isInProgress);
+    final canEnd = isOwner && execution != null && execution.isInProgress;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.flag_circle_outlined),
+                const SizedBox(width: 8),
+                const Text(
+                  'تنفيذ المأمورية',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: execution == null || !execution.isInProgress
+                        ? Theme.of(context).colorScheme.surfaceContainerHighest
+                        : Colors.orange.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    _statusLabel(context, execution?.status ?? 'not_started'),
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (execution != null && execution.startedAt != null) ...[
+              _row(
+                'وقت البدء',
+                formatter.format(execution.startedAt!.toLocal()),
+              ),
+              if (execution.endedAt != null)
+                _row('وقت الإنهاء', formatter.format(execution.endedAt!.toLocal())),
+              if (execution.actualMinutes != null)
+                _row('المدة الفعلية', '${execution.actualMinutes} دقيقة'),
+            ],
+            if (execution != null && execution.report != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                'التقرير: ${execution.report}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ],
+            if (execution == null)
+              const Text(
+                'لم يبدأ الموظف التنفيذ بعد. تبدأ المأمورية بعد الاعتماد.',
+              ),
+            if (canStart) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => _start(context, ref),
+                  icon: const Icon(Icons.play_circle_outline),
+                  label: const Text('ابدأ المأمورية الآن'),
+                ),
+              ),
+            ],
+            if (canEnd) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => _end(context, ref),
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: const Text('إنهاء المأمورية وتقديم التقرير'),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// ورقة إنهاء المأمورية: تقرير إلزامي + نتيجة اختيارية.
+class _EndMissionSheet extends StatefulWidget {
+  @override
+  State<_EndMissionSheet> createState() => _EndMissionSheetState();
+}
+
+class _EndMissionSheetState extends State<_EndMissionSheet> {
+  final _reportController = TextEditingController();
+
+  @override
+  void dispose() {
+    _reportController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final report = _reportController.text.trim();
+    if (report.length < 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('التقرير إلزامي (3 أحرف على الأقل)')),
+      );
+      return;
+    }
+    Navigator.pop(context, report);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: bottomInset > 0 ? bottomInset + 16 : 40,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'إنهاء المأمورية',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          TextFormField(
+            controller: _reportController,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              labelText: 'تقرير التنفيذ (إلزامي)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: _submit,
+            child: const Text('حفظ التقرير وإنهاء المأمورية'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _RequestPayloadCard extends StatelessWidget {
   const _RequestPayloadCard({required this.requestType, required this.payload});
-
   final String requestType;
   final Map<String, dynamic> payload;
 
@@ -498,7 +730,9 @@ class _RequestPayloadCard extends StatelessWidget {
       if (payload['days'] != null) {
         rows.add(('عدد الأيام', '${payload['days']}'));
       }
-    } else if (requestType == 'mission' || requestType == 'convoy') {
+    } else if (requestType == 'mission' ||
+        requestType == 'convoy' ||
+        requestType == 'fundraising') {
       final start = dateLabel('startDate');
       final end = dateLabel('endDate');
       if (start != null) rows.add(('تاريخ البداية', start));
@@ -528,6 +762,7 @@ class _RequestPayloadCard extends StatelessWidget {
     'annual' => 'اعتيادية',
     'sick' => 'مرضية',
     'emergency' => 'عارضة / طارئة',
+    'casual' => 'عارضة',
     'unpaid' => 'بدون راتب',
     _ => value ?? '—',
   };

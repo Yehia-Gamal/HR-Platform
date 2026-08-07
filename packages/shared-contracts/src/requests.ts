@@ -1,28 +1,30 @@
 import { z } from 'zod';
 
-// عقود أنواع الطلبات — V17 §8.
-// 6 أنواع طلبات رسمية بالضبط. لا أنواع إضافية.
+// عقود أنواع الطلبات — V17 §8 + 0325 (fundraising).
+// 7 أنواع طلبات رسمية بالضبط.
 
-// ─── أنواع الطلبات الستة ──────────────────────────────────────────────────────
+// ─── أنواع الطلبات السبعة ─────────────────────────────────────────────────────
 
 export const requestTypeSchema = z.enum([
   'leave',
   'mission',
   'convoy',
+  'fundraising',
   'late_permit',
   'early_permit',
   'attendance_correction',
 ]);
 export type RequestType = z.infer<typeof requestTypeSchema>;
 
-/** عدد أنواع الطلبات الرسمية — V17 §8. */
-export const REQUEST_TYPE_COUNT = 6;
+/** عدد أنواع الطلبات الرسمية — V17 §8 + 0325. */
+export const REQUEST_TYPE_COUNT = 7;
 
 /** تسميات الأنواع بالعربية. */
 export const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
   leave: 'إجازة',
   mission: 'مأمورية',
-  convoy: 'قافلة / فاندي',
+  convoy: 'قافلة',
+  fundraising: 'فاندي',
   late_permit: 'إذن حضور',
   early_permit: 'إذن انصراف',
   attendance_correction: 'تصحيح حضور',
@@ -84,3 +86,26 @@ export const createRequestInputSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 export type CreateRequestInput = z.infer<typeof createRequestInputSchema>;
+
+// ─── تنفيذ المأمورية (0318) ─────────────────────────────────────────────────
+
+/** سجل تنفيذ المأمورية/القافلة — يطابق مهمة mission_executions. */
+export const missionExecutionSchema = z
+  .object({
+    id: z.string().uuid(),
+    status: z.enum(['not_started', 'in_progress', 'completed']),
+    startedAt: z.string().nullable(),
+    endedAt: z.string().nullable(),
+    actualMinutes: z.number().nullable(),
+    report: z.string().nullable(),
+    outcome: z.string().nullable(),
+  })
+  .nullable();
+export type MissionExecution = z.infer<typeof missionExecutionSchema>;
+
+/** حالات تنفيذ المأمورية بالعربية. */
+export const MISSION_EXECUTION_STATUS_LABELS: Record<string, string> = {
+  not_started: 'لم تبدأ',
+  in_progress: 'قيد التنفيذ',
+  completed: 'منجزة',
+};

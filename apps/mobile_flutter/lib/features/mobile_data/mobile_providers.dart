@@ -435,7 +435,32 @@ class MobileCommands {
     ref.invalidate(employeeHomeProvider);
   }
 
-  Future<Map<String, dynamic>> uploadRequestAttachment({
+  Future<void> startMission(String requestId) async {
+    await _withTimeout(ref.read(supabaseProvider).rpc<dynamic>(
+          'start_my_mission',
+          params: {'p_request_id': requestId},
+        ));
+    ref.invalidate(mobileRequestsProvider);
+    ref.invalidate(employeeHomeProvider);
+  }
+
+  Future<void> endMission({
+    required String requestId,
+    required String report,
+    String? outcome,
+  }) async {
+    await _withTimeout(ref.read(supabaseProvider).rpc<dynamic>(
+          'end_my_mission',
+          params: {
+            'p_request_id': requestId,
+            'p_report': report,
+            'p_outcome': outcome,
+          },
+        ));
+    ref.invalidate(mobileRequestsProvider);
+    ref.invalidate(employeeHomeProvider);
+  }
+    Future<Map<String, dynamic>> uploadRequestAttachment({
     required Uint8List bytes,
     required String fileName,
     required String mimeType,

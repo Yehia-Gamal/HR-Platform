@@ -746,6 +746,44 @@ class MobileRequestAttachment {
   final int sizeBytes;
 }
 
+class MobileMissionExecution {
+  const MobileMissionExecution({
+    required this.id,
+    required this.status,
+    required this.startedAt,
+    required this.endedAt,
+    required this.actualMinutes,
+    required this.report,
+    required this.outcome,
+  });
+
+  factory MobileMissionExecution.fromJson(Map<String, dynamic> json) =>
+      MobileMissionExecution(
+        id: json['id'] as String,
+        status: json['status'] as String? ?? 'not_started',
+        startedAt: json['startedAt'] == null
+            ? null
+            : DateTime.parse(json['startedAt'] as String),
+        endedAt: json['endedAt'] == null
+            ? null
+            : DateTime.parse(json['endedAt'] as String),
+        actualMinutes: (json['actualMinutes'] as num?)?.toInt(),
+        report: json['report'] as String?,
+        outcome: json['outcome'] as String?,
+      );
+
+  final String id;
+  final String status;
+  final DateTime? startedAt;
+  final DateTime? endedAt;
+  final int? actualMinutes;
+  final String? report;
+  final String? outcome;
+
+  bool get isInProgress => status == 'in_progress';
+  bool get isCompleted => status == 'completed';
+}
+
 class MobileRequestDetail {
   const MobileRequestDetail({
     required this.id,
@@ -769,6 +807,7 @@ class MobileRequestDetail {
     required this.decisionActorName,
     required this.decisionMode,
     required this.decisionOnBehalfOfExecutive,
+    required this.missionExecution,
   });
   factory MobileRequestDetail.fromJson(Map<String, dynamic> json) =>
       MobileRequestDetail(
@@ -823,6 +862,13 @@ class MobileRequestDetail {
         decisionMode: json['decisionMode'] as String?,
         decisionOnBehalfOfExecutive:
             json['decisionOnBehalfOfExecutive'] as bool? ?? false,
+        missionExecution: json['missionExecution'] == null
+            ? null
+            : MobileMissionExecution.fromJson(
+                Map<String, dynamic>.from(
+                  json['missionExecution'] as Map<dynamic, dynamic>,
+                ),
+              ),
       );
   final String id;
   final int number;
@@ -845,6 +891,7 @@ class MobileRequestDetail {
   final String? decisionActorName;
   final String? decisionMode;
   final bool decisionOnBehalfOfExecutive;
+  final MobileMissionExecution? missionExecution;
 }
 
 class PasskeyDevice {
