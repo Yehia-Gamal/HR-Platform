@@ -158,7 +158,8 @@ Deno.serve(async (req) => {
     fullNameAr: input.fullNameAr,
   });
   if (!pwdCheck.ok) {
-    return json(req, { error: pwdCheck.reason ?? "weak_password" }, 400);
+    const reason = (pwdCheck as { ok: false; reason: string }).reason;
+    return json(req, { error: reason }, 400);
   }
 
   if (!ALLOWED_EMPLOYEE_ROLES.has(input.roleSlug)) {

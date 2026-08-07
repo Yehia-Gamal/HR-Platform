@@ -72,13 +72,17 @@ async function loadSentry(opts: { dsn?: string; version?: string } = {}) {
   return await import('./sentry');
 }
 
+// نوع الوحدة المحمّلة ديناميكياً (نشتقّه من loadSentry لتفادي `import()` type
+// annotation الممنوعة بحسب قاعدة consistent-type-imports).
+type SentryModule = Awaited<ReturnType<typeof loadSentry>>;
+
 afterEach(() => {
   vi.unstubAllEnvs();
 });
 
 // ─── بدون DSN: كل الدوال بلا تأثير ─────────────────────────────────────────
 describe('sentry بدون VITE_SENTRY_DSN (no-op)', () => {
-  let sentry: typeof import('./sentry');
+  let sentry: SentryModule;
 
   beforeEach(async () => {
     resetMocks();
@@ -112,9 +116,12 @@ describe('sentry بدون VITE_SENTRY_DSN (no-op)', () => {
   });
 
   it('attachQueryObservability بلا تأثير (لا يربط onError)', () => {
-    const queryCache = { config: {} };
-    const mutationCache = { config: {} };
-    const qc = { getQueryCache: () => queryCache, getMutationCache: () => mutationCache };
+    const queryCache = { config: {} as { onError?: (err: Error, q: unknown) => void } };
+    const mutationCache = { config: {} as { onError?: (err: Error, v: unknown, c: unknown, m: unknown) => void } };
+    const qc = {
+      getQueryCache: () => queryCache,
+      getMutationCache: () => mutationCache,
+    };
     sentry.attachQueryObservability(qc as never);
     expect(queryCache.config.onError).toBeUndefined();
     expect(mutationCache.config.onError).toBeUndefined();
@@ -129,7 +136,7 @@ describe('sentry بدون VITE_SENTRY_DSN (no-op)', () => {
 
 // ─── مع DSN: تهيئة وعقد PII ─────────────────────────────────────────────────
 describe('sentry مع VITE_SENTRY_DSN', () => {
-  let sentry: typeof import('./sentry');
+  let sentry: SentryModule;
 
   beforeEach(async () => {
     resetMocks();
@@ -150,7 +157,7 @@ describe('sentry مع VITE_SENTRY_DSN', () => {
     expect(config.integrations).toHaveLength(2);
     expect(sentryMock.browserTracingIntegration).toHaveBeenCalledOnce();
     expect(sentryMock.replayIntegration).toHaveBeenCalledOnce();
-    expect(config.ignoreErrors).toHaveLength(5);
+    expect(config.ignoreErrors).toHaveLength(6);
     expect(typeof config.beforeSend).toBe('function');
     expect(typeof config.beforeBreadcrumb).toBe('function');
   });
@@ -255,9 +262,11 @@ describe('sentry مع VITE_SENTRY_DSN', () => {
     const out = config().beforeSend({
       breadcrumbs: [{ message: 'user a@b.com logged in with Bearer eyJabc.def.ghi' }],
     });
+    // التنقيح يستبدل البريد وJWT والـ Bearer token (الـ prefix "Bearer " يبقى
+    // كجزء من صياغة الاستبدال "Bearer [REDACTED]" — المهم اختفاء السر ذاته).
     expect(out.breadcrumbs[0].message).not.toContain('a@b.com');
-    expect(out.breadcrumbs[0].message).not.toContain('Bearer ');
     expect(out.breadcrumbs[0].message).not.toContain('eyJabc.def.ghi');
+    expect(out.breadcrumbs[0].message).toContain('[REDACTED]');
   });
 
   it('beforeSend ينقّي بيانات breadcrumbs (مفاتيح حساسة)', () => {
@@ -362,14 +371,20 @@ describe('sentry مع VITE_SENTRY_DSN', () => {
     expect(sentryMock.captureException).toHaveBeenCalled();
   });
 
-  it('breadcrumb الـ query error يخفي نوع المتغيرات خلف sanitize', () => {
+  it('breadcrumb الـ query error يضع errorType/status ويُسلّسِل queryKey', () => {
     const qc = makeQueryClient();
     sentry.attachQueryObservability(qc as never);
     qc.getQueryCache().config.onError!(new Error('boom'), { queryHash: 'h1', queryKey: ['q'] });
-    const dataArg = sentryMock.addBreadcrumb.mock.calls[0][2] as Record<string, unknown>;
-    expect(dataArg.errorType).toBe('Error');
-    expect(dataArg.status).toBe(0);
-    expect(JSON.stringify(dataArg)).not.toContain('queryKey');
+    // Sentry.addBreadcrumb يُستدعى بكائن واحد {category, message, data, level}
+    const callArg = sentryMock.addBreadcrumb.mock.calls[0][0] as {
+      category: string;
+      data: Record<string, unknown>;
+    };
+    expect(callArg.category).toBe('query.error');
+    expect(callArg.data.errorType).toBe('Error');
+    expect(callArg.data.status).toBe(0);
+    // queryKey يجب أن يكون نصّاً مسلّسَلاً (لا كائن خام قد يحمل PII)
+    expect(typeof callArg.data.queryKey).toBe('string');
   });
 
   // ── Web Vitals ──────────────────────────────────────────────────────────

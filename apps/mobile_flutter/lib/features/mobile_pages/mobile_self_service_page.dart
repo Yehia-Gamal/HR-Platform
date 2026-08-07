@@ -736,6 +736,9 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
                 DropdownMenuItem(value: 'casual', child: Text('طارئة')),
                 DropdownMenuItem(value: 'sick', child: Text('مرضية')),
                 DropdownMenuItem(value: 'unpaid', child: Text('بدون راتب')),
+                DropdownMenuItem(
+                    value: 'weekly_rest_comp',
+                    child: Text('بدل راحة أسبوعية')),
               ],
               onChanged: (v) => setState(() => _leaveType = v!),
             ),

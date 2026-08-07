@@ -185,9 +185,24 @@ Deno.serve(async (req) => {
       resolvedEmail = normalized.value;
     } else {
       let employeeQuery = admin.from('employees').select('id').eq('is_deleted', false).eq('is_active', true).limit(1);
-      employeeQuery = normalized.kind === 'phone'
-        ? employeeQuery.eq('phone_e164', normalized.value)
-        : employeeQuery.eq('employee_code', normalized.value);
+      if (normalized.kind === 'phone') {
+        // P0-FIX: البحث المتساهل عن الهاتف. بعض السجلات (من update_employee_admin
+        // قبل التصحيح) خُزّنت بصيغة محلية '01XXXXXXXXX' بدل E.164. نطوّع قائمة
+        // الصيغ المرشحة ونبحث بأي منها لضمان مطابقة الحساب مهما كان الترميز المخزّن.
+        const variants = new Set<string>([normalized.value]);
+        if (normalized.value.startsWith('+20')) {
+          variants.add('0' + normalized.value.slice(3));            // محلي
+          variants.add(normalized.value.slice(1));                 // '20XXXXXXXXX' بدون '+'
+        } else if (normalized.value.startsWith('20') && normalized.value.length === 12) {
+          variants.add('+' + normalized.value);
+          variants.add('0' + normalized.value.slice(2));
+        } else if (/^01\d{9}$/.test(normalized.value)) {
+          variants.add('+20' + normalized.value.slice(1));
+        }
+        employeeQuery = employeeQuery.in('phone_e164', [...variants]);
+      } else {
+        employeeQuery = employeeQuery.eq('employee_code', normalized.value);
+      }
       const { data: employee } = await employeeQuery.maybeSingle();
       if (employee?.id) {
         const { data: profile } = await admin

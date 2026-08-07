@@ -28,7 +28,8 @@ class MainActivity : FlutterFragmentActivity() {
                 deepLinkEvents = events
                 // إرسال أي deep link مُعلَّق عند بدء الـ listen — يغطي Cold Start
                 // من notification بعد أن يبني Flutter الشجرة.
-                consumePendingDeepLink()?.let(events::success)
+                val pending = consumePendingDeepLink()
+                if (pending != null) events?.success(pending)
             }
             override fun onCancel(arguments: Any?) {
                 deepLinkEvents = null

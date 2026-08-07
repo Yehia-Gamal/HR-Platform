@@ -90,7 +90,10 @@ Deno.serve(async (req) => {
       employeeCode: empRow?.employee_code ?? undefined,
       fullNameAr: empRow?.full_name_ar ?? undefined,
     });
-    if (!pwdCheck.ok) return json(req, { error: pwdCheck.reason ?? "weak_password" }, 400);
+    if (!pwdCheck.ok) {
+      const reason = (pwdCheck as { ok: false; reason: string }).reason;
+      return json(req, { error: reason }, 400);
+    }
 
     // نضبط كلمة المرور ونُجبر التغيير عند أول دخول. لا نسجّل كلمة المرور أبدًا.
     // نستخدم GoTRUE REST API مباشرة (نمط admin-create-employee) بدلاً من

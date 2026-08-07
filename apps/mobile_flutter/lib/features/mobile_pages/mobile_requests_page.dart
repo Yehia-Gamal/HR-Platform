@@ -311,6 +311,10 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                         value: 'unpaid',
                         child: Text('بدون راتب'),
                       ),
+                      DropdownMenuItem(
+                        value: 'weekly_rest_comp',
+                        child: Text('بدل راحة أسبوعية (لا تُخصم من الرصيد)'),
+                      ),
                     ],
                     onChanged: (value) =>
                         setModalState(() => leaveType = value ?? 'annual'),

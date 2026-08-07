@@ -94,7 +94,7 @@ export function KpiCyclesPage() {
         p_manager_due: officialDeadline,
         p_secretary_due: officialDeadline,
         p_executive_due: officialDeadline,
-        p_open_now: false,
+        p_open_now: true,
       });
       toast({ message: 'تم تجهيز الدورة بنجاح', tone: 'success' });
     } catch {
