@@ -144,7 +144,7 @@ export function ObservabilityDashboardPage() {
         description="صحة المهام المجدولة، طوابير التكامل، الإشعارات، الأخطاء، والتنبيهات الأمنية."
         actions={
           <div className="flex items-center gap-3">
-            {health?.generated_at && (
+            {health?.generated_at != null && (
               <span className="muted text-xs">
                 آخر تحديث: {fmtTime(health.generated_at as string)}
               </span>
