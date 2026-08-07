@@ -308,6 +308,30 @@ describe('sentry مع VITE_SENTRY_DSN', () => {
     expect(out.extra).toBe('[unserializable]');
   });
 
+  it('beforeSend ينقّي request.data المتداخلة', () => {
+    const out = config().beforeSend({
+      request: { data: { user: { email: 'a@b.com', token: 'x' }, keep: 1 } },
+    });
+    expect(out.request.data.user.email).toBe('[REDACTED]');
+    expect(out.request.data.user.token).toBe('[REDACTED]');
+    expect(out.request.data.keep).toBe(1);
+  });
+
+  it('beforeSend ينقّي contexts', () => {
+    const out = config().beforeSend({
+      contexts: { device: { name: 'Ahmed', model: 'Pixel 8' }, app: { version: '1.0' } },
+    });
+    expect(out.contexts.device.name).toBe('[REDACTED]');
+    expect(out.contexts.device.model).toBe('Pixel 8');
+    expect(out.contexts.app.version).toBe('1.0');
+  });
+
+  it('beforeSend يتعامل مع URL غير صالح دون رمي (fallback sanitizeUrl)', () => {
+    // `new URL('http://[', origin)` يرمي TypeError → يُعاد الـ URL كما هو
+    const out = config().beforeSend({ request: { url: 'http://[' } });
+    expect(out.request.url).toBe('http://[');
+  });
+
   // ── beforeBreadcrumb ────────────────────────────────────────────────────
   it('beforeBreadcrumb ينقّي url التنقل من معاملات حساسة', () => {
     const out = config().beforeBreadcrumb({

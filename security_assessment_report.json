@@ -128,8 +128,8 @@
   {
     "severity": "INFO",
     "category": "rate-limit",
-    "finding": "50 rapid requests: 50 ok, 0 err, 19.015s",
-    "evidence": "~3 req/s",
+    "finding": "50 rapid requests: 50 ok, 0 err, 28.59s",
+    "evidence": "~2 req/s",
     "fix": "Consider edge WAF rules"
   },
   {

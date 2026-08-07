@@ -102,6 +102,18 @@
 | 0291 | `0291_attendance_formatted_display_fields.sql` | حقول العرض المنسّقة (كان 0290). |
 | 0292 | `0292_device_cleanup_admin_delete.sql` | حذف إداري للجهاز (كان 0291). |
 | 0293 | `0293_restore_public_employee_avatars_bucket.sql` | استعادة سلة صور الموظفين العامة (كان 0289_restore_public...). |
+| 0294 | `0294_attendance_drilldown.sql` | Drill-Down كامل للوحات الحضور — قوائم حقيقية خلف كل رقم. اختبار pgTAP: `0107_attendance_drilldown_roster.sql`. |
+| 0295 | `0295_attendance_dashboard_visible_scope.sql` | مطابقة عدّادات لوحة الحضور مع قوائم drill-down (اتساق العدد=القائمة). |
+| 0296 | `0296_drop_old_attendance_roster_overload.sql` | إزالة overload القديم `get_attendance_day_roster(date,text)`. |
+| 0297 | `0297_announcement_acknowledgers_list.sql` | عرض قائمة من أقرّوا الإعلان الداخلي (acknowledgers). |
+| 0298 | `0298_mission_executions.sql` | تنفيذ المأموريات (بدء/انتهاء + المدة الفعلية + التقرير). اختبار pgTAP: `0108_mission_execution_contract.sql`. |
+| 0299–0300 | `029x_bridge_placeholder.sql` | جسور ترقيم أثناء إعادة هيكلة سلسلة KPI/الموظف. |
+| 0301 | `0301_fix_kpi_admin_grants_and_diagnostics.sql` | منح إدارية KPI + تشخيص الفشل. |
+| 0302 | `0302_fix_kpi_cycle_open_now_override.sql` | تجاوز `open_now` في دورة KPI. |
+| 0303 | `0303_deny_anon_storage_bucket_list.sql` | منع anon من قراءة `storage.buckets` (HIGH security finding). |
+| 0304 | `0304_fix_kpi_cycle_create_grants_only.sql` | منح إنشاء دورة KPI فقط. |
+| 0305 | `0305_employee_edit_simplify.sql` | تبسيط تعديل بيانات الموظف ومزامنة البريد مع ملف 360° (كان 0302_employee_edit_simplify — أُعيد ترقيمه لتفادي التكرار). |
+| 0306 | `0306_re_add_phone_normalization_to_update_employee.sql` | إعادة تطبيع الهاتف في `update_employee_admin` (كان 0304 — أُعيد ترقيمه لتفادي التكرار). |
 
 ---
 
@@ -111,5 +123,5 @@
 
 ---
 
-> ✅ **الحالة:** سلسلة متصلة — 0001 → 0293 — بلا تكرار أو فجوات. تم إعادة ترقيم 0288–0293 من فروع متوازية لتوحيد التسلسل.
+> ✅ **الحالة:** سلسلة متصلة — 0001 → 0306 — بلا تكرار أو فجوات. تم إعادة ترقيم 0288–0293 و0305–0306 من فروع متوازية لتوحيد التسلسل وحل التكرارات في 0302/0304.
 

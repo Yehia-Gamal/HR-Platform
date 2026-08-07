@@ -1,5 +1,6 @@
 import { UserRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useResolvedAvatarUrl } from './useResolvedAvatarUrl';
 
 type AvatarSize = 'sm' | 'md' | 'lg';
 
@@ -24,13 +25,14 @@ export function UserAvatar({
 }) {
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const resolvedUrl = useResolvedAvatarUrl(photoUrl);
 
   useEffect(() => {
     setFailed(false);
     setLoaded(false);
-  }, [photoUrl]);
+  }, [resolvedUrl]);
 
-  const canShowImage = Boolean(photoUrl && !failed);
+  const canShowImage = Boolean(resolvedUrl && !failed);
   return (
     <span
       className={`user-avatar ${size === 'sm' ? 'small' : size === 'lg' ? 'large' : ''} ${canShowImage && !loaded ? 'is-loading' : ''} ${className}`.trim()}
@@ -38,7 +40,7 @@ export function UserAvatar({
       aria-label={announceName ? `الصورة الشخصية: ${displayName}` : undefined}
     >
       {canShowImage ? (
-        <img src={photoUrl ?? undefined} alt="" loading={eager ? 'eager' : 'lazy'} decoding="async" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} />
+        <img src={resolvedUrl!} alt="" loading={eager ? 'eager' : 'lazy'} decoding="async" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} />
       ) : displayName.trim() ? (
         <span aria-hidden="true">{avatarInitial(displayName)}</span>
       ) : (

@@ -313,7 +313,7 @@ export function AttendanceDrilldownPage() {
   );
 }
 
-function Row({ item }: { item: AttendanceRosterItem }) {
+function Row({ item, hrPrefix }: { item: AttendanceRosterItem; hrPrefix: string }) {
   const hrPrefix = useHrPrefix();
   const hasExcuse = Boolean(item.hasApprovedLeave) || Boolean(item.hasMission);
   return (

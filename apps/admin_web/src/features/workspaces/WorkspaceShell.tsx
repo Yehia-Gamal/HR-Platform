@@ -122,7 +122,6 @@ const adminSections: NavSection[] = [
     items: [
       { label: 'الموظفون', to: '/admin/hr/employees', icon: Users, permission: 'people.employee.read' },
       { label: 'أجهزة الموظفين', to: '/admin/hr/devices', icon: Smartphone, permission: 'access.role.read' },
-      { label: 'اعتمادات الأجهزة', to: '/admin/device-approvals', icon: Smartphone, permission: 'access.role.read' },
       { label: 'التوظيف', to: '/admin/hr/recruitment', icon: BriefcaseBusiness, permission: 'recruitment.requisition.read' },
       { label: 'Onboarding', to: '/admin/hr/onboarding', icon: ListChecks, permission: 'onboarding.journey.read' },
       { label: 'الهيكل المؤسسي', to: '/admin/hr/organization', icon: Network, permission: 'organization.org_chart.read' },

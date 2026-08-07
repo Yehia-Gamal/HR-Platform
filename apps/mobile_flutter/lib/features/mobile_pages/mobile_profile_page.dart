@@ -202,9 +202,9 @@ class _HeaderState extends ConsumerState<_Header> {
         bytes,
         fileOptions: const FileOptions(contentType: 'image/png', upsert: false),
       ).timeout(const Duration(seconds: 60));
-      final url = bucket.getPublicUrl(path);
+      final rawUrl = bucket.getPublicUrl(path);
 
-      await Supabase.instance.client.from('employees').update({'photo_url': url}).eq('id', widget.item.id).timeout(const Duration(seconds: 20));
+      await Supabase.instance.client.rpc("set_my_photo_url", params: {"p_photo_url": rawUrl}).timeout(const Duration(seconds: 20));
       final previousPath = _employeeAvatarPath(widget.item.photoUrl);
       if (previousPath != null && previousPath != path) {
         try {
