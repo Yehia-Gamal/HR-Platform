@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
+import 'package:ahla_shabab_management_os/core/widgets/phone_display.dart';
 import 'package:ahla_shabab_management_os/core/theme/theme_mode_controller.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
@@ -411,7 +412,7 @@ class _InfoSection extends StatelessWidget {
           child: Directionality(
             textDirection: ui.TextDirection.ltr,
             child: Text(
-              phone ?? '—',
+              phone?.fixIntlPhoneOrder() ?? '—',
               textAlign: TextAlign.end,
               overflow: TextOverflow.ellipsis,
             ),

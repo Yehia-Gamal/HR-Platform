@@ -10,7 +10,7 @@ import { safeErrorMessage } from '../../core/errorMapper';
 import { PageHeader } from '../../ui/PageHeader';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { prepareAvatarFile } from '../../ui/avatarImage';
-import { fixIntlPhoneOrder, renderSafeIntlPhoneText, sanitizePhoneInput } from '../../ui/phoneDisplay';
+import { fixIntlPhoneOrder, sanitizePhoneInput } from '../../ui/phoneDisplay';
 import { useAuth } from '../auth/AuthProvider';
 import { ErrorBanner } from '../../ui/ErrorState';
 import { useOrganizationLookups } from './useOrganizationLookups';

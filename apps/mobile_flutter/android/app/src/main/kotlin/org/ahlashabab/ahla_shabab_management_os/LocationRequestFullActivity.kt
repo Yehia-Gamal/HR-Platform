@@ -13,14 +13,34 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.app.Activity
+import android.os.Handler
+import android.os.Looper
 import java.lang.ref.WeakReference
 
 /**
  * شاشة كاملة تظهر فوق شاشة القفل وخارج التطبيق عند ورود طلب موقع عاجل.
- * تعمل كمنبه: صوت عالٍ متكرر + اهتزاز مستمر حتى يتفاعل المستخدم.
+ * تعمل كمنبه: صوت عالٍ متكرر + اهتزاز مستمر + وميض فلاش + وميض شاشة قوي
+ * حتى يتفاعل المستخدم.
  * عند الضغط على "أرسل موقعي" → يفتح Flutter مع deep link.
+ *
+ * V19: يضيف وميض شاشة قوي (تبديل بين أحمر داكن وأبيض ساطع) يزامن
+ * نمط الاهتزاز والفلاش لتعزيز الانتباه البصري.
  */
 class LocationRequestFullActivity : Activity() {
+
+    private val blinkHandler = Handler(Looper.getMainLooper())
+    private var blinkRoot: android.widget.ScrollView? = null
+    private var isBright = false
+    private val blinker = Runnable { doBlink() }
+
+    private fun doBlink() {
+        val sv = blinkRoot ?: return
+        // تبديل بين أحمر داكن (#140008) وأبيض ساطع (#FFFFFF) للوميض القوي.
+        isBright = !isBright
+        sv.setBackgroundColor(if (isBright) 0xFFFFFFFF.toInt() else 0xFF140008.toInt())
+        blinkHandler.postDelayed(blinker, if (isBright) 150L else 350L)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         activeInstance = WeakReference(this)
@@ -138,11 +158,16 @@ class LocationRequestFullActivity : Activity() {
             setBackgroundColor(0xFF140008.toInt())
             addView(root)
         }
+        blinkRoot = scroll
         setContentView(scroll)
+
+        // بدء وميض الشاشة القوي فور عرض الواجهة.
+        blinkHandler.post(blinker)
 
     }
 
     private fun onSend(requestId: String, notifId: String?) {
+        blinkHandler.removeCallbacks(blinker)
         // Stop the alarm BEFORE navigating to Flutter.
         UrgentAlarmService.stop(this, requestId)
 
@@ -166,6 +191,7 @@ class LocationRequestFullActivity : Activity() {
     }
 
     private fun onReject(requestId: String, notifId: String?) {
+        blinkHandler.removeCallbacks(blinker)
         // Stop the alarm BEFORE navigating to Flutter.
         UrgentAlarmService.stop(this, requestId)
 
@@ -195,11 +221,14 @@ class LocationRequestFullActivity : Activity() {
         recreate()
     }
 
+    override fun onDestroy() {
+        blinkHandler.removeCallbacks(blinker)
+        super.onDestroy()
+    }
+
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
         // منع الخروج بزر الرجوع — يجب التفاعل مع الطلب.
-        // هذا للأجهزة API < 33 فقط. Android 13+ يستخدم OnBackInvokedCallback
-        // المسجّل في onCreate().
     }
 
     companion object {

@@ -1,5 +1,6 @@
 import { AlertTriangle, RefreshCcw } from 'lucide-react';
 import { Component, type ErrorInfo, type PropsWithChildren } from 'react';
+import { captureError } from '../core/sentry';
 
 /**
  * Route-level error boundary — يُلف حول `<Outlet />` داخل الـ Shell
@@ -23,6 +24,11 @@ export class RouteErrorBoundary extends Component<PropsWithChildren, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    captureError(error, {
+      componentStack: info.componentStack,
+      boundary: 'RouteErrorBoundary',
+      errorId: this.state.errorId,
+    });
     if (import.meta.env.DEV) {
       console.error('Route render failure', {
         name: error.name,

@@ -1,5 +1,5 @@
 import type { AttendanceStatement, AttendanceStatementDay } from '@ahla/shared-contracts';
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 
 // ─── ثوابت مشتركة ─────────────────────────────────────────────────
 export const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
@@ -167,4 +167,49 @@ export function StatItem({ label, value, icon }: { label: string; value: string;
       <span className="font-bold">{value}</span>
     </div>
   );
+}
+
+// ─── مكونات الكشف المشتركة (تُستخدم في القسم المضمّن وفي صفحة التقرير) ─────────
+
+/** بطاقة إحصائية بنبرة لونية اختيارية — تتبنّى تصميم `stmt-stat` الموحّد. */
+export function StatBox({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: number | string;
+  hint?: string;
+  icon: ComponentType<{ className?: string }>;
+  tone?: 'success' | 'warn' | 'danger';
+}) {
+  const toneClass = tone === 'success' ? 'stmt-stat--success' : tone === 'warn' ? 'stmt-stat--warn' : tone === 'danger' ? 'stmt-stat--danger' : '';
+  return (
+    <div className={`stmt-stat ${toneClass}`}>
+      <div className="stmt-stat-head">
+        <Icon className="size-4" aria-hidden="true" />
+        <span>{label}</span>
+      </div>
+      <p className="stmt-stat-value">{value}</p>
+      {hint ? <p className="stmt-stat-hint">{hint}</p> : null}
+    </div>
+  );
+}
+
+/** إحصائية سريعة في شريط مدمج — تتبنّى تصميم `quick-stat`. */
+export function QuickStat({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
+  return (
+    <span className="quick-stat">
+      {icon}
+      {label}: <b>{value}</b>
+    </span>
+  );
+}
+
+/** كبسولة حالة اليوم بنبرة لونية — تتبنّى تصميم `status-pill`. */
+export function StatusPill({ d }: { d: AttendanceStatement['days'][number] }) {
+  const { label, tone } = dayStatusMeta(d);
+  return <span className={`status-pill status-pill--${tone}`}>{label}</span>;
 }

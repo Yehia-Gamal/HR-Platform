@@ -1,5 +1,4 @@
 import {
-  Activity,
   AlertTriangle,
   Bell,
   Clock,
@@ -19,7 +18,6 @@ import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { SkeletonCard } from '../../ui/Skeletons';
-import { useAuth } from '../auth/AuthProvider';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useSystemHealth } from './useSystemHealth';
 import { useSystemAlerts, useUpdateAlertStatus, type SystemAlert } from './useSystemAlerts';

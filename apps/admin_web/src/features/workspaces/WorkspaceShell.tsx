@@ -151,7 +151,6 @@ const adminSections: NavSection[] = [
     title: 'القيادة والرقابة',
     items: [
       { label: 'مركز الموقع الحي', to: '/admin/live-location', icon: MapPin, permission: 'live_location.request' },
-      { label: 'متابعة الموظفين اليومية', to: '/admin/live-location/monitoring', icon: MapPin, permission: 'live_location.request' },
       { label: 'العمليات والمهام', to: '/admin/operations', icon: ClipboardList, permission: ['reports.read', 'operations.mission.manage', 'operations.convoy.manage'] },
       { label: 'لجنة الخلافات', to: '/admin/disputes', icon: Gavel, permission: ['disputes.case.manage', 'disputes.portal.access'] },
       { label: 'مكتب الخدمات', to: '/admin/helpdesk', icon: Headphones, featureFlag: 'helpdesk' },
@@ -165,6 +164,7 @@ const adminSections: NavSection[] = [
       { label: 'الأدوار والصلاحيات', to: '/admin/access', icon: ShieldCheck, permission: 'access.role.read' },
       { label: 'الإدارة المؤسسية', to: '/admin/enterprise', icon: Building2, permission: 'organization.entity.read' },
       { label: 'التدقيق والأمان', to: '/admin/audit-security', icon: ShieldCheck, permission: 'audit.view' },
+      { label: 'لوحة المراقبة', to: '/admin/observability', icon: Activity, permission: 'system.release.read' },
       { label: 'إعدادات النظام', to: '/admin/settings', icon: Settings, permission: 'system.settings.read' },
       { label: 'التكاملات والمهام الخلفية', to: '/admin/integrations', icon: Cable, permission: 'system.integration.view' },
       { label: 'الحوكمة والمخاطر', to: '/admin/governance', icon: ShieldAlert, featureFlag: 'governance' },

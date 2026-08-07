@@ -6,7 +6,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.
 import 'package:intl/intl.dart';
 
 /// فئات الفلترة المتاحة — تُطابق حالات الحضور.
-enum _FilterCategory { all, present, late, absent, mission, onLeave, partial }
+enum _FilterCategory { all, present, late, absent, mission, onLeave, partial, weekend }
 
 /// تبويب الحضور اليومي — يعرض حالة كل موظف اليوم للمدير التنفيذي
 /// مع شرائح قابلة للنقر للفلترة + بحث فوري.
@@ -39,6 +39,7 @@ class _ExecutiveAttendanceTabState
       'absent' => _FilterCategory.absent,
       'on_leave' => _FilterCategory.onLeave,
       'partial' => _FilterCategory.partial,
+      'weekend' => _FilterCategory.weekend,
       _ => _FilterCategory.absent,
     };
   }
@@ -122,6 +123,13 @@ class _ExecutiveAttendanceTabState
               counts[cat] = (counts[cat] ?? 0) + 1;
             }
 
+            // نسبة الحضور
+            final presentCount = counts[_FilterCategory.present] ?? 0;
+            final lateCount = counts[_FilterCategory.late] ?? 0;
+            final attendancePct = employees.isNotEmpty
+                ? ((presentCount + lateCount) / employees.length * 100).round()
+                : 0;
+
             // تطبيق الفلترة
             final filtered = _applyFilters(employees);
 
@@ -145,6 +153,20 @@ class _ExecutiveAttendanceTabState
 
             // بناء قائمة العناصر المسطّحة
             final items = <Widget>[
+              // ─── شريط نسبة الحضور البصري ──────────────────────────────
+              _AttendanceProgress(
+                present: presentCount,
+                late: lateCount,
+                absent: counts[_FilterCategory.absent] ?? 0,
+                mission: counts[_FilterCategory.mission] ?? 0,
+                onLeave: counts[_FilterCategory.onLeave] ?? 0,
+                weekend: counts[_FilterCategory.weekend] ?? 0,
+                total: employees.length,
+                pct: attendancePct,
+                onSegmentTap: (cat) => setState(() => _selectedFilter = cat),
+              ),
+              const SizedBox(height: 12),
+
               // ─── شريط الملخص القابل للنقر ───────────────────────────
               _SummaryBar(
                 counts: counts,
@@ -247,17 +269,19 @@ class _ExecutiveAttendanceTabState
             for (final dept in sortedDepts) {
               final deptEmployees = grouped[dept]!;
 
-              int present = 0, late = 0, absent = 0;
+              int present = 0, late = 0, absent = 0, weekend = 0;
               for (final e in deptEmployees) {
                 if (e.isOnMission) continue;
                 if (e.attendanceStatus == 'present') present++;
                 if (e.attendanceStatus == 'late') late++;
                 if (e.attendanceStatus == 'absent') absent++;
+                if (e.attendanceStatus == 'weekend') weekend++;
               }
               final summaryParts = <String>[];
               if (present > 0) summaryParts.add('$present حاضر');
               if (late > 0) summaryParts.add('$late متأخر');
               if (absent > 0) summaryParts.add('$absent غائب');
+              if (weekend > 0) summaryParts.add('$weekend راحة');
 
               items.add(
                 Padding(
@@ -319,7 +343,116 @@ String _filterLabel(_FilterCategory cat) {
     _FilterCategory.mission => 'مأموريات',
     _FilterCategory.onLeave => 'إجازات',
     _FilterCategory.partial => 'جزئي',
+    _FilterCategory.weekend => 'راحة أسبوعية',
   };
+}
+
+/// شريط بصري علوي يعرض نسبة الحضور بألوان مميزة قابلة للنقر.
+class _AttendanceProgress extends StatelessWidget {
+  const _AttendanceProgress({
+    required this.present,
+    required this.late,
+    required this.absent,
+    required this.mission,
+    required this.onLeave,
+    required this.weekend,
+    required this.total,
+    required this.pct,
+    required this.onSegmentTap,
+  });
+  final int present;
+  final int late;
+  final int absent;
+  final int mission;
+  final int onLeave;
+  final int weekend;
+  final int total;
+  final int pct;
+  final ValueChanged<_FilterCategory> onSegmentTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (total == 0) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
+
+    final segments = <_SegmentData>[
+      _SegmentData(_FilterCategory.present, present, Colors.green.shade600),
+      _SegmentData(_FilterCategory.late, late, Colors.orange.shade600),
+      _SegmentData(_FilterCategory.mission, mission, Colors.purple.shade600),
+      _SegmentData(_FilterCategory.onLeave, onLeave, Colors.blue.shade600),
+      _SegmentData(_FilterCategory.weekend, weekend, Colors.teal.shade400),
+      _SegmentData(_FilterCategory.absent, absent, Colors.red.shade400),
+    ].where((s) => s.count > 0).toList();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // النسبة المئوية + العدد
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'نسبة الحضور',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              Text(
+                '$pct%  ($present + $late من $total)',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: scheme.primary,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // شريط التقدم متعدد الألوان
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              height: 28,
+              child: Row(
+                children: segments.map((s) {
+                  final flex = (s.count / total * 100).round();
+                  return Expanded(
+                    flex: flex > 0 ? flex : 1,
+                    child: GestureDetector(
+                      onTap: () => onSegmentTap(s.category),
+                      child: Container(
+                        color: s.color,
+                        alignment: Alignment.center,
+                        child: s.count > 2
+                            ? Text(
+                                '${s.count}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 12,
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SegmentData {
+  const _SegmentData(this.category, this.count, this.color);
+  final _FilterCategory category;
+  final int count;
+  final Color color;
 }
 
 class _SummaryBar extends StatelessWidget {
@@ -397,6 +530,14 @@ class _SummaryBar extends StatelessWidget {
               isActive: selected == _FilterCategory.partial,
               onTap: () => onTap(_FilterCategory.partial),
             ),
+          if ((counts[_FilterCategory.weekend] ?? 0) > 0)
+            _SummaryChip(
+              label: 'راحة',
+              count: counts[_FilterCategory.weekend]!,
+              color: Colors.teal.shade700,
+              isActive: selected == _FilterCategory.weekend,
+              onTap: () => onTap(_FilterCategory.weekend),
+            ),
         ],
       ),
     );
@@ -472,7 +613,8 @@ class _AttendanceCard extends StatelessWidget {
     final (statusColor, statusIcon) = _statusVisuals(employee);
     return Card(
       clipBehavior: Clip.antiAlias,
-      elevation: 0,
+      elevation: 1,
+      shadowColor: statusColor.withValues(alpha: 0.2),
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: InkWell(
         onTap: () => _showEmployeeSummary(context),

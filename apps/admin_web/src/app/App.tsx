@@ -49,6 +49,7 @@ const ReportSchedulerPage = lazy(() => import('../features/management/ReportSche
 const EnterpriseManagementPage = lazy(() => import('../features/management/EnterpriseManagementPage').then((m) => ({ default: m.EnterpriseManagementPage })));
 const OperationsCenterPage = lazy(() => import('../features/management/OperationsCenterPage').then((m) => ({ default: m.OperationsCenterPage })));
 const AuditSecurityPage = lazy(() => import('../features/management/AuditSecurityPage').then((m) => ({ default: m.AuditSecurityPage })));
+const ObservabilityDashboardPage = lazy(() => import('../features/observability/ObservabilityDashboardPage').then((m) => ({ default: m.ObservabilityDashboardPage })));
 const IntegrationsJobsPage = lazy(() => import('../features/management/IntegrationsJobsPage').then((m) => ({ default: m.IntegrationsJobsPage })));
 const AnalyticsDashboardPage = lazy(() => import('../features/analytics/AnalyticsDashboardPage').then((m) => ({ default: m.AnalyticsDashboardPage })));
 /* V17 §4.2: feature-flagged pages — shown only when the corresponding flag in featureFlags.ts is true */
@@ -222,6 +223,14 @@ export function App() {
               element={
                 <RequirePermission perm="audit.view">
                   <AuditSecurityPage />
+                </RequirePermission>
+              }
+            />
+            <Route
+              path="observability"
+              element={
+                <RequirePermission perm="system.release.read">
+                  <ObservabilityDashboardPage />
                 </RequirePermission>
               }
             />

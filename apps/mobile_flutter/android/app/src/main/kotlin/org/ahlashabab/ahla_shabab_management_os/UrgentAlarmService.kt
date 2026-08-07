@@ -5,9 +5,12 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
 import android.media.AudioAttributes
-import android.media.AudioManager
+import android.media.AudioAttributes as AudioAttr
 import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Build
 import android.os.Handler
@@ -24,14 +27,13 @@ import androidx.core.content.ContextCompat
  * Foreground alarm for urgent location requests.
  *
  * FCM may arrive while Flutter is stopped, so the alarm is entirely native.
- * It keeps a partial wake lock, loops the alarm sound, vibrates, and owns an
- * ongoing full-screen notification until the employee responds OR the safety
- * timeout fires.
+ * It keeps a partial wake lock, loops the alarm sound, vibrates, blinks the
+ * camera flash, and owns an ongoing full-screen notification until the
+ * employee responds OR the safety timeout fires.
  *
- * V18: No longer modifies the global system volume. Uses MediaPlayer volume +
- * USAGE_ALARM audio attributes + IMPORTANCE_MAX channel to play loudly without
- * touching the user's settings. Adds a 5-minute safety timeout so the alarm
- * self-stops if the process survives but the user never interacts.
+ * V19: Adds camera flash/torch blinking + maximises STREAM_ALARM volume
+ * (with safe save/restore via SharedPreferences so a killed process can
+ * restore on next start). This makes the alarm impossible to miss.
  */
 class UrgentAlarmService : Service() {
     private var mediaPlayer: MediaPlayer? = null
@@ -41,10 +43,16 @@ class UrgentAlarmService : Service() {
     private var audioFocusRequest: AudioFocusRequest? = null
     private var activeNotificationId: Int? = null
     private val handler = Handler(Looper.getMainLooper())
+    private var cameraManager: CameraManager? = null
+    private var flashCameraId: String? = null
+    private var flashOn = false
+    private var originalAlarmVolume = -1
     private val safetyTimeout = Runnable {
         Log.w(TAG, "Safety timeout reached — auto-stopping alarm")
         stopAlarmAndService()
     }
+
+    private val flashBlinker = Runnable { toggleFlash() }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -91,6 +99,7 @@ class UrgentAlarmService : Service() {
 
         acquireWakeLock()
         startRepeatingAlarm()
+        startFlashBlinking()
 
         // Reset the safety timeout on every new start command.
         handler.removeCallbacks(safetyTimeout)
@@ -107,21 +116,93 @@ class UrgentAlarmService : Service() {
             "$packageName:urgent-location-alarm",
         ).apply {
             setReferenceCounted(false)
-            // Timeout matches the alarm safety timeout + 30s grace period.
             acquire(ALARM_TIMEOUT_MS + 30_000L)
         }
     }
 
+    // ── Camera flash blinking ──────────────────────────────────────────
+    // Uses Camera2 torch mode to blink the flash in sync with the alarm
+    // pattern: 800ms on, 250ms off, repeating.
+    private fun startFlashBlinking() {
+        try {
+            cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
+            flashCameraId = cameraManager?.cameraIdList?.firstOrNull { id ->
+                cameraManager?.getCameraCharacteristics(id)
+                    ?.get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+            }
+            if (flashCameraId != null) {
+                handler.post(flashBlinker)
+            } else {
+                Log.i(TAG, "No camera with flash — skipping torch blink")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Flash blink init failed", e)
+        }
+    }
+
+    private fun toggleFlash() {
+        val cm = cameraManager ?: return
+        val id = flashCameraId ?: return
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                cm.setTorchMode(id, flashOn)
+            } else {
+                @Suppress("DEPRECATION")
+                cm.setTorchMode(id, true)
+            }
+            flashOn = !flashOn
+            // Blink pattern: 800ms on, 250ms off — matches vibration rhythm.
+            handler.postDelayed(flashBlinker, if (flashOn) 800L else 250L)
+        } catch (e: Exception) {
+            // Camera may be in use by another app — stop trying.
+            Log.w(TAG, "Flash toggle failed (camera busy?)", e)
+            flashOn = false
+        }
+    }
+
+    private fun stopFlashBlinking() {
+        handler.removeCallbacks(flashBlinker)
+        // Ensure flash is OFF.
+        val cm = cameraManager ?: return
+        val id = flashCameraId ?: return
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                cm.setTorchMode(id, false)
+            }
+        } catch (_: Exception) {
+            // Camera may already be released.
+        }
+        flashOn = false
+        cameraManager = null
+        flashCameraId = null
+    }
+
+    // ── Alarm sound + volume ───────────────────────────────────────────
     private fun startRepeatingAlarm() {
         val manager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         audioManager = manager
         requestAlarmAudioFocus(manager)
 
-        // ── V18: NO global volume modification ──
-        // We rely on USAGE_ALARM audio attributes + MediaPlayer.setVolume(1f, 1f)
-        // + IMPORTANCE_MAX notification channel. This is loud enough without
-        // touching the user's global STREAM_ALARM volume, which would persist
-        // across crashes/kills and annoy the user.
+        // V19: Maximise STREAM_ALARM volume so the alarm is as loud as possible.
+        // Save the original to SharedPreferences so we can restore it even
+        // if the process is killed (restoreStuckVolumeIfNeeded on next start).
+        val maxVolume = manager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+        originalAlarmVolume = manager.getStreamVolume(AudioManager.STREAM_ALARM)
+        if (originalAlarmVolume < maxVolume) {
+            getSharedPreferences("urgent_alarm_prefs", Context.MODE_PRIVATE)
+                .edit()
+                .putInt("stuck_original_alarm_volume", originalAlarmVolume)
+                .apply()
+        }
+        try {
+            manager.setStreamVolume(
+                AudioManager.STREAM_ALARM,
+                maxVolume,
+                0, // no UI sound
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not set alarm volume to max (Do Not Disturb?)", e)
+        }
 
         if (mediaPlayer?.isPlaying != true) {
             val soundUri = android.net.Uri.parse(
@@ -130,7 +211,7 @@ class UrgentAlarmService : Service() {
             try {
                 mediaPlayer = MediaPlayer().apply {
                     setAudioAttributes(
-                        AudioAttributes.Builder()
+                        AudioAttr.Builder()
                             .setUsage(AudioAttributes.USAGE_ALARM)
                             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                             .build(),
@@ -169,7 +250,7 @@ class UrgentAlarmService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
                 .setAudioAttributes(
-                    AudioAttributes.Builder()
+                    AudioAttr.Builder()
                         .setUsage(AudioAttributes.USAGE_ALARM)
                         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .build(),
@@ -206,6 +287,9 @@ class UrgentAlarmService : Service() {
 
     private fun releaseResources() {
         handler.removeCallbacks(safetyTimeout)
+        handler.removeCallbacks(flashBlinker)
+
+        stopFlashBlinking()
 
         runCatching { mediaPlayer?.stop() }
         mediaPlayer?.release()
@@ -217,7 +301,22 @@ class UrgentAlarmService : Service() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 audioFocusRequest?.let(manager::abandonAudioFocusRequest)
             }
-            // V18: No volume restoration needed — we never change global volume.
+            // V19: Restore the original alarm volume we boosted.
+            if (originalAlarmVolume >= 0) {
+                try {
+                    manager.setStreamVolume(
+                        AudioManager.STREAM_ALARM,
+                        originalAlarmVolume,
+                        0,
+                    )
+                } catch (_: Exception) {
+                    // DND or other restriction — best effort.
+                }
+                getSharedPreferences("urgent_alarm_prefs", Context.MODE_PRIVATE)
+                    .edit()
+                    .remove("stuck_original_alarm_volume")
+                    .apply()
+            }
         }
         audioFocusRequest = null
         audioManager = null
@@ -287,11 +386,8 @@ class UrgentAlarmService : Service() {
         }
 
         /**
-         * V18 one-time migration: the old alarm code would set STREAM_ALARM to
-         * max and only restore it in onDestroy(). If the process was killed, the
-         * volume stayed at max forever. This checks SharedPreferences for a
-         * saved original volume and restores it, then clears the key so it only
-         * runs once.
+         * One-time migration: if the process was killed while the alarm was
+         * active, the STREAM_ALARM volume stayed at max. This restores it.
          */
         private fun restoreStuckVolumeIfNeeded(context: Context) {
             val prefs = context.getSharedPreferences("urgent_alarm_prefs", Context.MODE_PRIVATE)
@@ -301,7 +397,6 @@ class UrgentAlarmService : Service() {
                     val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
                     val currentVolume = am.getStreamVolume(AudioManager.STREAM_ALARM)
                     val maxVolume = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
-                    // Only restore if volume is still at max (meaning it was stuck).
                     if (currentVolume >= maxVolume && savedVolume < maxVolume) {
                         am.setStreamVolume(AudioManager.STREAM_ALARM, savedVolume, 0)
                         Log.i(TAG, "Restored stuck alarm volume from $currentVolume to $savedVolume")

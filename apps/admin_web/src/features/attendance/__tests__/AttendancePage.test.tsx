@@ -54,18 +54,20 @@ describe('AttendancePage', () => {
     expect(screen.getByText('4')).toBeDefined();
   });
 
-  it('يعرض قسم جودة السجلات', () => {
+  it('يعرض بطاقات الحالات تحتاج اهتمام', () => {
     hookReturn = { data: mockDashboardData, isLoading: false, isError: false, isFetching: false, refetch: mockRefetch };
     render(<MemoryRouter><AttendancePage /></MemoryRouter>);
-    expect(screen.getByText('جودة سجلات اليوم')).toBeDefined();
     expect(screen.getByText('بصمات غير مكتملة')).toBeDefined();
-    expect(screen.getByText('تحتاج مراجعة بشرية')).toBeDefined();
+    expect(screen.getByText('تحتاج مراجعة')).toBeDefined();
+    expect(screen.getByText('غياب بدون إذن')).toBeDefined();
+    expect(screen.getByText('طلبات الموقع')).toBeDefined();
   });
 
-  it('يعرض قسم قواعد التشغيل', () => {
+  it('يعرض ملاحظات التشغيل', () => {
     hookReturn = { data: mockDashboardData, isLoading: false, isError: false, isFetching: false, refetch: mockRefetch };
     render(<MemoryRouter><AttendancePage /></MemoryRouter>);
-    expect(screen.getByText('قواعد التشغيل')).toBeDefined();
+    expect(screen.getByText(/ضعف GPS يُنشئ تنبيه/)).toBeDefined();
+    expect(screen.getByText(/وقت الحضور المعتمد/)).toBeDefined();
   });
 
   it('يعرض هياكل التحميل أثناء جلب البيانات', () => {

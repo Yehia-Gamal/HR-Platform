@@ -60,7 +60,7 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
 
   return (
     <>
-      <button type="button" className="btn btn-secondary !px-2 !py-1 text-[11px]" onClick={() => setOpen(true)} title="تعديل اليوم بسجل تدقيق">
+      <button type="button" className="stmt-edit-btn" onClick={() => setOpen(true)} title="تعديل اليوم بسجل تدقيق">
         <Pencil className="size-3.5" aria-hidden="true" />
         تعديل
       </button>
