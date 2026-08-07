@@ -22,6 +22,8 @@ function makeEmployee(overrides: Partial<EmployeeOverviewRow>): EmployeeOverview
     activeRequestStatus: null,
     activeRequestId: null,
     lateMinutes: null,
+    avatarUrl: null,
+    assignmentType: null,
     lastLatitude: null,
     lastLongitude: null,
     lastAccuracy: null,

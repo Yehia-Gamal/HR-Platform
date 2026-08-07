@@ -252,8 +252,40 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
     e.preventDefault();
     setPwdError(null);
     setPwdSuccess(false);
-    if (newPassword.length < 8 || newPassword.length > 15) {
-      setPwdError('كلمة المرور يجب أن تكون بين 8 و15 حرفًا.');
+
+    // SEC: فحص قوة كلمة المرور على الواجهة — مطابق لـ validateHrIssuedPassword
+    // في admin-set-password Edge Function. رسائل عربية واضحة لكل قاعدة.
+    const pwd = newPassword;
+    let err: string | null = null;
+    if (pwd.length < 12) {
+      err = 'كلمة المرور يجب أن تكون 12 حرفًا على الأقل.';
+    } else if (pwd.length > 72) {
+      err = 'كلمة المرور يجب ألا تتجاوز 72 حرفًا.';
+    } else if (!/[A-Z]/.test(pwd)) {
+      err = 'كلمة المرور يجب أن تحتوي حرفًا كبيرًا واحدًا على الأقل (A-Z).';
+    } else if (!/[a-z]/.test(pwd)) {
+      err = 'كلمة المرور يجب أن تحتوي حرفًا صغيرًا واحدًا على الأقل (a-z).';
+    } else if (!/\d/.test(pwd)) {
+      err = 'كلمة المرور يجب أن تحتوي رقمًا واحدًا على الأقل (0-9).';
+    } else if (!/[!@#$%^&*()_\-+=[\]{};':"\\|,.<>/?`~]/.test(pwd)) {
+      err = 'كلمة المرور يجب أن تحتوي رمزًا خاصًا واحدًا على الأقل (!@#$...).';
+    } else if (/(.)\1{4,}/.test(pwd)) {
+      err = 'كلمة المرور تحتوي تكرارًا مفرطًا لنفس الحرف (5+ على التوالي).';
+    } else {
+      const sequences = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm', 'abcdefghijklmnopqrstuvwxyz', '0123456789'];
+      const lower = pwd.toLowerCase();
+      for (const seq of sequences) {
+        for (let i = 0; i + 4 <= seq.length; i++) {
+          if (lower.includes(seq.slice(i, i + 4))) {
+            err = 'كلمة المرور تحتوي تسلسلًا مألوفًا من لوحة المفاتيح أو أرقام.';
+            break;
+          }
+        }
+        if (err) break;
+      }
+    }
+    if (err) {
+      setPwdError(err);
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -509,14 +541,14 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
       {canSensitive ? (
         <form onSubmit={(e) => void onPasswordSubmit(e)} className="mt-6 space-y-4 border-t border-[var(--border)] pt-5">
           <h3 className="font-black">تعيين كلمة المرور</h3>
-          <p className="muted text-xs">ستعمل كلمة المرور الجديدة في أول دخول فقط، ثم يُجبر الموظف على تغييرها.</p>
+          <p className="muted text-xs">كلمة مرور قوية (12+ حرف، أحرف كبيرة وصغيرة ورقم ورمز) — يعيّنها الإداري ويتعين على الموظف تغييرها عند أول دخول.</p>
           {pwdError ? <ErrorBanner message={pwdError} /> : null}
           {pwdSuccess ? (
-            <p className="rounded-lg bg-[var(--success-soft)] px-3 py-2 text-sm text-[var(--success)]">تم تعيين كلمة المرور بنجاح.</p>
+            <p className="rounded-lg bg-[var(--success-soft)] px-3 py-2 text-sm text-[var(--success)]">تم تعيين كلمة المرور بنجاح. سيُجبر الموظف على تغييرها عند أول دخول.</p>
           ) : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1.5 block text-sm font-semibold">كلمة المرور الجديدة (8–15 حرفًا)</span>
+              <span className="mb-1.5 block text-sm font-semibold">كلمة المرور الجديدة (12–72 حرفًا)</span>
               <div className="relative">
                 <input
                   className="input w-full pl-10"
@@ -524,7 +556,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
                   value={newPassword}
                   onChange={(e) => { setNewPassword(e.target.value); setPwdSuccess(false); }}
                   autoComplete="new-password"
-                  minLength={8}
+                  minLength={12}
                   maxLength={15}
                   disabled={passwordMutation.isPending}
                 />

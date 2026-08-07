@@ -88,7 +88,6 @@ function statusBadgeClass(status: string | null): string {
 
 export function AttendanceDrilldownPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const hrPrefix = useHrPrefix();
 
   const categoryParam = searchParams.get('category');
   const category: AttendanceRosterCategory = attendanceRosterCategorySchema.safeParse(categoryParam).success
@@ -291,7 +290,7 @@ export function AttendanceDrilldownPage() {
               </thead>
               <tbody>
                 {items.map((item) => (
-                  <Row key={item.employeeId} item={item} hrPrefix={hrPrefix} />
+                  <Row key={item.employeeId} item={item} />
                 ))}
               </tbody>
             </table>
@@ -313,7 +312,7 @@ export function AttendanceDrilldownPage() {
   );
 }
 
-function Row({ item, hrPrefix }: { item: AttendanceRosterItem; hrPrefix: string }) {
+function Row({ item }: { item: AttendanceRosterItem }) {
   const hrPrefix = useHrPrefix();
   const hasExcuse = Boolean(item.hasApprovedLeave) || Boolean(item.hasMission);
   return (

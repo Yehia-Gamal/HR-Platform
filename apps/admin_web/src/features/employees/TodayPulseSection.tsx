@@ -198,7 +198,7 @@ function PulseDialogBody({
       {list.map((e) => (
         <li key={e.id} className="flex items-start justify-between gap-3 py-3">
           <div className="flex min-w-0 items-start gap-3">
-            <UserAvatar displayName={e.name ?? ''} size="sm" />
+            <UserAvatar displayName={e.name ?? ''} photoUrl={e.avatarUrl} size="sm" />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <Link to={`/hr/employees/${e.id}`} className="truncate font-black hover:text-[var(--brand-primary)]">
@@ -212,6 +212,10 @@ function PulseDialogBody({
                 {/* شارة الانصراف المبكر — مستقلة عن دقائق التأخير */}
                 {e.status === 'left_early' ? (
                   <span className="status-badge status-warning">انصرف مبكرًا</span>
+                ) : null}
+                {/* نوع التكليف للمأمورية/القافلة/الفاندي */}
+                {e.assignmentType ? (
+                  <span className="status-badge status-info">{e.assignmentType === 'MISSION' ? 'مأمورية' : e.assignmentType === 'CONVOY' ? 'قافلة' : e.assignmentType === 'FUNDRAISING' ? 'فاندي' : e.assignmentType}</span>
                 ) : null}
               </div>
               <p className="muted mt-1 text-xs">

@@ -195,7 +195,35 @@ begin
     status = case when p_changes ? 'status'
       then (p_changes->>'status') else status end,
     updated_at = now()
- 
+  where id = p_employee_id;
+
+  -- فحص تكرار الهاتف بعد التحديث
+  if p_changes ? 'phoneE164' and (p_changes->>'phoneE164') is not null then
+    if exists (
+      select 1 from public.employees
+      where phone_e164 = trim(p_changes->>'phoneE164')
+        and id <> p_employee_id
+        and is_active = true and is_deleted = false
+    ) then
+      raise exception 'phone number already belongs to an active employee' using errcode = '23505';
+    end if;
+  end if;
+
+  -- التدقيق
+  perform public.log_audit_event(
+    'employee_updated', 'people', 'info', 'employees', p_employee_id,
+    'تعديل بيانات الموظف',
+    trim(p_reason),
+    jsonb_build_object('before', v_old_snapshot, 'after', p_changes)
+  );
+
+  return jsonb_build_object(
+    'employeeId', p_employee_id,
+    'updatedFields', (select jsonb_agg(k) from jsonb_object_keys(p_changes) as k),
+    'updatedAt', now()
+  );
+end;
+$$;
 
 -- ============================================================================
 -- get_employee_360 — إضافة email من auth.users المرتبط عبر profiles.

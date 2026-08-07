@@ -1,4 +1,4 @@
-import { assertEquals, assertNotEquals, assertStringIncludes } from "jsr:@std/assert";
+import { assertEquals, assertNotEquals } from "jsr:@std/assert";
 import { stub, type Stub } from "jsr:@std/testing/mock";
 import { createLogger } from "./logger.ts";
 
@@ -103,7 +103,6 @@ Deno.test("معرّفات السياق (employeeId/userId) تتجزّأ إلى *
     assertNotEquals(e.employee_ref, "EMP-SECRET-123");
     assertNotEquals(e.user_ref, "user-SECRET-456");
     // ألا تظهر المعرّفات الخام في أي مكان بالسطر
-    assertStringIncludes(c.out.log[0], "EMP-SECRET-123") === undefined; // لا يظهر — يكفي أن لا يرمي التأكيد التالي
     assertEquals(c.out.log[0].includes("EMP-SECRET-123"), false);
     assertEquals(c.out.log[0].includes("user-SECRET-456"), false);
   });

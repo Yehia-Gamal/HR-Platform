@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { corsHeaders } from '../_shared/cors.ts';
 import { timingSafeEqual } from '../_shared/secret.ts';
+import { createHandler } from '../_shared/withHandler.ts';
 
 // scheduled-report-runner: cron-triggered Edge Function that:
 // 1. Queues due scheduled reports via queue_due_scheduled_reports() RPC
@@ -150,10 +151,9 @@ async function generateHrMonthly(sb: SupabaseAdminClient, _run: ReportRun) {
 
 // ─── Main handler ────────────────────────────────────────────────────
 
-Deno.serve(async (req) => {
+Deno.serve(createHandler({ functionName: 'scheduled-report-runner', version: '1.0.0' }, async (req, ctx) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
   if (req.method !== 'POST') return json(req, { error: 'METHOD_NOT_ALLOWED' }, 405);
-  try {
   const cronSecret = Deno.env.get('CRON_SECRET');
   const cron = req.headers.get('x-cron-secret');
   if (!await timingSafeEqual(cron, cronSecret)) return json(req, { error: 'UNAUTHORIZED' }, 401);
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
 
   // 1. Queue due reports
   const { data: queued, error } = await supabase.rpc('queue_due_scheduled_reports', { p_now: new Date().toISOString() });
-  if (error) { console.error('queue_due_scheduled_reports failed', error.message); return json(req, { error: 'QUEUE_FAILED' }, 500); }
+  if (error) { ctx.log.error('queue_due_scheduled_reports failed', error); return json(req, { error: 'QUEUE_FAILED' }, 500); }
 
   // 2. Process queued runs
   const { data: runs } = await supabase
@@ -234,22 +234,18 @@ Deno.serve(async (req) => {
       }
       completed += 1;
     } catch (err) {
-      console.error(`Report run ${run.id} failed:`, err);
+      ctx.log.error(`Report run ${run.id} failed`, err);
       const { error: markFailedError } = await supabase.from('report_runs')
         .update({ status: 'failed', completed_at: new Date().toISOString(), error_detail: String(err) })
         .eq('id', run.id);
       if (markFailedError) {
-        console.error(`Could not mark report run ${run.id} as failed:`, markFailedError.message);
+        ctx.log.error(`Could not mark report run ${run.id} as failed`, markFailedError);
       }
       failed += 1;
     }
   }
   return json(req, { queued: queued ?? 0, completed, failed });
-  } catch (err) {
-    console.error('scheduled-report-runner unhandled error', err instanceof Error ? err.message : String(err));
-    return json(req, { error: 'INTERNAL_ERROR' }, 500);
-  }
-});
+}));
 
 function json(req: Request, body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders(req), 'content-type': 'application/json' } });

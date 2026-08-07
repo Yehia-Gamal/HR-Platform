@@ -2,6 +2,7 @@ import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_team_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_attendance_tab.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
@@ -194,7 +195,26 @@ class ManagerHomePage extends ConsumerWidget {
                 ),
               ),
             ),
-            data: (members) => _TeamAttendanceCard(members: members),
+            data: (members) => _TeamAttendanceCard(
+              members: members,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => Scaffold(
+                    appBar: AppBar(
+                      title: const Text('حضور الفريق اليوم'),
+                      actions: const [
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: Center(child: BrandLogoMark(size: 34)),
+                        ),
+                      ],
+                    ),
+                    body: const ExecutiveAttendanceTab(),
+                  ),
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 20),
           const MobileSectionHeader(
@@ -283,8 +303,9 @@ class ManagerHomePage extends ConsumerWidget {
 }
 
 class _TeamAttendanceCard extends StatelessWidget {
-  const _TeamAttendanceCard({required this.members});
+  const _TeamAttendanceCard({required this.members, this.onTap});
   final List<MobileTeamMember> members;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -304,15 +325,19 @@ class _TeamAttendanceCard extends StatelessWidget {
     ];
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final (key, label, color) in order)
-              _CountChip(label: label, count: counts[key] ?? 0, color: color),
-          ],
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final (key, label, color) in order)
+                _CountChip(label: label, count: counts[key] ?? 0, color: color),
+            ],
+          ),
         ),
       ),
     );

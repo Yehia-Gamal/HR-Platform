@@ -162,7 +162,7 @@ export function ExecutiveMonitoringPage() {
               {visible.map((e) => (
                 <article key={e.id} className="p-4 transition-colors hover:bg-[var(--surface-muted)]">
                   <div className="flex items-start justify-between gap-3">
-                    <UserAvatar displayName={e.name ?? ''} size="sm" />
+                    <UserAvatar displayName={e.name ?? ''} photoUrl={e.avatarUrl} size="sm" />
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <strong className="truncate">{e.name}</strong>

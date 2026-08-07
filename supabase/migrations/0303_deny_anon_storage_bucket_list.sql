@@ -8,6 +8,8 @@ BEGIN;
 -- إزالة السياسات القديمة على storage.buckets إن وُجدت
 drop policy if exists "Allow anon to read buckets" on storage.buckets;
 drop policy if exists "bucket_select_anon" on storage.buckets;
+drop policy if exists "buckets_anon_denied" on storage.buckets;
+drop policy if exists "buckets_authenticated_public_only" on storage.buckets;
 
 -- anon لا يرى أي bucket
 create policy "buckets_anon_denied" on storage.buckets

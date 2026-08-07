@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { corsHeaders } from '../_shared/cors.ts';
 import { timingSafeEqual } from '../_shared/secret.ts';
+import { createHandler } from "../_shared/withHandler.ts";
 
 // notification-dispatcher: يستهلك طابور notification_jobs ويرسل الدفع.
 // يدعم FCM v1 (Android + APNs عبر FCM) مع تجربة إشعار عاجل (شاشة كاملة/صوت/اهتزاز)
@@ -35,10 +36,9 @@ function createAdminClient(url: string, key: string) {
 
 type SupabaseAdminClient = ReturnType<typeof createAdminClient>;
 
-Deno.serve(async (req) => {
+Deno.serve(createHandler({ functionName: "notification-dispatcher", version: "1.0.0" }, async (req, ctx) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
   if (req.method !== 'POST') return respond(req, { error: 'METHOD_NOT_ALLOWED' }, 405);
-  try {
   const cronSecret = Deno.env.get('CRON_SECRET');
   if (!await timingSafeEqual(req.headers.get('x-cron-secret'), cronSecret)) return respond(req, { error: 'UNAUTHORIZED' }, 401);
   const url = Deno.env.get('SUPABASE_URL'); const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');

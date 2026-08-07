@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { json, preflight } from "../_shared/cors.ts";
 import { generateSecureTemporaryPassword } from "../_shared/phone.ts";
+import { createHandler } from "../_shared/withHandler.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const PUBLISHABLE_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -15,9 +16,8 @@ const INVITE_REDIRECT =
 
 const inputSchema = z.object({ employeeId: z.string().uuid() });
 
-Deno.serve(async (req) => {
+Deno.serve(createHandler({ functionName: "admin-resend-invite", version: "1.0.0" }, async (req, ctx) => {
   if (req.method === "OPTIONS") return preflight(req);
-  try {
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
   if (!SUPABASE_URL || !PUBLISHABLE_KEY || !SERVICE_ROLE) {
     return json(req, { error: "server_not_configured" }, 500);
@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
     },
   });
   if (confirmError) {
-    console.error("admin-resend-invite email_confirm update failed", confirmError.code);
+    ctx.log.error("admin-resend-invite email_confirm update failed", confirmError);
   }
 
   // Rate limit: at most one invite per employee per 60 seconds.
@@ -118,12 +118,8 @@ Deno.serve(async (req) => {
   });
   if (logError) {
     // الدعوة أُرسلت بنجاح لكن التسجيل فشل — نُبلغ بالخطأ للتتبع.
-    console.error("auth_invite_log insert failed", logError.code);
+    ctx.log.error("auth_invite_log insert failed", logError);
   }
 
   return json(req, { invitationSent: true, email: authUser.user.email }, 200);
-  } catch (err) {
-    console.error("admin-resend-invite unhandled error", err instanceof Error ? err.message : String(err));
-    return json(req, { error: "INTERNAL_ERROR" }, 500);
-  }
-});
+}));

@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { json, preflight } from "../_shared/cors.ts";
+import { createHandler } from "../_shared/withHandler.ts";
 import { generateSecureTemporaryPassword, normalizePhone, validateHrIssuedPassword } from "../_shared/phone.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -85,9 +86,10 @@ const ALLOWED_EMPLOYEE_ROLES = new Set([
   ...ELEVATED_EMPLOYEE_ROLES,
 ]);
 
-Deno.serve(async (req) => {
+Deno.serve(createHandler(
+  { functionName: "admin-create-employee", version: "1.0.0" },
+  async (req, ctx) => {
   if (req.method === "OPTIONS") return preflight(req);
-  try {
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
   if (!SUPABASE_URL || !PUBLISHABLE_KEY || !SERVICE_ROLE) {
     return json(req, { error: "server_not_configured" }, 500);
@@ -212,7 +214,7 @@ Deno.serve(async (req) => {
           email_confirm: true,
         });
         if (tempError) {
-          console.error("admin-create-employee temp password update failed", tempError.code);
+          ctx.log.error("temp password update failed", tempError);
         }
       }
       return result as { data: { user: { id: string; email?: string } | null }; error: { message: string; status?: number } | null };
@@ -269,7 +271,7 @@ Deno.serve(async (req) => {
 
   // استعادة من حساب يتيم: حذف ثم إعادة إنشاء
   if (createError && isDuplicateError(createError)) {
-    console.error("auth.createUser duplicate detected — attempting orphan recovery", {
+    ctx.log.warning("auth.createUser duplicate detected — attempting orphan recovery", {
       message: createError.message,
       status: (createError as { status?: number }).status,
     });
@@ -298,14 +300,14 @@ Deno.serve(async (req) => {
       }
 
       // حذف اليتيم وإعادة المحاولة
-      console.error("deleting orphaned auth user for recovery", { orphanId });
+      ctx.log.warning("deleting orphaned auth user for recovery", { orphanId });
       await admin.auth.admin.deleteUser(orphanId).catch(() => undefined);
       ({ data: created, error: createError } = await tryCreateAuthUser());
     }
   }
 
   if (createError || !created?.user) {
-    console.error("auth.createUser failed", {
+    ctx.log.error("auth.createUser failed", createError, {
       message: createError?.message,
       status: (createError as { status?: number })?.status,
       name: (createError as { name?: string })?.name,
@@ -357,12 +359,16 @@ Deno.serve(async (req) => {
       await admin.auth.admin.deleteUser(userId).catch(() => undefined);
     }
     if (deleteError) {
-      console.error("orphaned auth user cleanup failed", { code: (deleteError as { code?: string })?.code });
+      ctx.log.error("orphaned auth user cleanup failed", deleteError, { code: (deleteError as { code?: string })?.code });
     }
     return json(req, { error: errorCode }, 500);
   }
 
   const result = provisioned as { employeeId?: string; userId?: string } | null;
+  ctx.log.info("employee created", {
+    employeeId: result?.employeeId,
+    invitationSent: input.sendInvite,
+  });
   return json(req, {
     employeeId: result?.employeeId,
     userId: result?.userId ?? userId,
@@ -371,8 +377,6 @@ Deno.serve(async (req) => {
     // فقط على شاشة الإنشاء ولا تُعاد ثانية.
     ...(generatedTemporaryPassword ? { temporaryPassword: generatedTemporaryPassword } : {}),
   }, 201);
-  } catch (err) {
-    console.error("admin-create-employee unhandled error", err instanceof Error ? err.message : String(err));
-    return json(req, { error: "INTERNAL_ERROR" }, 500);
-  }
+  },
+));
 });

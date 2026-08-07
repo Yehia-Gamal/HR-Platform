@@ -1,13 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import { corsHeaders } from '../_shared/cors.ts';
 import { timingSafeEqual } from '../_shared/secret.ts';
+import { createHandler } from '../_shared/withHandler.ts';
 
 type Candidate = { video_id: string; storage_bucket: string; storage_path: string };
 
-Deno.serve(async (req) => {
+Deno.serve(createHandler({ functionName: 'retention-cleanup', version: '1.0.0' }, async (req, ctx) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
   if (req.method !== 'POST') return respond(req, { error: 'METHOD_NOT_ALLOWED' }, 405);
-  try {
   const configuredSecret = Deno.env.get('CRON_SECRET');
   if (!await timingSafeEqual(req.headers.get('x-cron-secret'), configuredSecret)) {
     return respond(req, { error: 'UNAUTHORIZED' }, 401);
@@ -103,11 +103,7 @@ Deno.serve(async (req) => {
     loginAttemptCleanup: loginCleanupError ? { error: 'LOGIN_ATTEMPT_CLEANUP_FAILED' } : { removed: removedLoginAttempts ?? 0 },
     completedAt: new Date().toISOString(),
   }, failures.length ? 207 : 200);
-  } catch (err) {
-    console.error('retention-cleanup unhandled error', err instanceof Error ? err.message : String(err));
-    return respond(req, { error: 'INTERNAL_ERROR' }, 500);
-  }
-});
+}));
 
 function respond(req: Request, body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {

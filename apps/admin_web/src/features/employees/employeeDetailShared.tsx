@@ -1,15 +1,9 @@
-import type { LucideIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
-import { Building2, History, Star, X } from 'lucide-react';
+import { History } from 'lucide-react';
 import { ErrorBanner } from '../../ui/ErrorState';
 import { SkeletonCard } from '../../ui/Skeletons';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
-import {
-  useEmployeeDepartments,
-  useRemoveDepartment,
-  useEmployeeAuditTrail,
-} from './useEmployees';
+import { useEmployeeAuditTrail } from './useEmployees';
 import { safeErrorMessage } from '../../core/errorMapper';
 
 const dateTimeFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });

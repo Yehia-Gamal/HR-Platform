@@ -37,6 +37,9 @@ const BRIDGE_FILENAMES = new Set([
   '0298_bridge_placeholder.sql',
   '0299_bridge_placeholder.sql',
   '0300_bridge_placeholder.sql',
+  // 0302, 0304 → جسور احتياطية بين 0301/0303 و 0303/0305 أثناء إعادة ترتيب KPI/storage.
+  '0302_bridge_placeholder.sql',
+  '0304_bridge_placeholder.sql',
 ]);
 
 const FILE_RE = /^(\d{4})_([a-z0-9][a-z0-9_]*)\.sql$/i;

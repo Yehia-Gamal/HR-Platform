@@ -4,6 +4,7 @@ import { verifyRegistrationResponse } from "@simplewebauthn/server";
 
 type RegistrationResponse = Parameters<typeof verifyRegistrationResponse>[0]["response"];
 import { json, preflight } from "../_shared/cors.ts";
+import { createHandler } from "../_shared/withHandler.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -18,9 +19,8 @@ function bytesToBase64Url(bytes: Uint8Array): string {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
-Deno.serve(async (req) => {
+Deno.serve(createHandler({ functionName: "passkey-register", version: "1.0.0" }, async (req, ctx) => {
   if (req.method === "OPTIONS") return preflight(req);
-  try {
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
   const authorization = req.headers.get("Authorization") ?? "";
   const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
       requireUserVerification: true,
     });
   } catch (error) {
-    console.error("passkey registration verification failed", error instanceof Error ? error.message : "unknown error");
+    ctx.log.error("passkey registration verification failed", error);
     return json(req, { error: "registration_verification_failed" }, 403);
   }
   if (!verification.verified || !verification.registrationInfo) {
@@ -142,13 +142,9 @@ Deno.serve(async (req) => {
   );
   if (saveError) {
     if (saveError.code === "23505") return json(req, { error: "credential_already_registered" }, 409);
-    console.error("passkey credential save failed", { code: saveError.code });
+    ctx.log.error("passkey credential save failed", saveError, { code: saveError.code });
     return json(req, { error: "credential_save_failed" }, 500);
   }
 
   return json(req, { ok: true, verified: true, credential: saved }, 201);
-  } catch (err) {
-    console.error("passkey-register unhandled error", err instanceof Error ? err.message : String(err));
-    return json(req, { error: "INTERNAL_ERROR" }, 500);
-  }
-});
+}));
