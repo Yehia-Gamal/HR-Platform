@@ -7,6 +7,7 @@ import {
   Clock,
   Download,
   FileDown,
+  Filter,
   Printer,
   Search,
   Timer,
@@ -23,7 +24,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { MetricSkeletonRow, SkeletonCard } from '../../ui/Skeletons';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useEmployees } from '../employees/useEmployees';
-import { AttendancePercentageRing, attendanceRateParts, buildDayTags, DayTag, fmtTime, hoursRateParts, MONTHS, StatItem, WARN_STATUSES } from './attendanceShared';
+import { AttendancePercentageRing, attendanceRateParts, buildDayTags, DayTag, DAY_FILTERS, DAY_SORTS, filterDays, fmtTime, hoursRateParts, MONTHS, sortDays, StatItem, WARN_STATUSES, type DayFilter, type DaySort } from './attendanceShared';
 import { AttendanceDayEditor } from './AttendanceDayEditor';
 import { exportAttendancePDF } from './exportAttendancePDF';
 import { useEmployeeMonthlyStatement } from './useMonthlyStatement';
@@ -300,6 +301,15 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
   const compliancePct = s.hoursComplianceRate ?? 0;
   const complianceAvailable = s.hoursComplianceAvailable || s.totalRequiredHours > 0;
 
+  // ── فلترة وترتيب الأيام ──
+  const [dayFilter, setDayFilter] = useState<DayFilter>('all');
+  const [daySort, setDaySort] = useState<DaySort>('date-asc');
+  const [daySearch, setDaySearch] = useState('');
+  const filteredSortedDays = useMemo(
+    () => sortDays(filterDays(data.days, dayFilter, daySearch), daySort),
+    [data.days, dayFilter, daySort, daySearch],
+  );
+
   return (
     <div className="space-y-5 print:space-y-3">
       {/* رأس التقرير للطباعة */}
@@ -377,6 +387,62 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
         <StatItem label="تصحيحات" value={`${s.correctionCount}`} icon={<Clock className="size-3.5 text-slate-500" />} />
       </div>
 
+      {/* فلترة الأيام */}
+      <div className="filter-bar print:hidden">
+        <div className="filter-bar-heading">
+          <span className="filter-bar-title">
+            <Filter className="size-3.5" aria-hidden="true" />
+            فلترة الأيام
+          </span>
+          {(dayFilter !== 'all' || daySearch || daySort !== 'date-asc') && (
+            <button
+              type="button"
+              className="filter-clear"
+              onClick={() => { setDayFilter('all'); setDaySearch(''); setDaySort('date-asc'); }}
+            >
+              مسح الفلاتر
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="filter-search relative flex-1 min-w-[200px]">
+            <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
+            <input
+              type="search"
+              className="input pr-9"
+              placeholder="بحث بالتاريخ أو اليوم أو الحالة…"
+              value={daySearch}
+              onChange={(e) => setDaySearch(e.target.value)}
+              aria-label="بحث في الأيام"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {DAY_FILTERS.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                className={`filter-chip${dayFilter === f.key ? ' is-active' : ''}`}
+                onClick={() => setDayFilter(f.key)}
+                aria-pressed={dayFilter === f.key}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <select
+            className="input min-w-[140px]"
+            value={daySort}
+            onChange={(e) => setDaySort(e.target.value as DaySort)}
+            aria-label="ترتيب الأيام"
+          >
+            {DAY_SORTS.map((so) => (
+              <option key={so.key} value={so.key}>{so.label}</option>
+            ))}
+          </select>
+        </div>
+        <p className="filter-result">{filteredSortedDays.length} من {data.days.length} يوم</p>
+      </div>
+
       {/* الجدول اليومي */}
       <section className="overflow-x-auto rounded-xl border border-[var(--border)] print:overflow-visible" aria-label="تفاصيل الحضور اليومي">
         <table className="w-full min-w-[1000px] text-right text-sm print:min-w-0 print:text-[9px]">
@@ -398,7 +464,7 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
             </tr>
           </thead>
           <tbody>
-            {data.days.map((d) => (
+            {filteredSortedDays.map((d) => (
               <DayRow key={d.date} d={d} employeeId={emp.id} canEdit={data.capabilities.canEditDays} />
             ))}
           </tbody>

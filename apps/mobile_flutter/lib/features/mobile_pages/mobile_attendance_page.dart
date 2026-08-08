@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/gps_preflight_banner.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
@@ -352,7 +353,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
             SnackBar(
               content: Text(_humanizePunchError(errorCode)),
               backgroundColor:
-                  isConfigIssue ? Colors.orange.shade700 : Colors.red.shade700,
+                  isConfigIssue ? AppColors.statusWarning : AppColors.statusDanger,
             ),
           );
         }
@@ -368,7 +369,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
                   ? 'تم تسجيل الحضور بنجاح ✓'
                   : 'تم تسجيل الانصراف بنجاح ✓',
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.statusSuccess,
           ),
         );
       }
@@ -687,7 +688,7 @@ class _TodayStatusCard extends StatelessWidget {
               label: 'أمان الجهاز',
               value: state.hasActiveLocalDevice ? 'مفعلة' : 'غير مفعلة',
               valueColor: state.hasActiveLocalDevice
-                  ? const Color(0xFF0F9F6E)
+                  ? AppColors.statusSuccess
                   : scheme.error,
             ),
 
@@ -839,7 +840,7 @@ class _QuickLink extends StatelessWidget {
         margin: EdgeInsets.zero,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(22),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 14),
             child: Column(
@@ -974,18 +975,18 @@ class _WarningBanner extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: Colors.orange.shade50,
-      borderRadius: BorderRadius.circular(12),
+      color: AppColors.statusWarning.withValues(alpha: .12),
+      borderRadius: BorderRadius.circular(22),
     ),
     child: Row(
       children: [
-        Icon(icon, color: Colors.orange, size: 24),
+        Icon(icon, color: AppColors.statusWarning, size: 24),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
             text,
             style: TextStyle(
-              color: Colors.orange.shade900,
+              color: AppColors.statusWarning,
               fontWeight: FontWeight.w600,
               fontSize: 13,
             ),

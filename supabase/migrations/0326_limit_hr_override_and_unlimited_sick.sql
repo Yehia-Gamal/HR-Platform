@@ -1,3 +1,88 @@
+-- ============================================================================
+-- 0313 — تقييد تدخل HR على الطلبات + إلغاء حد الإجازة المرضية
+-- ============================================================================
+-- (1) decide_request: رفع مهلة تدخل HR من "بعد انتهاء مهلة المدير" إلى
+--     "بعد 60 ساعة من انتهاء مهلة المدير" — المدير المباشر يظل المتخذ
+--     الأساسي للقرار. HR يتدخل فقط كحالة طوارئ بعد فترة طويلة.
+-- (2) leave_types: إلغاء حد الإجازة المرضية (max_days_per_year = NULL).
+-- (3) open_annual_leave_entitlement: إزالة القيمة الثابتة 24 لمرضية.
+-- ============================================================================
+
+begin;
+
+-- (2) إلغاء حد الإجازة المرضية — بدون عدد معين
+update public.leave_types
+   set max_days_per_year = null
+ where code = 'sick' and is_active;
+
+-- (3) إعادة تعريف open_annual_leave_entitlement: مرضية بدون رصيد افتتاحي ثابت
+--     (تُسجّل عند الحاجة فقط عبر leave ledger entries، لا حد أقصى).
+create or replace function public.open_annual_leave_entitlement(
+  p_employee_id uuid,
+  p_year integer default extract(year from (now() at time zone 'Africa/Cairo'))::integer
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_ent jsonb;
+  v_annual_id uuid;
+  v_casual_id uuid;
+  v_sick_id uuid;
+  v_count integer := 0;
+begin
+  if auth.role() <> 'service_role' and not public.current_is_full_access() then
+    raise exception 'FORBIDDEN' using errcode = '42501';
+  end if;
+
+  v_ent := public.effective_annual_entitlement(p_employee_id, make_date(p_year, 1, 1));
+  select id into v_annual_id from public.leave_types where code = 'annual' and is_active;
+  select id into v_casual_id from public.leave_types where code = 'casual' and is_active;
+  select id into v_sick_id   from public.leave_types where code = 'sick'   and is_active;
+
+  if v_annual_id is not null then
+    perform public.apply_leave_ledger_entry(
+      p_employee_id, v_annual_id, p_year, 'opening',
+      (v_ent->>'annual')::numeric,
+      format('leave:opening:annual:%s:%s', p_employee_id, p_year),
+      null, 'فتح رصيد الإجازة الاعتيادية السنوي',
+      jsonb_build_object('entitlement', v_ent));
+    v_count := v_count + 1;
+  end if;
+
+  if v_casual_id is not null then
+    perform public.apply_leave_ledger_entry(
+      p_employee_id, v_casual_id, p_year, 'opening',
+      (v_ent->>'casual')::numeric,
+      format('leave:opening:casual:%s:%s', p_employee_id, p_year),
+      null, 'فتح رصيد الإجازة العارضة السنوي',
+      jsonb_build_object('entitlement', v_ent));
+    v_count := v_count + 1;
+  end if;
+
+  -- المرضية: لا نفتح رصيداً ثابتاً — أصبحت بدون حد. تُسجّل عند الحاجة فقط.
+  -- (يُترك مرجعياً فارغاً دون ledger entry، رصيدها غير محدود.)
+
+  perform public.log_audit_event(
+    'leave.entitlement.opened', 'workflow', 'info',
+    'leave_balance_accounts', p_employee_id,
+    'فتح الرصيد السنوي للإجازات (بدون مرضية ثابتة)',
+    format('السنة %s', p_year),
+    jsonb_build_object('year', p_year, 'entitlement', v_ent));
+  return v_count;
+end;
+$$;
+
+revoke execute on function public.open_annual_leave_entitlement(uuid, integer) from public;
+grant execute on function public.open_annual_leave_entitlement(uuid, integer) to service_role;
+
+comment on function public.open_annual_leave_entitlement(uuid, integer) is
+  'فتح الرصيد السنوي للإجازات. المرضية بدون حد أقصى (لا تُفتح برصيد ثابت).';
+
+-- (1) إعادة تعريف decide_request مع تقييد تدخل HR إلى 60 ساعة بعد انتهاء المهلة
+
 create or replace function public.decide_request(
   p_request_id uuid,
   p_decision text,
@@ -134,12 +219,12 @@ begin
       and v_step.step_order = 1
     );
 
-  -- V25: تجاوز المدير بعد 12 ساعة — صلاحية HR للخطوة الأولى المنتهية
+  -- V26: تجاوز المدير بعد 60 ساعة من انتهاء المهلة (طوارئ فقط) — صلاحية HR للخطوة الأولى المنتهية
   -- ملاحظة: HR يكون مخوّلاً أصلاً عبر approver_permission (requests.approve بنطاق
   -- organization)، لذا نفحص التجاوز بغضّ النظر عن v_authorized — الحارس السابق
   -- `if not v_authorized` كان يمنع التفعيل لأن v_authorized صحيح دائماً لـ HR.
   if v_step.step_order = 1
-     and v_step.due_at < now()
+     and v_step.due_at < now() - interval '60 hours'
      and public.current_has_active_role(array['hr-manager', 'hr-specialist'])
      and public.can_access_employee(v_req.employee_id, 'requests.approve') then
     v_authorized := true;
@@ -314,9 +399,9 @@ comment on function public.decide_request(uuid, text, text) is
 
 revoke all on function public.decide_request(uuid, text, text) from public, anon;
 grant execute on function public.decide_request(uuid, text, text) to authenticated;
+-- end of function
 
--- ═══════════════════════════════════════════════════════════════════════════════
--- Reload PostgREST schema cache
--- ═══════════════════════════════════════════════════════════════════════════════
 
 notify pgrst, 'reload schema';
+
+commit;

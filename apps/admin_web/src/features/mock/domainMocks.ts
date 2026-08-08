@@ -2,6 +2,7 @@ import type {
   AccessAdminCatalog,
   ActionCenterItem,
   AttendanceDashboard,
+  DailyReportFeedItem,
   AttendanceOperationsCatalog,
   AttendanceRosterCategory,
   AttendanceRosterItem,
@@ -1324,7 +1325,64 @@ export const mockHrReportsSummary: HrReportsSummary = {
   leaves: { totalRequests: 95, approved: 72, pending: 12, rejected: 11, activeNow: 3 },
   assignments: { total: 45, active: 8, completed: 30, pending: 7 },
   kpi: { activeCycles: 1, totalEvaluations: 42, pendingEvaluations: 15, completedEvaluations: 27 },
-  disputes: { total: 6, open: 2, resolved: 4, escalated: 1 },
+   disputes: { total: 6, open: 2, resolved: 4, escalated: 1 },
   location: { totalRequests: 18, pending: 3, responded: 15 },
   generatedAt: iso(),
 };
+
+/* ------------------------------------------------------------------ */
+/*  Daily Reports feed mock (from useDailyReportsFeed)                 */
+/* ------------------------------------------------------------------ */
+
+export const mockDailyReportFeed: DailyReportFeedItem[] = [
+  {
+    id: '44000000-0000-4000-8000-000000000003',
+    employeeId: '30000000-0000-4000-8000-000000000001',
+    employeeName: 'أحمد محمد',
+    employeeCode: 'EMP-001',
+    photoUrl: null,
+    jobTitle: 'مهندس أنظمة',
+    department: 'تقنية المعلومات',
+    managerName: 'سارة حسن',
+    reportDate: new Date(now.getTime() - 8 * 3_600_000).toISOString().slice(0, 10),
+    achievements: 'استكمال تجهيز بيئة الاختبار وإعداد تقارير الأسبوع.',
+    blockers: 'انتظار اعتماد المتطلبات الجديدة من العمليات.',
+    tomorrowPlan: 'البدء بترحيل بيانات الوحدات القديمة.',
+    managerComment: 'عمل جيد، تابع الترحيل بحذر.',
+    reviewedByName: 'سارة حسن',
+    reviewedAt: iso(-6),
+    createdAt: iso(-8),
+    likesCount: 3,
+    isLikedByMe: false,
+    comments: [
+      {
+        id: '44000000-0000-4000-8000-000000000004',
+        employeeId: '30000000-0000-4000-8000-000000000002',
+        employeeName: 'سارة حسن',
+        comment: 'ممتاز، استمر بالتوثيق.',
+        createdAt: iso(-5),
+      },
+    ],
+  },
+  {
+    id: '44000000-0000-4000-8000-000000000005',
+    employeeId: '30000000-0000-4000-8000-000000000002',
+    employeeName: 'سارة حسن',
+    employeeCode: 'EMP-002',
+    photoUrl: null,
+    jobTitle: 'مديرة الموارد البشرية',
+    department: 'الموارد البشرية',
+    managerName: 'خالد العلي',
+    reportDate: new Date(now.getTime() - 32 * 3_600_000).toISOString().slice(0, 10),
+    achievements: 'مراجعة سياسات التوظيف وتحديث دليل الإعداد.',
+    blockers: null,
+    tomorrowPlan: 'مقابلة مرشحين جدد لقسم المالية.',
+    managerComment: null,
+    reviewedByName: null,
+    reviewedAt: null,
+    createdAt: iso(-32),
+    likesCount: 1,
+    isLikedByMe: false,
+    comments: [],
+  },
+];

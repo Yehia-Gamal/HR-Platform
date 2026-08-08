@@ -103,6 +103,7 @@ const hrSections: NavSection[] = [
       { label: 'تقارير HR', to: '/hr/reports', icon: FileClock, permission: 'reports.people.read' },
       { label: 'التحليلات', to: '/hr/analytics', icon: BarChart3, permission: 'reports.people.read' },
       { label: 'الأخبار والقرارات', to: '/hr/official-feed', icon: Megaphone, permission: ['comms.announcement.read', 'comms.decision.read'] },
+      { label: 'التقارير اليومية', to: '/hr/daily-reports', icon: ClipboardList },
       { label: 'الإشعارات', to: '/hr/notifications', icon: Bell },
     ],
   },
@@ -151,6 +152,7 @@ const adminSections: NavSection[] = [
     title: 'القيادة والرقابة',
     items: [
       { label: 'مركز الموقع الحي', to: '/admin/live-location', icon: MapPin, permission: 'live_location.request' },
+      { label: 'المراقبة التنفيذية', to: '/admin/executive-monitoring', icon: Activity },
       { label: 'العمليات والمهام', to: '/admin/operations', icon: ClipboardList, permission: ['reports.read', 'operations.mission.manage', 'operations.convoy.manage'] },
       { label: 'لجنة الخلافات', to: '/admin/disputes', icon: Gavel, permission: ['disputes.case.manage', 'disputes.portal.access'] },
       { label: 'مكتب الخدمات', to: '/admin/helpdesk', icon: Headphones, featureFlag: 'helpdesk' },
@@ -160,7 +162,7 @@ const adminSections: NavSection[] = [
   {
     title: 'الحوكمة والنظام',
     items: [
-      { label: 'الهيكل التنظيمي المتقدم', to: '/admin/organization', icon: Network, permission: 'organization.org_chart.read' },
+      { label: 'الهيكل التنظيمي', to: '/admin/org-chart', icon: Network },
       { label: 'الأدوار والصلاحيات', to: '/admin/access', icon: ShieldCheck, permission: 'access.role.read' },
       { label: 'الإدارة المؤسسية', to: '/admin/enterprise', icon: Building2, permission: 'organization.entity.read' },
       { label: 'التدقيق والأمان', to: '/admin/audit-security', icon: ShieldCheck, permission: 'audit.view' },
@@ -177,6 +179,7 @@ const adminSections: NavSection[] = [
       { label: 'التحليلات', to: '/admin/analytics', icon: BarChart3, permission: 'reports.people.read' },
       { label: 'جدولة التقارير', to: '/admin/reports/scheduler', icon: TimerReset, permission: 'reports.schedule.manage' },
       { label: 'الأخبار والقرارات', to: '/admin/hr/official-feed', icon: Megaphone, permission: ['comms.announcement.read', 'comms.decision.read'] },
+      { label: 'التقارير اليومية', to: '/admin/hr/daily-reports', icon: ClipboardList },
     ],
   },
 ];

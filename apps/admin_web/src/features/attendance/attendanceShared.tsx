@@ -213,3 +213,80 @@ export function StatusPill({ d }: { d: AttendanceStatement['days'][number] }) {
   const { label, tone } = dayStatusMeta(d);
   return <span className={`status-pill status-pill--${tone}`}>{label}</span>;
 }
+
+// ─── فلترة وترتيب الأيام ─────────────────────────────────────────
+
+export type DayFilter = 'all' | 'present' | 'absent' | 'leave' | 'mission' | 'convoy' | 'open' | 'upcoming' | 'rest';
+export type DaySort = 'date-asc' | 'date-desc' | 'status';
+
+export const DAY_FILTERS: { key: DayFilter; label: string }[] = [
+  { key: 'all', label: 'الكل' },
+  { key: 'present', label: 'حاضر' },
+  { key: 'absent', label: 'غائب' },
+  { key: 'leave', label: 'إجازة' },
+  { key: 'mission', label: 'مأمورية' },
+  { key: 'convoy', label: 'قافلة/فاندي' },
+  { key: 'open', label: 'وردية مفتوحة' },
+  { key: 'upcoming', label: 'قادمة' },
+  { key: 'rest', label: 'راحة/عطلة' },
+];
+
+export const DAY_SORTS: { key: DaySort; label: string }[] = [
+  { key: 'date-asc', label: 'الأقدم أولاً' },
+  { key: 'date-desc', label: 'الأحدث أولاً' },
+  { key: 'status', label: 'حسب الحالة' },
+];
+
+/** يفلتر الأيام حسب النوع المحدد + نص بحث اختياري. */
+export function filterDays(days: AttendanceStatementDay[], filter: DayFilter, search: string): AttendanceStatementDay[] {
+  const q = search.trim().toLowerCase();
+  return days.filter((d) => {
+    if (filter !== 'all') {
+      switch (filter) {
+        case 'present':
+          if (!(d.isCompleted && !d.isFuture)) return false;
+          break;
+        case 'absent':
+          if (!d.isAbsent) return false;
+          break;
+        case 'leave':
+          if (!d.hasLeave) return false;
+          break;
+        case 'mission':
+          if (!d.hasMission) return false;
+          break;
+        case 'convoy':
+          if (!d.hasConvoyFundi) return false;
+          break;
+        case 'open':
+          if (!d.isOpenShift) return false;
+          break;
+        case 'upcoming':
+          if (!d.isFuture) return false;
+          break;
+        case 'rest':
+          if (!(d.isOfficialHoliday || d.status === 'راحة أسبوعية' || d.status === 'عطلة رسمية')) return false;
+          break;
+      }
+    }
+    if (q) {
+      const haystack = `${d.date} ${d.dayNameAr} ${d.status} ${d.shiftName} ${d.correctionNote ?? ''}`.toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+/** يرتّب الأيام حسب الخيار المحدد. */
+export function sortDays(days: AttendanceStatementDay[], sort: DaySort): AttendanceStatementDay[] {
+  const sorted = [...days];
+  if (sort === 'date-desc') {
+    sorted.sort((a, b) => b.date.localeCompare(a.date));
+  } else if (sort === 'status') {
+    sorted.sort((a, b) => {
+      const sc = (a.status ?? '').localeCompare(b.status ?? '', 'ar');
+      return sc !== 0 ? sc : a.date.localeCompare(b.date);
+    });
+  }
+  return sorted;
+}

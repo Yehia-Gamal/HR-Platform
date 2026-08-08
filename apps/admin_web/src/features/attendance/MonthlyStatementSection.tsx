@@ -9,9 +9,11 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   FileDown,
+  Filter,
   Printer,
+  Search,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonCard } from '../../ui/Skeletons';
@@ -20,12 +22,18 @@ import {
   attendanceRateParts,
   buildDayTags,
   DayTag,
+  DAY_FILTERS,
+  DAY_SORTS,
+  filterDays,
   fmtTime,
   hoursRateParts,
   MONTHS,
   QuickStat,
+  sortDays,
   StatBox,
   StatusPill,
+  type DayFilter,
+  type DaySort,
 } from './attendanceShared';
 import { AttendanceDayEditor } from './AttendanceDayEditor';
 import { exportAttendancePDF } from './exportAttendancePDF';
@@ -110,6 +118,15 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
   const compliancePct = s.hoursComplianceRate ?? 0;
   const complianceAvailable = s.hoursComplianceAvailable || s.totalRequiredHours > 0;
 
+  // ── فلترة وترتيب الأيام ──
+  const [dayFilter, setDayFilter] = useState<DayFilter>('all');
+  const [daySort, setDaySort] = useState<DaySort>('date-asc');
+  const [daySearch, setDaySearch] = useState('');
+  const filteredSortedDays = useMemo(
+    () => sortDays(filterDays(data.days, dayFilter, daySearch), daySort),
+    [data.days, dayFilter, daySort, daySearch],
+  );
+
   return (
     <div className="space-y-5">
       <div className="stmt-hero">
@@ -159,6 +176,63 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
         <QuickStat label="تصحيحات" value={`${s.correctionCount}`} icon={<Clock className="size-3.5 text-slate-500" aria-hidden="true" />} />
       </div>
 
+      <div className="filter-bar">
+        <div className="filter-bar-heading">
+          <span className="filter-bar-title">
+            <Filter className="size-3.5" aria-hidden="true" />
+            فلترة الأيام
+          </span>
+          {(dayFilter !== 'all' || daySearch || daySort !== 'date-asc') && (
+            <button
+              type="button"
+              className="filter-clear"
+              onClick={() => { setDayFilter('all'); setDaySearch(''); setDaySort('date-asc'); }}
+            >
+              مسح الفلاتر
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="filter-search relative flex-1 min-w-[200px]">
+            <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
+            <input
+              type="search"
+              className="input pr-9"
+              placeholder="بحث بالتاريخ أو اليوم أو الحالة…"
+              value={daySearch}
+              onChange={(e) => setDaySearch(e.target.value)}
+              aria-label="بحث في الأيام"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {DAY_FILTERS.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                className={`filter-chip${dayFilter === f.key ? ' is-active' : ''}`}
+                onClick={() => setDayFilter(f.key)}
+                aria-pressed={dayFilter === f.key}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <div className="stmt-select">
+            <select
+              className="input min-w-[140px]"
+              value={daySort}
+              onChange={(e) => setDaySort(e.target.value as DaySort)}
+              aria-label="ترتيب الأيام"
+            >
+              {DAY_SORTS.map((so) => (
+                <option key={so.key} value={so.key}>{so.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <p className="filter-result">{filteredSortedDays.length} من {data.days.length} يوم</p>
+      </div>
+
       <div className="stmt-table-wrap">
         <table className="stmt-table">
           <thead>
@@ -178,7 +252,7 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
             </tr>
           </thead>
           <tbody>
-            {data.days.map((d) => {
+            {filteredSortedDays.map((d) => {
               const tags = buildDayTags(d);
               const rowClass = d.isAbsent
                 ? 'row-absent'

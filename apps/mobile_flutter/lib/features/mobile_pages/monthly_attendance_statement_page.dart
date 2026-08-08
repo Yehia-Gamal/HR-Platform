@@ -177,12 +177,33 @@ class _StatementBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // ───── بطاقة بيانات الموظف ─────
-        _EmployeeHeader(statement: statement),
+        // ───── بطاقة بيانات الموظف (مع حركة دخول) ─────
+        TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: 1),
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
+          builder: (context, val, child) => Opacity(
+            opacity: val,
+            child: Transform.translate(
+              offset: Offset(0, 20 * (1 - val)),
+              child: child,
+            ),
+          ),
+          child: _EmployeeHeader(statement: statement),
+        ),
         const SizedBox(height: 16),
 
-        // ───── دائرة نسبة الحضور ─────
-        _AttendancePercentageCard(statement: statement),
+        // ───── دائرة نسبة الحضور (مع حركة دخول متأخرة) ─────
+        TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: 1),
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeOutCubic,
+          builder: (context, val, child) => Opacity(
+            opacity: val,
+            child: Transform.scale(scale: 0.92 + 0.08 * val, child: child),
+          ),
+          child: _AttendancePercentageCard(statement: statement),
+        ),
         const SizedBox(height: 16),
 
         // ───── بطاقات الملخص الرئيسية ─────
@@ -936,8 +957,9 @@ class _CalendarDayCell extends StatelessWidget {
       button: true,
       label:
           'يوم $dayNum${dayData?.status != null ? " - ${dayData!.status}" : ""}',
-      child: GestureDetector(
+      child: InkWell(
         onTap: () => _showDayDetail(context),
+        borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           height: 56,
@@ -1580,6 +1602,20 @@ class _DayDetailSheet extends ConsumerWidget {
   ) {
     final actions = <Widget>[];
 
+    // ── تحديد نوع اليوم (مأمورية / قافلة / فاندي / إجازة) بأثر رجعي ──
+    // متاح لكل يوم ماضٍ واليوم الحالي؛ يُعتمَد من المدير المباشر لتسوية الغياب.
+    if (!isFuture && day != null) {
+      actions.add(
+        _ActionTile(
+          icon: Icons.event_available,
+          label: 'تحديد نوع هذا اليوم',
+          subtitle: 'مأمورية، قافلة، فاندي، أو إجازة — بموافقة المدير المباشر.',
+          color: const Color(0xFF0EA5E9),
+          onTap: () => _openDayDesignation(context, ref),
+        ),
+      );
+    }
+
     // ── يوم ماضٍ غائب → طلب إجازة أو نسيان بصمة ──
     if (!isFuture && day != null && day!.status == 'غائب دون إذن') {
       actions.add(
@@ -1791,6 +1827,42 @@ class _DayDetailSheet extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم إرسال طلب الإذن بنجاح.')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+      }
+    }
+  }
+
+  // ── فتح نموذج تحديد نوع اليوم ──
+  Future<void> _openDayDesignation(BuildContext context, WidgetRef ref) async {
+    Navigator.pop(context);
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _DayDesignationSheet(dateStr: _dateStr),
+    );
+    if (result == null || !context.mounted) return;
+    try {
+      await ref
+          .read(mobileCommandsProvider)
+          .submitRequest(
+            result['type'] as String,
+            result['title'] as String,
+            result['reason'] as String,
+            result['payload'] as Map<String, dynamic>,
+          );
+      _invalidateProviders(ref);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم إرسال طلب تحديد اليوم بنجاح.')),
         );
       }
     } catch (error) {
@@ -2155,7 +2227,157 @@ class _QuickLeaveSheetState extends State<_QuickLeaveSheet> {
         'leaveType': _leaveType,
         'startDate': widget.dateStr,
         'endDate': widget.dateStr,
+        'dayMark': true,
       },
+    });
+  }
+}
+
+// ─── نموذج تحديد نوع اليوم (مأمورية/قافلة/فاندي/إجازة) ─────────────
+
+class _DayDesignationSheet extends StatefulWidget {
+  const _DayDesignationSheet({required this.dateStr});
+  final String dateStr;
+  @override
+  State<_DayDesignationSheet> createState() => _DayDesignationSheetState();
+}
+
+class _DayDesignationSheetState extends State<_DayDesignationSheet> {
+  final _reasonCtrl = TextEditingController();
+  final _locationCtrl = TextEditingController();
+  String _designation = 'mission';
+
+  /// المفتاح → (نوع الطلب، نوع الإجازة أو null، التسمية)
+  static const _options = <String, (String, String?, String)>{
+    'mission': ('mission', null, 'مأمورية'),
+    'convoy': ('convoy', null, 'قافلة'),
+    'fundraising': ('fundraising', null, 'فاندي'),
+    'leave_annual': ('leave', 'annual', 'إجازة سنوية (اعتيادية)'),
+    'leave_casual': ('leave', 'casual', 'إجازة عارضة (تنفيذ فوري)'),
+    'leave_unpaid': ('leave', 'unpaid', 'إجازة بدون راتب'),
+  };
+
+  bool get _isOperational => _designation != 'leave_annual' && _designation != 'leave_casual' && _designation != 'leave_unpaid';
+
+  @override
+  void dispose() {
+    _reasonCtrl.dispose();
+    _locationCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final scheme = Theme.of(context).colorScheme;
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: scheme.onSurfaceVariant.withValues(alpha: .3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'تحديد نوع هذا اليوم',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: scheme.primary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'اليوم: ${widget.dateStr} — يُعتمَد من المدير المباشر لتسوية الغياب.',
+            style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<String>(
+            value: _designation,
+            decoration: const InputDecoration(
+              labelText: 'نوع التحديد',
+              isDense: true,
+            ),
+            items: _options.entries
+                .map(
+                  (e) => DropdownMenuItem(value: e.key, child: Text(e.value.$3)),
+                )
+                .toList(),
+            onChanged: (v) => setState(() => _designation = v!),
+          ),
+          if (_isOperational) ...[
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _locationCtrl,
+              decoration: const InputDecoration(
+                labelText: 'مكان أو جهة التكليف',
+                hintText: 'مثال: فرع الجيزة',
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _reasonCtrl,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'السبب',
+              hintText: 'اكتب سبب هذا التحديد...',
+            ),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: _submit,
+            icon: const Icon(Icons.send),
+            label: const Text('إرسال الطلب'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _submit() {
+    final reason = _reasonCtrl.text.trim();
+    final (type, leaveType, label) = _options[_designation]!;
+    if (reason.length < 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يرجى إدخال سبب الطلب (3 أحرف على الأقل)'),
+        ),
+      );
+      return;
+    }
+    if (_isOperational && _locationCtrl.text.trim().length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يرجى إدخال مكان أو جهة التكليف'),
+        ),
+      );
+      return;
+    }
+    final payload = <String, dynamic>{
+      'startDate': widget.dateStr,
+      'endDate': widget.dateStr,
+      'dayMark': true,
+    };
+    if (leaveType != null) {
+      payload['leaveType'] = leaveType;
+    } else {
+      payload['location'] = _locationCtrl.text.trim();
+    }
+    Navigator.pop(context, {
+      'type': type,
+      'title': 'تحديد اليوم — $label',
+      'reason': reason,
+      'payload': payload,
     });
   }
 }

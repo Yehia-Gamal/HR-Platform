@@ -7,6 +7,7 @@ import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/phone_display.dart';
 import 'package:ahla_shabab_management_os/core/theme/theme_mode_controller.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
@@ -91,8 +92,8 @@ class MobileProfilePage extends ConsumerWidget {
                   ),
                 ),
               ),
-              /// V17 §4.2.3/§4.2.4 — Documents and Custody hidden until
-              /// the backend journey is ready.
+              const SizedBox(height: 14),
+              _ShareLocationCard(),
               const SizedBox(height: 14),
               const _AppVersionCard(),
               const SizedBox(height: 32),
@@ -1079,6 +1080,104 @@ class _AppVersionCardState extends State<_AppVersionCard> {
           Text('$label: ', style: style?.copyWith(fontWeight: FontWeight.w700)),
           Expanded(child: Text(value, style: style)),
         ],
+      ),
+    );
+  }
+}
+
+/// بطاقة مشاركة الموقع استباقياً مع المدير التنفيذي (الشيخ محمد).
+class _ShareLocationCard extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_ShareLocationCard> createState() => _ShareLocationCardState();
+}
+
+class _ShareLocationCardState extends ConsumerState<_ShareLocationCard> {
+  bool _sending = false;
+  String? _result;
+
+  Future<void> _share() async {
+    setState(() { _sending = true; _result = null; });
+    try {
+      final location = await LocationService.current();
+      final address = await LocationService.reverseGeocode(
+        location.latitude, location.longitude,
+      );
+      await ref.read(mobileCommandsProvider)
+          .shareMyLocationProactively(
+            latitude: location.latitude,
+            longitude: location.longitude,
+            accuracy: location.accuracy,
+            durationMinutes: 30,
+            reason: 'مشاركة موقع استباقية من البروفايل',
+            batteryLevel: null,
+          );
+      final addr = address ?? 'غير متاح';
+      if (mounted) {
+        setState(() {
+          _result = 'تم إرسال موقعك للشيخ محمد. العنوان: $addr';
+          _sending = false;
+        });
+      }
+    } catch (e, stack) {
+      if (mounted) {
+        setState(() {
+          _result = humanizeError(e, stack);
+          _sending = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.location_on_rounded, color: scheme.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'مشاركة موقعي مع الشيخ محمد',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'إرسل موقعك الحالي مباشرة للشيخ محمد دون انتظار طلب منه.',
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+            ),
+            if (_result != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer.withValues(alpha: .3),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(_result!, style: TextStyle(fontSize: 12)),
+              ),
+            ],
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              onPressed: _sending ? null : _share,
+              icon: _sending
+                  ? const SizedBox(
+                      width: 18, height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.send_rounded),
+              label: Text(_sending ? 'جارٍ الإرسال…' : 'مشاركة موقعي الآن'),
+            ),
+          ],
+        ),
       ),
     );
   }

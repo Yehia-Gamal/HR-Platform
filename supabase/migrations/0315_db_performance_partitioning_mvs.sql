@@ -24,9 +24,10 @@ END $$;
 -- These cover the most frequent dashboard/list queries that currently do seq scans.
 
 -- attendance_events: filtered by employee + date range (dashboard drilldown)
+-- (تصحيح: العمود الفعلي في attendance_events هو event_at وليس event_date)
 CREATE INDEX IF NOT EXISTS idx_attendance_events_employee_date
-  ON public.attendance_events (employee_id, event_date DESC)
-  WHERE event_date IS NOT NULL;
+  ON public.attendance_events (employee_id, event_at DESC)
+  WHERE event_at IS NOT NULL;
 
 -- attendance_daily: monthly roster lookups
 CREATE INDEX IF NOT EXISTS idx_attendance_daily_employee_month
@@ -39,9 +40,10 @@ CREATE INDEX IF NOT EXISTS idx_audit_events_created_at_desc
   WHERE created_at IS NOT NULL;
 
 -- audit_events: filter by actor + time range
+-- (تصحيح: أعمدة audit_events الفعلية هي actor_user_id/actor_employee_id وليس actor_id)
 CREATE INDEX IF NOT EXISTS idx_audit_events_actor_created
-  ON public.audit_events (actor_id, created_at DESC)
-  WHERE actor_id IS NOT NULL;
+  ON public.audit_events (actor_user_id, created_at DESC)
+  WHERE actor_user_id IS NOT NULL;
 
 -- requests: status + employee lookup
 CREATE INDEX IF NOT EXISTS idx_requests_status_employee
@@ -49,14 +51,17 @@ CREATE INDEX IF NOT EXISTS idx_requests_status_employee
   WHERE status IS NOT NULL;
 
 -- notifications: unread per user
+-- (تصحيح: عمود notifications الفعلي هو recipient_user_id وليس recipient_id)
 CREATE INDEX IF NOT EXISTS idx_notifications_recipient_unread
-  ON public.notifications (recipient_id, created_at DESC)
+  ON public.notifications (recipient_user_id, created_at DESC)
   WHERE read_at IS NULL;
 
--- leave_requests: pending approvals (manager dashboard)
-CREATE INDEX IF NOT EXISTS idx_leave_requests_status_submitted
-  ON public.leave_requests (status, submitted_at DESC)
-  WHERE status IN ('pending', 'under_review');
+-- leave_requests: per-employee period lookups (balances/ledger/history)
+-- (تصحيح: leave_requests لا تملك status/submitted_at — تملكها requests؛ الفهرس هنا
+--  على الأعمدة الفعلية employee_id + start_date للاستعلامات الشائعة)
+CREATE INDEX IF NOT EXISTS idx_leave_requests_employee_dates
+  ON public.leave_requests (employee_id, start_date DESC)
+  WHERE employee_id IS NOT NULL;
 
 -- ─── Section 3: Partitioning strategy for audit_events ────────────────────
 -- audit_events grows unboundedly. Partition by month for pruning.
@@ -130,6 +135,7 @@ WHERE NOT EXISTS (
 -- ─── Section 5: Materialized View refresh schedule ────────────────────────
 -- Refresh dashboard MVs every 15 minutes during business hours.
 -- Migration 0220 created the MVs; this schedules their refresh.
+-- (تصحيح: سلاسل جداول داخلية مميزة ($mv$/$cronjob$) حتى لا يغلق $$ الخارجي مبكراً)
 DO $$
 BEGIN
   -- Refresh all dashboard MVs on a 15-min schedule
@@ -137,8 +143,8 @@ BEGIN
     PERFORM cron.schedule(
       'refresh-dashboard-mvs',
       '*/15 * * * *',  -- every 15 minutes
-      $cron$
-        DO $$
+      $cronjob$
+        DO $mv$
         DECLARE mv_record RECORD;
         BEGIN
           FOR mv_record IN
@@ -153,8 +159,8 @@ BEGIN
           INSERT INTO public.observability_events (level, source, event_type, message, metadata)
           VALUES ('warning', 'cron:refresh-dashboard-mvs', 'mv_refresh_failed',
                   SQLERRM, jsonb_build_object('sqlstate', SQLSTATE));
-        END $$
-      $cron$
+        END $mv$
+      $cronjob$
     );
   END IF;
 END $$;
@@ -202,36 +208,43 @@ COMMENT ON VIEW public.unused_indexes IS
   'Lists unused indexes (zero scans) that are candidates for removal. Used by DB performance audits.';
 
 -- ─── Section 8: Slow queries view (requires pg_stat_statements) ──────────
-CREATE OR REPLACE VIEW public.slow_queries AS
-SELECT
-  query,
-  calls,
-  round(total_exec_time::numeric, 2) AS total_ms,
-  round(mean_exec_time::numeric, 2) AS avg_ms,
-  round(max_exec_time::numeric, 2) AS max_ms,
-  rows,
-  round((total_exec_time / NULLIF(calls, 0))::numeric, 2) AS per_call_ms
-FROM pg_stat_statements
-WHERE query NOT ILIKE '%pg_stat_statements%'
-  AND query NOT ILIKE '%pg_catalog%'
-  AND calls > 10
-ORDER BY total_exec_time DESC
-LIMIT 50;
-
--- This view will fail to create if pg_stat_statements isn't loaded — that's OK.
--- The SECURITY DEFINER wrapper ensures it degrades gracefully.
+-- Only create the view if the extension is actually loaded.
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements') THEN
-    -- View already created above; ensure permissions
+    EXECUTE $sql$
+    CREATE OR REPLACE VIEW public.slow_queries AS
+    SELECT
+      query,
+      calls,
+      round(total_exec_time::numeric, 2) AS total_ms,
+      round(mean_exec_time::numeric, 2) AS avg_ms,
+      round(max_exec_time::numeric, 2) AS max_ms,
+      rows,
+      round((total_exec_time / NULLIF(calls, 0))::numeric, 2) AS per_call_ms
+    FROM pg_stat_statements
+    WHERE query NOT ILIKE '%pg_stat_statements%'
+      AND query NOT ILIKE '%pg_catalog%'
+      AND calls > 10
+    ORDER BY total_exec_time DESC
+    LIMIT 50;
+    $sql$;
     REVOKE ALL ON public.slow_queries FROM PUBLIC, anon, authenticated;
     GRANT SELECT ON public.slow_queries TO postgres, service_role;
+  ELSE
+    RAISE NOTICE 'pg_stat_statements not available — slow_queries view skipped';
   END IF;
 EXCEPTION WHEN OTHERS THEN
   RAISE NOTICE 'pg_stat_statements not available — slow_queries view will be empty';
 END $$;
 
-COMMENT ON VIEW public.slow_queries IS
-  'Top 50 slowest queries by total execution time. Requires pg_stat_statements extension.';
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements')
+     AND EXISTS (SELECT 1 FROM information_schema.views WHERE table_schema = 'public' AND table_name = 'slow_queries') THEN
+    COMMENT ON VIEW public.slow_queries IS
+      'Top 50 slowest queries by total execution time. Requires pg_stat_statements extension.';
+  END IF;
+END $$;
 
 COMMIT;

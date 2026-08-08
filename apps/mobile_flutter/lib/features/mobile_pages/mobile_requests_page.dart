@@ -284,6 +284,10 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                       value: 'convoy',
                       child: Text('تكليف قافلة'),
                     ),
+                    DropdownMenuItem(
+                      value: 'fundraising',
+                      child: Text('فاندي'),
+                    ),
                   ],
                   onChanged: (value) => setModalState(() {
                     type = value ?? 'leave';
@@ -323,7 +327,8 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                 ],
                 if (type == 'leave' ||
                     type == 'mission' ||
-                    type == 'convoy') ...[
+                    type == 'convoy' ||
+                    type == 'fundraising') ...[
                   Row(
                     children: [
                       Expanded(
@@ -369,7 +374,9 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                   ),
                   const SizedBox(height: 12),
                 ],
-                if (type == 'mission' || type == 'convoy') ...[
+                if (type == 'mission' ||
+                    type == 'convoy' ||
+                    type == 'fundraising') ...[
                   TextField(
                     controller: location,
                     decoration: const InputDecoration(
@@ -555,7 +562,9 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
         'endDate': _dateValue(endDate!),
         if (substituteId.isNotEmpty) 'substituteEmployeeId': substituteId,
       });
-    } else if (type == 'mission' || type == 'convoy') {
+    } else if (type == 'mission' ||
+        type == 'convoy' ||
+        type == 'fundraising') {
       payload.addAll({
         'startDate': _dateValue(startDate!),
         'endDate': _dateValue(endDate!),
@@ -631,7 +640,10 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
     if (title.trim().length < 3) return 'اكتب عنوانًا واضحًا للطلب.';
     if (reason.trim().length < 3) return 'اكتب سبب الطلب وتفاصيله.';
     if (reason.trim().length > 300) return 'السبب طويل جدًا (300 حرف كحد أقصى).';
-    if (type == 'leave' || type == 'mission' || type == 'convoy') {
+    if (type == 'leave' ||
+        type == 'mission' ||
+        type == 'convoy' ||
+        type == 'fundraising') {
       if (startDate == null || endDate == null) {
         return 'حدد تاريخ البداية والنهاية.';
       }
@@ -639,7 +651,10 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
         return 'تاريخ النهاية يجب ألا يسبق البداية.';
       }
     }
-    if ((type == 'mission' || type == 'convoy') && location.trim().length < 2) {
+    if ((type == 'mission' ||
+            type == 'convoy' ||
+            type == 'fundraising') &&
+        location.trim().length < 2) {
       return 'حدد مكان أو جهة التكليف.';
     }
     if (type == 'permit' ||
@@ -787,6 +802,7 @@ class _RequestCard extends StatelessWidget {
     'early_permit' => 'إذن انصراف',
     'attendance_correction' => 'تصحيح حضور',
     'convoy' => 'قافلة',
+    'fundraising' => 'فاندي',
     _ => 'طلب',
   };
 }

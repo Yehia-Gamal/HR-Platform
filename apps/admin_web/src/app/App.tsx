@@ -38,6 +38,7 @@ const RequestsPage = lazy(() => import('../features/requests/RequestsPage').then
 const DeviceApprovalPage = lazy(() => import('../features/devices/DeviceApprovalPage').then((m) => ({ default: m.DeviceApprovalPage })));
 const OrganizationPage = lazy(() => import('../features/management/OrganizationPage').then((m) => ({ default: m.OrganizationPage })));
 const OfficialFeedPage = lazy(() => import('../features/communications/OfficialFeedPage').then((m) => ({ default: m.OfficialFeedPage })));
+const DailyReportsFeedPage = lazy(() => import('../features/reports/DailyReportsFeedPage').then((m) => ({ default: m.DailyReportsFeedPage })));
 const NotificationsPage = lazy(() => import('../features/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })));
 const ActionCenterPage = lazy(() => import('../features/actions/ActionCenterPage').then((m) => ({ default: m.ActionCenterPage })));
 const LiveLocationPage = lazy(() => import('../features/management/LiveLocationPage').then((m) => ({ default: m.LiveLocationPage })));
@@ -56,6 +57,10 @@ const AnalyticsDashboardPage = lazy(() => import('../features/analytics/Analytic
 const ComingSoonPage = lazy(() => import('../ui/ComingSoonPage').then((m) => ({ default: m.ComingSoonPage })));
 const LearningPage = lazy(() => import('../features/learning/LearningPage').then((m) => ({ default: m.LearningPage })));
 const LifecyclePage = lazy(() => import('../features/lifecycle/LifecyclePage').then((m) => ({ default: m.LifecyclePage })));
+const ExecutiveMonitoringPage = lazy(() => import('../features/management/ExecutiveMonitoringPage').then((m) => ({ default: m.ExecutiveMonitoringPage })));
+const OrgChartPage = lazy(() => import('../features/management/OrgChartPage').then((m) => ({ default: m.OrgChartPage })));
+const DocumentsPage = lazy(() => import('../features/documents/DocumentsPage').then((m) => ({ default: m.DocumentsPage })));
+const FinancePage = lazy(() => import('../features/finance/FinancePage').then((m) => ({ default: m.FinancePage })));
 
 export function App() {
   const auth = useAuth();
@@ -139,6 +144,9 @@ export function App() {
                 </RequirePermission>
               }
             />
+            <Route path="daily-reports" element={<DailyReportsFeedPage />} />
+            <Route path="executive-monitoring" element={<ExecutiveMonitoringPage />} />
+            <Route path="org-chart" element={<OrgChartPage />} />
             <Route
               path="organization"
               element={
@@ -181,7 +189,6 @@ export function App() {
               }
             />
             <Route path="governance" element={<ComingSoonPage title="الحوكمة والمخاطر" />} />
-            <Route path="documents" element={<ComingSoonPage title="استوديو المستندات" />} />
             <Route
               path="reports/scheduler"
               element={
@@ -217,7 +224,7 @@ export function App() {
               }
             />
             <Route path="helpdesk" element={<ComingSoonPage title="مكتب الخدمات" />} />
-            <Route path="finance" element={<ComingSoonPage title="الرواتب والمالية" />} />
+            <Route path="finance" element={<FeatureGate flag="peopleFinance"><FinancePage /></FeatureGate>} />
             <Route
               path="audit-security"
               element={
@@ -411,7 +418,7 @@ function HrWorkspaceRoutes() {
       />
       <Route path="learning" element={<LearningPage />} />
       <Route path="lifecycle" element={<RequirePermission perm="people.employee.read"><LifecyclePage /></RequirePermission>} />
-      <Route path="documents" element={<ComingSoonPage title="استوديو المستندات" />} />
+      <Route path="documents" element={<DocumentsPage />} />
       <Route
         path="official-feed"
         element={
@@ -420,6 +427,7 @@ function HrWorkspaceRoutes() {
           </RequirePermission>
         }
       />
+      <Route path="daily-reports" element={<DailyReportsFeedPage />} />
       <Route path="notifications" element={<NotificationsPage />} />
       <Route path="*" element={<Navigate to="employees" replace />} />
     </Routes>

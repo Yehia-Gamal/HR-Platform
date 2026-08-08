@@ -1,22 +1,15 @@
 /**
  * نظام Feature Flags — V23 §13
- * تُستخدم للتحكم التدريجي في إظهار/إخفاء الصفحات الملغاة.
+ * تُستخدم للتحكم التدريجي في إظهار/إخفاء الصفحات.
  * عند الحاجة لتفعيل صفحة، غيّر القيمة إلى true.
  */
 export const FEATURE_FLAGS = {
   learning: true,
-  documents: false,
-  lifecycle: false,
+  lifecycle: true,
+  documents: true,
   governance: false,
   helpdesk: false,
   peopleFinance: false,
-  privacy: false,
-  training: false,
-  custody: false,
-  contractEnd: false,
-  salaries: false,
-  riskGovernance: false,
-  duplicateReports: false,
 } as const;
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;

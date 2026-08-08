@@ -226,6 +226,10 @@ class _NotificationCard extends StatelessWidget {
     'dispute' => Icons.balance_outlined,
     'system' => Icons.settings_suggest_outlined,
     'recognition' => Icons.workspace_premium_outlined,
+    'daily_report' => Icons.article_outlined,
+    'daily_report_like' => Icons.favorite_outline_rounded,
+    'daily_report_comment' => Icons.chat_bubble_outline_rounded,
+    'attendance_manager_notify' => Icons.schedule_outlined,
     _ => Icons.notifications_outlined,
   };
 }

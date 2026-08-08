@@ -2,8 +2,6 @@ import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/video_verification_page.dart';
-// V17 §9: video_verification_page removed — video permanently disabled.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -181,27 +179,7 @@ class _LocationIncomingOverlayState
                 addressAr: '${address ?? ''} | $mapsUrl',
               );
         }
-        if (widget.request.needsVideo) {
-          final employeeId = widget.employeeId;
-          if (employeeId == null || employeeId.isEmpty) {
-            throw StateError('تعذر تحديد ملف الموظف لرفع فيديو التحقق.');
-          }
-          if (!mounted) return;
-          setState(() => _status = 'افتح الكاميرا لتسجيل فيديو التحقق...');
-          final completed = await Navigator.of(context).push<bool>(
-            MaterialPageRoute(
-              fullscreenDialog: true,
-              builder: (_) => VideoVerificationPage(
-                request: widget.request,
-                employeeId: employeeId,
-                position: position,
-              ),
-            ),
-          );
-          if (completed != true) {
-            throw StateError('لم يكتمل تسجيل فيديو التحقق.');
-          }
-        }
+        // V17 §9: video path removed — needsVideo is always false.
       }
       await _stopUrgentAlarm();
       if (mounted) Navigator.of(context).pop(true);

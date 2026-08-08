@@ -1302,6 +1302,16 @@ class MobileNotificationItem {
         'attendance',
         'punch_reminder',
       }.contains(entityType);
+
+  /// هل الإشعار من الأنواع الجديدة (التقارير/الإعجاب/التعليق/حضور المدير)؟
+  /// هذه الأنواع إشعارات معلوماتية — لا تفتح صفحة محددة لكنها تُعرض في القائمة.
+  bool get isInformational =>
+      const {
+        'daily_report',
+        'daily_report_like',
+        'daily_report_comment',
+        'attendance_manager_notify',
+      }.contains(entityType);
 }
 
 class MobileLeaveBalance {

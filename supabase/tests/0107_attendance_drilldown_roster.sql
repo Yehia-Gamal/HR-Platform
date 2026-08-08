@@ -10,7 +10,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
 set local timezone = 'Africa/Cairo';
-select plan(24);
+select plan(25);
 
 -- =====================================================================
 -- 1. البنية والمنح

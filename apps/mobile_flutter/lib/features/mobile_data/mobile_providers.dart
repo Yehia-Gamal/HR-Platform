@@ -1574,3 +1574,86 @@ extension MobileServiceCommands on MobileCommands {
     ref.invalidate(myServicePortalProvider);
   }
 }
+
+// ─── الميزات الجديدة: مشاركة موقع استباقية + تفاعل التقارير ──────────────
+
+/// صفحة التقارير اليومية العامة — يراها كل المستخدمين.
+/// تستخدم cursor pagination (p_before) لتحميل لا نهائي.
+final dailyReportsFeedProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String?>((ref, beforeDate) async {
+  final params = <String, dynamic>{'p_limit': 20};
+  if (beforeDate != null) params['p_before'] = beforeDate;
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>(
+      'get_public_daily_reports_feed',
+      params: params,
+    ),
+  );
+  final list = data as List<dynamic>? ?? [];
+  return list
+      .map((e) => Map<String, dynamic>.from(e as Map<dynamic, dynamic>))
+      .toList(growable: false);
+});
+
+extension MobileNewFeaturesCommands on MobileCommands {
+  /// مشاركة موقع استباقية للمدير التنفيذي — الموظف يُرسل موقعه دون طلب.
+  Future<Map<String, dynamic>> shareMyLocationProactively({
+    required double latitude,
+    required double longitude,
+    double? accuracy,
+    int durationMinutes = 60,
+    String? reason,
+    int? batteryLevel,
+  }) async {
+    final result = await _withTimeout(ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
+          'share_my_location_proactively',
+          params: {
+            'p_latitude': latitude,
+            'p_longitude': longitude,
+            'p_accuracy': accuracy,
+            'p_duration_minutes': durationMinutes,
+            'p_reason': reason,
+            'p_battery_level': batteryLevel,
+          },
+        ));
+    return Map<String, dynamic>.from(result as Map<dynamic, dynamic>);
+  }
+
+  /// تبديل الإعجاب على تقرير يومي.
+  Future<void> toggleDailyReportLike(String reportId) async {
+    await _withTimeout(ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
+          'toggle_daily_report_like',
+          params: {'p_report_id': reportId},
+        ));
+    ref.invalidate(dailyReportsFeedProvider(null));
+  }
+
+  /// إضافة تعليق على تقرير يومي.
+  Future<void> addDailyReportComment(String reportId, String comment) async {
+    await _withTimeout(ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
+          'add_daily_report_comment',
+          params: {
+            'p_report_id': reportId,
+            'p_comment': comment.trim(),
+          },
+        ));
+    ref.invalidate(dailyReportsFeedProvider(null));
+  }
+
+  /// حذف تعليق على تقرير يومي (للصاحب فقط).
+  Future<void> deleteDailyReportComment(String commentId) async {
+    await _withTimeout(ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
+          'delete_daily_report_comment',
+          params: {'p_comment_id': commentId},
+        ));
+    ref.invalidate(dailyReportsFeedProvider(null));
+  }
+}

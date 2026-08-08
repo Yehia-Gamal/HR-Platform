@@ -18,6 +18,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/manager_operatio
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_services_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_daily_reports_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_feed_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_disputes_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notifications_page.dart';
@@ -359,6 +360,11 @@ class WorkspaceScaffold extends ConsumerWidget {
       ],
       // §8.3.3 — القرارات والتعاميم متاحة لجميع المستخدمين
       // المدير التنفيذي والأدمن يرون زر "نشر جديد"
+      _MoreItem(
+        icon: Icons.newspaper_outlined,
+        label: 'تقارير الجميع',
+        page: const DailyReportsFeedPage(),
+      ),
       _MoreItem(
         icon: Icons.campaign_outlined,
         label: 'القرارات والتعاميم',

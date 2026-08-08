@@ -71,6 +71,12 @@ String resolveNotificationRoute({
     'decision'                       => '/action/decision/$entityId',
     'announcement'                   => '/action/announcement/$entityId',
     'recognition'                    => '/action/recognition/$entityId',
+    // ─── أنواع جديدة من migrations 0316-0328 ───
+    // الإشعارات التالية لا تفتح صفحة محددة بل تُظهر المستخدم على القائمة المناسبة:
+    // 'daily_report' / 'daily_report_like' / 'daily_report_comment' → تقارير الجميع
+    // 'attendance_manager_notify' → لا إجراء مباشر (إشعار معلوماتي)
+    // نُرجع '/' لأنها إشعارات معلوماتية بدون deep link محدد.
+    'daily_report' || 'daily_report_like' || 'daily_report_comment' || 'attendance_manager_notify' => '/',
     _                                => '/',
   };
 }

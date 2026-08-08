@@ -62,6 +62,7 @@ const ERROR_PATTERNS: Array<[RegExp, string]> = [
   [/self_archive_not_allowed/i, 'لا يمكن أرشفة حسابك الحالي.'],
   [/archive_reason_required/i, 'سبب الأرشفة مطلوب (٥ أحرف على الأقل).'],
   [/employee_not_found/i, 'لم يُعثر على الموظف — ربما حُذف من مستخدم آخر. أعد تحميل الصفحة.'],
+  [/employee_data_incomplete/i, 'بيانات الموظف غير مكتملة — بعض الحقول الأساسية ناقصة. تواصل مع الإدارة لإكمال الملف.'],
 
   // HTTP status codes في الرسائل
   [/\b401\b/, 'انتهت صلاحية الجلسة. سجّل الدخول مجددًا.'],

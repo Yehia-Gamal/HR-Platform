@@ -38,3 +38,5 @@ export * from './postPublishing.js';
 export * from './validation.js';
 
 export * from './orgChart.js';
+
+export * from './documents.js';

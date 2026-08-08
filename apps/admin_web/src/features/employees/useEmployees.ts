@@ -63,7 +63,16 @@ export function useEmployee360(employeeId: string | undefined) {
         });
       }
       const data = await rpc('get_employee_360', { p_employee_id: employeeId });
-      return employee360Schema.parse(data);
+      // معالجة الحالة التي ترجع فيها الـ RPC null (موظف محذوف أو خارج نطاق RLS)
+      if (data === null || data === undefined) {
+        throw new Error('employee_not_found');
+      }
+      try {
+        return employee360Schema.parse(data);
+      } catch {
+        // إذا فشل Zod parse، نرمي رسالة واضحة بدل خطأ تقني غامض
+        throw new Error('employee_data_incomplete');
+      }
     },
   });
 }

@@ -17,6 +17,7 @@ describe('loadDomainMocks', () => {
     expect(mocks.mockIntegrations).toBeDefined();
     expect(mocks.mockAttendanceDashboard).toBeDefined();
     expect(mocks.mockNotifications).toBeDefined();
+    expect(mocks.mockDailyReportFeed).toBeDefined();
   });
 
   it('mockRequests returns an array', async () => {

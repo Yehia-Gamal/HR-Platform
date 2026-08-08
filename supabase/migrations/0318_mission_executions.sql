@@ -10,6 +10,15 @@
 -- =====================================================================
 
 -- ─── الجدول ───────────────────────────────────────────────────────────────
+-- P0: ALTER TABLE أولاً — create table if not exists يُخطّى إذا كان الجدول
+-- موجوداً مسبقاً (من migration آخر) بدون كل الأعمدة. نضمن الأعمدة موجودة.
+alter table public.mission_executions add column if not exists status text default 'not_started';
+alter table public.mission_executions add column if not exists started_at timestamptz;
+alter table public.mission_executions add column if not exists ended_at timestamptz;
+alter table public.mission_executions add column if not exists actual_minutes integer;
+alter table public.mission_executions add column if not exists report text;
+alter table public.mission_executions add column if not exists outcome text;
+
 create table if not exists public.mission_executions (
   id              uuid primary key default gen_random_uuid(),
   request_id      uuid not null unique references public.requests(id) on delete cascade,
@@ -37,6 +46,7 @@ comment on table public.mission_executions is
 alter table public.mission_executions enable row level security;
 
 -- ─── RPC: بدء المأمورية ───────────────────────────────────────────────────
+drop function if exists public.start_my_mission(uuid);
 create or replace function public.start_my_mission(p_request_id uuid)
 returns uuid
 language plpgsql
@@ -74,6 +84,7 @@ begin
 end $$;
 
 -- ─── RPC: إنهاء المأمورية بالتقرير ────────────────────────────────────────
+drop function if exists public.end_my_mission(uuid, text, text);
 create or replace function public.end_my_mission(
   p_request_id uuid,
   p_report text,

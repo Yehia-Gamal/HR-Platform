@@ -1,13 +1,13 @@
 # Migration Registry — أحلى شباب HR
 
 > سجل شامل لجميع ملفات الترحيل في `supabase/migrations/`.
-> آخر تحديث: 2026-08-03 — دمج إصلاحات الأمن والحضور وسير الإجازات.
+> آخر تحديث: 2026-08-07 — تحديث أرقام 0320–0324 لمطابقة الملفات الفعلية + إضافة 0325 (تحديد اليوم/فاندي).
 
 ## الإحصائيات الفعلية الحالية
 
 | العنصر | العدد |
 |---|---|
-| إجمالي الملفات `.sql` المرقمة | 262: 0001–0262 (يشمل placeholders الموثقة) |
+| إجمالي الملفات `.sql` المرقمة | 324: 0001–0325 (يشمل placeholders الموثقة) |
 | تكرارات نشطة | ✅ لا شيء |
 | فجوات | ✅ لا شيء (جسور موثقة: 0119, 0122, 0194, 0219) |
 | ملفات مركونة في `_v23_parking/` | ✅ يجب أن تكون فارغة — إن وُجدت تُعاد جدوَلتها عبر Integration Lead |
@@ -105,8 +105,8 @@
 | 0294 | `0294_attendance_drilldown.sql` | Drill-Down كامل للوحات الحضور — قوائم حقيقية خلف كل رقم. اختبار pgTAP: `0107_attendance_drilldown_roster.sql`. |
 | 0295 | `0295_attendance_dashboard_visible_scope.sql` | مطابقة عدّادات لوحة الحضور مع قوائم drill-down (اتساق العدد=القائمة). |
 | 0296 | `0296_drop_old_attendance_roster_overload.sql` | إزالة overload القديم `get_attendance_day_roster(date,text)`. |
-| 0297 | `0297_announcement_acknowledgers_list.sql` | عرض قائمة من أقرّوا الإعلان الداخلي (acknowledgers). |
-| 0298 | `0298_mission_executions.sql` | تنفيذ المأموريات (بدء/انتهاء + المدة الفعلية + التقرير). اختبار pgTAP: `0108_mission_execution_contract.sql`. |
+| 0297 | `0297_bridge_placeholder.sql` | جسر ترقيم — كان السجل يذكر acknowledgement؛ المحتوى غير موجود حالياً في أي ملف (يحتاج استعادة أو تحديث السجل). |
+| 0298 | `0298_bridge_placeholder.sql` | جسر ترقيم — محتوى تنفيذ المأموريات انتقل إلى `0318_mission_executions.sql`. |
 | 0299–0300 | `029x_bridge_placeholder.sql` | جسور ترقيم أثناء إعادة هيكلة سلسلة KPI/الموظف. |
 | 0301 | `0301_fix_kpi_admin_grants_and_diagnostics.sql` | منح إدارية KPI + تشخيص الفشل. |
 | 0302 | `0302_fix_kpi_cycle_open_now_override.sql` | تجاوز `open_now` في دورة KPI. |
@@ -114,6 +114,25 @@
 | 0304 | `0304_fix_kpi_cycle_create_grants_only.sql` | منح إنشاء دورة KPI فقط. |
 | 0305 | `0305_employee_edit_simplify.sql` | تبسيط تعديل بيانات الموظف ومزامنة البريد مع ملف 360° (كان 0302_employee_edit_simplify — أُعيد ترقيمه لتفادي التكرار). |
 | 0306 | `0306_re_add_phone_normalization_to_update_employee.sql` | إعادة تطبيع الهاتف في `update_employee_admin` (كان 0304 — أُعيد ترقيمه لتفادي التكرار). |
+| 0307 | `0307_fix_kpi_cycle_open_now_override.sql` | تجاوز `open_now` في دورة KPI (أُعيد ترقيمه من 0302 لتفادي التكرار). |
+| 0308 | `0308_fix_kpi_cycle_create_grants_only.sql` | منح إنشاء دورة KPI فقط (أُعيد ترقيمه من 0290 لتفادي التكرار). |
+| 0309 | `0309_sync_urgent_channel_v6.sql` | مزامنة قناة الإشعار العاجلة للموقع الحي مع معرف القناة الفعلي v6. |
+| 0310 | `0310_request_live_location_drop_channel_v4.sql` | تنظيف hardcoded channel v4 من `request_live_location` (يُطبّعها trigger 0309). |
+| 0311 | `0311_unified_avatar_rpc_and_backfill.sql` | صور موحدة عبر `get_employee_photo_url`/`set_my_photo_url` + روابط authenticated. |
+| 0312 | `0312_fix_kpi_inbox_relation_field.sql` | إضافة حقل `relation` (self/team/review) إلى `get_kpi_inbox`. |
+| 0313 | `0313_limit_hr_override_and_unlimited_sick.sql` | تقييد تدخل HR في `decide_request` (طوارئ بعد مهلة المدير) + إلغاء حد الإجازة المرضية. |
+| 0314 | `0314_attendance_exempt_for_mission_permits.sql` | إعفاء الحضور عند اعتماد مأمورية/إذن (trigger يُصلح في 0317). |
+| 0315 | `0315_db_performance_partitioning_mvs.sql` | أداء قاعدة البيانات — partitioning + pg_stat_statements + جدولة تحديث MVs. |
+| 0316 | `0316_request_event_notifications.sql` | تغطية إشعارات الطلبات — إعادة إنشاء ملف 0299 (الذي استُبدل بجسر no-op) بعد أن ضاع من المستودع أثناء إعادة الهيكلة؛ يضيف إشعارات لـ 20 حدثاً (submit/decide/cancel request, corrections, rosters, break-glass, privacy, signatures, wellbeing, missions, offboarding…) عبر `create or replace` idempotent. مطبَّق على الإنتاج. |
+| 0317 | `0317_fix_hr_bypass_72h_and_attendance_exempt.sql` | إصلاحات على سلسلة 0313–0316: دمج إشعار المعتمِد التالي + رفع تجاوز HR إلى 72 ساعة + توسيع CHECK لـ notifications.category + إصلاح فرع المأمورية في تريغر 0314. |
+| 0318 | `0318_mission_executions.sql` | تنفيذ المأموريات (بدء/انتهاء + المدة الفعلية + التقرير) — انتقل من 0298. اختبار pgTAP: `0108_mission_execution_contract.sql`. |
+| 0319 | `0319_proactive_location_and_manager_attendance_notify.sql` | إشعارات استباقية للموقع الحي وإشعارات حضور للمدير. |
+| 0320 | `0320_attendance_weekend_and_grant_fix.sql` | إصلاح عطلة نهاية الأسبوع (`isWeekend`) + إزالة منح `anon` (تكملة لسلسلة 0294/0295 — انظر أيضًا 0323). |
+| 0321 | `0321_admin_org_chart_rpc.sql` | `get_admin_org_chart` — شجرة هرمية حقيقية (نُقل من 0313 لإزالة التكرار). |
+| 0322 | `0322_observability_permissions_seed.sql` | بذر صلاحيات المراقبة (observability.read, admin.observability…) ومنحها للأدوار الإدارية (نُقل من 0314 لإزالة التكرار). |
+| 0323 | `0323_attendance_weekend_and_grant_fix.sql` | إصلاح عطلة نهاية الأسبوع ومنح الحضور (نسخة موازية من 0320 — أرقام مختلفة، مرت في فحص السلامة). |
+| 0324 | `0324_daily_reports_public_feed_likes.sql` | التقارير اليومية في الخلاصة العامة + الإعجابات (كان `0318_daily_reports_public_feed_likes` — أُعيد ترقيمه إلى 0324). |
+| 0325 | `0325_day_mark_requests_fundraising_retroactive.sql` | **تحديد اليوم بأثر رجعي**: نوع طلب `fundraising` في CHECKs والتسمية؛ استخراج `_submit_request_for(p_employee_id,…)` مع إشعار المدير عند غياب خطوات سير عمل؛ `submit_my_request` يدعم fundraising + `dayMark=true` (ماضٍ من نفس الشهر فقط، يوم واحد)؛ RPC إداري `submit_employee_day_mark` للنيابة مع فحص صلاحيات + منع الشهر المغلق؛ تريجر `trg_fundraising_attendance_exempt` (present عند اعتماد فاندي). |
 
 ---
 
@@ -123,5 +142,5 @@
 
 ---
 
-> ✅ **الحالة:** سلسلة متصلة — 0001 → 0306 — بلا تكرار أو فجوات. تم إعادة ترقيم 0288–0293 و0305–0306 من فروع متوازية لتوحيد التسلسل وحل التكرارات في 0302/0304.
+> ✅ **الحالة:** سلسلة متصلة — 0001 → 0325 — بلا تكرار أو فجوات (فحص `check-migrations-integrity.mjs` ناجح). `0316_request_event_notifications.sql` مطبَّق على الإنتاج ويستعيد عقد تغطية الإشعارات الذي ضاع مع 0299. `0325` أُنشئ ومُتحقق محليًا ولم يُطبَّق على الإنتاج بعد.
 

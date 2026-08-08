@@ -16,6 +16,8 @@ const ACCEPTABLE_GAPS = new Set([
   267,
   // 0279 → رقم مُتخطَّى مقصودًا بين 0278 و0280 (مساحة احتياطية).
   279,
+  // 0314 → أُعيد ترقيمه إلى 0322 (observability_permissions_seed) ضمن إعادة ترتيب.
+  314,
 ]);
 const BRIDGE_FILENAMES = new Set([
   '0119_bridge_placeholder.sql',
