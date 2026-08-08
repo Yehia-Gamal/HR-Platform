@@ -1021,7 +1021,7 @@ export function EmployeeDetailPage() {
             <Info icon={Network} label={item.department ?? 'بدون إدارة'} />
             <Info icon={Phone} label={item.phoneE164 ? renderSafeIntlPhoneText(item.phoneE164) : 'بدون هاتف'} />
             <Info icon={Mail} label={item.email ?? 'بدون بريد'} />
-            <Info icon={ShieldCheck} label={`الحساب: ${item.status === 'terminated' ? 'منتهي' : item.status === 'suspended' ? 'موقوف' : 'نشط'}`} />
+            <Info icon={ShieldCheck} label="الحساب: نشط" />
           </div>
         </div>
         <div className="rounded-2xl bg-[var(--surface-muted)] p-4 text-sm lg:min-w-64">

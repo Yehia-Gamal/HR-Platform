@@ -167,7 +167,7 @@ BEGIN
         'id', t.id, 'title', t.title, 'status', t.status,
         'priority', t.priority, 'dueDate', t.due_date
       ) ORDER BY t.created_at DESC)
-      FROM (SELECT * FROM public.tasks WHERE assigned_to = v_employee.id ORDER BY created_at DESC LIMIT 10) t
+      FROM (SELECT * FROM public.tasks WHERE assignee_employee_id = v_employee.id ORDER BY created_at DESC LIMIT 10) t
     ), '[]'::jsonb),
     'departments', coalesce((
       SELECT jsonb_agg(jsonb_build_object(
