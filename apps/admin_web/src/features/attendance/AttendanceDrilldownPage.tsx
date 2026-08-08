@@ -80,10 +80,10 @@ function formatTime(iso: string | null | undefined): string {
 }
 
 function statusBadgeClass(status: string | null): string {
-  if (status === 'present') return 'badge-success';
-  if (status === 'late') return 'badge-warning';
-  if (status === 'absent') return 'badge-danger';
-  return 'badge-neutral';
+  if (status === 'present') return 'status-pill--ok';
+  if (status === 'late') return 'status-pill--warn';
+  if (status === 'absent') return 'status-pill--danger';
+  return 'status-pill--neutral';
 }
 
 export function AttendanceDrilldownPage() {
@@ -277,8 +277,8 @@ export function AttendanceDrilldownPage() {
             description={q ? 'جرّب البحث بكلمات أخرى أو عدّل الفلاتر.' : `لا يوجد موظفون ضمن فئة «${currentCategory.label}» لهذا اليوم.`}
           />
         ) : (
-          <div className="table-container -m-4 max-h-[65vh] overflow-auto">
-            <table className="table w-full">
+          <div className="-m-4 max-h-[65vh] overflow-auto">
+            <table className="data-table w-full">
               <thead className="sticky top-0 z-10">
                 <tr>
                   <th className="w-14">الموظف</th>
@@ -331,7 +331,7 @@ function Row({ item }: { item: AttendanceRosterItem }) {
         </div>
       </td>
       <td>
-        <span className={`badge text-xs ${statusBadgeClass(item.status)}`}>{statusLabel(item.status)}</span>
+        <span className={`status-pill ${statusBadgeClass(item.status)}`}>{statusLabel(item.status)}</span>
       </td>
       <td className="text-xs text-[var(--text-muted)]">{item.departmentName ?? '—'}</td>
       <td>
@@ -356,13 +356,13 @@ function Row({ item }: { item: AttendanceRosterItem }) {
         {hasExcuse ? (
           <span className="flex flex-wrap gap-1">
             {item.hasApprovedLeave ? (
-              <span className="badge badge-success text-xs" title={`إجازة${item.leaveIsPaid ? ' مدفوعة' : ''}`}>
+              <span className="status-pill status-pill--ok" title={`إجازة${item.leaveIsPaid ? ' مدفوعة' : ''}`}>
                 <CheckCircle2 className="size-3" aria-hidden="true" />
                 إجازة
               </span>
             ) : null}
             {item.hasMission ? (
-              <span className="badge badge-neutral text-xs" title="مأمورية معتمدة">
+              <span className="status-pill status-pill--neutral" title="مأمورية معتمدة">
                 <Plane className="size-3" aria-hidden="true" />
                 مأمورية
               </span>

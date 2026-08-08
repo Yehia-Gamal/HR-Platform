@@ -12,6 +12,7 @@ import { useRegisterWebDevice, useWebReleasePolicy } from '../features/auth/useW
 import { firstWebWorkspace, hasAnyPermission, hrPathToAdmin } from '../features/workspaces/access';
 import { WorkspaceShell } from '../features/workspaces/WorkspaceShell';
 import { ForbiddenState } from '../ui/ForbiddenState';
+import { FeatureGate } from '../ui/FeatureGate';
 
 // ---------------------------------------------------------------------------
 // Code-splitting: كل صفحة تُحمّل فقط عند الانتقال إليها — يقلّل الـ bundle
@@ -224,7 +225,7 @@ export function App() {
               }
             />
             <Route path="helpdesk" element={<ComingSoonPage title="مكتب الخدمات" />} />
-            <Route path="finance" element={<FeatureGate flag="peopleFinance"><FinancePage /></FeatureGate>} />
+            <Route path="finance" element={<FeatureGate feature="peopleFinance"><FinancePage /></FeatureGate>} />
             <Route
               path="audit-security"
               element={

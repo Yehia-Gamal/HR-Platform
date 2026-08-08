@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { PeopleFinanceCatalog } from '@ahla/shared-contracts';
-import { WalletCards, CalendarClock, TrendingUp, HandCoins, RefreshCw, Users2 } from 'lucide-react';
+import { WalletCards, TrendingUp, HandCoins, RefreshCw, Users2 } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { DataTable, type DataTableColumn } from '../../ui/DataTable';
 import { EmptyState } from '../../ui/EmptyState';

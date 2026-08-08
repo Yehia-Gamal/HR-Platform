@@ -136,6 +136,10 @@ a { color: inherit; text-decoration: none; }
 .btn-ghost:disabled,
 .icon-button:disabled { cursor: not-allowed; opacity: 0.5; }
 
+/* Size variants — تُطبَّق فوق أي زر (btn-primary/secondary/ghost/danger) */
+.btn-sm { min-height: 2.25rem; padding: 0.45rem 0.8rem; font-size: 0.8rem; border-radius: 0.65rem; }
+.btn-xs { min-height: 1.85rem; padding: 0.28rem 0.58rem; font-size: 0.72rem; border-radius: 0.55rem; gap: 0.32rem; }
+
 /* Application shell */
 .app-shell { min-height: 100vh; display: grid; grid-template-columns: 292px minmax(0, 1fr); transition: grid-template-columns 220ms ease; }
 .app-shell.sidebar-collapsed { grid-template-columns: 86px minmax(0, 1fr); }
@@ -272,6 +276,7 @@ a.no-underline:hover .metric-card--linked { transform: translateY(-3px); box-sha
 .map-pin-fresh { color: var(--success); }
 .map-pin-stale { color: var(--warning); }
 .map-pin-no_signal { color: var(--danger); }
+.data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.84rem; }
 .data-table thead { position: sticky; top: 0; z-index: 1; }
 .data-table th { white-space: nowrap; font-weight: var(--font-black); }
 .data-table tbody tr { transition: background 140ms ease; }

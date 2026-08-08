@@ -7,12 +7,13 @@ describe('featureFlags', () => {
     expect(Object.keys(FEATURE_FLAGS)).toHaveLength(6);
   });
 
-  it('learning و lifecycle و documents مفعّلان وبقية الأعلام معطّلة', () => {
+  it('learning و lifecycle و documents و peopleFinance مفعّلون وبقية الأعلام معطّلة', () => {
     expect(FEATURE_FLAGS.learning).toBe(true);
     expect(FEATURE_FLAGS.lifecycle).toBe(true);
     expect(FEATURE_FLAGS.documents).toBe(true);
+    expect(FEATURE_FLAGS.peopleFinance).toBe(true);
     for (const key of Object.keys(FEATURE_FLAGS) as FeatureFlagKey[]) {
-      if (key === 'learning' || key === 'lifecycle' || key === 'documents') continue;
+      if (key === 'learning' || key === 'lifecycle' || key === 'documents' || key === 'peopleFinance') continue;
       expect(FEATURE_FLAGS[key]).toBe(false);
     }
   });
@@ -21,7 +22,7 @@ describe('featureFlags', () => {
     expect(isFeatureEnabled('learning')).toBe(true);
     expect(isFeatureEnabled('lifecycle')).toBe(true);
     expect(isFeatureEnabled('documents')).toBe(true);
-    expect(isFeatureEnabled('peopleFinance')).toBe(false);
+    expect(isFeatureEnabled('peopleFinance')).toBe(true);
   });
 
   it('يحتوي على الأعلام المتوقعة', () => {
