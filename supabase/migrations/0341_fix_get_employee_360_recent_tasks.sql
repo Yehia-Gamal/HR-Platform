@@ -1,17 +1,14 @@
--- Migration 0339: Fix accountStatus — show 'active' for non-terminated employees
+-- Migration 0341: Fix get_employee_360 recentTasks column reference
 -- ================================================================================
--- المشكلة: get_employee_360 يرجع accountStatus من profile.status الذي قد يكون
--- 'pending' للموظفين الذين لم يكملوا التفعيل. هذا يجعل صفحتهم تظهر
--- "الحساب: pending" رغم أنهم موظفون نشطون.
+-- المشكلة: الدالة get_employee_360 المنشورة في قاعدة البيانات كانت قد بُنيت من
+-- نسخة قديمة تستخدم public.tasks.assigned_to (عمود غير موجود)، بينما العمود
+-- الحقيقي هو assignee_employee_id (كما في 0324/0305). أي استدعاء للدالة ينفجر
+-- بـ 42703 في قسم recentTasks، ويكسر صفحة ملف الموظف واختبار 0052.
 --
--- الإصلاح: accountStatus يأتي من حالة الموظف (e.status) بدل profile.status،
--- ويعكس الحالة الحقيقية للموظف.
--- أيضاً: تحديث جميع الملفات المعلّقة (pending) إلى active للموظفين النشطين.
+-- الإصلاح: إعادة تعريف الدالة من نسخة 0339 المحدّثة مع الإبقاء على قرار
+-- accountStatus (يعكس حالة الموظف الفعلية لا حالة الملف الشخصي).
 
 BEGIN;
-
--- 1) تحديث الـ RPC get_employee_360 ليجعل accountStatus من e.status بدل profile.status
--- (نُعيد تعريف الدالة بالكامل من 0324 مع هذا التعديل الوحيد)
 
 CREATE OR REPLACE FUNCTION public.get_employee_360(p_employee_id uuid)
 RETURNS jsonb
@@ -78,7 +75,7 @@ BEGIN
     'workSite', site.name,
     'managerName', manager_rel.full_name_ar,
     'managerId', v_manager_id,
-    -- Fix: accountStatus reflects employee status, not profile.status
+    -- accountStatus يعكس حالة الموظف الفعلية (active/suspended/terminated/inactive)
     'accountStatus', CASE
       WHEN v_employee.status = 'terminated' THEN 'terminated'
       WHEN v_employee.status = 'suspended' THEN 'suspended'
@@ -172,13 +169,13 @@ BEGIN
     'departments', coalesce((
       SELECT jsonb_agg(jsonb_build_object(
         'id', ed.id, 'departmentId', ed.department_id,
-        'departmentName', d.name, 'jobTitle', jt2.name,
-        'isPrimary', ed.is_primary, 'assignedAt', ed.start_date
-      ) ORDER BY ed.is_primary DESC, ed.start_date DESC)
+        'departmentName', d.name, 'jobTitle', ed.job_title,
+        'isPrimary', ed.is_primary, 'assignedAt', ed.assigned_at
+      ) ORDER BY ed.is_primary DESC, ed.assigned_at DESC)
       FROM public.employee_departments ed
-      LEFT JOIN public.departments d ON d.id = ed.department_id
-      LEFT JOIN public.job_titles jt2 ON jt2.id = ed.job_title_id
+      JOIN public.departments d ON d.id = ed.department_id
       WHERE ed.employee_id = v_employee.id
+        AND (ed.start_date IS NULL OR ed.start_date <= (now() at time zone 'Africa/Cairo')::date)
         AND (ed.end_date IS NULL OR ed.end_date >= (now() at time zone 'Africa/Cairo')::date)
     ), '[]'::jsonb),
     'lastUpdatedAt', coalesce(v_employee.updated_at, v_employee.created_at, now())
@@ -205,33 +202,7 @@ REVOKE EXECUTE ON FUNCTION public.get_employee_360(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_employee_360(uuid) TO authenticated;
 
 COMMENT ON FUNCTION public.get_employee_360(uuid) IS
-  'ملف موظف كامل 360°. accountStatus يعكس حالة الموظف الفعلية (active/suspended/terminated/inactive) وليس حالة profile.';
-
--- 2) تحديث جميع الملفات المعلّقة إلى active للموظفين غير المنتهين
--- (تعطيل مؤقت لحارس التريغر: أثناء الترحيل لا يوجد سياق JWT — يُفعَّل مجدداً فوراً)
-ALTER TABLE public.profiles DISABLE TRIGGER trg_profiles_protect_sensitive;
-UPDATE public.profiles p
-SET status = 'active', updated_at = now()
-WHERE p.status IN ('pending', 'invited', 'onboarding')
-  AND p.employee_id IN (
-    SELECT e.id FROM public.employees e
-    WHERE e.is_deleted = false
-      AND e.status NOT IN ('terminated', 'draft')
-  );
-ALTER TABLE public.profiles ENABLE TRIGGER trg_profiles_protect_sensitive;
-
--- 3) تحديث حالة الموظفين المعلّقين إلى active (لو كانوا pending/draft)
-ALTER TABLE public.employees DISABLE TRIGGER trg_employees_protect_job_fields;
-UPDATE public.employees e
-SET status = 'active', is_active = true, updated_at = now()
-WHERE e.status IN ('draft', 'invited', 'onboarding')
-  AND e.is_deleted = false
-  AND EXISTS (
-    SELECT 1 FROM public.profiles p
-    WHERE p.employee_id = e.id
-      AND p.status = 'active'
-  );
-ALTER TABLE public.employees ENABLE TRIGGER trg_employees_protect_job_fields;
+  'ملف موظف كامل 360°. recentTasks يستخدم assignee_employee_id. accountStatus يعكس حالة الموظف الفعلية.';
 
 NOTIFY pgrst, 'Reload schema';
 
