@@ -64,8 +64,8 @@ import { useOrganizationLookups } from './useOrganizationLookups';
 
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
 
-// Accounts that have not finished activation can still be re-invited.
-const PENDING_ACCOUNT_STATES = new Set(['invited', 'onboarding', 'pending', 'draft']);
+// All non-terminated employees show as 'active' — accountStatus reflects employee status
+const PENDING_ACCOUNT_STATES = new Set<string>(); // Empty — no more "pending" display
 
 // ---------------------------------------------------------------------------
 // Small helpers
@@ -1021,7 +1021,7 @@ export function EmployeeDetailPage() {
             <Info icon={Network} label={item.department ?? 'بدون إدارة'} />
             <Info icon={Phone} label={item.phoneE164 ? renderSafeIntlPhoneText(item.phoneE164) : 'بدون هاتف'} />
             <Info icon={Mail} label={item.email ?? 'بدون بريد'} />
-            <Info icon={ShieldCheck} label={`الحساب: ${item.accountStatus ?? 'غير مرتبط'}`} />
+            <Info icon={ShieldCheck} label={`الحساب: ${item.status === 'terminated' ? 'منتهي' : item.status === 'suspended' ? 'موقوف' : 'نشط'}`} />
           </div>
         </div>
         <div className="rounded-2xl bg-[var(--surface-muted)] p-4 text-sm lg:min-w-64">

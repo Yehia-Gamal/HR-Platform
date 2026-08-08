@@ -77,11 +77,11 @@ begin
       v_target_user, p_employee_id, 'طلب تحديد موقع فوري',
       'السكرتير التنفيذي أو المدير التنفيذي يطلب موقعك الآن. يرجى الاستجابة.',
       'system', 'urgent',
-      'https://ahla-shabab-management-os.vercel.app/action/live_location_request/'||v_req.id::text,
+      'ahlashabab://action/live_location_request/'||v_req.id::text,
       'live_location_request', v_req.id, jsonb_build_object(
         'fullScreen', true, 'kind', 'live_location_request', 'requestId', v_req.id,
         'entityId', v_req.id, 'channel', 'urgent_location_v6',
-        'deepLink', 'https://ahla-shabab-management-os.vercel.app/action/live_location_request/'||v_req.id::text),
+        'deepLink', 'ahlashabab://action/live_location_request/'||v_req.id::text),
       auth.uid());
   end if;
 

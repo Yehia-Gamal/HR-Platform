@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { PeopleFinanceCatalog } from '@ahla/shared-contracts';
-import { WalletCards, TrendingUp, HandCoins, RefreshCw, Users2 } from 'lucide-react';
+import { WalletCards, TrendingUp, HandCoins, RefreshCw, Users2, Megaphone } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { DataTable, type DataTableColumn } from '../../ui/DataTable';
 import { EmptyState } from '../../ui/EmptyState';
@@ -11,6 +11,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { ListSkeleton, MetricSkeletonRow } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import {
+  CAMPAIGN_STATUS_LABELS,
   LOAN_STATUS_LABELS,
   PAYROLL_RUN_STATUS_LABELS,
   SALARY_STRUCTURE_STATUS_LABELS,
@@ -24,15 +25,24 @@ type PayrollRun = Catalog['payrollRuns'][number];
 type SalaryStructure = Catalog['salaryStructures'][number];
 type LoanItem = Catalog['loans'][number];
 type WorkforcePlan = Catalog['workforcePlans'][number];
+type CampaignItem = Catalog['campaigns'][number];
 
-type Tab = 'payroll' | 'structures' | 'loans' | 'workforce';
+type Tab = 'payroll' | 'structures' | 'loans' | 'workforce' | 'campaigns';
 
 const TABS: { key: Tab; label: string; icon: typeof WalletCards }[] = [
   { key: 'payroll', label: 'دورات الرواتب', icon: WalletCards },
   { key: 'structures', label: 'هياكل الرواتب', icon: TrendingUp },
   { key: 'loans', label: 'السلف والقروض', icon: HandCoins },
   { key: 'workforce', label: 'خطط القوى العاملة', icon: Users2 },
+  { key: 'campaigns', label: 'حملات المشاركة', icon: Megaphone },
 ];
+
+const CAMPAIGN_TYPE_LABELS: Record<string, string> = {
+  survey: 'استبيان',
+  recognition: 'تقدير',
+  wellbeing: 'رفاهية',
+  communication: 'تواصل',
+};
 
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
 const currencyFmt = new Intl.NumberFormat('ar-EG', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 });
@@ -52,6 +62,7 @@ export function FinancePage() {
   const structures = useMemo(() => catalog.data?.salaryStructures ?? [], [catalog.data]);
   const loans = useMemo(() => catalog.data?.loans ?? [], [catalog.data]);
   const workforcePlans = useMemo(() => catalog.data?.workforcePlans ?? [], [catalog.data]);
+  const campaigns = useMemo(() => catalog.data?.campaigns ?? [], [catalog.data]);
 
   const filteredPayroll = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -88,6 +99,15 @@ export function FinancePage() {
       return matchSearch && matchStatus;
     });
   }, [workforcePlans, search, statusFilter]);
+
+  const filteredCampaigns = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return campaigns.filter((c) => {
+      const matchSearch = !q || c.title.toLowerCase().includes(q) || c.campaignType.toLowerCase().includes(q);
+      const matchStatus = statusFilter === 'all' || c.status === statusFilter;
+      return matchSearch && matchStatus;
+    });
+  }, [campaigns, search, statusFilter]);
 
   const dirty = Boolean(search.trim() || statusFilter !== 'all');
   const clearFilters = () => { setSearch(''); setStatusFilter('all'); };
@@ -174,16 +194,42 @@ export function FinancePage() {
     },
   ];
 
+  const campaignColumns: DataTableColumn<CampaignItem>[] = [
+    { key: 'title', header: 'العنوان', sortable: true, render: (c) => <span className="font-bold">{c.title}</span> },
+    {
+      key: 'campaignType',
+      header: 'النوع',
+      render: (c) => CAMPAIGN_TYPE_LABELS[c.campaignType] ?? c.campaignType,
+    },
+    {
+      key: 'startsAt',
+      header: 'يبدأ',
+      render: (c) => (c.startsAt ? dateFormatter.format(new Date(c.startsAt)) : '—'),
+    },
+    {
+      key: 'endsAt',
+      header: 'ينتهي',
+      render: (c) => (c.endsAt ? dateFormatter.format(new Date(c.endsAt)) : '—'),
+    },
+    {
+      key: 'status',
+      header: 'الحالة',
+      render: (c) => <StatusBadge status={c.status} label={CAMPAIGN_STATUS_LABELS[c.status] ?? c.status} />,
+    },
+  ];
+
   const statusOptions = tab === 'payroll'
     ? Object.entries(PAYROLL_RUN_STATUS_LABELS)
     : tab === 'loans'
       ? Object.entries(LOAN_STATUS_LABELS)
       : tab === 'workforce'
         ? Object.entries(WORKFORCE_PLAN_STATUS_LABELS)
-        : Object.entries(SALARY_STRUCTURE_STATUS_LABELS);
+        : tab === 'campaigns'
+          ? Object.entries(CAMPAIGN_STATUS_LABELS)
+          : Object.entries(SALARY_STRUCTURE_STATUS_LABELS);
 
-  const currentData = tab === 'payroll' ? filteredPayroll : tab === 'structures' ? filteredStructures : tab === 'loans' ? filteredLoans : filteredWorkforce;
-  const totalCount = tab === 'payroll' ? payrollRuns.length : tab === 'structures' ? structures.length : tab === 'loans' ? loans.length : workforcePlans.length;
+  const currentData = tab === 'payroll' ? filteredPayroll : tab === 'structures' ? filteredStructures : tab === 'loans' ? filteredLoans : tab === 'campaigns' ? filteredCampaigns : filteredWorkforce;
+  const totalCount = tab === 'payroll' ? payrollRuns.length : tab === 'structures' ? structures.length : tab === 'loans' ? loans.length : tab === 'campaigns' ? campaigns.length : workforcePlans.length;
 
   return (
     <div className="space-y-5">
@@ -206,6 +252,14 @@ export function FinancePage() {
           <MetricCard label="دورات رواتب" value={payrollRuns.length} icon={WalletCards} hint="إجمالي الدورات" />
           <MetricCard label="هياكل رواتب نشطة" value={structures.filter((s) => s.active).length} icon={TrendingUp} hint={`من ${structures.length} هيكل`} />
           <MetricCard label="سلف نشطة" value={loans.filter((l) => l.status === 'active').length} icon={HandCoins} hint={`من ${loans.length} سلفة`} />
+        </section>
+      )}
+
+      {tab === 'campaigns' && !catalog.isLoading && (
+        <section className="grid gap-3 sm:grid-cols-3">
+          <MetricCard label="حملات نشطة" value={campaigns.filter((c) => c.status === 'active').length} icon={Megaphone} hint={`من ${campaigns.length} حملة`} />
+          <MetricCard label="استبيانات" value={campaigns.filter((c) => c.campaignType === 'survey').length} icon={Megaphone} hint="نوع استبيان" />
+          <MetricCard label="مكتملة" value={campaigns.filter((c) => c.status === 'completed').length} icon={Megaphone} hint="حملات مكتملة" />
         </section>
       )}
 
@@ -249,6 +303,8 @@ export function FinancePage() {
         <DataTable<SalaryStructure> ariaLabel="جدول هياكل الرواتب" rowKey={(s) => s.id} data={filteredStructures} minWidth="700px" columns={structureColumns} emptyTitle="لا توجد نتائج مطابقة" emptyDescription="جرّب تعديل البحث أو الحالة." />
       ) : tab === 'loans' ? (
         <DataTable<LoanItem> ariaLabel="جدول السلف والقروض" rowKey={(l) => l.id} data={filteredLoans} minWidth="700px" columns={loanColumns} emptyTitle="لا توجد نتائج مطابقة" emptyDescription="جرّب تعديل البحث أو الحالة." />
+      ) : tab === 'campaigns' ? (
+        <DataTable<CampaignItem> ariaLabel="جدول حملات المشاركة" rowKey={(c) => c.id} data={filteredCampaigns} minWidth="700px" columns={campaignColumns} emptyTitle="لا توجد نتائج مطابقة" emptyDescription="جرّب تعديل البحث أو الحالة." />
       ) : (
         <DataTable<WorkforcePlan> ariaLabel="جدول خطط القوى العاملة" rowKey={(w) => w.id} data={filteredWorkforce} minWidth="700px" columns={workforceColumns} emptyTitle="لا توجد نتائج مطابقة" emptyDescription="جرّب تعديل البحث أو الحالة." />
       )}

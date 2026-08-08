@@ -59,9 +59,9 @@ select is((select count(*)::integer from pg_trigger
     and tgname = 'trg_normalize_live_location_notification'
     and not tgisinternal), 1,
   'urgent location notification normalizer is installed');
-select ok(position('urgent_location_v4' in pg_get_functiondef(
+select ok(position('urgent_location_v6' in pg_get_functiondef(
   'public.normalize_live_location_notification()'::regprocedure)) > 0,
-  'server normalizes urgent requests to channel v4');
+  'server normalizes urgent requests to channel v6 (0309)');
 select ok(position('https://ahla-shabab-management-os.vercel.app/action/' in
   pg_get_functiondef(
     'public.normalize_live_location_notification()'::regprocedure)) > 0,
