@@ -153,7 +153,7 @@ begin
         and (ed.start_date is null or ed.start_date <= (now() at time zone 'Africa/Cairo')::date)
         and (ed.end_date is null or ed.end_date >= (now() at time zone 'Africa/Cairo')::date)
     ), '[]'::jsonb),
-    'lastUpdatedAt', e.updated_at
+    'lastUpdatedAt', coalesce(e.updated_at, e.created_at, now())
   )
   into v_result
   from public.employees e

@@ -151,8 +151,8 @@ export const employee360Schema = z.object({
   fullNameEn: z.string().nullable(),
   phoneE164: z.string().nullable(),
   photoUrl: z.string().nullable(),
-  status: employeeStatusSchema,
-  isActive: z.boolean(),
+  status: z.string(),
+  isActive: z.boolean().optional().default(true),
   hireDate: z.string().nullable(),
   contractEnd: z.string().nullable(),
   probationEnd: z.string().nullable(),
@@ -166,7 +166,6 @@ export const employee360Schema = z.object({
   managerName: z.string().nullable(),
   accountStatus: z.string().nullable(),
   email: z.string().email().nullable().optional(),
-  // معرّفات FK خام — للاستخدام في نموذج التعديل (0129)
   departmentId: z.string().uuid().nullable().optional(),
   teamId: z.string().uuid().nullable().optional(),
   branchId: z.string().uuid().nullable().optional(),
@@ -176,7 +175,6 @@ export const employee360Schema = z.object({
   gradeId: z.string().uuid().nullable().optional(),
   employmentTypeId: z.string().uuid().nullable().optional(),
   managerId: z.string().uuid().nullable().optional(),
-  // إدارات الموظف (V17 — multi-department)
   departments: z.array(z.object({
     id: z.string().uuid(),
     departmentId: z.string().uuid(),
@@ -185,35 +183,35 @@ export const employee360Schema = z.object({
     isPrimary: z.boolean(),
     assignedAt: z.string(),
   })).optional().default([]),
-  roles: z.array(z.object({ slug: z.string(), name: z.string() })),
-  directReports: z.number(),
+  roles: z.array(z.object({ slug: z.string(), name: z.string() })).optional().default([]),
+  directReports: z.number().optional().default(0),
   attendance30: z.object({
     present: z.number(),
     lateDays: z.number(),
     absent: z.number(),
     workMinutes: z.number(),
-  }),
-  requestCounts: z.object({ pending: z.number(), approved: z.number(), rejected: z.number() }),
+  }).optional().default({ present: 0, lateDays: 0, absent: 0, workMinutes: 0 }),
+  requestCounts: z.object({ pending: z.number(), approved: z.number(), rejected: z.number() }).optional().default({ pending: 0, approved: 0, rejected: 0 }),
   latestKpi: z.object({
     id: z.string().uuid(),
     periodMonth: z.string(),
     currentStage: z.string(),
     finalScore: z.number().nullable(),
     finalRating: z.string().nullable(),
-  }).nullable(),
+  }).nullable().optional().default(null),
   documents: z.array(z.object({
     id: z.string().uuid(), type: z.string(), title: z.string(), expiryDate: z.string().nullable(), status: z.string(),
-  })),
+  })).optional().default([]),
   assets: z.array(z.object({
     id: z.string().uuid(), assetName: z.string(), assetType: z.string(), serial: z.string().nullable(), handedOverAt: z.string().nullable(), returnedAt: z.string().nullable(),
-  })),
+  })).optional().default([]),
   recentRequests: z.array(z.object({
     id: z.string().uuid(), requestNumber: z.number(), requestType: z.string(), title: z.string().nullable(), status: z.string(), createdAt: z.string(),
-  })),
+  })).optional().default([]),
   recentTasks: z.array(z.object({
     id: z.string().uuid(), title: z.string(), status: z.string(), priority: z.string(), dueDate: z.string().nullable(),
-  })),
-  lastUpdatedAt: z.string(),
+  })).optional().default([]),
+  lastUpdatedAt: z.string().nullable(),
 });
 
 export type Employee360 = z.infer<typeof employee360Schema>;

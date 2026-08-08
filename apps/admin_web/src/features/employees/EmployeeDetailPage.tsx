@@ -1156,7 +1156,9 @@ export function EmployeeDetailPage() {
 
       <p className="muted flex items-center gap-2 text-xs">
         <CalendarDays className="size-4" aria-hidden="true" />
-        آخر تحديث: {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.lastUpdatedAt))}
+        آخر تحديث: {item.lastUpdatedAt
+          ? new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.lastUpdatedAt))
+          : 'غير متوفر'}
       </p>
 
       {showManagerDialog && employeeId && (

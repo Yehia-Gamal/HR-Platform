@@ -15,7 +15,7 @@ select is((select max_days_per_year from public.leave_types where code='annual')
 select is((select max_days_per_year from public.leave_types where code='casual'),
   6, 'العارضة 6 أيام');
 select is((select max_days_per_year from public.leave_types where code='sick'),
-  24, 'المرضية 24 يومًا (يومان شهريًا)');
+  null, 'المرضية بلا حد أقصى (قرار 0326)');
 select ok((select is_active from public.leave_types where code='annual'),
   'الاعتيادية مفعّلة');
 

@@ -91,8 +91,9 @@ WHERE NOT EXISTS (SELECT 1 FROM public.employees e WHERE e.id = ed.employee_id)
 -- ─── Section 4: Fix profiles without employees (and vice versa) ──────────
 -- Deactivate profiles that reference nonexistent employees
 UPDATE public.profiles p
-SET is_active = false
-WHERE p.employee_id IS NOT NULL
+SET status = 'disabled'
+WHERE p.status = 'active'
+  AND p.employee_id IS NOT NULL
   AND NOT EXISTS (SELECT 1 FROM public.employees e WHERE e.id = p.employee_id);
 
 -- ─── Section 5: Data integrity diagnostic view ──────────────────────────
@@ -121,7 +122,7 @@ SELECT
            AND mr.relation_type = 'primary'
        ) THEN 'no_manager_relation' END AS issue_no_manager,
   CASE WHEN e.status = 'active'
-       AND NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.employee_id = e.id AND p.is_active = true)
+       AND NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.employee_id = e.id AND p.status = 'active')
        THEN 'inactive_profile_for_active_employee' END AS issue_inactive_profile
 FROM public.employees e
 ORDER BY e.employee_code;

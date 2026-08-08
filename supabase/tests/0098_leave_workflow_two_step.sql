@@ -381,10 +381,10 @@ select is(
   2, 'طلب التجاوز يُنشأ بخطوتين أيضاً'
 );
 
--- انتهاء مهلة الخطوة 1 (12 ساعة مرت دون رد المدير)
+-- انتهاء مهلة الخطوة 1 (12 ساعة مرت دون رد المدير) + 72 ساعة طوارئ HR (0317)
 reset role;
 update public.request_steps
-   set due_at = now() - interval '1 hour'
+   set due_at = now() - interval '73 hours'
  where request_id = (select id from wf_runtime where kind = 'bypass')
    and step_order = 1;
 

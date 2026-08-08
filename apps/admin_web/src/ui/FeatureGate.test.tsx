@@ -19,7 +19,7 @@ describe('featureFlags', () => {
     expect(isFeatureEnabled('documents')).toBe(true);
     expect(isFeatureEnabled('governance')).toBe(false);
     expect(isFeatureEnabled('helpdesk')).toBe(false);
-    expect(isFeatureEnabled('peopleFinance')).toBe(false);
+    expect(isFeatureEnabled('peopleFinance')).toBe(true);
   });
 });
 

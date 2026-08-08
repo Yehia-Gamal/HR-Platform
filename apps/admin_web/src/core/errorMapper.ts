@@ -62,6 +62,14 @@ const ERROR_PATTERNS: Array<[RegExp, string]> = [
   [/self_archive_not_allowed/i, 'لا يمكن أرشفة حسابك الحالي.'],
   [/archive_reason_required/i, 'سبب الأرشفة مطلوب (٥ أحرف على الأقل).'],
   [/employee_not_found/i, 'لم يُعثر على الموظف — ربما حُذف من مستخدم آخر. أعد تحميل الصفحة.'],
+
+  // أخطاء إدارة الأدوار (rpc_assign_role / rpc_revoke_role / rpc_upsert_role)
+  [/not authorized to assign roles/i, 'ليس لديك صلاحية إسناد الأدوار. تواصل مع مدير النظام.'],
+  [/not authorized to revoke roles/i, 'ليس لديك صلاحية سحب الأدوار. تواصل مع مدير النظام.'],
+  [/only super.admin may assign a full.access role/i, 'إسناد الأدوار الكاملة محصور بالمدير الأعلى (super-admin) فقط.'],
+  [/cannot self.grant full access/i, 'لا يمكنك منح نفسك صلاحية كاملة.'],
+  [/HR may only assign employee, manager, or operations roles/i, 'قسم الموارد البشرية لا يُسند سوى أدوار الموظف/المدير/التشغيل فقط.'],
+  [/role not found/i, 'الدور المطلوب غير موجود. أعد تحميل الصفحة.'],
   [/employee_data_incomplete/i, 'بيانات الموظف غير مكتملة — بعض الحقول الأساسية ناقصة. تواصل مع الإدارة لإكمال الملف.'],
 
   // HTTP status codes في الرسائل

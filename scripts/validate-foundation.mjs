@@ -22,17 +22,16 @@ const migrations = (await readdir(join(root, 'supabase/migrations')))
   .sort();
 
 // فجوات مقصودة موثقة (مطابقة لـ check-migrations-integrity.mjs):
-// 0267 → أعيد ترقيمه إلى 0277؛ 0279 → رقم متخطى احتياطيًا.
-const ACCEPTABLE_GAPS = new Set([267, 279]);
+// 0267 → أعيد ترقيمه إلى 0277؛ 0279 → رقم متخطى احتياطيًا؛ 0314 → أُعيد ترقيمه إلى 0322.
+// تُتجاوز الفجوة فقط إذا كان الرقم غائبًا فعليًا؛ لو وُجد ملف بهذا الرقم فهو مقبول.
+const ACCEPTABLE_GAPS = new Set([267, 279, 314]);
 
-let expected = 1;
-for (const file of migrations) {
-  while (ACCEPTABLE_GAPS.has(expected)) expected += 1;
-  const prefix = String(expected).padStart(4, '0');
-  if (!file.startsWith(prefix)) {
-    throw new Error(`Migration sequence gap: expected ${prefix}, found ${file}`);
-  }
-  expected += 1;
+const present = new Set(migrations.map((name) => Number(name.slice(0, 4))));
+const maxNumber = Math.max(...present);
+for (let expected = 1; expected <= maxNumber; expected += 1) {
+  if (present.has(expected)) continue;
+  if (ACCEPTABLE_GAPS.has(expected)) continue;
+  throw new Error(`Migration sequence gap: expected ${String(expected).padStart(4, '0')}, missing file`);
 }
 
 const appFiles = [

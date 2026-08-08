@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createEmployeeInputSchema, createEmployeeResultSchema } from './employee.js';
+import { createEmployeeInputSchema, createEmployeeResultSchema, employee360Schema } from './employee.js';
 
 const base = {
   fullNameAr: 'أحمد يوسف',
@@ -115,5 +115,81 @@ describe('createEmployeeResultSchema', () => {
 
   it('rejects a non-uuid employeeId', () => {
     expect(() => createEmployeeResultSchema.parse({ employeeId: 'x', userId: 'y', invitationSent: false })).toThrow();
+  });
+});
+
+describe('employee360Schema', () => {
+  it('tolerates a null lastUpdatedAt (legacy rows with null updated_at)', () => {
+    const parsed = employee360Schema.parse({
+      id: '11111111-1111-4111-8111-111111111111',
+      employeeCode: 'TEST-001',
+      fullNameAr: 'موظف تجريبي',
+      fullNameEn: null,
+      phoneE164: null,
+      photoUrl: null,
+      status: 'active',
+      isActive: true,
+      hireDate: '2024-01-15',
+      contractEnd: null,
+      probationEnd: null,
+      jobTitle: null,
+      position: null,
+      grade: null,
+      department: null,
+      team: null,
+      branch: null,
+      workSite: null,
+      managerName: null,
+      accountStatus: null,
+      roles: [],
+      directReports: 0,
+      attendance30: { present: 0, lateDays: 0, absent: 0, workMinutes: 0 },
+      requestCounts: { pending: 0, approved: 0, rejected: 0 },
+      latestKpi: null,
+      documents: [],
+      assets: [],
+      recentRequests: [],
+      recentTasks: [],
+      lastUpdatedAt: null,
+    });
+    expect(parsed.employeeCode).toBe('TEST-001');
+    expect(parsed.lastUpdatedAt).toBeNull();
+  });
+
+  it('rejects a non-conformant UUID in id', () => {
+    expect(() =>
+      employee360Schema.parse({
+        id: '11111111-2222-3333-4444-555555555555',
+        employeeCode: 'TEST-001',
+        fullNameAr: 'موظف تجريبي',
+        fullNameEn: null,
+        phoneE164: null,
+        photoUrl: null,
+        status: 'active',
+        isActive: true,
+        hireDate: '2024-01-15',
+        contractEnd: null,
+        probationEnd: null,
+        jobTitle: null,
+        position: null,
+        grade: null,
+        department: null,
+        team: null,
+        branch: null,
+        workSite: null,
+        managerName: null,
+        accountStatus: null,
+        roles: [],
+        directReports: 0,
+        attendance30: { present: 0, lateDays: 0, absent: 0, workMinutes: 0 },
+        requestCounts: { pending: 0, approved: 0, rejected: 0 },
+        latestKpi: null,
+        documents: [],
+        assets: [],
+        recentRequests: [],
+        recentTasks: [],
+        lastUpdatedAt: '2026-01-01T00:00:00.000Z',
+      }),
+    ).toThrow();
   });
 });

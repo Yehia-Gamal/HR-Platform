@@ -1,23 +1,13 @@
 -- =====================================================================
--- 0318: تنفيذ المأمورية (mission execution)
+-- 0318: ????? ????????? (mission execution)
 -- ---------------------------------------------------------------------
--- الموظف صاحب مأمورية/قافلة معتمدة يبدأها بنفسه ثم ينهيها بتقرير إلزامي
--- (المدة الفعلية غير ملزمة بالوقت المخطط — تُحسب من الفعلي وتكون ≥ 1 دقيقة).
--- - جدول mission_executions (سجل تنفيذ واحد لكل طلب — request_id فريد).
--- - start_my_mission / end_my_mission: RPCs مملوكة للموظف (security definer).
--- - submit_my_request: قبول startTime/endTime اختياريين بصيغة HH:MM (رفض "9:00").
--- - get_request_inbox / get_mobile_request_detail: إرفاق payload + missionExecution.
+-- ?????? ???? ???????/????? ?????? ?????? ?? ?????? ?????? ??????
+-- (????? ??????? ??? ????? ?????? ?????? - ????? ?? ?????? ????? � 1 ?????).
+-- - ???? mission_executions (??? ????? ???? ??? ??? - request_id ????).
+-- - start_my_mission / end_my_mission: RPCs ?????? ?????? (security definer).
+-- - submit_my_request: ???? startTime/endTime ????????? ????? HH:MM (??? "9:00").
+-- - get_request_inbox / get_mobile_request_detail: ????? payload + missionExecution.
 -- =====================================================================
-
--- ─── الجدول ───────────────────────────────────────────────────────────────
--- P0: ALTER TABLE أولاً — create table if not exists يُخطّى إذا كان الجدول
--- موجوداً مسبقاً (من migration آخر) بدون كل الأعمدة. نضمن الأعمدة موجودة.
-alter table public.mission_executions add column if not exists status text default 'not_started';
-alter table public.mission_executions add column if not exists started_at timestamptz;
-alter table public.mission_executions add column if not exists ended_at timestamptz;
-alter table public.mission_executions add column if not exists actual_minutes integer;
-alter table public.mission_executions add column if not exists report text;
-alter table public.mission_executions add column if not exists outcome text;
 
 create table if not exists public.mission_executions (
   id              uuid primary key default gen_random_uuid(),
