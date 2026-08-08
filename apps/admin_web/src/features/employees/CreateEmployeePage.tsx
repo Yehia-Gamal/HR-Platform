@@ -337,7 +337,13 @@ export function CreateEmployeePage() {
                     </button>
                   </span>
                 </Field>
-                <input type="hidden" value="employee" {...form.register('roleSlug')} />
+                <SelectField
+                  label="الدور"
+                  options={(options?.roles ?? []).map((r) => ({ id: r.slug, label: r.label }))}
+                  register={form.register('roleSlug')}
+                  placeholder="اختر دور الحساب"
+                  hint="أدوار الوصول الكامل (admin) تُمنح لاحقاً يدوياً عبر صفحة الأدوار والصلاحيات — لا تُحدد عند الإنشاء."
+                />
                 <Field label="تاريخ التعيين" error={form.formState.errors.hireDate?.message}>
                   <input type="date" className="input" {...form.register('hireDate', { setValueAs: (v: string) => v || undefined })} />
                 </Field>
@@ -407,6 +413,7 @@ export function CreateEmployeePage() {
                 <Review label="موقع العمل" value={options?.workSites.find((x) => x.id === values.workSiteId)?.label} />
                 <Review label="المدير" value={options?.managers.find((x) => x.id === values.managerEmployeeId)?.label} />
                 <Review label="المسمى الوظيفي" value={values.jobTitleName} />
+                <Review label="الدور" value={options?.roles.find((r) => r.slug === values.roleSlug)?.label} />
                 <Review label="تاريخ التعيين" value={values.hireDate as string | undefined} />
                 <Review label="كلمة المرور الأولية" value={values.initialPassword ? 'أُدخلت يدويًا (لا تظهر هنا)' : 'تُولَّد تلقائيًا'} />
                 <Review label="دعوة التفعيل" value={values.sendInvite ? 'نعم — سيُرسل رابط تفعيل' : 'لا'} />
@@ -462,11 +469,13 @@ function SelectField({
   options,
   register,
   placeholder,
+  hint,
 }: {
   label: string;
   options: Array<{ id: string; label: string }>;
   register: Record<string, unknown>;
   placeholder?: string;
+  hint?: string;
 }) {
   return (
     <label className="block">
@@ -479,6 +488,7 @@ function SelectField({
           </option>
         ))}
       </select>
+      {hint ? <span className="muted mt-1 block text-xs">{hint}</span> : null}
     </label>
   );
 }

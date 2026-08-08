@@ -26,6 +26,7 @@ import { useAccessAdminCatalog, useAccessCommands } from './useAdminOperations';
 import type { AccessAdminCatalog } from '@ahla/shared-contracts';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useToast } from '../../ui/Toast';
+import { useAuth } from '../auth/AuthProvider';
 
 // ─── ترجمة النطاقات ────────────────────────────────────────────────────────
 const SCOPE_AR: Record<string, string> = {
@@ -184,12 +185,16 @@ type AccessCommands = ReturnType<typeof useAccessCommands>;
 // ─── المكون الرئيسي ────────────────────────────────────────────────────────
 export function AccessPage() {
   const { toast } = useToast();
+  const auth = useAuth();
   const query = useAccessAdminCatalog();
   const commands = useAccessCommands();
   const [viewRole, setViewRole] = useState<string | null>(null);
   const [customDraft, setCustomDraft] = useState<RoleDraft | null>(null);
   const [assignment, setAssignment] = useState({ userId: '', roleId: '', effectiveTo: '' });
   const data = query.data;
+
+  // المستخدم الحالي يملك صلاحية منح الوصول الكامل (أدوار is_full_access)؟
+  const canGrantFullAccess = Boolean(auth.access?.permissions.includes('*'));
 
   // مطابقة قوالب الأدوار مع البيانات الحقيقية
   const templateRoles = useMemo(() => {
@@ -341,9 +346,19 @@ export function AccessPage() {
                 {data.roles.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.name}
+                    {r.fullAccess ? ' · وصول كامل' : ''}
                   </option>
                 ))}
               </FormSelect>
+              {(() => {
+                const chosen = data.roles.find((r) => r.id === assignment.roleId);
+                if (chosen?.fullAccess && !canGrantFullAccess) {
+                  return (
+                    <p className="muted self-end text-xs text-[var(--danger)]">منح الوصول الكامل يتطلب حساباً بـ super-admin — جُهّز من المالك.</p>
+                  );
+                }
+                return null;
+              })()}
               <label>
                 <span className="mb-1.5 block text-sm font-bold">تاريخ الانتهاء</span>
                 <input
@@ -425,10 +440,20 @@ export function AccessPage() {
       ) : null}
 
       {/* ── حوار إدارة الدور (صلاحيات + مستخدمون) ── */}
-      {selectedRole && data && <RoleManagementDialog role={selectedRole} data={data} commands={commands} onClose={() => setViewRole(null)} />}
+      {selectedRole && data && (
+        <RoleManagementDialog role={selectedRole} data={data} commands={commands} canGrantFullAccess={canGrantFullAccess} onClose={() => setViewRole(null)} />
+      )}
 
       {/* ── حوار إنشاء / تعديل دور مخصص ── */}
-      {customDraft && data && <CustomRoleDraftDialog initialDraft={customDraft} data={data} commands={commands} onClose={() => setCustomDraft(null)} />}
+      {customDraft && data && (
+        <CustomRoleDraftDialog
+          initialDraft={customDraft}
+          data={data}
+          commands={commands}
+          canGrantFullAccess={canGrantFullAccess}
+          onClose={() => setCustomDraft(null)}
+        />
+      )}
     </div>
   );
 }
@@ -487,11 +512,13 @@ function RoleManagementDialog({
   role,
   data,
   commands,
+  canGrantFullAccess,
   onClose,
 }: {
   role: AccessAdminCatalog['roles'][number];
   data: AccessAdminCatalog;
   commands: AccessCommands;
+  canGrantFullAccess: boolean;
   onClose: () => void;
 }) {
   const { toast } = useToast();
@@ -708,6 +735,11 @@ function RoleManagementDialog({
       {/* ══════════════ تبويب المستخدمون ══════════════ */}
       {tab === 'users' && (
         <div className="space-y-5">
+          {role.fullAccess && !canGrantFullAccess && (
+            <p className="rounded-xl bg-[var(--surface-muted)] p-3 text-xs font-semibold text-[var(--danger)]">
+              هذا الدور ذو وصول كامل — إسناده يتطلب حساباً بـ super-admin.
+            </p>
+          )}
           {/* إسناد مستخدم جديد */}
           <div className="flex flex-wrap items-end gap-3 rounded-xl bg-[var(--surface-muted)] p-4">
             <label className="min-w-0 flex-1">
@@ -784,11 +816,13 @@ function CustomRoleDraftDialog({
   initialDraft,
   data,
   commands,
+  canGrantFullAccess,
   onClose,
 }: {
   initialDraft: RoleDraft;
   data: AccessAdminCatalog;
   commands: AccessCommands;
+  canGrantFullAccess: boolean;
   onClose: () => void;
 }) {
   const { toast } = useToast();
@@ -843,6 +877,24 @@ function CustomRoleDraftDialog({
           <FormInput label="الاسم الإنجليزي" value={draft.nameEn} onChange={(v) => setDraft({ ...draft, nameEn: v })} />
           <FormInput label="الوصف" value={draft.description} onChange={(v) => setDraft({ ...draft, description: v })} />
         </div>
+
+        <label className={`flex items-center gap-3 rounded-xl p-3 text-sm font-semibold ${canGrantFullAccess ? 'bg-[var(--surface-muted)]' : 'bg-[var(--surface-muted)] opacity-60'}`}>
+          <input
+            className="size-4"
+            type="checkbox"
+            disabled={!canGrantFullAccess}
+            checked={draft.fullAccess}
+            onChange={(e) => setDraft({ ...draft, fullAccess: e.target.checked })}
+          />
+          <span>
+            الوصول الكامل (is_full_access)
+            {canGrantFullAccess ? (
+              <span className="muted block text-xs font-normal">الدور يمنح كل الصلاحيات تلقائياً. منحه للمستخدمين يتطلب super-admin.</span>
+            ) : (
+              <span className="muted block text-xs font-normal">يتطلب حساباً بـ super-admin — حالياً مقفول. أدوار الموظفين تُمنح بالصلاحيات أدناه.</span>
+            )}
+          </span>
+        </label>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[var(--border)] py-4">
           <h3 className="font-black">الصلاحيات</h3>
