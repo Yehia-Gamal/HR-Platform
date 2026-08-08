@@ -1,15 +1,15 @@
 # Migration Registry — أحلى شباب HR
 
 > سجل شامل لجميع ملفات الترحيل في `supabase/migrations/`.
-> آخر تحديث: 2026-08-07 — تحديث أرقام 0320–0324 لمطابقة الملفات الفعلية + إضافة 0325 (تحديد اليوم/فاندي).
+> آخر تحديث: 2026-08-08 — تثبيت السلسلة النهائية 0001–0337 (335 ملفاً): حسم تكرارات المحتوى (0313/0321، 0322/0327، 0331/0332) بجسور موثقة، واستيعاب 0314 داخل 0317.
 
 ## الإحصائيات الفعلية الحالية
 
 | العنصر | العدد |
 |---|---|
-| إجمالي الملفات `.sql` المرقمة | 324: 0001–0325 (يشمل placeholders الموثقة) |
+| إجمالي الملفات `.sql` المرقمة | 335: 0001–0337 (يشمل placeholders الموثقة) |
 | تكرارات نشطة | ✅ لا شيء |
-| فجوات | ✅ لا شيء (جسور موثقة: 0119, 0122, 0194, 0219) |
+| فجوات | ✅ لا شيء (جسور موثقة: 0119, 0122, 0194, 0219, 0231, 0232, 0313, 0322, 0332 — والفجوة 0314 مقبولة ومضمّنة في 0317) |
 | ملفات مركونة في `_v23_parking/` | ✅ يجب أن تكون فارغة — إن وُجدت تُعاد جدوَلتها عبر Integration Lead |
 
 ## السياسة الإلزامية — تجميد الترقيم (Zero-Renumber)
@@ -42,6 +42,9 @@
 | 0219 | `0219_placeholder_sequence_fix.sql` | محفوظ تاريخياً لسلامة التسلسل. |
 | 0231 | `0231_bridge_placeholder.sql` | سد فجوة من reset خارجي — 0232→0234 موجودة بالفعل. |
 | 0232 | `0232_bridge_placeholder.sql` | سد فجوة من reset خارجي — 0233→0234 موجودة بالفعل. |
+| 0313 | `0313_admin_org_chart_rpc.sql` | جسر موثق — محتوى `get_admin_org_chart` نُقل إلى `0321_admin_org_chart_rpc.sql` (إزالة التكرار بعد إعادة الترتيب). |
+| 0322 | `0322_observability_permissions_seed.sql` | جسر موثق — محتوى بذر صلاحيات المراقبة نُقل إلى `0327_observability_permissions_seed.sql`. |
+| 0332 | `0332_reload_pgrst_final.sql` | جسر موثق — تكرار محتوى 100% مع `0331_reload_pgrst_final.sql`؛ يُحتفظ به لسلامة الترقيم بلا تنفيذ. |
 
 ## العمليات الحرجة ليوم 2026-07-30
 
@@ -120,8 +123,8 @@
 | 0310 | `0310_request_live_location_drop_channel_v4.sql` | تنظيف hardcoded channel v4 من `request_live_location` (يُطبّعها trigger 0309). |
 | 0311 | `0311_unified_avatar_rpc_and_backfill.sql` | صور موحدة عبر `get_employee_photo_url`/`set_my_photo_url` + روابط authenticated. |
 | 0312 | `0312_fix_kpi_inbox_relation_field.sql` | إضافة حقل `relation` (self/team/review) إلى `get_kpi_inbox`. |
-| 0313 | `0313_limit_hr_override_and_unlimited_sick.sql` | تقييد تدخل HR في `decide_request` (طوارئ بعد مهلة المدير) + إلغاء حد الإجازة المرضية. |
-| 0314 | `0314_attendance_exempt_for_mission_permits.sql` | إعفاء الحضور عند اعتماد مأمورية/إذن (trigger يُصلح في 0317). |
+| 0313 | `0313_admin_org_chart_rpc.sql` | جسر موثق بلا تنفيذ — `get_admin_org_chart` نُقل إلى 0321 (انظر الجسور الموثقة). |
+| 0314 | *(فجوة مقبولة — المُدرجة في `ACCEPTABLE_GAPS`)* | تريغر إعفاء الحضور عند اعتماد المأمورية/الإذن دُمج بالكامل في `0317` (create or replace + drop trigger if exists). |
 | 0315 | `0315_db_performance_partitioning_mvs.sql` | أداء قاعدة البيانات — partitioning + pg_stat_statements + جدولة تحديث MVs. |
 | 0316 | `0316_request_event_notifications.sql` | تغطية إشعارات الطلبات — إعادة إنشاء ملف 0299 (الذي استُبدل بجسر no-op) بعد أن ضاع من المستودع أثناء إعادة الهيكلة؛ يضيف إشعارات لـ 20 حدثاً (submit/decide/cancel request, corrections, rosters, break-glass, privacy, signatures, wellbeing, missions, offboarding…) عبر `create or replace` idempotent. مطبَّق على الإنتاج. |
 | 0317 | `0317_fix_hr_bypass_72h_and_attendance_exempt.sql` | إصلاحات على سلسلة 0313–0316: دمج إشعار المعتمِد التالي + رفع تجاوز HR إلى 72 ساعة + توسيع CHECK لـ notifications.category + إصلاح فرع المأمورية في تريغر 0314. |
@@ -129,10 +132,22 @@
 | 0319 | `0319_proactive_location_and_manager_attendance_notify.sql` | إشعارات استباقية للموقع الحي وإشعارات حضور للمدير. |
 | 0320 | `0320_attendance_weekend_and_grant_fix.sql` | إصلاح عطلة نهاية الأسبوع (`isWeekend`) + إزالة منح `anon` (تكملة لسلسلة 0294/0295 — انظر أيضًا 0323). |
 | 0321 | `0321_admin_org_chart_rpc.sql` | `get_admin_org_chart` — شجرة هرمية حقيقية (نُقل من 0313 لإزالة التكرار). |
-| 0322 | `0322_observability_permissions_seed.sql` | بذر صلاحيات المراقبة (observability.read, admin.observability…) ومنحها للأدوار الإدارية (نُقل من 0314 لإزالة التكرار). |
-| 0323 | `0323_attendance_weekend_and_grant_fix.sql` | إصلاح عطلة نهاية الأسبوع ومنح الحضور (نسخة موازية من 0320 — أرقام مختلفة، مرت في فحص السلامة). |
-| 0324 | `0324_daily_reports_public_feed_likes.sql` | التقارير اليومية في الخلاصة العامة + الإعجابات (كان `0318_daily_reports_public_feed_likes` — أُعيد ترقيمه إلى 0324). |
+| 0322 | `0322_observability_permissions_seed.sql` | جسر موثق بلا تنفيذ — بذر صلاحيات المراقبة نُقل إلى 0327 (انظر الجسور الموثقة). |
+| 0323 | `0323_attendance_weekend_and_grant_fix.sql` | توثيق لا تنفيذ — إصلاح عطلة نهاية الأسبوع/منح anon مطبَّق فعلياً في 0320؛ أُبقِي لسلامة الترقيم. |
+| 0324 | `0324_fix_employee360_manager_rel.sql` | إصلاح علاقة المدير في تقرير الموظف 360° (كان 0324_new — أُعيد وضعه هنا بعد نقل daily_reports إلى 0328). |
 | 0325 | `0325_day_mark_requests_fundraising_retroactive.sql` | **تحديد اليوم بأثر رجعي**: نوع طلب `fundraising` في CHECKs والتسمية؛ استخراج `_submit_request_for(p_employee_id,…)` مع إشعار المدير عند غياب خطوات سير عمل؛ `submit_my_request` يدعم fundraising + `dayMark=true` (ماضٍ من نفس الشهر فقط، يوم واحد)؛ RPC إداري `submit_employee_day_mark` للنيابة مع فحص صلاحيات + منع الشهر المغلق؛ تريجر `trg_fundraising_attendance_exempt` (present عند اعتماد فاندي). |
+| 0326 | `0326_limit_hr_override_and_unlimited_sick.sql` | تقييد تدخل HR في `decide_request` (طوارئ بعد مهلة المدير) + إلغاء حد الإجازة المرضية (نُقل من 0313 أثناء إعادة الترتيب). |
+| 0327 | `0327_observability_permissions_seed.sql` | بذر صلاحيات المراقبة (observability.read, admin.observability…) ومنحها للأدوار الإدارية (نُقل من 0314/0322 أثناء إعادة الترتيب). |
+| 0328 | `0328_daily_reports_public_feed_likes.sql` | التقارير اليومية في الخلاصة العامة + الإعجابات (نُقل من 0324 أثناء إعادة الترتيب). |
+| 0329 | `0329_reload_pgrst_schema_cache.sql` | إعادة تحميل ذاكرة مخطط pgrst بعد سلسلة الترحيلات (كشف الدوال الجديدة للـ PostgREST). |
+| 0330 | `0330_employee_data_integrity.sql` | سلامة بيانات الموظفين — توحيد/إصلاح بعد إعادة تصميم شجرة المنظمة. |
+| 0331 | `0331_reload_pgrst_final.sql` | إعادة تحميل نهائية لذاكرة pgrst بعد الدوال الجديدة (انظر 0332 جسر مكرر). |
+| 0332 | `0332_reload_pgrst_final.sql` | جسر موثق بلا تنفيذ — تكرار محتوى 100% مع 0331 (انظر الجسور الموثقة). |
+| 0333 | `0333_friday_work_override_and_comp_submission.sql` | العمل يوم الجمعة (الراحة الأسبوعية) + تسليم التعويض. |
+| 0334 | `0334_fix_org_chart_include_all_employees.sql` | تضمين جميع الموظفين غير المنتهين في شجرة المنظمة. |
+| 0335 | `0335_fix_employee_list_org_admin_sees_all.sql` | مسؤول المنظمة يرى قائمة الموظفين كاملة. |
+| 0336 | `0336_fix_executive_secretary_full_access.sql` | إصلاح صلاحية السكرتير التنفيذي (full access). |
+| 0337 | `0337_seed_kpi_assessment_permissions.sql` | بذر صلاحيات تقييم KPI. |
 
 ---
 
@@ -142,5 +157,5 @@
 
 ---
 
-> ✅ **الحالة:** سلسلة متصلة — 0001 → 0325 — بلا تكرار أو فجوات (فحص `check-migrations-integrity.mjs` ناجح). `0316_request_event_notifications.sql` مطبَّق على الإنتاج ويستعيد عقد تغطية الإشعارات الذي ضاع مع 0299. `0325` أُنشئ ومُتحقق محليًا ولم يُطبَّق على الإنتاج بعد.
+> ✅ **الحالة:** سلسلة متصلة — 0001 → 0337 (335 ملفاً) — بلا تكرار أو فجوات (فحص `check-migrations-integrity.mjs` ناجح). `0316_request_event_notifications.sql` مطبَّق على الإنتاج ويستعيد عقد تغطية الإشعارات الذي ضاع مع 0299. المتبقي: تطبيق 0294–0337 على قاعدة الإنتاج ثم الدمج والنشر.
 
