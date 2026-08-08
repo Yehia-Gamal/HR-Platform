@@ -108,7 +108,7 @@
 | 0294 | `0294_attendance_drilldown.sql` | Drill-Down كامل للوحات الحضور — قوائم حقيقية خلف كل رقم. اختبار pgTAP: `0107_attendance_drilldown_roster.sql`. |
 | 0295 | `0295_attendance_dashboard_visible_scope.sql` | مطابقة عدّادات لوحة الحضور مع قوائم drill-down (اتساق العدد=القائمة). |
 | 0296 | `0296_drop_old_attendance_roster_overload.sql` | إزالة overload القديم `get_attendance_day_roster(date,text)`. |
-| 0297 | `0297_bridge_placeholder.sql` | جسر ترقيم — كان السجل يذكر acknowledgement؛ المحتوى غير موجود حالياً في أي ملف (يحتاج استعادة أو تحديث السجل). |
+| 0297 | `0297_bridge_placeholder.sql` | جسر ترقيم — إدخال سجل قديم أشار إلى "announcement_acknowledgers"؛ التحقق: الميزة موجودة فعلياً باسم `announcement_acknowledgements` (الجدول في 0008، `publish_official_announcement`/`acknowledge_announcement` في 0015، الأمان في 0209). لا فقدان. |
 | 0298 | `0298_bridge_placeholder.sql` | جسر ترقيم — محتوى تنفيذ المأموريات انتقل إلى `0318_mission_executions.sql`. |
 | 0299–0300 | `029x_bridge_placeholder.sql` | جسور ترقيم أثناء إعادة هيكلة سلسلة KPI/الموظف. |
 | 0301 | `0301_fix_kpi_admin_grants_and_diagnostics.sql` | منح إدارية KPI + تشخيص الفشل. |
