@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { knowledgeArticleListSchema } from '@ahla/shared-contracts';
 import type { KnowledgeArticle } from '@ahla/shared-contracts';
 
-// Ø¥Ø¹Ø§Ø¯Ø© Ù…Ù†Ø·Ù‚ Ø§Ù„ÙÙ„ØªØ±Ø© Ù…Ù† KnowledgePage.tsx (Ø¯Ø§Ù„Ø© Ø®Ø§Ù„ØµØ© Ù„Ù„Ø§Ø®ØªØ¨Ø§Ø±)
+// إعادة منطق الفلترة من KnowledgePage.tsx (دالة خالصة للاختبار)
 const filterArticles = (articles: KnowledgeArticle[], search: string, statusFilter: string) => {
   const q = search.trim().toLowerCase();
   return articles.filter((a) => {
@@ -15,22 +15,24 @@ const filterArticles = (articles: KnowledgeArticle[], search: string, statusFilt
 function makeArticle(overrides: Partial<KnowledgeArticle> = {}): KnowledgeArticle {
   return {
     id: '11111111-1111-4111-8111-111111111111',
-    title: 'Ø³ÙŠØ§Ø³Ø© Ø§Ù„Ø¥Ø¬Ø§Ø²Ø§Øª',
-    category: 'Ø³ÙŠØ§Ø³Ø§Øª',
-    body: 'Ù†Øµ Ø§Ù„Ù…Ù‚Ø§Ù„',
+    title: 'سياسة الإجازات',
+    category: 'سياسات',
+    category_id: null,
+    category_name: null,
+    body: 'نص المقال',
     is_published: true,
     author_employee_id: null,
     created_at: '2026-01-01T10:00:00.000Z',
     updated_at: null,
     created_by: null,
     ...overrides,
-  };
+  } as KnowledgeArticle;
 }
 
-describe('useKnowledge â€” article list schema & filter logic', () => {
+describe('useKnowledge — article list schema & filter logic', () => {
   describe('knowledgeArticleListSchema', () => {
     it('parses a valid list', () => {
-      const list = [makeArticle(), makeArticle({ id: '22222222-2222-4222-8222-222222222222', title: 'Ø¯Ù„ÙŠÙ„ Ø§Ù„Ø­Ø¶ÙˆØ±', is_published: false })];
+      const list = [makeArticle(), makeArticle({ id: '22222222-2222-4222-8222-222222222222', title: 'دليل الحضور', is_published: false })];
       const parsed = knowledgeArticleListSchema.parse(list);
       expect(parsed).toHaveLength(2);
     });
@@ -39,13 +41,14 @@ describe('useKnowledge â€” article list schema & filter logic', () => {
       expect(knowledgeArticleListSchema.parse([])).toEqual([]);
     });
 
-    it('accepts null category/body/author/updated_at', () => {
+    it('accepts null category/body/author/updated_at and category relation', () => {
       const parsed = knowledgeArticleListSchema.parse([
-        makeArticle({ category: null, body: null, updated_at: null, author_employee_id: null, created_by: null }),
+        makeArticle({ category: null, body: null, updated_at: null, author_employee_id: null, created_by: null, category_id: null, category_name: null }),
       ]);
       expect(parsed[0].category).toBeNull();
       expect(parsed[0].body).toBeNull();
       expect(parsed[0].updated_at).toBeNull();
+      expect(parsed[0].category_id).toBeNull();
     });
 
     it('requires a valid uuid id', () => {
@@ -60,8 +63,8 @@ describe('useKnowledge â€” article list schema & filter logic', () => {
   describe('knowledge article filter logic', () => {
     const articles = [
       makeArticle(),
-      makeArticle({ id: '22222222-2222-4222-8222-222222222222', title: 'Ø¯Ù„ÙŠÙ„ Ø§Ù„Ø­Ø¶ÙˆØ±', category: 'Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª', is_published: false }),
-      makeArticle({ id: '33333333-3333-4333-8333-333333333333', title: 'Ù‚ÙˆØ§Ø¹Ø¯ Ø§Ù„Ù„Ø¨Ø§Ø³', category: 'Ø³ÙŠØ§Ø³Ø§Øª', is_published: true }),
+      makeArticle({ id: '22222222-2222-4222-8222-222222222222', title: 'دليل الحضور', category: 'إجراءات', is_published: false }),
+      makeArticle({ id: '33333333-3333-4333-8333-333333333333', title: 'قواعد اللباس', category: 'سياسات', is_published: true }),
     ];
 
     it('returns all when no search and status=all', () => {
@@ -69,13 +72,13 @@ describe('useKnowledge â€” article list schema & filter logic', () => {
     });
 
     it('filters by title (case-insensitive)', () => {
-      const result = filterArticles(articles, 'Ø¯Ù„ÙŠÙ„', 'all');
+      const result = filterArticles(articles, 'دليل', 'all');
       expect(result).toHaveLength(1);
-      expect(result[0].title).toBe('Ø¯Ù„ÙŠÙ„ Ø§Ù„Ø­Ø¶ÙˆØ±');
+      expect(result[0].title).toBe('دليل الحضور');
     });
 
     it('filters by category', () => {
-      const result = filterArticles(articles, 'Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª', 'all');
+      const result = filterArticles(articles, 'إجراءات', 'all');
       expect(result).toHaveLength(1);
     });
 
@@ -85,12 +88,12 @@ describe('useKnowledge â€” article list schema & filter logic', () => {
     });
 
     it('combines search and status filter', () => {
-      expect(filterArticles(articles, 'Ø³ÙŠØ§Ø³Ø©', 'published')).toHaveLength(1);
-      expect(filterArticles(articles, 'Ø³ÙŠØ§Ø³Ø©', 'draft')).toHaveLength(0);
+      expect(filterArticles(articles, 'سياسة', 'published')).toHaveLength(1);
+      expect(filterArticles(articles, 'سياسة', 'draft')).toHaveLength(0);
     });
 
     it('returns empty for no match', () => {
-      expect(filterArticles(articles, 'ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯', 'all')).toHaveLength(0);
+      expect(filterArticles(articles, 'غير موجود', 'all')).toHaveLength(0);
     });
 
     it('handles empty input', () => {
