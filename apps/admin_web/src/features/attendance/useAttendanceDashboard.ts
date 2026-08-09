@@ -13,15 +13,31 @@ import { cairoTodayIso } from '../../core/cairoTime';
 import { useAuth } from '../auth/AuthProvider';
 import { loadDomainMocks } from '../mock/loadDomainMocks';
 
-export function useAttendanceDashboard() {
+export interface AttendanceDashboardFilters {
+  dateIso?: string;
+  departmentId?: string | null;
+  branchId?: string | null;
+  managerId?: string | null;
+}
+
+export function useAttendanceDashboard(filters?: AttendanceDashboardFilters) {
   const auth = useAuth();
+  const dateIso = filters?.dateIso ?? cairoTodayIso();
+  const departmentId = filters?.departmentId || null;
+  const branchId = filters?.branchId || null;
+  const managerId = filters?.managerId || null;
   return useQuery({
-    queryKey: ['attendance-dashboard', auth.isMock],
+    queryKey: ['attendance-dashboard', auth.isMock, dateIso, departmentId, branchId, managerId],
     enabled: auth.status === 'authenticated',
     refetchInterval: auth.isMock ? false : 60_000,
     queryFn: async (): Promise<AttendanceDashboard> => {
       if (auth.isMock) return (await loadDomainMocks()).mockAttendanceDashboard;
-      const data = await rpc('get_attendance_dashboard', { p_date: cairoTodayIso() });
+      const data = await rpc('get_attendance_dashboard', {
+        p_date: dateIso,
+        p_department_id: departmentId,
+        p_branch_id: branchId,
+        p_manager_id: managerId,
+      });
       return attendanceDashboardSchema.parse(data);
     },
   });
