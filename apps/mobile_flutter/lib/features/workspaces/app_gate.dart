@@ -139,6 +139,14 @@ class _AuthenticatedGate extends ConsumerWidget {
   }
 
   WorkspaceId? _mobileWorkspace(AccessContext context) {
+    // حسابات الأدمين "الويب فقط" تُمنع من الموبايل. يحيى له دورين (admin +
+    // executive-secretary) فيُسمح له كسكرتير. من لديه admin فقط يُحال إلى
+    // صفحة "ويب فقط". (دفاع عميق بجانب المنع في identifier-sign-in.)
+    const webOnlySlugs = {'admin', 'super-admin', 'super_admin', 'system-admin'};
+    if (context.roles.any(webOnlySlugs.contains) &&
+        !context.roles.contains('executive-secretary')) {
+      return null;
+    }
     if (context.workspaces.contains(WorkspaceId.executive)) {
       return WorkspaceId.executive;
     }

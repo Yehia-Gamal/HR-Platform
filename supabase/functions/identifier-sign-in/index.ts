@@ -244,6 +244,7 @@ Deno.serve(createHandler({ functionName: 'identifier-sign-in', version: '1.0.0' 
     // email skips that lookup, so we check post-auth. Runs BEFORE the deadline
     // so the fixed-time window (ESI-01) absorbs the extra DB queries.
     let esi03Blocked = false;
+    let webOnlyBlocked = false;
     if (success && normalized.kind === 'email' && data.user?.id) {
       const { data: linkedProfile } = await admin
         .from('profiles')
@@ -262,10 +263,40 @@ Deno.serve(createHandler({ functionName: 'identifier-sign-in', version: '1.0.0' 
           esi03Blocked = true;
         }
       }
+
+      // ─── Mobile-only check: block admin-only accounts from mobile login ───
+      // Users with 'admin' role but WITHOUT 'executive-secretary' are web-only.
+      // يحيى has both roles → allowed on mobile as executive secretary.
+      // Pure admin accounts → blocked with a specific error code.
+      if (!esi03Blocked) {
+        const { data: userRoles } = await admin
+          .from('user_roles')
+          .select('role_id, roles(slug)')
+          .eq('user_id', data.user.id)
+          .is('effective_to', null);
+        const slugs = (userRoles ?? [])
+          .map((ur: { roles?: { slug?: string } | { slug?: string }[] }) =>
+            Array.isArray(ur.roles) ? ur.roles.map((r) => r?.slug) : [ur.roles?.slug]
+          )
+          .flat()
+          .filter(Boolean) as string[];
+        const hasAdmin = slugs.some((s) => s === 'admin');
+        const hasExecSec = slugs.some((s) => s === 'executive-secretary');
+        if (hasAdmin && !hasExecSec) {
+          await admin.from('login_auth_attempts').update({ success: false, failure_code: 'web_only_account' })
+            .eq('identifier_hash', identifierHash).eq('success', true).order('attempted_at', { ascending: false }).limit(1);
+          webOnlyBlocked = true;
+        }
+      }
     }
 
     await waitUntil(deadline);
-    if (!success || !data.session || esi03Blocked) return genericFailure(req);
+    if (!success || !data.session || esi03Blocked || webOnlyBlocked) {
+      if (webOnlyBlocked) {
+        return json(req, { error: 'WEB_ONLY_ACCOUNT' }, 403);
+      }
+      return genericFailure(req);
+    }
 
     return json(req, {
       access_token: data.session.access_token,

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:ahla_shabab_management_os/app.dart';
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
+import 'package:ahla_shabab_management_os/core/observability/crash_reporter.dart';
 import 'package:ahla_shabab_management_os/core/security/secure_session_storage.dart';
 import 'package:ahla_shabab_management_os/core/theme/theme_mode_controller.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/push_service.dart';
@@ -13,15 +14,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  FlutterError.onError = (details) {
-    if (kDebugMode) FlutterError.presentError(details);
-  };
-  PlatformDispatcher.instance.onError = (error, stackTrace) {
-    if (kDebugMode) {
-      debugPrint('Uncaught application error: $error\n$stackTrace');
-    }
-    return true;
-  };
+
+  // رصد الأخطاء العالمي — يُرسل لـ observability_events عبر edge function
+  setupGlobalErrorHandlers();
+
   ErrorWidget.builder = (_) => const Material(
     child: Center(
       child: Padding(
@@ -47,6 +43,9 @@ Future<void> main() async {
         pkceAsyncStorage: SecurePkceStorage(),
       ),
     );
+
+    // ربط مراقب الأخطاء بالعميل بعد تهيئة Supabase
+    CrashReporter.instance.initialize(Supabase.instance.client);
 
     // Firebase/FCM: آمن عند غياب Google Play Services (محاكيات، أجهزة بدون GMS).
     try {

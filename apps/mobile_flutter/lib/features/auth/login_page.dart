@@ -66,7 +66,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         throw AuthException(
           code == 'TOO_MANY_ATTEMPTS'
               ? 'محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.'
-              : 'بيانات الدخول غير صحيحة أو الحساب غير متاح.',
+              : code == 'WEB_ONLY_ACCOUNT'
+                  ? 'هذا الحساب مخصص للوحة الويب فقط. استخدم حساب السكرتير التنفيذي على الهاتف.'
+                  : 'بيانات الدخول غير صحيحة أو الحساب غير متاح.',
         );
       }
       await client.auth.setSession(refreshToken);

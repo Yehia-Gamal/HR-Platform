@@ -520,6 +520,12 @@ grant execute on function public._admin_approve_request_immediately(uuid) to ser
 --        (إجازة) أو present + استثناء (تشغيلي).
 --      • عند day_type = work/holiday/rest: سلوك 0266 القديم (override فقط).
 -- ─────────────────────────────────────────────────────────────────────────────
+-- نسقط النسخة القديمة (9 بارامترات) أولاً حتى لا يُنشأ overload بلا هدف —
+-- استدعاء 9-بارامتر كان سيظل يضرب الدالة القديمة (override فقط) ويتجاوز
+-- منطق إنشاء الطلب وخصم الرصيد المضاف في 0355.
+drop function if exists public.set_employee_attendance_day_admin(
+  uuid, date, text, time, time, boolean, boolean, text, text
+);
 create or replace function public.set_employee_attendance_day_admin(
   p_employee_id uuid,
   p_work_date date,
