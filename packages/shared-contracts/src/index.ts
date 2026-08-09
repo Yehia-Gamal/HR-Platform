@@ -40,3 +40,9 @@ export * from './validation.js';
 export * from './orgChart.js';
 
 export * from './documents.js';
+
+export * from './knowledge.js';
+
+export * from './helpdeskGovernance.js';
+
+export * from './financialExtensions.js';

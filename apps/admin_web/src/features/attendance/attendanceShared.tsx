@@ -7,18 +7,6 @@ export const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', '
 /** حالات اليوم التي تُعرض بلون تحذيري. */
 export const WARN_STATUSES = new Set(['غائب دون إذن', 'يحتاج مراجعة']);
 
-/** يقسم نص الحالة العربي متعدد الكلمات إلى سطور (يحافظ على المعنى). */
-export function splitStatusLines(status: string): string[] {
-  const trimmed = status.trim();
-  if (!trimmed) return ['—'];
-  const words = trimmed.split(/\s+/);
-  if (words.length <= 2) return [trimmed];
-  // "غائب دون إذن" → ["غائب", "دون إذن"] — يبقي "إذن" مع "دون".
-  if (words.length === 3 && words[1] === 'دون') return [words[0], `${words[1]} ${words[2]}`];
-  const mid = Math.ceil(words.length / 2);
-  return [words.slice(0, mid).join(' '), words.slice(mid).join(' ')];
-}
-
 /** يبني تسمية ونبرة حالة اليوم من حقول اليوم. */
 export function dayStatusMeta(d: AttendanceStatementDay): { label: string; tone: 'ok' | 'warn' | 'danger' | 'info' | 'neutral' } {
   if (d.isFuture) return { label: 'قادم', tone: 'neutral' };

@@ -7,8 +7,8 @@ export const FEATURE_FLAGS = {
   learning: true,
   lifecycle: true,
   documents: true,
-  governance: false,
-  helpdesk: false,
+  governance: true,
+  helpdesk: true,
   peopleFinance: true,
 } as const;
 

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import type { PeopleFinanceCatalog } from '@ahla/shared-contracts';
-import { WalletCards, TrendingUp, HandCoins, RefreshCw, Users2, Megaphone } from 'lucide-react';
+import { WalletCards, TrendingUp, HandCoins, RefreshCw, Users2, Megaphone, FileSpreadsheet } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { downloadCsv, toCsv, type ExportColumn } from '../../core/exportUtils';
 import { DataTable, type DataTableColumn } from '../../ui/DataTable';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -111,6 +112,54 @@ export function FinancePage() {
 
   const dirty = Boolean(search.trim() || statusFilter !== 'all');
   const clearFilters = () => { setSearch(''); setStatusFilter('all'); };
+
+  const exportCurrentTab = () => {
+    const date = new Date().toISOString().slice(0, 10);
+    if (tab === 'payroll') {
+      const cols: ExportColumn<PayrollRun>[] = [
+        { key: 'period', header: 'الشهر', get: (r) => r.periodMonth },
+        { key: 'currency', header: 'العملة', get: (r) => r.currency },
+        { key: 'gross', header: 'الإجمالي', get: (r) => ((r.totals as Record<string, unknown> | null)?.gross as number | undefined) },
+        { key: 'net', header: 'الصافي', get: (r) => ((r.totals as Record<string, unknown> | null)?.net as number | undefined) },
+        { key: 'status', header: 'الحالة', get: (r) => PAYROLL_RUN_STATUS_LABELS[r.status] ?? r.status },
+      ];
+      downloadCsv(`payroll-runs-${date}.csv`, toCsv(cols, filteredPayroll));
+    } else if (tab === 'structures') {
+      const cols: ExportColumn<SalaryStructure>[] = [
+        { key: 'code', header: 'الكود', get: (s) => s.code },
+        { key: 'name', header: 'الاسم', get: (s) => s.name },
+        { key: 'currency', header: 'العملة', get: (s) => s.currency },
+        { key: 'status', header: 'الحالة', get: (s) => (s.active ? 'نشط' : 'غير نشط') },
+      ];
+      downloadCsv(`salary-structures-${date}.csv`, toCsv(cols, filteredStructures));
+    } else if (tab === 'loans') {
+      const cols: ExportColumn<LoanItem>[] = [
+        { key: 'employee', header: 'الموظف', get: (l) => l.employeeName },
+        { key: 'type', header: 'النوع', get: (l) => l.loanType },
+        { key: 'principal', header: 'الأصلي', get: (l) => l.principalAmount },
+        { key: 'outstanding', header: 'المتبقي', get: (l) => l.outstandingAmount },
+        { key: 'status', header: 'الحالة', get: (l) => LOAN_STATUS_LABELS[l.status] ?? l.status },
+      ];
+      downloadCsv(`loans-${date}.csv`, toCsv(cols, filteredLoans));
+    } else if (tab === 'workforce') {
+      const cols: ExportColumn<WorkforcePlan>[] = [
+        { key: 'year', header: 'السنة', get: (w) => w.year },
+        { key: 'department', header: 'الإدارة', get: (w) => w.departmentName },
+        { key: 'headcount', header: 'العدد المعتمد', get: (w) => w.approvedHeadcount },
+        { key: 'hires', header: 'التعيينات', get: (w) => w.plannedHires },
+        { key: 'cost', header: 'التكلفة', get: (w) => w.plannedCost },
+        { key: 'status', header: 'الحالة', get: (w) => WORKFORCE_PLAN_STATUS_LABELS[w.status] ?? w.status },
+      ];
+      downloadCsv(`workforce-plans-${date}.csv`, toCsv(cols, filteredWorkforce));
+    } else {
+      const cols: ExportColumn<CampaignItem>[] = [
+        { key: 'title', header: 'العنوان', get: (c) => c.title },
+        { key: 'type', header: 'النوع', get: (c) => CAMPAIGN_TYPE_LABELS[c.campaignType] ?? c.campaignType },
+        { key: 'status', header: 'الحالة', get: (c) => CAMPAIGN_STATUS_LABELS[c.status] ?? c.status },
+      ];
+      downloadCsv(`campaigns-${date}.csv`, toCsv(cols, filteredCampaigns));
+    }
+  };
 
   const payrollColumns: DataTableColumn<PayrollRun>[] = [
     { key: 'periodMonth', header: 'الشهر', sortable: true, render: (r) => r.periodMonth },
@@ -238,10 +287,16 @@ export function FinancePage() {
         title="الرواتب والمالية"
         description="إدارة دورات الرواتب وهياكل الأجور والسلف وخطط القوى العاملة."
         actions={
-          <button type="button" className="btn-secondary" onClick={() => void catalog.refetch()} disabled={catalog.isFetching}>
-            <RefreshCw className={`size-4 ${catalog.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
-            تحديث
-          </button>
+          <div className="flex items-center gap-2">
+            <button type="button" className="btn-secondary" onClick={exportCurrentTab} disabled={currentData.length === 0} title="تصدير Excel (CSV)">
+              <FileSpreadsheet className="size-4" aria-hidden="true" />
+              تصدير
+            </button>
+            <button type="button" className="btn-secondary" onClick={() => void catalog.refetch()} disabled={catalog.isFetching}>
+              <RefreshCw className={`size-4 ${catalog.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
+              تحديث
+            </button>
+          </div>
         }
       />
 

@@ -43,6 +43,7 @@ export const HR_PAGE_SEGMENTS = [
   'learning',
   'lifecycle',
   'documents',
+  'knowledge',
 ] as const;
 
 /**

@@ -62,6 +62,13 @@ const ExecutiveMonitoringPage = lazy(() => import('../features/management/Execut
 const OrgChartPage = lazy(() => import('../features/management/OrgChartPage').then((m) => ({ default: m.OrgChartPage })));
 const DocumentsPage = lazy(() => import('../features/documents/DocumentsPage').then((m) => ({ default: m.DocumentsPage })));
 const FinancePage = lazy(() => import('../features/finance/FinancePage').then((m) => ({ default: m.FinancePage })));
+const KnowledgePage = lazy(() => import('../features/knowledge/KnowledgePage').then((m) => ({ default: m.KnowledgePage })));
+const HelpdeskPage = lazy(() => import('../features/helpdesk/HelpdeskPage').then((m) => ({ default: m.HelpdeskPage })));
+const GovernancePage = lazy(() => import('../features/governance/GovernancePage').then((m) => ({ default: m.GovernancePage })));
+const EmployeePenaltiesPage = lazy(() => import('../features/finance/EmployeePenaltiesPage').then((m) => ({ default: m.EmployeePenaltiesPage })));
+const InstapayPage = lazy(() => import('../features/finance/InstapayPage').then((m) => ({ default: m.InstapayPage })));
+const AuditTrailPage = lazy(() => import('../features/management/AuditTrailPage').then((m) => ({ default: m.AuditTrailPage })));
+const SystemSettingsPage = lazy(() => import('../features/management/SystemSettingsPage').then((m) => ({ default: m.SystemSettingsPage })));
 
 export function App() {
   const auth = useAuth();
@@ -189,7 +196,7 @@ export function App() {
                 </RequirePermission>
               }
             />
-            <Route path="governance" element={<ComingSoonPage title="الحوكمة والمخاطر" />} />
+            <Route path="governance" element={<FeatureGate feature="governance"><GovernancePage /></FeatureGate>} />
             <Route
               path="reports/scheduler"
               element={
@@ -224,8 +231,40 @@ export function App() {
                 </RequirePermission>
               }
             />
-            <Route path="helpdesk" element={<ComingSoonPage title="مكتب الخدمات" />} />
+            <Route path="helpdesk" element={<FeatureGate feature="helpdesk"><HelpdeskPage /></FeatureGate>} />
             <Route path="finance" element={<FeatureGate feature="peopleFinance"><FinancePage /></FeatureGate>} />
+            <Route
+              path="finance/penalties"
+              element={
+                <RequirePermission perm={['payroll.run.manage', 'payroll.run.approve']}>
+                  <EmployeePenaltiesPage />
+                </RequirePermission>
+              }
+            />
+            <Route
+              path="finance/instapay"
+              element={
+                <RequirePermission perm={['payroll.run.manage', 'payroll.run.approve', 'payroll.payslip.read']}>
+                  <InstapayPage />
+                </RequirePermission>
+              }
+            />
+            <Route
+              path="audit-trail"
+              element={
+                <RequirePermission perm="audit.view">
+                  <AuditTrailPage />
+                </RequirePermission>
+              }
+            />
+            <Route
+              path="system-settings"
+              element={
+                <RequirePermission perm="settings.manage">
+                  <SystemSettingsPage />
+                </RequirePermission>
+              }
+            />
             <Route
               path="audit-security"
               element={
@@ -251,6 +290,7 @@ export function App() {
               }
             />
             <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="knowledge" element={<KnowledgePage />} />
           </Route>
         </Route>
 
@@ -429,6 +469,7 @@ function HrWorkspaceRoutes() {
         }
       />
       <Route path="daily-reports" element={<DailyReportsFeedPage />} />
+      <Route path="knowledge" element={<KnowledgePage />} />
       <Route path="notifications" element={<NotificationsPage />} />
       <Route path="*" element={<Navigate to="employees" replace />} />
     </Routes>

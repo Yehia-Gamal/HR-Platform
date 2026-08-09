@@ -172,12 +172,11 @@ BEGIN
     'departments', coalesce((
       SELECT jsonb_agg(jsonb_build_object(
         'id', ed.id, 'departmentId', ed.department_id,
-        'departmentName', d.name, 'jobTitle', jt2.name,
-        'isPrimary', ed.is_primary, 'assignedAt', ed.start_date
-      ) ORDER BY ed.is_primary DESC, ed.start_date DESC)
+        'departmentName', d.name, 'jobTitle', ed.job_title,
+        'isPrimary', ed.is_primary, 'assignedAt', ed.assigned_at
+      ) ORDER BY ed.is_primary DESC, ed.assigned_at DESC)
       FROM public.employee_departments ed
       LEFT JOIN public.departments d ON d.id = ed.department_id
-      LEFT JOIN public.job_titles jt2 ON jt2.id = ed.job_title_id
       WHERE ed.employee_id = v_employee.id
         AND (ed.end_date IS NULL OR ed.end_date >= (now() at time zone 'Africa/Cairo')::date)
     ), '[]'::jsonb),

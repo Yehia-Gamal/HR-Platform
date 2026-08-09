@@ -15,6 +15,7 @@ describe('cron health classification', () => {
   });
 
   it('classifies failing/unstable as actionable, healthy as ok', () => {
+    const isActionable = (status: CronJobHealth['health_status']): boolean => status === 'failing' || status === 'unstable';
     const job: CronJobHealth = {
       jobid: 1,
       jobname: 'hr_notification_dispatch',
@@ -28,10 +29,9 @@ describe('cron health classification', () => {
       failures_24h: 4,
       health_status: 'failing',
     };
-    const actionable = job.health_status === 'failing' || job.health_status === 'unstable';
-    expect(actionable).toBe(true);
-    job.health_status = 'healthy';
-    expect(job.health_status === 'failing' || job.health_status === 'unstable').toBe(false);
+    expect(isActionable(job.health_status)).toBe(true);
+    expect(isActionable('healthy')).toBe(false);
+    expect(isActionable('unstable')).toBe(true);
   });
 });
 
