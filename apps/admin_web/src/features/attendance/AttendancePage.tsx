@@ -1,4 +1,5 @@
 import { AlertTriangle, CalendarClock, CheckCircle2, Clock3, MapPin, RefreshCcw, UserMinus, Users } from 'lucide-react';
+import { useState } from 'react';
 import { ErrorState } from '../../ui/ErrorState';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { MetricCard } from '../../ui/MetricCard';
@@ -6,17 +7,30 @@ import { PageHeader } from '../../ui/PageHeader';
 import { MetricSkeletonRow, SkeletonCard } from '../../ui/Skeletons';
 import { cairoTodayIso } from '../../core/cairoTime';
 import { useAttendanceDashboard } from './useAttendanceDashboard';
+import { useOrganizationLookups } from '../employees/useOrganizationLookups';
 import type { AttendanceRosterCategory } from '@ahla/shared-contracts';
 
-function detailsUrl(category: AttendanceRosterCategory, dateIso: string) {
-  return `/hr/attendance/details?category=${category}&date=${dateIso}`;
+function detailsUrl(
+  category: AttendanceRosterCategory,
+  dateIso: string,
+  departmentId?: string | null,
+  branchId?: string | null,
+) {
+  const params = new URLSearchParams({ category, date: dateIso });
+  if (departmentId) params.set('dept', departmentId);
+  if (branchId) params.set('branch', branchId);
+  return `/hr/attendance/details?${params.toString()}`;
 }
 
 export function AttendancePage() {
-  const query = useAttendanceDashboard();
+  const [dateIso, setDateIso] = useState(cairoTodayIso());
+  const [departmentId, setDepartmentId] = useState<string | null>(null);
+  const [branchId, setBranchId] = useState<string | null>(null);
+  const lookups = useOrganizationLookups();
+  const query = useAttendanceDashboard({ dateIso, departmentId, branchId });
   const data = query.data;
-  const todayIso = cairoTodayIso();
   const presentPct = data && data.scheduled ? Math.round((data.present / data.scheduled) * 100) : 0;
+  const hasFilters = Boolean(departmentId || branchId);
   return (
     <div className="space-y-6">
       <PageHeader
@@ -29,6 +43,56 @@ export function AttendancePage() {
           </button>
         }
       />
+      {/* ─── شريط الفلاتر: التاريخ + القسم + الفرع ─── */}
+      <div className="card flex flex-wrap items-end gap-4 p-4">
+        <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-muted)]">
+          التاريخ
+          <input
+            type="date"
+            value={dateIso}
+            onChange={(e) => setDateIso(e.target.value || cairoTodayIso())}
+            className="input min-w-44"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-muted)]">
+          القسم
+          <select
+            className="select min-w-44"
+            value={departmentId ?? ''}
+            onChange={(e) => setDepartmentId(e.target.value || null)}
+          >
+            <option value="">كل الأقسام</option>
+            {lookups.data?.departments.map((d) => (
+              <option key={d.id} value={d.id}>{d.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-muted)]">
+          الفرع
+          <select
+            className="select min-w-44"
+            value={branchId ?? ''}
+            onChange={(e) => setBranchId(e.target.value || null)}
+          >
+            <option value="">كل الفروع</option>
+            {lookups.data?.branches.map((b) => (
+              <option key={b.id} value={b.id}>{b.label}</option>
+            ))}
+          </select>
+        </label>
+        {hasFilters ? (
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => {
+              setDepartmentId(null);
+              setBranchId(null);
+            }}
+          >
+            مسح الفلاتر
+          </button>
+        ) : null}
+      </div>
       {query.isError ? (
         <ErrorState title="تعذر تحميل الحضور" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
       ) : !data && query.isLoading ? (
@@ -45,7 +109,7 @@ export function AttendancePage() {
           <div className="card flex flex-wrap items-center justify-between gap-4 p-4">
             <div className="flex items-center gap-2 text-sm">
               <CalendarClock className="size-5 text-brand" aria-hidden="true" />
-              <strong>{new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(new Date())}</strong>
+              <strong>{new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`))}</strong>
             </div>
             {data.scheduled > 0 ? (
               <div className="flex items-center gap-3">
@@ -62,16 +126,16 @@ export function AttendancePage() {
 
           {/* ─── المقاييس الأساسية ─── */}
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="المجدولون اليوم" value={data.scheduled} icon={Users} hint="وفق الورديات وتقويم العمل" to={detailsUrl('scheduled', todayIso)} />
+            <MetricCard label="المجدولون اليوم" value={data.scheduled} icon={Users} hint="وفق الورديات وتقويم العمل" to={detailsUrl('scheduled', dateIso, departmentId, branchId)} />
             <MetricCard
               label="حاضرون"
               value={data.present}
               icon={CheckCircle2}
               hint={`${presentPct}% من المجدولين`}
-              to={detailsUrl('present', todayIso)}
+              to={detailsUrl('present', dateIso, departmentId, branchId)}
             />
-            <MetricCard label="متأخرون" value={data.late} icon={Clock3} hint="حسب سياسة الوردية" to={detailsUrl('late', todayIso)} />
-            <MetricCard label="غياب" value={data.absent} icon={UserMinus} hint={`بدون إذن: ${data.unexcusedAbsent ?? 0}`} to={detailsUrl('absent', todayIso)} />
+            <MetricCard label="متأخرون" value={data.late} icon={Clock3} hint="حسب سياسة الوردية" to={detailsUrl('late', dateIso, departmentId, branchId)} />
+            <MetricCard label="غياب" value={data.absent} icon={UserMinus} hint={`بدون إذن: ${data.unexcusedAbsent ?? 0}`} to={detailsUrl('absent', dateIso, departmentId, branchId)} />
           </section>
 
           {/* ─── حالات تحتاج اهتمام ─── */}
@@ -81,28 +145,28 @@ export function AttendancePage() {
               value={data.unexcusedAbsent ?? 0}
               icon={UserMinus}
               hint="بلا إجازة أو مأمورية"
-              to={detailsUrl('unexcused_absent', todayIso)}
+              to={detailsUrl('unexcused_absent', dateIso, departmentId, branchId)}
             />
             <MetricCard
               label="بصمات غير مكتملة"
               value={data.incomplete}
               icon={AlertTriangle}
               hint="سجلات جزئية أو معلقة"
-              to={detailsUrl('incomplete', todayIso)}
+              to={detailsUrl('incomplete', dateIso, departmentId, branchId)}
             />
             <MetricCard
               label="تحتاج مراجعة"
               value={data.pendingReview}
               icon={Users}
               hint="تنبيهات تحتاج تدخل بشري"
-              to={detailsUrl('pending_review', todayIso)}
+              to={detailsUrl('pending_review', dateIso, departmentId, branchId)}
             />
             <MetricCard
               label="طلبات الموقع"
               value={data.locationRequestsToday ?? 0}
               icon={MapPin}
               hint={`استُجيب: ${data.locationRespondedToday ?? 0}`}
-              to={detailsUrl('location_requests', todayIso)}
+              to={detailsUrl('location_requests', dateIso, departmentId, branchId)}
             />
           </section>
 

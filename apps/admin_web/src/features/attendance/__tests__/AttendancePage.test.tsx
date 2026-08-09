@@ -21,6 +21,14 @@ vi.mock('../useAttendanceDashboard', () => ({
   useAttendanceDashboard: () => hookReturn,
 }));
 
+vi.mock('../../employees/useOrganizationLookups', () => ({
+  useOrganizationLookups: () => ({
+    data: { departments: [], branches: [] },
+    isLoading: false,
+    isError: false,
+  }),
+}));
+
 import { AttendancePage } from '../AttendancePage';
 
 describe('AttendancePage', () => {
