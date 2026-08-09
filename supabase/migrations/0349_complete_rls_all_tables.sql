@@ -1,29 +1,25 @@
--- Migration 0348: Complete RLS on all 80 remaining tables
+-- Migration 0349: Complete RLS on all 80 remaining tables
 -- ================================================================================
 -- Initiative 2 completion — enables RLS on every remaining unprotected table.
 -- Uses a dynamic DO block that:
 --   1. Enables RLS + FORCE on each table
 --   2. REVOKE access from anon
 --   3. Creates a read policy for authenticated (where applicable)
---   4. Creates an admin policy for hr_admin/global_admin
+--   4. Creates an admin policy for full-access / HR roles
+-- Uses the canonical authorization helpers (current_is_full_access,
+-- current_has_active_role) instead of raw role-name matching.
 
 BEGIN;
 
 -- ─── Helper: enable RLS + policies on a table ────────────────────────────
--- Pattern: read for authenticated, write for admins (hr_admin, global_admin)
+-- Pattern: read for authenticated, write for admins (full-access + HR)
 
 DO $$
 DECLARE
   t text;
-  v_admin_roles text[] := ARRAY['global_admin', 'hr_admin'];
   v_admin_check text := $check$
-    EXISTS (
-      SELECT 1 FROM public.user_roles ur
-      JOIN public.roles r ON ur.role_id = r.id
-      WHERE ur.user_id = auth.uid()
-        AND r.code IN ('global_admin', 'hr_admin')
-        AND (ur.effective_to IS NULL OR ur.effective_to > now())
-    )
+    public.current_is_full_access()
+    OR public.current_has_active_role(array['hr-manager', 'hr-specialist'])
   $check$;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
@@ -106,20 +102,15 @@ BEGIN
   END LOOP;
 END $$;
 
--- ─── Special: payroll/compensation tables — self OR finance_admin ────────
+-- ─── Special: payroll/compensation tables — self OR finance/HR/full-access ─
 -- Override the generic admin policy with a self-service read policy
 DO $$
 DECLARE
   t text;
   v_self_or_finance text := $self$
     employee_id IN (SELECT employee_id FROM public.profiles WHERE id = auth.uid())
-    OR EXISTS (
-      SELECT 1 FROM public.user_roles ur
-      JOIN public.roles r ON ur.role_id = r.id
-      WHERE ur.user_id = auth.uid()
-        AND r.code IN ('global_admin', 'finance_admin', 'hr_admin')
-        AND (ur.effective_to IS NULL OR ur.effective_to > now())
-    )
+    OR public.current_is_full_access()
+    OR public.current_has_active_role(array['hr-manager', 'hr-specialist'])
   $self$;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
@@ -154,22 +145,12 @@ BEGIN
         CREATE POLICY learning_enrollments_read ON public.learning_enrollments
           FOR ALL TO authenticated USING (
             employee_id IN (SELECT employee_id FROM public.profiles WHERE id = auth.uid())
-            OR EXISTS (
-              SELECT 1 FROM public.user_roles ur
-              JOIN public.roles r ON ur.role_id = r.id
-              WHERE ur.user_id = auth.uid()
-                AND r.code IN ('global_admin', 'hr_admin', 'learning_admin')
-                AND (ur.effective_to IS NULL OR ur.effective_to > now())
-            )
+            OR public.current_is_full_access()
+            OR public.current_has_active_role(array['hr-manager', 'hr-specialist'])
           ) WITH CHECK (
             employee_id IN (SELECT employee_id FROM public.profiles WHERE id = auth.uid())
-            OR EXISTS (
-              SELECT 1 FROM public.user_roles ur
-              JOIN public.roles r ON ur.role_id = r.id
-              WHERE ur.user_id = auth.uid()
-                AND r.code IN ('global_admin', 'hr_admin', 'learning_admin')
-                AND (ur.effective_to IS NULL OR ur.effective_to > now())
-            )
+            OR public.current_is_full_access()
+            OR public.current_has_active_role(array['hr-manager', 'hr-specialist'])
           )
       $sql$;
     EXCEPTION WHEN OTHERS THEN
