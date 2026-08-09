@@ -1,32 +1,51 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
+import { describe, it, expect } from 'vitest';
+import { employeePenaltySchema } from '@ahla/shared-contracts';
 
-vi.mock('../../core/rpc', () => ({
-  rpc: vi.fn().mockResolvedValue([
-    { id: 'p1', employeeId: 'e1', employeeName: 'أحمد', amount: 500, reason: 'تأخير', status: 'pending', createdAt: '2026-01-01' },
-  ]),
-}));
+const validPenalty = {
+  id: '11111111-1111-4111-8111-111111111111',
+  employeeId: '22222222-2222-4222-8222-222222222222',
+  employeeCode: 'EMP-001',
+  employeeName: 'أحمد',
+  departmentName: 'المالية',
+  penaltyType: 'تأخير',
+  amount: 500,
+  currency: 'EGP',
+  reason: 'تأخر متكرر',
+  evidenceRef: null,
+  status: 'issued' as const,
+  payrollRunId: null,
+  issuedBy: null,
+  issuedAt: '2026-01-01T00:00:00+00:00',
+  waivedBy: null,
+  waivedAt: null,
+  waiveReason: null,
+};
 
-vi.mock('../auth/AuthProvider', () => ({
-  useAuth: () => ({ status: 'authenticated', isMock: false, access: { permissions: new Set() } }),
-}));
+describe('employeePenaltySchema', () => {
+  it('parses a valid penalty record', () => {
+    const parsed = employeePenaltySchema.parse(validPenalty);
+    expect(parsed.amount).toBe(500);
+    expect(parsed.status).toBe('issued');
+    expect(parsed.employeeName).toBe('أحمد');
+  });
 
-import { useEmployeePenalties } from './useFinancialExtensions';
+  it('rejects invalid status value', () => {
+    expect(() => employeePenaltySchema.parse({ ...validPenalty, status: 'pending' })).toThrow();
+  });
 
-function wrapper({ children }: { children: ReactNode }) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
-}
+  it('rejects non-uuid id', () => {
+    expect(() => employeePenaltySchema.parse({ ...validPenalty, id: 'p1' })).toThrow();
+  });
 
-describe('useEmployeePenalties', () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it('fetches penalties list', async () => {
-    const { result } = renderHook(() => useEmployeePenalties({}), { wrapper });
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toHaveLength(1);
-    expect(result.current.data?.[0].employeeName).toBe('أحمد');
+  it('allows null for nullable fields', () => {
+    const parsed = employeePenaltySchema.parse({
+      ...validPenalty,
+      employeeCode: null,
+      departmentName: null,
+      issuedAt: null,
+      issuedBy: null,
+    });
+    expect(parsed.employeeCode).toBeNull();
+    expect(parsed.departmentName).toBeNull();
   });
 });

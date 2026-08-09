@@ -1,37 +1,50 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
+import { describe, it, expect } from 'vitest';
+import { learningCourseSchema, learningCatalogSchema } from './useLearning';
 
-vi.mock('../../core/rpc', () => ({
-  rpc: vi.fn().mockResolvedValue({
-    courses: [
-      { id: '00000000-0000-0000-0000-000000000001', code: 'C001', title: 'دورة أمن المعلومات', category: 'تقنية', deliveryMode: 'online', durationMinutes: 120, mandatory: true, active: true, enrollments: 5, completed: 2 },
-    ],
-    enrollments: [],
-    employees: [],
-  }),
-}));
+const validCourse = {
+  id: '11111111-1111-4111-8111-111111111111',
+  code: 'C001',
+  title: 'دورة أمن المعلومات',
+  category: 'تقنية',
+  deliveryMode: 'online' as const,
+  durationMinutes: 120,
+  mandatory: true,
+  active: true,
+  enrollments: 5,
+  completed: 2,
+};
 
-vi.mock('../auth/AuthProvider', () => ({
-  useAuth: () => ({ status: 'authenticated', isMock: false, access: { permissions: new Set() } }),
-}));
+describe('learning schemas', () => {
+  it('parses a valid course', () => {
+    const parsed = learningCourseSchema.parse(validCourse);
+    expect(parsed.title).toBe('دورة أمن المعلومات');
+    expect(parsed.deliveryMode).toBe('online');
+    expect(parsed.mandatory).toBe(true);
+  });
 
-import { useLearningCatalog } from './useLearning';
+  it('parses a valid catalog', () => {
+    const catalog = learningCatalogSchema.parse({
+      courses: [validCourse],
+      enrollments: [],
+      employees: [],
+    });
+    expect(catalog.courses).toHaveLength(1);
+    expect(catalog.enrollments).toHaveLength(0);
+    expect(catalog.courses[0].title).toBe('دورة أمن المعلومات');
+  });
 
-function wrapper({ children }: { children: ReactNode }) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
-}
+  it('rejects invalid deliveryMode', () => {
+    expect(() => learningCourseSchema.parse({ ...validCourse, deliveryMode: 'invalid' })).toThrow();
+  });
 
-describe('useLearningCatalog', () => {
-  beforeEach(() => vi.clearAllMocks());
+  it('rejects non-uuid id', () => {
+    expect(() => learningCourseSchema.parse({ ...validCourse, id: 'not-a-uuid' })).toThrow();
+  });
 
-  it('fetches catalog with courses', async () => {
-    const { result } = renderHook(() => useLearningCatalog(), { wrapper });
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.courses).toHaveLength(1);
-    expect(result.current.data?.courses[0].title).toBe('دورة أمن المعلومات');
-    expect(result.current.data?.enrollments).toHaveLength(0);
+  it('defaults enrollments and completed to 0', () => {
+    const { enrollments: _e, completed: _c, ...rest } = validCourse;
+    const parsed = learningCourseSchema.parse(rest);
+    expect(parsed.enrollments).toBe(0);
+    expect(parsed.completed).toBe(0);
   });
 });

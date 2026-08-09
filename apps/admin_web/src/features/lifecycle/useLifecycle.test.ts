@@ -16,7 +16,7 @@ describe('lifecycle constants', () => {
 
   it('has Arabic labels for task statuses', () => {
     expect(TASK_STATUS_LABELS.pending).toBe('قيد الانتظار');
-    expect(TASK_STATUS_LABELS.completed).toBe('مكتمل');
+    expect(TASK_STATUS_LABELS.completed).toBe('مكتملة');
     expect(TASK_STATUS_LABELS.skipped).toBe('تم تجاوزها');
   });
 

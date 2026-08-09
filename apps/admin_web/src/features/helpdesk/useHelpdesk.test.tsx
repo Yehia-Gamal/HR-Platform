@@ -1,43 +1,49 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
+import { describe, it, expect } from 'vitest';
+import { hrTicketSchema, hrTicketListSchema } from '@ahla/shared-contracts';
 
-const mockTickets = [
-  { id: 't1', subject: 'مشكلة دخول', category: 'auth', priority: 'high', status: 'open', created_at: '2026-01-01', updated_at: '2026-01-02' },
-];
+const validTicket = {
+  id: '11111111-1111-4111-8111-111111111111',
+  subject: 'مشكلة دخول',
+  category: 'auth',
+  priority: 'high' as const,
+  status: 'open' as const,
+  requester_employee_id: '22222222-2222-4222-8222-222222222222',
+  assignee_employee_id: null,
+  sla_due_at: null,
+  created_at: '2026-01-01T00:00:00.000Z',
+  updated_at: null,
+  requester_name: null,
+  assignee_name: null,
+};
 
-vi.mock('../../core/supabase', () => ({
-  getSupabase: vi.fn().mockResolvedValue({
-    from: vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        order: vi.fn().mockReturnValue({
-          limit: vi.fn().mockReturnValue({
-            range: vi.fn().mockResolvedValue({ data: mockTickets, error: null, count: 1 }),
-          }),
-        }),
-      }),
-    }),
-  }),
-}));
+describe('hrTicketSchema', () => {
+  it('parses a valid ticket', () => {
+    const parsed = hrTicketSchema.parse(validTicket);
+    expect(parsed.subject).toBe('مشكلة دخول');
+    expect(parsed.status).toBe('open');
+    expect(parsed.priority).toBe('high');
+  });
 
-vi.mock('../auth/AuthProvider', () => ({
-  useAuth: () => ({ status: 'authenticated', isMock: false, access: { permissions: new Set() } }),
-}));
+  it('parses a list of tickets', () => {
+    const list = hrTicketListSchema.parse([validTicket]);
+    expect(list).toHaveLength(1);
+  });
 
-import { useHelpdeskTickets } from './useHelpdesk';
+  it('rejects invalid priority', () => {
+    expect(() => hrTicketSchema.parse({ ...validTicket, priority: 'critical' })).toThrow();
+  });
 
-function wrapper({ children }: { children: ReactNode }) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
-}
+  it('rejects invalid status', () => {
+    expect(() => hrTicketSchema.parse({ ...validTicket, status: 'pending' })).toThrow();
+  });
 
-describe('useHelpdeskTickets', () => {
-  beforeEach(() => vi.clearAllMocks());
+  it('rejects non-uuid id', () => {
+    expect(() => hrTicketSchema.parse({ ...validTicket, id: 't1' })).toThrow();
+  });
 
-  it('fetches tickets list', async () => {
-    const { result } = renderHook(() => useHelpdeskTickets(), { wrapper });
-    await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 3000 });
-    expect(result.current.data).toBeDefined();
+  it('allows null optional fields', () => {
+    const parsed = hrTicketSchema.parse({ ...validTicket, category: null, assignee_employee_id: null });
+    expect(parsed.category).toBeNull();
+    expect(parsed.assignee_employee_id).toBeNull();
   });
 });

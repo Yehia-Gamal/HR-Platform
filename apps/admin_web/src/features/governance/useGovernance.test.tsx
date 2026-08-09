@@ -1,41 +1,48 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
+import { describe, it, expect } from 'vitest';
+import { riskItemSchema, riskItemListSchema } from '@ahla/shared-contracts';
 
-const mockRisks = [
-  { id: 'r1', title: 'خطر أمني', description: 'وصف', likelihood: 'high', impact: 'high', severity: 'critical', status: 'open', created_at: '2026-01-01', updated_at: '2026-01-02' },
-];
+const validRisk = {
+  id: '11111111-1111-4111-8111-111111111111',
+  title: 'خطر أمني',
+  description: 'وصف الخطر',
+  likelihood: 'high' as const,
+  impact: 'high' as const,
+  severity: 'critical' as const,
+  owner_employee_id: null,
+  status: 'open' as const,
+  created_at: '2026-01-01T00:00:00.000Z',
+  updated_at: null,
+  owner_name: null,
+};
 
-vi.mock('../../core/supabase', () => ({
-  getSupabase: vi.fn().mockResolvedValue({
-    from: vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        order: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue({ data: mockRisks, error: null }),
-        }),
-      }),
-    }),
-  }),
-}));
+describe('riskItemSchema', () => {
+  it('parses a valid risk item', () => {
+    const parsed = riskItemSchema.parse(validRisk);
+    expect(parsed.title).toBe('خطر أمني');
+    expect(parsed.severity).toBe('critical');
+    expect(parsed.status).toBe('open');
+  });
 
-vi.mock('../auth/AuthProvider', () => ({
-  useAuth: () => ({ status: 'authenticated', isMock: false, access: { permissions: new Set() } }),
-}));
+  it('parses a list of risks', () => {
+    const list = riskItemListSchema.parse([validRisk]);
+    expect(list).toHaveLength(1);
+  });
 
-import { useRisks } from './useGovernance';
+  it('rejects invalid severity', () => {
+    expect(() => riskItemSchema.parse({ ...validRisk, severity: 'extreme' })).toThrow();
+  });
 
-function wrapper({ children }: { children: ReactNode }) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
-}
+  it('rejects invalid status', () => {
+    expect(() => riskItemSchema.parse({ ...validRisk, status: 'pending' })).toThrow();
+  });
 
-describe('useRisks', () => {
-  beforeEach(() => vi.clearAllMocks());
+  it('rejects non-uuid id', () => {
+    expect(() => riskItemSchema.parse({ ...validRisk, id: 'r1' })).toThrow();
+  });
 
-  it('fetches risks list', async () => {
-    const { result } = renderHook(() => useRisks(), { wrapper });
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toBeDefined();
+  it('allows optional owner_name', () => {
+    const { owner_name: _o, ...withoutName } = validRisk;
+    const parsed = riskItemSchema.parse(withoutName);
+    expect(parsed.owner_name).toBeUndefined();
   });
 });
