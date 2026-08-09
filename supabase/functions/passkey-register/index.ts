@@ -1,10 +1,12 @@
 // Verifies a native/Web WebAuthn registration response and persists only the public credential.
+import { createLogger } from "../_shared/logger.ts";
 import { createClient } from "@supabase/supabase-js";
 import { verifyRegistrationResponse } from "@simplewebauthn/server";
 
 type RegistrationResponse = Parameters<typeof verifyRegistrationResponse>[0]["response"];
 import { json, preflight } from "../_shared/cors.ts";
 import { createHandler } from "../_shared/withHandler.ts";
+const log = createLogger({ functionName: "passkey-register", version: "1.0.0" });
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";

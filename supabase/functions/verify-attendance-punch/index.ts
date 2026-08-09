@@ -1,4 +1,5 @@
 // Verifies a WebAuthn assertion and records attendance through the server-only RPC.
+import { createLogger } from "../_shared/logger.ts";
 import { createClient } from "@supabase/supabase-js";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 
@@ -23,6 +24,7 @@ function normalizeTransports(value: unknown): AuthenticatorTransport[] | undefin
 }
 import { json, preflight } from "../_shared/cors.ts";
 import { createHandler } from "../_shared/withHandler.ts";
+const log = createLogger({ functionName: "verify-attendance-punch", version: "1.0.0" });
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";

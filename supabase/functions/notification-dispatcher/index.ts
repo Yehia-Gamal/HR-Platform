@@ -1,7 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
+import { createLogger } from "../_shared/logger.ts";
 import { corsHeaders } from '../_shared/cors.ts';
 import { timingSafeEqual } from '../_shared/secret.ts';
 import { createHandler } from "../_shared/withHandler.ts";
+const log = createLogger({ functionName: "notification-dispatcher", version: "1.0.0" });
 
 // notification-dispatcher: يستهلك طابور notification_jobs ويرسل الدفع.
 // يدعم FCM v1 (Android + APNs عبر FCM) مع تجربة إشعار عاجل (شاشة كاملة/صوت/اهتزاز)

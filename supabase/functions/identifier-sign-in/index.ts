@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
+import { createLogger } from "../_shared/logger.ts";
 import { json, preflight } from '../_shared/cors.ts';
 import { createHandler } from '../_shared/withHandler.ts';
+const log = createLogger({ functionName: "identifier-sign-in", version: "1.0.0" });
 
 // ─── identifier-sign-in ────────────────────────────────────────────
 // Timing-safe credential gateway: resolves email / phone / employee_code

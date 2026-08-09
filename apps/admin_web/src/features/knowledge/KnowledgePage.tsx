@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import type { KnowledgeArticle } from '@ahla/shared-contracts';
-import { BookOpen, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { BookOpen, Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';

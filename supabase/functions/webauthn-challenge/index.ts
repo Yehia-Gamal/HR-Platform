@@ -1,4 +1,5 @@
 // Generates server-authored WebAuthn registration/authentication options.
+import { createLogger } from "../_shared/logger.ts";
 import { createClient } from "@supabase/supabase-js";
 import {
   generateAuthenticationOptions,
@@ -25,6 +26,7 @@ function normalizeTransports(value: unknown): AuthenticatorTransport[] | undefin
 }
 import { json, preflight } from "../_shared/cors.ts";
 import { createHandler } from "../_shared/withHandler.ts";
+const log = createLogger({ functionName: "webauthn-challenge", version: "1.0.0" });
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";

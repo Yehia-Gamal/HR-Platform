@@ -1,8 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
+import { createLogger } from "../_shared/logger.ts";
 import { z } from "zod";
 import { json, preflight } from "../_shared/cors.ts";
 import { generateSecureTemporaryPassword } from "../_shared/phone.ts";
 import { createHandler } from "../_shared/withHandler.ts";
+const log = createLogger({ functionName: "admin-resend-invite", version: "1.0.0" });
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const PUBLISHABLE_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";

@@ -1,7 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
+import { createLogger } from "../_shared/logger.ts";
 import { corsHeaders } from '../_shared/cors.ts';
 import { timingSafeEqual } from '../_shared/secret.ts';
 import { createHandler } from '../_shared/withHandler.ts';
+const log = createLogger({ functionName: "scheduled-report-runner", version: "1.0.0" });
 
 // scheduled-report-runner: cron-triggered Edge Function that:
 // 1. Queues due scheduled reports via queue_due_scheduled_reports() RPC
