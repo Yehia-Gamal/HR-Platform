@@ -1,5 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 const _months = [
@@ -19,25 +23,100 @@ const _months = [
 
 const _warnStatuses = {'غائب دون إذن', 'يحتاج مراجعة'};
 
+// ألوان مكررة من نسخة HTML السابقة (نفس التصميم)
+const _navy = PdfColor.fromInt(0xFF1E3A5F);
+const _blue = PdfColor.fromInt(0xFF1E40AF);
+const _border = PdfColor.fromInt(0xFFE2E8F0);
+const _bg = PdfColor.fromInt(0xFFF8FAFC);
+const _bgLight = PdfColor.fromInt(0xFFF0F9FF);
+const _bgYellow = PdfColor.fromInt(0xFFFEFCE8);
+const _red = PdfColor.fromInt(0xFFDC2626);
+const _green = PdfColor.fromInt(0xFF059669);
+const _amber = PdfColor.fromInt(0xFFF59E0B);
+const _amberDark = PdfColor.fromInt(0xFFD97706);
+const _grayText = PdfColor.fromInt(0xFF6B7280);
+const _grayHint = PdfColor.fromInt(0xFF9CA3AF);
+const _dark = PdfColor.fromInt(0xFF111827);
+const _skyLine = PdfColor.fromInt(0xFFBFDBFE);
+const _amberLine = PdfColor.fromInt(0xFFFDE68A);
+const _rowLine = PdfColor.fromInt(0xFFE5E7EB);
+const _white = PdfColor.fromInt(0xFFFFFFFF);
+
 String _fmtTime(String? t) =>
     (t != null && t.length >= 5) ? t.substring(0, 5) : '—';
 
-/// يهرّب محارف HTML الخاصة لمنع XSS/injection عند إدراج نصوص المستخدم في قوالب HTML.
-String _escapeHtml(String text) => text
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
+PdfColor _pctColor(double pct) => pct >= 90 ? _green : (pct >= 75 ? _amber : _red);
 
-String _pctColor(double pct) => pct >= 90
-    ? '#059669'
-    : pct >= 75
-    ? '#f59e0b'
-    : '#dc2626';
+/// يحمّل خط Cairo العربي من الأصول (يُستدعى مرة واحدة ويُخزَّن).
+pw.Font? _cairoFont;
+Future<pw.Font> _loadCairoFont() async {
+  if (_cairoFont != null) return _cairoFont!;
+  final data = await rootBundle.load('assets/fonts/Cairo.ttf');
+  final font = pw.Font.ttf(data.buffer.asByteData());
+  _cairoFont = font;
+  return font;
+}
 
-/// يُنشئ HTML منسّق لكشف الحضور الشهري — نفس تصميم نسخة الويب بالضبط.
-String _buildAttendanceHtml(MonthlyAttendanceStatement stmt) {
+/// نص بسيط باتجاه RTL افتراضي.
+pw.Text _t(String text,
+    {double size = 11,
+    PdfColor color = _dark,
+    pw.FontWeight weight = pw.FontWeight.normal}) =>
+    pw.Text(text,
+        textDirection: pw.TextDirection.rtl,
+        style: pw.TextStyle(fontSize: size, color: color, fontWeight: weight));
+
+/// نص بسيط باتجاه LTR (تواريخ/أرقام/أوقات).
+pw.Text _tl(String text,
+        {double size = 11,
+        PdfColor color = _dark,
+        pw.FontWeight weight = pw.FontWeight.normal}) =>
+    pw.Text(text,
+        textDirection: pw.TextDirection.ltr,
+        style: pw.TextStyle(fontSize: size, color: color, fontWeight: weight));
+
+/// بطاقة مترية ضمن شبكة الملخص.
+pw.Widget _metric(String label, String value,
+    {String hint = '', PdfColor? valueColor, bool warn = false}) {
+  return pw.Container(
+    padding: const pw.EdgeInsets.all(6),
+    decoration: pw.BoxDecoration(
+      color: _bg,
+      border: pw.Border.all(color: _border),
+      borderRadius: pw.BorderRadius.circular(4),
+    ),
+    child: pw.Column(
+      mainAxisSize: pw.MainAxisSize.min,
+      children: [
+        _t(label, size: 7.5, color: _grayText, weight: pw.FontWeight.bold),
+        pw.SizedBox(height: 2),
+        _t(value,
+            size: 15,
+            weight: pw.FontWeight.bold,
+            color: warn ? _red : (valueColor ?? _dark)),
+        if (hint.isNotEmpty) ...[
+          pw.SizedBox(height: 1),
+          _t(hint, size: 7, color: _grayHint),
+        ],
+      ],
+    ),
+  );
+}
+
+pw.Widget _empField(String label, String value) {
+  return pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
+    children: [
+      _t(label, size: 8, color: _grayText, weight: pw.FontWeight.bold),
+      pw.SizedBox(height: 1),
+      _t(value, size: 11, weight: pw.FontWeight.bold),
+    ],
+  );
+}
+
+/// يُنشئ مستند كشف الحضور الشهري مباشرة بـ package:pdf (بدون HTML).
+Future<Uint8List> _buildAttendancePdf(MonthlyAttendanceStatement stmt) async {
+  final font = await _loadCairoFont();
   final s = stmt.summary;
   final monthName = (stmt.month >= 1 && stmt.month <= 12)
       ? _months[stmt.month - 1]
@@ -46,302 +125,339 @@ String _buildAttendanceHtml(MonthlyAttendanceStatement stmt) {
   final compliancePct = s.hoursComplianceRate;
   final complianceAvailable = s.hoursComplianceAvailable;
 
-  final dayRows = StringBuffer();
-  for (final d in stmt.days) {
-    final tags = <String>[];
-    // استنتاج الغياب والعطلة من حقل status بدل خصائص غير موجودة.
-    if (d.status.contains('غائب')) tags.add('غائب');
-    if (d.status == 'عطلة رسمية') tags.add('عطلة رسمية');
-    if (d.hasLeave) tags.add('إجازة');
-    if (d.hasMission) tags.add('مأمورية');
-    if (d.hasPermit) tags.add('إذن');
-    if (d.hasConvoyFundi) tags.add('قافلة/فاندي');
-    if (d.missingCheckIn) tags.add('نقص حضور');
-    if (d.missingCheckOut) tags.add('نقص انصراف');
-    if (d.isOpenShift) tags.add('بانتظار الانصراف');
-    if (d.isFuture) tags.add('قادم');
-    if (d.hasCorrection) tags.add('تصحيح');
-
-    final isRest = d.status == 'راحة أسبوعية' || d.status == 'عطلة رسمية';
-    final isWarn = _warnStatuses.contains(d.status);
-    final rowBg = d.isFuture
-        ? '#f8fafc'
-        : d.isOpenShift
-        ? '#f0f9ff'
-        : isRest
-        ? '#f0f9ff'
-        : isWarn
-        ? '#fef2f2'
-        : '';
-    final statusColor = isWarn
-        ? '#dc2626'
-        : isRest
-        ? '#0369a1'
-        : '#111827';
-
-    dayRows.writeln(
-      '''<tr style="border-bottom:1px solid #e5e7eb;${rowBg.isNotEmpty ? 'background:$rowBg;' : ''}">
-      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${_escapeHtml(d.date)}</td>
-      <td style="padding:6px 8px;text-align:center">${_escapeHtml(d.dayNameAr)}</td>
-      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${_fmtTime(d.checkIn)}</td>
-      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${_fmtTime(d.checkOut)}</td>
-      <td style="padding:6px 8px;text-align:center">${d.shiftName.isNotEmpty ? _escapeHtml(d.shiftName) : '—'}</td>
-      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums">${d.workHours > 0 ? d.workHours.toStringAsFixed(1) : '—'}</td>
-      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;${d.lateMinutes > 0 ? 'color:#d97706;font-weight:700;' : ''}">${d.lateMinutes > 0 ? '${d.lateMinutes} د' : '—'}</td>
-      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;${d.earlyLeaveMinutes > 0 ? 'color:#d97706;font-weight:700;' : ''}">${d.earlyLeaveMinutes > 0 ? '${d.earlyLeaveMinutes} د' : '—'}</td>
-      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;${d.overtimeMinutes > 0 ? 'color:#059669;font-weight:700;' : ''}">${d.overtimeMinutes > 0 ? '${d.overtimeMinutes} د' : '—'}</td>
-      <td style="padding:6px 8px;text-align:center;font-weight:700;color:$statusColor">${_escapeHtml(d.status)}</td>
-      <td style="padding:6px 8px;text-align:center;font-size:9px">${tags.isNotEmpty ? tags.join('، ') : _escapeHtml(d.correctionNote ?? '')}</td>
-    </tr>''',
-    );
-  }
-
   final now = DateTime.now();
   final printDate = '${now.day} ${_months[now.month - 1]} ${now.year}';
 
-  return '''<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="utf-8">
-  <title>كشف حضور — ${_escapeHtml(stmt.employeeNameAr)} — $monthName ${stmt.year}</title>
-  <style>
-    @page {
-      size: A4 landscape;
-      margin: 12mm 10mm;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Cairo', 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
-      direction: rtl;
-      color: #111827;
-      font-size: 11px;
-      line-height: 1.5;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-    .page { max-width: 1100px; margin: 0 auto; }
+  final doc = pw.Document();
 
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 3px solid #1e40af;
-      padding-bottom: 12px;
-      margin-bottom: 16px;
-    }
-    .header-right h1 { font-size: 18px; font-weight: 900; color: #1e40af; }
-    .header-right p { font-size: 10px; color: #6b7280; margin-top: 2px; }
-    .header-left { text-align: left; direction: ltr; }
-    .header-left .org { font-size: 13px; font-weight: 900; color: #1e40af; }
-    .header-left .sub { font-size: 9px; color: #6b7280; }
+  doc.addPage(
+    pw.MultiPage(
+      pageFormat: PdfPageFormat.a4.landscape,
+      margin: const pw.EdgeInsets.fromLTRB(28, 34, 28, 34),
+      theme: pw.ThemeData.withFont(base: font),
+      build: (context) => [
+        // ---------- Header ----------
+        pw.Container(
+          padding: const pw.EdgeInsets.only(bottom: 10),
+          decoration: pw.BoxDecoration(
+            border: pw.Border(bottom: pw.BorderSide(color: _blue, width: 3)),
+          ),
+          child: pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  _t('📋 كشف الحضور والانصراف الشهري',
+                      size: 16, color: _blue, weight: pw.FontWeight.bold),
+                  _t('$monthName ${stmt.year} — من ${stmt.startDate} إلى ${stmt.endDate}',
+                      size: 9, color: _grayText),
+                ],
+              ),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  _t('جمعية خواطر أحلى شباب',
+                      size: 12, color: _blue, weight: pw.FontWeight.bold),
+                  _t('منظومة الإدارة المؤسسية', size: 8.5, color: _grayText),
+                ],
+              ),
+            ],
+          ),
+        ),
+        pw.SizedBox(height: 12),
 
-    .emp-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 14px;
-    }
-    .emp-field label { display: block; font-size: 9px; color: #6b7280; font-weight: 700; }
-    .emp-field span { display: block; font-size: 12px; font-weight: 800; margin-top: 1px; }
+        // ---------- Employee grid ----------
+        pw.Container(
+          padding: const pw.EdgeInsets.all(10),
+          decoration: pw.BoxDecoration(
+            color: _bg,
+            border: pw.Border.all(color: _border),
+            borderRadius: pw.BorderRadius.circular(5),
+          ),
+          child: pw.Column(
+            children: [
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Expanded(child: _empField('الاسم', stmt.employeeNameAr)),
+                  pw.SizedBox(width: 16),
+                  pw.Expanded(
+                      child: _empField('الكود', stmt.employeeCode ?? '—')),
+                  pw.SizedBox(width: 16),
+                  pw.Expanded(child: _empField('الإدارة', stmt.department)),
+                  pw.SizedBox(width: 16),
+                  pw.Expanded(child: _empField('المسمى الوظيفي', stmt.jobTitle)),
+                ],
+              ),
+              pw.SizedBox(height: 8),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Expanded(child: _empField('الفرع', stmt.branch)),
+                  pw.SizedBox(width: 16),
+                  pw.Expanded(child: _empField('المدير المباشر', stmt.manager)),
+                  pw.SizedBox(width: 16),
+                  pw.Expanded(
+                      child: _empField('تاريخ التعيين', stmt.hireDate ?? '—')),
+                  pw.SizedBox(width: 16),
+                  pw.Expanded(child: _empField('الفترة', '$monthName ${stmt.year}')),
+                ],
+              ),
+            ],
+          ),
+        ),
+        pw.SizedBox(height: 10),
 
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      gap: 6px;
-      margin-bottom: 10px;
-    }
-    .metric {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 8px;
-      text-align: center;
-    }
-    .metric .label { font-size: 8px; color: #6b7280; font-weight: 700; }
-    .metric .value { font-size: 18px; font-weight: 900; color: #111827; margin-top: 2px; }
-    .metric .hint { font-size: 8px; color: #9ca3af; margin-top: 1px; }
-    .metric.warn .value { color: #dc2626; }
-    .metric.good .value { color: #059669; }
+        // ---------- Rates bar ----------
+        pw.Container(
+          padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: pw.BoxDecoration(
+            color: _bgLight,
+            border: pw.Border.all(color: _skyLine),
+            borderRadius: pw.BorderRadius.circular(5),
+          ),
+          child: pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.center,
+            children: [
+              _t('${attendancePct.toStringAsFixed(0)}%',
+                  size: 20,
+                  color: _pctColor(attendancePct),
+                  weight: pw.FontWeight.bold),
+              pw.SizedBox(width: 6),
+              _t('نسبة الحضور', size: 9, color: _grayText),
+              pw.SizedBox(width: 16),
+              pw.Container(
+                  width: 1,
+                  height: 36,
+                  decoration: pw.BoxDecoration(color: _skyLine)),
+              pw.SizedBox(width: 16),
+              _t(
+                  complianceAvailable
+                      ? '${compliancePct.toStringAsFixed(0)}%'
+                      : 'غير متاح',
+                  size: 20,
+                  color: complianceAvailable
+                      ? _pctColor(compliancePct)
+                      : _grayHint,
+                  weight: pw.FontWeight.bold),
+              pw.SizedBox(width: 6),
+              _t('التزام الساعات', size: 9, color: _grayText),
+            ],
+          ),
+        ),
+        pw.SizedBox(height: 10),
 
-    .rates-bar {
-      display: flex;
-      gap: 16px;
-      align-items: center;
-      justify-content: center;
-      background: #f0f9ff;
-      border: 1px solid #bfdbfe;
-      border-radius: 8px;
-      padding: 8px 16px;
-      margin-bottom: 10px;
-    }
-    .rate-item { text-align: center; }
-    .rate-item .pct { font-size: 22px; font-weight: 900; }
-    .rate-item .lbl { font-size: 9px; color: #6b7280; }
+        // ---------- Summary metrics grid ----------
+        pw.Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            _metric('أيام الحضور', '${s.attendanceRatePresentDays}',
+                hint: 'من ${s.attendanceRateDueDays} يوم عمل في الشهر'),
+            _metric('أيام الغياب', '${s.absentDays}', warn: s.absentDays > 0),
+            _metric('وردية مفتوحة', '${s.openShiftDays}',
+                hint: 'بانتظار الانصراف'),
+            _metric('أيام قادمة', '${s.upcomingDays}',
+                hint: 'لا تُحسب غيابًا'),
+            _metric('أيام الإجازات', '${s.leaveDays}'),
+            _metric('أيام المأموريات', '${s.missionDays}'),
+            _metric('إذنات', '${s.permitCount}'),
+            _metric('قوافل/فاندي', '${s.convoyFundiDays}'),
+            _metric('ساعات العمل',
+                (s.hoursRateWorkedMinutes / 60).toStringAsFixed(1),
+                hint:
+                    'من ${(s.hoursRateRequiredMinutes / 60).toStringAsFixed(1)} ساعة شهرية — ${compliancePct.toStringAsFixed(0)}%'),
+            _metric('تغطية أيام العمل', '${s.coverageRate.toStringAsFixed(0)}%',
+                hint: '${s.coverageDays} من ${s.scheduledDays}'),
+            _metric('ساعات إضافية', '${s.totalOvertimeMinutes} د',
+                valueColor: _green),
+          ],
+        ),
+        pw.SizedBox(height: 10),
 
-    .stats-bar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      background: #fefce8;
-      border: 1px solid #fde68a;
-      border-radius: 6px;
-      padding: 6px 12px;
-      margin-bottom: 10px;
-      font-size: 10px;
-    }
-    .stat-item { display: flex; gap: 4px; align-items: center; }
-    .stat-item .s-label { color: #6b7280; }
-    .stat-item .s-value { font-weight: 800; }
+        // ---------- Stats bar ----------
+        pw.Container(
+          padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: pw.BoxDecoration(
+            color: _bgYellow,
+            border: pw.Border.all(color: _amberLine),
+            borderRadius: pw.BorderRadius.circular(4),
+          ),
+          child: pw.Wrap(
+            spacing: 14,
+            runSpacing: 4,
+            children: [
+              _t('تأخير كلي: ${s.totalLateMinutes} د',
+                  size: 9, weight: pw.FontWeight.bold),
+              _t('خروج مبكر: ${s.totalEarlyLeaveMinutes} د',
+                  size: 9, weight: pw.FontWeight.bold),
+              _t('نسيان حضور: ${s.missingCheckInCount}',
+                  size: 9, weight: pw.FontWeight.bold),
+              _t('نسيان انصراف: ${s.missingCheckOutCount}',
+                  size: 9, weight: pw.FontWeight.bold),
+              _t('عطل رسمية: ${s.holidayDays}',
+                  size: 9, weight: pw.FontWeight.bold),
+              _t('أيام راحة: ${s.restDays}',
+                  size: 9, weight: pw.FontWeight.bold),
+              _t('تصحيحات: ${s.correctionCount}',
+                  size: 9, weight: pw.FontWeight.bold),
+            ],
+          ),
+        ),
+        pw.SizedBox(height: 12),
 
-    table { width: 100%; border-collapse: collapse; font-size: 10px; }
-    thead th {
-      background: #1e3a5f;
-      color: white;
-      padding: 7px 8px;
-      text-align: center;
-      font-weight: 800;
-      font-size: 9px;
-    }
-    tbody td { border-bottom: 1px solid #e5e7eb; }
-    tbody tr:nth-child(even) { background: #fafafa; }
+        // ---------- Days table ----------
+        pw.Table(
+          border: pw.TableBorder.all(color: _rowLine, width: 0.5),
+          defaultColumnWidth: pw.FlexColumnWidth(),
+          children: [
+            pw.TableRow(
+              decoration: pw.BoxDecoration(color: _navy),
+              children: [
+                for (final h in [
+                  'التاريخ', 'اليوم', 'الحضور', 'الانصراف', 'الوردية',
+                  'ساعات فعلية', 'التأخير', 'خروج مبكر', 'إضافي', 'الحالة',
+                  'ملاحظات'
+                ])
+                  pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(
+                        horizontal: 4, vertical: 6),
+                    alignment: pw.Alignment.center,
+                    child: _t(h,
+                        size: 8.5,
+                        color: _white,
+                        weight: pw.FontWeight.bold),
+                  ),
+              ],
+            ),
+            for (final d in stmt.days)
+              pw.TableRow(
+                children: [
+                  _dayCell(d.date, ltr: true),
+                  _dayCell(d.dayNameAr),
+                  _dayCell(_fmtTime(d.checkIn), ltr: true),
+                  _dayCell(_fmtTime(d.checkOut), ltr: true),
+                  _dayCell(d.shiftName.isNotEmpty ? d.shiftName : '—'),
+                  _dayCell(
+                      d.workHours > 0 ? d.workHours.toStringAsFixed(1) : '—',
+                      ltr: true),
+                  _dayCell(d.lateMinutes > 0 ? '${d.lateMinutes} د' : '—',
+                      ltr: true,
+                      color: d.lateMinutes > 0 ? _amberDark : null,
+                      bold: d.lateMinutes > 0),
+                  _dayCell(
+                      d.earlyLeaveMinutes > 0 ? '${d.earlyLeaveMinutes} د' : '—',
+                      ltr: true,
+                      color: d.earlyLeaveMinutes > 0 ? _amberDark : null,
+                      bold: d.earlyLeaveMinutes > 0),
+                  _dayCell(
+                      d.overtimeMinutes > 0 ? '${d.overtimeMinutes} د' : '—',
+                      ltr: true,
+                      color: d.overtimeMinutes > 0 ? _green : null,
+                      bold: d.overtimeMinutes > 0),
+                  _dayCell(d.status, bold: true, color: _statusColor(d)),
+                  _dayCell(_dayNotes(d)),
+                ],
+              ),
+          ],
+        ),
+        pw.SizedBox(height: 14),
 
-    .footer {
-      margin-top: 16px;
-      padding-top: 10px;
-      border-top: 2px solid #e2e8f0;
-      display: flex;
-      justify-content: space-between;
-      font-size: 9px;
-      color: #9ca3af;
-    }
-    .signatures {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      margin-top: 30px;
-    }
-    .sig-box {
-      text-align: center;
-      padding-top: 40px;
-      border-top: 1px solid #d1d5db;
-      font-size: 10px;
-      color: #6b7280;
-    }
+        // ---------- Footer ----------
+        pw.Container(
+          padding: const pw.EdgeInsets.only(top: 8),
+          decoration: pw.BoxDecoration(
+            border: pw.Border(top: pw.BorderSide(color: _border, width: 2)),
+          ),
+          child: pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              _t('تم الإنشاء بواسطة منظومة أحلى شباب الإدارية',
+                  size: 8.5, color: _grayHint),
+              _t('تاريخ الطباعة: $printDate', size: 8.5, color: _grayHint),
+            ],
+          ),
+        ),
+        pw.SizedBox(height: 24),
 
-    @media print {
-      body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    }
-  </style>
-</head>
-<body>
-<div class="page">
-  <div class="header">
-    <div class="header-right">
-      <h1>📋 كشف الحضور والانصراف الشهري</h1>
-      <p>$monthName ${stmt.year} — من ${_escapeHtml(stmt.startDate)} إلى ${_escapeHtml(stmt.endDate)}</p>
-    </div>
-    <div class="header-left">
-      <div class="org">جمعية خواطر أحلى شباب</div>
-      <div class="sub">منظومة الإدارة المؤسسية</div>
-    </div>
-  </div>
+        // ---------- Signatures ----------
+        pw.Row(
+          children: [
+            for (final label in ['الموظف', 'المدير المباشر', 'الموارد البشرية'])
+              pw.Expanded(
+                child: pw.Container(
+                  margin: const pw.EdgeInsets.symmetric(horizontal: 8),
+                  padding: const pw.EdgeInsets.only(top: 34),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border(
+                        top: pw.BorderSide(color: _grayHint, width: 1)),
+                  ),
+                  child: _t(label, size: 9, color: _grayText),
+                ),
+              ),
+          ],
+        ),
+      ],
+    ),
+  );
 
-  <div class="emp-grid">
-    <div class="emp-field"><label>الاسم</label><span>${_escapeHtml(stmt.employeeNameAr)}</span></div>
-    <div class="emp-field"><label>الكود</label><span>${stmt.employeeCode != null ? _escapeHtml(stmt.employeeCode!) : '—'}</span></div>
-    <div class="emp-field"><label>الإدارة</label><span>${_escapeHtml(stmt.department)}</span></div>
-    <div class="emp-field"><label>المسمى الوظيفي</label><span>${_escapeHtml(stmt.jobTitle)}</span></div>
-    <div class="emp-field"><label>الفرع</label><span>${_escapeHtml(stmt.branch)}</span></div>
-    <div class="emp-field"><label>المدير المباشر</label><span>${_escapeHtml(stmt.manager)}</span></div>
-    <div class="emp-field"><label>تاريخ التعيين</label><span style="direction:ltr;text-align:right">${stmt.hireDate != null ? _escapeHtml(stmt.hireDate!) : '—'}</span></div>
-    <div class="emp-field"><label>الفترة</label><span>$monthName ${stmt.year}</span></div>
-  </div>
+  return doc.save();
+}
 
-  <div class="rates-bar">
-    <div class="rate-item">
-      <div class="pct" style="color:${_pctColor(attendancePct)}">${attendancePct.toStringAsFixed(0)}%</div>
-      <div class="lbl">نسبة الحضور</div>
-    </div>
-    <div style="width:1px;height:40px;background:#bfdbfe"></div>
-    <div class="rate-item">
-      <div class="pct" style="color:${complianceAvailable ? _pctColor(compliancePct) : '#64748b'}">${complianceAvailable ? '${compliancePct.toStringAsFixed(0)}%' : 'غير متاح'}</div>
-      <div class="lbl">التزام الساعات</div>
-    </div>
-  </div>
+/// نص مخصص داخل خلية الجدول مع تنسيق حسب اليوم.
+pw.Widget _dayCell(String text,
+    {bool ltr = false,
+    PdfColor? color,
+    bool bold = false}) {
+  final t = ltr
+      ? _tl(text,
+          size: 8,
+          color: color ?? _dark,
+          weight: bold ? pw.FontWeight.bold : pw.FontWeight.normal)
+      : _t(text,
+          size: 8,
+          color: color ?? _dark,
+          weight: bold ? pw.FontWeight.bold : pw.FontWeight.normal);
+  return pw.Container(
+    alignment: pw.Alignment.center,
+    child: t,
+  );
+}
 
-  <div class="summary-grid">
-    <div class="metric"><div class="label">أيام الحضور</div><div class="value">${s.attendanceRatePresentDays}</div><div class="hint">من ${s.attendanceRateDueDays} يوم عمل في الشهر</div></div>
-    <div class="metric${s.absentDays > 0 ? ' warn' : ''}"><div class="label">أيام الغياب</div><div class="value">${s.absentDays}</div></div>
-    <div class="metric"><div class="label">وردية مفتوحة</div><div class="value">${s.openShiftDays}</div><div class="hint">بانتظار الانصراف</div></div>
-    <div class="metric"><div class="label">أيام قادمة</div><div class="value">${s.upcomingDays}</div><div class="hint">لا تُحسب غيابًا</div></div>
-    <div class="metric"><div class="label">أيام الإجازات</div><div class="value">${s.leaveDays}</div></div>
-    <div class="metric"><div class="label">أيام المأموريات</div><div class="value">${s.missionDays}</div></div>
-    <div class="metric"><div class="label">إذنات</div><div class="value">${s.permitCount}</div></div>
-    <div class="metric"><div class="label">قوافل/فاندي</div><div class="value">${s.convoyFundiDays}</div></div>
-    <div class="metric"><div class="label">ساعات العمل</div><div class="value">${(s.hoursRateWorkedMinutes / 60).toStringAsFixed(1)}</div><div class="hint">من ${(s.hoursRateRequiredMinutes / 60).toStringAsFixed(1)} ساعة شهرية — ${compliancePct.toStringAsFixed(0)}%</div></div>
-    <div class="metric"><div class="label">تغطية أيام العمل</div><div class="value">${s.coverageRate.toStringAsFixed(0)}%</div><div class="hint">${s.coverageDays} من ${s.scheduledDays}</div></div>
-    <div class="metric good"><div class="label">ساعات إضافية</div><div class="value">${s.totalOvertimeMinutes} د</div></div>
-  </div>
+PdfColor _statusColor(AttendanceStatementDay d) {
+  final isRest = d.status == 'راحة أسبوعية' || d.status == 'عطلة رسمية';
+  if (_warnStatuses.contains(d.status)) return _red;
+  if (isRest) return PdfColor.fromInt(0xFF0369A1);
+  return _dark;
+}
 
-  <div class="stats-bar">
-    <div class="stat-item"><span class="s-label">تأخير كلي:</span><span class="s-value">${s.totalLateMinutes} د</span></div>
-    <div class="stat-item"><span class="s-label">خروج مبكر:</span><span class="s-value">${s.totalEarlyLeaveMinutes} د</span></div>
-    <div class="stat-item"><span class="s-label">نسيان حضور:</span><span class="s-value">${s.missingCheckInCount}</span></div>
-    <div class="stat-item"><span class="s-label">نسيان انصراف:</span><span class="s-value">${s.missingCheckOutCount}</span></div>
-    <div class="stat-item"><span class="s-label">عطل رسمية:</span><span class="s-value">${s.holidayDays}</span></div>
-    <div class="stat-item"><span class="s-label">أيام راحة:</span><span class="s-value">${s.restDays}</span></div>
-    <div class="stat-item"><span class="s-label">تصحيحات:</span><span class="s-value">${s.correctionCount}</span></div>
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th>التاريخ</th><th>اليوم</th><th>الحضور</th><th>الانصراف</th>
-        <th>الوردية</th><th>ساعات فعلية</th><th>التأخير</th>
-        <th>خروج مبكر</th><th>إضافي</th><th>الحالة</th><th>ملاحظات</th>
-      </tr>
-    </thead>
-    <tbody>
-      $dayRows
-    </tbody>
-  </table>
-
-  <div class="footer">
-    <span>تم الإنشاء بواسطة منظومة أحلى شباب الإدارية</span>
-    <span>تاريخ الطباعة: $printDate</span>
-  </div>
-
-  <div class="signatures">
-    <div class="sig-box">الموظف</div>
-    <div class="sig-box">المدير المباشر</div>
-    <div class="sig-box">الموارد البشرية</div>
-  </div>
-</div>
-</body>
-</html>''';
+/// ملاحظات اليوم: مجموعة وسوم + نص التصحيح إن وُجد.
+String _dayNotes(AttendanceStatementDay d) {
+  final tags = <String>[];
+  if (d.status.contains('غائب')) tags.add('غائب');
+  if (d.status == 'عطلة رسمية') tags.add('عطلة رسمية');
+  if (d.hasLeave) tags.add('إجازة');
+  if (d.hasMission) tags.add('مأمورية');
+  if (d.hasPermit) tags.add('إذن');
+  if (d.hasConvoyFundi) tags.add('قافلة/فاندي');
+  if (d.missingCheckIn) tags.add('نقص حضور');
+  if (d.missingCheckOut) tags.add('نقص انصراف');
+  if (d.isOpenShift) tags.add('بانتظار الانصراف');
+  if (d.isFuture) tags.add('قادم');
+  if (d.hasCorrection) tags.add('تصحيح');
+  return tags.isNotEmpty ? tags.join('، ') : (d.correctionNote ?? '');
 }
 
 /// يحوّل كشف الحضور إلى PDF ويفتح حوار المشاركة/الحفظ.
 Future<void> exportAttendancePdf(MonthlyAttendanceStatement statement) async {
-  final html = _buildAttendanceHtml(statement);
+  final pdfBytes = await _buildAttendancePdf(statement);
   final monthName = (statement.month >= 1 && statement.month <= 12)
       ? _months[statement.month - 1]
       : '${statement.month}';
   final fileName =
       'كشف-حضور-${statement.employeeCode ?? statement.employeeNameAr}-${statement.year}-$monthName.pdf';
-
-  // TODO(pdf-refactor): convertHtml deprecated في printing >= 6. الحل النهائي هو بناء
-  // المستند مباشرة بـ package:pdf بدلاً من تمرير HTML. حالياً نُكتم التحذير لأن البديل
-  // من نفس إصدار printing المثبّت غير متاح.
-  // ignore: deprecated_member_use
-  final pdfBytes = await Printing.convertHtml(
-    html: html,
-    format: PdfPageFormat.a4.landscape,
-  );
 
   await Printing.sharePdf(bytes: pdfBytes, filename: fileName);
 }

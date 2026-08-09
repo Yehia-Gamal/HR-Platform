@@ -35,6 +35,9 @@ export const mockAttendanceDashboard: AttendanceDashboard = {
   late: 5,
   absent: 4,
   unexcusedAbsent: 1,
+  onLeave: 3,
+  onMission: 1,
+  missingCheckout: 2,
   incomplete: 3,
   pendingReview: 2,
   locationRequestsToday: 4,
@@ -93,6 +96,17 @@ export const mockAttendanceRoster: Record<AttendanceRosterCategory, AttendanceRo
   location_responded: [
     rosterItem('30000000-0000-4000-8000-000000000001', 'أحمد محمود', 'EMP-104', 'present', { locationRequestStatus: 'accepted', firstCheckIn: iso(-7), lastCheckOut: iso(-1), departmentName: 'الحسابات' }),
     rosterItem('30000000-0000-4000-8000-000000000005', 'خالد سعيد', 'EMP-118', 'present', { locationRequestStatus: 'accepted', firstCheckIn: iso(-9), lastCheckOut: iso(-1), departmentName: 'خدمات الشباب' }),
+  ],
+  on_leave: [
+    rosterItem('30000000-0000-4000-8000-000000000009', 'هند سمير', 'EMP-140', 'on_leave', { hasApprovedLeave: true, leaveCode: 'annual', leaveIsPaid: true, departmentName: 'الموارد البشرية' }),
+    rosterItem('30000000-0000-4000-8000-000000000010', 'ياسر كامل', 'EMP-151', 'on_leave', { hasApprovedLeave: true, leaveCode: 'casual', leaveIsPaid: true, departmentName: 'البرامج الميدانية' }),
+  ],
+  on_mission: [
+    rosterItem('30000000-0000-4000-8000-000000000011', 'ريم عاطف', 'EMP-033', 'on_mission', { hasMission: true, departmentName: 'البرامج الميدانية' }),
+  ],
+  missing_checkout: [
+    rosterItem('30000000-0000-4000-8000-000000000008', 'منى عادل', 'EMP-092', 'missing_checkout', { firstCheckIn: iso(-7), departmentName: 'الحسابات' }),
+    rosterItem('30000000-0000-4000-8000-000000000006', 'نور هاني', 'EMP-076', 'missing_checkout', { firstCheckIn: iso(-5), departmentName: 'خدمات الشباب' }),
   ],
 };
 

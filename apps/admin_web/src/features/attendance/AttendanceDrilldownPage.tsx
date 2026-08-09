@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   CalendarOff,
+  CalendarX2,
   CheckCircle2,
   Clock3,
   Loader2,
@@ -41,6 +42,9 @@ const CATEGORIES: { key: AttendanceRosterCategory; label: string; icon: typeof U
   { key: 'pending_review', label: 'تحتاج مراجعة', icon: UserCheck },
   { key: 'location_requests', label: 'طلبات الموقع', icon: MapPin },
   { key: 'location_responded', label: 'استجابات الموقع', icon: MapPin },
+  { key: 'on_leave', label: 'في إجازة', icon: CalendarX2 },
+  { key: 'on_mission', label: 'في مأمورية', icon: Plane },
+  { key: 'missing_checkout', label: 'بصمة بلا انصراف', icon: Clock3 },
 ];
 
 const SORT_OPTIONS: { key: AttendanceRosterSort; label: string }[] = [
@@ -53,7 +57,7 @@ const SORT_OPTIONS: { key: AttendanceRosterSort; label: string }[] = [
 const PAGE_SIZES = [10, 25, 50, 100];
 
 const STATUS_LABELS: Record<string, string> = {
-  present: 'حاضر', late: 'متأخر', absent: 'غائب', on_leave: 'إجازة', holiday: 'عطلة', weekend: 'عطلة الأسبوع', partial: 'جزئي', pending: 'قيد الانتظار',
+  present: 'حاضر', late: 'متأخر', absent: 'غائب', on_leave: 'إجازة', holiday: 'عطلة', weekend: 'عطلة الأسبوع', partial: 'جزئي', pending: 'قيد الانتظار', on_mission: 'مأمورية', missing_checkout: 'بصمة بلا انصراف',
 };
 
 function statusLabel(status: string | null): string {
@@ -83,6 +87,8 @@ function statusBadgeClass(status: string | null): string {
   if (status === 'present') return 'status-pill--ok';
   if (status === 'late') return 'status-pill--warn';
   if (status === 'absent') return 'status-pill--danger';
+  if (status === 'missing_checkout') return 'status-pill--warn';
+  if (status === 'on_leave') return 'status-pill--ok';
   return 'status-pill--neutral';
 }
 

@@ -1,12 +1,15 @@
 /**
  * وحدة تهيئة Sentry — رصد الأخطاء وتتبع الأداء.
  *
- * إذا لم يُضبط VITE_SENTRY_DSN تصبح جميع الدوال بلا تأثير (no-op).
+ * إذا لم يُضبط VITE_SENTRY_DSN، يُفعّل وضع الرصد الداخلي: تُرسل الأخطاء
+ * إلى edge function (log-client-error) التي تخزّنها في observability_events.
+ * هذا يضمن أنّ captureError لا يكون no-op أبداً — كل خطأ يُسجّل فعلياً.
  *
- * الخصوصية: يُزال البريد وعنوان IP من كل حدث قبل إرساله (beforeSend).
+ * الخصوصية: يُزال البريد وعنوان IP من كل حدث قبل الإرسال (beforeSend).
  */
 
 import * as Sentry from '@sentry/react';
+import { getSupabase } from './supabase';
 
 const dsn = (import.meta.env.VITE_SENTRY_DSN as string | undefined)?.trim();
 const isProduction = import.meta.env.MODE === 'production';
@@ -14,14 +17,20 @@ const RELEASE = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? '0.1
 
 let _initialized = false;
 let _enabled = false;
+let _internalMode = false;
 
 /**
  * تهيئة Sentry — تُستدعى مرة واحدة عند بدء التطبيق.
- * لا تفعل شيئاً إذا لم يُضبط DSN.
+ * إذا لم يُضبط DSN، يُفعّل وضع الرصد الداخلي (edge function).
  */
 export function initSentry(): void {
-  if (_initialized || !dsn) {
-    _initialized = true;
+  if (_initialized) return;
+  _initialized = true;
+
+  if (!dsn) {
+    // لا يوجد Sentry DSN — فعّل الرصد الداخلي
+    _internalMode = true;
+    _enabled = true;
     return;
   }
 
@@ -92,18 +101,31 @@ export function initSentry(): void {
 }
 
 /**
- * تسجيل خطأ في Sentry مع سياق إضافي اختياري.
+ * تسجيل خطأ في Sentry (أو في الرصد الداخلي عند غياب DSN).
  */
 export function captureError(error: unknown, context?: Record<string, unknown>): void {
   if (!_enabled) return;
+  if (_internalMode) {
+    void captureInternal(error, context);
+    return;
+  }
   Sentry.captureException(error, context ? { extra: context } : undefined);
 }
 
 /**
  * إضافة فتات خبز لتتبع مسار المستخدم قبل وقوع الخطأ.
+ * (في الوضع الداخلي: تُخزّن مؤقتاً لتُرسل مع الخطأ التالي)
  */
+const _breadcrumbs: Array<{ category: string; message: string; data?: Record<string, unknown>; timestamp: number }> = [];
+const MAX_BREADCRUMBS = 20;
+
 export function addBreadcrumb(category: string, message: string, data?: Record<string, unknown>): void {
   if (!_enabled) return;
+  if (_internalMode) {
+    _breadcrumbs.push({ category, message, data, timestamp: Date.now() });
+    if (_breadcrumbs.length > MAX_BREADCRUMBS) _breadcrumbs.shift();
+    return;
+  }
   Sentry.addBreadcrumb({ category, message, data, level: 'info' });
 }
 
@@ -112,27 +134,91 @@ export function addBreadcrumb(category: string, message: string, data?: Record<s
  */
 export function captureEvent(message: string, level: 'debug' | 'info' | 'warning' | 'error' = 'info', extra?: Record<string, unknown>): void {
   if (!_enabled) return;
+  if (_internalMode) {
+    void captureInternalEvent(message, level, extra);
+    return;
+  }
   Sentry.captureMessage(message, { level, extra });
+}
+
+// ─── الرصد الداخلي — fallback عند غياب Sentry DSN ─────────────────────────────
+
+/**
+ * يرسّل خطأ إلى edge function (log-client-error) لتخزينه في observability_events.
+ * Fire-and-forget — لا يُعطّل واجهة المستخدم ولا ينتظر الاستجابة.
+ */
+async function captureInternal(error: unknown, context?: Record<string, unknown>): Promise<void> {
+  try {
+    const supabase = await getSupabase();
+    const errorName = error instanceof Error ? error.name : typeof error === 'object' && error !== null ? String((error as { code?: unknown }).code ?? 'Error') : 'UnknownError';
+    const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error);
+    const errorStack = error instanceof Error ? error.stack?.slice(0, 5000) : undefined;
+
+    const route = typeof window !== 'undefined' ? window.location.pathname : undefined;
+
+    await supabase.functions.invoke('log-client-error', {
+      body: {
+        level: 'error',
+        source: 'web:admin',
+        eventType: 'error',
+        message: sanitizeTelemetryText(errorMessage).slice(0, 2000),
+        errorName,
+        errorStack,
+        route,
+        metadata: {
+          ...(sanitizeTelemetryValue(context ?? {}) as Record<string, unknown>),
+          breadcrumbs: _breadcrumbs.slice(-MAX_BREADCRUMBS),
+        },
+      },
+    });
+  } catch {
+    // الرصد الداخلي فشل صامتاً — لا نريد حلقة أخطاء لا نهائية
+  }
+}
+
+/**
+ * يرسّل رسالة حدث (غير خطأ) للرصد الداخلي.
+ */
+async function captureInternalEvent(message: string, level: string, extra?: Record<string, unknown>): Promise<void> {
+  try {
+    const supabase = await getSupabase();
+    const route = typeof window !== 'undefined' ? window.location.pathname : undefined;
+
+    await supabase.functions.invoke('log-client-error', {
+      body: {
+        level: level === 'debug' ? 'debug' : level === 'info' ? 'info' : level === 'warning' ? 'warning' : level === 'error' ? 'error' : 'critical',
+        source: 'web:admin',
+        eventType: 'event',
+        message: sanitizeTelemetryText(message).slice(0, 2000),
+        route,
+        metadata: sanitizeTelemetryValue(extra ?? {}),
+      },
+    });
+  } catch {
+    // صامت
+  }
 }
 
 /** تعيين سياق المستخدم */
 export function setUserContext(userId: string, role?: string): void {
   if (!_enabled) return;
+  if (_internalMode) return; // الوضع الداخلي يستخدم user_id من الجلسة تلقائياً
   Sentry.setUser({ id: userId, role });
 }
 
 /** إزالة سياق المستخدم */
 export function clearUserContext(): void {
   if (!_enabled) return;
+  if (_internalMode) return;
   Sentry.setUser(null);
 }
 
-/** ربط TanStack Query بـ Sentry breadcrumbs */
+/** ربط TanStack Query بـ Sentry breadcrumbs (وضع Sentry فقط) */
 export function attachQueryObservability(queryClient: {
   getQueryCache(): { config: { onError?: (err: Error, q: unknown) => void } };
   getMutationCache(): { config: { onError?: (err: Error, v: unknown, c: unknown, m: unknown) => void } };
 }): void {
-  if (!_enabled) return;
+  if (!_enabled || _internalMode) return;
 
   queryClient.getQueryCache().config.onError = (error, query) => {
     const q = query as { queryHash?: string; queryKey?: unknown[] };
@@ -158,9 +244,9 @@ export function attachQueryObservability(queryClient: {
   };
 }
 
-/** Web Vitals monitoring */
+/** Web Vitals monitoring (وضع Sentry فقط) */
 export async function initWebVitals(): Promise<void> {
-  if (!_enabled || typeof window === 'undefined') return;
+  if (!_enabled || _internalMode || typeof window === 'undefined') return;
   try {
     const { onCLS, onINP, onLCP, onTTFB } = await import('web-vitals');
     const report = (metric: { name: string; value: number; delta: number }) => {

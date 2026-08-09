@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarClock, CheckCircle2, Clock3, MapPin, RefreshCcw, UserMinus, Users } from 'lucide-react';
+import { AlertTriangle, CalendarClock, CalendarDays, CheckCircle2, Clock3, MapPin, Plane, RefreshCcw, UserMinus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { ErrorState } from '../../ui/ErrorState';
 import { safeErrorMessage } from '../../core/errorMapper';
@@ -167,6 +167,31 @@ export function AttendancePage() {
               icon={MapPin}
               hint={`استُجيب: ${data.locationRespondedToday ?? 0}`}
               to={detailsUrl('location_requests', dateIso, departmentId, branchId)}
+            />
+          </section>
+
+          {/* ─── الاستثناءات: إجازات ومأموريات وبصمات ناقصة ─── */}
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <MetricCard
+              label="في إجازة"
+              value={data.onLeave ?? 0}
+              icon={CalendarDays}
+              hint="طلبات إجازة معتمدة تغطي اليوم"
+              to={detailsUrl('on_leave', dateIso, departmentId, branchId)}
+            />
+            <MetricCard
+              label="في مأمورية"
+              value={data.onMission ?? 0}
+              icon={Plane}
+              hint="تكليفات نشطة بلا سجل حضور"
+              to={detailsUrl('on_mission', dateIso, departmentId, branchId)}
+            />
+            <MetricCard
+              label="بصمة دخول بلا انصراف"
+              value={data.missingCheckout ?? 0}
+              icon={Clock3}
+              hint="بصمة واحدة — تحتاج إكمال"
+              to={detailsUrl('missing_checkout', dateIso, departmentId, branchId)}
             />
           </section>
 

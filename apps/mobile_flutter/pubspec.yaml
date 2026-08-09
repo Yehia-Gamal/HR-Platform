@@ -65,3 +65,4 @@ flutter:
   assets:
     - assets/brand/association-logo-blue.png
     - assets/brand/association-logo-white.png
+    - assets/fonts/Cairo.ttf

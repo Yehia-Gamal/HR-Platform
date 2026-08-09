@@ -157,7 +157,7 @@ begin
   returning * into v_row;
 
   perform public.log_audit_event(
-    'penalty.issued', 'financial', 'warning',
+    'penalty.issued', 'workflow', 'warning',
     'employee_penalties', v_row.id, 'إصدار مخالفة مالية', null,
     jsonb_build_object('employeeId', p_employee_id, 'amount', p_amount, 'type', p_penalty_type));
 
@@ -195,7 +195,7 @@ begin
   if v_row.id is null then raise exception 'penalty not found or not waivable' using errcode='P0002'; end if;
 
   perform public.log_audit_event(
-    'penalty.waived', 'financial', 'info',
+    'penalty.waived', 'workflow', 'info',
     'employee_penalties', v_row.id, 'إسقاط مخالفة مالية', null,
     jsonb_build_object('employeeId', v_row.employee_id, 'amount', v_row.amount));
 
@@ -252,7 +252,7 @@ begin
     and coalesce(e.phone_e164, '') <> '';
 
   perform public.log_audit_event(
-    'instapay.batch_generated', 'financial', 'info',
+    'instapay.batch_generated', 'workflow', 'info',
     'payroll_instapay_batches', v_batch.id, 'توليد دفعة InstaPay لصرف الرواتب', null,
     jsonb_build_object('payrollRunId', p_payroll_run_id, 'reference', v_ref, 'items', v_count, 'total', v_total));
 
@@ -404,9 +404,8 @@ returns integer
 language plpgsql security definer set search_path = public, pg_temp
 as $$
 declare
-  v_item jsonb;
   v_key text;
-  v_val text;
+  v_val jsonb;
   v_updated integer := 0;
 begin
   if not (public.current_is_full_access() or public.has_permission('settings.manage')) then
@@ -416,10 +415,9 @@ begin
     raise exception 'updates must be a json object' using errcode='22023';
   end if;
 
-  for v_item in select * from jsonb_each(p_updates)
+  for v_key, v_val in
+    select * from jsonb_each(p_updates)
   loop
-    v_key := v_item ->> 'key';
-    v_val := (v_item -> 'value')::text;
     update public.system_settings
        set value = v_val,
            updated_at = now()

@@ -111,6 +111,12 @@ export const attendanceDashboardSchema = z.object({
   late: z.number(),
   absent: z.number(),
   unexcusedAbsent: z.number().optional(),
+  /** إجازات معتمدة تغطي اليوم (0355) */
+  onLeave: z.number().optional(),
+  /** مأموريات/تكليفات نشطة بلا سجل حضور (0355) */
+  onMission: z.number().optional(),
+  /** بصمة دخول بلا انصراف (0355) */
+  missingCheckout: z.number().optional(),
   incomplete: z.number(),
   pendingReview: z.number(),
   locationRequestsToday: z.number().optional(),
@@ -130,6 +136,9 @@ export const attendanceRosterCategorySchema = z.enum([
   'pending_review',
   'location_requests',
   'location_responded',
+  'on_leave',
+  'on_mission',
+  'missing_checkout',
 ]);
 export type AttendanceRosterCategory = z.infer<typeof attendanceRosterCategorySchema>;
 

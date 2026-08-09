@@ -17,7 +17,7 @@
     "check": "npm run typecheck && npm run test && npm run build",
     "manifest": "node scripts/generate-manifest.mjs",
     "check:dart-source": "python3 scripts/validate_dart_sources.py",
-    "check:migrations": "node scripts/check-migrations-integrity.mjs && node scripts/generate-migrations-manifest.mjs",
+    "check:migrations": "node scripts/check-migrations-integrity.mjs && node scripts/check-function-refs.mjs && node scripts/generate-migrations-manifest.mjs",
     "check:all": "npm run check && npm run check:dart-source && node scripts/validate-foundation.mjs && npm run check:migrations && npm run check:secrets",
     "check:secrets": "node scripts/check-no-secrets.mjs",
     "release-gate": "node scripts/release-gate.mjs",

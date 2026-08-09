@@ -321,7 +321,7 @@ describe('attendance statement contracts — V23 §14', () => {
 });
 
 describe('attendance drill-down contracts (0294)', () => {
-  it('exposes the nine roster categories in the documented order', () => {
+  it('exposes the roster categories in the documented order', () => {
     expect(attendanceRosterCategorySchema.options).toEqual([
       'scheduled',
       'present',
@@ -332,6 +332,9 @@ describe('attendance drill-down contracts (0294)', () => {
       'pending_review',
       'location_requests',
       'location_responded',
+      'on_leave',
+      'on_mission',
+      'missing_checkout',
     ]);
     expect(() => attendanceRosterCategorySchema.parse('unknown')).toThrow();
   });

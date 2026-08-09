@@ -1301,6 +1301,8 @@ class MobileNotificationItem {
         'task',
         'attendance',
         'punch_reminder',
+        'recognition',
+        'live_location_request',
       }.contains(entityType);
 
   /// هل الإشعار من الأنواع الجديدة (التقارير/الإعجاب/التعليق/حضور المدير)؟

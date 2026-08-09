@@ -320,22 +320,17 @@ final myLocationRequestsProvider = FutureProvider<List<MobileLocationRequest>>((
 
 final locationRequestByIdProvider = FutureProvider.autoDispose
     .family<MobileLocationRequest, String>((ref, requestId) async {
-      // جلب مباشر بالمعرّف بنافذة أوسع بدل الاعتماد على قائمة الـ 30 الأخيرة
-      // حتى يصل الرابط العميق إلى الطلبات الأقدم أو غير المعلّقة.
+      // جلب مباشر بالمعرّف بدل الاعتماد على قائمة آخر 100 طلب (للمستهدَف فقط).
+      // get_live_location_request_by_id يسمح للمستهدَف والطالب وأصحاب الصلاحية
+      // بفتح الطلب عبر deep link من الإشعار.
       final data = await ref
           .watch(supabaseProvider)
           .rpc<dynamic>(
-            'get_my_live_location_requests',
-            params: {'p_limit': 100},
+            'get_live_location_request_by_id',
+            params: {'p_request_id': requestId},
           )
           .timeout(const Duration(seconds: 15));
-      final requests = _asList(data)
-          .map(MobileLocationRequest.fromJson)
-          .toList(growable: false);
-      return requests.firstWhere(
-        (request) => request.id == requestId,
-        orElse: () => throw StateError('location_request_not_available'),
-      );
+      return MobileLocationRequest.fromJson(_asMap(data));
     });
 
 /// لوحة الحضور اليومي للمدير التنفيذي — تستدعي get_executive_attendance_today().

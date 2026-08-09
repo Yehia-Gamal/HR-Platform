@@ -169,7 +169,7 @@ begin
   returning * into v_row;
 
   perform public.log_audit_event(
-    'discipline.submitted', 'compliance', 'warning',
+    'discipline.submitted', 'security', 'warning',
     'employee_discipline_actions', v_row.id,
     'إجراء تأديبي جديد بانتظار الاعتماد', null,
     jsonb_build_object('employeeId', p_employee_id, 'actionType', p_action_type));
@@ -239,7 +239,7 @@ begin
   returning * into v_row;
 
   perform public.log_audit_event(
-    'discipline.' || p_decision, 'compliance',
+    'discipline.' || p_decision, 'security',
     case when p_decision = 'approved' then 'high' else 'info' end,
     'employee_discipline_actions', v_row.id,
     case when p_decision = 'approved' then 'تم اعتماد الإجراء التأديبي' else 'تم رفض الإجراء التأديبي' end,

@@ -22,7 +22,11 @@ class MobileFeedDetailPage extends ConsumerWidget {
     final item = ref.watch(mobileFeedDetailProvider(key));
     return Scaffold(
       appBar: AppBar(
-        title: Text(kind == 'decision' ? 'القرار الإداري' : 'الخبر الرسمي'),
+        title: Text(switch (kind) {
+          'decision' => 'القرار الإداري',
+          'recognition' => 'التقدير',
+          _ => 'الخبر الرسمي',
+        }),
       ),
       body: SafeArea(
         child: item.when(
