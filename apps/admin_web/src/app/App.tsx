@@ -55,7 +55,6 @@ const ObservabilityDashboardPage = lazy(() => import('../features/observability/
 const IntegrationsJobsPage = lazy(() => import('../features/management/IntegrationsJobsPage').then((m) => ({ default: m.IntegrationsJobsPage })));
 const AnalyticsDashboardPage = lazy(() => import('../features/analytics/AnalyticsDashboardPage').then((m) => ({ default: m.AnalyticsDashboardPage })));
 /* V17 §4.2: feature-flagged pages — shown only when the corresponding flag in featureFlags.ts is true */
-const ComingSoonPage = lazy(() => import('../ui/ComingSoonPage').then((m) => ({ default: m.ComingSoonPage })));
 const LearningPage = lazy(() => import('../features/learning/LearningPage').then((m) => ({ default: m.LearningPage })));
 const LifecyclePage = lazy(() => import('../features/lifecycle/LifecyclePage').then((m) => ({ default: m.LifecyclePage })));
 const ExecutiveMonitoringPage = lazy(() => import('../features/management/ExecutiveMonitoringPage').then((m) => ({ default: m.ExecutiveMonitoringPage })));

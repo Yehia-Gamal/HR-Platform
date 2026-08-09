@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Banknote, FileSpreadsheet, Printer, Send } from 'lucide-react';
+import { FileSpreadsheet, Printer, Send } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { downloadCsv, printReport, toCsv, type ExportColumn } from '../../core/exportUtils';
 import { DataTable, type DataTableColumn } from '../../ui/DataTable';

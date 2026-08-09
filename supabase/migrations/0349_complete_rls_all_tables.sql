@@ -16,7 +16,7 @@ DO $$
 DECLARE
   t text;
   v_admin_roles text[] := ARRAY['global_admin', 'hr_admin'];
-  v_admin_check text := $$
+  v_admin_check text := $check$
     EXISTS (
       SELECT 1 FROM public.user_roles ur
       JOIN public.roles r ON ur.role_id = r.id
@@ -24,7 +24,7 @@ DECLARE
         AND r.code IN ('global_admin', 'hr_admin')
         AND (ur.effective_to IS NULL OR ur.effective_to > now())
     )
-  $$;
+  $check$;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
     -- Reference data (read for all authenticated)
@@ -111,7 +111,7 @@ END $$;
 DO $$
 DECLARE
   t text;
-  v_self_or_finance text := $$
+  v_self_or_finance text := $self$
     employee_id IN (SELECT employee_id FROM public.profiles WHERE id = auth.uid())
     OR EXISTS (
       SELECT 1 FROM public.user_roles ur
@@ -120,7 +120,7 @@ DECLARE
         AND r.code IN ('global_admin', 'finance_admin', 'hr_admin')
         AND (ur.effective_to IS NULL OR ur.effective_to > now())
     )
-  $$;
+  $self$;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
     'employee_compensation', 'employee_loans', 'loan_installments',
