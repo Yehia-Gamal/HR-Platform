@@ -78,14 +78,20 @@ Future<void> main() async {
                 if (kDebugMode) {
                   debugPrint('Post-login FCM registration failed: $error');
                 }
+                unawaited(
+                  CrashReporter.instance.captureError(error, null, context: 'fcm_token_registration'),
+                );
               }),
         );
       });
-    } catch (e) {
+    } catch (e, st) {
       // FCM غير متوفر على هذا الجهاز — يستمر التطبيق بدون إشعارات.
       if (kDebugMode) {
         debugPrint('FCM setup failed: $e');
       }
+      unawaited(
+        CrashReporter.instance.captureError(e, st, context: 'fcm_setup'),
+      );
     }
 
     runApp(
@@ -102,6 +108,8 @@ Future<void> main() async {
     if (kDebugMode) {
       debugPrint('Application initialization failed: $error\n$stackTrace');
     }
+    // لا يمكننا استخدام CrashReporter هنا لأن Supabase لم يُهيّأ بعد
+    // لكن PlatformDispatcher.onError (المُعرف في setupGlobalErrorHandlers) سيلتقطه
     runApp(
       const ConfigurationErrorApp(
         message:
