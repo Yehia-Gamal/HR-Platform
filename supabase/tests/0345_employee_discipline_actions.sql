@@ -171,3 +171,4 @@ select ok(
 
 reset role;
 select finish();
+rollback;

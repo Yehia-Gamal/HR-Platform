@@ -1,5 +1,5 @@
 begin;
-select plan(22);
+select plan(24);
 
 select has_function('public','get_organization_admin_catalog',array[]::text[],'organization admin catalog exists');
 select has_function('public','upsert_department_admin',array['uuid','uuid','uuid','uuid','uuid','text','text','text','boolean'],'department admin RPC exists');
@@ -16,13 +16,31 @@ select has_trigger('public','onboarding_journeys','trg_onboarding_journeys_audit
 select has_trigger('public','onboarding_tasks','trg_onboarding_tasks_audit','onboarding tasks are audited');
 select has_trigger('public','job_requisitions','trg_job_requisitions_audit','job requisitions are audited');
 
-select is_empty(
-  $$ select 1 from pg_policies where schemaname='public' and tablename='departments' and cmd in ('INSERT','UPDATE','DELETE','ALL') $$,
-  'departments have no direct write policies'
+-- منذ 0349: الكتابة المباشرة عبر سياسة <table>_admin واحدة موقوفة على
+-- full-access + أدوار HR فقط (لا كتابة عامة/غير مقيدة). الكتابة الاعتيادية تبقى RPCs.
+select is(
+  (select count(*)::int from pg_policies where schemaname='public' and tablename='departments' and cmd in ('INSERT','UPDATE','DELETE','ALL')),
+  1, 'departments have exactly one gated admin write policy'
 );
-select is_empty(
-  $$ select 1 from pg_policies where schemaname='public' and tablename='positions' and cmd in ('INSERT','UPDATE','DELETE','ALL') $$,
-  'positions have no direct write policies'
+select ok(
+  exists (select 1 from pg_policies
+    where schemaname='public' and tablename='departments' and policyname='departments_admin'
+      and cmd='ALL'
+      and qual like '%current_is_full_access()%'
+      and qual like '%hr-manager%'),
+  'departments admin write policy is gated to full access + HR'
+);
+select is(
+  (select count(*)::int from pg_policies where schemaname='public' and tablename='positions' and cmd in ('INSERT','UPDATE','DELETE','ALL')),
+  1, 'positions have exactly one gated admin write policy'
+);
+select ok(
+  exists (select 1 from pg_policies
+    where schemaname='public' and tablename='positions' and policyname='positions_admin'
+      and cmd='ALL'
+      and qual like '%current_is_full_access()%'
+      and qual like '%hr-manager%'),
+  'positions admin write policy is gated to full access + HR'
 );
 select is_empty(
   $$ select 1 from pg_policies where schemaname='public' and tablename='job_requisitions' and cmd in ('INSERT','UPDATE','DELETE','ALL') $$,

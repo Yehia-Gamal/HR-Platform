@@ -1,6 +1,6 @@
 begin;
 select plan(13);
-select has_function('public','get_attendance_dashboard',array['date'],'attendance dashboard RPC exists');
+select has_function('public','get_attendance_dashboard',array['date','uuid','uuid','uuid'],'attendance dashboard RPC exists');
 select has_function('public','get_request_inbox',array['integer'],'request inbox RPC exists');
 select has_function('public','get_kpi_inbox',array['integer'],'KPI inbox RPC exists');
 select has_function('public','get_official_feed_admin',array['integer'],'official feed RPC exists');

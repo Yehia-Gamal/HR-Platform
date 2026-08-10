@@ -67,6 +67,13 @@ export function initSentry(): void {
       if (event.contexts) {
         event.contexts = sanitizeTelemetryRecord(event.contexts);
       }
+      // إزالة اسم الخادم (قد يسرّب hostname داخلي) وتنظيف الوسوم
+      if (event.server_name) {
+        delete event.server_name;
+      }
+      if (event.tags) {
+        event.tags = sanitizeTelemetryValue(event.tags) as typeof event.tags;
+      }
       event.exception?.values?.forEach((exception) => {
         if (exception.value) exception.value = '[ERROR DETAILS REDACTED]';
       });

@@ -44,7 +44,7 @@ select ok(
   'urgent notification metadata requests full-screen presentation');
 
 select ok(
-  position('ahlashabab://action/live_location_request/' in pg_get_functiondef(
+  position('https://ahla-shabab-management-os.vercel.app/action/live_location_request/' in pg_get_functiondef(
     'public.request_live_location(uuid,text,text)'::regprocedure
   )) > 0,
   'urgent notification deep-links to the exact request');
