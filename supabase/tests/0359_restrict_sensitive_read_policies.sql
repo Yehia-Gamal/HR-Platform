@@ -39,48 +39,39 @@ select plan(
 -- لكل جدول:
 --  1) لا توجد سياسة SELECT بشرط using(true)
 --  2) توجد سياسة قراءة مقيدة (non-true quals)
-do $$
-declare
-  v_t text;
-  v_no_open integer;
-  v_has_restricted integer;
-  v_rel oid;
-begin
-  for v_t in select tablename from existing_sensitive loop
-    select to_regclass(format('public.%I', v_t)) into v_rel;
-
-    select count(*) into v_no_open
-    from pg_policies
+select ok(
+  not exists (
+    select 1 from pg_policies
     where schemaname = 'public'
-      and tablename = v_t
+      and tablename = e.tablename
       and cmd = 'SELECT'
-      and quals is not null
-      and pg_get_expr(quals, v_rel) like '%true%';
+      and qual = 'true'
+  ),
+  format('%s: لا توجد سياسة قراءة بـ using(true)', e.tablename)
+)
+from existing_sensitive e;
 
-    select count(*) into v_has_restricted
-    from pg_policies
+select ok(
+  exists (
+    select 1 from pg_policies
     where schemaname = 'public'
-      and tablename = v_t
+      and tablename = e.tablename
       and cmd = 'SELECT'
-      and quals is not null
-      and pg_get_expr(quals, v_rel) not like '%true%';
-
-    perform ok(v_no_open = 0,
-      format('%s: لا توجد سياسة قراءة بـ using(true)', v_t));
-    perform ok(v_has_restricted >= 1,
-      format('%s: توجد سياسة قراءة مقيدة', v_t));
-  end loop;
-end $$;
+      and qual is not null
+      and qual <> 'true'
+  ),
+  format('%s: توجد سياسة قراءة مقيدة', e.tablename)
+)
+from existing_sensitive e;
 
 -- =====================================================================
 -- فحص وظيفي: جدول reference (branches) لا يزال يسمح بـ using(true)
 -- =====================================================================
-select is(
+select ok(
   (select count(*)::integer from pg_policies
    where schemaname='public' and tablename='branches' and cmd='SELECT'
-     and quals is not null
-     and pg_get_expr(quals, 'public.branches'::regclass) like '%true%'),
-  1, 'branches (جدول مرجعي) يحتفظ بسياسة using(true)'
+     and qual = 'true') >= 1,
+  'branches (جدول مرجعي) يحتفظ بسياسة using(true)'
 );
 
 rollback;

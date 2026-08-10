@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions,pg_temp;
-select plan(18);
+select plan(20);
 
 select has_table('public','announcement_views','announcement views table exists');
 select has_table('public','announcement_reactions','announcement reactions table exists');

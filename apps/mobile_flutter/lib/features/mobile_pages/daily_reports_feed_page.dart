@@ -181,6 +181,7 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
   /// نموذج إنشاء/تعديل تقرير اليوم مباشرة داخل صفحة تقارير الجميع —
   /// يبحث عن تقرير اليوم الموجود مسبقًا لتحريره بدل إنشاء تكرار.
   Future<void> _composeReport(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
     final achievements = TextEditingController();
     final blockers = TextEditingController();
     final tomorrow = TextEditingController();
@@ -261,17 +262,13 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
             tomorrowPlan: next,
           );
       ref.invalidate(dailyReportsFeedProvider(null));
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم حفظ التقرير اليومي.')),
-        );
-      }
+      messenger.showSnackBar(
+        const SnackBar(content: Text('تم حفظ التقرير اليومي.')),
+      );
     } catch (e, stack) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(e, stack))),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(content: Text(humanizeError(e, stack))),
+      );
     }
   }
 }

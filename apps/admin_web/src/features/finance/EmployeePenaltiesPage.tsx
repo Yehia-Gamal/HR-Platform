@@ -60,7 +60,7 @@ export function EmployeePenaltiesPage() {
     { key: 'penaltyType', header: 'النوع', render: (p) => PENALTY_TYPE_LABELS[p.penaltyType] ?? p.penaltyType },
     { key: 'reason', header: 'السبب', render: (p) => <span className="block max-w-[240px] truncate" title={p.reason}>{p.reason}</span> },
     { key: 'amount', header: 'المبلغ', sortable: true, render: (p) => <span className="font-black text-red-600">{formatCurrency(p.amount)}</span> },
-    { key: 'issuedAt', header: 'تاريخ الإصدار', render: (p) => dateFormatter.format(new Date(p.issuedAt ?? Date.now())) },
+    { key: 'issuedAt', header: 'تاريخ الإصدار', render: (p) => (p.issuedAt ? dateFormatter.format(new Date(p.issuedAt)) : '—') },
     {
       key: 'status',
       header: 'الحالة',
@@ -118,7 +118,7 @@ export function EmployeePenaltiesPage() {
       { key: 'reason', header: 'السبب', get: (p) => p.reason },
       { key: 'amount', header: 'المبلغ', get: (p) => p.amount },
       { key: 'status', header: 'الحالة', get: (p) => PENALTY_STATUS_LABELS[p.status] ?? p.status },
-      { key: 'issuedAt', header: 'تاريخ الإصدار', get: (p) => dateFormatter.format(new Date(p.issuedAt ?? Date.now())) },
+      { key: 'issuedAt', header: 'تاريخ الإصدار', get: (p) => (p.issuedAt ? dateFormatter.format(new Date(p.issuedAt)) : '—') },
     ];
     downloadCsv(`employee-penalties-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(cols, rows));
   };
@@ -138,7 +138,7 @@ export function EmployeePenaltiesPage() {
               p.reason,
               formatCurrency(p.amount),
               PENALTY_STATUS_LABELS[p.status] ?? p.status,
-              dateFormatter.format(new Date(p.issuedAt ?? Date.now())),
+              p.issuedAt ? dateFormatter.format(new Date(p.issuedAt)) : '—',
             ]),
           },
         },

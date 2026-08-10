@@ -206,6 +206,23 @@ class _OrgTreeViewState extends State<_OrgTreeView> {
                   fontSize: 13,
                 ),
               ),
+              const Spacer(),
+              if (_search.isEmpty) ...[
+                TextButton.icon(
+                  onPressed: () => setState(
+                    () => _expanded
+                      ..clear()
+                      ..addAll(widget.chart.departments.map((d) => d.id)),
+                  ),
+                  icon: const Icon(Icons.unfold_more_rounded, size: 18),
+                  label: const Text('توسيع الكل'),
+                ),
+                TextButton.icon(
+                  onPressed: () => setState(_expanded.clear),
+                  icon: const Icon(Icons.unfold_less_rounded, size: 18),
+                  label: const Text('طي الكل'),
+                ),
+              ],
             ],
           ),
         ),
@@ -245,6 +262,12 @@ class _OrgTreeViewState extends State<_OrgTreeView> {
         .toList(growable: false);
     final employees = _employeesInDept(dept.id);
     final hasContent = children.isNotEmpty || employees.isNotEmpty;
+    // ابحث عن مدير القسم (رابط managerId لقسم أو موظف علم كـ isDeptManager).
+    final manager = dept.managerId != null
+        ? widget.chart.employees
+            .where((e) => e.id == dept.managerId)
+            .firstOrNull
+        : employees.where((e) => e.isDeptManager).firstOrNull;
 
     return [
       _DeptHeader(
@@ -253,6 +276,7 @@ class _OrgTreeViewState extends State<_OrgTreeView> {
         isExpanded: isExpanded,
         employeeCount: employees.length,
         hasChildren: hasContent,
+        managerName: manager?.fullNameAr,
         onTap: () => setState(() {
           if (isExpanded) {
             _expanded.remove(dept.id);
@@ -290,6 +314,7 @@ class _DeptHeader extends StatelessWidget {
     required this.isExpanded,
     required this.employeeCount,
     required this.hasChildren,
+    required this.managerName,
     required this.onTap,
   });
   final _OrgDepartment dept;
@@ -297,11 +322,18 @@ class _DeptHeader extends StatelessWidget {
   final bool isExpanded;
   final int employeeCount;
   final bool hasChildren;
+  final String? managerName;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // شريط لوني رأسي يدل على مستوى القسم في الهيكل لتحسين القراءة البصرية.
+    final depthColor = switch (indent % 3) {
+      0 => scheme.primary,
+      1 => scheme.tertiary,
+      _ => scheme.secondary,
+    };
     return Padding(
       padding: EdgeInsetsDirectional.only(start: indent * 16.0),
       child: Card(
@@ -313,6 +345,15 @@ class _DeptHeader extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             child: Row(
               children: [
+                Container(
+                  width: 4,
+                  height: 34,
+                  margin: const EdgeInsetsDirectional.only(end: 10),
+                  decoration: BoxDecoration(
+                    color: depthColor,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
                 Icon(
                   isExpanded
                       ? Icons.folder_open_rounded
@@ -334,7 +375,9 @@ class _DeptHeader extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '$employeeCount موظف',
+                        managerName != null && managerName!.isNotEmpty
+                            ? 'المدير: $managerName · $employeeCount موظف'
+                            : '$employeeCount موظف',
                         style: TextStyle(
                           fontSize: 11,
                           color: scheme.onPrimaryContainer.withValues(alpha: .7),
