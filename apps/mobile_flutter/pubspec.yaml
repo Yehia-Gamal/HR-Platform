@@ -39,6 +39,7 @@ dependencies:
   screenshot: ^3.0.0
   pdf: ">=3.11.0 <4.0.0"
   printing: ">=5.14.0 <6.0.0"
+  path_provider: ^2.1.5
   web: ^1.1.1
 
 dev_dependencies:
