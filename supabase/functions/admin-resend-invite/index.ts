@@ -82,8 +82,9 @@ Deno.serve(createHandler({ functionName: "admin-resend-invite", version: "1.0.0"
     password,
     user_metadata: {
       ...(authUser.user?.user_metadata ?? {}),
-      must_change_password: true,
     },
+    // SEC: must_change_password في app_metadata (server-only) — لا يستطيع الموظف تجاوزها بـ updateUser
+    app_metadata: { must_change_password: true },
   });
   if (confirmError) {
     ctx.log.error("admin-resend-invite email_confirm update failed", confirmError);
