@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -450,8 +452,8 @@ String _dayNotes(AttendanceStatementDay d) {
   return tags.isNotEmpty ? tags.join('، ') : (d.correctionNote ?? '');
 }
 
-/// يحوّل كشف الحضور إلى PDF ويفتح حوار المشاركة/الحفظ.
-Future<void> exportAttendancePdf(MonthlyAttendanceStatement statement) async {
+/// يحوّل كشف الحضور إلى PDF ويحفظه على الجهاز، ثم يعيد مسار الملف.
+Future<String> exportAttendancePdf(MonthlyAttendanceStatement statement) async {
   final pdfBytes = await _buildAttendancePdf(statement);
   final monthName = (statement.month >= 1 && statement.month <= 12)
       ? _months[statement.month - 1]
@@ -459,5 +461,10 @@ Future<void> exportAttendancePdf(MonthlyAttendanceStatement statement) async {
   final fileName =
       'كشف-حضور-${statement.employeeCode ?? statement.employeeNameAr}-${statement.year}-$monthName.pdf';
 
-  await Printing.sharePdf(bytes: pdfBytes, filename: fileName);
+  final dir = await getDownloadsDirectory();
+  final target = dir != null
+      ? File('${dir.path}/$fileName')
+      : File('${(await getApplicationDocumentsDirectory()).path}/$fileName');
+  await target.writeAsBytes(pdfBytes, flush: true);
+  return target.path;
 }

@@ -286,6 +286,7 @@ export const attendanceStatementDaySchema = z.object({
     .object({
       id: z.string().uuid(),
       dayType: z.enum(['work', 'leave', 'mission', 'convoy', 'fundraising', 'holiday', 'rest', 'absent']),
+      leaveType: z.string().nullable().optional(),
       reason: z.string(),
       notes: z.string().nullable(),
       updatedAt: z.string(),

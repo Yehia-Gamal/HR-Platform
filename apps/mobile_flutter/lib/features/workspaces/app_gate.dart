@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/network/offline_cache.dart';
 import 'package:ahla_shabab_management_os/core/network/session_cleanup.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/auth/login_page.dart';
@@ -56,9 +57,11 @@ class _AuthenticatedGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final supabase = ref.read(supabaseProvider);
+
     void signOut() {
-      cleanupOnSignOut();
-      ref.read(supabaseProvider).auth.signOut();
+      cleanupOnSignOut(userId: supabase.auth.currentUser?.id);
+      supabase.auth.signOut();
       ref.invalidate(authSessionProvider);
       ref.invalidate(accessContextProvider);
     }
@@ -106,6 +109,7 @@ class _AuthenticatedGate extends ConsumerWidget {
         if (value.user.appMetadata['must_change_password'] == true) {
           return const SetPasswordPage();
         }
+        OfflineCache.instance.setCurrentUser(value.user.id);
         // Device registration is non-blocking for the UI but remains observable in Riverpod.
         ref.watch(deviceRegistrationProvider);
         final access = ref.watch(accessContextProvider);
@@ -544,8 +548,9 @@ class _WebOnlyPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     void signOut() {
-      cleanupOnSignOut();
-      ref.read(supabaseProvider).auth.signOut();
+      final supabase = ref.read(supabaseProvider);
+      cleanupOnSignOut(userId: supabase.auth.currentUser?.id);
+      supabase.auth.signOut();
       ref.invalidate(authSessionProvider);
       ref.invalidate(accessContextProvider);
     }

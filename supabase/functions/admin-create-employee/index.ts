@@ -175,6 +175,10 @@ Deno.serve(async (req) => {
         redirectTo: INVITE_REDIRECT,
         data: userMetadata,
       });
+      // SEC: inviteUserByEmail لا تقبل app_metadata — نستدعي updateUserById بعدها
+      if (!result.error && result.data.user?.id) {
+        await admin.auth.admin.updateUserById(result.data.user.id, { app_metadata: appMetadata });
+      }
       return result as { data: { user: { id: string; email?: string } | null }; error: { message: string; status?: number } | null };
     }
 
@@ -183,8 +187,9 @@ Deno.serve(async (req) => {
     const reqBody = {
       email: normalizedEmail,
       password,
-      email_confirm: false,
+      email_confirm: true,
       user_metadata: userMetadata,
+      app_metadata: appMetadata,
     };
     const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
       method: "POST",

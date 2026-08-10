@@ -144,15 +144,21 @@ class PushService {
     FirebaseMessaging.onMessage.listen(_onForegroundMessage);
 
     // فتح التطبيق من إشعار (خلفية) — التوجيه الموحّد يستخرج المسار من كل الحقول.
+    // نضع أيضاً علامة "مقروء" على إشعار التطبيق الداخلي المطابق، لأن فتح Push
+    // من خارج التطبيق لا يمرّ بصفحة الإشعارات التي تفعل ذلك عادةً.
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      unawaited(_markPushDelivery(message, 'opened'));
+      unawaited(
+        _markPushDelivery(message, 'opened'),
+      );
       _routeFromMessage(message);
     });
 
     // فتح التطبيق من حالة الإنهاء التام — تأخير بسيط لاستقبال GoRouter للشجرة.
     final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
     if (initialMessage != null) {
-      unawaited(_markPushDelivery(initialMessage, 'opened'));
+      unawaited(
+        _markPushDelivery(initialMessage, 'opened'),
+      );
       Future<void>.delayed(const Duration(milliseconds: 400), () {
         _routeFromMessage(initialMessage);
       });

@@ -9,6 +9,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendan
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_services_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -176,6 +177,10 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
 
         // ── بطاقة حالة اليوم ──
         _TodayStatusCard(state: value),
+        const SizedBox(height: 14),
+
+        // V20: تصحيحات الحضور داخل صفحة البصمة — لا حاجة لصفحة منفصلة.
+        _CorrectionsSection(),
         const SizedBox(height: 14),
 
         // ── روابط سريعة ──
@@ -1002,4 +1007,99 @@ class _WarningBanner extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// V20: قسم تصحيحات الحضور — مدمج داخل صفحة البصمة بدل صفحة منفصلة.
+/// يعرض آخر طلبات التصحيح وزر "طلب تصحيح جديد".
+class _CorrectionsSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final services = ref.watch(myAttendanceServicesProvider);
+    final corrections = services.asData?.value.corrections ?? [];
+    final scheme = Theme.of(context).colorScheme;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.edit_calendar_rounded, size: 22, color: scheme.primary),
+                const SizedBox(width: 8),
+                Text('تصحيحات الحضور',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        )),
+                const Spacer(),
+                TextButton.icon(
+                  icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
+                  label: const Text('طلب تصحيح'),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const MobileAttendanceServicesPage(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const Divider(),
+            if (corrections.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                  child: Text(
+                    'لا توجد طلبات تصحيح سابقة',
+                    style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+                  ),
+                ),
+              )
+            else
+              ...corrections.take(3).map((c) => ListTile(
+                    dense: true,
+                    leading: Icon(
+                      c.status == 'approved'
+                          ? Icons.check_circle_outline
+                          : c.status == 'rejected'
+                              ? Icons.cancel_outlined
+                              : Icons.pending_actions,
+                      size: 20,
+                      color: c.status == 'approved'
+                          ? AppColors.statusSuccess
+                          : c.status == 'rejected'
+                              ? AppColors.statusDanger
+                              : AppColors.statusWarning,
+                    ),
+                    title: Text(DateFormat('yyyy/MM/dd').format(c.workDate),
+                        style: const TextStyle(fontSize: 13)),
+                    subtitle: Text(
+                      c.reason.isNotEmpty ? c.reason : c.type,
+                      style: const TextStyle(fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Text(
+                      c.status == 'approved'
+                          ? 'موافق'
+                          : c.status == 'rejected'
+                              ? 'مرفوض'
+                              : 'معلّق',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: c.status == 'approved'
+                            ? AppColors.statusSuccess
+                            : c.status == 'rejected'
+                                ? AppColors.statusDanger
+                                : AppColors.statusWarning,
+                      ),
+                    ),
+                  )),
+          ],
+        ),
+      ),
+    );
+  }
 }

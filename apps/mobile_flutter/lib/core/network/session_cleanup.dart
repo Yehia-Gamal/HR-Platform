@@ -6,26 +6,19 @@ import 'package:ahla_shabab_management_os/core/network/offline_sync_queue.dart';
 
 /// تنظيف الجلسة عند تسجيل الخروج.
 ///
-/// يُمسح الكاش المحلي وطابور المزامنة ويُحذف رمز FCM
-/// لمنع استقبال إشعارات بعد الخروج من الحساب.
-///
+/// [userId]: معرّف المستخدم الخارج — يُمرَّر صراحةً لتجنّب سباقات التزامن.
 /// جميع العمليات best-effort: لا يُرمى أي استثناء.
-Future<void> cleanupOnSignOut() async {
+Future<void> cleanupOnSignOut({String? userId}) async {
   try {
-    await OfflineCache.instance.clearAll();
-  } catch (_) {
-    // Best-effort.
-  }
+    await OfflineCache.instance.clearAllForUser(userId);
+    OfflineCache.instance.setCurrentUser(null);
+  } catch (_) {}
   try {
     await OfflineSyncQueue.instance.clear();
-  } catch (_) {
-    // Best-effort.
-  }
+  } catch (_) {}
   try {
     await FirebaseMessaging.instance.deleteToken();
-  } catch (_) {
-    // Firebase قد لا يكون مهيأ (بدون google-services.json).
-  }
+  } catch (_) {}
   if (kDebugMode) {
     debugPrint('[session_cleanup] تم تنظيف الجلسة عند الخروج.');
   }
