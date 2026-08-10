@@ -191,6 +191,10 @@ declare
   v_lt  uuid;
 begin
   select id into v_lt from public.leave_types where code = 'sick';
+  perform public.ensure_leave_account('d3620000-0000-4000-8000-000000000010', v_lt, 2026);
+  perform public.apply_leave_ledger_entry(
+    'd3620000-0000-4000-8000-000000000010', v_lt, 2026, 'opening', 10,
+    'test:0362:open-sick', null, 'رصيد اختباري sick');
   insert into public.requests(request_type, employee_id, status, title, reason, payload)
     values ('leave', 'd3620000-0000-4000-8000-000000000010', 'approved',
             'إجازة مرضية معتمدة 0362', 'سبب اختباري معتمد', '{}'::jsonb)
