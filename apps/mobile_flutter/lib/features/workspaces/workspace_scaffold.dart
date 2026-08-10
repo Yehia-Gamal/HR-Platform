@@ -223,6 +223,9 @@ class WorkspaceScaffold extends ConsumerWidget {
         workspace == WorkspaceId.fieldOperations;
     final items = <_MoreItem>[
       if (isExecutive) ...[
+        // §1 — صفحات تنفيذية فقط، دون تكرار اختصارات الصفحة الرئيسية
+        // ودون صفحات الموظفين الشخصية (البصمة/تصحيحاتي/تقاريري) فلا تخص
+        // المدير التنفيذي هنا.
         _MoreItem(
           icon: Icons.auto_awesome_outlined,
           label: 'الملخص التنفيذي اليومي',
@@ -232,6 +235,14 @@ class WorkspaceScaffold extends ConsumerWidget {
           icon: Icons.manage_search_rounded,
           label: 'دليل الموظفين التنفيذي',
           page: const ExecutivePeoplePage(),
+        ),
+        _MoreItem(
+          icon: Icons.people_alt_outlined,
+          label: 'حضور الموظفين اليوم',
+          page: Scaffold(
+            appBar: AppBar(title: const Text('حضور الموظفين اليوم')),
+            body: const ExecutiveAttendanceTab(),
+          ),
         ),
         _MoreItem(
           icon: Icons.fact_check_outlined,
@@ -267,14 +278,6 @@ class WorkspaceScaffold extends ConsumerWidget {
           page: const ExecutiveEmergencyPage(),
         ),
         _MoreItem(
-          icon: Icons.people_alt_outlined,
-          label: 'حضور الموظفين اليوم',
-          page: Scaffold(
-            appBar: AppBar(title: const Text('حضور الموظفين اليوم')),
-            body: const ExecutiveAttendanceTab(),
-          ),
-        ),
-        _MoreItem(
           icon: Icons.gavel_outlined,
           label: 'القضايا التنفيذية',
           page: const ExecutiveDisputesPage(),
@@ -283,14 +286,6 @@ class WorkspaceScaffold extends ConsumerWidget {
           icon: Icons.approval_outlined,
           label: 'الطلبات والاعتمادات',
           page: const MobileRequestsPage(allowDecision: true),
-        ),
-        _MoreItem(
-          icon: Icons.engineering_outlined,
-          label: 'إدارة العمليات',
-          page: Scaffold(
-            appBar: AppBar(title: const Text('إدارة العمليات')),
-            body: const ManagerOperationsPage(),
-          ),
         ),
       ],
       // §9.1 — ميزات إدارة الفريق لمساحة المدير والتشغيل
