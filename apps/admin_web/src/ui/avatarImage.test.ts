@@ -13,7 +13,7 @@ beforeEach(() => {
 
   vi.stubGlobal(
     'createImageBitmap',
-    vi.fn((_src: unknown) => Promise.resolve(makeMockBitmap(1024, 1024))),
+    vi.fn((src: unknown) => { void src; return Promise.resolve(makeMockBitmap(1024, 1024)); }),
   );
 
   vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
@@ -22,7 +22,9 @@ beforeEach(() => {
         width: 0,
         height: 0,
         getContext: () => lastCanvasCtx,
-        toBlob: (cb: (b: Blob | null) => void, _type: string, _q: number) => {
+        toBlob: (cb: (b: Blob | null) => void, type: string, q: number) => {
+          void type;
+          void q;
           cb(new Blob(['fake'], { type: 'image/webp' }));
         },
       } as unknown as HTMLCanvasElement;

@@ -89,7 +89,8 @@ describe('accessService — schema & pure function validation', () => {
   });
 
   it('photoUrl defaults to null when omitted', () => {
-    const { photoUrl: _, ...withoutPhoto } = validFixture;
+    const { photoUrl, ...withoutPhoto } = validFixture;
+    void photoUrl;
     const parsed = accessContextSchema.parse(withoutPhoto);
     expect(parsed.photoUrl).toBeNull();
   });

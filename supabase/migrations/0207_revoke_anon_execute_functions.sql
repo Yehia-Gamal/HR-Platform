@@ -187,7 +187,7 @@ REVOKE EXECUTE ON FUNCTION public.review_daily_report(p_report_id uuid, p_manage
 REVOKE EXECUTE ON FUNCTION public.review_employee_document(p_document_id uuid, p_decision text, p_reason text) FROM anon;
 REVOKE EXECUTE ON FUNCTION public.revoke_managed_device(p_device_id uuid, p_reason text) FROM anon;
 REVOKE EXECUTE ON FUNCTION public.revoke_my_passkey(p_credential_id uuid, p_reason text) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM anon;
+DO $$ BEGIN REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM anon; EXCEPTION WHEN undefined_function THEN NULL; END $$;
 REVOKE EXECUTE ON FUNCTION public.rpc_assign_role(p_user_id uuid, p_role_id uuid, p_scope_override jsonb, p_effective_from timestamp with time zone, p_effective_to timestamp with time zone) FROM anon;
 REVOKE EXECUTE ON FUNCTION public.rpc_revoke_role(p_user_id uuid, p_role_id uuid) FROM anon;
 REVOKE EXECUTE ON FUNCTION public.rpc_set_role_permissions(p_role_id uuid, p_items jsonb) FROM anon;

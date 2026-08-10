@@ -124,6 +124,7 @@ function deduplicateDevices(items: DeviceItem[]): DeviceItem[] {
 }
 
 function DevicesPanel({ devices, commands }: { devices: DeviceItem[]; commands: ReturnType<typeof useAuditSecurityCommands> }) {
+  const { toast } = useToast();
   const deduplicated = useMemo(() => deduplicateDevices(devices), [devices]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [revokeTarget, setRevokeTarget] = useState<DeviceItem | null>(null);

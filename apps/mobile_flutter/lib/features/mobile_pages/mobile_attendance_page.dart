@@ -1,11 +1,11 @@
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/gps_preflight_banner.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
-import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_history_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -352,8 +352,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
         return;
       }
 
-      ref.invalidate(attendanceStateProvider);
-      ref.invalidate(employeeHomeProvider);
+      // punchAttendanceLocal() already invalidates providers.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -534,41 +533,64 @@ class _PunchCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // ألوان ديناميكية حسب نوع الحركة
+    final colorA = isCheckIn
+        ? scheme.primary
+        : (isDark ? scheme.secondary : scheme.tertiary);
+    final colorB = isCheckIn ? scheme.tertiary : scheme.primary;
+
     return Card(
+      elevation: 3,
+      shadowColor: scheme.shadow.withValues(alpha: 0.3),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          // البانر العلوي
+          // البانر العلوي مع تدرج ديناميكي
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [scheme.primary, scheme.secondary],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [colorA, colorB],
               ),
             ),
             child: Column(
               children: [
-                Icon(
-                  Icons.fingerprint,
-                  color: scheme.onPrimary,
-                  size: 38,
+                // أيقونة ديناميكية داخل دائرة شفافة
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: scheme.onPrimary.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isCheckIn ? Icons.fingerprint : Icons.logout_rounded,
+                    color: scheme.onPrimary,
+                    size: 40,
+                  ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 14),
                 Text(
                   actionLabel,
                   style: TextStyle(
                     color: scheme.onPrimary,
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
+                    letterSpacing: 0.2,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   'بصمة الجهاز + الموقع → التحقق خادمياً',
                   style: TextStyle(
-                    color: scheme.onPrimary.withValues(alpha: 0.7),
+                    color: scheme.onPrimary.withValues(alpha: 0.72),
                     fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -576,7 +598,7 @@ class _PunchCard extends StatelessWidget {
           ),
           // زر الإجراء
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
             child: _buildActionButton(context),
           ),
         ],
@@ -586,8 +608,9 @@ class _PunchCard extends StatelessWidget {
 
   Widget _buildActionButton(BuildContext context) {
     if (devicePending) {
-      return _WarningBanner(
-        icon: Icons.hourglass_top_outlined,
+      return _StatusBanner(
+        tone: _BannerTone.warning,
+        icon: Icons.hourglass_top_rounded,
         text: 'جهازك مسجل وينتظر موافقة المسؤول',
       );
     }
@@ -646,6 +669,9 @@ class _TodayStatusCard extends StatelessWidget {
         state.todayStatus!.isNotEmpty;
 
     return Card(
+      elevation: 1,
+      shadowColor: scheme.shadow.withValues(alpha: 0.2),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -667,8 +693,10 @@ class _TodayStatusCard extends StatelessWidget {
 
             // بصمة الجهاز
             _StatusRow(
-              icon: Icons.fingerprint,
-              label: 'بصمة الجهاز',
+              icon: state.hasActiveLocalDevice
+                  ? Icons.lock_rounded
+                  : Icons.lock_open_rounded,
+              label: 'أمان الجهاز',
               value: state.hasActiveLocalDevice ? 'مفعلة' : 'غير مفعلة',
               valueColor: state.hasActiveLocalDevice
                   ? const Color(0xFF0F9F6E)
@@ -680,8 +708,8 @@ class _TodayStatusCard extends StatelessWidget {
               const SizedBox(height: 8),
               _StatusRow(
                 icon: state.lastEventType == 'CHECK_IN'
-                    ? Icons.login
-                    : Icons.logout,
+                    ? Icons.login_rounded
+                    : Icons.logout_rounded,
                 label: 'آخر عملية',
                 value:
                     '${state.lastEventType == 'CHECK_IN' ? 'حضور' : 'انصراف'}'
@@ -693,7 +721,7 @@ class _TodayStatusCard extends StatelessWidget {
             if (state.lastEventStatus != null) ...[
               const SizedBox(height: 8),
               _StatusRow(
-                icon: Icons.verified_outlined,
+                icon: Icons.verified_rounded,
                 label: 'التحقق',
                 trailing: MobileStatusPill(state.lastEventStatus!),
               ),
@@ -821,9 +849,12 @@ class _QuickLink extends StatelessWidget {
     return Expanded(
       child: Card(
         margin: EdgeInsets.zero,
+        elevation: 0.5,
+        shadowColor: scheme.shadow.withValues(alpha: 0.15),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 14),
             child: Column(
@@ -929,53 +960,90 @@ class _InfoBanner extends StatelessWidget {
   final String body;
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        children: [
-          Icon(icon, size: 36, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.w900),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 6),
-          Text(body, textAlign: TextAlign.center),
-        ],
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: scheme.primaryContainer,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 32, color: scheme.onPrimaryContainer),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+            Text(body, textAlign: TextAlign.center),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
-class _WarningBanner extends StatelessWidget {
-  const _WarningBanner({required this.icon, required this.text});
+/// مناسبة الألوان لـ banner — يحافظ على تباين النص
+enum _BannerTone { warning, error, info }
+
+class _StatusBanner extends StatelessWidget {
+  const _StatusBanner({
+    required this.tone,
+    required this.icon,
+    required this.text,
+  });
+
+  final _BannerTone tone;
   final IconData icon;
   final String text;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: Colors.orange.shade50,
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: Row(
-      children: [
-        Icon(icon, color: Colors.orange, size: 24),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(
-              color: Colors.orange.shade900,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final (bg, fg) = switch (tone) {
+      _BannerTone.warning => (
+        scheme.tertiaryContainer,
+        scheme.onTertiaryContainer,
+      ),
+      _BannerTone.error => (
+        scheme.errorContainer,
+        scheme.onErrorContainer,
+      ),
+      _BannerTone.info => (
+        scheme.surfaceContainerHighest,
+        scheme.onSurface,
+      ),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: fg, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: fg,
+                fontWeight: FontWeight.w700,
+                fontSize: 13.5,
+                height: 1.4,
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }

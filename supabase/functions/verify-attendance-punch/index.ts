@@ -1,4 +1,9 @@
 // Verifies a WebAuthn assertion and records attendance through the server-only RPC.
+//
+// RATE LIMIT: 6 punch attempts per employee per 60 seconds.
+// Uses attendance_punch_attempts (already written for idempotency) as the
+// sliding-window source. More than enough for normal check-in/check-out pairs;
+// prevents rapid-fire replay or automated punch spam.
 import { createClient } from "@supabase/supabase-js";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 
@@ -92,6 +97,32 @@ Deno.serve(async (req) => {
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (!uuidPattern.test(operationId) || !uuidPattern.test(correlationId) || !uuidPattern.test(challengeId)) {
     return json(req, { error: "invalid_operation_context" }, 400);
+  }
+
+  // ─── Rate limit: 6 punches per minute per employee ───
+  // Prevents rapid-fire punch spam. Normal usage is ≤2 (check-in + check-out).
+  const punchRlWindow = new Date(Date.now() - 60_000).toISOString();
+  const { count: recentPunches, error: punchRlError } = await admin
+    .from("attendance_punch_attempts")
+    .select("id", { count: "exact", head: true })
+    .eq("employee_id", profile.employee_id)
+    .gte("created_at", punchRlWindow);
+  if (punchRlError) return json(req, { error: "rate_limit_check_failed" }, 500);
+  if ((recentPunches ?? 0) >= 6) {
+    return json(req, { error: "too_many_requests", retryAfterSeconds: 60 }, 429);
+  }
+
+  // ─── Rate limit: 6 punch attempts per minute per employee ───
+  // Prevents automated punch spam; normal usage is ≤2 (check-in + check-out).
+  const oneMinuteAgo = new Date(Date.now() - 60_000).toISOString();
+  const { count: recentPunches, error: rlError } = await admin
+    .from("attendance_punch_attempts")
+    .select("id", { count: "exact", head: true })
+    .eq("employee_id", profile.employee_id)
+    .gte("created_at", oneMinuteAgo);
+  if (rlError) return json(req, { error: "rate_limit_check_failed" }, 500);
+  if ((recentPunches ?? 0) >= 6) {
+    return json(req, { error: "too_many_attempts", retryAfterSeconds: 60 }, 429);
   }
 
   // A transport retry after commit must return the stored result without
