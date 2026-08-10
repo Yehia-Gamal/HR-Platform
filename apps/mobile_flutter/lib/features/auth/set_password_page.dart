@@ -54,10 +54,12 @@ class _SetPasswordPageState extends ConsumerState<SetPasswordPage> {
       if (!activationAccepted) {
         throw StateError('تعذر تفعيل سجل الموظف. تواصل مع مسؤول النظام.');
       }
-      final metadata = Map<String, dynamic>.from(
-        client.auth.currentUser?.userMetadata ?? const <String, dynamic>{},
-      )..['must_change_password'] = false;
-      await client.auth.updateUser(UserAttributes(data: metadata));
+      // SEC: إزالة علامة must_change_password من app_metadata عبر SECURITY DEFINER
+      try {
+        await client.rpc<dynamic>('clear_must_change_password');
+      } catch (_) {
+        // ثانوي — كلمة المرور تم تعيينها بنجاح
+      }
       if (mounted) setState(() => _done = true);
     } on AuthException catch (e) {
       // رسائل محددة لمشاكل الجلسة/التفعيل المنتهية.

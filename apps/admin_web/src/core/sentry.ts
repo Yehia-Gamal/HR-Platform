@@ -166,7 +166,7 @@ async function captureInternal(error: unknown, context?: Record<string, unknown>
         errorStack,
         route,
         metadata: {
-          ...(sanitizeTelemetryValue(context ?? {}) as Record<string, unknown>),
+          ...(Object.assign({}, sanitizeTelemetryValue(context ?? {})) as Record<string, unknown>),
           breadcrumbs: _breadcrumbs.slice(-MAX_BREADCRUMBS),
         },
       },

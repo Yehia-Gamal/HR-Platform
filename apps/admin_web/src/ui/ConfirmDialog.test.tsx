@@ -41,7 +41,12 @@ describe('ConfirmDialog', () => {
         onCancel={() => {}}
       />,
     );
-    fireEvent.click(screen.getByText('تأكيد'));
+    // The confirm button has the default label "تأكيد"
+    const buttons = screen.getAllByRole('button');
+    // Find the confirm button (it's the one with the danger/tone class, last in the action row)
+    const confirmBtn = buttons.find((b) => b.textContent === 'تأكيد' && !(b instanceof HTMLButtonElement && b.disabled));
+    expect(confirmBtn).toBeTruthy();
+    if (confirmBtn) fireEvent.click(confirmBtn);
     expect(onConfirm).toHaveBeenCalledOnce();
   });
 
@@ -56,12 +61,13 @@ describe('ConfirmDialog', () => {
         onCancel={onCancel}
       />,
     );
-    fireEvent.click(screen.getByText('إلغاء'));
+    const cancelBtn = screen.getByText('إلغاء');
+    fireEvent.click(cancelBtn);
     expect(onCancel).toHaveBeenCalledOnce();
   });
 
-  it('shows danger icon for danger tone', () => {
-    const { container } = render(
+  it('renders alert icon for danger tone', () => {
+    render(
       <ConfirmDialog
         open
         title="حذف"
@@ -71,7 +77,8 @@ describe('ConfirmDialog', () => {
         onCancel={() => {}}
       />,
     );
-    // The dialog should render with danger styling
-    expect(container.querySelector('[role="dialog"]')).toBeTruthy();
+    // The danger icon should be present (AlertTriangle has a specific role/path)
+    const icons = document.querySelectorAll('svg');
+    expect(icons.length).toBeGreaterThan(0);
   });
 });

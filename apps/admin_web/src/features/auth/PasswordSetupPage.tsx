@@ -102,12 +102,11 @@ export function PasswordSetupPage() {
       }
       void activationOk; // referenced for future logging
 
-      // 4) إزالة علامة must_change_password
-      const { error: metadataError } = await supabase.auth.updateUser({
-        data: { ...userData.user.user_metadata, must_change_password: false },
-      });
-      if (metadataError) {
-        // كلمة المرور تم تعيينها — نتجاهل خطأ المتاداتا (ثانوي)
+      // 4) إزالة علامة must_change_password (تكتب في app_metadata عبر SECURITY DEFINER — ثانوي)
+      try {
+        await rpc('clear_must_change_password');
+      } catch {
+        // ثانوي — كلمة المرور تم تعيينها بنجاح
       }
 
       await supabase.auth.signOut({ scope: 'global' });

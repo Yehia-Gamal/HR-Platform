@@ -50,6 +50,18 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
           ),
         ],
       ),
+      // V20: زر إضافة تقرير يومي شخصي — يفتح صفحة تقاريري اليومية.
+      floatingActionButton: FloatingActionButton.extended(
+        icon: const Icon(Icons.edit_note_rounded),
+        label: const Text('تقرير اليوم'),
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const MobileDailyReportsPage(),
+            ),
+          );
+        },
+      ),
       body: feed.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => RefreshIndicator(

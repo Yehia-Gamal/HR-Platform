@@ -59,9 +59,8 @@ class WorkspaceScaffold extends ConsumerWidget {
     final notifications = ref.watch(myNotificationsProvider);
     final unread =
         notifications.asData?.value.where((item) => !item.isRead).length ?? 0;
-    final firstName =
-        contextData.displayName.trim().split(' ').firstOrNull ??
-        contextData.displayName;
+    // V20: اعرض الاسم الثنائي كاملاً وليس الاسم الأول فقط.
+    final fullName = contextData.displayName.trim();
     final greeting = _greetingForNow();
 
     return LocationIncomingListener(
@@ -90,7 +89,7 @@ class WorkspaceScaffold extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            '$greeting $firstName',
+                            '$greeting $fullName',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleMedium,
@@ -288,19 +287,6 @@ class WorkspaceScaffold extends ConsumerWidget {
             body: const ManagerOperationsPage(),
           ),
         ),
-        _MoreItem(
-          icon: Icons.task_alt_outlined,
-          label: 'المهام',
-          page: Scaffold(
-            appBar: AppBar(title: const Text('المهام')),
-            body: const MobileTasksPage(),
-          ),
-        ),
-        _MoreItem(
-          icon: Icons.summarize_outlined,
-          label: 'التقارير اليومية',
-          page: const MobileDailyReportsPage(),
-        ),
       ],
       // §9.1 — ميزات إدارة الفريق لمساحة المدير والتشغيل
       if (isManagerOrOps) ...[
@@ -342,24 +328,7 @@ class WorkspaceScaffold extends ConsumerWidget {
           ),
         ),
       ],
-      // §9.2 — المهام والتقارير اليومية — لجميع المساحات (غير التنفيذية)
-      if (!isExecutive) ...[
-        _MoreItem(
-          icon: Icons.task_alt_outlined,
-          label: 'المهام الشخصية',
-          page: Scaffold(
-            appBar: AppBar(title: const Text('المهام الشخصية')),
-            body: const MobileTasksPage(),
-          ),
-        ),
-        _MoreItem(
-          icon: Icons.summarize_outlined,
-          label: 'التقارير اليومية',
-          page: const MobileDailyReportsPage(),
-        ),
-      ],
-      // §8.3.3 — القرارات والتعاميم متاحة لجميع المستخدمين
-      // المدير التنفيذي والأدمن يرون زر "نشر جديد"
+      // V20: التقارير اليومية للجميع — زر إضافة تقرير داخل الصفحة نفسها
       _MoreItem(
         icon: Icons.newspaper_outlined,
         label: 'تقارير الجميع',
@@ -377,12 +346,7 @@ class WorkspaceScaffold extends ConsumerWidget {
               ]),
         ),
       ),
-      if (contextData.attendancePolicy.attendanceRequired)
-        _MoreItem(
-          icon: Icons.edit_calendar_rounded,
-          label: 'جدولي وتصحيحات الحضور',
-          page: const MobileAttendanceServicesPage(),
-        ),
+      // V20: الهيكل التنظيمي والشكاوى متاحة للجميع
       _MoreItem(
         icon: Icons.account_tree_rounded,
         label: 'الهيكل التنظيمي',
@@ -393,12 +357,6 @@ class WorkspaceScaffold extends ConsumerWidget {
         label: 'الشكاوى ولجنة الخلافات',
         page: const MobileDisputesPage(),
       ),
-      if (contextData.attendancePolicy.selfPunchEnabled)
-        _MoreItem(
-          icon: Icons.fingerprint_rounded,
-          label: 'أجهزة Passkey',
-          page: const PasskeyDevicesPage(),
-        ),
       _MoreItem(
         icon: Icons.account_circle_rounded,
         label: 'حسابي وملفي',

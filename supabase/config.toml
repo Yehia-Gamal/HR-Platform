@@ -124,5 +124,8 @@ verify_jwt = false
 [functions.identifier-sign-in]
 verify_jwt = false
 
+[functions.log-client-error]
+verify_jwt = false
+
 [functions.live-location-map-url]
 verify_jwt = true

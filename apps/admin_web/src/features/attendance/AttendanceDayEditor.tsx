@@ -18,6 +18,20 @@ const DAY_TYPES = [
 
 type DayType = (typeof DAY_TYPES)[number][0];
 
+/** أنواع الإجازة عند الترميز الإداري المباشر (0355 — تُخصم من الرصيد). */
+const LEAVE_TYPES = [
+  ['annual', 'إجازة سنوية (اعتيادية)'],
+  ['casual', 'إجازة عارضة'],
+  ['sick', 'إجازة مرضية'],
+  ['unpaid', 'إجازة بدون راتب'],
+] as const;
+
+/** الافتراضي لكل ترميز إداري (إجازة ← سنوية، غياب ← بدون راتب). */
+const DEFAULT_LEAVE_TYPE: Record<'leave' | 'absent', string> = {
+  leave: 'annual',
+  absent: 'unpaid',
+};
+
 /** أنواع تحديد اليوم عبر طلب (بموافقة المدير المباشر) — 0325. */
 const MARK_OPTIONS = [
   ['mission', 'مأمورية'],
@@ -50,6 +64,7 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
   const [markReason, setMarkReason] = useState('');
   const [markLocation, setMarkLocation] = useState('');
   const [dayType, setDayType] = useState<DayType>((day.adminOverride?.dayType as DayType | undefined) ?? 'work');
+  const [leaveType, setLeaveType] = useState<string>((day.adminOverride?.dayType === 'leave' || day.adminOverride?.dayType === 'absent' ? DEFAULT_LEAVE_TYPE[day.adminOverride.dayType] : ''));
   const [checkIn, setCheckIn] = useState(day.checkIn?.slice(0, 5) ?? '');
   const [checkOut, setCheckOut] = useState(day.checkOut?.slice(0, 5) ?? '');
   const [clearCheckIn, setClearCheckIn] = useState(false);
@@ -59,6 +74,7 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
 
   useEffect(() => {
     setDayType((day.adminOverride?.dayType as DayType | undefined) ?? 'work');
+    setLeaveType(day.adminOverride?.dayType === 'leave' || day.adminOverride?.dayType === 'absent' ? DEFAULT_LEAVE_TYPE[day.adminOverride.dayType] : '');
     setCheckIn(day.checkIn?.slice(0, 5) ?? '');
     setCheckOut(day.checkOut?.slice(0, 5) ?? '');
     setReason(day.adminOverride?.reason ?? '');
@@ -79,6 +95,7 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
         p_clear_check_out: dayType !== 'work' || clearCheckOut,
         p_reason: reason.trim(),
         p_notes: notes.trim() || null,
+        p_leave_type: dayType === 'leave' || dayType === 'absent' ? (leaveType || DEFAULT_LEAVE_TYPE[dayType]) : null,
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['attendance-statement', employeeId] });
@@ -147,10 +164,28 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
 
             <label className="space-y-1 text-sm font-bold">
               <span>تصنيف اليوم</span>
-              <select className="input w-full" value={dayType} onChange={(event) => setDayType(event.target.value as DayType)}>
+              <select
+                className="input w-full"
+                value={dayType}
+                onChange={(event) => {
+                  const next = event.target.value as DayType;
+                  setDayType(next);
+                  if (next === 'leave' || next === 'absent') setLeaveType(DEFAULT_LEAVE_TYPE[next]);
+                  else setLeaveType('');
+                }}
+              >
                 {DAY_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </label>
+
+            {dayType === 'leave' || dayType === 'absent' ? (
+              <label className="space-y-1 text-sm font-bold">
+                <span>نوع الإجازة ({dayType === 'absent' ? 'يُسجل غيابًا مخصومًا' : 'تُخصم من الرصيد'})</span>
+                <select className="input w-full" value={leaveType} onChange={(event) => setLeaveType(event.target.value)}>
+                  {LEAVE_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </label>
+            ) : null}
 
             {day.shiftName ? (
               <p className="text-xs text-[var(--text-muted)]">

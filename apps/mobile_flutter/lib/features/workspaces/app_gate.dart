@@ -103,7 +103,7 @@ class _AuthenticatedGate extends ConsumerWidget {
           }
           return const LoginPage();
         }
-        if (value.user.userMetadata?['must_change_password'] == true) {
+        if (value.user.appMetadata['must_change_password'] == true) {
           return const SetPasswordPage();
         }
         // Device registration is non-blocking for the UI but remains observable in Riverpod.

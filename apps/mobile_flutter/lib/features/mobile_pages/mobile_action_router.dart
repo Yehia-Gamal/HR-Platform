@@ -23,7 +23,48 @@ Widget mobilePageForActionTarget(MobileActionTarget target) =>
       'task_detail' => MobileTasksPage(highlightId: target.recordId),
       'attendance_detail' =>
         MobileAttendanceServicesPage(highlightId: target.recordId),
-      _ => const Scaffold(
-        body: Center(child: Text('نوع الإجراء غير مدعوم في التطبيق.')),
-      ),
+      _ => const UnsupportedActionPage(),
     };
+
+/// شاشة آمنة لنوع إجراء غير معروف — بدل Scaffold شبه فارغ كان يبدو كصفحة بيضاء.
+class UnsupportedActionPage extends StatelessWidget {
+  const UnsupportedActionPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(title: const Text('فتح الإشعار')),
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.notifications_off_outlined, size: 52, color: colors.onSurfaceVariant),
+                const SizedBox(height: 14),
+                Text(
+                  'نوع هذا الإشعار غير مدعوم في التطبيق.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'يمكنك متابعة التفاصيل من قائمة الإشعارات أو من لوحة الإدارة.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: colors.onSurfaceVariant),
+                ),
+                const SizedBox(height: 20),
+                FilledButton.tonal(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('العودة'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

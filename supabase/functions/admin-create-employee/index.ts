@@ -192,8 +192,9 @@ Deno.serve(createHandler(
   const userMetadata = {
     full_name_ar: input.fullNameAr,
     employee_code: employeeCode,
-    must_change_password: true,
   };
+  // SEC: في app_metadata (server-only) — لا يستطيع الموظف تجاوزها بـ updateUser
+  const appMetadata = { must_change_password: true };
 
   // ─── إنشاء حساب Auth مع استعادة تلقائية من اليتيم (orphan recovery) ───
   // إذا فشل الإنشاء لأن البريد موجود مسبقًا (من محاولة سابقة فاشلة)،
@@ -214,6 +215,7 @@ Deno.serve(createHandler(
         const { error: tempError } = await admin.auth.admin.updateUserById(result.data.user.id, {
           password: initialPassword,
           email_confirm: true,
+          app_metadata: appMetadata,
         });
         if (tempError) {
           ctx.log.error("temp password update failed", tempError);
@@ -232,6 +234,7 @@ Deno.serve(createHandler(
       // لكن تسجيل الدخول لاحقاً يفشل لأن GoTrue يرفض "Email not confirmed".
       email_confirm: true,
       user_metadata: userMetadata,
+      app_metadata: appMetadata,
     };
     const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
       method: "POST",

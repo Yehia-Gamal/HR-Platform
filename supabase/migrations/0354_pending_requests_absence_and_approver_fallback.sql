@@ -10,7 +10,8 @@
 --
 -- المكونات:
 --   (1) توسيع workflow_definitions.request_type ليشمل fundraising وأذون الحضور.
---   (2) تعريفات سير عمل افتراضية للتشغيل (مأمورية/قافلة/فاندي) بنمط الإجازة.
+--   (2) التشغيل (مأمورية/قافلة/فاندي) يُعتمد بخطوة واحدة من المدير المباشر أو
+--       البديل — إزالة أي تعريف افتراضي بمراجعة HR تبقيه معلّقاً.
 --   (3) resolve_request_approver: معتمِد بديل عند غياب المدير المباشر
 --       (executive-director → صاحب صلاحية requests.approve بنطاق تنظيمي → executive).
 --   (4) كشف الشهر: أيام عليها طلب معلّق لا تُحتسب غياباً وتُعرض «بانتظار الاعتماد».
@@ -33,43 +34,14 @@ alter table public.workflow_definitions
   ));
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- (2) تعريفات سير عمل افتراضية للتشغيل (مأمورية/قافلة/فاندي)
---     الخطوة 1: المدير المباشر — الخطوة 2: إدارة الموارد البشرية
+-- (2) التشغيل يُعتمد بخطوة واحدة من المدير المباشر أو البديل
+--     بلا تعريف سير عمل افتراضي بمراجعة HR (حتى لا يبقى الطلب معلّقاً
+--     ويُحتسب غياباً، وليتوافق مع عقد تنفيذ المأمورية/القافلة في 0108).
+--     يُزال أي تعريف افتراضي سابق للتشغيل إن وُجد.
 -- ─────────────────────────────────────────────────────────────────────────────
-do $$
-declare
-  v_def uuid;
-  v_type text;
-  v_name text;
-begin
-  foreach v_type in array array['mission','convoy','fundraising'] loop
-    if not exists (
-      select 1 from public.workflow_definitions
-      where request_type = v_type and is_default and is_active
-    ) then
-      v_name := case v_type
-        when 'mission' then 'اعتماد المأموريات'
-        when 'convoy' then 'اعتماد القوافل'
-        else 'اعتماد الفاندي'
-      end;
-      insert into public.workflow_definitions (
-        code, name_ar, request_type, version, is_active, is_default,
-        auto_escalate, default_due_hours
-      ) values (
-        v_type || '_approval_v1', v_name, v_type, 1, true, true, true, 48
-      ) returning id into v_def;
-
-      insert into public.workflow_steps (
-        definition_id, step_order, name_ar, step_type, approver_type,
-        approver_permission, approver_role_slug, sla_hours, is_active
-      ) values
-        (v_def, 1, 'موافقة المدير المباشر', 'approval', 'direct_manager',
-         'requests.approve', null, 12, true),
-        (v_def, 2, 'مراجعة إدارة الموارد البشرية', 'approval', 'role',
-         'requests.approve', 'hr-manager', 48, true);
-    end if;
-  end loop;
-end $$;
+delete from public.workflow_definitions
+  where request_type in ('mission','convoy','fundraising')
+    and is_default;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- (3) resolve_request_approver — معتمِد بديل عند غياب المدير المباشر
