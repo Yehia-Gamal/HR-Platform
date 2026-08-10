@@ -23,7 +23,7 @@ describe('post publishing contracts — V17 §18', () => {
 
   it('post types include all V23 types', () => {
     expect(postTypeSchema.options).toEqual([
-      'announcement', 'decision', 'alert', 'poll',
+      'standard', 'announcement', 'decision', 'alert', 'poll',
       'meeting', 'holiday_notice', 'kpi_notice', 'attendance_notice',
     ]);
   });
