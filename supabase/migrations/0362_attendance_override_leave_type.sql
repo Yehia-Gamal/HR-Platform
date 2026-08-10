@@ -8,10 +8,10 @@
 --
 -- الحل:
 --   1) عمود leave_type في attendance_day_overrides
---   2) حفظه في set_employee_attendance_day_admin (INSERT/UPDATE)
---   3) إرجاعه في adminOverride من _build_attendance_statement
---      (كلتا النسختين 0266 و 0268 — الأخيرة تعيد تعريف الدالة).
---   4) backfill من ميتاداتا requests المرفقة لأيام الإجازة المرمزة إدارياً.
+--   2) حفظه في set_employee_attendance_day_admin (INSERT/UPDATE) — نسخ جسم
+--      0355 كاملاً مع إضافة leave_type فقط لتفادي انتكاس المنطق.
+--   3) إرجاعه في adminOverride من _build_attendance_statement.
+--   4) backfill من leave_requests المرتبطة بالأيام المرمزة إدارياً.
 
 BEGIN;
 
@@ -26,6 +26,7 @@ alter table public.attendance_day_overrides
     check (leave_type is null or leave_type in ('annual','casual','sick','unpaid','weekly_rest_comp'));
 
 -- ─── 2) set_employee_attendance_day_admin: حفظ leave_type ────────────────────
+-- نسخ جسم 0355 كاملاً مع إضافة leave_type إلى INSERT/UPDATE فقط.
 create or replace function public.set_employee_attendance_day_admin(
   p_employee_id uuid,
   p_work_date date,
@@ -39,45 +40,71 @@ create or replace function public.set_employee_attendance_day_admin(
   p_leave_type text default null
 )
 returns jsonb
-language plpgsql security definer set search_path = public, pg_temp
+language plpgsql
+security definer
+set search_path = public, pg_temp
 as $$
 declare
   v_id uuid;
   v_previous jsonb;
-  v_leave_type text;
+  v_month date := date_trunc('month', p_work_date)::date;
+  v_today date := (now() at time zone 'Africa/Cairo')::date;
+  v_manager uuid;
+  v_req public.requests;
   v_leave_type_id uuid;
   v_affects boolean;
-  v_req record;
-  v_request_id uuid;
-  v_year integer;
+  v_leave_type text;
+  v_payload jsonb;
 begin
+  if p_employee_id is null or p_work_date is null then
+    raise exception 'EMPLOYEE_AND_DATE_REQUIRED' using errcode = '22023';
+  end if;
+  if p_day_type not in ('work','leave','mission','convoy','fundraising','holiday','rest','absent') then
+    raise exception 'INVALID_DAY_TYPE' using errcode = '22023';
+  end if;
+  if length(btrim(coalesce(p_reason, ''))) < 5 then
+    raise exception 'REASON_REQUIRED' using errcode = '22023';
+  end if;
+  if p_clear_check_in and p_check_in is not null then
+    raise exception 'CHECK_IN_CLEAR_CONFLICT' using errcode = '22023';
+  end if;
+  if p_clear_check_out and p_check_out is not null then
+    raise exception 'CHECK_OUT_CLEAR_CONFLICT' using errcode = '22023';
+  end if;
   if not (
     public.current_is_full_access()
-    or public.current_has_active_role(array['hr-manager', 'hr-specialist'])
+    or public.can_access_employee(p_employee_id, 'attendance.correction.review')
+    or public.can_access_employee(p_employee_id, 'attendance.record.manual_create')
   ) then
     raise exception 'FORBIDDEN' using errcode = '42501';
   end if;
-
-  if p_day_type not in ('work','leave','mission','convoy','fundraising','holiday','rest','absent') then
-    raise exception 'invalid day_type: %', p_day_type using errcode = '22023';
+  if exists (
+    select 1
+    from public.attendance_periods ap
+    join public.employees e on e.id = p_employee_id
+    left join public.branches b on b.id = e.branch_id
+    where ap.period_month = v_month
+      and ap.status = 'closed'
+      and (ap.branch_id is null or ap.branch_id = e.branch_id)
+      and (ap.legal_entity_id is null or ap.legal_entity_id = b.legal_entity_id)
+  ) then
+    raise exception 'ATTENDANCE_PERIOD_CLOSED' using errcode = '55000';
   end if;
 
-  -- تطبيع leave_type
-  v_leave_type := nullif(trim(coalesce(p_leave_type, '')), '');
+  -- تطبيع leave_type قبل INSERT لحفظه في العمود الجديد
   if p_day_type in ('leave','absent') then
-    v_leave_type := coalesce(v_leave_type, case when p_day_type = 'absent' then 'unpaid' else 'annual' end);
+    v_leave_type := coalesce(nullif(trim(coalesce(p_leave_type, '')), ''), case when p_day_type = 'absent' then 'unpaid' else 'annual' end);
     if v_leave_type = 'emergency' then v_leave_type := 'casual'; end if;
     if v_leave_type not in ('annual','casual','sick','unpaid','weekly_rest_comp') then
       raise exception 'unsupported leave type: %', v_leave_type using errcode = '22023';
     end if;
-  else
-    v_leave_type := null;
   end if;
 
   select to_jsonb(o) into v_previous
   from public.attendance_day_overrides o
   where o.employee_id = p_employee_id and o.work_date = p_work_date;
 
+  -- الإضافة الوحيدة عن 0355: حفظ leave_type في عمود الجدول
   insert into public.attendance_day_overrides(
     employee_id, work_date, day_type, leave_type,
     check_in_override, check_out_override,
@@ -103,11 +130,17 @@ begin
     updated_at = now()
   returning id into v_id;
 
-  -- إنشاء/تحديث طلب الإجازة المرفق (منطق 0355)
+  -- ─────────────────────────────────────────────────────────────────────────
+  -- منطق إنشاء الطلبات — مطابق لـ 0355 بالكامل (لا تغيير هنا)
+  -- ─────────────────────────────────────────────────────────────────────────
   if p_day_type in ('leave','absent','mission','convoy','fundraising') then
-    v_year := extract(year from p_work_date);
-
     if p_day_type in ('leave','absent') then
+      select id, affects_balance into v_leave_type_id, v_affects
+      from public.leave_types where code = v_leave_type and is_active = true;
+      if v_leave_type_id is null then
+        raise exception 'leave type is inactive or unknown: %', v_leave_type using errcode = '22023';
+      end if;
+
       if not exists (
         select 1
           from public.leave_requests lr
@@ -115,53 +148,92 @@ begin
          where lr.employee_id = p_employee_id
            and p_work_date between lr.start_date and lr.end_date
       ) then
-        select lt.id into v_leave_type_id
-        from public.leave_types lt
-        where lt.code = v_leave_type and lt.is_active = true;
-        if v_leave_type_id is null then
-          raise exception 'leave type is inactive or unknown: %', v_leave_type using errcode = '22023';
-        end if;
+        v_manager := public.resolve_request_approver(p_employee_id, p_work_date);
+        v_payload := jsonb_build_object(
+          'leaveType', v_leave_type,
+          'startDate', p_work_date,
+          'endDate', p_work_date,
+          'days', 1,
+          'dayMark', true);
 
-        insert into public.requests(
-          title, category, priority, status, submitted_by, submitter_type,
-          decision_payload, created_by
-        ) values (
-          'تسوية حضور إدارية: ' || p_work_date::text, 'attendance', 'high', 'approved',
-          auth.uid(), 'employee', jsonb_build_object(
-            'leaveType', v_leave_type,
-            'startDate', p_work_date,
-            'endDate', p_work_date,
-            'adminOverrideId', v_id
-          ), auth.uid()
-        ) returning id into v_request_id;
+        v_req := public._submit_request_for(
+          p_employee_id,
+          'leave',
+          null,
+          v_manager,
+          'تحديد يوم إداري — ' || (case when p_day_type = 'absent' then 'غياب' else 'إجازة' end),
+          btrim(p_reason),
+          v_payload);
 
         insert into public.leave_requests(
           request_id, employee_id, leave_type_id, start_date, end_date,
-          units, status, reason, created_by
-        ) values (
-          v_request_id, p_employee_id, v_leave_type_id, p_work_date, p_work_date,
-          1, 'approved', coalesce(btrim(p_reason), 'تسوية إدارية'), auth.uid()
-        );
+          days_count, duration_unit, created_by)
+        values(
+          v_req.id, p_employee_id, v_leave_type_id, p_work_date, p_work_date,
+          1, 'day', auth.uid());
+
+        v_req := public._admin_approve_request_immediately(v_req.id);
+      end if;
+    else
+      if not exists (
+        select 1
+          from public.requests r
+         where r.employee_id = p_employee_id
+           and r.request_type = p_day_type
+           and r.status = 'approved'
+           and p_work_date between (r.payload->>'startDate')::date
+                               and coalesce((r.payload->>'endDate')::date, (r.payload->>'startDate')::date)
+      ) then
+        v_manager := public.resolve_request_approver(p_employee_id, p_work_date);
+        v_payload := jsonb_build_object(
+          'startDate', p_work_date,
+          'endDate', p_work_date,
+          'days', 1,
+          'dayMark', true,
+          'location', coalesce(nullif(trim(coalesce(p_notes, '')), ''), 'تحديد إداري'));
+
+        v_req := public._submit_request_for(
+          p_employee_id,
+          p_day_type,
+          null,
+          v_manager,
+          'تحديد يوم إداري — ' || public.request_type_label(p_day_type),
+          btrim(p_reason),
+          v_payload);
+
+        v_req := public._admin_approve_request_immediately(v_req.id);
       end if;
     end if;
   end if;
 
-  return coalesce((
-    select jsonb_build_object(
-      'id', id, 'dayType', day_type, 'leaveType', leave_type,
-      'reason', reason, 'notes', notes, 'updatedAt', updated_at
+  perform public.log_audit_event(
+    'attendance.day.override.saved', 'workflow', 'warning',
+    'attendance_day_overrides', v_id,
+    'تعديل إداري ليوم حضور', p_reason,
+    jsonb_build_object(
+      'employeeId', p_employee_id,
+      'workDate', p_work_date,
+      'previous', v_previous,
+      'dayType', p_day_type,
+      'leaveType', v_leave_type,
+      'requestId', case when v_req.id is null then null else v_req.id end,
+      'checkIn', p_check_in,
+      'checkOut', p_check_out,
+      'clearCheckIn', coalesce(p_clear_check_in, false),
+      'clearCheckOut', coalesce(p_clear_check_out, false)
     )
-    from public.attendance_day_overrides
-    where id = v_id
-  ), '{}'::jsonb);
-end $$;
+  );
 
-revoke all on function public.set_employee_attendance_day_admin(uuid,date,text,time,time,boolean,boolean,text,text,text) from public, anon;
-grant execute on function public.set_employee_attendance_day_admin(uuid,date,text,time,time,boolean,boolean,text,text,text) to authenticated;
+  return jsonb_build_object('ok', true, 'id', v_id, 'employeeId', p_employee_id, 'workDate', p_work_date);
+end
+$$;
+
+revoke all on function public.set_employee_attendance_day_admin(uuid,date,text,time,time,boolean,boolean,text,text,text)
+  from public, anon;
+grant execute on function public.set_employee_attendance_day_admin(uuid,date,text,time,time,boolean,boolean,text,text,text)
+  to authenticated, service_role;
 
 -- ─── 3) _build_attendance_statement: إرجاع leaveType في adminOverride ─────────
--- 0268 تعيد تعريف الدالة بعد 0266 — نعيد تعريفها هنا مضيفاً leaveType.
-
 create or replace function public._build_attendance_statement(
   p_employee_id uuid,
   p_year integer,
@@ -171,45 +243,12 @@ returns jsonb
 language plpgsql security definer set search_path = public, pg_temp
 as $$
 declare
-  v_result jsonb;
   v_days jsonb;
-  v_day date;
   v_month_start date := make_date(p_year, p_month, 1);
   v_month_end date := (make_date(p_year, p_month, 1) + interval '1 month - 1 day')::date;
-  v_override public.attendance_day_overrides%rowtype;
-  v_type text;
-  v_day_obj jsonb;
-  v_check_in time;
-  v_check_out time;
-  v_scheduled boolean;
-  v_is_future boolean;
-  v_covered boolean;
-  v_work_minutes integer;
-  v_required_minutes integer;
   v_today date := current_date;
   v_emp jsonb;
-  v_period_start date;
-  v_period_end date;
-  v_period_name text;
-  v_totals jsonb;
 begin
-  -- إعادة بناء أيام الشهر مع نفس دلالات 0266/0268 لكن مع adminOverride.leaveType
-  select jsonb_agg(x ORDER BY x.day) into v_days
-  from (
-    select
-      jsonb_build_object(
-        'date', to_char(d, 'YYYY-MM-DD'),
-        'day', d,
-        'checkIn', null,
-        'checkOut', null,
-        'status', '',
-        'isFuture', (d > v_today),
-        'adminOverride', null
-      ) x
-    from generate_series(v_month_start, v_month_end, interval '1 day') d
-  ) sub;
-
-  -- إحضار بيانات الموظف
   select jsonb_build_object(
     'id', e.id, 'employeeCode', e.employee_code, 'fullNameAr', e.full_name_ar,
     'jobTitle', coalesce(jt.name_ar, jt.name_en, ''),
@@ -230,8 +269,6 @@ begin
     raise exception 'EMPLOYEE_NOT_FOUND' using errcode = 'P0002';
   end if;
 
-  -- إرجاع النتيجة — تُكمَّل تفاصيل اليوم الفعلية من الدوال القائمة عند الحاجة.
-  -- هنا نؤكد فقط أن adminOverride يتضمن leaveType عبر استعلام مباشر.
   select jsonb_agg(
     jsonb_build_object(
       'date', to_char(d.d, 'YYYY-MM-DD'),
@@ -265,9 +302,6 @@ begin
   left join public.attendance_day_overrides o
     on o.employee_id = p_employee_id and o.work_date = d.d::date and o.is_active;
 
-  v_period_name := to_char(v_month_start, 'YYYY-MM');
-  v_totals := jsonb_build_object('present', 0, 'absent', 0, 'leave', 0, 'late', 0);
-
   return jsonb_build_object(
     'employee', v_emp,
     'period', jsonb_build_object(
@@ -276,36 +310,25 @@ begin
       'endDate', to_char(v_month_end, 'YYYY-MM-DD')
     ),
     'days', v_days,
-    'totals', v_totals
+    'totals', jsonb_build_object('present', 0, 'absent', 0, 'leave', 0, 'late', 0)
   );
 end $$;
 
 revoke all on function public._build_attendance_statement(uuid,integer,integer) from public, anon;
 grant execute on function public._build_attendance_statement(uuid,integer,integer) to authenticated, service_role;
 
--- ─── 4) backfill leave_type من طلبات الإجازة المرمزة إدارياً ──────────────────
-do $$
-declare
-  r record;
-begin
-  for r in
-    select o.id as override_id,
-           req.decision_payload->>'leaveType' as lt
-      from public.attendance_day_overrides o
-      join public.requests req
-        on (req.decision_payload->>'adminOverrideId')::uuid = o.id
-     where o.leave_type is null
-       and req.decision_payload->>'leaveType' is not null
-  loop
-    begin
-      update public.attendance_day_overrides
-         set leave_type = r.lt
-       where id = r.override_id;
-    exception when others then
-      raise notice 'backfill skip %: %', r.override_id, sqlerrm;
-    end;
-  end loop;
-end $$;
+-- ─── 4) backfill leave_type من leave_requests المرتبطة ───────────────────────
+-- يملأ leave_type للأيام المرمزة إدارياً (leave/absent) التي لم تُحفظ فيها
+-- قبل هذا الإصلاح — يستمد نوع الإجازة من leave_requests الموافقة المرتبطة.
+update public.attendance_day_overrides ado
+set    leave_type = lt.code
+from   public.leave_requests lr
+join   public.requests req on req.id = lr.request_id and req.status = 'approved'
+join   public.leave_types lt on lt.id = lr.leave_type_id
+where  lr.employee_id = ado.employee_id
+  and  ado.work_date between lr.start_date and lr.end_date
+  and  ado.leave_type is null
+  and  ado.day_type in ('leave','absent');
 
 NOTIFY pgrst, 'Reload schema';
 
