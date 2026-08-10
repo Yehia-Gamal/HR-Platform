@@ -290,12 +290,12 @@ declare
 begin
   for r in
     select o.id as override_id,
-           r.decision_payload->>'leaveType' as lt
+           req.decision_payload->>'leaveType' as lt
       from public.attendance_day_overrides o
-      join public.requests r
-        on (r.decision_payload->>'adminOverrideId')::uuid = o.id
+      join public.requests req
+        on (req.decision_payload->>'adminOverrideId')::uuid = o.id
      where o.leave_type is null
-       and r.decision_payload->>'leaveType' is not null
+       and req.decision_payload->>'leaveType' is not null
   loop
     begin
       update public.attendance_day_overrides
