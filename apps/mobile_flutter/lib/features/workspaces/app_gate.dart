@@ -550,8 +550,9 @@ class _WebOnlyPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     void signOut() {
-      cleanupOnSignOut();
-      ref.read(supabaseProvider).auth.signOut();
+      final supabase = ref.read(supabaseProvider);
+      cleanupOnSignOut(userId: supabase.auth.currentUser?.id);
+      supabase.auth.signOut();
       ref.invalidate(authSessionProvider);
       ref.invalidate(accessContextProvider);
     }
