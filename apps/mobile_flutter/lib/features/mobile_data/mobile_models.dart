@@ -510,11 +510,15 @@ class MobileFeedItem {
     required this.priority,
     required this.requiresAcknowledgement,
     required this.myAcknowledged,
+    required this.viewCount,
+    required this.reactionCount,
+    required this.reactionSummary,
     required this.publishedAt,
     this.imageUrl,
     this.postType,
     this.authorName,
     this.authorPhotoUrl,
+    this.myReaction,
   });
   factory MobileFeedItem.fromJson(Map<String, dynamic> json) => MobileFeedItem(
     id: json['id'] as String,
@@ -524,6 +528,13 @@ class MobileFeedItem {
     priority: json['priority'] as String? ?? 'normal',
     requiresAcknowledgement: json['requiresAcknowledgement'] as bool? ?? false,
     myAcknowledged: json['myAcknowledged'] as bool? ?? false,
+    viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
+    reactionCount: (json['reactionCount'] as num?)?.toInt() ?? 0,
+    reactionSummary: Map<String, int>.from(
+      (json['reactionSummary'] as Map<dynamic, dynamic>? ?? const {}).map(
+        (key, value) => MapEntry(key.toString(), (value as num).toInt()),
+      ),
+    ),
     publishedAt: json['publishedAt'] == null
         ? null
         : DateTime.parse(json['publishedAt'] as String),
@@ -531,6 +542,7 @@ class MobileFeedItem {
     postType: json['postType'] as String?,
     authorName: json['authorName'] as String?,
     authorPhotoUrl: json['authorPhotoUrl'] as String?,
+    myReaction: json['myReaction'] as String?,
   );
   final String id;
   final String kind;
@@ -539,11 +551,15 @@ class MobileFeedItem {
   final String priority;
   final bool requiresAcknowledgement;
   final bool myAcknowledged;
+  final int viewCount;
+  final int reactionCount;
+  final Map<String, int> reactionSummary;
   final DateTime? publishedAt;
   final String? imageUrl;
   final String? postType;
   final String? authorName;
   final String? authorPhotoUrl;
+  final String? myReaction;
 
   /// تسمية نوع المنشور بالعربية
   String get postTypeLabel => switch (postType ?? kind) {

@@ -1060,6 +1060,31 @@ class MobileCommands {
     ref.invalidate(mobileFeedProvider);
     ref.invalidate(employeeHomeProvider);
   }
+
+  Future<void> recordAnnouncementView(String announcementId) async {
+    await _withTimeout(ref.read(supabaseProvider).rpc<dynamic>(
+      'record_announcement_view',
+      params: {'p_announcement_id': announcementId},
+    ));
+    ref.invalidate(mobileFeedProvider);
+  }
+
+  Future<void> toggleAnnouncementReaction(
+    String announcementId,
+    String reactionType,
+  ) async {
+    await _withTimeout(ref.read(supabaseProvider).rpc<dynamic>(
+      'toggle_announcement_reaction',
+      params: {
+        'p_announcement_id': announcementId,
+        'p_reaction_type': reactionType,
+      },
+    ));
+    ref.invalidate(mobileFeedProvider);
+    ref.invalidate(
+      mobileFeedDetailProvider((kind: 'announcement', id: announcementId)),
+    );
+  }
 }
 
 final mobileProfileProvider = FutureProvider<MobileProfile>((ref) async {

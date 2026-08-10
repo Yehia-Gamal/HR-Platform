@@ -1,4 +1,9 @@
-import { officialFeedItemSchema, type OfficialFeedItem } from '@ahla/shared-contracts';
+import {
+  announcementEngagementSchema,
+  officialFeedItemSchema,
+  type AnnouncementEngagement,
+  type OfficialFeedItem,
+} from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
@@ -47,6 +52,31 @@ export function usePublishAnnouncement() {
       });
     },
     onSuccess: () => client.invalidateQueries({ queryKey: ['official-feed'] }),
+  });
+}
+
+export function useAnnouncementEngagement(announcementId?: string) {
+  const auth = useAuth();
+  return useQuery({
+    queryKey: ['announcement-engagement', announcementId, auth.isMock],
+    enabled: auth.status === 'authenticated' && Boolean(announcementId),
+    queryFn: async (): Promise<AnnouncementEngagement> => {
+      if (!announcementId) throw new Error('announcement id is required');
+      if (auth.isMock) {
+        return announcementEngagementSchema.parse({
+          announcementId,
+          targetCount: 54,
+          viewerCount: 0,
+          reactionCount: 0,
+          acknowledgedCount: 0,
+          viewers: [],
+          reactions: [],
+          acknowledgements: [],
+        });
+      }
+      const data = await rpc('get_announcement_engagement', { p_announcement_id: announcementId });
+      return announcementEngagementSchema.parse(data);
+    },
   });
 }
 

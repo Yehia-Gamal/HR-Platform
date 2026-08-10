@@ -1,4 +1,4 @@
-import { BellRing, CheckCircle2, FileText, ImagePlus, ListPlus, Megaphone, Plus, Send, ShieldCheck, Trash2, X } from 'lucide-react';
+import { BellRing, CheckCircle2, Eye, FileText, Heart, ImagePlus, ListPlus, Megaphone, Plus, Send, ShieldCheck, Trash2, Users, X } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { getSupabase } from '../../core/supabase';
 import { DialogOverlay } from '../../ui/DialogOverlay';
@@ -14,7 +14,7 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
-import { useCreateDecisionDraft, useOfficialFeed, usePublishAnnouncement, useTransitionDecision } from './useOfficialFeed';
+import { useAnnouncementEngagement, useCreateDecisionDraft, useOfficialFeed, usePublishAnnouncement, useTransitionDecision } from './useOfficialFeed';
 
 type PublishMode = 'announcement' | 'decision';
 
@@ -135,6 +135,8 @@ export function OfficialFeedPage() {
   const createDecision = useCreateDecisionDraft();
   const transition = useTransitionDecision();
   const [open, setOpen] = useState(false);
+  const [engagementItem, setEngagementItem] = useState<{ id: string; title: string } | null>(null);
+  const engagementQuery = useAnnouncementEngagement(engagementItem?.id);
   const [search, setSearch] = useState('');
   const [kind, setKind] = useState('all');
   const [priority, setPriority] = useState('all');
@@ -268,6 +270,37 @@ export function OfficialFeedPage() {
                   {item.imageUrl ? <img src={item.imageUrl} alt={item.title} className="mt-3 h-44 w-full rounded-2xl object-cover" /> : null}
                   <p className="mt-3 text-sm leading-8">{item.body}</p>
                 </div>
+                {item.kind === 'announcement' ? (
+                  <div className="grid grid-cols-3 gap-2 border-b border-[var(--border)] p-4 text-center">
+                    <button
+                      type="button"
+                      className="rounded-xl bg-[var(--surface-muted)] p-3 transition hover:text-brand"
+                      onClick={() => setEngagementItem({ id: item.id, title: item.title })}
+                    >
+                      <Eye className="mx-auto mb-1 size-5" aria-hidden="true" />
+                      <strong className="block text-lg">{item.viewCount}</strong>
+                      <span className="muted text-xs">شاهدوا</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-xl bg-[var(--surface-muted)] p-3 transition hover:text-brand"
+                      onClick={() => setEngagementItem({ id: item.id, title: item.title })}
+                    >
+                      <Heart className="mx-auto mb-1 size-5" aria-hidden="true" />
+                      <strong className="block text-lg">{item.reactionCount}</strong>
+                      <span className="muted text-xs">تفاعلوا</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-xl bg-[var(--surface-muted)] p-3 transition hover:text-brand"
+                      onClick={() => setEngagementItem({ id: item.id, title: item.title })}
+                    >
+                      <CheckCircle2 className="mx-auto mb-1 size-5" aria-hidden="true" />
+                      <strong className="block text-lg">{item.acknowledgedCount}</strong>
+                      <span className="muted text-xs">أقرّوا</span>
+                    </button>
+                  </div>
+                ) : null}
                 {item.requiresAcknowledgement ? (
                   <div className="p-5">
                     <div className="flex justify-between text-sm">
@@ -317,6 +350,49 @@ export function OfficialFeedPage() {
           })}
         </section>
       )}
+      {engagementItem ? (
+        <DialogOverlay
+          title={`مشاهدات وتفاعلات: ${engagementItem.title}`}
+          onClose={() => setEngagementItem(null)}
+          maxWidth="max-w-3xl"
+        >
+          {engagementQuery.isLoading ? (
+            <ListSkeleton rows={3} label="جارٍ تحميل المشاهدات والتفاعلات" />
+          ) : engagementQuery.isError ? (
+            <ErrorState
+              title="تعذر تحميل أسماء المشاهدين والمتفاعلين"
+              description={safeErrorMessage(engagementQuery.error)}
+              onRetry={() => void engagementQuery.refetch()}
+            />
+          ) : engagementQuery.data ? (
+            <div className="space-y-5">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <MetricCard label="شاهدوا" value={engagementQuery.data.viewerCount} icon={Eye} />
+                <MetricCard label="تفاعلوا" value={engagementQuery.data.reactionCount} icon={Heart} />
+                <MetricCard label="أقرّوا بالاطلاع" value={engagementQuery.data.acknowledgedCount} icon={CheckCircle2} />
+              </div>
+              <EngagementPeople
+                title="الأشخاص الذين شاهدوا الإعلان"
+                empty="لم يسجل أحد مشاهدة الإعلان بعد."
+                people={engagementQuery.data.viewers}
+                icon={<Eye className="size-5" aria-hidden="true" />}
+              />
+              <EngagementPeople
+                title="الأشخاص الذين تفاعلوا"
+                empty="لم يتفاعل أحد مع الإعلان بعد."
+                people={engagementQuery.data.reactions}
+                icon={<Heart className="size-5" aria-hidden="true" />}
+              />
+              <EngagementPeople
+                title="الأشخاص الذين أقرّوا بالاطلاع"
+                empty="لم يسجل أحد إقرارًا بعد."
+                people={engagementQuery.data.acknowledgements}
+                icon={<Users className="size-5" aria-hidden="true" />}
+              />
+            </div>
+          ) : null}
+        </DialogOverlay>
+      ) : null}
       {open ? (
         <DialogOverlay title="إنشاء عنصر رسمي" onClose={() => setOpen(false)} maxWidth="max-w-2xl">
           <div className="grid grid-cols-2 gap-2 rounded-2xl bg-[var(--surface-muted)] p-1">
@@ -499,5 +575,54 @@ export function OfficialFeedPage() {
         </DialogOverlay>
       ) : null}
     </div>
+  );
+}
+
+function EngagementPeople({
+  title,
+  empty,
+  people,
+  icon,
+}: {
+  title: string;
+  empty: string;
+  people: Array<{ employeeId: string; name: string; photoUrl: string | null; at: string; viewCount?: number; reactionType?: string }>;
+  icon: React.ReactNode;
+}) {
+  const reactionLabels: Record<string, string> = {
+    like: 'أعجبني',
+    celebrate: 'احتفال',
+    support: 'دعم',
+    insightful: 'مفيد',
+  };
+  return (
+    <section className="rounded-2xl border border-[var(--border)] p-4">
+      <h3 className="mb-3 flex items-center gap-2 font-black">
+        {icon}
+        {title}
+        <span className="muted text-sm">({people.length})</span>
+      </h3>
+      {people.length === 0 ? (
+        <p className="muted py-4 text-center text-sm">{empty}</p>
+      ) : (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {people.map((person) => (
+            <div key={person.employeeId} className="flex items-center gap-3 rounded-xl bg-[var(--surface-muted)] p-3">
+              <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand/10 font-black text-brand">
+                {person.photoUrl ? <img src={person.photoUrl} alt="" className="size-full object-cover" /> : person.name.charAt(0)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <strong className="block truncate text-sm">{person.name}</strong>
+                <span className="muted text-xs">
+                  {person.reactionType ? `${reactionLabels[person.reactionType] ?? person.reactionType} · ` : ''}
+                  {person.viewCount && person.viewCount > 1 ? `${person.viewCount} مرات · ` : ''}
+                  {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(person.at))}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

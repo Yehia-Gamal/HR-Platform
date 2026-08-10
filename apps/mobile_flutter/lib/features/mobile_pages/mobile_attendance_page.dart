@@ -219,7 +219,10 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       ref.invalidate(attendanceStateProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم تسجيل الجهاز بنجاح.')),
+          const SnackBar(
+            content: Text('تم تسجيل الجهاز بنجاح — جاهز للاستخدام الآن.'),
+            backgroundColor: AppColors.statusSuccess,
+          ),
         );
       }
     } on GpsDisabledException {

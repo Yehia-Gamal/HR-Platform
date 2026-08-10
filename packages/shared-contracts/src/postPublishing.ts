@@ -26,6 +26,7 @@ export const PUBLISHER_CHANNELS: Record<PublisherRole, 'web' | 'mobile'> = {
 // ─── أنواع المنشورات ─────────────────────────────────────────────────────────
 
 export const postTypeSchema = z.enum([
+  'standard',
   'announcement',
   'decision',
   'alert',

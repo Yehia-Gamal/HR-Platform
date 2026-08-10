@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-class MobileFeedDetailPage extends ConsumerWidget {
+class MobileFeedDetailPage extends ConsumerStatefulWidget {
   const MobileFeedDetailPage({
     required this.kind,
     required this.itemId,
@@ -17,7 +17,18 @@ class MobileFeedDetailPage extends ConsumerWidget {
   final String itemId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MobileFeedDetailPage> createState() =>
+      _MobileFeedDetailPageState();
+}
+
+class _MobileFeedDetailPageState
+    extends ConsumerState<MobileFeedDetailPage> {
+  bool _viewRecorded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final kind = widget.kind;
+    final itemId = widget.itemId;
     final key = (kind: kind, id: itemId);
     final item = ref.watch(mobileFeedDetailProvider(key));
     return Scaffold(
@@ -59,8 +70,70 @@ class MobileFeedDetailPage extends ConsumerWidget {
               ),
             ),
           ),
-          data: (value) => _FeedDetailContent(item: value),
+          data: (value) {
+            if (kind == 'announcement' && !_viewRecorded) {
+              _viewRecorded = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                try {
+                  await ref
+                      .read(mobileCommandsProvider)
+                      .recordAnnouncementView(itemId);
+                  if (mounted) {
+                    ref.invalidate(mobileFeedDetailProvider(key));
+                  }
+                } catch (_) {
+                  // المشاهدة تحليلية؛ فشلها لا يمنع المستخدم من قراءة الإعلان.
+                }
+              });
+            }
+            return _FeedDetailContent(item: value);
+          },
         ),
+        if (item.kind == 'announcement') ...[
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.visibility_outlined, size: 20),
+                      const SizedBox(width: 6),
+                      Text('${item.viewCount} مشاهدة'),
+                      const SizedBox(width: 16),
+                      const Icon(Icons.favorite_outline, size: 20),
+                      const SizedBox(width: 6),
+                      Text('${item.reactionCount} تفاعل'),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: const [
+                      ('like', '👍', 'أعجبني'),
+                      ('celebrate', '🎉', 'احتفال'),
+                      ('support', '🤝', 'دعم'),
+                      ('insightful', '💡', 'مفيد'),
+                    ].map((reaction) {
+                      final selected = item.myReaction == reaction.$1;
+                      final count = item.reactionSummary[reaction.$1] ?? 0;
+                      return FilterChip(
+                        selected: selected,
+                        avatar: Text(reaction.$2),
+                        label: Text('${reaction.$3}${count > 0 ? ' $count' : ''}'),
+                        onSelected: (_) =>
+                            _react(context, ref, reaction.$1),
+                      );
+                    }).toList(growable: false),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -191,6 +264,24 @@ class _FeedDetailContent extends ConsumerWidget {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+      }
+    }
+  }
+
+  Future<void> _react(
+    BuildContext context,
+    WidgetRef ref,
+    String reactionType,
+  ) async {
+    try {
+      await ref
+          .read(mobileCommandsProvider)
+          .toggleAnnouncementReaction(item.id, reactionType);
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(error))),
+        );
       }
     }
   }

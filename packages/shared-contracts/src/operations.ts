@@ -99,11 +99,37 @@ export const officialFeedItemSchema = z.object({
   authorName: z.string().optional(),
   authorPhotoUrl: z.string().nullable().optional(),
   acknowledgedCount: z.number(),
+  viewCount: z.number().nonnegative().default(0),
+  reactionCount: z.number().nonnegative().default(0),
+  reactionSummary: z.record(z.string(), z.number().nonnegative()).default({}),
   targetCount: z.number().nullable(),
   myAcknowledged: z.boolean().optional(),
+  myReaction: z.enum(['like', 'celebrate', 'support', 'insightful']).nullable().optional(),
   createdAt: z.string().optional(),
 });
 export type OfficialFeedItem = z.infer<typeof officialFeedItemSchema>;
+
+export const announcementEngagementPersonSchema = z.object({
+  employeeId: z.string().uuid(),
+  name: z.string(),
+  photoUrl: z.string().nullable(),
+  at: z.string(),
+  viewCount: z.number().positive().optional(),
+  reactionType: z.enum(['like', 'celebrate', 'support', 'insightful']).optional(),
+});
+export type AnnouncementEngagementPerson = z.infer<typeof announcementEngagementPersonSchema>;
+
+export const announcementEngagementSchema = z.object({
+  announcementId: z.string().uuid(),
+  targetCount: z.number().nonnegative(),
+  viewerCount: z.number().nonnegative(),
+  reactionCount: z.number().nonnegative(),
+  acknowledgedCount: z.number().nonnegative(),
+  viewers: announcementEngagementPersonSchema.array(),
+  reactions: announcementEngagementPersonSchema.array(),
+  acknowledgements: announcementEngagementPersonSchema.array(),
+});
+export type AnnouncementEngagement = z.infer<typeof announcementEngagementSchema>;
 
 export const attendanceDashboardSchema = z.object({
   scheduled: z.number(),
