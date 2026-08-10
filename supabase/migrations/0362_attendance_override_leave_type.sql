@@ -1,32 +1,45 @@
--- Migration 0362: leave_type في attendance_day_overrides (منع تحويل نوع الإجازة)
--- ================================================================================
--- المشكلة: set_employee_attendance_day_admin (0355) يقبل p_leave_type ويستخدمه
--- لإنشاء طلب الإجازة، لكنه لا يخزّن leave_type في جدول attendance_day_overrides.
--- عند إعادة فتح محرر اليوم، كان adminOverride output (0266/0268) لا يتضمن
--- leaveType، فكان المحرر يستنتج النوع الافتراضي (annual) ويعيد الحفظ فيحوّل
--- إجازة مرضية/عارضة إلى سنوية صامتة.
+-- ============================================================================
+-- 0362: الحفاظ على نوع الإجازة في attendance_day_overrides
+-- ============================================================================
+-- المشكلة:
+--   set_employee_attendance_day_admin (0355) يقبل p_leave_type ويستخدمه لإنشاء
+--   طلب الإجازة، لكنه لا يخزّن النوع في جدول attendance_day_overrides. وعند
+--   إعادة فتح محرر اليوم، كان adminOverride output من _build_attendance_statement
+--   (0266/0268) لا يتضمن leaveType، فيستنتج المحرر النوع الافتراضي (annual) ويعيد
+--   الحفظ فيحوّل إجازة مرضية/عارضة/أخرى إلى سنوية صامتة.
 --
 -- الحل:
---   1) عمود leave_type في attendance_day_overrides
---   2) حفظه في set_employee_attendance_day_admin (INSERT/UPDATE) — نسخ جسم
---      0355 كاملاً مع إضافة leave_type فقط لتفادي انتكاس المنطق.
---   3) إرجاعه في adminOverride من _build_attendance_statement.
---   4) backfill من leave_requests المرتبطة بالأيام المرمزة إدارياً.
+--   1) عمود leave_type في attendance_day_overrides (مع قيد check).
+--   2) set_employee_attendance_day_admin يحفظ leave_type في الإدراج والتحديث.
+--   3) _build_attendance_statement (النسخة الفعالة من 0268) يرجّع
+--      adminOverride.leaveType للواجهة.
+--   4) backfill من طلبات الإجازة المعتمدة المرتبطة بالأيام المرموزة إدارياً.
+--
+-- ملاحظة: الدوال هنا إعادة تعريف طبق الأصل لآخر نسخة منشورة (0355 و0268)
+-- مع تعديلين جراحيين فقط (تخزين leave_type + إرجاعه) — لا تغيير في المنطق.
+-- ============================================================================
 
-BEGIN;
+begin;
 
--- ─── 1) عمود leave_type ────────────────────────────────────────────────────────
+-- ─── 1) عمود leave_type + قيد check ──────────────────────────────────────────
 alter table public.attendance_day_overrides
   add column if not exists leave_type text;
 
 alter table public.attendance_day_overrides
   drop constraint if exists attendance_day_overrides_leave_type_chk;
+
 alter table public.attendance_day_overrides
   add constraint attendance_day_overrides_leave_type_chk
     check (leave_type is null or leave_type in ('annual','casual','sick','unpaid','weekly_rest_comp'));
 
--- ─── 2) set_employee_attendance_day_admin: حفظ leave_type ────────────────────
--- نسخ جسم 0355 كاملاً مع إضافة leave_type إلى INSERT/UPDATE فقط.
+-- ─── 2) set_employee_attendance_day_admin: تخزين leave_type ──────────────────
+-- إعادة تعريف طبق الأصل لـ 0355 مع:
+--   - تطبيع v_leave_type قبل الإدراج (ليُخزَّن في العمود الجديد).
+--   - إدراج/تحديث leave_type.
+--   - إرجاع leaveType في الاستجابة.
+drop function if exists public.set_employee_attendance_day_admin(
+  uuid, date, text, time, time, boolean, boolean, text, text, text);
+
 create or replace function public.set_employee_attendance_day_admin(
   p_employee_id uuid,
   p_work_date date,
@@ -91,20 +104,22 @@ begin
     raise exception 'ATTENDANCE_PERIOD_CLOSED' using errcode = '55000';
   end if;
 
-  -- تطبيع leave_type قبل INSERT لحفظه في العمود الجديد
+  -- تطبيع نوع الإجازة قبل التخزين في attendance_day_overrides.leave_type.
+  v_leave_type := nullif(trim(coalesce(p_leave_type, '')), '');
   if p_day_type in ('leave','absent') then
-    v_leave_type := coalesce(nullif(trim(coalesce(p_leave_type, '')), ''), case when p_day_type = 'absent' then 'unpaid' else 'annual' end);
+    v_leave_type := coalesce(v_leave_type, case when p_day_type = 'absent' then 'unpaid' else 'annual' end);
     if v_leave_type = 'emergency' then v_leave_type := 'casual'; end if;
     if v_leave_type not in ('annual','casual','sick','unpaid','weekly_rest_comp') then
       raise exception 'unsupported leave type: %', v_leave_type using errcode = '22023';
     end if;
+  else
+    v_leave_type := null;
   end if;
 
   select to_jsonb(o) into v_previous
   from public.attendance_day_overrides o
   where o.employee_id = p_employee_id and o.work_date = p_work_date;
 
-  -- الإضافة الوحيدة عن 0355: حفظ leave_type في عمود الجدول
   insert into public.attendance_day_overrides(
     employee_id, work_date, day_type, leave_type,
     check_in_override, check_out_override,
@@ -131,10 +146,12 @@ begin
   returning id into v_id;
 
   -- ─────────────────────────────────────────────────────────────────────────
-  -- منطق إنشاء الطلبات — مطابق لـ 0355 بالكامل (لا تغيير هنا)
+  -- ترميز إداري مباشر → ينشئ طلباً معتمداً (خصم الرصيد للِإجازة/الغياب).
+  -- نمنع إنشاء طلب مكرر ليومٍ به طلب معتمد مسبقاً يغطي نفس اليوم.
   -- ─────────────────────────────────────────────────────────────────────────
   if p_day_type in ('leave','absent','mission','convoy','fundraising') then
     if p_day_type in ('leave','absent') then
+      -- نوع الإجازة: سبق تطبيعه أعلاه (v_leave_type) وتحققنا من صلاحيته.
       select id, affects_balance into v_leave_type_id, v_affects
       from public.leave_types where code = v_leave_type and is_active = true;
       if v_leave_type_id is null then
@@ -175,6 +192,7 @@ begin
         v_req := public._admin_approve_request_immediately(v_req.id);
       end if;
     else
+      -- مأمورية/قافلة/فاندي: طلب تشغيلي معتمد → تريجر الإعفاء يكتب present + استثناء
       if not exists (
         select 1
           from public.requests r
@@ -224,7 +242,13 @@ begin
     )
   );
 
-  return jsonb_build_object('ok', true, 'id', v_id, 'employeeId', p_employee_id, 'workDate', p_work_date);
+  return jsonb_build_object(
+    'ok', true,
+    'id', v_id,
+    'employeeId', p_employee_id,
+    'workDate', p_work_date,
+    'leaveType', v_leave_type
+  );
 end
 $$;
 
@@ -234,102 +258,295 @@ grant execute on function public.set_employee_attendance_day_admin(uuid,date,tex
   to authenticated, service_role;
 
 -- ─── 3) _build_attendance_statement: إرجاع leaveType في adminOverride ─────────
+-- إعادة تعريف طبق الأصل لـ 0268 (النسخة الفعالة التي تستدعي _v266) مع إضافة
+-- سطر 'leaveType' فقط داخل jsonb_build_object الخاص بـ adminOverride.
 create or replace function public._build_attendance_statement(
   p_employee_id uuid,
   p_year integer,
   p_month integer
 )
 returns jsonb
-language plpgsql security definer set search_path = public, pg_temp
+language plpgsql
+stable
+security definer
+set search_path = public, pg_temp
 as $$
 declare
-  v_days jsonb;
-  v_month_start date := make_date(p_year, p_month, 1);
-  v_month_end date := (make_date(p_year, p_month, 1) + interval '1 month - 1 day')::date;
-  v_today date := current_date;
-  v_emp jsonb;
+  v_result jsonb;
+  v_days jsonb := '[]'::jsonb;
+  v_day_obj jsonb;
+  v_day date;
+  v_override public.attendance_day_overrides%rowtype;
+  v_type text;
+  v_check_in time;
+  v_check_out time;
+  v_work_minutes integer;
+  v_required_minutes integer;
+  v_scheduled boolean;
+  v_present boolean;
+  v_covered boolean;
+  v_is_future boolean;
+  v_scheduled_days integer := 0;
+  v_present_days integer := 0;
+  v_covered_days integer := 0;
+  v_total_work_minutes integer := 0;
+  v_month_required_minutes integer := 0;
+  v_month_deficit_minutes integer := 0;
+  v_total_overtime_minutes integer := 0;
+  v_total_late_minutes integer := 0;
+  v_total_early_minutes integer := 0;
+  v_open_shift_days integer := 0;
+  v_completed_days integer := 0;
+  v_absent_days integer := 0;
+  v_upcoming_days integer := 0;
+  v_leave_days integer := 0;
+  v_mission_days integer := 0;
+  v_convoy_days integer := 0;
+  v_holiday_days integer := 0;
+  v_rest_days integer := 0;
+  v_due_days integer := 0;
+  v_is_due boolean;
+  v_is_open boolean;
 begin
-  select jsonb_build_object(
-    'id', e.id, 'employeeCode', e.employee_code, 'fullNameAr', e.full_name_ar,
-    'jobTitle', coalesce(jt.name_ar, jt.name_en, ''),
-    'department', coalesce(d.name, ''),
-    'manager', coalesce((select full_name_ar from public.employees m where m.id = mr.manager_employee_id), ''),
-    'branch', coalesce(b.name, ''),
-    'hireDate', e.hire_date
-  ) into v_emp
-  from public.employees e
-  left join public.departments d on d.id = e.department_id
-  left join public.job_titles jt on jt.id = e.job_title_id
-  left join public.branches b on b.id = e.branch_id
-  left join public.manager_relations mr on mr.employee_id = e.id
-    and (mr.effective_to is null or mr.effective_to > now())
-  where e.id = p_employee_id;
+  v_result := public._build_attendance_statement_v266(p_employee_id, p_year, p_month);
 
-  if v_emp is null then
-    raise exception 'EMPLOYEE_NOT_FOUND' using errcode = 'P0002';
-  end if;
+  for v_day_obj in select value from jsonb_array_elements(v_result->'days')
+  loop
+    v_day := (v_day_obj->>'date')::date;
+    v_override := null;
+    select * into v_override
+    from public.attendance_day_overrides o
+    where o.employee_id = p_employee_id
+      and o.work_date = v_day
+      and o.is_active;
 
-  select jsonb_agg(
-    jsonb_build_object(
-      'date', to_char(d.d, 'YYYY-MM-DD'),
-      'dayNameAr', '',
-      'checkIn', null,
-      'checkOut', null,
-      'shiftName', '',
-      'workHours', 0, 'requiredHours', 0,
-      'lateMinutes', 0, 'earlyLeaveMinutes', 0, 'overtimeMinutes', 0,
-      'status', '',
-      'isAbsent', false, 'isOfficialHoliday', false, 'hasLeave', false,
-      'hasLatePermit', false, 'hasEarlyPermit', false, 'hasPermit', false,
-      'hasMission', false, 'hasConvoyFundi', false,
-      'missingCheckIn', false, 'missingCheckOut', false,
-      'hasCorrection', (o.id is not null),
-      'correctionNote', coalesce(o.notes, o.reason),
-      'notes', o.notes,
-      'penalties', 0,
-      'isFuture', (d.d > v_today), 'isDue', false, 'isOpenShift', false, 'isCompleted', false,
-      'adminOverride', case when o.id is null then null else jsonb_build_object(
-        'id', o.id,
-        'dayType', o.day_type,
-        'leaveType', o.leave_type,
-        'reason', o.reason,
-        'notes', o.notes,
-        'updatedAt', o.updated_at
-      ) end
-    ) ORDER BY d.d
-  ) into v_days
-  from generate_series(v_month_start, v_month_end, interval '1 day') d(d)
-  left join public.attendance_day_overrides o
-    on o.employee_id = p_employee_id and o.work_date = d.d::date and o.is_active;
+    v_type := coalesce(v_override.day_type, '');
+    v_check_in := nullif(v_day_obj->>'checkIn', '')::time;
+    v_check_out := nullif(v_day_obj->>'checkOut', '')::time;
 
-  return jsonb_build_object(
-    'employee', v_emp,
-    'period', jsonb_build_object(
-      'year', p_year, 'month', p_month,
-      'startDate', to_char(v_month_start, 'YYYY-MM-DD'),
-      'endDate', to_char(v_month_end, 'YYYY-MM-DD')
-    ),
+    if v_override.id is not null then
+      if v_override.clear_check_in then v_check_in := null;
+      elsif v_override.check_in_override is not null then v_check_in := v_override.check_in_override;
+      end if;
+      if v_override.clear_check_out then v_check_out := null;
+      elsif v_override.check_out_override is not null then v_check_out := v_override.check_out_override;
+      end if;
+    end if;
+
+    -- Friday and official holidays are not monthly work days.
+    v_scheduled := extract(isodow from v_day) <> 5
+      and not coalesce((v_day_obj->>'isOfficialHoliday')::boolean, false)
+      and v_type not in ('holiday','rest');
+    v_is_future := v_scheduled and v_day > (now() at time zone 'Africa/Cairo')::date;
+
+    if v_type in ('leave','mission','convoy','fundraising','holiday','rest','absent') then
+      v_check_in := null;
+      v_check_out := null;
+    end if;
+
+    v_work_minutes := 0;
+    if v_check_in is not null and v_check_out is not null then
+      v_work_minutes := greatest(0, (extract(epoch from (
+        (v_day + v_check_out + case when v_check_out <= v_check_in then interval '1 day' else interval '0' end)
+        - (v_day + v_check_in)
+      )) / 60)::integer);
+    end if;
+
+    v_required_minutes := case when v_scheduled
+      then greatest(0, round(coalesce((v_day_obj->>'requiredHours')::numeric, 8) * 60)::integer)
+      else 0 end;
+    if v_scheduled and v_required_minutes = 0 then v_required_minutes := 480; end if;
+
+    v_present := v_scheduled and v_check_in is not null;
+    v_covered := v_scheduled and (
+      v_present
+      or v_type in ('leave','mission','convoy','fundraising')
+      or (v_override.id is null and (
+        coalesce((v_day_obj->>'hasLeave')::boolean, false)
+        or coalesce((v_day_obj->>'hasMission')::boolean, false)
+        or coalesce((v_day_obj->>'hasConvoyFundi')::boolean, false)
+      ))
+    );
+
+    v_is_open := v_check_in is not null and v_check_out is null and not v_is_future;
+    v_is_due := v_scheduled and not v_is_future and not v_is_open and not (
+      v_type in ('leave', 'mission', 'convoy', 'fundraising')
+      or (v_override.id is null and (
+        coalesce((v_day_obj->>'hasLeave')::boolean, false)
+        or coalesce((v_day_obj->>'hasMission')::boolean, false)
+        or coalesce((v_day_obj->>'hasConvoyFundi')::boolean, false)
+      ))
+    );
+
+    if v_scheduled then
+      v_scheduled_days := v_scheduled_days + 1;
+      v_month_required_minutes := v_month_required_minutes + v_required_minutes;
+      if v_present then v_present_days := v_present_days + 1; end if;
+      if v_is_due then v_due_days := v_due_days + 1; end if;
+      if v_covered then v_covered_days := v_covered_days + 1; end if;
+      if v_is_future then v_upcoming_days := v_upcoming_days + 1; end if;
+      if not v_is_future and not v_covered and v_type <> 'leave' then
+        v_absent_days := v_absent_days + 1;
+      end if;
+    end if;
+
+    if v_check_in is not null and v_check_out is null and not v_is_future then
+      v_open_shift_days := v_open_shift_days + 1;
+    end if;
+    if v_check_in is not null and v_check_out is not null then
+      v_completed_days := v_completed_days + 1;
+      v_total_work_minutes := v_total_work_minutes + v_work_minutes;
+      v_month_deficit_minutes := v_month_deficit_minutes + greatest(0, v_required_minutes - v_work_minutes);
+      v_total_overtime_minutes := v_total_overtime_minutes + greatest(0, v_work_minutes - v_required_minutes);
+    end if;
+
+    if v_type = 'leave' or (v_override.id is null and coalesce((v_day_obj->>'hasLeave')::boolean, false)) then
+      v_leave_days := v_leave_days + 1;
+    end if;
+    if v_type = 'mission' or (v_override.id is null and coalesce((v_day_obj->>'hasMission')::boolean, false)) then
+      v_mission_days := v_mission_days + 1;
+    end if;
+    if v_type in ('convoy','fundraising') or (v_override.id is null and coalesce((v_day_obj->>'hasConvoyFundi')::boolean, false)) then
+      v_convoy_days := v_convoy_days + 1;
+    end if;
+    if not v_scheduled then
+      if extract(isodow from v_day) = 5 or v_type = 'rest' then v_rest_days := v_rest_days + 1;
+      else v_holiday_days := v_holiday_days + 1;
+      end if;
+    end if;
+
+    -- Flexible duration policy: no late/early penalty when duration is what matters.
+    if v_scheduled then
+      v_total_late_minutes := v_total_late_minutes + 0;
+      v_total_early_minutes := v_total_early_minutes + 0;
+    end if;
+
+    v_day_obj := v_day_obj || jsonb_strip_nulls(jsonb_build_object(
+      'checkIn', case when v_check_in is null then null else to_char(v_check_in, 'HH24:MI') end,
+      'checkOut', case when v_check_out is null then null else to_char(v_check_out, 'HH24:MI') end,
+      'workHours', round(v_work_minutes / 60.0, 2),
+      'requiredHours', round(v_required_minutes / 60.0, 2),
+      'lateMinutes', 0,
+      'earlyLeaveMinutes', 0,
+      'overtimeMinutes', greatest(0, v_work_minutes - v_required_minutes),
+      'isFuture', v_is_future,
+      'isDue', v_is_due,
+      'isOpenShift', v_is_open,
+      'isCompleted', (v_check_in is not null and v_check_out is not null),
+      'isAbsent', (v_scheduled and not v_is_future and not v_covered),
+      'hasLeave', case when v_override.id is null then coalesce((v_day_obj->>'hasLeave')::boolean, false) else v_type = 'leave' end,
+      'hasMission', case when v_override.id is null then coalesce((v_day_obj->>'hasMission')::boolean, false) else v_type = 'mission' end,
+      'hasConvoyFundi', case when v_override.id is null then coalesce((v_day_obj->>'hasConvoyFundi')::boolean, false) else v_type in ('convoy','fundraising') end,
+      'hasCorrection', (v_override.id is not null) or coalesce((v_day_obj->>'hasCorrection')::boolean, false),
+      'correctionNote', coalesce(v_override.notes, v_override.reason, v_day_obj->>'correctionNote'),
+      'adminOverride', case when v_override.id is null then null else jsonb_build_object(
+        'id', v_override.id,
+        'dayType', v_override.day_type,
+        'leaveType', v_override.leave_type,
+        'reason', v_override.reason,
+        'notes', v_override.notes,
+        'updatedAt', v_override.updated_at
+      ) end,
+      'status', case
+        when extract(isodow from v_day) = 5 then 'راحة أسبوعية'
+        when v_type = 'holiday' then 'عطلة رسمية'
+        when v_type = 'rest' then 'راحة أسبوعية'
+        when v_type = 'leave' then 'إجازة معتمدة'
+        when v_type = 'mission' then 'مأمورية'
+        when v_type = 'convoy' then 'قافلة'
+        when v_type = 'fundraising' then 'فاندي'
+        when v_type = 'absent' then 'غائب دون إذن'
+        when v_override.id is null
+             and (coalesce((v_day_obj->>'hasLeave')::boolean, false)
+                  or coalesce((v_day_obj->>'hasMission')::boolean, false)
+                  or coalesce((v_day_obj->>'hasConvoyFundi')::boolean, false)) then v_day_obj->>'status'
+        when v_is_future then 'يوم قادم'
+        when v_check_in is not null and v_check_out is null then 'حاضر — بانتظار الانصراف'
+        when v_check_in is not null and v_check_out is not null and v_work_minutes < v_required_minutes then 'حاضر — ساعات غير مكتملة'
+        when v_check_in is not null and v_check_out is not null then 'حاضر'
+        when not v_scheduled then v_day_obj->>'status'
+        else 'غائب دون إذن'
+      end
+    ));
+
+    v_days := v_days || jsonb_build_array(v_day_obj);
+  end loop;
+
+  v_result := v_result || jsonb_build_object(
     'days', v_days,
-    'totals', jsonb_build_object('present', 0, 'absent', 0, 'leave', 0, 'late', 0)
+    'capabilities', jsonb_build_object(
+      'canEditDays', public.current_is_full_access()
+        or public.can_access_employee(p_employee_id, 'attendance.correction.review')
+        or public.can_access_employee(p_employee_id, 'attendance.record.manual_create')
+    ),
+    'summary', (v_result->'summary') || jsonb_build_object(
+      'scheduledDays', v_scheduled_days,
+      'dueScheduledDays', v_due_days,
+      'upcomingDays', v_upcoming_days,
+      'presentDays', v_present_days,
+      'absentDays', v_absent_days,
+      'openShiftDays', v_open_shift_days,
+      'completedPresenceDays', v_completed_days,
+      'leaveDays', v_leave_days,
+      'missionDays', v_mission_days,
+      'convoyFundiDays', v_convoy_days,
+      'holidayDays', v_holiday_days,
+      'restDays', v_rest_days,
+      'totalWorkHours', round(v_total_work_minutes / 60.0, 2),
+      'totalRequiredHours', round(v_month_required_minutes / 60.0, 2),
+      'averageWorkHours', case when v_completed_days > 0 then round(v_total_work_minutes / 60.0 / v_completed_days, 2) else 0 end,
+      'totalLateMinutes', v_total_late_minutes,
+      'totalEarlyLeaveMinutes', v_total_early_minutes,
+      'totalOvertimeMinutes', v_total_overtime_minutes,
+      'totalDeficitMinutes', v_month_deficit_minutes,
+      'attendanceRate', case when v_due_days > 0
+        then round((v_present_days - v_open_shift_days) * 100.0 / v_due_days, 2)
+        else 0 end,
+      'attendanceRateBasis', jsonb_build_object(
+        'presentInDue', (v_present_days - v_open_shift_days),
+        'dueDays', v_due_days,
+        'presentDays', v_present_days,
+        'absentDays', v_absent_days,
+        'openShiftDays', v_open_shift_days,
+        'upcomingDays', v_upcoming_days
+      ),
+      'coverageRate', case when v_scheduled_days > 0 then round(v_covered_days * 100.0 / v_scheduled_days, 2) else 0 end,
+      'coverageDays', v_covered_days,
+      'hoursComplianceAvailable', (v_month_required_minutes > 0),
+      'hoursComplianceRate', case when v_month_required_minutes > 0
+        then least(100, round(v_total_work_minutes * 100.0 / v_month_required_minutes, 2)) else 0 end,
+      'hoursRateBasis', jsonb_build_object(
+        'workedMinutes', v_total_work_minutes,
+        'requiredMinutes', v_month_required_minutes,
+        'scheduledDays', v_scheduled_days,
+        'deficitMinutes', v_month_deficit_minutes,
+        'overtimeMinutes', v_total_overtime_minutes
+      ),
+      'compliantWorkMinutes', v_total_work_minutes,
+      'requiredMinutes', v_month_required_minutes
+    )
   );
-end $$;
 
-revoke all on function public._build_attendance_statement(uuid,integer,integer) from public, anon;
-grant execute on function public._build_attendance_statement(uuid,integer,integer) to authenticated, service_role;
+  return v_result;
+end
+$$;
 
--- ─── 4) backfill leave_type من leave_requests المرتبطة ───────────────────────
--- يملأ leave_type للأيام المرمزة إدارياً (leave/absent) التي لم تُحفظ فيها
--- قبل هذا الإصلاح — يستمد نوع الإجازة من leave_requests الموافقة المرتبطة.
-update public.attendance_day_overrides ado
-set    leave_type = lt.code
-from   public.leave_requests lr
-join   public.requests req on req.id = lr.request_id and req.status = 'approved'
-join   public.leave_types lt on lt.id = lr.leave_type_id
-where  lr.employee_id = ado.employee_id
-  and  ado.work_date between lr.start_date and lr.end_date
-  and  ado.leave_type is null
-  and  ado.day_type in ('leave','absent');
+revoke execute on function public._build_attendance_statement(uuid, integer, integer)
+  from public, anon, authenticated;
+grant execute on function public._build_attendance_statement(uuid, integer, integer)
+  to service_role;
 
-NOTIFY pgrst, 'Reload schema';
+-- ─── 4) backfill leave_type من طلبات الإجازة المعتمدة المغطية لليوم ──────────
+update public.attendance_day_overrides o
+   set leave_type = lt.code
+  from public.leave_requests lr
+  join public.requests r on r.id = lr.request_id and r.status = 'approved'
+  join public.leave_types lt on lt.id = lr.leave_type_id
+ where o.leave_type is null
+   and o.day_type in ('leave','absent')
+   and lr.employee_id = o.employee_id
+   and o.work_date between lr.start_date and lr.end_date;
 
-COMMIT;
+notify pgrst, 'reload schema';
+
+commit;
