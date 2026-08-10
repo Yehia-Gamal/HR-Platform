@@ -59,8 +59,13 @@ class WorkspaceScaffold extends ConsumerWidget {
     final notifications = ref.watch(myNotificationsProvider);
     final unread =
         notifications.asData?.value.where((item) => !item.isRead).length ?? 0;
-    // V20: اعرض الاسم الثنائي كاملاً وليس الاسم الأول فقط.
-    final fullName = contextData.displayName.trim();
+    // V20: اعرض الاسم الثنائي (الاسم + الأب) بدل الاسم الأول فقط،
+    // مع تجنّب الاسماء الطويلة التي تُقصّ في الشريط.
+    final nameTokens =
+        contextData.displayName.trim().split(RegExp(r'\s+'));
+    final fullName = nameTokens.length >= 2
+        ? '${nameTokens[0]} ${nameTokens[1]}'
+        : contextData.displayName.trim();
     final greeting = _greetingForNow();
 
     return LocationIncomingListener(
