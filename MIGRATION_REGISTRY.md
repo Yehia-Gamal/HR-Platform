@@ -149,7 +149,7 @@
 | 0336 | `0336_fix_executive_secretary_full_access.sql` | إصلاح صلاحية السكرتير التنفيذي (full access). |
 | 0337 | `0337_seed_kpi_assessment_permissions.sql` | بذر صلاحيات تقييم KPI. |
 
-| 0368 | `0368_restrict_kpi_diag_to_service_role.sql` | **P0**: سحب EXECUTE على `kpi_diag_run` من `authenticated` — كانت SECURITY DEFINER بلا فحص صلاحية داخلي، ومنوحة لأي موظف مسجّل → تسريب schema/UUIDs/stack traces تشخيصية. الإصلاح: service_role فقط (الدالة لا تُستدعى من كود التطبيق). |
+| 0368 | `0373_restrict_kpi_diag_to_service_role.sql` | **P0**: سحب EXECUTE على `kpi_diag_run` من `authenticated` — كانت SECURITY DEFINER بلا فحص صلاحية داخلي، ومنوحة لأي موظف مسجّل → تسريب schema/UUIDs/stack traces تشخيصية. الإصلاح: service_role فقط (الدالة لا تُستدعى من كود التطبيق). |
 ---
 
 > ⚠️ **مخاطرة مؤجلة (0293 — سلة الصور العامة):** سلة `employee-avatars` عادت إلى `public = true` لإصلاح الصور المكسورة (يُخزَّن `photo_url` كرابط عام `object/public/...` ويُستهلك في الويب والموبايل والـ RPCs). هذا يعكس توصية التدقيق (0056) ويُعرّض صور الموظفين للقراءة العامة.
@@ -158,5 +158,5 @@
 
 ---
 
-> ✅ **الحالة:** سلسلة متصلة — 0001 → 0368 — بلا تكرار أو فجوات.
+> ✅ **الحالة:** سلسلة متصلة — 0001 → 0373 — بلا تكرار أو فجوات.
 
