@@ -74,7 +74,7 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
 
   useEffect(() => {
     setDayType((day.adminOverride?.dayType as DayType | undefined) ?? 'work');
-    setLeaveType(day.adminOverride?.dayType === 'leave' || day.adminOverride?.dayType === 'absent' ? DEFAULT_LEAVE_TYPE[day.adminOverride.dayType] : '');
+    setLeaveType(day.adminOverride?.leaveType ?? (day.adminOverride?.dayType === 'leave' || day.adminOverride?.dayType === 'absent' ? DEFAULT_LEAVE_TYPE[day.adminOverride.dayType] : ''));
     setCheckIn(day.checkIn?.slice(0, 5) ?? '');
     setCheckOut(day.checkOut?.slice(0, 5) ?? '');
     setReason(day.adminOverride?.reason ?? '');

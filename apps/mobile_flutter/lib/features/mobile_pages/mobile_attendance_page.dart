@@ -28,6 +28,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     with WidgetsBindingObserver {
   bool _working = false;
 
+  /// تحديث تلقائي لبيانات الحضور والتصحيحات أثناء ظهور الصفحة.
+  Timer? _refreshTimer;
+
   /// نوع مشكلة الموقع — لتحديد زر الإعدادات المناسب.
   _LocationIssueKind? _issueKind;
 
@@ -38,26 +41,40 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _startAutoRefresh();
   }
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  /// تحديث تلقائي كل 30 ثانية فقط عندما تكون الصفحة ظاهرة.
+  void _startAutoRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route?.isCurrent != true) return;
+      ref.invalidate(attendanceStateProvider);
+      ref.invalidate(myAttendanceServicesProvider);
+    });
   }
 
   /// عند العودة من إعدادات الموقع أو التطبيق — إعادة المحاولة تلقائياً.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed &&
-        _issueKind != null &&
-        _pendingRetry != null &&
-        !_working) {
-      Future<void>.delayed(const Duration(milliseconds: 600), () {
-        if (mounted && _issueKind != null && _pendingRetry != null && !_working) {
-          _recheckAndRetry();
-        }
-      });
+    if (state == AppLifecycleState.resumed) {
+      _startAutoRefresh();
+      if (_issueKind != null && _pendingRetry != null && !_working) {
+        Future<void>.delayed(const Duration(milliseconds: 600), () {
+          if (mounted && _issueKind != null && _pendingRetry != null && !_working) {
+            _recheckAndRetry();
+          }
+        });
+      }
     }
   }
 
@@ -201,7 +218,10 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       ref.invalidate(attendanceStateProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم تسجيل الجهاز بنجاح.')),
+          const SnackBar(
+            content: Text('تم تسجيل الجهاز بنجاح — جاهز للاستخدام الآن.'),
+            backgroundColor: AppColors.statusSuccess,
+          ),
         );
       }
     } on GpsDisabledException {
@@ -491,11 +511,11 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
   String _humanizePunchError(String code) {
     switch (code) {
       case 'attendance_outside_complex':
-        return 'أنت خارج نطاق المجمع. يُرجى التسجيل من داخل موقع العمل.';
+        return 'تم التحقق من الجهاز بنجاح، لكنك خارج نطاق المجمع. يُرجى التسجيل من داخل موقع العمل.';
       case 'attendance_mock_location_rejected':
-        return 'تم رفض الموقع — يُشتبه في استخدام موقع مزيف.';
+        return 'تم التحقق من الجهاز بنجاح، لكن تم رفض الموقع — يُشتبه في استخدام موقع مزيف.';
       case 'attendance_location_accuracy_too_low':
-        return 'دقة الموقع منخفضة جداً. حاول في مكان مفتوح.';
+        return 'تم التحقق من الجهاز بنجاح، لكن دقة الموقع منخفضة جداً. حاول في مكان مفتوح.';
       case 'attendance_geofence_not_configured':
         return 'لم يتم تحديد نطاق جغرافي لحضورك. تواصل مع المسؤول.';
       case 'attendance_location_required':
