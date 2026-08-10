@@ -1,10 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
-import { createLogger } from "../_shared/logger.ts";
 import { z } from "zod";
 import { json, preflight } from "../_shared/cors.ts";
-import { createHandler } from "../_shared/withHandler.ts";
-import { generateSecureTemporaryPassword, normalizePhone, validateHrIssuedPassword } from "../_shared/phone.ts";
-const log = createLogger({ functionName: "admin-create-employee", version: "1.0.0" });
+import { normalizePhone } from "../_shared/phone.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const PUBLISHABLE_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -29,24 +26,7 @@ const inputSchema = z.object({
   phoneE164: z.string().trim().regex(/^(01\d{9}|\+[1-9]\d{7,14})$/),
   roleSlug: z.string().trim().min(2),
   jobTitleName: z.string().trim().max(160).optional(),
-  // كلمة المرور الأولية (اختيارية): إن أدخلها مسؤول HR تُفحص قوّتها، وإن تُركت
-  // فارغة تُولَّد كلمة مرور مؤقتة آمنة تلقائياً (12 حرفاً) وتُعاد في الاستجابة
-  // لعرضها مرة واحدة فقط. لا نشتقّها أبداً من بيانات تعريفية (هاتف/كود/اسم)،
-  // وتبقى must_change_password=true تفرض تغييرها في أول دخول.
-  initialPassword: z.preprocess(
-    (v) => (v === "" || v == null ? undefined : v),
-    z.string().trim().min(8, "password_min_length").max(15, "password_too_long").optional(),
-  ),
-  // رابط الصورة: يجب أن يكون https فقط — نرفض data:/file:/javascript:/blob:
-  // (z.url() وحده يقبلها). التحقق الخادمي في DB يوفّر طبقة ثانية.
-  photoUrl: z
-    .string()
-    .url()
-    .max(1000)
-    .refine((value) => /^https:\/\//i.test(value), {
-      message: "photoUrl must be an https URL",
-    })
-    .optional(),
+  photoUrl: z.string().url().max(1000).optional(),
   managerEmployeeId: nullableUuid,
   departmentId: nullableUuid,
   teamId: nullableUuid,
@@ -88,10 +68,17 @@ const ALLOWED_EMPLOYEE_ROLES = new Set([
   ...ELEVATED_EMPLOYEE_ROLES,
 ]);
 
-Deno.serve(createHandler(
-  { functionName: "admin-create-employee", version: "1.0.0" },
-  async (req, ctx) => {
+function inaccessibleRandomPassword(): string {
+  // The value is never returned or logged. Must stay ≤72 bytes — GoTRUE/bcrypt
+  // rejects longer passwords (two UUIDs = ~82 chars made createUser fail with a
+  // generic 500). A single UUID (36 chars) + fixed classes is 45 chars: ample
+  // entropy, well under the limit, and satisfies common password policies.
+  return `Cdx!9-${crypto.randomUUID()}-aZ`;
+}
+
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight(req);
+  try {
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
   if (!SUPABASE_URL || !PUBLISHABLE_KEY || !SERVICE_ROLE) {
     return json(req, { error: "server_not_configured" }, 500);
@@ -142,29 +129,6 @@ Deno.serve(createHandler(
   const phoneE164 = normalizePhone(input.phoneE164);
   // كود الموظف: صريح إن وُجد، وإلا يُشتق من الهاتف المطبّع (فريد بطبيعته).
   const employeeCode = input.employeeCode?.trim() || phoneE164;
-  const normalizedEmail = input.email.toLowerCase();
-
-  // كلمة المرور الفعلية: إن أدخلها HR تُستخدم كما هي، وإلا نولّد كلمة مرور
-  // مؤقتة آمنة عشوائية (لا اشتقاق من بيانات تعريفية) ونعيدها في الاستجابة
-  // لعرضها مرة واحدة على شاشة الإنشاء. must_change_password يفرض تغييرها عند
-  // أول دخول فلا تبقى سارية.
-  const hrPassword = input.initialPassword?.trim() ?? "";
-  const generatedTemporaryPassword = hrPassword ? undefined : generateSecureTemporaryPassword();
-  const initialPassword = generatedTemporaryPassword ?? hrPassword;
-
-  // SEC: تحقق معمّق من قوة كلمة المرور بعد pass الـ zod — zod يفرض الطول فقط،
-  // لكننا نريد رفض أنماط شائعة (كلمات قاموسية عربية/لاتينية، سلاسل رقمية، تكرار)
-  // ومنع تضمين معرّفات الموظف داخل كلمة المرور. (الكلمة المولّدة تجتاز دائماً).
-  const pwdCheck = validateHrIssuedPassword(initialPassword, {
-    email: normalizedEmail,
-    phone: phoneE164,
-    employeeCode,
-    fullNameAr: input.fullNameAr,
-  });
-  if (!pwdCheck.ok) {
-    const reason = (pwdCheck as { ok: false; reason: string }).reason;
-    return json(req, { error: reason }, 400);
-  }
 
   if (!ALLOWED_EMPLOYEE_ROLES.has(input.roleSlug)) {
     return json(req, { error: "role_not_allowed" }, 400);
@@ -192,49 +156,34 @@ Deno.serve(createHandler(
   const userMetadata = {
     full_name_ar: input.fullNameAr,
     employee_code: employeeCode,
+    must_change_password: true,
   };
-  // SEC: في app_metadata (server-only) — لا يستطيع الموظف تجاوزها بـ updateUser
-  const appMetadata = { must_change_password: true };
+
+  const normalizedEmail = input.email.toLowerCase();
 
   // ─── إنشاء حساب Auth مع استعادة تلقائية من اليتيم (orphan recovery) ───
   // إذا فشل الإنشاء لأن البريد موجود مسبقًا (من محاولة سابقة فاشلة)،
   // نحذف الحساب اليتيم ونعيد المحاولة مرة واحدة.
   // يستخدم GoTRUE REST API مباشرة لتجنب مشاكل supabase-js مع صيغ المفاتيح الجديدة.
-  const tryCreateAuthUser = async (): Promise<{
+  async function tryCreateAuthUser(): Promise<{
     data: { user: { id: string; email?: string } | null };
     error: { message: string; status?: number } | null;
-  }> => {
+  }> {
     if (input.sendInvite) {
       const result = await admin.auth.admin.inviteUserByEmail(normalizedEmail, {
         redirectTo: INVITE_REDIRECT,
         data: userMetadata,
       });
-      // مع إرسال الدعوة أيضاً نضبط كلمة المرور الأولية (التي أدخلها HR من لوحة
-      // الويب) ونؤكد البريد، كي يعمل الدخول بها فوراً حتى لو لم يصل البريد.
-      if (!result.error && result.data.user?.id) {
-        const { error: tempError } = await admin.auth.admin.updateUserById(result.data.user.id, {
-          password: initialPassword,
-          email_confirm: true,
-          app_metadata: appMetadata,
-        });
-        if (tempError) {
-          ctx.log.error("temp password update failed", tempError);
-        }
-      }
       return result as { data: { user: { id: string; email?: string } | null }; error: { message: string; status?: number } | null };
     }
 
     // استدعاء GoTRUE REST API مباشرة
-    const password = initialPassword;
+    const password = inaccessibleRandomPassword();
     const reqBody = {
       email: normalizedEmail,
       password,
-      // الحساب يُنشأ بواسطة إداري مصادَق يحق له إنشاء الموظف — نؤكد البريد فوراً.
-      // بدون هذا، يستطيع الموظف تعيين كلمة مرور عبر رابط الاسترداد (إعادة الدعوة)
-      // لكن تسجيل الدخول لاحقاً يفشل لأن GoTrue يرفض "Email not confirmed".
-      email_confirm: true,
+      email_confirm: false,
       user_metadata: userMetadata,
-      app_metadata: appMetadata,
     };
     const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
       method: "POST",
@@ -247,9 +196,7 @@ Deno.serve(createHandler(
     const rawText = await res.text();
     let body: Record<string, unknown> | null = null;
     try { body = JSON.parse(rawText); } catch { /* not JSON */ }
-    const createdUserId = typeof body?.id === "string" ? body.id : null;
-    const createdUserEmail = typeof body?.email === "string" ? body.email : undefined;
-    if (!res.ok || !createdUserId) {
+    if (!res.ok || !body?.id) {
       return {
         data: { user: null },
         error: {
@@ -258,25 +205,22 @@ Deno.serve(createHandler(
         },
       };
     }
-    return {
-      data: { user: { id: createdUserId, email: createdUserEmail } },
-      error: null,
-    };
-  };
+    return { data: { user: { id: body.id, email: body.email } }, error: null };
+  }
 
-  const isDuplicateError = (err: { message?: string; status?: number } | null): boolean => {
+  function isDuplicateError(err: { message?: string; status?: number } | null): boolean {
     if (!err) return false;
     const msg = (err.message ?? "").toLowerCase();
     return msg.includes("already") || msg.includes("registered") ||
       msg.includes("exists") || msg.includes("duplicate") ||
       msg.includes("unique") || (err as { status?: number }).status === 422;
-  };
+  }
 
   let { data: created, error: createError } = await tryCreateAuthUser();
 
   // استعادة من حساب يتيم: حذف ثم إعادة إنشاء
   if (createError && isDuplicateError(createError)) {
-    ctx.log.warning("auth.createUser duplicate detected — attempting orphan recovery", {
+    console.error("auth.createUser duplicate detected — attempting orphan recovery", {
       message: createError.message,
       status: (createError as { status?: number }).status,
     });
@@ -305,14 +249,14 @@ Deno.serve(createHandler(
       }
 
       // حذف اليتيم وإعادة المحاولة
-      ctx.log.warning("deleting orphaned auth user for recovery", { orphanId });
+      console.error("deleting orphaned auth user for recovery", { orphanId });
       await admin.auth.admin.deleteUser(orphanId).catch(() => undefined);
       ({ data: created, error: createError } = await tryCreateAuthUser());
     }
   }
 
   if (createError || !created?.user) {
-    ctx.log.error("auth.createUser failed", createError, {
+    console.error("auth.createUser failed", {
       message: createError?.message,
       status: (createError as { status?: number })?.status,
       name: (createError as { name?: string })?.name,
@@ -364,24 +308,19 @@ Deno.serve(createHandler(
       await admin.auth.admin.deleteUser(userId).catch(() => undefined);
     }
     if (deleteError) {
-      ctx.log.error("orphaned auth user cleanup failed", deleteError, { code: (deleteError as { code?: string })?.code });
+      console.error("orphaned auth user cleanup failed", { code: (deleteError as { code?: string })?.code });
     }
     return json(req, { error: errorCode }, 500);
   }
 
   const result = provisioned as { employeeId?: string; userId?: string } | null;
-  ctx.log.info("employee created", {
-    employeeId: result?.employeeId,
-    invitationSent: input.sendInvite,
-  });
   return json(req, {
     employeeId: result?.employeeId,
     userId: result?.userId ?? userId,
     invitationSent: input.sendInvite,
-    // كلمة مرور مؤقتة مولّدة تلقائياً (عند ترك الحقل فارغاً) — تُعرض مرة واحدة
-    // فقط على شاشة الإنشاء ولا تُعاد ثانية.
-    ...(generatedTemporaryPassword ? { temporaryPassword: generatedTemporaryPassword } : {}),
   }, 201);
-  },
-));
+  } catch (err) {
+    console.error("admin-create-employee unhandled error", err instanceof Error ? err.message : String(err));
+    return json(req, { error: "INTERNAL_ERROR" }, 500);
+  }
 });

@@ -540,6 +540,7 @@ class _KpiEvaluationDetailPageState
     final target = switch (form.editableStage) {
       'hr_review' => 'self',
       'manager_review' => 'hr_review',
+      'manager_final' => 'manager_review',
       'parallel_review' => 'self',
       'secretary_review' => 'parallel_review',
       'executive_review' => 'secretary_review',

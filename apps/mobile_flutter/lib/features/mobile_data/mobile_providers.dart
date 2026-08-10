@@ -1476,6 +1476,36 @@ extension ExecutiveDisputeCommands on MobileCommands {
     ref.invalidate(executiveDashboardProvider);
   }
 
+  /// جدولة جلسة نزاع — schedule_dispute_session_v2 (وليس transition_dispute_case)
+  Future<String> scheduleDisputeSession({
+    required String caseId,
+    required String type,
+    required DateTime scheduledAt,
+    DateTime? endsAt,
+    String? location,
+    String modality = 'in_person',
+  }) async {
+    final result = await _withTimeout(ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
+          'schedule_dispute_session_v2',
+          params: {
+            'p_case_id': caseId,
+            'p_type': type,
+            'p_scheduled_at': scheduledAt.toUtc().toIso8601String(),
+            'p_ends_at': endsAt?.toUtc().toIso8601String(),
+            'p_location': location?.trim().isEmpty ?? true
+                ? null
+                : location?.trim(),
+            'p_modality': modality,
+          },
+        ));
+    ref.invalidate(committeeDisputePortalProvider);
+    ref.invalidate(executiveDisputeInboxProvider);
+    ref.invalidate(myDisputePortalProvider);
+    return result?.toString() ?? caseId;
+  }
+
   /// 0202 — نقل حالة القضية (سكرتير/أدمن/لجنة)
   Future<String> transitionDisputeCase({
     required String caseId,

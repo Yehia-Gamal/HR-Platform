@@ -615,10 +615,12 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
 
   Future<void> _pickDate(bool isStart) async {
     final initial = isStart ? DateTime.now() : (_startDate ?? DateTime.now());
+    // تاريخ النهاية لا يمكن أن يسبق تاريخ البداية.
+    final first = isStart ? DateTime.now() : (_startDate ?? DateTime.now());
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
-      firstDate: DateTime.now(),
+      firstDate: first,
       lastDate: DateTime.now().add(const Duration(days: 365)),
       locale: const Locale('ar'),
     );
@@ -685,6 +687,13 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
           );
           return;
         }
+        if (_endDate!.isBefore(_startDate!)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('تاريخ النهاية يجب أن يكون بعد تاريخ البداية')),
+          );
+          return;
+        }
         payload = {
           'leaveType': _leaveType,
           'startDate': _startDate!.toIso8601String().substring(0, 10),
@@ -696,6 +705,13 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
         if (_startDate == null || _endDate == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('يرجى تحديد تاريخ البداية والنهاية')),
+          );
+          return;
+        }
+        if (_endDate!.isBefore(_startDate!)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('تاريخ النهاية يجب أن يكون بعد تاريخ البداية')),
           );
           return;
         }

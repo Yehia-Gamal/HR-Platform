@@ -189,6 +189,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
   }
 
   Future<void> _register({bool skipDialog = false}) async {
+    if (_working) return;
     setState(() => _working = true);
     try {
       await ref.read(mobileCommandsProvider).registerLocalBiometricDevice();
@@ -306,6 +307,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
   }
 
   Future<void> _punch(String action, {bool skipDialog = false}) async {
+    // حارس إعادة الدخول: يمنع أي طلب بصمة ثانٍ أثناء وجود طلب قيد التنفيذ
+    // (من زر ثانٍ أو إعادة محاولة عند الاستئناف) — تجنّب إرسال حضور مكرر.
+    if (_working) return;
     if (!skipDialog) {
       final confirmed = await showDialog<bool>(
         context: context,
@@ -440,7 +444,10 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           if (!mounted) return;
           if (perm == LocationPermission.always ||
               perm == LocationPermission.whileInUse) {
-            _punch(action, skipDialog: true);
+            // أُعيد التعيين قبل الاستدعاء التكراري لتجاوز حارس إعادة الدخول،
+            // ثم يُنتظَر الطلب الداخلي حتى يكتمل قبل أن يُعيد finally تفعيل الزر.
+            if (mounted) setState(() => _working = false);
+            await _punch(action, skipDialog: true);
             return;
           }
           ScaffoldMessenger.of(context).showSnackBar(

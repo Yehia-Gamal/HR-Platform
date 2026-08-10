@@ -26,25 +26,17 @@ export function Tabs({ tabs, activeTab, onTabChange, children, ariaLabel = 'أل
       const currentIndex = tabs.findIndex((t) => t.id === activeTab);
       if (currentIndex === -1) return;
 
-      let nextIndex: number;
-
       /* RTL: ArrowRight = السابق، ArrowLeft = التالي */
-      switch (e.key) {
-        case 'ArrowRight':
-          nextIndex = currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
-          break;
-        case 'ArrowLeft':
-          nextIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
-          break;
-        case 'Home':
-          nextIndex = 0;
-          break;
-        case 'End':
-          nextIndex = tabs.length - 1;
-          break;
-        default:
-          return;
-      }
+      const nextIndex = (() => {
+        switch (e.key) {
+          case 'ArrowRight': return currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
+          case 'ArrowLeft': return currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
+          case 'Home': return 0;
+          case 'End': return tabs.length - 1;
+          default: return -1;
+        }
+      })();
+      if (nextIndex === -1) return;
 
       e.preventDefault();
       const next = tabs[nextIndex];
