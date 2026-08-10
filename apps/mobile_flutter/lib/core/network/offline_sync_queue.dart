@@ -147,11 +147,13 @@ class OfflineSyncQueue {
           // لكن مع إشعار صريح للمستخدم بدل الإسقاط الصامت.
           toRemove.add(item.id);
           droppedNotifier.value = item;
-          debugPrint(
-            '[OfflineSyncQueue] تجاوز الحد الأقصى للمحاولات: '
-            '${item.action} (${item.id})',
-          );
-        } else {
+          if (kDebugMode) {
+            debugPrint(
+              '[OfflineSyncQueue] تجاوز الحد الأقصى للمحاولات: '
+              '${item.action} (${item.id})',
+            );
+          }
+        } else if (kDebugMode) {
           debugPrint(
             '[OfflineSyncQueue] فشل ${item.action}: $e '
             '(محاولة ${item.retryCount}/$maxRetries)',

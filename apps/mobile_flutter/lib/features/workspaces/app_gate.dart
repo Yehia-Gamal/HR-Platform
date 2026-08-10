@@ -60,8 +60,7 @@ class _AuthenticatedGate extends ConsumerWidget {
     final supabase = ref.read(supabaseProvider);
 
     void signOut() {
-      final uid = supabase.auth.currentUser?.id;
-      cleanupOnSignOut(userId: uid);
+      cleanupOnSignOut(userId: supabase.auth.currentUser?.id);
       supabase.auth.signOut();
       ref.invalidate(authSessionProvider);
       ref.invalidate(accessContextProvider);
@@ -110,7 +109,6 @@ class _AuthenticatedGate extends ConsumerWidget {
         if (value.user.appMetadata['must_change_password'] == true) {
           return const SetPasswordPage();
         }
-        // قيّد مفاتيح الكاش بمعرّف المستخدم الحالي لمنع تسرّب البيانات.
         OfflineCache.instance.setCurrentUser(value.user.id);
         // Device registration is non-blocking for the UI but remains observable in Riverpod.
         ref.watch(deviceRegistrationProvider);

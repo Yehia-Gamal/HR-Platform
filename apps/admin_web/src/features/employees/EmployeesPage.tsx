@@ -1,6 +1,7 @@
-import { ArrowUpDown, Plus, RefreshCw, UserRound, UsersRound } from 'lucide-react';
+import { ArrowUpDown, FileSpreadsheet, Plus, Printer, RefreshCw, UserRound, UsersRound } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
+import { downloadCsv, printReport, toCsv, type ExportColumn } from '../../core/exportUtils';
 import { MetricCard } from '../../ui/MetricCard';
 import { FilterBar } from '../../ui/FilterBar';
 import { PageHeader } from '../../ui/PageHeader';
@@ -59,6 +60,39 @@ export function EmployeesPage() {
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
+
+  const exportColumns: ExportColumn<(typeof filtered)[number]>[] = [
+    { key: 'code', header: 'كود الموظف', get: (e) => e.employeeCode },
+    { key: 'name', header: 'الاسم', get: (e) => e.fullNameAr },
+    { key: 'dept', header: 'الإدارة', get: (e) => e.department ?? '' },
+    { key: 'title', header: 'المسمى الوظيفي', get: (e) => e.jobTitle ?? '' },
+    { key: 'phone', header: 'الهاتف', get: (e) => e.phoneE164 ?? '' },
+    { key: 'status', header: 'الحالة', get: (e) => e.status },
+    { key: 'created', header: 'تاريخ الإضافة', get: (e) => dateFormatter.format(new Date(e.createdAt)) },
+  ];
+
+  const handleCsvExport = () => {
+    downloadCsv(
+      `employees-${new Date().toISOString().slice(0, 10)}.csv`,
+      toCsv(exportColumns, filtered),
+    );
+  };
+
+  const handlePdfExport = () => {
+    printReport(
+      [{
+        title: 'دليل الموظفين',
+        subtitle: `${filtered.length} موظف`,
+        table: {
+          headers: exportColumns.map((c) => c.header),
+          rows: filtered.map((e) => exportColumns.map((c) => String(c.get(e) ?? ''))),
+        },
+      }],
+      'دليل الموظفين — أحلى شباب',
+    );
+  };
 
   const columns: DataTableColumn<(typeof filtered)[number]>[] = useMemo(
     () => [
@@ -128,12 +162,34 @@ export function EmployeesPage() {
         title="دليل الموظفين"
         description="ابحث في ملفات الموظفين وافتح الملف الشخصي لأي منهم."
         actions={
-          canCreate ? (
-            <Link to="/hr/employees/new" className="btn-primary">
-              <Plus className="size-4" aria-hidden="true" />
-              إنشاء موظف
-            </Link>
-          ) : undefined
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={handlePdfExport}
+              disabled={filtered.length === 0}
+              title="طباعة PDF"
+            >
+              <Printer className="size-4" aria-hidden="true" />
+              PDF
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={handleCsvExport}
+              disabled={filtered.length === 0}
+              title="تصدير Excel"
+            >
+              <FileSpreadsheet className="size-4" aria-hidden="true" />
+              تصدير
+            </button>
+            {canCreate && (
+              <Link to="/hr/employees/new" className="btn-primary">
+                <Plus className="size-4" aria-hidden="true" />
+                إنشاء موظف
+              </Link>
+            )}
+          </div>
         }
       />
 

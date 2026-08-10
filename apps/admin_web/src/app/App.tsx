@@ -151,16 +151,8 @@ export function App() {
                 </RequirePermission>
               }
             />
-            {/* daily-reports: مرئي لكل أعضاء المساحة المصادَق عليهم — RLS على مستوى RPC */}
-            <Route path="daily-reports" element={<DailyReportsFeedPage />} />
-            <Route
-              path="executive-monitoring"
-              element={
-                <RequirePermission perm="reports.people.read">
-                  <ExecutiveMonitoringPage />
-                </RequirePermission>
-              }
-            />
+            <Route path="daily-reports" element={<RequirePermission perm={['reports.daily.read', 'people.employee.read']}><DailyReportsFeedPage /></RequirePermission>} />
+            <Route path="executive-monitoring" element={<RequirePermission perm="people.employee.read"><ExecutiveMonitoringPage /></RequirePermission>} />
             <Route
               path="org-chart"
               element={
@@ -305,7 +297,7 @@ export function App() {
             />
             {/* notifications/knowledge: مرئيان لكل أعضاء المساحة — لا يحتاجان permission خاص */}
             <Route path="notifications" element={<NotificationsPage />} />
-            <Route path="knowledge" element={<KnowledgePage />} />
+            <Route path="knowledge" element={<RequirePermission perm="knowledge.article.read"><KnowledgePage /></RequirePermission>} />
           </Route>
         </Route>
 
@@ -472,10 +464,9 @@ function HrWorkspaceRoutes() {
           </RequirePermission>
         }
       />
-      {/* learning/documents: مرئيان لكل الموظفين المصادَق عليهم — لا يحتاجان permission خاص */}
-      <Route path="learning" element={<LearningPage />} />
+      <Route path="learning" element={<RequirePermission perm="learning.enroll"><LearningPage /></RequirePermission>} />
       <Route path="lifecycle" element={<RequirePermission perm="people.employee.read"><LifecyclePage /></RequirePermission>} />
-      <Route path="documents" element={<DocumentsPage />} />
+      <Route path="documents" element={<RequirePermission perm="documents.document.read"><DocumentsPage /></RequirePermission>} />
       <Route
         path="official-feed"
         element={
@@ -484,8 +475,8 @@ function HrWorkspaceRoutes() {
           </RequirePermission>
         }
       />
-      <Route path="daily-reports" element={<DailyReportsFeedPage />} />
-      <Route path="knowledge" element={<KnowledgePage />} />
+      <Route path="daily-reports" element={<RequirePermission perm={['reports.daily.read', 'people.employee.read']}><DailyReportsFeedPage /></RequirePermission>} />
+      <Route path="knowledge" element={<RequirePermission perm="knowledge.article.read"><KnowledgePage /></RequirePermission>} />
       <Route path="notifications" element={<NotificationsPage />} />
       <Route path="*" element={<Navigate to="employees" replace />} />
     </Routes>

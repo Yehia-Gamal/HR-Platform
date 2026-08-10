@@ -711,15 +711,49 @@ class _AttendanceCard extends StatelessWidget {
 
   Widget _buildDetails(BuildContext context) {
     final parts = <String>[];
-    if (employee.firstCheckIn != null) {
-      parts.add(
-        'دخول ${DateFormat('h:mm a', 'ar').format(employee.firstCheckIn!.toLocal())}',
-      );
+    // §2 — اعرض سياقًا واضحًا لكل حالة حتى لو لم يُسجّل حضورًا، بدل
+    // بطاقة فارغة لا تُظهر شيئًا للمدير التنفيذي.
+    if (employee.isOnMission) {
+      parts.add('في مأمورية خارجية');
+    } else {
+      switch (employee.attendanceStatus) {
+        case 'present':
+        case 'late':
+          if (employee.firstCheckIn != null) {
+            parts.add(
+              'دخول ${DateFormat('h:mm a', 'ar').format(employee.firstCheckIn!.toLocal())}',
+            );
+          }
+          if (employee.lateMinutes > 0) {
+            parts.add('تأخر ${employee.lateMinutes} د');
+          }
+          if (employee.lastCheckOut != null) {
+            parts.add(
+              'خروج ${DateFormat('h:mm a', 'ar').format(employee.lastCheckOut!.toLocal())}',
+            );
+          }
+          break;
+        case 'on_leave':
+          parts.add('في إجازة معتمدة');
+          break;
+        case 'weekend':
+          parts.add('يوم راحة أسبوعية');
+          break;
+        case 'holiday':
+          parts.add('عطلة رسمية');
+          break;
+        case 'partial':
+          parts.add('حضور جزئي');
+          break;
+        case 'absent':
+        default:
+          parts.add('لم يُسجّل حضورًا اليوم');
+          break;
+      }
     }
-    if (employee.lateMinutes > 0) {
-      parts.add('تأخر ${employee.lateMinutes} د');
-    }
-    if (employee.lastRecordedAt != null) {
+    if (employee.lastRecordedAt != null &&
+        (employee.attendanceStatus == 'present' ||
+            employee.attendanceStatus == 'late')) {
       parts.add(
         'آخر موقع ${DateFormat('h:mm a', 'ar').format(employee.lastRecordedAt!.toLocal())}',
       );

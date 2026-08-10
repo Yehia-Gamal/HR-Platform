@@ -179,8 +179,8 @@ select is(
 
 select is(
   (select count(*)::int from public.employee_compensation),
-  0,
-  '2.3 الموظف العادي لا يقرأ بيانات التعويضات'
+  1,
+  '2.3 الموظف العادي يقرأ بيانات تعويضه الخاصة فقط (self-service)'
 );
 
 select is(

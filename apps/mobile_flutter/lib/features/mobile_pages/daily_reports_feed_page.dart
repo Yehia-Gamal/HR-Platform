@@ -1,7 +1,6 @@
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_daily_reports_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -51,17 +50,12 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
           ),
         ],
       ),
-      // V20: زر إضافة تقرير يومي شخصي — يفتح صفحة تقاريري اليومية.
+      // V21: زر إضافة تقرير يومي شخصي — يفتح نموذج إنشاء مباشر داخل
+      // صفحة التقارير بدل الانتقال لصفحة "تقاريري" المنفصلة (المكررة).
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.edit_note_rounded),
         label: const Text('تقرير اليوم'),
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const MobileDailyReportsPage(),
-            ),
-          );
-        },
+        onPressed: () => _composeReport(context),
       ),
       body: feed.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -181,6 +175,100 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
           SnackBar(content: Text(humanizeError(e, stack))),
         );
       }
+    }
+  }
+
+  /// نموذج إنشاء/تعديل تقرير اليوم مباشرة داخل صفحة تقارير الجميع —
+  /// يبحث عن تقرير اليوم الموجود مسبقًا لتحريره بدل إنشاء تكرار.
+  Future<void> _composeReport(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final achievements = TextEditingController();
+    final blockers = TextEditingController();
+    final tomorrow = TextEditingController();
+
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          bottom: MediaQuery.viewInsetsOf(sheetContext).bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'تقرير اليوم',
+              style: Theme.of(sheetContext)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: achievements,
+              maxLines: 3,
+              autofocus: true,
+              decoration: const InputDecoration(labelText: 'ما تم إنجازه'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: blockers,
+              maxLines: 2,
+              decoration: const InputDecoration(labelText: 'المعوقات'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: tomorrow,
+              maxLines: 2,
+              decoration: const InputDecoration(labelText: 'خطة الغد'),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () {
+                if (achievements.text.trim().length < 3) {
+                  ScaffoldMessenger.of(sheetContext).showSnackBar(
+                    const SnackBar(
+                      content: Text('اكتب الإنجازات بصورة واضحة أولًا.'),
+                    ),
+                  );
+                  return;
+                }
+                Navigator.pop(sheetContext, true);
+              },
+              child: const Text('حفظ التقرير'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final done = achievements.text.trim();
+    final blocked = blockers.text.trim();
+    final next = tomorrow.text.trim();
+    achievements.dispose();
+    blockers.dispose();
+    tomorrow.dispose();
+    if (confirmed != true) return;
+
+    try {
+      await ref.read(mobileCommandsProvider).saveDailyReport(
+            reportDate: DateTime.now(),
+            achievements: done,
+            blockers: blocked,
+            tomorrowPlan: next,
+          );
+      ref.invalidate(dailyReportsFeedProvider(null));
+      messenger.showSnackBar(
+        const SnackBar(content: Text('تم حفظ التقرير اليومي.')),
+      );
+    } catch (e, stack) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(humanizeError(e, stack))),
+      );
     }
   }
 }

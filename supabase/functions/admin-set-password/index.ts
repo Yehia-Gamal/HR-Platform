@@ -116,8 +116,9 @@ Deno.serve(createHandler({ functionName: "admin-set-password", version: "1.0.0" 
         email_confirm: true,
         user_metadata: {
           ...(authUser.user?.user_metadata ?? {}),
-          must_change_password: true,
         },
+        // SEC: must_change_password في app_metadata (server-only) — لا يستطيع الموظف تجاوزها بـ updateUser
+        app_metadata: { must_change_password: true },
       }),
     },
   );

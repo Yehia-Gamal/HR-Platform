@@ -1983,6 +1983,30 @@ class _CaseActionsSection extends ConsumerWidget {
       );
       return;
     }
+    if (action.key == '_schedule_session') {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _SessionScheduleSheet(caseItem: caseItem),
+      );
+      return;
+    }
+    if (action.key == '_issue_decision') {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _IssueDecisionSheet(caseItem: caseItem),
+      );
+      return;
+    }
+    if (action.key == '_record_settlement') {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _SettlementSheet(caseItem: caseItem),
+      );
+      return;
+    }
 
     // إجراءات انتقال عادية
     if (action.needsReason) {
@@ -2943,7 +2967,6 @@ class _SessionScheduleSheet extends ConsumerStatefulWidget {
 
 class _SessionScheduleSheetState extends ConsumerState<_SessionScheduleSheet> {
   final _locationController = TextEditingController();
-  final _notesController = TextEditingController();
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   TimeOfDay? _endTime;
@@ -2965,7 +2988,6 @@ class _SessionScheduleSheetState extends ConsumerState<_SessionScheduleSheet> {
   @override
   void dispose() {
     _locationController.dispose();
-    _notesController.dispose();
     super.dispose();
   }
 
@@ -3031,19 +3053,13 @@ class _SessionScheduleSheetState extends ConsumerState<_SessionScheduleSheet> {
         );
       }
 
-      await ref.read(mobileCommandsProvider).transitionDisputeCase(
+      await ref.read(mobileCommandsProvider).scheduleDisputeSession(
             caseId: widget.caseItem.id,
-            action: 'schedule_session',
-            reason: _notesController.text.trim().isEmpty
-                ? null
-                : _notesController.text.trim(),
-            metadata: {
-              'session_type': 'hearing',
-              'scheduled_at': startDt.toIso8601String(),
-              if (endDt != null) 'ends_at': endDt.toIso8601String(),
-              'location': _locationController.text.trim(),
-              'modality': _modality,
-            },
+            type: 'hearing',
+            scheduledAt: startDt,
+            endsAt: endDt,
+            location: _locationController.text.trim(),
+            modality: _modality,
           );
       ref.invalidate(committeeDisputePortalProvider);
       if (mounted) {
@@ -3171,18 +3187,7 @@ class _SessionScheduleSheetState extends ConsumerState<_SessionScheduleSheet> {
               const SizedBox(height: 12),
             ],
 
-            // ملاحظات
-            TextField(
-              controller: _notesController,
-              maxLines: 2,
-              maxLength: 300,
-              decoration: const InputDecoration(
-                labelText: 'ملاحظات (اختياري)',
-                border: OutlineInputBorder(),
-                alignLabelWithHint: true,
-              ),
-            ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 2),
 
             FilledButton.icon(
               onPressed: _canSubmit ? _submit : null,

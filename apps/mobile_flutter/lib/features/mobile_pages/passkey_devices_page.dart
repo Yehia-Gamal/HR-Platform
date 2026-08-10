@@ -113,13 +113,13 @@ class _PasskeyDevicesPageState extends ConsumerState<PasskeyDevicesPage> {
 
   Future<void> _register() async {
     setState(() => _registering = true);
-    try {
+      try {
       await ref.read(mobileCommandsProvider).registerPasskey();
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(
-          content: Text('تم تسجيل الجهاز — ينتظر موافقة المسؤول'),
+          content: Text('تم تأمين الجهاز وتفعيله تلقائيًا'),
         ));
       }
     } catch (error) {

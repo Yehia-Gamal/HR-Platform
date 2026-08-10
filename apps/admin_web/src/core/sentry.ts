@@ -314,6 +314,10 @@ function sanitizeTelemetryValue(value: unknown): unknown {
       'national',
       'iban',
       'address',
+      'salary',
+      'wage',
+      'birth',
+      'dob',
       // حقول نصّية حرّة قد تحمل PII (ملاحظات المراجعين، أسباب القرارات...)
       'note',
       'comment',
@@ -361,10 +365,19 @@ function sanitizeTelemetryText(value: string): string {
 function sanitizeUrl(url: string): string {
   try {
     const u = new URL(url, window.location.origin);
+    // إزالة وسائط الاستعلام الحساسة (token, code, state, ...)
     const sensitive = ['token', 'code', 'state', 'session', 'password', 'secret'];
     sensitive.forEach((key) => u.searchParams.delete(key));
-    return u.pathname + u.search;
+    // تنظيف مقاطع المسار التي قد تحمل PII (بريد إلكتروني أو JWT في المسار)
+    const segments = u.pathname.split('/').map((seg) => {
+      const decoded = decodeURIComponent(seg);
+      if (/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(decoded)) return '[REDACTED]';
+      if (/^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(decoded)) return '[REDACTED]';
+      return seg;
+    });
+    u.pathname = segments.join('/');
+    return sanitizeTelemetryText(u.pathname + u.search);
   } catch {
-    return url;
+    return sanitizeTelemetryText(url);
   }
 }

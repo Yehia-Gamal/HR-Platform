@@ -143,14 +143,14 @@ begin
       -- executive-director: اعتماد نهائي + تقارير + قرارات على مستوى المؤسسة
       ('executive-director', array[
         'performance.kpi.executive_review','performance.kpi.finalize','comms.decision.manage','decisions.',
-        'reports.','requests.approve','location.request.manage','audit.view'], 'organization'),
+        'reports.','requests.approve','location.request.manage','audit.view','knowledge.'], 'organization'),
       -- committee-member / chair: القضايا المسندة
       ('committee-member', array['disputes.case.manage'], 'assigned_cases'),
       ('committee-chair',  array['disputes.case.manage','comms.decision.manage'], 'assigned_cases'),
       -- system-admin: النظام والأمان والتكاملات (لا اعتماد HR/KPI تلقائياً)
       ('system-admin', array[
         'settings.','system.','security.','audit.','access.role.read','access.review.',
-        'access.break_glass.request','privacy.request.manage'], 'organization'),
+        'access.break_glass.request','privacy.request.manage','knowledge.'], 'organization'),
       -- employee: ذاتي فقط
       ('employee', array[
         'attendance.record.read','attendance.permit.read','requests.read',

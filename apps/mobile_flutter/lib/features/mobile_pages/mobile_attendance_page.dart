@@ -10,6 +10,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendan
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_services_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,13 +42,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (!mounted) return;
-      final route = ModalRoute.of(context);
-      if (route?.isCurrent != true) return;
-      ref.invalidate(attendanceStateProvider);
-      ref.invalidate(myAttendanceServicesProvider);
-    });
+    _startAutoRefresh();
   }
 
   @override
@@ -57,19 +52,23 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     super.dispose();
   }
 
+  /// تحديث تلقائي كل 30 ثانية فقط عندما تكون الصفحة ظاهرة.
+  void _startAutoRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route?.isCurrent != true) return;
+      ref.invalidate(attendanceStateProvider);
+      ref.invalidate(myAttendanceServicesProvider);
+    });
+  }
+
   /// عند العودة من إعدادات الموقع أو التطبيق — إعادة المحاولة تلقائياً.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      if (_refreshTimer == null) {
-        _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-          if (!mounted) return;
-          final route = ModalRoute.of(context);
-          if (route?.isCurrent != true) return;
-          ref.invalidate(attendanceStateProvider);
-          ref.invalidate(myAttendanceServicesProvider);
-        });
-      }
+      _startAutoRefresh();
       if (_issueKind != null && _pendingRetry != null && !_working) {
         Future<void>.delayed(const Duration(milliseconds: 600), () {
           if (mounted && _issueKind != null && _pendingRetry != null && !_working) {
@@ -153,6 +152,16 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
   }
 
   Widget _body(AttendanceState value) {
+    // V20: تسجيل تلقائي للجهاز — لا حاجة لخطوة يدوية.
+    if (value.attendanceRequired &&
+        value.selfPunchEnabled &&
+        !value.hasActiveLocalDevice &&
+        value.localDeviceStatus != 'pending' &&
+        !_working) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _register(skipDialog: true);
+      });
+    }
     if (!value.attendanceRequired || !value.selfPunchEnabled) {
       return ListView(
         padding: const EdgeInsets.all(20),
@@ -198,6 +207,10 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
         _TodayStatusCard(state: value),
         const SizedBox(height: 14),
 
+        // V20: تصحيحات الحضور داخل صفحة البصمة — لا حاجة لصفحة منفصلة.
+        _CorrectionsSection(),
+        const SizedBox(height: 14),
+
         // ── روابط سريعة ──
         _QuickLinksRow(working: _working),
         const SizedBox(height: 14),
@@ -213,6 +226,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
   }
 
   Future<void> _register({bool skipDialog = false}) async {
+    if (_working) return;
     setState(() => _working = true);
     try {
       await ref.read(mobileCommandsProvider).registerLocalBiometricDevice();
@@ -333,6 +347,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
   }
 
   Future<void> _punch(String action, {bool skipDialog = false}) async {
+    // حارس إعادة الدخول: يمنع أي طلب بصمة ثانٍ أثناء وجود طلب قيد التنفيذ
+    // (من زر ثانٍ أو إعادة محاولة عند الاستئناف) — تجنّب إرسال حضور مكرر.
+    if (_working) return;
     if (!skipDialog) {
       final confirmed = await showDialog<bool>(
         context: context,
@@ -467,7 +484,10 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           if (!mounted) return;
           if (perm == LocationPermission.always ||
               perm == LocationPermission.whileInUse) {
-            _punch(action, skipDialog: true);
+            // أُعيد التعيين قبل الاستدعاء التكراري لتجاوز حارس إعادة الدخول،
+            // ثم يُنتظَر الطلب الداخلي حتى يكتمل قبل أن يُعيد finally تفعيل الزر.
+            if (mounted) setState(() => _working = false);
+            await _punch(action, skipDialog: true);
             return;
           }
           ScaffoldMessenger.of(context).showSnackBar(
@@ -506,11 +526,11 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
   String _humanizePunchError(String code) {
     switch (code) {
       case 'attendance_outside_complex':
-        return 'أنت خارج نطاق المجمع. يُرجى التسجيل من داخل موقع العمل.';
+        return 'تم التحقق من الجهاز بنجاح، لكنك خارج نطاق المجمع. يُرجى التسجيل من داخل موقع العمل.';
       case 'attendance_mock_location_rejected':
-        return 'تم رفض الموقع — يُشتبه في استخدام موقع مزيف.';
+        return 'تم التحقق من الجهاز بنجاح، لكن تم رفض الموقع — يُشتبه في استخدام موقع مزيف.';
       case 'attendance_location_accuracy_too_low':
-        return 'دقة الموقع منخفضة جداً. حاول في مكان مفتوح.';
+        return 'تم التحقق من الجهاز بنجاح، لكن دقة الموقع منخفضة جداً. حاول في مكان مفتوح.';
       case 'attendance_geofence_not_configured':
         return 'لم يتم تحديد نطاق جغرافي لحضورك. تواصل مع المسؤول.';
       case 'attendance_location_required':
@@ -1022,4 +1042,99 @@ class _WarningBanner extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// V20: قسم تصحيحات الحضور — مدمج داخل صفحة البصمة بدل صفحة منفصلة.
+/// يعرض آخر طلبات التصحيح وزر "طلب تصحيح جديد".
+class _CorrectionsSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final services = ref.watch(myAttendanceServicesProvider);
+    final corrections = services.asData?.value.corrections ?? [];
+    final scheme = Theme.of(context).colorScheme;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.edit_calendar_rounded, size: 22, color: scheme.primary),
+                const SizedBox(width: 8),
+                Text('تصحيحات الحضور',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        )),
+                const Spacer(),
+                TextButton.icon(
+                  icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
+                  label: const Text('طلب تصحيح'),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const MobileAttendanceServicesPage(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const Divider(),
+            if (corrections.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                  child: Text(
+                    'لا توجد طلبات تصحيح سابقة',
+                    style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+                  ),
+                ),
+              )
+            else
+              ...corrections.take(3).map((c) => ListTile(
+                    dense: true,
+                    leading: Icon(
+                      c.status == 'approved'
+                          ? Icons.check_circle_outline
+                          : c.status == 'rejected'
+                              ? Icons.cancel_outlined
+                              : Icons.pending_actions,
+                      size: 20,
+                      color: c.status == 'approved'
+                          ? AppColors.statusSuccess
+                          : c.status == 'rejected'
+                              ? AppColors.statusDanger
+                              : AppColors.statusWarning,
+                    ),
+                    title: Text(DateFormat('yyyy/MM/dd').format(c.workDate),
+                        style: const TextStyle(fontSize: 13)),
+                    subtitle: Text(
+                      c.reason.isNotEmpty ? c.reason : c.type,
+                      style: const TextStyle(fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Text(
+                      c.status == 'approved'
+                          ? 'موافق'
+                          : c.status == 'rejected'
+                              ? 'مرفوض'
+                              : 'معلّق',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: c.status == 'approved'
+                            ? AppColors.statusSuccess
+                            : c.status == 'rejected'
+                                ? AppColors.statusDanger
+                                : AppColors.statusWarning,
+                      ),
+                    ),
+                  )),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -27,16 +27,16 @@ end
 $fixture$;
 
 -- =====================================================================
--- الفئة 1: anon يُرفض (28000 ERR_UNAUTHENTICATED) — اختباران
+-- الفئة 1: التحقق من وجود الدالة وأن anon يُرفض
 -- =====================================================================
 
--- 1.1: التحقق من وجود الدالة أصلاً
+-- 1.1: الدالة موجودة
 select has_function(
   'public', 'clear_must_change_password', ARRAY[]::text[],
   '1.1 الدالة clear_must_change_password موجودة'
 );
 
--- 1.2: الأنون لا يستطيع تنفيذها (لا role مضبوط = superuser في pgTAP لكن auth.uid()=null)
+-- 1.2: الأنون (auth.uid()=null) يُرفض بـ 28000
 select throws_ok(
   $$select public.clear_must_change_password()$$,
   '28000', null,
@@ -61,9 +61,7 @@ select lives_ok(
   '2.1 المستخدم المصادَق ينفّذ clear_must_change_password بنجاح'
 );
 
--- =====================================================================
 -- التحقق من النتيجة (superuser)
--- =====================================================================
 reset role;
 
 -- 2.2: must_change_password اختفت من app_metadata
@@ -74,7 +72,7 @@ select is(
   '2.2 مفتاح must_change_password محذوف من raw_app_meta_data'
 );
 
--- 2.3: الحقول الأخرى محفوظة (provider)
+-- 2.3: الحقول الأخرى محفوظة
 select is(
   (select raw_app_meta_data ->> 'provider'
    from auth.users where id = 'c09a0000-0000-4000-8000-000000000001'),
@@ -95,7 +93,7 @@ set local role authenticated;
 
 select lives_ok(
   $$select public.clear_must_change_password()$$,
-  '3.1 الاستدعاء الثاني idempotent — لا خطأ عند غياب المفتاح أصلاً'
+  '3.1 الاستدعاء الثاني idempotent — لا خطأ عند غياب المفتاح'
 );
 
 -- =====================================================================
@@ -103,7 +101,7 @@ select lives_ok(
 -- =====================================================================
 reset role;
 
--- 4.1: المستخدم B لا يزال بدون must_change_password (لم يتأثر)
+-- 4.1: المستخدم B لا يزال بدون must_change_password
 select is(
   (select raw_app_meta_data ? 'must_change_password'
    from auth.users where id = 'c09a0000-0000-4000-8000-000000000002'),
@@ -124,7 +122,7 @@ set local role authenticated;
 
 select lives_ok(
   $$select public.clear_must_change_password()$$,
-  '5.1 المستخدم بدون flag ينفّذ بنجاح (idempotent للحالة الجديدة)'
+  '5.1 المستخدم بدون flag ينفّذ بنجاح (idempotent)'
 );
 
 reset role;

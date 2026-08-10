@@ -3,6 +3,7 @@ import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_daily_reports_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_tasks_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -70,6 +71,36 @@ class _MobileTeamPageState extends ConsumerState<MobileTeamPage> {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              // §11 — تجميعة إجراءات الفريق: مهامي الشخصية + إسناد مهمة لعضو.
+              Card(
+                color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: .35),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.task_alt_rounded),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'مهامي ومهام الفريق',
+                          style: TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MobileTasksPage(),
+                          ),
+                        ),
+                        icon: const Icon(Icons.checklist_rtl_rounded, size: 18),
+                        label: const Text('مهامي'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               MobileFilterBar(
                 searchHint: 'بحث باسم عضو الفريق أو الكود',
                 controller: _searchController,

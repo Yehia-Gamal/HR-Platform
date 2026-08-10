@@ -3,7 +3,7 @@ import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/location_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_daily_reports_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_feed_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_tasks_page.dart';
@@ -152,13 +152,13 @@ class EmployeeHomePage extends ConsumerWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: _QuickAction(
-                  icon: Icons.summarize_rounded,
-                  title: 'تقريري اليومي',
-                  subtitle: 'إنجازات ومعوقات وخطة الغد',
+                  icon: Icons.newspaper_rounded,
+                  title: 'تقارير الجميع',
+                  subtitle: 'أضف تقريرك واطّلع على تقارير الفريق',
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const MobileDailyReportsPage(),
+                      builder: (_) => const DailyReportsFeedPage(),
                     ),
                   ),
                 ),
