@@ -80,10 +80,20 @@ class PushService {
       initSettings,
       onDidReceiveNotificationResponse: (response) {
         final payload = response.payload;
-        if (payload != null && payload.isNotEmpty) {
-          _local.cancel(_stableNotificationId(payload));
-          _route(payload);
+        if (payload == null || payload.isEmpty) return;
+        // §10 — الحمولة قد تحمل "notificationId\u0001deepLink" لنسخة المقدمة،
+        // فيُوسّم الإشعار الداخلي مقروءًا ثم يُوجّه للمسار الفعلي.
+        final parts = payload.split('\u0001');
+        final notificationId =
+            parts.length == 2 ? parts[0] : '';
+        final deepLink = parts.length == 2 ? parts[1] : payload;
+        if (notificationId.isNotEmpty) {
+          unawaited(_markInAppNotificationRead(notificationId));
+          _local.cancel(_stableNotificationId(notificationId));
+        } else {
+          _local.cancel(_stableNotificationId(deepLink));
         }
+        _route(deepLink);
       },
     );
     await _local
@@ -256,7 +266,9 @@ class PushService {
       title,
       body,
       details,
-      payload: deepLink,
+      payload: notificationId.isNotEmpty
+          ? '$notificationId\u0001$deepLink'
+          : deepLink,
     );
   }
 
@@ -265,6 +277,8 @@ class PushService {
   /// لا تحمل deepLink (مثل الإشعارات القديمة ذات action_url = '/location-requests').
   void _routeFromMessage(RemoteMessage message) {
     final data = message.data;
+    // §10 — وسّم الإشعار الداخلي المقابل كمقروء بمجرد فتحه من خارج التطبيق.
+    unawaited(_markInAppNotificationRead(data['notificationId'] as String?));
     final deepLink = data['deepLink'];
     if (deepLink is String && deepLink.isNotEmpty) {
       _local.cancel(_stableNotificationId(deepLink));
@@ -463,6 +477,38 @@ Future<void> _markPushDelivery(RemoteMessage message, String status) async {
     );
   } catch (error) {
     if (kDebugMode) debugPrint('Push delivery acknowledgement failed: $error');
+  }
+}
+
+/// §10 — يوسّم الإشعار الداخلي (جدول notifications) كمقروء عند فتحه من
+/// إشعار النظام، حتى لا يظهر كمعلّق غير مقروء بعد أن تفاعل معه المستخدم.
+Future<void> _markInAppNotificationRead(String? notificationId) async {
+  if (notificationId == null || notificationId.isEmpty) return;
+  try {
+    SupabaseClient client;
+    try {
+      client = Supabase.instance.client;
+    } catch (_) {
+      final projectRef = Uri.parse(AppConfig.supabaseUrl).host.split('.').first;
+      await Supabase.initialize(
+        url: AppConfig.supabaseUrl,
+        publishableKey: AppConfig.supabasePublishableKey,
+        authOptions: FlutterAuthClientOptions(
+          localStorage: SecureSessionStorage(
+            persistSessionKey: 'sb-$projectRef-auth-token',
+          ),
+          pkceAsyncStorage: SecurePkceStorage(),
+        ),
+      );
+      client = Supabase.instance.client;
+    }
+    if (client.auth.currentSession == null) return;
+    await client.rpc<void>(
+      'mark_my_notifications_read',
+      params: {'p_ids': [notificationId]},
+    );
+  } catch (error) {
+    if (kDebugMode) debugPrint('Mark in-app notification read failed: $error');
   }
 }
 
