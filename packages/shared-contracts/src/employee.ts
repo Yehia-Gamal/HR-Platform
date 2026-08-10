@@ -209,7 +209,7 @@ export const employee360Schema = z.object({
     id: z.string().uuid(), requestNumber: z.number(), requestType: z.string(), title: z.string().nullable(), status: z.string(), createdAt: z.string(),
   })).optional().default([]),
   recentTasks: z.array(z.object({
-    id: z.string().uuid(), title: z.string(), status: z.string(), priority: z.string(), dueDate: z.string().nullable(),
+    id: z.string().uuid(), title: z.string(), status: z.string(), priority: z.string().nullable(), dueDate: z.string().nullable(),
   })).optional().default([]),
   lastUpdatedAt: z.string().nullable(),
 });
