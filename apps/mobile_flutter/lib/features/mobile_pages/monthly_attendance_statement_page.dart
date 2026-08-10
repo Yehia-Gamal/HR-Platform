@@ -68,7 +68,15 @@ class _MonthlyAttendanceStatementPageState
               tooltip: 'تصدير PDF',
               onPressed: () async {
                 try {
-                  await exportAttendancePdf(statement.value!);
+                  final path = await exportAttendancePdf(statement.value!);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('تم حفظ الكشف بنجاح.\n$path'),
+                        duration: const Duration(seconds: 5),
+                      ),
+                    );
+                  }
                 } catch (error) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

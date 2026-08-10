@@ -151,9 +151,24 @@ export function App() {
                 </RequirePermission>
               }
             />
+            {/* daily-reports: مرئي لكل أعضاء المساحة المصادَق عليهم — RLS على مستوى RPC */}
             <Route path="daily-reports" element={<DailyReportsFeedPage />} />
-            <Route path="executive-monitoring" element={<ExecutiveMonitoringPage />} />
-            <Route path="org-chart" element={<OrgChartPage />} />
+            <Route
+              path="executive-monitoring"
+              element={
+                <RequirePermission perm="reports.people.read">
+                  <ExecutiveMonitoringPage />
+                </RequirePermission>
+              }
+            />
+            <Route
+              path="org-chart"
+              element={
+                <RequirePermission perm="organization.org_chart.read">
+                  <OrgChartPage />
+                </RequirePermission>
+              }
+            />
             <Route
               path="organization"
               element={
@@ -288,6 +303,7 @@ export function App() {
                 </RequirePermission>
               }
             />
+            {/* notifications/knowledge: مرئيان لكل أعضاء المساحة — لا يحتاجان permission خاص */}
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="knowledge" element={<KnowledgePage />} />
           </Route>
@@ -456,6 +472,7 @@ function HrWorkspaceRoutes() {
           </RequirePermission>
         }
       />
+      {/* learning/documents: مرئيان لكل الموظفين المصادَق عليهم — لا يحتاجان permission خاص */}
       <Route path="learning" element={<LearningPage />} />
       <Route path="lifecycle" element={<RequirePermission perm="people.employee.read"><LifecyclePage /></RequirePermission>} />
       <Route path="documents" element={<DocumentsPage />} />

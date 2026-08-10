@@ -4,6 +4,7 @@ import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart
 import 'package:ahla_shabab_management_os/core/widgets/gps_preflight_banner.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_corrections_section.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_history_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
@@ -27,6 +28,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     with WidgetsBindingObserver {
   bool _working = false;
 
+  /// تحديث تلقائي لبيانات الحضور والتصحيحات أثناء ظهور الصفحة.
+  Timer? _refreshTimer;
+
   /// نوع مشكلة الموقع — لتحديد زر الإعدادات المناسب.
   _LocationIssueKind? _issueKind;
 
@@ -37,10 +41,18 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route?.isCurrent != true) return;
+      ref.invalidate(attendanceStateProvider);
+      ref.invalidate(myAttendanceServicesProvider);
+    });
   }
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -48,15 +60,23 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
   /// عند العودة من إعدادات الموقع أو التطبيق — إعادة المحاولة تلقائياً.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed &&
-        _issueKind != null &&
-        _pendingRetry != null &&
-        !_working) {
-      Future<void>.delayed(const Duration(milliseconds: 600), () {
-        if (mounted && _issueKind != null && _pendingRetry != null && !_working) {
-          _recheckAndRetry();
-        }
-      });
+    if (state == AppLifecycleState.resumed) {
+      if (_refreshTimer == null) {
+        _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+          if (!mounted) return;
+          final route = ModalRoute.of(context);
+          if (route?.isCurrent != true) return;
+          ref.invalidate(attendanceStateProvider);
+          ref.invalidate(myAttendanceServicesProvider);
+        });
+      }
+      if (_issueKind != null && _pendingRetry != null && !_working) {
+        Future<void>.delayed(const Duration(milliseconds: 600), () {
+          if (mounted && _issueKind != null && _pendingRetry != null && !_working) {
+            _recheckAndRetry();
+          }
+        });
+      }
     }
   }
 
@@ -184,6 +204,10 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
 
         // ── ملاحظة أمان مختصرة ──
         const _SecurityNote(),
+        const SizedBox(height: 14),
+
+        // ── طلبات تصحيح الحضور ──
+        AttendanceCorrectionsSection(),
       ],
     );
   }
