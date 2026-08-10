@@ -180,7 +180,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     // الرابط يفتح PasswordSetupPage التي تلتقط جلسة الاسترداد وتعيّن كلمة المرور.
     const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/auth/setup-password` : undefined;
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo });
-    if (resetError) throw new Error(resetError.message);
+    // عدم تسريب رسالة Supabase الخام — قد تكشف وجود/عدم وجود الحساب (account enumeration).
+    if (resetError) throw new Error('تعذر إرسال رابط الاسترداد. تحقق من البريد وأعد المحاولة.');
   }, []);
 
   const signInMock = useCallback((persona: MockPersona) => {

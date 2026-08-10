@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/attendance_pdf_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
@@ -5,6 +6,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:printing/printing.dart';
 
 // الشهور بالعربية
 const _months = [
@@ -55,6 +57,13 @@ class _MonthlyAttendanceStatementPageState
     _month = _now.month;
   }
 
+  /// V20: يشارك ملف PDF عبر شيت المشاركة الخاص بالنظام.
+  void _sharePdf(String path) {
+    final file = File(path);
+    if (!file.existsSync()) return;
+    Printing.sharePdf(bytes: file.readAsBytesSync(), filename: path.split('/').last);
+  }
+
   @override
   Widget build(BuildContext context) {
     final statement = ref.watch(myMonthlyStatementProvider((_year, _month)));
@@ -62,10 +71,11 @@ class _MonthlyAttendanceStatementPageState
       appBar: AppBar(
         title: const Text('كشف الحضور والانصراف'),
         actions: [
-          if (statement.hasValue)
+          if (statement.hasValue) ...[
+            // V20: زر حفظ PDF على الجهاز.
             IconButton(
-              icon: const Icon(Icons.picture_as_pdf_rounded),
-              tooltip: 'تصدير PDF',
+              icon: const Icon(Icons.download_rounded),
+              tooltip: 'حفظ PDF على الجهاز',
               onPressed: () async {
                 try {
                   final path = await exportAttendancePdf(statement.value!);
@@ -74,6 +84,10 @@ class _MonthlyAttendanceStatementPageState
                       SnackBar(
                         content: Text('تم حفظ الكشف بنجاح.\n$path'),
                         duration: const Duration(seconds: 5),
+                        action: SnackBarAction(
+                          label: 'مشاركة',
+                          onPressed: () => _sharePdf(path),
+                        ),
                       ),
                     );
                   }
@@ -86,6 +100,24 @@ class _MonthlyAttendanceStatementPageState
                 }
               },
             ),
+            // V20: زر مشاركة PDF مباشرة.
+            IconButton(
+              icon: const Icon(Icons.share_rounded),
+              tooltip: 'مشاركة PDF',
+              onPressed: () async {
+                try {
+                  final path = await exportAttendancePdf(statement.value!);
+                  _sharePdf(path);
+                } catch (error) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(humanizeError(error))),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(56),

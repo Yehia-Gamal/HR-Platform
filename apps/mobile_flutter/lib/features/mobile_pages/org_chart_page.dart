@@ -92,7 +92,15 @@ class OrgChartPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final data = ref.watch(_orgChartProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('الهيكل الوظيفي')),
+      appBar: AppBar(
+        title: const Text('الهيكل الوظيفي'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () => ref.invalidate(_orgChartProvider),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(_orgChartProvider),
         child: data.when(

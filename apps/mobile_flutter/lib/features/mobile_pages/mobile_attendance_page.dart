@@ -151,6 +151,16 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
   }
 
   Widget _body(AttendanceState value) {
+    // V20: تسجيل تلقائي للجهاز — لا حاجة لخطوة يدوية.
+    if (value.attendanceRequired &&
+        value.selfPunchEnabled &&
+        !value.hasActiveLocalDevice &&
+        value.localDeviceStatus != 'pending' &&
+        !_working) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _register(skipDialog: true);
+      });
+    }
     if (!value.attendanceRequired || !value.selfPunchEnabled) {
       return ListView(
         padding: const EdgeInsets.all(20),
