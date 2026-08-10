@@ -5,6 +5,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// Simple JSON cache backed by FlutterSecureStorage.
 /// Stores last-fetched data keyed by [cacheKey] so offline views can display
 /// stale data instead of error states.
+///
+/// مفاتيح الكاش مُقيَّدة بمعرّف المستخدم الحالي لمنع تسرّب البيانات
+/// بين مستخدمين مختلفين على نفس الجهاز.
 class OfflineCache {
   OfflineCache._();
   static final OfflineCache instance = OfflineCache._();
@@ -14,24 +17,32 @@ class OfflineCache {
   static const _prefix = 'offline_cache_';
   static const _tsPrefix = 'offline_ts_';
 
-  /// Save [data] (typically a Map or List) under [cacheKey].
+  String? _currentUserId;
+
+  void setCurrentUser(String? userId) {
+    _currentUserId = userId;
+  }
+
+  String _dataKey(String cacheKey) =>
+      '$_prefix${_currentUserId != null ? "${_currentUserId}_" : ""}$cacheKey';
+
+  String _tsKey(String cacheKey) =>
+      '$_tsPrefix${_currentUserId != null ? "${_currentUserId}_" : ""}$cacheKey';
+
   Future<void> put(String cacheKey, dynamic data) async {
     try {
       final json = jsonEncode(data);
-      await _storage.write(key: '$_prefix$cacheKey', value: json);
+      await _storage.write(key: _dataKey(cacheKey), value: json);
       await _storage.write(
-        key: '$_tsPrefix$cacheKey',
+        key: _tsKey(cacheKey),
         value: DateTime.now().toIso8601String(),
       );
-    } catch (_) {
-      // Cache writes are best-effort.
-    }
+    } catch (_) {}
   }
 
-  /// Retrieve cached data for [cacheKey]. Returns `null` if not found.
   Future<dynamic> get(String cacheKey) async {
     try {
-      final json = await _storage.read(key: '$_prefix$cacheKey');
+      final json = await _storage.read(key: _dataKey(cacheKey));
       if (json == null) return null;
       return jsonDecode(json);
     } catch (_) {
@@ -39,10 +50,9 @@ class OfflineCache {
     }
   }
 
-  /// Get the timestamp of the last cache write for [cacheKey].
   Future<DateTime?> getTimestamp(String cacheKey) async {
     try {
-      final ts = await _storage.read(key: '$_tsPrefix$cacheKey');
+      final ts = await _storage.read(key: _tsKey(cacheKey));
       if (ts == null) return null;
       return DateTime.parse(ts);
     } catch (_) {
@@ -50,25 +60,32 @@ class OfflineCache {
     }
   }
 
-  /// Remove cached data for [cacheKey].
   Future<void> remove(String cacheKey) async {
     try {
-      await _storage.delete(key: '$_prefix$cacheKey');
-      await _storage.delete(key: '$_tsPrefix$cacheKey');
-    } catch (_) {
-      // Best-effort.
-    }
+      await _storage.delete(key: _dataKey(cacheKey));
+      await _storage.delete(key: _tsKey(cacheKey));
+    } catch (_) {}
   }
 
-  /// مسح جميع البيانات المؤقتة (عند تسجيل الخروج).
   Future<void> clearAll() async {
-    const keys = [attendanceState, employeeHome, managerDashboard, kpiList, myRequests];
-    for (final key in keys) {
+    for (final key in [
+      attendanceState,
+      employeeHome,
+      managerDashboard,
+      kpiList,
+      myRequests,
+    ]) {
       await remove(key);
     }
   }
 
-  /// Common cache keys used across the app.
+  Future<void> clearAllForUser(String? userId) async {
+    final saved = _currentUserId;
+    _currentUserId = userId;
+    await clearAll();
+    _currentUserId = saved;
+  }
+
   static const attendanceState = 'attendance_state';
   static const employeeHome = 'employee_home';
   static const managerDashboard = 'manager_dashboard';

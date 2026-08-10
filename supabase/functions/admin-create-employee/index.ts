@@ -156,8 +156,9 @@ Deno.serve(async (req) => {
   const userMetadata = {
     full_name_ar: input.fullNameAr,
     employee_code: employeeCode,
-    must_change_password: true,
   };
+  // SEC: must_change_password في app_metadata (server-only) — لا يستطيع الموظف تجاوزها بـ updateUser
+  const appMetadata = { must_change_password: true };
 
   const normalizedEmail = input.email.toLowerCase();
 
