@@ -884,7 +884,7 @@ class _DayDetailSheet extends ConsumerWidget {
                   ),
                 Expanded(
                   child: Text(
-                    '${day?.dayNameAr ?? _arabicDayName} $_dateStr',
+                    '${day?.dayNameAr ?? _dayNameFull} $_dateStr',
                     style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
                   ),
                 ),
