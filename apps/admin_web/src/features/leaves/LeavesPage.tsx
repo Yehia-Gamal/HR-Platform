@@ -44,6 +44,43 @@ function formatDate(iso: string) {
   });
 }
 
+function exportToCsv(rows: LeaveAdminRow[], year: number) {
+  const STATUS_AR: Record<string, string> = {
+    pending: 'قيد المراجعة', approved: 'معتمدة',
+    rejected: 'مرفوضة', cancelled: 'ملغية',
+  };
+  const headers = ['#', 'الموظف', 'الكود', 'نوع الإجازة', 'الحالة', 'من', 'إلى', 'المدة', 'بأجر', 'السبب'];
+  const escape = (v: string | null | number) => {
+    const s = String(v ?? '');
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csvRows = [
+    headers.join(','),
+    ...rows.map((r, i) =>
+      [
+        i + 1,
+        escape(r.employeeName),
+        escape(r.employeeCode),
+        escape(LEAVE_TYPE_LABELS[r.leaveTypeCode] ?? r.leaveTypeName),
+        escape(STATUS_AR[r.status] ?? r.status),
+        r.startDate,
+        r.endDate,
+        escape(formatDuration(r)),
+        r.isPaid ? 'نعم' : 'لا',
+        escape(r.reason),
+      ].join(',')
+    ),
+  ];
+  const bom = '﻿';
+  const blob = new Blob([bom + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `إجازات-${year}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function formatDuration(row: LeaveAdminRow) {
   if (row.durationUnit === 'hour' && row.hoursCount) {
     return `${row.hoursCount} ساعة`;
@@ -224,16 +261,28 @@ export function LeavesPage() {
         title="إدارة الإجازات"
         description="عرض ومتابعة جميع طلبات إجازات الموظفين"
         actions={
-          <select
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            className="input-field h-9 w-28 text-sm"
-            aria-label="اختر السنة"
-          >
-            {YEAR_OPTIONS.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <select
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              className="input-field h-9 w-28 text-sm"
+              aria-label="اختر السنة"
+            >
+              {YEAR_OPTIONS.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => exportToCsv(rows, year)}
+              disabled={rows.length === 0}
+              className="flex h-9 items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 text-sm font-semibold transition-colors hover:bg-[var(--surface-raised)] disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="تصدير CSV"
+            >
+              <Download className="size-4" />
+              <span className="hidden sm:inline">تصدير</span>
+            </button>
+          </div>
         }
       />
 

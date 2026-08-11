@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { PageHeader } from '../../ui/PageHeader';
 import { ErrorState } from '../../ui/ErrorState';
 import { MetricSkeletonRow } from '../../ui/Skeletons';
@@ -9,13 +10,44 @@ import { AppPieChart } from '../../ui/charts/AppPieChart';
 import { AppRadarChart } from '../../ui/charts/AppRadarChart';
 import { useAnalyticsDashboard } from './useAnalyticsDashboard';
 
+type MonthsBack = 3 | 6 | 12;
+
+const PERIOD_OPTIONS: { value: MonthsBack; label: string }[] = [
+  { value: 3,  label: '3 أشهر' },
+  { value: 6,  label: '6 أشهر' },
+  { value: 12, label: 'سنة' },
+];
+
 export function AnalyticsDashboardPage() {
-  const query = useAnalyticsDashboard();
+  const [monthsBack, setMonthsBack] = useState<MonthsBack>(6);
+  const query = useAnalyticsDashboard(monthsBack);
   const data = query.data;
 
   return (
     <div className="space-y-5">
-      <PageHeader eyebrow="التقارير" title="لوحة التحليلات" description="نظرة شاملة على الأداء التشغيلي" />
+      <PageHeader
+        eyebrow="التقارير"
+        title="لوحة التحليلات"
+        description="نظرة شاملة على الأداء التشغيلي"
+        actions={
+          <div className="flex gap-1 rounded-xl border border-[var(--border)] p-1">
+            {PERIOD_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setMonthsBack(opt.value)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
+                  monthsBack === opt.value
+                    ? 'bg-[var(--brand-primary)] text-white'
+                    : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)]'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
       {query.isError ? (
         <ErrorState title="تعذر تحميل التحليلات" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
@@ -23,7 +55,7 @@ export function AnalyticsDashboardPage() {
         <MetricSkeletonRow count={4} />
       ) : data ? (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <ChartCard title="حركة الطلبات الشهرية" subtitle="معتمد / مرفوض / معلق">
+          <ChartCard title="حركة الطلبات الشهرية" subtitle={`آخر ${monthsBack} أشهر — معتمد / مرفوض / معلق`}>
             <AppLineChart
               data={data.monthlyRequests}
               lines={[

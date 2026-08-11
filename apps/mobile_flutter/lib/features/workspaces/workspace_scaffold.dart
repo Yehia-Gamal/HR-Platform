@@ -291,6 +291,17 @@ class WorkspaceScaffold extends ConsumerWidget {
             body: const MobileActionInboxPage(),
           ),
         ),
+        // ميزات إدارة الموارد البشرية متاحة على الويب فقط
+        _MoreItem(
+          icon: Icons.manage_accounts_outlined,
+          label: 'إدارة الموظفين',
+          page: const MobileWebOnlyPage(featureName: 'إدارة الموظفين'),
+        ),
+        _MoreItem(
+          icon: Icons.event_available_outlined,
+          label: 'جداول الحضور',
+          page: const MobileWebOnlyPage(featureName: 'جداول الحضور والتقارير'),
+        ),
       ],
       // V20: التقارير اليومية للجميع — زر إضافة تقرير داخل الصفحة نفسها
       _MoreItem(
