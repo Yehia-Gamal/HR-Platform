@@ -481,6 +481,15 @@ final disputeCaseRecommendationsProvider =
   return DisputeCaseRecommendations.fromJson(_asMap(data));
 });
 
+final myOffboardingPortalProvider = FutureProvider<MobileOffboardingPortal>((
+  ref,
+) async {
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_my_offboarding_portal'),
+  );
+  return MobileOffboardingPortal.fromJson(_asMap(data));
+});
+
 // ─── الميزات الجديدة: مشاركة موقع استباقية + تفاعل التقارير ──────────────
 
 /// صفحة التقارير اليومية العامة — يراها كل المستخدمين.

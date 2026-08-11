@@ -30,7 +30,6 @@ import { SkeletonCard } from '../../ui/Skeletons';
 import { useAuditSecurityCenter, useAuditSecurityCommands } from './useControlCenters';
 import type { AuditSecurityData } from './controlCenterTypes';
 import { safeErrorMessage } from '../../core/errorMapper';
-import { useToast } from '../../ui/Toast';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 
@@ -53,7 +52,6 @@ function eventLabel(value: string) {
 }
 
 export function AuditSecurityPage() {
-  const { toast } = useToast();
   const auth = useAuth();
   const query = useAuditSecurityCenter();
   const commands = useAuditSecurityCommands();
@@ -198,10 +196,7 @@ export function AuditSecurityPage() {
                     className="btn-secondary self-start lg:self-auto"
                     disabled={commands.handleEvent.isPending}
                     onClick={() =>
-                      commands.handleEvent.mutate(item.id, {
-                        onSuccess: () => toast({ message: 'تمت معالجة الحدث بنجاح', tone: 'success' }),
-                        onError: () => toast({ message: 'تعذر معالجة الحدث', tone: 'error' }),
-                      })
+                      commands.handleEvent.mutate(item.id)
                     }
                   >
                     {commands.handleEvent.isPending ? (
@@ -296,7 +291,6 @@ function deduplicateDevices(items: DeviceItem[]): DeviceItem[] {
 }
 
 function DevicesPanel({ devices, commands, canRevoke }: { devices: DeviceItem[]; commands: ReturnType<typeof useAuditSecurityCommands>; canRevoke: boolean }) {
-  const { toast } = useToast();
   const deduplicated = useMemo(() => deduplicateDevices(devices), [devices]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [revokeTarget, setRevokeTarget] = useState<DeviceItem | null>(null);
@@ -315,12 +309,10 @@ function DevicesPanel({ devices, commands, canRevoke }: { devices: DeviceItem[];
       await commands.revokeDevice.mutateAsync({ deviceId: revokeTarget.id, reason });
       setRevokeTarget(null);
       setRevokeReason('');
-      toast({ message: 'تم إلغاء تسجيل الجهاز بنجاح', tone: 'success' });
     } catch {
       setRevokeError('تعذّر إلغاء تسجيل الجهاز. تحقق من صلاحياتك.');
-      toast({ message: 'تعذّر إلغاء تسجيل الجهاز', tone: 'error' });
     }
-  }, [revokeTarget, revokeReason, commands.revokeDevice, toast]);
+  }, [revokeTarget, revokeReason, commands.revokeDevice]);
 
   return (
     <>

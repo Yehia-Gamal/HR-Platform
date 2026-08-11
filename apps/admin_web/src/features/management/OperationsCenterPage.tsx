@@ -9,9 +9,8 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { safeErrorMessage } from '../../core/errorMapper';
-import { useToast } from '../../ui/Toast';
 import { useAuth } from '../auth/AuthProvider';
-import { hasPermission } from '../workspaces/access';
+import { hasAnyPermission } from '../workspaces/access';
 import { useOperationsCenter, useOperationsCommands } from './useControlCenters';
 
 type Tab = 'tasks' | 'missions' | 'convoys';
@@ -31,11 +30,12 @@ function transport(value: string | null) {
 }
 
 export function OperationsCenterPage() {
-  const { toast } = useToast();
   const auth = useAuth();
   const query = useOperationsCenter();
   const commands = useOperationsCommands();
-  const canManageTasks = Boolean(auth.access && hasPermission(auth.access, 'tasks.write'));
+  const canManageTasks = Boolean(
+    auth.access && hasAnyPermission(auth.access, ['tasks.write', 'operations.mission.manage']),
+  );
   const [tab, setTab] = useState<Tab>('tasks');
   const [search, setSearch] = useState('');
   const [taskDraft, setTaskDraft] = useState<TaskDraft | null>(null);
@@ -199,13 +199,7 @@ export function OperationsCenterPage() {
                           status={item.status}
                           pending={commands.transitionTask.isPending}
                           transition={(status) =>
-                            commands.transitionTask.mutate(
-                              { id: item.id, status },
-                              {
-                                onSuccess: () => toast({ message: 'تم تحديث حالة المهمة', tone: 'success' }),
-                                onError: () => toast({ message: 'تعذر تحديث حالة المهمة', tone: 'error' }),
-                              },
-                            )
+                            commands.transitionTask.mutate({ id: item.id, status })
                           }
                         />
                       ) : (

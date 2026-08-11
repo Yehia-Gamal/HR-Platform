@@ -10,7 +10,6 @@ import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
-import { useToast } from '../../ui/Toast';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { useIncidents, useRisks, useUpsertIncident, useUpsertRisk } from './useGovernance';
@@ -39,7 +38,6 @@ function date(value: string | null) {
 }
 
 export function GovernancePage() {
-  const { toast } = useToast();
   const auth = useAuth();
   const risksQuery = useRisks();
   const incidentsQuery = useIncidents();
@@ -78,7 +76,6 @@ export function GovernancePage() {
       await upsertRisk.mutateAsync(riskDraft);
       setRiskOpen(false);
       setRiskDraft({ title: '', description: '', likelihood: 'low', impact: 'medium', severity: 'medium', status: 'open' });
-      toast({ message: 'تم حفظ المخاطرة', tone: 'success' });
     } catch {
       /* error via ErrorBanner */
     }
@@ -90,7 +87,6 @@ export function GovernancePage() {
       await upsertIncident.mutateAsync(incidentDraft);
       setIncidentOpen(false);
       setIncidentDraft({ title: '', description: '', severity: 'medium', status: 'open' });
-      toast({ message: 'تم تسجيل الحادث', tone: 'success' });
     } catch {
       /* error via ErrorBanner */
     }

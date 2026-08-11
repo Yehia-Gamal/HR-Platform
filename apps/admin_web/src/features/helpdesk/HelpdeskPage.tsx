@@ -10,7 +10,6 @@ import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
-import { useToast } from '../../ui/Toast';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { useCreateTicket, useHelpdeskTickets, useSendTicketMessage, useTicketMessages, useUpdateTicketStatus } from './useHelpdesk';
@@ -32,7 +31,6 @@ function date(value: string | null) {
 }
 
 export function HelpdeskPage() {
-  const { toast } = useToast();
   const auth = useAuth();
   const query = useHelpdeskTickets();
   const commands = useCreateTicket();
@@ -68,7 +66,6 @@ export function HelpdeskPage() {
       await commands.mutateAsync(draft);
       setCreateOpen(false);
       setDraft({ subject: '', category: '', priority: 'medium', description: '' });
-      toast({ message: 'تم إنشاء التذكرة', tone: 'success' });
     } catch {
       /* error via ErrorBanner */
     }
