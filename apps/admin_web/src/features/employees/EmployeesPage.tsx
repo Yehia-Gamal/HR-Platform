@@ -16,6 +16,7 @@ import { safeErrorMessage } from '../../core/errorMapper';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { useEmployees } from './useEmployees';
+import { EmployeeSearchSuggestions } from './EmployeeSearchSuggestions';
 import { renderSafeIntlPhoneText } from '../../ui/phoneDisplay';
 
 type SortMode = 'newest' | 'name' | 'code';
@@ -26,6 +27,7 @@ export function EmployeesPage() {
   const [status, setStatus] = useState('all');
   const [sort, setSort] = useState<SortMode>('newest');
   const [page, setPage] = useState(1);
+  const [searchFocused, setSearchFocused] = useState(false);
   const pageSize = 25;
   const employees = useEmployees(search, status);
   const canCreate = hasPermission(auth.access, 'people.employee.create');
@@ -216,6 +218,15 @@ export function EmployeesPage() {
           setStatus('all');
           setSort('newest');
         }}
+        searchAdornment={
+          <EmployeeSearchSuggestions
+            query={search}
+            employees={all}
+            open={searchFocused}
+            onClose={() => setSearchFocused(false)}
+          />
+        }
+        onSearchFocusChange={setSearchFocused}
       >
         <select className="input" value={status} onChange={(event) => setStatus(event.target.value)} aria-label="تصفية حسب الحالة">
           <option value="all">كل الحالات</option>

@@ -9,9 +9,23 @@ interface FilterBarProps {
   resultText?: string;
   isDirty?: boolean;
   onClear?: () => void;
+  /** محتوى إضافي يُعرض داخل حقل البحث (مثل قائمة اقتراحات حيّة) */
+  searchAdornment?: ReactNode;
+  /** يُستدعى عند تغيّر حالة تركيز حقل البحث */
+  onSearchFocusChange?: (focused: boolean) => void;
 }
 
-export function FilterBar({ searchValue, onSearchChange, searchPlaceholder, children, resultText, isDirty = false, onClear }: FilterBarProps) {
+export function FilterBar({
+  searchValue,
+  onSearchChange,
+  searchPlaceholder,
+  children,
+  resultText,
+  isDirty = false,
+  onClear,
+  searchAdornment,
+  onSearchFocusChange,
+}: FilterBarProps) {
   return (
     <section className="filter-bar" aria-label="البحث والتصفية">
       <div className="filter-bar-heading">
@@ -30,7 +44,16 @@ export function FilterBar({ searchValue, onSearchChange, searchPlaceholder, chil
         <label className="filter-search">
           <span className="sr-only">بحث</span>
           <Search aria-hidden="true" />
-          <input value={searchValue} onChange={(event) => onSearchChange(event.target.value)} placeholder={searchPlaceholder} className="input" type="search" />
+          <input
+            value={searchValue}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder={searchPlaceholder}
+            className="input"
+            type="search"
+            onFocus={() => onSearchFocusChange?.(true)}
+            onBlur={() => onSearchFocusChange?.(false)}
+          />
+          {searchAdornment}
         </label>
         {children}
       </div>

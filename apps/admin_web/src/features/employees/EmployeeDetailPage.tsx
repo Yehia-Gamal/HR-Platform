@@ -421,17 +421,9 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
             </label>
             {/* الصورة الشخصية */}
             <div className="flex items-center gap-4 sm:col-span-2">
-              {photoUrl ? (
-                <img
-                  src={photoUrl}
-                  alt="الصورة الشخصية"
-                  className="size-16 rounded-full border object-cover"
-                />
-              ) : (
-                <div className="grid size-16 place-items-center rounded-full bg-[var(--surface)] text-lg font-black text-[var(--muted)]">
-                  {item.fullNameAr.charAt(0)}
-                </div>
-              )}
+              <div>
+                <UserAvatar displayName={fullNameAr} photoUrl={photoUrl || null} size="lg" announceName={false} />
+              </div>
               <input
                 ref={fileInputRef}
                 type="file"

@@ -11,6 +11,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { useToast } from '../../ui/Toast';
 import { preparePostImage } from '../../ui/postImage';
 import { StatusBadge } from '../../ui/StatusBadge';
+import { UserAvatar } from '../../ui/UserAvatar';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
@@ -640,9 +641,7 @@ function EngagementPeople({
         <div className="grid gap-2 sm:grid-cols-2">
           {people.map((person) => (
             <div key={person.employeeId} className="flex items-center gap-3 rounded-xl bg-[var(--surface-muted)] p-3">
-              <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand/10 font-black text-brand">
-                {person.photoUrl ? <img src={person.photoUrl} alt="" className="size-full object-cover" /> : person.name.charAt(0)}
-              </div>
+              <UserAvatar displayName={person.name} photoUrl={person.photoUrl} size="sm" announceName={false} />
               <div className="min-w-0 flex-1">
                 <strong className="block truncate text-sm">{person.name}</strong>
                 <span className="muted text-xs">
