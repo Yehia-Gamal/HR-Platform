@@ -14,7 +14,6 @@ import { LiveLocationResultCard } from './LiveLocationResultCard';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { relativeTime as relative } from '../../core/formatTime';
 import { ATTENDANCE_STATUS_LABELS } from './statusLabels';
-import { useToast } from '../../ui/Toast';
 import { useExecutiveAttendanceOverview, useLiveLocationCommands } from './useControlCenters';
 import type { EmployeeOverviewRow, ExecutiveOverviewData } from './controlCenterTypes';
 
@@ -35,7 +34,6 @@ const FILTERS: Array<{ id: string; label: string; key?: string }> = [
 ];
 
 export function ExecutiveMonitoringPage({ embedded: _embedded = false }: { embedded?: boolean } = {}) {
-  const { toast } = useToast();
   const auth = useAuth();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
@@ -78,7 +76,6 @@ export function ExecutiveMonitoringPage({ embedded: _embedded = false }: { embed
       const id = (created as { id?: string } | null)?.id;
       if (id) setSelectedRequestId(id);
       await overview.refetch();
-      toast({ message: 'تم إرسال طلب الموقع بنجاح', tone: 'success' });
     } catch {
       /* commands.request.isError displayed in dialog UI */
     }
