@@ -85,6 +85,15 @@ final myAttendanceHistoryProvider = FutureProvider<List<AttendanceHistoryItem>>(
   },
 );
 
+final myAttendanceServicesProvider = FutureProvider<MobileAttendanceServices>((
+  ref,
+) async {
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_my_attendance_services'),
+  );
+  return MobileAttendanceServices.fromJson(_asMap(data));
+});
+
 final myNotificationsProvider = FutureProvider<List<MobileNotificationItem>>((
   ref,
 ) async {
