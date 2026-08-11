@@ -35,7 +35,14 @@ const patterns = [
 ];
 
 async function walk(directory) {
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
+  let entries;
+  try {
+    entries = await readdir(directory, { withFileTypes: true });
+  } catch (err) {
+    if (err?.code === 'ENOENT' || err?.code === 'EPERM') return;
+    throw err;
+  }
+  for (const entry of entries) {
     if (entry.isDirectory() && excludedDirectories.has(entry.name)) continue;
     const fullPath = join(directory, entry.name);
     if (entry.isDirectory()) {
@@ -43,7 +50,13 @@ async function walk(directory) {
       continue;
     }
     if (!allowedExtensions.has(extname(entry.name)) && !allowedFiles.has(entry.name)) continue;
-    const source = await readFile(fullPath, 'utf8');
+    let source;
+    try {
+      source = await readFile(fullPath, 'utf8');
+    } catch (err) {
+      if (err?.code === 'ENOENT') continue;
+      throw err;
+    }
     const relativePath = relative(root, fullPath).replaceAll('\\', '/');
     for (const [kind, pattern] of patterns) {
       if (kind === 'google-api-key' && publicGoogleApiKeyFiles.has(relativePath)) continue;

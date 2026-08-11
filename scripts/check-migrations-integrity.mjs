@@ -45,6 +45,9 @@ const BRIDGE_FILENAMES = new Set([
   '0304_bridge_placeholder.sql',
   // 0365 → جسر بين 0364 (account semantics) و 0366 (delegation).
   '0365_bridge_placeholder.sql',
+  // 0370 → جسر بين 0369 (excused_absent fix) و 0371 (device_auto_accept)
+  //         نتيجة إعادة ترقيم migrations متعارضة من جلسات متوازية.
+  '0370_bridge_placeholder.sql',
 ]);
 
 const FILE_RE = /^(\d{4})_([a-z0-9][a-z0-9_]*)\.sql$/i;

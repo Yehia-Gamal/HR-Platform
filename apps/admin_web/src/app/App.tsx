@@ -68,21 +68,28 @@ const EmployeePenaltiesPage = lazy(() => import('../features/finance/EmployeePen
 const InstapayPage = lazy(() => import('../features/finance/InstapayPage').then((m) => ({ default: m.InstapayPage })));
 const AuditTrailPage = lazy(() => import('../features/management/AuditTrailPage').then((m) => ({ default: m.AuditTrailPage })));
 const SystemSettingsPage = lazy(() => import('../features/management/SystemSettingsPage').then((m) => ({ default: m.SystemSettingsPage })));
+const LeavesPage = lazy(() => import('../features/leaves/LeavesPage').then((m) => ({ default: m.LeavesPage })));
 
 export function App() {
+  // Mobile deep-link redirect — no auth required, shown before any other check.
+  if (window.location.pathname === '/mobile-redirect') return <MobileRedirectPage />;
+
+  // روابط التفعيل والاسترداد (بما فيها الروابط المنتهية) يجب أن تسبق بوابات
+  // الإصدار والمصادقة حتى لا تظهر للموظف شاشة مساحة ويب غير مصرح بها.
+  if (isPasswordRecoveryLocation()) return <PasswordSetupPage />;
+
+  return <AuthenticatedApp />;
+}
+
+function AuthenticatedApp() {
   const auth = useAuth();
   const release = useWebReleasePolicy();
   useRegisterWebDevice();
-
-  // Mobile deep-link redirect — no auth required, shown before any other check.
-  if (window.location.pathname === '/mobile-redirect') return <MobileRedirectPage />;
 
   if (release.isLoading) return <LoadingScreen />;
   if (release.isError) return <WebReleaseCheckError message={safeErrorMessage(release.error)} onRetry={() => void release.refetch()} />;
   if (release.data && ['maintenance', 'update_required', 'blocked'].includes(release.data.action))
     return <WebReleaseStatusPage policy={release.data} onRetry={() => void release.refetch()} />;
-
-  if (isPasswordRecoveryLocation()) return <PasswordSetupPage />;
 
   if (auth.status === 'loading') return <LoadingScreen />;
   if (auth.status === 'anonymous' || !auth.access) return <LoginPage />;
@@ -464,6 +471,7 @@ function HrWorkspaceRoutes() {
           </RequirePermission>
         }
       />
+      <Route path="leaves" element={<RequirePermission perm="requests.request.read"><LeavesPage /></RequirePermission>} />
       <Route path="learning" element={<RequirePermission perm="learning.enroll"><LearningPage /></RequirePermission>} />
       <Route path="lifecycle" element={<RequirePermission perm="people.employee.read"><LifecyclePage /></RequirePermission>} />
       <Route path="documents" element={<RequirePermission perm="documents.document.read"><DocumentsPage /></RequirePermission>} />

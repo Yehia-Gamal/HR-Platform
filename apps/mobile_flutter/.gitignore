@@ -51,3 +51,9 @@ dart_define/*.json
 # Firebase config is generated per-environment — never commit.
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
+*.kotlin/
+/android/.kotlin/
+
+# Local build scripts that embed signing credentials — never commit.
+build_universal.bat
+build_release.bat

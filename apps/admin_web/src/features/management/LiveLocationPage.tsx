@@ -9,6 +9,7 @@ import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
+import { ExecutiveMonitoringPage } from './ExecutiveMonitoringPage';
 import { useLiveLocationCommands, useLocationDirectory, type LocationDirectoryItem } from './useControlCenters';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { relativeTime } from '../../core/formatTime';
@@ -38,6 +39,7 @@ const NO_LOCATION = 'لم يُسجل موقع بعد';
 
 export function LiveLocationPage() {
   const { toast } = useToast();
+  const [tab, setTab] = useState<'directory' | 'monitoring'>('directory');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<(typeof filters)[number]['id']>('all');
   const [requestDraft, setRequestDraft] = useState<RequestDraft | null>(null);
@@ -78,6 +80,19 @@ export function LiveLocationPage() {
         }
       />
 
+      <div className="location-mobile-switch" role="tablist" aria-label="تبويب العرض">
+        <button type="button" role="tab" aria-selected={tab === 'directory'} className={`filter-chip ${tab === 'directory' ? 'is-active' : ''}`} onClick={() => setTab('directory')}>
+          دليل المواقع
+        </button>
+        <button type="button" role="tab" aria-selected={tab === 'monitoring'} className={`filter-chip ${tab === 'monitoring' ? 'is-active' : ''}`} onClick={() => setTab('monitoring')}>
+          متابعة اليوم
+        </button>
+      </div>
+
+      {tab === 'monitoring' ? (
+        <ExecutiveMonitoringPage embedded />
+      ) : (
+        <>
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="ضمن نطاق الوصول" value={data.length} icon={Users} />
         <MetricCard label="متصلون خلال 15 دقيقة" value={fresh} icon={Signal} />
@@ -221,6 +236,8 @@ export function LiveLocationPage() {
           </form>
         </DialogOverlay>
       ) : null}
+        </>
+      )}
     </div>
   );
 }

@@ -3221,7 +3221,19 @@ class _IssueDecisionSheet extends ConsumerStatefulWidget {
 class _IssueDecisionSheetState extends ConsumerState<_IssueDecisionSheet> {
   final _decisionController = TextEditingController();
   final _rationaleController = TextEditingController();
+  String? _selectedSessionId;
+  String _outcome = 'warning';
   bool _submitting = false;
+
+  static const _outcomeLabels = <String, String>{
+    'warning': 'تحذير',
+    'corrective_action': 'إجراء تصحيحي',
+    'disciplinary_recommendation': 'توصية تأديبية',
+    'dismissed': 'رفض الشكوى',
+    'mediation': 'وساطة',
+    'escalation': 'تصعيد',
+    'other': 'أخرى',
+  };
 
   @override
   void dispose() {
@@ -3232,8 +3244,9 @@ class _IssueDecisionSheetState extends ConsumerState<_IssueDecisionSheet> {
 
   bool get _canSubmit {
     if (_submitting) return false;
-    if (_decisionController.text.trim().length < 10) return false;
-    if (_rationaleController.text.trim().length < 10) return false;
+    if (_selectedSessionId == null) return false;
+    if (_decisionController.text.trim().length < 20) return false;
+    if (_rationaleController.text.trim().length < 20) return false;
     return true;
   }
 
@@ -3241,15 +3254,13 @@ class _IssueDecisionSheetState extends ConsumerState<_IssueDecisionSheet> {
     if (!_canSubmit) return;
     setState(() => _submitting = true);
     try {
-      await ref.read(mobileCommandsProvider).transitionDisputeCase(
+      await ref.read(mobileCommandsProvider).issueDisputeDecision(
             caseId: widget.caseItem.id,
-            action: 'issue_decision',
-            reason: _rationaleController.text.trim(),
-            metadata: {
-              'decision_text': _decisionController.text.trim(),
-            },
+            sessionId: _selectedSessionId!,
+            text: _decisionController.text.trim(),
+            rationale: _rationaleController.text.trim(),
+            outcome: _outcome,
           );
-      ref.invalidate(committeeDisputePortalProvider);
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -3271,6 +3282,8 @@ class _IssueDecisionSheetState extends ConsumerState<_IssueDecisionSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final sessionsAsync =
+        ref.watch(disputeCaseHeldSessionsProvider(widget.caseItem.id));
 
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
@@ -3325,6 +3338,95 @@ class _IssueDecisionSheetState extends ConsumerState<_IssueDecisionSheet> {
             ),
             const SizedBox(height: 16),
 
+            // اختيار الجلسة المُعقدة
+            Text('الجلسة المرجعية للقرار *',
+                style: theme.textTheme.labelLarge
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            sessionsAsync.when(
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+              error: (e, _) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text('خطأ في تحميل الجلسات: ${humanizeError(e)}',
+                    style: TextStyle(color: theme.colorScheme.error)),
+              ),
+              data: (sessions) {
+                if (sessions.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.event_busy,
+                            color: Colors.orange.shade700, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'لا توجد جلسات مُعقدة — يجب جدولة جلسة وعقدها قبل إصدار القرار',
+                            style: TextStyle(color: Colors.orange.shade800,
+                                fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                // اختيار أحدث جلسة تلقائياً
+                if (_selectedSessionId == null) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      setState(() => _selectedSessionId = sessions.first.id);
+                    }
+                  });
+                }
+                final df = DateFormat('d MMM y', 'ar');
+                return DropdownButtonFormField<String>(
+                  value: _selectedSessionId,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: sessions.map((s) {
+                    final label = DisputeHeldSession.typeLabel(s.sessionType);
+                    final date =
+                        s.heldAt != null ? df.format(s.heldAt!) : '—';
+                    return DropdownMenuItem(
+                      value: s.id,
+                      child: Text('$label — $date',
+                          overflow: TextOverflow.ellipsis),
+                    );
+                  }).toList(),
+                  onChanged: (v) => setState(() => _selectedSessionId = v),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // نوع النتيجة
+            DropdownButtonFormField<String>(
+              value: _outcome,
+              decoration: const InputDecoration(
+                labelText: 'نوع القرار / النتيجة *',
+                border: OutlineInputBorder(),
+              ),
+              items: _outcomeLabels.entries
+                  .map((e) => DropdownMenuItem(
+                      value: e.key, child: Text(e.value)))
+                  .toList(),
+              onChanged: (v) => setState(() => _outcome = v ?? _outcome),
+            ),
+            const SizedBox(height: 12),
+
             // نص القرار
             TextField(
               controller: _decisionController,
@@ -3333,9 +3435,8 @@ class _IssueDecisionSheetState extends ConsumerState<_IssueDecisionSheet> {
               maxLength: 2000,
               onChanged: (_) => setState(() {}),
               decoration: const InputDecoration(
-                labelText: 'نص القرار',
-                hintText:
-                    'اكتب نص القرار بالتفصيل (10 أحرف على الأقل)',
+                labelText: 'نص القرار *',
+                hintText: 'اكتب نص القرار بالتفصيل (20 حرفاً على الأقل)',
                 border: OutlineInputBorder(),
                 alignLabelWithHint: true,
               ),
@@ -3350,9 +3451,8 @@ class _IssueDecisionSheetState extends ConsumerState<_IssueDecisionSheet> {
               maxLength: 1000,
               onChanged: (_) => setState(() {}),
               decoration: const InputDecoration(
-                labelText: 'الحيثيات والمبررات',
-                hintText:
-                    'اشرح الأسباب التي بُني عليها القرار (10 أحرف على الأقل)',
+                labelText: 'الحيثيات والمبررات *',
+                hintText: 'اشرح الأسباب التي بُني عليها القرار (20 حرفاً على الأقل)',
                 border: OutlineInputBorder(),
                 alignLabelWithHint: true,
               ),
@@ -3389,8 +3489,27 @@ class _SettlementSheet extends ConsumerStatefulWidget {
 
 class _SettlementSheetState extends ConsumerState<_SettlementSheet> {
   final _termsController = TextEditingController();
-  bool _agreedByParties = false;
+  String _settlementType = 'mediation';
+  String? _fromId;
+  String? _toId;
   bool _submitting = false;
+
+  static const _typeLabels = <String, String>{
+    'mediation': 'وساطة',
+    'verbal_apology': 'اعتذار شفهي',
+    'written_apology': 'اعتذار مكتوب',
+    'group_apology': 'اعتذار جماعي',
+    'undertaking': 'تعهد',
+    'follow_up': 'متابعة',
+    'other': 'أخرى',
+  };
+
+  static const _partyTypeLabels = <String, String>{
+    'complainant': 'مقدم الشكوى',
+    'respondent': 'المشتكى عليه',
+    'witness': 'شاهد',
+    'related': 'ذو صلة',
+  };
 
   @override
   void dispose() {
@@ -3400,25 +3519,45 @@ class _SettlementSheetState extends ConsumerState<_SettlementSheet> {
 
   bool get _canSubmit {
     if (_submitting) return false;
+    if (_fromId == null) return false;
     if (_termsController.text.trim().length < 10) return false;
-    if (!_agreedByParties) return false;
     return true;
+  }
+
+  void _tryAutoSelect(List<DisputeCaseParty> parties) {
+    if (_fromId == null) {
+      final complainant =
+          parties.where((p) => p.partyType == 'complainant').firstOrNull;
+      if (complainant != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) setState(() => _fromId = complainant.employeeId);
+        });
+      }
+    }
+    if (_toId == null) {
+      final respondent =
+          parties.where((p) => p.partyType == 'respondent').firstOrNull;
+      if (respondent != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) setState(() => _toId = respondent.employeeId);
+        });
+      }
+    }
   }
 
   Future<void> _submit() async {
     if (!_canSubmit) return;
     setState(() => _submitting = true);
     try {
-      await ref.read(mobileCommandsProvider).transitionDisputeCase(
+      await ref.read(mobileCommandsProvider).recordDisputeSettlement(
             caseId: widget.caseItem.id,
-            action: 'record_settlement',
-            reason: _termsController.text.trim(),
-            metadata: {
-              'terms': _termsController.text.trim(),
-              'agreed_by_parties': _agreedByParties,
-            },
+            type: _settlementType,
+            from: _fromId!,
+            to: _toId,
+            text: _termsController.text.trim().isEmpty
+                ? null
+                : _termsController.text.trim(),
           );
-      ref.invalidate(committeeDisputePortalProvider);
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -3440,6 +3579,8 @@ class _SettlementSheetState extends ConsumerState<_SettlementSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final partiesAsync =
+        ref.watch(disputeCasePartiesProvider(widget.caseItem.id));
 
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
@@ -3469,6 +3610,98 @@ class _SettlementSheetState extends ConsumerState<_SettlementSheet> {
                 style: theme.textTheme.bodySmall),
             const SizedBox(height: 16),
 
+            // نوع التسوية
+            DropdownButtonFormField<String>(
+              value: _settlementType,
+              decoration: const InputDecoration(
+                labelText: 'نوع التسوية *',
+                border: OutlineInputBorder(),
+              ),
+              items: _typeLabels.entries
+                  .map((e) =>
+                      DropdownMenuItem(value: e.key, child: Text(e.value)))
+                  .toList(),
+              onChanged: (v) =>
+                  setState(() => _settlementType = v ?? _settlementType),
+            ),
+            const SizedBox(height: 16),
+
+            // الطرف المنفِّذ (from)
+            Text('الطرف المنفِّذ للتسوية *',
+                style: theme.textTheme.labelLarge
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            partiesAsync.when(
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+              error: (e, _) => Text('خطأ في تحميل الأطراف: ${humanizeError(e)}',
+                  style: TextStyle(color: theme.colorScheme.error)),
+              data: (parties) {
+                _tryAutoSelect(parties);
+                if (parties.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.shade200),
+                    ),
+                    child: Text(
+                      'لا توجد أطراف مسجلة في هذه القضية',
+                      style: TextStyle(color: Colors.orange.shade800,
+                          fontSize: 12),
+                    ),
+                  );
+                }
+                return Column(
+                  children: [
+                    DropdownButtonFormField<String>(
+                      value: _fromId,
+                      decoration: const InputDecoration(
+                        labelText: 'الطرف المنفِّذ',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: parties
+                          .map((p) => DropdownMenuItem(
+                                value: p.employeeId,
+                                child: Text(
+                                  '${p.employeeName} (${_partyTypeLabels[p.partyType] ?? p.partyType})',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ))
+                          .toList(),
+                      onChanged: (v) => setState(() => _fromId = v),
+                    ),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String?>(
+                      value: _toId,
+                      decoration: const InputDecoration(
+                        labelText: 'الطرف المستفيد (اختياري)',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        const DropdownMenuItem<String?>(
+                            value: null, child: Text('— لا يوجد —')),
+                        ...parties.map((p) => DropdownMenuItem<String?>(
+                              value: p.employeeId,
+                              child: Text(
+                                '${p.employeeName} (${_partyTypeLabels[p.partyType] ?? p.partyType})',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            )),
+                      ],
+                      onChanged: (v) => setState(() => _toId = v),
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+
             // بنود التسوية
             TextField(
               controller: _termsController,
@@ -3477,25 +3710,11 @@ class _SettlementSheetState extends ConsumerState<_SettlementSheet> {
               maxLength: 2000,
               onChanged: (_) => setState(() {}),
               decoration: const InputDecoration(
-                labelText: 'بنود التسوية',
-                hintText:
-                    'اكتب بنود التسوية المتفق عليها (10 أحرف على الأقل)',
+                labelText: 'بنود التسوية / نص الاعتذار *',
+                hintText: 'اكتب بنود التسوية المتفق عليها (10 أحرف على الأقل)',
                 border: OutlineInputBorder(),
                 alignLabelWithHint: true,
               ),
-            ),
-            const SizedBox(height: 12),
-
-            // موافقة الأطراف
-            CheckboxListTile(
-              value: _agreedByParties,
-              onChanged: (v) =>
-                  setState(() => _agreedByParties = v ?? false),
-              title: const Text('تأكيد موافقة جميع الأطراف'),
-              subtitle: const Text(
-                  'يجب أن يكون جميع الأطراف موافقين على بنود التسوية'),
-              controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: EdgeInsets.zero,
             ),
             const SizedBox(height: 14),
 

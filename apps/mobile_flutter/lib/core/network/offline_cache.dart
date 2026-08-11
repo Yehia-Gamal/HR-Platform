@@ -8,6 +8,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 ///
 /// مفاتيح الكاش مُقيَّدة بمعرّف المستخدم الحالي لمنع تسرّب البيانات
 /// بين مستخدمين مختلفين على نفس الجهاز.
+///
+/// TTL: العناصر الأقدم من [_maxAge] تُعتبر منتهية الصلاحية ويُرجع لها null.
 class OfflineCache {
   OfflineCache._();
   static final OfflineCache instance = OfflineCache._();
@@ -16,6 +18,9 @@ class OfflineCache {
 
   static const _prefix = 'offline_cache_';
   static const _tsPrefix = 'offline_ts_';
+
+  /// أقصى عمر لعنصر الكاش قبل اعتباره منتهي الصلاحية (24 ساعة).
+  static const _maxAge = Duration(hours: 24);
 
   String? _currentUserId;
 
@@ -40,8 +45,18 @@ class OfflineCache {
     } catch (_) {}
   }
 
+  /// يُرجع البيانات المخزّنة إن لم تنتهِ صلاحيتها (خلال [_maxAge]).
+  /// إن انتهت، يُحذف العنصر ويُرجع null.
   Future<dynamic> get(String cacheKey) async {
     try {
+      // تحقق من TTL قبل الإرجاع
+      final ts = await getTimestamp(cacheKey);
+      if (ts == null) return null;
+      final age = DateTime.now().difference(ts);
+      if (age > _maxAge) {
+        await remove(cacheKey);
+        return null;
+      }
       final json = await _storage.read(key: _dataKey(cacheKey));
       if (json == null) return null;
       return jsonDecode(json);
@@ -67,16 +82,19 @@ class OfflineCache {
     } catch (_) {}
   }
 
+  /// يُحدّث كل عناصر الكاش للمستخدم الحالي عبر iterate جميع المفاتيح
+  /// التي تبدأ بالـ prefix الخاص بالمستخدم.
   Future<void> clearAll() async {
-    for (final key in [
-      attendanceState,
-      employeeHome,
-      managerDashboard,
-      kpiList,
-      myRequests,
-    ]) {
-      await remove(key);
-    }
+    try {
+      final allKeys = await _storage.readAll();
+      final dataPrefix = '$_prefix${_currentUserId != null ? "${_currentUserId}_" : ""}';
+      final tsPrefix = '$_tsPrefix${_currentUserId != null ? "${_currentUserId}_" : ""}';
+      for (final key in allKeys.keys) {
+        if (key.startsWith(dataPrefix) || key.startsWith(tsPrefix)) {
+          await _storage.delete(key: key);
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> clearAllForUser(String? userId) async {

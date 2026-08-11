@@ -34,7 +34,7 @@ const FILTERS: Array<{ id: string; label: string; key?: string }> = [
   { id: 'no_response', label: 'لم يستجب لطلب' },
 ];
 
-export function ExecutiveMonitoringPage() {
+export function ExecutiveMonitoringPage({ embedded: _embedded = false }: { embedded?: boolean } = {}) {
   const { toast } = useToast();
   const auth = useAuth();
   const [search, setSearch] = useState('');
@@ -86,16 +86,18 @@ export function ExecutiveMonitoringPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="متابعة الموظفين اليومية"
-        description="من حضر ومن تأخّر ومن تغيّب ومن في إجازة أو مأمورية، مع آخر موقع مصرّح به وإمكانية طلب موقع فوري."
-        actions={
-          <button className="btn-secondary" type="button" onClick={() => void overview.refetch()} disabled={overview.isFetching}>
-            <RefreshCw className={`size-4 ${overview.isFetching ? 'animate-spin' : ''}`} />
-            تحديث
-          </button>
-        }
-      />
+      {_embedded ? null : (
+        <PageHeader
+          title="متابعة الموظفين اليومية"
+          description="من حضر ومن تأخّر ومن تغيّب ومن في إجازة أو مأمورية، مع آخر موقع مصرّح به وإمكانية طلب موقع فوري."
+          actions={
+            <button className="btn-secondary" type="button" onClick={() => void overview.refetch()} disabled={overview.isFetching}>
+              <RefreshCw className={`size-4 ${overview.isFetching ? 'animate-spin' : ''}`} />
+              تحديث
+            </button>
+          }
+        />
+      )}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="إجمالي الموظفين" value={summary.total ?? 0} icon={Users} />
