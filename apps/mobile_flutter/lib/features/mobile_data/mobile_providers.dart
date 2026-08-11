@@ -385,6 +385,25 @@ final disputeDirectoryProvider =
       ).map(DisputeDirectoryEmployee.fromJson).toList(growable: false);
     });
 
+/// جلسات القضية المُعقدة — مطلوبة لإصدار قرار اللجنة
+final disputeCaseHeldSessionsProvider =
+    FutureProvider.family<List<DisputeHeldSession>, String>((
+      ref,
+      caseId,
+    ) async {
+      final data = await _withTimeout(ref
+          .watch(supabaseProvider)
+          .from('dispute_sessions')
+          .select('id, session_type, status, scheduled_at, held_at, location')
+          .eq('case_id', caseId)
+          .eq('status', 'held')
+          .order('held_at', ascending: false));
+      return (data as List<dynamic>)
+          .map((e) => DisputeHeldSession.fromJson(
+              Map<String, dynamic>.from(e as Map)))
+          .toList(growable: false);
+    });
+
 /// أطراف القضية (مشتكى عليه / شاهد / مقدّم الشكوى / ذو صلة)
 final disputeCasePartiesProvider =
     FutureProvider.family<List<DisputeCaseParty>, String>((
@@ -1504,6 +1523,57 @@ extension ExecutiveDisputeCommands on MobileCommands {
     ref.invalidate(executiveDisputeInboxProvider);
     ref.invalidate(myDisputePortalProvider);
     return result?.toString() ?? caseId;
+  }
+
+  /// إصدار قرار اللجنة — issue_dispute_decision (يتطلب جلسة مُعقدة بحضور النصاب)
+  Future<void> issueDisputeDecision({
+    required String caseId,
+    required String sessionId,
+    required String text,
+    required String rationale,
+    required String outcome,
+  }) async {
+    await _withTimeout(ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
+          'issue_dispute_decision',
+          params: {
+            'p_case_id': caseId,
+            'p_session_id': sessionId,
+            'p_text': text.trim(),
+            'p_rationale': rationale.trim(),
+            'p_outcome': outcome,
+          },
+        ));
+    ref.invalidate(committeeDisputePortalProvider);
+    ref.invalidate(executiveDisputeInboxProvider);
+    ref.invalidate(myDisputePortalProvider);
+    ref.invalidate(disputeCaseHeldSessionsProvider(caseId));
+  }
+
+  /// تسجيل تسوية — record_dispute_settlement
+  Future<void> recordDisputeSettlement({
+    required String caseId,
+    required String type,
+    required String from,
+    String? to,
+    String? text,
+  }) async {
+    await _withTimeout(ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
+          'record_dispute_settlement',
+          params: {
+            'p_case_id': caseId,
+            'p_type': type,
+            'p_from': from,
+            'p_to': to,
+            'p_text': (text?.trim().isNotEmpty ?? false) ? text!.trim() : null,
+          },
+        ));
+    ref.invalidate(committeeDisputePortalProvider);
+    ref.invalidate(executiveDisputeInboxProvider);
+    ref.invalidate(myDisputePortalProvider);
   }
 
   /// 0202 — نقل حالة القضية (سكرتير/أدمن/لجنة)

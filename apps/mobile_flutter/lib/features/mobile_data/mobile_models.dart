@@ -1958,6 +1958,37 @@ class DisputeCaseParty {
   final String notificationStatus; // withheld, queued, notified, read
 }
 
+class DisputeHeldSession {
+  const DisputeHeldSession({
+    required this.id,
+    required this.sessionType,
+    required this.heldAt,
+    this.location,
+  });
+  factory DisputeHeldSession.fromJson(Map<String, dynamic> json) =>
+      DisputeHeldSession(
+        id: json['id'] as String,
+        sessionType: json['session_type'] as String? ?? 'hearing',
+        heldAt: json['held_at'] == null
+            ? null
+            : DateTime.tryParse(json['held_at'] as String),
+        location: json['location'] as String?,
+      );
+  final String id;
+  final String sessionType;
+  final DateTime? heldAt;
+  final String? location;
+
+  static String typeLabel(String t) => switch (t) {
+        'hearing' => 'جلسة استماع',
+        'investigation' => 'جلسة تحقيق',
+        'mediation' => 'جلسة وساطة',
+        'follow_up' => 'جلسة متابعة',
+        'decision' => 'جلسة قرار',
+        _ => t,
+      };
+}
+
 class MobileDisputeDecision {
   const MobileDisputeDecision({
     required this.id,

@@ -28,6 +28,21 @@ const mockEvaluations = [
     workflowStatus: 'PENDING',
     canEdit: true,
   },
+  {
+    id: 'eval-2',
+    employeeId: 'emp-2',
+    employeeName: 'فاطمة علي',
+    employeeCode: 'EMP-102',
+    photoUrl: null,
+    currentStage: 'hr_review' as const,
+    selfScore: 80,
+    managerScore: null,
+    finalScore: null,
+    periodMonth: '2026-01-01',
+    relation: 'team' as const,
+    workflowStatus: 'PENDING',
+    canEdit: false,
+  },
 ];
 
 const emptyQuery = { data: [], isLoading: false, isError: false, error: null, isFetching: false, refetch: vi.fn() };
