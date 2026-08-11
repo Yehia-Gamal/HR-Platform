@@ -117,7 +117,7 @@ class _FeedDetailContent extends ConsumerWidget {
                   height: 220,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  errorBuilder: (_, _e, _st) => const SizedBox.shrink(),
                 ),
               Padding(
                 padding: const EdgeInsets.all(20),
