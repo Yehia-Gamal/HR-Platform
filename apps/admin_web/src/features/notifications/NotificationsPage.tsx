@@ -29,7 +29,6 @@ export function NotificationsPage() {
             disabled={!unread.length || mark.isPending}
             onClick={() =>
               mark.mutate(undefined, {
-                onSuccess: () => toast({ message: 'تم تعليم كل الإشعارات كمقروءة', tone: 'success' }),
                 onError: () => toast({ message: 'تعذر تعليم الإشعارات', tone: 'error' }),
               })
             }

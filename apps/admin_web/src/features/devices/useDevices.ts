@@ -114,3 +114,20 @@ export function useDeleteDevice() {
     },
   });
 }
+
+export function useReinstateDevice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ deviceId, reason }: { deviceId: string; reason?: string }) => {
+      return rpc('admin_reinstate_device', {
+        p_device_id: deviceId,
+        p_reason: reason ?? null,
+      });
+    },
+    meta: { successMessage: 'تمت إعادة الجهاز للمراجعة بنجاح' },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['device-approvals'] });
+      void qc.invalidateQueries({ queryKey: ['all-devices'] });
+    },
+  });
+}
