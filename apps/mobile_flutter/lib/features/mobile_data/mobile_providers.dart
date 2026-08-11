@@ -347,9 +347,11 @@ final executiveAttendanceTodayProvider =
 
 /// يستطلع طلبات الموقع المعلقة للمستخدم الحالي كل 15 ثانية.
 /// يُستخدم بواسطة [LocationIncomingListener] لعرض الشاشة المنبثقة عند ورود طلب.
+/// ref.read بدلاً من ref.watch: لا يجب إعادة بناء المزوّد عند تغيّر supabaseProvider
+/// من داخل async* (الـ watch لا يعمل كما هو متوقع بعد نقاط التعليق).
 final pendingIncomingLocationRequestProvider =
     StreamProvider.autoDispose<MobileLocationRequest?>((ref) async* {
-      final supabase = ref.watch(supabaseProvider);
+      final supabase = ref.read(supabaseProvider);
       while (true) {
         try {
           final data = await supabase.rpc<dynamic>(
@@ -363,7 +365,7 @@ final pendingIncomingLocationRequestProvider =
           yield pending.isEmpty ? null : pending.first;
         } catch (e) {
           if (kDebugMode) debugPrint('pendingLocationRequest poll failed: $e');
-          yield null; // keep polling alive — transient errors self-heal next cycle
+          yield null;
         }
         await Future<void>.delayed(const Duration(seconds: 15));
       }

@@ -235,6 +235,8 @@ export function LiveLocationPage() {
           </form>
         </DialogOverlay>
       ) : null}
+        </>
+      ) : null}
     </div>
   );
 }
