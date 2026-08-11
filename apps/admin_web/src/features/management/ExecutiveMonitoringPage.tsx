@@ -86,7 +86,7 @@ export function ExecutiveMonitoringPage({ embedded: _embedded = false }: { embed
 
   return (
     <div className="space-y-6">
-      {embedded ? null : (
+      {_embedded ? null : (
         <PageHeader
           title="متابعة الموظفين اليومية"
           description="من حضر ومن تأخّر ومن تغيّب ومن في إجازة أو مأمورية، مع آخر موقع مصرّح به وإمكانية طلب موقع فوري."

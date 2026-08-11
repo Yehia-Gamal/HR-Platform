@@ -38,6 +38,7 @@ const NO_LOCATION = 'لم يُسجل موقع بعد';
 
 export function LiveLocationPage() {
   const { toast } = useToast();
+  const [tab, setTab] = useState<'directory' | 'monitoring'>('directory');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<(typeof filters)[number]['id']>('all');
   const [requestDraft, setRequestDraft] = useState<RequestDraft | null>(null);
