@@ -1,4 +1,4 @@
-import { Ban, CheckCircle2, Clock3, Eye, EyeOff, MonitorSmartphone, Shield, ShieldAlert, ShieldOff, Smartphone, Trash2 } from 'lucide-react';
+import { Ban, CheckCircle2, Clock3, Eye, EyeOff, MonitorSmartphone, RotateCcw, Shield, ShieldAlert, ShieldOff, Smartphone, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
@@ -13,7 +13,7 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useToast } from '../../ui/Toast';
 import type { AdminDevice, PendingDevice } from './useDevices';
-import { useAllDevices, useApproveDevice, useDeleteDevice, useDeviceApprovals, useRevokeDevice } from './useDevices';
+import { useAllDevices, useApproveDevice, useDeleteDevice, useDeviceApprovals, useReinstateDevice, useRevokeDevice } from './useDevices';
 
 type Tab = 'pending' | 'all';
 
@@ -114,12 +114,15 @@ function AllDevicesPanel() {
   const query = useAllDevices(statusFilter || undefined, showTerminated);
   const revoke = useRevokeDevice();
   const remove = useDeleteDevice();
+  const reinstate = useReinstateDevice();
   const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [revokeTarget, setRevokeTarget] = useState<AdminDevice | null>(null);
   const [revokeReason, setRevokeReason] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<AdminDevice | null>(null);
   const [deleteReason, setDeleteReason] = useState('');
+  const [reinstateTarget, setReinstateTarget] = useState<AdminDevice | null>(null);
+  const [reinstateReason, setReinstateReason] = useState('');
   const allDevices = useMemo(() => query.data ?? [], [query.data]);
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -140,6 +143,13 @@ function AllDevicesPanel() {
     if (!deleteTarget) return;
     remove.mutate({ deviceId: deleteTarget.id, reason: deleteReason || undefined }, {
       onSuccess: () => { setDeleteTarget(null); setDeleteReason(''); toast({ message: 'تم حذف الجهاز نهائياً', tone: 'success' }); },
+      onError: (error) => { toast({ message: safeErrorMessage(error), tone: 'error' }); },
+    });
+  }
+  function executeReinstate() {
+    if (!reinstateTarget) return;
+    reinstate.mutate({ deviceId: reinstateTarget.id, reason: reinstateReason || undefined }, {
+      onSuccess: () => { setReinstateTarget(null); setReinstateReason(''); toast({ message: 'تمت إعادة الجهاز للمراجعة بنجاح', tone: 'success' }); },
       onError: (error) => { toast({ message: safeErrorMessage(error), tone: 'error' }); },
     });
   }
@@ -171,7 +181,7 @@ function AllDevicesPanel() {
         <EmptyState title="لا توجد أجهزة" description={allDevices.length === 0 ? 'لم يسجّل أي موظف جهازاً بعد.' : 'لا توجد نتائج مطابقة للبحث.'} />
       ) : (
         <section className="space-y-3" aria-label="كل الأجهزة">
-          {filtered.map((device) => (<AdminDeviceCard key={device.id} device={device} onRevoke={setRevokeTarget} onDelete={setDeleteTarget} isRevokePending={revoke.isPending} isDeletePending={remove.isPending} />))}
+          {filtered.map((device) => (<AdminDeviceCard key={device.id} device={device} onRevoke={setRevokeTarget} onDelete={setDeleteTarget} onReinstate={setReinstateTarget} isRevokePending={revoke.isPending} isDeletePending={remove.isPending} isReinstatePending={reinstate.isPending} />))}
         </section>
       )}
       {revokeTarget ? (
@@ -199,6 +209,20 @@ function AllDevicesPanel() {
           <div className="mt-4 flex gap-2 justify-end">
             <button type="button" className="btn-secondary" onClick={() => setDeleteTarget(null)}>إلغاء</button>
             <button type="button" className="btn-danger" disabled={remove.isPending} onClick={executeDelete}>{remove.isPending ? 'جارٍ الحذف...' : 'حذف نهائي'}</button>
+          </div>
+        </DialogOverlay>
+      ) : null}
+      {reinstateTarget ? (
+        <DialogOverlay title="إعادة تفعيل الجهاز" onClose={() => setReinstateTarget(null)} maxWidth="max-w-md">
+          <p className="text-sm leading-7 text-[var(--text-muted)]">هل تريد إعادة جهاز &quot;{reinstateTarget.deviceName ?? reinstateTarget.platform}&quot; للموظف {reinstateTarget.employeeName} إلى قائمة الانتظار للمراجعة؟ سيحتاج الجهاز لموافقة جديدة قبل تفعيله.</p>
+          <div className="mt-4">
+            <label className="text-sm font-bold" htmlFor="reinstate-reason">سبب إعادة التفعيل (اختياري)</label>
+            <textarea id="reinstate-reason" className="input mt-1 w-full" rows={2} value={reinstateReason} onChange={(e) => setReinstateReason(e.target.value)} placeholder="مثال: تم التحقق من الجهاز وهو آمن" />
+          </div>
+          {reinstate.isError ? <div className="mt-3"><ErrorBanner message={safeErrorMessage(reinstate.error)} /></div> : null}
+          <div className="mt-4 flex gap-2 justify-end">
+            <button type="button" className="btn-secondary" onClick={() => setReinstateTarget(null)}>إلغاء</button>
+            <button type="button" className="btn-primary" disabled={reinstate.isPending} onClick={executeReinstate}>{reinstate.isPending ? 'جارٍ الإعادة...' : 'إعادة للمراجعة'}</button>
           </div>
         </DialogOverlay>
       ) : null}
@@ -239,11 +263,12 @@ function PendingDeviceCard({ device, onAction, isPending }: { device: PendingDev
 const revocationSourceLabels: Record<string, string> = { admin: 'إلغاء إداري', employee: 'طلب الموظف', replacement: 'استبدال بجهاز جديد' };
 const terminatedStatuses: AdminDevice['status'][] = ['revoked', 'replaced', 'auto_revoked'];
 
-function AdminDeviceCard({ device, onRevoke, onDelete, isRevokePending, isDeletePending }: { device: AdminDevice; onRevoke: (device: AdminDevice) => void; onDelete: (device: AdminDevice) => void; isRevokePending: boolean; isDeletePending: boolean; }) {
+function AdminDeviceCard({ device, onRevoke, onDelete, onReinstate, isRevokePending, isDeletePending, isReinstatePending }: { device: AdminDevice; onRevoke: (device: AdminDevice) => void; onDelete: (device: AdminDevice) => void; onReinstate: (device: AdminDevice) => void; isRevokePending: boolean; isDeletePending: boolean; isReinstatePending: boolean; }) {
   const registeredDate = new Date(device.registeredAt);
   const dateStr = registeredDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
   const platformLabel = device.platform === 'android' ? 'أندرويد' : device.platform === 'ios' ? 'آيفون' : device.platform;
   const canRevoke = device.status === 'active';
+  const canReinstate = ['revoked', 'auto_revoked', 'blocked'].includes(device.status);
   const canDelete = terminatedStatuses.includes(device.status);
   return (
     <article className="card p-5">
@@ -264,6 +289,11 @@ function AdminDeviceCard({ device, onRevoke, onDelete, isRevokePending, isDelete
         {canRevoke ? (
           <div className="flex gap-2 shrink-0 self-end sm:self-center">
             <button type="button" className="btn-danger" disabled={isRevokePending} onClick={() => onRevoke(device)} aria-label={`إلغاء صلاحية جهاز ${device.employeeName}`}><ShieldOff className="size-4" />إلغاء الصلاحية</button>
+          </div>
+        ) : canReinstate ? (
+          <div className="flex gap-2 shrink-0 self-end sm:self-center">
+            <button type="button" className="btn-secondary" disabled={isReinstatePending} onClick={() => onReinstate(device)} aria-label={`إعادة تفعيل جهاز ${device.employeeName}`}><RotateCcw className="size-4" />إعادة للمراجعة</button>
+            {canDelete ? <button type="button" className="btn-ghost" disabled={isDeletePending} onClick={() => onDelete(device)} aria-label={`حذف جهاز ${device.employeeName} نهائياً`}><Trash2 className="size-4" />حذف</button> : null}
           </div>
         ) : canDelete ? (
           <div className="flex gap-2 shrink-0 self-end sm:self-center">
