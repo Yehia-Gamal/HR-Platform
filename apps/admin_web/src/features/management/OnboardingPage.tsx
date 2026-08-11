@@ -9,7 +9,6 @@ import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { safeErrorMessage } from '../../core/errorMapper';
-import { useToast } from '../../ui/Toast';
 import { useOnboardingAdminCatalog, useOnboardingCommands } from './useAdminOperations';
 
 const defaultTasks = [
@@ -21,7 +20,6 @@ const defaultTasks = [
 ];
 
 export function OnboardingPage() {
-  const { toast } = useToast();
   const query = useOnboardingAdminCatalog();
   const commands = useOnboardingCommands();
   const [open, setOpen] = useState(false);
@@ -123,13 +121,7 @@ export function OnboardingPage() {
                           aria-label={`حالة المهمة: ${task.title}`}
                           value={task.status}
                           onChange={(event) =>
-                            commands.transitionTask.mutate(
-                              { taskId: task.id, status: event.target.value },
-                              {
-                                onSuccess: () => toast({ message: 'تم تحديث حالة المهمة', tone: 'success' }),
-                                onError: () => toast({ message: 'تعذر تحديث حالة المهمة', tone: 'error' }),
-                              },
-                            )
+                            commands.transitionTask.mutate({ taskId: task.id, status: event.target.value })
                           }
                         >
                           <option value="pending">معلقة</option>
