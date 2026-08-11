@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b --force && vite build",
+    "build": "node --max-old-space-size=4096 ../../node_modules/typescript/bin/tsc -b --force && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b --pretty false",
+    "typecheck": "node --max-old-space-size=4096 ../../node_modules/typescript/bin/tsc -b --noEmit --pretty false",
     "test": "node ../../scripts/run-admin-web-tests.mjs",
     "test:coverage": "vitest run --coverage --coverage.thresholds.lines=70 --coverage.thresholds.branches=65 --coverage.thresholds.functions=70 --coverage.thresholds.statements=70"
   },
