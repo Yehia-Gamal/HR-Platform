@@ -2748,3 +2748,31 @@ class AttendanceTodayEmployee {
     };
   }
 }
+
+class DirectoryEmployee {
+  const DirectoryEmployee({
+    required this.id,
+    required this.name,
+    this.employeeCode,
+    this.photoUrl,
+    this.jobTitle,
+    this.department,
+  });
+
+  factory DirectoryEmployee.fromJson(Map<String, dynamic> j) =>
+      DirectoryEmployee(
+        id: j['id'] as String,
+        name: j['name'] as String? ?? '',
+        employeeCode: j['employeeCode'] as String?,
+        photoUrl: j['photoUrl'] as String?,
+        jobTitle: j['jobTitle'] as String?,
+        department: j['department'] as String?,
+      );
+
+  final String id;
+  final String name;
+  final String? employeeCode;
+  final String? photoUrl;
+  final String? jobTitle;
+  final String? department;
+}

@@ -14,6 +14,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/executive_govern
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_people_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_risk_center_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_directory_search_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_feed_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_disputes_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
@@ -320,6 +321,12 @@ class WorkspaceScaffold extends ConsumerWidget {
                 'comms.decision.manage',
               ]),
         ),
+      ),
+      // دليل الموظفين الموحد — متاح لجميع الأدوار
+      _MoreItem(
+        icon: Icons.contacts_outlined,
+        label: 'دليل الموظفين',
+        page: const MobileDirectorySearchPage(),
       ),
       // V20: الهيكل التنظيمي والشكاوى متاحة للجميع
       _MoreItem(

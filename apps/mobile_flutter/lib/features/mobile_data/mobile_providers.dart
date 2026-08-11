@@ -294,6 +294,19 @@ final connectivityRefreshProvider = Provider<void>((ref) {
   });
 });
 
+/// دليل الموظفين الموحد — بحث بالاسم أو الكود أو الإدارة، متاح لجميع الأدوار.
+final employeeDirectoryProvider = FutureProvider.autoDispose
+    .family<List<DirectoryEmployee>, String>((ref, search) async {
+      final data = await ref
+          .watch(supabaseProvider)
+          .rpc<dynamic>(
+            'get_mobile_employee_directory',
+            params: {'p_search': search, 'p_limit': 40},
+          )
+          .timeout(const Duration(seconds: 10));
+      return _asList(data).map(DirectoryEmployee.fromJson).toList(growable: false);
+    });
+
 final locationDirectoryProvider = FutureProvider.autoDispose
     .family<List<LocationDirectoryEmployee>, String>((ref, search) async {
       final data = await ref
