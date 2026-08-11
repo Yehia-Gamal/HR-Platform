@@ -429,6 +429,58 @@ final myPayslipsProvider = FutureProvider<List<MobilePayslip>>((ref) async {
 });
 
 
+final myLeaveBalancesProvider = FutureProvider<List<MobileLeaveBalance>>((
+  ref,
+) async {
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>(
+          'get_my_leave_balances',
+          params: {'p_year': DateTime.now().year},
+        ),
+  );
+  return _asList(data).map(MobileLeaveBalance.fromJson).toList(growable: false);
+});
+
+final myDisputePortalProvider = FutureProvider<MobileDisputePortal>((
+  ref,
+) async {
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_my_dispute_portal'),
+  );
+  return MobileDisputePortal.fromJson(_asMap(data));
+});
+
+/// V17 §14 — Executive dispute inbox (admin-action workflow)
+final executiveDisputeInboxProvider = FutureProvider<ExecutiveDisputeInbox>((
+  ref,
+) async {
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_executive_dispute_inbox'),
+  );
+  return ExecutiveDisputeInbox.fromJson(_asMap(data));
+});
+
+/// V18 — Committee dispute portal (all-cases card-list for committee members)
+final committeeDisputePortalProvider = FutureProvider<CommitteeDisputePortal>((
+  ref,
+) async {
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_committee_dispute_portal'),
+  );
+  return CommitteeDisputePortal.fromJson(_asMap(data));
+});
+
+/// 0198 — آراء/توصيات أعضاء اللجنة لقضية محددة
+final disputeCaseRecommendationsProvider =
+    FutureProvider.family<DisputeCaseRecommendations, String>((ref, caseId) async {
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_dispute_case_recommendations', params: {
+      'p_case_id': caseId,
+    }),
+  );
+  return DisputeCaseRecommendations.fromJson(_asMap(data));
+});
+
 // ─── الميزات الجديدة: مشاركة موقع استباقية + تفاعل التقارير ──────────────
 
 /// صفحة التقارير اليومية العامة — يراها كل المستخدمين.

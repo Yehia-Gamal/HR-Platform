@@ -240,6 +240,7 @@ export function useOperationsCommands() {
       await rpc('admin_transition_task', { p_id: input.id, p_status: input.status });
       return input;
     },
+    meta: { successMessage: 'تم تحديث حالة المهمة بنجاح' },
     onSuccess: refresh,
   });
   return { createTask, transitionTask };
@@ -302,6 +303,7 @@ export function useAuditSecurityCommands() {
       await rpc('admin_handle_security_event', { p_id: id });
       return id;
     },
+    meta: { successMessage: 'تمت معالجة الحدث الأمني بنجاح' },
     onSuccess: async () => client.invalidateQueries({ queryKey: ['audit-security-center'] }),
   });
   const revokeDevice = useMutation({
@@ -309,6 +311,7 @@ export function useAuditSecurityCommands() {
       if (auth.isMock) return input;
       return rpc('revoke_managed_device', { p_device_id: input.deviceId, p_reason: input.reason });
     },
+    meta: { successMessage: 'تم إلغاء تسجيل الجهاز بنجاح' },
     onSuccess: async () => client.invalidateQueries({ queryKey: ['audit-security-center'] }),
   });
   return { handleEvent, revokeDevice };

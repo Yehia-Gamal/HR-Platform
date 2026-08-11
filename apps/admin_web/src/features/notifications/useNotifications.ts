@@ -95,7 +95,7 @@ export function useMarkNotificationsRead() {
       const data = await rpc('mark_my_notifications_read', { p_ids: ids ?? null });
       return Number(data ?? 0);
     },
-    meta: { silentError: true },
+    meta: { successMessage: 'تم تعليم كل الإشعارات كمقروءة', silentError: true },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['my-notifications'] }),
   });
 }
