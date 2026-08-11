@@ -169,14 +169,6 @@ function AuthenticatedApp() {
               }
             />
             <Route
-              path="organization"
-              element={
-                <RequirePermission perm="organization.org_chart.read">
-                  <OrganizationPage />
-                </RequirePermission>
-              }
-            />
-            <Route
               path="performance/cycles"
               element={
                 <RequirePermission perm="performance.cycle.manage">
