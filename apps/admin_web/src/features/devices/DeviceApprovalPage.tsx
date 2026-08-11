@@ -57,7 +57,7 @@ function PendingDevicesPanel() {
     if (!confirmAction) return;
     const wasApproved = confirmAction.approved;
     approve.mutate({ deviceId: confirmAction.device.id, approved: confirmAction.approved, reason: confirmAction.approved ? undefined : reason || undefined }, {
-      onSuccess: () => { setConfirmAction(null); toast({ message: wasApproved ? 'تمت الموافقة على الجهاز بنجاح' : 'تم رفض الجهاز بنجاح', tone: 'success' }); },
+      onSuccess: () => { setConfirmAction(null); },
       onError: (error) => { toast({ message: safeErrorMessage(error), tone: 'error' }); },
     });
   }
@@ -135,14 +135,14 @@ function AllDevicesPanel() {
   function executeRevoke() {
     if (!revokeTarget) return;
     revoke.mutate({ deviceId: revokeTarget.id, reason: revokeReason || undefined }, {
-      onSuccess: () => { setRevokeTarget(null); setRevokeReason(''); toast({ message: 'تم إلغاء صلاحية الجهاز بنجاح', tone: 'success' }); },
+      onSuccess: () => { setRevokeTarget(null); setRevokeReason(''); },
       onError: (error) => { toast({ message: safeErrorMessage(error), tone: 'error' }); },
     });
   }
   function executeDelete() {
     if (!deleteTarget) return;
     remove.mutate({ deviceId: deleteTarget.id, reason: deleteReason || undefined }, {
-      onSuccess: () => { setDeleteTarget(null); setDeleteReason(''); toast({ message: 'تم حذف الجهاز نهائياً', tone: 'success' }); },
+      onSuccess: () => { setDeleteTarget(null); setDeleteReason(''); },
       onError: (error) => { toast({ message: safeErrorMessage(error), tone: 'error' }); },
     });
   }

@@ -775,13 +775,7 @@ function RoleManagementDialog({
                       type="button"
                       className="btn-secondary px-3 py-1.5 text-xs text-[var(--danger)]"
                       onClick={() =>
-                        commands.revokeRole.mutate(
-                          { userId: user.userId, roleId: role.id },
-                          {
-                            onSuccess: () => toast({ message: 'تم سحب الدور بنجاح', tone: 'success' }),
-                            onError: () => toast({ message: 'تعذر سحب الدور', tone: 'error' }),
-                          },
-                        )
+                        commands.revokeRole.mutate({ userId: user.userId, roleId: role.id })
                       }
                     >
                       <Trash2 className="size-3.5" aria-hidden="true" />
@@ -814,7 +808,6 @@ function CustomRoleDraftDialog({
   canGrantFullAccess: boolean;
   onClose: () => void;
 }) {
-  const { toast } = useToast();
   const [draft, setDraft] = useState<RoleDraft>(initialDraft);
   const [moduleFilter, setModuleFilter] = useState('all');
   const [permSearch, setPermSearch] = useState('');
