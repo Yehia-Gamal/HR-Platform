@@ -1,5 +1,6 @@
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/location_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_page.dart';
@@ -238,6 +239,8 @@ class EmployeeHomePage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 20),
+          const _AttendanceSparkline(),
+          const SizedBox(height: 20),
           Card(
             color: scheme.secondaryContainer.withValues(alpha: .55),
             child: Padding(
@@ -412,4 +415,104 @@ class _ErrorCard extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// شريط اتجاه الحضور لآخر 7 أيام — نقاط ملوّنة تعكس الحضور/التأخر/الغياب.
+class _AttendanceSparkline extends ConsumerWidget {
+  const _AttendanceSparkline();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = DateTime.now();
+    final statement = ref.watch(myMonthlyStatementProvider((now.year, now.month)));
+    return statement.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (data) {
+        final today = DateTime(now.year, now.month, now.day);
+        final last7 = data.days
+            .where((d) {
+              if (d.isFuture || d.date.isEmpty) return false;
+              final dt = DateTime.tryParse(d.date);
+              return dt != null && !dt.isAfter(today);
+            })
+            .toList()
+          ..sort((a, b) => a.date.compareTo(b.date));
+        final visible = last7.length > 7 ? last7.sublist(last7.length - 7) : last7;
+        if (visible.isEmpty) return const SizedBox.shrink();
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.show_chart_rounded, size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      'اتجاه الحضور — آخر 7 أيام',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: visible.map((d) => _SparkDot(day: d)).toList(),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SparkDot extends StatelessWidget {
+  const _SparkDot({required this.day});
+  final AttendanceStatementDay day;
+
+  @override
+  Widget build(BuildContext context) {
+    final (color, label) = _dotColor(context, day);
+    return Tooltip(
+      message: '${day.dayNameAr}: $label',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+            child: Center(
+              child: Text(
+                (DateTime.tryParse(day.date)?.day ?? '?').toString(),
+                style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            day.dayNameAr.isNotEmpty ? day.dayNameAr[0] : '',
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+        ],
+      ),
+    );
+  }
+
+  static (Color, String) _dotColor(BuildContext context, AttendanceStatementDay day) {
+    if (day.isOfficialHoliday || day.dayNameAr == 'الجمعة' || day.dayNameAr == 'السبت') {
+      return (Colors.grey.shade400, 'إجازة');
+    }
+    if (day.hasLeave) return (Colors.blue.shade400, 'إجازة');
+    if (day.isAbsent) return (Colors.red.shade400, 'غياب');
+    if (day.lateMinutes > 0) return (Colors.orange.shade400, 'تأخر ${day.lateMinutes} د');
+    if (day.isCompleted) return (Colors.green.shade500, 'حضور كامل');
+    return (Colors.grey.shade300, 'غير مسجل');
+  }
 }
