@@ -13,7 +13,6 @@ import { ExecutiveMonitoringPage } from './ExecutiveMonitoringPage';
 import { useLiveLocationCommands, useLocationDirectory, type LocationDirectoryItem } from './useControlCenters';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { relativeTime } from '../../core/formatTime';
-import { useToast } from '../../ui/Toast';
 
 type LocationState = 'fresh' | 'stale' | 'no_signal';
 type RequestDraft = { employee: LocationDirectoryItem; reason: string };
@@ -38,7 +37,6 @@ function stateLabel(state: LocationState) {
 const NO_LOCATION = 'لم يُسجل موقع بعد';
 
 export function LiveLocationPage() {
-  const { toast } = useToast();
   const [tab, setTab] = useState<'directory' | 'monitoring'>('directory');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<(typeof filters)[number]['id']>('all');
@@ -61,7 +59,6 @@ export function LiveLocationPage() {
     try {
       await commands.request.mutateAsync({ employeeId: requestDraft.employee.id, reason: requestDraft.reason.trim() });
       setRequestDraft(null);
-      toast({ message: 'تم إرسال طلب الموقع بنجاح', tone: 'success' });
     } catch {
       /* mutation error surfaced via commands.request.isError */
     }

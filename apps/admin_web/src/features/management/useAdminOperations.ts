@@ -81,7 +81,7 @@ export function useOrganizationCommands() {
         p_is_active: input.active,
       });
     },
-    meta: { successMessage: 'تم حفظ الوظيفة بنجاح' },
+    meta: { successMessage: 'تم حفظ المنصب بنجاح' },
     onSuccess: refresh,
   });
   return { department, position };

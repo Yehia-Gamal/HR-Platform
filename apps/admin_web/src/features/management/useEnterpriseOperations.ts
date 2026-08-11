@@ -116,6 +116,7 @@ export function useReportSchedulerCommands() {
             p_delivery_channels: input.channels,
             p_active: true,
           }),
+    meta: { successMessage: 'تم حفظ جدولة التقرير بنجاح' },
     onSuccess: async () => client.invalidateQueries({ queryKey: ['report-scheduler'] }),
   });
   return { upsert };
