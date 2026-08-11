@@ -1,8 +1,8 @@
 import {
-  announcementEngagementSchema,
+  announcementEngagementDetailSchema,
   officialFeedItemSchema,
   toggleReactionResultSchema,
-  type AnnouncementEngagement,
+  type AnnouncementEngagementDetail,
   type OfficialFeedItem,
 } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -112,14 +112,23 @@ export function useAnnouncementEngagement(announcementId: string | undefined) {
   return useQuery({
     queryKey: ['announcement-engagement', announcementId],
     enabled: auth.status === 'authenticated' && Boolean(announcementId),
-    queryFn: async (): Promise<AnnouncementEngagement> => {
+    queryFn: async (): Promise<AnnouncementEngagementDetail> => {
       if (auth.isMock) {
-        return { viewCount: 0, reactionCount: 0, myReaction: null, reactions: [] };
+        return {
+          announcementId: announcementId ?? '',
+          targetCount: 0,
+          viewerCount: 0,
+          reactionCount: 0,
+          acknowledgedCount: 0,
+          viewers: [],
+          reactions: [],
+          acknowledgements: [],
+        };
       }
       const data = await rpc('get_announcement_engagement', {
         p_announcement_id: announcementId!,
       });
-      return announcementEngagementSchema.parse(data);
+      return announcementEngagementDetailSchema.parse(data);
     },
     staleTime: 30 * 1000,
   });

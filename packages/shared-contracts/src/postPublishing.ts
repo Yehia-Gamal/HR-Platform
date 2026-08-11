@@ -53,7 +53,7 @@ export const announcementReactionEntrySchema = z.object({
 export type AnnouncementReactionEntry = z.infer<typeof announcementReactionEntrySchema>;
 
 export const announcementEngagementSchema = z.object({
-  viewCount: z.number().int(),
+  viewerCount: z.number().int(),
   reactionCount: z.number().int(),
   myReaction: reactionTypeSchema.nullable(),
   reactions: z.array(announcementReactionEntrySchema),

@@ -71,6 +71,7 @@ BEGIN
     IF to_regclass(format('public.%I', t)) IS NULL THEN CONTINUE; END IF;
     EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', t || '_read', t);
     EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', t || '_restricted_read', t);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', t || '_payroll_read', t);
     EXECUTE format(
       'CREATE POLICY %I ON public.%I FOR SELECT TO authenticated USING (%s)',
       t || '_payroll_read', t,

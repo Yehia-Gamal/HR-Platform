@@ -89,51 +89,6 @@ class _MobileFeedDetailPageState
             return _FeedDetailContent(item: value);
           },
         ),
-        if (item.kind == 'announcement') ...[
-          const SizedBox(height: 12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.visibility_outlined, size: 20),
-                      const SizedBox(width: 6),
-                      Text('${item.viewCount} مشاهدة'),
-                      const SizedBox(width: 16),
-                      const Icon(Icons.favorite_outline, size: 20),
-                      const SizedBox(width: 6),
-                      Text('${item.reactionCount} تفاعل'),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: const [
-                      ('like', '👍', 'أعجبني'),
-                      ('celebrate', '🎉', 'احتفال'),
-                      ('support', '🤝', 'دعم'),
-                      ('insightful', '💡', 'مفيد'),
-                    ].map((reaction) {
-                      final selected = item.myReaction == reaction.$1;
-                      final count = item.reactionSummary[reaction.$1] ?? 0;
-                      return FilterChip(
-                        selected: selected,
-                        avatar: Text(reaction.$2),
-                        label: Text('${reaction.$3}${count > 0 ? ' $count' : ''}'),
-                        onSelected: (_) =>
-                            _react(context, ref, reaction.$1),
-                      );
-                    }).toList(growable: false),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -244,6 +199,50 @@ class _FeedDetailContent extends ConsumerWidget {
               icon: const Icon(Icons.check_circle_outline),
               label: const Text('تم الاطلاع والإقرار'),
             ),
+        ],
+        if (item.kind == 'announcement') ...[
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.visibility_outlined, size: 20),
+                      const SizedBox(width: 6),
+                      Text('${item.viewCount} مشاهدة'),
+                      const SizedBox(width: 16),
+                      const Icon(Icons.favorite_outline, size: 20),
+                      const SizedBox(width: 6),
+                      Text('${item.reactionCount} تفاعل'),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: const [
+                      ('like', '👍', 'أعجبني'),
+                      ('celebrate', '🎉', 'احتفال'),
+                      ('support', '🤝', 'دعم'),
+                      ('insightful', '💡', 'مفيد'),
+                    ].map((reaction) {
+                      final selected = item.myReaction == reaction.$1;
+                      final count = item.reactionSummary[reaction.$1] ?? 0;
+                      return FilterChip(
+                        selected: selected,
+                        avatar: Text(reaction.$2),
+                        label: Text('${reaction.$3}${count > 0 ? ' $count' : ''}'),
+                        onSelected: (_) => _react(context, ref, reaction.$1),
+                      );
+                    }).toList(growable: false),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
         const SizedBox(height: 24),
       ],
