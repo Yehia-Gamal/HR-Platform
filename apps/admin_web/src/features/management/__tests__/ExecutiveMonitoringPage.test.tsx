@@ -112,7 +112,8 @@ describe('ExecutiveMonitoringPage', () => {
     overviewOverrideFn = () => dataQuery;
     render(<ExecutiveMonitoringPage />, { wrapper: Wrapper });
     expect(screen.getByText('إجمالي الموظفين')).toBeDefined();
-    expect(screen.getByText('حاضر')).toBeDefined();
+    // "حاضر" appears in both the MetricCard and the filter buttons
+    expect(screen.getAllByText('حاضر').length).toBeGreaterThan(0);
     expect(screen.getByText('طلبات موقع نشطة')).toBeDefined();
   });
 
@@ -137,6 +138,7 @@ describe('ExecutiveMonitoringPage', () => {
   it('يعرض حالة الخطأ', () => {
     overviewOverrideFn = () => errorQuery;
     render(<ExecutiveMonitoringPage />, { wrapper: Wrapper });
-    expect(screen.getByText('فشل التحميل')).toBeDefined();
+    // ErrorState بدون title يستخدم الافتراضي
+    expect(screen.getByText('تعذّر تحميل البيانات')).toBeDefined();
   });
 });

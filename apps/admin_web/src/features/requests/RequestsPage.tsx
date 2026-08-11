@@ -131,7 +131,7 @@ export function RequestsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="طلب اجازة"
+        title="طلب إجازة"
         description="صندوق موحد للإجازات وتصحيحات الحضور والتكليفات (مأمورية، قافلة) والأذونات، مع مسار اعتماد واضح."
       />
       {balances.isLoading && !balances.data ? (

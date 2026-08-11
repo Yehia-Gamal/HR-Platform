@@ -92,9 +92,10 @@ describe('OrganizationPage', () => {
         <OrganizationPage />
       </MemoryRouter>,
     );
+    // Some labels also appear in section headings or table headers — use getAllByText
     expect(screen.getByText('الكيانات')).toBeDefined();
-    expect(screen.getByText('الإدارات')).toBeDefined();
-    expect(screen.getByText('المناصب')).toBeDefined();
+    expect(screen.getAllByText('الإدارات').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('المناصب').length).toBeGreaterThan(0);
     expect(screen.getByText('الشواغر')).toBeDefined();
   });
 
@@ -116,7 +117,8 @@ describe('OrganizationPage', () => {
         <OrganizationPage />
       </MemoryRouter>,
     );
-    expect(screen.getByText('الموارد البشرية')).toBeDefined();
+    // Department name appears in both the departments table and as the department column in the positions table
+    expect(screen.getAllByText('الموارد البشرية').length).toBeGreaterThan(0);
   });
 
   it('يعرض حالة فارغة عند عدم وجود إدارات', () => {

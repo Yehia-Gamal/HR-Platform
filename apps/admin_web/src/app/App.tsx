@@ -455,14 +455,6 @@ function HrWorkspaceRoutes() {
           </RequirePermission>
         }
       />
-      <Route
-        path="organization"
-        element={
-          <RequirePermission perm="organization.org_chart.read">
-            <OrganizationPage />
-          </RequirePermission>
-        }
-      />
       <Route path="leaves" element={<RequirePermission perm="requests.request.read"><LeavesPage /></RequirePermission>} />
       <Route path="learning" element={<RequirePermission perm="learning.enroll"><LearningPage /></RequirePermission>} />
       <Route path="lifecycle" element={<RequirePermission perm="people.employee.read"><LifecyclePage /></RequirePermission>} />

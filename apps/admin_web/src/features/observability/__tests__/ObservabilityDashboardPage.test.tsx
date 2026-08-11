@@ -195,7 +195,8 @@ describe('ObservabilityDashboardPage', () => {
     cronJobsOverrideFn = () => dataCronJobsQuery;
     eventsOverrideFn = () => dataEventsQuery;
     render(<ObservabilityDashboardPage />, { wrapper: Wrapper });
-    expect(screen.getByText('لا توجد تنبيهات')).toBeDefined();
+    // "لا توجد تنبيهات" يظهر في العنوان + في hint بطاقة P1 — نتحقق من الرسالة الوصفية الخاصة بـ EmptyState
+    expect(screen.getByText('النظام يعمل بسلاسة، لا تنبيهات مفتوحة.')).toBeDefined();
   });
 
   it('يعرض حالة التحميل (animate-pulse)', () => {

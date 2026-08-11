@@ -76,7 +76,8 @@ describe('ReportSchedulerPage', () => {
         <ReportSchedulerPage />
       </MemoryRouter>,
     );
-    expect(screen.getByText('الجداول')).toBeDefined();
+    // "الجداول" appears in both the MetricCard and the section heading
+    expect(screen.getAllByText('الجداول').length).toBeGreaterThan(0);
     expect(screen.getByText('عمليات التشغيل')).toBeDefined();
     expect(screen.getByText('إشعارات منتظرة')).toBeDefined();
     expect(screen.getByText('فشل التسليم')).toBeDefined();

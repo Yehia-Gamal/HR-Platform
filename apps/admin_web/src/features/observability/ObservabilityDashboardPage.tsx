@@ -219,7 +219,7 @@ export function ObservabilityDashboardPage() {
         {alertsQuery.isLoading ? (
           <SkeletonCard className="h-24" />
         ) : alerts.length === 0 ? (
-          <EmptyState title="لا توجد تنبيهات" description="النظام يعمل بسلاسة، لا تنبيهات مفتوحة." />
+          <EmptyState title="لا توجد تنبيهات مفتوحة" description="النظام يعمل بسلاسة، لا تنبيهات مفتوحة." />
         ) : (
           <div className="space-y-2">
             {alerts.map((alert) => (

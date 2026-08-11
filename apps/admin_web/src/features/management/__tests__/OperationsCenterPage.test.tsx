@@ -130,8 +130,9 @@ describe('OperationsCenterPage', () => {
   it('يعرض المهام في التبويب الافتراضي', () => {
     centerOverrideFn = () => dataQuery;
     render(<OperationsCenterPage />, { wrapper: Wrapper });
-    expect(screen.getByText('مراجعة تقرير الحضور')).toBeDefined();
-    expect(screen.getByText('تحديث بيانات الموظفين')).toBeDefined();
+    // الصفحة تعرض desktop + mobile في نفس الوقت (hidden بالـ CSS) — نستخدم getAllByText
+    expect(screen.getAllByText('مراجعة تقرير الحضور').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('تحديث بيانات الموظفين').length).toBeGreaterThan(0);
   });
 
   it('يعرض زر إنشاء مهمة جديدة عند وجود صلاحيات', () => {

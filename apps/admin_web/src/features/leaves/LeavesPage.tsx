@@ -13,7 +13,7 @@ import { ListSkeleton, MetricSkeletonRow } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { safeErrorMessage } from '../../core/errorMapper';
-import { useAdminLeaves } from './useLeaves';
+import { useAdminLeaveDecision, useAdminLeaves } from './useLeaves';
 
 // ─── ثوابت ───────────────────────────────────────────────────────────────────
 
@@ -23,6 +23,9 @@ const STATUS_TABS = [
   { key: 'approved', label: 'معتمدة' },
   { key: 'rejected', label: 'مرفوضة' },
   { key: 'cancelled', label: 'ملغية' },
+  { key: 'returned', label: 'معادة' },
+  { key: 'withdrawn', label: 'مسحوبة' },
+  { key: 'escalated', label: 'مُصعَّدة' },
 ] as const;
 
 const LEAVE_TYPE_TABS = [
@@ -32,6 +35,18 @@ const LEAVE_TYPE_TABS = [
   { key: 'sick', label: 'مرضية' },
   { key: 'unpaid', label: 'بدون أجر' },
 ] as const;
+
+const STATUS_AR: Record<string, string> = {
+  pending: 'قيد المراجعة',
+  approved: 'معتمدة',
+  rejected: 'مرفوضة',
+  cancelled: 'ملغية',
+  returned: 'معادة للمراجعة',
+  withdrawn: 'مسحوبة',
+  escalated: 'مُصعَّدة',
+  draft: 'مسودة',
+  expired: 'منتهية الصلاحية',
+};
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = Array.from({ length: 3 }, (_, i) => CURRENT_YEAR - i);
@@ -45,10 +60,6 @@ function formatDate(iso: string) {
 }
 
 function exportToCsv(rows: LeaveAdminRow[], year: number) {
-  const STATUS_AR: Record<string, string> = {
-    pending: 'قيد المراجعة', approved: 'معتمدة',
-    rejected: 'مرفوضة', cancelled: 'ملغية',
-  };
   const headers = ['#', 'الموظف', 'الكود', 'نوع الإجازة', 'الحالة', 'من', 'إلى', 'المدة', 'بأجر', 'السبب'];
   const escape = (v: string | null | number) => {
     const s = String(v ?? '');
@@ -92,11 +103,38 @@ function formatDuration(row: LeaveAdminRow) {
   return `${d} أيام`;
 }
 
-// ─── تفاصيل طلب (dialog) ─────────────────────────────────────────────────────
+// ─── تفاصيل طلب مع موافقة/رفض ───────────────────────────────────────────────
 
-function LeaveDetailDialog({ row, onClose }: { row: LeaveAdminRow; onClose: () => void }) {
+function LeaveDetailDialog({
+  row,
+  onClose,
+  onDecided,
+}: {
+  row: LeaveAdminRow;
+  onClose: () => void;
+  onDecided: () => void;
+}) {
   const typeColor = LEAVE_TYPE_COLORS[row.leaveTypeCode] ?? '';
   const typeLabel = LEAVE_TYPE_LABELS[row.leaveTypeCode] ?? row.leaveTypeName;
+  const [rejectReason, setRejectReason] = useState('');
+  const [showRejectForm, setShowRejectForm] = useState(false);
+  const decision = useAdminLeaveDecision();
+
+  const isPending = row.status === 'pending';
+
+  function handleApprove() {
+    decision.mutate(
+      { requestId: row.requestId, decision: 'approve' },
+      { onSuccess: () => { onDecided(); onClose(); } },
+    );
+  }
+
+  function handleReject() {
+    decision.mutate(
+      { requestId: row.requestId, decision: 'reject', comment: rejectReason || undefined },
+      { onSuccess: () => { onDecided(); onClose(); } },
+    );
+  }
 
   return (
     <div
@@ -187,6 +225,71 @@ function LeaveDetailDialog({ row, onClose }: { row: LeaveAdminRow; onClose: () =
             عرض المرفق
           </a>
         )}
+
+        {/* أزرار الموافقة/الرفض — تظهر فقط للطلبات المعلقة */}
+        {isPending && (
+          <div className="border-t border-[var(--border)] pt-4 space-y-3">
+            {decision.isError && (
+              <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                {safeErrorMessage(decision.error)}
+              </p>
+            )}
+
+            {showRejectForm ? (
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-[var(--text-muted)]">
+                  سبب الرفض (اختياري)
+                </label>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  rows={2}
+                  placeholder="أدخل سبب الرفض..."
+                  className="input-field w-full resize-none text-sm"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleReject}
+                    disabled={decision.isPending}
+                    className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {decision.isPending ? 'جارٍ الرفض...' : 'تأكيد الرفض'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowRejectForm(false); setRejectReason(''); }}
+                    disabled={decision.isPending}
+                    className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold transition-colors hover:bg-[var(--surface-raised)] disabled:opacity-50"
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleApprove}
+                  disabled={decision.isPending}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+                >
+                  <Check className="size-4" />
+                  {decision.isPending ? 'جارٍ الاعتماد...' : 'اعتماد'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowRejectForm(true)}
+                  disabled={decision.isPending}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-300 px-4 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                >
+                  <FileX className="size-4" />
+                  رفض
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -259,7 +362,7 @@ export function LeavesPage() {
       <PageHeader
         eyebrow="الموارد البشرية"
         title="إدارة الإجازات"
-        description="عرض ومتابعة جميع طلبات إجازات الموظفين"
+        description="مراجعة واعتماد طلبات إجازات الموظفين"
         actions={
           <div className="flex items-center gap-2">
             <select
@@ -370,7 +473,11 @@ export function LeavesPage() {
 
       {/* تفاصيل الطلب */}
       {selected && (
-        <LeaveDetailDialog row={selected} onClose={() => setSelected(null)} />
+        <LeaveDetailDialog
+          row={selected}
+          onClose={() => setSelected(null)}
+          onDecided={() => void query.refetch()}
+        />
       )}
     </div>
   );
