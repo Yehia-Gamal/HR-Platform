@@ -23,7 +23,6 @@
       "vitest/globals",
       "@testing-library/jest-dom"
     ],
-    "baseUrl": ".",
     "paths": {
       "@ahla/shared-contracts": [
         "../../packages/shared-contracts/src/index.ts"
