@@ -39,8 +39,8 @@ let auditTrailOverride: () => Record<string, unknown>;
 
 vi.mock('../../finance/useFinancialExtensions', () => ({
   useAuditTrail: () => auditTrailOverride(),
-  AUDIT_CATEGORY_LABELS: mockAuditCategoryLabels,
-  AUDIT_SEVERITY_LABELS: mockAuditSeverityLabels,
+  AUDIT_CATEGORY_LABELS: { hr: 'موارد بشرية', system: 'النظام', security: 'أمن', financial: 'مالية', data: 'بيانات' },
+  AUDIT_SEVERITY_LABELS: { info: 'معلومة', warning: 'تحذير', error: 'خطأ', critical: 'حرج' },
 }));
 
 const loadingQuery = { data: undefined, isLoading: true, isError: false, error: null, refetch: vi.fn() };

@@ -1,6 +1,8 @@
 const PRIVATE_BUCKET = 'employee-avatars';
 const PUBLIC_MARKER = `/storage/v1/object/public/${PRIVATE_BUCKET}/`;
 const AUTHENTICATED_MARKER = `/storage/v1/object/authenticated/${PRIVATE_BUCKET}/`;
+// صيغة قديمة: /storage/v1/object/employee-avatars/ (بدون public/authenticated)
+const LEGACY_MARKER = `/storage/v1/object/${PRIVATE_BUCKET}/`;
 
 /**
  * يستخرج مسار الملف داخل bucket الصور الخاص من رابط مخزّن.
@@ -9,7 +11,7 @@ const AUTHENTICATED_MARKER = `/storage/v1/object/authenticated/${PRIVATE_BUCKET}
  */
 export function extractAvatarPath(url: string): string | null {
   if (!url) return null;
-  for (const marker of [PUBLIC_MARKER, AUTHENTICATED_MARKER]) {
+  for (const marker of [PUBLIC_MARKER, AUTHENTICATED_MARKER, LEGACY_MARKER]) {
     const index = url.indexOf(marker);
     if (index >= 0) {
       const path = url.substring(index + marker.length).split('?')[0];
