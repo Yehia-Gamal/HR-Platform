@@ -15,10 +15,10 @@ immutable
 security definer
 set search_path = public
 as $$
-  select uuid_generate_v5(
-    '6ba7b810-9dad-11d1-80b4-00c04fd430c8'::uuid,
-    format('%s|%s|%s|%s', p_employee_id, p_request_type, p_start_date, p_end_date)
-  );
+  select (
+    left(h,8)||'-'||substr(h,9,4)||'-'||substr(h,13,4)||'-'||substr(h,17,4)||'-'||right(h,12)
+  )::uuid
+  from (select md5(format('%s|%s|%s|%s', p_employee_id, p_request_type, p_start_date, p_end_date)) as h) as _;
 $$;
 
 -- update submit_my_request to use auto-generated key when none provided
