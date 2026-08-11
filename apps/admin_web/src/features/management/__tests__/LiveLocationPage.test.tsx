@@ -69,7 +69,8 @@ describe('LiveLocationPage', () => {
     render(<MemoryRouter><LiveLocationPage /></MemoryRouter>);
     expect(screen.getByText('ضمن نطاق الوصول')).toBeDefined();
     expect(screen.getByText('متصلون خلال 15 دقيقة')).toBeDefined();
-    expect(screen.getByText('طلبات نشطة')).toBeDefined();
+    // "طلبات نشطة" يظهر مرتين: بطاقة مؤشر + زر تصفية
+    expect(screen.getAllByText('طلبات نشطة').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('دون موقع مسجل')).toBeDefined();
   });
 

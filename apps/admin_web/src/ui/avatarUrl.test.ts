@@ -15,6 +15,11 @@ describe('extractAvatarPath', () => {
     expect(extractAvatarPath(url)).toBe('user123/avatar.png');
   });
 
+  it('يستخرج المسار من رابط legacy (بدون public/authenticated)', () => {
+    const url = 'https://xyz.supabase.co/storage/v1/object/employee-avatars/user/a.png';
+    expect(extractAvatarPath(url)).toBe('user/a.png');
+  });
+
   it('يتجاهل query params ويفك ترميز المسار', () => {
     const url = `https://xyz.supabase.co${PUBLIC}u/%D8%A3.webp?v=123&x=1`;
     expect(extractAvatarPath(url)).toBe('u/أ.webp');

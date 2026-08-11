@@ -53,9 +53,11 @@ void main() {
       expect(find.text('موظف تجريبي'), findsOneWidget);
       expect(find.text('50%'), findsOneWidget);
       expect(find.text('نسبة الحضور الشهرية'), findsOneWidget);
-      expect(find.text('إجمالي الحضور'), findsOneWidget);
-      expect(find.text('ورديات مفتوحة'), findsOneWidget);
-      expect(find.text('أيام قادمة'), findsWidgets);
+      // الملخص الشهري — قائمة المقاييس تستخدم 'حضور' (وليس 'إجمالي الحضور')
+      expect(find.text('ملخص الشهر'), findsOneWidget);
+      expect(find.text('حضور'), findsWidgets);
+      // أيام الشهر القادمة تظهر في مفتاح التقويم كـ 'قادم'
+      expect(find.text('قادم'), findsWidgets);
       expect(tester.takeException(), isNull);
     },
   );
