@@ -82,7 +82,7 @@ function LeaveDetailDialog({ row, onClose }: { row: LeaveAdminRow; onClose: () =
 
         {/* الموظف */}
         <div className="flex items-center gap-3 rounded-xl bg-[var(--surface-raised)] p-3">
-          <UserAvatar name={row.employeeName} size="md" />
+          <UserAvatar displayName={row.employeeName} size="md" />
           <div>
             <p className="font-bold">{row.employeeName}</p>
             {row.employeeCode && !row.employeeCode.match(/^\+?\d{9,}$/) && (
@@ -168,7 +168,7 @@ function LeaveRow({ row, onSelect }: { row: LeaveAdminRow; onSelect: (r: LeaveAd
       className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-start transition-colors hover:bg-[var(--surface-raised)] focus-visible:ring-2"
     >
       <div className="flex flex-wrap items-center gap-3">
-        <UserAvatar name={row.employeeName} size="sm" />
+        <UserAvatar displayName={row.employeeName} size="sm" />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -290,16 +290,15 @@ export function LeavesPage() {
 
       {/* المحتوى */}
       {query.isLoading ? (
-        <ListSkeleton count={5} />
+        <ListSkeleton rows={5} />
       ) : query.isError ? (
         <ErrorState
           title="تعذّر تحميل الإجازات"
-          message={safeErrorMessage(query.error)}
+          description={safeErrorMessage(query.error)}
           onRetry={() => void query.refetch()}
         />
       ) : rows.length === 0 ? (
         <EmptyState
-          icon={CalendarDays}
           title="لا توجد طلبات إجازات"
           description={
             status || leaveType

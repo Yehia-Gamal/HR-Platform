@@ -79,6 +79,19 @@ export function LiveLocationPage() {
         }
       />
 
+      <div className="location-mobile-switch" role="tablist" aria-label="تبويب العرض">
+        <button type="button" role="tab" aria-selected={tab === 'directory'} className={`filter-chip ${tab === 'directory' ? 'is-active' : ''}`} onClick={() => setTab('directory')}>
+          دليل المواقع
+        </button>
+        <button type="button" role="tab" aria-selected={tab === 'monitoring'} className={`filter-chip ${tab === 'monitoring' ? 'is-active' : ''}`} onClick={() => setTab('monitoring')}>
+          متابعة اليوم
+        </button>
+      </div>
+
+      {tab === 'monitoring' ? (
+        <ExecutiveMonitoringPage embedded />
+      ) : (
+        <>
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="ضمن نطاق الوصول" value={data.length} icon={Users} />
         <MetricCard label="متصلون خلال 15 دقيقة" value={fresh} icon={Signal} />
