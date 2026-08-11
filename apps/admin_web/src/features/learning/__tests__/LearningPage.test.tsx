@@ -106,7 +106,7 @@ describe('LearningPage', () => {
         <LearningPage />
       </Wrapper>,
     );
-    expect(screen.getByText('مهارات القيادة الفعّالة')).toBeDefined();
+    expect(screen.getAllByText('مهارات القيادة الفعّالة').length).toBeGreaterThan(0);
   });
 
   it('يعرض حالة فارغة عند عدم وجود دورات', () => {

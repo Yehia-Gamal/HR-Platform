@@ -76,7 +76,8 @@ Deno.serve(createHandler({ functionName: "integration-outbox-worker", version: "
 
       // SSRF protection: only allow HTTPS URLs to public hosts.
       // Block private/link-local IPs, cloud metadata endpoints, and non-HTTPS.
-      if (!isAllowedWebhookUrl(config.webhook_url)) throw new Error('WEBHOOK_URL_BLOCKED');
+      // DNS is resolved so a hostname that maps to a private IP is also blocked.
+      if (!await isAllowedWebhookUrl(config.webhook_url)) throw new Error('WEBHOOK_URL_BLOCKED');
 
       const tokenName = `INTEGRATION_TOKEN_${config.slug.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
       const token = Deno.env.get(tokenName) ?? Deno.env.get('INTEGRATION_WEBHOOK_TOKEN');
@@ -135,8 +136,13 @@ Deno.serve(createHandler({ functionName: "integration-outbox-worker", version: "
  * SSRF protection: only allow HTTPS URLs pointing to public (non-private) hosts.
  * Blocks cloud metadata endpoints (169.254.x.x), private RFC-1918 ranges,
  * localhost, and non-HTTPS schemes.
+ *
+ * For hostnames (non-literal IPs) we resolve DNS A records and re-check every
+ * returned IP so that a hostname whose DNS maps to a private address is blocked
+ * even if its string representation looks innocent.  Fail-closed: DNS errors
+ * result in the URL being blocked.
  */
-function isAllowedWebhookUrl(raw: string): boolean {
+async function isAllowedWebhookUrl(raw: string): Promise<boolean> {
   let parsed: URL;
   try {
     parsed = new URL(raw);
@@ -156,18 +162,34 @@ function isAllowedWebhookUrl(raw: string): boolean {
   if (/^fe[89ab][0-9a-f]:/i.test(v6)) return false;             // fe80::/10 link-local
   if (/^::ffff:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/i.test(v6)) return false; // IPv4-mapped
   if (v6 === '::' || v6 === '::1') return false;                // loopback / unspecified
-  // Block private/reserved IPv4 ranges
-  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
-  if (ipv4) {
-    const [, a, b] = ipv4.map(Number);
-    if (a === 10) return false;                         // 10.0.0.0/8
-    if (a === 127) return false;                        // 127.0.0.0/8 loopback
-    if (a === 172 && b >= 16 && b <= 31) return false;  // 172.16.0.0/12
-    if (a === 192 && b === 168) return false;            // 192.168.0.0/16
-    if (a === 169 && b === 254) return false;            // 169.254.0.0/16 link-local
-    if (a === 0 || a >= 224) return false;               // 0.0.0.0/8, multicast, reserved
+
+  const ipv4Literal = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4Literal) {
+    if (isPrivateIpv4(ipv4Literal.slice(1).map(Number))) return false;
+  } else {
+    // Hostname: resolve and validate every A record (blocks DNS-rebinding / split-horizon SSRF)
+    try {
+      const records = await Deno.resolveDns(host, 'A');
+      for (const ip of records) {
+        const parts = ip.split('.').map(Number);
+        if (parts.length === 4 && isPrivateIpv4(parts)) return false;
+      }
+    } catch {
+      return false; // DNS failure → deny (fail-closed)
+    }
   }
   return true;
+}
+
+function isPrivateIpv4(parts: number[]): boolean {
+  const [a, b] = parts;
+  if (a === 10) return true;                         // 10.0.0.0/8
+  if (a === 127) return true;                        // 127.0.0.0/8 loopback
+  if (a === 172 && b >= 16 && b <= 31) return true;  // 172.16.0.0/12
+  if (a === 192 && b === 168) return true;            // 192.168.0.0/16
+  if (a === 169 && b === 254) return true;            // 169.254.0.0/16 link-local
+  if (a === 0 || a >= 224) return true;               // 0.0.0.0/8, multicast, reserved
+  return false;
 }
 
 function sanitizeHeaders(value: Record<string, string> | null | undefined) {

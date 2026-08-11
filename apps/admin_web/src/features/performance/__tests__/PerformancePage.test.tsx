@@ -23,8 +23,9 @@ const mockEvaluations = [
     selfScore: null,
     managerScore: null,
     finalScore: null,
-    cycleMonth: '2026-01',
+    periodMonth: '2026-01-01',
     relation: 'self' as const,
+    workflowStatus: 'PENDING',
     canEdit: true,
   },
 ];
