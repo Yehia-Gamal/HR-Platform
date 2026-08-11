@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { json, preflight } from "../_shared/cors.ts";
+import { corsHeaders, json, preflight } from "../_shared/cors.ts";
 import { normalizePhone } from "../_shared/phone.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -113,7 +113,17 @@ Deno.serve(async (req) => {
     .gte("created_at", oneMinuteAgo);
   if (rlError) return json(req, { error: "rate_limit_check_failed" }, 500);
   if ((recentCount ?? 0) >= 10) {
-    return json(req, { error: "too_many_requests", retryAfterSeconds: 60 }, 429);
+    return new Response(
+      JSON.stringify({ error: "too_many_requests", retryAfterSeconds: 60 }),
+      {
+        status: 429,
+        headers: {
+          ...corsHeaders(req),
+          "Content-Type": "application/json; charset=utf-8",
+          "Retry-After": "60",
+        },
+      },
+    );
   }
 
   let input: Input;
