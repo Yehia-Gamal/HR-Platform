@@ -6,13 +6,11 @@ import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
 import { MetricSkeletonRow, ListSkeleton } from '../../ui/Skeletons';
 import { PageHeader } from '../../ui/PageHeader';
-import { useToast } from '../../ui/Toast';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useReportSchedulerCatalog, useReportSchedulerCommands } from './useEnterpriseOperations';
 
 export function ReportSchedulerPage() {
-  const { toast } = useToast();
   const query = useReportSchedulerCatalog();
   const commands = useReportSchedulerCommands();
   const [open, setOpen] = useState(false);
@@ -31,7 +29,6 @@ export function ReportSchedulerPage() {
     try {
       await commands.upsert.mutateAsync(draft);
       setOpen(false);
-      toast({ message: 'تم حفظ جدولة التقرير بنجاح', tone: 'success' });
     } catch {
       /* mutation error surfaced via ErrorBanner */
     }
