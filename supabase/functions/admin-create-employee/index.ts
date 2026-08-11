@@ -237,7 +237,6 @@ Deno.serve(async (req) => {
   // استعادة من حساب يتيم: حذف ثم إعادة إنشاء
   if (createError && isDuplicateError(createError)) {
     console.error("auth.createUser duplicate detected — attempting orphan recovery", {
-      message: createError.message,
       status: (createError as { status?: number }).status,
     });
 
@@ -273,7 +272,6 @@ Deno.serve(async (req) => {
 
   if (createError || !created?.user) {
     console.error("auth.createUser failed", {
-      message: createError?.message,
       status: (createError as { status?: number })?.status,
       name: (createError as { name?: string })?.name,
     });
@@ -336,7 +334,7 @@ Deno.serve(async (req) => {
     invitationSent: input.sendInvite,
   }, 201);
   } catch (err) {
-    console.error("admin-create-employee unhandled error", err instanceof Error ? err.message : String(err));
+    console.error("admin-create-employee unhandled error", err instanceof Error ? err.constructor.name : typeof err);
     return json(req, { error: "INTERNAL_ERROR" }, 500);
   }
 });
