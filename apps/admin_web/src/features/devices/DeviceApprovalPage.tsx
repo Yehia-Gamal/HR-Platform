@@ -149,7 +149,7 @@ function AllDevicesPanel() {
   function executeReinstate() {
     if (!reinstateTarget) return;
     reinstate.mutate({ deviceId: reinstateTarget.id, reason: reinstateReason || undefined }, {
-      onSuccess: () => { setReinstateTarget(null); setReinstateReason(''); toast({ message: 'تمت إعادة الجهاز للمراجعة بنجاح', tone: 'success' }); },
+      onSuccess: () => { setReinstateTarget(null); setReinstateReason(''); },
       onError: (error) => { toast({ message: safeErrorMessage(error), tone: 'error' }); },
     });
   }

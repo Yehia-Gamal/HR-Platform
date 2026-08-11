@@ -837,7 +837,6 @@ function CustomRoleDraftDialog({
           })),
         });
       }
-      toast({ message: 'تم حفظ الدور والصلاحيات بنجاح', tone: 'success' });
       onClose();
     } catch {
       /* mutation error surfaced via mutation.isError state */
