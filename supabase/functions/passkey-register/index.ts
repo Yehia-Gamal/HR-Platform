@@ -100,7 +100,24 @@ Deno.serve(createHandler({ functionName: "passkey-register", version: "1.0.0" },
       requireUserVerification: true,
     });
   } catch (error) {
-    ctx.log.error("passkey registration verification failed", error);
+    // استخراج الـ origin الفعلي من clientDataJSON لتسهيل التشخيص —
+    // على أندرويد يكون بصيغة android:apk-key-hash-sha256:... أو android:apk-key-hash:...
+    let actualOrigin = "unknown";
+    try {
+      const inner = (response as Record<string, unknown>).response as Record<string, unknown> | undefined;
+      const cdj = inner?.clientDataJSON ?? (response as Record<string, unknown>).clientDataJSON;
+      if (typeof cdj === "string") {
+        let src = cdj.replace(/-/g, "+").replace(/_/g, "/");
+        src += "=".repeat((4 - src.length % 4) % 4);
+        const parsed = JSON.parse(atob(src));
+        actualOrigin = parsed?.origin ?? "missing";
+      }
+    } catch { /* تعذر تحليل clientDataJSON */ }
+    console.error("passkey registration verification failed", {
+      error: error instanceof Error ? error.message : "unknown error",
+      actualOrigin,
+      expectedOrigins,
+    });
     return json(req, { error: "registration_verification_failed" }, 403);
   }
   if (!verification.verified || !verification.registrationInfo) {
