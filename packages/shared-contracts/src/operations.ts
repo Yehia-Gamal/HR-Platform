@@ -91,7 +91,7 @@ export const officialFeedItemSchema = z.object({
   category: z.string(),
   priority: actionPrioritySchema,
   status: z.string(),
-  postType: postTypeSchema.optional(),
+  postType: z.string().optional(),
   requiresAcknowledgement: z.boolean(),
   publishedAt: z.string().nullable(),
   expiresAt: z.string().nullable(),

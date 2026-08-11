@@ -50,7 +50,7 @@ export function usePublishAnnouncement() {
         p_priority: input.priority,
         p_requires_acknowledgement: input.requiresAcknowledgement,
         p_banner_url: input.bannerUrl ?? null,
-        p_post_type: input.postType ?? 'standard',
+        p_post_type: input.postType === 'standard' ? 'announcement' : (input.postType ?? 'announcement'),
         p_poll_options: pollOpts,
         p_expires_at: input.expiresAt || null,
       });
