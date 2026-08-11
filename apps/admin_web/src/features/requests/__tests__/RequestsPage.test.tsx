@@ -81,7 +81,7 @@ describe('RequestsPage', () => {
         <RequestsPage />
       </Wrapper>,
     );
-    expect(screen.getByText('طلب اجازة')).toBeDefined();
+    expect(screen.getByText('طلب إجازة')).toBeDefined();
   });
 
   it('يعرض تبويبات تصنيف الطلبات', () => {

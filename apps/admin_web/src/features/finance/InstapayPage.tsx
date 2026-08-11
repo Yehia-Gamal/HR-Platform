@@ -55,7 +55,7 @@ export function InstapayPage() {
     { key: 'itemCount', header: 'العدد', render: (b) => b.itemCount },
     { key: 'totalAmount', header: 'الإجمالي', sortable: true, render: (b) => <span className="font-black">{formatCurrency(b.totalAmount)}</span> },
     { key: 'status', header: 'الحالة', render: (b) => <StatusBadge status={b.status} label={INSTAPAY_STATUS_LABELS[b.status] ?? b.status} /> },
-    { key: 'createdAt', header: 'التاريخ', render: (b) => dateFormatter.format(new Date(b.createdAt ?? Date.now())) },
+    { key: 'createdAt', header: 'التاريخ', render: (b) => (b.createdAt ? dateFormatter.format(new Date(b.createdAt)) : '—') },
   ];
 
   const dirty = Boolean(search.trim() || statusFilter !== 'all');

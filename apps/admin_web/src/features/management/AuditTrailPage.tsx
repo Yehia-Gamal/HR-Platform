@@ -46,7 +46,7 @@ export function AuditTrailPage() {
       key: 'occurredAt',
       header: 'التاريخ',
       sortable: true,
-      render: (a) => <span className="whitespace-nowrap text-xs">{dateFormatter.format(new Date(a.occurredAt ?? Date.now()))}</span>,
+      render: (a) => <span className="whitespace-nowrap text-xs">{a.occurredAt ? dateFormatter.format(new Date(a.occurredAt)) : '—'}</span>,
     },
     { key: 'actorName', header: 'الفاعل', render: (a) => a.actorName ?? '—' },
     { key: 'eventType', header: 'الحدث', render: (a) => <span className="font-mono text-xs">{a.eventType}</span> },
@@ -69,7 +69,7 @@ export function AuditTrailPage() {
 
   const handleCsvExport = () => {
     const cols: ExportColumn<AuditTrailItem>[] = [
-      { key: 'when', header: 'التاريخ', get: (a) => dateFormatter.format(new Date(a.occurredAt ?? Date.now())) },
+      { key: 'when', header: 'التاريخ', get: (a) => (a.occurredAt ? dateFormatter.format(new Date(a.occurredAt)) : '—') },
       { key: 'actor', header: 'الفاعل', get: (a) => a.actorName },
       { key: 'event', header: 'الحدث', get: (a) => a.eventType },
       { key: 'category', header: 'التصنيف', get: (a) => a.category },
@@ -89,7 +89,7 @@ export function AuditTrailPage() {
           table: {
             headers: ['التاريخ', 'الفاعل', 'الحدث', 'التصنيف', 'الخطورة', 'الملخص'],
             rows: rows.map((a) => [
-              dateFormatter.format(new Date(a.occurredAt ?? Date.now())),
+              a.occurredAt ? dateFormatter.format(new Date(a.occurredAt)) : '—',
               a.actorName ?? '—',
               a.eventType,
               a.category ? AUDIT_CATEGORY_LABELS[a.category] ?? a.category : '—',
