@@ -64,8 +64,7 @@ import { useOrganizationLookups } from './useOrganizationLookups';
 
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
 
-// All non-terminated employees show as 'active' — accountStatus reflects employee status
-const PENDING_ACCOUNT_STATES = new Set<string>(); // Empty — no more "pending" display
+const PENDING_ACCOUNT_STATES = new Set(['invited', 'onboarding', 'pending', 'draft']);
 
 // ---------------------------------------------------------------------------
 // Small helpers

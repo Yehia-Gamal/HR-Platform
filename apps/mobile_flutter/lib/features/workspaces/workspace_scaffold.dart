@@ -24,6 +24,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_profile_p
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/org_chart_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/web_only_feature_page.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -302,6 +303,23 @@ class WorkspaceScaffold extends ConsumerWidget {
           icon: Icons.event_available_outlined,
           label: 'جداول الحضور',
           page: const MobileWebOnlyPage(featureName: 'جداول الحضور والتقارير'),
+        ),
+        // §V21 — ميزات إدارية محذوفة من الجوال وتُدار الآن عبر لوحة الويب
+        // فقط. تعرض صفحة توضيحية بدلًا من عدم استجابة.
+        _MoreItem(
+          icon: Icons.groups_2_outlined,
+          label: 'إدارة فريقي',
+          page: const WebOnlyFeaturePage(featureName: 'إدارة فريقي'),
+        ),
+        _MoreItem(
+          icon: Icons.settings_suggest_outlined,
+          label: 'إدارة التشغيل',
+          page: const WebOnlyFeaturePage(featureName: 'إدارة التشغيل'),
+        ),
+        _MoreItem(
+          icon: Icons.badge_outlined,
+          label: 'ملفات أعضاء الفريق',
+          page: const WebOnlyFeaturePage(featureName: 'ملفات أعضاء الفريق'),
         ),
       ],
       // V20: التقارير اليومية للجميع — زر إضافة تقرير داخل الصفحة نفسها

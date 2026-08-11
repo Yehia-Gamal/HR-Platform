@@ -11,7 +11,6 @@ import { ListSkeleton, MetricSkeletonRow } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { safeErrorMessage } from '../../core/errorMapper';
-import { useToast } from '../../ui/Toast';
 import type { AdminDevice, PendingDevice } from './useDevices';
 import { useAllDevices, useApproveDevice, useDeleteDevice, useDeviceApprovals, useReinstateDevice, useRevokeDevice } from './useDevices';
 
@@ -38,7 +37,6 @@ export function DeviceApprovalPage() {
 function PendingDevicesPanel() {
   const query = useDeviceApprovals();
   const approve = useApproveDevice();
-  const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [confirmAction, setConfirmAction] = useState<{ device: PendingDevice; approved: boolean } | null>(null);
@@ -58,7 +56,6 @@ function PendingDevicesPanel() {
     const wasApproved = confirmAction.approved;
     approve.mutate({ deviceId: confirmAction.device.id, approved: confirmAction.approved, reason: confirmAction.approved ? undefined : reason || undefined }, {
       onSuccess: () => { setConfirmAction(null); },
-      onError: (error) => { toast({ message: safeErrorMessage(error), tone: 'error' }); },
     });
   }
 
@@ -115,7 +112,6 @@ function AllDevicesPanel() {
   const revoke = useRevokeDevice();
   const remove = useDeleteDevice();
   const reinstate = useReinstateDevice();
-  const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [revokeTarget, setRevokeTarget] = useState<AdminDevice | null>(null);
   const [revokeReason, setRevokeReason] = useState('');
@@ -136,21 +132,18 @@ function AllDevicesPanel() {
     if (!revokeTarget) return;
     revoke.mutate({ deviceId: revokeTarget.id, reason: revokeReason || undefined }, {
       onSuccess: () => { setRevokeTarget(null); setRevokeReason(''); },
-      onError: (error) => { toast({ message: safeErrorMessage(error), tone: 'error' }); },
     });
   }
   function executeDelete() {
     if (!deleteTarget) return;
     remove.mutate({ deviceId: deleteTarget.id, reason: deleteReason || undefined }, {
       onSuccess: () => { setDeleteTarget(null); setDeleteReason(''); },
-      onError: (error) => { toast({ message: safeErrorMessage(error), tone: 'error' }); },
     });
   }
   function executeReinstate() {
     if (!reinstateTarget) return;
     reinstate.mutate({ deviceId: reinstateTarget.id, reason: reinstateReason || undefined }, {
       onSuccess: () => { setReinstateTarget(null); setReinstateReason(''); },
-      onError: (error) => { toast({ message: safeErrorMessage(error), tone: 'error' }); },
     });
   }
 

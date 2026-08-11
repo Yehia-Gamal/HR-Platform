@@ -1,5 +1,5 @@
-import { CheckCircle2, Clock3, MapPin, RefreshCw, UserMinus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { CheckCircle2, Clock3, MapPin, RefreshCw, UserMinus, FileDown } from 'lucide-react';
+import { Fragment, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
@@ -17,6 +17,9 @@ import { ErrorState } from '../../ui/ErrorState';
 import { MetricSkeletonRow } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
+import { useAttendanceTrend } from './useAttendanceTrend';
+import { AttendanceTrendSparkline } from './AttendanceTrendSparkline';
+import { exportPulseListPDF } from './exportPulseListPDF';
 
 // قسم "نبض اليوم" في دليل الموظفين: من حضر ومن تغيّب ومن تأخّر
 // ومن أُرسل له طلب موقع — كل بطاقة قابلة للنقر وتفتح قائمة الموظفين المعنيين.
@@ -97,6 +100,7 @@ export function TodayPulseSection() {
   const auth = useAuth();
   const allowed = auth.access ? hasAnyPermission(auth.access, ['reports.attendance.read', 'live_location.request']) : false;
   const query = useTodayPulse(allowed);
+  const trend = useAttendanceTrend(7, allowed);
   const [dialog, setDialog] = useState<PulseDialogKind | null>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
@@ -142,27 +146,32 @@ export function TodayPulseSection() {
         </button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {cards.map((card) => (
-          <button
-            key={card.kind}
-            type="button"
-            onClick={() => setDialog(card.kind)}
-            className="metric-card metric-card--linked cursor-pointer text-start transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-primary)]"
-            aria-label={`${card.label}: ${card.value} — اضغط لعرض القائمة`}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-xs font-extrabold text-[var(--text-muted)]">{card.label}</p>
-                <p className="mt-2 text-3xl font-black tracking-tight">{card.value}</p>
+        {cards.map((card) => {
+          const buttonEl = (
+            <button
+              type="button"
+              onClick={() => setDialog(card.kind)}
+              className="metric-card metric-card--linked cursor-pointer text-start transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-primary)]"
+              aria-label={`${card.label}: ${card.value} — اضغط لعرض القائمة`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-extrabold text-[var(--text-muted)]">{card.label}</p>
+                  <p className="mt-2 text-3xl font-black tracking-tight">{card.value}</p>
+                </div>
+                <span className="metric-icon">
+                  <card.icon className={`size-5 ${CARD_TONES[card.kind]}`} aria-hidden="true" />
+                </span>
               </div>
-              <span className="metric-icon">
-                <card.icon className={`size-5 ${CARD_TONES[card.kind]}`} aria-hidden="true" />
-              </span>
-            </div>
-            <p className="mt-3 text-xs leading-5 text-[var(--text-muted)]">{card.hint}</p>
-            <span className="mt-2 flex items-center gap-1 text-xs font-bold text-[var(--brand-primary)]">عرض القائمة</span>
-          </button>
-        ))}
+              <p className="mt-3 text-xs leading-5 text-[var(--text-muted)]">{card.hint}</p>
+              <span className="mt-2 flex items-center gap-1 text-xs font-bold text-[var(--brand-primary)]">عرض القائمة</span>
+              {card.kind === 'present' && trend.data ? (
+                <AttendanceTrendSparkline points={trend.data} />
+              ) : null}
+            </button>
+          );
+          return <Fragment key={card.kind}>{buttonEl}</Fragment>;
+        })}
       </div>
 
       {dialog ? (
@@ -194,49 +203,63 @@ function PulseDialogBody({
     return <p className="py-8 text-center text-sm text-[var(--text-muted)]">{DIALOG_META[kind].empty}</p>;
   }
   return (
-    <ul className="max-h-[60vh] divide-y divide-[var(--border)] overflow-y-auto">
-      {list.map((e) => (
-        <li key={e.id} className="flex items-start justify-between gap-3 py-3">
-          <div className="flex min-w-0 items-start gap-3">
-            <UserAvatar displayName={e.name ?? ''} photoUrl={e.avatarUrl} size="sm" />
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <Link to={`/hr/employees/${e.id}`} className="truncate font-black hover:text-[var(--brand-primary)]">
-                  {e.name}
-                </Link>
-                <StatusBadge value={e.status} label={ATTENDANCE_STATUS_LABELS[e.status] ?? e.status} />
-                {/* شارة التأخير — تظهر للمتأخر بغضون عن left_early */}
-                {e.status === 'late' && typeof e.lateMinutes === 'number' && e.lateMinutes > 0 ? (
-                  <span className="status-badge status-warning">متأخر {e.lateMinutes} د</span>
-                ) : null}
-                {/* شارة الانصراف المبكر — مستقلة عن دقائق التأخير */}
-                {e.status === 'left_early' ? (
-                  <span className="status-badge status-warning">انصرف مبكرًا</span>
-                ) : null}
-                {/* نوع التكليف للمأمورية/القافلة/الفاندي */}
-                {e.assignmentType ? (
-                  <span className="status-badge status-info">{e.assignmentType === 'MISSION' ? 'مأمورية' : e.assignmentType === 'CONVOY' ? 'قافلة' : e.assignmentType === 'FUNDRAISING' ? 'فاندي' : e.assignmentType}</span>
-                ) : null}
+    <div className="space-y-3">
+      {kind === 'present' ? (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            className="btn-secondary !px-3 !py-2 text-xs"
+            onClick={() => exportPulseListPDF(list, kind)}
+          >
+            <FileDown className="size-3.5" aria-hidden="true" />
+            تصدير PDF
+          </button>
+        </div>
+      ) : null}
+      <ul className="max-h-[60vh] divide-y divide-[var(--border)] overflow-y-auto">
+        {list.map((e) => (
+          <li key={e.id} className="flex items-start justify-between gap-3 py-3">
+            <div className="flex min-w-0 items-start gap-3">
+              <UserAvatar displayName={e.name ?? ''} photoUrl={e.avatarUrl} size="sm" />
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link to={`/hr/employees/${e.id}`} className="truncate font-black hover:text-[var(--brand-primary)]">
+                    {e.name}
+                  </Link>
+                  <StatusBadge value={e.status} label={ATTENDANCE_STATUS_LABELS[e.status] ?? e.status} />
+                  {/* شارة التأخير — تظهر للمتأخر بغضون عن left_early */}
+                  {e.status === 'late' && typeof e.lateMinutes === 'number' && e.lateMinutes > 0 ? (
+                    <span className="status-badge status-warning">متأخر {e.lateMinutes} د</span>
+                  ) : null}
+                  {/* شارة الانصراف المبكر — مستقلة عن دقائق التأخير */}
+                  {e.status === 'left_early' ? (
+                    <span className="status-badge status-warning">انصرف مبكرًا</span>
+                  ) : null}
+                  {/* نوع التكليف للمأمورية/القافلة/الفاندي */}
+                  {e.assignmentType ? (
+                    <span className="status-badge status-info">{e.assignmentType === 'MISSION' ? 'مأمورية' : e.assignmentType === 'CONVOY' ? 'قافلة' : e.assignmentType === 'FUNDRAISING' ? 'فاندي' : e.assignmentType}</span>
+                  ) : null}
+                </div>
+                <p className="muted mt-1 text-xs">
+                  {e.employeeCode ?? '—'} · {e.department ?? 'دون إدارة'}{e.managerName ? ` · مدير: ${e.managerName}` : ''}
+                </p>
+                <p className="muted mt-1 text-xs">
+                  {e.checkInAt ? `حضر ${formatClock(e.checkInAt)}` : 'لم يسجّل حضورًا بعد'}
+                  {e.checkOutAt ? ` · انصرف ${formatClock(e.checkOutAt)}` : ''}
+                  {e.lastLocationAt ? ` · آخر موقع: ${relativeTime(e.lastLocationAt)}` : ''}
+                  {e.lastAddressAr ? ` — ${e.lastAddressAr}` : ''}
+                </p>
               </div>
-              <p className="muted mt-1 text-xs">
-                {e.employeeCode ?? '—'} · {e.department ?? 'دون إدارة'}{e.managerName ? ` · مدير: ${e.managerName}` : ''}
-              </p>
-              <p className="muted mt-1 text-xs">
-                {e.checkInAt ? `حضر ${formatClock(e.checkInAt)}` : 'لم يسجّل حضورًا بعد'}
-                {e.checkOutAt ? ` · انصرف ${formatClock(e.checkOutAt)}` : ''}
-                {e.lastLocationAt ? ` · آخر موقع: ${relativeTime(e.lastLocationAt)}` : ''}
-                {e.lastAddressAr ? ` — ${e.lastAddressAr}` : ''}
-              </p>
             </div>
-          </div>
-          {e.activeRequestId ? (
-            <button type="button" className="btn-secondary shrink-0 !px-3 !py-2 text-xs" onClick={() => { if (e.activeRequestId) onSelectRequest(e.activeRequestId); }}>
-              <MapPin className="size-3.5" aria-hidden="true" />
-              نتيجة الموقع
-            </button>
-          ) : null}
-        </li>
-      ))}
-    </ul>
+            {e.activeRequestId ? (
+              <button type="button" className="btn-secondary shrink-0 !px-3 !py-2 text-xs" onClick={() => { if (e.activeRequestId) onSelectRequest(e.activeRequestId); }}>
+                <MapPin className="size-3.5" aria-hidden="true" />
+                نتيجة الموقع
+              </button>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

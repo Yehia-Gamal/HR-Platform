@@ -15,6 +15,7 @@ vi.mock('../useDevices', () => ({
   useApproveDevice: () => ({ mutate: noop, isPending: false, isError: false, error: null }),
   useRevokeDevice: () => ({ mutate: noop, isPending: false, isError: false, error: null }),
   useDeleteDevice: () => ({ mutate: noop, isPending: false, isError: false, error: null }),
+  useReinstateDevice: () => ({ mutate: noop, isPending: false, isError: false, error: null }),
 }));
 
 import { DeviceApprovalPage } from '../DeviceApprovalPage';
