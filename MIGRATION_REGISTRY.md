@@ -149,7 +149,43 @@
 | 0336 | `0336_fix_executive_secretary_full_access.sql` | إصلاح صلاحية السكرتير التنفيذي (full access). |
 | 0337 | `0337_seed_kpi_assessment_permissions.sql` | بذر صلاحيات تقييم KPI. |
 
-| 0368 | `0373_restrict_kpi_diag_to_service_role.sql` | **P0**: سحب EXECUTE على `kpi_diag_run` من `authenticated` — كانت SECURITY DEFINER بلا فحص صلاحية داخلي، ومنوحة لأي موظف مسجّل → تسريب schema/UUIDs/stack traces تشخيصية. الإصلاح: service_role فقط (الدالة لا تُستدعى من كود التطبيق). |
+| 0338 | `0338_restore_full_access_live_location_request.sql` | استعادة صلاحيات الوصول الكامل لطلب الموقع الحي. |
+| 0339 | `0339_fix_account_status_active.sql` | إصلاح حالة الحساب (active). |
+| 0340 | `0340_force_all_accounts_active.sql` | إجبار تفعيل جميع الحسابات. |
+| 0341 | `0341_fix_get_employee_360_recent_tasks.sql` | إصلاح get_employee_360 (المهام الأخيرة). |
+| 0342 | `0342_align_request_live_location_deep_link.sql` | مزامنة رابط طلب الموقع الحي مع deep link. |
+| 0343 | `0343_penalties_instapay_audit_settings.sql` | الغرامات + InstaPay + إعدادات التدقيق. |
+| 0344 | `0344_grant_knowledge_write.sql` | منح صلاحيات كتابة قاعدة المعرفة. |
+| 0345 | `0345_employee_discipline_actions.sql` | جداول إجراءات التأديب. |
+| 0346 | `0346_enable_helpdesk_governance_permissions.sql` | تفعيل صلاحيات Helpdesk والحوكمة. |
+| 0347 | `0347_open_cron_health_to_authenticated.sql` | فتح صحة cron لـ authenticated. |
+| 0348 | `0348_kpi_fix_grants_openflow_inbox_relation.sql` | إصلاح منح KPI + علاقة inbox. |
+| 0349 | `0349_complete_rls_all_tables.sql` | RLS شامل لجميع الجداول (bulk grant). |
+| 0350 | `0350_attendance_dashboard_dept_branch_manager_filter.sql` | فلتر القسم/الفرع/المدير في لوحة الحضور. |
+| 0351 | `0351_fix_checker_found_column_refs.sql` | إصلاح مراجع الأعمدة في دالة التحقق. |
+| 0352 | `0352_knowledge_categories_search_manage.sql` | بحث وإدارة تصنيفات المعرفة. |
+| 0353 | `0353_fix_notification_deep_link_resolution.sql` | إصلاح حل روابط إشعارات العمق. |
+| 0354 | `0354_pending_requests_absence_and_approver_fallback.sql` | الطلبات المعلقة + الغياب + بديل المعتمِد. |
+| 0355 | `0355_attendance_derive_all_employees_and_admin_leave_deduction.sql` | احتساب حضور جميع الموظفين + خصم إجازة الإدارة. |
+| 0356 | `0356_harden_url_path_validators_leading_ws_and_mixed_slash.sql` | تشديد مدقق المسارات (مسافات بادئة + شرطات مختلطة). |
+| 0357 | `0357_analytics_dashboard_rpc.sql` | RPC لوحة التحليلات. |
+| 0358 | `0358_announcement_engagement_and_push_nudge.sql` | تفاعل الإعلانات + تنبيه push. |
+| 0359 | `0359_restrict_sensitive_read_policies.sql` | تضييق سياسات القراءة الحساسة (رواتب/حوكمة/إجازات). |
+| 0360 | `0360_device_auto_accept_registration.sql` | قبول تلقائي لتسجيل الأجهزة. |
+| 0361 | `0361_fix_attendance_dashboard_excused_absent.sql` | إصلاح عدّاد excused_absent في لوحة الحضور. |
+| 0362 | `0362_attendance_override_leave_type.sql` | تعديل نوع الإجازة في سجل الحضور. |
+| 0363 | `0363_delete_v25_test_department.sql` | حذف قسم الاختبار V25. |
+| 0364 | `0364_restore_account_status_semantics.sql` | إعادة حالة الحساب الدلالية الحقيقية + تريغر guard. |
+| 0365 | `0365_bridge_placeholder.sql` | جسر ترقيم. |
+| 0366 | `0366_request_three_tier_delegation_and_sound_notifications.sql` | تفويض ثلاثي المستويات للطلبات + إشعارات صوتية. |
+| 0367 | `0367_fundraising_three_tier_and_cron_5min.sql` | جمع التبرعات ثلاثي المستويات + cron كل 5 دقائق. |
+| 0368 | `0368_tighten_rls_policies.sql` | تضييق سياسات RLS من bulk grant 0349 (حوكمة/إدارية/مالية). |
+| 0369 | `0369_fix_attendance_dashboard_excused_absent.sql` | إصلاح excused_absent في لوحة الحضور (إعادة ترقيم). |
+| 0370 | `0370_bridge_placeholder.sql` | جسر ترقيم. |
+| 0371 | `0371_device_auto_accept_registration.sql` | قبول تلقائي لتسجيل الأجهزة (إعادة ترقيم). |
+| 0372 | `0372_announcement_engagement_and_push_nudge.sql` | تفاعل الإعلانات + push (إعادة ترقيم). |
+| 0373 | `0373_restrict_kpi_diag_to_service_role.sql` | **P0**: سحب EXECUTE على `kpi_diag_run` من `authenticated` — SECURITY DEFINER بلا حارس → تسريب schema/UUIDs/stack traces. الإصلاح: service_role فقط. |
+| 0374 | `0374_fix_get_employee_360_auth_guard.sql` | **P0**: إضافة فحص صلاحية لـ `get_employee_360` — كانت SECURITY DEFINER بلا أي حارس بعد 0364 → أي موظف يقرأ حالة موظف آخر. الإصلاح: `has_permission('people.employee.read') OR can_access_employee(id)`. |
 ---
 
 > ⚠️ **مخاطرة مؤجلة (0293 — سلة الصور العامة):** سلة `employee-avatars` عادت إلى `public = true` لإصلاح الصور المكسورة (يُخزَّن `photo_url` كرابط عام `object/public/...` ويُستهلك في الويب والموبايل والـ RPCs). هذا يعكس توصية التدقيق (0056) ويُعرّض صور الموظفين للقراءة العامة.
@@ -158,5 +194,5 @@
 
 ---
 
-> ✅ **الحالة:** سلسلة متصلة — 0001 → 0373 — بلا تكرار أو فجوات.
+> ✅ **الحالة:** سلسلة متصلة — 0001 → 0374 — بلا تكرار أو فجوات.
 
