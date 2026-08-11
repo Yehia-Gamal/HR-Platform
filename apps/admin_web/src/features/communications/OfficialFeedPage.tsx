@@ -14,9 +14,51 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
-import { useAnnouncementEngagement, useCreateDecisionDraft, useOfficialFeed, usePublishAnnouncement, useTransitionDecision } from './useOfficialFeed';
+import { useAnnouncementEngagement, useCreateDecisionDraft, useOfficialFeed, usePublishAnnouncement, useToggleReaction, useTransitionDecision } from './useOfficialFeed';
 
 type PublishMode = 'announcement' | 'decision';
+const REACTIONS = [
+  { type: 'like', emoji: '👍', label: 'إعجاب' },
+  { type: 'celebrate', emoji: '🎉', label: 'احتفال' },
+  { type: 'support', emoji: '❤️', label: 'دعم' },
+  { type: 'insightful', emoji: '💡', label: 'ملهم' },
+] as const;
+
+function AnnouncementReactionBar({ announcementId }: { announcementId: string }) {
+  const engagement = useAnnouncementEngagement(announcementId);
+  const toggle = useToggleReaction();
+  const data = engagement.data;
+  return (
+    <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] px-5 py-3">
+      <div className="flex items-center gap-1 text-xs muted me-1">
+        <Eye className="size-3.5" aria-hidden="true" />
+        <span>{data?.viewCount ?? 0}</span>
+      </div>
+      {REACTIONS.map((r) => {
+        const active = data?.myReaction === r.type;
+        const count = data?.reactions.filter((rx) => rx.reactionType === r.type).length ?? 0;
+        return (
+          <button
+            key={r.type}
+            type="button"
+            aria-label={r.label}
+            aria-pressed={active}
+            disabled={toggle.isPending}
+            onClick={() => toggle.mutate({ announcementId, reactionType: r.type })}
+            className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs transition ${
+              active ? 'bg-brand/10 text-brand ring-1 ring-brand/30' : 'bg-[var(--surface-muted)] hover:bg-[var(--surface-raised)]'
+            }`}
+          >
+            <span aria-hidden="true">{r.emoji}</span>
+            {count > 0 ? <span>{count}</span> : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+
 
 // ─── هوك حالة النموذج الرسمي ────────────────────────────────────────────────
 function useOfficialFeedForm(publish: ReturnType<typeof usePublishAnnouncement>, createDecision: ReturnType<typeof useCreateDecisionDraft>) {
@@ -324,6 +366,9 @@ export function OfficialFeedPage() {
                       />
                     </div>
                   </div>
+                ) : null}
+                {item.kind === 'announcement' && item.status === 'published' ? (
+                  <AnnouncementReactionBar announcementId={item.id} />
                 ) : null}
                 {action && canRun ? (
                   <div className="border-t border-[var(--border)] p-4">
