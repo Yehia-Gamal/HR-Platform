@@ -264,7 +264,7 @@ Deno.serve(async (req) => {
       }
 
       // حذف اليتيم وإعادة المحاولة
-      console.error("deleting orphaned auth user for recovery", { orphanId });
+      console.error("deleting orphaned auth user for recovery");
       await admin.auth.admin.deleteUser(orphanId).catch(() => undefined);
       ({ data: created, error: createError } = await tryCreateAuthUser());
     }
