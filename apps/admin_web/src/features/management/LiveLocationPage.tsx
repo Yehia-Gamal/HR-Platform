@@ -10,7 +10,6 @@ import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { ExecutiveMonitoringPage } from './ExecutiveMonitoringPage';
-import { ExecutiveMonitoringPage } from './ExecutiveMonitoringPage';
 import { useLiveLocationCommands, useLocationDirectory, type LocationDirectoryItem } from './useControlCenters';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { relativeTime } from '../../core/formatTime';
