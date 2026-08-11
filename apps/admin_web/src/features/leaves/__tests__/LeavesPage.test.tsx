@@ -65,9 +65,10 @@ describe('LeavesPage', () => {
     queryOverrideFn = () => dataQuery;
     render(<Wrapper><LeavesPage /></Wrapper>);
     expect(screen.getByText('إجمالي الطلبات')).toBeDefined();
-    expect(screen.getByText('قيد المراجعة')).toBeDefined();
-    expect(screen.getByText('معتمدة')).toBeDefined();
-    expect(screen.getByText('مرفوضة')).toBeDefined();
+    // 'قيد المراجعة' appears in both MetricCard and filter tabs — use getAllByText
+    expect(screen.getAllByText('قيد المراجعة').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('معتمدة').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('مرفوضة').length).toBeGreaterThan(0);
   });
 
   it('يعرض طلبات الإجازة عند توفر البيانات', () => {

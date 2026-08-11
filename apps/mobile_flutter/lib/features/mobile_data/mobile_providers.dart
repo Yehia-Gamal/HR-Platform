@@ -436,15 +436,18 @@ class MobileCommands {
     String reason,
     Map<String, dynamic> payload,
   ) async {
+    // مفتاح idempotency يمنع الإرسال المزدوج عند إعادة المحاولة أو الضغط المزدوج.
+    final idempotencyKey = const Uuid().v4();
     await _withTimeout(ref
         .read(supabaseProvider)
         .rpc<dynamic>(
           'submit_my_request',
           params: {
-            'p_request_type': type,
-            'p_title': title,
-            'p_reason': reason,
-            'p_payload': payload,
+            'p_request_type':    type,
+            'p_title':           title,
+            'p_reason':          reason,
+            'p_payload':         payload,
+            'p_idempotency_key': idempotencyKey,
           },
         ));
     ref.invalidate(mobileRequestsProvider);
