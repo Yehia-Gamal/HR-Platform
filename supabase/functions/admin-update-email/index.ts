@@ -75,17 +75,7 @@ Deno.serve(createHandler({ functionName: "admin-update-email", version: "1.0.0" 
     .gte("created_at", fiveMinutesAgo);
   if (rlError) return json(req, { error: "rate_limit_check_failed" }, 500);
   if ((opsCount ?? 0) >= 5) {
-    return new Response(
-      JSON.stringify({ error: "too_many_requests", retryAfterSeconds: 300 }),
-      {
-        status: 429,
-        headers: {
-          ...corsHeaders(req),
-          "Content-Type": "application/json; charset=utf-8",
-          "Retry-After": "300",
-        },
-      },
-    );
+    return json(req, { error: "too_many_requests", retryAfterSeconds: 300 }, 429);
   }
 
   // Resolve the auth user linked to this employee (profiles.id === auth.users.id).

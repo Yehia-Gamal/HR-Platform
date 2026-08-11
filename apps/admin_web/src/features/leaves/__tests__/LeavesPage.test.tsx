@@ -39,8 +39,10 @@ const mockData = { total: 1, rows: [mockRow] };
 const emptyData = { total: 0, rows: [] };
 
 let queryOverrideFn: () => Record<string, unknown>;
+const mockDecision = { mutate: vi.fn(), isPending: false, isError: false, error: null };
 vi.mock('../useLeaves', () => ({
   useAdminLeaves: () => queryOverrideFn(),
+  useAdminLeaveDecision: () => mockDecision,
 }));
 
 const loadingQuery = { data: undefined, isLoading: true,  isError: false, error: null, refetch: vi.fn() };
@@ -93,5 +95,13 @@ describe('LeavesPage', () => {
     queryOverrideFn = () => errorQuery;
     render(<Wrapper><LeavesPage /></Wrapper>);
     expect(screen.getByText('تعذّر تحميل الإجازات')).toBeDefined();
+  });
+
+  it('يعرض تبويبات الحالات الكاملة بما فيها معادة ومسحوبة ومصعّدة', () => {
+    queryOverrideFn = () => dataQuery;
+    render(<Wrapper><LeavesPage /></Wrapper>);
+    expect(screen.getByText('معادة')).toBeDefined();
+    expect(screen.getByText('مسحوبة')).toBeDefined();
+    expect(screen.getByText('مُصعَّدة')).toBeDefined();
   });
 });
