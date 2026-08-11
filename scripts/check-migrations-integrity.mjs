@@ -48,6 +48,8 @@ const BRIDGE_FILENAMES = new Set([
   // 0370 → جسر بين 0369 (excused_absent fix) و 0371 (device_auto_accept)
   //         نتيجة إعادة ترقيم migrations متعارضة من جلسات متوازية.
   '0370_bridge_placeholder.sql',
+  // 0377 → كان مكرراً مع 0357_device_auto_accept_registration، حُذف وأُضيف placeholder للحفاظ على التسلسل.
+  '0377_placeholder.sql',
 ]);
 
 const FILE_RE = /^(\d{4})_([a-z0-9][a-z0-9_]*)\.sql$/i;
