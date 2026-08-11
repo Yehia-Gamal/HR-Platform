@@ -13,6 +13,9 @@ export default defineConfig({
           if (id.includes('@tanstack')) return 'query';
           if (id.includes('react') || id.includes('react-router')) return 'react-vendor';
           if (id.includes('lucide-react')) return 'icons';
+          if (id.includes('recharts') || id.includes('d3-')) return 'charts';
+          if (id.includes('leaflet') || id.includes('react-leaflet')) return 'maps';
+          if (id.includes('@sentry')) return 'sentry';
           if (id.includes('node_modules')) return 'vendor';
           return undefined;
         },

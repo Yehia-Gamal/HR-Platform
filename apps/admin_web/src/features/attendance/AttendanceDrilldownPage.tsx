@@ -7,6 +7,7 @@ import {
   Loader2,
   MapPin,
   Plane,
+  Printer,
   Search,
   UserCheck,
   UserX,
@@ -30,7 +31,7 @@ import { SkeletonCard } from '../../ui/Skeletons';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useOrganizationLookups } from '../employees/useOrganizationLookups';
 import { useHrPrefix } from '../workspaces/access';
-import { useAttendanceRosterPage } from './useAttendanceDashboard';
+import { exportAttendancePdf, useAttendanceRosterPage } from './useAttendanceDashboard';
 
 const CATEGORIES: { key: AttendanceRosterCategory; label: string; icon: typeof Users }[] = [
   { key: 'scheduled', label: 'المجدولون', icon: Users },
@@ -115,6 +116,16 @@ export function AttendanceDrilldownPage() {
   const offset = (page - 1) * limit;
 
   const [searchInput, setSearchInput] = useState(q);
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  const handlePrint = async () => {
+    setIsPrinting(true);
+    try {
+      await exportAttendancePdf({ category, dateIso, search: q, departmentId: dept || null, branchId: branch || null, sort, direction });
+    } finally {
+      setIsPrinting(false);
+    }
+  };
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -179,10 +190,16 @@ export function AttendanceDrilldownPage() {
             </p>
           </div>
         </div>
-        <button className="btn-secondary btn-sm" onClick={() => void query.refetch()} disabled={query.isFetching} aria-busy={query.isFetching}>
-          <Loader2 className={`size-4 ${query.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
-          تحديث
-        </button>
+        <div className="flex gap-2">
+          <button className="btn-secondary btn-sm" onClick={() => void handlePrint()} disabled={isPrinting} aria-busy={isPrinting} aria-label="تصدير القائمة كـ PDF">
+            {isPrinting ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Printer className="size-4" aria-hidden="true" />}
+            طباعة / PDF
+          </button>
+          <button className="btn-secondary btn-sm" onClick={() => void query.refetch()} disabled={query.isFetching} aria-busy={query.isFetching}>
+            <Loader2 className={`size-4 ${query.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
+            تحديث
+          </button>
+        </div>
       </header>
 
       {/* ─── تبويبات الفئات ─── */}
