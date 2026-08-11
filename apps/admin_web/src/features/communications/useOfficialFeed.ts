@@ -1,4 +1,4 @@
-import { announcementEngagementSchema, officialFeedItemSchema, type AnnouncementEngagement, type OfficialFeedItem } from '@ahla/shared-contracts';
+import { officialFeedItemSchema, type OfficialFeedItem } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
