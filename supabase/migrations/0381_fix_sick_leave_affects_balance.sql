@@ -8,7 +8,7 @@ begin;
 -- fix: set affects_balance=false so reserve/consume skip balance check
 update public.leave_types
 set affects_balance = false
-where slug = 'sick';
+where code = 'sick';
 
 -- also add a guard comment: this means sick leave does NOT deduct from any ledger
 -- employees can take any number of sick days; HR can audit via leave_requests directly
