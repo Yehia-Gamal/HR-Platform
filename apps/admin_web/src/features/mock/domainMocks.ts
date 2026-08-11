@@ -262,6 +262,9 @@ export const mockOfficialFeed: OfficialFeedItem[] = [
     expiresAt: null,
     acknowledgedCount: 39,
     targetCount: 54,
+    viewCount: 0,
+    reactionCount: 0,
+    reactionSummary: {},
   },
   {
     id: '44000000-0000-4000-8000-000000000002',
@@ -276,6 +279,9 @@ export const mockOfficialFeed: OfficialFeedItem[] = [
     expiresAt: iso(48),
     acknowledgedCount: 0,
     targetCount: null,
+    viewCount: 0,
+    reactionCount: 0,
+    reactionSummary: {},
   },
 ];
 

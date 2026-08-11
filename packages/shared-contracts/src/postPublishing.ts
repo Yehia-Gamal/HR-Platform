@@ -64,7 +64,7 @@ export const toggleReactionResultSchema = z.object({
   active: z.boolean(),
   myReaction: reactionTypeSchema.nullable(),
   reactionCount: z.number().int(),
-  reactionSummary: z.record(z.number()),
+  reactionSummary: z.record(z.string(), z.number()),
 });
 export type ToggleReactionResult = z.infer<typeof toggleReactionResultSchema>;
 

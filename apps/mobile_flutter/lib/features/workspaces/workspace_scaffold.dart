@@ -13,8 +13,6 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/executive_emerge
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_governance_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_people_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_risk_center_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/manager_home_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/manager_operations_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_feed_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_disputes_page.dart';
@@ -23,7 +21,6 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notificat
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_official_feed_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_profile_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_team_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/org_chart_page.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
@@ -284,37 +281,8 @@ class WorkspaceScaffold extends ConsumerWidget {
           page: const MobileRequestsPage(allowDecision: true),
         ),
       ],
-      // §9.1 — ميزات إدارة الفريق لمساحة المدير والتشغيل
+      // §9.1 — صندوق الإجراءات متاح لجميع الأدوار الإدارية
       if (isManagerOrOps) ...[
-        _MoreItem(
-          icon: Icons.groups_outlined,
-          label: 'إدارة فريقي',
-          page: Scaffold(
-            appBar: AppBar(title: const Text('إدارة فريقي')),
-            body: ManagerHomePage(access: contextData),
-          ),
-        ),
-        _MoreItem(
-          icon: Icons.approval_outlined,
-          label: 'الطلبات الإدارية',
-          page: const MobileRequestsPage(allowDecision: true),
-        ),
-        _MoreItem(
-          icon: Icons.engineering_outlined,
-          label: 'إدارة التشغيل',
-          page: Scaffold(
-            appBar: AppBar(title: const Text('إدارة التشغيل')),
-            body: const ManagerOperationsPage(),
-          ),
-        ),
-        _MoreItem(
-          icon: Icons.people_outline_rounded,
-          label: 'ملفات أعضاء الفريق',
-          page: Scaffold(
-            appBar: AppBar(title: const Text('ملفات أعضاء الفريق')),
-            body: const MobileTeamPage(),
-          ),
-        ),
         _MoreItem(
           icon: Icons.inbox_rounded,
           label: 'صندوق الإجراءات',

@@ -119,7 +119,7 @@ export const announcementEngagementPersonSchema = z.object({
 });
 export type AnnouncementEngagementPerson = z.infer<typeof announcementEngagementPersonSchema>;
 
-export const announcementEngagementSchema = z.object({
+export const announcementEngagementDetailSchema = z.object({
   announcementId: z.string().uuid(),
   targetCount: z.number().nonnegative(),
   viewerCount: z.number().nonnegative(),
@@ -129,7 +129,7 @@ export const announcementEngagementSchema = z.object({
   reactions: announcementEngagementPersonSchema.array(),
   acknowledgements: announcementEngagementPersonSchema.array(),
 });
-export type AnnouncementEngagement = z.infer<typeof announcementEngagementSchema>;
+export type AnnouncementEngagementDetail = z.infer<typeof announcementEngagementDetailSchema>;
 
 export const attendanceDashboardSchema = z.object({
   scheduled: z.number(),

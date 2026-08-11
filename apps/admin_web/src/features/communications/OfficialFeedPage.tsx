@@ -1,4 +1,4 @@
-import { BellRing, CheckCircle2, Eye, FileText, Heart, ImagePlus, ListPlus, Megaphone, Plus, Send, ShieldCheck, Trash2, Users, X } from 'lucide-react';
+import { BellRing, CheckCircle2, Eye, FileText, Heart, ImagePlus, ListPlus, Megaphone, Plus, Send, ShieldCheck, Trash2, X } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { getSupabase } from '../../core/supabase';
 import { DialogOverlay } from '../../ui/DialogOverlay';
@@ -32,10 +32,10 @@ function AnnouncementReactionBar({ announcementId }: { announcementId: string })
     <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] px-5 py-3">
       <div className="flex items-center gap-1 text-xs muted me-1">
         <Eye className="size-3.5" aria-hidden="true" />
-        <span>{data?.viewCount ?? 0}</span>
+        <span>{data?.viewerCount ?? 0}</span>
       </div>
       {REACTIONS.map((r) => {
-        const active = data?.myReaction === r.type;
+        const active = (toggle.data?.myReaction ?? null) === r.type;
         const count = data?.reactions.filter((rx) => rx.reactionType === r.type).length ?? 0;
         return (
           <button
@@ -411,28 +411,15 @@ export function OfficialFeedPage() {
             />
           ) : engagementQuery.data ? (
             <div className="space-y-5">
-              <div className="grid gap-3 sm:grid-cols-3">
-                <MetricCard label="شاهدوا" value={engagementQuery.data.viewerCount} icon={Eye} />
-                <MetricCard label="تفاعلوا" value={engagementQuery.data.reactionCount} icon={Heart} />
-                <MetricCard label="أقرّوا بالاطلاع" value={engagementQuery.data.acknowledgedCount} icon={CheckCircle2} />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <MetricCard label="المشاهدات" value={engagementQuery.data.viewerCount} icon={Eye} />
+                <MetricCard label="التفاعلات" value={engagementQuery.data.reactionCount} icon={Heart} />
               </div>
-              <EngagementPeople
-                title="الأشخاص الذين شاهدوا الإعلان"
-                empty="لم يسجل أحد مشاهدة الإعلان بعد."
-                people={engagementQuery.data.viewers}
-                icon={<Eye className="size-5" aria-hidden="true" />}
-              />
               <EngagementPeople
                 title="الأشخاص الذين تفاعلوا"
                 empty="لم يتفاعل أحد مع الإعلان بعد."
                 people={engagementQuery.data.reactions}
                 icon={<Heart className="size-5" aria-hidden="true" />}
-              />
-              <EngagementPeople
-                title="الأشخاص الذين أقرّوا بالاطلاع"
-                empty="لم يسجل أحد إقرارًا بعد."
-                people={engagementQuery.data.acknowledgements}
-                icon={<Users className="size-5" aria-hidden="true" />}
               />
             </div>
           ) : null}
