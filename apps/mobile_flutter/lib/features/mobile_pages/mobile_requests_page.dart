@@ -10,13 +10,8 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 
 class MobileRequestsPage extends ConsumerStatefulWidget {
-  const MobileRequestsPage({
-    required this.allowDecision,
-    this.focusRequestId,
-    super.key,
-  });
+  const MobileRequestsPage({this.focusRequestId, super.key});
 
-  final bool allowDecision;
   final String? focusRequestId;
 
   @override
@@ -52,17 +47,15 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
             Tab(text: 'تكليفات العمل'),
           ],
         ),
-        floatingActionButton: widget.allowDecision
-            ? null
-            : FloatingActionButton.extended(
-                onPressed: () => _createRequest(context, ref),
-                icon: const Icon(Icons.add),
-                label: const Text('طلب جديد'),
-              ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => _createRequest(context, ref),
+          icon: const Icon(Icons.add),
+          label: const Text('طلب جديد'),
+        ),
         body: TabBarView(
           children: [
             _buildRequestsTab(context, requests, balances),
-            _WorkAssignmentsTab(allowDecision: widget.allowDecision),
+            const _WorkAssignmentsTab(),
           ],
         ),
       ),
@@ -101,7 +94,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
           data: (items) => ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
             children: [
-              if (!widget.allowDecision) ...[
+              ...[
                 const MobileSectionHeader(title: 'أرصدة الإجازات'),
                 const SizedBox(height: 10),
                 balances.when(
@@ -154,9 +147,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                 ),
                 const SizedBox(height: 18),
               ],
-              MobileSectionHeader(
-                title: widget.allowDecision ? 'طلبات الفريق' : 'طلباتي',
-              ),
+              const MobileSectionHeader(title: 'طلباتي'),
               const SizedBox(height: 10),
               MobileFilterBar(
                 searchHint: 'بحث بالاسم أو العنوان أو رقم الطلب',
@@ -202,10 +193,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                     .map(
                       (item) => Padding(
                         padding: const EdgeInsets.only(bottom: 10),
-                        child: _RequestCard(
-                          item: item,
-                          allowDecision: widget.allowDecision,
-                        ),
+                        child: _RequestCard(item: item),
                       ),
                     ),
             ],
@@ -707,10 +695,9 @@ class _DateButton extends StatelessWidget {
 }
 
 class _RequestCard extends StatelessWidget {
-  const _RequestCard({required this.item, required this.allowDecision});
+  const _RequestCard({required this.item});
 
   final MobileRequest item;
-  final bool allowDecision;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -782,13 +769,6 @@ class _RequestCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (allowDecision && item.status == 'pending') ...[
-              const SizedBox(height: 10),
-              const Text(
-                'افتح الطلب لمراجعته واتخاذ القرار.',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ],
           ],
         ),
       ),
@@ -809,13 +789,11 @@ class _RequestCard extends StatelessWidget {
 
 /// تبويب تكليفات العمل (مأمورية/قافلة/فاندي) — لا تُخصم من رصيد الإجازات.
 class _WorkAssignmentsTab extends ConsumerWidget {
-  const _WorkAssignmentsTab({required this.allowDecision});
-
-  final bool allowDecision;
+  const _WorkAssignmentsTab();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scope = allowDecision ? 'team' : 'mine';
+    const scope = 'mine';
     final assignments = ref.watch(workAssignmentsProvider(scope));
     return RefreshIndicator(
       onRefresh: () async => ref.invalidate(workAssignmentsProvider(scope)),

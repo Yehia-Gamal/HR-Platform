@@ -186,7 +186,7 @@ class EmployeeHomePage extends ConsumerWidget {
                   () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const MobileRequestsPage(allowDecision: false),
+                      builder: (_) => const MobileRequestsPage(),
                     ),
                   ),
                 ),

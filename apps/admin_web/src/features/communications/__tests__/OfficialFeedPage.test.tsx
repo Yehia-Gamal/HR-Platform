@@ -175,7 +175,7 @@ describe('OfficialFeedPage', () => {
     expect(screen.getByText('عنصر رسمي جديد')).toBeInTheDocument();
   });
 
-  it('يفلتر المنشورات بحسب نوع القرار', async () => {
+  it('يفلتر المنشورات بحسب نوع القرار', () => {
     feedOverrideFn = () => dataQuery;
     render(
       <Wrapper>
@@ -183,12 +183,12 @@ describe('OfficialFeedPage', () => {
       </Wrapper>,
     );
     const select = screen.getByRole('combobox', { name: 'نوع العنصر الرسمي' });
-    await userEvent.selectOptions(select, 'decision');
+    fireEvent.change(select, { target: { value: 'decision' } });
     expect(screen.getByText('قرار تنظيم التقارير الأسبوعية')).toBeInTheDocument();
     expect(screen.queryByText('موعد اجتماع مناقشة النظام الجديد')).not.toBeInTheDocument();
   });
 
-  it('يفلتر المنشورات بالبحث النصي', async () => {
+  it('يفلتر المنشورات بالبحث النصي', () => {
     feedOverrideFn = () => dataQuery;
     render(
       <Wrapper>
@@ -196,12 +196,12 @@ describe('OfficialFeedPage', () => {
       </Wrapper>,
     );
     const searchInput = screen.getByPlaceholderText('بحث في عنوان أو محتوى المنشور');
-    await userEvent.type(searchInput, 'اجتماع');
+    fireEvent.change(searchInput, { target: { value: 'اجتماع' } });
     expect(screen.queryByText('قرار تنظيم التقارير الأسبوعية')).not.toBeInTheDocument();
     expect(screen.getByText('موعد اجتماع مناقشة النظام الجديد')).toBeInTheDocument();
   });
 
-  it('يعرض حالة "لا توجد نتائج" عند بحث بدون مطابقة', async () => {
+  it('يعرض حالة "لا توجد نتائج" عند بحث بدون مطابقة', () => {
     feedOverrideFn = () => dataQuery;
     render(
       <Wrapper>
@@ -209,7 +209,7 @@ describe('OfficialFeedPage', () => {
       </Wrapper>,
     );
     const searchInput = screen.getByPlaceholderText('بحث في عنوان أو محتوى المنشور');
-    await userEvent.type(searchInput, 'نص غير موجود أبداً');
+    fireEvent.change(searchInput, { target: { value: 'نص غير موجود أبداً' } });
     expect(screen.getByText('لا توجد نتائج مطابقة')).toBeInTheDocument();
   });
 
@@ -238,18 +238,18 @@ describe('OfficialFeedPage', () => {
     expect(screen.getByText('39 / 54')).toBeInTheDocument();
   });
 
-  it('يفتح نافذة الإنشاء عند الضغط على زر "عنصر رسمي جديد"', async () => {
+  it('يفتح نافذة الإنشاء عند الضغط على زر "عنصر رسمي جديد"', () => {
     feedOverrideFn = () => dataQuery;
     render(
       <Wrapper>
         <OfficialFeedPage />
       </Wrapper>,
     );
-    await userEvent.click(screen.getByText('عنصر رسمي جديد'));
+    fireEvent.click(screen.getByText('عنصر رسمي جديد'));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it('يعيد ضبط الفلاتر عند الضغط على "مسح الفلاتر"', async () => {
+  it('يعيد ضبط الفلاتر عند الضغط على "مسح الفلاتر"', () => {
     feedOverrideFn = () => dataQuery;
     render(
       <Wrapper>
@@ -257,9 +257,9 @@ describe('OfficialFeedPage', () => {
       </Wrapper>,
     );
     const searchInput = screen.getByPlaceholderText('بحث في عنوان أو محتوى المنشور');
-    await userEvent.type(searchInput, 'بحث');
+    fireEvent.change(searchInput, { target: { value: 'بحث' } });
     const clearButton = screen.getByRole('button', { name: /مسح/ });
-    await userEvent.click(clearButton);
+    fireEvent.click(clearButton);
     expect(searchInput).toHaveValue('');
   });
 });

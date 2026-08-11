@@ -278,7 +278,7 @@ class WorkspaceScaffold extends ConsumerWidget {
         _MoreItem(
           icon: Icons.approval_outlined,
           label: 'الطلبات والاعتمادات',
-          page: const MobileRequestsPage(allowDecision: true),
+          page: const MobileRequestsPage(),
         ),
       ],
       // §9.1 — صندوق الإجراءات متاح لجميع الأدوار الإدارية
