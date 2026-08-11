@@ -184,7 +184,6 @@ type AccessCommands = ReturnType<typeof useAccessCommands>;
 
 // ─── المكون الرئيسي ────────────────────────────────────────────────────────
 export function AccessPage() {
-  const { toast } = useToast();
   const auth = useAuth();
   const query = useAccessAdminCatalog();
   const commands = useAccessCommands();
@@ -238,7 +237,6 @@ export function AccessPage() {
         effectiveTo: assignment.effectiveTo ? new Date(`${assignment.effectiveTo}T23:59:59`).toISOString() : null,
       });
       setAssignment({ userId: '', roleId: '', effectiveTo: '' });
-      toast({ message: 'تم إسناد الدور بنجاح', tone: 'success' });
     } catch {
       /* mutation error surfaced via mutation.isError state */
     }
@@ -414,13 +412,7 @@ export function AccessPage() {
                               aria-label="سحب الدور"
                               className="text-[var(--danger)]"
                               onClick={() =>
-                                commands.revokeRole.mutate(
-                                  { userId: user.userId, roleId: role.roleId },
-                                  {
-                                    onSuccess: () => toast({ message: 'تم سحب الدور بنجاح', tone: 'success' }),
-                                    onError: () => toast({ message: 'تعذر سحب الدور', tone: 'error' }),
-                                  },
-                                )
+                                commands.revokeRole.mutate({ userId: user.userId, roleId: role.roleId })
                               }
                             >
                               <Trash2 className="size-3" aria-hidden="true" />
@@ -521,7 +513,6 @@ function RoleManagementDialog({
   canGrantFullAccess: boolean;
   onClose: () => void;
 }) {
-  const { toast } = useToast();
   const [tab, setTab] = useState<'perms' | 'users'>('perms');
   const [search, setSearch] = useState('');
   const [moduleFilter, setModuleFilter] = useState('all');
@@ -570,7 +561,6 @@ function RoleManagementDialog({
         items: Object.entries(draft).map(([permission_id, v]) => ({ permission_id, scope: v.scope, requires_mfa: v.mfa, requires_reason: v.reason })),
       });
       setSaved(true);
-      toast({ message: 'تم حفظ الصلاحيات بنجاح', tone: 'success' });
       setTimeout(() => setSaved(false), 2500);
     } catch {
       /* mutation error surfaced via mutation.isError state */
@@ -584,7 +574,6 @@ function RoleManagementDialog({
     try {
       await commands.assignRole.mutateAsync({ userId: assignUserId, roleId: role.id });
       setAssignUserId('');
-      toast({ message: 'تم إسناد الدور للمستخدم بنجاح', tone: 'success' });
     } catch {
       /* mutation error surfaced via mutation.isError state */
     }

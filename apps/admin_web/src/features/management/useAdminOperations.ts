@@ -133,7 +133,7 @@ export function useAccessCommands() {
       if (auth.isMock) return input.items.length;
       return rpc('rpc_set_role_permissions', { p_role_id: input.roleId, p_items: input.items });
     },
-    meta: { successMessage: 'تم تحديث صلاحيات الدور بنجاح' },
+    meta: { successMessage: 'تم حفظ الصلاحيات بنجاح' },
     onSuccess: refresh,
   });
   const assignRole = useMutation({
