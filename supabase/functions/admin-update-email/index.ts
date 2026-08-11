@@ -65,6 +65,29 @@ Deno.serve(createHandler({ functionName: "admin-update-email", version: "1.0.0" 
   if (scopeError) return json(req, { error: "permission_check_failed" }, 500);
   if (canAccess !== true) return json(req, { error: "forbidden" }, 403);
 
+  // ─── Rate limit: 5 تغييرات بريد في 5 دقائق لكل مشرف ───
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60_000).toISOString();
+  const { count: opsCount, error: rlError } = await admin
+    .from("admin_sensitive_ops_log")
+    .select("id", { count: "exact", head: true })
+    .eq("actor_id", userData.user.id)
+    .eq("op_type", "update_email")
+    .gte("created_at", fiveMinutesAgo);
+  if (rlError) return json(req, { error: "rate_limit_check_failed" }, 500);
+  if ((opsCount ?? 0) >= 5) {
+    return new Response(
+      JSON.stringify({ error: "too_many_requests", retryAfterSeconds: 300 }),
+      {
+        status: 429,
+        headers: {
+          ...corsHeaders(req),
+          "Content-Type": "application/json; charset=utf-8",
+          "Retry-After": "300",
+        },
+      },
+    );
+  }
+
   // Resolve the auth user linked to this employee (profiles.id === auth.users.id).
   const { data: profile, error: profileError } = await admin
     .from("profiles")
@@ -120,6 +143,13 @@ Deno.serve(createHandler({ functionName: "admin-update-email", version: "1.0.0" 
     );
     return json(req, { error: "email_update_failed" }, 502);
   }
+
+  // سجل العملية للـ rate-limit
+  await admin.from("admin_sensitive_ops_log").insert({
+    op_type: "update_email",
+    actor_id: userData.user.id,
+    employee_id: input.employeeId,
+  });
 
   // سجل التدقيق (نفس توقيع update_employee_admin).
   await admin.rpc("log_audit_event", {
