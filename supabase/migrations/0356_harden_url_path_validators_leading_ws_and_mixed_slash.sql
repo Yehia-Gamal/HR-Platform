@@ -43,8 +43,8 @@ as $$
     when (select v from n) ~ '^[a-zA-Z][a-zA-Z0-9+.-]*:' and lower((select v from n)) !~ '^https://' then false
     -- رفض الروابط بلا-مخطط: أي محرفَي / أو \ بادئين (يمسك // \\ /\ \/)
     when (select v from n) ~ '^[/\\]{2}' then false
-    -- منع اجتياز المسار في المسارات النسبية
-    when (select v from n) ~ '(^|/)\.\.(/|$)' then false
+    -- منع اجتياز المسار في المسارات النسبية (/ أو \ كفاصلين)
+    when (select v from n) ~ '(^|[/\\])\.\.([/\\]|$)' then false
     else true
   end;
 $$;
@@ -67,7 +67,7 @@ as $$
     when (select v from n) ~ '^[a-zA-Z][a-zA-Z0-9+.-]*:' then false
     -- رفض المسار المطلق والروابط بلا-مخطط (/ أو \ أو خلطهما في البداية)
     when (select v from n) ~ '^[/\\]' then false
-    when (select v from n) ~ '(^|/)\.\.(/|$)' then false
+    when (select v from n) ~ '(^|[/\\])\.\.([/\\]|$)' then false
     else true
   end;
 $$;
@@ -92,7 +92,7 @@ as $$
     when (select v from n) ~ '^[a-zA-Z][a-zA-Z0-9+.-]*:' and lower((select v from n)) !~ '^https?://' then false
     -- رفض الروابط بلا-مخطط (// \\ /\ \/)
     when (select v from n) ~ '^[/\\]{2}' then false
-    when (select v from n) ~ '(^|/)\.\.(/|$)' then false
+    when (select v from n) ~ '(^|[/\\])\.\.([/\\]|$)' then false
     else true
   end;
 $$;
