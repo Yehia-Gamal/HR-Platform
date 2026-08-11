@@ -3677,16 +3677,16 @@ class _SettlementSheetState extends ConsumerState<_SettlementSheet> {
                       onChanged: (v) => setState(() => _fromId = v),
                     ),
                     const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
+                    DropdownButtonFormField<String?>(
                       value: _toId,
                       decoration: const InputDecoration(
                         labelText: 'الطرف المستفيد (اختياري)',
                         border: OutlineInputBorder(),
                       ),
                       items: [
-                        const DropdownMenuItem(
+                        const DropdownMenuItem<String?>(
                             value: null, child: Text('— لا يوجد —')),
-                        ...parties.map((p) => DropdownMenuItem(
+                        ...parties.map((p) => DropdownMenuItem<String?>(
                               value: p.employeeId,
                               child: Text(
                                 '${p.employeeName} (${_partyTypeLabels[p.partyType] ?? p.partyType})',

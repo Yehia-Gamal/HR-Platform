@@ -1,13 +1,13 @@
 import { z } from 'zod';
+import { leaveTypeCodeSchema } from './operations.js';
+export type { LeaveTypeCode } from './operations.js';
+export { leaveTypeCodeSchema };
 
 export const leaveStatusSchema = z.enum([
   'draft', 'pending', 'approved', 'rejected', 'returned',
   'cancelled', 'withdrawn', 'expired', 'escalated',
 ]);
 export type LeaveStatus = z.infer<typeof leaveStatusSchema>;
-
-export const leaveTypeCodeSchema = z.enum(['annual', 'casual', 'sick', 'unpaid']);
-export type LeaveTypeCode = z.infer<typeof leaveTypeCodeSchema>;
 
 export const leaveAdminRowSchema = z.object({
   requestId:     z.string().uuid(),
