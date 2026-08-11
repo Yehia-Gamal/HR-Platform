@@ -185,7 +185,7 @@
 | 0371 | `0371_device_auto_accept_registration.sql` | قبول تلقائي لتسجيل الأجهزة (إعادة ترقيم). |
 | 0372 | `0372_announcement_engagement_and_push_nudge.sql` | تفاعل الإعلانات + push (إعادة ترقيم). |
 | 0373 | `0373_restrict_kpi_diag_to_service_role.sql` | **P0**: سحب EXECUTE على `kpi_diag_run` من `authenticated` — SECURITY DEFINER بلا حارس → تسريب schema/UUIDs/stack traces. الإصلاح: service_role فقط. |
-| 0374 | `0374_fix_get_employee_360_auth_guard.sql` | **P0**: إضافة فحص صلاحية لـ `get_employee_360` — كانت SECURITY DEFINER بلا أي حارس بعد 0364 → أي موظف يقرأ حالة موظف آخر. الإصلاح: `has_permission('people.employee.read') OR can_access_employee(id)`. |
+| 0374 | `0375_fix_get_employee_360_auth_guard.sql` | **P0**: إضافة فحص صلاحية لـ `get_employee_360` — كانت SECURITY DEFINER بلا أي حارس بعد 0364 → أي موظف يقرأ حالة موظف آخر. الإصلاح: `has_permission('people.employee.read') OR can_access_employee(id)`. |
 ---
 
 > ⚠️ **مخاطرة مؤجلة (0293 — سلة الصور العامة):** سلة `employee-avatars` عادت إلى `public = true` لإصلاح الصور المكسورة (يُخزَّن `photo_url` كرابط عام `object/public/...` ويُستهلك في الويب والموبايل والـ RPCs). هذا يعكس توصية التدقيق (0056) ويُعرّض صور الموظفين للقراءة العامة.
@@ -194,5 +194,5 @@
 
 ---
 
-> ✅ **الحالة:** سلسلة متصلة — 0001 → 0374 — بلا تكرار أو فجوات.
+> ✅ **الحالة:** سلسلة متصلة — 0001 → 0375 — بلا تكرار أو فجوات.
 
