@@ -51,6 +51,34 @@ function isPhoneLikeCode(code: string | null | undefined): boolean {
 
 const currentMonth = cairoMonthIso();
 
+/** شارة المرحلة الحالية للطلب مع لونها */
+function TierBadge({ workflowStatus, activeStepName }: { workflowStatus: string; activeStepName: string | null }) {
+  const label = activeStepName;
+  if (!label) return null;
+  const colorClass =
+    workflowStatus === 'awaiting_operator'
+      ? 'bg-[var(--warning)]/15 text-[var(--warning)]'
+      : workflowStatus === 'escalated'
+        ? 'bg-[var(--danger)]/15 text-[var(--danger)]'
+        : 'bg-brand/10 text-brand';
+  return (
+    <span className={`rounded-lg px-2 py-0.5 text-xs font-black ${colorClass}`}>
+      {label}
+    </span>
+  );
+}
+
+/** النص الزمني المتبقي حتى انتهاء مهلة الخطوة الحالية */
+function EscalationCountdown({ dueAt }: { dueAt: string | null }) {
+  if (!dueAt) return null;
+  const diff = new Date(dueAt).getTime() - Date.now();
+  if (diff <= 0) return <span className="text-[var(--danger)] text-xs font-bold">تجاوز المهلة</span>;
+  const h = Math.floor(diff / 3_600_000);
+  const m = Math.floor((diff % 3_600_000) / 60_000);
+  const label = h > 0 ? `${h}س ${m}د` : `${m} دقيقة`;
+  return <span className="muted text-xs">متبقي {label}</span>;
+}
+
 export function RequestsPage() {
   const { toast } = useToast();
   const auth = useAuth();
@@ -302,12 +330,19 @@ export function RequestsPage() {
                     </div>
                   ) : null}
 
-                  {/* تذييل: الوقت + الخطوة الحالية + زر الإجراء */}
+                  {/* تذييل: المرحلة + الوقت + زر الإجراء */}
                   <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--border)] pt-3 text-xs">
-                    <span className="inline-flex items-center gap-1.5 muted">
-                      <Clock className="size-3.5" aria-hidden="true" />
-                      {item.activeStepName || 'اكتمل المسار'}
-                    </span>
+                    {item.status === 'pending' ? (
+                      <TierBadge workflowStatus={item.workflowStatus} activeStepName={item.activeStepName} />
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 muted">
+                        <Clock className="size-3.5" aria-hidden="true" />
+                        {item.activeStepName || 'اكتمل المسار'}
+                      </span>
+                    )}
+                    {item.status === 'pending' && item.decisionDueAt ? (
+                      <EscalationCountdown dueAt={item.decisionDueAt} />
+                    ) : null}
                     <span className="muted">
                       {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.createdAt))}
                     </span>
@@ -370,9 +405,15 @@ export function RequestsPage() {
           onClose={() => setSelected(null)}
           maxWidth="max-w-xl"
         >
-          <div className="flex items-center gap-2 mb-5">
+          <div className="flex flex-wrap items-center gap-3 mb-5">
             <UserAvatar displayName={selected.employeeName} size="sm" />
-            <p className="muted text-sm">{selected.employeeName}</p>
+            <p className="muted text-sm flex-1">{selected.employeeName}</p>
+            {selected.status === 'pending' ? (
+              <TierBadge workflowStatus={selected.workflowStatus} activeStepName={selected.activeStepName} />
+            ) : null}
+            {selected.status === 'pending' && selected.decisionDueAt ? (
+              <EscalationCountdown dueAt={selected.decisionDueAt} />
+            ) : null}
           </div>
           <p id="decision-reason" className="rounded-2xl bg-[var(--surface-muted)] p-4 text-sm leading-7">
             {selected.reason || 'لا يوجد سبب تفصيلي.'}
