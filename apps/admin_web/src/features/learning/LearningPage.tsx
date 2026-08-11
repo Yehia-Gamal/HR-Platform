@@ -111,8 +111,8 @@ export function LearningPage() {
       await transitionEnrollment.mutateAsync({ enrollmentId: enrollment.id, status });
       const label = ENROLLMENT_LABELS[status as LearningEnrollment['status']] ?? status;
       toast({ message: `تم تحديث الحالة إلى ${label}`, tone: 'success' });
-    } catch (error) {
-      toast({ message: safeErrorMessage(error), tone: 'error' });
+    } catch {
+      /* error surfaced via MutationCache global toast */
     }
   };
 

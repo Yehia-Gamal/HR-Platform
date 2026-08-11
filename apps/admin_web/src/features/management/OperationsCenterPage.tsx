@@ -234,13 +234,7 @@ export function OperationsCenterPage() {
                       status={item.status}
                       pending={commands.transitionTask.isPending}
                       transition={(status) =>
-                        commands.transitionTask.mutate(
-                          { id: item.id, status },
-                          {
-                            onSuccess: () => toast({ message: 'تم تحديث حالة المهمة', tone: 'success' }),
-                            onError: () => toast({ message: 'تعذر تحديث حالة المهمة', tone: 'error' }),
-                          },
-                        )
+                        commands.transitionTask.mutate({ id: item.id, status })
                       }
                     />
                   ) : null}

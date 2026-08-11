@@ -227,7 +227,6 @@ export function LifecyclePage() {
 
 function CreateJourneyDialog({ employees, onClose }: { employees: EligibleEmployee[]; onClose: () => void }) {
   const { createJourney } = useLifecycleCommands();
-  const { toast } = useToast();
 
   const [employeeId, setEmployeeId] = useState('');
   const [probationEnd, setProbationEnd] = useState('');
@@ -280,7 +279,6 @@ function CreateJourneyDialog({ employees, onClose }: { employees: EligibleEmploy
           dueOffsetDays: t.dueOffsetDays === '' ? 0 : Number(t.dueOffsetDays),
         })),
       });
-      toast({ message: 'تم إنشاء رحلة التهيئة بنجاح', tone: 'success' });
       onClose();
     } catch (err) {
       setError(safeErrorMessage(err));
@@ -394,8 +392,8 @@ function JourneyTasksDialog({ journey, onClose }: { journey: Journey; onClose: (
     try {
       await transitionTask.mutateAsync({ taskId: task.id, status });
       toast({ message: `تم تحديث المهمة إلى «${TASK_STATUS_LABELS[status] ?? status}»`, tone: 'success' });
-    } catch (error) {
-      toast({ message: safeErrorMessage(error), tone: 'error' });
+    } catch {
+      /* error surfaced via MutationCache global toast */
     }
   };
 
