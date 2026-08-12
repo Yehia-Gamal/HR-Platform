@@ -57,6 +57,12 @@ void main() {
       expect(find.text('ملخص الشهر'), findsOneWidget);
       expect(find.text('حضور'), findsWidgets);
       // أيام الشهر القادمة تظهر في مفتاح التقويم كـ 'قادم'
+      // (تمرير لأن القائمة كسولة ودليل الألوان تحت الطيّ في شاشة الاختبار).
+      await tester.scrollUntilVisible(
+        find.text('قادم'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('قادم'), findsWidgets);
       expect(tester.takeException(), isNull);
     },

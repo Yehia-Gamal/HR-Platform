@@ -392,6 +392,35 @@ final mobileTeamProvider = FutureProvider<List<MobileTeamMember>>((ref) async {
   return _asList(data).map(MobileTeamMember.fromJson).toList(growable: false);
 });
 
+// الملف الشامل لعضو فريق (V22 § — get_employee_360) من جهة المدير المباشر.
+final employee360Provider =
+    FutureProvider.family<Employee360, String>((ref, employeeId) async {
+      final data = await rpcWithTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>('get_employee_360', params: {'p_employee_id': employeeId}),
+      );
+      return Employee360.fromJson(_asMap(data));
+    });
+
+// كشف الحضور والانصراف الشهري لموظف محدد (المدير/HR) — get_employee_monthly_attendance_statement.
+final employeeMonthlyStatementProvider =
+    FutureProvider.family<MonthlyAttendanceStatement, (String, int, int)>(
+  (ref, params) async {
+    final data = await rpcWithTimeout(
+      ref.watch(supabaseProvider).rpc<dynamic>(
+        'get_employee_monthly_attendance_statement',
+        params: {
+          'p_employee_id': params.$1,
+          'p_year': params.$2,
+          'p_month': params.$3,
+        },
+      ),
+    );
+    return MonthlyAttendanceStatement.fromJson(_asMap(data));
+  },
+);
+
 final mobileDailyReportsProvider =
     FutureProvider.family<List<MobileDailyReport>, String?>((
       ref,

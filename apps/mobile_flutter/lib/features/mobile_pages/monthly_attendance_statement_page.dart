@@ -15,9 +15,18 @@ const _months = [
 // رؤوس أيام الأسبوع (يبدأ بالسبت — معيار المؤسسة)
 const _weekDayHeaders = ['سبت', 'أحد', 'إثن', 'ثلا', 'أرب', 'خمي', 'جمع'];
 
-/// كشف الحضور والانصراف الشهري — للموظف عن نفسه (V12 §18).
+/// كشف الحضور والانصراف الشهري — للموظف عن نفسه (V12 §18)،
+/// وعند تمرير [employeeId] يُعرض كشف موظف محدد (مدير مباشر/HR) (V22).
 class MonthlyAttendanceStatementPage extends ConsumerStatefulWidget {
-  const MonthlyAttendanceStatementPage({super.key});
+  const MonthlyAttendanceStatementPage({
+    this.employeeId,
+    this.employeeName,
+    super.key,
+  });
+
+  /// عند تمريره يُحمل كشف هذا الموظف بدلًا من كشف المستخدم الحالي.
+  final String? employeeId;
+  final String? employeeName;
 
   @override
   ConsumerState<MonthlyAttendanceStatementPage> createState() =>
@@ -37,12 +46,27 @@ class _MonthlyAttendanceStatementPageState
     _month = _now.month;
   }
 
+  AsyncValue<MonthlyAttendanceStatement> _statement(WidgetRef ref) =>
+      widget.employeeId == null
+          ? ref.watch(myMonthlyStatementProvider((_year, _month)))
+          : ref.watch(
+              employeeMonthlyStatementProvider(
+                (widget.employeeId!, _year, _month),
+              ),
+            );
+
+  void _reload(WidgetRef ref) => widget.employeeId == null
+      ? ref.invalidate(myMonthlyStatementProvider((_year, _month)))
+      : ref.invalidate(
+          employeeMonthlyStatementProvider((widget.employeeId!, _year, _month)),
+        );
+
   @override
   Widget build(BuildContext context) {
-    final statement = ref.watch(myMonthlyStatementProvider((_year, _month)));
+    final statement = _statement(ref);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('كشف الحضور والانصراف'),
+        title: Text(widget.employeeName ?? 'كشف الحضور والانصراف'),
         actions: [
           if (statement.hasValue)
             IconButton(
@@ -95,8 +119,7 @@ class _MonthlyAttendanceStatementPageState
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () async =>
-              ref.invalidate(myMonthlyStatementProvider((_year, _month))),
+          onRefresh: () async => _reload(ref),
           child: statement.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, _) => Center(
@@ -107,7 +130,7 @@ class _MonthlyAttendanceStatementPageState
                   const SizedBox(height: 8),
                   Text(humanizeError(error), textAlign: TextAlign.center),
                   TextButton(
-                    onPressed: () => ref.invalidate(myMonthlyStatementProvider((_year, _month))),
+                    onPressed: () => _reload(ref),
                     child: const Text('إعادة المحاولة'),
                   ),
                 ],

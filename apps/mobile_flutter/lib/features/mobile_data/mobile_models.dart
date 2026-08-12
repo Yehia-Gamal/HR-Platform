@@ -2776,3 +2776,361 @@ class DirectoryEmployee {
   final String? jobTitle;
   final String? department;
 }
+
+/// الملف الشامل للموظف (V22 — get_employee_360) — مطابق لـ employee360Schema
+/// في shared-contracts. يُستخدم لملفات أعضاء الفريق من جهة المدير.
+class Employee360 {
+  const Employee360({
+    required this.id,
+    required this.employeeCode,
+    required this.fullNameAr,
+    required this.fullNameEn,
+    required this.phoneE164,
+    required this.photoUrl,
+    required this.status,
+    required this.isActive,
+    required this.hireDate,
+    required this.contractEnd,
+    required this.probationEnd,
+    required this.jobTitle,
+    required this.position,
+    required this.grade,
+    required this.department,
+    required this.team,
+    required this.branch,
+    required this.workSite,
+    required this.managerName,
+    required this.accountStatus,
+    required this.email,
+    required this.departments,
+    required this.roles,
+    required this.directReports,
+    required this.attendance30,
+    required this.requestCounts,
+    required this.latestKpi,
+    required this.documents,
+    required this.assets,
+    required this.recentRequests,
+    required this.recentTasks,
+    required this.lastUpdatedAt,
+  });
+
+  factory Employee360.fromJson(Map<String, dynamic> json) => Employee360(
+    id: json['id'] as String,
+    employeeCode: json['employeeCode'] as String? ?? '',
+    fullNameAr: json['fullNameAr'] as String? ?? 'موظف',
+    fullNameEn: json['fullNameEn'] as String?,
+    phoneE164: json['phoneE164'] as String?,
+    photoUrl: json['photoUrl'] as String?,
+    status: json['status'] as String? ?? 'active',
+    isActive: (json['isActive'] as bool?) ?? true,
+    hireDate: _optDate(json['hireDate']),
+    contractEnd: _optDate(json['contractEnd']),
+    probationEnd: _optDate(json['probationEnd']),
+    jobTitle: json['jobTitle'] as String?,
+    position: json['position'] as String?,
+    grade: json['grade'] as String?,
+    department: json['department'] as String?,
+    team: json['team'] as String?,
+    branch: json['branch'] as String?,
+    workSite: json['workSite'] as String?,
+    managerName: json['managerName'] as String?,
+    accountStatus: json['accountStatus'] as String?,
+    email: json['email'] as String?,
+    departments: (json['departments'] as List<dynamic>? ?? const [])
+        .map(
+          (e) => EmployeeDepartmentLink.fromJson(
+            Map<String, dynamic>.from(e as Map<dynamic, dynamic>),
+          ),
+        )
+        .toList(growable: false),
+    roles: (json['roles'] as List<dynamic>? ?? const [])
+        .map(
+          (e) => EmployeeRoleLink.fromJson(
+            Map<String, dynamic>.from(e as Map<dynamic, dynamic>),
+          ),
+        )
+        .toList(growable: false),
+    directReports: (json['directReports'] as num?)?.toInt() ?? 0,
+    attendance30: Attendance30Summary.fromJson(
+      Map<String, dynamic>.from(
+        (json['attendance30'] as Map<dynamic, dynamic>?) ??
+            const <String, dynamic>{},
+      ),
+    ),
+    requestCounts: RequestCounts.fromJson(
+      Map<String, dynamic>.from(
+        (json['requestCounts'] as Map<dynamic, dynamic>?) ??
+            const <String, dynamic>{},
+      ),
+    ),
+    latestKpi: json['latestKpi'] == null
+        ? null
+        : KpiLatest.fromJson(
+            Map<String, dynamic>.from(
+              json['latestKpi'] as Map<dynamic, dynamic>,
+            ),
+          ),
+    documents: (json['documents'] as List<dynamic>? ?? const [])
+        .map(
+          (e) => EmployeeDocumentBrief.fromJson(
+            Map<String, dynamic>.from(e as Map<dynamic, dynamic>),
+          ),
+        )
+        .toList(growable: false),
+    assets: (json['assets'] as List<dynamic>? ?? const [])
+        .map(
+          (e) => EmployeeAssetBrief.fromJson(
+            Map<String, dynamic>.from(e as Map<dynamic, dynamic>),
+          ),
+        )
+        .toList(growable: false),
+    recentRequests: (json['recentRequests'] as List<dynamic>? ?? const [])
+        .map(
+          (e) => EmployeeRequestBrief.fromJson(
+            Map<String, dynamic>.from(e as Map<dynamic, dynamic>),
+          ),
+        )
+        .toList(growable: false),
+    recentTasks: (json['recentTasks'] as List<dynamic>? ?? const [])
+        .map(
+          (e) => EmployeeTaskBrief.fromJson(
+            Map<String, dynamic>.from(e as Map<dynamic, dynamic>),
+          ),
+        )
+        .toList(growable: false),
+    lastUpdatedAt: _optDate(json['lastUpdatedAt']),
+  );
+
+  final String id;
+  final String employeeCode;
+  final String fullNameAr;
+  final String? fullNameEn;
+  final String? phoneE164;
+  final String? photoUrl;
+  final String status;
+  final bool isActive;
+  final DateTime? hireDate;
+  final DateTime? contractEnd;
+  final DateTime? probationEnd;
+  final String? jobTitle;
+  final String? position;
+  final String? grade;
+  final String? department;
+  final String? team;
+  final String? branch;
+  final String? workSite;
+  final String? managerName;
+  final String? accountStatus;
+  final String? email;
+  final List<EmployeeDepartmentLink> departments;
+  final List<EmployeeRoleLink> roles;
+  final int directReports;
+  final Attendance30Summary attendance30;
+  final RequestCounts requestCounts;
+  final KpiLatest? latestKpi;
+  final List<EmployeeDocumentBrief> documents;
+  final List<EmployeeAssetBrief> assets;
+  final List<EmployeeRequestBrief> recentRequests;
+  final List<EmployeeTaskBrief> recentTasks;
+  final DateTime? lastUpdatedAt;
+}
+
+DateTime? _optDate(dynamic value) {
+  final s = value?.toString();
+  if (s == null || s.isEmpty || s == 'null') return null;
+  return DateTime.tryParse(s);
+}
+
+class EmployeeDepartmentLink {
+  const EmployeeDepartmentLink({
+    required this.id,
+    required this.departmentId,
+    required this.departmentName,
+    required this.jobTitle,
+    required this.isPrimary,
+    required this.assignedAt,
+  });
+  factory EmployeeDepartmentLink.fromJson(Map<String, dynamic> j) =>
+      EmployeeDepartmentLink(
+        id: j['id'] as String,
+        departmentId: j['departmentId'] as String,
+        departmentName: j['departmentName'] as String? ?? '',
+        jobTitle: j['jobTitle'] as String?,
+        isPrimary: (j['isPrimary'] as bool?) ?? false,
+        assignedAt: _reqDate(j['assignedAt']),
+      );
+  final String id;
+  final String departmentId;
+  final String departmentName;
+  final String? jobTitle;
+  final bool isPrimary;
+  final DateTime assignedAt;
+}
+
+class EmployeeRoleLink {
+  const EmployeeRoleLink({required this.slug, required this.name});
+  factory EmployeeRoleLink.fromJson(Map<String, dynamic> j) =>
+      EmployeeRoleLink(
+        slug: j['slug'] as String? ?? '',
+        name: j['name'] as String? ?? '',
+      );
+  final String slug;
+  final String name;
+}
+
+class Attendance30Summary {
+  const Attendance30Summary({
+    required this.present,
+    required this.lateDays,
+    required this.absent,
+    required this.workMinutes,
+  });
+  factory Attendance30Summary.fromJson(Map<String, dynamic> j) =>
+      Attendance30Summary(
+        present: (j['present'] as num?)?.toInt() ?? 0,
+        lateDays: (j['lateDays'] as num?)?.toInt() ?? 0,
+        absent: (j['absent'] as num?)?.toInt() ?? 0,
+        workMinutes: (j['workMinutes'] as num?)?.toInt() ?? 0,
+      );
+  final int present;
+  final int lateDays;
+  final int absent;
+  final int workMinutes;
+}
+
+class RequestCounts {
+  const RequestCounts({
+    required this.pending,
+    required this.approved,
+    required this.rejected,
+  });
+  factory RequestCounts.fromJson(Map<String, dynamic> j) => RequestCounts(
+    pending: (j['pending'] as num?)?.toInt() ?? 0,
+    approved: (j['approved'] as num?)?.toInt() ?? 0,
+    rejected: (j['rejected'] as num?)?.toInt() ?? 0,
+  );
+  final int pending;
+  final int approved;
+  final int rejected;
+}
+
+class KpiLatest {
+  const KpiLatest({
+    required this.id,
+    required this.periodMonth,
+    required this.currentStage,
+    required this.finalScore,
+    required this.finalRating,
+  });
+  factory KpiLatest.fromJson(Map<String, dynamic> j) => KpiLatest(
+    id: j['id'] as String? ?? '',
+    periodMonth: j['periodMonth'] as String? ?? '',
+    currentStage: j['currentStage'] as String? ?? '',
+    finalScore: (j['finalScore'] as num?)?.toDouble(),
+    finalRating: j['finalRating'] as String?,
+  );
+  final String id;
+  final String periodMonth;
+  final String currentStage;
+  final double? finalScore;
+  final String? finalRating;
+}
+
+class EmployeeDocumentBrief {
+  const EmployeeDocumentBrief({
+    required this.id,
+    required this.type,
+    required this.title,
+    required this.expiryDate,
+    required this.status,
+  });
+  factory EmployeeDocumentBrief.fromJson(Map<String, dynamic> j) =>
+      EmployeeDocumentBrief(
+        id: j['id'] as String? ?? '',
+        type: j['type'] as String? ?? '',
+        title: j['title'] as String? ?? '',
+        expiryDate: _optDate(j['expiryDate']),
+        status: j['status'] as String? ?? '',
+      );
+  final String id;
+  final String type;
+  final String title;
+  final DateTime? expiryDate;
+  final String status;
+}
+
+class EmployeeAssetBrief {
+  const EmployeeAssetBrief({
+    required this.id,
+    required this.assetName,
+    required this.assetType,
+    required this.serial,
+    required this.handedOverAt,
+    required this.returnedAt,
+  });
+  factory EmployeeAssetBrief.fromJson(Map<String, dynamic> j) =>
+      EmployeeAssetBrief(
+        id: j['id'] as String? ?? '',
+        assetName: j['assetName'] as String? ?? '',
+        assetType: j['assetType'] as String? ?? '',
+        serial: j['serial'] as String?,
+        handedOverAt: _optDate(j['handedOverAt']),
+        returnedAt: _optDate(j['returnedAt']),
+      );
+  final String id;
+  final String assetName;
+  final String assetType;
+  final String? serial;
+  final DateTime? handedOverAt;
+  final DateTime? returnedAt;
+}
+
+class EmployeeRequestBrief {
+  const EmployeeRequestBrief({
+    required this.id,
+    required this.requestNumber,
+    required this.requestType,
+    required this.title,
+    required this.status,
+    required this.createdAt,
+  });
+  factory EmployeeRequestBrief.fromJson(Map<String, dynamic> j) =>
+      EmployeeRequestBrief(
+        id: j['id'] as String? ?? '',
+        requestNumber: (j['requestNumber'] as num?)?.toInt() ?? 0,
+        requestType: j['requestType'] as String? ?? '',
+        title: j['title'] as String?,
+        status: j['status'] as String? ?? '',
+        createdAt: _reqDate(j['createdAt']),
+      );
+  final String id;
+  final int requestNumber;
+  final String requestType;
+  final String? title;
+  final String status;
+  final DateTime createdAt;
+}
+
+class EmployeeTaskBrief {
+  const EmployeeTaskBrief({
+    required this.id,
+    required this.title,
+    required this.status,
+    required this.priority,
+    required this.dueDate,
+  });
+  factory EmployeeTaskBrief.fromJson(Map<String, dynamic> j) =>
+      EmployeeTaskBrief(
+        id: j['id'] as String? ?? '',
+        title: j['title'] as String? ?? '',
+        status: j['status'] as String? ?? '',
+        priority: j['priority'] as String?,
+        dueDate: _optDate(j['dueDate']),
+      );
+  final String id;
+  final String title;
+  final String status;
+  final String? priority;
+  final DateTime? dueDate;
+}
