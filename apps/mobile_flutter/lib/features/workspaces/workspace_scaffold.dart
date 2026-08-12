@@ -25,7 +25,6 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_team_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/org_chart_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/web_only_feature_page.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -294,12 +293,6 @@ class WorkspaceScaffold extends ConsumerWidget {
             body: const MobileActionInboxPage(),
           ),
         ),
-        // ميزات إدارة الموارد البشرية متاحة على الويب فقط
-        _MoreItem(
-          icon: Icons.manage_accounts_outlined,
-          label: 'إدارة الموظفين',
-          page: const MobileWebOnlyPage(featureName: 'إدارة الموظفين'),
-        ),
         // V22 — جداول الحضور والتقارير: كشف شهري لكل عضو من فريقك المباشر.
         _MoreItem(
           icon: Icons.event_available_outlined,
@@ -311,11 +304,6 @@ class WorkspaceScaffold extends ConsumerWidget {
           icon: Icons.groups_2_outlined,
           label: 'إدارة فريقي',
           page: const MyTeamPage(),
-        ),
-        _MoreItem(
-          icon: Icons.settings_suggest_outlined,
-          label: 'إدارة التشغيل',
-          page: const WebOnlyFeaturePage(featureName: 'إدارة التشغيل'),
         ),
         // V22 — ملفات أعضاء الفريق: الملف الشامل (get_employee_360).
         _MoreItem(
