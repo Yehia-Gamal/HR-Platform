@@ -85,8 +85,8 @@ export function validateHrIssuedPassword(
     for (const token of s.split(/[\s\u0600-\u06FF]+/)) {
       if (token.length >= 4) parts.push(token.toLowerCase());
     }
-    // للهاتف: نتجاهل رمز الدولة (+20) ونقارن الجوهر
-    if (s.startsWith("+2")) parts.push(s.slice(2));
+    // للهاتف: نتجاهل رمز الدولة (+20) ونقارن الجوهر بلا الصفر المحلي
+    if (s.startsWith("+2")) parts.push(s.slice(3));
     if (s.startsWith("+")) parts.push(s.slice(1));
   }
   // ملاحظة: لا نضيف أجزاءً من كلمة المرور نفسها إلى parts — أي جزء منها
@@ -107,6 +107,7 @@ const TEMP_POOL = {
   upper: "ABCDEFGHJKLMNPQRSTUVWXYZ",
   lower: "abcdefghjkmnpqrstuvwxyz",
   digit: "23456789",
+  symbol: "!@#$%&*?-_",
 };
 
 function tempRand(max: number): number {
@@ -117,17 +118,17 @@ function tempRand(max: number): number {
 
 /**
  * كلمة مرور مؤقتة عشوائية آمنة (12 حرفاً) تُمرَّر للموظف عبر رابط البريد فقط.
- * نضمن حرفاً كبيراً وصغيراً ورقماً واحداً على الأقل؛ لا رمز إلزامياً (سياسة
- * الميدان) ولا أي معرّف للموظف. تُفرض تغييرها عند أول دخول عبر
- * must_change_password فلا تبقى سارية. لا نعتمد أبداً على اشتقاق من رقم
- * الهاتف/الكود (كان ذلك قابلاً للتخمين من مسرِّب بيانات).
+ * نضمن حرفاً كبيراً وصغيراً ورقماً ورمزاً خاصاً واحداً على الأقل (سياسة
+ * validateHrIssuedPassword الموحدة) ولا أي معرّف للموظف. تُفرض تغييرها عند
+ * أول دخول عبر must_change_password فلا تبقى سارية. لا نعتمد أبداً على اشتقاق
+ * من رقم الهاتف/الكود (كان ذلك قابلاً للتخمين من مسرِّب بيانات).
  */
 export function generateSecureTemporaryPassword(): string {
   const length = 12;
-  const pool = TEMP_POOL.upper + TEMP_POOL.lower + TEMP_POOL.digit;
+  const alnum = TEMP_POOL.upper + TEMP_POOL.lower + TEMP_POOL.digit;
   const chars: string[] = [];
   for (const cat of Object.values(TEMP_POOL)) chars.push(cat[tempRand(cat.length)]);
-  while (chars.length < length) chars.push(pool[tempRand(pool.length)]);
+  while (chars.length < length) chars.push(alnum[tempRand(alnum.length)]);
   // Fisher–Yates بخلط حقيقي عشوائي (لا نكتفي بالـ push البسيط).
   for (let i = chars.length - 1; i > 0; i--) {
     const j = tempRand(i + 1);

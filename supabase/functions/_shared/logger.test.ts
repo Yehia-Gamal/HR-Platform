@@ -271,7 +271,7 @@ Deno.test("debug: لا يبثّ شيئاً في الإنتاج، ويبثّ في
 
 // ─── timed و child ───────────────────────────────────────────────────────────
 Deno.test("timed: نجاح → info «<op> completed» مع duration_ms ويعيد النتيجة", async () => {
-  withEnv(undefined, () => {
+  withEnv(undefined, async () => {
     const c = captureConsole();
     const log = createLogger({ functionName: "fn" });
     const result = await log.timed("op", async () => 42, { tag: "t" });
@@ -286,7 +286,7 @@ Deno.test("timed: نجاح → info «<op> completed» مع duration_ms ويعي
 });
 
 Deno.test("timed: فشل → error «<op> failed» مع duration_ms ويُعيد رمي الخطأ", async () => {
-  withEnv(undefined, () => {
+  withEnv(undefined, async () => {
     const c = captureConsole();
     const log = createLogger({ functionName: "fn" });
     let caught: unknown = undefined;

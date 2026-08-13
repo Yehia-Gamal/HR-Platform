@@ -75,7 +75,7 @@ function sanitizeExtra(extra?: Record<string, unknown>): Record<string, unknown>
   return out;
 }
 
-class Logger {
+export class Logger {
   private readonly ctx: LogContext;
   private readonly env: string;
 

@@ -18,7 +18,7 @@ const inputSchema = z.object({
   errorStack: z.string().trim().max(5000).optional(),
   requestId: z.string().trim().max(100).optional(),
   route: z.string().trim().max(500).optional(),
-  metadata: z.record(z.unknown()).default({}),
+  metadata: z.record(z.string(), z.unknown()).default({}),
 });
 
 Deno.serve(createHandler(

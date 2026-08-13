@@ -24,17 +24,19 @@ Deno.test("normalizePhone: non-local formats pass through untouched", () => {
 
 const noIds = {};
 
-Deno.test("validateHrIssuedPassword: rejects <8 chars", () => {
+Deno.test("validateHrIssuedPassword: rejects <12 chars", () => {
   const r1 = validateHrIssuedPassword("Short1a", noIds);
   assertEquals(r1.ok, false);
-  if (!r1.ok) assertEquals(r1.reason, "password_too_short_min_8");
+  if (!r1.ok) assertEquals(r1.reason, "password_too_short_min_12");
+  const r2 = validateHrIssuedPassword("A1b2C3d4!ef", noIds); // 11 حرفاً قوياً
+  assertEquals(r2.ok, false);
 });
 
-Deno.test("validateHrIssuedPassword: rejects >15 chars", () => {
+Deno.test("validateHrIssuedPassword: rejects >72 chars", () => {
   const long = "Aa1!" + "x".repeat(80);
   const r = validateHrIssuedPassword(long, noIds);
   assertEquals(r.ok, false);
-  if (!r.ok) assertEquals(r.reason, "password_too_long_max_15");
+  if (!r.ok) assertEquals(r.reason, "password_too_long_max_72");
 });
 
 Deno.test("validateHrIssuedPassword: rejects missing uppercase", () => {
@@ -55,16 +57,20 @@ Deno.test("validateHrIssuedPassword: rejects missing digit", () => {
   if (!r.ok) assertEquals(r.reason, "password_needs_digit");
 });
 
-// سياسة موظفي الميدان: الرمز غير إلزامي (أسهل كتابة على الموبايل).
-Deno.test("validateHrIssuedPassword: accepts strong password without symbol", () => {
+// السياسة الموحدة: الرمز الخاص إلزامي (12–72، أحرف كبيرة/صغيرة، رقم، رمز).
+Deno.test("validateHrIssuedPassword: rejects missing symbol", () => {
   const r = validateHrIssuedPassword("MyPass123abc", noIds);
-  assertEquals(r.ok, true);
+  assertEquals(r.ok, false);
+  if (!r.ok) assertEquals(r.reason, "password_needs_symbol");
 });
 
-Deno.test("validateHrIssuedPassword: rejects character repetition (4+)", () => {
+Deno.test("validateHrIssuedPassword: rejects character repetition (5+)", () => {
   const r = validateHrIssuedPassword("Aaaa1!bbbbbcd", noIds);
   assertEquals(r.ok, false);
   if (!r.ok) assertEquals(r.reason, "password_too_repetitive");
+  // تكرار 4 أحرف فقط مقبول (الحد 5+)
+  const ok = validateHrIssuedPassword("Aaaa1!xqmn2$", noIds);
+  assertEquals(ok.ok, true);
 });
 
 Deno.test("validateHrIssuedPassword: rejects keyboard sequences", () => {
@@ -96,8 +102,8 @@ Deno.test("validateHrIssuedPassword: accepts strong unique password", () => {
   assertEquals(r.ok, true);
 });
 
-Deno.test("validateHrIssuedPassword: accepts 8-char strong boundary", () => {
-  const r = validateHrIssuedPassword("A1b2C3d4", noIds);
+Deno.test("validateHrIssuedPassword: accepts 12-char strong boundary", () => {
+  const r = validateHrIssuedPassword("A1b2C3d4!efG", noIds);
   assertEquals(r.ok, true);
 });
 
@@ -118,8 +124,8 @@ Deno.test("validateHrIssuedPassword: accepts strong password when employee ident
   assertEquals(r.ok, true);
 });
 
-// كلمة المرور المؤقتة المولّدة آمنة: 12 حرفاً، تحوي حرفاً كبيراً وصغيراً ورقماً،
-// وتجتاز الـ validator دائماً (معرّفات الموظف لا تُرفض إلا إذا كانت في الكلمة).
+// كلمة المرور المؤقتة المولّدة آمنة: 12 حرفاً، تحوي حرفاً كبيراً وصغيراً ورقماً
+// ورمزاً خاصاً (السياسة الموحدة)، وتجتاز الـ validator دائماً.
 Deno.test("generateSecureTemporaryPassword: produces valid, unique passwords", () => {
   const ids = {
     email: "ahmed.work@org.com",
@@ -134,7 +140,7 @@ Deno.test("generateSecureTemporaryPassword: produces valid, unique passwords", (
     assertEquals(/[A-Z]/.test(p), true);
     assertEquals(/[a-z]/.test(p), true);
     assertEquals(/\d/.test(p), true);
-    assertEquals(/^[A-Za-z0-9]+$/.test(p), true);
+    assertEquals(/[!@#$%^&*?_-]/.test(p), true);
     assertEquals(seen.has(p), false, "should not repeat");
     seen.add(p);
     const r = validateHrIssuedPassword(p, ids);

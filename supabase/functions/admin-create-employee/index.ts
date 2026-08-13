@@ -244,7 +244,15 @@ Deno.serve(async (req) => {
         },
       };
     }
-    return { data: { user: { id: body.id, email: body.email } }, error: null };
+    return {
+      data: {
+        user: {
+          id: String(body.id),
+          email: typeof body.email === "string" ? body.email : undefined,
+        },
+      },
+      error: null,
+    };
   }
 
   function isDuplicateError(err: { message?: string; status?: number } | null): boolean {
