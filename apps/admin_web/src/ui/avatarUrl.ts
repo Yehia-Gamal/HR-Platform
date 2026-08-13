@@ -35,3 +35,25 @@ export function toAuthenticatedAvatarUrl(url: string): string {
   if (index < 0) return url;
   return url.slice(0, index) + AUTHENTICATED_MARKER + url.substring(index + PUBLIC_MARKER.length);
 }
+
+/**
+ * يحوّل أي رابط صورة مخزّن إلى رابط عام مباشر قابل للعرض في <img>.
+ * الـ bucket عام (public=true منذ 0293)، لذا الرابط العام يعمل مباشرةً بلا
+ * مصادقة وبلا انتهاء — بعكس Signed URL الذي ينتهي بعد ساعة ويتسبب في اختفاء
+ * الصور بعد انتهاء الجلسة الطويلة. الروابط الخارجية (CDN/mock) تُعاد كما هي.
+ * يُرجع null لو كان الرابط لـ bucket لكن supabaseUrl غير مُعدّ.
+ */
+export function toPublicAvatarUrl(
+  url: string,
+  supabaseUrl: string,
+): string | null {
+  if (!url) return null;
+  const path = extractAvatarPath(url);
+  if (path === null) return url; // رابط خارجي — استخدمه مباشرة
+  if (!supabaseUrl) return null; // مسار bucket لكن لا يوجد إعداد
+  const encoded = path
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+  return `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${PRIVATE_BUCKET}/${encoded}`;
+}
