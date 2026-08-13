@@ -174,15 +174,49 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   }, []);
 
+  // SEC: rate limit للـ password reset من جهة العميل — نتتبع الطلبات في
+  // localStorage (نافذة ساعة). الحماية الحقيقية يجب أن تكون في الخادم/Supabase،
+  // لكن هذا يمنع spam بسيط من نفس المتصفح. Obfuscation: نُرجع دائماً نفس
+  // الرسالة العامة حتى لا نكشف إن كان البريد مسجلاً.
+  const PASSWORD_RESET_LIMIT = 3;
+  const PASSWORD_RESET_WINDOW_MS = 60 * 60 * 1000;
+  const PASSWORD_RESET_KEY = 'ahla.passwordReset.attempts';
+
   const requestPasswordReset = useCallback(async (email: string) => {
     if (!hasSupabaseConfig) throw new Error('Supabase غير مهيأ.');
+    const normalizedEmail = email.trim().toLowerCase();
+    const now = Date.now();
+
+    // ─── Rate limit (client-side best-effort) ───
+    let attempts: number[] = [];
+    try {
+      const raw = typeof window !== 'undefined' ? window.localStorage.getItem(PASSWORD_RESET_KEY) : null;
+      attempts = raw ? (JSON.parse(raw) as number[]) : [];
+      attempts = attempts.filter((ts) => typeof ts === 'number' && now - ts < PASSWORD_RESET_WINDOW_MS);
+    } catch {
+      attempts = [];
+    }
+    if (attempts.length >= PASSWORD_RESET_LIMIT) {
+      throw new Error('عدد كبير من المحاولات. انتظر ساعة ثم أعد المحاولة.');
+    }
+
     const supabase = await getSupabase();
-    // الرابط يفتح PasswordSetupPage التي تلتقط جلسة الاسترداد وتعيّن كلمة المرور.
     const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/auth/setup-password` : undefined;
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo });
-    // عدم تسريب رسالة Supabase الخام — قد تكشف وجود/عدم وجود الحساب (account enumeration).
-    if (resetError) throw new Error('تعذر إرسال رابط الاسترداد. تحقق من البريد وأعد المحاولة.');
-  }, []);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo });
+
+    // سجّل المحاولة بعد الوصول إلى الخادم — يمنع enumeration السريع.
+    attempts.push(now);
+    try {
+      if (typeof window !== 'undefined') window.localStorage.setItem(PASSWORD_RESET_KEY, JSON.stringify(attempts));
+    } catch {
+      /* best-effort */
+    }
+
+    // SEC: لا نكشف ما إذا كان البريد موجوداً — نفس رسالة عامة دائماً.
+    if (resetError) {
+      console.warn('[auth] password reset error (hidden from user):', resetError.message);
+    }
+  }, [hasSupabaseConfig]);
 
   const signInMock = useCallback((persona: MockPersona) => {
     if (!env.devMocksEnabled) return;

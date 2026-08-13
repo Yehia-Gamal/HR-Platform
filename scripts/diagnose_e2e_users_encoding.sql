@@ -94,14 +94,18 @@ where p.id in (
 order by p.id;
 
 -- 5) ── مقارنة: موظفون عرب آخرون لإثبات أن العمود يقبل UTF-8 ──────────────
+-- ملاحظة: Postgres regex لا يدعم \x{NNNN}؛ نكتشف العربية بمقارنة
+-- octet_length (بايتات) مع char_length (أحرف) — العربية UTF-8 متعدد البايت
+-- (octet > char يعني وجود أحرف غير ASCII)، مع استبعاد أي اسم يحوي '?'.
 select
   e.employee_code,
   e.full_name_ar,
-  char_length(e.full_name_ar)  as char_len,
+  char_length(e.full_name_ar)   as char_len,
+  octet_length(e.full_name_ar)  as byte_len,
   encode(e.full_name_ar::bytea, 'hex') as name_hex
 from public.employees e
-where e.full_name_ar ~ '[\x{0600}-\x{06FF}]'           -- يحوي حروفاً عربية فعلية
-  and e.phone_e164 not in ('+201522553042', '+201083619233')
+where octet_length(e.full_name_ar) > char_length(e.full_name_ar)  -- متعدد البايت (عربية)
+  and position('?' in e.full_name_ar) = 0                          -- ليس معطوباً
 order by e.created_at desc
 limit 5;
 

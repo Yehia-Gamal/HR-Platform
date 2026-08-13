@@ -298,6 +298,61 @@ class _KpiEvaluationDetailPageState
         ],
         // V23: الامتثال متاح في المراجعة المتوازية أيضًا.
         if (showCompliance) ...[
+          // تحذير استباقي: HR يحتاج إدخال بيانات الامتثال قبل الإرسال
+          if (form.compliance.where((c) => c.metric == 'PRAYER').isEmpty ||
+              form.compliance.where((c) => c.metric == 'HALAQA').isEmpty) ...[
+            Card(
+              color: Theme.of(context).colorScheme.tertiaryContainer,
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.onTertiaryContainer),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'مطلوب إدخال بيانات الالتزام بالصلاة وحلقة الشيخ قبل الإرسال.',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.onTertiaryContainer,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          // تحذير: عناصر حضور معلقة تمنع إرسال HR
+          if (form.attendance?.hasPendingItems == true) ...[
+            Card(
+              color: Theme.of(context).colorScheme.errorContainer,
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    Icon(Icons.block_rounded,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.onErrorContainer),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'يوجد مراجعات حضور معلقة. لا يمكن لإرسال HR المتابعة حتى تُحل.',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.onErrorContainer,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
           for (final metric in const ['PRAYER', 'HALAQA']) ...[
             OutlinedButton.icon(
               onPressed: _saving ? null : () => _editCompliance(form, metric),
@@ -374,7 +429,7 @@ class _KpiEvaluationDetailPageState
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.check_circle_outline),
-                  label: Text(_submitLabel(form.editableStage)),
+                    label: Text(_submitLabel(form.editableStage, parallel: form.parallelFlow == true)),
                 ),
               ),
             ],
@@ -392,9 +447,16 @@ class _KpiEvaluationDetailPageState
     );
   }
 
-  // V23: تسميات أزرار الاعتماد حسب المرحلة.
-  String _submitLabel(String? stage) => switch (stage) {
-    'manager_review' => 'اعتماد النتيجة وإدراجها في التقرير',
+  // V23: تسميات أزرار الاعتماد حسب المرحلة والسياق.
+  String _submitLabel(String? stage, {bool parallel = false}) => switch (stage) {
+    'self' => 'تسليم التقييم الذاتي',
+    'hr_review' => parallel
+        ? 'اعتماد مراجعة HR وإرسال'
+        : 'اعتماد مراجعة الموارد البشرية',
+    'manager_review' => parallel
+        ? 'اعتماد مراجعة المدير وإرسال'
+        : 'اعتماد مراجعة المدير المباشر',
+    'manager_final' => 'اعتماد النتيجة وإدراجها في التقرير',
     'parallel_review' => 'اعتماد مراجعتي وإرسال',
     'secretary_review' => 'اعتماد وإرسال للمدير التنفيذي',
     'executive_review' => 'إقرار واعتماد نهائي',
@@ -443,32 +505,52 @@ class _KpiEvaluationDetailPageState
               const SizedBox(height: 14),
               Row(
                 children: [
+                  // Stepper أدق من Slider للتحكم في الدرجة
+                  IconButton.filled(
+                    onPressed: value > 0
+                        ? () => setState(() =>
+                            _scores[criterion.id] = (value - 0.5).clamp(0, criterion.maxScore))
+                        : null,
+                    icon: const Icon(Icons.remove_rounded, size: 20),
+                    tooltip: 'إنقاص',
+                  ),
                   Expanded(
                     child: Semantics(
                       label: 'درجة معيار ${criterion.name}',
                       value: value.toStringAsFixed(1),
-                      child: Slider(
-                        value: value,
-                        min: 0,
-                        max: criterion.maxScore,
-                        divisions: criterion.maxScore
-                            .round()
-                            .clamp(1, 100)
-                            .toInt(),
-                        label: value.toStringAsFixed(1),
-                        onChanged: (newValue) =>
-                            setState(() => _scores[criterion.id] = newValue),
+                      child: Center(
+                        child: Text(
+                          '${value.toStringAsFixed(1)} / ${criterion.maxScore.toStringAsFixed(0)}',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                        ),
                       ),
                     ),
                   ),
-                  SizedBox(
-                    width: 58,
-                    child: Text(
-                      '${value.toStringAsFixed(1)}/${criterion.maxScore.toStringAsFixed(0)}',
-                      textAlign: TextAlign.end,
-                    ),
+                  IconButton.filled(
+                    onPressed: value < criterion.maxScore
+                        ? () => setState(() =>
+                            _scores[criterion.id] = (value + 0.5).clamp(0, criterion.maxScore))
+                        : null,
+                    icon: const Icon(Icons.add_rounded, size: 20),
+                    tooltip: 'زيادة',
                   ),
                 ],
+              ),
+              // Slider أيضاً متاح للحركة السريعة
+              Slider(
+                value: value,
+                min: 0,
+                max: criterion.maxScore,
+                divisions: criterion.maxScore
+                    .round()
+                    .clamp(1, 100)
+                    .toInt(),
+                label: value.toStringAsFixed(1),
+                onChanged: (newValue) =>
+                    setState(() => _scores[criterion.id] = newValue),
               ),
               TextField(
                 controller: _criterionNotes[criterion.id],
@@ -493,6 +575,29 @@ class _KpiEvaluationDetailPageState
   Future<void> _submit(KpiEvaluationForm form) async {
     final stage = form.editableStage;
     if (stage == null) return;
+
+    // تأكيد قبل الإرسال لمنع الضغط بالخطأ
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تأكيد الإرسال'),
+        content: Text(
+          _submitLabel(stage, parallel: form.parallelFlow == true),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('تأكيد وإرسال'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
     // V23: إرسال الدرجات في مراحل التقييم الذاتي والمدير والمراجعة المتوازية.
     final scorePayload = stage == 'self' || stage == 'manager_review' || stage == 'parallel_review'
         ? form.criteria
@@ -536,13 +641,18 @@ class _KpiEvaluationDetailPageState
   }
 
   Future<void> _returnStage(KpiEvaluationForm form) async {
-    // V23: أهداف الإرجاع حسب المرحلة — المتوازي يرجع للموظف، السكرتير للمتوازي، التنفيذي للسكرتير.
+    // V23: أهداف الإرجاع حسب المرحلة الفعلية (editableStage).
+    // في V23 parallel، editableStage يكون 'hr_review' أو 'manager_review'،
+    // وليس 'parallel_review'، لذا نطابق على القيمة الفعلية.
+    final parallel = form.parallelFlow == true;
     final target = switch (form.editableStage) {
+      'hr_review' when parallel => 'self',
+      'manager_review' when parallel => 'self',
       'hr_review' => 'self',
       'manager_review' => 'hr_review',
       'manager_final' => 'manager_review',
       'parallel_review' => 'self',
-      'secretary_review' => 'parallel_review',
+      'secretary_review' => 'self',
       'executive_review' => 'secretary_review',
       _ => null,
     };
@@ -905,7 +1015,8 @@ class _KpiStageStepper extends StatelessWidget {
       : const [
           ('self', 'الموظف'),
           ('hr_review', 'الموارد البشرية'),
-          ('manager_review', 'المدير المباشر'),
+          ('manager_review', 'المدير'),
+          ('manager_final', 'اعتماد نهائي'),
           ('finalized', 'معتمد'),
         ];
 

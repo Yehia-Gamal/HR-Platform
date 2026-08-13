@@ -63,13 +63,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       final refreshToken = payload['refresh_token'] as String?;
       if (response.status != 200 || refreshToken == null) {
         final code = payload['error'] as String?;
-        throw AuthException(
-          code == 'TOO_MANY_ATTEMPTS'
-              ? 'محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.'
-              : code == 'WEB_ONLY_ACCOUNT'
-                  ? 'هذا الحساب مخصص للوحة الويب فقط. استخدم حساب السكرتير التنفيذي على الهاتف.'
-                  : 'بيانات الدخول غير صحيحة أو الحساب غير متاح.',
-        );
+        final message = payload['message'] as String?;
+        throw AuthException(_humanizeAuthError(code, message));
       }
       await client.auth.setSession(refreshToken);
       ref.invalidate(accessContextProvider);
@@ -77,10 +72,45 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     } on AuthException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } catch (error, stack) {
-      // أخطاء الشبكة/timeout/DNS: لا يظهر «نسيت كلمة المرور» (V12 §17.2).
+      // أخطاء الشبكة/timeout/DNS تعرض رسالة واضحة.
       if (mounted) setState(() => _error = humanizeError(error, stack));
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  /// يحوّل رموز أخطاء identifier-sign-in إلى رسائل عربية عملية تخبر المستخدم
+  /// بما يفعله تالياً — لا مجرد "بيانات غير صحيحة".
+  static String _humanizeAuthError(String? code, String? message) {
+    switch (code) {
+      case 'TOO_MANY_ATTEMPTS':
+        return 'عدد المحاولات تجاوز الحد المسموح. انتظر 15 دقيقة ثم أعد المحاولة، أو استخدم «إعادة تعيين كلمة السر؟» بالأسفل.';
+      case 'WEB_ONLY_ACCOUNT':
+        return 'هذا الحساب مخصص للوحة الويب فقط. استخدم حساب السكرتير التنفيذي على الهاتف.';
+      case 'INVALID_CREDENTIALS':
+      case 'INVALID_IDENTIFIER':
+      case 'WRONG_PASSWORD':
+        return 'البريد أو الهاتف أو كود الموظف أو كلمة المرور غير صحيحة. تحقق من الإدخال أو استخدم «إعادة تعيين كلمة السر؟» بالأسفل.';
+      case 'ACCOUNT_DISABLED':
+      case 'ACCOUNT_SUSPENDED':
+      case 'ACCOUNT_ARCHIVED':
+        return 'هذا الحساب موقوف أو مؤرشف. تواصل مع مسؤول الموارد البشرية لإعادة تفعيله.';
+      case 'EMPLOYEE_NOT_FOUND':
+      case 'NO_EMPLOYEE_RECORD':
+        return 'لا يوجد سجل موظف مرتبط بهذا الحساب. تواصل مع مسؤول الموارد البشرية.';
+      case 'EMAIL_NOT_CONFIRMED':
+        return 'لم يتم تأكيد البريد الإلكتروني بعد. افتح آخر رسالة تفعيل أو استخدم «إعادة تعيين كلمة السر؟» للحصول على رابط جديد.';
+      case 'MUST_CHANGE_PASSWORD':
+        return 'يجب تغيير كلمة المرور الأولية قبل الاستمرار. افتح رابط التفعيل من بريدك أو استخدم «إعادة تعيين كلمة السر؟».';
+      case 'RATE_LIMITED':
+      case 'TOO_MANY_REQUESTS':
+        return 'الطلبات كثيرة جداً. انتظر دقيقة ثم أعد المحاولة.';
+      case 'NETWORK_ERROR':
+        return 'تعذّر الوصول إلى الخادم. تحقق من اتصال الإنترنت ثم أعد المحاولة.';
+      default:
+        final msg = message?.trim();
+        if (msg != null && msg.isNotEmpty && msg.length < 200) return msg;
+        return 'تعذّر تسجيل الدخول حالياً. أعد المحاولة، أو استخدم «إعادة تعيين كلمة السر؟» إن استمرت المشكلة.';
     }
   }
 
@@ -425,11 +455,12 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
         color: _sent ? AppColors.statusSuccess : scheme.primary,
         size: 36,
       ),
-      title: Text(_sent ? 'تم إرسال الرابط' : 'نسيت كلمة المرور؟'),
+      title: Text(_sent ? 'تم إرسال الرابط' : 'إعادة تعيين كلمة السر'),
       content: _sent
           ? const Text(
-              'إذا كان البريد مسجلًا فستصلك رسالة تتضمن رابطًا آمنًا لتعيين كلمة مرور جديدة. افتح أحدث رسالة فقط.',
+              'إذا كان بريدك مسجلاً لدينا، ستصلك رسالة خلال دقائق قليلة تحتوي رابطًا آمنًا. افتح الرابط على هذا الهاتف نفسه ليُفتح التطبيق مباشرة وتعيّن كلمة مرور جديدة. الرابط صالح لمدة ساعة واحدة فقط.',
               textAlign: TextAlign.center,
+              style: TextStyle(height: 1.6),
             )
           : Form(
               key: _formKey,
@@ -438,8 +469,9 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'أدخل بريدك المسجل وسنرسل رابط الاسترداد إليه.',
+                    'أدخل بريدك الإلكتروني المسجّل، وسنرسل إليه رابطًا آمناً لتعيين كلمة مرور جديدة.',
                     textAlign: TextAlign.center,
+                    style: TextStyle(height: 1.5),
                   ),
                   const SizedBox(height: 18),
                   TextFormField(
