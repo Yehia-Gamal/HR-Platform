@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { env, hasSupabaseConfig } from '../core/env';
+import { env } from '../core/env';
 import { toPublicAvatarUrl } from './avatarUrl';
 
 /**
@@ -15,11 +15,7 @@ export function useResolvedAvatarUrl(
   return useMemo(() => {
     const input = photoUrl?.trim() || null;
     if (!input) return null;
-    if (!hasSupabaseConfig) {
-      // بلا إعداد: الروابط الخارجية تعمل، روابط bucket لا يمكن بناؤها.
-      const external = toPublicAvatarUrl(input, '');
-      return external;
-    }
     return toPublicAvatarUrl(input, env.supabaseUrl);
   }, [photoUrl]);
 }
+
