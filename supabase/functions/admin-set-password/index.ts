@@ -11,12 +11,12 @@ const PUBLISHABLE_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 // كلمة مرور موظف يضعها الإداري من لوحة الويب. تُفرض تغييرها عند أول دخول
-// (must_change_password) فلا تبقى سارية بعد ذلك. السياسة 8–15 حرفاً متوافقة
-// مع validateHrIssuedPassword (لا معرّفات الموظف، لا قواميس، لا أنماط لوحة
-// مفاتيح، وأحرف مختلطة — الرمز غير إلزامي لسهولة الكتابة على الموبايل).
+// (must_change_password) فلا تبقى سارية بعد ذلك. السياسة 12–72 حرفاً متوافقة
+// مع validateHrIssuedPassword (12+ حرف، أحرف كبيرة/صغيرة، رقم، رمز، لا معرّفات
+// الموظف، لا قواميس، لا أنماط لوحة مفاتيح).
 const inputSchema = z.object({
   employeeId: z.string().uuid(),
-  password: z.string().min(8).max(15),
+  password: z.string().min(12).max(72),
 });
 
 Deno.serve(createHandler({ functionName: "admin-set-password", version: "1.0.0" }, async (req, ctx) => {

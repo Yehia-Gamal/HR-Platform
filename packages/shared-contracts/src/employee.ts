@@ -51,10 +51,11 @@ export const createEmployeeInputSchema = z.object({
     .pipe(z.string().regex(/^(01\d{9}|\+[1-9]\d{7,14})$/, 'رقم هاتف غير صالح')),
   roleSlug: z.string().trim().min(2),
   jobTitleName: z.string().trim().max(160).optional(),
-  // كلمة المرور الأولية (اختيارية): إن أدخلها مسؤول HR تُفحص قوّتها فورياً،
-  // وإن تُركت فارغة تولّد Edge Function كلمة مرور مؤقتة آمنة تلقائياً وتعيدها
-  // في الاستجابة لعرضها مرة واحدة. لا تُشتق من الهاتف/الكود/الاسم أبداً.
-  initialPassword: z.string().trim().min(8, 'كلمة المرور يجب ألا تقل عن 8 أحرف').max(15, 'كلمة المرور يجب ألا تزيد عن 15 حرفًا').optional(),
+  // كلمة المرور الأولية (اختيارية): إن أدخلها مسؤول HR تُفحص قوّتها فورياً
+  // (12–72 حرفًا، أحرف كبيرة/صغيرة، رقم ورمز خاص، لا معرّفات/قواميس/أنماط)
+  // وإن تُركت فارغة تولّد Edge Function كلمة مرور مؤقتة آمنة تلقائياً.
+  // لا تُشتق من الهاتف/الكود/الاسم أبداً.
+  initialPassword: z.string().trim().min(12, 'كلمة المرور يجب ألا تقل عن 12 حرفًا').max(72, 'كلمة المرور يجب ألا تزيد عن 72 حرفًا').optional(),
   photoUrl: z.string().url().max(1000).optional(),
   managerEmployeeId: optionalUuid,
   departmentId: optionalUuid,
@@ -82,7 +83,15 @@ export const createEmployeeInputSchema = z.object({
   if (!/[A-Z]/.test(pwd)) return fail('كلمة المرور تحتاج حرفًا كبيرًا واحدًا على الأقل.');
   if (!/[a-z]/.test(pwd)) return fail('كلمة المرور تحتاج حرفًا صغيرًا واحدًا على الأقل.');
   if (!/\d/.test(pwd)) return fail('كلمة المرور تحتاج رقمًا واحدًا على الأقل.');
-  if (/(.)\1{3,}/.test(pwd)) return fail('كلمة المرور ضعيفة (تكرار مفرط للأحرف).');
+  if (!/[!@#$%^&*()_\-+=[\]{};':"\\|,.<>/?`~]/.test(pwd)) {
+    return fail('كلمة المرور تحتاج رمزًا خاصًا واحدًا على الأقل (!@#$%^&*...).');
+  }
+  // GoTrue/bcrypt ترفض كلمة المرور الأطول من 72 بايت — الأحرف العربية
+  // متعددة البايت قد تتجاوز الحد بايتيًا رغم كونها ≤ 72 حرفًا.
+  if (new TextEncoder().encode(pwd).length > 72) {
+    return fail('كلمة المرور يجب ألا تزيد عن 72 بايت (الأحرف العربية أطول بايتيًا).');
+  }
+  if (/(.)\1{4,}/.test(pwd)) return fail('كلمة المرور ضعيفة (تكرار مفرط للأحرف — 5+ على التوالي).');
 
   const sequences = [
     'qwertyuiop', 'asdfghjkl', 'zxcvbnm',
@@ -139,7 +148,7 @@ export const createEmployeeResultSchema = z.object({
   invitationSent: z.boolean(),
   // كلمة مرور مؤقتة مولّدة تلقائياً (عند ترك حقل كلمة المرور فارغاً) — تُعرض
   // مرة واحدة فقط على شاشة الإنشاء ولا تُعاد ثانية.
-  temporaryPassword: z.string().min(8).max(15).optional(),
+  temporaryPassword: z.string().min(12).max(72).optional(),
 });
 
 export type CreateEmployeeResult = z.infer<typeof createEmployeeResultSchema>;

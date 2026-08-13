@@ -77,7 +77,7 @@ export function IntegrationsJobsPage() {
       <section className="filter-bar flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2" role="tablist" aria-label="أقسام التكاملات">
           <TabButton active={tab === 'connectors'} onClick={() => setTab('connectors')} label={`الموصلات (${data?.integrations.length ?? 0})`} />
-          <TabButton active={tab === 'outbox'} onClick={() => setTab('outbox')} label={`Outbox (${data?.outbox.length ?? 0})`} />
+          <TabButton active={tab === 'outbox'} onClick={() => setTab('outbox')} label={`صندوق الإرسال (${data?.outbox.length ?? 0})`} />
           <TabButton active={tab === 'logs'} onClick={() => setTab('logs')} label={`السجل (${data?.logs.length ?? 0})`} />
           <TabButton active={tab === 'automations'} onClick={() => setTab('automations')} label={`الأتمتة (${data?.automationRuns.length ?? 0})`} />
         </div>

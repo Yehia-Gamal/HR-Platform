@@ -1,219 +1,321 @@
--- 0111: تجاوز HR بعد 72 ساعة من انتهاء مهلة المدير (0317) — ميزة F1.
--- السيناريو: طلب في الخطوة الأولى (المدير المباشر) تجاوزت مهلته 72 ساعة،
--- فيأخذ HR-manager (بصلاحية requests.approve organization من 0317) القرار
--- تجاوزياً فيُغلق الطلب ويعتمد الخطوة الثانية تلقائياً.
--- كما يتحقق الاختبار من منع التجاوز قبل مرور 72 ساعة.
+-- 0111: V25.3 — لا يوجد تجاوز زمني (72 ساعة) لصلاحية HR.
+-- يثبت أن انتهاء مهلة الخطوة وحده لا يفتح باب الاعتماد لـ HR؛ الصلاحية
+-- مرحلية بصرامة: HR لا يعتمد إلا عندما تكون الخطوة 3 (hr-manager) هي
+-- النشطة فعلاً، وذلك بعد تصعيد process_request_sla فقط (1→2 ثم 2→3).
 
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-set local timezone = 'Africa/Cairo';
-select plan(10);
+select plan(25);
 
+-- =====================================================================
+-- 1. تعريف سير العمل leave_approval_v1 (HR = الخطوة 3)
+-- =====================================================================
+select ok(
+  exists(select 1 from public.workflow_definitions where code = 'leave_approval_v1'),
+  'تعريف leave_approval_v1 متاح'
+);
+
+select is(
+  (select count(*)::integer
+   from public.workflow_steps ws
+   join public.workflow_definitions wd on wd.id = ws.definition_id
+   where wd.code = 'leave_approval_v1'),
+  3, 'ثلاث خطوات في سير الإجازة'
+);
+
+select is(
+  (select ws.approver_type
+   from public.workflow_steps ws
+   join public.workflow_definitions wd on wd.id = ws.definition_id
+   where wd.code = 'leave_approval_v1' and ws.step_order = 1),
+  'direct_manager', 'الخطوة 1: المدير المباشر'
+);
+
+select is(
+  (select ws.approver_role_slug
+   from public.workflow_steps ws
+   join public.workflow_definitions wd on wd.id = ws.definition_id
+   where wd.code = 'leave_approval_v1' and ws.step_order = 3),
+  'hr-manager', 'الخطوة 3: hr-manager'
+);
+
+-- =====================================================================
+-- 2. decide_request — الصلاحية المرحلية (HR من الخطوة 3 فما فوق)
+-- =====================================================================
+select lives_ok(
+  $live$do $t$
+  declare v_src text;
+  begin
+    select prosrc into v_src from pg_proc
+    where proname='decide_request' and pronamespace='public'::regnamespace;
+    if v_src not ilike '%v_current_step >= 3%'
+       or v_src not ilike '%hr-specialist%'
+       or v_src not ilike '%(status = ''active'') desc%' then
+      raise exception 'منطق الصلاحية المرحلية (HR من الخطوة 3) غير موجود في decide_request';
+    end if;
+  end $t$$live$,
+  'decide_request يقصّر HR على الخطوة 3 فما فوق'
+);
+
+-- =====================================================================
+-- 3. بيانات الاختبار (كيان/إدارة/موظف/مدير/أوبريشن/HR)
+-- =====================================================================
 do $fixture$
 declare
-  v_le    uuid := 'd1500000-0000-4000-8000-000000000001';
-  v_dept  uuid := 'd1500000-0000-4000-8000-000000000002';
-  v_shift uuid := 'd1500000-0000-4000-8000-000000000003';
-  v_emp   uuid := 'd1400000-0000-4000-8000-000000000001'; -- مقدم الطلب
-  v_mgr   uuid := 'd1400000-0000-4000-8000-000000000002'; -- المدير المباشر (الخطوة 1)
-  v_hr    uuid := 'd1400000-0000-4000-8000-000000000003'; -- HR-manager (يتجاوز)
-  v_user_e uuid := 'd1300000-0000-4000-8000-000000000001';
-  v_user_m uuid := 'd1300000-0000-4000-8000-000000000002';
-  v_user_h uuid := 'd1300000-0000-4000-8000-000000000003';
-  v_wf    uuid;
-  v_req_a uuid; -- طلب تجاوزت مهلته 72 ساعة
-  v_req_b uuid; -- طلب لم تتجاوز مهلته
-  v_step2_a uuid;
-  v_step2_b uuid;
-  v_hr_role uuid;
+  v_entity uuid := '97000000-0000-4000-8000-000000000000';
+  v_dept   uuid := '97000000-0000-4000-8000-000000000001';
 begin
   insert into public.legal_entities(id, code, name)
-    values (v_le, 'LE-0111', 'كيان 0111');
+    values(v_entity, 'V25-0111-LE', 'كيان 0111 V25');
   insert into public.departments(id, legal_entity_id, code, name)
-    values (v_dept, v_le, 'D-0111', 'إدارة 0111');
-  insert into public.shifts(id, code, name, start_time, end_time,
-    crosses_midnight, break_minutes, grace_in_minutes, grace_out_minutes, is_active)
-    values (v_shift, 'S-0111', 'وردية 0111', '09:00', '17:00', false, 0, 0, 0, true);
+    values(v_dept, v_entity, 'V25-0111-D', 'إدارة 0111 V25');
 
-  insert into auth.users(id, email, aud, role)
-    values
-    (v_user_e, 'emp-0111@test.local', 'authenticated', 'authenticated'),
-    (v_user_m, 'mgr-0111@test.local', 'authenticated', 'authenticated'),
-    (v_user_h, 'hr-0111@test.local',  'authenticated', 'authenticated');
+  insert into auth.users(id, email, aud, role) values
+    ('97000000-0000-4000-8000-000000000101', 'o111-emp@test.local', 'authenticated', 'authenticated'),
+    ('97000000-0000-4000-8000-000000000102', 'o111-mgr@test.local', 'authenticated', 'authenticated'),
+    ('97000000-0000-4000-8000-000000000103', 'o111-ops@test.local', 'authenticated', 'authenticated'),
+    ('97000000-0000-4000-8000-000000000104', 'o111-hr@test.local',  'authenticated', 'authenticated');
 
-  insert into public.employees(id, user_id, employee_code, full_name_ar,
-    department_id, status, is_active, hire_date)
-    values
-    (v_emp,  v_user_e, 'E-0111-A', 'موظف 0111',  v_dept, 'active', true, current_date - 400),
-    (v_mgr,  v_user_m, 'E-0111-B', 'مدير 0111',  v_dept, 'active', true, current_date - 800),
-    (v_hr,   v_user_h, 'E-0111-C', 'HR مدير 0111', v_dept, 'active', true, current_date - 900);
+  insert into public.employees(
+    id, user_id, employee_code, full_name_ar, department_id, status, is_active, hire_date
+  ) values
+    ('97000000-0000-4000-8000-000000000201', '97000000-0000-4000-8000-000000000101',
+     'V25-0111-EMP', 'موظف 0111 V25', v_dept, 'active', true, current_date - 1000),
+    ('97000000-0000-4000-8000-000000000202', '97000000-0000-4000-8000-000000000102',
+     'V25-0111-MGR', 'مدير 0111 V25',  v_dept, 'active', true, current_date - 1500),
+    ('97000000-0000-4000-8000-000000000203', '97000000-0000-4000-8000-000000000103',
+     'V25-0111-OPS', 'مسؤول عمليات 0111', v_dept, 'active', true, current_date - 1200),
+    ('97000000-0000-4000-8000-000000000204', '97000000-0000-4000-8000-000000000104',
+     'V25-0111-HR',  'موظف HR 0111',   v_dept, 'active', true, current_date - 900);
 
-  insert into public.profiles(id, employee_id, status)
-    values
-    (v_user_e, v_emp, 'active'),
-    (v_user_m, v_mgr, 'active'),
-    (v_user_h, v_hr,  'active');
+  insert into public.profiles(id, employee_id, status) values
+    ('97000000-0000-4000-8000-000000000101', '97000000-0000-4000-8000-000000000201', 'active'),
+    ('97000000-0000-4000-8000-000000000102', '97000000-0000-4000-8000-000000000202', 'active'),
+    ('97000000-0000-4000-8000-000000000103', '97000000-0000-4000-8000-000000000203', 'active'),
+    ('97000000-0000-4000-8000-000000000104', '97000000-0000-4000-8000-000000000204', 'active');
 
-  -- علاقة إدارية: المدير يرأس مقدم الطلب
-  insert into public.manager_relations(manager_employee_id, employee_id, relation_type)
-    values (v_mgr, v_emp, 'primary');
+  insert into public.manager_relations(employee_id, manager_employee_id, relation_type, effective_from) values
+    ('97000000-0000-4000-8000-000000000201', '97000000-0000-4000-8000-000000000202', 'primary', current_date);
 
-  -- دور HR للمستخدم + الصلاحية (مُدرجة في 0317 — نضمنها للاختبار)
-  select id into v_hr_role from public.roles where slug = 'hr-manager';
-  insert into public.user_roles(user_id, role_id)
-    values (v_user_h, v_hr_role)
-    on conflict (user_id, role_id) do nothing;
-
-  -- سير عمل من خطوتين: المدير المباشر → HR-manager
-  insert into public.workflow_definitions(code, name_ar, request_type,
-    version, is_active, is_default, auto_escalate, default_due_hours)
-    values ('WF-0111', 'سير 0111', 'leave',
-           1, true, false, true, 48)
-    returning id into v_wf;
-
-  insert into public.workflow_steps(definition_id, step_order, name_ar,
-    approver_type, approver_permission, sla_hours, is_active)
-    values (v_wf, 1, 'مراجعة المدير المباشر', 'direct_manager', null, 48, true);
-  insert into public.workflow_steps(definition_id, step_order, name_ar,
-    approver_type, approver_role_slug, approver_permission, sla_hours, is_active)
-    values (v_wf, 2, 'اعتماد HR', 'role', 'hr-manager', 'requests.approve', 48, true);
-
-  -- ── طلب أ: تجاوزت مهلة المدير (الخطوة 1 مصعّدة، والخطوة 3 HR نشطة) ──
-  insert into public.requests(request_type, employee_id, manager_employee_id,
-    workflow_definition_id, status, workflow_status, current_step_order, title, payload)
-    values ('leave', v_emp, v_mgr, v_wf, 'pending', 'in_review', 3,
-            'إجازة تجاوزت مهلة المدير',
-            jsonb_build_object('leaveType','casual','startDate',current_date,'endDate',current_date))
-    returning id into v_req_a;
-
-  insert into public.request_steps(request_id, step_order, name_ar,
-    assignee_employee_id, status, sla_hours, due_at)
-    values (v_req_a, 1, 'مراجعة المدير المباشر', v_mgr, 'escalated', 48, now() - interval '4 days');
-  insert into public.request_steps(request_id, step_order, name_ar,
-    assignee_role_slug, status, sla_hours, due_at)
-    values (v_req_a, 3, 'اعتماد HR', 'hr-manager', 'active', 48, now() - interval '4 days')
-    returning id into v_step2_a;
-
-  insert into public.workflow_instances(definition_id, request_id, definition_version,
-    status, current_step_order)
-    values (v_wf, v_req_a, 1, 'running', 3);
-
-  -- ── طلب ب: لم تتجاوز مهلة المدير (الخطوة 1 نشطة، HR غير مفعّل) ──
-  insert into public.requests(request_type, employee_id, manager_employee_id,
-    workflow_definition_id, status, workflow_status, current_step_order, title, payload)
-    values ('leave', v_emp, v_mgr, v_wf, 'pending', 'in_review', 1,
-            'إجازة لم تتجاوز مهلة المدير',
-            jsonb_build_object('leaveType','casual','startDate',current_date,'endDate',current_date))
-    returning id into v_req_b;
-
-  insert into public.request_steps(request_id, step_order, name_ar,
-    assignee_employee_id, status, sla_hours, due_at)
-    values (v_req_b, 1, 'مراجعة المدير المباشر', v_mgr, 'active', 48, now() + interval '2 days');
-  insert into public.request_steps(request_id, step_order, name_ar,
-    assignee_role_slug, status, sla_hours, due_at)
-    values (v_req_b, 3, 'اعتماد HR', 'hr-manager', 'pending', 48, null)
-    returning id into v_step2_b;
-
-  insert into public.workflow_instances(definition_id, request_id, definition_version,
-    status, current_step_order)
-    values (v_wf, v_req_b, 1, 'running', 1);
-
-  perform set_config('app.t0111_req_a', v_req_a::text, false);
-  perform set_config('app.t0111_req_b', v_req_b::text, false);
-  perform set_config('app.t0111_step2_a', v_step2_a::text, false);
-  perform set_config('app.t0111_step2_b', v_step2_b::text, false);
-end $fixture$;
+  insert into public.user_roles(user_id, role_id, effective_from)
+    select '97000000-0000-4000-8000-000000000103', r.id, now() - interval '10 years'
+    from public.roles r where r.slug = 'operations-officer';
+  insert into public.user_roles(user_id, role_id, effective_from)
+    select '97000000-0000-4000-8000-000000000104', r.id, now() - interval '10 years'
+    from public.roles r where r.slug = 'hr-manager';
+end
+$fixture$;
 
 -- =====================================================================
--- جلسة HR-manager: يتخذ القرار
+-- 4. دوال مساعدة لتبديل سياق المصادقة
 -- =====================================================================
+create or replace function pg_temp.act_as_0111(p_user uuid) returns void
+language plpgsql as $$
+begin
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', p_user::text, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claim.sub', p_user::text, true);
+end
+$$;
+
+create temporary table wf_runtime(kind text primary key, id uuid);
+grant select, insert, update on wf_runtime to authenticated;
+
+-- =====================================================================
+-- 5. التقديم: الخطوة 1 نشطة
+-- =====================================================================
+select pg_temp.act_as_0111('97000000-0000-4000-8000-000000000101');
 set local role authenticated;
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"d1300000-0000-4000-8000-000000000003","role":"authenticated"}',
-  true);
-select set_config(
-  'request.jwt.claim.sub',
-  'd1300000-0000-4000-8000-000000000003',
-  true);
 
--- 1) HR غير full-access يملك صلاحية requests.approve بنطاق organization
-select ok(
-  public.can_access_employee(
-    'd1400000-0000-4000-8000-000000000001', 'requests.approve'),
-  'HR-manager يملك صلاحية requests.approve بنطاق organization (غير full-access)');
+do $emp$
+declare v_req public.requests;
+begin
+  v_req := public.submit_request(
+    'leave',
+    null,
+    '97000000-0000-4000-8000-000000000202',
+    'إجازة منع التجاوز الزمني 0111',
+    'اختبار منع تجاوز HR الزمني',
+    jsonb_build_object('leaveType', 'annual')
+  );
+  insert into wf_runtime values('hr_bypass', v_req.id);
+end $emp$;
 
--- 2) تجاوز طلب تجاوزت مهلته 72 ساعة → موافقة
-select lives_ok(
-  $q$ select public.decide_request(
-    nullif(current_setting('app.t0111_req_a', true), '')::uuid,
-    'approve', 'تجاوز مدير') $q$,
-  'HR يعتمد طلباً تجاوزت مهلة المدير 72 ساعة (تجاوز ناجح)');
-
-select is(
-  (select status from public.requests
-    where id = nullif(current_setting('app.t0111_req_a', true), '')::uuid),
-  'approved',
-  'الطلب المتجاوز أصبح approved');
-
--- 3) الخطوة الثانية اعتُمدت تلقائياً (v_bypass_hr)
 select is(
   (select status from public.request_steps
-    where id = nullif(current_setting('app.t0111_step2_a', true), '')::uuid),
-  'approved',
-  'الخطوة الثانية اعتُمدت تلقائياً ضمن التجاوز');
+   where request_id = (select id from wf_runtime where kind = 'hr_bypass') and step_order = 1),
+  'active', 'الخطوة 1 نشطة عند التقديم'
+);
 
--- 4) تسجيل إجراء التجاوز في سجل الإجراءات
-select ok(
-  exists (
-    select 1 from public.request_actions
-    where request_id = nullif(current_setting('app.t0111_req_a', true), '')::uuid
-      and comment like '%تجاوز%'),
-  'إجراء التجاوز مسجّل في request_actions بوصف «اعتماد تجاوزي»');
+-- =====================================================================
+-- 6. انتهاء المهلة وحده لا يفتح باب HR (لا تجاوز زمني)
+-- =====================================================================
+reset role;
+update public.request_steps set escalation_deadline = now() - interval '1 day'
+where request_id = (select id from wf_runtime where kind = 'hr_bypass')
+  and status in ('active', 'escalated');
 
--- 5) طلب لم تتجاوز مهلته → رفض (لا تجاوز قبل 72 ساعة)
+select pg_temp.act_as_0111('97000000-0000-4000-8000-000000000104');
+set local role authenticated;
 select throws_ok(
-  $q$ select public.decide_request(
-    nullif(current_setting('app.t0111_req_b', true), '')::uuid,
-    'approve', 'محاولة مبكرة') $q$,
+  $live$
+    select public.decide_request(
+      (select id from wf_runtime where kind = 'hr_bypass'),
+      'approve', 'محاولة HR بعد انتهاء مهلة المدير'
+    )
+  $live$,
   '42501',
   null,
-  'HR لا يستطيع تجاوز قبل مرور 72 ساعة على مهلة المدير');
+  'انتهاء مهلة الخطوة 1 وحده لا يخوّل HR (لا تجاوز زمني — الخطوة 1 ما زالت نشطة)'
+);
 
--- 6) الطلب (ب) بقي معلقاً
 select is(
   (select status from public.requests
-    where id = nullif(current_setting('app.t0111_req_b', true), '')::uuid),
-  'pending',
-  'الطلب الذي لم تتجاوز مهلته يبقى pending بعد رفض المحاولة');
+   where id = (select id from wf_runtime where kind = 'hr_bypass')),
+  'pending', 'الطلب يبقى pending بعد رفض المحاولة الزمنية'
+);
 
--- 7) الموافقة التجاوزية غيّرت حالة سير العمل إلى completed
+-- =====================================================================
+-- 7. التصعيد 1→2: HR ما زال مرفوضاً في مرحلة الأوبريشن
+-- =====================================================================
+reset role;
+select set_config('request.jwt.claims','{"role":"service_role"}',true);
+select is(
+  public.process_request_sla(10),
+  1, 'التصعيد الأول ينشّط الخطوة 2'
+);
+
+select is(
+  (select status from public.request_steps
+   where request_id = (select id from wf_runtime where kind = 'hr_bypass') and step_order = 2),
+  'active', 'الخطوة 2 صارت نشطة للأوبريشن'
+);
+
+select is(
+  (select assignee_employee_id from public.request_steps
+   where request_id = (select id from wf_runtime where kind = 'hr_bypass') and step_order = 2),
+  '97000000-0000-4000-8000-000000000203', 'الخطوة 2 أُسندت لأول موظف عمليات فعّال'
+);
+
 select is(
   (select workflow_status from public.requests
-    where id = nullif(current_setting('app.t0111_req_a', true), '')::uuid),
-  'completed',
-  'سير العمل اكتمل بعد التجاوز');
+   where id = (select id from wf_runtime where kind = 'hr_bypass')),
+  'awaiting_operator', 'الطلب بانتظار قرار الأوبريشن'
+);
 
--- 8) إشعار مقدم الطلب صدر بموافقة — يُفحص بعد reset role لأن RLS
---    notifications تسمح فقط للمُستلم أو full-access.
+select pg_temp.act_as_0111('97000000-0000-4000-8000-000000000104');
+set local role authenticated;
+select throws_ok(
+  $live$
+    select public.decide_request(
+      (select id from wf_runtime where kind = 'hr_bypass'),
+      'approve', 'محاولة HR في مرحلة الأوبريشن'
+    )
+  $live$,
+  '42501',
+  null,
+  'HR لا يعتمد في الخطوة 2 (يُقيَّد للخطوة 3 فما فوق) حتى بعد تصعيد مهلة المدير'
+);
 
+select is(
+  (select status from public.requests
+   where id = (select id from wf_runtime where kind = 'hr_bypass')),
+  'pending', 'الطلب يبقى pending بعد رفض HR في المرحلة الثانية'
+);
+
+-- =====================================================================
+-- 8. التصعيد 2→3: HR يظهر عند الخطوة 3 فقط ثم يعتمد
+-- =====================================================================
 reset role;
+update public.request_steps set escalation_deadline = null
+where request_id = (select id from wf_runtime where kind = 'hr_bypass') and step_order = 1;
+update public.request_steps set escalation_deadline = now() - interval '1 hour'
+where request_id = (select id from wf_runtime where kind = 'hr_bypass')
+  and step_order = 2 and status = 'active';
+select set_config('request.jwt.claims','{"role":"service_role"}',true);
+select is(
+  public.process_request_sla(10),
+  1, 'التصعيد الثاني ينشّط الخطوة 3 لـ HR'
+);
 
-select ok(
-  exists (
-    select 1 from public.notifications n
-    where n.recipient_employee_id = 'd1400000-0000-4000-8000-000000000001'
-      and n.category = 'request'),
-  'إشعار موافقة صدر لمقدم الطلب');
+select is(
+  (select status from public.request_steps
+   where request_id = (select id from wf_runtime where kind = 'hr_bypass') and step_order = 3),
+  'active', 'الخطوة 3 صارت نشطة'
+);
 
--- 9) مدير الخطوة الأولى (المدير المباشر) لم يعتمد — لم يُسجَّل له أي إجراء
+select is(
+  (select assignee_employee_id from public.request_steps
+   where request_id = (select id from wf_runtime where kind = 'hr_bypass') and step_order = 3),
+  '97000000-0000-4000-8000-000000000204', 'الخطوة 3 أُسندت لأول موظف HR فعّال'
+);
+
+select is(
+  (select workflow_status from public.requests
+   where id = (select id from wf_runtime where kind = 'hr_bypass')),
+  'escalated', 'الطلب في حالة مُصعَّد بعد وصوله لمرحلة HR'
+);
+
+-- HR يعتمد عند الخطوة 3 فقط
+select pg_temp.act_as_0111('97000000-0000-4000-8000-000000000104');
+set local role authenticated;
+select lives_ok(
+  $live$
+    select public.decide_request(
+      (select id from wf_runtime where kind = 'hr_bypass'),
+      'approve', 'اعتماد HR عند الخطوة 3'
+    )
+  $live$,
+  'HR يعتمد الطلب عند وصوله الخطوة 3 (الطريق الوحيد المشروع)'
+);
+
+select is(
+  (select status from public.requests
+   where id = (select id from wf_runtime where kind = 'hr_bypass')),
+  'approved', 'الطلب معتمد بقرار HR'
+);
+
+select is(
+  (select status from public.request_steps
+   where request_id = (select id from wf_runtime where kind = 'hr_bypass') and step_order = 3),
+  'approved', 'الخطوة 3 سُجّلت كمعتمدة لقرار HR'
+);
+
+select is(
+  (select workflow_status from public.requests
+   where id = (select id from wf_runtime where kind = 'hr_bypass')),
+  'completed', 'سير العمل اكتمل بعد القرار'
+);
+
+select is(
+  (select count(*)::integer from public.request_steps
+   where request_id = (select id from wf_runtime where kind = 'hr_bypass')
+     and status = 'approved'),
+  1, 'خطوة واحدة فقط سُجّلت معتمدة (الخطوة 3)'
+);
+
+-- لا إجراء منسوب للمدير المباشر (لم يعتمد ولم يصعّد بواسطته)
 select ok(
   not exists (
     select 1 from public.request_actions
-    where request_id = nullif(current_setting('app.t0111_req_a', true), '')::uuid
-      and actor_employee_id = 'd1400000-0000-4000-8000-000000000002'),
-  'لا يوجد إجراء منسوب للمدير المباشر على الطلب المتجاوز');
+    where request_id = (select id from wf_runtime where kind = 'hr_bypass')
+      and actor_employee_id = '97000000-0000-4000-8000-000000000202'
+  ),
+  'لا إجراء منسوب للمدير المباشر على الطلب'
+);
+
+-- إشعار القرار صدر لمقدم الطلب (يُفحص بعد reset role لأن RLS للإشعارات
+-- تسمح فقط للمُستلم أو full-access)
+reset role;
+select ok(
+  exists (
+    select 1 from public.notifications n
+    where n.recipient_employee_id = '97000000-0000-4000-8000-000000000201'
+      and n.category = 'request'
+  ),
+  'إشعار القرار صدر لمقدم الطلب'
+);
 
 select * from finish();
 rollback;

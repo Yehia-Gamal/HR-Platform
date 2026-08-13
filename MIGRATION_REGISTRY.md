@@ -186,6 +186,39 @@
 | 0372 | `0372_announcement_engagement_and_push_nudge.sql` | تفاعل الإعلانات + push (إعادة ترقيم). |
 | 0373 | `0373_restrict_kpi_diag_to_service_role.sql` | **P0**: سحب EXECUTE على `kpi_diag_run` من `authenticated` — SECURITY DEFINER بلا حارس → تسريب schema/UUIDs/stack traces. الإصلاح: service_role فقط. |
 | 0374 | `0375_fix_get_employee_360_auth_guard.sql` | **P0**: إضافة فحص صلاحية لـ `get_employee_360` — كانت SECURITY DEFINER بلا أي حارس بعد 0364 → أي موظف يقرأ حالة موظف آخر. الإصلاح: `has_permission('people.employee.read') OR can_access_employee(id)`. |
+| 0376 | `0376_announcement_engagement_and_audible_push.sql` | تفاعل الإعلانات + push صوتي. |
+| 0377 | `0377_placeholder.sql` | جسر ترقيم no-op. |
+| 0378 | `0378_analytics_dashboard_rpc.sql` | RPC لوحة التحليلات. |
+| 0379 | `0379_submit_request_idempotency.sql` | Idempotency لتقديم الطلبات (client-side key). |
+| 0380 | `0380_server_side_idempotency.sql` | Idempotency من جهة الخادم. |
+| 0381 | `0381_fix_sick_leave_affects_balance.sql` | إصلاح `affects_balance` للإجازة المرضية. |
+| 0382 | `0382_ledger_race_and_consume_guard.sql` | حارس سباق/استهلاك الـ ledger. |
+| 0383 | `0383_admin_backdating_limit.sql` | تقييد backdating الإداري. |
+| 0384 | `0384_cron_health_monitoring.sql` | مراقبة صحة cron. |
+| 0385 | `0385_mission_approver_fallback.sql` | fallback معتمد التكليف. |
+| 0386 | `0386_approval_time_gating_and_notify_all.sql` | time gating الاعتماد + إشعار الكل. |
+| 0387 | `0387_authz_hardening_ledger_cron_approver.sql` | تشديد authz للـ ledger/cron/approver. |
+| 0388 | `0388_employee_directory_search.sql` | بحث دليل الموظفين. |
+| 0389 | `0389_late_arrival_fcm_notification.sql` | إشعار FCM للتأخر. |
+| 0390 | `0390_weekly_executive_summary_cron.sql` | cron الملخص التنفيذي الأسبوعي. |
+| 0391 | `0391_mv_executive_attendance_snapshot.sql` | Materialized View للـ snapshot التنفيذي. |
+| 0392 | `0392_fix_employee360_and_task_authz.sql` | إصلاح authz لموظف 360 والـ tasks. |
+| 0393 | `0393_extend_task_transition_authz.sql` | توسيع authz لانتقالات الـ tasks. |
+| 0394 | `0394_fix_financial_rls_self_access.sql` | إصلاح RLS المالية للوصول الذاتي. |
+| 0396 | `0396_leave_approval_v3_staged_escalation.sql` | v3 اعتماد الإجازة بتصعيد مرحلي. |
+| 0397 | `0397_admin_sensitive_ops_rate_limit.sql` | Rate limit للعمليات الإدارية الحساسة. |
+| 0398 | `0398_attendance_statement_merge_pending_and_leave_type.sql` | دمج pending + leave_type في كشف الحضور. |
+| 0399 | `0399_drop_foreign_resolve_request_approver_signature.sql` | إزالة signature أجنبية لـ resolve_request_approver. |
+| 0400 | `0400_drop_legacy_submit_my_request_overload.sql` | إزالة overload القديم لـ submit_my_request. |
+| 0401 | `0401_restore_submit_request_legacy_behavior.sql` | استعادة سلوك submit_request القديم. |
+| 0402 | `0402_fix_friday_weekend_ordering_regression.sql` | إصلاح انحدار ترتيب جمعة/weekend. |
+| 0403 | `0403_fix_decide_request_active_step_selection.sql` | إصلاح اختيار active step في decide_request. |
+| 0404 | `0404_grant_operations_officer_requests_permissions.sql` | منح صلاحيات requests لـ operations officer. |
+| 0405 | `0405_auto_late_attendance_alert.sql` | تنبيه تأخر تلقائي. |
+| 0406 | `0406_weekly_executive_summary.sql` | الملخص التنفيذي الأسبوعي. |
+| 0407 | `0407_executive_attendance_today_fix.sql` | إصلاح executive_attendance_today. |
+| 0408 | `0408_mobile_operations_center_rpc.sql` | RPC مركز عمليات الموبايل. |
+| 0410 | `0410_fix_mobile_operations_center_cartesian.sql` | إصلاح الجداء الديكارتي في `get_mobile_operations_center` ومطابقة بوابته للويب (`reports.read` / `operations.*`). |
 ---
 
 > ⚠️ **مخاطرة مؤجلة (0293 — سلة الصور العامة):** سلة `employee-avatars` عادت إلى `public = true` لإصلاح الصور المكسورة (يُخزَّن `photo_url` كرابط عام `object/public/...` ويُستهلك في الويب والموبايل والـ RPCs). هذا يعكس توصية التدقيق (0056) ويُعرّض صور الموظفين للقراءة العامة.

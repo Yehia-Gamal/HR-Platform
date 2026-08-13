@@ -10,32 +10,33 @@ export function normalizePhone(raw: string): string {
 /**
  * التحقق من قوة كلمة المرور التي يحددها مسؤول HR يدوياً.
  * نفرض:
- *  - طول بين 8 و15 حرفاً (نطاق UX-friendly — الموظف سيتمكن من تذكرها وكتابتها)
- *  - حرف كبير واحد على الأقل + حرف صغير واحد على الأقل + رقم واحد على الأقل
+ *  - طول ≥ 12 حرفاً وألا يتجاوز 72 (حد argon2/GoTrue)
+ *  - حرف كبير واحد على الأقل + حرف صغير واحد على الأقل + رقم واحد على الأقل + رمز خاص واحد على الأقل
  *  - لا تحتوي على جزء ≥ 4 أحرف متطابق مع بريد/هاتف/كود الموظف/اسمه
  *  - لا تتكون من كلمات قاموسية شائعة (عربية/لاتينية)
  *  - لا تتكون من سلاسل لوحة مفاتيح مألوفة (qwerty, 123456, …)
- *  - لا تكرار أكثر من 3 مرات لنفس الحرف على التوالي
- * ملاحظة: الرمز (symbol) ليس إلزامياً — كونه مطلوباً كان يمنع HR من
- * إصدار كلمات مرور سهلة الكتابة على موبايل لموظفي الميدان.
+ *  - لا تكرار أكثر من 4 مرات لنفس الحرف على التوالي
  */
 export function validateHrIssuedPassword(
   password: string,
   identifiers: { email?: string; phone?: string; employeeCode?: string; fullNameAr?: string },
 ): { ok: true } | { ok: false; reason: string } {
-  if (typeof password !== "string" || password.length < 8) {
-    return { ok: false, reason: "password_too_short_min_8" };
+  if (typeof password !== "string" || password.length < 12) {
+    return { ok: false, reason: "password_too_short_min_12" };
   }
-  if (password.length > 15) {
-    return { ok: false, reason: "password_too_long_max_15" };
+  if (password.length > 72) {
+    return { ok: false, reason: "password_too_long_max_72" };
   }
 
   if (!/[A-Z]/.test(password)) return { ok: false, reason: "password_needs_uppercase" };
   if (!/[a-z]/.test(password)) return { ok: false, reason: "password_needs_lowercase" };
   if (!/\d/.test(password)) return { ok: false, reason: "password_needs_digit" };
+  if (!/[!@#$%^&*()_\-+=[\]{};':"\\|,.<>/?`~]/.test(password)) {
+    return { ok: false, reason: "password_needs_symbol" };
+  }
 
-  // رفض التكرار المفرط: 4+ من نفس الحرف على التوالي ضعيف.
-  if (/(.)\1{3,}/.test(password)) {
+  // رفض التكرار المفرط: 5+ من نفس الحرف على التوالي ضعيف.
+  if (/(.)\1{4,}/.test(password)) {
     return { ok: false, reason: "password_too_repetitive" };
   }
 

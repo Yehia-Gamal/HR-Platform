@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
-import { normalizePhone } from "../_shared/phone.ts";
+import { normalizePhone, validateHrIssuedPassword } from "../_shared/phone.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const PUBLISHABLE_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -37,6 +37,10 @@ const inputSchema = z.object({
   gradeId: nullableUuid,
   employmentTypeId: nullableUuid,
   hireDate: z.string().date().optional(),
+  // كلمة مرور أولية يحددها الإداري اختياريًا — تُقيَّم بنفس سياسة
+  // validateHrIssuedPassword (12–72، أحرف كبيرة/صغيرة، رقم، رمز خاص،
+  // لا معرّفات/قواميس/أنماط لوحة مفاتيح). تُفرض تغييرها عند أول دخول.
+  initialPassword: z.string().trim().optional(),
   sendInvite: z.boolean().default(false),
 });
 
@@ -140,6 +144,24 @@ Deno.serve(async (req) => {
   // كود الموظف: صريح إن وُجد، وإلا يُشتق من الهاتف المطبّع (فريد بطبيعته).
   const employeeCode = input.employeeCode?.trim() || phoneE164;
 
+  // ─── التحقق من كلمة المرور الأولية إن أُدخلت يدويًا ───
+  // نفس قواعد validateHrIssuedPassword: طول 12–72، فئات إلزامية، لا
+  // معرّفات/قواميس/أنماط. الأكواد تُطابق خريطة الرسائل في CreateEmployeePage.
+  if (input.initialPassword) {
+    const verdict = validateHrIssuedPassword(input.initialPassword, {
+      email: input.email,
+      phone: phoneE164,
+      employeeCode,
+      fullNameAr: input.fullNameAr,
+    });
+    if (!verdict.ok) return json(req, { error: verdict.reason }, 400);
+    // GoTrue/bcrypt ترفض كلمة المرور الأطول من 72 بايت (وليس فقط 72 حرفًا) —
+    // أحرف عربية/متعددة البايت قد تتجاوز الحد بايتيًا.
+    if (new TextEncoder().encode(input.initialPassword).length > 72) {
+      return json(req, { error: "password_too_long_max_72" }, 400);
+    }
+  }
+
   if (!ALLOWED_EMPLOYEE_ROLES.has(input.roleSlug)) {
     return json(req, { error: "role_not_allowed" }, 400);
   }
@@ -192,8 +214,9 @@ Deno.serve(async (req) => {
       return result as { data: { user: { id: string; email?: string } | null }; error: { message: string; status?: number } | null };
     }
 
-    // استدعاء GoTRUE REST API مباشرة
-    const password = inaccessibleRandomPassword();
+    // كلمة المرور: صريحة من الإداري (تُفرض تغييرها عند أول دخول) أو
+    // عشوائية لا تُعرض أبدًا — both ≤72 bytes per GoTrue/bcrypt.
+    const password = input.initialPassword || inaccessibleRandomPassword();
     const reqBody = {
       email: normalizedEmail,
       password,

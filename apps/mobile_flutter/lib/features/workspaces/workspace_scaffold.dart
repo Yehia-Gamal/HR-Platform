@@ -319,12 +319,19 @@ class WorkspaceScaffold extends ConsumerWidget {
           label: 'إدارة الموظفين',
           page: const MobileEmployeesPage(),
         ),
-        // إدارة التشغيل: مركز العمليات (مهام/مهمات/قوافل) — mig 0408.
-        _MoreItem(
-          icon: Icons.settings_suggest_outlined,
-          label: 'إدارة التشغيل',
-          page: MobileOperationsCenterPage(access: contextData),
-        ),
+        // إدارة التشغيل: مركز العمليات (مهام/مهمات/قوافل) — mig 0408/0410.
+        // البوابة مطابقة للويب /operations: reports.read أو operations.*
+        // (المدير العادي بلا هذه الصلاحيات لا يرى العنصر ولا يستدعي الـ RPC).
+        if (contextData.hasAnyPermission(const [
+          'reports.read',
+          'operations.mission.manage',
+          'operations.convoy.manage',
+        ]))
+          _MoreItem(
+            icon: Icons.settings_suggest_outlined,
+            label: 'إدارة التشغيل',
+            page: MobileOperationsCenterPage(access: contextData),
+          ),
       ],
       // V20: التقارير اليومية للجميع — زر إضافة تقرير داخل الصفحة نفسها
       _MoreItem(
