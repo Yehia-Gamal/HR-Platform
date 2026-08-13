@@ -18,7 +18,7 @@ begin;
 create or replace function public.get_executive_attendance_today()
 returns jsonb
 language plpgsql stable security definer set search_path = public, pg_temp
-as $
+as $function$
 declare
   v_today date := current_date;
   v_me uuid := public.current_employee_id();
@@ -154,7 +154,7 @@ begin
       )
   ), '[]'::jsonb);
 end;
-$;
+$function$;
 revoke all on function public.get_executive_attendance_today() from public, anon;
 grant  execute on function public.get_executive_attendance_today() to authenticated;
 
