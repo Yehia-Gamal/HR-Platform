@@ -74,6 +74,7 @@ const hrSections: NavSection[] = [
     items: [
       { label: 'لوحة HR', to: '/hr', icon: LayoutDashboard },
       { label: 'الموظفون', to: '/hr/employees', icon: Users, permission: 'people.employee.read' },
+      { label: 'الهيكل الإداري', to: '/hr/org-chart', icon: Network, permission: 'organization.org_chart.read' },
       { label: 'أجهزة الموظفين', to: '/hr/devices', icon: Smartphone, permission: 'access.role.read' },
     ],
   },
@@ -173,7 +174,7 @@ const adminSections: NavSection[] = [
   {
     title: 'الحوكمة والنظام',
     items: [
-      { label: 'الهيكل التنظيمي', to: '/admin/org-chart', icon: Network },
+      { label: 'الهيكل التنظيمي', to: '/admin/org-chart', icon: Network, permission: 'organization.org_chart.read' },
       { label: 'الأدوار والصلاحيات', to: '/admin/access', icon: ShieldCheck, permission: 'access.role.read' },
       { label: 'الإدارة المؤسسية', to: '/admin/enterprise', icon: Building2, permission: 'organization.entity.read' },
       { label: 'التدقيق والأمان', to: '/admin/audit-security', icon: ShieldCheck, permission: 'audit.view' },
@@ -215,7 +216,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
   const notificationsQuery = useNotifications();
   const location = useLocation();
   const [open, setOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(() => window.localStorage.getItem('ahla-sidebar') === 'collapsed');
+  const [collapsed, setCollapsed] = useState(() => (() => { try { return window.localStorage.getItem('ahla-sidebar') === 'collapsed'; } catch { return false; } })());
   const access = auth.access;
   if (!access) throw new Error('WorkspaceShell requires an authenticated session');
   // الأدمن الرئيسي يرى قائمة موحّدة واحدة تجمع الإدارة + HR + اللجنة —

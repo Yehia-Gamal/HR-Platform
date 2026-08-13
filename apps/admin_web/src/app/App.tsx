@@ -468,6 +468,7 @@ function HrWorkspaceRoutes() {
       />
       <Route path="daily-reports" element={<RequirePermission perm={['reports.daily.read', 'people.employee.read']}><DailyReportsFeedPage /></RequirePermission>} />
       <Route path="knowledge" element={<RequirePermission perm="knowledge.article.read"><KnowledgePage /></RequirePermission>} />
+      <Route path="org-chart" element={<RequirePermission perm="organization.org_chart.read"><OrgChartPage /></RequirePermission>} />
       <Route path="notifications" element={<NotificationsPage />} />
       <Route path="*" element={<Navigate to="employees" replace />} />
     </Routes>
