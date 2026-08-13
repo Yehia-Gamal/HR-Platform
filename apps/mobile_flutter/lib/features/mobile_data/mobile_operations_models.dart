@@ -545,3 +545,160 @@ class ExecutiveMeeting {
   final String? organizerName;
   final String status;
 }
+
+/// مركز العمليات للموبايل (إدارة التشغيل) — get_mobile_operations_center (mig 0408).
+class MobileOperationsCenter {
+  const MobileOperationsCenter({
+    required this.summary,
+    required this.tasks,
+    required this.missions,
+    required this.convoys,
+    required this.lastUpdatedAt,
+  });
+
+  factory MobileOperationsCenter.fromJson(Map<String, dynamic> json) =>
+      MobileOperationsCenter(
+        summary: MobileOperationsCenterSummary.fromJson(_map(json['summary'])),
+        tasks: _items(json['tasks'], MobileOpsTask.fromJson),
+        missions: _items(json['missions'], MobileOpsMission.fromJson),
+        convoys: _items(json['convoys'], MobileOpsConvoy.fromJson),
+        lastUpdatedAt: _reqDate(json['lastUpdatedAt']),
+      );
+
+  final MobileOperationsCenterSummary summary;
+  final List<MobileOpsTask> tasks;
+  final List<MobileOpsMission> missions;
+  final List<MobileOpsConvoy> convoys;
+  final DateTime lastUpdatedAt;
+}
+
+class MobileOperationsCenterSummary {
+  const MobileOperationsCenterSummary({
+    required this.openTasks,
+    required this.urgentTasks,
+    required this.missions,
+    required this.convoys,
+  });
+
+  factory MobileOperationsCenterSummary.fromJson(Map<String, dynamic> json) =>
+      MobileOperationsCenterSummary(
+        openTasks: (json['openTasks'] as num?)?.toInt() ?? 0,
+        urgentTasks: (json['urgentTasks'] as num?)?.toInt() ?? 0,
+        missions: (json['missions'] as num?)?.toInt() ?? 0,
+        convoys: (json['convoys'] as num?)?.toInt() ?? 0,
+      );
+
+  final int openTasks;
+  final int urgentTasks;
+  final int missions;
+  final int convoys;
+}
+
+class MobileOpsTask {
+  const MobileOpsTask({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.assigneeId,
+    required this.assigneeName,
+    required this.priority,
+    required this.dueDate,
+    required this.status,
+  });
+
+  factory MobileOpsTask.fromJson(Map<String, dynamic> json) => MobileOpsTask(
+    id: json['id'] as String,
+    title: json['title'] as String? ?? 'مهمة',
+    description: json['description'] as String?,
+    assigneeId: json['assigneeId'] as String?,
+    assigneeName: json['assigneeName'] as String? ?? 'غير معيّن',
+    priority: json['priority'] as String? ?? 'medium',
+    dueDate: _date(json['dueDate']),
+    status: json['status'] as String? ?? 'pending',
+  );
+
+  final String id;
+  final String title;
+  final String? description;
+  final String? assigneeId;
+  final String assigneeName;
+  final String priority;
+  final DateTime? dueDate;
+  final String status;
+
+  bool get isOpen => status != 'done' && status != 'cancelled';
+}
+
+class MobileOpsMission {
+  const MobileOpsMission({
+    required this.id,
+    required this.employeeName,
+    required this.destination,
+    required this.purpose,
+    required this.startAt,
+    required this.endAt,
+    required this.status,
+    required this.transportMode,
+  });
+
+  factory MobileOpsMission.fromJson(Map<String, dynamic> json) =>
+      MobileOpsMission(
+        id: json['id'] as String,
+        employeeName: json['employeeName'] as String? ?? 'موظف',
+        destination: json['destination'] as String? ?? '',
+        purpose: json['purpose'] as String? ?? '',
+        startAt: _date(json['startAt']),
+        endAt: _date(json['endAt']),
+        status: json['status'] as String? ?? 'pending',
+        transportMode: json['transportMode'] as String?,
+      );
+
+  final String id;
+  final String employeeName;
+  final String destination;
+  final String purpose;
+  final DateTime? startAt;
+  final DateTime? endAt;
+  final String status;
+  final String? transportMode;
+}
+
+class MobileOpsConvoy {
+  const MobileOpsConvoy({
+    required this.id,
+    required this.employeeName,
+    required this.name,
+    required this.origin,
+    required this.destination,
+    required this.departureAt,
+    required this.returnAt,
+    required this.passengers,
+    required this.vehicles,
+    required this.status,
+  });
+
+  factory MobileOpsConvoy.fromJson(Map<String, dynamic> json) =>
+      MobileOpsConvoy(
+        id: json['id'] as String,
+        employeeName: json['employeeName'] as String? ?? 'موظف',
+        name: json['name'] as String? ?? 'قافلة',
+        origin: json['origin'] as String? ?? '',
+        destination: json['destination'] as String? ?? '',
+        departureAt: _date(json['departureAt']),
+        returnAt: _date(json['returnAt']),
+        passengers: (json['passengers'] as num?)?.toInt() ?? 1,
+        vehicles: (json['vehicles'] as num?)?.toInt() ?? 1,
+        status: json['status'] as String? ?? 'pending',
+      );
+
+  final String id;
+  final String employeeName;
+  final String name;
+  final String origin;
+  final String destination;
+  final DateTime? departureAt;
+  final DateTime? returnAt;
+  final int passengers;
+  final int vehicles;
+  final String status;
+}

@@ -1,6 +1,8 @@
 -- pgTAP: V23 KPI parallel workflow — structure and CHECK constraints.
 -- Test file: 0065_v23_kpi_parallel_workflow.sql
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 select plan(19);
 
 -- ─────────────────────────────────────────────────────────────────────────────

@@ -48,7 +48,7 @@ export function HelpdeskPage() {
   const canManage = Boolean(auth.access && (auth.access.permissions.includes('*') || hasPermission(auth.access, 'tickets.write')));
   const myEmployeeId = auth.access?.employeeId ?? null;
 
-  const data = query.data ?? [];
+  const data = useMemo(() => query.data ?? [], [query.data]);
   const term = search.trim().toLocaleLowerCase('ar');
   const filtered = useMemo(() => {
     const rows = tab === 'mine' ? data.filter((t) => t.requester_employee_id === myEmployeeId) : data;

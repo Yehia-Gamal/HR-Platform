@@ -91,26 +91,33 @@ select throws_ok(
   'CHECK سير العمل يرفض نوعًا غير معروف');
 
 -- =====================================================================
--- (2) التشغيل بلا سير عمل افتراضي بمراجعة HR: يُعتمد بخطوة واحدة
---     من المدير المباشر أو البديل (حتى لا يبقى معلقًا ويُحتسب غيابًا).
+-- (2) التشغيل يُعتمد بخطوة واحدة من المدير المباشر أو البديل — بلا
+--     مراجعة HR إلزامية تبقيه معلّقًا. (0366/0367 أضافت مسارًا ثلاثيًا
+--     بخطوة HR اختيارية؛ الشرط هنا: لا خطوة HR إلزامية في سير التشغيل).
 -- =====================================================================
 select is(
-  (select count(*)::int from public.workflow_definitions
-    where request_type in ('mission','convoy','fundraising')
-      and is_default and is_active),
+  (select count(*)::int
+     from public.workflow_steps ws
+     join public.workflow_definitions wd on wd.id = ws.definition_id
+    where wd.request_type in ('mission','convoy','fundraising')
+      and wd.is_default and wd.is_active
+      and ws.approver_role_slug in ('hr-manager','hr-specialist')
+      and not coalesce(ws.is_optional, false)),
   0,
-  'لا تعريف افتراضي بخطوات HR للتشغيل (مأمورية/قافلة/فاندي)');
+  'لا خطوة HR إلزامية في سير التشغيل (مأمورية/قافلة/فاندي)');
 
 -- =====================================================================
 -- (3) المعتمِد البديل: موظف بلا مدير → HR-manager صاحب requests.approve.
 -- =====================================================================
 select is(
-  public.resolve_request_approver('d3500000-0000-4000-8000-000000000010', '2026-07-01'),
+  public.resolve_request_approver(
+    'd3500000-0000-4000-8000-000000000010'::uuid, '2026-07-01'::date),
   'd3500000-0000-4000-8000-000000000011'::uuid,
   'موظف بلا مدير مباشر → معتمِد بديل (HR-manager)');
 
 select ok(
-  public.resolve_request_approver('d3500000-0000-4000-8000-000000000011', '2026-07-01') is null,
+  public.resolve_request_approver(
+    'd3500000-0000-4000-8000-000000000011'::uuid, '2026-07-01'::date) is null,
   'لا تُرجع الدالة الموظف نفسه معتمِدًا بديلاً');
 
 -- =====================================================================

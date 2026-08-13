@@ -17,9 +17,11 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_in
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_directory_search_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_feed_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_disputes_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_employees_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notifications_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_official_feed_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_operations_center_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_profile_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
@@ -310,6 +312,18 @@ class WorkspaceScaffold extends ConsumerWidget {
           icon: Icons.badge_outlined,
           label: 'ملفات أعضاء الفريق',
           page: const TeamFilesPage(),
+        ),
+        // إدارة الموظفين: دليل الموظفين + الملف الشامل (get_employees_enriched).
+        _MoreItem(
+          icon: Icons.manage_accounts_outlined,
+          label: 'إدارة الموظفين',
+          page: const MobileEmployeesPage(),
+        ),
+        // إدارة التشغيل: مركز العمليات (مهام/مهمات/قوافل) — mig 0408.
+        _MoreItem(
+          icon: Icons.settings_suggest_outlined,
+          label: 'إدارة التشغيل',
+          page: MobileOperationsCenterPage(access: contextData),
         ),
       ],
       // V20: التقارير اليومية للجميع — زر إضافة تقرير داخل الصفحة نفسها

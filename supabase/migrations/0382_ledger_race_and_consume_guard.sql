@@ -1,132 +1,122 @@
 -- migration: 0382
 -- description: apply_leave_ledger_entry — advisory lock + consume balance guard
+-- أُعيدت الكتابة على schema الحقيقي (0026/0106): توقيع (uuid,uuid,integer,text,numeric,text,uuid,text,jsonb)
+-- مع إبقاء نية الأصل: قفل advisory ضد السباقات + حارس الاستهلاك (consume لا يتجاوز reserved).
 
 begin;
 
 create or replace function public.apply_leave_ledger_entry(
-  p_employee_id   integer,
-  p_leave_type_id integer,
+  p_employee_id   uuid,
+  p_leave_type_id uuid,
+  p_year          integer,
   p_entry_type    text,   -- opening|accrual|carryover|adjustment|reserve|release|consume|refund|expire
   p_units         numeric,
   p_source_key    text,
-  p_note          text    default null,
-  p_period_month  date    default null
+  p_request_id    uuid default null,
+  p_reason        text default null,
+  p_metadata      jsonb default '{}'::jsonb
 ) returns public.leave_ledger_entries
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
-  v_account  public.leave_balance_accounts%rowtype;
-  v_entry    public.leave_ledger_entries%rowtype;
-  v_delta    numeric;
-  v_lock_id  bigint;
+  v_account   public.leave_balance_accounts;
+  v_entry     public.leave_ledger_entries;
+  v_available numeric;
+  v_lock_id   bigint;
 begin
+  if p_units = 0 then raise exception 'LEAVE_UNITS_ZERO'; end if;
+  if p_entry_type not in (
+    'opening','accrual','carryover','adjustment','reserve','release',
+    'consume','refund','expire'
+  ) then raise exception 'INVALID_LEAVE_ENTRY_TYPE'; end if;
+  if nullif(trim(coalesce(p_source_key,'')),'') is null then
+    raise exception 'LEAVE_SOURCE_KEY_REQUIRED';
+  end if;
+
   -- ── advisory lock: serialize per (employee, leave_type) ──────────────────
-  -- prevents concurrent reserve/consume race conditions
-  v_lock_id := (p_employee_id::bigint << 20) | (p_leave_type_id::bigint & 1048575);
+  -- يمنع سباقات reserve/consume المتزامنة (0382).
+  v_lock_id := hashtextextended(p_employee_id::text || ':' || p_leave_type_id::text, 0);
   perform pg_advisory_xact_lock(v_lock_id);
+
+  v_account := public.ensure_leave_account(p_employee_id, p_leave_type_id, p_year);
 
   -- ── idempotency: skip if source_key already processed ────────────────────
   select * into v_entry
   from public.leave_ledger_entries
-  where source_key = p_source_key
-    and employee_id = p_employee_id
-    and leave_type_id = p_leave_type_id;
-
+  where source_key = p_source_key;
   if found then
     return v_entry; -- already applied — idempotent return
   end if;
 
-  -- ── get or create balance account ────────────────────────────────────────
-  select * into v_account
-  from public.leave_balance_accounts
-  where employee_id = p_employee_id and leave_type_id = p_leave_type_id
-  for update; -- lock the row for this transaction
-
-  if not found then
-    insert into public.leave_balance_accounts(employee_id, leave_type_id, available_units, reserved_units, consumed_units)
-    values (p_employee_id, p_leave_type_id, 0, 0, 0)
-    returning * into v_account;
+  if p_entry_type = 'opening' and v_account.opening_units <> 0 then
+    select * into v_entry
+    from public.leave_ledger_entries
+    where account_id = v_account.id and entry_type = 'opening'
+    order by created_at limit 1;
+    if found then return v_entry; end if;
   end if;
 
-  -- ── apply entry by type ──────────────────────────────────────────────────
-  case p_entry_type
-    when 'opening', 'accrual', 'carryover', 'adjustment' then
-      v_delta := p_units;
-      update public.leave_balance_accounts
-      set available_units = available_units + v_delta,
-          updated_at = now()
-      where id = v_account.id;
-
-    when 'reserve' then
-      if v_account.available_units < p_units then
-        raise exception 'INSUFFICIENT_LEAVE_BALANCE: available=% requested=%',
-          v_account.available_units, p_units;
-      end if;
-      update public.leave_balance_accounts
-      set available_units = available_units - p_units,
-          reserved_units  = reserved_units  + p_units,
-          updated_at = now()
-      where id = v_account.id;
-      v_delta := -p_units;
-
-    when 'release' then
-      update public.leave_balance_accounts
-      set available_units = available_units + least(p_units, reserved_units),
-          reserved_units  = greatest(0, reserved_units - p_units),
-          updated_at = now()
-      where id = v_account.id;
-      v_delta := p_units;
-
-    when 'consume' then
-      -- FIX #6: guard against consuming more than was reserved
-      if v_account.reserved_units < p_units then
-        raise exception 'CONSUME_EXCEEDS_RESERVE: reserved=% requested=% (concurrent modification?)',
-          v_account.reserved_units, p_units;
-      end if;
-      update public.leave_balance_accounts
-      set reserved_units  = reserved_units  - p_units,
-          consumed_units  = consumed_units  + p_units,
-          updated_at = now()
-      where id = v_account.id;
-      v_delta := 0;
-
-    when 'refund' then
-      update public.leave_balance_accounts
-      set consumed_units  = greatest(0, consumed_units  - p_units),
-          available_units = available_units + p_units,
-          updated_at = now()
-      where id = v_account.id;
-      v_delta := p_units;
-
-    when 'expire' then
-      update public.leave_balance_accounts
-      set available_units = greatest(0, available_units - p_units),
-          updated_at = now()
-      where id = v_account.id;
-      v_delta := -p_units;
-
-    else
-      raise exception 'UNKNOWN_ENTRY_TYPE: %', p_entry_type;
-  end case;
-
-  -- ── insert audit entry ───────────────────────────────────────────────────
+  -- ── insert audit entry (unique(source_key) يمنع التكرار عند التزامن) ─────
   insert into public.leave_ledger_entries(
-    employee_id, leave_type_id, entry_type, units, delta,
-    source_key, note, period_month, created_at
-  )
-  values (
-    p_employee_id, p_leave_type_id, p_entry_type, p_units, v_delta,
-    p_source_key, p_note, p_period_month, now()
-  )
-  returning * into v_entry;
+    account_id, employee_id, leave_type_id, request_id, entry_type, units,
+    effective_date, reason, source_key, metadata, created_by
+  ) values (
+    v_account.id, p_employee_id, p_leave_type_id, p_request_id, p_entry_type, p_units,
+    current_date, p_reason, p_source_key, coalesce(p_metadata, '{}'::jsonb), auth.uid()
+  ) on conflict(source_key) do nothing returning * into v_entry;
+  if not found then
+    select * into strict v_entry from public.leave_ledger_entries
+    where source_key = p_source_key;
+    return v_entry;
+  end if;
+
+  -- ── apply entry by type على الأعمدة الحقيقية للرصيد ──────────────────────
+  if p_entry_type = 'opening' then
+    update public.leave_balance_accounts set opening_units = opening_units + p_units, updated_at = now() where id = v_account.id;
+  elsif p_entry_type = 'accrual' then
+    update public.leave_balance_accounts set accrued_units = accrued_units + p_units, updated_at = now() where id = v_account.id;
+  elsif p_entry_type = 'carryover' then
+    update public.leave_balance_accounts set carryover_units = carryover_units + p_units, updated_at = now() where id = v_account.id;
+  elsif p_entry_type = 'adjustment' then
+    update public.leave_balance_accounts set adjusted_units = adjusted_units + p_units, updated_at = now() where id = v_account.id;
+  elsif p_entry_type = 'reserve' then
+    select opening_units + accrued_units + adjusted_units + carryover_units - consumed_units - reserved_units
+      into v_available from public.leave_balance_accounts where id = v_account.id for update;
+    if v_available < p_units then
+      raise exception 'INSUFFICIENT_LEAVE_BALANCE: available=% requested=%', v_available, p_units;
+    end if;
+    update public.leave_balance_accounts set reserved_units = reserved_units + p_units, updated_at = now() where id = v_account.id;
+  elsif p_entry_type = 'release' then
+    update public.leave_balance_accounts set reserved_units = greatest(0, reserved_units - abs(p_units)), updated_at = now() where id = v_account.id;
+  elsif p_entry_type = 'consume' then
+    -- حارس 0382: لا يستهلك أكثر مما حُجز فعلياً
+    select reserved_units into v_available
+    from public.leave_balance_accounts where id = v_account.id for update;
+    if v_available < p_units then
+      raise exception 'CONSUME_EXCEEDS_RESERVE: reserved=% requested=% (concurrent modification?)', v_available, p_units;
+    end if;
+    update public.leave_balance_accounts
+      set reserved_units = greatest(0, reserved_units - abs(p_units)),
+          consumed_units = consumed_units + abs(p_units),
+          updated_at = now()
+      where id = v_account.id;
+  elsif p_entry_type = 'refund' then
+    update public.leave_balance_accounts set consumed_units = greatest(0, consumed_units - abs(p_units)), updated_at = now() where id = v_account.id;
+  elsif p_entry_type = 'expire' then
+    update public.leave_balance_accounts set adjusted_units = adjusted_units - abs(p_units), updated_at = now() where id = v_account.id;
+  end if;
 
   return v_entry;
 end;
 $$;
 
-revoke all on function public.apply_leave_ledger_entry(integer,integer,text,numeric,text,text,date) from anon, authenticated;
-grant execute on function public.apply_leave_ledger_entry(integer,integer,text,numeric,text,text,date) to authenticated;
+revoke all on function public.apply_leave_ledger_entry(
+  uuid, uuid, integer, text, numeric, text, uuid, text, jsonb
+) from public, anon, authenticated;
+grant execute on function public.apply_leave_ledger_entry(
+  uuid, uuid, integer, text, numeric, text, uuid, text, jsonb
+) to service_role;
 
 commit;

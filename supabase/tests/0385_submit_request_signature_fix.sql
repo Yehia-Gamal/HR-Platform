@@ -1,12 +1,15 @@
 -- 0385: submit_my_request — signature fix from mig 0386 (removed broken overload)
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions,pg_temp;
+
 select plan(4);
 
 -- 1. الدالة الصحيحة (5 معاملات) موجودة
 select has_function(
   'public', 'submit_my_request',
-  array['text','date','date','text','text'],
-  'submit_my_request(text,date,date,text,text) الإصدار الصحيح موجود'
+  array['text','text','text','jsonb','uuid'],
+  'submit_my_request(text,text,text,jsonb,uuid) الإصدار الصحيح موجود'
 );
 
 -- 2. الدالة SECURITY DEFINER
@@ -21,10 +24,10 @@ select is(
 
 -- 3. _request_idempotency_key دالة مساعدة IMMUTABLE
 select is(
-  (select provolatile from pg_proc p
+  (select provolatile::text from pg_proc p
    join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname = '_request_idempotency_key'),
-  'i'::char,
+  'i'::text,
   '_request_idempotency_key يجب أن تكون IMMUTABLE'
 );
 

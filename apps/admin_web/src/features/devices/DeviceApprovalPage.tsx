@@ -53,7 +53,6 @@ function PendingDevicesPanel() {
   function handleAction(device: PendingDevice, approved: boolean) { setConfirmAction({ device, approved }); setReason(''); }
   function executeAction() {
     if (!confirmAction) return;
-    const wasApproved = confirmAction.approved;
     approve.mutate({ deviceId: confirmAction.device.id, approved: confirmAction.approved, reason: confirmAction.approved ? undefined : reason || undefined }, {
       onSuccess: () => { setConfirmAction(null); },
     });

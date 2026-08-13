@@ -99,18 +99,15 @@ begin
       d.day_date,
       count(*) filter (
         where ad.status in ('present', 'present_late')
-          and ad.is_weekend = false
-          and ad.is_holiday = false
+          and ad.status not in ('weekend', 'holiday')
       ) as present_count,
       count(*) filter (
         where ad.status = 'present_late'
-          and ad.is_weekend = false
-          and ad.is_holiday = false
+          and ad.status not in ('weekend', 'holiday')
       ) as late_count,
       count(*) filter (
         where ad.status in ('absent', 'absent_excused')
-          and ad.is_weekend = false
-          and ad.is_holiday = false
+          and ad.status not in ('weekend', 'holiday')
       ) as absent_count
     from generate_series(v_week_start, v_today, '1 day'::interval) as d(day_date)
     left join public.attendance_daily ad on ad.work_date = d.day_date::date
@@ -134,15 +131,16 @@ begin
   from (
     select
       kc.name_ar                                    as criterion_name,
-      avg(kes.weighted_score / nullif(kc.weight, 0) * 100) as avg_score,
+      avg(ks.score / nullif(kc.max_score, 0) * 100) as avg_score,
       100                                           as max_score
     from public.kpi_cycles c
     join public.kpi_evaluations ke  on ke.cycle_id = c.id
-    join public.kpi_evaluation_scores kes on kes.evaluation_id = ke.id
-    join public.kpi_criteria kc     on kc.id = kes.criterion_id
+    join public.kpi_scores ks       on ks.evaluation_id = ke.id
+    join public.kpi_criteria kc     on kc.id = ks.criterion_id
     where c.status in ('closed', 'locked')
       and c.period_month >= (v_today - '6 months'::interval)::date
       and ke.final_score is not null
+      and ks.reviewer_stage in ('executive', 'manager')
     group by kc.name_ar
     having count(*) >= 3
   ) k;

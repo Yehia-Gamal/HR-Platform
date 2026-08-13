@@ -11,7 +11,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(6);
+select plan(7);
 
 -- =====================================================================
 -- Fixture
@@ -110,10 +110,21 @@ do $$ begin
 end $$;
 set local role authenticated;
 
-select throws_ok(
+-- لا يرفع RLS استثناءً (يصفّي الصف صامتاً) — المطلوب أمنياً أن يبقى الوضع دون تغيير
+select lives_ok(
   $$update public.service_requests set status = 'resolved' where id = '99999999-0000-4000-8000-000000000001'$$,
-  '42501', null,
-  'CTB-02: requester cannot self-resolve their own ticket');
+  'CTB-02: محاولة الحل الذاتي تُحجب بصمت عبر RLS (لا تكسر الطلب)'
+);
+
+reset role;
+
+select is(
+  (select status from public.service_requests where id = '99999999-0000-4000-8000-000000000001'),
+  'submitted',
+  'CTB-02: requester cannot self-resolve their own ticket (status stays submitted)'
+);
+
+set local role authenticated;
 
 select lives_ok(
   $$update public.service_requests set status = 'cancelled' where id = '99999999-0000-4000-8000-000000000001'$$,

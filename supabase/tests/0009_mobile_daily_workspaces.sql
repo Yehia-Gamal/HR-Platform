@@ -1,4 +1,6 @@
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 select plan(17);
 select has_function('public', 'get_my_mobile_profile', array[]::text[], 'mobile profile RPC exists');
 select has_function('public', 'get_my_mobile_tasks', array['integer'], 'mobile tasks RPC exists');

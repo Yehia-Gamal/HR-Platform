@@ -2,6 +2,8 @@
 -- Verifies partitioning, indexes, monitoring views, and cron schedules.
 
 BEGIN;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 SELECT plan(10);
 
 -- ─── Partitioned shadow table ────────────────────────────────────────────

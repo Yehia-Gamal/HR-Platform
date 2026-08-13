@@ -23,8 +23,10 @@ const migrations = (await readdir(join(root, 'supabase/migrations')))
 
 // فجوات مقصودة موثقة (مطابقة لـ check-migrations-integrity.mjs):
 // 0267 → أعيد ترقيمه إلى 0277؛ 0279 → رقم متخطى احتياطيًا؛ 0314 → أُعيد ترقيمه إلى 0322.
+// 0395 → كان admin_sensitive_ops_rate_limit لكن تعارض مع 0395_leave_approval_v3
+//         في جلسة متوازية؛ أُعيد ترقيم rate-limit إلى 0397 و leave_approval إلى 0396.
 // تُتجاوز الفجوة فقط إذا كان الرقم غائبًا فعليًا؛ لو وُجد ملف بهذا الرقم فهو مقبول.
-const ACCEPTABLE_GAPS = new Set([267, 279, 314]);
+const ACCEPTABLE_GAPS = new Set([267, 279, 314, 395]);
 
 const present = new Set(migrations.map((name) => Number(name.slice(0, 4))));
 const maxNumber = Math.max(...present);

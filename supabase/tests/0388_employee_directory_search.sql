@@ -1,5 +1,8 @@
 -- 0388: get_mobile_employee_directory — دليل الموظفين (mig 0388)
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions,pg_temp;
+
 select plan(5);
 
 -- 1. الدالة موجودة بالمعاملات الصحيحة
@@ -20,15 +23,15 @@ select is(
 
 -- 3. STABLE (لا تُعدّل البيانات)
 select is(
-  (select provolatile from pg_proc p
+  (select provolatile::text from pg_proc p
    join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname = 'get_mobile_employee_directory'),
-  's'::char,
+  's'::text,
   'get_mobile_employee_directory يجب أن تكون STABLE'
 );
 
 -- 4. تتحقق من auth.uid() (بلا مصادقة ترفع استثناء)
-select like(
+select alike(
   (select prosrc from pg_proc p
    join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname = 'get_mobile_employee_directory'),

@@ -6,14 +6,19 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: { port: 4173 },
   build: {
-    rolldownOptions: {
+    // رفع حد تحذير حجم الـ chunk لتقليل الضجيج على الحزم الكبيرة.
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
       output: {
+        // تقسيم حزم البائعين الكبيرة إلى chunks منفصلة لتحسين التخزين المؤقت
+        // وتقليل حجم الحزمة الرئيسية. الدالة تُرجع اسم الـ chunk أو undefined
+        // (الذي يُتبعه rolldown تلقائيًا ضمن entry/chunk عام).
         manualChunks(id) {
           if (id.includes('@supabase')) return 'supabase';
           if (id.includes('@tanstack')) return 'query';
-          if (id.includes('react') || id.includes('react-router')) return 'react-vendor';
+          if (id.includes('recharts') || id.includes('d3-') || id.includes('chart.js')) return 'charts';
+          if (id.includes('react-router') || /node_modules\/(?:react|react-dom|scheduler)\//.test(id)) return 'react-vendor';
           if (id.includes('lucide-react')) return 'icons';
-          if (id.includes('recharts') || id.includes('d3-')) return 'charts';
           if (id.includes('leaflet') || id.includes('react-leaflet')) return 'maps';
           if (id.includes('@sentry')) return 'sentry';
           if (id.includes('node_modules')) return 'vendor';

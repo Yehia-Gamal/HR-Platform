@@ -1,4 +1,6 @@
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 select plan(12);
 
 select col_is_pk('public','webauthn_challenges','id','WebAuthn challenges have a primary key');

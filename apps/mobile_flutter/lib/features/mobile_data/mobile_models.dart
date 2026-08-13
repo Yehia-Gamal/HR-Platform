@@ -1224,6 +1224,50 @@ class MobileTeamMember {
   final String? kpiStage;
 }
 
+/// ملخص موظف من دليل الموظفين الإداري — get_employees_enriched (إدارة الموظفين).
+class MobileEmployeeSummary {
+  const MobileEmployeeSummary({
+    required this.id,
+    required this.employeeCode,
+    required this.fullNameAr,
+    required this.fullNameEn,
+    required this.status,
+    required this.isActive,
+    required this.photoUrl,
+    required this.department,
+    required this.team,
+    required this.branch,
+    required this.jobTitle,
+  });
+
+  factory MobileEmployeeSummary.fromJson(Map<String, dynamic> json) =>
+      MobileEmployeeSummary(
+        id: json['id'] as String,
+        employeeCode: json['employeeCode'] as String?,
+        fullNameAr: json['fullNameAr'] as String? ?? 'موظف',
+        fullNameEn: json['fullNameEn'] as String?,
+        status: json['status'] as String? ?? 'active',
+        isActive: json['isActive'] as bool? ?? true,
+        photoUrl: json['photoUrl'] as String?,
+        department: json['department'] as String?,
+        team: json['team'] as String?,
+        branch: json['branch'] as String?,
+        jobTitle: json['jobTitle'] as String?,
+      );
+
+  final String id;
+  final String? employeeCode;
+  final String fullNameAr;
+  final String? fullNameEn;
+  final String status;
+  final bool isActive;
+  final String? photoUrl;
+  final String? department;
+  final String? team;
+  final String? branch;
+  final String? jobTitle;
+}
+
 class MobileDailyReport {
   const MobileDailyReport({
     required this.id,

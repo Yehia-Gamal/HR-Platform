@@ -24,8 +24,8 @@ select has_function(
 );
 
 select has_function(
-  'public', 'submit_my_request', array['text','text','text','jsonb'],
-  'submit_my_request(text,text,text,jsonb) exists'
+  'public', 'submit_my_request', array['text','text','text','jsonb','uuid'],
+  'submit_my_request(text,text,text,jsonb,uuid) exists'
 );
 
 -- ════════════════════════════════════════════════════════════════════════════════
@@ -229,12 +229,12 @@ select throws_ok(
 -- ════════════════════════════════════════════════════════════════════════════════
 
 select lives_ok(
-  $$select public.submit_my_request(
+  format($$select public.submit_my_request(
     'late_permit',
     'إذن تأخير تلقائي',
     'موعد شخصي',
-    '{"permitDate":"2026-08-10","minutes":45}'::jsonb
-  )$$,
+    '{"permitDate":"%s","minutes":45}'::jsonb
+  )$$, to_char((now() at time zone 'Africa/Cairo')::date + 1, 'YYYY-MM-DD')),
   'submit_my_request late_permit ينجح لموظف مالية'
 );
 

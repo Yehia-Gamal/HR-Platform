@@ -1,4 +1,6 @@
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 select plan(31);
 
 select has_table('public','kpi_policy_versions','KPI policies are versioned');

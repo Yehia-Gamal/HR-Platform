@@ -11,7 +11,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
 
-select plan(9);
+select plan(8);
 
 -- =====================================================================
 -- ① بنية الجدول والـ RLS (3 اختبارات)
@@ -82,11 +82,11 @@ select is(
   '0384 سلوكي: الموظف العادي يرى 0 سجلات cron_health_log'
 );
 
--- process_request_sla مرفوضة على الموظف العادي
+-- process_request_sla مرفوضة على الموظف العادي (EXECUTE مُسحوب → رفض على مستوى الامتياز)
 select throws_ok(
   $$select public.process_request_sla()$$,
-  'P0001', null,
-  '0384 سلوكي: process_request_sla ترفض الموظف غير المخوّل (PERMISSION_DENIED)'
+  '42501', null,
+  '0384 سلوكي: process_request_sla ترفض الموظف غير المخوّل (permission denied)'
 );
 
 -- =====================================================================

@@ -293,4 +293,28 @@ void main() {
     expect(r.needsVideo, isFalse);
     expect(r.needsPoint, isFalse);
   });
+
+  test('employee summary parses enriched employee row', () {
+    final employee = MobileEmployeeSummary.fromJson({
+      'id': 'employee-1',
+      'employeeCode': 'E-101',
+      'fullNameAr': 'محمد أحمد',
+      'fullNameEn': 'Mohamed Ahmed',
+      'status': 'active',
+      'isActive': true,
+      'photoUrl': 'https://example.com/p.png',
+      'department': 'التشغيل',
+      'team': 'فريق الشحن',
+      'branch': 'المنصورة',
+      'jobTitle': 'مشرف لوجستي',
+    });
+
+    expect(employee.id, 'employee-1');
+    expect(employee.fullNameAr, 'محمد أحمد');
+    expect(employee.status, 'active');
+    expect(employee.isActive, isTrue);
+    expect(employee.department, 'التشغيل');
+    expect(employee.team, 'فريق الشحن');
+    expect(employee.jobTitle, 'مشرف لوجستي');
+  });
 }

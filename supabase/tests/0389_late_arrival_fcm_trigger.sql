@@ -1,5 +1,8 @@
 -- 0389: tg_notify_manager_late_arrival — إشعار FCM عند تأخر الموظف (mig 0389)
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions,pg_temp;
+
 select plan(5);
 
 -- 1. دالة التريغر موجودة
@@ -40,7 +43,7 @@ select is(
 );
 
 -- 5. جسم الدالة يتحقق من late_minutes > 0 قبل الإشعار
-select like(
+select alike(
   (select prosrc from pg_proc p
    join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname = 'tg_notify_manager_late_arrival'),

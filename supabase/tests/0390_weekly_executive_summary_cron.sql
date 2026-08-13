@@ -1,5 +1,8 @@
 -- 0390: EXEC_WEEKLY_SUMMARY seed في scheduled_reports (mig 0390)
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions,pg_temp;
+
 select plan(4);
 
 -- 1. السطر موجود في scheduled_reports
@@ -20,14 +23,14 @@ select is(
 
 -- 3. مجدول يوم الأحد (run_weekday = 0)
 select is(
-  (select run_weekday from public.scheduled_reports where code = 'EXEC_WEEKLY_SUMMARY'),
+  (select run_weekday::int from public.scheduled_reports where code = 'EXEC_WEEKLY_SUMMARY'),
   0,
   'EXEC_WEEKLY_SUMMARY مجدول يوم الأحد (run_weekday = 0)'
 );
 
 -- 4. الساعة 7 صباحاً
 select is(
-  (select run_hour from public.scheduled_reports where code = 'EXEC_WEEKLY_SUMMARY'),
+  (select run_hour::int from public.scheduled_reports where code = 'EXEC_WEEKLY_SUMMARY'),
   7,
   'EXEC_WEEKLY_SUMMARY مجدول الساعة 7:00 صباحاً'
 );

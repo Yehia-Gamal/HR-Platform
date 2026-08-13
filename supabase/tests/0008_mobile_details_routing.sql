@@ -1,4 +1,6 @@
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 select plan(7);
 select has_function('public','get_mobile_action_target',array['text','text'],'mobile action target resolver exists');
 select has_function('public','get_mobile_request_detail',array['uuid'],'mobile request detail exists');

@@ -19,21 +19,6 @@ const mockAuditItem = {
   occurredAt: new Date().toISOString(),
 };
 
-const mockAuditCategoryLabels: Record<string, string> = {
-  hr: 'موارد بشرية',
-  system: 'النظام',
-  security: 'أمن',
-  financial: 'مالية',
-  data: 'بيانات',
-};
-
-const mockAuditSeverityLabels: Record<string, string> = {
-  info: 'معلومة',
-  warning: 'تحذير',
-  error: 'خطأ',
-  critical: 'حرج',
-};
-
 /* ─── factory function لحالات الـ hook ──────────────────────── */
 let auditTrailOverride: () => Record<string, unknown>;
 

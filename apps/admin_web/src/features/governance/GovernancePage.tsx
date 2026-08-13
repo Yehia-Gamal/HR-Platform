@@ -52,8 +52,8 @@ export function GovernancePage() {
 
   const canManage = Boolean(auth.access && hasPermission(auth.access, 'governance.data.manage'));
 
-  const risks = risksQuery.data ?? [];
-  const incidents = incidentsQuery.data ?? [];
+  const risks = useMemo(() => risksQuery.data ?? [], [risksQuery.data]);
+  const incidents = useMemo(() => incidentsQuery.data ?? [], [incidentsQuery.data]);
   const term = search.trim().toLocaleLowerCase('ar');
 
   const filteredRisks = useMemo(() => {

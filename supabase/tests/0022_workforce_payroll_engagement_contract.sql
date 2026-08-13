@@ -1,4 +1,6 @@
-begin; select plan(12);
+begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp; select plan(12);
 select has_table('public','workforce_plans','workforce plans exist');
 select has_table('public','capacity_snapshots','capacity snapshots exist');
 select has_table('public','salary_structures','salary structures exist');

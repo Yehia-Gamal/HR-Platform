@@ -37,7 +37,6 @@ vi.mock('../ExecutiveMonitoringPage', () => ({
 const loadingDirectoryQuery = { data: undefined, isLoading: true, isError: false, isFetching: true, error: null, refetch: vi.fn() };
 const emptyDirectoryQuery = { data: [], isLoading: false, isError: false, isFetching: false, error: null, refetch: vi.fn() };
 const dataDirectoryQuery = { data: [mockLocationItem], isLoading: false, isError: false, isFetching: false, error: null, refetch: vi.fn() };
-const errorDirectoryQuery = { data: undefined, isLoading: false, isError: true, isFetching: false, error: new Error('فشل الاتصال'), refetch: vi.fn() };
 
 const defaultCommands = { request: { ...mockMutation } };
 

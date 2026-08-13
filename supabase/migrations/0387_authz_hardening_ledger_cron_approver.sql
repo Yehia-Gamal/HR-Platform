@@ -21,12 +21,13 @@ BEGIN;
 
 -- ── P0: apply_leave_ledger_entry ─────────────────────────────────────────────
 -- سحب الصلاحية من authenticated — تُستدعى حصراً عبر chain داخلي
-REVOKE EXECUTE ON FUNCTION public.apply_leave_ledger_entry(
-  integer, integer, text, numeric, text, text, date
-) FROM authenticated;
+-- (التوقيع الحقيقي من 0026/0106، لا التوقيع الوهمي)
+REVOKE ALL ON FUNCTION public.apply_leave_ledger_entry(
+  uuid, uuid, integer, text, numeric, text, uuid, text, jsonb
+) FROM public, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION public.apply_leave_ledger_entry(
-  integer, integer, text, numeric, text, text, date
+  uuid, uuid, integer, text, numeric, text, uuid, text, jsonb
 ) TO service_role;
 
 -- ── MEDIUM: get_cron_health — إضافة فحص الصلاحية ────────────────────────────
@@ -67,10 +68,11 @@ GRANT EXECUTE ON FUNCTION public.get_cron_health() TO authenticated;
 
 -- ── MEDIUM: resolve_request_approver — تقييد الاستدعاء المباشر ───────────────
 -- الدالة تكشف هيكل الإدارة؛ authenticated يصلون إليها عبر submit_my_request فقط
-REVOKE EXECUTE ON FUNCTION public.resolve_request_approver(integer, text)
-FROM authenticated;
+-- (التوقيع الحقيقي من 0061/0136: uuid, date)
+REVOKE EXECUTE ON FUNCTION public.resolve_request_approver(uuid, date)
+FROM public, anon, authenticated;
 
-GRANT EXECUTE ON FUNCTION public.resolve_request_approver(integer, text)
+GRANT EXECUTE ON FUNCTION public.resolve_request_approver(uuid, date)
 TO service_role;
 
 COMMIT;

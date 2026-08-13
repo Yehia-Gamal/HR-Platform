@@ -21,6 +21,9 @@ class AppAvatar extends StatelessWidget {
       '/storage/v1/object/public/employee-avatars/';
   static const String _authMarker =
       '/storage/v1/object/authenticated/employee-avatars/';
+  // روابط قديمة بدون مقطع public/authenticated (قبل توحيد 0311).
+  static const String _legacyMarker =
+      '/storage/v1/object/employee-avatars/';
 
   String get _initial {
     final trimmed = name.trim();
@@ -30,7 +33,8 @@ class AppAvatar extends StatelessWidget {
   /// يستخرج مسار الملف داخل bucket employee-avatars من الرابط المخزّن.
   /// يُعيد null لو كان الرابط خارجيًا (mock/CDN) ليُحمَّل مباشرة.
   static String? _extractAvatarPath(String url) {
-    for (final marker in [_publicMarker, _authMarker]) {
+    // نتحقق من المقاطع الأطول أولًا لتفادي تطابُق legacy مع public/authenticated.
+    for (final marker in [_authMarker, _publicMarker, _legacyMarker]) {
       final index = url.indexOf(marker);
       if (index >= 0) {
         final raw = url.substring(index + marker.length).split('?').first;
@@ -44,9 +48,17 @@ class AppAvatar extends StatelessWidget {
     return null;
   }
 
+  /// خريطة cache ذاكرة لمسارات الصور المُحمَّلة من bucket الخاص.
+  // خاص: AppAvatar غير قابل للتغيير ويُعاد بناؤه كثيرًا (قوائم، بطاقات،
+  // شريط علوي). بدون cache يُعيد download() تنزيل الصورة عند كل بناء،
+  // فتختفي الصور عند أي اهتزاز شبكة وتُستهلك عرض نطاق. الـ cache يضمن
+  // بقاء الصورة ظاهرة طوال الجلسة بعد أول تنزيل ناجح.
+  // تجاهل lint: مُتغيّر عام متعمَّد (ذاكرة مؤقتة لكل المسارات).
+  static final Map<String, Uint8List> _photoCache = {};
+
   /// يحمّل صورة من bucket employee-avatars الخاص عبر SDK المصادق عليه.
   /// SDK يستخدم مسار `authenticated` تلقائيًا عند download ما يُفعّل سياسة
-  /// RLS `employee_avatars_select` (المُضافة في 0211). بهذا يستمرbucket
+  /// RLS `employee_avatars_select` (المُضافة في 0211). بهذا يبقى bucket
   /// خاصًا بينما تظهر الصور للمستخدمين المُسجَّلين فقط.
   static Future<ImageProvider<Object>> _loadPrivateImage(String url) async {
     final path = _extractAvatarPath(url);
@@ -54,9 +66,15 @@ class AppAvatar extends StatelessWidget {
       // رابط خارجي — حمّله مباشرة.
       return NetworkImage(url);
     }
+    // استخدم النسخة المُخزَّنة إن وُجدت لتجنّب إعادة التنزيل.
+    final cached = _photoCache[path];
+    if (cached != null) {
+      return MemoryImage(cached);
+    }
     final Uint8List bytes = await Supabase.instance.client.storage
         .from('employee-avatars')
         .download(path);
+    _photoCache[path] = bytes;
     return MemoryImage(bytes);
   }
 

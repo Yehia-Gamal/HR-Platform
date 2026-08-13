@@ -1,5 +1,8 @@
 -- 0356: اختبارات RPC لوحة التحليلات الموحّدة
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions,pg_temp;
+
 select plan(7);
 
 -- 1. الدالة موجودة بالتوقيع الصحيح

@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions,storage,pg_temp;
-select plan(47);
+select plan(48);
 
 do $fixture$
 declare v_le uuid:='93000000-0000-4000-8000-000000000000'; v_dept uuid:='93000000-0000-4000-8000-000000000001';
@@ -122,8 +122,8 @@ select ok((public.get_mobile_request_detail((select id from acceptance_runtime w
 select lives_ok($$select public.decide_request((select id from acceptance_runtime where kind='employee_leave'),'approve','موافقة المدير المباشر')$$,'manager approves direct report leave');
 select is(
   (select status from public.requests where id=(select id from acceptance_runtime where kind='employee_leave')),
-  'pending',
-  'manager approval advances leave to HR review without prematurely approving it'
+  'approved',
+  'manager approval completes the request (single-approval model)'
 );
 select throws_ok($$select public.decide_request((select id from acceptance_runtime where kind='employee_mission'),'reject',null)$$,'22023',null,'server requires a rejection reason');
 select lives_ok($$select public.decide_request((select id from acceptance_runtime where kind='employee_mission'),'reject','تعارض مع خطة التشغيل')$$,'manager rejects mission with a reason');
@@ -138,12 +138,13 @@ begin
 end $manager_request$;
 select throws_ok($$select public.decide_request((select id from acceptance_runtime where kind='manager_leave'),'approve','محاولة اعتماد ذاتي')$$,'42501',null,'manager cannot approve own request');
 
--- Expire the executive decision SLA and route it to the configured Operations user.
+-- Expire the active step escalation deadline and route the request to Operations.
 reset role;
-update public.requests set decision_due_at=now()-interval '1 hour'
-where id=(select id from acceptance_runtime where kind='manager_leave');
+update public.request_steps set escalation_deadline=now()-interval '1 hour'
+where request_id=(select id from acceptance_runtime where kind='manager_leave')
+  and status in ('active','escalated');
 select set_config('request.jwt.claims','{"role":"service_role"}',true);
-select is(public.process_request_sla(10),1,'SLA processor escalates the overdue executive request');
+select is(public.process_request_sla(10),1,'SLA processor escalates the overdue request to operations');
 
 -- Operations persona.
 set local role authenticated;
@@ -151,13 +152,20 @@ select set_config('request.jwt.claims','{"sub":"91000000-0000-4000-8000-00000000
 select set_config('request.jwt.claim.sub','91000000-0000-4000-8000-000000000003',true);
 select ok((public.get_my_access_context()->'workspaces') ?& array['employee','manager','field_operations','committee'],'Operations inherits employee/manager and receives operations/committee workspaces');
 select ok(exists(select 1 from jsonb_array_elements(public.get_dispute_operations_catalog(null)->'cases') c where c->>'id'=(select id::text from acceptance_runtime where kind='employee_dispute')),'Operations sees the assigned committee case');
-select is((select payload#>>'{escalation,onBehalfOfExecutive}' from public.requests where id=(select id from acceptance_runtime where kind='manager_leave')),'true','escalation is marked on behalf of the executive director');
+select ok(
+  (select workflow_status from public.requests where id=(select id from acceptance_runtime where kind='manager_leave'))='awaiting_operator'
+  and (select escalated_at is not null from public.requests where id=(select id from acceptance_runtime where kind='manager_leave')),
+  'escalation activates the operations tier and is recorded');
+select is(
+  (select metadata->>'targetRole' from public.request_actions where request_id=(select id from acceptance_runtime where kind='manager_leave') and action='escalate' order by created_at desc limit 1),
+  'operations-officer',
+  'escalation audit targets operations');
 select lives_ok($$select public.decide_request((select id from acceptance_runtime where kind='manager_leave'),'approve','قرار Operations بعد انتهاء المهلة')$$,'Operations decides the escalated request');
 select is((select status from public.requests where id=(select id from acceptance_runtime where kind='manager_leave')),'approved','Operations decision is persisted');
 select is((select actor_employee_id from public.request_actions where request_id=(select id from acceptance_runtime where kind='manager_leave') and action='approve' order by created_at desc limit 1),'92000000-0000-4000-8000-000000000003'::uuid,'real Operations employee is the decision actor');
 select is((select metadata->>'actorName' from public.request_actions where request_id=(select id from acceptance_runtime where kind='manager_leave') and action='approve' order by created_at desc limit 1),'مسؤول Operations الفعلي','Operations actor name is recorded');
-select is((select metadata->>'onBehalfOfExecutive' from public.request_actions where request_id=(select id from acceptance_runtime where kind='manager_leave') and action='approve' order by created_at desc limit 1),'true','decision audit records on-behalf mode');
-select ok((public.get_mobile_request_detail((select id from acceptance_runtime where kind='manager_leave'))->>'decisionOnBehalfOfExecutive')::boolean and public.get_mobile_request_detail((select id from acceptance_runtime where kind='manager_leave'))->>'decisionActorName'='مسؤول Operations الفعلي','mobile detail attributes the decision to Operations, not the executive');
+select is((select request_step_id from public.request_actions where request_id=(select id from acceptance_runtime where kind='manager_leave') and action='approve' order by created_at desc limit 1),(select id from public.request_steps where request_id=(select id from acceptance_runtime where kind='manager_leave') and step_order=2),'ops decision is recorded against the escalated step 2');
+select ok((public.get_mobile_request_detail((select id from acceptance_runtime where kind='manager_leave'))->>'decisionActorName')='مسؤول Operations الفعلي' and not (public.get_mobile_request_detail((select id from acceptance_runtime where kind='manager_leave'))->>'decisionOnBehalfOfExecutive')::boolean,'mobile detail attributes the decision to the real Operations actor, not on behalf of the executive');
 
 -- Executive director persona.
 set local role authenticated;

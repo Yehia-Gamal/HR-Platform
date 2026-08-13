@@ -1,4 +1,6 @@
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 select plan(24);
 
 select has_function('public','get_organization_admin_catalog',array[]::text[],'organization admin catalog exists');

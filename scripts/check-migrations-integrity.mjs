@@ -19,6 +19,9 @@ const ACCEPTABLE_GAPS = new Set([
   // 0314 → seed صلاحيات المراقبة؛ نُقل إلى 0322 ثم إلى 0327 ضمن إعادة الترتيب.
   //         التنفيذ الفعلي في 0327، و0322 صار placeholder بلا عمليات.
   314,
+  // 0395 → كان admin_sensitive_ops_rate_limit لكن تعارض مع 0395_leave_approval_v3
+  //         في جلسة متوازية؛ أُعيد ترقيم rate-limit إلى 0397 و leave_approval إلى 0396.
+  395,
 ]);
 const BRIDGE_FILENAMES = new Set([
   '0119_bridge_placeholder.sql',

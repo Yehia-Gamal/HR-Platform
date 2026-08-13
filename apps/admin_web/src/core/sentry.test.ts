@@ -165,8 +165,8 @@ describe('sentry مع VITE_SENTRY_DSN', () => {
   it('release يستخدم القيمة الافتراضية 0.10.0 عند غياب VITE_APP_VERSION', async () => {
     const s2 = await loadSentry({ dsn: 'https://abc@example.io/1' });
     s2.initSentry();
-    const last = sentryMock.init.mock.calls.at(-1)![0];
-    expect(last.release).toBe('admin-web@0.10.0');
+    const last = sentryMock.init.mock.calls.at(-1)?.[0];
+    expect(last?.release).toBe('admin-web@0.10.0');
   });
 
   it('initSentry idempotent — لا يستدعي init مرتين', () => {
@@ -369,7 +369,7 @@ describe('sentry مع VITE_SENTRY_DSN', () => {
   it('query error غير 4xx ينشّط breadcrumb + captureError', () => {
     const qc = makeQueryClient();
     sentry.attachQueryObservability(qc as never);
-    qc.getQueryCache().config.onError!(new Error('boom'), { queryHash: 'h1', queryKey: ['q'] });
+    qc.getQueryCache().config.onError?.(new Error('boom'), { queryHash: 'h1', queryKey: ['q'] });
     expect(sentryMock.addBreadcrumb).toHaveBeenCalled();
     expect(sentryMock.captureException).toHaveBeenCalled();
   });
@@ -380,7 +380,7 @@ describe('sentry مع VITE_SENTRY_DSN', () => {
     const qc = makeQueryClient();
     sentry.attachQueryObservability(qc as never);
     const err = Object.assign(new Error('client error'), { status });
-    qc.getQueryCache().config.onError!(err, { queryHash: 'h', queryKey: ['q'] });
+    qc.getQueryCache().config.onError?.(err, { queryHash: 'h', queryKey: ['q'] });
     expect(sentryMock.addBreadcrumb).toHaveBeenCalled();
     expect(sentryMock.captureException).not.toHaveBeenCalled();
   });
@@ -388,7 +388,7 @@ describe('sentry مع VITE_SENTRY_DSN', () => {
   it('mutation error ينشّط breadcrumb + captureError', () => {
     const qc = makeQueryClient();
     sentry.attachQueryObservability(qc as never);
-    qc.getMutationCache().config.onError!(new Error('mfail'), null, undefined, {
+    qc.getMutationCache().config.onError?.(new Error('mfail'), null, undefined, {
       options: { mutationKey: ['mut'] },
     });
     expect(sentryMock.addBreadcrumb).toHaveBeenCalled();
@@ -398,7 +398,7 @@ describe('sentry مع VITE_SENTRY_DSN', () => {
   it('breadcrumb الـ query error يضع errorType/status ويُسلّسِل queryKey', () => {
     const qc = makeQueryClient();
     sentry.attachQueryObservability(qc as never);
-    qc.getQueryCache().config.onError!(new Error('boom'), { queryHash: 'h1', queryKey: ['q'] });
+    qc.getQueryCache().config.onError?.(new Error('boom'), { queryHash: 'h1', queryKey: ['q'] });
     // Sentry.addBreadcrumb يُستدعى بكائن واحد {category, message, data, level}
     const callArg = sentryMock.addBreadcrumb.mock.calls[0][0] as {
       category: string;

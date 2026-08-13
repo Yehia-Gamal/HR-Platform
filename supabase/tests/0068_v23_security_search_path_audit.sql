@@ -3,6 +3,8 @@
 -- Validates migration 0163_v23_security_search_path_hardening.sql
 
 BEGIN;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 SELECT plan(27);
 
 -- ════════════════════════════════════════════════════════════════

@@ -1,5 +1,8 @@
 -- 0387: تحقق من سحب صلاحيات SECURITY DEFINER من authenticated (mig 0387)
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions,pg_temp;
+
 select plan(5);
 
 -- 1. apply_leave_ledger_entry لا يملكها authenticated
@@ -35,7 +38,7 @@ select is(
 );
 
 -- 4. get_cron_health تتحقق من current_is_full_access
-select like(
+select alike(
   (select prosrc from pg_proc p
    join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname = 'get_cron_health'),

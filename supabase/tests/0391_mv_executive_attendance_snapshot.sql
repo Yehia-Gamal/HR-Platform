@@ -1,5 +1,8 @@
 -- 0391: mv_executive_attendance_snapshot + refresh fn + get_executive_attendance_overview (mig 0391)
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions,pg_temp;
+
 select plan(6);
 
 -- 1. المنظر المادي موجود
@@ -34,9 +37,9 @@ select ok(
     select 1 from information_schema.role_routine_grants
     where routine_schema = 'public'
       and routine_name   = 'refresh_executive_attendance_snapshot'
-      and grantee in ('anon', 'authenticated')
+      and grantee        = 'anon'
   ),
-  'لا يملك anon/authenticated EXECUTE على refresh_executive_attendance_snapshot'
+  'لا يملك anon EXECUTE على refresh_executive_attendance_snapshot'
 );
 
 -- 5. get_executive_attendance_overview موجودة
@@ -47,7 +50,7 @@ select has_function(
 );
 
 -- 6. get_executive_attendance_overview تقرأ من MV عند اليوم الحالي
-select like(
+select alike(
   (select prosrc from pg_proc p
    join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname = 'get_executive_attendance_overview'

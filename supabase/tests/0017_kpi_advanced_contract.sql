@@ -1,4 +1,6 @@
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 select plan(10);
 select has_table('public','kpi_evidence','KPI evidence exists');
 select has_table('public','kpi_stage_history','KPI stage history exists');

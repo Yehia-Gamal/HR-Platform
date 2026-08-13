@@ -1,4 +1,6 @@
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 select plan(8);
 
 select has_function('public','revoke_my_passkey',array['uuid','text']);

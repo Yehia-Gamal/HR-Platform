@@ -26,8 +26,10 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { useEmployees } from '../employees/useEmployees';
 import { AttendancePercentageRing, attendanceRateParts, buildDayTags, DayTag, DAY_FILTERS, DAY_SORTS, filterDays, fmtTime, hoursRateParts, MONTHS, sortDays, StatItem, WARN_STATUSES, type DayFilter, type DaySort } from './attendanceShared';
 import { AttendanceDayEditor } from './AttendanceDayEditor';
+import { AttendanceHeatmap, generateMockHeatmapData, type AttendanceHeatmapDay } from './AttendanceHeatmap';
 import { exportAttendancePDF } from './exportAttendancePDF';
 import { useEmployeeMonthlyStatement } from './useMonthlyStatement';
+import { useAuth } from '../auth/AuthProvider';
 
 // ─── تصدير CSV ─────────────────────────────────────────────────
 
@@ -293,6 +295,7 @@ export function MonthlyAttendanceReportPage() {
 
 // ─── عرض الكشف الكامل ──────────────────────────────────────────
 function StatementReport({ data }: { data: AttendanceStatement }) {
+  const auth = useAuth();
   const { employee: emp, period, summary: s } = data;
   const { dueDays, presentInDue } = attendanceRateParts(s);
   const { workedHours, requiredHours, deficitHours } = hoursRateParts(s);
@@ -308,6 +311,16 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
   const filteredSortedDays = useMemo(
     () => sortDays(filterDays(data.days, dayFilter, daySearch), daySort),
     [data.days, dayFilter, daySort, daySearch],
+  );
+
+  // بيانات خريطة الحضور: في الوضع الوهمي نُولّد 30 يومًا عشوائية للعرض؛
+  // وإلا نُحوّل أيام الكشف إلى الصيغة المطلوبة للمكوّن.
+  const heatmapData = useMemo<AttendanceHeatmapDay[]>(
+    () =>
+      auth.isMock
+        ? generateMockHeatmapData(period.endDate.slice(-2) === '31' ? 31 : 30)
+        : data.days.map((d) => ({ date: d.date, status: d.status })),
+    [auth.isMock, data.days, period.endDate],
   );
 
   return (
@@ -470,6 +483,9 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
           </tbody>
         </table>
       </section>
+
+      {/* خريطة الحضور الحرارية */}
+      <AttendanceHeatmap data={heatmapData} />
     </div>
   );
 }

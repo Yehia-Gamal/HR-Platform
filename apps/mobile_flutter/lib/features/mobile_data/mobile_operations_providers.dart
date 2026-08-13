@@ -39,6 +39,18 @@ final mobileExecutiveCommandCenterProvider =
       return MobileExecutiveCommandCenter.fromJson(_asMap(data));
     });
 
+// مركز العمليات (إدارة التشغيل) — get_mobile_operations_center (mig 0408):
+// المهام المفتوحة + المهمات + القوافل بنطاق صلاحية المستخدم.
+final mobileOperationsCenterProvider =
+    FutureProvider<MobileOperationsCenter>((ref) async {
+      final data = await rpcWithTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>('get_mobile_operations_center'),
+      );
+      return MobileOperationsCenter.fromJson(_asMap(data));
+    });
+
 final mobileOperationsCommandsProvider = Provider<MobileOperationsCommands>(
   MobileOperationsCommands.new,
 );

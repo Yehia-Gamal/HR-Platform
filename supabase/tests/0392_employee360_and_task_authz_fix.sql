@@ -2,7 +2,10 @@
 -- يتحقق من:
 -- 1) get_employee_360 تعيد الحقول الكاملة (لا stub 3-حقول)
 -- 2) admin_create_task لا تُرفض لـ operations.mission.manage
-BEGIN;
+begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions,pg_temp;
+
 SELECT plan(8);
 
 -- ─── 1) get_employee_360 موجودة وتعيد jsonb ──────────────────────────────────

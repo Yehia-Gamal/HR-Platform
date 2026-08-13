@@ -1,4 +1,6 @@
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 select plan(7);
 
 select has_table('public','login_auth_attempts','identifier login attempt ledger exists');

@@ -1,6 +1,9 @@
 -- pgTAP tests for migration 0393
 -- يتحقق من أن admin_transition_task قبلت operations.mission.manage
-BEGIN;
+begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions,pg_temp;
+
 SELECT plan(5);
 
 SELECT has_function(

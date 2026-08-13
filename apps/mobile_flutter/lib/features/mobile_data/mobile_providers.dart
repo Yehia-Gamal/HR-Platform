@@ -421,6 +421,27 @@ final employeeMonthlyStatementProvider =
   },
 );
 
+// دليل الموظفين الإداري (إدارة الموظفين) — get_employees_enriched، مقيد بصلاحية
+// can_access_employee داخل الدالة (security definer).
+final mobileEmployeesProvider = FutureProvider.autoDispose
+    .family<List<MobileEmployeeSummary>, (String, String)>((ref, params) async {
+      final search = params.$1.trim();
+      final status = params.$2;
+      final data = await rpcWithTimeout(
+        ref.watch(supabaseProvider).rpc<dynamic>(
+          'get_employees_enriched',
+          params: {
+            'p_search': search.isEmpty ? null : search,
+            'p_status': status == 'all' ? null : status,
+            'p_limit': 200,
+          },
+        ),
+      );
+      return _asList(data)
+          .map(MobileEmployeeSummary.fromJson)
+          .toList(growable: false);
+    });
+
 final mobileDailyReportsProvider =
     FutureProvider.family<List<MobileDailyReport>, String?>((
       ref,

@@ -348,7 +348,7 @@ export function LeavesPage() {
     leaveType: leaveType || undefined,
   });
 
-  const rows = query.data?.rows ?? [];
+  const rows = useMemo(() => query.data?.rows ?? [], [query.data?.rows]);
 
   const metrics = useMemo(() => ({
     total:    rows.length,

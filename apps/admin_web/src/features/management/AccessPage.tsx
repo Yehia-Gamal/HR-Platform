@@ -25,7 +25,6 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { useAccessAdminCatalog, useAccessCommands } from './useAdminOperations';
 import type { AccessAdminCatalog } from '@ahla/shared-contracts';
 import { safeErrorMessage } from '../../core/errorMapper';
-import { useToast } from '../../ui/Toast';
 import { useAuth } from '../auth/AuthProvider';
 
 // ─── ترجمة النطاقات ────────────────────────────────────────────────────────

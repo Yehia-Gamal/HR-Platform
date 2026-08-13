@@ -113,9 +113,10 @@ export function useAnnouncementEngagement(announcementId: string | undefined) {
     queryKey: ['announcement-engagement', announcementId],
     enabled: auth.status === 'authenticated' && Boolean(announcementId),
     queryFn: async (): Promise<AnnouncementEngagementDetail> => {
+      const id = announcementId ?? '';
       if (auth.isMock) {
         return {
-          announcementId: announcementId ?? '',
+          announcementId: id,
           targetCount: 0,
           viewerCount: 0,
           reactionCount: 0,
@@ -126,7 +127,7 @@ export function useAnnouncementEngagement(announcementId: string | undefined) {
         };
       }
       const data = await rpc('get_announcement_engagement', {
-        p_announcement_id: announcementId!,
+        p_announcement_id: id,
       });
       return announcementEngagementDetailSchema.parse(data);
     },

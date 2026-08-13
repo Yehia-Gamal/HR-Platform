@@ -1,4 +1,6 @@
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 select plan(15);
 select has_table('public','strategic_objectives','strategy objectives exist');
 select has_table('public','enterprise_projects','projects exist');

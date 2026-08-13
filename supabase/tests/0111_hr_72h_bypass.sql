@@ -79,31 +79,31 @@ begin
     approver_type, approver_role_slug, approver_permission, sla_hours, is_active)
     values (v_wf, 2, 'اعتماد HR', 'role', 'hr-manager', 'requests.approve', 48, true);
 
-  -- ── طلب أ: تجاوزت مهلة المدير 72 ساعة (due_at قبل 4 أيام) ──
+  -- ── طلب أ: تجاوزت مهلة المدير (الخطوة 1 مصعّدة، والخطوة 3 HR نشطة) ──
   insert into public.requests(request_type, employee_id, manager_employee_id,
     workflow_definition_id, status, workflow_status, current_step_order, title, payload)
-    values ('leave', v_emp, v_mgr, v_wf, 'pending', 'in_review', 1,
-            'إجازة تجاوزت 72 ساعة',
+    values ('leave', v_emp, v_mgr, v_wf, 'pending', 'in_review', 3,
+            'إجازة تجاوزت مهلة المدير',
             jsonb_build_object('leaveType','casual','startDate',current_date,'endDate',current_date))
     returning id into v_req_a;
 
   insert into public.request_steps(request_id, step_order, name_ar,
     assignee_employee_id, status, sla_hours, due_at)
-    values (v_req_a, 1, 'مراجعة المدير المباشر', v_mgr, 'active', 48, now() - interval '4 days');
+    values (v_req_a, 1, 'مراجعة المدير المباشر', v_mgr, 'escalated', 48, now() - interval '4 days');
   insert into public.request_steps(request_id, step_order, name_ar,
     assignee_role_slug, status, sla_hours, due_at)
-    values (v_req_a, 2, 'اعتماد HR', 'hr-manager', 'pending', 48, null)
+    values (v_req_a, 3, 'اعتماد HR', 'hr-manager', 'active', 48, now() - interval '4 days')
     returning id into v_step2_a;
 
   insert into public.workflow_instances(definition_id, request_id, definition_version,
     status, current_step_order)
-    values (v_wf, v_req_a, 1, 'running', 1);
+    values (v_wf, v_req_a, 1, 'running', 3);
 
-  -- ── طلب ب: لم تتجاوز مهلة المدير (due_at بعد 48 ساعة) ──
+  -- ── طلب ب: لم تتجاوز مهلة المدير (الخطوة 1 نشطة، HR غير مفعّل) ──
   insert into public.requests(request_type, employee_id, manager_employee_id,
     workflow_definition_id, status, workflow_status, current_step_order, title, payload)
     values ('leave', v_emp, v_mgr, v_wf, 'pending', 'in_review', 1,
-            'إجازة لم تتجاوز 72 ساعة',
+            'إجازة لم تتجاوز مهلة المدير',
             jsonb_build_object('leaveType','casual','startDate',current_date,'endDate',current_date))
     returning id into v_req_b;
 
@@ -112,7 +112,7 @@ begin
     values (v_req_b, 1, 'مراجعة المدير المباشر', v_mgr, 'active', 48, now() + interval '2 days');
   insert into public.request_steps(request_id, step_order, name_ar,
     assignee_role_slug, status, sla_hours, due_at)
-    values (v_req_b, 2, 'اعتماد HR', 'hr-manager', 'pending', 48, null)
+    values (v_req_b, 3, 'اعتماد HR', 'hr-manager', 'pending', 48, null)
     returning id into v_step2_b;
 
   insert into public.workflow_instances(definition_id, request_id, definition_version,

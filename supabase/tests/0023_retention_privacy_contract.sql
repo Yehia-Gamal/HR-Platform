@@ -1,4 +1,6 @@
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 select plan(10);
 select has_column('public','live_location_videos_meta','retention_delete_after','video retention deadline exists');
 select has_column('public','live_location_videos_meta','legal_hold_until','video legal hold exists');

@@ -1,4 +1,6 @@
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 select plan(11);
 select has_table('public','attendance_periods','attendance periods exist');
 select has_table('public','work_rosters','work rosters exist');

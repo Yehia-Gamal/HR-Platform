@@ -1,4 +1,6 @@
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 select plan(12);
 select has_table('public','leave_balance_accounts','leave balance accounts exist');
 select has_table('public','leave_ledger_entries','leave ledger exists');

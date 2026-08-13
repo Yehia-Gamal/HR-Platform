@@ -1,4 +1,6 @@
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 select plan(13);
 select has_table('public','decision_versions','decision versions exist');
 select has_table('public','decision_actions','decision actions exist');

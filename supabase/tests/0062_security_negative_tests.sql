@@ -2,6 +2,8 @@
 -- Agent 13 — QA Security Negative Tests
 
 BEGIN;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 SELECT plan(22);
 
 -- ════════════════════════════════════════════════════

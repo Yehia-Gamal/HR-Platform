@@ -1,4 +1,6 @@
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions, pg_temp;
 select plan(14);
 select has_table('public','dispute_conflict_declarations','conflict declarations exist');
 select has_table('public','dispute_session_attendance','session attendance exists');

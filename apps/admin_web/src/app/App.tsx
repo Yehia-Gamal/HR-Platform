@@ -37,7 +37,6 @@ const ReportsPage = lazy(() => import('../features/management/ReportsPage').then
 const OfficialHolidaysPage = lazy(() => import('../features/holidays/OfficialHolidaysPage').then((m) => ({ default: m.OfficialHolidaysPage })));
 const RequestsPage = lazy(() => import('../features/requests/RequestsPage').then((m) => ({ default: m.RequestsPage })));
 const DeviceApprovalPage = lazy(() => import('../features/devices/DeviceApprovalPage').then((m) => ({ default: m.DeviceApprovalPage })));
-const OrganizationPage = lazy(() => import('../features/management/OrganizationPage').then((m) => ({ default: m.OrganizationPage })));
 const OfficialFeedPage = lazy(() => import('../features/communications/OfficialFeedPage').then((m) => ({ default: m.OfficialFeedPage })));
 const DailyReportsFeedPage = lazy(() => import('../features/reports/DailyReportsFeedPage').then((m) => ({ default: m.DailyReportsFeedPage })));
 const NotificationsPage = lazy(() => import('../features/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })));

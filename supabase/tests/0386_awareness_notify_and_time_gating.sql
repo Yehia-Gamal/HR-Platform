@@ -1,5 +1,8 @@
 -- 0386: تريغر الإشعار الفوري + تقييد الموافقة بالزمن (mig 0386)
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions,pg_temp;
+
 select plan(6);
 
 -- 1. دالة التريغر موجودة
@@ -9,15 +12,15 @@ select has_function(
   'tg_notify_awareness_on_request_submit() موجودة'
 );
 
--- 2. التريغر مربوط بجدول employee_requests
+-- 2. التريغر مربوط بجدول requests
 select ok(
   exists (
     select 1 from information_schema.triggers
     where trigger_schema = 'public'
-      and event_object_table = 'employee_requests'
+      and event_object_table = 'requests'
       and trigger_name like '%notify_awareness%'
   ),
-  'تريغر notify_awareness_on_request_submit موجود على employee_requests'
+  'تريغر notify_awareness_on_request_submit موجود على requests'
 );
 
 -- 3. decide_request موجودة
@@ -27,13 +30,14 @@ select has_function(
   'decide_request(uuid,text,text) موجودة'
 );
 
--- 4. decide_request تحتوي على تقييد الزمن
-select like(
+-- 4. decide_request تفرض الصلاحية حسب خطوة workflow (step-gating)
+select alike(
   (select prosrc from pg_proc p
    join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'public' and p.proname = 'decide_request'),
-  '%submitted_at%',
-  'decide_request يجب أن تتحقق من وقت تقديم الطلب (time-gating)'
+   where n.nspname = 'public' and p.proname = 'decide_request'
+   limit 1),
+  '%v_current_step%',
+  'decide_request يجب أن تتحقق من خطوة workflow النشطة (step-gating)'
 );
 
 -- 5. decide_request SECURITY DEFINER

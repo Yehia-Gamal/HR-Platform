@@ -13,7 +13,7 @@ select plan(10);
 -- (1) الدالة موجودة بالتوقيع المتوقع
 -- =====================================================================
 select has_function(
-  'public', 'submit_my_request', array['text','text','text','jsonb'],
+  'public', 'submit_my_request', array['text','text','text','jsonb','uuid'],
   'submit_my_request RPC exists');
 
 -- =====================================================================
