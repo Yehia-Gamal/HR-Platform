@@ -154,7 +154,10 @@ Deno.serve(async (req) => {
       employeeCode,
       fullNameAr: input.fullNameAr,
     });
-    if (!verdict.ok) return json(req, { error: verdict.reason }, 400);
+    if (!verdict.ok) {
+      const reason = (verdict as { ok: false; reason: string }).reason;
+      return json(req, { error: reason }, 400);
+    }
     // GoTrue/bcrypt ترفض كلمة المرور الأطول من 72 بايت (وليس فقط 72 حرفًا) —
     // أحرف عربية/متعددة البايت قد تتجاوز الحد بايتيًا.
     if (new TextEncoder().encode(input.initialPassword).length > 72) {

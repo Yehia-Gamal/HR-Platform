@@ -224,3 +224,91 @@ export const employee360Schema = z.object({
 });
 
 export type Employee360 = z.infer<typeof employee360Schema>;
+
+// ---------------------------------------------------------------------
+// ملف الموظف الشامل (Dossier) — بيانات أقسام تبويبات الملف
+// ---------------------------------------------------------------------
+
+export const employeeLocationRequestSchema = z.object({
+  id: z.string().uuid(),
+  requestedByName: z.string().nullable(),
+  reason: z.string().nullable(),
+  status: z.string(),
+  purpose: z.string(),
+  requestedAt: z.string(),
+  respondedAt: z.string().nullable(),
+  startsAt: z.string().nullable(),
+  expiresAt: z.string().nullable(),
+  durationMinutes: z.number().nullable(),
+});
+export type EmployeeLocationRequest = z.infer<typeof employeeLocationRequestSchema>;
+
+export const employeeLocationRequestsSchema = employeeLocationRequestSchema.array();
+export type EmployeeLocationRequests = z.infer<typeof employeeLocationRequestsSchema>;
+
+export const employeeTaskItemSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  description: z.string().nullable(),
+  priority: z.string(),
+  status: z.string(),
+  dueDate: z.string().nullable(),
+  createdAt: z.string(),
+  createdByName: z.string().nullable(),
+});
+export type EmployeeTaskItem = z.infer<typeof employeeTaskItemSchema>;
+
+export const employeeTaskItemsSchema = employeeTaskItemSchema.array();
+export type EmployeeTaskItems = z.infer<typeof employeeTaskItemsSchema>;
+
+export const employeeKpiEvaluationSchema = z.object({
+  id: z.string().uuid(),
+  periodMonth: z.string(),
+  currentStage: z.string().nullable(),
+  workflowStatus: z.string().nullable(),
+  cycleStatus: z.string().nullable(),
+  finalScore: z.number().nullable(),
+  finalRating: z.string().nullable(),
+  managerComment: z.string().nullable(),
+  hrComment: z.string().nullable(),
+  locked: z.boolean().nullable(),
+  updatedAt: z.string().nullable(),
+});
+export type EmployeeKpiEvaluation = z.infer<typeof employeeKpiEvaluationSchema>;
+
+export const employeeKpiEvaluationsSchema = employeeKpiEvaluationSchema.array();
+export type EmployeeKpiEvaluations = z.infer<typeof employeeKpiEvaluationsSchema>;
+
+export const employeePublishedDecisionSchema = z.object({
+  id: z.string().uuid(),
+  decisionNumber: z.string().nullable(),
+  title: z.string(),
+  category: z.string(),
+  effectiveDate: z.string().nullable(),
+  expiryDate: z.string().nullable(),
+  publishedAt: z.string().nullable(),
+  isRead: z.boolean(),
+  acknowledged: z.boolean(),
+});
+export type EmployeePublishedDecision = z.infer<typeof employeePublishedDecisionSchema>;
+
+export const employeePublishedDecisionsSchema = employeePublishedDecisionSchema.array();
+export type EmployeePublishedDecisions = z.infer<typeof employeePublishedDecisionsSchema>;
+
+export const employeeDailyReportSchema = z.object({
+  id: z.string().uuid(),
+  employeeId: z.string().uuid(),
+  employeeName: z.string().nullable(),
+  reportDate: z.string(),
+  achievements: z.string().nullable(),
+  blockers: z.string().nullable(),
+  tomorrowPlan: z.string().nullable(),
+  managerComment: z.string().nullable(),
+  reviewerName: z.string().nullable(),
+  reviewedAt: z.string().nullable(),
+  createdAt: z.string(),
+});
+export type EmployeeDailyReport = z.infer<typeof employeeDailyReportSchema>;
+
+export const employeeDailyReportsSchema = employeeDailyReportSchema.array();
+export type EmployeeDailyReports = z.infer<typeof employeeDailyReportsSchema>;

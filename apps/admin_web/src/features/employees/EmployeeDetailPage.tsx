@@ -6,6 +6,7 @@ import {
   BriefcaseBusiness,
   Building2,
   CalendarDays,
+  CheckSquare,
   Clock3,
   FileText,
   Archive,
@@ -16,6 +17,7 @@ import {
   Lock,
   Mail,
   MailCheck,
+  MapPin,
   Network,
   Pencil,
   Phone,
@@ -61,6 +63,12 @@ import { normalizePhoneForSubmit, EmployeeEditHistory } from './employeeDetailSh
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useToast } from '../../ui/Toast';
 import { useOrganizationLookups } from './useOrganizationLookups';
+import { Tabs } from '../../ui/Tabs';
+import { EmployeeLeaveTab } from './EmployeeLeaveTab';
+import { EmployeeLocationTab } from './EmployeeLocationTab';
+import { EmployeeTasksTab } from './EmployeeTasksTab';
+import { EmployeeKpiTab } from './EmployeeKpiTab';
+import { EmployeeReportsTab } from './EmployeeReportsTab';
 
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
 
@@ -903,6 +911,18 @@ function AddDepartmentDialog({ employeeId, onClose, onSuccess }: { employeeId: s
 // ---------------------------------------------------------------------------
 // EmployeeDetailPage — Main component
 // ---------------------------------------------------------------------------
+type EmployeeTabId = 'overview' | 'leaves' | 'attendance' | 'locations' | 'tasks' | 'kpi' | 'reports';
+
+const EMPLOYEE_TABS: { id: EmployeeTabId; label: string; icon: LucideIcon }[] = [
+  { id: 'overview', label: 'النبذة', icon: Eye },
+  { id: 'leaves', label: 'الإجازات', icon: CalendarDays },
+  { id: 'attendance', label: 'الحضور والانصراف', icon: Clock3 },
+  { id: 'locations', label: 'مواقع العمل', icon: MapPin },
+  { id: 'tasks', label: 'المهام', icon: CheckSquare },
+  { id: 'kpi', label: 'الأداء', icon: Gauge },
+  { id: 'reports', label: 'التقارير', icon: FileText },
+];
+
 export function EmployeeDetailPage() {
   const { employeeId } = useParams();
   const auth = useAuth();
@@ -916,6 +936,7 @@ export function EmployeeDetailPage() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showAddDeptDialog, setShowAddDeptDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState<EmployeeTabId>('overview');
   const navigate = useNavigate();
   const item = query.data;
 
@@ -998,7 +1019,15 @@ export function EmployeeDetailPage() {
       ) : null}
       {resendError ? <ErrorBanner message={resendError} /> : null}
 
-      <section className="card flex flex-col gap-5 p-5 lg:flex-row lg:items-center">
+      <Tabs
+        tabs={EMPLOYEE_TABS.map((tab) => ({ id: tab.id, label: tab.label }))}
+        activeTab={activeTab}
+        onTabChange={(id) => setActiveTab(id as EmployeeTabId)}
+        ariaLabel="أقسام ملف الموظف"
+      >
+        {activeTab === 'overview' ? (
+          <div className="space-y-6">
+            <section className="card flex flex-col gap-5 p-5 lg:flex-row lg:items-center">
         <UserAvatar displayName={item.fullNameAr} photoUrl={item.photoUrl} size="lg" eager />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-3">
@@ -1139,9 +1168,6 @@ export function EmployeeDetailPage() {
       {/* إدارات الموظف — V17 multi-department */}
       {employeeId && <DepartmentsSection employeeId={employeeId} canEdit={canEdit} onAdd={() => setShowAddDeptDialog(true)} />}
 
-      {/* كشف الحضور والانصراف الشهري (V12 §18) */}
-      {employeeId && <MonthlyStatementSection employeeId={employeeId} />}
-
       {/* آخر التعديلات الهامة على الملف */}
       {employeeId && <EmployeeEditHistory employeeId={employeeId} />}
 
@@ -1151,6 +1177,16 @@ export function EmployeeDetailPage() {
           ? new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.lastUpdatedAt))
           : 'غير متوفر'}
       </p>
+          </div>
+        ) : null}
+
+        {activeTab === 'leaves' && employeeId ? <EmployeeLeaveTab employeeId={employeeId} /> : null}
+        {activeTab === 'attendance' && employeeId ? <MonthlyStatementSection employeeId={employeeId} /> : null}
+        {activeTab === 'locations' && employeeId ? <EmployeeLocationTab employeeId={employeeId} /> : null}
+        {activeTab === 'tasks' && employeeId ? <EmployeeTasksTab employeeId={employeeId} /> : null}
+        {activeTab === 'kpi' && employeeId ? <EmployeeKpiTab employeeId={employeeId} /> : null}
+        {activeTab === 'reports' && employeeId ? <EmployeeReportsTab employeeId={employeeId} /> : null}
+      </Tabs>
 
       {showManagerDialog && employeeId && (
         <ChangeManagerDialog

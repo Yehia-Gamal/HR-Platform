@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractAvatarPath, toAuthenticatedAvatarUrl } from './avatarUrl';
+import { extractAvatarPath, toAuthenticatedAvatarUrl, toPublicAvatarUrl } from './avatarUrl';
 
 const PUBLIC = '/storage/v1/object/public/employee-avatars/';
 const AUTH = '/storage/v1/object/authenticated/employee-avatars/';
@@ -45,5 +45,40 @@ describe('toAuthenticatedAvatarUrl', () => {
   it('يترك الروابط الأخرى دون تغيير', () => {
     const input = 'https://example.com/x.jpg';
     expect(toAuthenticatedAvatarUrl(input)).toBe(input);
+  });
+});
+
+describe('toPublicAvatarUrl', () => {
+  const BASE = 'https://xyz.supabase.co';
+  const PUBLIC_OUT = `${BASE}/storage/v1/object/public/employee-avatars/`;
+
+  it('يبني رابطًا عامًا من رابط authenticated', () => {
+    const input = `${BASE}/storage/v1/object/authenticated/employee-avatars/u123/avatar.png`;
+    expect(toPublicAvatarUrl(input, BASE)).toBe(`${PUBLIC_OUT}u123/avatar.png`);
+  });
+
+  it('يبني رابطًا عامًا من رابط public قديم', () => {
+    const input = `${PUBLIC_OUT}admin/abc.webp`;
+    expect(toPublicAvatarUrl(input, BASE)).toBe(`${PUBLIC_OUT}admin/abc.webp`);
+  });
+
+  it('يرمّز المقاطع الخاصة في المسار', () => {
+    const input = `${BASE}/storage/v1/object/authenticated/employee-avatars/u/filename with spaces.png`;
+    expect(toPublicAvatarUrl(input, BASE)).toBe(`${PUBLIC_OUT}u/filename%20with%20spaces.png`);
+  });
+
+  it('يعيد الرابط الخارجي كما هو', () => {
+    const input = 'https://cdn.example.com/mock.webp';
+    expect(toPublicAvatarUrl(input, BASE)).toBe(input);
+  });
+
+  it('يعيد null لو لم يُعطَ supabaseUrl وكان المسار لـ bucket', () => {
+    const input = `${BASE}/storage/v1/object/authenticated/employee-avatars/u/a.png`;
+    expect(toPublicAvatarUrl(input, '')).toBeNull();
+  });
+
+  it('يزيل الشرطة الزائدة من نهاية supabaseUrl', () => {
+    const input = `${BASE}/storage/v1/object/authenticated/employee-avatars/u/a.png`;
+    expect(toPublicAvatarUrl(input, `${BASE}/`)).toBe(`${PUBLIC_OUT}u/a.png`);
   });
 });
