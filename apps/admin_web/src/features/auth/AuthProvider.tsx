@@ -29,6 +29,12 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+// SEC: rate limit للـ password reset من جهة العميل (نافذة ساعة). ثوابت موديول
+// كي لا تظهر كمحددات مفقودة في useCallback، ولأنها لا تتغير عبر العرض.
+const PASSWORD_RESET_LIMIT = 3;
+const PASSWORD_RESET_WINDOW_MS = 60 * 60 * 1000;
+const PASSWORD_RESET_KEY = 'ahla.passwordReset.attempts';
+
 export function AuthProvider({ children }: PropsWithChildren) {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [session, setSession] = useState<Session | null>(null);
@@ -177,10 +183,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   // SEC: rate limit للـ password reset من جهة العميل — نتتبع الطلبات في
   // localStorage (نافذة ساعة). الحماية الحقيقية يجب أن تكون في الخادم/Supabase،
   // لكن هذا يمنع spam بسيط من نفس المتصفح. Obfuscation: نُرجع دائماً نفس
-  // الرسالة العامة حتى لا نكشف إن كان البريد مسجلاً.
-  const PASSWORD_RESET_LIMIT = 3;
-  const PASSWORD_RESET_WINDOW_MS = 60 * 60 * 1000;
-  const PASSWORD_RESET_KEY = 'ahla.passwordReset.attempts';
+  // الرسالة العامة حتى لا نكشف إن كان البريد مسجلاً. الثوابت في نطاق الموديول.
 
   const requestPasswordReset = useCallback(async (email: string) => {
     if (!hasSupabaseConfig) throw new Error('Supabase غير مهيأ.');
@@ -188,14 +191,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const now = Date.now();
 
     // ─── Rate limit (client-side best-effort) ───
-    let attempts: number[] = [];
-    try {
-      const raw = typeof window !== 'undefined' ? window.localStorage.getItem(PASSWORD_RESET_KEY) : null;
-      attempts = raw ? (JSON.parse(raw) as number[]) : [];
-      attempts = attempts.filter((ts) => typeof ts === 'number' && now - ts < PASSWORD_RESET_WINDOW_MS);
-    } catch {
-      attempts = [];
-    }
+    const attempts: number[] = (() => {
+      try {
+        const raw = typeof window !== 'undefined' ? window.localStorage.getItem(PASSWORD_RESET_KEY) : null;
+        const parsed = raw ? (JSON.parse(raw) as number[]) : [];
+        return parsed.filter((ts) => typeof ts === 'number' && now - ts < PASSWORD_RESET_WINDOW_MS);
+      } catch {
+        return [];
+      }
+    })();
     if (attempts.length >= PASSWORD_RESET_LIMIT) {
       throw new Error('عدد كبير من المحاولات. انتظر ساعة ثم أعد المحاولة.');
     }
@@ -216,7 +220,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (resetError) {
       console.warn('[auth] password reset error (hidden from user):', resetError.message);
     }
-  }, [hasSupabaseConfig]);
+  }, []);
 
   const signInMock = useCallback((persona: MockPersona) => {
     if (!env.devMocksEnabled) return;
