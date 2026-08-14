@@ -634,24 +634,94 @@ a.no-underline:hover .metric-card--linked { transform: translateY(-3px); box-sha
   width: 50%;
 }
 
-/* ─── متجاوب ─── */
+/* ─── متجاوب: تبديل لتخطيط عمودي على الموبايل ─── */
 @media (max-width: 768px) {
+  /* إخفاء شريط أدوات zoom/pan والـ viewport القابل للتكبير */
+  .org-controls-toolbar { display: none !important; }
+  .org-tree-viewport {
+    height: auto;
+    min-height: unset;
+    border: none;
+    background: transparent;
+    overflow: visible;
+    user-select: auto;
+  }
+
+  /* الشجرة: تخطيط عمودي بدل أفقي */
+  .org-tree {
+    transform: none !important;
+    padding: 0.5rem;
+    gap: 0.75rem;
+    min-width: unset;
+  }
+
+  /* البطاقة: عرض كامل + مضغوط */
   .org-node-card {
-    min-width: 180px;
-    padding: 0.625rem 1rem;
+    min-width: unset;
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    gap: 0.625rem;
+  }
+
+  /* الأبناء: عمودي بدل أفقي */
+  .org-children {
+    padding-top: 0.5rem;
   }
 
   .org-children-row {
-    gap: 1.5rem 1rem;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-inline-start: 1.25rem;
   }
 
+  /* خطوط الربط: عمودية جانبية بدل أفقية */
+  .org-children-row > .org-node-wrapper::before {
+    top: -0.75rem;
+    height: 0.75rem;
+    inset-inline-start: 0.625rem;
+  }
+
+  .org-children-row > .org-node-wrapper:not(:only-child)::after {
+    display: none;
+  }
+
+  .org-connector-vertical {
+    top: -0.75rem;
+    height: 0.75rem;
+    inset-inline-start: 0.625rem;
+  }
+
+  .org-connector-horizontal {
+    display: none;
+  }
+
+  /* زر التوسيع: نقل لموضع أنسب */
+  .org-toggle {
+    inset-inline-end: 0.5rem;
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  /* الخطوط */
   .org-node-name {
     font-size: 0.8125rem;
   }
-
   .org-node.is-root .org-node-name {
     font-size: 0.9375rem;
   }
+  .org-node-title { font-size: 0.6875rem; }
+  .org-node-dept { font-size: 0.625rem; max-width: 70px; }
+  .org-node-code { font-size: 0.625rem; }
+  .org-node-badge { min-width: 1.5rem; height: 1.5rem; font-size: 0.6875rem; }
+}
+
+@media (max-width: 480px) {
+  .org-node-card { padding: 0.5rem 0.75rem; gap: 0.5rem; }
+  .org-node-dept { display: none; }
+  .org-node-code { display: none; }
+  .org-children-row { padding-inline-start: 1rem; }
+  .org-node-name { font-size: 0.75rem; }
+  .org-node.is-root .org-node-name { font-size: 0.875rem; }
 }
 
 /* ─── داكن مود ─── */
