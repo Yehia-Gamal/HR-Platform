@@ -1,6 +1,6 @@
 import type { KpiEvaluationForm } from '@ahla/shared-contracts';
 import { AlertTriangle, CalendarCheck, CheckCircle2, Link2, Save, ShieldCheck, Target } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { SkeletonCard } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
@@ -66,8 +66,15 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
   const [evidenceDraft, setEvidenceDraft] = useState({ criterionId: '', title: '', url: '', description: '' });
   const [tab, setTab] = useState<'goals' | 'criteria' | 'compliance' | 'session'>('goals');
 
+  // نُهيّئ الـ drafts مرة واحدة فقط عند أول تحميل للنموذج (أو عند تغيّر التقييم بالكامل).
+  // لا نُعيد الكتابة عند كل refetch — وإلا سنمسح تعديلات المستخدم غير المحفوظة في المعايير الأخرى.
+  const formId = form?.id;
+  const seededFormIdRef = useRef<string | null | undefined>(null);
   useEffect(() => {
     if (!form) return;
+    // فقط أعِد التهيئة عند تغيّر معرّف التقييم (تبديل بين تقييم وآخر) أو أول تحميل
+    if (seededFormIdRef.current === formId) return;
+    seededFormIdRef.current = formId;
     setScores(
       Object.fromEntries(
         form.criteria
@@ -114,7 +121,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
         };
       return next;
     });
-  }, [form]);
+  }, [form, formId]);
 
   const pending = advance.isPending || Object.values(commands).some((mutation) => mutation.isPending);
   const editableCriteria = useMemo(() => form?.criteria.filter((item) => item.editable) ?? [], [form]);

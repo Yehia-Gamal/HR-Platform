@@ -81,6 +81,27 @@ Deno.serve(createHandler({ functionName: "notification-dispatcher", version: "1.
     const { data: subscriptions } = await supabase.from('push_subscriptions')
       .select('id,fcm_token,endpoint,platform').eq('user_id', job.recipient_user_id).eq('is_active', true);
 
+    // V25: قطع حلقة الرنين المتكرر — لا يُرسل دفع عاجل لطلب موقع لم يعد
+    // pending (قُبل/رُفض/أُكمل) حتى لو أُعيدت جدولة الـ job أو فشل أول إرسال.
+    if (job.channel === 'push' &&
+        notification?.entity_type === 'live_location_request' &&
+        notification.entity_id) {
+      const { data: request } = await supabase.from('live_location_requests')
+        .select('status,expires_at').eq('id', notification.entity_id).maybeSingle();
+      const stillPending = !!request &&
+        request.status === 'pending' &&
+        (!request.expires_at || new Date(request.expires_at).getTime() > Date.now());
+      if (!stillPending) {
+        await supabase.from('notification_jobs').update({
+          status: 'cancelled',
+          last_error: 'request_no_longer_pending',
+          locked_at: null,
+          locked_by: null,
+        }).eq('id', job.id);
+        continue;
+      }
+    }
+
     try {
       if (job.channel === 'in_app') {
         await supabase.from('notification_jobs').update({ status: 'sent', sent_at: new Date().toISOString() }).eq('id', job.id);

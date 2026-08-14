@@ -17,7 +17,7 @@ import {
   UserCheck,
   UsersRound,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -1171,8 +1171,13 @@ export function DisputesPage() {
     const requested = params.get('case');
     if (requested && requested !== selectedCase) setSelectedCase(requested);
   }, [params, selectedCase]);
+  // نختار أول قضية تلقائيًا مرة واحدة فقط عند أول تحميل — لا نكتب فوق إلغاء الاختيار عند refetch
+  const initialSelectRef = useRef(false);
   useEffect(() => {
-    if (!selectedCase && cases.length) setSelectedCase(cases[0].id);
+    if (!initialSelectRef.current && !selectedCase && cases.length) {
+      initialSelectRef.current = true;
+      setSelectedCase(cases[0].id);
+    }
   }, [cases, selectedCase]);
 
   const filteredCases = useMemo(() => {

@@ -42,7 +42,7 @@ export function ExecutiveMonitoringPage({ embedded: _embedded = false }: { embed
 
   const overview = useExecutiveAttendanceOverview(null);
   const commands = useLiveLocationCommands();
-  const data = overview.data ?? ({ summary: { total: 0 }, employees: [] } as unknown as ExecutiveOverviewData);
+  const data = overview.data ?? ({ summary: { total: 0, present: 0, late: 0, notYet: 0, absent: 0, onLeave: 0, onAssignment: 0, incomplete: 0, pendingReview: 0, locationRequestsToday: 0, locationRespondedToday: 0, lastUpdatedAt: '' }, employees: [] } as unknown as ExecutiveOverviewData);
   const summary = data.summary ?? { total: 0 };
   const employees: EmployeeOverviewRow[] = useMemo(() => data.employees ?? [], [data.employees]);
 

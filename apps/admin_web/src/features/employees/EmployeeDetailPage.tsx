@@ -226,6 +226,24 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
   const uploadedPhotoPathRef = useRef<string | null>(null);
   const didSaveRef = useRef(false);
 
+  // إعادة مزامنة الحقول عند تحديث بيانات الموظف من الخادم (refetch) — لمنع الكتابة فوق تعديلات حديثة.
+  const itemVersionRef = useRef<string>(item.lastUpdatedAt ?? item.id);
+  useEffect(() => {
+    const currentVersion = item.lastUpdatedAt ?? item.id;
+    if (itemVersionRef.current !== currentVersion && !didSaveRef.current) {
+      itemVersionRef.current = currentVersion;
+      setFullNameAr(item.fullNameAr);
+      setPhoneE164(item.phoneE164 ? fixIntlPhoneOrder(item.phoneE164) : '');
+      setEmail(item.email ?? '');
+      setPhotoUrl(item.photoUrl ?? '');
+      setDepartmentId(item.departmentId ?? '');
+      setBranchId(item.branchId ?? '');
+      setWorkSiteId(item.workSiteId ?? '');
+      setJobTitleId(item.jobTitleId ?? '');
+      setHireDate(item.hireDate ?? '');
+    }
+  }, [item]);
+
   // تنظيف الصورة المرفوعة حديثاً إذا أُغلق الحوار دون حفظ.
   useEffect(() => {
     const path = uploadedPhotoPathRef.current;

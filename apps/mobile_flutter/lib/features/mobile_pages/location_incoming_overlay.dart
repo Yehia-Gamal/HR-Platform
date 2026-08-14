@@ -2,6 +2,7 @@ import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/push_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -182,6 +183,9 @@ class _LocationIncomingOverlayState
         // V17 §9: video path removed — needsVideo is always false.
       }
       await _stopUrgentAlarm();
+      // V25: وسّم الطلب كمعالَج نهائياً — يمنع أي رنين لاحق من FCM
+      // مكرر/متأخر حتى لو أُعيد تسليم نفس الإشعار.
+      await PushService.markRequestHandled(widget.request.id);
       if (mounted) Navigator.of(context).pop(true);
     } on GpsDisabledException {
       if (mounted) {
@@ -248,6 +252,8 @@ class _LocationIncomingOverlayState
           .read(mobileCommandsProvider)
           .respondLocation(widget.request.id, false);
       await _stopUrgentAlarm();
+      // V25: وسّم الطلب كمعالَج نهائياً بعد نجاح الرفض — يمنع أي رنين لاحق.
+      await PushService.markRequestHandled(widget.request.id);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(

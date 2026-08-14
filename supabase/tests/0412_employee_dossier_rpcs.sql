@@ -7,13 +7,13 @@
 --      طلبات المواقع + المهام + تقييمات KPI + القرارات المنشورة
 --      مع حل الأسماء (requestedByName / createdByName) وعلامات الإقرار.
 --   5. حدّ p_limit يعمل (tasks بـ p_limit=1 يعيد عنصراً واحداً).
--- 22 assertions
+-- 23 assertions
 -- =====================================================================
 
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(22);
+select plan(23);
 
 -- تعطيل trigger الإشعارات لتجنب أخطاء الـ fixture
 do $$ begin
@@ -76,8 +76,10 @@ declare
   v_dept       uuid := 'c4a40000-0000-4000-8000-000000000010';
   v_user_admin uuid := 'c4a40000-0000-4000-8000-000000000001';
   v_user_emp   uuid := 'c4a40000-0000-4000-8000-000000000002';
+  v_user_norm  uuid := 'c4a40000-0000-4000-8000-000000000003';
   v_emp_admin  uuid := 'c4a40000-0000-4000-8000-000000000011';
   v_emp_target uuid := 'c4a40000-0000-4000-8000-000000000012';
+  v_emp_norm   uuid := 'c4a40000-0000-4000-8000-000000000013';
   v_role_admin uuid;
   v_role_emp   uuid;
   v_cycle      uuid := 'c4a40000-0000-4000-8000-000000000301';
@@ -90,22 +92,26 @@ begin
 
   insert into auth.users (id, email, aud, role) values
     (v_user_admin, 'c4a4-admin@test.local', 'authenticated', 'authenticated'),
-    (v_user_emp,   'c4a4-emp@test.local',   'authenticated', 'authenticated');
+    (v_user_emp,   'c4a4-emp@test.local',   'authenticated', 'authenticated'),
+    (v_user_norm,  'c4a4-norm@test.local',  'authenticated', 'authenticated');
 
   insert into public.employees (id, user_id, employee_code, full_name_ar, department_id, status, is_active, is_deleted) values
     (v_emp_admin,  v_user_admin, 'C4A4-ADM', 'مسؤول الاختبار', v_dept, 'active', true, false),
-    (v_emp_target, v_user_emp,   'C4A4-TGT', 'موظف الهدف',     v_dept, 'active', true, false);
+    (v_emp_target, v_user_emp,   'C4A4-TGT', 'موظف الهدف',     v_dept, 'active', true, false),
+    (v_emp_norm,   v_user_norm,  'C4A4-NRM', 'موظف عادي',      v_dept, 'active', true, false);
 
   insert into public.profiles (id, employee_id, status) values
     (v_user_admin, v_emp_admin,  'active'),
-    (v_user_emp,   v_emp_target, 'active');
+    (v_user_emp,   v_emp_target, 'active'),
+    (v_user_norm,  v_emp_norm,   'active');
 
   select id into v_role_admin from public.roles where is_full_access = true order by slug limit 1;
   select id into v_role_emp from public.roles where slug = 'employee';
 
   insert into public.user_roles (user_id, role_id) values
     (v_user_admin, v_role_admin),
-    (v_user_emp,   v_role_emp);
+    (v_user_emp,   v_role_emp),
+    (v_user_norm,  v_role_emp);
 
   -- طلبا موقع للموظف الهدف (من المسؤول)
   insert into public.live_location_requests
@@ -155,9 +161,9 @@ $fixture$;
 -- =====================================================================
 do $$ begin
   perform set_config('request.jwt.claims',
-    '{"sub":"c4a40000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+    '{"sub":"c4a40000-0000-4000-8000-000000000003","role":"authenticated"}', true);
   perform set_config('request.jwt.claim.sub',
-    'c4a40000-0000-4000-8000-000000000002', true);
+    'c4a40000-0000-4000-8000-000000000003', true);
 end $$;
 set local role authenticated;
 
@@ -242,7 +248,7 @@ select is(
 select is(
   (select (public.get_employee_kpi_evaluations_admin('c4a40000-0000-4000-8000-000000000012', 10)
            #> '{0,finalScore}')::text),
-  '87.5',
+  '87.50',
   '0412: finalScore يُسلسل بشكل صحيح'
 );
 

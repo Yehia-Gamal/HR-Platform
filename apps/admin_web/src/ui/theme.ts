@@ -9,7 +9,7 @@ export function getPreferredTheme(): AppTheme {
     if (active === 'light' || active === 'dark') return active;
   }
   if (typeof window === 'undefined') return 'light';
-  const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
+  const saved = (() => { try { return window.localStorage.getItem(THEME_STORAGE_KEY); } catch { return null; } })();
   if (saved === 'light' || saved === 'dark') return saved;
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
@@ -18,7 +18,7 @@ export function applyTheme(theme: AppTheme, persist = true) {
   document.documentElement.dataset.theme = theme;
   document.documentElement.style.colorScheme = theme;
   document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#060B16' : '#0B4FA2');
-  if (persist) window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  if (persist) { try { window.localStorage.setItem(THEME_STORAGE_KEY, theme); } catch { /* incognito mode */ } }
   window.dispatchEvent(new CustomEvent<AppTheme>(THEME_CHANGE_EVENT, { detail: theme }));
 }
 

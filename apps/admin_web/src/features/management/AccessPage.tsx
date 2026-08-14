@@ -15,7 +15,7 @@ import {
   Users,
   Users2,
 } from 'lucide-react';
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
@@ -517,6 +517,7 @@ function RoleManagementDialog({
   const [moduleFilter, setModuleFilter] = useState('all');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [assignUserId, setAssignUserId] = useState('');
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
 
@@ -560,7 +561,8 @@ function RoleManagementDialog({
         items: Object.entries(draft).map(([permission_id, v]) => ({ permission_id, scope: v.scope, requires_mfa: v.mfa, requires_reason: v.reason })),
       });
       setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+      savedTimerRef.current = setTimeout(() => setSaved(false), 2500);
     } catch {
       /* mutation error surfaced via mutation.isError state */
     } finally {

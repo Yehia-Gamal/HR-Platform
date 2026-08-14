@@ -49,9 +49,16 @@ export function LiveLocationPage() {
     () => data.filter((item) => filter === 'all' || (filter === 'active' ? Boolean(item.activeRequestId) : locationState(item) === filter)),
     [data, filter],
   );
-  const fresh = data.filter((item) => locationState(item) === 'fresh').length;
-  const missing = data.filter((item) => locationState(item) === 'no_signal').length;
-  const active = data.filter((item) => item.activeRequestId).length;
+  const { fresh, missing, active } = useMemo(() => {
+    let f = 0, m = 0, a = 0;
+    for (const item of data) {
+      const st = locationState(item);
+      if (st === 'fresh') f++;
+      if (st === 'no_signal') m++;
+      if (item.activeRequestId) a++;
+    }
+    return { fresh: f, missing: m, active: a };
+  }, [data]);
 
   async function submitRequest(event: FormEvent) {
     event.preventDefault();

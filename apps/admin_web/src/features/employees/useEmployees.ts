@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { employee360Schema, employeeSummarySchema, type Employee360, type EmployeeSummary } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
@@ -365,6 +366,15 @@ export interface EmployeeAuditEvent {
   metadata: Record<string, unknown> | null;
 }
 
+
+const auditEventRowSchema = z.object({
+  id: z.string(),
+  summary_ar: z.string().nullable(),
+  occurred_at: z.string(),
+  description: z.string().nullable(),
+  metadata: z.unknown().nullable(),
+});
+
 export function useEmployeeAuditTrail(employeeId: string | undefined) {
   const auth = useAuth();
   return useQuery({
@@ -382,13 +392,16 @@ export function useEmployeeAuditTrail(employeeId: string | undefined) {
         .order('occurred_at', { ascending: false })
         .limit(50);
       if (error) throw new Error(error.message);
-      return (data ?? []).map((row) => ({
-        id: row.id,
-        summary: row.summary_ar,
-        occurredAt: row.occurred_at,
-        description: row.description,
-        metadata: (row.metadata ?? null) as Record<string, unknown> | null,
-      }));
+      return (data ?? []).map((row) => {
+        const parsed = auditEventRowSchema.parse(row);
+        return {
+          id: parsed.id,
+          summary: parsed.summary_ar,
+          occurredAt: parsed.occurred_at,
+          description: parsed.description,
+          metadata: (parsed.metadata ?? null) as Record<string, unknown> | null,
+        };
+      });
     },
   });
 }

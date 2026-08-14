@@ -30,17 +30,59 @@ String resolveRouteFromDeepLink(String deepLink) {
     final parts = deepLink.contains('://')
         ? [uri.host, ...segments]
         : segments;
+
+    // أولوية 1: مسار /action/{kind}/{id} القياسي.
     final idx = parts.indexOf('action');
     if (idx >= 0 && parts.length >= idx + 3) {
       final kind = parts[idx + 1];
       final id = parts[idx + 2];
-      if (!_uuidRegExp.hasMatch(id)) return '/';
-      return '/action/$kind/$id';
+      // UUID صالح → اقبل أي kind.
+      if (_uuidRegExp.hasMatch(id)) return _withQuery('/action/$kind/$id', uri);
+      // معرّف غير UUID (مثل تاريخ attendance) → اقبل فقط للأنواع المعروفة.
+      if (id.isNotEmpty && _isKnownActionKind(kind)) {
+        return _withQuery('/action/$kind/$id', uri);
+      }
+    }
+
+    // أولوية 2: مسارات قديمة مثل /requests/{uuid} أو /hr/requests/{uuid}
+    // نبحث عن UUID في آخر جزء ونحوّل بادئة المسار إلى kind.
+    if (parts.isNotEmpty) {
+      final lastPart = parts.last;
+      if (_uuidRegExp.hasMatch(lastPart)) {
+        final prefix = parts.length > 1
+            ? parts.sublist(0, parts.length - 1).join('/')
+            : '';
+        final legacyKind = _kindFromLegacyPath('/$prefix');
+        if (legacyKind != null) {
+          return _withQuery('/action/$legacyKind/$lastPart', uri);
+        }
+      }
     }
   } catch (_) {
     // روابط غير صالحة → الرئيسية.
   }
   return '/';
+}
+
+/// V25: يُلحق معاملات الـ query (مثل action=reject و notification_id)
+/// بمسار GoRouter — كانت تُفقد في المحلل القديم فكان زر "رفض الطلب"
+/// في شاشة Kotlin يفتح Flutter دون أن يصل معامل الرفض.
+String _withQuery(String route, Uri uri) {
+  final query = uri.query;
+  if (query.isEmpty) return route;
+  return '$route?$query';
+}
+
+/// هل النوع (kind) معروف في خريطة التنقل؟
+bool _isKnownActionKind(String kind) {
+  return switch (kind) {
+    'request' || 'request_decision' || 'kpi' || 'kpi_evaluation' ||
+    'attendance' || 'attendance_alert' || 'punch_reminder' ||
+    'location' || 'location_request' || 'live_location_request' ||
+    'dispute' || 'task' || 'decision' || 'announcement' || 'recognition'
+        => true,
+    _ => false,
+  };
 }
 
 /// يحوّل نوع الإشعار ومعرّف الكيان إلى مسار GoRouter.

@@ -66,6 +66,17 @@ class MainActivity : FlutterFragmentActivity() {
                     LocationRequestFullActivity.dismissIfActive()
                     result.success(true)
                 }
+                // V25: يُستدعى بعد نجاح الرد/الإرسال من Flutter — يوسّم الطلب
+                // كمعالَج نهائياً فيمنع أي رنين مستقبلي لنفس الطلب من FCM
+                // المكرر أو المتأخر.
+                "markRequestHandled" -> {
+                    UrgentAlarmService.markHandled(
+                        context = this,
+                        requestId = call.argument<String>("requestId").orEmpty(),
+                    )
+                    LocationRequestFullActivity.dismissIfActive()
+                    result.success(true)
+                }
                 "consumePendingFcmToken" -> {
                     val preferences = getSharedPreferences(
                         UrgentLocationMessagingService.PUSH_PREFERENCES,

@@ -136,7 +136,7 @@ select is(
      and target_id='a5200000-0000-4000-8000-000000000202'
      and metadata->'after'->>'fullNameAr' = 'اسم بلا سبب'
    limit 1),
-  'تعديل عبر لوحة التحكم',
+  'تعديل بيانات الموظف من لوحة الإدارة',
   'default audit reason recorded when change reason is empty'
 );
 

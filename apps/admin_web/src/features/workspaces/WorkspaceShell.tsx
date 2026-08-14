@@ -128,26 +128,24 @@ const adminSections: NavSection[] = [
     ],
   },
   {
-    title: 'الموظفون',
+    title: 'إدارة الموظفين',
     items: [
       { label: 'الموظفون', to: '/admin/hr/employees', icon: Users, permission: 'people.employee.read' },
+      { label: 'الهيكل التنظيمي', to: '/admin/hr/org-chart', icon: Network, permission: 'organization.org_chart.read' },
+      { label: 'الحضور والانصراف', to: '/admin/hr/attendance', icon: Activity, permission: 'attendance.record.read' },
+      { label: 'الورديات وإغلاق الحضور', to: '/admin/hr/attendance/operations', icon: CalendarClock, permission: 'attendance.roster.read' },
+      { label: 'كشف الحضور الشهري', to: '/admin/hr/attendance/report', icon: FileSignature, permission: 'attendance.record.read' },
+      { label: 'إدارة الإجازات', to: '/admin/hr/leaves', icon: CalendarDays, permission: 'requests.request.read' },
+      { label: 'طلبات الموظفين', to: '/admin/hr/requests', icon: ClipboardList, permission: 'requests.request.read' },
+      { label: 'العطل الرسمية', to: '/admin/hr/holidays', icon: CalendarDays, permission: 'holidays.manage' },
+      { label: 'المأموريات والعمليات', to: '/admin/operations', icon: ClipboardList, permission: ['reports.read', 'operations.mission.manage', 'operations.convoy.manage'] },
+      { label: 'الموقع الحي للموظفين', to: '/admin/live-location', icon: MapPin, permission: 'live_location.request' },
+      { label: 'المراقبة التنفيذية', to: '/admin/executive-monitoring', icon: Activity, permission: 'people.employee.read' },
       { label: 'أجهزة الموظفين', to: '/admin/hr/devices', icon: Smartphone, permission: 'access.role.read' },
       { label: 'التوظيف', to: '/admin/hr/recruitment', icon: BriefcaseBusiness, permission: 'recruitment.requisition.read' },
       { label: 'Onboarding', to: '/admin/hr/onboarding', icon: ListChecks, permission: 'onboarding.journey.read' },
-      { label: 'الهيكل المؤسسي', to: '/admin/hr/organization', icon: Network, permission: 'organization.org_chart.read' },
-      { label: 'دورة حياة الموظف', to: '/admin/hr/lifecycle', icon: PackageCheck, featureFlag: 'lifecycle' },
-      { label: 'استوديو المستندات', to: '/admin/hr/documents', icon: FileSignature, featureFlag: 'documents' },
-    ],
-  },
-  {
-    title: 'الوقت والحضور',
-    items: [
-      { label: 'الحضور', to: '/admin/hr/attendance', icon: Activity, permission: 'attendance.record.read' },
-      { label: 'الورديات وإغلاق الحضور', to: '/admin/hr/attendance/operations', icon: CalendarClock, permission: 'attendance.roster.read' },
-      { label: 'كشف الحضور الشهري', to: '/admin/hr/attendance/report', icon: FileSignature, permission: 'attendance.record.read' },
-      { label: 'طلبات الإجازات', to: '/admin/hr/requests', icon: ClipboardList, permission: 'requests.request.read' },
-      { label: 'إدارة الإجازات', to: '/admin/hr/leaves', icon: CalendarDays, permission: 'requests.request.read' },
-      { label: 'العطل الرسمية', to: '/admin/hr/holidays', icon: CalendarClock, permission: 'holidays.manage' },
+      { label: 'دورة حياة الموظف', to: '/admin/hr/lifecycle', icon: PackageCheck, permission: 'people.employee.read' },
+      { label: 'استوديو المستندات', to: '/admin/hr/documents', icon: FileSignature, permission: 'documents.document.read' },
     ],
   },
   {
@@ -155,15 +153,12 @@ const adminSections: NavSection[] = [
     items: [
       { label: 'KPI والأداء', to: '/admin/hr/performance', icon: Gauge, permission: 'performance.kpi.read' },
       { label: 'دورات KPI والاعتراضات', to: '/admin/performance/cycles', icon: BadgeCheck, permission: 'performance.cycle.manage' },
-      { label: 'التدريب والمهارات', to: '/admin/hr/learning', icon: Sparkles, featureFlag: 'learning' },
+      { label: 'التدريب والمهارات', to: '/admin/hr/learning', icon: Sparkles, permission: 'learning.enroll' },
     ],
   },
   {
     title: 'القيادة والرقابة',
     items: [
-      { label: 'مركز الموقع الحي', to: '/admin/live-location', icon: MapPin, permission: 'live_location.request' },
-      { label: 'المراقبة التنفيذية', to: '/admin/executive-monitoring', icon: Activity },
-      { label: 'العمليات والمهام', to: '/admin/operations', icon: ClipboardList, permission: ['reports.read', 'operations.mission.manage', 'operations.convoy.manage'] },
       { label: 'لجنة الخلافات', to: '/admin/disputes', icon: Gavel, permission: ['disputes.case.manage', 'disputes.portal.access'] },
       { label: 'مكتب الخدمات', to: '/admin/helpdesk', icon: Headphones, featureFlag: 'helpdesk' },
       { label: 'الرواتب والمالية', to: '/admin/finance', icon: WalletCards, featureFlag: 'peopleFinance' },
@@ -174,7 +169,7 @@ const adminSections: NavSection[] = [
   {
     title: 'الحوكمة والنظام',
     items: [
-      { label: 'الهيكل التنظيمي', to: '/admin/org-chart', icon: Network, permission: 'organization.org_chart.read' },
+      { label: 'الهيكل التنظيمي المتقدم', to: '/admin/org-chart', icon: Network, permission: 'organization.org_chart.read' },
       { label: 'الأدوار والصلاحيات', to: '/admin/access', icon: ShieldCheck, permission: 'access.role.read' },
       { label: 'الإدارة المؤسسية', to: '/admin/enterprise', icon: Building2, permission: 'organization.entity.read' },
       { label: 'التدقيق والأمان', to: '/admin/audit-security', icon: ShieldCheck, permission: 'audit.view' },
@@ -193,8 +188,8 @@ const adminSections: NavSection[] = [
       { label: 'التحليلات', to: '/admin/analytics', icon: BarChart3, permission: 'reports.people.read' },
       { label: 'جدولة التقارير', to: '/admin/reports/scheduler', icon: TimerReset, permission: 'reports.schedule.manage' },
       { label: 'الأخبار والقرارات', to: '/admin/hr/official-feed', icon: Megaphone, permission: ['comms.announcement.read', 'comms.decision.read'] },
-      { label: 'التقارير اليومية', to: '/admin/hr/daily-reports', icon: ClipboardList },
-      { label: 'قاعدة المعرفة', to: '/admin/knowledge', icon: BookOpen },
+      { label: 'التقارير اليومية', to: '/admin/hr/daily-reports', icon: ClipboardList, permission: ['reports.daily.read', 'people.employee.read'] },
+      { label: 'قاعدة المعرفة', to: '/admin/knowledge', icon: BookOpen, permission: 'knowledge.article.read' },
     ],
   },
 ];

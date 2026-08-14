@@ -81,19 +81,39 @@ class PushService {
       onDidReceiveNotificationResponse: (response) {
         final payload = response.payload;
         if (payload == null || payload.isEmpty) return;
-        // §10 — الحمولة قد تحمل "notificationId\u0001deepLink" لنسخة المقدمة،
-        // فيُوسّم الإشعار الداخلي مقروءًا ثم يُوجّه للمسار الفعلي.
+        // الحمولة بصيغة: notificationId\u0001deepLink\u0001entityType\u0001entityId
+        // حيث الحقلان الأخيران fallback لما لا يمكن تحليله من deepLink.
         final parts = payload.split('\u0001');
-        final notificationId =
-            parts.length == 2 ? parts[0] : '';
-        final deepLink = parts.length == 2 ? parts[1] : payload;
+        final notificationId = parts.isNotEmpty ? parts[0] : '';
+        final deepLink = parts.length >= 2 ? parts[1] : '';
+        final entityType = parts.length >= 3 ? parts[2] : '';
+        final entityId = parts.length >= 4 ? parts[3] : '';
         if (notificationId.isNotEmpty) {
           unawaited(_markInAppNotificationRead(notificationId));
           _local.cancel(_stableNotificationId(notificationId));
-        } else {
+        } else if (deepLink.isNotEmpty) {
           _local.cancel(_stableNotificationId(deepLink));
         }
-        _route(deepLink);
+        // أولوية 1: حلّ deepLink عبر المحلل الموحّد.
+        if (deepLink.isNotEmpty) {
+          final route = resolveRouteFromDeepLink(deepLink);
+          if (route != '/') {
+            _navigate(route, deepLink);
+            return;
+          }
+        }
+        // أولوية 2: استنتج المسار من entityType/entityId.
+        if (entityType.isNotEmpty && entityId.isNotEmpty) {
+          final route = resolveNotificationRoute(
+            type: entityType,
+            entityId: entityId,
+          );
+          if (route != '/') {
+            _navigate(route, 'entityType=$entityType/entityId=$entityId');
+            return;
+          }
+        }
+        // لا يوجد مسار قابل للحل — ابقَ على الرئيسية.
       },
     );
     await _local
@@ -205,11 +225,14 @@ class PushService {
     final deepLink = data['deepLink'] as String? ?? '';
     final requestId = data['requestId'] as String? ?? '';
     final notificationId = data['notificationId'] as String? ?? '';
+    final entityType = data['entityType'] as String? ?? data['kind'] as String? ?? '';
+    final entityId =
+        data['entityId'] as String? ?? requestId;
     final notificationKey = deepLink.isNotEmpty
         ? deepLink
         : requestId.isNotEmpty
         ? requestId
-        : data['entityId'] as String? ?? '';
+        : entityId;
 
     // للطلبات العاجلة: استدعاء Handler أصلي يفتح LocationRequestFullActivity
     if (isUrgent && requestId.isNotEmpty) {
@@ -267,8 +290,8 @@ class PushService {
       body,
       details,
       payload: notificationId.isNotEmpty
-          ? '$notificationId\u0001$deepLink'
-          : deepLink,
+          ? '$notificationId\u0001$deepLink\u0001$entityType\u0001$entityId'
+          : '$deepLink\u0001$entityType\u0001$entityId',
     );
   }
 
@@ -280,12 +303,19 @@ class PushService {
     // §10 — وسّم الإشعار الداخلي المقابل كمقروء بمجرد فتحه من خارج التطبيق.
     unawaited(_markInAppNotificationRead(data['notificationId'] as String?));
     final deepLink = data['deepLink'];
+
+    // أولوية 1: حاول تحليل deepLink عبر المحلل الموحّد.
     if (deepLink is String && deepLink.isNotEmpty) {
-      _local.cancel(_stableNotificationId(deepLink));
-      _route(deepLink);
-      return;
+      final route = resolveRouteFromDeepLink(deepLink);
+      if (route != '/') {
+        _local.cancel(_stableNotificationId(deepLink));
+        _navigate(route, deepLink);
+        return;
+      }
+      // deepLink موجود لكن غير قابل للحل — نكمل للـ fallback.
     }
-    // لا يوجد deepLink — استنتج المسار من الحقول المنفصلة.
+
+    // أولوية 2: استنتج المسار من الحقول المنفصلة (entityType/entityId/requestId).
     final route = resolveNotificationRouteFromData(data);
     if (route == '/') return; // لا يوجد شيء نستطيع عرضه بأمان.
     final idLike =
@@ -293,22 +323,17 @@ class PushService {
     if (idLike.isNotEmpty) {
       _local.cancel(_stableNotificationId(route));
     }
-    try {
-      appRouter.go(route);
-    } catch (e) {
-      if (kDebugMode) debugPrint('Push routing fallback failed: $e');
-    }
+    _navigate(route, deepLink as String? ?? route);
   }
 
-  /// توجيه من رابط نصي (قد يكون مطلق أو نسبي):
-  /// يمر عبر resolveRouteFromDeepLink المتوحّد لضمان التحقق من UUID.
-  /// '/' هو fallback آمن يعرض عتبة الجلسة بدل الشاشة السوداء.
-  void _route(String deepLink) {
-    final route = resolveRouteFromDeepLink(deepLink);
+  /// تنقل آمن إلى مسار GoRouter — يلتقط الأخطاء لمنع الانهيار.
+  void _navigate(String route, String originalLink) {
     try {
       appRouter.go(route);
     } catch (e) {
-      if (kDebugMode) debugPrint('Router navigation failed for $deepLink: $e');
+      if (kDebugMode) {
+        debugPrint('Router navigation failed for $originalLink → $route: $e');
+      }
     }
   }
 
@@ -323,6 +348,19 @@ class PushService {
       return exempt;
     } catch (_) {
       return null;
+    }
+  }
+
+  /// V25: يوسّم الطلب كمعالَج نهائياً في Kotlin بعد نجاح الرد/الإرسال —
+  /// يوقف الخدمة والمنبه ويمنع أي رنين لاحق لنفس الطلب من FCM مكرر/متأخر.
+  static Future<void> markRequestHandled(String requestId) async {
+    if (requestId.isEmpty) return;
+    try {
+      await _platform.invokeMethod<void>('markRequestHandled', {
+        'requestId': requestId,
+      });
+    } catch (_) {
+      // Older Android builds do not expose the native alarm service.
     }
   }
 

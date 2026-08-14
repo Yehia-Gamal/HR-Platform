@@ -14,7 +14,7 @@ import {
   UsersRound,
   XCircle,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
@@ -37,6 +37,15 @@ const stageLabels: Record<string, string> = {
   hr_review: 'مراجعة HR',
   finalized: 'مُعتمد',
   closed: 'مغلق',
+  archived: 'مؤرشف',
+};
+
+const cycleStatusLabels: Record<string, string> = {
+  draft: 'مسودة',
+  open: 'مفتوح',
+  locked: 'مغلق',
+  suspended: 'معلّق',
+  closed: 'منتهي',
   archived: 'مؤرشف',
 };
 
@@ -75,8 +84,11 @@ export function KpiCyclesPage() {
       commands.decideAppeal,
     ].find((m) => m.isError)?.error ?? null;
 
+  // نُهيّئ مسودات السياسة مرة واحدة فقط من أول استجابة — لا نكتب فوقها عند refetch لاحق
+  const policySeededRef = useRef(false);
   useEffect(() => {
-    if (!data?.policy) return;
+    if (!data?.policy || policySeededRef.current) return;
+    policySeededRef.current = true;
     const policy = data.policy;
     setPolicyRules((current) => ({ ...current, ...policy.attendanceRules }));
     const byLabel = Object.fromEntries(policy.ratingBands.map((band) => [band.label, band.min]));
@@ -152,11 +164,17 @@ export function KpiCyclesPage() {
         onError: () => toast({ message: 'تعذر إرسال الإشعارات', tone: 'error' }),
       },
     );
-  const savePolicy = () =>
+  const savePolicy = () => {
+    // منع إرسال bands متداخلة/مقلوبة حتى لو فُتح الزر عبر تحاوز على الـ DOM
+    if (!(ratingMins.excellent > ratingMins.veryGood && ratingMins.veryGood > ratingMins.good && ratingMins.good > ratingMins.acceptable)) {
+      toast({ message: 'حدود النطاقات غير مرتبة: يجب أن يكون ممتاز > جيد جدًا > جيد > مقبول', tone: 'error' });
+      return;
+    }
     commands.updatePolicy.mutate(policyPayload(), {
       onSuccess: () => toast({ message: 'تم حفظ إصدار السياسة الجديد', tone: 'success' }),
       onError: () => toast({ message: 'تعذر حفظ السياسة', tone: 'error' }),
     });
+  };
   const policyPayload = () => ({
     p_name: 'السياسة الرسمية لتقييم الأداء',
     p_attendance_rules: policyRules,
@@ -232,7 +250,7 @@ export function KpiCyclesPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <strong>{new Intl.DateTimeFormat('ar-EG', { month: 'long', year: 'numeric' }).format(new Date(cycle.periodMonth))}</strong>
-                          <StatusBadge value={cycle.status} />
+                          <StatusBadge value={cycleStatusLabels[cycle.status] ?? cycle.status} />
                         </div>
                         <p className="muted mt-1 text-sm">
                           {cycle.finalized}/{cycle.evaluations} مدرج · {cycle.overdue ?? 0} متأخر · المتوسط {cycle.averageScore ?? '—'}
@@ -241,7 +259,7 @@ export function KpiCyclesPage() {
                           الفتح: {cycle.scheduledOpenAt ? new Date(cycle.scheduledOpenAt).toLocaleString('ar-EG') : '—'} · النهاية:{' '}
                           {cycle.effectiveDeadline ? new Date(cycle.effectiveDeadline).toLocaleString('ar-EG') : '—'}
                         </p>
-                        {cycle.overrideReason ? <p className="mt-2 text-xs text-[var(--warning)]">آخر سبب إداري: {cycle.overrideReason}</p> : null}
+                        {cycle.overrideReason ? <p className="mt-2 text-xs text-[var(--warning)]">{cycle.overrideReason.replace(/^آخر سبب إداري:\s*/i, '')}</p> : null}
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {data.canManageCycles ? (

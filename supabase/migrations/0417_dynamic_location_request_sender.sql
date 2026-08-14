@@ -1,4 +1,4 @@
--- 0414: جعل جسم إشعار طلب الموقع ديناميكياً — يستخدم اسم المرسل الفعلي
+-- 0417: جعل جسم إشعار طلب الموقع ديناميكياً — يستخدم اسم المرسل الفعلي
 --
 -- المشكلة: كان جسم الإشعار ثابتاً: "السكرتير التنفيذي أو المدير التنفيذي يطلب موقعك الآن"
 -- بصرف النظر عن من أرسل الطلب فعلياً.
@@ -6,11 +6,19 @@
 -- الإصلاح: نستخرج اسم الموظف المرسل (v_me) ونضعه في الجسم،
 -- بنفس نمط share_my_location_proactively (0319).
 -- الـ fallback "الإدارة" يبقى محايداً ولا يذكر المدير التنفيذي صراحةً.
+--
+-- ملاحظة إصلاح: النص الأولي لهذا الملف أضاف overload رابعاً (p_purpose) فوق التوقيع
+-- الثلاثي request_live_location(uuid,text,text) — ما جعل الاستدعاءات غير المحددة الأنواع
+-- غامضة (42725) وكسر عقد اختبار 0040 ("request_live_location has one unambiguous signature")
+-- واختبار 0045. يبقي هذا النص التوقيع الثلاثي الوحيد (نفس توقيع 0338) ويطبق التغيير داخل
+-- جسمه؛ الغرض يبقى 'verification' — نفس قيمة المستدعين الحاليين (ويب/موبايل) واختبار 0040.
 
 begin;
+  -- أزل أي overload غامض أُضيف في نسخة سابقة من هذا الملف (idempotent).
+  drop function if exists public.request_live_location(uuid, text, text, text);
+
   create or replace function public.request_live_location(
     p_employee_id uuid,
-    p_purpose text default 'verification',
     p_mode text default 'snapshot',
     p_reason text default ''
   )

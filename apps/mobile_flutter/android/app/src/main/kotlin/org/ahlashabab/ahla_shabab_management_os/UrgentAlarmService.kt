@@ -105,7 +105,10 @@ class UrgentAlarmService : Service() {
         handler.removeCallbacks(safetyTimeout)
         handler.postDelayed(safetyTimeout, ALARM_TIMEOUT_MS)
 
-        return START_REDELIVER_INTENT
+        // V25: START_NOT_STICKY بدل START_REDELIVER_INTENT — قتل النظام
+        // للخدمة لا يجب أن يعيد تسليم نفس الـ intent ويعيد الرنين بعد أن
+        // تفاعل المستخدم مع الطلب.
+        return START_NOT_STICKY
     }
 
     private fun acquireWakeLock() {
@@ -344,6 +347,34 @@ class UrgentAlarmService : Service() {
         /** Maximum alarm duration before auto-stop (5 minutes). */
         private const val ALARM_TIMEOUT_MS = 5L * 60 * 1000
 
+        private const val PREFS_NAME = "urgent_alarm_prefs"
+        private const val HANDLED_PREFIX = "handled_"
+
+        /**
+         * V25: هل سبق أن ردّ المستخدم على هذا الطلب (قبول/إرسال/رفض)؟
+         * أي FCM متأخر أو مكرر أو إعادة إطلاق للشاشة الكاملة بعد الرد
+         * يتجاهل الرنين تماماً.
+         */
+        fun isHandled(context: Context, requestId: String): Boolean {
+            if (requestId.isBlank()) return false
+            return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getBoolean(HANDLED_PREFIX + requestId, false)
+        }
+
+        /**
+         * V25: يوسّم الطلب كمُعالَج نهائياً (يُستدعى من Flutter بعد نجاح
+         * الرد/الإرسال) — يوقف الخدمة ويُزيل الإشعار ويمنع أي رنين لاحق
+         * لنفس الطلب حتى لو أُعيد تسليم FCM.
+         */
+        fun markHandled(context: Context, requestId: String) {
+            if (requestId.isBlank()) return
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(HANDLED_PREFIX + requestId, true)
+                .apply()
+            stop(context, requestId)
+        }
+
         fun start(
             context: Context,
             requestId: String,
@@ -352,6 +383,12 @@ class UrgentAlarmService : Service() {
             body: String,
         ): Boolean {
             if (requestId.isBlank()) return false
+            // V25: لا نعيد الرنين لطلب سبق أن ردّ عليه المستخدم — يقطع
+            // حلقة FCM المكرر/المتأخر ويمنع إعادة فتح الشاشة الكاملة.
+            if (isHandled(context, requestId)) {
+                stop(context, requestId)
+                return false
+            }
             // One-time cleanup: restore any globally-stuck volume from older versions.
             restoreStuckVolumeIfNeeded(context)
 

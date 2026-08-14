@@ -1,9 +1,10 @@
 import type { AttendanceStatementDay } from '@ahla/shared-contracts';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Pencil, Send, X } from 'lucide-react';
+import { Pencil, Send } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { rpc } from '../../core/rpc';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { DialogOverlay } from '../../ui/DialogOverlay';
 
 const DAY_TYPES = [
   ['work', 'يوم عمل'],
@@ -144,24 +145,15 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
         طلب تحديد
       </button>
       {open ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4" role="dialog" aria-modal="true" aria-label={`تعديل يوم ${day.date}`}>
+        <DialogOverlay title={`تعديل يوم ${day.date}`} onClose={() => setOpen(false)} maxWidth="max-w-xl">
+          <p className="mb-4 text-xs text-[var(--text-muted)]">تُحفظ البصمات الأصلية ويُسجل التعديل وسببه في سجل التدقيق.</p>
           <form
-            className="card w-full max-w-xl space-y-4 p-5 text-right shadow-2xl"
+            className="space-y-4 text-right"
             onSubmit={(event) => {
               event.preventDefault();
               mutation.mutate();
             }}
           >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-black">تعديل يوم {day.date}</h3>
-                <p className="text-xs text-[var(--text-muted)]">تُحفظ البصمات الأصلية ويُسجل التعديل وسببه في سجل التدقيق.</p>
-              </div>
-              <button type="button" className="btn btn-ghost !p-2" onClick={() => setOpen(false)} aria-label="إغلاق">
-                <X className="size-5" />
-              </button>
-            </div>
-
             <label className="space-y-1 text-sm font-bold">
               <span>تصنيف اليوم</span>
               <select
@@ -232,36 +224,27 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
               <textarea className="input min-h-20 w-full" value={notes} onChange={(event) => setNotes(event.target.value)} />
             </label>
 
-            {mutation.isError ? <p className="rounded-lg bg-red-50 p-3 text-sm font-bold text-red-700">{safeErrorMessage(mutation.error)}</p> : null}
+            {mutation.isError ? <p className="rounded-lg bg-red-50 p-3 text-sm font-bold text-red-700" role="alert">{safeErrorMessage(mutation.error)}</p> : null}
 
             <div className="flex justify-end gap-2">
-              <button type="button" className="btn btn-secondary" onClick={() => setOpen(false)}>إلغاء</button>
-              <button type="submit" className="btn btn-primary" disabled={mutation.isPending || reason.trim().length < 5}>
+              <button type="button" className="btn-secondary" onClick={() => setOpen(false)}>إلغاء</button>
+              <button type="submit" className="btn-primary" disabled={mutation.isPending || reason.trim().length < 5}>
                 {mutation.isPending ? 'جارٍ الحفظ…' : 'حفظ التعديل'}
               </button>
             </div>
           </form>
-        </div>
+        </DialogOverlay>
       ) : null}
       {markOpen ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4" role="dialog" aria-modal="true" aria-label={`طلب تحديد يوم ${day.date}`}>
+        <DialogOverlay title={`طلب تحديد يوم ${day.date}`} onClose={() => setMarkOpen(false)} maxWidth="max-w-xl">
+          <p className="mb-4 text-xs text-[var(--text-muted)]">يُرسل للمدير المباشر للموافقة؛ عند الاعتماد يزول اليوم من الغياب.</p>
           <form
-            className="card w-full max-w-xl space-y-4 p-5 text-right shadow-2xl"
+            className="space-y-4 text-right"
             onSubmit={(event) => {
               event.preventDefault();
               markMutation.mutate();
             }}
           >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-black">طلب تحديد يوم {day.date}</h3>
-                <p className="text-xs text-[var(--text-muted)]">يُرسل للمدير المباشر للموافقة؛ عند الاعتماد يزول اليوم من الغياب.</p>
-              </div>
-              <button type="button" className="btn btn-ghost !p-2" onClick={() => setMarkOpen(false)} aria-label="إغلاق">
-                <X className="size-5" />
-              </button>
-            </div>
-
             <label className="space-y-1 text-sm font-bold">
               <span>نوع اليوم</span>
               <select className="input w-full" value={markType} onChange={(event) => setMarkType(event.target.value)}>
@@ -281,17 +264,17 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
               <input className="input w-full" value={markReason} minLength={5} required onChange={(event) => setMarkReason(event.target.value)} />
             </label>
 
-            {markMutation.isError ? <p className="rounded-lg bg-red-50 p-3 text-sm font-bold text-red-700">{safeErrorMessage(markMutation.error)}</p> : null}
+            {markMutation.isError ? <p className="rounded-lg bg-red-50 p-3 text-sm font-bold text-red-700" role="alert">{safeErrorMessage(markMutation.error)}</p> : null}
             {markMutation.isSuccess ? <p className="rounded-lg bg-emerald-50 p-3 text-sm font-bold text-emerald-700">أُرسل الطلب ووصل المدير المباشر.</p> : null}
 
             <div className="flex justify-end gap-2">
-              <button type="button" className="btn btn-secondary" onClick={() => setMarkOpen(false)}>إلغاء</button>
-              <button type="submit" className="btn btn-primary" disabled={markMutation.isPending || markReason.trim().length < 5}>
+              <button type="button" className="btn-secondary" onClick={() => setMarkOpen(false)}>إلغاء</button>
+              <button type="submit" className="btn-primary" disabled={markMutation.isPending || markReason.trim().length < 5}>
                 {markMutation.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}
               </button>
             </div>
           </form>
-        </div>
+        </DialogOverlay>
       ) : null}
     </>
   );

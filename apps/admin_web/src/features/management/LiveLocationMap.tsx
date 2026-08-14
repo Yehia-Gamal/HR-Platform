@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { Fragment, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Circle, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -53,7 +53,7 @@ export function LiveLocationMap({ points, height = 420, showAccuracy = true }: {
         />
         <FitBounds points={points} />
         {points.map((p) => (
-          <span key={p.id}>
+          <Fragment key={p.id}>
             {showAccuracy && typeof p.accuracy === 'number' && p.accuracy > 0 ? (
               <Circle center={[p.lat, p.lng]} radius={p.accuracy} pathOptions={{ color: '#2563eb', fillOpacity: 0.12 }} />
             ) : null}
@@ -74,7 +74,7 @@ export function LiveLocationMap({ points, height = 420, showAccuracy = true }: {
                 ) : null}
               </Popup>
             </Marker>
-          </span>
+          </Fragment>
         ))}
       </MapContainer>
     </div>

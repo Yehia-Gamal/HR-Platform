@@ -27,6 +27,9 @@ type ToastEmitter = (options: ToastOptions) => void;
 let toastEmitter: ToastEmitter | null = null;
 
 export function subscribeToastEmitter(emitter: ToastEmitter): () => void {
+  if (toastEmitter && import.meta.env.DEV) {
+    console.warn('[Toast] تم تركيب أكثر من ToastProvider — سيتم استبدال الـ emitter السابق. تأكد من وجود ToastProvider واحد فقط.');
+  }
   toastEmitter = emitter;
   return () => {
     if (toastEmitter === emitter) toastEmitter = null;

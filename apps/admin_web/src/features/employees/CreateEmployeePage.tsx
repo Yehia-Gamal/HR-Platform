@@ -191,7 +191,7 @@ export function CreateEmployeePage() {
         weak_password: 'كلمة المرور غير آمنة. اختر كلمة مرور أقوى.',
       };
       let message = 'تعذر إنشاء الموظف.';
-      if (error && typeof error === 'object' && 'context' in error) {
+      if (error && typeof error === 'object' && 'context' in error && (error as { context: unknown }).context instanceof Response) {
         try {
           const body = await (error as { context: Response }).context.json();
           message = errorMessages[body?.error] ?? message;

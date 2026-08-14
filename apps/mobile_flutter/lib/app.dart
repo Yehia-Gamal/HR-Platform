@@ -22,6 +22,7 @@ final appRouter = GoRouter(
         kind: state.pathParameters['kind'] ?? '',
         actionId: state.pathParameters['actionId'] ?? '',
         notificationId: state.uri.queryParameters['notification_id'],
+        action: state.uri.queryParameters['action'],
       ),
     ),
   ],

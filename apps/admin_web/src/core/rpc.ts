@@ -53,6 +53,11 @@ export async function rpc<T = unknown>(name: string, args?: Record<string, unkno
   }
   addBreadcrumb('rpc', name, { args: sanitized });
   if (schema) return schema.parse(data);
+  // تحذير تطويري: استدعاء RPC بلا Zod schema يثق بشكل أعمى ببنية البيانات من الخادم.
+  // يساعد على تحديد الـ call sites التي تحتاج migration إلى schema تدريجياً.
+  if (import.meta.env.DEV && data != null) {
+    console.warn(`[rpc] استدعاء "${name}" بلا Zod schema — البيانات غير مُتحقَّق منها وقت التشغيل.`);
+  }
   return data as T;
 }
 

@@ -1,5 +1,6 @@
 package org.ahlashabab.ahla_shabab_management_os
 
+import android.app.Activity
 import android.app.KeyguardManager
 import android.content.Context
 import android.content.Intent
@@ -7,39 +8,32 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
+import android.view.View
 import android.view.WindowManager
-import android.widget.Button
+import android.view.animation.OvershootInterpolator
+import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import android.app.Activity
-import android.os.Handler
-import android.os.Looper
+import android.animation.ObjectAnimator
 import java.lang.ref.WeakReference
 
 /**
  * شاشة كاملة تظهر فوق شاشة القفل وخارج التطبيق عند ورود طلب موقع عاجل.
- * تعمل كمنبه: صوت عالٍ متكرر + اهتزاز مستمر + وميض فلاش + وميض شاشة قوي
- * حتى يتفاعل المستخدم.
- * عند الضغط على "أرسل موقعي" → يفتح Flutter مع deep link.
+ * تعمل كمنبه: صوت عالٍ متكرر + اهتزاز مستمر + وميض فلاش حتى يتفاعل المستخدم.
  *
- * V19: يضيف وميض شاشة قوي (تبديل بين أحمر داكن وأبيض ساطع) يزامن
- * نمط الاهتزاز والفلاش لتعزيز الانتباه البصري.
+ * V20: إعادة تصميم الواجهة لتطابق شاشة Flutter الداخلية ([LocationIncomingOverlay])
+ * المستخدمة عندما يكون التطبيق في المقدمة — خلفية حمراء داكنة، أيقونة موقع نابضة،
+ * زر إرسال أحمر بزوايا دائرية، وزر رفض بإطار خافت. أُزيل وميض الشاشة الكامل
+ * (تبديل الخلفية) الذي كان يبدو غير منسّق، واستُبدل بنبض ناعم على الأيقونة.
+ *
+ * عند الضغط على "أرسل موقعي" → يفتح Flutter مع deep link.
  */
 class LocationRequestFullActivity : Activity() {
 
-    private val blinkHandler = Handler(Looper.getMainLooper())
-    private var blinkRoot: android.widget.ScrollView? = null
-    private var isBright = false
-    private val blinker = Runnable { doBlink() }
-
-    private fun doBlink() {
-        val sv = blinkRoot ?: return
-        // تبديل بين أحمر داكن (#140008) وأبيض ساطع (#FFFFFF) للوميض القوي.
-        isBright = !isBright
-        sv.setBackgroundColor(if (isBright) 0xFFFFFFFF.toInt() else 0xFF140008.toInt())
-        blinkHandler.postDelayed(blinker, if (isBright) 150L else 350L)
-    }
+    private var iconFrame: FrameLayout? = null
+    private var pulseAnimator: ObjectAnimator? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,100 +68,210 @@ class LocationRequestFullActivity : Activity() {
 
         val requestId = intent.getStringExtra(EXTRA_REQUEST_ID) ?: ""
         val notifId = intent.getStringExtra(EXTRA_NOTIFICATION_ID)
-        val title = intent.getStringExtra(EXTRA_TITLE) ?: "طلب موقع عاجل من الإدارة"
+        val title = intent.getStringExtra(EXTRA_TITLE) ?: "طلب تحقق من الموقع"
         val body = intent.getStringExtra(EXTRA_BODY)
-            ?: "المدير التنفيذي يطلب التحقق من موقعك الآن"
+            ?: "الإدارة تطلب التحقق من موقعك الآن"
+
+        // V25: إذا سبق أن ردّ المستخدم على هذا الطلب (قبول/إرسال/رفض) —
+        // لا نعيد الرنين ولا نعيد فتح الشاشة الكاملة حتى لو أُعيد تسليم
+        // نفس الـ intent (FCM مكرر / إعادة إنشاء من النظام).
+        if (requestId.isNotEmpty() && UrgentAlarmService.isHandled(this, requestId)) {
+            UrgentAlarmService.stop(this, requestId)
+            finish()
+            return
+        }
 
         // Keep the native foreground alarm alive even if Android recreated this screen.
         UrgentAlarmService.start(this, requestId, notifId, title, body)
 
-        // ── بناء الواجهة ──────────────────────────────────────────────
+        setContentView(buildUi(title, body, requestId, notifId))
+        startPulse()
+    }
+
+    private fun buildUi(
+        title: String,
+        body: String,
+        requestId: String,
+        notifId: String?,
+    ): ScrollView {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             setBackgroundColor(0xFF140008.toInt())
-            setPadding(60, 80, 60, 60)
         }
 
-        // أيقونة تحذير
-        val warningBar = TextView(this).apply {
-            text = "⚠  طلب موقع عاجل من الإدارة"
-            textSize = 16f
-            setTextColor(0xFFFFFFFF.toInt())
-            setBackgroundColor(0xFFB71C1C.toInt())
+        // ── حقل الطوارئ العلوي ───────────────────────────────────────────
+        val warningBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            setPadding(20, 28, 20, 28)
+            setBackgroundColor(0xFFB71C1C.toInt())
+            setPadding(20, 12, 20, 12)
+        }
+        val warningText = TextView(this).apply {
+            text = "⚠   طلب موقع عاجل من الإدارة"
+            textSize = 14f
+            setTextColor(0xFFFFFFFF.toInt())
             typeface = android.graphics.Typeface.DEFAULT_BOLD
         }
-        val warningParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT,
+        warningBar.addView(warningText)
+        root.addView(
+            warningBar,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
         )
-        root.addView(warningBar, warningParams)
 
-        // عنوان
+        // ── المحتوى الرئيسي ─────────────────────────────────────────────
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(28, 44, 28, 36)
+        }
+
+        // أيقونة موقع نابضة داخل حلقة
+        iconFrame = FrameLayout(this).apply {
+            setBackgroundResource(R.drawable.bg_urgent_circle)
+            val icon = ImageView(this@LocationRequestFullActivity).apply {
+                setImageResource(R.drawable.ic_location_pulse)
+            }
+            addView(
+                icon,
+                FrameLayout.LayoutParams(
+                    130,
+                    130,
+                    Gravity.CENTER,
+                ),
+            )
+        }
+        content.addView(
+            iconFrame,
+            LinearLayout.LayoutParams(170, 170),
+        )
+
+        // العنوان
         val titleView = TextView(this).apply {
             text = title
-            textSize = 28f
+            textSize = 26f
             setTextColor(0xFFFFFFFF.toInt())
             gravity = Gravity.CENTER
             typeface = android.graphics.Typeface.DEFAULT_BOLD
-            setPadding(0, 80, 0, 20)
+            setPadding(0, 40, 0, 12)
         }
-        root.addView(titleView)
+        content.addView(titleView, matchWrap())
 
-        // وصف
+        // الوصف
         val bodyView = TextView(this).apply {
             text = body
-            textSize = 17f
+            textSize = 16f
             setTextColor(0xB3FFFFFF.toInt())
             gravity = Gravity.CENTER
-            setPadding(0, 0, 0, 60)
+            setPadding(0, 0, 0, 18)
             setLineSpacing(8f, 1f)
         }
-        root.addView(bodyView)
+        content.addView(bodyView, matchWrap())
 
-        // زر إرسال الموقع
-        val sendButton = Button(this).apply {
-            text = "◀  أرسل موقعي الآن"
-            textSize = 20f
+        // شارة وضع الطلب (لقطة موقع فورية)
+        val chip = TextView(this).apply {
+            text = "لقطة موقع فورية"
+            textSize = 14f
             setTextColor(0xFFFFFFFF.toInt())
-            setBackgroundColor(0xFFE53935.toInt())
+            gravity = Gravity.CENTER
+            setBackgroundResource(R.drawable.bg_urgent_chip)
+            setPadding(22, 11, 22, 11)
             typeface = android.graphics.Typeface.DEFAULT_BOLD
-            setPadding(40, 40, 40, 40)
+        }
+        content.addView(chip, matchWrap())
+
+        root.addView(
+            content,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1f,
+            ),
+        )
+
+        // ── أزرار الاستجابة ─────────────────────────────────────────────
+        val buttons = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(24, 0, 24, 32)
+        }
+
+        val sendButton = TextView(this).apply {
+            text = "أرسل موقعي الآن"
+            textSize = 19f
+            setTextColor(0xFFFFFFFF.toInt())
+            gravity = Gravity.CENTER
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            setBackgroundResource(R.drawable.bg_urgent_send_button)
+            setPadding(0, 20, 0, 20)
+            isClickable = true
+            isFocusable = true
             setOnClickListener { onSend(requestId, notifId) }
         }
-        val sendParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-        ).apply { setMargins(0, 0, 0, 30) }
-        root.addView(sendButton, sendParams)
+        buttons.addView(sendButton, matchWrap().apply { setMargins(0, 0, 0, 14) })
 
-        // زر رفض
-        val rejectButton = Button(this).apply {
+        val rejectButton = TextView(this).apply {
             text = "رفض الطلب"
             textSize = 16f
             setTextColor(0x60FFFFFF.toInt())
-            setBackgroundColor(0x00000000)
-            setPadding(40, 30, 40, 30)
+            gravity = Gravity.CENTER
+            setBackgroundResource(R.drawable.bg_urgent_reject_button)
+            setPadding(0, 15, 0, 15)
+            isClickable = true
+            isFocusable = true
             setOnClickListener { onReject(requestId, notifId) }
         }
-        root.addView(rejectButton)
+        buttons.addView(rejectButton, matchWrap())
 
-        val scroll = ScrollView(this).apply {
+        root.addView(
+            buttons,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        return ScrollView(this).apply {
             setBackgroundColor(0xFF140008.toInt())
             addView(root)
         }
-        blinkRoot = scroll
-        setContentView(scroll)
+    }
 
-        // بدء وميض الشاشة القوي فور عرض الواجهة.
-        blinkHandler.post(blinker)
+    private fun matchWrap() = LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+    )
 
+    /** نبض ناعم على أيقونة الموقع (مقياس حلقة متذبذب) بدل وميض الشاشة القوي. */
+    private fun startPulse() {
+        val frame = iconFrame ?: return
+        pulseAnimator = ObjectAnimator.ofFloat(frame, View.SCALE_X, 1f, 1.12f).apply {
+            duration = 700
+            repeatMode = ObjectAnimator.REVERSE
+            repeatCount = ObjectAnimator.INFINITE
+            interpolator = OvershootInterpolator(1.2f)
+            start()
+        }
+        // لا ننبض المحور X فقط — نطابق المقياس على المحورين معاً عبر الاعتماد على
+        // Evaluation. أسهل نمط ثابت: نبض X/Y معاً.
+        ObjectAnimator.ofFloat(frame, View.SCALE_Y, 1f, 1.12f).apply {
+            duration = 700
+            repeatMode = ObjectAnimator.REVERSE
+            repeatCount = ObjectAnimator.INFINITE
+            interpolator = OvershootInterpolator(1.2f)
+            start()
+        }
+    }
+
+    private fun stopPulse() {
+        pulseAnimator?.cancel()
+        pulseAnimator = null
     }
 
     private fun onSend(requestId: String, notifId: String?) {
-        blinkHandler.removeCallbacks(blinker)
+        stopPulse()
         // Stop the alarm BEFORE navigating to Flutter.
         UrgentAlarmService.stop(this, requestId)
 
@@ -191,7 +295,7 @@ class LocationRequestFullActivity : Activity() {
     }
 
     private fun onReject(requestId: String, notifId: String?) {
-        blinkHandler.removeCallbacks(blinker)
+        stopPulse()
         // Stop the alarm BEFORE navigating to Flutter.
         UrgentAlarmService.stop(this, requestId)
 
@@ -218,11 +322,19 @@ class LocationRequestFullActivity : Activity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        recreate()
+        // V25: لا نعيد إنشاء الشاشة (التي تعيد تشغيل المنبه) لطلب سبق
+        // معالجته — أغلقها فوراً.
+        val requestId = intent.getStringExtra(EXTRA_REQUEST_ID).orEmpty()
+        if (requestId.isNotEmpty() && UrgentAlarmService.isHandled(this, requestId)) {
+            UrgentAlarmService.stop(this, requestId)
+            finish()
+        } else {
+            recreate()
+        }
     }
 
     override fun onDestroy() {
-        blinkHandler.removeCallbacks(blinker)
+        stopPulse()
         super.onDestroy()
     }
 

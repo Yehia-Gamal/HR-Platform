@@ -9,11 +9,11 @@ function buildOrgTree(employees: OrgChartEmployee[]): Array<{
   employee: OrgChartEmployee;
   children: ReturnType<typeof buildOrgTree>;
 }> {
-  const map = new Map<string, { employee: OrgChartEmployee; children: any[] }>();
+  const map = new Map<string, { employee: OrgChartEmployee; children: ReturnType<typeof buildOrgTree> }>();
   for (const emp of employees) {
     map.set(emp.id, { employee: emp, children: [] });
   }
-  const roots: Array<{ employee: OrgChartEmployee; children: any[] }> = [];
+  const roots: Array<{ employee: OrgChartEmployee; children: ReturnType<typeof buildOrgTree> }> = [];
   for (const node of map.values()) {
     const mgrId = node.employee.managerEmployeeId;
     if (mgrId && map.has(mgrId)) {

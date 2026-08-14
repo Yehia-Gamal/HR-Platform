@@ -33,12 +33,11 @@ class AppGate extends ConsumerWidget {
     }
     final release = ref.watch(releasePolicyProvider);
     return release.when(
-      loading: () => const _LoadingPage(label: 'جارٍ التحقق من إصدار التطبيق…'),
-      error: (_, _) => _ReleaseCheckError(
-        message: 'تعذر التحقق من صلاحية الإصدار الآن. تحقق من الاتصال وأعد المحاولة.',
-        allowTemporaryContinue: AppConfig.environment != 'production',
-        onRetry: () => ref.invalidate(releasePolicyProvider),
-      ),
+      // لا نحجب التطبيق أثناء التحقق أو عند تعذّره — قد يكون المستخدم دون
+      // شبكة موثوقة، وإيقافه قبل صفحة الدخول تجربة سيئة. التحقق يجري في
+      // الخلفية؛ نحجب فقط إذا قرر الخادم صراحةً (تحديث إلزامي/صيانة/تعطيل).
+      loading: () => const _AuthenticatedGate(),
+      error: (_, _) => const _AuthenticatedGate(),
       data: (policy) {
         if (policy.blocksApplication) {
           return _ReleaseStatusPage(
