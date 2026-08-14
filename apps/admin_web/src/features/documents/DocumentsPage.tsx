@@ -11,13 +11,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { ListSkeleton, MetricSkeletonRow } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { useToast } from '../../ui/Toast';
-import {
-  ASSET_STATUS_LABELS,
-  DOCUMENT_STATUS_LABELS,
-  OFFBOARDING_STATUS_LABELS,
-  useDocumentsCatalog,
-  useReviewDocument,
-} from './useDocuments';
+import { ASSET_STATUS_LABELS, DOCUMENT_STATUS_LABELS, OFFBOARDING_STATUS_LABELS, useDocumentsCatalog, useReviewDocument } from './useDocuments';
 
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
 
@@ -44,7 +38,8 @@ export function DocumentsPage() {
   const filteredDocs = useMemo(() => {
     const q = search.trim().toLowerCase();
     return documents.filter((d) => {
-      const matchSearch = !q || d.employeeName.toLowerCase().includes(q) || (d.employeeCode ?? '').toLowerCase().includes(q) || d.title.toLowerCase().includes(q);
+      const matchSearch =
+        !q || d.employeeName.toLowerCase().includes(q) || (d.employeeCode ?? '').toLowerCase().includes(q) || d.title.toLowerCase().includes(q);
       const matchStatus = statusFilter === 'all' || d.status === statusFilter;
       return matchSearch && matchStatus;
     });
@@ -62,17 +57,21 @@ export function DocumentsPage() {
   const filteredOffboarding = useMemo(() => {
     const q = search.trim().toLowerCase();
     return offboarding.filter((o) => {
-      const matchSearch = !q || o.employeeName.toLowerCase().includes(q) || (o.employeeCode ?? '').toLowerCase().includes(q) || o.caseNumber.toLowerCase().includes(q);
+      const matchSearch =
+        !q || o.employeeName.toLowerCase().includes(q) || (o.employeeCode ?? '').toLowerCase().includes(q) || o.caseNumber.toLowerCase().includes(q);
       const matchStatus = statusFilter === 'all' || o.status === statusFilter;
       return matchSearch && matchStatus;
     });
   }, [offboarding, search, statusFilter]);
 
   const dirty = Boolean(search.trim() || statusFilter !== 'all');
-  const clearFilters = () => { setSearch(''); setStatusFilter('all'); };
+  const clearFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+  };
 
   const handleReview = async (doc: DocumentItem, decision: 'verified' | 'rejected' | 'archived') => {
-    const reason = decision === 'rejected' ? window.prompt('سبب الرفض:') ?? '' : undefined;
+    const reason = decision === 'rejected' ? (window.prompt('سبب الرفض:') ?? '') : undefined;
     try {
       await reviewDoc.mutateAsync({ documentId: doc.id, decision, reason: reason || undefined });
       toast({ message: decision === 'verified' ? 'تم توثيق المستند' : decision === 'rejected' ? 'تم رفض المستند' : 'تم أرشفة المستند', tone: 'success' });
@@ -165,18 +164,23 @@ export function DocumentsPage() {
     {
       key: 'assignment',
       header: 'المسلم إليه',
-      render: (a) => (a.assignment?.employeeName ? (
-        <div>
-          <span className="font-bold">{a.assignment.employeeName}</span>
-          {a.assignment.status ? <span className="mr-2 text-xs text-[var(--text-muted)]">{ASSET_STATUS_LABELS[a.assignment.status] ?? a.assignment.status}</span> : null}
-        </div>
-      ) : '—'),
+      render: (a) =>
+        a.assignment?.employeeName ? (
+          <div>
+            <span className="font-bold">{a.assignment.employeeName}</span>
+            {a.assignment.status ? (
+              <span className="mr-2 text-xs text-[var(--text-muted)]">{ASSET_STATUS_LABELS[a.assignment.status] ?? a.assignment.status}</span>
+            ) : null}
+          </div>
+        ) : (
+          '—'
+        ),
     },
     { key: 'location', header: 'الموقع', render: (a) => a.location ?? '—' },
     {
       key: 'status',
       header: 'الحالة',
-      render: (a) => a.status ? <StatusBadge status={a.status} label={ASSET_STATUS_LABELS[a.status] ?? a.status} /> : '—',
+      render: (a) => (a.status ? <StatusBadge status={a.status} label={ASSET_STATUS_LABELS[a.status] ?? a.status} /> : '—'),
     },
   ];
 
@@ -203,11 +207,12 @@ export function DocumentsPage() {
     },
   ];
 
-  const statusOptions = tab === 'documents'
-    ? Object.entries(DOCUMENT_STATUS_LABELS)
-    : tab === 'assets'
-      ? Object.entries(ASSET_STATUS_LABELS)
-      : Object.entries(OFFBOARDING_STATUS_LABELS);
+  const statusOptions =
+    tab === 'documents'
+      ? Object.entries(DOCUMENT_STATUS_LABELS)
+      : tab === 'assets'
+        ? Object.entries(ASSET_STATUS_LABELS)
+        : Object.entries(OFFBOARDING_STATUS_LABELS);
 
   return (
     <div className="space-y-5">
@@ -239,7 +244,11 @@ export function DocumentsPage() {
             key={key}
             type="button"
             className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold transition ${tab === key ? 'border-b-2 border-[var(--brand)] text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
-            onClick={() => { setTab(key); setSearch(''); setStatusFilter('all'); }}
+            onClick={() => {
+              setTab(key);
+              setSearch('');
+              setStatusFilter('all');
+            }}
           >
             <Icon className="size-4" aria-hidden="true" />
             {label}
@@ -250,14 +259,26 @@ export function DocumentsPage() {
       <FilterBar
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder={tab === 'documents' ? 'ابحث باسم الموظف أو عنوان المستند…' : tab === 'assets' ? 'ابحث باسم الأصل أو الكود…' : 'ابحث باسم الموظف أو رقم الحالة…'}
-        resultText={tab === 'documents' ? `عرض ${filteredDocs.length} من ${documents.length} مستند` : tab === 'assets' ? `عرض ${filteredAssets.length} من ${assets.length} أصل` : `عرض ${filteredOffboarding.length} من ${offboarding.length} حالة`}
+        searchPlaceholder={
+          tab === 'documents' ? 'ابحث باسم الموظف أو عنوان المستند…' : tab === 'assets' ? 'ابحث باسم الأصل أو الكود…' : 'ابحث باسم الموظف أو رقم الحالة…'
+        }
+        resultText={
+          tab === 'documents'
+            ? `عرض ${filteredDocs.length} من ${documents.length} مستند`
+            : tab === 'assets'
+              ? `عرض ${filteredAssets.length} من ${assets.length} أصل`
+              : `عرض ${filteredOffboarding.length} من ${offboarding.length} حالة`
+        }
         isDirty={dirty}
         onClear={clearFilters}
       >
         <select className="input" value={statusFilter} onChange={(ev) => setStatusFilter(ev.target.value)} aria-label="تصفية حسب الحالة">
           <option value="all">كل الحالات</option>
-          {statusOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+          {statusOptions.map(([key, label]) => (
+            <option key={key} value={key}>
+              {label}
+            </option>
+          ))}
         </select>
       </FilterBar>
 
@@ -269,18 +290,42 @@ export function DocumentsPage() {
         filteredDocs.length === 0 ? (
           <EmptyState title="لا توجد مستندات" description="لم يُرفع أي مستند موظف بعد." />
         ) : (
-          <DataTable<DocumentItem> ariaLabel="جدول المستندات" rowKey={(d) => d.id} data={filteredDocs} minWidth="900px" columns={docColumns} emptyTitle="لا توجد نتائج مطابقة" emptyDescription="جرّب تعديل البحث أو الحالة." />
+          <DataTable<DocumentItem>
+            ariaLabel="جدول المستندات"
+            rowKey={(d) => d.id}
+            data={filteredDocs}
+            minWidth="900px"
+            columns={docColumns}
+            emptyTitle="لا توجد نتائج مطابقة"
+            emptyDescription="جرّب تعديل البحث أو الحالة."
+          />
         )
       ) : tab === 'assets' ? (
         filteredAssets.length === 0 ? (
           <EmptyState title="لا توجد عهد أو أصول" description="لم تُضف أي أصول أو عهد بعد." />
         ) : (
-          <DataTable<AssetItem> ariaLabel="جدول العهد والأصول" rowKey={(a) => a.id} data={filteredAssets} minWidth="800px" columns={assetColumns} emptyTitle="لا توجد نتائج مطابقة" emptyDescription="جرّب تعديل البحث أو الحالة." />
+          <DataTable<AssetItem>
+            ariaLabel="جدول العهد والأصول"
+            rowKey={(a) => a.id}
+            data={filteredAssets}
+            minWidth="800px"
+            columns={assetColumns}
+            emptyTitle="لا توجد نتائج مطابقة"
+            emptyDescription="جرّب تعديل البحث أو الحالة."
+          />
         )
       ) : filteredOffboarding.length === 0 ? (
         <EmptyState title="لا توجد حالات إنهاء خدمة" description="لم تُسجل أي حالة إنهاء خدمة بعد." />
       ) : (
-        <DataTable<OffboardingCase> ariaLabel="جدول حالات إنهاء الخدمة" rowKey={(o) => o.id} data={filteredOffboarding} minWidth="800px" columns={offboardingColumns} emptyTitle="لا توجد نتائج مطابقة" emptyDescription="جرّب تعديل البحث أو الحالة." />
+        <DataTable<OffboardingCase>
+          ariaLabel="جدول حالات إنهاء الخدمة"
+          rowKey={(o) => o.id}
+          data={filteredOffboarding}
+          minWidth="800px"
+          columns={offboardingColumns}
+          emptyTitle="لا توجد نتائج مطابقة"
+          emptyDescription="جرّب تعديل البحث أو الحالة."
+        />
       )}
     </div>
   );

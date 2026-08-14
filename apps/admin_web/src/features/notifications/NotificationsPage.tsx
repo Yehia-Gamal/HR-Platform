@@ -60,7 +60,10 @@ export function NotificationsPage() {
                 className={`card p-5 ${n.isRead ? 'opacity-75' : 'border-[var(--brand-primary)]/40'}`}
               >
                 <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                  <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-xl bg-[var(--surface-muted)] text-[var(--brand-primary)]">
+                  <span
+                    aria-hidden="true"
+                    className="grid size-11 shrink-0 place-items-center rounded-xl bg-[var(--surface-muted)] text-[var(--brand-primary)]"
+                  >
                     <Bell className="size-5" />
                   </span>
 

@@ -68,21 +68,33 @@ describe('MonthlyAttendanceReportPage', () => {
   it('يُعرض بدون أخطاء', () => {
     employeesReturn = dataQuery;
     statementReturn = statementIdle;
-    const { container } = render(<Wrapper><MonthlyAttendanceReportPage /></Wrapper>);
+    const { container } = render(
+      <Wrapper>
+        <MonthlyAttendanceReportPage />
+      </Wrapper>,
+    );
     expect(container.firstChild).toBeTruthy();
   });
 
   it('يعرض عنوان الصفحة', () => {
     employeesReturn = dataQuery;
     statementReturn = statementIdle;
-    render(<Wrapper><MonthlyAttendanceReportPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <MonthlyAttendanceReportPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('كشف الحضور والانصراف الشهري')).toBeDefined();
   });
 
   it('يعرض حقول اختيار الشهر والسنة', () => {
     employeesReturn = dataQuery;
     statementReturn = statementIdle;
-    render(<Wrapper><MonthlyAttendanceReportPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <MonthlyAttendanceReportPage />
+      </Wrapper>,
+    );
     expect(screen.getByLabelText('الشهر')).toBeDefined();
     expect(screen.getByLabelText('السنة')).toBeDefined();
   });
@@ -90,7 +102,11 @@ describe('MonthlyAttendanceReportPage', () => {
   it('يعرض بطاقات الموظفين', () => {
     employeesReturn = dataQuery;
     statementReturn = statementIdle;
-    render(<Wrapper><MonthlyAttendanceReportPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <MonthlyAttendanceReportPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('أحمد محمد')).toBeDefined();
     expect(screen.getByText('الموارد البشرية')).toBeDefined();
   });
@@ -98,21 +114,33 @@ describe('MonthlyAttendanceReportPage', () => {
   it('يعرض حالة التحميل', () => {
     employeesReturn = loadingQuery;
     statementReturn = statementIdle;
-    const { container } = render(<Wrapper><MonthlyAttendanceReportPage /></Wrapper>);
+    const { container } = render(
+      <Wrapper>
+        <MonthlyAttendanceReportPage />
+      </Wrapper>,
+    );
     expect(container.querySelector('.animate-pulse')).toBeTruthy();
   });
 
   it('يعرض حالة فارغة عند عدم وجود موظفين', () => {
     employeesReturn = emptyQuery;
     statementReturn = statementIdle;
-    render(<Wrapper><MonthlyAttendanceReportPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <MonthlyAttendanceReportPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('لا توجد نتائج')).toBeDefined();
   });
 
   it('يعرض حالة الخطأ عند فشل تحميل قائمة الموظفين', () => {
     employeesReturn = errorQuery;
     statementReturn = statementIdle;
-    render(<Wrapper><MonthlyAttendanceReportPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <MonthlyAttendanceReportPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('تعذّر تحميل البيانات')).toBeDefined();
   });
 });

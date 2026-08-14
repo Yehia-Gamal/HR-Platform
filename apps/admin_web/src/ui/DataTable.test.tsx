@@ -2,7 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { DataTable, type DataTableColumn } from './DataTable';
 
-interface Row { id: string; name: string }
+interface Row {
+  id: string;
+  name: string;
+}
 
 const columns: DataTableColumn<Row>[] = [
   { key: 'name', header: 'الاسم', sortable: true },
@@ -44,9 +47,7 @@ describe('DataTable', () => {
   });
 
   it('renders custom cell via render function', () => {
-    const cols: DataTableColumn<Row>[] = [
-      { key: 'name', header: 'الاسم', render: (row) => <strong>{row.name.toUpperCase()}</strong> },
-    ];
+    const cols: DataTableColumn<Row>[] = [{ key: 'name', header: 'الاسم', render: (row) => <strong>{row.name.toUpperCase()}</strong> }];
     render(<DataTable columns={cols} data={data.slice(0, 1)} rowKey={(r) => r.id} />);
     expect(screen.getByText('أحمد'.toUpperCase())).toBeInTheDocument();
   });

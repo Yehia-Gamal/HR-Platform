@@ -31,9 +31,7 @@ vi.mock('@sentry/react', () => ({
 // نوفّر mock ثابتاً لـ web-vitals لتفعيل اختبار initWebVitals دون اعتماد على
 // توقيت المتصفح. onCLS يستدعي الـ callback بقيمة ضعيفة (CLS=0.5 > 0.25).
 const webVitalsMock = vi.hoisted(() => ({
-  onCLS: vi.fn((cb: (m: { name: string; value: number; delta: number }) => void) =>
-    cb({ name: 'CLS', value: 0.5, delta: 0.5 }),
-  ),
+  onCLS: vi.fn((cb: (m: { name: string; value: number; delta: number }) => void) => cb({ name: 'CLS', value: 0.5, delta: 0.5 })),
   onINP: vi.fn(),
   onLCP: vi.fn(),
   onTTFB: vi.fn(),

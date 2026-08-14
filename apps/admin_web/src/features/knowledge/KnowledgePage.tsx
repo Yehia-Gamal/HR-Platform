@@ -51,7 +51,11 @@ export function KnowledgePage() {
   const canManage = canWrite || canManageCategories;
 
   const dirty = Boolean(search.trim() || statusFilter !== 'all' || categoryFilter);
-  const clearFilters = () => { setSearch(''); setStatusFilter('all'); setCategoryFilter(''); };
+  const clearFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+    setCategoryFilter('');
+  };
 
   const handleDelete = async (item: KnowledgeArticle) => {
     if (!window.confirm(`حذف «${item.title}»؟`)) return;
@@ -109,7 +113,12 @@ export function KnowledgePage() {
         isDirty={dirty}
         onClear={clearFilters}
       >
-        <select className="input" value={statusFilter} onChange={(ev) => setStatusFilter(ev.target.value as 'all' | 'published' | 'draft')} aria-label="تصفية حسب الحالة">
+        <select
+          className="input"
+          value={statusFilter}
+          onChange={(ev) => setStatusFilter(ev.target.value as 'all' | 'published' | 'draft')}
+          aria-label="تصفية حسب الحالة"
+        >
           <option value="all">كل الحالات</option>
           <option value="published">منشور</option>
           <option value="draft">مسودة</option>
@@ -117,7 +126,9 @@ export function KnowledgePage() {
         <select className="input" value={categoryFilter} onChange={(ev) => setCategoryFilter(ev.target.value)} aria-label="تصفية حسب التصنيف">
           <option value="">كل التصنيفات</option>
           {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
           ))}
         </select>
       </FilterBar>
@@ -130,11 +141,13 @@ export function KnowledgePage() {
         <EmptyState
           title="لا توجد مقالات"
           description={canManage ? 'ابدأ بإنشاء أول مقال في قاعدة المعرفة.' : 'لم يُنشر أي مقال بعد.'}
-          action={canManage ? (
-            <button type="button" className="btn-primary" onClick={() => setCreateOpen(true)}>
-              <Plus className="size-4" aria-hidden="true" /> إنشاء مقال
-            </button>
-          ) : undefined}
+          action={
+            canManage ? (
+              <button type="button" className="btn-primary" onClick={() => setCreateOpen(true)}>
+                <Plus className="size-4" aria-hidden="true" /> إنشاء مقال
+              </button>
+            ) : undefined
+          }
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -144,17 +157,17 @@ export function KnowledgePage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <h3 className="truncate font-black">{item.title}</h3>
-                    {item.category_name ? <span className="muted text-xs">{item.category_name}</span> : item.category ? <span className="muted text-xs">{item.category}</span> : null}
+                    {item.category_name ? (
+                      <span className="muted text-xs">{item.category_name}</span>
+                    ) : item.category ? (
+                      <span className="muted text-xs">{item.category}</span>
+                    ) : null}
                   </div>
                   <StatusBadge status={item.is_published ? 'active' : 'pending'} label={item.is_published ? 'منشور' : 'مسودة'} />
                 </div>
               </div>
               <div className="flex-1 p-4 text-sm leading-7 text-[var(--text-secondary)]">
-                {item.body ? (
-                  <p className="line-clamp-4">{item.body}</p>
-                ) : (
-                  <p className="muted">لا يوجد محتوى.</p>
-                )}
+                {item.body ? <p className="line-clamp-4">{item.body}</p> : <p className="muted">لا يوجد محتوى.</p>}
               </div>
               <div className="flex items-center justify-between gap-2 border-t border-[var(--border)] px-4 py-3">
                 <span className="muted text-xs">
@@ -234,21 +247,13 @@ function ArticleDialog({ item, categories, onClose }: { item?: KnowledgeArticle;
   return (
     <DialogOverlay title={item ? 'تعديل مقال' : 'مقال جديد'} onClose={onClose} maxWidth="max-w-2xl">
       <form className="space-y-4" onSubmit={(e) => void handleSubmit(e)}>
-        {error ? (
-          <div className="rounded-xl bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div>
-        ) : null}
+        {error ? <div className="rounded-xl bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
 
         <label className="block space-y-1.5">
-          <span className="text-sm font-bold">العنوان <span className="text-[var(--danger)]">*</span></span>
-          <input
-            className="input"
-            required
-            minLength={3}
-            autoFocus
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="عنوان المقال…"
-          />
+          <span className="text-sm font-bold">
+            العنوان <span className="text-[var(--danger)]">*</span>
+          </span>
+          <input className="input" required minLength={3} autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="عنوان المقال…" />
         </label>
 
         <label className="block space-y-1.5">
@@ -256,27 +261,20 @@ function ArticleDialog({ item, categories, onClose }: { item?: KnowledgeArticle;
           <select className="input" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} aria-label="اختيار التصنيف">
             <option value="">بدون تصنيف</option>
             {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
             ))}
           </select>
         </label>
 
         <label className="block space-y-1.5">
           <span className="text-sm font-bold">المحتوى</span>
-          <textarea
-            className="input min-h-32 w-full"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="اكتب محتوى المقال هنا…"
-          />
+          <textarea className="input min-h-32 w-full" value={body} onChange={(e) => setBody(e.target.value)} placeholder="اكتب محتوى المقال هنا…" />
         </label>
 
         <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={isPublished}
-            onChange={(e) => setIsPublished(e.target.checked)}
-          />
+          <input type="checkbox" checked={isPublished} onChange={(e) => setIsPublished(e.target.checked)} />
           <span className="text-sm font-bold">نشر (يصبح مرئياً لكل الموظفين)</span>
         </label>
 
@@ -364,7 +362,12 @@ function CategoryDialog({ item, onClose }: { item: KnowledgeCategory; onClose: (
   const [isActive, setIsActive] = useState(item.is_active ?? true);
   const [error, setError] = useState<string | null>(null);
 
-  const slugify = (v: string) => v.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^\w\u0600-\u06FF-]/g, '');
+  const slugify = (v: string) =>
+    v
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\u0600-\u06FF-]/g, '');
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -395,52 +398,40 @@ function CategoryDialog({ item, onClose }: { item: KnowledgeCategory; onClose: (
   return (
     <DialogOverlay title={isNew ? 'تصنيف جديد' : 'تعديل تصنيف'} onClose={onClose} maxWidth="max-w-lg">
       <form className="space-y-4" onSubmit={(e) => void handleSubmit(e)}>
-        {error ? (
-          <div className="rounded-xl bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div>
-        ) : null}
+        {error ? <div className="rounded-xl bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</div> : null}
 
         <label className="block space-y-1.5">
-          <span className="text-sm font-bold">الاسم <span className="text-[var(--danger)]">*</span></span>
+          <span className="text-sm font-bold">
+            الاسم <span className="text-[var(--danger)]">*</span>
+          </span>
           <input
             className="input"
             required
             minLength={2}
             autoFocus
             value={name}
-            onChange={(e) => { setName(e.target.value); if (isNew) setSlug(slugify(e.target.value)); }}
+            onChange={(e) => {
+              setName(e.target.value);
+              if (isNew) setSlug(slugify(e.target.value));
+            }}
             placeholder="مثلاً: إجراءات"
           />
         </label>
 
         <label className="block space-y-1.5">
-          <span className="text-sm font-bold">المعرّف (slug) <span className="text-[var(--danger)]">*</span></span>
-          <input
-            className="input"
-            required
-            minLength={2}
-            dir="ltr"
-            value={slug}
-            onChange={(e) => setSlug(slugify(e.target.value))}
-            placeholder="procedures"
-          />
+          <span className="text-sm font-bold">
+            المعرّف (slug) <span className="text-[var(--danger)]">*</span>
+          </span>
+          <input className="input" required minLength={2} dir="ltr" value={slug} onChange={(e) => setSlug(slugify(e.target.value))} placeholder="procedures" />
         </label>
 
         <label className="block space-y-1.5">
           <span className="text-sm font-bold">الوصف</span>
-          <textarea
-            className="input min-h-20 w-full"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="وصف مختصر للتصنيف…"
-          />
+          <textarea className="input min-h-20 w-full" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="وصف مختصر للتصنيف…" />
         </label>
 
         <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={isActive}
-            onChange={(e) => setIsActive(e.target.checked)}
-          />
+          <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
           <span className="text-sm font-bold">نشط (يظهر في القوائم)</span>
         </label>
 

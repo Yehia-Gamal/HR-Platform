@@ -1,17 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import type { OnboardingAdminCatalog } from '@ahla/shared-contracts';
-import {
-  Award,
-  CheckCircle2,
-  ClipboardCheck,
-  Eye,
-  Loader2,
-  PackageCheck,
-  Plus,
-  RefreshCw,
-  UsersRound,
-  X,
-} from 'lucide-react';
+import { Award, CheckCircle2, ClipboardCheck, Eye, Loader2, PackageCheck, Plus, RefreshCw, UsersRound, X } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { DataTable, type DataTableColumn } from '../../ui/DataTable';
 import { DialogOverlay } from '../../ui/DialogOverlay';
@@ -23,13 +12,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { ListSkeleton, MetricSkeletonRow } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { useToast } from '../../ui/Toast';
-import {
-  JOURNEY_STATUS_LABELS,
-  TASK_STATUS_LABELS,
-  TASK_STATUS_ORDER,
-  useLifecycleCatalog,
-  useLifecycleCommands,
-} from './useLifecycle';
+import { JOURNEY_STATUS_LABELS, TASK_STATUS_LABELS, TASK_STATUS_ORDER, useLifecycleCatalog, useLifecycleCommands } from './useLifecycle';
 
 type Journey = OnboardingAdminCatalog['journeys'][number];
 type JourneyTask = Journey['tasks'][number];
@@ -53,8 +36,7 @@ export function LifecyclePage() {
   const inProgress = journeys.filter((j) => j.status === 'in_progress').length;
   const completed = journeys.filter((j) => j.status === 'completed').length;
   const onboardingEmployees = employees.filter((e) => e.status === 'onboarding').length;
-  const avgProgress =
-    journeys.length === 0 ? 0 : Math.round(journeys.reduce((sum, j) => sum + j.progress, 0) / journeys.length);
+  const avgProgress = journeys.length === 0 ? 0 : Math.round(journeys.reduce((sum, j) => sum + j.progress, 0) / journeys.length);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -147,12 +129,7 @@ export function LifecyclePage() {
         description="متابعة مراحل دورة حياة الموظف بدءاً من التهيئة، ومتابعة إنجاز المهام ونهاية فترة التجربة."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => void catalog.refetch()}
-              disabled={catalog.isFetching}
-            >
+            <button type="button" className="btn-secondary" onClick={() => void catalog.refetch()} disabled={catalog.isFetching}>
               <RefreshCw className={`size-4 ${catalog.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
               تحديث
             </button>
@@ -230,9 +207,7 @@ function CreateJourneyDialog({ employees, onClose }: { employees: EligibleEmploy
 
   const [employeeId, setEmployeeId] = useState('');
   const [probationEnd, setProbationEnd] = useState('');
-  const [tasks, setTasks] = useState<Array<{ title: string; ownerRole: string; dueOffsetDays: string }>>([
-    { title: '', ownerRole: '', dueOffsetDays: '0' },
-  ]);
+  const [tasks, setTasks] = useState<Array<{ title: string; ownerRole: string; dueOffsetDays: string }>>([{ title: '', ownerRole: '', dueOffsetDays: '0' }]);
   const [error, setError] = useState<string | null>(null);
 
   const updateTask = (index: number, patch: Partial<{ title: string; ownerRole: string; dueOffsetDays: string }>) => {
@@ -309,12 +284,7 @@ function CreateJourneyDialog({ employees, onClose }: { employees: EligibleEmploy
           </label>
           <label className="block space-y-1.5">
             <span className="text-sm font-bold">نهاية فترة التجربة (اختياري)</span>
-            <input
-              className="input"
-              type="date"
-              value={probationEnd}
-              onChange={(e) => setProbationEnd(e.target.value)}
-            />
+            <input className="input" type="date" value={probationEnd} onChange={(e) => setProbationEnd(e.target.value)} />
           </label>
         </div>
 
@@ -421,10 +391,7 @@ function JourneyTasksDialog({ journey, onClose }: { journey: Journey; onClose: (
         ) : (
           <ul className="space-y-2">
             {journey.tasks.map((task) => (
-              <li
-                key={task.id}
-                className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-3"
-              >
+              <li key={task.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-bold">{task.title}</p>
                   <p className="text-xs text-[var(--text-muted)]">

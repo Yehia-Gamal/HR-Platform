@@ -9,13 +9,10 @@ import { toPublicAvatarUrl } from './avatarUrl';
  * بعد الجلسات الطويلة). الروابط الخارجية (mock/CDN) تُعاد كما هي.
  * يُرجع null لو لم يُعثر على رابط صالح (فيُظهر المكوّن بديله: الحرف الأول).
  */
-export function useResolvedAvatarUrl(
-  photoUrl: string | null | undefined,
-): string | null {
+export function useResolvedAvatarUrl(photoUrl: string | null | undefined): string | null {
   return useMemo(() => {
     const input = photoUrl?.trim() || null;
     if (!input) return null;
     return toPublicAvatarUrl(input, env.supabaseUrl);
   }, [photoUrl]);
 }
-

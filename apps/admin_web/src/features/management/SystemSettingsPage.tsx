@@ -117,16 +117,14 @@ export function SystemSettingsPage() {
                         <div>
                           <p className="font-black">{s.labelAr ?? s.key}</p>
                           {s.description ? <p className="muted mt-1 text-xs leading-5">{s.description}</p> : null}
-                          <p className="muted mt-1 font-mono text-[11px]">{s.key} · {s.valueType}</p>
+                          <p className="muted mt-1 font-mono text-[11px]">
+                            {s.key} · {s.valueType}
+                          </p>
                         </div>
                         {isDirty && <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-black text-amber-800">غير محفوظ</span>}
                       </div>
                       {s.valueType === 'boolean' ? (
-                        <select
-                          className="input mt-3"
-                          value={drafts[s.key] ?? val}
-                          onChange={(ev) => setDrafts((d) => ({ ...d, [s.key]: ev.target.value }))}
-                        >
+                        <select className="input mt-3" value={drafts[s.key] ?? val} onChange={(ev) => setDrafts((d) => ({ ...d, [s.key]: ev.target.value }))}>
                           <option value="true">نعم</option>
                           <option value="false">لا</option>
                         </select>

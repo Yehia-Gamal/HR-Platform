@@ -22,9 +22,7 @@ function csvCell(value: string | number | null | undefined): string {
 /** توليد محتوى CSV مع BOM لدعم العربية في Excel */
 export function toCsv<T>(columns: ExportColumn<T>[], rows: T[]): string {
   const header = columns.map((c) => csvCell(c.header)).join(',');
-  const body = rows
-    .map((row) => columns.map((c) => csvCell(c.get(row))).join(','))
-    .join('\n');
+  const body = rows.map((row) => columns.map((c) => csvCell(c.get(row))).join(',')).join('\n');
   return `\uFEFF${header}\n${body}`;
 }
 
@@ -58,16 +56,13 @@ export function printReport(sections: PrintableSection[], documentTitle: string)
   const win = window.open('', '_blank', 'width=900,height=700');
   if (!win) return;
 
-  const esc = (s: string): string =>
-    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   const tableHtml = (t: { headers: string[]; rows: string[][] }) => `
     <table>
       <thead><tr>${t.headers.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead>
       <tbody>
-        ${t.rows
-          .map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`)
-          .join('\n')}
+        ${t.rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('\n')}
       </tbody>
     </table>`;
 

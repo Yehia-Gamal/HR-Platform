@@ -43,15 +43,7 @@ function fmtTime(iso: string | null | undefined): string {
 }
 
 // ─── بطاقة قسم مراقبة ───
-function MonitorSection({
-  title,
-  icon: Icon,
-  children,
-}: {
-  title: string;
-  icon: React.ComponentType<{ className?: string }>;
-  children: React.ReactNode;
-}) {
+function MonitorSection({ title, icon: Icon, children }: { title: string; icon: React.ComponentType<{ className?: string }>; children: React.ReactNode }) {
   return (
     <article className="card p-5">
       <h3 className="mb-3 flex items-center gap-2 font-black">
@@ -78,10 +70,14 @@ function StatItem({ label, value, tone }: { label: string; value: number | strin
 function AlertRow({ alert, onAcknowledge }: { alert: SystemAlert; onAcknowledge: (id: string) => void }) {
   const isP0 = alert.severity === 'P0';
   return (
-    <div className={`flex items-start justify-between gap-3 rounded-xl border p-3 ${isP0 ? 'border-[var(--danger)]/30 bg-[var(--danger-soft)]/50' : 'border-[var(--border)] bg-[var(--surface-muted)]/40'}`}>
+    <div
+      className={`flex items-start justify-between gap-3 rounded-xl border p-3 ${isP0 ? 'border-[var(--danger)]/30 bg-[var(--danger-soft)]/50' : 'border-[var(--border)] bg-[var(--surface-muted)]/40'}`}
+    >
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-black ${isP0 ? 'bg-[var(--danger)] text-white' : 'bg-[var(--warning-soft)] text-[var(--warning)]'}`}>
+          <span
+            className={`inline-block rounded-full px-2 py-0.5 text-xs font-black ${isP0 ? 'bg-[var(--danger)] text-white' : 'bg-[var(--warning-soft)] text-[var(--warning)]'}`}
+          >
             {alert.severity}
           </span>
           <p className="font-bold">{alert.title}</p>
@@ -157,16 +153,18 @@ export function ObservabilityDashboardPage() {
         description="صحة المهام المجدولة، طوابير التكامل، الإشعارات، الأخطاء، والتنبيهات الأمنية."
         actions={
           <div className="flex items-center gap-3">
-            {health?.generated_at != null && (
-              <span className="muted text-xs">
-                آخر تحديث: {fmtTime(health.generated_at as string)}
-              </span>
-            )}
+            {health?.generated_at != null && <span className="muted text-xs">آخر تحديث: {fmtTime(health.generated_at as string)}</span>}
             <button
               type="button"
               className="btn-secondary"
               disabled={isRefreshing}
-              onClick={() => { void healthQuery.refetch(); void alertsQuery.refetch(); void cronSummaryQuery.refetch(); void cronJobsQuery.refetch(); void eventsQuery.refetch(); }}
+              onClick={() => {
+                void healthQuery.refetch();
+                void alertsQuery.refetch();
+                void cronSummaryQuery.refetch();
+                void cronJobsQuery.refetch();
+                void eventsQuery.refetch();
+              }}
             >
               <RefreshCw className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
               تحديث
@@ -175,24 +173,12 @@ export function ObservabilityDashboardPage() {
         }
       />
 
-      {healthQuery.isLoading ? (
-        <SkeletonCard className="h-64" />
-      ) : null}
+      {healthQuery.isLoading ? <SkeletonCard className="h-64" /> : null}
 
       {/* ─── بطاقات الصحة الإجمالية ─── */}
       <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label="تنبيهات حرجة (P0)"
-          value={p0Count}
-          hint={p0Count > 0 ? 'تحتاج تدخلاً فورياً' : 'لا توجد تنبيهات حرجة'}
-          icon={ShieldAlert}
-        />
-        <MetricCard
-          label="تنبيهات (P1)"
-          value={p1Count}
-          hint={p1Count > 0 ? 'تحتاج مراجعة' : 'لا توجد تنبيهات'}
-          icon={AlertTriangle}
-        />
+        <MetricCard label="تنبيهات حرجة (P0)" value={p0Count} hint={p0Count > 0 ? 'تحتاج تدخلاً فورياً' : 'لا توجد تنبيهات حرجة'} icon={ShieldAlert} />
+        <MetricCard label="تنبيهات (P1)" value={p1Count} hint={p1Count > 0 ? 'تحتاج مراجعة' : 'لا توجد تنبيهات'} icon={AlertTriangle} />
         <MetricCard
           label="أخطاء آخر ساعة"
           value={monitors?.errors ? num(monitors.errors.errors_last_1h) : '—'}
@@ -274,24 +260,9 @@ export function ObservabilityDashboardPage() {
       {/* ─── صحة المهام المجدولة (pg_cron) ─── */}
       {canReadDetail && cronSummary && (
         <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard
-            label="مهام نشطة"
-            value={num(cronSummary.active)}
-            hint={`من أصل ${num(cronSummary.total_jobs)} مهمة مجدولة`}
-            icon={Activity}
-          />
-          <MetricCard
-            label="مهام سليمة"
-            value={num(cronSummary.healthy)}
-            hint={`${num(cronSummary.unstable)} غير مستقرة`}
-            icon={CheckCircle2}
-          />
-          <MetricCard
-            label="مهام فاشلة"
-            value={num(cronSummary.failing)}
-            hint={`${num(cronSummary.failures_24h_total)} فشل في 24 ساعة`}
-            icon={AlertOctagon}
-          />
+          <MetricCard label="مهام نشطة" value={num(cronSummary.active)} hint={`من أصل ${num(cronSummary.total_jobs)} مهمة مجدولة`} icon={Activity} />
+          <MetricCard label="مهام سليمة" value={num(cronSummary.healthy)} hint={`${num(cronSummary.unstable)} غير مستقرة`} icon={CheckCircle2} />
+          <MetricCard label="مهام فاشلة" value={num(cronSummary.failing)} hint={`${num(cronSummary.failures_24h_total)} فشل في 24 ساعة`} icon={AlertOctagon} />
           <MetricCard
             label="لم تعمل بعد / معطّلة"
             value={num(cronSummary.never_run) + num(cronSummary.disabled)}
@@ -338,12 +309,16 @@ export function ObservabilityDashboardPage() {
                   return (
                     <tr key={job.jobid} className="border-t border-[var(--border)]">
                       <td className="p-3 font-bold">{job.jobname}</td>
-                      <td className="p-3 font-mono text-xs" dir="ltr">{job.schedule || '—'}</td>
+                      <td className="p-3 font-mono text-xs" dir="ltr">
+                        {job.schedule || '—'}
+                      </td>
                       <td className={`p-3 font-bold ${statusMeta.cls}`}>
                         <StatusIcon className="me-1 inline size-4" aria-hidden="true" />
                         {statusMeta.label}
                       </td>
-                      <td className="p-3 tabular-nums" dir="ltr">{job.last_start ? fmtTime(job.last_start) : '—'}</td>
+                      <td className="p-3 tabular-nums" dir="ltr">
+                        {job.last_start ? fmtTime(job.last_start) : '—'}
+                      </td>
                       <td className="p-3 tabular-nums" dir="ltr">
                         {job.duration_seconds != null ? `${num(job.duration_seconds, 0).toFixed(1)}s` : '—'}
                       </td>
@@ -388,10 +363,15 @@ export function ObservabilityDashboardPage() {
                     <span className={`mt-0.5 rounded-full px-2 py-0.5 text-xs font-black ${levelColor}`}>{event.level}</span>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold">{event.message}</p>
-                      <p className="muted mt-0.5 font-mono text-xs">{event.source}{event.event_type ? ` · ${event.event_type}` : ''}</p>
+                      <p className="muted mt-0.5 font-mono text-xs">
+                        {event.source}
+                        {event.event_type ? ` · ${event.event_type}` : ''}
+                      </p>
                       {event.duration_ms != null && <p className="muted mt-0.5 text-xs">المدة: {event.duration_ms}ms</p>}
                     </div>
-                    <span className="muted shrink-0 text-xs" dir="ltr">{fmtTime(event.created_at)}</span>
+                    <span className="muted shrink-0 text-xs" dir="ltr">
+                      {fmtTime(event.created_at)}
+                    </span>
                   </div>
                 );
               })}

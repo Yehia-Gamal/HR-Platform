@@ -1,15 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import {
-  Award,
-  BookOpen,
-  CheckCircle2,
-  GraduationCap,
-  Loader2,
-  Pencil,
-  Plus,
-  RefreshCw,
-  UserPlus,
-} from 'lucide-react';
+import { Award, BookOpen, CheckCircle2, GraduationCap, Loader2, Pencil, Plus, RefreshCw, UserPlus } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { DataTable, type DataTableColumn } from '../../ui/DataTable';
 import { DialogOverlay } from '../../ui/DialogOverlay';
@@ -206,12 +196,7 @@ export function LearningPage() {
         description="إدارة الدورات التدريبية، وتسجيل الموظفين، ومتابعة تقدم التعلم ونتائجه."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => void catalog.refetch()}
-              disabled={catalog.isFetching}
-            >
+            <button type="button" className="btn-secondary" onClick={() => void catalog.refetch()} disabled={catalog.isFetching}>
               <RefreshCw className={`size-4 ${catalog.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
               تحديث
             </button>
@@ -281,10 +266,7 @@ export function LearningPage() {
       <section className="space-y-4">
         <h2 className="text-lg font-black">تسجيلات الموظفين</h2>
         {enrollments.length === 0 ? (
-          <EmptyState
-            title="لا توجد تسجيلات"
-            description="سجّل الموظفين في الدورات عبر زر «تسجيل موظف» في جدول الدورات لعرض تقدمهم ونتائجهم هنا."
-          />
+          <EmptyState title="لا توجد تسجيلات" description="سجّل الموظفين في الدورات عبر زر «تسجيل موظف» في جدول الدورات لعرض تقدمهم ونتائجهم هنا." />
         ) : (
           <DataTable<LearningEnrollment>
             ariaLabel="جدول تسجيلات الموظفين"
@@ -296,9 +278,7 @@ export function LearningPage() {
         )}
       </section>
 
-      {courseDialog ? (
-        <CourseFormDialog course={courseDialog.course} onClose={() => setCourseDialog(null)} />
-      ) : null}
+      {courseDialog ? <CourseFormDialog course={courseDialog.course} onClose={() => setCourseDialog(null)} /> : null}
 
       {enrollTarget ? <EnrollDialog course={enrollTarget} employees={employees} onClose={() => setEnrollTarget(null)} /> : null}
     </div>
@@ -424,21 +404,11 @@ function CourseFormDialog({ course, onClose }: { course: LearningCourse | null; 
 
         <div className="flex flex-wrap gap-6">
           <label className="flex items-center gap-2 text-sm font-bold">
-            <input
-              type="checkbox"
-              className="size-4 accent-[var(--brand-primary)]"
-              checked={mandatory}
-              onChange={(e) => setMandatory(e.target.checked)}
-            />
+            <input type="checkbox" className="size-4 accent-[var(--brand-primary)]" checked={mandatory} onChange={(e) => setMandatory(e.target.checked)} />
             دورة إجبارية
           </label>
           <label className="flex items-center gap-2 text-sm font-bold">
-            <input
-              type="checkbox"
-              className="size-4 accent-[var(--brand-primary)]"
-              checked={active}
-              onChange={(e) => setActive(e.target.checked)}
-            />
+            <input type="checkbox" className="size-4 accent-[var(--brand-primary)]" checked={active} onChange={(e) => setActive(e.target.checked)} />
             مفعّلة
           </label>
         </div>
@@ -457,15 +427,7 @@ function CourseFormDialog({ course, onClose }: { course: LearningCourse | null; 
   );
 }
 
-function EnrollDialog({
-  course,
-  employees,
-  onClose,
-}: {
-  course: LearningCourse;
-  employees: LearningEmployee[];
-  onClose: () => void;
-}) {
+function EnrollDialog({ course, employees, onClose }: { course: LearningCourse; employees: LearningEmployee[]; onClose: () => void }) {
   const enrollEmployee = useEnrollEmployee();
   const { toast } = useToast();
 
@@ -496,8 +458,7 @@ function EnrollDialog({
         {error ? <ErrorBanner message={error} /> : null}
 
         <p className="text-sm leading-7 text-[var(--text-muted)]">
-          سيتم تسجيل الموظف في دورة{' '}
-          <span className="font-black text-[var(--text-primary)]">{course.title}</span>.
+          سيتم تسجيل الموظف في دورة <span className="font-black text-[var(--text-primary)]">{course.title}</span>.
         </p>
 
         <label className="block space-y-1.5">

@@ -24,12 +24,12 @@ export function useAdminLeaves(filter: LeaveAdminFilter = {}) {
     queryFn: async (): Promise<LeaveAdminResponse> => {
       if (auth.isMock) return EMPTY;
       const data = await rpc('get_leave_requests_admin', {
-        p_year:        filter.year        ?? new Date().getFullYear(),
-        p_status:      filter.status      ?? null,
-        p_leave_type:  filter.leaveType   ?? null,
-        p_employee_id: filter.employeeId  ?? null,
-        p_limit:       filter.limit       ?? 100,
-        p_offset:      filter.offset      ?? 0,
+        p_year: filter.year ?? new Date().getFullYear(),
+        p_status: filter.status ?? null,
+        p_leave_type: filter.leaveType ?? null,
+        p_employee_id: filter.employeeId ?? null,
+        p_limit: filter.limit ?? 100,
+        p_offset: filter.offset ?? 0,
       });
       return leaveAdminResponseSchema.parse(data ?? EMPTY);
     },

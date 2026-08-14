@@ -259,7 +259,9 @@ export function KpiCyclesPage() {
                           الفتح: {cycle.scheduledOpenAt ? new Date(cycle.scheduledOpenAt).toLocaleString('ar-EG') : '—'} · النهاية:{' '}
                           {cycle.effectiveDeadline ? new Date(cycle.effectiveDeadline).toLocaleString('ar-EG') : '—'}
                         </p>
-                        {cycle.overrideReason ? <p className="mt-2 text-xs text-[var(--warning)]">{cycle.overrideReason.replace(/^آخر سبب إداري:\s*/i, '')}</p> : null}
+                        {cycle.overrideReason ? (
+                          <p className="mt-2 text-xs text-[var(--warning)]">{cycle.overrideReason.replace(/^آخر سبب إداري:\s*/i, '')}</p>
+                        ) : null}
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {data.canManageCycles ? (

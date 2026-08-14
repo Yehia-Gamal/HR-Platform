@@ -157,7 +157,12 @@ export function captureEvent(message: string, level: 'debug' | 'info' | 'warning
 async function captureInternal(error: unknown, context?: Record<string, unknown>): Promise<void> {
   try {
     const supabase = await getSupabase();
-    const errorName = error instanceof Error ? error.name : typeof error === 'object' && error !== null ? String((error as { code?: unknown }).code ?? 'Error') : 'UnknownError';
+    const errorName =
+      error instanceof Error
+        ? error.name
+        : typeof error === 'object' && error !== null
+          ? String((error as { code?: unknown }).code ?? 'Error')
+          : 'UnknownError';
     const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error);
     const errorStack = error instanceof Error ? error.stack?.slice(0, 5000) : undefined;
 

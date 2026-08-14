@@ -143,15 +143,12 @@ export function CreateEmployeePage() {
       const { data, error } = await supabase.functions.invoke('admin-create-employee', { body: parsedInput });
       if (error) throw error;
       const parsed = createEmployeeResultSchema.parse(data);
-      const baseMessage =
-        parsedInput.sendInvite
-          ? parsed.invitationSent
-            ? 'تم إنشاء الموظف والحساب وإرسال رابط التفعيل بنجاح.'
-            : 'تم إنشاء الموظف والحساب، لكن تعذر إرسال رابط التفعيل.'
-          : 'تم إنشاء الموظف بنجاح — نشط وجاهز للعمل فوراً.';
-      const passwordMessage = parsed.temporaryPassword
-        ? ` كلمة المرور المؤقتة: ${parsed.temporaryPassword} — تُعرض الآن مرة واحدة فقط.`
-        : '';
+      const baseMessage = parsedInput.sendInvite
+        ? parsed.invitationSent
+          ? 'تم إنشاء الموظف والحساب وإرسال رابط التفعيل بنجاح.'
+          : 'تم إنشاء الموظف والحساب، لكن تعذر إرسال رابط التفعيل.'
+        : 'تم إنشاء الموظف بنجاح — نشط وجاهز للعمل فوراً.';
+      const passwordMessage = parsed.temporaryPassword ? ` كلمة المرور المؤقتة: ${parsed.temporaryPassword} — تُعرض الآن مرة واحدة فقط.` : '';
       setResult(`${baseMessage}${passwordMessage} سيتحتم على الموظف تغيير كلمة المرور عند أول دخول. المعرّف: ${parsed.employeeId}`);
       uploadedPhotoPathRef.current = null;
       form.reset(defaultValues);

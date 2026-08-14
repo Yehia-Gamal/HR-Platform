@@ -15,19 +15,46 @@ vi.mock('../usePeopleFinance', () => ({
 
 const mockCatalogData = {
   payrollRuns: [
-    { id: 'pr-1', periodMonth: '2026-01', status: 'draft', totalGross: 50000, totalNet: 45000, employeeCount: 10, createdAt: '2026-01-01T00:00:00Z', approvedAt: null, approvedByName: null },
+    {
+      id: 'pr-1',
+      periodMonth: '2026-01',
+      status: 'draft',
+      totalGross: 50000,
+      totalNet: 45000,
+      employeeCount: 10,
+      createdAt: '2026-01-01T00:00:00Z',
+      approvedAt: null,
+      approvedByName: null,
+    },
   ],
   salaryStructures: [
     { id: 'ss-1', name: 'هيكل أساسي', code: 'BASIC', active: true, baseSalary: 5000, currency: 'EGP', effectiveFrom: '2026-01-01', effectiveTo: null },
   ],
   loans: [
-    { id: 'ln-1', employeeId: 'emp-1', employeeName: 'أحمد محمد', loanType: 'personal', principalAmount: 10000, remainingBalance: 8000, status: 'active', requestedAt: '2026-01-05T00:00:00Z', approvedAt: null },
+    {
+      id: 'ln-1',
+      employeeId: 'emp-1',
+      employeeName: 'أحمد محمد',
+      loanType: 'personal',
+      principalAmount: 10000,
+      remainingBalance: 8000,
+      status: 'active',
+      requestedAt: '2026-01-05T00:00:00Z',
+      approvedAt: null,
+    },
   ],
-  workforcePlans: [
-    { id: 'wp-1', departmentName: 'تقنية المعلومات', year: 2026, headcount: 15, status: 'approved', budgetEgp: 1000000, notes: null },
-  ],
+  workforcePlans: [{ id: 'wp-1', departmentName: 'تقنية المعلومات', year: 2026, headcount: 15, status: 'approved', budgetEgp: 1000000, notes: null }],
   campaigns: [
-    { id: 'ca-1', title: 'استبيان الرضا الوظيفي', campaignType: 'survey', status: 'active', targetAudience: null, startDate: '2026-01-01', endDate: null, createdByName: null },
+    {
+      id: 'ca-1',
+      title: 'استبيان الرضا الوظيفي',
+      campaignType: 'survey',
+      status: 'active',
+      targetAudience: null,
+      startDate: '2026-01-01',
+      endDate: null,
+      createdByName: null,
+    },
   ],
 };
 

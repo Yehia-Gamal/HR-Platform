@@ -10,12 +10,7 @@ import { useAttendanceDashboard } from './useAttendanceDashboard';
 import { useOrganizationLookups } from '../employees/useOrganizationLookups';
 import type { AttendanceRosterCategory } from '@ahla/shared-contracts';
 
-function detailsUrl(
-  category: AttendanceRosterCategory,
-  dateIso: string,
-  departmentId?: string | null,
-  branchId?: string | null,
-) {
+function detailsUrl(category: AttendanceRosterCategory, dateIso: string, departmentId?: string | null, branchId?: string | null) {
   const params = new URLSearchParams({ category, date: dateIso });
   if (departmentId) params.set('dept', departmentId);
   if (branchId) params.set('branch', branchId);
@@ -47,36 +42,27 @@ export function AttendancePage() {
       <div className="card flex flex-wrap items-end gap-4 p-4">
         <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-muted)]">
           التاريخ
-          <input
-            type="date"
-            value={dateIso}
-            onChange={(e) => setDateIso(e.target.value || cairoTodayIso())}
-            className="input min-w-44"
-          />
+          <input type="date" value={dateIso} onChange={(e) => setDateIso(e.target.value || cairoTodayIso())} className="input min-w-44" />
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-muted)]">
           القسم
-          <select
-            className="select min-w-44"
-            value={departmentId ?? ''}
-            onChange={(e) => setDepartmentId(e.target.value || null)}
-          >
+          <select className="select min-w-44" value={departmentId ?? ''} onChange={(e) => setDepartmentId(e.target.value || null)}>
             <option value="">كل الأقسام</option>
             {lookups.data?.departments.map((d) => (
-              <option key={d.id} value={d.id}>{d.label}</option>
+              <option key={d.id} value={d.id}>
+                {d.label}
+              </option>
             ))}
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-muted)]">
           الفرع
-          <select
-            className="select min-w-44"
-            value={branchId ?? ''}
-            onChange={(e) => setBranchId(e.target.value || null)}
-          >
+          <select className="select min-w-44" value={branchId ?? ''} onChange={(e) => setBranchId(e.target.value || null)}>
             <option value="">كل الفروع</option>
             {lookups.data?.branches.map((b) => (
-              <option key={b.id} value={b.id}>{b.label}</option>
+              <option key={b.id} value={b.id}>
+                {b.label}
+              </option>
             ))}
           </select>
         </label>
@@ -114,10 +100,7 @@ export function AttendancePage() {
             {data.scheduled > 0 ? (
               <div className="flex items-center gap-3">
                 <div className="h-2 w-32 overflow-hidden rounded-full bg-[var(--surface-muted)]">
-                  <div
-                    className="h-full rounded-full bg-[var(--success)] transition-all duration-500"
-                    style={{ width: `${presentPct}%` }}
-                  />
+                  <div className="h-full rounded-full bg-[var(--success)] transition-all duration-500" style={{ width: `${presentPct}%` }} />
                 </div>
                 <span className="text-sm font-bold text-[var(--success)]">{presentPct}%</span>
               </div>
@@ -126,7 +109,13 @@ export function AttendancePage() {
 
           {/* ─── المقاييس الأساسية ─── */}
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="المجدولون اليوم" value={data.scheduled} icon={Users} hint="وفق الورديات وتقويم العمل" to={detailsUrl('scheduled', dateIso, departmentId, branchId)} />
+            <MetricCard
+              label="المجدولون اليوم"
+              value={data.scheduled}
+              icon={Users}
+              hint="وفق الورديات وتقويم العمل"
+              to={detailsUrl('scheduled', dateIso, departmentId, branchId)}
+            />
             <MetricCard
               label="حاضرون"
               value={data.present}
@@ -135,7 +124,13 @@ export function AttendancePage() {
               to={detailsUrl('present', dateIso, departmentId, branchId)}
             />
             <MetricCard label="متأخرون" value={data.late} icon={Clock3} hint="حسب سياسة الوردية" to={detailsUrl('late', dateIso, departmentId, branchId)} />
-            <MetricCard label="غياب" value={data.absent} icon={UserMinus} hint={`بدون إذن: ${data.unexcusedAbsent ?? 0}`} to={detailsUrl('absent', dateIso, departmentId, branchId)} />
+            <MetricCard
+              label="غياب"
+              value={data.absent}
+              icon={UserMinus}
+              hint={`بدون إذن: ${data.unexcusedAbsent ?? 0}`}
+              to={detailsUrl('absent', dateIso, departmentId, branchId)}
+            />
           </section>
 
           {/* ─── حالات تحتاج اهتمام ─── */}

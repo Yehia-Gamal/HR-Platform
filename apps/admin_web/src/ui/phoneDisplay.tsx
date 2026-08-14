@@ -46,6 +46,9 @@ export function renderSafeIntlPhoneText(value: string): ReactNode {
  * لضمان تخزين قيمة نظيفة بدون رموز مخفية.
  */
 export function sanitizePhoneInput(value: string, maxLength = 20): string {
-  const cleaned = (value ?? '').replace(LOCAL_MARKERS, '').replace(/[\s\u00A0]+/g, '').trim();
+  const cleaned = (value ?? '')
+    .replace(LOCAL_MARKERS, '')
+    .replace(/[\s\u00A0]+/g, '')
+    .trim();
   return cleaned.slice(0, maxLength);
 }

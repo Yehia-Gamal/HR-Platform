@@ -350,9 +350,7 @@ export function AccessPage() {
               {(() => {
                 const chosen = data.roles.find((r) => r.id === assignment.roleId);
                 if (chosen?.fullAccess && !canGrantFullAccess) {
-                  return (
-                    <p className="muted self-end text-xs text-[var(--danger)]">منح الوصول الكامل يتطلب حساباً بـ super-admin — جُهّز من المالك.</p>
-                  );
+                  return <p className="muted self-end text-xs text-[var(--danger)]">منح الوصول الكامل يتطلب حساباً بـ super-admin — جُهّز من المالك.</p>;
                 }
                 return null;
               })()}
@@ -410,9 +408,7 @@ export function AccessPage() {
                             <button
                               aria-label="سحب الدور"
                               className="text-[var(--danger)]"
-                              onClick={() =>
-                                commands.revokeRole.mutate({ userId: user.userId, roleId: role.roleId })
-                              }
+                              onClick={() => commands.revokeRole.mutate({ userId: user.userId, roleId: role.roleId })}
                             >
                               <Trash2 className="size-3" aria-hidden="true" />
                             </button>
@@ -775,9 +771,7 @@ function RoleManagementDialog({
                     <button
                       type="button"
                       className="btn-secondary px-3 py-1.5 text-xs text-[var(--danger)]"
-                      onClick={() =>
-                        commands.revokeRole.mutate({ userId: user.userId, roleId: role.id })
-                      }
+                      onClick={() => commands.revokeRole.mutate({ userId: user.userId, roleId: role.id })}
                     >
                       <Trash2 className="size-3.5" aria-hidden="true" />
                       سحب
@@ -860,7 +854,9 @@ function CustomRoleDraftDialog({
           <FormInput label="الوصف" value={draft.description} onChange={(v) => setDraft({ ...draft, description: v })} />
         </div>
 
-        <label className={`flex items-center gap-3 rounded-xl p-3 text-sm font-semibold ${canGrantFullAccess ? 'bg-[var(--surface-muted)]' : 'bg-[var(--surface-muted)] opacity-60'}`}>
+        <label
+          className={`flex items-center gap-3 rounded-xl p-3 text-sm font-semibold ${canGrantFullAccess ? 'bg-[var(--surface-muted)]' : 'bg-[var(--surface-muted)] opacity-60'}`}
+        >
           <input
             className="size-4"
             type="checkbox"

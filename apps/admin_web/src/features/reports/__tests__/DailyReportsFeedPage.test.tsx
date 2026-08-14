@@ -106,44 +106,72 @@ const errorQuery = {
 describe('DailyReportsFeedPage', () => {
   it('يُعرض بدون أخطاء', () => {
     feedReturn = dataQuery;
-    const { container } = render(<Wrapper><DailyReportsFeedPage /></Wrapper>);
+    const { container } = render(
+      <Wrapper>
+        <DailyReportsFeedPage />
+      </Wrapper>,
+    );
     expect(container.firstChild).toBeTruthy();
   });
 
   it('يعرض عنوان الصفحة', () => {
     feedReturn = dataQuery;
-    render(<Wrapper><DailyReportsFeedPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <DailyReportsFeedPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('التقارير اليومية')).toBeDefined();
   });
 
   it('يعرض زر تقرير جديد', () => {
     feedReturn = dataQuery;
-    render(<Wrapper><DailyReportsFeedPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <DailyReportsFeedPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('تقرير جديد')).toBeDefined();
   });
 
   it('يعرض بيانات التقارير', () => {
     feedReturn = dataQuery;
-    render(<Wrapper><DailyReportsFeedPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <DailyReportsFeedPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('سارة علي')).toBeDefined();
     expect(screen.getByText('أنجزت تقرير الأنشطة الشهري')).toBeDefined();
   });
 
   it('يعرض حالة التحميل', () => {
     feedReturn = loadingQuery;
-    const { container } = render(<Wrapper><DailyReportsFeedPage /></Wrapper>);
+    const { container } = render(
+      <Wrapper>
+        <DailyReportsFeedPage />
+      </Wrapper>,
+    );
     expect(container.querySelector('.animate-pulse')).toBeTruthy();
   });
 
   it('يعرض حالة فارغة عند عدم وجود تقارير', () => {
     feedReturn = emptyQuery;
-    render(<Wrapper><DailyReportsFeedPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <DailyReportsFeedPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('لا توجد تقارير بعد')).toBeDefined();
   });
 
   it('يعرض حالة الخطأ', () => {
     feedReturn = errorQuery;
-    render(<Wrapper><DailyReportsFeedPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <DailyReportsFeedPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('تعذر تحميل التقارير')).toBeDefined();
   });
 });

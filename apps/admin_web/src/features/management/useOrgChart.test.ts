@@ -17,7 +17,8 @@ function buildOrgTree(employees: OrgChartEmployee[]): Array<{
   for (const node of map.values()) {
     const mgrId = node.employee.managerEmployeeId;
     if (mgrId && map.has(mgrId)) {
-      map.get(mgrId)!.children.push(node);
+      const mgrNode = map.get(mgrId);
+      if (mgrNode) mgrNode.children.push(node);
     } else {
       roots.push(node);
     }

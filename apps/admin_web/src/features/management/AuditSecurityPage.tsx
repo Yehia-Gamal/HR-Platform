@@ -195,9 +195,7 @@ export function AuditSecurityPage() {
                     type="button"
                     className="btn-secondary self-start lg:self-auto"
                     disabled={commands.handleEvent.isPending}
-                    onClick={() =>
-                      commands.handleEvent.mutate(item.id)
-                    }
+                    onClick={() => commands.handleEvent.mutate(item.id)}
                   >
                     {commands.handleEvent.isPending ? (
                       <Loader2 className="size-4 animate-spin" aria-hidden="true" />
@@ -357,7 +355,11 @@ function DevicesPanel({ devices, commands, canRevoke }: { devices: DeviceItem[];
                 placeholder="اكتب سبب الإلغاء (10 أحرف على الأقل)…"
               />
             </label>
-            {revokeError ? <p className="text-sm text-[var(--danger)]" role="alert">{revokeError}</p> : null}
+            {revokeError ? (
+              <p className="text-sm text-[var(--danger)]" role="alert">
+                {revokeError}
+              </p>
+            ) : null}
             <div className="flex justify-end gap-2">
               <button
                 type="button"

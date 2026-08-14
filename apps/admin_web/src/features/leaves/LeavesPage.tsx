@@ -1,8 +1,4 @@
-import {
-  LEAVE_TYPE_COLORS,
-  LEAVE_TYPE_LABELS,
-  type LeaveAdminRow,
-} from '@ahla/shared-contracts';
+import { LEAVE_TYPE_COLORS, LEAVE_TYPE_LABELS, type LeaveAdminRow } from '@ahla/shared-contracts';
 import { CalendarDays, Check, Clock3, Download, FileX, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
@@ -55,7 +51,9 @@ const YEAR_OPTIONS = Array.from({ length: 3 }, (_, i) => CURRENT_YEAR - i);
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('ar-EG', {
-    year: 'numeric', month: 'short', day: 'numeric',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
   });
 }
 
@@ -79,7 +77,7 @@ function exportToCsv(rows: LeaveAdminRow[], year: number) {
         escape(formatDuration(r)),
         r.isPaid ? 'نعم' : 'لا',
         escape(r.reason),
-      ].join(',')
+      ].join(','),
     ),
   ];
   const bom = '﻿';
@@ -105,15 +103,7 @@ function formatDuration(row: LeaveAdminRow) {
 
 // ─── تفاصيل طلب مع موافقة/رفض ───────────────────────────────────────────────
 
-function LeaveDetailDialog({
-  row,
-  onClose,
-  onDecided,
-}: {
-  row: LeaveAdminRow;
-  onClose: () => void;
-  onDecided: () => void;
-}) {
+function LeaveDetailDialog({ row, onClose, onDecided }: { row: LeaveAdminRow; onClose: () => void; onDecided: () => void }) {
   const typeColor = LEAVE_TYPE_COLORS[row.leaveTypeCode] ?? '';
   const typeLabel = LEAVE_TYPE_LABELS[row.leaveTypeCode] ?? row.leaveTypeName;
   const [rejectReason, setRejectReason] = useState('');
@@ -125,14 +115,24 @@ function LeaveDetailDialog({
   function handleApprove() {
     decision.mutate(
       { requestId: row.requestId, decision: 'approve' },
-      { onSuccess: () => { onDecided(); onClose(); } },
+      {
+        onSuccess: () => {
+          onDecided();
+          onClose();
+        },
+      },
     );
   }
 
   function handleReject() {
     decision.mutate(
       { requestId: row.requestId, decision: 'reject', comment: rejectReason || undefined },
-      { onSuccess: () => { onDecided(); onClose(); } },
+      {
+        onSuccess: () => {
+          onDecided();
+          onClose();
+        },
+      },
     );
   }
 
@@ -144,10 +144,7 @@ function LeaveDetailDialog({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={onClose}
     >
-      <div
-        className="card w-full max-w-lg space-y-4 p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="card w-full max-w-lg space-y-4 p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-lg font-bold">تفاصيل طلب الإجازة #{row.requestNumber}</h2>
           <button type="button" onClick={onClose} aria-label="إغلاق" className="rounded-lg p-1 hover:bg-[var(--surface-raised)]">
@@ -160,9 +157,7 @@ function LeaveDetailDialog({
           <UserAvatar displayName={row.employeeName} size="md" />
           <div>
             <p className="font-bold">{row.employeeName}</p>
-            {row.employeeCode && !row.employeeCode.match(/^\+?\d{9,}$/) && (
-              <p className="text-xs text-[var(--text-muted)]">{row.employeeCode}</p>
-            )}
+            {row.employeeCode && !row.employeeCode.match(/^\+?\d{9,}$/) && <p className="text-xs text-[var(--text-muted)]">{row.employeeCode}</p>}
           </div>
         </div>
 
@@ -230,16 +225,12 @@ function LeaveDetailDialog({
         {isPending && (
           <div className="border-t border-[var(--border)] pt-4 space-y-3">
             {decision.isError && (
-              <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
-                {safeErrorMessage(decision.error)}
-              </p>
+              <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">{safeErrorMessage(decision.error)}</p>
             )}
 
             {showRejectForm ? (
               <div className="space-y-2">
-                <label className="text-xs font-bold text-[var(--text-muted)]">
-                  سبب الرفض (اختياري)
-                </label>
+                <label className="text-xs font-bold text-[var(--text-muted)]">سبب الرفض (اختياري)</label>
                 <textarea
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
@@ -258,7 +249,10 @@ function LeaveDetailDialog({
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setShowRejectForm(false); setRejectReason(''); }}
+                    onClick={() => {
+                      setShowRejectForm(false);
+                      setRejectReason('');
+                    }}
                     disabled={decision.isPending}
                     className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold transition-colors hover:bg-[var(--surface-raised)] disabled:opacity-50"
                   >
@@ -313,13 +307,13 @@ function LeaveRow({ row, onSelect }: { row: LeaveAdminRow; onSelect: (r: LeaveAd
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-bold">{row.employeeName}</span>
-            {row.employeeCode && !row.employeeCode.match(/^\+?\d{9,}$/) && (
-              <span className="text-xs text-[var(--text-muted)]">{row.employeeCode}</span>
-            )}
+            {row.employeeCode && !row.employeeCode.match(/^\+?\d{9,}$/) && <span className="text-xs text-[var(--text-muted)]">{row.employeeCode}</span>}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
             <CalendarDays className="size-3.5 shrink-0" aria-hidden="true" />
-            <span>{formatDate(row.startDate)} — {formatDate(row.endDate)}</span>
+            <span>
+              {formatDate(row.startDate)} — {formatDate(row.endDate)}
+            </span>
             <span className="text-[var(--border)]">·</span>
             <span>{formatDuration(row)}</span>
           </div>
@@ -344,18 +338,21 @@ export function LeavesPage() {
 
   const query = useAdminLeaves({
     year,
-    status:    status    || undefined,
+    status: status || undefined,
     leaveType: leaveType || undefined,
   });
 
   const rows = useMemo(() => query.data?.rows ?? [], [query.data?.rows]);
 
-  const metrics = useMemo(() => ({
-    total:    rows.length,
-    pending:  rows.filter((r) => r.status === 'pending').length,
-    approved: rows.filter((r) => r.status === 'approved').length,
-    rejected: rows.filter((r) => r.status === 'rejected').length,
-  }), [rows]);
+  const metrics = useMemo(
+    () => ({
+      total: rows.length,
+      pending: rows.filter((r) => r.status === 'pending').length,
+      approved: rows.filter((r) => r.status === 'approved').length,
+      rejected: rows.filter((r) => r.status === 'rejected').length,
+    }),
+    [rows],
+  );
 
   return (
     <div className="space-y-6">
@@ -365,14 +362,11 @@ export function LeavesPage() {
         description="مراجعة واعتماد طلبات إجازات الموظفين"
         actions={
           <div className="flex items-center gap-2">
-            <select
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-              className="input-field h-9 w-28 text-sm"
-              aria-label="اختر السنة"
-            >
+            <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="input-field h-9 w-28 text-sm" aria-label="اختر السنة">
               {YEAR_OPTIONS.map((y) => (
-                <option key={y} value={y}>{y}</option>
+                <option key={y} value={y}>
+                  {y}
+                </option>
               ))}
             </select>
             <button
@@ -394,10 +388,10 @@ export function LeavesPage() {
         <MetricSkeletonRow />
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <MetricCard label="إجمالي الطلبات"   value={metrics.total}    icon={CalendarDays} />
-          <MetricCard label="قيد المراجعة"      value={metrics.pending}  icon={Clock3} />
-          <MetricCard label="معتمدة"            value={metrics.approved} icon={Check} />
-          <MetricCard label="مرفوضة"            value={metrics.rejected} icon={FileX} />
+          <MetricCard label="إجمالي الطلبات" value={metrics.total} icon={CalendarDays} />
+          <MetricCard label="قيد المراجعة" value={metrics.pending} icon={Clock3} />
+          <MetricCard label="معتمدة" value={metrics.approved} icon={Check} />
+          <MetricCard label="مرفوضة" value={metrics.rejected} icon={FileX} />
         </div>
       )}
 
@@ -411,9 +405,7 @@ export function LeavesPage() {
               type="button"
               onClick={() => setStatus(tab.key)}
               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
-                status === tab.key
-                  ? 'bg-[var(--brand-primary)] text-white'
-                  : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)]'
+                status === tab.key ? 'bg-[var(--brand-primary)] text-white' : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)]'
               }`}
             >
               {tab.label}
@@ -429,9 +421,7 @@ export function LeavesPage() {
               type="button"
               onClick={() => setLeaveType(tab.key)}
               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
-                leaveType === tab.key
-                  ? 'bg-[var(--brand-primary)] text-white'
-                  : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)]'
+                leaveType === tab.key ? 'bg-[var(--brand-primary)] text-white' : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)]'
               }`}
             >
               {tab.label}
@@ -444,25 +434,15 @@ export function LeavesPage() {
       {query.isLoading ? (
         <ListSkeleton rows={5} />
       ) : query.isError ? (
-        <ErrorState
-          title="تعذّر تحميل الإجازات"
-          description={safeErrorMessage(query.error)}
-          onRetry={() => void query.refetch()}
-        />
+        <ErrorState title="تعذّر تحميل الإجازات" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState
           title="لا توجد طلبات إجازات"
-          description={
-            status || leaveType
-              ? 'لا توجد نتائج تطابق الفلاتر المحددة.'
-              : `لا توجد طلبات إجازات مسجلة لعام ${year}.`
-          }
+          description={status || leaveType ? 'لا توجد نتائج تطابق الفلاتر المحددة.' : `لا توجد طلبات إجازات مسجلة لعام ${year}.`}
         />
       ) : (
         <div className="space-y-2">
-          <p className="text-xs text-[var(--text-muted)]">
-            {query.data?.total ?? rows.length} طلب
-          </p>
+          <p className="text-xs text-[var(--text-muted)]">{query.data?.total ?? rows.length} طلب</p>
           <div className="space-y-2">
             {rows.map((row) => (
               <LeaveRow key={row.requestId} row={row} onSelect={setSelected} />
@@ -472,13 +452,7 @@ export function LeavesPage() {
       )}
 
       {/* تفاصيل الطلب */}
-      {selected && (
-        <LeaveDetailDialog
-          row={selected}
-          onClose={() => setSelected(null)}
-          onDecided={() => void query.refetch()}
-        />
-      )}
+      {selected && <LeaveDetailDialog row={selected} onClose={() => setSelected(null)} onDecided={() => void query.refetch()} />}
     </div>
   );
 }

@@ -356,7 +356,10 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
       // حذف الصورة المؤقتة السابقة إن وُجدت.
       const prev = uploadedPhotoPathRef.current;
       if (prev && prev !== path) {
-        void supabase.storage.from('employee-avatars').remove([prev]).catch(() => undefined);
+        void supabase.storage
+          .from('employee-avatars')
+          .remove([prev])
+          .catch(() => undefined);
       }
       const { data } = supabase.storage.from('employee-avatars').getPublicUrl(path);
       uploadedPhotoPathRef.current = path;
@@ -449,30 +452,14 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
               <div>
                 <UserAvatar displayName={fullNameAr} photoUrl={photoUrl || null} size="lg" announceName={false} />
               </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={onAvatarChange}
-              />
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  className="btn btn-outline btn-sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={photoUploading}
-                >
+                <button type="button" className="btn btn-outline btn-sm" onClick={() => fileInputRef.current?.click()} disabled={photoUploading}>
                   <ImagePlus className="size-4" aria-hidden="true" />
                   {photoUploading ? 'جارٍ رفع الصورة…' : 'تغيير الصورة'}
                 </button>
                 {photoUrl && photoUrl !== item.photoUrl ? (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setPhotoUrl(item.photoUrl ?? '')}
-                    disabled={photoUploading}
-                  >
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPhotoUrl(item.photoUrl ?? '')} disabled={photoUploading}>
                     إلغاء الصورة الجديدة
                   </button>
                 ) : null}
@@ -561,7 +548,9 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
           <p className="muted text-xs">كلمة مرور قوية (12+ حرف، أحرف كبيرة وصغيرة ورقم ورمز) — يعيّنها الإداري ويتعين على الموظف تغييرها عند أول دخول.</p>
           {pwdError ? <ErrorBanner message={pwdError} /> : null}
           {pwdSuccess ? (
-            <p className="rounded-lg bg-[var(--success-soft)] px-3 py-2 text-sm text-[var(--success)]">تم تعيين كلمة المرور بنجاح. سيُجبر الموظف على تغييرها عند أول دخول.</p>
+            <p className="rounded-lg bg-[var(--success-soft)] px-3 py-2 text-sm text-[var(--success)]">
+              تم تعيين كلمة المرور بنجاح. سيُجبر الموظف على تغييرها عند أول دخول.
+            </p>
           ) : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
@@ -571,7 +560,10 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
                   className="input w-full pl-10"
                   type={showPwd ? 'text' : 'password'}
                   value={newPassword}
-                  onChange={(e) => { setNewPassword(e.target.value); setPwdSuccess(false); }}
+                  onChange={(e) => {
+                    setNewPassword(e.target.value);
+                    setPwdSuccess(false);
+                  }}
                   autoComplete="new-password"
                   minLength={12}
                   maxLength={72}
@@ -593,7 +585,10 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
                 className="input w-full"
                 type={showPwd ? 'text' : 'password'}
                 value={confirmPassword}
-                onChange={(e) => { setConfirmPassword(e.target.value); setPwdSuccess(false); }}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  setPwdSuccess(false);
+                }}
                 autoComplete="new-password"
                 minLength={12}
                 maxLength={72}
@@ -601,18 +596,13 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
               />
             </label>
             <div className="sm:col-span-2">
-              <button
-                type="submit"
-                disabled={passwordMutation.isPending || newPassword.length < 12 || newPassword !== confirmPassword}
-                className="btn-primary"
-              >
+              <button type="submit" disabled={passwordMutation.isPending || newPassword.length < 12 || newPassword !== confirmPassword} className="btn-primary">
                 {passwordMutation.isPending ? 'جارٍ التعيين…' : 'تعيين كلمة المرور'}
               </button>
             </div>
           </div>
         </form>
       ) : null}
-
     </DialogOverlay>
   );
 }
@@ -812,7 +802,10 @@ export function DeleteEmployeeDialog({
         </label>
         <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">
-            اكتب كود الموظف للتأكيد: <span dir="ltr" className="font-mono">{employeeCode}</span>
+            اكتب كود الموظف للتأكيد:{' '}
+            <span dir="ltr" className="font-mono">
+              {employeeCode}
+            </span>
           </span>
           <input
             className="input w-full"
@@ -1046,155 +1039,161 @@ export function EmployeeDetailPage() {
         {activeTab === 'overview' ? (
           <div className="space-y-6">
             <section className="card flex flex-col gap-5 p-5 lg:flex-row lg:items-center">
-        <UserAvatar displayName={item.fullNameAr} photoUrl={item.photoUrl} size="lg" eager />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-2xl font-black">{item.fullNameAr}</h2>
-            <StatusBadge status={item.status} />
-          </div>
-          <p className="muted mt-1">
-            {item.jobTitle ?? 'بدون مسمى وظيفي'} • {item.employeeCode}
-          </p>
-          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-            <Info icon={Network} label={item.department ?? 'بدون إدارة'} />
-            <Info icon={Phone} label={item.phoneE164 ? renderSafeIntlPhoneText(item.phoneE164) : 'بدون هاتف'} />
-            <Info icon={Mail} label={item.email ?? 'بدون بريد'} />
-            <Info icon={ShieldCheck} label="الحساب: نشط" />
-          </div>
-        </div>
-        <div className="rounded-2xl bg-[var(--surface-muted)] p-4 text-sm lg:min-w-64">
-          <p className="font-black">العلاقة الإدارية</p>
-          <div className="mt-2 flex items-center justify-between gap-2">
-            <p className="muted">
-              المدير المباشر: <span className="font-bold text-[var(--text)]">{item.managerName ?? 'غير معين'}</span>
-            </p>
-            {canEdit ? (
-              <button type="button" onClick={() => setShowManagerDialog(true)} className="text-brand font-bold text-xs">
-                تغيير
-              </button>
-            ) : null}
-          </div>
-          <p className="muted mt-1">المرؤوسون المباشرون: {item.directReports}</p>
-          <div className="mt-1 flex items-center justify-between gap-2">
-            <p className="muted">الأدوار: {item.roles.map((role) => role.name).join('، ') || 'لا توجد'}</p>
-            {hasPermission(auth.access, 'access.role.read') ? (
-              <Link to="/admin/access" className="text-brand font-bold text-xs">
-                إدارة الصلاحيات
-              </Link>
-            ) : null}
-          </div>
-        </div>
-      </section>
-
-      <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="أيام الحضور — 30 يومًا" value={item.attendance30.present} hint={`${item.attendance30.lateDays} أيام تأخير`} icon={BadgeCheck} />
-        <MetricCard label="أيام الغياب" value={item.attendance30.absent} icon={Clock3} />
-        <MetricCard label="الطلبات المعلقة" value={item.requestCounts.pending} hint={`${item.requestCounts.approved} معتمدة`} icon={FileText} />
-        <MetricCard
-          label="أحدث تقييم"
-          value={item.latestKpi?.finalScore ?? item.latestKpi?.currentStage ?? '—'}
-          hint={item.latestKpi?.finalRating ?? undefined}
-          icon={Gauge}
-        />
-      </section>
-
-      <section className="grid gap-5 xl:grid-cols-2">
-        <article className="card p-5">
-          <h3 className="font-black">البيانات الوظيفية</h3>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <Data label="الإدارة" value={item.department} />
-            <Data label="الفرع" value={item.branch} />
-            <Data label="موقع العمل" value={item.workSite} />
-            <Data label="تاريخ التعيين" value={item.hireDate ? dateFormatter.format(new Date(item.hireDate)) : null} />
-          </div>
-        </article>
-
-        <article className="card p-5">
-          <h3 className="font-black">المستندات والعهد</h3>
-          <div className="mt-4 space-y-3">
-            {item.documents.length === 0 ? <p className="muted text-sm">لا توجد مستندات متاحة.</p> : null}
-            {item.documents.slice(0, 5).map((doc) => (
-              <div key={doc.id} className="flex items-center justify-between rounded-xl bg-[var(--surface-muted)] p-3">
-                <div>
-                  <p className="font-bold">{doc.title}</p>
-                  <p className="muted mt-1 text-xs">{doc.expiryDate ? `ينتهي ${dateFormatter.format(new Date(doc.expiryDate))}` : doc.type}</p>
+              <UserAvatar displayName={item.fullNameAr} photoUrl={item.photoUrl} size="lg" eager />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h2 className="text-2xl font-black">{item.fullNameAr}</h2>
+                  <StatusBadge status={item.status} />
                 </div>
-                <StatusBadge value={doc.status} />
+                <p className="muted mt-1">
+                  {item.jobTitle ?? 'بدون مسمى وظيفي'} • {item.employeeCode}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+                  <Info icon={Network} label={item.department ?? 'بدون إدارة'} />
+                  <Info icon={Phone} label={item.phoneE164 ? renderSafeIntlPhoneText(item.phoneE164) : 'بدون هاتف'} />
+                  <Info icon={Mail} label={item.email ?? 'بدون بريد'} />
+                  <Info icon={ShieldCheck} label="الحساب: نشط" />
+                </div>
               </div>
-            ))}
-            {item.assets
-              .filter((asset) => !asset.returnedAt)
-              .map((asset) => (
-                <div key={asset.id} className="flex items-center justify-between rounded-xl border border-[var(--border)] p-3">
-                  <div>
-                    <p className="font-bold">{asset.assetName}</p>
-                    <p className="muted mt-1 text-xs">{asset.serial ?? asset.assetType}</p>
-                  </div>
-                  <BriefcaseBusiness className="size-5 text-[var(--text-muted)]" aria-label="عهدة قيد الاستلام" />
+              <div className="rounded-2xl bg-[var(--surface-muted)] p-4 text-sm lg:min-w-64">
+                <p className="font-black">العلاقة الإدارية</p>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <p className="muted">
+                    المدير المباشر: <span className="font-bold text-[var(--text)]">{item.managerName ?? 'غير معين'}</span>
+                  </p>
+                  {canEdit ? (
+                    <button type="button" onClick={() => setShowManagerDialog(true)} className="text-brand font-bold text-xs">
+                      تغيير
+                    </button>
+                  ) : null}
                 </div>
-              ))}
-          </div>
-        </article>
-      </section>
-
-      <section className="grid gap-5 xl:grid-cols-2">
-        <article className="card overflow-hidden">
-          <div className="border-b border-[var(--border)] p-5">
-            <h3 className="font-black">أحدث الطلبات</h3>
-          </div>
-          <div className="divide-y divide-[var(--border)]">
-            {item.recentRequests.length === 0 ? (
-              <p className="muted p-5 text-sm">لا توجد طلبات.</p>
-            ) : (
-              item.recentRequests.map((request) => (
-                <div key={request.id} className="flex items-center justify-between gap-3 p-4">
-                  <div>
-                    <p className="font-bold">{request.title ?? request.requestType}</p>
-                    <p className="muted mt-1 text-xs">
-                      طلب #{request.requestNumber} • {dateFormatter.format(new Date(request.createdAt))}
-                    </p>
-                  </div>
-                  <StatusBadge value={request.status} />
+                <p className="muted mt-1">المرؤوسون المباشرون: {item.directReports}</p>
+                <div className="mt-1 flex items-center justify-between gap-2">
+                  <p className="muted">الأدوار: {item.roles.map((role) => role.name).join('، ') || 'لا توجد'}</p>
+                  {hasPermission(auth.access, 'access.role.read') ? (
+                    <Link to="/admin/access" className="text-brand font-bold text-xs">
+                      إدارة الصلاحيات
+                    </Link>
+                  ) : null}
                 </div>
-              ))
-            )}
-          </div>
-        </article>
+              </div>
+            </section>
 
-        <article className="card overflow-hidden">
-          <div className="border-b border-[var(--border)] p-5">
-            <h3 className="font-black">أحدث المهام</h3>
-          </div>
-          <div className="divide-y divide-[var(--border)]">
-            {item.recentTasks.length === 0 ? (
-              <p className="muted p-5 text-sm">لا توجد مهام.</p>
-            ) : (
-              item.recentTasks.map((task) => (
-                <div key={task.id} className="flex items-center justify-between gap-3 p-4">
-                  <div>
-                    <p className="font-bold">{task.title}</p>
-                    <p className="muted mt-1 text-xs">{task.dueDate ? `الاستحقاق ${dateFormatter.format(new Date(task.dueDate))}` : 'بدون موعد'}</p>
-                  </div>
-                  <StatusBadge value={task.status} />
+            <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+              <MetricCard
+                label="أيام الحضور — 30 يومًا"
+                value={item.attendance30.present}
+                hint={`${item.attendance30.lateDays} أيام تأخير`}
+                icon={BadgeCheck}
+              />
+              <MetricCard label="أيام الغياب" value={item.attendance30.absent} icon={Clock3} />
+              <MetricCard label="الطلبات المعلقة" value={item.requestCounts.pending} hint={`${item.requestCounts.approved} معتمدة`} icon={FileText} />
+              <MetricCard
+                label="أحدث تقييم"
+                value={item.latestKpi?.finalScore ?? item.latestKpi?.currentStage ?? '—'}
+                hint={item.latestKpi?.finalRating ?? undefined}
+                icon={Gauge}
+              />
+            </section>
+
+            <section className="grid gap-5 xl:grid-cols-2">
+              <article className="card p-5">
+                <h3 className="font-black">البيانات الوظيفية</h3>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <Data label="الإدارة" value={item.department} />
+                  <Data label="الفرع" value={item.branch} />
+                  <Data label="موقع العمل" value={item.workSite} />
+                  <Data label="تاريخ التعيين" value={item.hireDate ? dateFormatter.format(new Date(item.hireDate)) : null} />
                 </div>
-              ))
-            )}
-          </div>
-        </article>
-      </section>
+              </article>
 
-      {/* إدارات الموظف — V17 multi-department */}
-      {employeeId && <DepartmentsSection employeeId={employeeId} canEdit={canEdit} onAdd={() => setShowAddDeptDialog(true)} />}
+              <article className="card p-5">
+                <h3 className="font-black">المستندات والعهد</h3>
+                <div className="mt-4 space-y-3">
+                  {item.documents.length === 0 ? <p className="muted text-sm">لا توجد مستندات متاحة.</p> : null}
+                  {item.documents.slice(0, 5).map((doc) => (
+                    <div key={doc.id} className="flex items-center justify-between rounded-xl bg-[var(--surface-muted)] p-3">
+                      <div>
+                        <p className="font-bold">{doc.title}</p>
+                        <p className="muted mt-1 text-xs">{doc.expiryDate ? `ينتهي ${dateFormatter.format(new Date(doc.expiryDate))}` : doc.type}</p>
+                      </div>
+                      <StatusBadge value={doc.status} />
+                    </div>
+                  ))}
+                  {item.assets
+                    .filter((asset) => !asset.returnedAt)
+                    .map((asset) => (
+                      <div key={asset.id} className="flex items-center justify-between rounded-xl border border-[var(--border)] p-3">
+                        <div>
+                          <p className="font-bold">{asset.assetName}</p>
+                          <p className="muted mt-1 text-xs">{asset.serial ?? asset.assetType}</p>
+                        </div>
+                        <BriefcaseBusiness className="size-5 text-[var(--text-muted)]" aria-label="عهدة قيد الاستلام" />
+                      </div>
+                    ))}
+                </div>
+              </article>
+            </section>
 
-      {/* آخر التعديلات الهامة على الملف */}
-      {employeeId && <EmployeeEditHistory employeeId={employeeId} />}
+            <section className="grid gap-5 xl:grid-cols-2">
+              <article className="card overflow-hidden">
+                <div className="border-b border-[var(--border)] p-5">
+                  <h3 className="font-black">أحدث الطلبات</h3>
+                </div>
+                <div className="divide-y divide-[var(--border)]">
+                  {item.recentRequests.length === 0 ? (
+                    <p className="muted p-5 text-sm">لا توجد طلبات.</p>
+                  ) : (
+                    item.recentRequests.map((request) => (
+                      <div key={request.id} className="flex items-center justify-between gap-3 p-4">
+                        <div>
+                          <p className="font-bold">{request.title ?? request.requestType}</p>
+                          <p className="muted mt-1 text-xs">
+                            طلب #{request.requestNumber} • {dateFormatter.format(new Date(request.createdAt))}
+                          </p>
+                        </div>
+                        <StatusBadge value={request.status} />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </article>
 
-      <p className="muted flex items-center gap-2 text-xs">
-        <CalendarDays className="size-4" aria-hidden="true" />
-        آخر تحديث: {item.lastUpdatedAt
-          ? new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.lastUpdatedAt))
-          : 'غير متوفر'}
-      </p>
+              <article className="card overflow-hidden">
+                <div className="border-b border-[var(--border)] p-5">
+                  <h3 className="font-black">أحدث المهام</h3>
+                </div>
+                <div className="divide-y divide-[var(--border)]">
+                  {item.recentTasks.length === 0 ? (
+                    <p className="muted p-5 text-sm">لا توجد مهام.</p>
+                  ) : (
+                    item.recentTasks.map((task) => (
+                      <div key={task.id} className="flex items-center justify-between gap-3 p-4">
+                        <div>
+                          <p className="font-bold">{task.title}</p>
+                          <p className="muted mt-1 text-xs">{task.dueDate ? `الاستحقاق ${dateFormatter.format(new Date(task.dueDate))}` : 'بدون موعد'}</p>
+                        </div>
+                        <StatusBadge value={task.status} />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </article>
+            </section>
+
+            {/* إدارات الموظف — V17 multi-department */}
+            {employeeId && <DepartmentsSection employeeId={employeeId} canEdit={canEdit} onAdd={() => setShowAddDeptDialog(true)} />}
+
+            {/* آخر التعديلات الهامة على الملف */}
+            {employeeId && <EmployeeEditHistory employeeId={employeeId} />}
+
+            <p className="muted flex items-center gap-2 text-xs">
+              <CalendarDays className="size-4" aria-hidden="true" />
+              آخر تحديث:{' '}
+              {item.lastUpdatedAt
+                ? new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.lastUpdatedAt))
+                : 'غير متوفر'}
+            </p>
           </div>
         ) : null}
 

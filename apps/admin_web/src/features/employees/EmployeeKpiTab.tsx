@@ -25,13 +25,7 @@ export function EmployeeKpiTab({ employeeId }: { employeeId: string }) {
   const rows = query.data ?? [];
 
   if (query.isError) {
-    return (
-      <ErrorState
-        title="تعذر تحميل تقييمات الأداء"
-        description="أعد المحاولة أو تواصل مع الدعم."
-        onRetry={() => void query.refetch()}
-      />
-    );
+    return <ErrorState title="تعذر تحميل تقييمات الأداء" description="أعد المحاولة أو تواصل مع الدعم." onRetry={() => void query.refetch()} />;
   }
   if (query.isLoading) return <SkeletonCard className="h-56" />;
   if (rows.length === 0) {
@@ -54,19 +48,11 @@ export function EmployeeKpiTab({ employeeId }: { employeeId: string }) {
           <tbody>
             {rows.map((row) => (
               <tr key={row.id} className="border-b border-[var(--border-subtle)] last:border-0">
-                <td className="px-4 py-3 font-bold">
-                  {row.periodMonth ? dateFormatter.format(new Date(`${row.periodMonth}T00:00:00`)) : '—'}
-                </td>
+                <td className="px-4 py-3 font-bold">{row.periodMonth ? dateFormatter.format(new Date(`${row.periodMonth}T00:00:00`)) : '—'}</td>
                 <td className="px-4 py-3">
-                  {row.currentStage ? (
-                    <StatusBadge value={row.currentStage} label={STAGE_LABELS[row.currentStage] ?? row.currentStage} />
-                  ) : (
-                    '—'
-                  )}
+                  {row.currentStage ? <StatusBadge value={row.currentStage} label={STAGE_LABELS[row.currentStage] ?? row.currentStage} /> : '—'}
                 </td>
-                <td className="px-4 py-3">
-                  {row.cycleStatus ? <StatusBadge value={row.cycleStatus} /> : '—'}
-                </td>
+                <td className="px-4 py-3">{row.cycleStatus ? <StatusBadge value={row.cycleStatus} /> : '—'}</td>
                 <td className="px-4 py-3 font-black">{row.finalScore != null ? row.finalScore.toFixed(2) : '—'}</td>
                 <td className="px-4 py-3">{row.finalRating ?? '—'}</td>
               </tr>

@@ -2,13 +2,7 @@
  * أنواع عقود استوديو المستندات — مطابقة لـ get_document_studio_catalog() في migration 0033.
  * تُترك الحقول كـ string/string|null بدلاً من Date لتقارب سلسلة JSON القادمة من Postgres (jsonb).
  */
-export type DocumentType =
-  | 'contract'
-  | 'offer_letter'
-  | 'warning'
-  | 'certificate'
-  | 'experience_letter'
-  | 'other';
+export type DocumentType = 'contract' | 'offer_letter' | 'warning' | 'certificate' | 'experience_letter' | 'other';
 
 export type DocumentTemplate = {
   id: string;

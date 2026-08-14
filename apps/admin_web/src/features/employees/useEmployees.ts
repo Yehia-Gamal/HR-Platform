@@ -151,12 +151,7 @@ export function useSetEmployeePassword() {
   return useMutation({
     mutationFn: async ({ employeeId, password }: { employeeId: string; password: string }): Promise<void> => {
       if (auth.isMock) return;
-      await invokeEdgeFunction(
-        'admin-set-password',
-        { employeeId, password },
-        SET_PASSWORD_ERROR_MESSAGES,
-        'تعذر تعيين كلمة المرور. أعد المحاولة لاحقًا.',
-      );
+      await invokeEdgeFunction('admin-set-password', { employeeId, password }, SET_PASSWORD_ERROR_MESSAGES, 'تعذر تعيين كلمة المرور. أعد المحاولة لاحقًا.');
     },
     meta: { successMessage: 'تم تعيين كلمة المرور بنجاح' },
     onSuccess: async (_, { employeeId }) => {
@@ -191,12 +186,7 @@ export function useUpdateEmployeeEmail() {
   return useMutation({
     mutationFn: async ({ employeeId, email }: { employeeId: string; email: string }): Promise<void> => {
       if (auth.isMock) return;
-      await invokeEdgeFunction(
-        'admin-update-email',
-        { employeeId, email },
-        UPDATE_EMAIL_ERROR_MESSAGES,
-        'تعذر تحديث البريد الإلكتروني. أعد المحاولة لاحقًا.',
-      );
+      await invokeEdgeFunction('admin-update-email', { employeeId, email }, UPDATE_EMAIL_ERROR_MESSAGES, 'تعذر تحديث البريد الإلكتروني. أعد المحاولة لاحقًا.');
     },
     meta: { successMessage: 'تم تحديث البريد الإلكتروني بنجاح' },
     onSuccess: async () => {
@@ -365,7 +355,6 @@ export interface EmployeeAuditEvent {
   description: string | null;
   metadata: Record<string, unknown> | null;
 }
-
 
 const auditEventRowSchema = z.object({
   id: z.string(),

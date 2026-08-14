@@ -61,11 +61,7 @@ function TierBadge({ workflowStatus, activeStepName }: { workflowStatus: string;
       : workflowStatus === 'escalated'
         ? 'bg-[var(--danger)]/15 text-[var(--danger)]'
         : 'bg-brand/10 text-brand';
-  return (
-    <span className={`rounded-lg px-2 py-0.5 text-xs font-black ${colorClass}`}>
-      {label}
-    </span>
-  );
+  return <span className={`rounded-lg px-2 py-0.5 text-xs font-black ${colorClass}`}>{label}</span>;
 }
 
 /** النص الزمني المتبقي حتى انتهاء مهلة الخطوة الحالية */
@@ -92,9 +88,7 @@ export function RequestsPage() {
   const [comment, setComment] = useState('');
   const canDecide =
     auth.access != null &&
-    (hasPermission(auth.access, 'requests.request.approve') ||
-      hasPermission(auth.access, 'requests.approve') ||
-      auth.access.workspaces.includes('main_admin'));
+    (hasPermission(auth.access, 'requests.request.approve') || hasPermission(auth.access, 'requests.approve') || auth.access.workspaces.includes('main_admin'));
   const assignments = useWorkAssignments('team');
   // تصحيحات الحضور
   const correctionsQuery = useAttendanceOperations(currentMonth);
@@ -130,10 +124,7 @@ export function RequestsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="طلب إجازة"
-        description="صندوق موحد للإجازات وتصحيحات الحضور والتكليفات (مأمورية، قافلة) والأذونات، مع مسار اعتماد واضح."
-      />
+      <PageHeader title="طلب إجازة" description="صندوق موحد للإجازات وتصحيحات الحضور والتكليفات (مأمورية، قافلة) والأذونات، مع مسار اعتماد واضح." />
       {balances.isLoading && !balances.data ? (
         <MetricSkeletonRow />
       ) : (
@@ -271,35 +262,25 @@ export function RequestsPage() {
                 <article key={item.id} className="card flex flex-col gap-3 p-5">
                   {/* صف علوي: النوع + رقم الطلب + الحالة */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-lg bg-brand/10 px-2.5 py-1 text-xs font-black text-brand">
-                      {labels[item.requestType]}
-                    </span>
-                    <span className="rounded-lg bg-[var(--surface-muted)] px-2 py-1 text-xs font-black">
-                      #{item.requestNumber}
-                    </span>
+                    <span className="rounded-lg bg-brand/10 px-2.5 py-1 text-xs font-black text-brand">{labels[item.requestType]}</span>
+                    <span className="rounded-lg bg-[var(--surface-muted)] px-2 py-1 text-xs font-black">#{item.requestNumber}</span>
                     <StatusBadge value={item.status} />
                   </div>
 
                   {/* العنوان */}
-                  <h2 className="text-lg font-black leading-snug">
-                    {item.title || labels[item.requestType]}
-                  </h2>
+                  <h2 className="text-lg font-black leading-snug">{item.title || labels[item.requestType]}</h2>
 
                   {/* الموظف */}
                   <div className="flex items-center gap-2">
                     <UserAvatar displayName={item.employeeName} size="sm" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold">{item.employeeName}</p>
-                      {!isPhoneLikeCode(item.employeeCode) ? (
-                        <p className="muted truncate text-xs">كود: {item.employeeCode}</p>
-                      ) : null}
+                      {!isPhoneLikeCode(item.employeeCode) ? <p className="muted truncate text-xs">كود: {item.employeeCode}</p> : null}
                     </div>
                   </div>
 
                   {/* السبب */}
-                  <p className="line-clamp-2 text-sm leading-7 text-[var(--foreground)]/90">
-                    {item.reason || 'لم يضف الموظف سببًا تفصيليًا.'}
-                  </p>
+                  <p className="line-clamp-2 text-sm leading-7 text-[var(--foreground)]/90">{item.reason || 'لم يضف الموظف سببًا تفصيليًا.'}</p>
 
                   {/* التكليف: المكان + الوقت المخطط + حالة التنفيذ */}
                   {item.requestType === 'mission' || item.requestType === 'convoy' || item.requestType === 'fundraising' ? (
@@ -321,7 +302,9 @@ export function RequestsPage() {
                       {item.missionExecution?.status && item.missionExecution.status !== 'not_started' ? (
                         <span
                           className={`ms-auto rounded-lg px-2 py-1 text-xs font-black ${
-                            item.missionExecution.status === 'completed' ? 'bg-[var(--success)]/15 text-[var(--success)]' : 'bg-[var(--warning)]/15 text-[var(--warning)]'
+                            item.missionExecution.status === 'completed'
+                              ? 'bg-[var(--success)]/15 text-[var(--success)]'
+                              : 'bg-[var(--warning)]/15 text-[var(--warning)]'
                           }`}
                         >
                           {MISSION_EXECUTION_STATUS_LABELS[item.missionExecution.status]}
@@ -340,9 +323,7 @@ export function RequestsPage() {
                         {item.activeStepName || 'اكتمل المسار'}
                       </span>
                     )}
-                    {item.status === 'pending' && item.decisionDueAt ? (
-                      <EscalationCountdown dueAt={item.decisionDueAt} />
-                    ) : null}
+                    {item.status === 'pending' && item.decisionDueAt ? <EscalationCountdown dueAt={item.decisionDueAt} /> : null}
                     <span className="muted">
                       {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.createdAt))}
                     </span>
@@ -408,12 +389,8 @@ export function RequestsPage() {
           <div className="flex flex-wrap items-center gap-3 mb-5">
             <UserAvatar displayName={selected.employeeName} size="sm" />
             <p className="muted text-sm flex-1">{selected.employeeName}</p>
-            {selected.status === 'pending' ? (
-              <TierBadge workflowStatus={selected.workflowStatus} activeStepName={selected.activeStepName} />
-            ) : null}
-            {selected.status === 'pending' && selected.decisionDueAt ? (
-              <EscalationCountdown dueAt={selected.decisionDueAt} />
-            ) : null}
+            {selected.status === 'pending' ? <TierBadge workflowStatus={selected.workflowStatus} activeStepName={selected.activeStepName} /> : null}
+            {selected.status === 'pending' && selected.decisionDueAt ? <EscalationCountdown dueAt={selected.decisionDueAt} /> : null}
           </div>
           <p id="decision-reason" className="rounded-2xl bg-[var(--surface-muted)] p-4 text-sm leading-7">
             {selected.reason || 'لا يوجد سبب تفصيلي.'}
@@ -436,23 +413,15 @@ export function RequestsPage() {
               </p>
               {selected.missionExecution.startedAt ? (
                 <p className="muted">
-                  بدأت:{' '}
-                  {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(
-                    new Date(selected.missionExecution.startedAt),
-                  )}
+                  بدأت: {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(selected.missionExecution.startedAt))}
                 </p>
               ) : null}
               {selected.missionExecution.endedAt ? (
                 <p className="muted">
-                  انتهت:{' '}
-                  {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(
-                    new Date(selected.missionExecution.endedAt),
-                  )}
+                  انتهت: {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(selected.missionExecution.endedAt))}
                 </p>
               ) : null}
-              {selected.missionExecution.actualMinutes != null ? (
-                <p className="muted">المدة الفعلية: {selected.missionExecution.actualMinutes} دقيقة</p>
-              ) : null}
+              {selected.missionExecution.actualMinutes != null ? <p className="muted">المدة الفعلية: {selected.missionExecution.actualMinutes} دقيقة</p> : null}
               {selected.missionExecution.report ? (
                 <p className="leading-7">
                   <strong>التقرير:</strong> {selected.missionExecution.report}

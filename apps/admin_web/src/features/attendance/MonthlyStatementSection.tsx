@@ -74,12 +74,7 @@ export function MonthlyStatementSection({ employeeId }: { employeeId: string }) 
           </div>
           {statementData && (
             <>
-              <button
-                type="button"
-                className="stmt-btn"
-                onClick={() => exportAttendancePDF(statementData)}
-                title="تنزيل نسخة PDF من كشف الحضور والانصراف"
-              >
+              <button type="button" className="stmt-btn" onClick={() => exportAttendancePDF(statementData)} title="تنزيل نسخة PDF من كشف الحضور والانصراف">
                 <FileDown className="size-4" aria-hidden="true" />
                 تصدير PDF
               </button>
@@ -122,10 +117,7 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
   const [dayFilter, setDayFilter] = useState<DayFilter>('all');
   const [daySort, setDaySort] = useState<DaySort>('date-asc');
   const [daySearch, setDaySearch] = useState('');
-  const filteredSortedDays = useMemo(
-    () => sortDays(filterDays(data.days, dayFilter, daySearch), daySort),
-    [data.days, dayFilter, daySort, daySearch],
-  );
+  const filteredSortedDays = useMemo(() => sortDays(filterDays(data.days, dayFilter, daySearch), daySort), [data.days, dayFilter, daySort, daySearch]);
 
   return (
     <div className="space-y-5">
@@ -148,11 +140,7 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
           <StatBox
             label="ساعات العمل"
             value={workedHours.toFixed(1)}
-            hint={
-              complianceAvailable
-                ? `من ${requiredHours.toFixed(1)} س شهريًا · عجز ${deficitHours.toFixed(1)} س`
-                : 'الساعات المطلوبة غير متاحة'
-            }
+            hint={complianceAvailable ? `من ${requiredHours.toFixed(1)} س شهريًا · عجز ${deficitHours.toFixed(1)} س` : 'الساعات المطلوبة غير متاحة'}
             icon={Timer}
             tone={deficitHours > 0 ? 'warn' : 'success'}
           />
@@ -186,7 +174,11 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
             <button
               type="button"
               className="filter-clear"
-              onClick={() => { setDayFilter('all'); setDaySearch(''); setDaySort('date-asc'); }}
+              onClick={() => {
+                setDayFilter('all');
+                setDaySearch('');
+                setDaySort('date-asc');
+              }}
             >
               مسح الفلاتر
             </button>
@@ -218,19 +210,18 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
             ))}
           </div>
           <div className="stmt-select">
-            <select
-              className="input min-w-[140px]"
-              value={daySort}
-              onChange={(e) => setDaySort(e.target.value as DaySort)}
-              aria-label="ترتيب الأيام"
-            >
+            <select className="input min-w-[140px]" value={daySort} onChange={(e) => setDaySort(e.target.value as DaySort)} aria-label="ترتيب الأيام">
               {DAY_SORTS.map((so) => (
-                <option key={so.key} value={so.key}>{so.label}</option>
+                <option key={so.key} value={so.key}>
+                  {so.label}
+                </option>
               ))}
             </select>
           </div>
         </div>
-        <p className="filter-result">{filteredSortedDays.length} من {data.days.length} يوم</p>
+        <p className="filter-result">
+          {filteredSortedDays.length} من {data.days.length} يوم
+        </p>
       </div>
 
       <div className="stmt-table-wrap">
@@ -254,13 +245,7 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
           <tbody>
             {filteredSortedDays.map((d) => {
               const tags = buildDayTags(d);
-              const rowClass = d.isAbsent
-                ? 'row-absent'
-                : d.isOpenShift
-                  ? 'row-open'
-                  : d.isFuture
-                    ? 'row-future'
-                    : '';
+              const rowClass = d.isAbsent ? 'row-absent' : d.isOpenShift ? 'row-open' : d.isFuture ? 'row-future' : '';
               return (
                 <tr key={d.date} className={rowClass}>
                   <td className="cell-date">{d.date}</td>
@@ -278,7 +263,9 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
                   <td className={`cell-num${d.overtimeMinutes > 0 ? ' text-emerald-600 font-bold' : ''}`}>
                     {d.overtimeMinutes ? `${d.overtimeMinutes} د` : <span className="dash">—</span>}
                   </td>
-                  <td><StatusPill d={d} /></td>
+                  <td>
+                    <StatusPill d={d} />
+                  </td>
                   <td>
                     <div className="flex flex-wrap gap-1">
                       {tags.map((t) => (

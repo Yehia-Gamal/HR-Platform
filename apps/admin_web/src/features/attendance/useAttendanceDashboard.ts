@@ -96,17 +96,31 @@ export function useAttendanceRosterPage(filters: AttendanceRosterFilters) {
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
-  scheduled: 'المجدولون', present: 'حاضرون', late: 'متأخرون', absent: 'غائبون',
-  unexcused_absent: 'غياب بدون إذن', incomplete: 'بصمات غير مكتملة',
-  pending_review: 'تحتاج مراجعة', location_requests: 'طلبات الموقع',
-  location_responded: 'استجابات الموقع', on_leave: 'في إجازة',
-  on_mission: 'في مأمورية', missing_checkout: 'بصمة بلا انصراف',
+  scheduled: 'المجدولون',
+  present: 'حاضرون',
+  late: 'متأخرون',
+  absent: 'غائبون',
+  unexcused_absent: 'غياب بدون إذن',
+  incomplete: 'بصمات غير مكتملة',
+  pending_review: 'تحتاج مراجعة',
+  location_requests: 'طلبات الموقع',
+  location_responded: 'استجابات الموقع',
+  on_leave: 'في إجازة',
+  on_mission: 'في مأمورية',
+  missing_checkout: 'بصمة بلا انصراف',
 };
 
 const STATUS_LABELS_PDF: Record<string, string> = {
-  present: 'حاضر', late: 'متأخر', absent: 'غائب', on_leave: 'إجازة',
-  holiday: 'عطلة', weekend: 'عطلة أسبوعية', partial: 'جزئي',
-  pending: 'قيد الانتظار', on_mission: 'مأمورية', missing_checkout: 'بصمة بلا انصراف',
+  present: 'حاضر',
+  late: 'متأخر',
+  absent: 'غائب',
+  on_leave: 'إجازة',
+  holiday: 'عطلة',
+  weekend: 'عطلة أسبوعية',
+  partial: 'جزئي',
+  pending: 'قيد الانتظار',
+  on_mission: 'مأمورية',
+  missing_checkout: 'بصمة بلا انصراف',
 };
 
 function _fmt(iso: string | null | undefined): string {
@@ -114,14 +128,12 @@ function _fmt(iso: string | null | undefined): string {
   return new Intl.DateTimeFormat('ar-EG', { timeStyle: 'short' }).format(new Date(iso));
 }
 
-function _buildPrintHtml(
-  items: AttendanceRosterItem[],
-  category: string,
-  dateIso: string,
-): string {
+function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIso: string): string {
   const categoryLabel = CATEGORY_LABELS[category] ?? category;
   const dateLabel = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(new Date(dateIso));
-  const rows = items.map((item, i) => `
+  const rows = items
+    .map(
+      (item, i) => `
     <tr>
       <td>${i + 1}</td>
       <td>${item.employeeName}</td>
@@ -131,7 +143,9 @@ function _buildPrintHtml(
       <td>${_fmt(item.firstCheckIn)}</td>
       <td>${_fmt(item.lastCheckOut)}</td>
       <td>${item.lateMinutes ? `${item.lateMinutes} د` : '—'}</td>
-    </tr>`).join('');
+    </tr>`,
+    )
+    .join('');
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -168,9 +182,7 @@ function _buildPrintHtml(
 </html>`;
 }
 
-export async function exportAttendancePdf(
-  filters: Omit<AttendanceRosterFilters, 'limit' | 'offset'>,
-): Promise<void> {
+export async function exportAttendancePdf(filters: Omit<AttendanceRosterFilters, 'limit' | 'offset'>): Promise<void> {
   const cat = attendanceRosterCategorySchema.parse(filters.category);
   const data = await rpc('get_attendance_day_roster', {
     p_date: filters.dateIso,

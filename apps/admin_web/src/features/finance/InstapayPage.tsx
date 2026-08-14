@@ -10,12 +10,8 @@ import { PageHeader } from '../../ui/PageHeader';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { usePeopleFinanceCatalog } from './usePeopleFinance';
-import {
-  INSTAPAY_STATUS_LABELS,
-  useGenerateInstapayBatch,
-  useInstapayBatches,
-  type InstapayBatch,
-} from './useFinancialExtensions';const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
+import { INSTAPAY_STATUS_LABELS, useGenerateInstapayBatch, useInstapayBatches, type InstapayBatch } from './useFinancialExtensions';
+const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
 const currencyFmt = new Intl.NumberFormat('ar-EG', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 });
 
 function formatCurrency(amount: number | null | undefined): string {
@@ -35,19 +31,13 @@ export function InstapayPage() {
     const q = search.trim().toLowerCase();
     const items = batches.data ?? [];
     return items.filter((b) => {
-      const matchSearch =
-        !q ||
-        (b.batchReference ?? '').toLowerCase().includes(q) ||
-        (b.periodMonth ?? '').toLowerCase().includes(q);
+      const matchSearch = !q || (b.batchReference ?? '').toLowerCase().includes(q) || (b.periodMonth ?? '').toLowerCase().includes(q);
       const matchStatus = statusFilter === 'all' || b.status === statusFilter;
       return matchSearch && matchStatus;
     });
   }, [batches.data, search, statusFilter]);
 
-  const approvedRuns = useMemo(
-    () => (finance.data?.payrollRuns ?? []).filter((r) => ['approved', 'posted'].includes(r.status)),
-    [finance.data],
-  );
+  const approvedRuns = useMemo(() => (finance.data?.payrollRuns ?? []).filter((r) => ['approved', 'posted'].includes(r.status)), [finance.data]);
 
   const columns: DataTableColumn<InstapayBatch>[] = [
     { key: 'periodMonth', header: 'الشهر', sortable: true, render: (b) => <span className="font-bold">{b.periodMonth ?? '—'}</span> },
@@ -59,7 +49,10 @@ export function InstapayPage() {
   ];
 
   const dirty = Boolean(search.trim() || statusFilter !== 'all');
-  const clearFilters = () => { setSearch(''); setStatusFilter('all'); };
+  const clearFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+  };
 
   const handleGenerate = async () => {
     if (!selectedRunId) return;
@@ -68,9 +61,7 @@ export function InstapayPage() {
   };
 
   const handleCsvExport = () => {
-    const items = (rows.flatMap((b) =>
-      b.items.map((i) => ({ ...i, batchReference: b.batchReference, periodMonth: b.periodMonth })),
-    ));
+    const items = rows.flatMap((b) => b.items.map((i) => ({ ...i, batchReference: b.batchReference, periodMonth: b.periodMonth })));
     const cols: ExportColumn<(typeof items)[number]>[] = [
       { key: 'batch', header: 'رقم الدفعة', get: (i) => i.batchReference },
       { key: 'period', header: 'الشهر', get: (i) => i.periodMonth },
@@ -89,12 +80,7 @@ export function InstapayPage() {
         subtitle: `${b.batchReference ?? ''} · ${b.itemCount} عنصر`,
         table: {
           headers: ['الموظف', 'رقم الجوال', 'المبلغ', 'الحالة'],
-          rows: b.items.map((i) => [
-            i.employeeName ?? '—',
-            i.mobileE164 ?? '—',
-            formatCurrency(i.amount),
-            INSTAPAY_STATUS_LABELS[i.status] ?? i.status,
-          ]),
+          rows: b.items.map((i) => [i.employeeName ?? '—', i.mobileE164 ?? '—', formatCurrency(i.amount), INSTAPAY_STATUS_LABELS[i.status] ?? i.status]),
         },
       })),
       'دفعات صرف الرواتب عبر InstaPay',
@@ -124,7 +110,9 @@ export function InstapayPage() {
             <select className="input mt-1" value={selectedRunId} onChange={(ev) => setSelectedRunId(ev.target.value)}>
               <option value="">اختر الدورة…</option>
               {approvedRuns.map((r) => (
-                <option key={r.id} value={r.id}>{r.periodMonth} — {r.status}</option>
+                <option key={r.id} value={r.id}>
+                  {r.periodMonth} — {r.status}
+                </option>
               ))}
             </select>
           </label>
@@ -139,11 +127,7 @@ export function InstapayPage() {
           </button>
         </div>
         {generateBatch.isError && <p className="mt-3 text-sm text-red-600">{safeErrorMessage(generateBatch.error)}</p>}
-        {generateBatch.isSuccess && (
-          <p className="mt-3 rounded-xl bg-green-50 p-3 text-sm text-green-700">
-            تم توليد الدفعة بنجاح.
-          </p>
-        )}
+        {generateBatch.isSuccess && <p className="mt-3 rounded-xl bg-green-50 p-3 text-sm text-green-700">تم توليد الدفعة بنجاح.</p>}
       </section>
 
       <FilterBar
@@ -156,7 +140,11 @@ export function InstapayPage() {
       >
         <select className="input" value={statusFilter} onChange={(ev) => setStatusFilter(ev.target.value)} aria-label="تصفية حسب الحالة">
           <option value="all">كل الحالات</option>
-          {Object.entries(INSTAPAY_STATUS_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+          {Object.entries(INSTAPAY_STATUS_LABELS).map(([key, label]) => (
+            <option key={key} value={key}>
+              {label}
+            </option>
+          ))}
         </select>
         <button type="button" className="btn-secondary" onClick={handleCsvExport} disabled={rows.length === 0} title="تصدير Excel (CSV)">
           <FileSpreadsheet className="size-4" aria-hidden="true" />
@@ -171,7 +159,15 @@ export function InstapayPage() {
       ) : rows.length === 0 ? (
         <EmptyState title="لا توجد دفعات بعد" description="ولّد أول دفعة InstaPay من دورة رواتب معتمدة." />
       ) : (
-        <DataTable<InstapayBatch> ariaLabel="جدول دفعات InstaPay" rowKey={(b) => b.id} data={rows} minWidth="720px" columns={columns} emptyTitle="لا توجد نتائج" emptyDescription="جرّب تعديل البحث أو الحالة." />
+        <DataTable<InstapayBatch>
+          ariaLabel="جدول دفعات InstaPay"
+          rowKey={(b) => b.id}
+          data={rows}
+          minWidth="720px"
+          columns={columns}
+          emptyTitle="لا توجد نتائج"
+          emptyDescription="جرّب تعديل البحث أو الحالة."
+        />
       )}
     </div>
   );

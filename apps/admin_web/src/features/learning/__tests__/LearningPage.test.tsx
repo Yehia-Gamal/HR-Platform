@@ -53,9 +53,7 @@ const mockCatalogData = {
       expiresAt: null,
     },
   ],
-  employees: [
-    { id: '1a2b3c4d-0000-0000-0000-000000000003', name: 'أحمد محمد', code: 'EMP-101' },
-  ],
+  employees: [{ id: '1a2b3c4d-0000-0000-0000-000000000003', name: 'أحمد محمد', code: 'EMP-101' }],
 };
 
 const emptyData = { courses: [], enrollments: [], employees: [] };

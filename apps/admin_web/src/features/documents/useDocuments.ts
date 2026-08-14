@@ -12,7 +12,15 @@ export function useDocumentsCatalog() {
     enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<DocumentsCatalog> => {
       if (auth.isMock) {
-        return { documents: [], assets: [], offboarding: [], expiringDocuments: 0, assignedAssets: 0, openOffboarding: 0, lastUpdatedAt: new Date().toISOString() };
+        return {
+          documents: [],
+          assets: [],
+          offboarding: [],
+          expiringDocuments: 0,
+          assignedAssets: 0,
+          openOffboarding: 0,
+          lastUpdatedAt: new Date().toISOString(),
+        };
       }
       return documentsCatalogSchema.parse(await rpc('get_documents_assets_offboarding_catalog'));
     },

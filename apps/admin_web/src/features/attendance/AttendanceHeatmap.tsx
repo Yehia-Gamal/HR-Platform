@@ -92,11 +92,7 @@ export function AttendanceHeatmap({ data }: AttendanceHeatmapProps) {
       </header>
 
       {/* شبكة التقويم: 7 أعمدة تمثل أيام الأسبوع */}
-      <ol
-        className="grid grid-cols-7 gap-1.5"
-        role="grid"
-        aria-label="أيام الشهر"
-      >
+      <ol className="grid grid-cols-7 gap-1.5" role="grid" aria-label="أيام الشهر">
         {data.map((day) => {
           const meta = classifyStatus(day.status);
           return (

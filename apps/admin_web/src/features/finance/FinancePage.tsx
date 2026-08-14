@@ -111,7 +111,10 @@ export function FinancePage() {
   }, [campaigns, search, statusFilter]);
 
   const dirty = Boolean(search.trim() || statusFilter !== 'all');
-  const clearFilters = () => { setSearch(''); setStatusFilter('all'); };
+  const clearFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+  };
 
   const exportCurrentTab = () => {
     const date = new Date().toISOString().slice(0, 10);
@@ -119,8 +122,8 @@ export function FinancePage() {
       const cols: ExportColumn<PayrollRun>[] = [
         { key: 'period', header: 'الشهر', get: (r) => r.periodMonth },
         { key: 'currency', header: 'العملة', get: (r) => r.currency },
-        { key: 'gross', header: 'الإجمالي', get: (r) => ((r.totals as Record<string, unknown> | null)?.gross as number | undefined) },
-        { key: 'net', header: 'الصافي', get: (r) => ((r.totals as Record<string, unknown> | null)?.net as number | undefined) },
+        { key: 'gross', header: 'الإجمالي', get: (r) => (r.totals as Record<string, unknown> | null)?.gross as number | undefined },
+        { key: 'net', header: 'الصافي', get: (r) => (r.totals as Record<string, unknown> | null)?.net as number | undefined },
         { key: 'status', header: 'الحالة', get: (r) => PAYROLL_RUN_STATUS_LABELS[r.status] ?? r.status },
       ];
       downloadCsv(`payroll-runs-${date}.csv`, toCsv(cols, filteredPayroll));
@@ -173,8 +176,16 @@ export function FinancePage() {
         const net = totals?.net as number | undefined;
         return (
           <div className="text-xs">
-            {gross != null ? <div><span className="text-[var(--text-muted)]">إجمالي:</span> {formatCurrency(gross)}</div> : null}
-            {net != null ? <div><span className="text-[var(--text-muted)]">صافي:</span> {formatCurrency(net)}</div> : null}
+            {gross != null ? (
+              <div>
+                <span className="text-[var(--text-muted)]">إجمالي:</span> {formatCurrency(gross)}
+              </div>
+            ) : null}
+            {net != null ? (
+              <div>
+                <span className="text-[var(--text-muted)]">صافي:</span> {formatCurrency(net)}
+              </div>
+            ) : null}
             {!gross && !net ? '—' : null}
           </div>
         );
@@ -267,18 +278,37 @@ export function FinancePage() {
     },
   ];
 
-  const statusOptions = tab === 'payroll'
-    ? Object.entries(PAYROLL_RUN_STATUS_LABELS)
-    : tab === 'loans'
-      ? Object.entries(LOAN_STATUS_LABELS)
-      : tab === 'workforce'
-        ? Object.entries(WORKFORCE_PLAN_STATUS_LABELS)
-        : tab === 'campaigns'
-          ? Object.entries(CAMPAIGN_STATUS_LABELS)
-          : Object.entries(SALARY_STRUCTURE_STATUS_LABELS);
+  const statusOptions =
+    tab === 'payroll'
+      ? Object.entries(PAYROLL_RUN_STATUS_LABELS)
+      : tab === 'loans'
+        ? Object.entries(LOAN_STATUS_LABELS)
+        : tab === 'workforce'
+          ? Object.entries(WORKFORCE_PLAN_STATUS_LABELS)
+          : tab === 'campaigns'
+            ? Object.entries(CAMPAIGN_STATUS_LABELS)
+            : Object.entries(SALARY_STRUCTURE_STATUS_LABELS);
 
-  const currentData = tab === 'payroll' ? filteredPayroll : tab === 'structures' ? filteredStructures : tab === 'loans' ? filteredLoans : tab === 'campaigns' ? filteredCampaigns : filteredWorkforce;
-  const totalCount = tab === 'payroll' ? payrollRuns.length : tab === 'structures' ? structures.length : tab === 'loans' ? loans.length : tab === 'campaigns' ? campaigns.length : workforcePlans.length;
+  const currentData =
+    tab === 'payroll'
+      ? filteredPayroll
+      : tab === 'structures'
+        ? filteredStructures
+        : tab === 'loans'
+          ? filteredLoans
+          : tab === 'campaigns'
+            ? filteredCampaigns
+            : filteredWorkforce;
+  const totalCount =
+    tab === 'payroll'
+      ? payrollRuns.length
+      : tab === 'structures'
+        ? structures.length
+        : tab === 'loans'
+          ? loans.length
+          : tab === 'campaigns'
+            ? campaigns.length
+            : workforcePlans.length;
 
   return (
     <div className="space-y-5">
@@ -324,7 +354,11 @@ export function FinancePage() {
             key={key}
             type="button"
             className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold transition ${tab === key ? 'border-b-2 border-[var(--brand)] text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
-            onClick={() => { setTab(key); setSearch(''); setStatusFilter('all'); }}
+            onClick={() => {
+              setTab(key);
+              setSearch('');
+              setStatusFilter('all');
+            }}
           >
             <Icon className="size-4" aria-hidden="true" />
             {label}
@@ -335,14 +369,20 @@ export function FinancePage() {
       <FilterBar
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder={tab === 'payroll' ? 'ابحث بالشهر…' : tab === 'structures' ? 'ابحث باسم أو كود الهيكل…' : tab === 'loans' ? 'ابحث باسم الموظف…' : 'ابحث باسم الإدارة…'}
+        searchPlaceholder={
+          tab === 'payroll' ? 'ابحث بالشهر…' : tab === 'structures' ? 'ابحث باسم أو كود الهيكل…' : tab === 'loans' ? 'ابحث باسم الموظف…' : 'ابحث باسم الإدارة…'
+        }
         resultText={`عرض ${currentData.length} من ${totalCount}`}
         isDirty={dirty}
         onClear={clearFilters}
       >
         <select className="input" value={statusFilter} onChange={(ev) => setStatusFilter(ev.target.value)} aria-label="تصفية حسب الحالة">
           <option value="all">كل الحالات</option>
-          {statusOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+          {statusOptions.map(([key, label]) => (
+            <option key={key} value={key}>
+              {label}
+            </option>
+          ))}
         </select>
       </FilterBar>
 
@@ -353,15 +393,55 @@ export function FinancePage() {
       ) : currentData.length === 0 ? (
         <EmptyState title="لا توجد بيانات" description="لم تُسجل أي بيانات في هذا القسم بعد." />
       ) : tab === 'payroll' ? (
-        <DataTable<PayrollRun> ariaLabel="جدول دورات الرواتب" rowKey={(r) => r.id} data={filteredPayroll} minWidth="800px" columns={payrollColumns} emptyTitle="لا توجد نتائج مطابقة" emptyDescription="جرّب تعديل البحث أو الحالة." />
+        <DataTable<PayrollRun>
+          ariaLabel="جدول دورات الرواتب"
+          rowKey={(r) => r.id}
+          data={filteredPayroll}
+          minWidth="800px"
+          columns={payrollColumns}
+          emptyTitle="لا توجد نتائج مطابقة"
+          emptyDescription="جرّب تعديل البحث أو الحالة."
+        />
       ) : tab === 'structures' ? (
-        <DataTable<SalaryStructure> ariaLabel="جدول هياكل الرواتب" rowKey={(s) => s.id} data={filteredStructures} minWidth="700px" columns={structureColumns} emptyTitle="لا توجد نتائج مطابقة" emptyDescription="جرّب تعديل البحث أو الحالة." />
+        <DataTable<SalaryStructure>
+          ariaLabel="جدول هياكل الرواتب"
+          rowKey={(s) => s.id}
+          data={filteredStructures}
+          minWidth="700px"
+          columns={structureColumns}
+          emptyTitle="لا توجد نتائج مطابقة"
+          emptyDescription="جرّب تعديل البحث أو الحالة."
+        />
       ) : tab === 'loans' ? (
-        <DataTable<LoanItem> ariaLabel="جدول السلف والقروض" rowKey={(l) => l.id} data={filteredLoans} minWidth="700px" columns={loanColumns} emptyTitle="لا توجد نتائج مطابقة" emptyDescription="جرّب تعديل البحث أو الحالة." />
+        <DataTable<LoanItem>
+          ariaLabel="جدول السلف والقروض"
+          rowKey={(l) => l.id}
+          data={filteredLoans}
+          minWidth="700px"
+          columns={loanColumns}
+          emptyTitle="لا توجد نتائج مطابقة"
+          emptyDescription="جرّب تعديل البحث أو الحالة."
+        />
       ) : tab === 'campaigns' ? (
-        <DataTable<CampaignItem> ariaLabel="جدول حملات المشاركة" rowKey={(c) => c.id} data={filteredCampaigns} minWidth="700px" columns={campaignColumns} emptyTitle="لا توجد نتائج مطابقة" emptyDescription="جرّب تعديل البحث أو الحالة." />
+        <DataTable<CampaignItem>
+          ariaLabel="جدول حملات المشاركة"
+          rowKey={(c) => c.id}
+          data={filteredCampaigns}
+          minWidth="700px"
+          columns={campaignColumns}
+          emptyTitle="لا توجد نتائج مطابقة"
+          emptyDescription="جرّب تعديل البحث أو الحالة."
+        />
       ) : (
-        <DataTable<WorkforcePlan> ariaLabel="جدول خطط القوى العاملة" rowKey={(w) => w.id} data={filteredWorkforce} minWidth="700px" columns={workforceColumns} emptyTitle="لا توجد نتائج مطابقة" emptyDescription="جرّب تعديل البحث أو الحالة." />
+        <DataTable<WorkforcePlan>
+          ariaLabel="جدول خطط القوى العاملة"
+          rowKey={(w) => w.id}
+          data={filteredWorkforce}
+          minWidth="700px"
+          columns={workforceColumns}
+          emptyTitle="لا توجد نتائج مطابقة"
+          emptyDescription="جرّب تعديل البحث أو الحالة."
+        />
       )}
     </div>
   );

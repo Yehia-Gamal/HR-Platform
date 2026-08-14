@@ -39,10 +39,7 @@ export function usePublishAnnouncement() {
       expiresAt?: string;
     }) => {
       if (auth.isMock) return input;
-      const pollOpts =
-        input.postType === 'poll' && input.pollOptions?.length
-          ? input.pollOptions.filter((o) => o.trim())
-          : null;
+      const pollOpts = input.postType === 'poll' && input.pollOptions?.length ? input.pollOptions.filter((o) => o.trim()) : null;
       return rpc('publish_official_announcement', {
         p_title: input.title,
         p_body: input.body,
@@ -90,11 +87,7 @@ export function useTransitionDecision() {
   const auth = useAuth();
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async (input: {
-      decisionId: string;
-      action: 'submit_review' | 'approve' | 'publish' | 'archive' | 'revoke';
-      reason?: string;
-    }) => {
+    mutationFn: async (input: { decisionId: string; action: 'submit_review' | 'approve' | 'publish' | 'archive' | 'revoke'; reason?: string }) => {
       if (auth.isMock) return input;
       return rpc('transition_decision', {
         p_decision_id: input.decisionId,

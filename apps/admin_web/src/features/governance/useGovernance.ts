@@ -47,9 +47,7 @@ export function useIncidents() {
       const supabase = await getSupabase();
       const { data, error } = await supabase
         .from('incidents')
-        .select(
-          'id,title,description,severity,reported_by,status,resolved_at,created_at,reporter:reported_by!incidents_reported_by_fkey(full_name_ar)',
-        )
+        .select('id,title,description,severity,reported_by,status,resolved_at,created_at,reporter:reported_by!incidents_reported_by_fkey(full_name_ar)')
         .order('created_at', { ascending: false })
         .limit(200);
       if (error) throw error;
@@ -106,13 +104,7 @@ export function useUpsertIncident() {
   const auth = useAuth();
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async (input: {
-      id?: string | null;
-      title: string;
-      description?: string | null;
-      severity: string;
-      status: string;
-    }): Promise<void> => {
+    mutationFn: async (input: { id?: string | null; title: string; description?: string | null; severity: string; status: string }): Promise<void> => {
       if (auth.isMock) return;
       const supabase = await getSupabase();
       const payload = {

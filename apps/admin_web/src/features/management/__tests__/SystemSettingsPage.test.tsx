@@ -33,42 +33,66 @@ describe('SystemSettingsPage', () => {
   it('يُعرض بدون أخطاء', () => {
     settingsOverride = () => dataQuery;
     updateOverride = () => mockMutation;
-    const { container } = render(<MemoryRouter><SystemSettingsPage /></MemoryRouter>);
+    const { container } = render(
+      <MemoryRouter>
+        <SystemSettingsPage />
+      </MemoryRouter>,
+    );
     expect(container.firstChild).toBeTruthy();
   });
 
   it('يعرض عنوان الصفحة', () => {
     settingsOverride = () => dataQuery;
     updateOverride = () => mockMutation;
-    render(<MemoryRouter><SystemSettingsPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <SystemSettingsPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('إعدادات النظام')).toBeDefined();
   });
 
   it('يعرض حالة التحميل', () => {
     settingsOverride = () => loadingQuery;
     updateOverride = () => mockMutation;
-    const { container } = render(<MemoryRouter><SystemSettingsPage /></MemoryRouter>);
+    const { container } = render(
+      <MemoryRouter>
+        <SystemSettingsPage />
+      </MemoryRouter>,
+    );
     expect(container.querySelector('.animate-pulse')).toBeTruthy();
   });
 
   it('يعرض حالة فارغة عند عدم وجود إعدادات', () => {
     settingsOverride = () => emptyQuery;
     updateOverride = () => mockMutation;
-    render(<MemoryRouter><SystemSettingsPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <SystemSettingsPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('لا توجد إعدادات قابلة للتعديل.')).toBeDefined();
   });
 
   it('يعرض حالة الخطأ', () => {
     settingsOverride = () => errorQuery;
     updateOverride = () => mockMutation;
-    render(<MemoryRouter><SystemSettingsPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <SystemSettingsPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('إعادة المحاولة')).toBeDefined();
   });
 
   it('يعرض مجموعات الإعدادات عند توفر البيانات', () => {
     settingsOverride = () => dataQuery;
     updateOverride = () => mockMutation;
-    render(<MemoryRouter><SystemSettingsPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <SystemSettingsPage />
+      </MemoryRouter>,
+    );
     // groupLabel('requests') = 'الطلبات'
     expect(screen.getByText('الطلبات')).toBeDefined();
     expect(screen.getByText('أقصى أيام الإجازة')).toBeDefined();
@@ -77,7 +101,11 @@ describe('SystemSettingsPage', () => {
   it('يعرض زر حفظ الكل', () => {
     settingsOverride = () => dataQuery;
     updateOverride = () => mockMutation;
-    render(<MemoryRouter><SystemSettingsPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <SystemSettingsPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('حفظ الكل')).toBeDefined();
   });
 });

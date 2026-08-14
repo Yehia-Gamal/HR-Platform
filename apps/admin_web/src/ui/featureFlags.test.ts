@@ -15,15 +15,7 @@ describe('featureFlags', () => {
     expect(FEATURE_FLAGS.governance).toBe(true);
     expect(FEATURE_FLAGS.helpdesk).toBe(true);
     for (const key of Object.keys(FEATURE_FLAGS) as FeatureFlagKey[]) {
-      if (
-        key === 'learning' ||
-        key === 'lifecycle' ||
-        key === 'documents' ||
-        key === 'peopleFinance' ||
-        key === 'governance' ||
-        key === 'helpdesk'
-      )
-        continue;
+      if (key === 'learning' || key === 'lifecycle' || key === 'documents' || key === 'peopleFinance' || key === 'governance' || key === 'helpdesk') continue;
       expect(FEATURE_FLAGS[key]).toBe(false);
     }
   });
@@ -38,14 +30,7 @@ describe('featureFlags', () => {
   });
 
   it('يحتوي على الأعلام المتوقعة', () => {
-    const expectedKeys: FeatureFlagKey[] = [
-      'learning',
-      'lifecycle',
-      'documents',
-      'governance',
-      'helpdesk',
-      'peopleFinance',
-    ];
+    const expectedKeys: FeatureFlagKey[] = ['learning', 'lifecycle', 'documents', 'governance', 'helpdesk', 'peopleFinance'];
     expect(Object.keys(FEATURE_FLAGS).sort()).toEqual(expectedKeys.sort());
   });
 });

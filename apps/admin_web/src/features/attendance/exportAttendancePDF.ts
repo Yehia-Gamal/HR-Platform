@@ -27,11 +27,7 @@ export function esc(value: unknown): string {
  * يُنشئ مستند HTML منسّق لكشف الحضور ويفتحه في نافذة جديدة مع تشغيل طباعة تلقائي.
  * المستخدم يمكنه حفظه كـ PDF مباشرة من حوار الطباعة (نفس السلوك لكل من زر «تصدير PDF» و«طباعة»).
  */
-export function exportAttendancePDF(
-  data: AttendanceStatement,
-  orgName = 'جمعية خواطر أحلى شباب',
-  systemName = 'منظومة أحلى شباب الإدارية',
-) {
+export function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية') {
   const { employee: emp, period, days, summary: s } = data;
   const { dueDays, presentInDue } = attendanceRateParts(s);
   const attendancePct = s.attendanceRate ?? (dueDays > 0 ? (presentInDue / dueDays) * 100 : 0);

@@ -1,9 +1,4 @@
-import {
-  dailyReportFeedItemSchema,
-  toggleLikeResultSchema,
-  type DailyReportFeedItem,
-  type ToggleLikeResult,
-} from '@ahla/shared-contracts';
+import { dailyReportFeedItemSchema, toggleLikeResultSchema, type DailyReportFeedItem, type ToggleLikeResult } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
@@ -64,12 +59,7 @@ export function useSubmitDailyReport() {
   const auth = useAuth();
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async (input: {
-      reportDate: string;
-      achievements: string;
-      blockers?: string;
-      tomorrowPlan?: string;
-    }): Promise<string> => {
+    mutationFn: async (input: { reportDate: string; achievements: string; blockers?: string; tomorrowPlan?: string }): Promise<string> => {
       if (auth.isMock) return '00000000-0000-4000-8000-000000000000';
       return rpc('upsert_my_daily_report', {
         p_report_date: input.reportDate,

@@ -120,9 +120,7 @@ export function OnboardingPage() {
                           className="input mt-3"
                           aria-label={`حالة المهمة: ${task.title}`}
                           value={task.status}
-                          onChange={(event) =>
-                            commands.transitionTask.mutate({ taskId: task.id, status: event.target.value })
-                          }
+                          onChange={(event) => commands.transitionTask.mutate({ taskId: task.id, status: event.target.value })}
                         >
                           <option value="pending">معلقة</option>
                           <option value="in_progress">قيد التنفيذ</option>

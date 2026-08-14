@@ -117,19 +117,31 @@ const errorQuery = {
 describe('DocumentsPage', () => {
   it('يُعرض بدون أخطاء', () => {
     catalogReturn = dataQuery;
-    const { container } = render(<Wrapper><DocumentsPage /></Wrapper>);
+    const { container } = render(
+      <Wrapper>
+        <DocumentsPage />
+      </Wrapper>,
+    );
     expect(container.firstChild).toBeTruthy();
   });
 
   it('يعرض عنوان الصفحة', () => {
     catalogReturn = dataQuery;
-    render(<Wrapper><DocumentsPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <DocumentsPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('استوديو المستندات')).toBeDefined();
   });
 
   it('يعرض بطاقات المؤشرات', () => {
     catalogReturn = dataQuery;
-    render(<Wrapper><DocumentsPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <DocumentsPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('مستندات تنتهي قريباً')).toBeDefined();
     expect(screen.getByText('عهد مُسلّمة')).toBeDefined();
     expect(screen.getByText('حالات خروج نشطة')).toBeDefined();
@@ -137,7 +149,11 @@ describe('DocumentsPage', () => {
 
   it('يعرض تبويبات الصفحة', () => {
     catalogReturn = dataQuery;
-    render(<Wrapper><DocumentsPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <DocumentsPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('المستندات')).toBeDefined();
     expect(screen.getByText('العهد والأصول')).toBeDefined();
     expect(screen.getByText('إنهاء الخدمة')).toBeDefined();
@@ -145,26 +161,42 @@ describe('DocumentsPage', () => {
 
   it('يعرض بيانات المستندات', () => {
     catalogReturn = dataQuery;
-    render(<Wrapper><DocumentsPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <DocumentsPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('أحمد محمد')).toBeDefined();
     expect(screen.getByText('هوية وطنية')).toBeDefined();
   });
 
   it('يعرض حالة التحميل', () => {
     catalogReturn = loadingQuery;
-    const { container } = render(<Wrapper><DocumentsPage /></Wrapper>);
+    const { container } = render(
+      <Wrapper>
+        <DocumentsPage />
+      </Wrapper>,
+    );
     expect(container.querySelector('.animate-pulse')).toBeTruthy();
   });
 
   it('يعرض حالة فارغة عند عدم وجود مستندات', () => {
     catalogReturn = emptyQuery;
-    render(<Wrapper><DocumentsPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <DocumentsPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('لا توجد مستندات')).toBeDefined();
   });
 
   it('يعرض حالة الخطأ', () => {
     catalogReturn = errorQuery;
-    render(<Wrapper><DocumentsPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <DocumentsPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('تعذّر تحميل البيانات')).toBeDefined();
   });
 });

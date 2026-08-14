@@ -8,10 +8,20 @@ import { useAuth } from './AuthProvider';
 const installationKey = 'management_os_web_installation_id_v1';
 
 function installationId() {
-  const current = (() => { try { return localStorage.getItem(installationKey); } catch { return null; } })();
+  const current = (() => {
+    try {
+      return localStorage.getItem(installationKey);
+    } catch {
+      return null;
+    }
+  })();
   if (current && current.length >= 12) return current;
   const next = crypto.randomUUID();
-  try { localStorage.setItem(installationKey, next); } catch { /* incognito mode */ }
+  try {
+    localStorage.setItem(installationKey, next);
+  } catch {
+    /* incognito mode */
+  }
   return next;
 }
 

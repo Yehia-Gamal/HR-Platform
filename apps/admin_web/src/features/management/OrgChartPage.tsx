@@ -1,15 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import {
-  ChevronDown,
-  GitBranch,
-  Maximize2,
-  Minimize2,
-  Minus,
-  Plus,
-  RefreshCw,
-  Users,
-} from 'lucide-react';
+import { ChevronDown, GitBranch, Maximize2, Minimize2, Minus, Plus, RefreshCw, Users } from 'lucide-react';
 import type { OrgChartTreeNode } from '@ahla/shared-contracts';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -28,9 +19,7 @@ const MOBILE_BREAKPOINT = 768;
 /** Hook بسيط لكشف الموبايل عبر matchMedia */
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(
-    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-      ? window.innerWidth < MOBILE_BREAKPOINT
-      : false,
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.innerWidth < MOBILE_BREAKPOINT : false,
   );
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
@@ -99,27 +88,40 @@ export function OrgChartPage() {
     if (isMobile) return;
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomIn(); }
-      else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomOut(); }
-      else if (e.key === '0') { e.preventDefault(); resetView(); }
+      if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        zoomIn();
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        zoomOut();
+      } else if (e.key === '0') {
+        e.preventDefault();
+        resetView();
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [isMobile, zoomIn, zoomOut, resetView]);
 
   // Pan handlers (desktop only)
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (isMobile) return;
-    setIsPanning(true);
-    panStart.current = { x: e.clientX, y: e.clientY, tx: translate.x, ty: translate.y };
-  }, [translate, isMobile]);
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (isMobile) return;
+      setIsPanning(true);
+      panStart.current = { x: e.clientX, y: e.clientY, tx: translate.x, ty: translate.y };
+    },
+    [translate, isMobile],
+  );
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isPanning || isMobile) return;
-    const dx = e.clientX - panStart.current.x;
-    const dy = e.clientY - panStart.current.y;
-    setTranslate({ x: panStart.current.tx + dx, y: panStart.current.ty + dy });
-  }, [isPanning, isMobile]);
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (!isPanning || isMobile) return;
+      const dx = e.clientX - panStart.current.x;
+      const dy = e.clientY - panStart.current.y;
+      setTranslate({ x: panStart.current.tx + dx, y: panStart.current.ty + dy });
+    },
+    [isPanning, isMobile],
+  );
 
   const handleMouseUp = useCallback(() => setIsPanning(false), []);
 
@@ -168,9 +170,7 @@ export function OrgChartPage() {
           <button type="button" className="btn btn-xs btn-ghost" onClick={zoomOut} aria-label="تصغير" title="تصغير">
             <Minus className="size-4" aria-hidden="true" />
           </button>
-          <span className="min-w-[3rem] text-center text-sm font-medium text-[var(--text-secondary)]">
-            {Math.round(scale * 100)}%
-          </span>
+          <span className="min-w-[3rem] text-center text-sm font-medium text-[var(--text-secondary)]">{Math.round(scale * 100)}%</span>
           <button type="button" className="btn btn-xs btn-ghost" onClick={zoomIn} aria-label="تكبير" title="تكبير">
             <Plus className="size-4" aria-hidden="true" />
           </button>
@@ -183,9 +183,7 @@ export function OrgChartPage() {
             <Minimize2 className="size-4" aria-hidden="true" />
             <span className="hidden sm:inline">إعادة</span>
           </button>
-          <div className="mr-auto text-xs text-[var(--text-muted)]">
-            Ctrl + Scroll للتكبير · اسحب للتحريك · +/- للتكبير · 0 لإعادة
-          </div>
+          <div className="mr-auto text-xs text-[var(--text-muted)]">Ctrl + Scroll للتكبير · اسحب للتحريك · +/- للتكبير · 0 لإعادة</div>
         </div>
       )}
 
@@ -260,4 +258,4 @@ function OrgNode({ node, depth, navigate }: { node: OrgChartTreeNode; depth: num
       ) : null}
     </div>
   );
-}   
+}

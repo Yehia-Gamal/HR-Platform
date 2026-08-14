@@ -210,9 +210,7 @@ describe('hooks ملف الموظف الشامل', () => {
   it('تعيد مصفوفة فارغة في وضع المعاينة دون استدعاء RPC', async () => {
     isMockValue = true;
     const client = makeQueryClient();
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
-    );
+    const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 
     const { result } = renderHook(() => useEmployeeLocationRequests(EMPLOYEE_ID), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -223,9 +221,7 @@ describe('hooks ملف الموظف الشامل', () => {
   it('تستدعي RPC الصحيح لكل دالة عند الخروج من وضع المعاينة', async () => {
     isMockValue = false;
     const client = makeQueryClient();
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
-    );
+    const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 
     rpcMock.mockResolvedValueOnce([]);
     const { result: tasks } = renderHook(() => useEmployeeTasks(EMPLOYEE_ID), { wrapper });

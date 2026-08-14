@@ -24,7 +24,23 @@ import { PageHeader } from '../../ui/PageHeader';
 import { MetricSkeletonRow, SkeletonCard } from '../../ui/Skeletons';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useEmployees } from '../employees/useEmployees';
-import { AttendancePercentageRing, attendanceRateParts, buildDayTags, DayTag, DAY_FILTERS, DAY_SORTS, filterDays, fmtTime, hoursRateParts, MONTHS, sortDays, StatItem, WARN_STATUSES, type DayFilter, type DaySort } from './attendanceShared';
+import {
+  AttendancePercentageRing,
+  attendanceRateParts,
+  buildDayTags,
+  DayTag,
+  DAY_FILTERS,
+  DAY_SORTS,
+  filterDays,
+  fmtTime,
+  hoursRateParts,
+  MONTHS,
+  sortDays,
+  StatItem,
+  WARN_STATUSES,
+  type DayFilter,
+  type DaySort,
+} from './attendanceShared';
 import { AttendanceDayEditor } from './AttendanceDayEditor';
 import { AttendanceHeatmap, generateMockHeatmapData, type AttendanceHeatmapDay } from './AttendanceHeatmap';
 import { exportAttendancePDF } from './exportAttendancePDF';
@@ -308,18 +324,12 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
   const [dayFilter, setDayFilter] = useState<DayFilter>('all');
   const [daySort, setDaySort] = useState<DaySort>('date-asc');
   const [daySearch, setDaySearch] = useState('');
-  const filteredSortedDays = useMemo(
-    () => sortDays(filterDays(data.days, dayFilter, daySearch), daySort),
-    [data.days, dayFilter, daySort, daySearch],
-  );
+  const filteredSortedDays = useMemo(() => sortDays(filterDays(data.days, dayFilter, daySearch), daySort), [data.days, dayFilter, daySort, daySearch]);
 
   // بيانات خريطة الحضور: في الوضع الوهمي نُولّد 30 يومًا عشوائية للعرض؛
   // وإلا نُحوّل أيام الكشف إلى الصيغة المطلوبة للمكوّن.
   const heatmapData = useMemo<AttendanceHeatmapDay[]>(
-    () =>
-      auth.isMock
-        ? generateMockHeatmapData(period.endDate.slice(-2) === '31' ? 31 : 30)
-        : data.days.map((d) => ({ date: d.date, status: d.status })),
+    () => (auth.isMock ? generateMockHeatmapData(period.endDate.slice(-2) === '31' ? 31 : 30) : data.days.map((d) => ({ date: d.date, status: d.status }))),
     [auth.isMock, data.days, period.endDate],
   );
 
@@ -372,11 +382,7 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
           <MetricCard
             label="ساعات العمل"
             value={workedHours.toFixed(1)}
-            hint={
-              complianceAvailable
-                ? `من ${requiredHours.toFixed(1)} س شهريًا | عجز ${deficitHours.toFixed(1)} س`
-                : 'الساعات المطلوبة غير متاحة'
-            }
+            hint={complianceAvailable ? `من ${requiredHours.toFixed(1)} س شهريًا | عجز ${deficitHours.toFixed(1)} س` : 'الساعات المطلوبة غير متاحة'}
             icon={Timer}
           />
           <MetricCard label="ساعات إضافية" value={`${s.totalOvertimeMinutes} د`} icon={ArrowUpRight} />
@@ -411,7 +417,11 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
             <button
               type="button"
               className="filter-clear"
-              onClick={() => { setDayFilter('all'); setDaySearch(''); setDaySort('date-asc'); }}
+              onClick={() => {
+                setDayFilter('all');
+                setDaySearch('');
+                setDaySort('date-asc');
+              }}
             >
               مسح الفلاتر
             </button>
@@ -442,18 +452,17 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
               </button>
             ))}
           </div>
-          <select
-            className="input min-w-[140px]"
-            value={daySort}
-            onChange={(e) => setDaySort(e.target.value as DaySort)}
-            aria-label="ترتيب الأيام"
-          >
+          <select className="input min-w-[140px]" value={daySort} onChange={(e) => setDaySort(e.target.value as DaySort)} aria-label="ترتيب الأيام">
             {DAY_SORTS.map((so) => (
-              <option key={so.key} value={so.key}>{so.label}</option>
+              <option key={so.key} value={so.key}>
+                {so.label}
+              </option>
             ))}
           </select>
         </div>
-        <p className="filter-result">{filteredSortedDays.length} من {data.days.length} يوم</p>
+        <p className="filter-result">
+          {filteredSortedDays.length} من {data.days.length} يوم
+        </p>
       </div>
 
       {/* الجدول اليومي */}
@@ -527,7 +536,11 @@ function DayRow({ d, employeeId, canEdit }: { d: AttendanceStatementDay; employe
           {d.correctionNote && !tags.length && <span className="text-xs text-[var(--text-muted)]">{d.correctionNote}</span>}
         </div>
       </td>
-      {canEdit ? <td className="p-2.5 print:hidden"><AttendanceDayEditor employeeId={employeeId} day={d} /></td> : null}
+      {canEdit ? (
+        <td className="p-2.5 print:hidden">
+          <AttendanceDayEditor employeeId={employeeId} day={d} />
+        </td>
+      ) : null}
     </tr>
   );
 }

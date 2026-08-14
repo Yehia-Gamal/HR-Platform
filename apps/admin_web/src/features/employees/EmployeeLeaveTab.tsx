@@ -12,13 +12,7 @@ export function EmployeeLeaveTab({ employeeId }: { employeeId: string }) {
   const rows = query.data?.rows ?? [];
 
   if (query.isError) {
-    return (
-      <ErrorState
-        title="تعذر تحميل الإجازات"
-        description="أعد المحاولة أو تواصل مع الدعم."
-        onRetry={() => void query.refetch()}
-      />
-    );
+    return <ErrorState title="تعذر تحميل الإجازات" description="أعد المحاولة أو تواصل مع الدعم." onRetry={() => void query.refetch()} />;
   }
   if (query.isLoading) return <SkeletonCard className="h-56" />;
   if (rows.length === 0) {
@@ -42,9 +36,7 @@ export function EmployeeLeaveTab({ employeeId }: { employeeId: string }) {
           <tbody>
             {rows.map((row) => (
               <tr key={row.requestId} className="border-b border-[var(--border-subtle)] last:border-0">
-                <td className="px-4 py-3 font-bold">
-                  {LEAVE_TYPE_LABELS[row.leaveTypeCode] ?? row.leaveTypeName}
-                </td>
+                <td className="px-4 py-3 font-bold">{LEAVE_TYPE_LABELS[row.leaveTypeCode] ?? row.leaveTypeName}</td>
                 <td className="px-4 py-3">{dateFormatter.format(new Date(`${row.startDate}T00:00:00`))}</td>
                 <td className="px-4 py-3">{dateFormatter.format(new Date(`${row.endDate}T00:00:00`))}</td>
                 <td className="px-4 py-3">

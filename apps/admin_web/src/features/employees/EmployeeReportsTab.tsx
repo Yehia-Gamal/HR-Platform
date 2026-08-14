@@ -59,10 +59,7 @@ export function EmployeeReportsTab({ employeeId }: { employeeId: string }) {
         <p className="muted mt-1 text-sm">التقارير التي كتبها الموظف (الإنجازات والمعوقات وخطة الغد).</p>
         <div className="mt-4">
           {daily.isError ? (
-            <ErrorState
-              title="تعذر تحميل التقارير اليومية"
-              onRetry={() => void daily.refetch()}
-            />
+            <ErrorState title="تعذر تحميل التقارير اليومية" onRetry={() => void daily.refetch()} />
           ) : daily.isLoading ? (
             <SkeletonCard className="h-40" />
           ) : daily.data && daily.data.length > 0 ? (
@@ -71,7 +68,11 @@ export function EmployeeReportsTab({ employeeId }: { employeeId: string }) {
                 <li key={report.id} className="rounded-xl border border-[var(--border-subtle)] p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-black">{dateFormatter.format(new Date(`${report.reportDate}T00:00:00`))}</span>
-                    {report.reviewerName ? <StatusBadge value="reviewed" label={`راجعه ${report.reviewerName}`} /> : <StatusBadge value="pending" label="بانتظار المراجعة" />}
+                    {report.reviewerName ? (
+                      <StatusBadge value="reviewed" label={`راجعه ${report.reviewerName}`} />
+                    ) : (
+                      <StatusBadge value="pending" label="بانتظار المراجعة" />
+                    )}
                   </div>
                   {report.achievements ? (
                     <p className="mt-2 text-sm">
@@ -111,10 +112,7 @@ export function EmployeeReportsTab({ employeeId }: { employeeId: string }) {
         <p className="muted mt-1 text-sm">القرارات الإدارية المنشورة الموجهة له أو للجميع.</p>
         <div className="mt-4">
           {decisions.isError ? (
-            <ErrorState
-              title="تعذر تحميل القرارات"
-              onRetry={() => void decisions.refetch()}
-            />
+            <ErrorState title="تعذر تحميل القرارات" onRetry={() => void decisions.refetch()} />
           ) : decisions.isLoading ? (
             <SkeletonCard className="h-40" />
           ) : decisions.data && decisions.data.length > 0 ? (
@@ -123,16 +121,12 @@ export function EmployeeReportsTab({ employeeId }: { employeeId: string }) {
                 <li key={decision.id} className="rounded-xl border border-[var(--border-subtle)] p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-black">{decision.title}</span>
-                    {decision.decisionNumber ? (
-                      <span className="muted text-xs">#{decision.decisionNumber}</span>
-                    ) : null}
+                    {decision.decisionNumber ? <span className="muted text-xs">#{decision.decisionNumber}</span> : null}
                     <StatusBadge value={decision.category} label={DECISION_CATEGORY_LABELS[decision.category] ?? decision.category} />
                     <StatusBadge value={decision.acknowledged ? 'read' : 'unread'} label={decision.acknowledged ? 'مقرّ به' : 'لم يُقرّ به'} />
                   </div>
                   <p className="muted mt-1 text-xs">
-                    {decision.effectiveDate
-                      ? `ساري من ${dateFormatter.format(new Date(`${decision.effectiveDate}T00:00:00`))}`
-                      : 'بدون تاريخ سريان'}
+                    {decision.effectiveDate ? `ساري من ${dateFormatter.format(new Date(`${decision.effectiveDate}T00:00:00`))}` : 'بدون تاريخ سريان'}
                     {decision.publishedAt ? ` • نُشر ${dateTimeFormatter.format(new Date(decision.publishedAt))}` : ''}
                   </p>
                 </li>
@@ -149,10 +143,7 @@ export function EmployeeReportsTab({ employeeId }: { employeeId: string }) {
         <p className="muted mt-1 text-sm">التقارير الدورية النشطة التي يشمل نطاقها فئة الموظف.</p>
         <div className="mt-4">
           {scheduler.isError ? (
-            <ErrorState
-              title="تعذر تحميل التقارير المجدولة"
-              onRetry={() => void scheduler.refetch()}
-            />
+            <ErrorState title="تعذر تحميل التقارير المجدولة" onRetry={() => void scheduler.refetch()} />
           ) : scheduler.isLoading ? (
             <SkeletonCard className="h-40" />
           ) : scheduler.data && scheduler.data.schedules.filter((s) => s.active && s.audienceScope !== 'self').length > 0 ? (
@@ -166,7 +157,8 @@ export function EmployeeReportsTab({ employeeId }: { employeeId: string }) {
                       <StatusBadge value="active" label="نشط" />
                     </div>
                     <p className="muted mt-1 text-xs">
-                      {reportTypeLabel(schedule.reportType)} • النطاق: {SCOPE_LABELS[schedule.audienceScope] ?? schedule.audienceScope} • الدورية: {SCHEDULE_KIND_LABELS[schedule.scheduleKind] ?? schedule.scheduleKind}
+                      {reportTypeLabel(schedule.reportType)} • النطاق: {SCOPE_LABELS[schedule.audienceScope] ?? schedule.audienceScope} • الدورية:{' '}
+                      {SCHEDULE_KIND_LABELS[schedule.scheduleKind] ?? schedule.scheduleKind}
                       {schedule.nextRunAt ? ` • التشغيل القادم ${dateTimeFormatter.format(new Date(schedule.nextRunAt))}` : ''}
                     </p>
                   </li>

@@ -80,28 +80,44 @@ describe('NotificationsPage', () => {
   it('يُعرض بدون أخطاء', () => {
     notifReturn = dataQuery;
     markReturn = markMutation;
-    const { container } = render(<Wrapper><NotificationsPage /></Wrapper>);
+    const { container } = render(
+      <Wrapper>
+        <NotificationsPage />
+      </Wrapper>,
+    );
     expect(container.firstChild).toBeTruthy();
   });
 
   it('يعرض عنوان الصفحة', () => {
     notifReturn = dataQuery;
     markReturn = markMutation;
-    render(<Wrapper><NotificationsPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <NotificationsPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('الإشعارات')).toBeDefined();
   });
 
   it('يعرض زر تعليم الكل كمقروء', () => {
     notifReturn = dataQuery;
     markReturn = markMutation;
-    render(<Wrapper><NotificationsPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <NotificationsPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('تعليم الكل كمقروء')).toBeDefined();
   });
 
   it('يعرض بيانات الإشعارات', () => {
     notifReturn = dataQuery;
     markReturn = markMutation;
-    render(<Wrapper><NotificationsPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <NotificationsPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('طلب إجازة جديد')).toBeDefined();
     expect(screen.getByText('تمت الموافقة على طلبك')).toBeDefined();
   });
@@ -109,21 +125,33 @@ describe('NotificationsPage', () => {
   it('يعرض حالة التحميل', () => {
     notifReturn = loadingQuery;
     markReturn = markMutation;
-    const { container } = render(<Wrapper><NotificationsPage /></Wrapper>);
+    const { container } = render(
+      <Wrapper>
+        <NotificationsPage />
+      </Wrapper>,
+    );
     expect(container.querySelector('.animate-pulse')).toBeTruthy();
   });
 
   it('يعرض حالة فارغة عند عدم وجود إشعارات', () => {
     notifReturn = emptyQuery;
     markReturn = markMutation;
-    render(<Wrapper><NotificationsPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <NotificationsPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('لا توجد إشعارات')).toBeDefined();
   });
 
   it('يعرض حالة الخطأ', () => {
     notifReturn = errorQuery;
     markReturn = markMutation;
-    render(<Wrapper><NotificationsPage /></Wrapper>);
+    render(
+      <Wrapper>
+        <NotificationsPage />
+      </Wrapper>,
+    );
     expect(screen.getByText('تعذر تحميل الإشعارات')).toBeDefined();
   });
 });

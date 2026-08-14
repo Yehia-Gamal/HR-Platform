@@ -1,18 +1,4 @@
-import {
-  ArrowLeft,
-  CalendarOff,
-  CalendarX2,
-  CheckCircle2,
-  Clock3,
-  Loader2,
-  MapPin,
-  Plane,
-  Printer,
-  Search,
-  UserCheck,
-  UserX,
-  Users,
-} from 'lucide-react';
+import { ArrowLeft, CalendarOff, CalendarX2, CheckCircle2, Clock3, Loader2, MapPin, Plane, Printer, Search, UserCheck, UserX, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import {
@@ -58,7 +44,16 @@ const SORT_OPTIONS: { key: AttendanceRosterSort; label: string }[] = [
 const PAGE_SIZES = [10, 25, 50, 100];
 
 const STATUS_LABELS: Record<string, string> = {
-  present: 'حاضر', late: 'متأخر', absent: 'غائب', on_leave: 'إجازة', holiday: 'عطلة', weekend: 'عطلة الأسبوع', partial: 'جزئي', pending: 'قيد الانتظار', on_mission: 'مأمورية', missing_checkout: 'بصمة بلا انصراف',
+  present: 'حاضر',
+  late: 'متأخر',
+  absent: 'غائب',
+  on_leave: 'إجازة',
+  holiday: 'عطلة',
+  weekend: 'عطلة الأسبوع',
+  partial: 'جزئي',
+  pending: 'قيد الانتظار',
+  on_mission: 'مأمورية',
+  missing_checkout: 'بصمة بلا انصراف',
 };
 
 function statusLabel(status: string | null): string {
@@ -69,7 +64,13 @@ function statusLabel(status: string | null): string {
 function locationStatusLabel(status: string | null | undefined): string {
   if (!status) return '—';
   const map: Record<string, string> = {
-    pending: 'قيد الانتظار', accepted: 'مقبول', rejected: 'مرفوض', active: 'نشط', expired: 'منتهي', cancelled: 'ملغي', completed: 'مكتمل',
+    pending: 'قيد الانتظار',
+    accepted: 'مقبول',
+    rejected: 'مرفوض',
+    active: 'نشط',
+    expired: 'منتهي',
+    cancelled: 'ملغي',
+    completed: 'مكتمل',
   };
   return map[status] ?? status;
 }
@@ -106,9 +107,7 @@ export function AttendanceDrilldownPage() {
   const dept = searchParams.get('dept') ?? '';
   const branch = searchParams.get('branch') ?? '';
   const sortParam = searchParams.get('sort');
-  const sort: AttendanceRosterSort = attendanceRosterSortSchema.safeParse(sortParam).success
-    ? (sortParam as AttendanceRosterSort)
-    : 'name';
+  const sort: AttendanceRosterSort = attendanceRosterSortSchema.safeParse(sortParam).success ? (sortParam as AttendanceRosterSort) : 'name';
   const direction = searchParams.get('dir') === 'desc' ? ('desc' as const) : ('asc' as const);
   const page = Math.max(1, Number(searchParams.get('page') ?? '1') || 1);
   const sizeParam = Number(searchParams.get('size') ?? '25');
@@ -191,7 +190,13 @@ export function AttendanceDrilldownPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary btn-sm" onClick={() => void handlePrint()} disabled={isPrinting} aria-busy={isPrinting} aria-label="تصدير القائمة كـ PDF">
+          <button
+            className="btn-secondary btn-sm"
+            onClick={() => void handlePrint()}
+            disabled={isPrinting}
+            aria-busy={isPrinting}
+            aria-label="تصدير القائمة كـ PDF"
+          >
             {isPrinting ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Printer className="size-4" aria-hidden="true" />}
             طباعة / PDF
           </button>
@@ -238,36 +243,27 @@ export function AttendanceDrilldownPage() {
 
         {/* ─── الفلاتر (صف ثانٍ) ─── */}
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            className="input min-w-36 text-sm"
-            value={branch}
-            onChange={(e) => updateParams({ branch: e.target.value })}
-            aria-label="تصفية حسب الفرع"
-          >
+          <select className="input min-w-36 text-sm" value={branch} onChange={(e) => updateParams({ branch: e.target.value })} aria-label="تصفية حسب الفرع">
             <option value="">كل الفروع</option>
             {(lookups.data?.branches ?? []).map((b) => (
-              <option key={b.id} value={b.id}>{b.label}</option>
+              <option key={b.id} value={b.id}>
+                {b.label}
+              </option>
             ))}
           </select>
-          <select
-            className="input min-w-36 text-sm"
-            value={dept}
-            onChange={(e) => updateParams({ dept: e.target.value })}
-            aria-label="تصفية حسب الإدارة"
-          >
+          <select className="input min-w-36 text-sm" value={dept} onChange={(e) => updateParams({ dept: e.target.value })} aria-label="تصفية حسب الإدارة">
             <option value="">كل الإدارات</option>
             {(lookups.data?.departments ?? []).map((d) => (
-              <option key={d.id} value={d.id}>{d.label}</option>
+              <option key={d.id} value={d.id}>
+                {d.label}
+              </option>
             ))}
           </select>
-          <select
-            className="input min-w-32 text-sm"
-            value={sort}
-            onChange={(e) => updateParams({ sort: e.target.value })}
-            aria-label="ترتيب القائمة"
-          >
+          <select className="input min-w-32 text-sm" value={sort} onChange={(e) => updateParams({ sort: e.target.value })} aria-label="ترتيب القائمة">
             {SORT_OPTIONS.map((s) => (
-              <option key={s.key} value={s.key}>{s.label}</option>
+              <option key={s.key} value={s.key}>
+                {s.label}
+              </option>
             ))}
           </select>
           <button
@@ -281,11 +277,7 @@ export function AttendanceDrilldownPage() {
         </div>
 
         {query.isError ? (
-          <ErrorState
-            title="تعذر تحميل القائمة"
-            description={safeErrorMessage(query.error)}
-            onRetry={() => void query.refetch()}
-          />
+          <ErrorState title="تعذر تحميل القائمة" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
         ) : query.isLoading ? (
           <div className="space-y-3" role="status" aria-label="جاري تحميل القائمة">
             <SkeletonCard className="h-14" />
@@ -360,7 +352,9 @@ function Row({ item }: { item: AttendanceRosterItem }) {
       <td>
         {item.lateMinutes != null && item.lateMinutes > 0 ? (
           <span className="text-xs font-semibold text-[var(--warning)]">{formatMinutes(item.lateMinutes)}</span>
-        ) : '—'}
+        ) : (
+          '—'
+        )}
       </td>
       <td className="text-xs">
         <span>{formatTime(item.firstCheckIn)}</span>
@@ -373,7 +367,9 @@ function Row({ item }: { item: AttendanceRosterItem }) {
             <MapPin className="size-3.5" aria-hidden="true" />
             {locationStatusLabel(item.locationRequestStatus)}
           </span>
-        ) : '—'}
+        ) : (
+          '—'
+        )}
       </td>
       <td className="text-xs">
         {hasExcuse ? (
@@ -391,7 +387,9 @@ function Row({ item }: { item: AttendanceRosterItem }) {
               </span>
             ) : null}
           </span>
-        ) : '—'}
+        ) : (
+          '—'
+        )}
       </td>
       <td>
         <Link to={`${hrPrefix}/employees/${item.employeeId}`} className="btn-ghost btn-xs whitespace-nowrap">

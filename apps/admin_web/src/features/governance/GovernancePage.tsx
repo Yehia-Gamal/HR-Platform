@@ -175,43 +175,71 @@ export function GovernancePage() {
           <form onSubmit={submitRisk} className="flex flex-col gap-4">
             <label className="flex flex-col gap-1 text-sm">
               <span>العنوان *</span>
-              <input className="input" required value={riskDraft.title} onChange={(e) => setRiskDraft({ ...riskDraft, title: e.target.value })} placeholder="مثال: تأخر صرف الرواتب" />
+              <input
+                className="input"
+                required
+                value={riskDraft.title}
+                onChange={(e) => setRiskDraft({ ...riskDraft, title: e.target.value })}
+                placeholder="مثال: تأخر صرف الرواتب"
+              />
             </label>
             <label className="flex flex-col gap-1 text-sm">
               <span>الوصف</span>
-              <textarea className="input min-h-24" value={riskDraft.description} onChange={(e) => setRiskDraft({ ...riskDraft, description: e.target.value })} />
+              <textarea
+                className="input min-h-24"
+                value={riskDraft.description}
+                onChange={(e) => setRiskDraft({ ...riskDraft, description: e.target.value })}
+              />
             </label>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="flex flex-col gap-1 text-sm">
                 <span>الاحتمال</span>
                 <select className="input" value={riskDraft.likelihood} onChange={(e) => setRiskDraft({ ...riskDraft, likelihood: e.target.value })}>
-                  {Object.entries(LIKELIHOODS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  {Object.entries(LIKELIHOODS).map(([v, l]) => (
+                    <option key={v} value={v}>
+                      {l}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="flex flex-col gap-1 text-sm">
                 <span>الأثر</span>
                 <select className="input" value={riskDraft.impact} onChange={(e) => setRiskDraft({ ...riskDraft, impact: e.target.value })}>
-                  {Object.entries(LIKELIHOODS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  {Object.entries(LIKELIHOODS).map(([v, l]) => (
+                    <option key={v} value={v}>
+                      {l}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="flex flex-col gap-1 text-sm">
                 <span>الشدة</span>
                 <select className="input" value={riskDraft.severity} onChange={(e) => setRiskDraft({ ...riskDraft, severity: e.target.value })}>
-                  {Object.entries(SEVERITIES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  {Object.entries(SEVERITIES).map(([v, l]) => (
+                    <option key={v} value={v}>
+                      {l}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="flex flex-col gap-1 text-sm">
                 <span>الحالة</span>
                 <select className="input" value={riskDraft.status} onChange={(e) => setRiskDraft({ ...riskDraft, status: e.target.value })}>
                   {RISK_STATUSES.map((s) => (
-                    <option key={s} value={s}>{s}</option>
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
                   ))}
                 </select>
               </label>
             </div>
             <div className="flex justify-end gap-2">
-              <button type="button" className="btn-secondary" onClick={() => setRiskOpen(false)}>إلغاء</button>
-              <button type="submit" className="btn-primary">حفظ</button>
+              <button type="button" className="btn-secondary" onClick={() => setRiskOpen(false)}>
+                إلغاء
+              </button>
+              <button type="submit" className="btn-primary">
+                حفظ
+              </button>
             </div>
           </form>
         </DialogOverlay>
@@ -222,31 +250,51 @@ export function GovernancePage() {
           <form onSubmit={submitIncident} className="flex flex-col gap-4">
             <label className="flex flex-col gap-1 text-sm">
               <span>العنوان *</span>
-              <input className="input" required value={incidentDraft.title} onChange={(e) => setIncidentDraft({ ...incidentDraft, title: e.target.value })} placeholder="مثال: حادثة وصول غير مصرح به" />
+              <input
+                className="input"
+                required
+                value={incidentDraft.title}
+                onChange={(e) => setIncidentDraft({ ...incidentDraft, title: e.target.value })}
+                placeholder="مثال: حادثة وصول غير مصرح به"
+              />
             </label>
             <label className="flex flex-col gap-1 text-sm">
               <span>الوصف</span>
-              <textarea className="input min-h-24" value={incidentDraft.description} onChange={(e) => setIncidentDraft({ ...incidentDraft, description: e.target.value })} />
+              <textarea
+                className="input min-h-24"
+                value={incidentDraft.description}
+                onChange={(e) => setIncidentDraft({ ...incidentDraft, description: e.target.value })}
+              />
             </label>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="flex flex-col gap-1 text-sm">
                 <span>الشدة</span>
                 <select className="input" value={incidentDraft.severity} onChange={(e) => setIncidentDraft({ ...incidentDraft, severity: e.target.value })}>
-                  {Object.entries(SEVERITIES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  {Object.entries(SEVERITIES).map(([v, l]) => (
+                    <option key={v} value={v}>
+                      {l}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="flex flex-col gap-1 text-sm">
                 <span>الحالة</span>
                 <select className="input" value={incidentDraft.status} onChange={(e) => setIncidentDraft({ ...incidentDraft, status: e.target.value })}>
                   {INCIDENT_STATUSES.map((s) => (
-                    <option key={s} value={s}>{s}</option>
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
                   ))}
                 </select>
               </label>
             </div>
             <div className="flex justify-end gap-2">
-              <button type="button" className="btn-secondary" onClick={() => setIncidentOpen(false)}>إلغاء</button>
-              <button type="submit" className="btn-primary">تسجيل</button>
+              <button type="button" className="btn-secondary" onClick={() => setIncidentOpen(false)}>
+                إلغاء
+              </button>
+              <button type="submit" className="btn-primary">
+                تسجيل
+              </button>
             </div>
           </form>
         </DialogOverlay>

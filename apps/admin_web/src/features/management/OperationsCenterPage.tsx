@@ -33,9 +33,7 @@ export function OperationsCenterPage() {
   const auth = useAuth();
   const query = useOperationsCenter();
   const commands = useOperationsCommands();
-  const canManageTasks = Boolean(
-    auth.access && hasAnyPermission(auth.access, ['tasks.write', 'operations.mission.manage']),
-  );
+  const canManageTasks = Boolean(auth.access && hasAnyPermission(auth.access, ['tasks.write', 'operations.mission.manage']));
   const [tab, setTab] = useState<Tab>('tasks');
   const [search, setSearch] = useState('');
   const [taskDraft, setTaskDraft] = useState<TaskDraft | null>(null);
@@ -198,9 +196,7 @@ export function OperationsCenterPage() {
                           id={item.id}
                           status={item.status}
                           pending={commands.transitionTask.isPending}
-                          transition={(status) =>
-                            commands.transitionTask.mutate({ id: item.id, status })
-                          }
+                          transition={(status) => commands.transitionTask.mutate({ id: item.id, status })}
                         />
                       ) : (
                         <span className="muted text-xs">—</span>
@@ -233,9 +229,7 @@ export function OperationsCenterPage() {
                       id={item.id}
                       status={item.status}
                       pending={commands.transitionTask.isPending}
-                      transition={(status) =>
-                        commands.transitionTask.mutate({ id: item.id, status })
-                      }
+                      transition={(status) => commands.transitionTask.mutate({ id: item.id, status })}
                     />
                   ) : null}
                 </div>

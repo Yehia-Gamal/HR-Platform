@@ -138,7 +138,12 @@ const adminSections: NavSection[] = [
       { label: 'إدارة الإجازات', to: '/admin/hr/leaves', icon: CalendarDays, permission: 'requests.request.read' },
       { label: 'طلبات الموظفين', to: '/admin/hr/requests', icon: ClipboardList, permission: 'requests.request.read' },
       { label: 'العطل الرسمية', to: '/admin/hr/holidays', icon: CalendarDays, permission: 'holidays.manage' },
-      { label: 'المأموريات والعمليات', to: '/admin/operations', icon: ClipboardList, permission: ['reports.read', 'operations.mission.manage', 'operations.convoy.manage'] },
+      {
+        label: 'المأموريات والعمليات',
+        to: '/admin/operations',
+        icon: ClipboardList,
+        permission: ['reports.read', 'operations.mission.manage', 'operations.convoy.manage'],
+      },
       { label: 'الموقع الحي للموظفين', to: '/admin/live-location', icon: MapPin, permission: 'live_location.request' },
       { label: 'المراقبة التنفيذية', to: '/admin/executive-monitoring', icon: Activity, permission: 'people.employee.read' },
       { label: 'أجهزة الموظفين', to: '/admin/hr/devices', icon: Smartphone, permission: 'access.role.read' },
@@ -163,7 +168,12 @@ const adminSections: NavSection[] = [
       { label: 'مكتب الخدمات', to: '/admin/helpdesk', icon: Headphones, featureFlag: 'helpdesk' },
       { label: 'الرواتب والمالية', to: '/admin/finance', icon: WalletCards, featureFlag: 'peopleFinance' },
       { label: 'المخالفات المالية', to: '/admin/finance/penalties', icon: AlertTriangle, permission: ['payroll.run.manage', 'payroll.run.approve'] },
-      { label: 'صرف InstaPay', to: '/admin/finance/instapay', icon: Banknote, permission: ['payroll.run.manage', 'payroll.run.approve', 'payroll.payslip.read'] },
+      {
+        label: 'صرف InstaPay',
+        to: '/admin/finance/instapay',
+        icon: Banknote,
+        permission: ['payroll.run.manage', 'payroll.run.approve', 'payroll.payslip.read'],
+      },
     ],
   },
   {
@@ -211,7 +221,15 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
   const notificationsQuery = useNotifications();
   const location = useLocation();
   const [open, setOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(() => (() => { try { return window.localStorage.getItem('ahla-sidebar') === 'collapsed'; } catch { return false; } })());
+  const [collapsed, setCollapsed] = useState(() =>
+    (() => {
+      try {
+        return window.localStorage.getItem('ahla-sidebar') === 'collapsed';
+      } catch {
+        return false;
+      }
+    })(),
+  );
   const access = auth.access;
   if (!access) throw new Error('WorkspaceShell requires an authenticated session');
   // الأدمن الرئيسي يرى قائمة موحّدة واحدة تجمع الإدارة + HR + اللجنة —

@@ -43,10 +43,7 @@ export function toAuthenticatedAvatarUrl(url: string): string {
  * الصور بعد انتهاء الجلسة الطويلة. الروابط الخارجية (CDN/mock) تُعاد كما هي.
  * يُرجع null لو كان الرابط لـ bucket لكن supabaseUrl غير مُعدّ.
  */
-export function toPublicAvatarUrl(
-  url: string,
-  supabaseUrl: string,
-): string | null {
+export function toPublicAvatarUrl(url: string, supabaseUrl: string): string | null {
   if (!url) return null;
   const path = extractAvatarPath(url);
   if (path === null) return url; // رابط خارجي — استخدمه مباشرة

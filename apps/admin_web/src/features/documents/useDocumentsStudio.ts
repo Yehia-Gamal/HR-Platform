@@ -5,30 +5,64 @@ import { useAuth } from '../auth/AuthProvider';
 import type { DocumentStudioCatalog } from './documents-studio.types';
 
 const catalogSchema = z.object({
-  templates: z.array(z.object({
-    id: z.string(),
-    code: z.string(),
-    name: z.string(),
-    documentType: z.string(),
-    version: z.number(),
-    active: z.boolean(),
-    requiresEmployeeSignature: z.boolean(),
-    requiresManagerSignature: z.boolean(),
-    requiresHrSignature: z.boolean(),
-    requiresExecutiveSignature: z.boolean(),
-  }).catch({ id: '', code: '', name: '—', documentType: 'other', version: 1, active: false, requiresEmployeeSignature: false, requiresManagerSignature: false, requiresHrSignature: false, requiresExecutiveSignature: false })).default([]),
-  documents: z.array(z.object({
-    id: z.string(),
-    referenceNumber: z.string().nullable(),
-    title: z.string(),
-    documentType: z.string(),
-    employeeId: z.string().nullable(),
-    employeeName: z.string().nullable(),
-    status: z.string(),
-    createdAt: z.string(),
-    issuedAt: z.string().nullable(),
-    pendingSignatures: z.number(),
-  }).catch({ id: '', referenceNumber: null, title: '—', documentType: 'other', employeeId: null, employeeName: null, status: 'draft', createdAt: '', issuedAt: null, pendingSignatures: 0 })).default([]),
+  templates: z
+    .array(
+      z
+        .object({
+          id: z.string(),
+          code: z.string(),
+          name: z.string(),
+          documentType: z.string(),
+          version: z.number(),
+          active: z.boolean(),
+          requiresEmployeeSignature: z.boolean(),
+          requiresManagerSignature: z.boolean(),
+          requiresHrSignature: z.boolean(),
+          requiresExecutiveSignature: z.boolean(),
+        })
+        .catch({
+          id: '',
+          code: '',
+          name: '—',
+          documentType: 'other',
+          version: 1,
+          active: false,
+          requiresEmployeeSignature: false,
+          requiresManagerSignature: false,
+          requiresHrSignature: false,
+          requiresExecutiveSignature: false,
+        }),
+    )
+    .default([]),
+  documents: z
+    .array(
+      z
+        .object({
+          id: z.string(),
+          referenceNumber: z.string().nullable(),
+          title: z.string(),
+          documentType: z.string(),
+          employeeId: z.string().nullable(),
+          employeeName: z.string().nullable(),
+          status: z.string(),
+          createdAt: z.string(),
+          issuedAt: z.string().nullable(),
+          pendingSignatures: z.number(),
+        })
+        .catch({
+          id: '',
+          referenceNumber: null,
+          title: '—',
+          documentType: 'other',
+          employeeId: null,
+          employeeName: null,
+          status: 'draft',
+          createdAt: '',
+          issuedAt: null,
+          pendingSignatures: 0,
+        }),
+    )
+    .default([]),
   lastUpdatedAt: z.string().optional(),
 });
 

@@ -76,22 +76,21 @@ export function EmployeesPage() {
   ];
 
   const handleCsvExport = () => {
-    downloadCsv(
-      `employees-${new Date().toISOString().slice(0, 10)}.csv`,
-      toCsv(exportColumns, filtered),
-    );
+    downloadCsv(`employees-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(exportColumns, filtered));
   };
 
   const handlePdfExport = () => {
     printReport(
-      [{
-        title: 'دليل الموظفين',
-        subtitle: `${filtered.length} موظف`,
-        table: {
-          headers: exportColumns.map((c) => c.header),
-          rows: filtered.map((e) => exportColumns.map((c) => String(c.get(e) ?? ''))),
+      [
+        {
+          title: 'دليل الموظفين',
+          subtitle: `${filtered.length} موظف`,
+          table: {
+            headers: exportColumns.map((c) => c.header),
+            rows: filtered.map((e) => exportColumns.map((c) => String(c.get(e) ?? ''))),
+          },
         },
-      }],
+      ],
       'دليل الموظفين — أحلى شباب',
     );
   };
@@ -165,23 +164,11 @@ export function EmployeesPage() {
         description="ابحث في ملفات الموظفين وافتح الملف الشخصي لأي منهم."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={handlePdfExport}
-              disabled={filtered.length === 0}
-              title="طباعة PDF"
-            >
+            <button type="button" className="btn-secondary" onClick={handlePdfExport} disabled={filtered.length === 0} title="طباعة PDF">
               <Printer className="size-4" aria-hidden="true" />
               PDF
             </button>
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={handleCsvExport}
-              disabled={filtered.length === 0}
-              title="تصدير Excel"
-            >
+            <button type="button" className="btn-secondary" onClick={handleCsvExport} disabled={filtered.length === 0} title="تصدير Excel">
               <FileSpreadsheet className="size-4" aria-hidden="true" />
               تصدير
             </button>
@@ -218,14 +205,7 @@ export function EmployeesPage() {
           setStatus('all');
           setSort('newest');
         }}
-        searchAdornment={
-          <EmployeeSearchSuggestions
-            query={search}
-            employees={all}
-            open={searchFocused}
-            onClose={() => setSearchFocused(false)}
-          />
-        }
+        searchAdornment={<EmployeeSearchSuggestions query={search} employees={all} open={searchFocused} onClose={() => setSearchFocused(false)} />}
         onSearchFocusChange={setSearchFocused}
       >
         <select className="input" value={status} onChange={(event) => setStatus(event.target.value)} aria-label="تصفية حسب الحالة">

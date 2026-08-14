@@ -33,11 +33,7 @@ export function useHelpdeskTickets() {
     queryFn: async (): Promise<HrTicket[]> => {
       if (auth.isMock) return [];
       const supabase = await getSupabase();
-      const { data, error } = await supabase
-        .from('hr_tickets')
-        .select(TICKET_FIELDS)
-        .order('created_at', { ascending: false })
-        .limit(200);
+      const { data, error } = await supabase.from('hr_tickets').select(TICKET_FIELDS).order('created_at', { ascending: false }).limit(200);
       if (error) throw error;
       return hrTicketListSchema.parse(
         rows(data).map((row) => {

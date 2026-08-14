@@ -20,10 +20,7 @@ function fmtFullDate(iso: string): string {
   return new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(new Date(`${iso}T00:00:00`));
 }
 
-export function exportPulseListPDF(
-  employees: EmployeeOverviewRow[],
-  kind: PulseDialogKind,
-): void {
+export function exportPulseListPDF(employees: EmployeeOverviewRow[], kind: PulseDialogKind): void {
   const title = PULSE_TITLES[kind];
   const date = cairoTodayIso();
   const dateLabel = fmtFullDate(date);

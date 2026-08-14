@@ -9,12 +9,7 @@ import { FilterBar } from '../../ui/FilterBar';
 import { PageHeader } from '../../ui/PageHeader';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
-import {
-  AUDIT_CATEGORY_LABELS,
-  AUDIT_SEVERITY_LABELS,
-  useAuditTrail,
-  type AuditTrailItem,
-} from '../finance/useFinancialExtensions';
+import { AUDIT_CATEGORY_LABELS, AUDIT_SEVERITY_LABELS, useAuditTrail, type AuditTrailItem } from '../finance/useFinancialExtensions';
 
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -53,7 +48,7 @@ export function AuditTrailPage() {
     {
       key: 'category',
       header: 'التصنيف',
-      render: (a) => (a.category ? AUDIT_CATEGORY_LABELS[a.category] ?? a.category : '—'),
+      render: (a) => (a.category ? (AUDIT_CATEGORY_LABELS[a.category] ?? a.category) : '—'),
     },
     {
       key: 'severity',
@@ -65,7 +60,11 @@ export function AuditTrailPage() {
   ];
 
   const dirty = Boolean(search.trim() || category !== 'all' || severity !== 'all');
-  const clearFilters = () => { setSearch(''); setCategory('all'); setSeverity('all'); };
+  const clearFilters = () => {
+    setSearch('');
+    setCategory('all');
+    setSeverity('all');
+  };
 
   const handleCsvExport = () => {
     const cols: ExportColumn<AuditTrailItem>[] = [
@@ -92,8 +91,8 @@ export function AuditTrailPage() {
               a.occurredAt ? dateFormatter.format(new Date(a.occurredAt)) : '—',
               a.actorName ?? '—',
               a.eventType,
-              a.category ? AUDIT_CATEGORY_LABELS[a.category] ?? a.category : '—',
-              a.severity ? AUDIT_SEVERITY_LABELS[a.severity] ?? a.severity : '—',
+              a.category ? (AUDIT_CATEGORY_LABELS[a.category] ?? a.category) : '—',
+              a.severity ? (AUDIT_SEVERITY_LABELS[a.severity] ?? a.severity) : '—',
               a.summaryAr ?? '—',
             ]),
           },
@@ -127,11 +126,19 @@ export function AuditTrailPage() {
       >
         <select className="input" value={category} onChange={(ev) => setCategory(ev.target.value)} aria-label="تصفية حسب التصنيف">
           <option value="all">كل التصنيفات</option>
-          {Object.entries(AUDIT_CATEGORY_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+          {Object.entries(AUDIT_CATEGORY_LABELS).map(([key, label]) => (
+            <option key={key} value={key}>
+              {label}
+            </option>
+          ))}
         </select>
         <select className="input" value={severity} onChange={(ev) => setSeverity(ev.target.value)} aria-label="تصفية حسب الخطورة">
           <option value="all">كل الخطورة</option>
-          {Object.entries(AUDIT_SEVERITY_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+          {Object.entries(AUDIT_SEVERITY_LABELS).map(([key, label]) => (
+            <option key={key} value={key}>
+              {label}
+            </option>
+          ))}
         </select>
         <button type="button" className="btn-secondary" onClick={handleCsvExport} disabled={rows.length === 0} title="تصدير Excel (CSV)">
           <FileSpreadsheet className="size-4" aria-hidden="true" />
@@ -146,7 +153,15 @@ export function AuditTrailPage() {
       ) : rows.length === 0 ? (
         <EmptyState title="لا توجد أحداث" description="لا توجد سجلات تدقيق مطابقة للفلاتر الحالية." />
       ) : (
-        <DataTable<AuditTrailItem> ariaLabel="جدول سجل التدقيق" rowKey={(a) => a.id} data={rows} minWidth="980px" columns={columns} emptyTitle="لا توجد نتائج" emptyDescription="جرّب تعديل البحث أو الفلاتر." />
+        <DataTable<AuditTrailItem>
+          ariaLabel="جدول سجل التدقيق"
+          rowKey={(a) => a.id}
+          data={rows}
+          minWidth="980px"
+          columns={columns}
+          emptyTitle="لا توجد نتائج"
+          emptyDescription="جرّب تعديل البحث أو الفلاتر."
+        />
       )}
     </div>
   );

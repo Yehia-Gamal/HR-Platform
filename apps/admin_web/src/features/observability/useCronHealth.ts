@@ -81,11 +81,7 @@ export function useObservabilityEvents(enabled = true, limit = 50) {
     enabled,
     queryFn: async (): Promise<ObservabilityEvent[]> => {
       const supabase = await getSupabase();
-      const { data, error } = await supabase
-        .from('observability_events')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(limit);
+      const { data, error } = await supabase.from('observability_events').select('*').order('created_at', { ascending: false }).limit(limit);
       if (error) throw error;
       return (data ?? []) as ObservabilityEvent[];
     },

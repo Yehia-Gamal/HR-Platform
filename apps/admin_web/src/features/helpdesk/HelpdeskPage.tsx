@@ -91,7 +91,7 @@ export function HelpdeskPage() {
     { key: 'created_at', header: 'التاريخ', sortable: true, render: (t) => date(t.created_at) },
   ];
 
-  const selectedTicket = detailId ? data.find((t) => t.id === detailId) ?? null : null;
+  const selectedTicket = detailId ? (data.find((t) => t.id === detailId) ?? null) : null;
 
   return (
     <div className="space-y-6">
@@ -114,12 +114,7 @@ export function HelpdeskPage() {
 
       <div className="card flex items-center gap-4 p-2">
         {(['inbox', 'mine'] as Tab[]).map((key) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setTab(key)}
-            className={`filter-chip ${tab === key ? 'filter-chip-active' : ''}`}
-          >
+          <button key={key} type="button" onClick={() => setTab(key)} className={`filter-chip ${tab === key ? 'filter-chip-active' : ''}`}>
             {key === 'inbox' ? 'صندوق الخدمات' : 'تذاكرى'}
           </button>
         ))}
@@ -145,14 +140,22 @@ export function HelpdeskPage() {
           <form onSubmit={submitCreate} className="flex flex-col gap-4">
             <label className="flex flex-col gap-1 text-sm">
               <span>الموضوع *</span>
-              <input className="input" required value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} placeholder="مثال: مشكلة في تسجيل الحضور" />
+              <input
+                className="input"
+                required
+                value={draft.subject}
+                onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
+                placeholder="مثال: مشكلة في تسجيل الحضور"
+              />
             </label>
             <label className="flex flex-col gap-1 text-sm">
               <span>التصنيف</span>
               <select className="input" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })}>
                 <option value="">— اختر تصنيفاً —</option>
                 {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
                 ))}
               </select>
             </label>
@@ -160,17 +163,28 @@ export function HelpdeskPage() {
               <span>الأولوية</span>
               <select className="input" value={draft.priority} onChange={(e) => setDraft({ ...draft, priority: e.target.value })}>
                 {Object.entries(PRIORITIES).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
                 ))}
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm">
               <span>التفاصيل</span>
-              <textarea className="input min-h-28" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} placeholder="اشرح المشكلة بالتفصيل..." />
+              <textarea
+                className="input min-h-28"
+                value={draft.description}
+                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                placeholder="اشرح المشكلة بالتفصيل..."
+              />
             </label>
             <div className="flex justify-end gap-2">
-              <button type="button" className="btn-secondary" onClick={() => setCreateOpen(false)}>إلغاء</button>
-              <button type="submit" className="btn-primary">إرسال</button>
+              <button type="button" className="btn-secondary" onClick={() => setCreateOpen(false)}>
+                إلغاء
+              </button>
+              <button type="submit" className="btn-primary">
+                إرسال
+              </button>
             </div>
           </form>
         </DialogOverlay>
@@ -195,7 +209,9 @@ export function HelpdeskPage() {
                   onChange={(e) => void updateStatus.mutate({ id: selectedTicket.id, status: e.target.value })}
                 >
                   {['open', 'in_progress', 'resolved', 'closed', 'cancelled'].map((s) => (
-                    <option key={s} value={s}>{s}</option>
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -210,7 +226,7 @@ export function HelpdeskPage() {
                 (messagesQuery.data ?? []).map((m) => (
                   <div key={m.id} className="rounded-lg bg-[var(--surface)] p-3 text-sm">
                     <div className="mb-1 flex items-center justify-between">
-                      <span className="font-medium">{m.is_internal ? 'ملاحظة داخلية' : m.author_name ?? 'موظف'}</span>
+                      <span className="font-medium">{m.is_internal ? 'ملاحظة داخلية' : (m.author_name ?? 'موظف')}</span>
                       <span className="text-xs text-[var(--muted)]">{date(m.created_at)}</span>
                     </div>
                     <p className="whitespace-pre-wrap">{m.body}</p>

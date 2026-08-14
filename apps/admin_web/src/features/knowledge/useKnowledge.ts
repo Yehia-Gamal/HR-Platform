@@ -1,7 +1,4 @@
-import {
-  knowledgeCatalogSchema,
-  type KnowledgeCategory,
-} from '@ahla/shared-contracts';
+import { knowledgeCatalogSchema, type KnowledgeCategory } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
 import { getSupabase } from '../../core/supabase';
@@ -76,15 +73,13 @@ export function useUpsertKnowledgeArticle() {
           .eq('id', input.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('knowledge_articles')
-          .insert({
-            title: input.title.trim(),
-            category: input.category?.trim() || null,
-            category_id: input.category_id || null,
-            body: input.body?.trim() || null,
-            is_published: input.is_published,
-          });
+        const { error } = await supabase.from('knowledge_articles').insert({
+          title: input.title.trim(),
+          category: input.category?.trim() || null,
+          category_id: input.category_id || null,
+          body: input.body?.trim() || null,
+          is_published: input.is_published,
+        });
         if (error) throw error;
       }
     },

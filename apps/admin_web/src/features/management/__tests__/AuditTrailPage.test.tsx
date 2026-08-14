@@ -36,45 +36,73 @@ const errorQuery = { data: undefined, isLoading: false, isError: true, error: ne
 describe('AuditTrailPage', () => {
   it('يُعرض بدون أخطاء', () => {
     auditTrailOverride = () => dataQuery;
-    const { container } = render(<MemoryRouter><AuditTrailPage /></MemoryRouter>);
+    const { container } = render(
+      <MemoryRouter>
+        <AuditTrailPage />
+      </MemoryRouter>,
+    );
     expect(container.firstChild).toBeTruthy();
   });
 
   it('يعرض عنوان الصفحة', () => {
     auditTrailOverride = () => dataQuery;
-    render(<MemoryRouter><AuditTrailPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <AuditTrailPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('سجل التدقيق')).toBeDefined();
   });
 
   it('يعرض حالة التحميل', () => {
     auditTrailOverride = () => loadingQuery;
-    const { container } = render(<MemoryRouter><AuditTrailPage /></MemoryRouter>);
+    const { container } = render(
+      <MemoryRouter>
+        <AuditTrailPage />
+      </MemoryRouter>,
+    );
     expect(container.querySelector('.animate-pulse')).toBeTruthy();
   });
 
   it('يعرض حالة فارغة عند عدم وجود سجلات', () => {
     auditTrailOverride = () => emptyQuery;
-    render(<MemoryRouter><AuditTrailPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <AuditTrailPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('لا توجد أحداث')).toBeDefined();
   });
 
   it('يعرض حالة الخطأ', () => {
     auditTrailOverride = () => errorQuery;
-    render(<MemoryRouter><AuditTrailPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <AuditTrailPage />
+      </MemoryRouter>,
+    );
     // ErrorState يستخدم onRetry، نتحقق من وجود زر أو نص الخطأ
     expect(screen.getByText('إعادة المحاولة')).toBeDefined();
   });
 
   it('يعرض قوائم تصفية التصنيف والخطورة', () => {
     auditTrailOverride = () => dataQuery;
-    render(<MemoryRouter><AuditTrailPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <AuditTrailPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByLabelText('تصفية حسب التصنيف')).toBeDefined();
     expect(screen.getByLabelText('تصفية حسب الخطورة')).toBeDefined();
   });
 
   it('يعرض صفوف البيانات في جدول عند توفرها', () => {
     auditTrailOverride = () => dataQuery;
-    render(<MemoryRouter><AuditTrailPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <AuditTrailPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('تم إنشاء موظف جديد')).toBeDefined();
     expect(screen.getByText('المسؤول')).toBeDefined();
   });

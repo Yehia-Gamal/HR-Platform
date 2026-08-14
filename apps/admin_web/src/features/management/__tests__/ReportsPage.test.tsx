@@ -28,31 +28,51 @@ const errorQuery = { data: undefined, isLoading: false, isError: true, error: ne
 describe('ReportsPage', () => {
   it('يُعرض بدون أخطاء', () => {
     hrReportsOverride = () => dataQuery;
-    const { container } = render(<MemoryRouter><ReportsPage /></MemoryRouter>);
+    const { container } = render(
+      <MemoryRouter>
+        <ReportsPage />
+      </MemoryRouter>,
+    );
     expect(container.firstChild).toBeTruthy();
   });
 
   it('يعرض عنوان الصفحة', () => {
     hrReportsOverride = () => dataQuery;
-    render(<MemoryRouter><ReportsPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <ReportsPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('التقارير التشغيلية')).toBeDefined();
   });
 
   it('يعرض حالة التحميل', () => {
     hrReportsOverride = () => loadingQuery;
-    const { container } = render(<MemoryRouter><ReportsPage /></MemoryRouter>);
+    const { container } = render(
+      <MemoryRouter>
+        <ReportsPage />
+      </MemoryRouter>,
+    );
     expect(container.querySelector('.animate-pulse')).toBeTruthy();
   });
 
   it('يعرض حالة الخطأ', () => {
     hrReportsOverride = () => errorQuery;
-    render(<MemoryRouter><ReportsPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <ReportsPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('تعذر تحميل التقارير')).toBeDefined();
   });
 
   it('يعرض أقسام التقارير الرئيسية', () => {
     hrReportsOverride = () => dataQuery;
-    render(<MemoryRouter><ReportsPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <ReportsPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('الحضور')).toBeDefined();
     expect(screen.getByText('الإجازات')).toBeDefined();
     expect(screen.getByText('التكليفات')).toBeDefined();
@@ -63,7 +83,11 @@ describe('ReportsPage', () => {
 
   it('يعرض بطاقات مؤشرات الحضور', () => {
     hrReportsOverride = () => dataQuery;
-    render(<MemoryRouter><ReportsPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <ReportsPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('إجمالي الأحداث')).toBeDefined();
     expect(screen.getByText('تسجيل دخول اليوم')).toBeDefined();
     expect(screen.getByText('تسجيل خروج اليوم')).toBeDefined();
@@ -71,7 +95,11 @@ describe('ReportsPage', () => {
 
   it('يعرض زر تصدير CSV', () => {
     hrReportsOverride = () => dataQuery;
-    render(<MemoryRouter><ReportsPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <ReportsPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('تصدير CSV')).toBeDefined();
   });
 });

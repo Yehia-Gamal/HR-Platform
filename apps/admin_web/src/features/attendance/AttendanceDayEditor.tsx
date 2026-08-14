@@ -65,7 +65,10 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
   const [markReason, setMarkReason] = useState('');
   const [markLocation, setMarkLocation] = useState('');
   const [dayType, setDayType] = useState<DayType>((day.adminOverride?.dayType as DayType | undefined) ?? 'work');
-  const [leaveType, setLeaveType] = useState<string>(day.adminOverride?.leaveType ?? (day.adminOverride?.dayType === 'leave' || day.adminOverride?.dayType === 'absent' ? DEFAULT_LEAVE_TYPE[day.adminOverride.dayType] : ''));
+  const [leaveType, setLeaveType] = useState<string>(
+    day.adminOverride?.leaveType ??
+      (day.adminOverride?.dayType === 'leave' || day.adminOverride?.dayType === 'absent' ? DEFAULT_LEAVE_TYPE[day.adminOverride.dayType] : ''),
+  );
   const [checkIn, setCheckIn] = useState(day.checkIn?.slice(0, 5) ?? '');
   const [checkOut, setCheckOut] = useState(day.checkOut?.slice(0, 5) ?? '');
   const [clearCheckIn, setClearCheckIn] = useState(false);
@@ -75,7 +78,10 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
 
   useEffect(() => {
     setDayType((day.adminOverride?.dayType as DayType | undefined) ?? 'work');
-    setLeaveType(day.adminOverride?.leaveType ?? (day.adminOverride?.dayType === 'leave' || day.adminOverride?.dayType === 'absent' ? DEFAULT_LEAVE_TYPE[day.adminOverride.dayType] : ''));
+    setLeaveType(
+      day.adminOverride?.leaveType ??
+        (day.adminOverride?.dayType === 'leave' || day.adminOverride?.dayType === 'absent' ? DEFAULT_LEAVE_TYPE[day.adminOverride.dayType] : ''),
+    );
     setCheckIn(day.checkIn?.slice(0, 5) ?? '');
     setCheckOut(day.checkOut?.slice(0, 5) ?? '');
     setReason(day.adminOverride?.reason ?? '');
@@ -96,7 +102,7 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
         p_clear_check_out: dayType !== 'work' || clearCheckOut,
         p_reason: reason.trim(),
         p_notes: notes.trim() || null,
-        p_leave_type: dayType === 'leave' || dayType === 'absent' ? (leaveType || DEFAULT_LEAVE_TYPE[dayType]) : null,
+        p_leave_type: dayType === 'leave' || dayType === 'absent' ? leaveType || DEFAULT_LEAVE_TYPE[dayType] : null,
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['attendance-statement', employeeId] });
@@ -135,12 +141,7 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
         <Pencil className="size-3.5" aria-hidden="true" />
         تعديل
       </button>
-      <button
-        type="button"
-        className="stmt-edit-btn"
-        onClick={() => setMarkOpen(true)}
-        title="إرسال طلب تحديد نوع اليوم (بموافقة المدير المباشر)"
-      >
+      <button type="button" className="stmt-edit-btn" onClick={() => setMarkOpen(true)} title="إرسال طلب تحديد نوع اليوم (بموافقة المدير المباشر)">
         <Send className="size-3.5" aria-hidden="true" />
         طلب تحديد
       </button>
@@ -166,7 +167,11 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
                   else setLeaveType('');
                 }}
               >
-                {DAY_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                {DAY_TYPES.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
             </label>
 
@@ -174,7 +179,11 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
               <label className="space-y-1 text-sm font-bold">
                 <span>نوع الإجازة ({dayType === 'absent' ? 'يُسجل غيابًا مخصومًا' : 'تُخصم من الرصيد'})</span>
                 <select className="input w-full" value={leaveType} onChange={(event) => setLeaveType(event.target.value)}>
-                  {LEAVE_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  {LEAVE_TYPES.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
                 </select>
               </label>
             ) : null}
@@ -191,12 +200,16 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
                 <label className="space-y-1 text-sm font-bold">
                   <span>وقت الحضور</span>
                   <input className="input w-full" type="time" value={checkIn} disabled={clearCheckIn} onChange={(event) => setCheckIn(event.target.value)} />
-                  <span className="flex items-center gap-2 text-xs font-normal"><input type="checkbox" checked={clearCheckIn} onChange={(event) => setClearCheckIn(event.target.checked)} /> حذف وقت الحضور الفعّال</span>
+                  <span className="flex items-center gap-2 text-xs font-normal">
+                    <input type="checkbox" checked={clearCheckIn} onChange={(event) => setClearCheckIn(event.target.checked)} /> حذف وقت الحضور الفعّال
+                  </span>
                 </label>
                 <label className="space-y-1 text-sm font-bold">
                   <span>وقت الانصراف</span>
                   <input className="input w-full" type="time" value={checkOut} disabled={clearCheckOut} onChange={(event) => setCheckOut(event.target.value)} />
-                  <span className="flex items-center gap-2 text-xs font-normal"><input type="checkbox" checked={clearCheckOut} onChange={(event) => setClearCheckOut(event.target.checked)} /> حذف وقت الانصراف الفعّال</span>
+                  <span className="flex items-center gap-2 text-xs font-normal">
+                    <input type="checkbox" checked={clearCheckOut} onChange={(event) => setClearCheckOut(event.target.checked)} /> حذف وقت الانصراف الفعّال
+                  </span>
                 </label>
               </div>
             ) : null}
@@ -206,28 +219,36 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
               {(PRESET_REASONS[dayType] ?? []).length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
                   {(PRESET_REASONS[dayType] ?? []).map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      className={`filter-chip${reason === preset ? ' is-active' : ''}`}
-                      onClick={() => setReason(preset)}
-                    >
+                    <button key={preset} type="button" className={`filter-chip${reason === preset ? ' is-active' : ''}`} onClick={() => setReason(preset)}>
                       {preset}
                     </button>
                   ))}
                 </div>
               ) : null}
-              <input className="input w-full" value={reason} minLength={5} required onChange={(event) => setReason(event.target.value)} placeholder="اكتب سببًا مخصصًا أو اختر من الأعلى…" />
+              <input
+                className="input w-full"
+                value={reason}
+                minLength={5}
+                required
+                onChange={(event) => setReason(event.target.value)}
+                placeholder="اكتب سببًا مخصصًا أو اختر من الأعلى…"
+              />
             </div>
             <label className="space-y-1 text-sm font-bold">
               <span>ملاحظات</span>
               <textarea className="input min-h-20 w-full" value={notes} onChange={(event) => setNotes(event.target.value)} />
             </label>
 
-            {mutation.isError ? <p className="rounded-lg bg-red-50 p-3 text-sm font-bold text-red-700" role="alert">{safeErrorMessage(mutation.error)}</p> : null}
+            {mutation.isError ? (
+              <p className="rounded-lg bg-red-50 p-3 text-sm font-bold text-red-700" role="alert">
+                {safeErrorMessage(mutation.error)}
+              </p>
+            ) : null}
 
             <div className="flex justify-end gap-2">
-              <button type="button" className="btn-secondary" onClick={() => setOpen(false)}>إلغاء</button>
+              <button type="button" className="btn-secondary" onClick={() => setOpen(false)}>
+                إلغاء
+              </button>
               <button type="submit" className="btn-primary" disabled={mutation.isPending || reason.trim().length < 5}>
                 {mutation.isPending ? 'جارٍ الحفظ…' : 'حفظ التعديل'}
               </button>
@@ -248,7 +269,11 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
             <label className="space-y-1 text-sm font-bold">
               <span>نوع اليوم</span>
               <select className="input w-full" value={markType} onChange={(event) => setMarkType(event.target.value)}>
-                {MARK_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                {MARK_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
             </label>
 
@@ -264,11 +289,19 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
               <input className="input w-full" value={markReason} minLength={5} required onChange={(event) => setMarkReason(event.target.value)} />
             </label>
 
-            {markMutation.isError ? <p className="rounded-lg bg-red-50 p-3 text-sm font-bold text-red-700" role="alert">{safeErrorMessage(markMutation.error)}</p> : null}
-            {markMutation.isSuccess ? <p className="rounded-lg bg-emerald-50 p-3 text-sm font-bold text-emerald-700">أُرسل الطلب ووصل المدير المباشر.</p> : null}
+            {markMutation.isError ? (
+              <p className="rounded-lg bg-red-50 p-3 text-sm font-bold text-red-700" role="alert">
+                {safeErrorMessage(markMutation.error)}
+              </p>
+            ) : null}
+            {markMutation.isSuccess ? (
+              <p className="rounded-lg bg-emerald-50 p-3 text-sm font-bold text-emerald-700">أُرسل الطلب ووصل المدير المباشر.</p>
+            ) : null}
 
             <div className="flex justify-end gap-2">
-              <button type="button" className="btn-secondary" onClick={() => setMarkOpen(false)}>إلغاء</button>
+              <button type="button" className="btn-secondary" onClick={() => setMarkOpen(false)}>
+                إلغاء
+              </button>
               <button type="submit" className="btn-primary" disabled={markMutation.isPending || markReason.trim().length < 5}>
                 {markMutation.isPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}
               </button>

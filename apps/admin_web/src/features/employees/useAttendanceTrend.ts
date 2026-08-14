@@ -70,10 +70,7 @@ export function useAttendanceTrend(days = 7, enabled = true) {
       }
       const results = await Promise.all(
         dates.map(async (date) => {
-          const data = await rpc<{ scheduled?: number; present?: number } | null>(
-            'get_attendance_dashboard',
-            { p_date: date },
-          );
+          const data = await rpc<{ scheduled?: number; present?: number } | null>('get_attendance_dashboard', { p_date: date });
           return {
             date,
             present: data?.present ?? 0,

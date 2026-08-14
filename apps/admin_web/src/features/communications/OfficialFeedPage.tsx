@@ -15,7 +15,14 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
-import { useAnnouncementEngagement, useCreateDecisionDraft, useOfficialFeed, usePublishAnnouncement, useToggleReaction, useTransitionDecision } from './useOfficialFeed';
+import {
+  useAnnouncementEngagement,
+  useCreateDecisionDraft,
+  useOfficialFeed,
+  usePublishAnnouncement,
+  useToggleReaction,
+  useTransitionDecision,
+} from './useOfficialFeed';
 
 type PublishMode = 'announcement' | 'decision';
 const REACTIONS = [
@@ -58,8 +65,6 @@ function AnnouncementReactionBar({ announcementId }: { announcementId: string })
     </div>
   );
 }
-
-
 
 // ─── هوك حالة النموذج الرسمي ────────────────────────────────────────────────
 function useOfficialFeedForm(publish: ReturnType<typeof usePublishAnnouncement>, createDecision: ReturnType<typeof useCreateDecisionDraft>) {
@@ -368,9 +373,7 @@ export function OfficialFeedPage() {
                     </div>
                   </div>
                 ) : null}
-                {item.kind === 'announcement' && item.status === 'published' ? (
-                  <AnnouncementReactionBar announcementId={item.id} />
-                ) : null}
+                {item.kind === 'announcement' && item.status === 'published' ? <AnnouncementReactionBar announcementId={item.id} /> : null}
                 {action && canRun ? (
                   <div className="border-t border-[var(--border)] p-4">
                     <button
@@ -397,11 +400,7 @@ export function OfficialFeedPage() {
         </section>
       )}
       {engagementItem ? (
-        <DialogOverlay
-          title={`مشاهدات وتفاعلات: ${engagementItem.title}`}
-          onClose={() => setEngagementItem(null)}
-          maxWidth="max-w-3xl"
-        >
+        <DialogOverlay title={`مشاهدات وتفاعلات: ${engagementItem.title}`} onClose={() => setEngagementItem(null)} maxWidth="max-w-3xl">
           {engagementQuery.isLoading ? (
             <ListSkeleton rows={3} label="جارٍ تحميل المشاهدات والتفاعلات" />
           ) : engagementQuery.isError ? (

@@ -61,17 +61,11 @@ export function DailyReportsFeedPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
-      <PageHeader
-        title="التقارير اليومية"
-        description="سجل مفتوح لكل الموظفين: الإنجازات والمعوقات وخطة الغد — تفاعل بالإعجاب والتعليق."
-      />
+      <PageHeader title="التقارير اليومية" description="سجل مفتوح لكل الموظفين: الإنجازات والمعوقات وخطة الغد — تفاعل بالإعجاب والتعليق." />
 
       {/* زر تقرير جديد + النموذج */}
       <div className="flex justify-end">
-        <button
-          className="btn-primary inline-flex items-center gap-2"
-          onClick={() => setShowComposer(true)}
-        >
+        <button className="btn-primary inline-flex items-center gap-2" onClick={() => setShowComposer(true)}>
           <Plus className="size-4" aria-hidden="true" /> تقرير جديد
         </button>
       </div>
@@ -80,10 +74,7 @@ export function DailyReportsFeedPage() {
         <div className="card space-y-4 p-5">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-black">تقرير اليوم</h3>
-            <button
-              className="rounded-full p-1 text-[var(--muted)] hover:bg-[var(--surface-muted)]"
-              onClick={() => setShowComposer(false)}
-            >
+            <button className="rounded-full p-1 text-[var(--muted)] hover:bg-[var(--surface-muted)]" onClick={() => setShowComposer(false)}>
               <X className="size-5" aria-hidden="true" />
             </button>
           </div>
@@ -116,11 +107,7 @@ export function DailyReportsFeedPage() {
               onChange={(e) => setDraft((p) => ({ ...p, tomorrowPlan: e.target.value }))}
             />
           </label>
-          {submitReport.isError ? (
-            <p className="text-sm text-[var(--danger)]">
-              {safeErrorMessage(submitReport.error)}
-            </p>
-          ) : null}
+          {submitReport.isError ? <p className="text-sm text-[var(--danger)]">{safeErrorMessage(submitReport.error)}</p> : null}
           <div className="flex justify-end gap-2">
             <button className="btn-secondary" onClick={() => setShowComposer(false)}>
               إلغاء
@@ -142,8 +129,7 @@ export function DailyReportsFeedPage() {
                       setShowComposer(false);
                       setDraft({ achievements: '', blockers: '', tomorrowPlan: '' });
                     },
-                    onError: (err) =>
-                      toast({ message: safeErrorMessage(err), tone: 'error' }),
+                    onError: (err) => toast({ message: safeErrorMessage(err), tone: 'error' }),
                   },
                 );
               }}
@@ -155,18 +141,11 @@ export function DailyReportsFeedPage() {
       ) : null}
 
       {query.isError ? (
-        <ErrorState
-          title="تعذر تحميل التقارير"
-          description={safeErrorMessage(query.error)}
-          onRetry={() => void query.refetch()}
-        />
+        <ErrorState title="تعذر تحميل التقارير" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
       ) : query.isLoading && items.length === 0 ? (
         <ListSkeleton rows={4} label="جارٍ تحميل التقارير" />
       ) : items.length === 0 ? (
-        <EmptyState
-          title="لا توجد تقارير بعد"
-          description="عندما يرفع الموظفون تقاريرهم اليومية ستظهر هنا."
-        />
+        <EmptyState title="لا توجد تقارير بعد" description="عندما يرفع الموظفون تقاريرهم اليومية ستظهر هنا." />
       ) : (
         <>
           {items.map((item) => {
@@ -184,16 +163,8 @@ export function DailyReportsFeedPage() {
                 }}
               >
                 {/* ─── رأس البطاقة: الصورة + الاسم + المسمى + المدير + التاريخ ─── */}
-                <div
-                  className="flex items-center gap-3 p-4"
-                  style={{ borderBottom: '1px solid var(--border)' }}
-                >
-                  <UserAvatar
-                    displayName={item.employeeName}
-                    photoUrl={item.photoUrl}
-                    size="lg"
-                    announceName={false}
-                  />
+                <div className="flex items-center gap-3 p-4" style={{ borderBottom: '1px solid var(--border)' }}>
+                  <UserAvatar displayName={item.employeeName} photoUrl={item.photoUrl} size="lg" announceName={false} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-base font-black">{item.employeeName}</p>
                     <div className="flex flex-wrap gap-1.5">
@@ -218,9 +189,7 @@ export function DailyReportsFeedPage() {
                       }).format(new Date(`${item.reportDate}T00:00:00`))}
                     </p>
                     <p className="text-[10px] text-[var(--muted)]">
-                      {new Intl.DateTimeFormat('ar-EG', { weekday: 'long' }).format(
-                        new Date(`${item.reportDate}T00:00:00`),
-                      )}
+                      {new Intl.DateTimeFormat('ar-EG', { weekday: 'long' }).format(new Date(`${item.reportDate}T00:00:00`))}
                     </p>
                   </div>
                 </div>
@@ -247,10 +216,7 @@ export function DailyReportsFeedPage() {
                   </div>
                   {item.blockers ? (
                     <div className="mb-3">
-                      <span
-                        className="inline-block rounded-full px-2 py-0.5 text-xs font-black"
-                        style={{ background: '#fff4e6', color: '#cc6600' }}
-                      >
+                      <span className="inline-block rounded-full px-2 py-0.5 text-xs font-black" style={{ background: '#fff4e6', color: '#cc6600' }}>
                         ⚠ المعوقات
                       </span>
                       <p className="mt-1.5 whitespace-pre-wrap">{item.blockers}</p>
@@ -258,10 +224,7 @@ export function DailyReportsFeedPage() {
                   ) : null}
                   {item.tomorrowPlan ? (
                     <div className="mb-1">
-                      <span
-                        className="inline-block rounded-full px-2 py-0.5 text-xs font-black"
-                        style={{ background: '#e8f5e9', color: '#2e7d32' }}
-                      >
+                      <span className="inline-block rounded-full px-2 py-0.5 text-xs font-black" style={{ background: '#e8f5e9', color: '#2e7d32' }}>
                         → خطة الغد
                       </span>
                       <p className="mt-1.5 whitespace-pre-wrap">{item.tomorrowPlan}</p>
@@ -287,37 +250,21 @@ export function DailyReportsFeedPage() {
 
                 {/* ─── تعليق المدير (إن وجد) ─── */}
                 {item.managerComment ? (
-                  <div
-                    className="mx-4 mb-3 rounded-2xl p-3"
-                    style={{ background: 'var(--surface-muted)' }}
-                  >
-                    <p className="text-xs font-black text-[var(--muted)]">
-                      تعليق المدير{item.reviewedByName ? ` — ${item.reviewedByName}` : ''}
-                    </p>
+                  <div className="mx-4 mb-3 rounded-2xl p-3" style={{ background: 'var(--surface-muted)' }}>
+                    <p className="text-xs font-black text-[var(--muted)]">تعليق المدير{item.reviewedByName ? ` — ${item.reviewedByName}` : ''}</p>
                     <p className="mt-1 text-sm leading-7">{item.managerComment}</p>
                   </div>
                 ) : null}
 
                 {/* ─── شريط التفاعل: إعجاب + تعليقات ─── */}
-                <div
-                  className="flex items-center gap-2 px-4 py-3"
-                  style={{ borderTop: '1px solid var(--border)' }}
-                >
+                <div className="flex items-center gap-2 px-4 py-3" style={{ borderTop: '1px solid var(--border)' }}>
                   <button
                     className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition active:scale-95"
-                    style={
-                      item.isLikedByMe
-                        ? { background: 'var(--primary)', color: '#fff' }
-                        : { background: 'var(--surface-muted)' }
-                    }
+                    style={item.isLikedByMe ? { background: 'var(--primary)', color: '#fff' } : { background: 'var(--surface-muted)' }}
                     disabled={toggleLike.isPending}
                     onClick={() => handleToggleLike(item.id)}
                   >
-                    <Heart
-                      className="size-4"
-                      style={item.isLikedByMe ? { fill: 'currentColor' } : {}}
-                      aria-hidden="true"
-                    />
+                    <Heart className="size-4" style={item.isLikedByMe ? { fill: 'currentColor' } : {}} aria-hidden="true" />
                     {item.likesCount > 0 ? item.likesCount : 'إعجاب'}
                   </button>
                   <button
@@ -338,11 +285,7 @@ export function DailyReportsFeedPage() {
                 {isExpanded ? (
                   <div className="space-y-2 px-4 pb-4">
                     {item.comments.map((comment) => (
-                      <div
-                        key={comment.id}
-                        className="flex items-start justify-between gap-2 rounded-2xl p-3"
-                        style={{ background: 'var(--surface-muted)' }}
-                      >
+                      <div key={comment.id} className="flex items-start justify-between gap-2 rounded-2xl p-3" style={{ background: 'var(--surface-muted)' }}>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-black">{comment.employeeName}</p>
                           <p className="mt-0.5 text-sm leading-7">{comment.comment}</p>
@@ -367,11 +310,7 @@ export function DailyReportsFeedPage() {
                         ) : null}
                       </div>
                     ))}
-                    {item.comments.length === 0 ? (
-                      <p className="py-2 text-center text-sm text-[var(--muted)]">
-                        لا توجد تعليقات بعد — كن أول من يعلّق
-                      </p>
-                    ) : null}
+                    {item.comments.length === 0 ? <p className="py-2 text-center text-sm text-[var(--muted)]">لا توجد تعليقات بعد — كن أول من يعلّق</p> : null}
 
                     {/* صندوق كتابة تعليق */}
                     <div className="flex items-center gap-2 pt-1">
@@ -379,9 +318,7 @@ export function DailyReportsFeedPage() {
                         className="input flex-1 rounded-full"
                         placeholder="اكتب تعليقًا…"
                         value={commentDrafts[item.id] ?? ''}
-                        onChange={(e) =>
-                          setCommentDrafts((prev) => ({ ...prev, [item.id]: e.target.value }))
-                        }
+                        onChange={(e) => setCommentDrafts((prev) => ({ ...prev, [item.id]: e.target.value }))}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();

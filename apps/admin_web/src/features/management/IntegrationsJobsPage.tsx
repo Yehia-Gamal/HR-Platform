@@ -145,9 +145,7 @@ export function IntegrationsJobsPage() {
                   />
                 </label>
               ) : (
-                <p className="muted mt-4 rounded-xl border border-[var(--border)] p-3 text-sm font-bold">
-                  {item.enabled ? 'الموصل مفعّل' : 'الموصل متوقف'}
-                </p>
+                <p className="muted mt-4 rounded-xl border border-[var(--border)] p-3 text-sm font-bold">{item.enabled ? 'الموصل مفعّل' : 'الموصل متوقف'}</p>
               )}
             </article>
           ))}

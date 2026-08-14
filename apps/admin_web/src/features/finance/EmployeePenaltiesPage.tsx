@@ -10,13 +10,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { useEmployees } from '../employees/useEmployees';
-import {
-  PENALTY_STATUS_LABELS,
-  PENALTY_TYPE_LABELS,
-  useAddEmployeePenalty,
-  useEmployeePenalties,
-  useWaiveEmployeePenalty,
-} from './useFinancialExtensions';
+import { PENALTY_STATUS_LABELS, PENALTY_TYPE_LABELS, useAddEmployeePenalty, useEmployeePenalties, useWaiveEmployeePenalty } from './useFinancialExtensions';
 
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
 const currencyFmt = new Intl.NumberFormat('ar-EG', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 });
@@ -47,9 +41,7 @@ export function EmployeePenaltiesPage() {
     return q
       ? items.filter(
           (p) =>
-            (p.employeeName ?? '').toLowerCase().includes(q) ||
-            (p.reason ?? '').toLowerCase().includes(q) ||
-            (p.penaltyType ?? '').toLowerCase().includes(q),
+            (p.employeeName ?? '').toLowerCase().includes(q) || (p.reason ?? '').toLowerCase().includes(q) || (p.penaltyType ?? '').toLowerCase().includes(q),
         )
       : items;
   }, [penalties.data, search]);
@@ -58,7 +50,15 @@ export function EmployeePenaltiesPage() {
     { key: 'employeeName', header: 'الموظف', sortable: true, render: (p) => <span className="font-bold">{p.employeeName ?? '—'}</span> },
     { key: 'departmentName', header: 'الإدارة', render: (p) => p.departmentName ?? '—' },
     { key: 'penaltyType', header: 'النوع', render: (p) => PENALTY_TYPE_LABELS[p.penaltyType] ?? p.penaltyType },
-    { key: 'reason', header: 'السبب', render: (p) => <span className="block max-w-[240px] truncate" title={p.reason}>{p.reason}</span> },
+    {
+      key: 'reason',
+      header: 'السبب',
+      render: (p) => (
+        <span className="block max-w-[240px] truncate" title={p.reason}>
+          {p.reason}
+        </span>
+      ),
+    },
     { key: 'amount', header: 'المبلغ', sortable: true, render: (p) => <span className="font-black text-red-600">{formatCurrency(p.amount)}</span> },
     { key: 'issuedAt', header: 'تاريخ الإصدار', render: (p) => (p.issuedAt ? dateFormatter.format(new Date(p.issuedAt)) : '—') },
     {
@@ -89,7 +89,10 @@ export function EmployeePenaltiesPage() {
   ];
 
   const dirty = Boolean(search.trim() || statusFilter !== 'all');
-  const clearFilters = () => { setSearch(''); setStatusFilter('all'); };
+  const clearFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+  };
 
   const submitPenalty = async (ev: FormEvent) => {
     ev.preventDefault();
@@ -170,20 +173,34 @@ export function EmployeePenaltiesPage() {
               <select className="input mt-1" value={employeeId} onChange={(ev) => setEmployeeId(ev.target.value)} required>
                 <option value="">اختر الموظف…</option>
                 {(employees ?? []).map((e) => (
-                  <option key={e.id} value={e.id}>{e.fullNameAr}</option>                ))}
+                  <option key={e.id} value={e.id}>
+                    {e.fullNameAr}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="block">
               <span className="muted text-xs">النوع *</span>
               <select className="input mt-1" value={penaltyType} onChange={(ev) => setPenaltyType(ev.target.value)}>
                 {Object.entries(PENALTY_TYPE_LABELS).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
                 ))}
               </select>
             </label>
             <label className="block">
               <span className="muted text-xs">المبلغ (ج.م) *</span>
-              <input className="input mt-1" type="number" min="0" step="0.01" value={amount} onChange={(ev) => setAmount(ev.target.value)} placeholder="0.00" required />
+              <input
+                className="input mt-1"
+                type="number"
+                min="0"
+                step="0.01"
+                value={amount}
+                onChange={(ev) => setAmount(ev.target.value)}
+                placeholder="0.00"
+                required
+              />
             </label>
             <label className="block">
               <span className="muted text-xs">السبب *</span>
@@ -197,7 +214,9 @@ export function EmployeePenaltiesPage() {
               <button type="submit" className="btn-primary" disabled={addPenalty.isPending || !employeeId || !reason.trim() || !(Number(amount) > 0)}>
                 {addPenalty.isPending ? 'جارٍ الحفظ…' : 'حفظ المخالفة'}
               </button>
-              <button type="button" className="btn-secondary" onClick={() => setFormOpen(false)}>إلغاء</button>
+              <button type="button" className="btn-secondary" onClick={() => setFormOpen(false)}>
+                إلغاء
+              </button>
               {addPenalty.isError && <p className="text-sm text-red-600">{safeErrorMessage(addPenalty.error)}</p>}
             </div>
           </form>
@@ -214,7 +233,11 @@ export function EmployeePenaltiesPage() {
       >
         <select className="input" value={statusFilter} onChange={(ev) => setStatusFilter(ev.target.value)} aria-label="تصفية حسب الحالة">
           <option value="all">كل الحالات</option>
-          {Object.entries(PENALTY_STATUS_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+          {Object.entries(PENALTY_STATUS_LABELS).map(([key, label]) => (
+            <option key={key} value={key}>
+              {label}
+            </option>
+          ))}
         </select>
         <button type="button" className="btn-secondary" onClick={handleCsvExport} disabled={rows.length === 0} title="تصدير Excel (CSV)">
           <FileSpreadsheet className="size-4" aria-hidden="true" />
@@ -233,7 +256,15 @@ export function EmployeePenaltiesPage() {
       ) : rows.length === 0 ? (
         <EmptyState title="لا توجد مخالفات" description="لم تُسجل أي مخالفات مالية بعد." />
       ) : (
-        <DataTable ariaLabel="جدول المخالفات المالية" rowKey={(p) => p.id} data={rows} minWidth="820px" columns={columns} emptyTitle="لا توجد نتائج" emptyDescription="جرّب تعديل البحث أو الحالة." />
+        <DataTable
+          ariaLabel="جدول المخالفات المالية"
+          rowKey={(p) => p.id}
+          data={rows}
+          minWidth="820px"
+          columns={columns}
+          emptyTitle="لا توجد نتائج"
+          emptyDescription="جرّب تعديل البحث أو الحالة."
+        />
       )}
     </div>
   );

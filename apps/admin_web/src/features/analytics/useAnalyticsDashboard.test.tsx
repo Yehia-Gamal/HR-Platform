@@ -14,7 +14,9 @@ function wrapper({ children }: { children: React.ReactNode }) {
 }
 
 describe('useAnalyticsDashboard', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('يُرجع بيانات اللوحة في وضع mock', async () => {
     const { result } = renderHook(() => useAnalyticsDashboard(), { wrapper });

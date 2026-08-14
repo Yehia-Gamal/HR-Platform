@@ -29,11 +29,16 @@ export function Tabs({ tabs, activeTab, onTabChange, children, ariaLabel = 'أل
       /* RTL: ArrowRight = السابق، ArrowLeft = التالي */
       const nextIndex = (() => {
         switch (e.key) {
-          case 'ArrowRight': return currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
-          case 'ArrowLeft': return currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
-          case 'Home': return 0;
-          case 'End': return tabs.length - 1;
-          default: return -1;
+          case 'ArrowRight':
+            return currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
+          case 'ArrowLeft':
+            return currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
+          case 'Home':
+            return 0;
+          case 'End':
+            return tabs.length - 1;
+          default:
+            return -1;
         }
       })();
       if (nextIndex === -1) return;

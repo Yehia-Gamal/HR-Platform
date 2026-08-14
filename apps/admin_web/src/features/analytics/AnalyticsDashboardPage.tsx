@@ -13,8 +13,8 @@ import { useAnalyticsDashboard } from './useAnalyticsDashboard';
 type MonthsBack = 3 | 6 | 12;
 
 const PERIOD_OPTIONS: { value: MonthsBack; label: string }[] = [
-  { value: 3,  label: '3 أشهر' },
-  { value: 6,  label: '6 أشهر' },
+  { value: 3, label: '3 أشهر' },
+  { value: 6, label: '6 أشهر' },
   { value: 12, label: 'سنة' },
 ];
 
@@ -37,9 +37,7 @@ export function AnalyticsDashboardPage() {
                 type="button"
                 onClick={() => setMonthsBack(opt.value)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
-                  monthsBack === opt.value
-                    ? 'bg-[var(--brand-primary)] text-white'
-                    : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)]'
+                  monthsBack === opt.value ? 'bg-[var(--brand-primary)] text-white' : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)]'
                 }`}
               >
                 {opt.label}

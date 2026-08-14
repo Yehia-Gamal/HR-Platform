@@ -108,9 +108,7 @@ export function useGenerateInstapayBatch() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payrollRunId: string): Promise<GenerateInstapayBatchResult> => {
-      return generateInstapayBatchSchema.parse(
-        await rpc('generate_instapay_batch', { p_payroll_run_id: payrollRunId }),
-      );
+      return generateInstapayBatchSchema.parse(await rpc('generate_instapay_batch', { p_payroll_run_id: payrollRunId }));
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [INSTAPAY_KEY] });

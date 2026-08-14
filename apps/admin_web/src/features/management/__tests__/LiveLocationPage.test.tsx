@@ -44,28 +44,44 @@ describe('LiveLocationPage', () => {
   it('يُعرض بدون أخطاء', () => {
     locationDirectoryOverride = () => dataDirectoryQuery;
     locationCommandsOverride = () => defaultCommands;
-    const { container } = render(<MemoryRouter><LiveLocationPage /></MemoryRouter>);
+    const { container } = render(
+      <MemoryRouter>
+        <LiveLocationPage />
+      </MemoryRouter>,
+    );
     expect(container.firstChild).toBeTruthy();
   });
 
   it('يعرض عنوان الصفحة', () => {
     locationDirectoryOverride = () => dataDirectoryQuery;
     locationCommandsOverride = () => defaultCommands;
-    render(<MemoryRouter><LiveLocationPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <LiveLocationPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('مركز الموقع الحي')).toBeDefined();
   });
 
   it('يعرض حالة التحميل', () => {
     locationDirectoryOverride = () => loadingDirectoryQuery;
     locationCommandsOverride = () => defaultCommands;
-    const { container } = render(<MemoryRouter><LiveLocationPage /></MemoryRouter>);
+    const { container } = render(
+      <MemoryRouter>
+        <LiveLocationPage />
+      </MemoryRouter>,
+    );
     expect(container.querySelector('.animate-pulse')).toBeTruthy();
   });
 
   it('يعرض بطاقات المؤشرات الأربع', () => {
     locationDirectoryOverride = () => dataDirectoryQuery;
     locationCommandsOverride = () => defaultCommands;
-    render(<MemoryRouter><LiveLocationPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <LiveLocationPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('ضمن نطاق الوصول')).toBeDefined();
     expect(screen.getByText('متصلون خلال 15 دقيقة')).toBeDefined();
     // "طلبات نشطة" يظهر مرتين: بطاقة مؤشر + زر تصفية
@@ -76,7 +92,11 @@ describe('LiveLocationPage', () => {
   it('يعرض أزرار التبويب', () => {
     locationDirectoryOverride = () => dataDirectoryQuery;
     locationCommandsOverride = () => defaultCommands;
-    render(<MemoryRouter><LiveLocationPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <LiveLocationPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('دليل المواقع')).toBeDefined();
     expect(screen.getByText('متابعة اليوم')).toBeDefined();
   });
@@ -84,14 +104,22 @@ describe('LiveLocationPage', () => {
   it('يعرض حالة فارغة عند عدم وجود موظفين', () => {
     locationDirectoryOverride = () => emptyDirectoryQuery;
     locationCommandsOverride = () => defaultCommands;
-    render(<MemoryRouter><LiveLocationPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <LiveLocationPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('لا توجد نتائج مطابقة')).toBeDefined();
   });
 
   it('يعرض اسم الموظف في دليل المواقع', () => {
     locationDirectoryOverride = () => dataDirectoryQuery;
     locationCommandsOverride = () => defaultCommands;
-    render(<MemoryRouter><LiveLocationPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <LiveLocationPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('أحمد محمد')).toBeDefined();
   });
 });

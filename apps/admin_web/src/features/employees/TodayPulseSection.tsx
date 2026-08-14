@@ -127,7 +127,13 @@ export function TodayPulseSection() {
   const cards = [
     { kind: 'present' as const, label: 'حضروا اليوم', value: present.length, icon: CheckCircle2, hint: `${pct}% من إجمالي ${employees.length} موظفًا` },
     { kind: 'absent' as const, label: 'تغيّبوا اليوم', value: absent.length, icon: UserMinus, hint: 'بعد استبعاد الإجازات والمأموريات' },
-    { kind: 'late' as const, label: 'تأخّروا اليوم', value: late.length, icon: Clock3, hint: lateMinutes > 0 ? `إجمالي ${lateMinutes} دقيقة تأخير` : 'تُحسب من سياسة الوردية' },
+    {
+      kind: 'late' as const,
+      label: 'تأخّروا اليوم',
+      value: late.length,
+      icon: Clock3,
+      hint: lateMinutes > 0 ? `إجمالي ${lateMinutes} دقيقة تأخير` : 'تُحسب من سياسة الوردية',
+    },
     {
       kind: 'location' as const,
       label: 'أُرسل لهم طلب موقع',
@@ -141,7 +147,14 @@ export function TodayPulseSection() {
     <section className="space-y-3" aria-label="نبض اليوم">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-black text-[var(--text-muted)]">نبض اليوم — الحضور وطلبات الموقع</h2>
-        <button type="button" className="icon-button" onClick={() => void query.refetch()} disabled={query.isFetching} aria-busy={query.isFetching} aria-label="تحديث نبض اليوم">
+        <button
+          type="button"
+          className="icon-button"
+          onClick={() => void query.refetch()}
+          disabled={query.isFetching}
+          aria-busy={query.isFetching}
+          aria-label="تحديث نبض اليوم"
+        >
           <RefreshCw className={`size-4 ${query.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
         </button>
       </div>
@@ -165,9 +178,7 @@ export function TodayPulseSection() {
               </div>
               <p className="mt-3 text-xs leading-5 text-[var(--text-muted)]">{card.hint}</p>
               <span className="mt-2 flex items-center gap-1 text-xs font-bold text-[var(--brand-primary)]">عرض القائمة</span>
-              {card.kind === 'present' && trend.data ? (
-                <AttendanceTrendSparkline points={trend.data} />
-              ) : null}
+              {card.kind === 'present' && trend.data ? <AttendanceTrendSparkline points={trend.data} /> : null}
             </button>
           );
           return <Fragment key={card.kind}>{buttonEl}</Fragment>;
@@ -175,8 +186,19 @@ export function TodayPulseSection() {
       </div>
 
       {dialog ? (
-        <DialogOverlay title={`${DIALOG_META[dialog].title} — ${dialogEmployees(dialog, employees).length} موظف`} onClose={() => setDialog(null)} maxWidth="max-w-2xl">
-          <PulseDialogBody kind={dialog} employees={employees} onSelectRequest={(id) => { setDialog(null); setSelectedRequestId(id); }} />
+        <DialogOverlay
+          title={`${DIALOG_META[dialog].title} — ${dialogEmployees(dialog, employees).length} موظف`}
+          onClose={() => setDialog(null)}
+          maxWidth="max-w-2xl"
+        >
+          <PulseDialogBody
+            kind={dialog}
+            employees={employees}
+            onSelectRequest={(id) => {
+              setDialog(null);
+              setSelectedRequestId(id);
+            }}
+          />
         </DialogOverlay>
       ) : null}
 
@@ -206,11 +228,7 @@ function PulseDialogBody({
     <div className="space-y-3">
       {kind === 'present' ? (
         <div className="flex justify-end">
-          <button
-            type="button"
-            className="btn-secondary !px-3 !py-2 text-xs"
-            onClick={() => exportPulseListPDF(list, kind)}
-          >
+          <button type="button" className="btn-secondary !px-3 !py-2 text-xs" onClick={() => exportPulseListPDF(list, kind)}>
             <FileDown className="size-3.5" aria-hidden="true" />
             تصدير PDF
           </button>
@@ -232,16 +250,23 @@ function PulseDialogBody({
                     <span className="status-badge status-warning">متأخر {e.lateMinutes} د</span>
                   ) : null}
                   {/* شارة الانصراف المبكر — مستقلة عن دقائق التأخير */}
-                  {e.status === 'left_early' ? (
-                    <span className="status-badge status-warning">انصرف مبكرًا</span>
-                  ) : null}
+                  {e.status === 'left_early' ? <span className="status-badge status-warning">انصرف مبكرًا</span> : null}
                   {/* نوع التكليف للمأمورية/القافلة/الفاندي */}
                   {e.assignmentType ? (
-                    <span className="status-badge status-info">{e.assignmentType === 'MISSION' ? 'مأمورية' : e.assignmentType === 'CONVOY' ? 'قافلة' : e.assignmentType === 'FUNDRAISING' ? 'فاندي' : e.assignmentType}</span>
+                    <span className="status-badge status-info">
+                      {e.assignmentType === 'MISSION'
+                        ? 'مأمورية'
+                        : e.assignmentType === 'CONVOY'
+                          ? 'قافلة'
+                          : e.assignmentType === 'FUNDRAISING'
+                            ? 'فاندي'
+                            : e.assignmentType}
+                    </span>
                   ) : null}
                 </div>
                 <p className="muted mt-1 text-xs">
-                  {e.employeeCode ?? '—'} · {e.department ?? 'دون إدارة'}{e.managerName ? ` · مدير: ${e.managerName}` : ''}
+                  {e.employeeCode ?? '—'} · {e.department ?? 'دون إدارة'}
+                  {e.managerName ? ` · مدير: ${e.managerName}` : ''}
                 </p>
                 <p className="muted mt-1 text-xs">
                   {e.checkInAt ? `حضر ${formatClock(e.checkInAt)}` : 'لم يسجّل حضورًا بعد'}
@@ -252,7 +277,13 @@ function PulseDialogBody({
               </div>
             </div>
             {e.activeRequestId ? (
-              <button type="button" className="btn-secondary shrink-0 !px-3 !py-2 text-xs" onClick={() => { if (e.activeRequestId) onSelectRequest(e.activeRequestId); }}>
+              <button
+                type="button"
+                className="btn-secondary shrink-0 !px-3 !py-2 text-xs"
+                onClick={() => {
+                  if (e.activeRequestId) onSelectRequest(e.activeRequestId);
+                }}
+              >
                 <MapPin className="size-3.5" aria-hidden="true" />
                 نتيجة الموقع
               </button>

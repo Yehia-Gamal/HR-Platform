@@ -19,19 +19,11 @@ export function EmployeeLocationTab({ employeeId }: { employeeId: string }) {
   const rows = query.data ?? [];
 
   if (query.isError) {
-    return (
-      <ErrorState
-        title="تعذر تحميل طلبات المواقع"
-        description="أعد المحاولة أو تواصل مع الدعم."
-        onRetry={() => void query.refetch()}
-      />
-    );
+    return <ErrorState title="تعذر تحميل طلبات المواقع" description="أعد المحاولة أو تواصل مع الدعم." onRetry={() => void query.refetch()} />;
   }
   if (query.isLoading) return <SkeletonCard className="h-56" />;
   if (rows.length === 0) {
-    return (
-      <EmptyState title="لا توجد طلبات مواقع" description="لا توجد طلبات تتبع موقع مسجلة لهذا الموظف." />
-    );
+    return <EmptyState title="لا توجد طلبات مواقع" description="لا توجد طلبات تتبع موقع مسجلة لهذا الموظف." />;
   }
 
   return (
@@ -56,9 +48,7 @@ export function EmployeeLocationTab({ employeeId }: { employeeId: string }) {
                 <td className="px-4 py-3">
                   <StatusBadge value={row.status} />
                 </td>
-                <td className="px-4 py-3">
-                  {row.durationMinutes ? `${row.durationMinutes} دقيقة` : '—'}
-                </td>
+                <td className="px-4 py-3">{row.durationMinutes ? `${row.durationMinutes} دقيقة` : '—'}</td>
                 <td className="px-4 py-3 text-[var(--text-muted)]">{row.reason ?? '—'}</td>
                 <td className="px-4 py-3 text-[var(--text-muted)]">{row.requestedByName ?? '—'}</td>
               </tr>

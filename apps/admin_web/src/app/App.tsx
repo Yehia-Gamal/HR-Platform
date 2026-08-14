@@ -23,9 +23,7 @@ const EmployeesPage = lazy(() => import('../features/employees/EmployeesPage').t
 const CreateEmployeePage = lazy(() => import('../features/employees/CreateEmployeePage').then((m) => ({ default: m.CreateEmployeePage })));
 const EmployeeDetailPage = lazy(() => import('../features/employees/EmployeeDetailPage').then((m) => ({ default: m.EmployeeDetailPage })));
 const AttendancePage = lazy(() => import('../features/attendance/AttendancePage').then((m) => ({ default: m.AttendancePage })));
-const AttendanceDrilldownPage = lazy(() =>
-  import('../features/attendance/AttendanceDrilldownPage').then((m) => ({ default: m.AttendanceDrilldownPage })),
-);
+const AttendanceDrilldownPage = lazy(() => import('../features/attendance/AttendanceDrilldownPage').then((m) => ({ default: m.AttendanceDrilldownPage })));
 const AttendanceOperationsPage = lazy(() => import('../features/advanced/AttendanceOperationsPage').then((m) => ({ default: m.AttendanceOperationsPage })));
 const MonthlyAttendanceReportPage = lazy(() =>
   import('../features/attendance/MonthlyAttendanceReportPage').then((m) => ({ default: m.MonthlyAttendanceReportPage })),
@@ -50,7 +48,9 @@ const ReportSchedulerPage = lazy(() => import('../features/management/ReportSche
 const EnterpriseManagementPage = lazy(() => import('../features/management/EnterpriseManagementPage').then((m) => ({ default: m.EnterpriseManagementPage })));
 const OperationsCenterPage = lazy(() => import('../features/management/OperationsCenterPage').then((m) => ({ default: m.OperationsCenterPage })));
 const AuditSecurityPage = lazy(() => import('../features/management/AuditSecurityPage').then((m) => ({ default: m.AuditSecurityPage })));
-const ObservabilityDashboardPage = lazy(() => import('../features/observability/ObservabilityDashboardPage').then((m) => ({ default: m.ObservabilityDashboardPage })));
+const ObservabilityDashboardPage = lazy(() =>
+  import('../features/observability/ObservabilityDashboardPage').then((m) => ({ default: m.ObservabilityDashboardPage })),
+);
 const IntegrationsJobsPage = lazy(() => import('../features/management/IntegrationsJobsPage').then((m) => ({ default: m.IntegrationsJobsPage })));
 const AnalyticsDashboardPage = lazy(() => import('../features/analytics/AnalyticsDashboardPage').then((m) => ({ default: m.AnalyticsDashboardPage })));
 /* V17 §4.2: feature-flagged pages — shown only when the corresponding flag in featureFlags.ts is true */
@@ -157,8 +157,22 @@ function AuthenticatedApp() {
                 </RequirePermission>
               }
             />
-            <Route path="daily-reports" element={<RequirePermission perm={['reports.daily.read', 'people.employee.read']}><DailyReportsFeedPage /></RequirePermission>} />
-            <Route path="executive-monitoring" element={<RequirePermission perm="people.employee.read"><ExecutiveMonitoringPage /></RequirePermission>} />
+            <Route
+              path="daily-reports"
+              element={
+                <RequirePermission perm={['reports.daily.read', 'people.employee.read']}>
+                  <DailyReportsFeedPage />
+                </RequirePermission>
+              }
+            />
+            <Route
+              path="executive-monitoring"
+              element={
+                <RequirePermission perm="people.employee.read">
+                  <ExecutiveMonitoringPage />
+                </RequirePermission>
+              }
+            />
             <Route
               path="org-chart"
               element={
@@ -183,7 +197,14 @@ function AuthenticatedApp() {
                 </RequirePermission>
               }
             />
-            <Route path="lifecycle" element={<RequirePermission perm="people.employee.read"><LifecyclePage /></RequirePermission>} />
+            <Route
+              path="lifecycle"
+              element={
+                <RequirePermission perm="people.employee.read">
+                  <LifecyclePage />
+                </RequirePermission>
+              }
+            />
             <Route
               path="access"
               element={
@@ -200,7 +221,14 @@ function AuthenticatedApp() {
                 </RequirePermission>
               }
             />
-            <Route path="governance" element={<FeatureGate feature="governance"><GovernancePage /></FeatureGate>} />
+            <Route
+              path="governance"
+              element={
+                <FeatureGate feature="governance">
+                  <GovernancePage />
+                </FeatureGate>
+              }
+            />
             <Route
               path="reports/scheduler"
               element={
@@ -228,15 +256,27 @@ function AuthenticatedApp() {
             <Route
               path="operations"
               element={
-                <RequirePermission
-                  perm={['reports.read', 'operations.mission.manage', 'operations.convoy.manage']}
-                >
+                <RequirePermission perm={['reports.read', 'operations.mission.manage', 'operations.convoy.manage']}>
                   <OperationsCenterPage />
                 </RequirePermission>
               }
             />
-            <Route path="helpdesk" element={<FeatureGate feature="helpdesk"><HelpdeskPage /></FeatureGate>} />
-            <Route path="finance" element={<FeatureGate feature="peopleFinance"><FinancePage /></FeatureGate>} />
+            <Route
+              path="helpdesk"
+              element={
+                <FeatureGate feature="helpdesk">
+                  <HelpdeskPage />
+                </FeatureGate>
+              }
+            />
+            <Route
+              path="finance"
+              element={
+                <FeatureGate feature="peopleFinance">
+                  <FinancePage />
+                </FeatureGate>
+              }
+            />
             <Route
               path="finance/penalties"
               element={
@@ -295,7 +335,14 @@ function AuthenticatedApp() {
             />
             {/* notifications/knowledge: مرئيان لكل أعضاء المساحة — لا يحتاجان permission خاص */}
             <Route path="notifications" element={<NotificationsPage />} />
-            <Route path="knowledge" element={<RequirePermission perm="knowledge.article.read"><KnowledgePage /></RequirePermission>} />
+            <Route
+              path="knowledge"
+              element={
+                <RequirePermission perm="knowledge.article.read">
+                  <KnowledgePage />
+                </RequirePermission>
+              }
+            />
           </Route>
         </Route>
 
@@ -454,10 +501,38 @@ function HrWorkspaceRoutes() {
           </RequirePermission>
         }
       />
-      <Route path="leaves" element={<RequirePermission perm="requests.request.read"><LeavesPage /></RequirePermission>} />
-      <Route path="learning" element={<RequirePermission perm="learning.enroll"><LearningPage /></RequirePermission>} />
-      <Route path="lifecycle" element={<RequirePermission perm="people.employee.read"><LifecyclePage /></RequirePermission>} />
-      <Route path="documents" element={<RequirePermission perm="documents.document.read"><DocumentsPage /></RequirePermission>} />
+      <Route
+        path="leaves"
+        element={
+          <RequirePermission perm="requests.request.read">
+            <LeavesPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="learning"
+        element={
+          <RequirePermission perm="learning.enroll">
+            <LearningPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="lifecycle"
+        element={
+          <RequirePermission perm="people.employee.read">
+            <LifecyclePage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="documents"
+        element={
+          <RequirePermission perm="documents.document.read">
+            <DocumentsPage />
+          </RequirePermission>
+        }
+      />
       <Route
         path="official-feed"
         element={
@@ -466,9 +541,30 @@ function HrWorkspaceRoutes() {
           </RequirePermission>
         }
       />
-      <Route path="daily-reports" element={<RequirePermission perm={['reports.daily.read', 'people.employee.read']}><DailyReportsFeedPage /></RequirePermission>} />
-      <Route path="knowledge" element={<RequirePermission perm="knowledge.article.read"><KnowledgePage /></RequirePermission>} />
-      <Route path="org-chart" element={<RequirePermission perm="organization.org_chart.read"><OrgChartPage /></RequirePermission>} />
+      <Route
+        path="daily-reports"
+        element={
+          <RequirePermission perm={['reports.daily.read', 'people.employee.read']}>
+            <DailyReportsFeedPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="knowledge"
+        element={
+          <RequirePermission perm="knowledge.article.read">
+            <KnowledgePage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="org-chart"
+        element={
+          <RequirePermission perm="organization.org_chart.read">
+            <OrgChartPage />
+          </RequirePermission>
+        }
+      />
       <Route path="notifications" element={<NotificationsPage />} />
       <Route path="*" element={<Navigate to="employees" replace />} />
     </Routes>

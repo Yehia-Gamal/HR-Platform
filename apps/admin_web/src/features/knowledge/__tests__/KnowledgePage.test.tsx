@@ -54,9 +54,7 @@ const mockCatalog = {
       updated_at: '2026-01-15T10:00:00Z',
     },
   ],
-  categories: [
-    { id: 'cat-1', name: 'سياسات', slug: 'policies', description: null, is_active: true },
-  ],
+  categories: [{ id: 'cat-1', name: 'سياسات', slug: 'policies', description: null, is_active: true }],
   publishedCount: 1,
   draftCount: 0,
 };
