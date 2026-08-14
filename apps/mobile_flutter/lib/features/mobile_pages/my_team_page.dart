@@ -218,6 +218,24 @@ class _TeamMembersViewState extends ConsumerState<_TeamMembersView> {
                         child: _MemberCard(
                           member: member,
                           onTap: () => _openMember(context, member),
+                          onOpenFile: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EmployeeProfilePage(
+                                employeeId: member.id,
+                                employeeName: member.name,
+                              ),
+                            ),
+                          ),
+                          onOpenAttendance: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => MonthlyAttendanceStatementPage(
+                                employeeId: member.id,
+                                employeeName: member.name,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -289,10 +307,17 @@ class _SummaryStrip extends StatelessWidget {
 }
 
 class _MemberCard extends StatelessWidget {
-  const _MemberCard({required this.member, required this.onTap});
+  const _MemberCard({
+    required this.member,
+    required this.onTap,
+    required this.onOpenFile,
+    required this.onOpenAttendance,
+  });
 
   final MobileTeamMember member;
   final VoidCallback onTap;
+  final VoidCallback onOpenFile;
+  final VoidCallback onOpenAttendance;
 
   @override
   Widget build(BuildContext context) {
@@ -308,75 +333,120 @@ class _MemberCard extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppAvatar(name: member.name, photoUrl: member.photoUrl, radius: 22),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      member.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      [
-                        if (member.jobTitle?.isNotEmpty ?? false)
-                          member.jobTitle!,
-                        if (member.department?.isNotEmpty ?? false)
-                          member.department!,
-                      ].join(' — '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
+              Row(
+                children: [
+                  AppAvatar(name: member.name, photoUrl: member.photoUrl, radius: 22),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _statusChip(status),
-                        if (status == 'late' && member.lateMinutes > 0)
-                          _metaChip(
-                            context,
-                            icon: Icons.access_time_rounded,
-                            text: 'تأخير ${member.lateMinutes} د',
+                        Text(
+                          member.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
                           ),
-                        if (time != null)
-                          _metaChip(
-                            context,
-                            icon: Icons.login_rounded,
-                            text: 'حضور $time',
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          [
+                            if (member.jobTitle?.isNotEmpty ?? false)
+                              member.jobTitle!,
+                            if (member.department?.isNotEmpty ?? false)
+                              member.department!,
+                          ].join(' — '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
-                        if (member.pendingRequests > 0)
-                          _metaChip(
-                            context,
-                            icon: Icons.pending_actions_rounded,
-                            text: '${member.pendingRequests} طلب معلّق',
-                          ),
-                        if (member.kpiStage?.isNotEmpty ?? false)
-                          _metaChip(
-                            context,
-                            icon: Icons.analytics_outlined,
-                            text: 'KPI: ${member.kpiStage}',
-                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: [
+                            _statusChip(status),
+                            if (status == 'late' && member.lateMinutes > 0)
+                              _metaChip(
+                                context,
+                                icon: Icons.access_time_rounded,
+                                text: 'تأخير ${member.lateMinutes} د',
+                              ),
+                            if (time != null)
+                              _metaChip(
+                                context,
+                                icon: Icons.login_rounded,
+                                text: 'حضور $time',
+                              ),
+                            if (member.pendingRequests > 0)
+                              _metaChip(
+                                context,
+                                icon: Icons.pending_actions_rounded,
+                                text: '${member.pendingRequests} طلب معلّق',
+                              ),
+                            if (member.kpiStage?.isNotEmpty ?? false)
+                              _metaChip(
+                                context,
+                                icon: Icons.analytics_outlined,
+                                text: 'KPI: ${member.kpiStage}',
+                              ),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  const Icon(Icons.chevron_left_rounded, color: Colors.grey),
+                ],
               ),
-              const Icon(Icons.chevron_left_rounded, color: Colors.grey),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _quickAction(
+                      context,
+                      icon: Icons.folder_shared_outlined,
+                      label: 'الملف الشامل',
+                      onPressed: onOpenFile,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _quickAction(
+                      context,
+                      icon: Icons.calendar_month_outlined,
+                      label: 'كشف شهري',
+                      onPressed: onOpenAttendance,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _quickAction(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    final theme = Theme.of(context);
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 16),
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
     );
   }

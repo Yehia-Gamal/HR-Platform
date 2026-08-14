@@ -27,6 +27,8 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_team_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/org_chart_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/team_operations_summary_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/team_requests_page.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -306,6 +308,18 @@ class WorkspaceScaffold extends ConsumerWidget {
           icon: Icons.groups_2_outlined,
           label: 'إدارة فريقي',
           page: const MyTeamPage(),
+        ),
+        // اعتماد طلبات الفريق: طلبات أعضاء فريقك المباشر مع اعتماد/رفض سريع.
+        _MoreItem(
+          icon: Icons.approval_outlined,
+          label: 'اعتماد طلبات الفريق',
+          page: const TeamRequestsPage(),
+        ),
+        // الملخص التشغيلي 14 يوم: جدول الفريق والتنبيهات (مهام/مستندات/تقارير).
+        _MoreItem(
+          icon: Icons.dashboard_customize_outlined,
+          label: 'الملخص التشغيلي',
+          page: const TeamOperationsSummaryPage(),
         ),
         // V22 — ملفات أعضاء الفريق: الملف الشامل (get_employee_360).
         _MoreItem(

@@ -102,6 +102,7 @@ class MobileRequest {
     required this.id,
     required this.number,
     required this.type,
+    required this.employeeId,
     required this.employeeName,
     required this.employeePhotoUrl,
     required this.title,
@@ -115,6 +116,7 @@ class MobileRequest {
     id: json['id'] as String,
     number: (json['requestNumber'] as num?)?.toInt() ?? 0,
     type: json['requestType'] as String,
+    employeeId: json['employeeId'] as String?,
     employeeName: json['employeeName'] as String? ?? 'موظف',
     employeePhotoUrl: json['employeePhotoUrl'] as String?,
     title: json['title'] as String?,
@@ -127,6 +129,7 @@ class MobileRequest {
   final String id;
   final int number;
   final String type;
+  final String? employeeId;
   final String employeeName;
   final String? employeePhotoUrl;
   final String? title;
