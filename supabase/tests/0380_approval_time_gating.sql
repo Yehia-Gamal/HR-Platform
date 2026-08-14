@@ -1,11 +1,11 @@
 -- pgTAP: 0380 — إشعارات الإطلاع عند التقديم + تفويض الموافقة حسب خطوة workflow
 -- المتطلبات: 0386_approval_time_gating_and_notify_all.sql (التنفيذ النهائي)
 -- ---------------------------------------------------------------------------
--- العقد المطبّق فعلياً في decide_request:
+-- العقد المطبّق فعلياً في decide_request (0416):
 --   · المدير المباشر مخوَّل دائماً (مع أو بلا خطوات)
---   · HR (hr-manager/hr-specialist بمجال organization) من الخطوة 3 فما فوق
+--   · أبو عمار (operations-manager-1) من الخطوة 2 فما فوق
+--   · HR لا دور له في القبول/الرفض
 --   · موافقة واحدة تُنهي الطلب وتغلق بقية الخطوات
---   · التريغر يُشعر المدير التنفيذي وHR فور التقديم (awarenessOnly=true)
 
 begin;
 create extension if not exists pgtap with schema extensions;
@@ -58,9 +58,11 @@ do $$
 declare
   v_hr_role   uuid;
   v_exec_role uuid;
+  v_ops_role  uuid;
 begin
   select id into v_hr_role   from public.roles where slug = 'hr-manager'         limit 1;
   select id into v_exec_role from public.roles where slug = 'executive-director'  limit 1;
+  select id into v_ops_role  from public.roles where slug = 'operations-manager-1' limit 1;
 
   if v_hr_role is not null then
     insert into public.user_roles(user_id, role_id)
@@ -70,6 +72,11 @@ begin
   if v_exec_role is not null then
     insert into public.user_roles(user_id, role_id)
     values ('00000001-0000-0000-0000-000000000005'::uuid, v_exec_role)
+    on conflict do nothing;
+  end if;
+  if v_ops_role is not null then
+    insert into public.user_roles(user_id, role_id)
+    values ('00000001-0000-0000-0000-000000000003'::uuid, v_ops_role)
     on conflict do nothing;
   end if;
 end $$;
@@ -137,7 +144,7 @@ select is(
 );
 
 -- ─── (3) تفويض الموافقة حسب خطوة workflow ─────────────────────────────────
--- طلب بثلاث خطوات: 1 مدير مباشر، 2 أوبريشن، 3 HR
+-- طلب بثلاث خطوات: 1 مدير مباشر، 2 أوبريشن، 3 أبو عمار (operations-manager-1)
 
 insert into public.requests (
   id, request_type, employee_id, manager_employee_id,
@@ -173,7 +180,7 @@ insert into public.request_steps (
   'operations-manager', 4
 );
 
--- الخطوة 3: معلقة (HR)
+-- الخطوة 3: معلقة (أبو عمار)
 insert into public.request_steps (
   id, request_id, step_order, name_ar, step_type, status,
   assignee_role_slug, sla_hours
@@ -181,7 +188,7 @@ insert into public.request_steps (
   'cc000001-0000-0000-0000-000000000003'::uuid,
   'bb000001-0000-0000-0000-000000000002'::uuid,
   3, 'الموارد البشرية', 'approval', 'pending',
-  'hr-manager', 48
+  'operations-manager-1', 48
 );
 
 -- HR لا يستطيع الموافقة والخطوة 1 (مدير مباشر) نشطة
@@ -216,10 +223,10 @@ select throws_ok(
     'bb000001-0000-0000-0000-000000000002'::uuid, 'approve') $$,
   '42501',
   null,
-  '(7) HR لا يستطيع الموافقة في خطوة الأوبريشن (يحتاج الخطوة 3)'
+  '(7) HR لا يستطيع الموافقة في خطوة الأوبريشن (لا دور له إطلاقاً)'
 );
 
--- إغلاق الخطوة 2 وتفعيل الخطوة 3 (HR) — الآن يستطيع
+-- إغلاق الخطوة 2 وتفعيل الخطوة 3 (أبو عمار) — الآن يستطيع
 reset role;
 update public.request_steps
   set status = 'approved', acted_at = now()
@@ -230,13 +237,13 @@ update public.request_steps
 where id = 'cc000001-0000-0000-0000-000000000003'::uuid;
 
 set local role authenticated;
-set local "request.jwt.claims" to '{"sub":"00000001-0000-0000-0000-000000000004"}';
-set local "request.jwt.claim.sub" to '00000001-0000-0000-0000-000000000004';
+set local "request.jwt.claims" to '{"sub":"00000001-0000-0000-0000-000000000003"}';
+set local "request.jwt.claim.sub" to '00000001-0000-0000-0000-000000000003';
 
 select lives_ok(
   $$ select public.decide_request(
     'bb000001-0000-0000-0000-000000000002'::uuid, 'approve') $$,
-  '(8) HR يستطيع الموافقة عندما تكون الخطوة 3 نشطة'
+  '(8) أبو عمار (operations-manager-1) يستطيع الموافقة عندما تكون الخطوة 3 نشطة'
 );
 
 reset role;

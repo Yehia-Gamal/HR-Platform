@@ -39,6 +39,7 @@ begin
   ('91000000-0000-4000-8000-000000000003'::uuid,'direct-manager',now()),
   ('91000000-0000-4000-8000-000000000003'::uuid,'operations-officer',now()-interval '20 years'),
   ('91000000-0000-4000-8000-000000000003'::uuid,'committee-member',now()),
+  ('91000000-0000-4000-8000-000000000003'::uuid,'operations-manager-1',now()),
   ('91000000-0000-4000-8000-000000000003'::uuid,'v10-acceptance-operations-target',now()-interval '20 years'),
   ('91000000-0000-4000-8000-000000000004'::uuid,'executive-director',now()),
   ('91000000-0000-4000-8000-000000000005'::uuid,'hr-manager',now()),
@@ -50,7 +51,7 @@ begin
   ('92000000-0000-4000-8000-000000000002','92000000-0000-4000-8000-000000000004','primary',current_date),
   ('92000000-0000-4000-8000-000000000003','92000000-0000-4000-8000-000000000004','primary',current_date);
 
- update public.system_settings set value=to_jsonb('v10-acceptance-operations-target'::text)
+ update public.system_settings set value=to_jsonb('operations-manager-1'::text)
  where key='leave_escalation_target_role';
  perform set_config('request.jwt.claims','{"role":"service_role"}',true);
  perform public.open_annual_leave_entitlement('92000000-0000-4000-8000-000000000001',extract(year from current_date)::integer);
@@ -158,7 +159,7 @@ select ok(
   'escalation activates the operations tier and is recorded');
 select is(
   (select metadata->>'targetRole' from public.request_actions where request_id=(select id from acceptance_runtime where kind='manager_leave') and action='escalate' order by created_at desc limit 1),
-  'operations-officer',
+  'operations-manager-1',
   'escalation audit targets operations');
 select lives_ok($$select public.decide_request((select id from acceptance_runtime where kind='manager_leave'),'approve','قرار Operations بعد انتهاء المهلة')$$,'Operations decides the escalated request');
 select is((select status from public.requests where id=(select id from acceptance_runtime where kind='manager_leave')),'approved','Operations decision is persisted');
