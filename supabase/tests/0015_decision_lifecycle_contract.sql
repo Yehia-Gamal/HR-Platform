@@ -10,7 +10,7 @@ select has_table('public','decision_poll_votes','votes exist');
 select has_function('public','create_decision_draft',array['text','text','text','date','boolean','text','text'],'draft RPC exists');
 select has_function('public','transition_decision',array['uuid','text','text','timestamp with time zone'],'transition RPC exists');
 select has_function('public','cast_decision_vote',array['uuid','uuid[]','numeric'],'vote RPC exists');
-select has_function('public','acknowledge_decision',array['uuid'],'acknowledgement RPC exists');
+select has_function('public','acknowledge_decision',array['uuid','boolean'],'acknowledgement RPC exists');
 select policies_are('public','decision_versions',array['decision_versions_read'],'versions read policy');
 select policies_are('public','decision_polls',array['decision_polls_read'],'poll read policy');
 select col_is_unique('public','decision_poll_votes',array['poll_id','employee_id'],'one vote row per employee');
