@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+enum _NotifFilter { all, unread }
+
 class MobileNotificationsPage extends ConsumerStatefulWidget {
   const MobileNotificationsPage({super.key});
 
@@ -17,19 +19,39 @@ class MobileNotificationsPage extends ConsumerStatefulWidget {
 
 class _MobileNotificationsPageState
     extends ConsumerState<MobileNotificationsPage> {
+  _NotifFilter _filter = _NotifFilter.all;
+
   @override
   Widget build(BuildContext context) {
     final notifications = ref.watch(myNotificationsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('الإشعارات')),
+      appBar: AppBar(
+        title: const Text('الإشعارات'),
+        actions: [
+          IconButton(
+            tooltip: 'تعليم الكل كمقروء',
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              await ref
+                  .read(mobileCommandsProvider)
+                  .markNotificationsRead();
+              if (!mounted) return;
+              messenger.showSnackBar(
+                const SnackBar(content: Text('تم تعليم كل الإشعارات كمقروءة')),
+              );
+            },
+            icon: const Icon(Icons.done_all_rounded),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => ref.invalidate(myNotificationsProvider),
           child: notifications.when(
             loading: () => ListView(
               children: [
-                SizedBox(height: 260),
-                Center(child: CircularProgressIndicator()),
+                const SizedBox(height: 260),
+                const Center(child: CircularProgressIndicator()),
               ],
             ),
             error: (error, _) => ListView(
@@ -55,47 +77,79 @@ class _MobileNotificationsPageState
                 ),
               ],
             ),
-            data: (items) => items.isEmpty
-                ? ListView(
-                    padding: const EdgeInsets.all(20),
-                    children: [
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
+            data: (items) {
+              final unread = items.where((x) => !x.isRead).toList();
+              final visible = _filter == _NotifFilter.unread ? unread : items;
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: Row(
+                      children: [
+                        _FilterChip(
+                          label: 'الكل (${items.length})',
+                          selected: _filter == _NotifFilter.all,
+                          onTap: () => setState(() => _filter = _NotifFilter.all),
+                        ),
+                        const SizedBox(width: 8),
+                        _FilterChip(
+                          label: 'غير المقروء (${unread.length})',
+                          selected: _filter == _NotifFilter.unread,
+                          onTap: () =>
+                              setState(() => _filter = _NotifFilter.unread),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: visible.isEmpty
+                        ? ListView(
+                            padding: const EdgeInsets.all(20),
                             children: [
-                              Icon(
-                                Icons.notifications_none,
-                                size: 48,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                'لا توجد إشعارات حاليًا',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                              Card(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Column(
+                                    children: [
+                                      Icon(
+                                        Icons.notifications_none,
+                                        size: 48,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        _filter == _NotifFilter.unread
+                                            ? 'لا توجد إشعارات غير مقروءة'
+                                            : 'لا توجد إشعارات حاليًا',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 110),
+                            itemCount: visible.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 10),
+                            itemBuilder: (context, index) => _NotificationCard(
+                              item: visible[index],
+                              onTap: () => _open(visible[index]),
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
-                    itemCount: items.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 10),
-                    itemBuilder: (context, index) => _NotificationCard(
-                      item: items[index],
-                      onTap: () => _open(items[index]),
-                    ),
                   ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -155,6 +209,42 @@ class _MobileNotificationsPageState
   }
 }
 
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: selected ? scheme.primary : scheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(99),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(99),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w800,
+              color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _NotificationCard extends StatelessWidget {
   const _NotificationCard({required this.item, required this.onTap});
 
@@ -163,7 +253,7 @@ class _NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formatter = DateFormat('d MMM، h:mm a', 'ar');
+    final urgent = item.priority == 'urgent' || item.priority == 'high';
     return Card(
       child: Semantics(
         label: item.isRead ? null : 'إشعار غير مقروء',
@@ -172,7 +262,17 @@ class _NotificationCard extends StatelessWidget {
           leading: Stack(
             clipBehavior: Clip.none,
             children: [
-              CircleAvatar(child: Icon(_icon(item.category))),
+              CircleAvatar(
+                backgroundColor: urgent
+                    ? Theme.of(context).colorScheme.errorContainer
+                    : Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: Icon(
+                  _icon(item.category),
+                  color: urgent
+                      ? Theme.of(context).colorScheme.onErrorContainer
+                      : Theme.of(context).colorScheme.primary,
+                ),
+              ),
               if (!item.isRead)
                 PositionedDirectional(
                   start: -2,
@@ -195,17 +295,28 @@ class _NotificationCard extends StatelessWidget {
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (item.priority != 'normal') ...[
-                const SizedBox(height: 6),
-                MobileStatusPill(item.priority),
-              ],
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Text(
+                    _categoryLabel(item.category),
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  if (item.priority != 'normal') MobileStatusPill(item.priority),
+                ],
+              ),
               if (item.body != null && item.body!.trim().isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(item.body!, maxLines: 3, overflow: TextOverflow.ellipsis),
               ],
               const SizedBox(height: 7),
               Text(
-                formatter.format(item.createdAt.toLocal()),
+                _relativeTime(item.createdAt.toLocal()),
                 style: Theme.of(context).textTheme.labelSmall,
               ),
             ],
@@ -223,13 +334,60 @@ class _NotificationCard extends StatelessWidget {
     'request' => Icons.approval_outlined,
     'decision' => Icons.gavel_outlined,
     'announcement' => Icons.campaign_outlined,
+    'survey' => Icons.how_to_vote_outlined,
     'dispute' => Icons.balance_outlined,
     'system' => Icons.settings_suggest_outlined,
     'recognition' => Icons.workspace_premium_outlined,
+    'kpi' => Icons.assessment_outlined,
+    'device' => Icons.fingerprint_outlined,
+    'attendance' => Icons.schedule_outlined,
+    'location' => Icons.location_on_outlined,
+    'security' => Icons.shield_outlined,
+    'privacy' => Icons.visibility_off_outlined,
+    'documents' => Icons.description_outlined,
+    'service' => Icons.support_agent_outlined,
+    'wellbeing' => Icons.favorite_outline_rounded,
+    'offboarding' => Icons.person_off_outlined,
     'daily_report' => Icons.article_outlined,
     'daily_report_like' => Icons.favorite_outline_rounded,
     'daily_report_comment' => Icons.chat_bubble_outline_rounded,
     'attendance_manager_notify' => Icons.schedule_outlined,
     _ => Icons.notifications_outlined,
   };
+
+  String _categoryLabel(String category) => switch (category) {
+    'request' => 'طلب',
+    'decision' => 'قرار رسمي',
+    'announcement' => 'إعلان',
+    'survey' => 'استبيان',
+    'dispute' => 'قضية',
+    'system' => 'نظام',
+    'recognition' => 'تقدير',
+    'kpi' => 'الأداء',
+    'device' => 'جهاز بصمة',
+    'attendance' => 'حضور',
+    'location' => 'موقع',
+    'security' => 'أمان',
+    'privacy' => 'خصوصية',
+    'documents' => 'مستندات',
+    'service' => 'خدمة',
+    'wellbeing' => 'رفاهية',
+    'offboarding' => 'إنهاء خدمة',
+    'daily_report' => 'تقرير يومي',
+    'daily_report_like' => 'إعجاب بتقرير',
+    'daily_report_comment' => 'تعليق على تقرير',
+    'attendance_manager_notify' => 'حضور',
+    _ => 'عام',
+  };
+
+  /// وقت نسبي عربي: "الآن"، "قبل 5 د"، "قبل 3 س"، "قبل يومين".
+  String _relativeTime(DateTime time) {
+    final now = DateTime.now();
+    final diff = now.difference(time);
+    if (diff.inMinutes < 1) return 'الآن';
+    if (diff.inMinutes < 60) return 'قبل ${diff.inMinutes} د';
+    if (diff.inHours < 24) return 'قبل ${diff.inHours} س';
+    if (diff.inDays < 30) return 'قبل ${diff.inDays} يوم';
+    return DateFormat('d MMM y', 'ar').format(time);
+  }
 }

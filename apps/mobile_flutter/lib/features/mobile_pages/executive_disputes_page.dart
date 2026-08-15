@@ -9,7 +9,10 @@ import 'package:intl/intl.dart';
 /// V17 §14 — Executive admin-action workflow page.
 /// Workflow: Propose (secretary) → Decide (executive) → Execute (HR) → Done
 class ExecutiveDisputesPage extends ConsumerWidget {
-  const ExecutiveDisputesPage({super.key});
+  const ExecutiveDisputesPage({super.key, this.embedded = false});
+
+  /// داخل تبويبات بوابة القضايا الموحّدة — بلا Scaffold/AppBar خاص.
+  final bool embedded;
 
   // ── التسميات والألوان في DisputeLabels (dispute_shared_labels.dart) ──────
 
@@ -17,123 +20,127 @@ class ExecutiveDisputesPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final inbox = ref.watch(executiveDisputeInboxProvider);
     final theme = Theme.of(context);
+
+    final body = RefreshIndicator(
+      onRefresh: () async => ref.invalidate(executiveDisputeInboxProvider),
+      child: inbox.when(
+        loading: () => ListView(
+          children: const [
+            SizedBox(height: 240),
+            Center(child: CircularProgressIndicator()),
+          ],
+        ),
+        error: (error, _) => ListView(
+          children: [
+            const SizedBox(height: 200),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 48),
+                  const SizedBox(height: 12),
+                  Text('تعذر تحميل القضايا',
+                      style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      humanizeError(error),
+                      style: theme.textTheme.bodySmall,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  FilledButton.tonal(
+                    onPressed: () =>
+                        ref.invalidate(executiveDisputeInboxProvider),
+                    child: const Text('إعادة المحاولة'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        data: (data) {
+          final hasAny = data.awaitingDecision.isNotEmpty ||
+              data.pendingExecution.isNotEmpty ||
+              data.recentlyExecuted.isNotEmpty;
+
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+            children: [
+              // ── Summary chips ────────────────────────────────
+              _CountChipsRow(counts: data.counts),
+              const SizedBox(height: 16),
+
+              // ── Awaiting decision ────────────────────────────
+              if (data.awaitingDecision.isNotEmpty) ...[
+                _SectionHeader(
+                  title: 'تتطلب قرارك',
+                  count: data.awaitingDecision.length,
+                  color: Colors.redAccent,
+                ),
+                ...data.awaitingDecision.map((c) => _AdminActionCard(
+                      dispute: c,
+                      onTap: () =>
+                          _showDecisionDialog(context, ref, c),
+                    )),
+                const SizedBox(height: 20),
+              ],
+
+              // ── Pending execution ────────────────────────────
+              if (data.pendingExecution.isNotEmpty) ...[
+                _SectionHeader(
+                  title: 'بانتظار التنفيذ',
+                  count: data.pendingExecution.length,
+                  color: Colors.orange,
+                ),
+                ...data.pendingExecution.map((c) => _TrackingCard(
+                      dispute: c,
+                      onTap: () => _showTrackingDetail(context, c),
+                    )),
+                const SizedBox(height: 20),
+              ],
+
+              // ── Recently executed ────────────────────────────
+              if (data.recentlyExecuted.isNotEmpty) ...[
+                _SectionHeader(
+                  title: 'تم التنفيذ',
+                  count: data.recentlyExecuted.length,
+                  color: Colors.green,
+                ),
+                ...data.recentlyExecuted.map((c) => _TrackingCard(
+                      dispute: c,
+                      onTap: () => _showTrackingDetail(context, c),
+                    )),
+              ],
+
+              if (!hasAny)
+                const Padding(
+                  padding: EdgeInsets.only(top: 120),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle_outline,
+                            size: 64, color: Colors.green),
+                        SizedBox(height: 16),
+                        Text('لا توجد إجراءات إدارية حالياً',
+                            style: TextStyle(fontSize: 18)),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (embedded) return body;
     return Scaffold(
       appBar: AppBar(title: const Text('الإجراءات الإدارية')),
-      body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(executiveDisputeInboxProvider),
-        child: inbox.when(
-          loading: () => ListView(
-            children: const [
-              SizedBox(height: 240),
-              Center(child: CircularProgressIndicator()),
-            ],
-          ),
-          error: (error, _) => ListView(
-            children: [
-              const SizedBox(height: 200),
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline, size: 48),
-                    const SizedBox(height: 12),
-                    Text('تعذر تحميل القضايا',
-                        style: theme.textTheme.titleMedium),
-                    const SizedBox(height: 4),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Text(
-                        humanizeError(error),
-                        style: theme.textTheme.bodySmall,
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    FilledButton.tonal(
-                      onPressed: () =>
-                          ref.invalidate(executiveDisputeInboxProvider),
-                      child: const Text('إعادة المحاولة'),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          data: (data) {
-            final hasAny = data.awaitingDecision.isNotEmpty ||
-                data.pendingExecution.isNotEmpty ||
-                data.recentlyExecuted.isNotEmpty;
-
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-              children: [
-                // ── Summary chips ────────────────────────────────
-                _CountChipsRow(counts: data.counts),
-                const SizedBox(height: 16),
-
-                // ── Awaiting decision ────────────────────────────
-                if (data.awaitingDecision.isNotEmpty) ...[
-                  _SectionHeader(
-                    title: 'تتطلب قرارك',
-                    count: data.awaitingDecision.length,
-                    color: Colors.redAccent,
-                  ),
-                  ...data.awaitingDecision.map((c) => _AdminActionCard(
-                        dispute: c,
-                        onTap: () =>
-                            _showDecisionDialog(context, ref, c),
-                      )),
-                  const SizedBox(height: 20),
-                ],
-
-                // ── Pending execution ────────────────────────────
-                if (data.pendingExecution.isNotEmpty) ...[
-                  _SectionHeader(
-                    title: 'بانتظار التنفيذ',
-                    count: data.pendingExecution.length,
-                    color: Colors.orange,
-                  ),
-                  ...data.pendingExecution.map((c) => _TrackingCard(
-                        dispute: c,
-                        onTap: () => _showTrackingDetail(context, c),
-                      )),
-                  const SizedBox(height: 20),
-                ],
-
-                // ── Recently executed ────────────────────────────
-                if (data.recentlyExecuted.isNotEmpty) ...[
-                  _SectionHeader(
-                    title: 'تم التنفيذ',
-                    count: data.recentlyExecuted.length,
-                    color: Colors.green,
-                  ),
-                  ...data.recentlyExecuted.map((c) => _TrackingCard(
-                        dispute: c,
-                        onTap: () => _showTrackingDetail(context, c),
-                      )),
-                ],
-
-                if (!hasAny)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 120),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.check_circle_outline,
-                              size: 64, color: Colors.green),
-                          SizedBox(height: 16),
-                          Text('لا توجد إجراءات إدارية حالياً',
-                              style: TextStyle(fontSize: 18)),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            );
-          },
-        ),
-      ),
+      body: body,
     );
   }
 

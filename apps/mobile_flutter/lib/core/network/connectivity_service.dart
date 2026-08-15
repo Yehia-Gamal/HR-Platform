@@ -110,6 +110,16 @@ String humanizeError(Object error, [StackTrace? stack]) {
   if (msg.contains('duplicate_attendance_event')) {
     return 'تم تسجيل هذه العملية بالفعل.';
   }
+  // أخطاء رصيد الإجازات وبدل الراحة الأسبوعي (0428)
+  if (msg.contains('INSUFFICIENT_LEAVE_BALANCE')) {
+    return 'رصيد الإجازة غير كافٍ لهذا الطلب — اربط يوم البدل بعمل يوم الجمعة أو تواصل مع قسم الموارد البشرية.';
+  }
+  if (msg.contains('CONSUME_EXCEEDS_RESERVE')) {
+    return 'تعارض في رصيد الإجازات. أعد المحاولة بعد لحظات.';
+  }
+  if (msg.contains('LEAVE_UNITS_ZERO')) {
+    return 'مدة الإجازة المطلوبة تساوي صفرًا.';
+  }
 
   if (msg.contains('Invalid API key') || msg.contains('apikey')) {
     return 'مفتاح الاتصال غير صالح. تأكد من تحديث التطبيق لآخر إصدار أو تواصل مع مسؤول النظام.';
@@ -187,6 +197,15 @@ String _humanizePostgrest(PostgrestException error) {
       }
       if (m.contains('trusted_server_required')) {
         return 'خطأ في إعدادات الخادم. تواصل مع مسؤول النظام.';
+      }
+      if (m.contains('INSUFFICIENT_LEAVE_BALANCE')) {
+        return 'رصيد الإجازة غير كافٍ لهذا الطلب — اربط يوم البدل بعمل يوم الجمعة أو تواصل مع قسم الموارد البشرية.';
+      }
+      if (m.contains('CONSUME_EXCEEDS_RESERVE')) {
+        return 'تعارض في رصيد الإجازات. أعد المحاولة بعد لحظات.';
+      }
+      if (m.contains('LEAVE_UNITS_ZERO')) {
+        return 'مدة الإجازة المطلوبة تساوي صفرًا.';
       }
       if (_isArabic(m)) {
         return m;

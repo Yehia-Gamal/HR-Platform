@@ -11,7 +11,10 @@ import 'package:intl/intl.dart';
 /// تعرض جميع القضايا (ليست الشخصية فقط) مع ملخص إحصائي
 /// وتتيح اتخاذ القرار الإداري عند توفر صلاحية action_proposed.
 class CommitteeDisputeListPage extends ConsumerWidget {
-  const CommitteeDisputeListPage({super.key});
+  const CommitteeDisputeListPage({super.key, this.embedded = false});
+
+  /// داخل تبويبات بوابة القضايا الموحّدة — بلا Scaffold/AppBar خاص.
+  final bool embedded;
 
   // ── التسميات في DisputeLabels (dispute_shared_labels.dart) ──
 
@@ -20,81 +23,84 @@ class CommitteeDisputeListPage extends ConsumerWidget {
     final portal = ref.watch(committeeDisputePortalProvider);
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('بوابة القضايا')),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(committeeDisputePortalProvider);
-          ref.invalidate(executiveDisputeInboxProvider);
-        },
-        child: portal.when(
-          loading: () => ListView(
-            children: const [
-              SizedBox(height: 240),
-              Center(child: CircularProgressIndicator()),
-            ],
-          ),
-          error: (error, _) => ListView(
-            children: [
-              const SizedBox(height: 200),
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline, size: 48),
-                    const SizedBox(height: 12),
-                    Text('تعذر تحميل القضايا',
-                        style: theme.textTheme.titleMedium),
-                    const SizedBox(height: 4),
-                    Text(humanizeError(error),
-                        style: theme.textTheme.bodySmall,
-                        textAlign: TextAlign.center),
-                    const SizedBox(height: 12),
-                    FilledButton.tonal(
-                      onPressed: () =>
-                          ref.invalidate(committeeDisputePortalProvider),
-                      child: const Text('إعادة المحاولة'),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          data: (data) {
-            if (data.cases.isEmpty) {
-              return ListView(
-                children: const [
-                  SizedBox(height: 200),
-                  Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.gavel_outlined,
-                            size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text('لا توجد قضايا حالياً',
-                            style: TextStyle(fontSize: 18)),
-                      ],
-                    ),
+    final body = RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(committeeDisputePortalProvider);
+        ref.invalidate(executiveDisputeInboxProvider);
+      },
+      child: portal.when(
+        loading: () => ListView(
+          children: const [
+            SizedBox(height: 240),
+            Center(child: CircularProgressIndicator()),
+          ],
+        ),
+        error: (error, _) => ListView(
+          children: [
+            const SizedBox(height: 200),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 48),
+                  const SizedBox(height: 12),
+                  Text('تعذر تحميل القضايا',
+                      style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 4),
+                  Text(humanizeError(error),
+                      style: theme.textTheme.bodySmall,
+                      textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  FilledButton.tonal(
+                    onPressed: () =>
+                        ref.invalidate(committeeDisputePortalProvider),
+                    child: const Text('إعادة المحاولة'),
                   ),
                 ],
-              );
-            }
-
+              ),
+            ),
+          ],
+        ),
+        data: (data) {
+          if (data.cases.isEmpty) {
             return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-              children: [
-                _SummaryRow(summary: data.summary),
-                const SizedBox(height: 16),
-                ...data.cases.map((c) => _CaseCard(
-                      caseItem: c,
-                      onTap: () => _showCaseDetail(context, ref, c),
-                    )),
+              children: const [
+                SizedBox(height: 200),
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.gavel_outlined,
+                          size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text('لا توجد قضايا حالياً',
+                          style: TextStyle(fontSize: 18)),
+                    ],
+                  ),
+                ),
               ],
             );
-          },
-        ),
+          }
+
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+            children: [
+              _SummaryRow(summary: data.summary),
+              const SizedBox(height: 16),
+              ...data.cases.map((c) => _CaseCard(
+                    caseItem: c,
+                    onTap: () => _showCaseDetail(context, ref, c),
+                  )),
+            ],
+          );
+        },
       ),
+    );
+
+    if (embedded) return body;
+    return Scaffold(
+      appBar: AppBar(title: const Text('بوابة القضايا')),
+      body: body,
     );
   }
 

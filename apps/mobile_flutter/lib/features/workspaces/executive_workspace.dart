@@ -1,4 +1,4 @@
-import 'package:ahla_shabab_management_os/features/mobile_pages/committee_dispute_list_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/disputes_portal_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_home_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_reports_page.dart';
@@ -26,7 +26,7 @@ class _ExecutiveWorkspaceState extends State<ExecutiveWorkspace> {
     final pages = [
       ExecutiveHomePage(access: widget.access),
       const MobileActionInboxPage(),
-      const CommitteeDisputeListPage(),
+      const DisputesPortalPage(),
       const ExecutiveLocationPage(),
       const ExecutiveReportsPage(),
     ];

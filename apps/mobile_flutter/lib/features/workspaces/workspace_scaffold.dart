@@ -8,7 +8,6 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/executive_announ
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_attendance_tab.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_brief_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_decisions_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_disputes_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_emergency_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_governance_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_people_page.dart';
@@ -16,12 +15,12 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/executive_risk_c
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_directory_search_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_feed_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/disputes_portal_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_disputes_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_employees_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notifications_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_official_feed_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_operations_center_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_profile_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
@@ -278,8 +277,8 @@ class WorkspaceScaffold extends ConsumerWidget {
         ),
         _MoreItem(
           icon: Icons.gavel_outlined,
-          label: 'القضايا التنفيذية',
-          page: const ExecutiveDisputesPage(),
+          label: 'القضايا',
+          page: const DisputesPortalPage(),
         ),
         _MoreItem(
           icon: Icons.approval_outlined,
@@ -297,16 +296,10 @@ class WorkspaceScaffold extends ConsumerWidget {
             body: const MobileActionInboxPage(),
           ),
         ),
-        // V22 — جداول الحضور والتقارير: كشف شهري لكل عضو من فريقك المباشر.
-        _MoreItem(
-          icon: Icons.event_available_outlined,
-          label: 'جداول الحضور',
-          page: const TeamAttendancePage(),
-        ),
-        // V22 — إدارة فريقي: نظرة عامة على فريقك المباشر وحالة حضورهم اليوم.
+        // V22 — فريقي: صفحة موحّدة بتبويبات (نظرة عامة + ملفات الفريق + جداول الحضور).
         _MoreItem(
           icon: Icons.groups_2_outlined,
-          label: 'إدارة فريقي',
+          label: 'فريقي',
           page: const MyTeamPage(),
         ),
         // اعتماد طلبات الفريق: طلبات أعضاء فريقك المباشر مع اعتماد/رفض سريع.
@@ -321,31 +314,12 @@ class WorkspaceScaffold extends ConsumerWidget {
           label: 'الملخص التشغيلي',
           page: const TeamOperationsSummaryPage(),
         ),
-        // V22 — ملفات أعضاء الفريق: الملف الشامل (get_employee_360).
-        _MoreItem(
-          icon: Icons.badge_outlined,
-          label: 'ملفات أعضاء الفريق',
-          page: const TeamFilesPage(),
-        ),
         // إدارة الموظفين: دليل الموظفين + الملف الشامل (get_employees_enriched).
         _MoreItem(
           icon: Icons.manage_accounts_outlined,
           label: 'إدارة الموظفين',
           page: const MobileEmployeesPage(),
         ),
-        // إدارة التشغيل: مركز العمليات (مهام/مهمات/قوافل) — mig 0408/0410.
-        // البوابة مطابقة للويب /operations: reports.read أو operations.*
-        // (المدير العادي بلا هذه الصلاحيات لا يرى العنصر ولا يستدعي الـ RPC).
-        if (contextData.hasAnyPermission(const [
-          'reports.read',
-          'operations.mission.manage',
-          'operations.convoy.manage',
-        ]))
-          _MoreItem(
-            icon: Icons.settings_suggest_outlined,
-            label: 'إدارة التشغيل',
-            page: MobileOperationsCenterPage(access: contextData),
-          ),
       ],
       // V20: التقارير اليومية للجميع — زر إضافة تقرير داخل الصفحة نفسها
       _MoreItem(

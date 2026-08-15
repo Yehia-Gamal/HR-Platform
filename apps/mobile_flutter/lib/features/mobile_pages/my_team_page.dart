@@ -20,13 +20,33 @@ enum TeamPageMode {
   attendance,
 }
 
-/// إدارة فريقي — قائمة فريقك المباشر وحالة حضورهم اليوم.
+/// فريقي — صفحة موحّدة بتبويبات (V22): نظرة عامة + ملفات الفريق + جداول الحضور.
 class MyTeamPage extends StatelessWidget {
   const MyTeamPage({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      const _TeamMembersView(mode: TeamPageMode.overview);
+  Widget build(BuildContext context) => DefaultTabController(
+    length: 3,
+    child: Scaffold(
+      appBar: AppBar(
+        title: const Text('فريقي'),
+        bottom: const TabBar(
+          tabs: [
+            Tab(text: 'نظرة عامة'),
+            Tab(text: 'ملفات الفريق'),
+            Tab(text: 'جداول الحضور'),
+          ],
+        ),
+      ),
+      body: const TabBarView(
+        children: [
+          _TeamMembersView(mode: TeamPageMode.overview, embedded: true),
+          _TeamMembersView(mode: TeamPageMode.files, embedded: true),
+          _TeamMembersView(mode: TeamPageMode.attendance, embedded: true),
+        ],
+      ),
+    ),
+  );
 }
 
 /// ملفات أعضاء الفريق — بحث في فريقك المباشر وفتح الملف الشامل (V22).
@@ -48,18 +68,25 @@ class TeamAttendancePage extends StatelessWidget {
 }
 
 class _TeamMembersView extends ConsumerStatefulWidget {
-  const _TeamMembersView({required this.mode});
+  const _TeamMembersView({required this.mode, this.embedded = false});
 
   final TeamPageMode mode;
+
+  /// داخل تبويبات صفحة «فريقي» الموحّدة — بلا Scaffold/AppBar خاص.
+  final bool embedded;
 
   @override
   ConsumerState<_TeamMembersView> createState() => _TeamMembersViewState();
 }
 
-class _TeamMembersViewState extends ConsumerState<_TeamMembersView> {
+class _TeamMembersViewState extends ConsumerState<_TeamMembersView>
+    with AutomaticKeepAliveClientMixin {
   final _search = TextEditingController();
   String _query = '';
   String _filter = 'all';
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void dispose() {
@@ -135,116 +162,119 @@ class _TeamMembersViewState extends ConsumerState<_TeamMembersView> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final theme = Theme.of(context);
     final members = ref.watch(mobileTeamProvider);
-    return Scaffold(
-      appBar: AppBar(title: Text(_title)),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async => ref.invalidate(mobileTeamProvider),
-          child: members.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 40,
-                    color: theme.colorScheme.error,
+    final body = SafeArea(
+      child: RefreshIndicator(
+        onRefresh: () async => ref.invalidate(mobileTeamProvider),
+        child: members.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 40,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    humanizeError(error),
+                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text(
-                      humanizeError(error),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => ref.invalidate(mobileTeamProvider),
-                    child: const Text('إعادة المحاولة'),
-                  ),
-                ],
-              ),
+                ),
+                TextButton(
+                  onPressed: () => ref.invalidate(mobileTeamProvider),
+                  child: const Text('إعادة المحاولة'),
+                ),
+              ],
             ),
-            data: (data) {
-              final filtered = _applyFilters(data);
-              if (data.isEmpty) {
-                return ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 40, 16, 32),
-                  children: const [
-                    _EmptyHint(),
-                  ],
-                );
-              }
+          ),
+          data: (data) {
+            final filtered = _applyFilters(data);
+            if (data.isEmpty) {
               return ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                children: [
-                  MobileSectionHeader(title: _title, subtitle: _subtitle),
-                  if (widget.mode != TeamPageMode.overview) ...[
-                    const SizedBox(height: 8),
-                    MobileFilterBar(
-                      searchHint: 'بحث بالاسم أو كود الموظف',
-                      controller: _search,
-                      onSearchChanged: (v) => setState(() => _query = v),
-                      options: const [
-                        MobileFilterOption('all', 'الكل'),
-                        MobileFilterOption('pending', 'طلبات معلّقة'),
-                        MobileFilterOption('late', 'متأخر اليوم'),
-                        MobileFilterOption('absent', 'غائب اليوم'),
-                        MobileFilterOption('kpi', 'بمرحلة KPI'),
-                      ],
-                      selected: _filter,
-                      onSelected: (v) => setState(() => _filter = v),
-                      resultLabel: filtered.isEmpty
-                          ? 'لا نتائج'
-                          : '${filtered.length} موظف',
-                    ),
-                  ] else ...[
-                    const SizedBox(height: 8),
-                    _SummaryStrip(members: data),
-                  ],
+                padding: const EdgeInsets.fromLTRB(16, 40, 16, 32),
+                children: const [
+                  _EmptyHint(),
+                ],
+              );
+            }
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              children: [
+                MobileSectionHeader(title: _title, subtitle: _subtitle),
+                if (widget.mode != TeamPageMode.overview) ...[
                   const SizedBox(height: 8),
-                  if (filtered.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 48),
-                      child: Center(child: Text('لا توجد نتائج مطابقة')),
-                    )
-                  else
-                    ...filtered.map(
-                      (member) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _MemberCard(
-                          member: member,
-                          onTap: () => _openMember(context, member),
-                          onOpenFile: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => EmployeeProfilePage(
-                                employeeId: member.id,
-                                employeeName: member.name,
-                              ),
+                  MobileFilterBar(
+                    searchHint: 'بحث بالاسم أو كود الموظف',
+                    controller: _search,
+                    onSearchChanged: (v) => setState(() => _query = v),
+                    options: const [
+                      MobileFilterOption('all', 'الكل'),
+                      MobileFilterOption('pending', 'طلبات معلّقة'),
+                      MobileFilterOption('late', 'متأخر اليوم'),
+                      MobileFilterOption('absent', 'غائب اليوم'),
+                      MobileFilterOption('kpi', 'بمرحلة KPI'),
+                    ],
+                    selected: _filter,
+                    onSelected: (v) => setState(() => _filter = v),
+                    resultLabel: filtered.isEmpty
+                        ? 'لا نتائج'
+                        : '${filtered.length} موظف',
+                  ),
+                ] else ...[
+                  const SizedBox(height: 8),
+                  _SummaryStrip(members: data),
+                ],
+                const SizedBox(height: 8),
+                if (filtered.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 48),
+                    child: Center(child: Text('لا توجد نتائج مطابقة')),
+                  )
+                else
+                  ...filtered.map(
+                    (member) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _MemberCard(
+                        member: member,
+                        onTap: () => _openMember(context, member),
+                        onOpenFile: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EmployeeProfilePage(
+                              employeeId: member.id,
+                              employeeName: member.name,
                             ),
                           ),
-                          onOpenAttendance: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => MonthlyAttendanceStatementPage(
-                                employeeId: member.id,
-                                employeeName: member.name,
-                              ),
+                        ),
+                        onOpenAttendance: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => MonthlyAttendanceStatementPage(
+                              employeeId: member.id,
+                              employeeName: member.name,
                             ),
                           ),
                         ),
                       ),
                     ),
-                ],
-              );
-            },
-          ),
+                  ),
+              ],
+            );
+          },
         ),
       ),
+    );
+    if (widget.embedded) return body;
+    return Scaffold(
+      appBar: AppBar(title: Text(_title)),
+      body: body,
     );
   }
 
