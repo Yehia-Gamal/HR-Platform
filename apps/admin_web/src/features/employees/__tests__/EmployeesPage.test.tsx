@@ -68,7 +68,19 @@ describe('EmployeesPage', () => {
         <EmployeesPage />
       </MemoryRouter>,
     );
-    expect(screen.getByText('دليل الموظفين')).toBeDefined();
+    // العنوان في h1 — التبويب يعرض نفس النص لذا نستعلم بالدور.
+    expect(screen.getByRole('heading', { name: 'دليل الموظفين' })).toBeDefined();
+  });
+
+  it('يعرض التبويبين: الدليل والهيكل التنظيمي', () => {
+    employeesOverrideFn = () => dataQuery;
+    render(
+      <MemoryRouter>
+        <EmployeesPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('tab', { name: /دليل الموظفين/ })).toBeDefined();
+    expect(screen.getByRole('tab', { name: 'الهيكل التنظيمي' })).toBeDefined();
   });
 
   it('يعرض شريط البحث والتصفية', () => {

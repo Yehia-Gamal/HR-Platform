@@ -25,7 +25,6 @@ import {
   Menu,
   Headphones,
   MapPin,
-  Network,
   PackageCheck,
   PanelRightClose,
   PanelRightOpen,
@@ -73,8 +72,7 @@ const hrSections: NavSection[] = [
     title: 'نظرة عامة',
     items: [
       { label: 'لوحة HR', to: '/hr', icon: LayoutDashboard },
-      { label: 'الموظفون', to: '/hr/employees', icon: Users, permission: 'people.employee.read' },
-      { label: 'الهيكل الإداري', to: '/hr/org-chart', icon: Network, permission: 'organization.org_chart.read' },
+      { label: 'الموظفون والهيكل', to: '/hr/employees', icon: Users, permission: 'people.employee.read' },
       { label: 'أجهزة الموظفين', to: '/hr/devices', icon: Smartphone, permission: 'access.role.read' },
     ],
   },
@@ -130,20 +128,13 @@ const adminSections: NavSection[] = [
   {
     title: 'إدارة الموظفين',
     items: [
-      { label: 'الموظفون', to: '/admin/hr/employees', icon: Users, permission: 'people.employee.read' },
-      { label: 'الهيكل التنظيمي', to: '/admin/hr/org-chart', icon: Network, permission: 'organization.org_chart.read' },
+      { label: 'الموظفون والهيكل', to: '/admin/hr/employees', icon: Users, permission: 'people.employee.read' },
       { label: 'الحضور والانصراف', to: '/admin/hr/attendance', icon: Activity, permission: 'attendance.record.read' },
       { label: 'الورديات وإغلاق الحضور', to: '/admin/hr/attendance/operations', icon: CalendarClock, permission: 'attendance.roster.read' },
       { label: 'كشف الحضور الشهري', to: '/admin/hr/attendance/report', icon: FileSignature, permission: 'attendance.record.read' },
       { label: 'إدارة الإجازات', to: '/admin/hr/leaves', icon: CalendarDays, permission: 'requests.request.read' },
       { label: 'طلبات الموظفين', to: '/admin/hr/requests', icon: ClipboardList, permission: 'requests.request.read' },
       { label: 'العطل الرسمية', to: '/admin/hr/holidays', icon: CalendarDays, permission: 'holidays.manage' },
-      {
-        label: 'المأموريات والعمليات',
-        to: '/admin/operations',
-        icon: ClipboardList,
-        permission: ['reports.read', 'operations.mission.manage', 'operations.convoy.manage'],
-      },
       { label: 'الموقع الحي للموظفين', to: '/admin/live-location', icon: MapPin, permission: 'live_location.request' },
       { label: 'المراقبة التنفيذية', to: '/admin/executive-monitoring', icon: Activity, permission: 'people.employee.read' },
       { label: 'أجهزة الموظفين', to: '/admin/hr/devices', icon: Smartphone, permission: 'access.role.read' },
@@ -179,7 +170,6 @@ const adminSections: NavSection[] = [
   {
     title: 'الحوكمة والنظام',
     items: [
-      { label: 'الهيكل التنظيمي المتقدم', to: '/admin/org-chart', icon: Network, permission: 'organization.org_chart.read' },
       { label: 'الأدوار والصلاحيات', to: '/admin/access', icon: ShieldCheck, permission: 'access.role.read' },
       { label: 'الإدارة المؤسسية', to: '/admin/enterprise', icon: Building2, permission: 'organization.entity.read' },
       { label: 'التدقيق والأمان', to: '/admin/audit-security', icon: ShieldCheck, permission: 'audit.view' },

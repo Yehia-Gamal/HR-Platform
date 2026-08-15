@@ -77,9 +77,22 @@ export function useNotifications() {
     queryKey: ['my-notifications', auth.isMock],
     enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<NotificationItem[]> => {
-      if (auth.isMock) return notificationItemSchema.array().parse((await loadDomainMocks()).mockNotifications);
-      const data = await rpc('get_my_notifications', { p_limit: 100 });
-      const all = notificationItemSchema.array().parse(data ?? []);
+      if (auth.isMock) {
+        const parsed = (await loadDomainMocks()).mockNotifications.flatMap((row) => {
+          const r = notificationItemSchema.safeParse(row);
+          return r.success ? [r.data] : [];
+        });
+        return parsed;
+      }
+      const data = await rpc<NotificationItem[]>('get_my_notifications', { p_limit: 100 });
+      // تحليل متسامح عنصراً-عنصراً: أي صف شاذ (قيمة أولوية قديمة أو حقل غير متوقع
+      // من نسخة RPC أقدم في الإنتاج) يُستبعد وحده دون إسقاط بقية الإشعارات —
+      // التحقق الصارم على المصفوفة كاملة كان يُفرّغ الصفحة رغم ظهور الإشعارات
+      // في تطبيق الموبايل الذي يفسّر كل صف على حدة.
+      const all = (data ?? []).flatMap((row) => {
+        const r = notificationItemSchema.safeParse(row);
+        return r.success ? [r.data] : [];
+      });
       // فلترة: لوحة الإدارة لا تعرض إشعارات الموبايل الشخصية (تذكير حضور، طلب موقع).
       return all.filter((n) => !MOBILE_ONLY_ENTITY_TYPES.includes(n.entityType as (typeof MOBILE_ONLY_ENTITY_TYPES)[number]));
     },
@@ -96,6 +109,20 @@ export function useMarkNotificationsRead() {
       return Number(data ?? 0);
     },
     meta: { successMessage: 'تم تعليم كل الإشعارات كمقروءة', silentError: true },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['my-notifications'] }),
+  });
+}
+
+export function useDeleteNotifications() {
+  const auth = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (auth.isMock) return ids.length;
+      const data = await rpc('delete_my_notifications', { p_ids: ids });
+      return Number(data ?? 0);
+    },
+    meta: { successMessage: 'تم حذف الإشعار', silentError: true },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['my-notifications'] }),
   });
 }

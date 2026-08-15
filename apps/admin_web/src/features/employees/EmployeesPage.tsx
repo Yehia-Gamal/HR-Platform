@@ -1,6 +1,6 @@
-import { ArrowUpDown, FileSpreadsheet, Plus, Printer, RefreshCw, UserRound, UsersRound } from 'lucide-react';
+import { ArrowUpDown, FileSpreadsheet, Network, Plus, Printer, RefreshCw, UserRound, UsersRound } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { downloadCsv, printReport, toCsv, type ExportColumn } from '../../core/exportUtils';
 import { MetricCard } from '../../ui/MetricCard';
 import { FilterBar } from '../../ui/FilterBar';
@@ -18,11 +18,14 @@ import { hasPermission } from '../workspaces/access';
 import { useEmployees } from './useEmployees';
 import { EmployeeSearchSuggestions } from './EmployeeSearchSuggestions';
 import { renderSafeIntlPhoneText } from '../../ui/phoneDisplay';
+import { OrgChartPage } from '../management/OrgChartPage';
 
 type SortMode = 'newest' | 'name' | 'code';
+type EmployeesTab = 'directory' | 'org-chart';
 
 export function EmployeesPage() {
   const auth = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [sort, setSort] = useState<SortMode>('newest');
@@ -31,7 +34,16 @@ export function EmployeesPage() {
   const pageSize = 25;
   const employees = useEmployees(search, status);
   const canCreate = hasPermission(auth.access, 'people.employee.create');
+  const canViewOrgChart = hasPermission(auth.access, 'organization.org_chart.read');
   const all = useMemo(() => employees.data ?? [], [employees.data]);
+
+  // تبويب نشط من رابط مباشر (?tab=org-chart) — الدليل افتراضي.
+  const tabParam = searchParams.get('tab');
+  const tab: EmployeesTab = tabParam === 'org-chart' && canViewOrgChart ? 'org-chart' : 'directory';
+  const setTab = (next: EmployeesTab) => {
+    if (next === 'org-chart') setSearchParams({ tab: 'org-chart' });
+    else setSearchParams({});
+  };
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -160,8 +172,12 @@ export function EmployeesPage() {
     <div className="space-y-5">
       <PageHeader
         eyebrow="إدارة الأفراد"
-        title="دليل الموظفين"
-        description="ابحث في ملفات الموظفين وافتح الملف الشخصي لأي منهم."
+        title={tab === 'org-chart' ? 'الموظفون والهيكل التنظيمي' : 'دليل الموظفين'}
+        description={
+          tab === 'org-chart'
+            ? 'شجرة هرمية كاملة: اضغط على أي موظف لفتح ملفه الشامل.'
+            : 'ابحث في ملفات الموظفين وافتح الملف الشخصي لأي منهم.'
+        }
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" className="btn-secondary" onClick={handlePdfExport} disabled={filtered.length === 0} title="طباعة PDF">
@@ -182,81 +198,114 @@ export function EmployeesPage() {
         }
       />
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="إجمالي الملفات" value={all.length} icon={UsersRound} hint="جميع الحالات داخل نطاقك" />
-        <MetricCard
-          label="موظفون نشطون"
-          value={active}
-          icon={UserRound}
-          hint={all.length ? `${Math.round((active / all.length) * 100)}% من الملفات` : 'لا توجد بيانات'}
-        />
-        <MetricCard label="تهيئة ودعوات" value={onboarding} icon={RefreshCw} hint="لم تكتمل رحلة التفعيل" />
-        <MetricCard label="موقوف أو منتهي" value={inactive} icon={ArrowUpDown} hint="سجلات محفوظة للتاريخ والتدقيق" />
-      </section>
-
-      <FilterBar
-        searchValue={search}
-        onSearchChange={setSearch}
-        searchPlaceholder="بحث بالاسم أو الكود أو الهاتف"
-        resultText={`عرض ${filtered.length} من ${all.length} ملف`}
-        isDirty={Boolean(search || status !== 'all' || sort !== 'newest')}
-        onClear={() => {
-          setSearch('');
-          setStatus('all');
-          setSort('newest');
-        }}
-        searchAdornment={<EmployeeSearchSuggestions query={search} employees={all} open={searchFocused} onClose={() => setSearchFocused(false)} />}
-        onSearchFocusChange={setSearchFocused}
-      >
-        <select className="input" value={status} onChange={(event) => setStatus(event.target.value)} aria-label="تصفية حسب الحالة">
-          <option value="all">كل الحالات</option>
-          <option value="active">نشط</option>
-          <option value="onboarding">قيد التهيئة</option>
-          <option value="suspended">موقوف</option>
-          <option value="notice_period">فترة إخطار</option>
-          <option value="terminated">منتهي</option>
-          <option value="archived">مؤرشف</option>
-        </select>
-        <select className="input" value={sort} onChange={(event) => setSort(event.target.value as SortMode)} aria-label="ترتيب الموظفين">
-          <option value="newest">الأحدث إضافة</option>
-          <option value="name">الاسم أبجديًا</option>
-          <option value="code">كود الموظف</option>
-        </select>
-        <button onClick={() => void employees.refetch()} className="btn-secondary" disabled={employees.isFetching} aria-busy={employees.isFetching}>
-          <RefreshCw className={`size-4 ${employees.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
-          تحديث
+      {/* تبويبات: دليل الموظفين / الهيكل التنظيمي — صفحة موحّدة واحدة */}
+      <nav className="flex gap-1 rounded-2xl bg-[var(--surface-muted)] p-1" role="tablist" aria-label="تصفح الموظفين">
+        <button
+          role="tab"
+          aria-selected={tab === 'directory'}
+          onClick={() => setTab('directory')}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${tab === 'directory' ? 'bg-white text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+        >
+          <UsersRound className="size-4" aria-hidden="true" />
+          دليل الموظفين
+          <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${tab === 'directory' ? 'bg-[var(--primary)] text-white' : 'bg-[var(--surface-muted)]'}`}>
+            {all.length}
+          </span>
         </button>
-      </FilterBar>
+        {canViewOrgChart ? (
+          <button
+            role="tab"
+            aria-selected={tab === 'org-chart'}
+            onClick={() => setTab('org-chart')}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${tab === 'org-chart' ? 'bg-white text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+          >
+            <Network className="size-4" aria-hidden="true" />
+            الهيكل التنظيمي
+          </button>
+        ) : null}
+      </nav>
 
-      {employees.isError ? (
-        <ErrorState description={safeErrorMessage(employees.error)} onRetry={() => void employees.refetch()} />
-      ) : employees.isLoading ? (
-        <ListSkeleton rows={5} label="جارٍ تحميل الموظفين…" />
-      ) : all.length === 0 ? (
-        <EmptyState
-          title="لا يوجد موظفون بعد"
-          description="لم تتم إضافة أي ملف موظف داخل نطاقك حتى الآن."
-          action={
-            canCreate ? (
-              <Link to="/hr/employees/new" className="btn-primary">
-                <Plus className="size-4" aria-hidden="true" />
-                إنشاء موظف
-              </Link>
-            ) : undefined
-          }
-        />
+      {tab === 'org-chart' ? (
+        <OrgChartPage embedded />
       ) : (
         <>
-          <DataTable
-            columns={columns}
-            data={paged}
-            rowKey={(emp) => emp.id}
-            emptyTitle="لا توجد نتائج مطابقة"
-            emptyDescription="جرّب تعديل البحث أو مسح عوامل التصفية لعرض المزيد من الملفات."
-            ariaLabel="جدول الموظفين"
-            minWidth="1020px"
-          />
-          {totalPages > 1 && <Pagination currentPage={page} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} />}
+          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <MetricCard label="إجمالي الملفات" value={all.length} icon={UsersRound} hint="جميع الحالات داخل نطاقك" />
+            <MetricCard
+              label="موظفون نشطون"
+              value={active}
+              icon={UserRound}
+              hint={all.length ? `${Math.round((active / all.length) * 100)}% من الملفات` : 'لا توجد بيانات'}
+            />
+            <MetricCard label="تهيئة ودعوات" value={onboarding} icon={RefreshCw} hint="لم تكتمل رحلة التفعيل" />
+            <MetricCard label="موقوف أو منتهي" value={inactive} icon={ArrowUpDown} hint="سجلات محفوظة للتاريخ والتدقيق" />
+          </section>
+
+          <FilterBar
+            searchValue={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="بحث بالاسم أو الكود أو الهاتف"
+            resultText={`عرض ${filtered.length} من ${all.length} ملف`}
+            isDirty={Boolean(search || status !== 'all' || sort !== 'newest')}
+            onClear={() => {
+              setSearch('');
+              setStatus('all');
+              setSort('newest');
+            }}
+            searchAdornment={<EmployeeSearchSuggestions query={search} employees={all} open={searchFocused} onClose={() => setSearchFocused(false)} />}
+            onSearchFocusChange={setSearchFocused}
+          >
+            <select className="input" value={status} onChange={(event) => setStatus(event.target.value)} aria-label="تصفية حسب الحالة">
+              <option value="all">كل الحالات</option>
+              <option value="active">نشط</option>
+              <option value="onboarding">قيد التهيئة</option>
+              <option value="suspended">موقوف</option>
+              <option value="notice_period">فترة إخطار</option>
+              <option value="terminated">منتهي</option>
+              <option value="archived">مؤرشف</option>
+            </select>
+            <select className="input" value={sort} onChange={(event) => setSort(event.target.value as SortMode)} aria-label="ترتيب الموظفين">
+              <option value="newest">الأحدث إضافة</option>
+              <option value="name">الاسم أبجديًا</option>
+              <option value="code">كود الموظف</option>
+            </select>
+            <button onClick={() => void employees.refetch()} className="btn-secondary" disabled={employees.isFetching} aria-busy={employees.isFetching}>
+              <RefreshCw className={`size-4 ${employees.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
+              تحديث
+            </button>
+          </FilterBar>
+
+          {employees.isError ? (
+            <ErrorState description={safeErrorMessage(employees.error)} onRetry={() => void employees.refetch()} />
+          ) : employees.isLoading ? (
+            <ListSkeleton rows={5} label="جارٍ تحميل الموظفين…" />
+          ) : all.length === 0 ? (
+            <EmptyState
+              title="لا يوجد موظفون بعد"
+              description="لم تتم إضافة أي ملف موظف داخل نطاقك حتى الآن."
+              action={
+                canCreate ? (
+                  <Link to="/hr/employees/new" className="btn-primary">
+                    <Plus className="size-4" aria-hidden="true" />
+                    إنشاء موظف
+                  </Link>
+                ) : undefined
+              }
+            />
+          ) : (
+            <>
+              <DataTable
+                columns={columns}
+                data={paged}
+                rowKey={(emp) => emp.id}
+                emptyTitle="لا توجد نتائج مطابقة"
+                emptyDescription="جرّب تعديل البحث أو مسح عوامل التصفية لعرض المزيد من الملفات."
+                ariaLabel="جدول الموظفين"
+                minWidth="1020px"
+              />
+              {totalPages > 1 && <Pagination currentPage={page} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} />}
+            </>
+          )}
         </>
       )}
     </div>

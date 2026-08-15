@@ -34,10 +34,12 @@ const readNotification = {
 
 let notifReturn: Record<string, unknown> = {};
 let markReturn: Record<string, unknown> = {};
+let deleteReturn: Record<string, unknown> = {};
 
 vi.mock('../useNotifications', () => ({
   useNotifications: () => notifReturn,
   useMarkNotificationsRead: () => markReturn,
+  useDeleteNotifications: () => deleteReturn,
 }));
 
 const dataQuery = {
@@ -75,11 +77,19 @@ const markMutation = {
   isError: false,
   error: null,
 };
+const deleteMutation = {
+  mutate: vi.fn(),
+  mutateAsync: vi.fn(),
+  isPending: false,
+  isError: false,
+  error: null,
+};
 
 describe('NotificationsPage', () => {
   it('يُعرض بدون أخطاء', () => {
     notifReturn = dataQuery;
     markReturn = markMutation;
+    deleteReturn = deleteMutation;
     const { container } = render(
       <Wrapper>
         <NotificationsPage />
@@ -91,6 +101,7 @@ describe('NotificationsPage', () => {
   it('يعرض عنوان الصفحة', () => {
     notifReturn = dataQuery;
     markReturn = markMutation;
+    deleteReturn = deleteMutation;
     render(
       <Wrapper>
         <NotificationsPage />
@@ -102,6 +113,7 @@ describe('NotificationsPage', () => {
   it('يعرض زر تعليم الكل كمقروء', () => {
     notifReturn = dataQuery;
     markReturn = markMutation;
+    deleteReturn = deleteMutation;
     render(
       <Wrapper>
         <NotificationsPage />
@@ -113,6 +125,7 @@ describe('NotificationsPage', () => {
   it('يعرض بيانات الإشعارات', () => {
     notifReturn = dataQuery;
     markReturn = markMutation;
+    deleteReturn = deleteMutation;
     render(
       <Wrapper>
         <NotificationsPage />
@@ -122,9 +135,22 @@ describe('NotificationsPage', () => {
     expect(screen.getByText('تمت الموافقة على طلبك')).toBeDefined();
   });
 
+  it('يعرض أزرار حذف لكل إشعار', () => {
+    notifReturn = dataQuery;
+    markReturn = markMutation;
+    deleteReturn = deleteMutation;
+    render(
+      <Wrapper>
+        <NotificationsPage />
+      </Wrapper>,
+    );
+    expect(screen.getAllByLabelText('حذف الإشعار')).toHaveLength(2);
+  });
+
   it('يعرض حالة التحميل', () => {
     notifReturn = loadingQuery;
     markReturn = markMutation;
+    deleteReturn = deleteMutation;
     const { container } = render(
       <Wrapper>
         <NotificationsPage />
@@ -136,6 +162,7 @@ describe('NotificationsPage', () => {
   it('يعرض حالة فارغة عند عدم وجود إشعارات', () => {
     notifReturn = emptyQuery;
     markReturn = markMutation;
+    deleteReturn = deleteMutation;
     render(
       <Wrapper>
         <NotificationsPage />
@@ -147,6 +174,7 @@ describe('NotificationsPage', () => {
   it('يعرض حالة الخطأ', () => {
     notifReturn = errorQuery;
     markReturn = markMutation;
+    deleteReturn = deleteMutation;
     render(
       <Wrapper>
         <NotificationsPage />

@@ -46,7 +46,6 @@ const AccessPage = lazy(() => import('../features/management/AccessPage').then((
 const SystemPage = lazy(() => import('../features/management/SystemPage').then((m) => ({ default: m.SystemPage })));
 const ReportSchedulerPage = lazy(() => import('../features/management/ReportSchedulerPage').then((m) => ({ default: m.ReportSchedulerPage })));
 const EnterpriseManagementPage = lazy(() => import('../features/management/EnterpriseManagementPage').then((m) => ({ default: m.EnterpriseManagementPage })));
-const OperationsCenterPage = lazy(() => import('../features/management/OperationsCenterPage').then((m) => ({ default: m.OperationsCenterPage })));
 const AuditSecurityPage = lazy(() => import('../features/management/AuditSecurityPage').then((m) => ({ default: m.AuditSecurityPage })));
 const ObservabilityDashboardPage = lazy(() =>
   import('../features/observability/ObservabilityDashboardPage').then((m) => ({ default: m.ObservabilityDashboardPage })),
@@ -57,7 +56,6 @@ const AnalyticsDashboardPage = lazy(() => import('../features/analytics/Analytic
 const LearningPage = lazy(() => import('../features/learning/LearningPage').then((m) => ({ default: m.LearningPage })));
 const LifecyclePage = lazy(() => import('../features/lifecycle/LifecyclePage').then((m) => ({ default: m.LifecyclePage })));
 const ExecutiveMonitoringPage = lazy(() => import('../features/management/ExecutiveMonitoringPage').then((m) => ({ default: m.ExecutiveMonitoringPage })));
-const OrgChartPage = lazy(() => import('../features/management/OrgChartPage').then((m) => ({ default: m.OrgChartPage })));
 const DocumentsPage = lazy(() => import('../features/documents/DocumentsPage').then((m) => ({ default: m.DocumentsPage })));
 const FinancePage = lazy(() => import('../features/finance/FinancePage').then((m) => ({ default: m.FinancePage })));
 const KnowledgePage = lazy(() => import('../features/knowledge/KnowledgePage').then((m) => ({ default: m.KnowledgePage })));
@@ -177,7 +175,8 @@ function AuthenticatedApp() {
               path="org-chart"
               element={
                 <RequirePermission perm="organization.org_chart.read">
-                  <OrgChartPage />
+                  {/* دُمج في صفحة الموظفين الموحّدة (تبويب الهيكل التنظيمي) */}
+                  <Navigate to="/admin/hr/employees?tab=org-chart" replace />
                 </RequirePermission>
               }
             />
@@ -257,7 +256,8 @@ function AuthenticatedApp() {
               path="operations"
               element={
                 <RequirePermission perm={['reports.read', 'operations.mission.manage', 'operations.convoy.manage']}>
-                  <OperationsCenterPage />
+                  {/* إدارة التشغيل أُزيلت من القائمة — مهامها (مأموريات/قوافل) في طلبات الموظفين */}
+                  <Navigate to="/admin/hr/requests" replace />
                 </RequirePermission>
               }
             />
@@ -561,7 +561,8 @@ function HrWorkspaceRoutes() {
         path="org-chart"
         element={
           <RequirePermission perm="organization.org_chart.read">
-            <OrgChartPage />
+            {/* دُمج في صفحة الموظفين الموحّدة (تبويب الهيكل التنظيمي) */}
+            <Navigate to="employees?tab=org-chart" replace />
           </RequirePermission>
         }
       />

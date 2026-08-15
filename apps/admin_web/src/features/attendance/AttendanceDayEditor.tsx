@@ -25,6 +25,7 @@ const LEAVE_TYPES = [
   ['casual', 'إجازة عارضة'],
   ['sick', 'إجازة مرضية'],
   ['unpaid', 'إجازة بدون راتب'],
+  ['weekly_rest_comp', 'بدل راحة أسبوعية (لا تُخصم من الرصيد)'],
 ] as const;
 
 /** الافتراضي لكل ترميز إداري (إجازة ← سنوية، غياب ← بدون راتب). */
@@ -33,7 +34,7 @@ const DEFAULT_LEAVE_TYPE: Record<'leave' | 'absent', string> = {
   absent: 'unpaid',
 };
 
-/** أنواع تحديد اليوم عبر طلب (بموافقة المدير المباشر) — 0325. */
+/** أنواع تحديد اليوم عبر طلب (بموافقة المدير المباشر) — 0325/0333. */
 const MARK_OPTIONS = [
   ['mission', 'مأمورية'],
   ['convoy', 'قافلة'],
@@ -41,6 +42,7 @@ const MARK_OPTIONS = [
   ['annual', 'إجازة سنوية (اعتيادية)'],
   ['casual', 'إجازة عارضة (تنفيذ فوري)'],
   ['unpaid', 'إجازة بدون راتب'],
+  ['weekly_rest_comp', 'بدل راحة أسبوعية'],
 ] as const;
 
 const OPERATIONAL_MARKS: ReadonlySet<string> = new Set(['mission', 'convoy', 'fundraising']);

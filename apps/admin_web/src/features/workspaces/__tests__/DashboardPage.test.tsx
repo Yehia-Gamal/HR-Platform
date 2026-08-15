@@ -30,6 +30,11 @@ vi.mock('../useAttendanceTodayOverview', () => ({
   useAttendanceTodayOverview: () => attendanceOverrideFn(),
 }));
 
+let notificationsOverrideFn: () => { data: unknown[] };
+vi.mock('../../notifications/useNotifications', () => ({
+  useNotifications: () => notificationsOverrideFn(),
+}));
+
 const mockDashboardData = {
   employees: 42,
   activeEmployees: 38,
@@ -46,11 +51,13 @@ const mockDashboardData = {
 const loadingQuery = { data: undefined, isLoading: true, isError: false, error: null, refetch: vi.fn() };
 const dataQuery = { data: mockDashboardData, isLoading: false, isError: false, error: null, refetch: vi.fn() };
 const attendanceEmpty = { data: undefined, isLoading: false, isError: false, error: null };
+const notificationsEmpty = { data: [] };
 
 describe('DashboardPage', () => {
   it('يُعرض بدون أخطاء', () => {
     dashboardOverrideFn = () => dataQuery;
     attendanceOverrideFn = () => attendanceEmpty;
+    notificationsOverrideFn = () => notificationsEmpty;
     const { container } = render(
       <MemoryRouter>
         <DashboardPage type="hr" />
@@ -62,6 +69,7 @@ describe('DashboardPage', () => {
   it('يعرض حالة التحميل عند جلب البيانات', () => {
     dashboardOverrideFn = () => loadingQuery;
     attendanceOverrideFn = () => attendanceEmpty;
+    notificationsOverrideFn = () => notificationsEmpty;
     const { container } = render(
       <MemoryRouter>
         <DashboardPage type="hr" />
@@ -74,6 +82,7 @@ describe('DashboardPage', () => {
   it('يعرض بطاقات المؤشرات عند تحميل البيانات', () => {
     dashboardOverrideFn = () => dataQuery;
     attendanceOverrideFn = () => attendanceEmpty;
+    notificationsOverrideFn = () => notificationsEmpty;
     render(
       <MemoryRouter>
         <DashboardPage type="hr" />
@@ -87,6 +96,7 @@ describe('DashboardPage', () => {
   it('يعرض قسم نبض التشغيل عند توفر البيانات', () => {
     dashboardOverrideFn = () => dataQuery;
     attendanceOverrideFn = () => attendanceEmpty;
+    notificationsOverrideFn = () => notificationsEmpty;
     render(
       <MemoryRouter>
         <DashboardPage type="hr" />
@@ -99,6 +109,7 @@ describe('DashboardPage', () => {
   it('يعرض الإجراءات السريعة حسب نوع اللوحة', () => {
     dashboardOverrideFn = () => dataQuery;
     attendanceOverrideFn = () => attendanceEmpty;
+    notificationsOverrideFn = () => notificationsEmpty;
     render(
       <MemoryRouter>
         <DashboardPage type="hr" />
@@ -106,5 +117,33 @@ describe('DashboardPage', () => {
     );
     expect(screen.getByText('إضافة موظف')).toBeDefined();
     expect(screen.getByText('مراجعة الطلبات')).toBeDefined();
+  });
+
+  it('يعرض قسم آخر الإشعارات عند وجود إشعارات', () => {
+    dashboardOverrideFn = () => dataQuery;
+    attendanceOverrideFn = () => attendanceEmpty;
+    notificationsOverrideFn = () => ({
+      data: [
+        {
+          id: '00000000-0000-0000-0000-0000000000aa',
+          title: 'طلب جديد بانتظار مراجعتك',
+          body: null,
+          category: 'request',
+          priority: 'high',
+          actionUrl: null,
+          entityType: 'request',
+          entityId: '00000000-0000-0000-0000-0000000000bb',
+          isRead: false,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    });
+    render(
+      <MemoryRouter>
+        <DashboardPage type="hr" />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('آخر الإشعارات')).toBeDefined();
+    expect(screen.getByText('طلب جديد بانتظار مراجعتك')).toBeDefined();
   });
 });

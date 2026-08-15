@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { ChevronDown, GitBranch, Maximize2, Minimize2, Minus, Plus, RefreshCw, Users } from 'lucide-react';
 import type { OrgChartTreeNode } from '@ahla/shared-contracts';
 import { EmptyState } from '../../ui/EmptyState';
@@ -31,11 +31,14 @@ function useIsMobile() {
   return isMobile;
 }
 
-export function OrgChartPage() {
+export function OrgChartPage({ embedded = false }: { embedded?: boolean }) {
   const [search, setSearch] = useState('');
   const { data, isLoading, error, refetch } = useOrgChart(search);
   const navigate = useNavigate();
+  const location = useLocation();
   const isMobile = useIsMobile();
+  // مسار الملف الشخصي حسب المساحة الحالية — لا يُصلّب /admin (صفحات HR المستقلة).
+  const employeeBasePath = location.pathname.startsWith('/admin') ? '/admin/hr/employees' : '/hr/employees';
 
   // ─── Zoom & Pan state (desktop only) ─────────────────────────────────
   const [scale, setScale] = useState(1);
@@ -134,17 +137,19 @@ export function OrgChartPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="الهيكل التنظيمي الإداري"
-        description="شجرة هرمية كاملة للموظفين: المدير المباشر ومرؤوسوه بشكل متكرر."
-        eyebrow="الإدارة"
-        actions={
-          <button type="button" className="btn btn-outline" onClick={() => refetch()}>
-            <RefreshCw className="size-4" aria-hidden="true" />
-            تحديث
-          </button>
-        }
-      />
+      {!embedded ? (
+        <PageHeader
+          title="الهيكل التنظيمي الإداري"
+          description="شجرة هرمية كاملة للموظفين: المدير المباشر ومرؤوسوه بشكل متكرر."
+          eyebrow="الإدارة"
+          actions={
+            <button type="button" className="btn btn-outline" onClick={() => refetch()}>
+              <RefreshCw className="size-4" aria-hidden="true" />
+              تحديث
+            </button>
+          }
+        />
+      ) : null}
 
       {/* بطاقات الإحصائيات */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -208,7 +213,7 @@ export function OrgChartPage() {
             }}
           >
             {tree.map((node) => (
-              <OrgNode key={node.employee.id} node={node} depth={0} navigate={navigate} />
+              <OrgNode key={node.employee.id} node={node} depth={0} navigate={navigate} employeeBasePath={employeeBasePath} />
             ))}
           </div>
         )}
@@ -218,7 +223,17 @@ export function OrgChartPage() {
 }
 
 /** عقدة شجرة هرمية — تُرسم نفسها وموظفيها بشكل متكرر */
-function OrgNode({ node, depth, navigate }: { node: OrgChartTreeNode; depth: number; navigate: (path: string) => void }) {
+function OrgNode({
+  node,
+  depth,
+  navigate,
+  employeeBasePath,
+}: {
+  node: OrgChartTreeNode;
+  depth: number;
+  navigate: (path: string) => void;
+  employeeBasePath: string;
+}) {
   const [expanded, setExpanded] = useState(depth < 2);
   const emp = node.employee;
   const hasChildren = node.children.length > 0;
@@ -228,7 +243,7 @@ function OrgNode({ node, depth, navigate }: { node: OrgChartTreeNode; depth: num
       <button
         type="button"
         className="org-card mx-auto mb-2 inline-flex flex-col items-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm transition hover:shadow-md"
-        onClick={() => navigate(`/admin/hr/employees/${emp.id}`)}
+        onClick={() => navigate(`${employeeBasePath}/${emp.id}`)}
         style={{ minWidth: '160px' }}
       >
         <UserAvatar displayName={emp.fullNameAr} photoUrl={emp.photoUrl ?? null} size="sm" />
@@ -250,7 +265,7 @@ function OrgNode({ node, depth, navigate }: { node: OrgChartTreeNode; depth: num
           {expanded ? (
             <div className="flex justify-center gap-4 border-t border-[var(--border)] pt-4">
               {node.children.map((child) => (
-                <OrgNode key={child.employee.id} node={child} depth={depth + 1} navigate={navigate} />
+                <OrgNode key={child.employee.id} node={child} depth={depth + 1} navigate={navigate} employeeBasePath={employeeBasePath} />
               ))}
             </div>
           ) : null}

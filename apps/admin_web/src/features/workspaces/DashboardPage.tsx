@@ -21,11 +21,16 @@ import { getShortName, getTimeGreeting } from '../../ui/formatDisplayName';
 import { MetricCard } from '../../ui/MetricCard';
 import { MetricSkeletonRow } from '../../ui/Skeletons';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { relativeTime } from '../../core/formatTime';
 import { AppBarChart } from '../../ui/charts/AppBarChart';
 import { ChartCard } from '../../ui/charts/ChartCard';
+import { StatusBadge } from '../../ui/StatusBadge';
 import { useAuth } from '../auth/AuthProvider';
 import { useDashboardOverview } from '../management/useManagementOverviews';
 import { useAttendanceTodayOverview } from './useAttendanceTodayOverview';
+import { notificationTargetPath } from '../notifications/notificationTarget';
+import { notificationCategoryIcon, notificationCategoryLabel } from '../notifications/notificationMeta';
+import { useNotifications } from '../notifications/useNotifications';
 
 export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
   const auth = useAuth();
@@ -226,6 +231,8 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
             </section>
           ) : null}
 
+          {data ? <RecentNotificationsSection type={type} /> : null}
+
           {type === 'hr' && data ? (
             <section className="card p-5">
               <div className="section-title-row">
@@ -263,5 +270,68 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
         </>
       )}
     </div>
+  );
+}
+
+/** أحدث الإشعارات في لوحة الويب — غير المقروء أولاً ثم الأحدث. */
+function RecentNotificationsSection({ type }: { type: 'hr' | 'admin' }) {
+  const q = useNotifications();
+  const items = q.data ?? [];
+  if (!items.length || q.isError) return null;
+
+  const sorted = [...items].sort((a, b) => Number(a.isRead) - Number(b.isRead) || Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  const recent = sorted.slice(0, 5);
+  const workspace = type === 'admin' ? 'admin' : 'hr';
+
+  return (
+    <section className="card p-5">
+      <div className="section-title-row">
+        <div>
+          <h2>آخر الإشعارات</h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">أحدث التنبيهات الموجهة إلى حسابك — غير المقروء أولاً.</p>
+        </div>
+        <Link
+          to={workspace === 'admin' ? '/admin/notifications' : '/hr/notifications'}
+          className="text-sm font-bold text-[var(--brand-primary)] hover:underline"
+        >
+          عرض الكل
+        </Link>
+      </div>
+
+      <div className="mt-3 space-y-1.5">
+        {recent.map((n) => {
+          const Icon = notificationCategoryIcon(n.category);
+          const target = notificationTargetPath(n, workspace);
+          const urgent = n.priority === 'urgent' || n.priority === 'high';
+          const card = (
+            <div className="flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-[var(--surface-muted)]">
+              <span
+                aria-hidden="true"
+                className={`grid size-10 shrink-0 place-items-center rounded-xl ${urgent ? 'bg-[var(--danger-soft)] text-[var(--danger)]' : 'bg-[var(--surface-muted)] text-[var(--brand-primary)]'}`}
+              >
+                <Icon className="size-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-2">
+                  <strong className="block truncate text-sm">{n.title}</strong>
+                  {!n.isRead ? <span className="size-2 shrink-0 rounded-full bg-[var(--brand-primary)]" aria-label="غير مقروء" /> : null}
+                </span>
+                <small className="muted mt-0.5 block text-xs">
+                  {notificationCategoryLabel(n.category)} · {relativeTime(n.createdAt)}
+                </small>
+              </span>
+              {urgent ? <StatusBadge value={n.priority} /> : null}
+            </div>
+          );
+          return target ? (
+            <Link key={n.id} to={target} className="block" aria-label={n.isRead ? undefined : 'إشعار غير مقروء'}>
+              {card}
+            </Link>
+          ) : (
+            <div key={n.id}>{card}</div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
