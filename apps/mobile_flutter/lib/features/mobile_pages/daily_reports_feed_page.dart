@@ -19,6 +19,7 @@ class DailyReportsFeedPage extends ConsumerStatefulWidget {
 class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
   final Set<String> _expanded = {};
   final Map<String, TextEditingController> _commentControllers = {};
+  bool _viewsRecorded = false;
 
   @override
   void dispose() {
@@ -79,6 +80,20 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
           ),
         ),
         data: (items) {
+          if (items.isNotEmpty && !_viewsRecorded) {
+            _viewsRecorded = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) async {
+              try {
+                await ref
+                    .read(mobileCommandsProvider)
+                    .recordDailyReportsViews(
+                      items.map((e) => e['id'] as String).toList(),
+                    );
+              } catch (_) {
+                // المشاهدة تحليلية؛ فشلها لا يمنع قراءة التقارير.
+              }
+            });
+          }
           if (items.isEmpty) {
             return Center(
               child: Column(
@@ -126,6 +141,8 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
                   onComment: () => _onComment(item['id'] as String),
                   onDeleteComment: (commentId) =>
                       _onDeleteComment(commentId),
+                  onShowEngagement: () =>
+                      _showEngagement(item['id'] as String),
                 );
               },
             ),
@@ -176,6 +193,16 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
         );
       }
     }
+  }
+
+  /// لوحة "من شاهد ومن تفاعل؟" لتقرير يومي — القائمة الكاملة.
+  void _showEngagement(String reportId) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => _EngagementSheet(reportId: reportId),
+    );
   }
 
   /// نموذج إنشاء/تعديل تقرير اليوم مباشرة داخل صفحة تقارير الجميع —
@@ -283,6 +310,7 @@ class _ReportCard extends StatelessWidget {
     required this.onLike,
     required this.onComment,
     required this.onDeleteComment,
+    required this.onShowEngagement,
   });
 
   final Map<String, dynamic> item;
@@ -292,6 +320,7 @@ class _ReportCard extends StatelessWidget {
   final VoidCallback onLike;
   final VoidCallback onComment;
   final void Function(String commentId) onDeleteComment;
+  final VoidCallback onShowEngagement;
 
   @override
   Widget build(BuildContext context) {
@@ -307,6 +336,11 @@ class _ReportCard extends StatelessWidget {
     final managerComment = item['managerComment'] as String?;
     final likesCount = item['likesCount'] as int? ?? 0;
     final isLikedByMe = item['isLikedByMe'] as bool? ?? false;
+    final viewersCount = item['viewersCount'] as int? ?? 0;
+    final viewers = (item['viewers'] as List<dynamic>?)
+            ?.map((e) => Map<String, dynamic>.from(e as Map<dynamic, dynamic>))
+            .toList() ??
+        [];
     final comments =
         (item['comments'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ??
             [];
@@ -463,6 +497,54 @@ class _ReportCard extends StatelessWidget {
                 ],
               ),
             ),
+
+          // ─── سطر المشاهدين: العداد + أول الأسماء + فتح القائمة الكاملة ───
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 8, 2),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.visibility_outlined,
+                  size: 15,
+                  color: scheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '$viewersCount',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                if (viewers.isNotEmpty)
+                  Expanded(
+                    child: Text(
+                      'شاهده: ${viewers.map((v) => v['name'] as String? ?? '').where((n) => n.isNotEmpty).join('، ')}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                TextButton(
+                  onPressed: onShowEngagement,
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: const Size(0, 34),
+                  ),
+                  child: Text(
+                    viewers.isEmpty ? 'من شاهد؟' : 'كل الأسماء',
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
           // ─── شريط التفاعل ───
           Padding(
@@ -672,6 +754,199 @@ class _CommentBubble extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// لوحة "من شاهد ومن تفاعل؟" لتقرير يومي — القائمة الكاملة للأسماء.
+class _EngagementSheet extends ConsumerWidget {
+  const _EngagementSheet({required this.reportId});
+
+  final String reportId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final engagement = ref.watch(dailyReportEngagementProvider(reportId));
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: engagement.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, _) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Text(humanizeError(error), textAlign: TextAlign.center),
+              TextButton(
+                onPressed: () => ref
+                    .invalidate(dailyReportEngagementProvider(reportId)),
+                child: const Text('إعادة المحاولة'),
+              ),
+            ],
+          ),
+          data: (data) {
+            final viewers = (data['viewers'] as List<dynamic>? ?? [])
+                .map((e) => Map<String, dynamic>.from(e as Map<dynamic, dynamic>))
+                .toList();
+            final likers = (data['likers'] as List<dynamic>? ?? [])
+                .map((e) => Map<String, dynamic>.from(e as Map<dynamic, dynamic>))
+                .toList();
+            final viewersCount = data['viewersCount'] as int? ?? 0;
+            final likersCount = data['likersCount'] as int? ?? 0;
+
+            return ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * .72,
+              ),
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.visibility_outlined,
+                          size: 18, color: scheme.primary),
+                      const SizedBox(width: 6),
+                      Text(
+                        'من شاهد التقرير؟',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w900),
+                      ),
+                      const Spacer(),
+                      if (viewersCount > 0)
+                        Text(
+                          '$viewersCount',
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelLarge
+                              ?.copyWith(color: scheme.onSurfaceVariant),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  if (viewers.isEmpty)
+                    _emptyNote(context, 'لم يشاهده أحد بعد.')
+                  else
+                    ...viewers.map(
+                      (v) => _EngagementRow(
+                        name: v['name'] as String? ?? 'موظف',
+                        photoUrl: v['photoUrl'] as String?,
+                        detail: (v['viewCount'] as int? ?? 1) > 1
+                            ? '${v['viewCount']} مشاهدة'
+                            : _timeLabel(v['at']),
+                      ),
+                    ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Icon(Icons.favorite_outline,
+                          size: 18, color: scheme.primary),
+                      const SizedBox(width: 6),
+                      Text(
+                        'من تفاعل معه؟',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w900),
+                      ),
+                      const Spacer(),
+                      if (likersCount > 0)
+                        Text(
+                          '$likersCount',
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelLarge
+                              ?.copyWith(color: scheme.onSurfaceVariant),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  if (likers.isEmpty)
+                    _emptyNote(context, 'لا تفاعلات بعد — كن أول من يُعجب.')
+                  else
+                    ...likers.map(
+                      (l) => _EngagementRow(
+                        name: l['name'] as String? ?? 'موظف',
+                        photoUrl: l['photoUrl'] as String?,
+                        detail: _timeLabel(l['at']),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyNote(BuildContext context, String text) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Text(
+      text,
+      style: TextStyle(
+        fontSize: 12,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+    ),
+  );
+
+  String _timeLabel(Object? value) {
+    if (value == null) return '';
+    try {
+      final dt = DateTime.parse(value as String);
+      return DateFormat('d MMM، HH:mm', 'ar').format(dt);
+    } catch (_) {
+      return '';
+    }
+  }
+}
+
+/// صف شخص واحد ضمن قوائم "من شاهد / من تفاعل".
+class _EngagementRow extends StatelessWidget {
+  const _EngagementRow({
+    required this.name,
+    required this.photoUrl,
+    required this.detail,
+  });
+
+  final String name;
+  final String? photoUrl;
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          AppAvatar(name: name, photoUrl: photoUrl, radius: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          if (detail.isNotEmpty)
+            Text(
+              detail,
+              style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+            ),
+        ],
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
@@ -239,6 +240,12 @@ class _FeedDetailContent extends ConsumerWidget {
                       );
                     }).toList(growable: false),
                   ),
+                  const SizedBox(height: 6),
+                  TextButton.icon(
+                    onPressed: () => _showEngagement(context, ref),
+                    icon: const Icon(Icons.groups_outlined, size: 18),
+                    label: const Text('من شاهد ومن تفاعل؟'),
+                  ),
                 ],
               ),
             ),
@@ -283,5 +290,229 @@ class _FeedDetailContent extends ConsumerWidget {
         );
       }
     }
+  }
+
+  void _showEngagement(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => _AnnouncementEngagementSheet(announcementId: item.id),
+    );
+  }
+}
+
+/// لوحة "من شاهد ومن تفاعل؟" للإعلان — قوائم كاملة (0425).
+class _AnnouncementEngagementSheet extends ConsumerWidget {
+  const _AnnouncementEngagementSheet({required this.announcementId});
+
+  final String announcementId;
+
+  static const _reactionEmoji = {
+    'like': '👍',
+    'celebrate': '🎉',
+    'support': '🤝',
+    'insightful': '💡',
+  };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final engagement =
+        ref.watch(announcementEngagementProvider(announcementId));
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: engagement.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, _) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Text(humanizeError(error), textAlign: TextAlign.center),
+              TextButton(
+                onPressed: () => ref
+                    .invalidate(announcementEngagementProvider(announcementId)),
+                child: const Text('إعادة المحاولة'),
+              ),
+            ],
+          ),
+          data: (data) {
+            final viewers = _listOf(data['viewers']);
+            final reactions = _listOf(data['reactions']);
+            final acknowledgements = _listOf(data['acknowledgements']);
+            final viewerCount = data['viewerCount'] as int? ?? 0;
+            final reactionCount = data['reactionCount'] as int? ?? 0;
+            final acknowledgedCount = data['acknowledgedCount'] as int? ?? 0;
+
+            return ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * .72,
+              ),
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  _sectionHeader(
+                    context,
+                    icon: Icons.visibility_outlined,
+                    title: 'من شاهد الإعلان؟',
+                    count: viewerCount,
+                  ),
+                  if (viewers.isEmpty)
+                    _emptyNote(context, 'لم يشاهده أحد بعد.')
+                  else
+                    ...viewers.map(
+                      (v) => _PersonRow(
+                        name: v['name'] as String? ?? 'موظف',
+                        photoUrl: v['photoUrl'] as String?,
+                        detail: (v['viewCount'] as int? ?? 1) > 1
+                            ? '${v['viewCount']} مشاهدة'
+                            : _timeLabel(v['at']),
+                      ),
+                    ),
+                  const SizedBox(height: 18),
+                  _sectionHeader(
+                    context,
+                    icon: Icons.favorite_outline,
+                    title: 'من تفاعل معه؟',
+                    count: reactionCount,
+                  ),
+                  if (reactions.isEmpty)
+                    _emptyNote(context, 'لا تفاعلات بعد.')
+                  else
+                    ...reactions.map(
+                      (r) => _PersonRow(
+                        name: r['name'] as String? ?? 'موظف',
+                        photoUrl: r['photoUrl'] as String?,
+                        detail:
+                            '${_reactionEmoji[r['reactionType']] ?? '👍'} ${_timeLabel(r['at'])}',
+                      ),
+                    ),
+                  if (acknowledgedCount > 0) ...[
+                    const SizedBox(height: 18),
+                    _sectionHeader(
+                      context,
+                      icon: Icons.verified_outlined,
+                      title: 'أقروا بالاطلاع',
+                      count: acknowledgedCount,
+                    ),
+                    ...acknowledgements.map(
+                      (a) => _PersonRow(
+                        name: a['name'] as String? ?? 'موظف',
+                        photoUrl: a['photoUrl'] as String?,
+                        detail: _timeLabel(a['at']),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  static List<Map<String, dynamic>> _listOf(Object? value) =>
+      (value as List<dynamic>? ?? [])
+          .map((e) => Map<String, dynamic>.from(e as Map<dynamic, dynamic>))
+          .toList();
+
+  Widget _sectionHeader(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required int count,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: scheme.primary),
+        const SizedBox(width: 6),
+        Text(
+          title,
+          style: Theme.of(context)
+              .textTheme
+              .titleMedium
+              ?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const Spacer(),
+        if (count > 0)
+          Text(
+            '$count',
+            style: Theme.of(context)
+                .textTheme
+                .labelLarge
+                ?.copyWith(color: scheme.onSurfaceVariant),
+          ),
+      ],
+    );
+  }
+
+  Widget _emptyNote(BuildContext context, String text) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      );
+
+  String _timeLabel(Object? value) {
+    if (value == null) return '';
+    try {
+      final dt = DateTime.parse(value as String);
+      return DateFormat('d MMM، HH:mm', 'ar').format(dt);
+    } catch (_) {
+      return '';
+    }
+  }
+}
+
+/// صف شخص واحد ضمن قوائم "من شاهد / من تفاعل".
+class _PersonRow extends StatelessWidget {
+  const _PersonRow({
+    required this.name,
+    required this.photoUrl,
+    required this.detail,
+  });
+
+  final String name;
+  final String? photoUrl;
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          AppAvatar(name: name, photoUrl: photoUrl, radius: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          if (detail.isNotEmpty)
+            Text(
+              detail,
+              style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+            ),
+        ],
+      ),
+    );
   }
 }

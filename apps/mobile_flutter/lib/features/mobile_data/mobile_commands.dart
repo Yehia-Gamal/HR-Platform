@@ -986,6 +986,44 @@ extension MobileNewFeaturesCommands on MobileCommands {
         ));
     ref.invalidate(dailyReportsFeedProvider(null));
   }
+
+  /// تسجيل جماعي لمشاهدات التقارير الظاهرة حالياً في صفحة التقارير.
+  Future<void> recordDailyReportsViews(List<String> reportIds) async {
+    if (reportIds.isEmpty) return;
+    await _withTimeout(ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
+          'record_daily_reports_views',
+          params: {'p_report_ids': reportIds},
+        ));
+    ref.invalidate(dailyReportsFeedProvider(null));
+  }
+
+  /// قائمة كاملة بمن شاهد ومن تفاعل مع تقرير يومي.
+  Future<Map<String, dynamic>> getDailyReportEngagement(
+    String reportId,
+  ) async {
+    final result = await _withTimeout(ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
+          'get_daily_report_engagement',
+          params: {'p_report_id': reportId},
+        ));
+    return Map<String, dynamic>.from(result as Map<dynamic, dynamic>);
+  }
+
+  /// قائمة كاملة بمن شاهد ومن تفاعل مع إعلان.
+  Future<Map<String, dynamic>> getAnnouncementEngagement(
+    String announcementId,
+  ) async {
+    final result = await _withTimeout(ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
+          'get_announcement_engagement',
+          params: {'p_announcement_id': announcementId},
+        ));
+    return Map<String, dynamic>.from(result as Map<dynamic, dynamic>);
+  }
 }
 
 extension MobileDailyCommands on MobileCommands {

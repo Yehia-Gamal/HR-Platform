@@ -569,3 +569,27 @@ final dailyReportsFeedProvider =
       .toList(growable: false);
 });
 
+/// قائمة كاملة بمن شاهد ومن تفاعل مع تقرير يومي (0425).
+final dailyReportEngagementProvider =
+    FutureProvider.family<Map<String, dynamic>, String>((ref, reportId) async {
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>(
+      'get_daily_report_engagement',
+      params: {'p_report_id': reportId},
+    ),
+  );
+  return _asMap(data);
+});
+
+/// قائمة كاملة بمن شاهد ومن تفاعل مع إعلان (0425).
+final announcementEngagementProvider =
+    FutureProvider.family<Map<String, dynamic>, String>((ref, announcementId) async {
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>(
+      'get_announcement_engagement',
+      params: {'p_announcement_id': announcementId},
+    ),
+  );
+  return _asMap(data);
+});
+

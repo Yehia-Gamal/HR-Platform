@@ -5,6 +5,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.
 import 'package:ahla_shabab_management_os/features/mobile_pages/location_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_feed_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_home_box.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_tasks_page.dart';
@@ -27,7 +28,10 @@ class EmployeeHomePage extends ConsumerWidget {
     final date = DateFormat('EEEE، d MMMM', 'ar_EG').format(DateTime.now());
 
     return RefreshIndicator(
-      onRefresh: () async => ref.invalidate(employeeHomeProvider),
+      onRefresh: () async {
+        ref.invalidate(employeeHomeProvider);
+        ref.invalidate(dailyReportsFeedProvider(null));
+      },
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
         children: [
@@ -166,6 +170,8 @@ class EmployeeHomePage extends ConsumerWidget {
               ),
             ],
           ),
+          const SizedBox(height: 20),
+          const DailyReportsHomeBox(),
           const SizedBox(height: 20),
           const MobileSectionHeader(
             title: 'ملخص حسابك',

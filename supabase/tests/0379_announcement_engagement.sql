@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions,pg_temp;
-select plan(20);
+select plan(21);
 
 select has_table('public','announcement_views','announcement views table exists');
 select has_table('public','announcement_reactions','announcement reactions table exists');
@@ -57,7 +57,8 @@ reset role;
 
 select pg_temp.act_as('35800000-0000-4000-8000-000000000012');
 set local role authenticated;
-select throws_ok($$select public.get_announcement_engagement('35800000-0000-4000-8000-000000000031')$$,'42501','not authorized to view announcement engagement','ordinary employee cannot enumerate colleagues');
+select is((public.get_announcement_engagement('35800000-0000-4000-8000-000000000031')->>'viewerCount')::integer,1,'ordinary employee sees viewer count (0425 relax guard)');
+select is((public.get_announcement_engagement('35800000-0000-4000-8000-000000000031')->'viewers'->0->>'name'),'مشاهد الاختبار','ordinary employee sees viewer name (0425 relax guard)');
 select lives_ok($$select public.toggle_announcement_reaction('35800000-0000-4000-8000-000000000031','like')$$,'same reaction toggles off');
 reset role;
 select is((select count(*)::integer from public.announcement_reactions where announcement_id='35800000-0000-4000-8000-000000000031'),0,'toggle removes reaction');

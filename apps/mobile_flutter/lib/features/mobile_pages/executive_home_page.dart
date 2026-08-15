@@ -3,13 +3,15 @@ import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_brief_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_home_box.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_people_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_decisions_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_disputes_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/disputes_portal_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_attendance_tab.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notifications_page.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
@@ -30,7 +32,10 @@ class ExecutiveHomePage extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return RefreshIndicator(
-      onRefresh: () async => ref.invalidate(executiveDashboardProvider),
+      onRefresh: () async {
+        ref.invalidate(executiveDashboardProvider);
+        ref.invalidate(dailyReportsFeedProvider(null));
+      },
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
         children: [
@@ -154,6 +159,10 @@ class ExecutiveHomePage extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 20),
+          const _UrgentAlertsSection(),
+          const SizedBox(height: 20),
+          const DailyReportsHomeBox(),
+          const SizedBox(height: 20),
           const MobileSectionHeader(
             title: 'مؤشرات تحتاج الانتباه',
             subtitle: 'مؤشرات مرتبطة بصلاحياتك كمدير تنفيذي.',
@@ -247,7 +256,7 @@ class ExecutiveHomePage extends ConsumerWidget {
                   () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const ExecutiveDisputesPage(),
+                      builder: (_) => const DisputesPortalPage(),
                     ),
                   ),
                 ),
@@ -363,7 +372,7 @@ class ExecutiveHomePage extends ConsumerWidget {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const ExecutiveDisputesPage(),
+                          builder: (_) => const DisputesPortalPage(),
                         ),
                       ),
                       child: Padding(
@@ -486,4 +495,88 @@ class _ExecutiveQuickLink extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// تنبيهات عاجلة للمدير التنفيذي: الإشعارات غير المقروءة عالية الأولوية
+/// (urgent/high) تظهر أولاً في أعلى المساحة للاطلاع السريع على القرارات
+/// والطلبات الحساسة — النقر يفتح مركز الإشعارات كاملاً.
+class _UrgentAlertsSection extends ConsumerWidget {
+  const _UrgentAlertsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notifications = ref.watch(myNotificationsProvider);
+    final urgent =
+        notifications.asData?.value
+            .where(
+              (n) => !n.isRead && (n.priority == 'urgent' || n.priority == 'high'),
+            )
+            .take(3)
+            .toList() ??
+        const [];
+    if (urgent.isEmpty) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        MobileSectionHeader(
+          title: 'تنبيهات عاجلة',
+          subtitle: 'إشعارات عالية الأولوية تنتظر اطلاعك الآن.',
+        ),
+        const SizedBox(height: 12),
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (var i = 0; i < urgent.length; i++) ...[
+                if (i > 0) const Divider(indent: 16, endIndent: 16),
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  leading: CircleAvatar(
+                    backgroundColor: scheme.error.withValues(alpha: .12),
+                    child: Icon(
+                      Icons.priority_high_rounded,
+                      color: scheme.error,
+                    ),
+                  ),
+                  title: Text(
+                    urgent[i].title,
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  subtitle: Text(
+                    urgent[i].body?.trim().isNotEmpty == true
+                        ? urgent[i].body!
+                        : _urgentCategoryLabel(urgent[i].category),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: const Icon(Icons.chevron_left_rounded),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const MobileNotificationsPage(),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _urgentCategoryLabel(String category) => switch (category) {
+    'request' => 'طلب بانتظار قرار',
+    'decision' => 'قرار رسمي',
+    'dispute' => 'قضية مصعّدة',
+    'kpi' => 'تقييم أداء',
+    'announcement' => 'إعلان',
+    'attendance' => 'حضور',
+    'location' => 'موقع',
+    _ => 'إشعار عاجل',
+  };
 }
