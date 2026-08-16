@@ -33,17 +33,46 @@ function fail(msg) { console.error(`✗ ${msg}`); errors += 1; }
 function warn(msg) { console.warn(`⚠ ${msg}`); warnings += 1; }
 
 /* ---------- الحصول على السكيما الفعلية من الـ DB المحلي ---------- */
-function dumpSchema() {
+/* اختيار الحاوية المناسبة: تفضّل حاوية مشروع CLI الحالي (supabase/.temp/project-ref)
+ * ثم الحاوية الأكثر اكتمالاً (أعلى عدد migrations) — مع وجود stack محلي متعدد
+ * (مثلاً stack معزول للاختبارات) كان containers[0] الأبجدي يعطي سكيما خاطئة. */
+function pickContainer() {
+  const refFile = path.join(ROOT, 'supabase', '.temp', 'project-ref');
   let containers = [];
   try {
     const out = execFileSync('docker', ['ps', '--filter', 'name=supabase_db', '--format', '{{.Names}}'], { encoding: 'utf8' });
     containers = out.split('\n').map((s) => s.trim()).filter(Boolean);
   } catch { /* docker غير متاح */ }
-  if (containers.length === 0) {
+  if (containers.length === 0) return null;
+
+  if (existsSync(refFile)) {
+    const ref = readFileSync(refFile, 'utf8').trim();
+    const match = containers.find((c) => c === `supabase_db_${ref}`);
+    if (match) return match;
+  }
+
+  let best = containers[0];
+  let bestCount = -1;
+  for (const c of containers) {
+    try {
+      const out = execFileSync(
+        'docker',
+        ['exec', c, 'psql', '-U', 'postgres', '-d', 'postgres', '-t', '-A', '-c', 'select count(*) from supabase_migrations.schema_migrations;'],
+        { encoding: 'utf8', maxBuffer: 1024 * 1024 },
+      );
+      const n = parseInt(out.trim(), 10);
+      if (n > bestCount) { bestCount = n; best = c; }
+    } catch { /* حاوية غير متاحة مؤقتاً — تخطّ */ }
+  }
+  return best;
+}
+
+function dumpSchema() {
+  const container = pickContainer();
+  if (!container) {
     warn('حاوية supabase غير متاحة — تَجاوز فحص المراجع (شغّل الـ stack للتفعيل)');
     return null;
   }
-  const container = containers[0];
   const cols = new Map(); // "schema.table" (منخفض) -> Set<column> (منخفض)
   const q = `select lower(quote_ident(n.nspname))||'.'||lower(quote_ident(c.relname)), lower(a.attname)
     from pg_class c
