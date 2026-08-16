@@ -586,7 +586,7 @@ export function OfficialFeedPage() {
               <input type="checkbox" checked={form.requiresAcknowledgement} onChange={(e) => setForm({ ...form, requiresAcknowledgement: e.target.checked })} />
               يتطلب إقرارًا بالاطلاع
             </label>
-            {submitError ? <ErrorBanner message="تعذر حفظ العنصر الرسمي." /> : null}
+            {submitError ? <ErrorBanner message={safeErrorMessage(publish.error ?? createDecision.error)} /> : null}
             <button
               className="btn-primary"
               disabled={isSubmitting || imageUploading || form.title.trim().length < 3 || form.body.trim().length < 10}
@@ -596,7 +596,7 @@ export function OfficialFeedPage() {
                     setOpen(false);
                     toast({ message: mode === 'decision' ? 'تم حفظ مسودة القرار بنجاح' : 'تم نشر العنصر الرسمي بنجاح', tone: 'success' });
                   } else {
-                    toast({ message: 'تعذر حفظ العنصر الرسمي', tone: 'error' });
+                    toast({ message: safeErrorMessage(publish.error ?? createDecision.error), tone: 'error' });
                   }
                 })
               }

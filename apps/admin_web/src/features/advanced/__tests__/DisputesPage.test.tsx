@@ -155,7 +155,7 @@ describe('DisputesPage', () => {
         <DisputesPage />
       </Wrapper>,
     );
-    expect(screen.getByText('تعذّر تحميل البيانات')).toBeDefined();
+    expect(screen.getByText('تعذر تحميل القضايا')).toBeDefined();
   });
 
   it('يعرض حالة فارغة عند عدم وجود قضايا', () => {

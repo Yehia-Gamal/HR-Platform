@@ -74,7 +74,7 @@ export function DailyReportsFeedPage() {
         <div className="card space-y-4 p-5">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-black">تقرير اليوم</h3>
-            <button className="rounded-full p-1 text-[var(--muted)] hover:bg-[var(--surface-muted)]" onClick={() => setShowComposer(false)}>
+            <button className="rounded-full p-1 text-[var(--text-muted)] hover:bg-[var(--surface-muted)]" onClick={() => setShowComposer(false)}>
               <X className="size-5" aria-hidden="true" />
             </button>
           </div>
@@ -153,42 +153,35 @@ export function DailyReportsFeedPage() {
             return (
               <article
                 key={item.id}
-                className="report-card"
-                style={{
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 18,
-                  overflow: 'hidden',
-                  transition: 'box-shadow .2s, transform .2s',
-                }}
+                className="report-card overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] transition-[box-shadow,transform] duration-200"
               >
                 {/* ─── رأس البطاقة: الصورة + الاسم + المسمى + المدير + التاريخ ─── */}
-                <div className="flex items-center gap-3 p-4" style={{ borderBottom: '1px solid var(--border)' }}>
+                <div className="flex items-center gap-3 border-b border-[var(--border)] p-4">
                   <UserAvatar displayName={item.employeeName} photoUrl={item.photoUrl} size="lg" announceName={false} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-base font-black">{item.employeeName}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {item.jobTitle ? (
-                        <span className="report-chip" style={chipStyle('primary')}>
+                        <span className={chipClass('primary')}>
                           {item.jobTitle}
                         </span>
                       ) : null}
                       {item.department ? (
-                        <span className="report-chip" style={chipStyle('neutral')}>
+                        <span className={chipClass('neutral')}>
                           {item.department}
                         </span>
                       ) : null}
                     </div>
                   </div>
                   <div className="shrink-0 text-left">
-                    <p className="text-xs font-bold text-[var(--muted)]">
+                    <p className="text-xs font-bold text-[var(--text-muted)]">
                       {new Intl.DateTimeFormat('ar-EG', {
                         day: 'numeric',
                         month: 'long',
                         year: 'numeric',
                       }).format(new Date(`${item.reportDate}T00:00:00`))}
                     </p>
-                    <p className="text-[10px] text-[var(--muted)]">
+                    <p className="text-[10px] text-[var(--text-muted)]">
                       {new Intl.DateTimeFormat('ar-EG', { weekday: 'long' }).format(new Date(`${item.reportDate}T00:00:00`))}
                     </p>
                   </div>
@@ -196,19 +189,11 @@ export function DailyReportsFeedPage() {
 
                 {/* ─── المحتوى: الإنجازات / المعوقات / خطة الغد (بارتفاع محدود + تمرير) ─── */}
                 <div
-                  className="report-content"
-                  style={{
-                    maxHeight: isExpanded ? 'none' : '200px',
-                    overflowY: isExpanded ? 'visible' : 'auto',
-                    padding: '16px 20px',
-                    fontSize: '14px',
-                    lineHeight: 1.8,
-                  }}
+                  className={`report-content ${isExpanded ? '' : 'max-h-[200px] overflow-y-auto'} p-5 text-sm leading-[1.8]`}
                 >
                   <div className="mb-3">
                     <span
-                      className="inline-block rounded-full px-2 py-0.5 text-xs font-black"
-                      style={{ background: 'var(--primary-soft, #e8f0fe)', color: 'var(--primary)' }}
+                      className="inline-block rounded-full bg-[var(--brand-primary-soft)] px-2 py-0.5 text-xs font-black text-[var(--brand-primary)]"
                     >
                       ✓ الإنجازات
                     </span>
@@ -216,7 +201,7 @@ export function DailyReportsFeedPage() {
                   </div>
                   {item.blockers ? (
                     <div className="mb-3">
-                      <span className="inline-block rounded-full px-2 py-0.5 text-xs font-black" style={{ background: '#fff4e6', color: '#cc6600' }}>
+                      <span className="inline-block rounded-full bg-[var(--warning-soft)] px-2 py-0.5 text-xs font-black text-[var(--warning)]">
                         ⚠ المعوقات
                       </span>
                       <p className="mt-1.5 whitespace-pre-wrap">{item.blockers}</p>
@@ -224,7 +209,7 @@ export function DailyReportsFeedPage() {
                   ) : null}
                   {item.tomorrowPlan ? (
                     <div className="mb-1">
-                      <span className="inline-block rounded-full px-2 py-0.5 text-xs font-black" style={{ background: '#e8f5e9', color: '#2e7d32' }}>
+                      <span className="inline-block rounded-full bg-[var(--success-soft)] px-2 py-0.5 text-xs font-black text-[var(--success)]">
                         → خطة الغد
                       </span>
                       <p className="mt-1.5 whitespace-pre-wrap">{item.tomorrowPlan}</p>
@@ -234,7 +219,7 @@ export function DailyReportsFeedPage() {
 
                 {/* زر توسيع/طي */}
                 <button
-                  className="flex w-full items-center justify-center gap-1 py-2 text-xs font-bold text-[var(--muted)] transition hover:bg-[var(--surface-muted)]"
+                  className="flex w-full items-center justify-center gap-1 py-2 text-xs font-bold text-[var(--text-muted)] transition hover:bg-[var(--surface-muted)]"
                   onClick={() => setExpanded((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
                 >
                   {isExpanded ? (
@@ -250,17 +235,18 @@ export function DailyReportsFeedPage() {
 
                 {/* ─── تعليق المدير (إن وجد) ─── */}
                 {item.managerComment ? (
-                  <div className="mx-4 mb-3 rounded-2xl p-3" style={{ background: 'var(--surface-muted)' }}>
-                    <p className="text-xs font-black text-[var(--muted)]">تعليق المدير{item.reviewedByName ? ` — ${item.reviewedByName}` : ''}</p>
+                  <div className="mx-4 mb-3 rounded-2xl bg-[var(--surface-muted)] p-3">
+                    <p className="text-xs font-black text-[var(--text-muted)]">تعليق المدير{item.reviewedByName ? ` — ${item.reviewedByName}` : ''}</p>
                     <p className="mt-1 text-sm leading-7">{item.managerComment}</p>
                   </div>
                 ) : null}
 
                 {/* ─── شريط التفاعل: إعجاب + تعليقات ─── */}
-                <div className="flex items-center gap-2 px-4 py-3" style={{ borderTop: '1px solid var(--border)' }}>
+                <div className="flex items-center gap-2 border-t border-[var(--border)] px-4 py-3">
                   <button
-                    className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition active:scale-95"
-                    style={item.isLikedByMe ? { background: 'var(--primary)', color: '#fff' } : { background: 'var(--surface-muted)' }}
+                    className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition active:scale-95 ${
+                      item.isLikedByMe ? 'bg-[var(--brand-primary)] text-white' : 'bg-[var(--surface-muted)]'
+                    }`}
                     disabled={toggleLike.isPending}
                     onClick={() => handleToggleLike(item.id)}
                   >
@@ -285,11 +271,11 @@ export function DailyReportsFeedPage() {
                 {isExpanded ? (
                   <div className="space-y-2 px-4 pb-4">
                     {item.comments.map((comment) => (
-                      <div key={comment.id} className="flex items-start justify-between gap-2 rounded-2xl p-3" style={{ background: 'var(--surface-muted)' }}>
+                      <div key={comment.id} className="flex items-start justify-between gap-2 rounded-2xl bg-[var(--surface-muted)] p-3">
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-black">{comment.employeeName}</p>
                           <p className="mt-0.5 text-sm leading-7">{comment.comment}</p>
-                          <p className="mt-1 text-[10px] text-[var(--muted)]">
+                          <p className="mt-1 text-[10px] text-[var(--text-muted)]">
                             {new Intl.DateTimeFormat('ar-EG', {
                               hour: '2-digit',
                               minute: '2-digit',
@@ -310,7 +296,7 @@ export function DailyReportsFeedPage() {
                         ) : null}
                       </div>
                     ))}
-                    {item.comments.length === 0 ? <p className="py-2 text-center text-sm text-[var(--muted)]">لا توجد تعليقات بعد — كن أول من يعلّق</p> : null}
+                    {item.comments.length === 0 ? <p className="py-2 text-center text-sm text-[var(--text-muted)]">لا توجد تعليقات بعد — كن أول من يعلّق</p> : null}
 
                     {/* صندوق كتابة تعليق */}
                     <div className="flex items-center gap-2 pt-1">
@@ -327,8 +313,7 @@ export function DailyReportsFeedPage() {
                         }}
                       />
                       <button
-                        className="flex size-10 items-center justify-center rounded-full text-white transition active:scale-90"
-                        style={{ background: 'var(--primary)' }}
+                        className="flex size-10 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white transition active:scale-90"
                         disabled={addComment.isPending || !(commentDrafts[item.id] ?? '').trim()}
                         onClick={() => submitComment(item.id, commentDrafts[item.id] ?? '')}
                       >
@@ -368,44 +353,14 @@ export function DailyReportsFeedPage() {
 }
 
 /** أنماط الفقاعات (chips) */
-function chipStyle(variant: 'primary' | 'neutral' | 'muted'): React.CSSProperties {
+function chipClass(variant: 'primary' | 'neutral' | 'muted'): string {
+  const base = 'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-extrabold';
   switch (variant) {
     case 'primary':
-      return {
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '4px',
-        padding: '2px 10px',
-        borderRadius: '99px',
-        fontSize: '11px',
-        fontWeight: 800,
-        background: 'var(--primary-soft, #e8f0fe)',
-        color: 'var(--primary)',
-      };
+      return `${base} bg-[var(--brand-primary-soft)] text-[var(--brand-primary)]`;
     case 'neutral':
-      return {
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '4px',
-        padding: '2px 10px',
-        borderRadius: '99px',
-        fontSize: '11px',
-        fontWeight: 800,
-        background: 'var(--surface-muted)',
-        color: 'var(--text)',
-      };
+      return `${base} bg-[var(--surface-muted)] text-[var(--text)]`;
     case 'muted':
-      return {
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '4px',
-        padding: '2px 10px',
-        borderRadius: '99px',
-        fontSize: '11px',
-        fontWeight: 700,
-        background: 'transparent',
-        color: 'var(--muted)',
-        border: '1px solid var(--border)',
-      };
+      return `${base} border border-[var(--border)] bg-transparent font-bold text-[var(--text-muted)]`;
   }
 }

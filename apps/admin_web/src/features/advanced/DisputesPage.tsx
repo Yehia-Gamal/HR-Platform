@@ -1204,7 +1204,6 @@ export function DisputesPage() {
       setFeedback({ tone: 'success', text: success });
       toast({ message: success, tone: 'success' });
     } catch (error) {
-      setFeedback({ tone: 'error', text: safeErrorMessage(error) });
       toast({ message: safeErrorMessage(error), tone: 'error' });
     }
   };
@@ -1256,7 +1255,7 @@ export function DisputesPage() {
         </select>
       </FilterBar>
 
-      {query.isError ? <ErrorState description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} /> : null}
+      {query.isError ? <ErrorState title="تعذر تحميل القضايا" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} /> : null}
 
       <section className="grid gap-6 xl:grid-cols-[390px_minmax(0,1fr)]">
         <div className="card p-4">

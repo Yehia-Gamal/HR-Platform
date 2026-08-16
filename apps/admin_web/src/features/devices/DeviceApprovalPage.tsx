@@ -80,7 +80,7 @@ function PendingDevicesPanel() {
         <ListSkeleton rows={4} />
       </div>
     );
-  if (query.isError) return <ErrorState onRetry={() => void query.refetch()} />;
+  if (query.isError) return <ErrorState title="تعذر تحميل طلبات الأجهزة" onRetry={() => void query.refetch()} />;
 
   return (
     <div className="space-y-5">
@@ -226,7 +226,7 @@ function AllDevicesPanel() {
         <ListSkeleton rows={4} />
       </div>
     );
-  if (query.isError) return <ErrorState onRetry={() => void query.refetch()} />;
+  if (query.isError) return <ErrorState title="تعذر تحميل الأجهزة" onRetry={() => void query.refetch()} />;
 
   return (
     <div className="space-y-5">
@@ -411,7 +411,7 @@ function PendingDeviceCard({
   const registeredDate = new Date(device.registeredAt);
   const dateStr = registeredDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
   const timeStr = registeredDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-  const platformLabel = device.platform === 'android' ? 'أندرويد' : device.platform === 'ios' ? 'آيفون' : device.platform;
+  const platformLabel = device.platform === 'android' ? 'أندرويد' : device.platform === 'ios' ? 'آيفون' : device.platform === 'web' ? 'ويب' : device.platform === 'desktop' ? 'حاسوب' : (device.platform || 'غير معروف');
   return (
     <article className="card p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -485,7 +485,7 @@ function AdminDeviceCard({
 }) {
   const registeredDate = new Date(device.registeredAt);
   const dateStr = registeredDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
-  const platformLabel = device.platform === 'android' ? 'أندرويد' : device.platform === 'ios' ? 'آيفون' : device.platform;
+  const platformLabel = device.platform === 'android' ? 'أندرويد' : device.platform === 'ios' ? 'آيفون' : device.platform === 'web' ? 'ويب' : device.platform === 'desktop' ? 'حاسوب' : (device.platform || 'غير معروف');
   const canRevoke = device.status === 'active';
   const canReinstate = ['revoked', 'auto_revoked', 'blocked'].includes(device.status);
   const canDelete = terminatedStatuses.includes(device.status);

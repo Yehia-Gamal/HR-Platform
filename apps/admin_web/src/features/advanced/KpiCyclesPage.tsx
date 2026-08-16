@@ -110,8 +110,8 @@ export function KpiCyclesPage() {
         p_use_parallel_flow: true,
       });
       toast({ message: 'تم تجهيز الدورة بنجاح', tone: 'success' });
-    } catch {
-      toast({ message: 'تعذر تجهيز الدورة', tone: 'error' });
+    } catch (err) {
+      toast({ message: safeErrorMessage(err), tone: 'error' });
     }
   };
   const control = (cycleId: string, action: string, extendedUntil: string | null = null) =>
@@ -119,7 +119,7 @@ export function KpiCyclesPage() {
       { p_cycle_id: cycleId, p_action: action, p_reason: reason[cycleId], p_extended_until: extendedUntil },
       {
         onSuccess: () => toast({ message: 'تم تنفيذ الإجراء بنجاح', tone: 'success' }),
-        onError: () => toast({ message: 'تعذر تنفيذ الإجراء', tone: 'error' }),
+        onError: (err) => toast({ message: safeErrorMessage(err), tone: 'error' }),
       },
     );
   const reschedule = (cycleId: string) =>
@@ -132,7 +132,7 @@ export function KpiCyclesPage() {
       },
       {
         onSuccess: () => toast({ message: 'تم تعديل مواعيد الدورة بنجاح', tone: 'success' }),
-        onError: () => toast({ message: 'تعذر تعديل المواعيد', tone: 'error' }),
+        onError: (err) => toast({ message: safeErrorMessage(err), tone: 'error' }),
       },
     );
   const downloadReport = async (cycleId: string) => {
@@ -152,8 +152,8 @@ export function KpiCyclesPage() {
       link.download = `kpi-${month}.csv`;
       link.click();
       URL.revokeObjectURL(link.href);
-    } catch {
-      toast({ message: 'تعذر تنزيل التقرير', tone: 'error' });
+    } catch (err) {
+      toast({ message: safeErrorMessage(err), tone: 'error' });
     }
   };
   const sendNotifications = (cycleId: string) =>
@@ -161,7 +161,7 @@ export function KpiCyclesPage() {
       { p_cycle_id: cycleId },
       {
         onSuccess: () => toast({ message: 'تم إرسال الإشعارات بنجاح', tone: 'success' }),
-        onError: () => toast({ message: 'تعذر إرسال الإشعارات', tone: 'error' }),
+        onError: (err) => toast({ message: safeErrorMessage(err), tone: 'error' }),
       },
     );
   const savePolicy = () => {
@@ -172,7 +172,7 @@ export function KpiCyclesPage() {
     }
     commands.updatePolicy.mutate(policyPayload(), {
       onSuccess: () => toast({ message: 'تم حفظ إصدار السياسة الجديد', tone: 'success' }),
-      onError: () => toast({ message: 'تعذر حفظ السياسة', tone: 'error' }),
+      onError: (err) => toast({ message: safeErrorMessage(err), tone: 'error' }),
     });
   };
   const policyPayload = () => ({

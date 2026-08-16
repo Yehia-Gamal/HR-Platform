@@ -503,7 +503,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
             <section>
               <h3 className="mb-3 flex items-center gap-2 font-black">
                 <ShieldCheck className="size-5 text-brand" aria-hidden="true" />
-                البنود السبعة
+                البنود ({form.criteria.length})
               </h3>
               <div className="grid gap-3 lg:grid-cols-2">
                 {form.criteria.map((criterion) => (

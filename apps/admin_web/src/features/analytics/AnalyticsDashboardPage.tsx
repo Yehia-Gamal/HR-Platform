@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { PageHeader } from '../../ui/PageHeader';
 import { ErrorState } from '../../ui/ErrorState';
+import { EmptyState } from '../../ui/EmptyState';
 import { MetricSkeletonRow } from '../../ui/Skeletons';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { ChartCard } from '../../ui/charts/ChartCard';
@@ -51,6 +52,11 @@ export function AnalyticsDashboardPage() {
         <ErrorState title="تعذر تحميل التحليلات" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
       ) : query.isLoading ? (
         <MetricSkeletonRow count={4} />
+      ) : data && data.monthlyRequests.length === 0 && data.departmentDistribution.length === 0 && data.attendanceTrend.length === 0 ? (
+        <EmptyState
+          title="لا توجد بيانات بعد"
+          description="لم تُسجل طلبات أو حضور في هذه الفترة — ستظهر التحليلات تلقائياً عند توفر بيانات."
+        />
       ) : data ? (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <ChartCard title="حركة الطلبات الشهرية" subtitle={`آخر ${monthsBack} أشهر — معتمد / مرفوض / معلق`}>

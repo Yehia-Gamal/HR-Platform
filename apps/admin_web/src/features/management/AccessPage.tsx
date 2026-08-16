@@ -691,7 +691,7 @@ function RoleManagementDialog({
                                     </option>
                                   ))}
                                 </select>
-                                <Flag checked={sel.mfa} label="MFA" onChange={(mfa) => setDraft({ ...draft, [permission.id]: { ...sel, mfa } })} />
+                                <Flag checked={sel.mfa} label="تحقق ثنائي" onChange={(mfa) => setDraft({ ...draft, [permission.id]: { ...sel, mfa } })} />
                                 <Flag checked={sel.reason} label="سبب" onChange={(reason) => setDraft({ ...draft, [permission.id]: { ...sel, reason } })} />
                               </div>
                             )}
@@ -843,7 +843,7 @@ function CustomRoleDraftDialog({
       <form className="space-y-5" onSubmit={(e) => void saveRole(e)}>
         <div className="grid gap-4 sm:grid-cols-2">
           <FormInput
-            label="Slug"
+            label="المعرّف (Slug)"
             required
             value={draft.slug}
             disabled={Boolean(draft.id)}
@@ -855,7 +855,7 @@ function CustomRoleDraftDialog({
         </div>
 
         <label
-          className={`flex items-center gap-3 rounded-xl p-3 text-sm font-semibold ${canGrantFullAccess ? 'bg-[var(--surface-muted)]' : 'bg-[var(--surface-muted)] opacity-60'}`}
+          className={`flex items-center gap-3 rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-semibold ${canGrantFullAccess ? '' : 'opacity-60'}`}
         >
           <input
             className="size-4"

@@ -1,6 +1,7 @@
 import type { Employee360 } from '@ahla/shared-contracts';
 import type { LucideIcon } from 'lucide-react';
 import {
+  AlertTriangle,
   ArrowRight,
   BadgeCheck,
   BriefcaseBusiness,
@@ -29,7 +30,6 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { Link, useNavigate, useParams } from 'react-router';
 import { EmptyState } from '../../ui/EmptyState';
@@ -73,6 +73,18 @@ import { EmployeeReportsTab } from './EmployeeReportsTab';
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
 
 const PENDING_ACCOUNT_STATES = new Set(['invited', 'onboarding', 'pending', 'draft']);
+
+const ACCOUNT_STATUS_LABELS: Record<string, string> = {
+  active: 'نشط',
+  enabled: 'نشط',
+  invited: 'بانتظار التفعيل',
+  onboarding: 'بانتظار التفعيل',
+  pending: 'بانتظار التفعيل',
+  draft: 'مسودة',
+  blocked: 'موقوف',
+  suspended: 'موقوف',
+  disabled: 'معطّل',
+};
 
 // ---------------------------------------------------------------------------
 // Small helpers
@@ -635,25 +647,20 @@ function ArchiveEmployeeDialog({
       setError(safeErrorMessage(err));
     }
   };
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <form onSubmit={(event) => void submit(event)} className="card w-full max-w-md p-6" role="dialog" aria-modal="true">
-        <h2 className="text-lg font-black">أرشفة الموظف</h2>
-        <p className="muted mt-2 text-sm">سيُعطّل حساب {employeeName} وتُسحب جلساته وأجهزته، مع الاحتفاظ بالسجل التاريخي.</p>
-        {error ? (
-          <div className="mt-4">
-            <ErrorBanner message={error} />
-          </div>
-        ) : null}
-        <label className="mt-4 block">
+  return (
+    <DialogOverlay title="أرشفة الموظف" onClose={onClose} maxWidth="max-w-md">
+      <form onSubmit={(event) => void submit(event)} className="space-y-4">
+        <p className="muted text-sm">سيُعطّل حساب {employeeName} وتُسحب جلساته وأجهزته، مع الاحتفاظ بالسجل التاريخي.</p>
+        {error ? <ErrorBanner message={error} /> : null}
+        <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">سبب الأرشفة</span>
           <textarea className="input min-h-24 w-full" required minLength={5} value={reason} onChange={(event) => setReason(event.target.value)} />
         </label>
-        <label className="mt-4 flex items-start gap-2 text-sm">
+        <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" className="mt-1" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
           <span>أؤكد تعطيل الحساب وسحب الجلسات والأجهزة الموثوقة.</span>
         </label>
-        <div className="mt-6 flex justify-end gap-3">
+        <div className="flex justify-end gap-3">
           <button type="button" className="btn-secondary" onClick={onClose} disabled={archive.isPending}>
             إلغاء
           </button>
@@ -662,8 +669,7 @@ function ArchiveEmployeeDialog({
           </button>
         </div>
       </form>
-    </div>,
-    document.body,
+    </DialogOverlay>
   );
 }
 
@@ -700,19 +706,14 @@ function ChangeManagerDialog({
     }
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <form onSubmit={(e) => void onSubmit(e)} className="card w-full max-w-md p-6" role="dialog" aria-modal="true">
-        <h2 className="text-lg font-black">تغيير المدير المباشر</h2>
-        <p className="muted mt-2 text-sm">المدير الحالي: {currentManagerName ?? 'غير معين'}</p>
+  return (
+    <DialogOverlay title="تغيير المدير المباشر" onClose={onClose} maxWidth="max-w-md">
+      <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
+        <p className="muted text-sm">المدير الحالي: {currentManagerName ?? 'غير معين'}</p>
 
-        {error ? (
-          <div className="mt-4">
-            <ErrorBanner message={error} />
-          </div>
-        ) : null}
+        {error ? <ErrorBanner message={error} /> : null}
 
-        <label className="mt-4 block">
+        <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">اختر المدير الجديد</span>
           <select className="input w-full" value={selectedManagerId} onChange={(e) => setSelectedManagerId(e.target.value)} disabled={changeManager.isPending}>
             <option value="">بدون مدير مباشر</option>
@@ -724,7 +725,7 @@ function ChangeManagerDialog({
           </select>
         </label>
 
-        <label className="mt-4 block">
+        <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">سبب التغيير</span>
           <textarea
             className="input min-h-24 w-full"
@@ -736,7 +737,7 @@ function ChangeManagerDialog({
           />
         </label>
 
-        <div className="mt-6 flex justify-end gap-3">
+        <div className="flex justify-end gap-3">
           <button type="button" onClick={onClose} disabled={changeManager.isPending} className="btn-secondary">
             إلغاء
           </button>
@@ -745,8 +746,7 @@ function ChangeManagerDialog({
           </button>
         </div>
       </form>
-    </div>,
-    document.body,
+    </DialogOverlay>
   );
 }
 
@@ -783,16 +783,11 @@ export function DeleteEmployeeDialog({
     }
   };
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <form onSubmit={(e) => void onSubmit(e)} className="card w-full max-w-md space-y-4 p-6" role="dialog" aria-modal="true">
-        <h2 className="text-lg font-black text-[var(--danger)]">⚠️ حذف الموظف نهائياً</h2>
-        <p className="text-sm">
+  return (
+    <DialogOverlay title="حذف الموظف نهائياً" onClose={onClose} maxWidth="max-w-md">
+      <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
+        <p className="flex items-center gap-2 rounded-xl bg-[var(--danger-soft)] p-3 text-sm font-bold text-[var(--danger)]">
+          <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
           سيتم حذف <strong>{employeeName}</strong> نهائياً من النظام. لا يمكن التراجع عن هذا الإجراء.
         </p>
         {error ? <ErrorBanner message={error} /> : null}
@@ -823,14 +818,13 @@ export function DeleteEmployeeDialog({
           <button
             type="submit"
             disabled={deleteEmployee.isPending || !codeMatches || reason.trim().length < 10}
-            className="btn-primary bg-[var(--danger)] hover:bg-[var(--danger)]"
+            className="btn-danger"
           >
             {deleteEmployee.isPending ? 'جارٍ الحذف...' : 'حذف نهائي'}
           </button>
         </div>
       </form>
-    </div>,
-    document.body,
+    </DialogOverlay>
   );
 }
 
@@ -864,15 +858,9 @@ function AddDepartmentDialog({ employeeId, onClose, onSuccess }: { employeeId: s
     }
   };
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <form onSubmit={(e) => void onSubmit(e)} className="card w-full max-w-md space-y-4 p-6" role="dialog" aria-modal="true">
-        <h2 className="text-lg font-black">إضافة إدارة للموظف</h2>
+  return (
+    <DialogOverlay title="إضافة إدارة للموظف" onClose={onClose} maxWidth="max-w-md">
+      <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
         {error ? <ErrorBanner message={error} /> : null}
         <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">الإدارة</span>
@@ -914,8 +902,7 @@ function AddDepartmentDialog({ employeeId, onClose, onSuccess }: { employeeId: s
           </button>
         </div>
       </form>
-    </div>,
-    document.body,
+    </DialogOverlay>
   );
 }
 
@@ -1052,7 +1039,7 @@ export function EmployeeDetailPage() {
                   <Info icon={Network} label={item.department ?? 'بدون إدارة'} />
                   <Info icon={Phone} label={item.phoneE164 ? renderSafeIntlPhoneText(item.phoneE164) : 'بدون هاتف'} />
                   <Info icon={Mail} label={item.email ?? 'بدون بريد'} />
-                  <Info icon={ShieldCheck} label="الحساب: نشط" />
+                  <Info icon={ShieldCheck} label={`الحساب: ${ACCOUNT_STATUS_LABELS[(item.accountStatus ?? '').toLowerCase()] ?? (accountPending ? 'بانتظار التفعيل' : 'غير متاح')}`} />
                 </div>
               </div>
               <div className="rounded-2xl bg-[var(--surface-muted)] p-4 text-sm lg:min-w-64">

@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import type { KnowledgeArticle, KnowledgeCategory } from '@ahla/shared-contracts';
 import { BookOpen, FolderPlus, Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -57,15 +58,7 @@ export function KnowledgePage() {
     setCategoryFilter('');
   };
 
-  const handleDelete = async (item: KnowledgeArticle) => {
-    if (!window.confirm(`حذف «${item.title}»؟`)) return;
-    try {
-      await del.mutateAsync(item.id);
-      toast({ message: 'تم حذف المقال', tone: 'success' });
-    } catch (err) {
-      toast({ message: safeErrorMessage(err), tone: 'error' });
-    }
-  };
+  const [deleteTarget, setDeleteTarget] = useState<KnowledgeArticle | null>(null);
 
   return (
     <div className="space-y-5">
@@ -191,7 +184,7 @@ export function KnowledgePage() {
                       aria-label={`حذف ${item.title}`}
                       className="grid size-8 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--danger)] transition hover:bg-[var(--danger-soft)]"
                       disabled={del.isPending}
-                      onClick={() => void handleDelete(item)}
+                      onClick={() => setDeleteTarget(item)}
                     >
                       <Trash2 className="size-4" aria-hidden="true" />
                     </button>
@@ -207,6 +200,24 @@ export function KnowledgePage() {
       {editItem ? <ArticleDialog item={editItem} categories={catalogCategories} onClose={() => setEditItem(null)} /> : null}
       {categoryOpen ? <CategoriesDialog categories={catalogCategories} onClose={() => setCategoryOpen(false)} /> : null}
       {categoryDialogItem ? <CategoryDialog item={categoryDialogItem} onClose={() => setCategoryDialogItem(null)} /> : null}
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="حذف المقال"
+        message={deleteTarget ? `سيتم حذف «${deleteTarget.title}» نهائياً من قاعدة المعرفة. لا يمكن التراجع.` : ''}
+        confirmLabel="حذف"
+        loading={del.isPending}
+        onConfirm={() => {
+          if (!deleteTarget) return;
+          del.mutate(deleteTarget.id, {
+            onSuccess: () => {
+              setDeleteTarget(null);
+              toast({ message: 'تم حذف المقال', tone: 'success' });
+            },
+            onError: (err) => toast({ message: safeErrorMessage(err), tone: 'error' }),
+          });
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
@@ -296,16 +307,7 @@ function CategoriesDialog({ categories, onClose }: { categories: KnowledgeCatego
   const deleteCategory = useDeleteKnowledgeCategory();
   const { toast } = useToast();
   const [dialogItem, setDialogItem] = useState<KnowledgeCategory | null>(null);
-
-  const handleDelete = async (item: KnowledgeCategory) => {
-    if (!window.confirm(`حذف تصنيف «${item.name}»؟ ستبقى المقالات دون تصنيف.`)) return;
-    try {
-      await deleteCategory.mutateAsync(item.id);
-      toast({ message: 'تم حذف التصنيف', tone: 'success' });
-    } catch (err) {
-      toast({ message: safeErrorMessage(err), tone: 'error' });
-    }
-  };
+  const [deleteTarget, setDeleteTarget] = useState<KnowledgeCategory | null>(null);
 
   return (
     <DialogOverlay title="إدارة التصنيفات" onClose={onClose} maxWidth="max-w-lg">
@@ -335,7 +337,7 @@ function CategoriesDialog({ categories, onClose }: { categories: KnowledgeCatego
                   title="حذف"
                   aria-label={`حذف ${c.name}`}
                   className="grid size-8 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--danger)] transition hover:bg-[var(--danger-soft)]"
-                  onClick={() => void handleDelete(c)}
+                  onClick={() => setDeleteTarget(c)}
                 >
                   <Trash2 className="size-4" aria-hidden="true" />
                 </button>
@@ -348,6 +350,24 @@ function CategoriesDialog({ categories, onClose }: { categories: KnowledgeCatego
         </button>
       </div>
       {dialogItem ? <CategoryDialog item={dialogItem} onClose={() => setDialogItem(null)} /> : null}
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="حذف التصنيف"
+        message={deleteTarget ? `سيتم حذف تصنيف «${deleteTarget.name}» وستبقى المقالات دون تصنيف.` : ''}
+        confirmLabel="حذف"
+        loading={deleteCategory.isPending}
+        onConfirm={() => {
+          if (!deleteTarget) return;
+          deleteCategory.mutate(deleteTarget.id, {
+            onSuccess: () => {
+              setDeleteTarget(null);
+              toast({ message: 'تم حذف التصنيف', tone: 'success' });
+            },
+            onError: (err) => toast({ message: safeErrorMessage(err), tone: 'error' }),
+          });
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </DialogOverlay>
   );
 }
