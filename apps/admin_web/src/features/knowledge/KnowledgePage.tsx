@@ -189,7 +189,7 @@ export function KnowledgePage() {
                       type="button"
                       title="حذف"
                       aria-label={`حذف ${item.title}`}
-                      className="grid size-8 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--danger)] transition hover:bg-red-50"
+                      className="grid size-8 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--danger)] transition hover:bg-[var(--danger-soft)]"
                       disabled={del.isPending}
                       onClick={() => void handleDelete(item)}
                     >
@@ -334,7 +334,7 @@ function CategoriesDialog({ categories, onClose }: { categories: KnowledgeCatego
                   type="button"
                   title="حذف"
                   aria-label={`حذف ${c.name}`}
-                  className="grid size-8 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--danger)] transition hover:bg-red-50"
+                  className="grid size-8 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--danger)] transition hover:bg-[var(--danger-soft)]"
                   onClick={() => void handleDelete(c)}
                 >
                   <Trash2 className="size-4" aria-hidden="true" />

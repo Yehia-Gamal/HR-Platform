@@ -73,6 +73,7 @@ const hrSections: NavSection[] = [
     items: [
       { label: 'لوحة HR', to: '/hr', icon: LayoutDashboard },
       { label: 'الموظفون والهيكل', to: '/hr/employees', icon: Users, permission: 'people.employee.read' },
+      { label: 'هيكل المنظمة', to: '/hr/organization', icon: Building2, permission: 'organization.entity.read' },
       { label: 'أجهزة الموظفين', to: '/hr/devices', icon: Smartphone, permission: 'access.role.read' },
     ],
   },
@@ -100,7 +101,8 @@ const hrSections: NavSection[] = [
       { label: 'التوظيف', to: '/hr/recruitment', icon: BriefcaseBusiness, permission: 'recruitment.requisition.read' },
       { label: 'Onboarding', to: '/hr/onboarding', icon: ListChecks, permission: 'onboarding.journey.read' },
       { label: 'دورة حياة الموظف', to: '/hr/lifecycle', icon: PackageCheck, featureFlag: 'lifecycle' },
-      { label: 'استوديو المستندات', to: '/hr/documents', icon: FileSignature, featureFlag: 'documents' },
+      { label: 'إدارة المستندات', to: '/hr/documents', icon: FileSignature, featureFlag: 'documents' },
+      { label: 'استوديو المستندات', to: '/hr/documents/studio', icon: FileSignature, featureFlag: 'documents' },
     ],
   },
   {
@@ -129,6 +131,7 @@ const adminSections: NavSection[] = [
     title: 'إدارة الموظفين',
     items: [
       { label: 'الموظفون والهيكل', to: '/admin/hr/employees', icon: Users, permission: 'people.employee.read' },
+      { label: 'هيكل المنظمة', to: '/admin/hr/organization', icon: Building2, permission: 'organization.entity.read' },
       { label: 'الحضور والانصراف', to: '/admin/hr/attendance', icon: Activity, permission: 'attendance.record.read' },
       { label: 'الورديات وإغلاق الحضور', to: '/admin/hr/attendance/operations', icon: CalendarClock, permission: 'attendance.roster.read' },
       { label: 'كشف الحضور الشهري', to: '/admin/hr/attendance/report', icon: FileSignature, permission: 'attendance.record.read' },
@@ -141,7 +144,8 @@ const adminSections: NavSection[] = [
       { label: 'التوظيف', to: '/admin/hr/recruitment', icon: BriefcaseBusiness, permission: 'recruitment.requisition.read' },
       { label: 'Onboarding', to: '/admin/hr/onboarding', icon: ListChecks, permission: 'onboarding.journey.read' },
       { label: 'دورة حياة الموظف', to: '/admin/hr/lifecycle', icon: PackageCheck, permission: 'people.employee.read' },
-      { label: 'استوديو المستندات', to: '/admin/hr/documents', icon: FileSignature, permission: 'documents.document.read' },
+      { label: 'إدارة المستندات', to: '/admin/hr/documents', icon: FileSignature, permission: 'documents.document.read' },
+      { label: 'استوديو المستندات', to: '/admin/hr/documents/studio', icon: FileSignature, permission: 'documents.document.read' },
     ],
   },
   {

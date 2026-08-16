@@ -242,7 +242,7 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
             </label>
 
             {mutation.isError ? (
-              <p className="rounded-lg bg-red-50 p-3 text-sm font-bold text-red-700" role="alert">
+              <p className="rounded-lg bg-[var(--danger-soft)] p-3 text-sm font-bold text-[var(--danger)]" role="alert">
                 {safeErrorMessage(mutation.error)}
               </p>
             ) : null}
@@ -292,12 +292,12 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
             </label>
 
             {markMutation.isError ? (
-              <p className="rounded-lg bg-red-50 p-3 text-sm font-bold text-red-700" role="alert">
+              <p className="rounded-lg bg-[var(--danger-soft)] p-3 text-sm font-bold text-[var(--danger)]" role="alert">
                 {safeErrorMessage(markMutation.error)}
               </p>
             ) : null}
             {markMutation.isSuccess ? (
-              <p className="rounded-lg bg-emerald-50 p-3 text-sm font-bold text-emerald-700">أُرسل الطلب ووصل المدير المباشر.</p>
+              <p className="rounded-lg bg-[var(--success-soft)] p-3 text-sm font-bold text-[var(--success)]">أُرسل الطلب ووصل المدير المباشر.</p>
             ) : null}
 
             <div className="flex justify-end gap-2">

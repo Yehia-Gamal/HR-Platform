@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '../../../ui/Toast';
@@ -181,5 +181,84 @@ describe('NotificationsPage', () => {
       </Wrapper>,
     );
     expect(screen.getByText('تعذر تحميل الإشعارات')).toBeDefined();
+  });
+
+  it('يدخل وضع التحديد ويعرض مربعات اختيار بدل أزرار الحذف', () => {
+    notifReturn = dataQuery;
+    markReturn = markMutation;
+    deleteReturn = deleteMutation;
+    render(
+      <Wrapper>
+        <NotificationsPage />
+      </Wrapper>,
+    );
+    fireEvent.click(screen.getByText('تحديد'));
+    expect(screen.getAllByLabelText('تحديد الإشعار')).toHaveLength(2);
+    expect(screen.queryByLabelText('حذف الإشعار')).toBeNull();
+    expect(screen.getByText('إلغاء التحديد')).toBeDefined();
+    expect(screen.getByText('تحديد الكل (0/2)')).toBeDefined();
+  });
+
+  it('يعرض عدد المحدد في زر المسح ويحدد الكل دفعة واحدة', () => {
+    notifReturn = dataQuery;
+    markReturn = markMutation;
+    deleteReturn = deleteMutation;
+    render(
+      <Wrapper>
+        <NotificationsPage />
+      </Wrapper>,
+    );
+    fireEvent.click(screen.getByText('تحديد'));
+    fireEvent.click(screen.getAllByLabelText('تحديد الإشعار')[0]);
+    expect(screen.getByText('مسح المحدد (1)')).toBeDefined();
+    fireEvent.click(screen.getByLabelText('تحديد الكل'));
+    expect(screen.getByText('مسح المحدد (2)')).toBeDefined();
+    expect(screen.getByText('تحديد الكل (2/2)')).toBeDefined();
+  });
+
+  it('يحذف المحدد دفعة واحدة بعد التأكيد', () => {
+    notifReturn = dataQuery;
+    markReturn = markMutation;
+    deleteReturn = { ...deleteMutation, mutate: vi.fn() };
+    render(
+      <Wrapper>
+        <NotificationsPage />
+      </Wrapper>,
+    );
+    fireEvent.click(screen.getByText('تحديد'));
+    fireEvent.click(screen.getByLabelText('تحديد الكل'));
+    fireEvent.click(screen.getByText('مسح المحدد (2)'));
+    expect(screen.getByText('حذف الإشعارات المحددة')).toBeDefined();
+    fireEvent.click(screen.getByText('حذف'));
+    expect(deleteReturn.mutate).toHaveBeenCalledWith(['notif-1', 'notif-2'], expect.anything());
+  });
+
+  it('يغلق وضع التحديد بالزر إلغاء التحديد دون مسح', () => {
+    notifReturn = dataQuery;
+    markReturn = markMutation;
+    deleteReturn = { ...deleteMutation, mutate: vi.fn() };
+    render(
+      <Wrapper>
+        <NotificationsPage />
+      </Wrapper>,
+    );
+    fireEvent.click(screen.getByText('تحديد'));
+    fireEvent.click(screen.getByLabelText('تحديد الكل'));
+    fireEvent.click(screen.getByText('إلغاء التحديد'));
+    expect(screen.queryByLabelText('تحديد الإشعار')).toBeNull();
+    expect(deleteReturn.mutate).not.toHaveBeenCalled();
+  });
+
+  it('يتيح حذف الإشعارات الفردية أثناء عدم وضع التحديد', () => {
+    notifReturn = dataQuery;
+    markReturn = markMutation;
+    deleteReturn = { ...deleteMutation, mutate: vi.fn() };
+    render(
+      <Wrapper>
+        <NotificationsPage />
+      </Wrapper>,
+    );
+    fireEvent.click(screen.getAllByLabelText('حذف الإشعار')[0]);
+    expect(deleteReturn.mutate).toHaveBeenCalledWith(['notif-1'], expect.anything());
   });
 });

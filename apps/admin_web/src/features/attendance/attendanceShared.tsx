@@ -97,13 +97,13 @@ export function AttendancePercentageRing({ percentage, label = 'حضور', avail
           <circle cx="50" cy="50" r="40" fill="none" strokeWidth="8" className="stroke-slate-200" />
         </svg>
         <div className="stmt-ring-center">
-          <span className="text-sm font-black text-slate-400">غير متاح</span>
+          <span className="text-sm font-black text-[var(--text-disabled)]">غير متاح</span>
           <span className="stmt-ring-label">{label}</span>
         </div>
       </div>
     );
   }
-  const color = pct >= 90 ? 'text-emerald-600' : pct >= 75 ? 'text-amber-500' : 'text-red-600';
+  const color = pct >= 90 ? 'text-[var(--success)]' : pct >= 75 ? 'text-[var(--warning)]' : 'text-[var(--danger)]';
   const bgColor = pct >= 90 ? 'stroke-emerald-100' : pct >= 75 ? 'stroke-amber-100' : 'stroke-red-100';
   const fgColor = pct >= 90 ? 'stroke-emerald-600' : pct >= 75 ? 'stroke-amber-500' : 'stroke-red-600';
   const r = 40;
@@ -138,10 +138,10 @@ export function AttendancePercentageRing({ percentage, label = 'حضور', avail
 /** علامة (tag) صغيرة ملوّنة للجدول. */
 export function DayTag({ label, variant }: { label: string; variant: TagVariant }) {
   const styles = {
-    info: 'bg-sky-50 text-sky-700 border-sky-200',
-    warn: 'bg-amber-50 text-amber-700 border-amber-200',
-    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    purple: 'bg-violet-50 text-violet-700 border-violet-200',
+    info: 'bg-[var(--brand-accent-soft)] text-[var(--brand-accent)] border-[var(--brand-accent)]',
+    warn: 'bg-[var(--warning-soft)] text-[var(--warning)] border-[var(--warning)]',
+    success: 'bg-[var(--success-soft)] text-[var(--success)] border-[var(--success)]',
+    purple: 'bg-[var(--info-soft)] text-[var(--info)] border-[var(--info)]',
   };
   return <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold border print:text-[7px] print:px-1 ${styles[variant]}`}>{label}</span>;
 }

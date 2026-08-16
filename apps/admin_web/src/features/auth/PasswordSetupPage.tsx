@@ -174,11 +174,11 @@ export function PasswordSetupPage() {
         </div>
         <section className="card overflow-hidden">
           <div className="bg-[var(--brand-gradient)] px-6 py-7 text-white sm:px-8">
-            <span className="mb-4 grid size-12 place-items-center rounded-2xl bg-white/12">
+            <span className="mb-4 grid size-12 place-items-center rounded-2xl bg-[var(--on-gradient-overlay)]">
               <KeyRound className="size-6" aria-hidden="true" />
             </span>
             <h1 className="text-2xl font-black">تفعيل حساب الموظف</h1>
-            <p className="mt-2 text-sm leading-7 text-blue-100">أنشئ كلمة مرور جديدة لحسابك، ثم استخدمها في تطبيق جمعية خواطر أحلى شباب.</p>
+            <p className="mt-2 text-sm leading-7 text-[var(--on-gradient-soft)]">أنشئ كلمة مرور جديدة لحسابك، ثم استخدمها في تطبيق جمعية خواطر أحلى شباب.</p>
           </div>
 
           <div className="p-6 sm:p-8">

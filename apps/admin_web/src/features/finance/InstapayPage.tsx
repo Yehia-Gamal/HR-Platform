@@ -126,8 +126,8 @@ export function InstapayPage() {
             {generateBatch.isPending ? 'جارٍ التوليد…' : 'توليد الدفعة'}
           </button>
         </div>
-        {generateBatch.isError && <p className="mt-3 text-sm text-red-600">{safeErrorMessage(generateBatch.error)}</p>}
-        {generateBatch.isSuccess && <p className="mt-3 rounded-xl bg-green-50 p-3 text-sm text-green-700">تم توليد الدفعة بنجاح.</p>}
+        {generateBatch.isError && <p className="mt-3 text-sm text-[var(--danger)]">{safeErrorMessage(generateBatch.error)}</p>}
+        {generateBatch.isSuccess && <p className="mt-3 rounded-xl bg-[var(--success-soft)] p-3 text-sm text-[var(--success)]">تم توليد الدفعة بنجاح.</p>}
       </section>
 
       <FilterBar

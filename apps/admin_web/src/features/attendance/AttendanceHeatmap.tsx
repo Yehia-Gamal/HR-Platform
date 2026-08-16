@@ -27,11 +27,11 @@ const REST_RE = /راحة|عطلة|rest|holiday|weekend|قادم|upcoming|future
 
 function classifyStatus(status: string): HeatToneMeta {
   const s = status?.trim() ?? '';
-  if (!s || REST_RE.test(s)) return { tone: 'neutral', cell: 'bg-slate-200 dark:bg-slate-700', label: s || '—' };
-  if (ABSENT_RE.test(s)) return { tone: 'absent', cell: 'bg-red-500', label: s };
-  if (LATE_RE.test(s)) return { tone: 'late', cell: 'bg-orange-400', label: s };
-  if (PRESENT_RE.test(s)) return { tone: 'present', cell: 'bg-emerald-500', label: s };
-  return { tone: 'neutral', cell: 'bg-slate-200 dark:bg-slate-700', label: s };
+  if (!s || REST_RE.test(s)) return { tone: 'neutral', cell: 'bg-[var(--surface-muted)]', label: s || '—' };
+  if (ABSENT_RE.test(s)) return { tone: 'absent', cell: 'bg-[var(--danger)]', label: s };
+  if (LATE_RE.test(s)) return { tone: 'late', cell: 'bg-[var(--warning)]', label: s };
+  if (PRESENT_RE.test(s)) return { tone: 'present', cell: 'bg-[var(--success)]', label: s };
+  return { tone: 'neutral', cell: 'bg-[var(--surface-muted)]', label: s };
 }
 
 // ─── مولّد بيانات وهمية (Mock) ─────────────────────────────────
@@ -84,10 +84,10 @@ export function AttendanceHeatmap({ data }: AttendanceHeatmapProps) {
       <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-black">خريطة الحضور الشهرية</h3>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--text-muted)]">
-          <LegendDot className="bg-emerald-500" label={`حاضر (${summary.present})`} />
-          <LegendDot className="bg-orange-400" label={`متأخر (${summary.late})`} />
-          <LegendDot className="bg-red-500" label={`غائب (${summary.absent})`} />
-          <LegendDot className="bg-slate-200 dark:bg-slate-700" label={`راحة/قادم (${summary.neutral})`} />
+          <LegendDot className="bg-[var(--success)]" label={`حاضر (${summary.present})`} />
+          <LegendDot className="bg-[var(--warning)]" label={`متأخر (${summary.late})`} />
+          <LegendDot className="bg-[var(--danger)]" label={`غائب (${summary.absent})`} />
+          <LegendDot className="bg-[var(--surface-muted)]" label={`راحة/قادم (${summary.neutral})`} />
         </div>
       </header>
 

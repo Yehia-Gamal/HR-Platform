@@ -204,7 +204,7 @@ export function EmployeesPage() {
           role="tab"
           aria-selected={tab === 'directory'}
           onClick={() => setTab('directory')}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${tab === 'directory' ? 'bg-white text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${tab === 'directory' ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
         >
           <UsersRound className="size-4" aria-hidden="true" />
           دليل الموظفين
@@ -217,7 +217,7 @@ export function EmployeesPage() {
             role="tab"
             aria-selected={tab === 'org-chart'}
             onClick={() => setTab('org-chart')}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${tab === 'org-chart' ? 'bg-white text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${tab === 'org-chart' ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
           >
             <Network className="size-4" aria-hidden="true" />
             الهيكل التنظيمي

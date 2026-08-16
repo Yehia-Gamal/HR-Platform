@@ -109,7 +109,7 @@ export function PerformancePage() {
                   setSearch('');
                   setStage('all');
                 }}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${isActive ? 'bg-white shadow-sm text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${isActive ? 'bg-[var(--surface)] shadow-sm text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
               >
                 <Icon className="size-4" />
                 {tab.label}
@@ -123,7 +123,7 @@ export function PerformancePage() {
       ) : null}
 
       {counts.overdue > 0 ? (
-        <section className="flex items-center gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
+        <section className="flex items-center gap-3 rounded-2xl border border-[var(--warning)] bg-[var(--warning-soft)] p-4 text-[var(--warning)]">
           <AlertTriangle className="size-5 shrink-0" aria-hidden="true" />
           <p className="font-bold">{counts.overdue} تقييم متأخر عن الموعد النهائي — يُرجى المتابعة مع المديرين والموظفين المعنيين.</p>
         </section>

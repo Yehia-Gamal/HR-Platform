@@ -9,6 +9,7 @@ import { useEditableSystemSettings, useUpdateSystemSettings, type SystemSetting 
 function displayValue(setting: SystemSetting): string {
   const v = setting.value;
   if (v === null || v === undefined) return '';
+  if (typeof v === 'object') return JSON.stringify(v, null, 2);
   return String(v).replace(/^"(.*)"$/, '$1');
 }
 
@@ -85,7 +86,7 @@ export function SystemSettingsPage() {
       />
 
       {saveMsg && (
-        <div className={`rounded-xl p-3 text-sm ${saveMsg.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`} role="status">
+        <div className={`rounded-xl p-3 text-sm ${saveMsg.ok ? 'bg-[var(--success-soft)] text-[var(--success)]' : 'bg-[var(--danger-soft)] text-[var(--danger)]'}`} role="status">
           {saveMsg.text}
         </div>
       )}
@@ -112,7 +113,7 @@ export function SystemSettingsPage() {
                   const val = displayValue(s);
                   const isDirty = drafts[s.key] !== undefined && drafts[s.key] !== val;
                   return (
-                    <div key={s.key} className={`rounded-xl p-4 transition ${isDirty ? 'bg-amber-50 ring-1 ring-amber-300' : 'bg-[var(--surface-muted)]'}`}>
+                    <div key={s.key} className={`rounded-xl p-4 transition ${isDirty ? 'bg-[var(--warning-soft)] ring-1 ring-[var(--warning)]' : 'bg-[var(--surface-muted)]'}`}>
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="font-black">{s.labelAr ?? s.key}</p>
@@ -121,7 +122,7 @@ export function SystemSettingsPage() {
                             {s.key} · {s.valueType}
                           </p>
                         </div>
-                        {isDirty && <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-black text-amber-800">غير محفوظ</span>}
+                        {isDirty && <span className="rounded-full bg-[var(--warning)] px-2 py-0.5 text-[10px] font-black text-white">غير محفوظ</span>}
                       </div>
                       {s.valueType === 'boolean' ? (
                         <select className="input mt-3" value={drafts[s.key] ?? val} onChange={(ev) => setDrafts((d) => ({ ...d, [s.key]: ev.target.value }))}>

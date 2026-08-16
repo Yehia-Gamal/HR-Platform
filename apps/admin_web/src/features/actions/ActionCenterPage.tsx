@@ -37,7 +37,7 @@ export function ActionCenterPage() {
       {isInitialLoading ? (
         <MetricSkeletonRow count={3} />
       ) : (
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 sm:grid-cols-3">
           <MetricCard label="إجمالي العناصر" value={items.length} icon={Inbox} />
           <MetricCard label="عاجل" value={items.filter((x) => x.priority === 'urgent').length} icon={AlertCircle} />
           <MetricCard label="مرتفع" value={items.filter((x) => x.priority === 'high').length} icon={Clock3} />

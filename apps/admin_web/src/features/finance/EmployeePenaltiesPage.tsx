@@ -59,7 +59,7 @@ export function EmployeePenaltiesPage() {
         </span>
       ),
     },
-    { key: 'amount', header: 'المبلغ', sortable: true, render: (p) => <span className="font-black text-red-600">{formatCurrency(p.amount)}</span> },
+    { key: 'amount', header: 'المبلغ', sortable: true, render: (p) => <span className="font-black text-[var(--danger)]">{formatCurrency(p.amount)}</span> },
     { key: 'issuedAt', header: 'تاريخ الإصدار', render: (p) => (p.issuedAt ? dateFormatter.format(new Date(p.issuedAt)) : '—') },
     {
       key: 'status',
@@ -217,7 +217,7 @@ export function EmployeePenaltiesPage() {
               <button type="button" className="btn-secondary" onClick={() => setFormOpen(false)}>
                 إلغاء
               </button>
-              {addPenalty.isError && <p className="text-sm text-red-600">{safeErrorMessage(addPenalty.error)}</p>}
+              {addPenalty.isError && <p className="text-sm text-[var(--danger)]">{safeErrorMessage(addPenalty.error)}</p>}
             </div>
           </form>
         </section>

@@ -461,7 +461,7 @@ export function OfficialFeedPage() {
                     <img src={imagePreview} alt="معاينة" className="h-40 w-full rounded-xl object-cover" />
                     <button
                       type="button"
-                      className="absolute start-2 top-2 rounded-full bg-red-600 p-1 text-white shadow"
+                      className="absolute start-2 top-2 rounded-full bg-[var(--danger)] p-1 text-white shadow"
                       aria-label="إزالة الصورة"
                       onClick={() => void removeImage()}
                     >
@@ -526,7 +526,7 @@ export function OfficialFeedPage() {
                         {pollOptions.length > 2 ? (
                           <button
                             type="button"
-                            className="rounded-full p-1 text-[var(--danger)] hover:bg-red-50"
+                            className="rounded-full p-1 text-[var(--danger)] hover:bg-[var(--danger-soft)]"
                             aria-label="حذف الخيار"
                             onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}
                           >

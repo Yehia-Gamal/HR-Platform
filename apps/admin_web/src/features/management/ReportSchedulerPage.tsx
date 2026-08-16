@@ -10,6 +10,11 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useReportSchedulerCatalog, useReportSchedulerCommands } from './useEnterpriseOperations';
 
+function formatRunAt(value: string | null) {
+  if (!value) return 'غير محدد';
+  return new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+}
+
 export function ReportSchedulerPage() {
   const query = useReportSchedulerCatalog();
   const commands = useReportSchedulerCommands();
@@ -101,7 +106,7 @@ export function ReportSchedulerPage() {
                       <div>
                         <p className="font-black">{r.reportType}</p>
                         <p className="muted text-xs">
-                          {r.createdAt} · محاولة {r.attempts}
+                          {formatRunAt(r.createdAt)} · محاولة {r.attempts}
                         </p>
                       </div>
                       <StatusBadge value={r.status} />

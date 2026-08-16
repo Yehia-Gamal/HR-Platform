@@ -391,19 +391,12 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
 
       {/* شريط الإحصائيات السريعة */}
       <div className="flex flex-wrap gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)]/40 px-4 py-3 text-xs print:py-2 print:text-[10px]">
-        <StatItem label="تأخير كلي" value={`${s.totalLateMinutes} د`} icon={<ArrowDownRight className="size-3.5 text-amber-500" />} />
-        <StatItem label="خروج مبكر" value={`${s.totalEarlyLeaveMinutes} د`} icon={<ArrowUpRight className="size-3.5 text-amber-500" />} />
-        <StatItem label="نسبة الحضور" value={`${attendancePct.toFixed(0)}%`} icon={<UserCheck className="size-3.5 text-emerald-500" />} />
-        <StatItem
-          label="التزام الساعات"
-          value={complianceAvailable ? `${compliancePct.toFixed(0)}%` : 'غير متاح'}
-          icon={<Timer className="size-3.5 text-blue-500" />}
-        />
-        <StatItem label="نسيان حضور" value={`${s.missingCheckInCount}`} icon={<AlertTriangle className="size-3.5 text-red-500" />} />
-        <StatItem label="نسيان انصراف" value={`${s.missingCheckOutCount}`} icon={<AlertTriangle className="size-3.5 text-red-500" />} />
-        <StatItem label="عطل رسمية" value={`${s.holidayDays}`} icon={<CalendarDays className="size-3.5 text-[var(--text-muted)]" />} />
-        <StatItem label="أيام راحة" value={`${s.restDays}`} icon={<CalendarDays className="size-3.5 text-[var(--text-muted)]" />} />
-        <StatItem label="تصحيحات" value={`${s.correctionCount}`} icon={<Clock className="size-3.5 text-slate-500" />} />
+<StatItem label="تأخير كلي" value={`${s.totalLateMinutes} د`} icon={<ArrowDownRight className="size-3.5 text-[var(--warning)]" />} />
+        <StatItem label="خروج مبكر" value={`${s.totalEarlyLeaveMinutes} د`} icon={<ArrowUpRight className="size-3.5 text-[var(--warning)]" />} />
+        <StatItem label="نسبة الحضور" value={`${attendancePct.toFixed(0)}%`} icon={<UserCheck className="size-3.5 text-[var(--success)]" />} />
+        <StatItem label="نسيان حضور" value={`${s.missingCheckInCount}`} icon={<AlertTriangle className="size-3.5 text-[var(--danger)]" />} />
+        <StatItem label="نسيان انصراف" value={`${s.missingCheckOutCount}`} icon={<AlertTriangle className="size-3.5 text-[var(--danger)]" />} />
+        <StatItem label="تصحيحات" value={`${s.correctionCount}`} icon={<Clock className="size-3.5 text-[var(--text-muted)]" />} />
       </div>
 
       {/* فلترة الأيام */}
@@ -505,7 +498,7 @@ function DayRow({ d, employeeId, canEdit }: { d: AttendanceStatementDay; employe
 
   return (
     <tr
-      className={`border-t border-[var(--border)] transition-colors print:hover:bg-transparent ${d.isFuture ? 'bg-slate-50/80 text-slate-400' : d.isOpenShift ? 'bg-sky-50/70 hover:bg-sky-50' : 'odd:bg-[var(--surface-muted)]/30 hover:bg-[var(--surface-muted)]/60'}`}
+      className={`border-t border-[var(--border)] transition-colors print:hover:bg-transparent ${d.isFuture ? 'bg-[var(--surface-muted)]/80 text-[var(--text-disabled)]' : d.isOpenShift ? 'bg-[var(--brand-accent-soft)]/70 hover:bg-[var(--brand-accent-soft)]' : 'odd:bg-[var(--surface-muted)]/30 hover:bg-[var(--surface-muted)]/60'}`}
     >
       <td className="p-2.5 tabular-nums print:p-1" dir="ltr">
         {d.date}
@@ -520,14 +513,14 @@ function DayRow({ d, employeeId, canEdit }: { d: AttendanceStatementDay; employe
       <td className="p-2.5 print:p-1">{d.shiftName || '—'}</td>
       <td className="p-2.5 tabular-nums print:p-1">{d.workHours ? d.workHours.toFixed(1) : '—'}</td>
       <td className="p-2.5 tabular-nums print:p-1">{d.requiredHours ? d.requiredHours.toFixed(1) : '—'}</td>
-      <td className={`p-2.5 tabular-nums print:p-1 ${d.lateMinutes > 0 ? 'text-amber-600 font-bold' : ''}`}>{d.lateMinutes ? `${d.lateMinutes} د` : '—'}</td>
-      <td className={`p-2.5 tabular-nums print:p-1 ${d.earlyLeaveMinutes > 0 ? 'text-amber-600 font-bold' : ''}`}>
+      <td className={`p-2.5 tabular-nums print:p-1 ${d.lateMinutes > 0 ? 'text-[var(--warning)] font-bold' : ''}`}>{d.lateMinutes ? `${d.lateMinutes} د` : '—'}</td>
+      <td className={`p-2.5 tabular-nums print:p-1 ${d.earlyLeaveMinutes > 0 ? 'text-[var(--warning)] font-bold' : ''}`}>
         {d.earlyLeaveMinutes ? `${d.earlyLeaveMinutes} د` : '—'}
       </td>
-      <td className={`p-2.5 tabular-nums print:p-1 ${d.overtimeMinutes > 0 ? 'text-emerald-600 font-bold' : ''}`}>
+      <td className={`p-2.5 tabular-nums print:p-1 ${d.overtimeMinutes > 0 ? 'text-[var(--success)] font-bold' : ''}`}>
         {d.overtimeMinutes ? `${d.overtimeMinutes} د` : '—'}
       </td>
-      <td className={`p-2.5 font-bold print:p-1 ${WARN_STATUSES.has(d.status) ? 'text-red-600' : ''}`}>{d.status}</td>
+      <td className={`p-2.5 font-bold print:p-1 ${WARN_STATUSES.has(d.status) ? 'text-[var(--danger)]' : ''}`}>{d.status}</td>
       <td className="p-2.5 print:p-1">
         <div className="flex flex-wrap gap-1">
           {tags.map((t) => (

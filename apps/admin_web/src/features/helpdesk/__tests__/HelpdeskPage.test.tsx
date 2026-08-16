@@ -111,7 +111,7 @@ describe('HelpdeskPage', () => {
       </Wrapper>,
     );
     expect(screen.getByText('صندوق الخدمات')).toBeDefined();
-    expect(screen.getByText('تذاكرى')).toBeDefined();
+    expect(screen.getByText('تذاكري')).toBeDefined();
   });
 
   it('يعرض حالة فارغة عند عدم وجود تذاكر', () => {

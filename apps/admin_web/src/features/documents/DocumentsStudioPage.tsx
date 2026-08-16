@@ -154,7 +154,7 @@ export function DocumentsStudioPage() {
                       <StatusBadge status={DOC_STATUS_TONE[d.status] ?? 'neutral'} label={DOC_STATUS_LABELS[d.status] ?? d.status} />
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {d.pendingSignatures > 0 ? <span className="font-bold text-amber-600">{d.pendingSignatures}</span> : '—'}
+                      {d.pendingSignatures > 0 ? <span className="font-bold text-[var(--warning)]">{d.pendingSignatures}</span> : '—'}
                     </td>
                     <td className="px-4 py-3 text-xs text-[var(--text-tertiary)]">{d.issuedAt ? new Date(d.issuedAt).toLocaleDateString('ar-EG') : '—'}</td>
                   </tr>
@@ -189,10 +189,9 @@ export function DocumentsStudioPage() {
                     <td className="px-4 py-3 text-center">v{t.version}</td>
                     <td className="px-4 py-3 text-xs">
                       <div className="flex gap-1 flex-wrap">
-                        {t.requiresEmployeeSignature && <span className="rounded bg-blue-100 px-1.5 py-0.5 text-blue-700">موظف</span>}
-                        {t.requiresManagerSignature && <span className="rounded bg-purple-100 px-1.5 py-0.5 text-purple-700">مدير</span>}
-                        {t.requiresHrSignature && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-700">HR</span>}
-                        {t.requiresExecutiveSignature && <span className="rounded bg-red-100 px-1.5 py-0.5 text-red-700">تنفيذي</span>}
+{t.requiresEmployeeSignature && <span className="rounded bg-[var(--brand-primary-soft)] px-1.5 py-0.5 text-[var(--brand-primary)]">موظف</span>}
+                        {t.requiresHrSignature && <span className="rounded bg-[var(--warning-soft)] px-1.5 py-0.5 text-[var(--warning)]">HR</span>}
+                        {t.requiresExecutiveSignature && <span className="rounded bg-[var(--danger-soft)] px-1.5 py-0.5 text-[var(--danger)]">تنفيذي</span>}
                         {!t.requiresEmployeeSignature && !t.requiresManagerSignature && !t.requiresHrSignature && !t.requiresExecutiveSignature && (
                           <span className="text-[var(--text-tertiary)]">لا توجد</span>
                         )}

@@ -115,7 +115,7 @@ export function HelpdeskPage() {
       <div className="card flex items-center gap-4 p-2">
         {(['inbox', 'mine'] as Tab[]).map((key) => (
           <button key={key} type="button" onClick={() => setTab(key)} className={`filter-chip ${tab === key ? 'filter-chip-active' : ''}`}>
-            {key === 'inbox' ? 'صندوق الخدمات' : 'تذاكرى'}
+            {key === 'inbox' ? 'صندوق الخدمات' : 'تذاكري'}
           </button>
         ))}
       </div>

@@ -23,7 +23,7 @@ const stageLabel: Record<string, string> = {
 };
 
 const tabCls = (active: boolean) =>
-  `rounded-lg px-4 py-2 text-sm font-bold transition ${active ? 'bg-white shadow text-brand dark:bg-[var(--surface)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`;
+  `rounded-lg px-4 py-2 text-sm font-bold transition ${active ? 'bg-[var(--surface)] shadow text-brand' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`;
 
 export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: string; onDone: () => void }) {
   const { toast } = useToast();
@@ -660,7 +660,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
           )}
 
           {form.validationErrors.length ? (
-            <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
+            <section className="rounded-2xl border border-[var(--warning)] bg-[var(--warning-soft)] p-4 text-[var(--warning)]">
               <h3 className="flex items-center gap-2 font-black">
                 <AlertTriangle className="size-5" aria-hidden="true" />
                 متطلبات الاعتماد غير المكتملة
@@ -672,7 +672,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
               </ul>
             </section>
           ) : (
-            <p className="flex items-center gap-2 text-green-700">
+            <p className="flex items-center gap-2 text-[var(--success)]">
               <CheckCircle2 className="size-5" aria-hidden="true" />
               كل متطلبات الاعتماد مكتملة.
             </p>

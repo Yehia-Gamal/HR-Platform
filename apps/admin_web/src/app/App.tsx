@@ -57,6 +57,8 @@ const LearningPage = lazy(() => import('../features/learning/LearningPage').then
 const LifecyclePage = lazy(() => import('../features/lifecycle/LifecyclePage').then((m) => ({ default: m.LifecyclePage })));
 const ExecutiveMonitoringPage = lazy(() => import('../features/management/ExecutiveMonitoringPage').then((m) => ({ default: m.ExecutiveMonitoringPage })));
 const DocumentsPage = lazy(() => import('../features/documents/DocumentsPage').then((m) => ({ default: m.DocumentsPage })));
+const DocumentsStudioPage = lazy(() => import('../features/documents/DocumentsStudioPage').then((m) => ({ default: m.DocumentsStudioPage })));
+const OrganizationPage = lazy(() => import('../features/management/OrganizationPage').then((m) => ({ default: m.OrganizationPage })));
 const FinancePage = lazy(() => import('../features/finance/FinancePage').then((m) => ({ default: m.FinancePage })));
 const KnowledgePage = lazy(() => import('../features/knowledge/KnowledgePage').then((m) => ({ default: m.KnowledgePage })));
 const HelpdeskPage = lazy(() => import('../features/helpdesk/HelpdeskPage').then((m) => ({ default: m.HelpdeskPage })));
@@ -530,6 +532,22 @@ function HrWorkspaceRoutes() {
         element={
           <RequirePermission perm="documents.document.read">
             <DocumentsPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="documents/studio"
+        element={
+          <RequirePermission perm="documents.document.read">
+            <DocumentsStudioPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="organization"
+        element={
+          <RequirePermission perm="organization.entity.read">
+            <OrganizationPage />
           </RequirePermission>
         }
       />

@@ -300,7 +300,7 @@ export function DailyReportsFeedPage() {
                         </div>
                         {comment.employeeId === auth.access?.employeeId ? (
                           <button
-                            className="shrink-0 rounded-full p-1.5 text-[var(--danger)] transition hover:bg-red-50"
+                            className="shrink-0 rounded-full p-1.5 text-[var(--danger)] transition hover:bg-[var(--danger-soft)]"
                             aria-label="حذف"
                             disabled={deleteComment.isPending}
                             onClick={() => handleDeleteComment(comment.id)}

@@ -132,7 +132,7 @@ export function DocumentsPage() {
                 type="button"
                 title="رفض"
                 aria-label={`رفض ${d.title}`}
-                className="grid size-8 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--danger)] transition hover:bg-red-50"
+                className="grid size-8 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--danger)] transition hover:bg-[var(--danger-soft)]"
                 disabled={reviewDoc.isPending}
                 onClick={() => void handleReview(d, 'rejected')}
               >
@@ -218,7 +218,7 @@ export function DocumentsPage() {
     <div className="space-y-5">
       <PageHeader
         eyebrow="الموارد البشرية"
-        title="استوديو المستندات"
+        title="إدارة المستندات"
         description="إدارة مستندات الموظفين والعهد والأصول وعمليات إنهاء الخدمة في مكان واحد."
         actions={
           <button type="button" className="btn-secondary" onClick={() => void catalog.refetch()} disabled={catalog.isFetching}>

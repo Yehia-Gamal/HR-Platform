@@ -132,7 +132,7 @@ describe('DocumentsPage', () => {
         <DocumentsPage />
       </Wrapper>,
     );
-    expect(screen.getByText('استوديو المستندات')).toBeDefined();
+    expect(screen.getByText('إدارة المستندات')).toBeDefined();
   });
 
   it('يعرض بطاقات المؤشرات', () => {

@@ -149,19 +149,12 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
       </div>
 
       <div className="quick-stats">
-        <QuickStat label="تأخير كلي" value={`${s.totalLateMinutes} د`} icon={<ArrowDownRight className="size-3.5 text-amber-500" aria-hidden="true" />} />
-        <QuickStat label="خروج مبكر" value={`${s.totalEarlyLeaveMinutes} د`} icon={<ArrowUpRight className="size-3.5 text-amber-500" aria-hidden="true" />} />
-        <QuickStat label="نسبة الحضور" value={`${attendancePct.toFixed(0)}%`} icon={<UserCheck className="size-3.5 text-emerald-500" aria-hidden="true" />} />
-        <QuickStat
-          label="التزام الساعات"
-          value={complianceAvailable ? `${compliancePct.toFixed(0)}%` : 'غير متاح'}
-          icon={<Timer className="size-3.5 text-blue-500" aria-hidden="true" />}
-        />
-        <QuickStat label="نسيان حضور" value={`${s.missingCheckInCount}`} icon={<AlertTriangle className="size-3.5 text-red-500" aria-hidden="true" />} />
-        <QuickStat label="نسيان انصراف" value={`${s.missingCheckOutCount}`} icon={<AlertTriangle className="size-3.5 text-red-500" aria-hidden="true" />} />
-        <QuickStat label="عطل رسمية" value={`${s.holidayDays}`} icon={<CalendarDays className="size-3.5 text-[var(--text-muted)]" aria-hidden="true" />} />
-        <QuickStat label="أيام راحة" value={`${s.restDays}`} icon={<CalendarDays className="size-3.5 text-[var(--text-muted)]" aria-hidden="true" />} />
-        <QuickStat label="تصحيحات" value={`${s.correctionCount}`} icon={<Clock className="size-3.5 text-slate-500" aria-hidden="true" />} />
+<QuickStat label="تأخير كلي" value={`${s.totalLateMinutes} د`} icon={<ArrowDownRight className="size-3.5 text-[var(--warning)]" aria-hidden="true" />} />
+        <QuickStat label="خروج مبكر" value={`${s.totalEarlyLeaveMinutes} د`} icon={<ArrowUpRight className="size-3.5 text-[var(--warning)]" aria-hidden="true" />} />
+        <QuickStat label="نسبة الحضور" value={`${attendancePct.toFixed(0)}%`} icon={<UserCheck className="size-3.5 text-[var(--success)]" aria-hidden="true" />} />
+        <QuickStat label="نسيان حضور" value={`${s.missingCheckInCount}`} icon={<AlertTriangle className="size-3.5 text-[var(--danger)]" aria-hidden="true" />} />
+        <QuickStat label="نسيان انصراف" value={`${s.missingCheckOutCount}`} icon={<AlertTriangle className="size-3.5 text-[var(--danger)]" aria-hidden="true" />} />
+        <QuickStat label="تصحيحات" value={`${s.correctionCount}`} icon={<Clock className="size-3.5 text-[var(--text-muted)]" aria-hidden="true" />} />
       </div>
 
       <div className="filter-bar">
@@ -254,13 +247,13 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
                   <td className="cell-time">{fmtTime(d.checkOut)}</td>
                   <td className="cell-shift">{d.shiftName || <span className="dash">—</span>}</td>
                   <td className="cell-num">{d.workHours ? d.workHours.toFixed(1) : <span className="dash">—</span>}</td>
-                  <td className={`cell-num${d.lateMinutes > 0 ? ' text-amber-600 font-bold' : ''}`}>
+                  <td className={`cell-num${d.lateMinutes > 0 ? ' text-[var(--warning)] font-bold' : ''}`}>
                     {d.lateMinutes ? `${d.lateMinutes} د` : <span className="dash">—</span>}
                   </td>
-                  <td className={`cell-num${d.earlyLeaveMinutes > 0 ? ' text-amber-600 font-bold' : ''}`}>
+                  <td className={`cell-num${d.earlyLeaveMinutes > 0 ? ' text-[var(--warning)] font-bold' : ''}`}>
                     {d.earlyLeaveMinutes ? `${d.earlyLeaveMinutes} د` : <span className="dash">—</span>}
                   </td>
-                  <td className={`cell-num${d.overtimeMinutes > 0 ? ' text-emerald-600 font-bold' : ''}`}>
+                  <td className={`cell-num${d.overtimeMinutes > 0 ? ' text-[var(--success)] font-bold' : ''}`}>
                     {d.overtimeMinutes ? `${d.overtimeMinutes} د` : <span className="dash">—</span>}
                   </td>
                   <td>

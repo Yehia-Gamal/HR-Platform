@@ -166,7 +166,7 @@ function LeaveDetailDialog({ row, onClose, onDecided }: { row: LeaveAdminRow; on
           <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${typeColor}`}>{typeLabel}</span>
           <StatusBadge status={row.status} />
           {row.isPaid ? (
-            <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-bold text-green-700 dark:bg-green-900/40 dark:text-green-300">بأجر</span>
+            <span className="rounded-full bg-[var(--success-soft)] px-2.5 py-0.5 text-xs font-bold text-[var(--success)]">بأجر</span>
           ) : (
             <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-bold text-gray-600 dark:bg-gray-700 dark:text-gray-300">بدون أجر</span>
           )}
@@ -225,7 +225,7 @@ function LeaveDetailDialog({ row, onClose, onDecided }: { row: LeaveAdminRow; on
         {isPending && (
           <div className="border-t border-[var(--border)] pt-4 space-y-3">
             {decision.isError && (
-              <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">{safeErrorMessage(decision.error)}</p>
+              <p className="rounded-lg bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{safeErrorMessage(decision.error)}</p>
             )}
 
             {showRejectForm ? (
@@ -243,7 +243,7 @@ function LeaveDetailDialog({ row, onClose, onDecided }: { row: LeaveAdminRow; on
                     type="button"
                     onClick={handleReject}
                     disabled={decision.isPending}
-                    className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                    className="btn-danger flex-1 disabled:opacity-50"
                   >
                     {decision.isPending ? 'جارٍ الرفض...' : 'تأكيد الرفض'}
                   </button>
@@ -266,7 +266,7 @@ function LeaveDetailDialog({ row, onClose, onDecided }: { row: LeaveAdminRow; on
                   type="button"
                   onClick={handleApprove}
                   disabled={decision.isPending}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[var(--success)] px-4 py-2 text-sm font-bold text-white transition-colors hover:brightness-95 disabled:opacity-50"
                 >
                   <Check className="size-4" />
                   {decision.isPending ? 'جارٍ الاعتماد...' : 'اعتماد'}
@@ -275,7 +275,7 @@ function LeaveDetailDialog({ row, onClose, onDecided }: { row: LeaveAdminRow; on
                   type="button"
                   onClick={() => setShowRejectForm(true)}
                   disabled={decision.isPending}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-300 px-4 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--danger)] px-4 py-2 text-sm font-bold text-[var(--danger)] transition-colors hover:bg-[var(--danger-soft)] disabled:opacity-50"
                 >
                   <FileX className="size-4" />
                   رفض

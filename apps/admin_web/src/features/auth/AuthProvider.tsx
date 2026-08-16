@@ -217,7 +217,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
 
     // SEC: لا نكشف ما إذا كان البريد موجوداً — نفس رسالة عامة دائماً.
-    if (resetError) {
+    if (resetError && import.meta.env.DEV) {
       console.warn('[auth] password reset error (hidden from user):', resetError.message);
     }
   }, []);

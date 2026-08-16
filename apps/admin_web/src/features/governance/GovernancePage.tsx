@@ -95,7 +95,7 @@ export function GovernancePage() {
   const riskColumns: DataTableColumn<(typeof risks)[number]>[] = [
     { key: 'title', header: 'المخاطرة', sortable: true, render: (r) => <span className="font-medium">{r.title}</span> },
     { key: 'severity', header: 'الشدة', render: (r) => <StatusBadge status={r.severity} label={SEVERITIES[r.severity]} /> },
-    { key: 'likelihood', header: 'الاحتمال', render: (r) => <StatusBadge status={r.likelihood} label={SEVERITIES[r.likelihood] ?? r.likelihood} /> },
+    { key: 'likelihood', header: 'الاحتمال', render: (r) => <StatusBadge status={r.likelihood} label={LIKELIHOODS[r.likelihood] ?? r.likelihood} /> },
     { key: 'status', header: 'الحالة', render: (r) => <StatusBadge status={r.status} /> },
     { key: 'owner', header: 'المسؤول', render: (r) => r.owner_name ?? '—' },
     { key: 'updated_at', header: 'آخر تحديث', sortable: true, render: (r) => date(r.updated_at) },

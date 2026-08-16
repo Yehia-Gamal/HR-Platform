@@ -583,7 +583,7 @@ function TreeNode({
                     {position.assignedCount}/{position.headcount}
                   </span>
                   {position.headcount > position.assignedCount && (
-                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                    <span className="rounded bg-[var(--warning-soft)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--warning)]">
                       {'شاغر'}
                     </span>
                   )}

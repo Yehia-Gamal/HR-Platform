@@ -78,7 +78,7 @@ export function LoginPage() {
           </p>
           <div className="login-feature-grid mt-8 grid gap-4 xl:grid-cols-3">
             {features.map(({ icon: Icon, title, body }) => (
-              <article key={title} className="rounded-2xl border border-white/15 bg-white/[0.08] p-4 backdrop-blur">
+              <article key={title} className="rounded-2xl border border-[var(--on-gradient-ring)] bg-[var(--on-gradient-overlay-weak)] p-4 backdrop-blur">
                 <span className="login-feature-icon">
                   <Icon className="size-4" aria-hidden="true" />
                 </span>
