@@ -176,7 +176,8 @@ const DEVICE_DIALOG_CONFIG: Record<
 > = {
   revoke: {
     title: 'إلغاء صلاحية الجهاز',
-    message: (d) => `هل تريد إلغاء صلاحية جهاز "${d.deviceName ?? d.platform}" للموظف ${d.employeeName}؟ سيتم تسجيل خروج الموظف من جميع الجلسات وإلغاء إشعارات الجهاز.`,
+    message: (d) =>
+      `هل تريد إلغاء صلاحية جهاز "${d.deviceName ?? d.platform}" للموظف ${d.employeeName}؟ سيتم تسجيل خروج الموظف من جميع الجلسات وإلغاء إشعارات الجهاز.`,
     reasonLabel: 'سبب الإلغاء (اختياري)',
     reasonPlaceholder: 'مثال: جهاز مفقود أو مشبوه',
     confirmLabel: 'إلغاء الصلاحية',
@@ -386,7 +387,16 @@ function PendingDeviceCard({
   const registeredDate = new Date(device.registeredAt);
   const dateStr = registeredDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
   const timeStr = registeredDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-  const platformLabel = device.platform === 'android' ? 'أندرويد' : device.platform === 'ios' ? 'آيفون' : device.platform === 'web' ? 'ويب' : device.platform === 'desktop' ? 'حاسوب' : (device.platform || 'غير معروف');
+  const platformLabel =
+    device.platform === 'android'
+      ? 'أندرويد'
+      : device.platform === 'ios'
+        ? 'آيفون'
+        : device.platform === 'web'
+          ? 'ويب'
+          : device.platform === 'desktop'
+            ? 'حاسوب'
+            : device.platform || 'غير معروف';
   return (
     <article className="card p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -460,7 +470,16 @@ function AdminDeviceCard({
 }) {
   const registeredDate = new Date(device.registeredAt);
   const dateStr = registeredDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
-  const platformLabel = device.platform === 'android' ? 'أندرويد' : device.platform === 'ios' ? 'آيفون' : device.platform === 'web' ? 'ويب' : device.platform === 'desktop' ? 'حاسوب' : (device.platform || 'غير معروف');
+  const platformLabel =
+    device.platform === 'android'
+      ? 'أندرويد'
+      : device.platform === 'ios'
+        ? 'آيفون'
+        : device.platform === 'web'
+          ? 'ويب'
+          : device.platform === 'desktop'
+            ? 'حاسوب'
+            : device.platform || 'غير معروف';
   const canRevoke = device.status === 'active';
   const canReinstate = ['revoked', 'auto_revoked', 'blocked'].includes(device.status);
   const canDelete = terminatedStatuses.includes(device.status);

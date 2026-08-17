@@ -19,7 +19,7 @@ import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
-import { SelectField } from '../../ui/FormField';
+import { SelectField, TextInput } from '../../ui/FormField';
 import { MetricSkeletonRow } from '../../ui/Skeletons';
 import { PageHeader } from '../../ui/PageHeader';
 import { UserAvatar } from '../../ui/UserAvatar';
@@ -855,9 +855,7 @@ function CustomRoleDraftDialog({
           <TextInput label="الوصف" value={draft.description} onChange={(v) => setDraft({ ...draft, description: v })} />
         </div>
 
-        <label
-          className={`flex items-center gap-3 rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-semibold ${canGrantFullAccess ? '' : 'opacity-60'}`}
-        >
+        <label className={`flex items-center gap-3 rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-semibold ${canGrantFullAccess ? '' : 'opacity-60'}`}>
           <input
             className="size-4"
             type="checkbox"

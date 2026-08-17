@@ -53,16 +53,37 @@ export function ReportsPage() {
     URL.revokeObjectURL(a.href);
   };
 
+  const print = () => {
+    if (!d) return;
+    printReport(
+      [
+        sectionToPrintable('الحضور', d.attendance),
+        sectionToPrintable('الإجازات', d.leaves),
+        sectionToPrintable('التكليفات', d.assignments),
+        sectionToPrintable('الأداء (KPI)', d.kpi),
+        sectionToPrintable('النزاعات', d.disputes),
+        sectionToPrintable('الموقع', d.location),
+      ],
+      `التقارير التشغيلية — ${cairoTodayIso()}`,
+    );
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="التقارير التشغيلية"
         description="ملخص شامل للحضور والإجازات والتكليفات والأداء والنزاعات والموقع — قابل للتصدير."
         actions={
-          <button onClick={download} disabled={!d} className="btn-primary">
-            <Download className="size-4" aria-hidden="true" />
-            تصدير CSV
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={print} disabled={!d} className="btn-secondary">
+              <Printer className="size-4" aria-hidden="true" />
+              طباعة
+            </button>
+            <button onClick={download} disabled={!d} className="btn-primary">
+              <Download className="size-4" aria-hidden="true" />
+              تصدير CSV
+            </button>
+          </div>
         }
       />
 

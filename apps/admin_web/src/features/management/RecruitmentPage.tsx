@@ -612,7 +612,12 @@ export function RecruitmentPage() {
       {offerDraft ? (
         <DialogOverlay title="عرض توظيف جديد" onClose={() => setOfferDraft(null)} maxWidth="max-w-4xl">
           <form className="space-y-5" onSubmit={(event) => void submitOffer(event)}>
-            <SelectField label="الطلب/المرشح" required value={offerDraft.applicationId} onChange={(value) => setOfferDraft({ ...offerDraft, applicationId: value })}>
+            <SelectField
+              label="الطلب/المرشح"
+              required
+              value={offerDraft.applicationId}
+              onChange={(value) => setOfferDraft({ ...offerDraft, applicationId: value })}
+            >
               {applicationOptions.map((app) => (
                 <option key={app.id} value={app.id}>
                   {applicationLabel(app.id)}

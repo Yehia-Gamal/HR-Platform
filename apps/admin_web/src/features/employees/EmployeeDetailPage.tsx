@@ -815,11 +815,7 @@ export function DeleteEmployeeDialog({
           <button type="button" onClick={onClose} disabled={deleteEmployee.isPending} className="btn-secondary">
             إلغاء
           </button>
-          <button
-            type="submit"
-            disabled={deleteEmployee.isPending || !codeMatches || reason.trim().length < 10}
-            className="btn-danger"
-          >
+          <button type="submit" disabled={deleteEmployee.isPending || !codeMatches || reason.trim().length < 10} className="btn-danger">
             {deleteEmployee.isPending ? 'جارٍ الحذف...' : 'حذف نهائي'}
           </button>
         </div>
@@ -1039,7 +1035,10 @@ export function EmployeeDetailPage() {
                   <Info icon={Network} label={item.department ?? 'بدون إدارة'} />
                   <Info icon={Phone} label={item.phoneE164 ? renderSafeIntlPhoneText(item.phoneE164) : 'بدون هاتف'} />
                   <Info icon={Mail} label={item.email ?? 'بدون بريد'} />
-                  <Info icon={ShieldCheck} label={`الحساب: ${ACCOUNT_STATUS_LABELS[(item.accountStatus ?? '').toLowerCase()] ?? (accountPending ? 'بانتظار التفعيل' : 'غير متاح')}`} />
+                  <Info
+                    icon={ShieldCheck}
+                    label={`الحساب: ${ACCOUNT_STATUS_LABELS[(item.accountStatus ?? '').toLowerCase()] ?? (accountPending ? 'بانتظار التفعيل' : 'غير متاح')}`}
+                  />
                 </div>
               </div>
               <div className="rounded-2xl bg-[var(--surface-muted)] p-4 text-sm lg:min-w-64">

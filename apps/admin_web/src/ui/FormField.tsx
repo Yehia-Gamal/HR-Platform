@@ -1,17 +1,7 @@
 import type { ReactNode } from 'react';
 
 // ─── حقل نموذج موحد (label + محتوى + تلميح + خطأ) ──────────────────────────
-export function FormField({
-  label,
-  hint,
-  error,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  error?: string;
-  children: ReactNode;
-}) {
+export function FormField({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: ReactNode }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-sm font-bold">{label}</span>
@@ -77,14 +67,7 @@ export function NumberInput({
 }) {
   return (
     <FormField label={label} hint={hint} error={error}>
-      <input
-        className="input"
-        type="number"
-        min={min}
-        required
-        value={value}
-        onChange={(e) => onChange(Math.max(min, Number(e.target.value) || min))}
-      />
+      <input className="input" type="number" min={min} required value={value} onChange={(e) => onChange(Math.max(min, Number(e.target.value) || min))} />
     </FormField>
   );
 }
