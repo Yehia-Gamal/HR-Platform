@@ -14,9 +14,9 @@
   "dependencies": {
     "@ahla/design-tokens": "*",
     "@ahla/shared-contracts": "*",
-    "@hookform/resolvers": "^5.2.2",
-    "@sentry/react": "^10.69.0",
-    "@supabase/supabase-js": "^2.86.0",
+    "@hookform/resolvers": "^5.8.0",
+    "@sentry/react": "^10.70.0",
+    "@supabase/supabase-js": "^2.112.3",
     "@tanstack/react-query": "^5.90.10",
     "@tanstack/react-virtual": "^3.14.9",
     "clsx": "^2.1.1",
@@ -24,11 +24,11 @@
     "lucide-react": "^0.554.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "react-hook-form": "^7.66.1",
+    "react-hook-form": "^7.85.0",
     "react-leaflet": "^5.0.0",
     "react-router": "8.3.0",
     "recharts": "^3.10.1",
-    "web-vitals": "^6.0.1",
+    "web-vitals": "^6.1.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {
@@ -44,7 +44,7 @@
     "jsdom": "^27.2.0",
     "tailwindcss": "^4.3.0",
     "typescript": "^5.9.3",
-    "vite": "^8.1.4",
+    "vite": "^8.2.1",
     "vitest": "^4.0.14",
     "@vitest/coverage-v8": "^4.0.14"
   }
