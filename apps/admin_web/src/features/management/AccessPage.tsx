@@ -15,10 +15,11 @@ import {
   Users,
   Users2,
 } from 'lucide-react';
-import { useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
+import { SelectField } from '../../ui/FormField';
 import { MetricSkeletonRow } from '../../ui/Skeletons';
 import { PageHeader } from '../../ui/PageHeader';
 import { UserAvatar } from '../../ui/UserAvatar';
@@ -331,22 +332,22 @@ export function AccessPage() {
               <p className="muted mt-1 text-sm">يمكن جعل الإسناد مؤقتًا، ويُسحب تلقائيًا بعد تاريخ الانتهاء.</p>
             </div>
             <form className="grid gap-4 md:grid-cols-[1.2fr_1fr_1fr_auto]" onSubmit={(e) => void assign(e)}>
-              <FormSelect label="المستخدم" required value={assignment.userId} onChange={(v) => setAssignment({ ...assignment, userId: v })}>
+              <SelectField label="المستخدم" required value={assignment.userId} onChange={(v) => setAssignment({ ...assignment, userId: v })}>
                 {data.users.map((u) => (
                   <option key={u.userId} value={u.userId}>
                     {u.name}
                     {u.employeeCode ? ` · ${u.employeeCode}` : ''}
                   </option>
                 ))}
-              </FormSelect>
-              <FormSelect label="الدور" required value={assignment.roleId} onChange={(v) => setAssignment({ ...assignment, roleId: v })}>
+              </SelectField>
+              <SelectField label="الدور" required value={assignment.roleId} onChange={(v) => setAssignment({ ...assignment, roleId: v })}>
                 {data.roles.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.name}
                     {r.fullAccess ? ' · وصول كامل' : ''}
                   </option>
                 ))}
-              </FormSelect>
+              </SelectField>
               {(() => {
                 const chosen = data.roles.find((r) => r.id === assignment.roleId);
                 if (chosen?.fullAccess && !canGrantFullAccess) {
@@ -842,16 +843,16 @@ function CustomRoleDraftDialog({
     <DialogOverlay title={draft.id ? 'تعديل الدور' : 'إنشاء دور مخصص'} onClose={onClose} maxWidth="max-w-5xl">
       <form className="space-y-5" onSubmit={(e) => void saveRole(e)}>
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormInput
+          <TextInput
             label="المعرّف (Slug)"
             required
             value={draft.slug}
             disabled={Boolean(draft.id)}
             onChange={(v) => setDraft({ ...draft, slug: v.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
           />
-          <FormInput label="الاسم العربي" required value={draft.name} onChange={(v) => setDraft({ ...draft, name: v })} />
-          <FormInput label="الاسم الإنجليزي" value={draft.nameEn} onChange={(v) => setDraft({ ...draft, nameEn: v })} />
-          <FormInput label="الوصف" value={draft.description} onChange={(v) => setDraft({ ...draft, description: v })} />
+          <TextInput label="الاسم العربي" required value={draft.name} onChange={(v) => setDraft({ ...draft, name: v })} />
+          <TextInput label="الاسم الإنجليزي" value={draft.nameEn} onChange={(v) => setDraft({ ...draft, nameEn: v })} />
+          <TextInput label="الوصف" value={draft.description} onChange={(v) => setDraft({ ...draft, description: v })} />
         </div>
 
         <label
@@ -966,49 +967,6 @@ function CustomRoleDraftDialog({
   );
 }
 
-function FormInput({
-  label,
-  value,
-  onChange,
-  required,
-  disabled,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  required?: boolean;
-  disabled?: boolean;
-}) {
-  return (
-    <label>
-      <span className="mb-1.5 block text-sm font-bold">{label}</span>
-      <input className="input" required={required} disabled={disabled} value={value} onChange={(e) => onChange(e.target.value)} />
-    </label>
-  );
-}
-function FormSelect({
-  label,
-  value,
-  onChange,
-  required,
-  children,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  required?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <label>
-      <span className="mb-1.5 block text-sm font-bold">{label}</span>
-      <select className="input" required={required} value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="">اختر…</option>
-        {children}
-      </select>
-    </label>
-  );
-}
 function Flag({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
     <label className="flex items-center gap-2 rounded-xl bg-[var(--surface-muted)] px-3 py-2 text-xs font-bold">

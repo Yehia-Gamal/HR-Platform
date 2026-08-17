@@ -152,12 +152,57 @@ class _DirectoryTile extends StatelessWidget {
         style: const TextStyle(fontWeight: FontWeight.w700),
       ),
       subtitle: sub.isNotEmpty ? Text(sub) : null,
-      trailing: employee.employeeCode != null
-          ? Text(
+      trailing: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (employee.statusToday == 'present' ||
+              employee.statusToday == 'on_leave')
+            _StatusChip(statusToday: employee.statusToday),
+          if (employee.employeeCode != null)
+            Text(
               employee.employeeCode!,
               style: Theme.of(context).textTheme.bodySmall,
-            )
-          : null,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// شارة الحالة العامة فقط (حاضر في مقر العمل / في إجازة) — بلا أي تفاصيل.
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.statusToday});
+
+  final String statusToday;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isPresent = statusToday == 'present';
+    final color = isPresent ? const Color(0xFF0F9F6E) : scheme.primary;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.circle, size: 8, color: color),
+          const SizedBox(width: 5),
+          Text(
+            isPresent ? 'حاضر في مقر العمل' : 'في إجازة',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

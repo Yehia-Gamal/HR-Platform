@@ -8,6 +8,7 @@ import { Link } from 'react-router';
 import { getSupabase } from '../../core/supabase';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { PageHeader } from '../../ui/PageHeader';
+import { FormField } from '../../ui/FormField';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { prepareAvatarFile } from '../../ui/avatarImage';
 import { fixIntlPhoneOrder, sanitizePhoneInput } from '../../ui/phoneDisplay';
@@ -454,12 +455,9 @@ function SectionTitle({ title, description }: { title: string; description: stri
 }
 function Field({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: ReactNode }) {
   return (
-    <label className="block">
-      <span className="mb-1.5 block text-sm font-semibold">{label}</span>
+    <FormField label={label} error={error ?? ''} hint={hint}>
       {children}
-      {hint ? <span className="muted mt-1 block text-xs">{hint}</span> : null}
-      <span className="mt-1 block min-h-4 text-xs text-[var(--danger)]">{error}</span>
-    </label>
+    </FormField>
   );
 }
 function SelectField({

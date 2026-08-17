@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(14);
+select plan(15);
 
 select has_table('public', 'employees', 'employees table exists');
 select has_table('public', 'attendance_events', 'attendance_events table exists');
@@ -45,11 +45,22 @@ select ok(
   'authenticated cannot execute trusted attendance RPC directly'
 );
 
+-- لا سياسة إدراج خام/مفتوحة على attendance_events: أي سياسة INSERT موجودة
+-- يجب أن تكون مقيدة بالصلاحية (with_check عبر can_access_employee) — بلا
+-- using(true) أو with_check مفتوح. (0429 استبدلت غياب السياسة بسياسة مقيدة.)
 select is(
   (select count(*)::integer from pg_policies
-   where schemaname = 'public' and tablename = 'attendance_events' and cmd = 'INSERT'),
+   where schemaname = 'public' and tablename = 'attendance_events' and cmd = 'INSERT'
+     and (with_check is null or with_check = 'true')),
   0,
-  'no authenticated raw INSERT policy on attendance_events'
+  'no open/unscoped INSERT policy on attendance_events'
+);
+
+select ok(
+  (select bool_and(with_check like '%can_access_employee%')
+     from pg_policies
+    where schemaname = 'public' and tablename = 'attendance_events' and cmd = 'INSERT'),
+  'any INSERT policy on attendance_events must be permission-scoped'
 );
 
 select is(

@@ -20,28 +20,122 @@ class MobileNotificationsPage extends ConsumerStatefulWidget {
 class _MobileNotificationsPageState
     extends ConsumerState<MobileNotificationsPage> {
   _NotifFilter _filter = _NotifFilter.all;
+  bool _selecting = false;
+  final Set<String> _selectedIds = {};
+
+  void _enterSelection() => setState(() => _selecting = true);
+
+  void _exitSelection() {
+    setState(() {
+      _selecting = false;
+      _selectedIds.clear();
+    });
+  }
+
+  void _toggleSelect(String id) {
+    setState(() {
+      if (!_selectedIds.remove(id)) {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _selectAll(Iterable<MobileNotificationItem> visible) {
+    setState(() => _selectedIds.addAll(visible.map((x) => x.id)));
+  }
+
+  void _deselectAll(Iterable<MobileNotificationItem> visible) {
+    setState(() {
+      for (final item in visible) {
+        _selectedIds.remove(item.id);
+      }
+    });
+  }
+
+  Future<void> _confirmDeleteSelected() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final count = _selectedIds.length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('حذف الإشعارات المحددة'),
+        content: Text(
+          'سيتم حذف $count إشعار نهائيًا من حسابك. لا يمكن التراجع عن هذا الإجراء.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref
+          .read(mobileCommandsProvider)
+          .deleteNotifications(_selectedIds.toList(growable: false));
+      if (!mounted) return;
+      setState(() {
+        _selecting = false;
+        _selectedIds.clear();
+      });
+      messenger.showSnackBar(
+        const SnackBar(content: Text('تم حذف الإشعارات المحددة')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('تعذر حذف الإشعارات. أعد المحاولة.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final notifications = ref.watch(myNotificationsProvider);
+    final items = notifications.asData?.value ?? const <MobileNotificationItem>[];
+    final unread = items.where((x) => !x.isRead).toList();
+    final visible = _filter == _NotifFilter.unread ? unread : items;
+    final allVisibleSelected =
+        visible.isNotEmpty && visible.every((x) => _selectedIds.contains(x.id));
     return Scaffold(
       appBar: AppBar(
         title: const Text('الإشعارات'),
         actions: [
-          IconButton(
-            tooltip: 'تعليم الكل كمقروء',
-            onPressed: () async {
-              final messenger = ScaffoldMessenger.of(context);
-              await ref
-                  .read(mobileCommandsProvider)
-                  .markNotificationsRead();
-              if (!mounted) return;
-              messenger.showSnackBar(
-                const SnackBar(content: Text('تم تعليم كل الإشعارات كمقروءة')),
-              );
-            },
-            icon: const Icon(Icons.done_all_rounded),
-          ),
+          if (_selecting)
+            TextButton(
+              onPressed: _exitSelection,
+              child: const Text('إلغاء'),
+            )
+          else ...[
+            IconButton(
+              tooltip: 'تحديد الإشعارات',
+              onPressed: _enterSelection,
+              icon: const Icon(Icons.checklist_rounded),
+            ),
+            IconButton(
+              tooltip: 'تعليم الكل كمقروء',
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                await ref
+                    .read(mobileCommandsProvider)
+                    .markNotificationsRead();
+                if (!mounted) return;
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('تم تعليم كل الإشعارات كمقروءة')),
+                );
+              },
+              icon: const Icon(Icons.done_all_rounded),
+            ),
+          ],
         ],
       ),
       body: SafeArea(
@@ -77,9 +171,7 @@ class _MobileNotificationsPageState
                 ),
               ],
             ),
-            data: (items) {
-              final unread = items.where((x) => !x.isRead).toList();
-              final visible = _filter == _NotifFilter.unread ? unread : items;
+            data: (_) {
               return Column(
                 children: [
                   Padding(
@@ -141,10 +233,20 @@ class _MobileNotificationsPageState
                             itemCount: visible.length,
                             separatorBuilder: (_, _) =>
                                 const SizedBox(height: 10),
-                            itemBuilder: (context, index) => _NotificationCard(
-                              item: visible[index],
-                              onTap: () => _open(visible[index]),
-                            ),
+                            itemBuilder: (context, index) {
+                              final item = visible[index];
+                              return _NotificationCard(
+                                item: item,
+                                selecting: _selecting,
+                                selected: _selectedIds.contains(item.id),
+                                onToggleSelect: () => _toggleSelect(item.id),
+                                onTap: () => _open(item),
+                                onLongPress: () {
+                                  if (!_selecting) _enterSelection();
+                                  _toggleSelect(item.id);
+                                },
+                              );
+                            },
                           ),
                   ),
                 ],
@@ -153,57 +255,93 @@ class _MobileNotificationsPageState
           ),
         ),
       ),
+      bottomNavigationBar: _selecting
+          ? SafeArea(
+              top: false,
+              child: Material(
+                color: Theme.of(context).colorScheme.surface,
+                elevation: 8,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                  child: Row(
+                    children: [
+                      TextButton(
+                        onPressed: allVisibleSelected
+                            ? () => _deselectAll(visible)
+                            : () => _selectAll(visible),
+                        child: Text(
+                          allVisibleSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل',
+                        ),
+                      ),
+                      const Spacer(),
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                        ),
+                        onPressed: _selectedIds.isEmpty
+                            ? null
+                            : _confirmDeleteSelected,
+                        icon: const Icon(Icons.delete_outline_rounded),
+                        label: Text('مسح المحدد (${_selectedIds.length})'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          : null,
     );
   }
 
   Future<void> _open(MobileNotificationItem item) async {
-    if (!item.hasSupportedAction) return;
-    try {
-      if (!item.isRead) {
-        await ref
+    if (item.hasSupportedAction) {
+      try {
+        if (!item.isRead) {
+          await ref
+              .read(mobileCommandsProvider)
+              .markNotificationsRead([item.id]);
+        }
+        if (!mounted) return;
+        if (item.entityType == 'announcement') {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MobileFeedDetailPage(
+                kind: 'announcement',
+                itemId: item.entityId!,
+              ),
+            ),
+          );
+          return;
+        }
+
+        final action = MobileActionItem(
+          id: '${item.entityType}-${item.entityId}',
+          kind: item.entityType!,
+          title: item.title,
+          subtitle: item.body,
+          priority: item.priority,
+          status: '',
+          dueAt: null,
+        );
+        final target = await ref
             .read(mobileCommandsProvider)
-            .markNotificationsRead([item.id]);
-      }
-      if (!mounted) return;
-      if (item.entityType == 'announcement') {
+            .resolveAction(action);
+        if (!mounted) return;
         await Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => MobileFeedDetailPage(
-              kind: 'announcement',
-              itemId: item.entityId!,
+          MaterialPageRoute(builder: (_) => mobilePageForActionTarget(target)),
+        );
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(
+            const SnackBar(
+              content: Text('تعذر فتح الإشعار بأمان. أعد المحاولة.'),
             ),
-          ),
-        );
-        return;
-      }
-
-      final action = MobileActionItem(
-        id: '${item.entityType}-${item.entityId}',
-        kind: item.entityType!,
-        title: item.title,
-        subtitle: item.body,
-        priority: item.priority,
-        status: '',
-        dueAt: null,
-      );
-      final target = await ref
-          .read(mobileCommandsProvider)
-          .resolveAction(action);
-      if (!mounted) return;
-      await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => mobilePageForActionTarget(target)),
-      );
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(
-          const SnackBar(
-            content: Text('تعذر فتح الإشعار بأمان. أعد المحاولة.'),
-          ),
-        );
+          );
+        }
       }
     }
   }
@@ -246,10 +384,21 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _NotificationCard extends StatelessWidget {
-  const _NotificationCard({required this.item, required this.onTap});
+  const _NotificationCard({
+    required this.item,
+    required this.onTap,
+    this.selecting = false,
+    this.selected = false,
+    this.onToggleSelect,
+    this.onLongPress,
+  });
 
   final MobileNotificationItem item;
   final VoidCallback onTap;
+  final bool selecting;
+  final bool selected;
+  final VoidCallback? onToggleSelect;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -259,35 +408,41 @@ class _NotificationCard extends StatelessWidget {
         label: item.isRead ? null : 'إشعار غير مقروء',
         child: ListTile(
           contentPadding: const EdgeInsets.all(16),
-          leading: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              CircleAvatar(
-                backgroundColor: urgent
-                    ? Theme.of(context).colorScheme.errorContainer
-                    : Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: Icon(
-                  _icon(item.category),
-                  color: urgent
-                      ? Theme.of(context).colorScheme.onErrorContainer
-                      : Theme.of(context).colorScheme.primary,
-                ),
-              ),
-              if (!item.isRead)
-                PositionedDirectional(
-                  start: -2,
-                  top: -2,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.error,
-                      shape: BoxShape.circle,
+          leading: selecting
+              ? Checkbox(
+                  value: selected,
+                  onChanged: (_) => onToggleSelect?.call(),
+                  activeColor: Theme.of(context).colorScheme.error,
+                )
+              : Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: urgent
+                          ? Theme.of(context).colorScheme.errorContainer
+                          : Theme.of(context).colorScheme.surfaceContainerHighest,
+                      child: Icon(
+                        _icon(item.category),
+                        color: urgent
+                            ? Theme.of(context).colorScheme.onErrorContainer
+                            : Theme.of(context).colorScheme.primary,
+                      ),
                     ),
-                  ),
+                    if (!item.isRead)
+                      PositionedDirectional(
+                        start: -2,
+                        top: -2,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.error,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-            ],
-          ),
           title: Text(
             item.title,
             style: const TextStyle(fontWeight: FontWeight.w900),
@@ -321,10 +476,13 @@ class _NotificationCard extends StatelessWidget {
               ),
             ],
           ),
-          trailing: item.hasSupportedAction
-              ? const Icon(Icons.chevron_left_rounded)
-              : null,
-          onTap: item.hasSupportedAction ? onTap : null,
+          trailing: selecting
+              ? null
+              : item.hasSupportedAction
+                  ? const Icon(Icons.chevron_left_rounded)
+                  : null,
+          onTap: selecting ? onToggleSelect : (item.hasSupportedAction ? onTap : null),
+          onLongPress: selecting ? null : onLongPress,
         ),
       ),
     );

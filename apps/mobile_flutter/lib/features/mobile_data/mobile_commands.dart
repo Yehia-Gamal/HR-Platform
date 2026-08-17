@@ -1046,6 +1046,34 @@ extension MobileDailyCommands on MobileCommands {
     ref.invalidate(employeeHomeProvider);
   }
 
+  Future<void> deleteNotifications(List<String> ids) async {
+    await _withTimeout(ref
+        .read(supabaseProvider)
+        .rpc<dynamic>('delete_my_notifications', params: {'p_ids': ids}));
+    ref.invalidate(myNotificationsProvider);
+    ref.invalidate(employeeHomeProvider);
+  }
+
+  /// منح بدل راحة يدوي لموظف (HR/التنفيذي فقط — تتحقق منه الخادم أيضاً).
+  Future<int> grantWeeklyRestCredit({
+    required String employeeId,
+    required DateTime workDate,
+    required int days,
+  }) async {
+    final granted = await _withTimeout(ref
+        .read(supabaseProvider)
+        .rpc<int>(
+          'grant_weekly_rest_credit',
+          params: {
+            'p_employee_id': employeeId,
+            'p_work_date':
+                '${workDate.year.toString().padLeft(4, '0')}-${workDate.month.toString().padLeft(2, '0')}-${workDate.day.toString().padLeft(2, '0')}',
+            'p_days': days,
+          },
+        ));
+    return granted;
+  }
+
   Future<void> saveDailyReport({
     required DateTime reportDate,
     required String achievements,

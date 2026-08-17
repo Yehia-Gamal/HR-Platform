@@ -1,6 +1,7 @@
 import { Building2, BriefcaseBusiness, ChevronDown, ChevronLeft, Edit3, List, Network, Plus, Save, UsersRound } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
+import { SelectField, TextInput } from '../../ui/FormField';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
@@ -375,37 +376,41 @@ export function OrganizationPage() {
         <DialogOverlay title={departmentDraft.id ? 'تعديل الإدارة' : 'إنشاء إدارة'} onClose={() => setDepartmentDraft(null)}>
           <form className="space-y-4" onSubmit={(event) => void saveDepartment(event)}>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Input label={'الكود'} required value={departmentDraft.code} onChange={(value) => setDepartmentDraft({ ...departmentDraft, code: value })} />
-              <Input
+              <TextInput label={'الكود'} required value={departmentDraft.code} onChange={(value) => setDepartmentDraft({ ...departmentDraft, code: value })} />
+              <TextInput
                 label={'اسم الإدارة'}
                 required
                 value={departmentDraft.name}
                 onChange={(value) => setDepartmentDraft({ ...departmentDraft, name: value })}
               />
-              <Select
+              <SelectField
                 label={'الكيان'}
                 required
                 value={departmentDraft.entityId}
                 onChange={(value) => setDepartmentDraft({ ...departmentDraft, entityId: value })}
                 options={data.entities}
+                placeholderOption="غير محدد"
               />
-              <Select
+              <SelectField
                 label={'الفرع'}
                 value={departmentDraft.branchId}
                 onChange={(value) => setDepartmentDraft({ ...departmentDraft, branchId: value })}
                 options={data.branches.filter((x) => !departmentDraft.entityId || x.entityId === departmentDraft.entityId)}
+                placeholderOption="غير محدد"
               />
-              <Select
+              <SelectField
                 label={'الإدارة الأعلى'}
                 value={departmentDraft.parentId}
                 onChange={(value) => setDepartmentDraft({ ...departmentDraft, parentId: value })}
                 options={data.departments.filter((x) => x.id !== departmentDraft.id)}
+                placeholderOption="غير محدد"
               />
-              <Select
+              <SelectField
                 label={'المدير'}
                 value={departmentDraft.managerId}
                 onChange={(value) => setDepartmentDraft({ ...departmentDraft, managerId: value })}
                 options={data.employees}
+                placeholderOption="غير محدد"
               />
             </div>
             <Toggle checked={departmentDraft.active} onChange={(active) => setDepartmentDraft({ ...departmentDraft, active })} />
@@ -419,40 +424,45 @@ export function OrganizationPage() {
         <DialogOverlay title={positionDraft.id ? 'تعديل المنصب' : 'إنشاء منصب'} onClose={() => setPositionDraft(null)}>
           <form className="space-y-4" onSubmit={(event) => void savePosition(event)}>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Input label={'الكود'} required value={positionDraft.code} onChange={(value) => setPositionDraft({ ...positionDraft, code: value })} />
-              <Input label={'اسم المنصب'} required value={positionDraft.name} onChange={(value) => setPositionDraft({ ...positionDraft, name: value })} />
-              <Select
+              <TextInput label={'الكود'} required value={positionDraft.code} onChange={(value) => setPositionDraft({ ...positionDraft, code: value })} />
+              <TextInput label={'اسم المنصب'} required value={positionDraft.name} onChange={(value) => setPositionDraft({ ...positionDraft, name: value })} />
+              <SelectField
                 label={'الإدارة'}
                 required
                 value={positionDraft.departmentId}
                 onChange={(value) => setPositionDraft({ ...positionDraft, departmentId: value, teamId: '' })}
                 options={data.departments}
+                placeholderOption="غير محدد"
               />
-              <Select
+              <SelectField
                 label={'الفريق'}
                 value={positionDraft.teamId}
                 onChange={(value) => setPositionDraft({ ...positionDraft, teamId: value })}
                 options={data.teams.filter((x) => x.departmentId === positionDraft.departmentId)}
+                placeholderOption="غير محدد"
               />
-              <Select
+              <SelectField
                 label={'المسمى الوظيفي'}
                 value={positionDraft.jobTitleId}
                 onChange={(value) => setPositionDraft({ ...positionDraft, jobTitleId: value })}
                 options={data.jobTitles}
+                placeholderOption="غير محدد"
               />
-              <Select
+              <SelectField
                 label={'الدرجة'}
                 value={positionDraft.gradeId}
                 onChange={(value) => setPositionDraft({ ...positionDraft, gradeId: value })}
                 options={data.grades}
+                placeholderOption="غير محدد"
               />
-              <Select
+              <SelectField
                 label={'يرفع إلى'}
                 value={positionDraft.reportsToId}
                 onChange={(value) => setPositionDraft({ ...positionDraft, reportsToId: value })}
                 options={data.positions.filter((x) => x.id !== positionDraft.id)}
+                placeholderOption="غير محدد"
               />
-              <Input
+              <TextInput
                 label={'العدد المعتمد'}
                 type="number"
                 required
@@ -608,53 +618,6 @@ function TreeNode({
 
 // ─── مكونات مساعدة ────────────────────────────────────────────────────────────
 
-function Input({
-  label,
-  value,
-  onChange,
-  required,
-  type = 'text',
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  required?: boolean;
-  type?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-sm font-bold">{label}</span>
-      <input className="input" type={type} required={required} value={value} onChange={(event) => onChange(event.target.value)} />
-    </label>
-  );
-}
-function Select({
-  label,
-  value,
-  onChange,
-  options,
-  required,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: Array<{ id: string; name: string }>;
-  required?: boolean;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-sm font-bold">{label}</span>
-      <select className="input" required={required} aria-label={label} value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="">{'غير محدد'}</option>
-        {options.map((item) => (
-          <option key={item.id} value={item.id}>
-            {item.name}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
   return (
     <label className="flex items-center gap-3 rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-bold">

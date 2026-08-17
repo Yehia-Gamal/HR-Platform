@@ -164,7 +164,7 @@ select is(
   (public.get_attendance_dashboard(
      nullif(current_setting('app.t0355_day', true), '')::date,
      'd3550000-0000-4000-8000-000000000002')->>'present')::int,
-  2, 'present = Ø­Ø§Ø¶Ø± + Ù…ØªØ£Ø®Ø±');
+  3, 'present = Ø­Ø§Ø¶Ø± + Ù…ØªØ£Ø®Ø± + Ø¨ØµÙ…Ø© Ø¨Ù„Ø§ Ø§Ù†ØµØ±Ø§Ù (0431)');
 
 select is(
   (public.get_attendance_dashboard(

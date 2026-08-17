@@ -1,6 +1,8 @@
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_executive_insights_models.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_executive_insights_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
@@ -63,14 +65,21 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
               ),
             ],
           ),
-          data: (item) => _content(context, item),
+          data: (item) => _content(context, ref, item),
         ),
       ),
     );
   }
 
-  Widget _content(BuildContext context, ExecutiveEmployeeSummary item) {
+  Widget _content(
+    BuildContext context,
+    WidgetRef ref,
+    ExecutiveEmployeeSummary item,
+  ) {
     final scheme = Theme.of(context).colorScheme;
+    final access = ref.watch(accessContextProvider).value;
+    final canGrantRest = access?.hasPermission('requests.leave.balance.adjust') ??
+        false;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
@@ -180,6 +189,26 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
             ),
           ),
         ],
+        if (canGrantRest) ...[
+          const SizedBox(height: 14),
+          Card(
+            color: scheme.tertiaryContainer.withValues(alpha: .45),
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(16),
+              leading: const CircleAvatar(child: Icon(Icons.card_giftcard_rounded)),
+              title: const Text(
+                'منح بدل راحة أسبوعي',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+              subtitle: const Text('أضف رصيد بدل راحة عن يوم أو عدة أيام محددة.'),
+              trailing: IconButton.filledTonal(
+                tooltip: 'منح بدل راحة',
+                icon: const Icon(Icons.add_rounded),
+                onPressed: () => _showGrantSheet(context, ref, item),
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 18),
         const MobileSectionHeader(
           title: 'الحضور الحديث',
@@ -252,6 +281,153 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
+    );
+  }
+
+  Future<void> _showGrantSheet(
+    BuildContext context,
+    WidgetRef ref,
+    ExecutiveEmployeeSummary item,
+  ) async {
+    var selectedDate = DateTime.now();
+    var days = 1;
+    var submitting = false;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) {
+          Future<void> submit() async {
+            setSheetState(() => submitting = true);
+            try {
+              final granted = await ref
+                  .read(mobileCommandsProvider)
+                  .grantWeeklyRestCredit(
+                    employeeId: item.id,
+                    workDate: selectedDate,
+                    days: days,
+                  );
+              ref.invalidate(
+                mobileExecutiveEmployeeSummaryProvider(item.id),
+              );
+              ref.invalidate(mobileRequestsProvider);
+              if (sheetContext.mounted) {
+                Navigator.pop(sheetContext);
+              }
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'تم منح $granted يوم بدل راحة ابتداءً من ${DateFormat('d MMM y', 'ar').format(selectedDate)}.',
+                    ),
+                  ),
+                );
+              }
+            } catch (error) {
+              if (sheetContext.mounted) {
+                setSheetState(() => submitting = false);
+              }
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(humanizeError(error))),
+                );
+              }
+            }
+          }
+
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'منح بدل راحة أسبوعي — ${item.name}',
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'يُضاف رصيد بدل راحة دون أي خصم من رصيد الإجازات.',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.event_rounded),
+                    title: const Text('تاريخ بدء المنح'),
+                    trailing: Text(
+                      DateFormat('d MMM y', 'ar').format(selectedDate),
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: sheetContext,
+                        initialDate: selectedDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                        helpText: 'اختر تاريخ بدء المنح',
+                      );
+                      if (picked != null) {
+                        setSheetState(() => selectedDate = picked);
+                      }
+                    },
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.calendar_view_day_rounded),
+                    title: const Text('عدد الأيام'),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton.filledTonal(
+                          icon: const Icon(Icons.remove_rounded),
+                          onPressed: days > 1
+                              ? () => setSheetState(() => days--)
+                              : null,
+                        ),
+                        SizedBox(
+                          width: 36,
+                          child: Text(
+                            '$days',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        IconButton.filledTonal(
+                          icon: const Icon(Icons.add_rounded),
+                          onPressed: days < 30
+                              ? () => setSheetState(() => days++)
+                              : null,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: submitting ? null : submit,
+                    icon: submitting
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.card_giftcard_rounded),
+                    label: Text(submitting ? 'جارٍ المنح…' : 'تأكيد المنح'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 

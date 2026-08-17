@@ -305,7 +305,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                       ),
                       DropdownMenuItem(
                         value: 'weekly_rest_comp',
-                        child: Text('بدل راحة أسبوعية (لا تُخصم من الرصيد)'),
+                        child: Text('بدل راحة أسبوعية (يُخصم من رصيد البدل)'),
                       ),
                     ],
                     onChanged: (value) =>

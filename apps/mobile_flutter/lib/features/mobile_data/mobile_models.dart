@@ -2804,6 +2804,7 @@ class DirectoryEmployee {
     this.photoUrl,
     this.jobTitle,
     this.department,
+    this.statusToday = 'absent',
   });
 
   factory DirectoryEmployee.fromJson(Map<String, dynamic> j) =>
@@ -2814,6 +2815,7 @@ class DirectoryEmployee {
         photoUrl: j['photoUrl'] as String?,
         jobTitle: j['jobTitle'] as String?,
         department: j['department'] as String?,
+        statusToday: j['statusToday'] as String? ?? 'absent',
       );
 
   final String id;
@@ -2822,6 +2824,9 @@ class DirectoryEmployee {
   final String? photoUrl;
   final String? jobTitle;
   final String? department;
+
+  /// الحالة العامة اليومية: present | on_leave | absent — ما يراه الجميع فقط.
+  final String statusToday;
 }
 
 /// الملف الشامل للموظف (V22 — get_employee_360) — مطابق لـ employee360Schema

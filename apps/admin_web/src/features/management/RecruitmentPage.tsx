@@ -1,6 +1,7 @@
 import { BriefcaseBusiness, CalendarPlus, CheckCircle2, FileClock, FileSignature, Plus, Send, UserCheck, UserPlus, Users } from 'lucide-react';
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useState, type FormEvent } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
+import { NumberInput, SelectField, TextInput } from '../../ui/FormField';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { safeErrorMessage } from '../../core/errorMapper';
@@ -564,7 +565,7 @@ export function RecruitmentPage() {
       {interviewDraft ? (
         <DialogOverlay title="جدولة مقابلة" onClose={() => setInterviewDraft(null)} maxWidth="max-w-4xl">
           <form className="space-y-5" onSubmit={(event) => void submitInterview(event)}>
-            <Select
+            <SelectField
               label="الطلب/المرشح"
               required
               value={interviewDraft.applicationId}
@@ -575,12 +576,12 @@ export function RecruitmentPage() {
                   {applicationLabel(app.id)}
                 </option>
               ))}
-            </Select>
+            </SelectField>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Select label="النمط" required value={interviewDraft.mode} onChange={(value) => setInterviewDraft({ ...interviewDraft, mode: value })}>
+              <SelectField label="النمط" required value={interviewDraft.mode} onChange={(value) => setInterviewDraft({ ...interviewDraft, mode: value })}>
                 <option value="onsite">حضوري</option>
                 <option value="remote">عن بُعد</option>
-              </Select>
+              </SelectField>
               <label>
                 <span className="mb-1.5 block text-sm font-bold">الموعد</span>
                 <input
@@ -592,7 +593,7 @@ export function RecruitmentPage() {
                 />
               </label>
             </div>
-            <Input
+            <TextInput
               label="المكان أو رابط الاجتماع"
               value={interviewDraft.locationOrLink}
               onChange={(value) => setInterviewDraft({ ...interviewDraft, locationOrLink: value })}
@@ -611,16 +612,16 @@ export function RecruitmentPage() {
       {offerDraft ? (
         <DialogOverlay title="عرض توظيف جديد" onClose={() => setOfferDraft(null)} maxWidth="max-w-4xl">
           <form className="space-y-5" onSubmit={(event) => void submitOffer(event)}>
-            <Select label="الطلب/المرشح" required value={offerDraft.applicationId} onChange={(value) => setOfferDraft({ ...offerDraft, applicationId: value })}>
+            <SelectField label="الطلب/المرشح" required value={offerDraft.applicationId} onChange={(value) => setOfferDraft({ ...offerDraft, applicationId: value })}>
               {applicationOptions.map((app) => (
                 <option key={app.id} value={app.id}>
                   {applicationLabel(app.id)}
                 </option>
               ))}
-            </Select>
+            </SelectField>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Input label="المسمى الوظيفي" value={offerDraft.title} onChange={(value) => setOfferDraft({ ...offerDraft, title: value })} />
-              <Input
+              <TextInput label="المسمى الوظيفي" value={offerDraft.title} onChange={(value) => setOfferDraft({ ...offerDraft, title: value })} />
+              <TextInput
                 label="نوع العقد"
                 value={offerDraft.contractType}
                 onChange={(value) => setOfferDraft({ ...offerDraft, contractType: value })}
@@ -667,7 +668,7 @@ export function RecruitmentPage() {
         <DialogOverlay title="طلب توظيف جديد" onClose={() => setDraft(null)} maxWidth="max-w-4xl">
           <form className="space-y-5" onSubmit={(event) => void submit(event)}>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Select label="الإدارة" required value={draft.departmentId} onChange={(value) => setDraft({ ...draft, departmentId: value })}>
+              <SelectField label="الإدارة" required value={draft.departmentId} onChange={(value) => setDraft({ ...draft, departmentId: value })}>
                 {organization.data.departments
                   .filter((item) => item.active)
                   .map((department) => (
@@ -675,10 +676,10 @@ export function RecruitmentPage() {
                       {department.name}
                     </option>
                   ))}
-              </Select>
-              <Input label="المسمى المطلوب" required value={draft.title} onChange={(value) => setDraft({ ...draft, title: value })} />
+              </SelectField>
+              <TextInput label="المسمى المطلوب" required value={draft.title} onChange={(value) => setDraft({ ...draft, title: value })} />
               <NumberInput label="العدد" min={1} value={draft.headcount} onChange={(value) => setDraft({ ...draft, headcount: value })} />
-              <Input
+              <TextInput
                 label="نطاق الميزانية"
                 value={draft.budgetRange}
                 onChange={(value) => setDraft({ ...draft, budgetRange: value })}
@@ -701,64 +702,5 @@ export function RecruitmentPage() {
         </DialogOverlay>
       ) : null}
     </div>
-  );
-}
-
-function Input({
-  label,
-  value,
-  onChange,
-  required,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  required?: boolean;
-  placeholder?: string;
-}) {
-  return (
-    <label>
-      <span className="mb-1.5 block text-sm font-bold">{label}</span>
-      <input className="input" required={required} placeholder={placeholder} value={value} onChange={(event) => onChange(event.target.value)} />
-    </label>
-  );
-}
-function NumberInput({ label, value, onChange, min }: { label: string; value: number; onChange: (value: number) => void; min: number }) {
-  return (
-    <label>
-      <span className="mb-1.5 block text-sm font-bold">{label}</span>
-      <input
-        className="input"
-        type="number"
-        min={min}
-        required
-        value={value}
-        onChange={(event) => onChange(Math.max(min, Number(event.target.value) || min))}
-      />
-    </label>
-  );
-}
-function Select({
-  label,
-  value,
-  onChange,
-  required,
-  children,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  required?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <label>
-      <span className="mb-1.5 block text-sm font-bold">{label}</span>
-      <select className="input" required={required} value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="">اختر…</option>
-        {children}
-      </select>
-    </label>
   );
 }

@@ -1,4 +1,4 @@
-import { Activity, Briefcase, CalendarDays, Clock, Download, FileWarning, Inbox, MapPin, Scale, Target, UserCheck, UserMinus, Users } from 'lucide-react';
+import { Activity, Briefcase, CalendarDays, Clock, Download, FileWarning, Inbox, MapPin, Printer, Scale, Target, UserCheck, UserMinus, Users } from 'lucide-react';
 import { ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
 import { MetricSkeletonRow } from '../../ui/Skeletons';
@@ -6,6 +6,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { useHrReportsSummary } from './useHrReportsSummary';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { cairoTodayIso } from '../../core/cairoTime';
+import { printReport, type PrintableSection } from '../../core/exportUtils';
 
 /** مساعد لتحويل قسم تقرير إلى صفوف CSV */
 function sectionToCsv(title: string, data: Record<string, number | string | undefined>): string[] {
@@ -14,6 +15,19 @@ function sectionToCsv(title: string, data: Record<string, number | string | unde
     if (val !== undefined) rows.push(`${key},${val}`);
   }
   return rows;
+}
+
+/** تحويل قسم تقرير إلى جدول قابل للطباعة */
+function sectionToPrintable(title: string, data: Record<string, number | string | undefined>): PrintableSection {
+  return {
+    title,
+    table: {
+      headers: ['المؤشر', 'القيمة'],
+      rows: Object.entries(data)
+        .filter(([, val]) => val !== undefined)
+        .map(([key, val]) => [key, String(val)]),
+    },
+  };
 }
 
 export function ReportsPage() {

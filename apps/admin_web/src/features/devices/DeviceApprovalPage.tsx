@@ -159,6 +159,51 @@ function PendingDevicesPanel() {
   );
 }
 
+type DeviceDialogKind = 'revoke' | 'delete' | 'reinstate';
+type DeviceDialog = { kind: DeviceDialogKind; device: AdminDevice };
+
+const DEVICE_DIALOG_CONFIG: Record<
+  DeviceDialogKind,
+  {
+    title: string;
+    message: (d: AdminDevice) => string;
+    reasonLabel: string;
+    reasonPlaceholder: string;
+    confirmLabel: string;
+    pendingLabel: string;
+    tone: 'danger' | 'primary';
+  }
+> = {
+  revoke: {
+    title: 'إلغاء صلاحية الجهاز',
+    message: (d) => `هل تريد إلغاء صلاحية جهاز "${d.deviceName ?? d.platform}" للموظف ${d.employeeName}؟ سيتم تسجيل خروج الموظف من جميع الجلسات وإلغاء إشعارات الجهاز.`,
+    reasonLabel: 'سبب الإلغاء (اختياري)',
+    reasonPlaceholder: 'مثال: جهاز مفقود أو مشبوه',
+    confirmLabel: 'إلغاء الصلاحية',
+    pendingLabel: 'جارٍ الإلغاء...',
+    tone: 'danger',
+  },
+  delete: {
+    title: 'حذف الجهاز نهائياً',
+    message: (d) => `تحذير: سيتم حذف جهاز "${d.deviceName ?? d.platform}" للموظف ${d.employeeName} نهائياً. لا يمكن التراجع عن هذا الإجراء.`,
+    reasonLabel: 'سبب الحذف (اختياري)',
+    reasonPlaceholder: 'مثال: تنظيف أجهزة قديمة',
+    confirmLabel: 'حذف نهائي',
+    pendingLabel: 'جارٍ الحذف...',
+    tone: 'danger',
+  },
+  reinstate: {
+    title: 'إعادة تفعيل الجهاز',
+    message: (d) =>
+      `هل تريد إعادة جهاز "${d.deviceName ?? d.platform}" للموظف ${d.employeeName} إلى قائمة الانتظار للمراجعة؟ سيحتاج الجهاز لموافقة جديدة قبل تفعيله.`,
+    reasonLabel: 'سبب إعادة التفعيل (اختياري)',
+    reasonPlaceholder: 'مثال: تم التحقق من الجهاز وهو آمن',
+    confirmLabel: 'إعادة للمراجعة',
+    pendingLabel: 'جارٍ الإعادة...',
+    tone: 'primary',
+  },
+};
+
 function AllDevicesPanel() {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [showTerminated, setShowTerminated] = useState(false);
@@ -167,12 +212,8 @@ function AllDevicesPanel() {
   const remove = useDeleteDevice();
   const reinstate = useReinstateDevice();
   const [search, setSearch] = useState('');
-  const [revokeTarget, setRevokeTarget] = useState<AdminDevice | null>(null);
-  const [revokeReason, setRevokeReason] = useState('');
-  const [deleteTarget, setDeleteTarget] = useState<AdminDevice | null>(null);
-  const [deleteReason, setDeleteReason] = useState('');
-  const [reinstateTarget, setReinstateTarget] = useState<AdminDevice | null>(null);
-  const [reinstateReason, setReinstateReason] = useState('');
+  const [dialog, setDialog] = useState<DeviceDialog | null>(null);
+  const [reason, setReason] = useState('');
   const allDevices = useMemo(() => query.data ?? [], [query.data]);
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -182,41 +223,16 @@ function AllDevicesPanel() {
   const activeCount = allDevices.filter((d) => d.status === 'active').length;
   const terminatedCount = allDevices.filter((d) => d.status === 'revoked' || d.status === 'replaced' || d.status === 'auto_revoked').length;
 
-  function executeRevoke() {
-    if (!revokeTarget) return;
-    revoke.mutate(
-      { deviceId: revokeTarget.id, reason: revokeReason || undefined },
-      {
-        onSuccess: () => {
-          setRevokeTarget(null);
-          setRevokeReason('');
-        },
-      },
-    );
-  }
-  function executeDelete() {
-    if (!deleteTarget) return;
-    remove.mutate(
-      { deviceId: deleteTarget.id, reason: deleteReason || undefined },
-      {
-        onSuccess: () => {
-          setDeleteTarget(null);
-          setDeleteReason('');
-        },
-      },
-    );
-  }
-  function executeReinstate() {
-    if (!reinstateTarget) return;
-    reinstate.mutate(
-      { deviceId: reinstateTarget.id, reason: reinstateReason || undefined },
-      {
-        onSuccess: () => {
-          setReinstateTarget(null);
-          setReinstateReason('');
-        },
-      },
-    );
+  function executeAction() {
+    if (!dialog) return;
+    const params = { deviceId: dialog.device.id, reason: reason || undefined };
+    const onSuccess = () => {
+      setDialog(null);
+      setReason('');
+    };
+    if (dialog.kind === 'revoke') revoke.mutate(params, { onSuccess });
+    else if (dialog.kind === 'delete') remove.mutate(params, { onSuccess });
+    else reinstate.mutate(params, { onSuccess });
   }
 
   if (query.isLoading)
@@ -283,9 +299,9 @@ function AllDevicesPanel() {
             <AdminDeviceCard
               key={device.id}
               device={device}
-              onRevoke={setRevokeTarget}
-              onDelete={setDeleteTarget}
-              onReinstate={setReinstateTarget}
+              onRevoke={(target) => setDialog({ kind: 'revoke', device: target })}
+              onDelete={(target) => setDialog({ kind: 'delete', device: target })}
+              onReinstate={(target) => setDialog({ kind: 'reinstate', device: target })}
               isRevokePending={revoke.isPending}
               isDeletePending={remove.isPending}
               isReinstatePending={reinstate.isPending}
@@ -293,109 +309,68 @@ function AllDevicesPanel() {
           ))}
         </section>
       )}
-      {revokeTarget ? (
-        <DialogOverlay title="إلغاء صلاحية الجهاز" onClose={() => setRevokeTarget(null)} maxWidth="max-w-md">
-          <p className="text-sm leading-7 text-[var(--text-muted)]">
-            هل تريد إلغاء صلاحية جهاز &quot;{revokeTarget.deviceName ?? revokeTarget.platform}&quot; للموظف {revokeTarget.employeeName}؟ سيتم تسجيل خروج الموظف
-            من جميع الجلسات وإلغاء إشعارات الجهاز.
-          </p>
-          <div className="mt-4">
-            <label className="text-sm font-bold" htmlFor="revoke-reason">
-              سبب الإلغاء (اختياري)
-            </label>
-            <textarea
-              id="revoke-reason"
-              className="input mt-1 w-full"
-              rows={2}
-              value={revokeReason}
-              onChange={(e) => setRevokeReason(e.target.value)}
-              placeholder="مثال: جهاز مفقود أو مشبوه"
-            />
-          </div>
-          {revoke.isError ? (
-            <div className="mt-3">
-              <ErrorBanner message={safeErrorMessage(revoke.error)} />
-            </div>
-          ) : null}
-          <div className="mt-4 flex gap-2 justify-end">
-            <button type="button" className="btn-secondary" onClick={() => setRevokeTarget(null)}>
-              إلغاء
-            </button>
-            <button type="button" className="btn-danger" disabled={revoke.isPending} onClick={executeRevoke}>
-              {revoke.isPending ? 'جارٍ الإلغاء...' : 'إلغاء الصلاحية'}
-            </button>
-          </div>
-        </DialogOverlay>
-      ) : null}
-      {deleteTarget ? (
-        <DialogOverlay title="حذف الجهاز نهائياً" onClose={() => setDeleteTarget(null)} maxWidth="max-w-md">
-          <p className="text-sm leading-7 text-[var(--danger)]">
-            تحذير: سيتم حذف جهاز &quot;{deleteTarget.deviceName ?? deleteTarget.platform}&quot; للموظف {deleteTarget.employeeName} نهائياً. لا يمكن التراجع عن
-            هذا الإجراء.
-          </p>
-          <div className="mt-4">
-            <label className="text-sm font-bold" htmlFor="delete-reason">
-              سبب الحذف (اختياري)
-            </label>
-            <textarea
-              id="delete-reason"
-              className="input mt-1 w-full"
-              rows={2}
-              value={deleteReason}
-              onChange={(e) => setDeleteReason(e.target.value)}
-              placeholder="مثال: تنظيف أجهزة قديمة"
-            />
-          </div>
-          {remove.isError ? (
-            <div className="mt-3">
-              <ErrorBanner message={safeErrorMessage(remove.error)} />
-            </div>
-          ) : null}
-          <div className="mt-4 flex gap-2 justify-end">
-            <button type="button" className="btn-secondary" onClick={() => setDeleteTarget(null)}>
-              إلغاء
-            </button>
-            <button type="button" className="btn-danger" disabled={remove.isPending} onClick={executeDelete}>
-              {remove.isPending ? 'جارٍ الحذف...' : 'حذف نهائي'}
-            </button>
-          </div>
-        </DialogOverlay>
-      ) : null}
-      {reinstateTarget ? (
-        <DialogOverlay title="إعادة تفعيل الجهاز" onClose={() => setReinstateTarget(null)} maxWidth="max-w-md">
-          <p className="text-sm leading-7 text-[var(--text-muted)]">
-            هل تريد إعادة جهاز &quot;{reinstateTarget.deviceName ?? reinstateTarget.platform}&quot; للموظف {reinstateTarget.employeeName} إلى قائمة الانتظار
-            للمراجعة؟ سيحتاج الجهاز لموافقة جديدة قبل تفعيله.
-          </p>
-          <div className="mt-4">
-            <label className="text-sm font-bold" htmlFor="reinstate-reason">
-              سبب إعادة التفعيل (اختياري)
-            </label>
-            <textarea
-              id="reinstate-reason"
-              className="input mt-1 w-full"
-              rows={2}
-              value={reinstateReason}
-              onChange={(e) => setReinstateReason(e.target.value)}
-              placeholder="مثال: تم التحقق من الجهاز وهو آمن"
-            />
-          </div>
-          {reinstate.isError ? (
-            <div className="mt-3">
-              <ErrorBanner message={safeErrorMessage(reinstate.error)} />
-            </div>
-          ) : null}
-          <div className="mt-4 flex gap-2 justify-end">
-            <button type="button" className="btn-secondary" onClick={() => setReinstateTarget(null)}>
-              إلغاء
-            </button>
-            <button type="button" className="btn-primary" disabled={reinstate.isPending} onClick={executeReinstate}>
-              {reinstate.isPending ? 'جارٍ الإعادة...' : 'إعادة للمراجعة'}
-            </button>
-          </div>
-        </DialogOverlay>
+      {dialog ? (
+        <DeviceActionDialog
+          config={DEVICE_DIALOG_CONFIG[dialog.kind]}
+          device={dialog.device}
+          reason={reason}
+          setReason={setReason}
+          mutation={dialog.kind === 'revoke' ? revoke : dialog.kind === 'delete' ? remove : reinstate}
+          onConfirm={executeAction}
+          onCancel={() => setDialog(null)}
+        />
       ) : null}
     </div>
+  );
+}
+
+function DeviceActionDialog({
+  config,
+  device,
+  reason,
+  setReason,
+  mutation,
+  onConfirm,
+  onCancel,
+}: {
+  config: (typeof DEVICE_DIALOG_CONFIG)[DeviceDialogKind];
+  device: AdminDevice;
+  reason: string;
+  setReason: (value: string) => void;
+  mutation: ReturnType<typeof useRevokeDevice>;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <DialogOverlay title={config.title} onClose={onCancel} maxWidth="max-w-md">
+      <p className={`text-sm leading-7 ${config.tone === 'danger' ? 'text-[var(--danger)]' : 'text-[var(--text-muted)]'}`}>{config.message(device)}</p>
+      <div className="mt-4">
+        <label className="text-sm font-bold" htmlFor="device-reason">
+          {config.reasonLabel}
+        </label>
+        <textarea
+          id="device-reason"
+          className="input mt-1 w-full"
+          rows={2}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder={config.reasonPlaceholder}
+        />
+      </div>
+      {mutation.isError ? (
+        <div className="mt-3">
+          <ErrorBanner message={safeErrorMessage(mutation.error)} />
+        </div>
+      ) : null}
+      <div className="mt-4 flex justify-end gap-2">
+        <button type="button" className="btn-secondary" onClick={onCancel}>
+          إلغاء
+        </button>
+        <button type="button" className={config.tone === 'danger' ? 'btn-danger' : 'btn-primary'} disabled={mutation.isPending} onClick={onConfirm}>
+          {mutation.isPending ? config.pendingLabel : config.confirmLabel}
+        </button>
+      </div>
+    </DialogOverlay>
   );
 }
 
