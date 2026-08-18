@@ -45,7 +45,7 @@ select ok(
 
 select is(
   (select default_due_hours from public.workflow_definitions where code = 'leave_approval_v1'),
-  12, 'المهلة الافتراضية 12 ساعة'
+  2, 'المهلة الافتراضية ساعتان (0436)'
 );
 
 select is(
@@ -55,7 +55,7 @@ select is(
 
 select is(
   ((select config from public.workflow_definitions where code = 'leave_approval_v1')->'tierHours'->>'operations')::integer,
-  4, 'tierHours.operations = 4 ساعات'
+  2, 'tierHours.operations = 2 ساعات (0436)'
 );
 
 select ok(
@@ -127,7 +127,7 @@ select is(
    from public.workflow_steps ws
    join public.workflow_definitions wd on wd.id = ws.definition_id
    where wd.code = 'leave_approval_v1' and ws.step_order = 2),
-  4, 'الخطوة 2: مهلة 4 ساعات'
+  2, 'الخطوة 2: مهلة ساعتين (0436)'
 );
 
 select is(
@@ -135,7 +135,7 @@ select is(
    from public.workflow_steps ws
    join public.workflow_definitions wd on wd.id = ws.definition_id
    where wd.code = 'leave_approval_v1' and ws.step_order = 2),
-  4, 'الخطوة 2: تُصعَّد بعد 4 ساعات'
+  2, 'الخطوة 2: تُصعَّد بعد ساعتين (0436)'
 );
 
 select is(
