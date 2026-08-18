@@ -62,9 +62,17 @@ declare
   v_le uuid := 'aaaaaaaa-0000-4000-8000-000000000301';
   v_a uuid := 'aaaaaaaa-0000-4000-8000-000000000302';
 begin
-  insert into public.legal_entities (id, code, name) values (v_le, 'RST-LE2', 'كيان اختبار 0431');
+  insert into public.legal_entities (id, code, name) values (v_le, 'RST-LE2', 'كيان اختبار 0432');
   insert into public.departments (id, legal_entity_id, code, name) values
     (v_a, v_le, 'RST-A2', 'إدارة أ');
+
+  insert into public.leave_types (code, name_ar, is_paid, is_active, affects_balance, max_days_per_year)
+  values
+    ('annual', 'إجازة سنوية', true, true, true, 30),
+    ('casual', 'إجازة عرضية', true, true, true, 15),
+    ('sick', 'إجازة مرضية', true, true, false, 60),
+    ('weekly_rest_comp', 'بدل راحة أسبوعي', true, true, false, 100)
+  on conflict (code) do nothing;
 
   insert into auth.users (id, email, aud, role) values
     ('22222222-0000-4000-8000-000000000301', '0431-emp@test.local',  'authenticated', 'authenticated'),
@@ -110,30 +118,30 @@ select is(
 insert into public.requests (id, request_type, employee_id, status, workflow_status, title, payload)
 values ('33333333-0000-4000-8000-000000000301', 'mission',
         '11111111-0000-4000-8000-000000000301', 'pending', 'submitted', 'مأمورية payload',
-        '{"startDate":"2030-06-17","endDate":"2030-06-19","location":"الفيوم"}');
+        '{"startDate":"2026-06-15","endDate":"2026-06-17","location":"الفيوم"}');
 update public.requests set status = 'approved' where id = '33333333-0000-4000-8000-000000000301';
 
 select is(
   (select count(*)::int from public.attendance_daily
    where employee_id = '11111111-0000-4000-8000-000000000301'
-     and work_date between '2030-06-17' and '2030-06-19' and status = 'on_leave'),
+     and work_date between '2026-06-15' and '2026-06-17' and status = 'on_leave'),
   3, 'مأمورية payload (3 أيام) → on_leave بلا غياب');
 
--- مأمورية payload تغطي جمعة (2030-06-21) → بدل راحة أسبوعي تلقائي
+-- مأمورية payload تغطي جمعة (2026-06-19) → بدل راحة أسبوعي تلقائي
 insert into public.requests (id, request_type, employee_id, status, workflow_status, title, payload)
 values ('33333333-0000-4000-8000-000000000302', 'mission',
         '11111111-0000-4000-8000-000000000301', 'pending', 'submitted', 'مأمورية payload (جمعة)',
-        '{"startDate":"2030-06-20","endDate":"2030-06-21"}');
+        '{"startDate":"2026-06-18","endDate":"2026-06-19"}');
 update public.requests set status = 'approved' where id = '33333333-0000-4000-8000-000000000302';
 
 select is(
   (select count(*)::int from public.attendance_daily
    where employee_id = '11111111-0000-4000-8000-000000000301'
-     and work_date between '2030-06-20' and '2030-06-21' and status = 'on_leave'),
-  2, 'مأمورية payload (20-21) → on_leave');
+     and work_date between '2026-06-18' and '2026-06-19' and status = 'on_leave'),
+  2, 'مأمورية payload (18-19) → on_leave');
 select is(
   (select count(*)::int from public.leave_ledger_entries
-   where source_key = 'weekly-rest:credit:11111111-0000-4000-8000-000000000301:2030-06-21'),
+   where source_key = 'weekly-rest:credit:11111111-0000-4000-8000-000000000301:2026-06-19'),
   1, 'بدل راحة أسبوعي تلقائي عن جمعة المأمورية (payload)');
 
 -- =====================================================================
@@ -142,13 +150,13 @@ select is(
 insert into public.requests (id, request_type, employee_id, status, workflow_status, title, payload)
 values ('33333333-0000-4000-8000-000000000303', 'convoy',
         '11111111-0000-4000-8000-000000000301', 'pending', 'submitted', 'قافلة payload',
-        '{"startDate":"2030-06-24","endDate":"2030-06-25","location":"الريف الأوروبي"}');
+        '{"startDate":"2026-06-22","endDate":"2026-06-23","location":"الريف الأوروبي"}');
 update public.requests set status = 'approved' where id = '33333333-0000-4000-8000-000000000303';
 
 select is(
   (select count(*)::int from public.attendance_daily
    where employee_id = '11111111-0000-4000-8000-000000000301'
-     and work_date between '2030-06-24' and '2030-06-25' and status = 'on_leave'),
+     and work_date between '2026-06-22' and '2026-06-23' and status = 'on_leave'),
   2, 'قافلة payload → on_leave بلا غياب');
 
 -- =====================================================================
@@ -157,36 +165,45 @@ select is(
 insert into public.requests (id, request_type, employee_id, status, workflow_status, title, payload)
 values ('33333333-0000-4000-8000-000000000304', 'fundraising',
         '11111111-0000-4000-8000-000000000301', 'pending', 'submitted', 'فاندي payload',
-        '{"startDate":"2030-06-26","endDate":"2030-06-27","location":"المنيا"}');
+        '{"startDate":"2026-06-24","endDate":"2026-06-25","location":"المنيا"}');
 update public.requests set status = 'approved' where id = '33333333-0000-4000-8000-000000000304';
 
 select is(
   (select count(*)::int from public.attendance_daily
    where employee_id = '11111111-0000-4000-8000-000000000301'
-     and work_date between '2030-06-26' and '2030-06-27' and status = 'on_leave'),
+     and work_date between '2026-06-24' and '2026-06-25' and status = 'on_leave'),
   2, 'فاندي payload → on_leave بلا غياب');
 
 -- =====================================================================
--- 5) إجازة معتمدة (مسار قائم لا انحدار)
+-- 5) إجازة معتمدة (مسار قائم لا انحدار) + إجازة متداخلة مع مأمورية (لأولوية الترتيب)
 -- =====================================================================
 select public.apply_leave_ledger_entry(
   '11111111-0000-4000-8000-000000000301',
   (select id from public.leave_types where code = 'annual'),
-  2030, 'opening', 30,
-  '0431-test:opening:annual:2030', null, 'رصيد افتتاحي للاختبار');
+  2026, 'opening', 30,
+  '0432-test:opening:annual:2026', null, 'رصيد افتتاحي للاختبار');
 insert into public.requests (id, request_type, employee_id, status, workflow_status, title)
 values ('33333333-0000-4000-8000-000000000305', 'leave',
-        '11111111-0000-4000-8000-000000000301', 'pending', 'submitted', 'إجازة اختبار 0431');
+        '11111111-0000-4000-8000-000000000301', 'pending', 'submitted', 'إجازة اختبار 0432');
 insert into public.leave_requests (request_id, employee_id, leave_type_id, start_date, end_date, days_count)
 values ('33333333-0000-4000-8000-000000000305', '11111111-0000-4000-8000-000000000301',
-        (select id from public.leave_types where code = 'annual'), '2030-06-02', '2030-06-03', 2);
+        (select id from public.leave_types where code = 'annual'), '2026-06-08', '2026-06-09', 2);
 update public.requests set status = 'approved' where id = '33333333-0000-4000-8000-000000000305';
 
 select is(
   (select count(*)::int from public.attendance_daily
    where employee_id = '11111111-0000-4000-8000-000000000301'
-     and work_date between '2030-06-02' and '2030-06-03' and status = 'on_leave'),
+     and work_date between '2026-06-08' and '2026-06-09' and status = 'on_leave'),
   2, 'إجازة معتمدة → on_leave (لا انحدار)');
+
+-- إجازة ثانية متداخلة مع المأمورية (16-17): يجب أن تظهر مأمورية وليست إجازة
+insert into public.requests (id, request_type, employee_id, status, workflow_status, title)
+values ('33333333-0000-4000-8000-000000000306', 'leave',
+        '11111111-0000-4000-8000-000000000301', 'pending', 'submitted', 'إجازة متداخلة مع مأمورية');
+insert into public.leave_requests (request_id, employee_id, leave_type_id, start_date, end_date, days_count)
+values ('33333333-0000-4000-8000-000000000306', '11111111-0000-4000-8000-000000000301',
+        (select id from public.leave_types where code = 'annual'), '2026-06-16', '2026-06-17', 2);
+update public.requests set status = 'approved' where id = '33333333-0000-4000-8000-000000000306';
 
 -- =====================================================================
 -- 6) الكشف الشهري (persona HR): الترتيب الجديد + الملخص
@@ -201,46 +218,46 @@ set local role authenticated;
 
 select is(
   (select x->>'status' from jsonb_array_elements(
-     (public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2030, 6))->'days') x
-   where x->>'date' = '2030-06-17'),
+     (public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2026, 6))->'days') x
+   where x->>'date' = '2026-06-15'),
   'مأمورية', 'الكشف: يوم مأمورية payload يُعرض مأمورية (لا غياب)');
 select is(
   (select x->>'status' from jsonb_array_elements(
-     (public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2030, 6))->'days') x
-   where x->>'date' = '2030-06-18'),
-  'مأمورية', 'الكشف: المأمورية تسبق الإجازة في اليومين المشتركين (18)');
+     (public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2026, 6))->'days') x
+   where x->>'date' = '2026-06-16'),
+  'مأمورية', 'الكشف: المأمورية تسبق الإجازة في اليومين المشتركين (16)');
 select is(
   (select x->>'status' from jsonb_array_elements(
-     (public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2030, 6))->'days') x
-   where x->>'date' = '2030-06-02'),
+     (public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2026, 6))->'days') x
+   where x->>'date' = '2026-06-08'),
   'إجازة معتمدة', 'الكشف: يوم إجازة يُعرض إجازة معتمدة');
 select is(
   (select x->>'status' from jsonb_array_elements(
-     (public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2030, 6))->'days') x
-   where x->>'date' = '2030-06-24'),
+     (public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2026, 6))->'days') x
+   where x->>'date' = '2026-06-22'),
   'قافلة', 'الكشف: يوم قافلة payload يُعرض قافلة');
 select is(
   (select x->>'status' from jsonb_array_elements(
-     (public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2030, 6))->'days') x
-   where x->>'date' = '2030-06-26'),
+     (public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2026, 6))->'days') x
+   where x->>'date' = '2026-06-24'),
   'فاندي', 'الكشف: يوم فاندي payload يُعرض فاندي');
 select is(
   (select x->>'status' from jsonb_array_elements(
-     (public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2030, 6))->'days') x
-   where x->>'date' = '2030-06-21'),
+     (public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2026, 6))->'days') x
+   where x->>'date' = '2026-06-26'),
   'راحة أسبوعية', 'الكشف: الجمعة تبقى راحة أسبوعية (سلوك قائم)');
 
 select is(
-  ((public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2030, 6))->'summary'->>'missionDays')::int,
-  5, 'الكشف: missionDays = 5');
+  ((public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2026, 6))->'summary'->>'missionDays')::int,
+  4, 'الكشف: missionDays = 4 (15-18)');
 select is(
-  ((public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2030, 6))->'summary'->>'convoyFundiDays')::int,
+  ((public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2026, 6))->'summary'->>'convoyFundiDays')::int,
   4, 'الكشف: convoyFundiDays = 4 (قافلة 2 + فاندي 2)');
 select is(
-  ((public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2030, 6))->'summary'->>'leaveDays')::int,
-  2, 'الكشف: leaveDays = 2');
+  ((public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2026, 6))->'summary'->>'leaveDays')::int,
+  2, 'الكشف: leaveDays = 2 (8-9 فقط، والمتداخلة مأمورية)');
 select is(
-  ((public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2030, 6))->'summary'->>'absentDays')::int,
+  ((public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2026, 6))->'summary'->>'absentDays')::int,
   16, 'الكشف: absentDays = 16 (بلا أي يوم عمل معتمد)');
 
 rollback;
