@@ -17,6 +17,30 @@ final RegExp _uuidRegExp = RegExp(
   caseSensitive: false,
 );
 
+/// يطبّع أسماء entity_type المخزّنة في قاعدة البيانات إلى الأسماء الموحّدة
+/// التي يفهمها التطبيق والـ RPC resolve_mobile_action_target (0435).
+///
+/// كانت دوال الإشعارات تخزّن صيغاً مختلفة عن قائمة الموبايل:
+/// live_location_requests (الجمع)، kpi_evaluation، attendance_corrections،
+/// work_rosters، attendance_daily، attendance_event، requests، dispute_case —
+/// فكان النقر على الإشعار لا يستجيب (لا فتح مسار ولا تعليم مقروء).
+String? canonicalNotificationEntityType(String? raw) => switch (raw) {
+  'live_location_requests' => 'live_location_request',
+  'kpi_evaluation' => 'kpi',
+  'requests' => 'request',
+  'request_decision' => 'request',
+  'dispute_case' => 'dispute',
+  'attendance_daily' ||
+  'attendance_event' ||
+  'attendance_corrections' ||
+  'overtime_records' ||
+  'work_rosters' ||
+  'attendance_alert' ||
+  'punch_reminder' => 'attendance',
+  'daily_reports' => 'daily_report',
+  _ => raw,
+};
+
 /// محلل موحّد للروابط العميقة: يستخرج مسار GoRouter من رابط عميق
 /// (كامل مثل https://host/action/location/{id} أو نسبي مثل /action/request/{id})
 /// مع تحقق أمني من أن المعرّف UUID صالح — يمنع حقن مسارات عشوائية.
@@ -103,23 +127,30 @@ String resolveNotificationRoute({
   if (entityId == null || entityId.isEmpty) return '/';
   if (!_uuidRegExp.hasMatch(entityId)) return '/';
 
-  return switch (type) {
-    'request' || 'request_decision' => '/action/request/$entityId',
-    'kpi' || 'kpi_evaluation'       => '/action/kpi/$entityId',
-    'attendance' || 'attendance_alert' || 'punch_reminder' => '/action/attendance/$entityId',
-    'location' || 'location_request' || 'live_location_request' => '/action/live_location_request/$entityId',
-    'dispute'                        => '/action/dispute/$entityId',
-    'task'                           => '/action/task/$entityId',
-    'decision'                       => '/action/decision/$entityId',
-    'announcement'                   => '/action/announcement/$entityId',
-    'recognition'                    => '/action/recognition/$entityId',
-    // ─── أنواع جديدة من migrations 0316-0328 ───
-    // الإشعارات التالية لا تفتح صفحة محددة بل تُظهر المستخدم على القائمة المناسبة:
+  // تطبيع اسم النوع أولاً — الخلفية تخزّن صيغاً متعددة لنفس الكيان (0435).
+  final canonical = canonicalNotificationEntityType(type);
+
+  return switch (canonical) {
+    'request' => '/action/request/$entityId',
+    'kpi' => '/action/kpi/$entityId',
+    'attendance' => '/action/attendance/$entityId',
+    'location' || 'location_request' || 'live_location_request' =>
+      '/action/live_location_request/$entityId',
+    'dispute' => '/action/dispute/$entityId',
+    'task' => '/action/task/$entityId',
+    'decision' => '/action/decision/$entityId',
+    'announcement' => '/action/announcement/$entityId',
+    'recognition' => '/action/recognition/$entityId',
+    // ─── أنواع معلوماتية (migrations 0316-0328) ───
+    // لا تفتح صفحة محددة بل تُعلَّم مقروءة عند النقر فقط:
     // 'daily_report' / 'daily_report_like' / 'daily_report_comment' → تقارير الجميع
-    // 'attendance_manager_notify' → لا إجراء مباشر (إشعار معلوماتي)
+    // 'attendance_manager_notify' / 'work_assignments' / 'kpi_appeals' ...
     // نُرجع '/' لأنها إشعارات معلوماتية بدون deep link محدد.
-    'daily_report' || 'daily_report_like' || 'daily_report_comment' || 'attendance_manager_notify' => '/',
-    _                                => '/',
+    'daily_report' ||
+    'daily_report_like' ||
+    'daily_report_comment' ||
+    'attendance_manager_notify' => '/',
+    _ => '/',
   };
 }
 

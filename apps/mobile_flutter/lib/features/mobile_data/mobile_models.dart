@@ -1,3 +1,5 @@
+import 'package:ahla_shabab_management_os/core/notifications/notification_handler.dart';
+
 /// Safely parses a required DateTime from JSON, returning epoch on null/invalid.
 DateTime _reqDate(dynamic value) =>
     DateTime.tryParse(value?.toString() ?? '') ?? DateTime(0);
@@ -1353,6 +1355,9 @@ class MobileNotificationItem {
   final bool isRead;
   final DateTime createdAt;
 
+  /// اسم النوع الموحّد (بعد تطبيع صيغ الخلفية مثل live_location_requests → live_location_request).
+  String? get canonicalType => canonicalNotificationEntityType(entityType);
+
   bool get hasSupportedAction =>
       entityId != null &&
       const {
@@ -1363,20 +1368,30 @@ class MobileNotificationItem {
         'dispute',
         'task',
         'attendance',
-        'punch_reminder',
         'recognition',
         'live_location_request',
-      }.contains(entityType);
+      }.contains(canonicalType);
 
-  /// هل الإشعار من الأنواع الجديدة (التقارير/الإعجاب/التعليق/حضور المدير)؟
-  /// هذه الأنواع إشعارات معلوماتية — لا تفتح صفحة محددة لكنها تُعرض في القائمة.
+  /// هل الإشعار من الأنواع المعلوماتية (لا صفحة موبايل محددة)؟
+  /// هذه الأنواع تُعلَّم مقروءة عند النقر وتُعرض في القائمة دون فتح مسار.
   bool get isInformational =>
       const {
         'daily_report',
         'daily_report_like',
         'daily_report_comment',
         'attendance_manager_notify',
-      }.contains(entityType);
+        'work_assignments',
+        'kpi_appeals',
+        'break_glass_requests',
+        'offboarding_cases',
+        'privacy_requests',
+        'service_requests',
+        'wellbeing_requests',
+        'document_signature_requests',
+        'employee_device',
+        'public_holiday',
+        'role',
+      }.contains(canonicalType);
 }
 
 class MobileLeaveBalance {

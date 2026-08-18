@@ -241,6 +241,7 @@ class _MobileNotificationsPageState
                                 selected: _selectedIds.contains(item.id),
                                 onToggleSelect: () => _toggleSelect(item.id),
                                 onTap: () => _open(item),
+                                onDelete: () => _deleteOne(item),
                                 onLongPress: () {
                                   if (!_selecting) _enterSelection();
                                   _toggleSelect(item.id);
@@ -293,55 +294,80 @@ class _MobileNotificationsPageState
     );
   }
 
-  Future<void> _open(MobileNotificationItem item) async {
-    if (item.hasSupportedAction) {
-      try {
-        if (!item.isRead) {
-          await ref
-              .read(mobileCommandsProvider)
-              .markNotificationsRead([item.id]);
-        }
-        if (!mounted) return;
-        if (item.entityType == 'announcement') {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MobileFeedDetailPage(
-                kind: 'announcement',
-                itemId: item.entityId!,
-              ),
-            ),
-          );
-          return;
-        }
+  /// حذف إشعار واحد مباشرة من بطاقته (مطابق لصفحة الويب) — بلا وضع تحديد.
+  Future<void> _deleteOne(MobileNotificationItem item) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref
+          .read(mobileCommandsProvider)
+          .deleteNotifications([item.id]);
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('تم حذف الإشعار')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('تعذر حذف الإشعار. أعد المحاولة.')),
+      );
+    }
+  }
 
-        final action = MobileActionItem(
-          id: '${item.entityType}-${item.entityId}',
-          kind: item.entityType!,
-          title: item.title,
-          subtitle: item.body,
-          priority: item.priority,
-          status: '',
-          dueAt: null,
-        );
-        final target = await ref
+  Future<void> _open(MobileNotificationItem item) async {
+    // التعليم كمقروء فوراً عند النقر — حتى للإشعارات المعلوماتية التي لا
+    // تملك صفحة موبايل (كان النقر عليها لا يفعل شيئاً إطلاقاً).
+    if (!item.isRead) {
+      try {
+        await ref
             .read(mobileCommandsProvider)
-            .resolveAction(action);
-        if (!mounted) return;
+            .markNotificationsRead([item.id]);
+      } catch (_) {
+        // فشل التعليم لا يمنع فتح الإشعار.
+      }
+    }
+    if (!mounted) return;
+    if (!item.hasSupportedAction) return; // معلوماتي — اكتفِ بالتعليم.
+
+    try {
+      if (item.canonicalType == 'announcement') {
         await Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => mobilePageForActionTarget(target)),
-        );
-      } catch (_) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(
-            const SnackBar(
-              content: Text('تعذر فتح الإشعار بأمان. أعد المحاولة.'),
+          MaterialPageRoute(
+            builder: (_) => MobileFeedDetailPage(
+              kind: 'announcement',
+              itemId: item.entityId!,
             ),
-          );
-        }
+          ),
+        );
+        return;
+      }
+
+      final action = MobileActionItem(
+        id: '${item.canonicalType}-${item.entityId}',
+        kind: item.canonicalType!,
+        title: item.title,
+        subtitle: item.body,
+        priority: item.priority,
+        status: '',
+        dueAt: null,
+      );
+      final target = await ref
+          .read(mobileCommandsProvider)
+          .resolveAction(action);
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => mobilePageForActionTarget(target)),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر فتح الإشعار بأمان. أعد المحاولة.'),
+          ),
+        );
       }
     }
   }
@@ -387,6 +413,7 @@ class _NotificationCard extends StatelessWidget {
   const _NotificationCard({
     required this.item,
     required this.onTap,
+    required this.onDelete,
     this.selecting = false,
     this.selected = false,
     this.onToggleSelect,
@@ -395,6 +422,7 @@ class _NotificationCard extends StatelessWidget {
 
   final MobileNotificationItem item;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
   final bool selecting;
   final bool selected;
   final VoidCallback? onToggleSelect;
@@ -478,10 +506,26 @@ class _NotificationCard extends StatelessWidget {
           ),
           trailing: selecting
               ? null
-              : item.hasSupportedAction
-                  ? const Icon(Icons.chevron_left_rounded)
-                  : null,
-          onTap: selecting ? onToggleSelect : (item.hasSupportedAction ? onTap : null),
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (item.hasSupportedAction)
+                      const Icon(Icons.chevron_left_rounded),
+                    IconButton(
+                      tooltip: 'حذف الإشعار',
+                      visualDensity: VisualDensity.compact,
+                      icon: Icon(
+                        Icons.delete_outline_rounded,
+                        size: 20,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.error,
+                      ),
+                      onPressed: onDelete,
+                    ),
+                  ],
+                ),
+          onTap: selecting ? onToggleSelect : onTap,
           onLongPress: selecting ? null : onLongPress,
         ),
       ),

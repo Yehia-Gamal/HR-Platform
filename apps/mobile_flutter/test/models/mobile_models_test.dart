@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/notifications/notification_handler.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -450,6 +451,123 @@ void main() {
         'entityId': 'x-123',
       });
       expect(notif.hasSupportedAction, isFalse);
+    });
+
+    test('canonicalType يطبّع صيغ الخلفية إلى الأسماء الموحّدة (0435)', () {
+      final cases = <String, String?>{
+        'live_location_requests': 'live_location_request',
+        'kpi_evaluation': 'kpi',
+        'requests': 'request',
+        'request_decision': 'request',
+        'dispute_case': 'dispute',
+        'attendance_daily': 'attendance',
+        'attendance_event': 'attendance',
+        'attendance_corrections': 'attendance',
+        'overtime_records': 'attendance',
+        'work_rosters': 'attendance',
+        'attendance_alert': 'attendance',
+        'punch_reminder': 'attendance',
+        'daily_reports': 'daily_report',
+        'request': 'request',
+        'attendance': 'attendance',
+      };
+      cases.forEach((raw, expected) {
+        expect(
+          canonicalNotificationEntityType(raw),
+          expected,
+          reason: 'raw=$raw',
+        );
+      });
+    });
+
+    test('hasSupportedAction يقبل الأنواع المُطبَّعة من صيغ الخلفية', () {
+      for (final raw in [
+        'live_location_requests',
+        'kpi_evaluation',
+        'requests',
+        'dispute_case',
+        'attendance_daily',
+        'attendance_event',
+        'attendance_corrections',
+        'overtime_records',
+        'work_rosters',
+        'punch_reminder',
+      ]) {
+        final notif = MobileNotificationItem.fromJson(<String, dynamic>{
+          'id': 'n-$raw',
+          'entityType': raw,
+          'entityId': 'uuid-123',
+        });
+        expect(notif.hasSupportedAction, isTrue, reason: 'raw=$raw');
+        expect(notif.isInformational, isFalse, reason: 'raw=$raw');
+      }
+    });
+
+    test('isInformational يغطي الأنواع المعلوماتية (بلا صفحة موبايل)', () {
+      for (final raw in [
+        'work_assignments',
+        'kpi_appeals',
+        'break_glass_requests',
+        'offboarding_cases',
+        'privacy_requests',
+        'service_requests',
+        'wellbeing_requests',
+        'document_signature_requests',
+        'employee_device',
+        'public_holiday',
+        'role',
+        'daily_report',
+        'daily_report_like',
+        'daily_report_comment',
+        'attendance_manager_notify',
+        'daily_reports',
+      ]) {
+        final notif = MobileNotificationItem.fromJson(<String, dynamic>{
+          'id': 'n-$raw',
+          'entityType': raw,
+          'entityId': 'uuid-123',
+        });
+        expect(notif.isInformational, isTrue, reason: 'raw=$raw');
+        expect(notif.hasSupportedAction, isFalse, reason: 'raw=$raw');
+      }
+    });
+
+    test('resolveNotificationRoute يطبّع الأنواع قبل بناء المسار', () {
+      expect(
+        resolveNotificationRoute(
+          type: 'live_location_requests',
+          entityId: '00000000-0000-0000-0000-000000000001',
+        ),
+        '/action/live_location_request/00000000-0000-0000-0000-000000000001',
+      );
+      expect(
+        resolveNotificationRoute(
+          type: 'kpi_evaluation',
+          entityId: '00000000-0000-0000-0000-000000000002',
+        ),
+        '/action/kpi/00000000-0000-0000-0000-000000000002',
+      );
+      expect(
+        resolveNotificationRoute(
+          type: 'attendance_corrections',
+          entityId: '00000000-0000-0000-0000-000000000003',
+        ),
+        '/action/attendance/00000000-0000-0000-0000-000000000003',
+      );
+      expect(
+        resolveNotificationRoute(
+          type: 'work_assignments',
+          entityId: '00000000-0000-0000-0000-000000000004',
+        ),
+        '/',
+      );
+      expect(
+        resolveNotificationRoute(
+          type: 'daily_reports',
+          entityId: '00000000-0000-0000-0000-000000000005',
+        ),
+        '/',
+      );
     });
 
     test('يستخدم القيم الافتراضية للحقول الناقصة', () {

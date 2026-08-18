@@ -1,3 +1,5 @@
+import 'package:ahla_shabab_management_os/app.dart';
+import 'package:ahla_shabab_management_os/core/notifications/notification_handler.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/auth/login_page.dart';
@@ -34,12 +36,39 @@ class MobileActionDeepLinkPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // تطبيع اسم النوع — الخلفية ترسل صيغاً مختلفة (live_location_requests،
+    // attendance_corrections...) فتُوحَّد هنا قبل أي قرار توجيه (0435).
+    final canonicalKind = canonicalNotificationEntityType(kind) ?? '';
     final session = ref.watch(authSessionProvider);
     return session.when(
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (error, _) =>
-          Scaffold(body: Center(child: Text(humanizeError(error)))),
+      error: (error, _) => Scaffold(
+        appBar: AppBar(title: const Text('فتح الإشعار')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, size: 48),
+                const SizedBox(height: 12),
+                Text(humanizeError(error), textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                FilledButton.tonal(
+                  onPressed: () => ref.invalidate(authSessionProvider),
+                  child: const Text('إعادة المحاولة'),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => appRouter.go('/'),
+                  child: const Text('الرئيسية'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
       data: (value) {
         if (value == null) return const LoginPage();
         if (notificationId case final id? when id.isNotEmpty) {
@@ -49,7 +78,7 @@ class MobileActionDeepLinkPage extends ConsumerWidget {
         // مسار سريع لطلبات الموقع: تُفتح شاشة الإرسال مباشرة بمعرّف الطلب
         // (استدعاء واحد يجلب الطلب بنفس التخويل). يمنع الشاشة البيضاء الناتجة
         // عن استدعاءَي RPC متتاليين أثناء إقلاع التطبيق البطيء.
-        if (_isLocationKind(kind)) {
+        if (_isLocationKind(canonicalKind)) {
           return MobileLocationRequestDeepLinkPage(
             requestId: actionId,
             action: action,
@@ -58,7 +87,7 @@ class MobileActionDeepLinkPage extends ConsumerWidget {
 
         final item = MobileActionItem(
           id: actionId,
-          kind: kind,
+          kind: canonicalKind,
           title: '',
           subtitle: null,
           priority: 'normal',
@@ -86,6 +115,12 @@ class MobileActionDeepLinkPage extends ConsumerWidget {
                     Text(humanizeError(error), textAlign: TextAlign.center),
                     const SizedBox(height: 16),
                     FilledButton.tonal(
+                      onPressed: () =>
+                          ref.invalidate(mobileActionTargetProvider(item)),
+                      child: const Text('إعادة المحاولة'),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
                       onPressed: () => Navigator.pop(context),
                       child: const Text('العودة'),
                     ),

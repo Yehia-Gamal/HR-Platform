@@ -225,7 +225,10 @@ class PushService {
     final deepLink = data['deepLink'] as String? ?? '';
     final requestId = data['requestId'] as String? ?? '';
     final notificationId = data['notificationId'] as String? ?? '';
-    final entityType = data['entityType'] as String? ?? data['kind'] as String? ?? '';
+    // تطبيع اسم النوع — الخلفية ترسل صيغاً مختلفة (live_location_requests...).
+    final entityType = canonicalNotificationEntityType(
+      data['entityType'] as String? ?? data['kind'] as String? ?? '',
+    );
     final entityId =
         data['entityId'] as String? ?? requestId;
     final notificationKey = deepLink.isNotEmpty
@@ -446,6 +449,17 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
         ? requestId
         : data['entityId'] as String? ?? '';
 
+    // الحمولة الكاملة (نفس صيغة رسائل المقدمة) حتى يحتفظ النقر على إشعار
+    // الخلفية بـ notificationId (لتعليم المقروء) و entityType/entityId
+    // (لفتح المسار عند تعذّر حلّ deepLink) — كانت الحمولة deepLink فقط
+    // فتضيع هذه الحقول عند فتح التطبيق من الشاشة الخارجية.
+    final notificationId = data['notificationId'] as String? ?? '';
+    final entityType = canonicalNotificationEntityType(
+      data['entityType'] as String? ?? data['kind'] as String? ?? '',
+    );
+    final entityId =
+        data['entityId'] as String? ?? requestId;
+
     await plugin.show(
       _stableNotificationId(notificationKey),
       title,
@@ -480,7 +494,9 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
               : InterruptionLevel.active,
         ),
       ),
-      payload: deepLink,
+      payload: notificationId.isNotEmpty
+          ? '$notificationId\u0001$deepLink\u0001$entityType\u0001$entityId'
+          : '$deepLink\u0001$entityType\u0001$entityId',
     );
   } catch (_) {
     // تجاهل أي خطأ في معالج الخلفية لمنع كراش التطبيق.
