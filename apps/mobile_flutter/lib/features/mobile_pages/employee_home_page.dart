@@ -4,7 +4,6 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dar
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/location_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_feed_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_home_box.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
@@ -139,36 +138,16 @@ class EmployeeHomePage extends ConsumerWidget {
             subtitle: 'أسرع الإجراءات التي تحتاجها أثناء العمل.',
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _QuickAction(
-                  icon: Icons.location_searching_rounded,
-                  title: 'طلبات الموقع',
-                  subtitle: 'موافقة واضحة ومؤقتة',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => LocationRequestsPage(access: access),
-                    ),
-                  ),
-                ),
+          _QuickAction(
+            icon: Icons.location_searching_rounded,
+            title: 'طلبات الموقع',
+            subtitle: 'موافقة واضحة ومؤقتة',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => LocationRequestsPage(access: access),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _QuickAction(
-                  icon: Icons.newspaper_rounded,
-                  title: 'تقارير الجميع',
-                  subtitle: 'أضف تقريرك واطّلع على تقارير الفريق',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const DailyReportsFeedPage(),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
           const SizedBox(height: 20),
           const DailyReportsHomeBox(),
