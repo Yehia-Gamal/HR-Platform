@@ -1,4 +1,19 @@
-import { Activity, Briefcase, CalendarDays, Clock, Download, FileWarning, Inbox, MapPin, Printer, Scale, Target, UserCheck, UserMinus, Users } from 'lucide-react';
+import {
+  Activity,
+  Briefcase,
+  CalendarDays,
+  Clock,
+  Download,
+  FileWarning,
+  Inbox,
+  MapPin,
+  Printer,
+  Scale,
+  Target,
+  UserCheck,
+  UserMinus,
+  Users,
+} from 'lucide-react';
 import { ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
 import { MetricSkeletonRow } from '../../ui/Skeletons';

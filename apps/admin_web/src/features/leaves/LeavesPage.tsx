@@ -224,9 +224,7 @@ function LeaveDetailDialog({ row, onClose, onDecided }: { row: LeaveAdminRow; on
         {/* أزرار الموافقة/الرفض — تظهر فقط للطلبات المعلقة */}
         {isPending && (
           <div className="border-t border-[var(--border)] pt-4 space-y-3">
-            {decision.isError && (
-              <p className="rounded-lg bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{safeErrorMessage(decision.error)}</p>
-            )}
+            {decision.isError && <p className="rounded-lg bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{safeErrorMessage(decision.error)}</p>}
 
             {showRejectForm ? (
               <div className="space-y-2">
@@ -239,12 +237,7 @@ function LeaveDetailDialog({ row, onClose, onDecided }: { row: LeaveAdminRow; on
                   className="input-field w-full resize-none text-sm"
                 />
                 <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleReject}
-                    disabled={decision.isPending}
-                    className="btn-danger flex-1 disabled:opacity-50"
-                  >
+                  <button type="button" onClick={handleReject} disabled={decision.isPending} className="btn-danger flex-1 disabled:opacity-50">
                     {decision.isPending ? 'جارٍ الرفض...' : 'تأكيد الرفض'}
                   </button>
                   <button

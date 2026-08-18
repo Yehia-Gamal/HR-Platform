@@ -391,7 +391,7 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
 
       {/* شريط الإحصائيات السريعة */}
       <div className="flex flex-wrap gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)]/40 px-4 py-3 text-xs print:py-2 print:text-[10px]">
-<StatItem label="تأخير كلي" value={`${s.totalLateMinutes} د`} icon={<ArrowDownRight className="size-3.5 text-[var(--warning)]" />} />
+        <StatItem label="تأخير كلي" value={`${s.totalLateMinutes} د`} icon={<ArrowDownRight className="size-3.5 text-[var(--warning)]" />} />
         <StatItem label="خروج مبكر" value={`${s.totalEarlyLeaveMinutes} د`} icon={<ArrowUpRight className="size-3.5 text-[var(--warning)]" />} />
         <StatItem label="نسبة الحضور" value={`${attendancePct.toFixed(0)}%`} icon={<UserCheck className="size-3.5 text-[var(--success)]" />} />
         <StatItem label="نسيان حضور" value={`${s.missingCheckInCount}`} icon={<AlertTriangle className="size-3.5 text-[var(--danger)]" />} />
@@ -513,7 +513,9 @@ function DayRow({ d, employeeId, canEdit }: { d: AttendanceStatementDay; employe
       <td className="p-2.5 print:p-1">{d.shiftName || '—'}</td>
       <td className="p-2.5 tabular-nums print:p-1">{d.workHours ? d.workHours.toFixed(1) : '—'}</td>
       <td className="p-2.5 tabular-nums print:p-1">{d.requiredHours ? d.requiredHours.toFixed(1) : '—'}</td>
-      <td className={`p-2.5 tabular-nums print:p-1 ${d.lateMinutes > 0 ? 'text-[var(--warning)] font-bold' : ''}`}>{d.lateMinutes ? `${d.lateMinutes} د` : '—'}</td>
+      <td className={`p-2.5 tabular-nums print:p-1 ${d.lateMinutes > 0 ? 'text-[var(--warning)] font-bold' : ''}`}>
+        {d.lateMinutes ? `${d.lateMinutes} د` : '—'}
+      </td>
       <td className={`p-2.5 tabular-nums print:p-1 ${d.earlyLeaveMinutes > 0 ? 'text-[var(--warning)] font-bold' : ''}`}>
         {d.earlyLeaveMinutes ? `${d.earlyLeaveMinutes} د` : '—'}
       </td>

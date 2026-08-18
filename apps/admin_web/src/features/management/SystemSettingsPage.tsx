@@ -86,7 +86,10 @@ export function SystemSettingsPage() {
       />
 
       {saveMsg && (
-        <div className={`rounded-xl p-3 text-sm ${saveMsg.ok ? 'bg-[var(--success-soft)] text-[var(--success)]' : 'bg-[var(--danger-soft)] text-[var(--danger)]'}`} role="status">
+        <div
+          className={`rounded-xl p-3 text-sm ${saveMsg.ok ? 'bg-[var(--success-soft)] text-[var(--success)]' : 'bg-[var(--danger-soft)] text-[var(--danger)]'}`}
+          role="status"
+        >
           {saveMsg.text}
         </div>
       )}
@@ -113,7 +116,10 @@ export function SystemSettingsPage() {
                   const val = displayValue(s);
                   const isDirty = drafts[s.key] !== undefined && drafts[s.key] !== val;
                   return (
-                    <div key={s.key} className={`rounded-xl p-4 transition ${isDirty ? 'bg-[var(--warning-soft)] ring-1 ring-[var(--warning)]' : 'bg-[var(--surface-muted)]'}`}>
+                    <div
+                      key={s.key}
+                      className={`rounded-xl p-4 transition ${isDirty ? 'bg-[var(--warning-soft)] ring-1 ring-[var(--warning)]' : 'bg-[var(--surface-muted)]'}`}
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="font-black">{s.labelAr ?? s.key}</p>

@@ -161,16 +161,8 @@ export function DailyReportsFeedPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-base font-black">{item.employeeName}</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {item.jobTitle ? (
-                        <span className={chipClass('primary')}>
-                          {item.jobTitle}
-                        </span>
-                      ) : null}
-                      {item.department ? (
-                        <span className={chipClass('neutral')}>
-                          {item.department}
-                        </span>
-                      ) : null}
+                      {item.jobTitle ? <span className={chipClass('primary')}>{item.jobTitle}</span> : null}
+                      {item.department ? <span className={chipClass('neutral')}>{item.department}</span> : null}
                     </div>
                   </div>
                   <div className="shrink-0 text-left">
@@ -188,13 +180,9 @@ export function DailyReportsFeedPage() {
                 </div>
 
                 {/* ─── المحتوى: الإنجازات / المعوقات / خطة الغد (بارتفاع محدود + تمرير) ─── */}
-                <div
-                  className={`report-content ${isExpanded ? '' : 'max-h-[200px] overflow-y-auto'} p-5 text-sm leading-[1.8]`}
-                >
+                <div className={`report-content ${isExpanded ? '' : 'max-h-[200px] overflow-y-auto'} p-5 text-sm leading-[1.8]`}>
                   <div className="mb-3">
-                    <span
-                      className="inline-block rounded-full bg-[var(--brand-primary-soft)] px-2 py-0.5 text-xs font-black text-[var(--brand-primary)]"
-                    >
+                    <span className="inline-block rounded-full bg-[var(--brand-primary-soft)] px-2 py-0.5 text-xs font-black text-[var(--brand-primary)]">
                       ✓ الإنجازات
                     </span>
                     <p className="mt-1.5 whitespace-pre-wrap">{item.achievements}</p>
@@ -296,7 +284,9 @@ export function DailyReportsFeedPage() {
                         ) : null}
                       </div>
                     ))}
-                    {item.comments.length === 0 ? <p className="py-2 text-center text-sm text-[var(--text-muted)]">لا توجد تعليقات بعد — كن أول من يعلّق</p> : null}
+                    {item.comments.length === 0 ? (
+                      <p className="py-2 text-center text-sm text-[var(--text-muted)]">لا توجد تعليقات بعد — كن أول من يعلّق</p>
+                    ) : null}
 
                     {/* صندوق كتابة تعليق */}
                     <div className="flex items-center gap-2 pt-1">

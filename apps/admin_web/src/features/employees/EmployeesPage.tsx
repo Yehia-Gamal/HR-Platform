@@ -173,11 +173,7 @@ export function EmployeesPage() {
       <PageHeader
         eyebrow="إدارة الأفراد"
         title={tab === 'org-chart' ? 'الموظفون والهيكل التنظيمي' : 'دليل الموظفين'}
-        description={
-          tab === 'org-chart'
-            ? 'شجرة هرمية كاملة: اضغط على أي موظف لفتح ملفه الشامل.'
-            : 'ابحث في ملفات الموظفين وافتح الملف الشخصي لأي منهم.'
-        }
+        description={tab === 'org-chart' ? 'شجرة هرمية كاملة: اضغط على أي موظف لفتح ملفه الشامل.' : 'ابحث في ملفات الموظفين وافتح الملف الشخصي لأي منهم.'}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" className="btn-secondary" onClick={handlePdfExport} disabled={filtered.length === 0} title="طباعة PDF">
@@ -208,7 +204,9 @@ export function EmployeesPage() {
         >
           <UsersRound className="size-4" aria-hidden="true" />
           دليل الموظفين
-          <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${tab === 'directory' ? 'bg-[var(--primary)] text-white' : 'bg-[var(--surface-muted)]'}`}>
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs font-bold ${tab === 'directory' ? 'bg-[var(--primary)] text-white' : 'bg-[var(--surface-muted)]'}`}
+          >
             {all.length}
           </span>
         </button>
@@ -303,7 +301,9 @@ export function EmployeesPage() {
                 ariaLabel="جدول الموظفين"
                 minWidth="1020px"
               />
-              {totalPages > 1 && <Pagination currentPage={page} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} />}
+              {totalPages > 1 && (
+                <Pagination currentPage={page} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} />
+              )}
             </>
           )}
         </>

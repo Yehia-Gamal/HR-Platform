@@ -149,11 +149,31 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
       </div>
 
       <div className="quick-stats">
-<QuickStat label="تأخير كلي" value={`${s.totalLateMinutes} د`} icon={<ArrowDownRight className="size-3.5 text-[var(--warning)]" aria-hidden="true" />} />
-        <QuickStat label="خروج مبكر" value={`${s.totalEarlyLeaveMinutes} د`} icon={<ArrowUpRight className="size-3.5 text-[var(--warning)]" aria-hidden="true" />} />
-        <QuickStat label="نسبة الحضور" value={`${attendancePct.toFixed(0)}%`} icon={<UserCheck className="size-3.5 text-[var(--success)]" aria-hidden="true" />} />
-        <QuickStat label="نسيان حضور" value={`${s.missingCheckInCount}`} icon={<AlertTriangle className="size-3.5 text-[var(--danger)]" aria-hidden="true" />} />
-        <QuickStat label="نسيان انصراف" value={`${s.missingCheckOutCount}`} icon={<AlertTriangle className="size-3.5 text-[var(--danger)]" aria-hidden="true" />} />
+        <QuickStat
+          label="تأخير كلي"
+          value={`${s.totalLateMinutes} د`}
+          icon={<ArrowDownRight className="size-3.5 text-[var(--warning)]" aria-hidden="true" />}
+        />
+        <QuickStat
+          label="خروج مبكر"
+          value={`${s.totalEarlyLeaveMinutes} د`}
+          icon={<ArrowUpRight className="size-3.5 text-[var(--warning)]" aria-hidden="true" />}
+        />
+        <QuickStat
+          label="نسبة الحضور"
+          value={`${attendancePct.toFixed(0)}%`}
+          icon={<UserCheck className="size-3.5 text-[var(--success)]" aria-hidden="true" />}
+        />
+        <QuickStat
+          label="نسيان حضور"
+          value={`${s.missingCheckInCount}`}
+          icon={<AlertTriangle className="size-3.5 text-[var(--danger)]" aria-hidden="true" />}
+        />
+        <QuickStat
+          label="نسيان انصراف"
+          value={`${s.missingCheckOutCount}`}
+          icon={<AlertTriangle className="size-3.5 text-[var(--danger)]" aria-hidden="true" />}
+        />
         <QuickStat label="تصحيحات" value={`${s.correctionCount}`} icon={<Clock className="size-3.5 text-[var(--text-muted)]" aria-hidden="true" />} />
       </div>
 

@@ -189,7 +189,9 @@ export function DocumentsStudioPage() {
                     <td className="px-4 py-3 text-center">v{t.version}</td>
                     <td className="px-4 py-3 text-xs">
                       <div className="flex gap-1 flex-wrap">
-{t.requiresEmployeeSignature && <span className="rounded bg-[var(--brand-primary-soft)] px-1.5 py-0.5 text-[var(--brand-primary)]">موظف</span>}
+                        {t.requiresEmployeeSignature && (
+                          <span className="rounded bg-[var(--brand-primary-soft)] px-1.5 py-0.5 text-[var(--brand-primary)]">موظف</span>
+                        )}
                         {t.requiresHrSignature && <span className="rounded bg-[var(--warning-soft)] px-1.5 py-0.5 text-[var(--warning)]">HR</span>}
                         {t.requiresExecutiveSignature && <span className="rounded bg-[var(--danger-soft)] px-1.5 py-0.5 text-[var(--danger)]">تنفيذي</span>}
                         {!t.requiresEmployeeSignature && !t.requiresManagerSignature && !t.requiresHrSignature && !t.requiresExecutiveSignature && (

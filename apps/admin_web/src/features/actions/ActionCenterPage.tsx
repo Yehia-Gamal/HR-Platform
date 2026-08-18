@@ -56,11 +56,11 @@ export function ActionCenterPage() {
             const meta = KIND_META[item.kind] ?? KIND_META.task;
             const Icon = meta.icon;
             return (
-              <article key={item.id} className="card flex flex-col gap-4 p-5 transition-colors hover:border-[var(--brand-primary)]/50 md:flex-row md:items-center">
-                <span
-                  aria-hidden="true"
-                  className="grid size-11 shrink-0 place-items-center rounded-xl bg-[var(--surface-muted)] text-[var(--brand-primary)]"
-                >
+              <article
+                key={item.id}
+                className="card flex flex-col gap-4 p-5 transition-colors hover:border-[var(--brand-primary)]/50 md:flex-row md:items-center"
+              >
+                <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-xl bg-[var(--surface-muted)] text-[var(--brand-primary)]">
                   <Icon className="size-5" />
                 </span>
 

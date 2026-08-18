@@ -88,12 +88,7 @@ export function NotificationsPage() {
                 <Trash2 className="size-4" aria-hidden="true" />
                 مسح المحدد ({selectedVisible.length})
               </button>
-              <button
-                type="button"
-                disabled={del.isPending}
-                onClick={exitSelection}
-                className="btn-secondary disabled:opacity-50"
-              >
+              <button type="button" disabled={del.isPending} onClick={exitSelection} className="btn-secondary disabled:opacity-50">
                 <X className="size-4" aria-hidden="true" />
                 إلغاء التحديد
               </button>
@@ -112,11 +107,7 @@ export function NotificationsPage() {
                 <CheckCheck className="size-4" aria-hidden="true" />
                 تعليم الكل كمقروء
               </button>
-              <button
-                disabled={!items.length}
-                onClick={() => setSelecting(true)}
-                className="btn-secondary disabled:opacity-50"
-              >
+              <button disabled={!items.length} onClick={() => setSelecting(true)} className="btn-secondary disabled:opacity-50">
                 <ListChecks className="size-4" aria-hidden="true" />
                 تحديد
               </button>
