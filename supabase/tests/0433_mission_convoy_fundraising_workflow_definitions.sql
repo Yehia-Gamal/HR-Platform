@@ -13,7 +13,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(12);
+select plan(11);
 
 -- =====================================================================
 -- 1) التعريفات موجودة للأنواع الخمسة
