@@ -212,6 +212,26 @@ export function useChangeManager() {
   });
 }
 
+export function useGrantWeeklyRestCredit() {
+  const auth = useAuth();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ employeeId, workDate, days }: { employeeId: string; workDate: string; days: number }): Promise<number> => {
+      if (auth.isMock) return days;
+      const data = await rpc<number>('grant_weekly_rest_credit', {
+        p_employee_id: employeeId,
+        p_work_date: workDate,
+        p_days: days,
+      });
+      return Number(data) || days;
+    },
+    meta: { successMessage: 'تم منح رصيد بدل الراحة بنجاح' },
+    onSuccess: async () => {
+      await Promise.all([client.invalidateQueries({ queryKey: ['employees'] }), client.invalidateQueries({ queryKey: ['employee-360'] })]);
+    },
+  });
+}
+
 export function useUpdateEmployee() {
   const auth = useAuth();
   const client = useQueryClient();

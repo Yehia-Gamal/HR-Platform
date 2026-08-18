@@ -83,6 +83,7 @@ vi.mock('../useEmployees', () => ({
   useDeleteEmployee: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useSetEmployeePassword: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useUpdateEmployeeEmail: () => ({ isPending: false, mutateAsync: vi.fn() }),
+  useGrantWeeklyRestCredit: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useEmployeeAuditTrail: () => ({ data: [], isLoading: false, isError: false }),
 }));
 

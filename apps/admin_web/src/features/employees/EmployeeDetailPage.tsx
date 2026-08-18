@@ -58,6 +58,7 @@ import {
   useDeleteEmployee,
   useSetEmployeePassword,
   useUpdateEmployeeEmail,
+  useGrantWeeklyRestCredit,
 } from './useEmployees';
 import { normalizePhoneForSubmit, EmployeeEditHistory } from './employeeDetailShared';
 import { safeErrorMessage } from '../../core/errorMapper';
@@ -674,6 +675,76 @@ function ArchiveEmployeeDialog({
 }
 
 // ---------------------------------------------------------------------------
+// GrantRestCompDialog — منح رصيد بدل الراحة الأسبوعي يدوياً (HR/التنفيذي)
+// ---------------------------------------------------------------------------
+function GrantRestCompDialog({
+  employeeId,
+  employeeName,
+  onClose,
+  onSuccess,
+}: {
+  employeeId: string;
+  employeeName: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const grant = useGrantWeeklyRestCredit();
+  const [workDate, setWorkDate] = useState(new Date().toISOString().slice(0, 10));
+  const [days, setDays] = useState(1);
+  const [error, setError] = useState<string | null>(null);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    try {
+      await grant.mutateAsync({ employeeId, workDate, days });
+      onSuccess();
+    } catch (err) {
+      setError(safeErrorMessage(err));
+    }
+  };
+
+  return (
+    <DialogOverlay title="منح بدل راحة أسبوعي" onClose={onClose} maxWidth="max-w-md">
+      <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
+        <p className="muted text-sm">
+          منح رصيد بدل راحة عن عمل يوم الجمعة للموظف <strong>{employeeName}</strong> — يُضاف للرصيد دون أي خصم من رصيد الإجازات.
+        </p>
+
+        {error ? <ErrorBanner message={error} /> : null}
+
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-semibold">تاريخ بداية العمل (الجمعة)</span>
+          <input type="date" className="input w-full" value={workDate} onChange={(e) => setWorkDate(e.target.value)} required disabled={grant.isPending} />
+        </label>
+
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-semibold">عدد أيام البدل</span>
+          <input
+            type="number"
+            className="input w-full"
+            value={days}
+            min={1}
+            max={365}
+            onChange={(e) => setDays(Number(e.target.value))}
+            required
+            disabled={grant.isPending}
+          />
+        </label>
+
+        <div className="flex justify-end gap-3">
+          <button type="button" onClick={onClose} disabled={grant.isPending} className="btn-secondary">
+            إلغاء
+          </button>
+          <button type="submit" disabled={grant.isPending || days < 1 || days > 365} className="btn-primary">
+            {grant.isPending ? 'جارٍ المنح...' : 'منح الرصيد'}
+          </button>
+        </div>
+      </form>
+    </DialogOverlay>
+  );
+}
+
 // ChangeManagerDialog — تغيير المدير المباشر
 // ---------------------------------------------------------------------------
 function ChangeManagerDialog({
@@ -930,6 +1001,7 @@ export function EmployeeDetailPage() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showAddDeptDialog, setShowAddDeptDialog] = useState(false);
+  const [showGrantRestDialog, setShowGrantRestDialog] = useState(false);
   const [activeTab, setActiveTab] = useState<EmployeeTabId>('overview');
   const navigate = useNavigate();
   const item = query.data;
@@ -950,6 +1022,9 @@ export function EmployeeDetailPage() {
   );
   const accountPending = PENDING_ACCOUNT_STATES.has((item.accountStatus ?? '').toLowerCase()) || PENDING_ACCOUNT_STATES.has((item.status ?? '').toLowerCase());
   const showResend = canInvite && accountPending && Boolean(employeeId);
+  const canGrantRestComp = Boolean(
+    auth.access && (hasPermission(auth.access, 'requests.leave.balance.adjust') || auth.access.workspaces?.includes('main_admin')),
+  );
 
   const onResend = async () => {
     if (!employeeId) return;
@@ -995,6 +1070,12 @@ export function EmployeeDetailPage() {
               <button type="button" className="btn-secondary text-[var(--danger)]" onClick={() => setShowDeleteDialog(true)}>
                 <Trash2 className="size-4" aria-hidden="true" />
                 حذف الموظف
+              </button>
+            ) : null}
+            {canGrantRestComp ? (
+              <button type="button" className="btn-secondary" onClick={() => setShowGrantRestDialog(true)}>
+                <BadgeCheck className="size-4" aria-hidden="true" />
+                منح بدل راحة
               </button>
             ) : null}
             <Link to="/hr/employees" className="btn-secondary">
@@ -1246,6 +1327,17 @@ export function EmployeeDetailPage() {
           }}
         />
       )}
+      {showGrantRestDialog && employeeId ? (
+        <GrantRestCompDialog
+          employeeId={employeeId}
+          employeeName={item.fullNameAr}
+          onClose={() => setShowGrantRestDialog(false)}
+          onSuccess={() => {
+            setShowGrantRestDialog(false);
+            void query.refetch();
+          }}
+        />
+      ) : null}
     </div>
   );
 }
