@@ -1,6 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { notificationItemSchema, MOBILE_ONLY_ENTITY_TYPES } from '@ahla/shared-contracts';
 import { mockNotifications } from '../mock/domainMocks';
+import { playNotificationChime } from './useNotifications';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('useNotifications — filter logic & schema validation', () => {
   describe('mockNotifications schema validation', () => {
@@ -78,6 +83,43 @@ describe('useNotifications — filter logic & schema validation', () => {
       const filtered = filterForWeb(parsed);
       // Mock notifications should not contain mobile-only types
       expect(filtered.length).toBe(parsed.length);
+    });
+  });
+
+  describe('playNotificationChime', () => {
+    it('plays two tones through Web Audio when AudioContext exists', () => {
+      const start = vi.fn();
+      const stop = vi.fn();
+      const connect = vi.fn(() => fakeNode);
+      const fakeNode = { connect };
+      const osc = { type: '', frequency: { value: 0 }, connect, start, stop };
+      const gain = {
+        gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+        connect,
+      };
+      const ctx = {
+        currentTime: 0,
+        state: 'running',
+        createOscillator: vi.fn(() => osc),
+        createGain: vi.fn(() => gain),
+        destination: {},
+      };
+      vi.stubGlobal('window', {
+        AudioContext: vi.fn(function () {
+          return ctx;
+        }),
+        webkitAudioContext: undefined,
+      });
+      playNotificationChime();
+      expect(ctx.createOscillator).toHaveBeenCalledTimes(2);
+      expect(ctx.createGain).toHaveBeenCalledTimes(2);
+      expect(start).toHaveBeenCalledTimes(2);
+      expect(stop).toHaveBeenCalledTimes(2);
+    });
+
+    it('fails silently without AudioContext', () => {
+      vi.stubGlobal('window', {});
+      expect(() => playNotificationChime()).not.toThrow();
     });
   });
 });

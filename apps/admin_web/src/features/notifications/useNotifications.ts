@@ -19,6 +19,39 @@ import { loadDomainMocks } from '../mock/loadDomainMocks';
 let realtimeSubscription: { unsub: () => Promise<unknown> } | null = null;
 let realtimeSubscriberCount = 0;
 
+/**
+ * نغمة تنبيه قصيرة داخل التطبيق عند وصول إشعار جديد (Web Audio — بدون ملف صوتي).
+ * فاشلة بصمت إن لم يتوفر AudioContext (متوافق مع بيئة الاختبار jsdom).
+ */
+let chimeContext: AudioContext | null = null;
+
+export function playNotificationChime(): void {
+  try {
+    if (typeof window === 'undefined') return;
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    chimeContext ??= new Ctx();
+    const ctx = chimeContext;
+    if (ctx.state === 'suspended') void ctx.resume();
+    const now = ctx.currentTime;
+    [880, 1174.66].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const t0 = now + i * 0.12;
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.18, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + 0.2);
+    });
+  } catch {
+    // الصوت اختياري — لا يُسقط الإشعار عند فشله
+  }
+}
+
 function useNotificationsRealtime() {
   const auth = useAuth();
   const queryClient = useQueryClient();
@@ -43,6 +76,7 @@ function useNotificationsRealtime() {
               table: 'notifications',
             },
             () => {
+              playNotificationChime();
               void queryClient.invalidateQueries({ queryKey: ['my-notifications'] });
             },
           )
