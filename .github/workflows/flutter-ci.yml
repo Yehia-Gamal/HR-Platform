@@ -12,9 +12,12 @@ jobs:
         working-directory: apps/mobile_flutter
     steps:
       - uses: actions/checkout@v4
+      # مثبّت على 3.32.8 ليطابق SDK المحلي: أحدث stable (3.47+) يكسر analyze
+      # بقواعد lint/deprecations جديدة بينما الكود مطوَّر على 3.32.8 (إعادة إنتاج مضمونة).
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.32.8
           cache: true
       - run: flutter create . --project-name ahla_shabab_management_os --org org.ahlashabab --platforms android,ios
       - run: python ../../scripts/configure_flutter_platforms.py
