@@ -305,12 +305,12 @@ update public.requests set status = 'approved' where id = '33333333-0000-4000-80
 
 select is(
   (select count(*)::int from public.attendance_daily
-   where employee_id = '11111111-0000-4000-8000-000000000201' and work_date = '2030-03-14' and status = 'on_leave'),
-  1, 'يوم مأمورية (خميس) on_leave — لا غياب');
+   where employee_id = '11111111-0000-4000-8000-000000000201' and work_date = '2030-03-14' and status = 'present'),
+  1, 'يوم مأمورية (خميس) present — لا غياب');
 select is(
   (select count(*)::int from public.attendance_daily
-   where employee_id = '11111111-0000-4000-8000-000000000201' and work_date = '2030-03-15' and status = 'on_leave'),
-  1, 'يوم مأمورية (جمعة) on_leave — لا غياب');
+   where employee_id = '11111111-0000-4000-8000-000000000201' and work_date = '2030-03-15' and status = 'present'),
+  1, 'يوم مأمورية (جمعة) present — لا غياب');
 select is(
   (select count(*)::int from public.leave_ledger_entries
    where source_key = 'weekly-rest:credit:11111111-0000-4000-8000-000000000201:2030-03-15'),
@@ -328,12 +328,12 @@ update public.requests set status = 'approved' where id = '33333333-0000-4000-80
 
 select is(
   (select count(*)::int from public.attendance_daily
-   where employee_id = '11111111-0000-4000-8000-000000000201' and work_date = '2030-03-21' and status = 'on_leave'),
-  1, 'يوم قافلة on_leave — لا غياب');
+   where employee_id = '11111111-0000-4000-8000-000000000201' and work_date = '2030-03-21' and status = 'present'),
+  1, 'يوم قافلة present — لا غياب');
 select is(
   (select count(*)::int from public.attendance_daily
-   where employee_id = '11111111-0000-4000-8000-000000000201' and work_date = '2030-03-23' and status = 'on_leave'),
-  1, 'يوم قافلة (نهاية) on_leave — لا غياب');
+   where employee_id = '11111111-0000-4000-8000-000000000201' and work_date = '2030-03-23' and status = 'present'),
+  1, 'يوم قافلة (نهاية) present — لا غياب');
 select is(
   (select count(*)::int from public.leave_ledger_entries
    where source_key = 'weekly-rest:credit:11111111-0000-4000-8000-000000000201:2030-03-22'),
@@ -348,12 +348,12 @@ values ('44444444-0000-4000-8000-000000000201', '11111111-0000-4000-8000-0000000
 
 select is(
   (select count(*)::int from public.attendance_daily
-   where employee_id = '11111111-0000-4000-8000-000000000202' and work_date = '2030-04-18' and status = 'on_leave'),
-  1, 'مشارك التكليف يوم (خميس) on_leave — لا غياب');
+   where employee_id = '11111111-0000-4000-8000-000000000202' and work_date = '2030-04-18' and status = 'present'),
+  1, 'مشارك التكليف يوم (خميس) present — لا غياب');
 select is(
   (select count(*)::int from public.attendance_daily
-   where employee_id = '11111111-0000-4000-8000-000000000202' and work_date = '2030-04-19' and status = 'on_leave'),
-  1, 'مشارك التكليف يوم (جمعة) on_leave — لا غياب');
+   where employee_id = '11111111-0000-4000-8000-000000000202' and work_date = '2030-04-19' and status = 'present'),
+  1, 'مشارك التكليف يوم (جمعة) present — لا غياب');
 select is(
   (select count(*)::int from public.leave_ledger_entries
    where source_key = 'weekly-rest:credit:11111111-0000-4000-8000-000000000202:2030-04-19'),
@@ -362,12 +362,12 @@ select is(
 update public.work_assignments set status = 'CANCELLED' where id = '44444444-0000-4000-8000-000000000201';
 select is(
   (select count(*)::int from public.attendance_daily
-   where employee_id = '11111111-0000-4000-8000-000000000202' and work_date = '2030-04-18' and status = 'on_leave'),
-  0, 'تراجع التكليف يُرجع يوم الخميس إلى غير on_leave');
+   where employee_id = '11111111-0000-4000-8000-000000000202' and work_date = '2030-04-18' and status = 'absent'),
+  1, 'تراجع التكليف يُرجع يوم الخميس إلى غياب (بلا بصمات)');
 select is(
   (select count(*)::int from public.attendance_daily
-   where employee_id = '11111111-0000-4000-8000-000000000202' and work_date = '2030-04-19' and status = 'on_leave'),
-  0, 'تراجع التكليف يُرجع يوم الجمعة إلى غير on_leave');
+   where employee_id = '11111111-0000-4000-8000-000000000202' and work_date = '2030-04-19' and status = 'absent'),
+  1, 'تراجع التكليف يُرجع يوم الجمعة إلى غياب (بلا بصمات)');
 
 -- ═══ الإجازة المعتمدة: on_leave (الخصم/الحجز مسار قائم — 0429 يضمن عدم الخصم للمأمورية/القافلة/التكليف) ═══
 -- رصيد افتتاحي حتى ينجح حجز tg_leave_reserve_on_detail عند إدراج التفاصيل

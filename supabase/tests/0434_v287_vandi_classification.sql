@@ -76,8 +76,8 @@ update public.requests set status = 'approved' where id = 'dddd0000-0000-4000-80
 select is(
   (select count(*)::int from public.attendance_daily
    where employee_id = 'dddd0000-0000-4000-8000-000000000410'
-     and work_date in ('2026-07-20','2026-07-21','2026-07-22','2026-07-23') and status = 'on_leave'),
-  4, '1. الأيام الأربعة المعتمدة معلّمة on_leave (لا غياب)');
+     and work_date in ('2026-07-20','2026-07-21','2026-07-22','2026-07-23') and status = 'present'),
+  4, '1. الأيام الأربعة المعتمدة معلّمة present (حضور عمل — لا غياب ولا إجازة)');
 
 -- =====================================================================
 -- الكشف الشهري (persona HR): التصنيف الصحيح

@@ -87,15 +87,15 @@ select is(
   (select status from public.attendance_daily
     where employee_id = 'd1600000-0000-4000-8000-000000000001'
       and work_date = ((now() at time zone 'Africa/Cairo')::date)),
-  'on_leave',
-  'يوم المأمورية الأول on_leave (لا غياب — 0429)');
+  'present',
+  'يوم المأمورية الأول present (حضور عمل — 0437)');
 
 select is(
   (select status from public.attendance_daily
     where employee_id = 'd1600000-0000-4000-8000-000000000001'
       and work_date = ((now() at time zone 'Africa/Cairo')::date + 1)),
-  'on_leave',
-  'يوم المأمورية الثاني on_leave (لا غياب — 0429)');
+  'present',
+  'يوم المأمورية الثاني present (حضور عمل — 0437)');
 
 select is(
   (select count(*)::text from public.attendance_exceptions
@@ -123,8 +123,8 @@ select is(
   (select status from public.attendance_daily
     where employee_id = 'd1600000-0000-4000-8000-000000000001'
       and work_date = ((now() at time zone 'Africa/Cairo')::date)),
-  'on_leave',
-  'إذن التأخير لا يغيّر الحالة (يظل on_leave — 0429)');
+  'present',
+  'إذن التأخير لا يغيّر الحالة (يظل present — 0437)');
 
 select is(
   (select late_minutes from public.attendance_daily

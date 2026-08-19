@@ -166,8 +166,8 @@ select ok(
   exists(
     select 1 from public.attendance_daily
     where employee_id = 'd3500000-0000-4000-8000-000000000010'
-      and work_date = '2026-07-13' and status = 'on_leave'),
-  'اعتماد الفاندي يعلّم يوم 07-13 on_leave (لا غياب — 0429)');
+      and work_date = '2026-07-13' and status = 'present'),
+  'اعتماد الفاندي يعلّم يوم 07-13 present (حضور عمل — 0437)');
 
 -- =====================================================================
 -- (6) دالة مدخلات KPI ما زالت بالتواقيع الصحيحة.

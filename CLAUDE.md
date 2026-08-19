@@ -96,6 +96,14 @@ npx vercel --prod                  # يتطلب VERCEL_TOKEN
 - **Web:** Vercel (`vercel.json` في الجذر). مشروع: `prj_ZLbewe64wIFujXhWruZQNdLgmGep`.
 - **Mobile:** Flutter APK/AAB عبر CI أو يدوي. Keystore مطلوب.
 - **Supabase:** `npx supabase db push` للـ migrations. `npx supabase functions deploy` للـ Edge Functions.
+- **نشر migration عبر Management API (PowerShell 5.1):** يجب إرسال النص **bytes** مع `-ContentType 'application/json; charset=utf-8'` وإلا حوّل PS كل حرف عربي إلى `?` (أفسد هذا دوال 0434/0436 في prod). النمط الآمن:
+  ```powershell
+  $json = @{ query = $sql } | ConvertTo-Json
+  $bytes = [System.Text.Encoding]::UTF8.GetBytes($json)
+  Invoke-RestMethod -Method Post -Headers @{Authorization="Bearer $TOKEN"} `
+    -ContentType 'application/json; charset=utf-8' -Body $bytes -Uri $URL
+  ```
+  تحقق بعد أي نشر عبر API: `select proname from pg_proc where prosrc ~ '\?\?\?'` (يجب أن يكون فارغاً).
 
 ## ملاحظات مهمة
 

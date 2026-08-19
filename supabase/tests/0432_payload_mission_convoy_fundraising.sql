@@ -5,7 +5,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(19);
+select plan(27);
 
 -- =====================================================================
 -- Pre-fixture: roles + permissions (self-contained)
@@ -124,8 +124,16 @@ update public.requests set status = 'approved' where id = '33333333-0000-4000-80
 select is(
   (select count(*)::int from public.attendance_daily
    where employee_id = '11111111-0000-4000-8000-000000000301'
-     and work_date between '2026-06-15' and '2026-06-17' and status = 'on_leave'),
-  3, 'مأمورية payload (3 أيام) → on_leave بلا غياب');
+     and work_date between '2026-06-15' and '2026-06-17' and status = 'present'),
+  3, 'مأمورية payload (3 أيام) → present بلا غياب');
+select is(
+  (select count(*)::int from public.missions
+   where request_id = '33333333-0000-4000-8000-000000000301'
+     and employee_id = '11111111-0000-4000-8000-000000000301'
+     and destination = 'الفيوم'
+     and start_at at time zone 'Africa/Cairo' = '2026-06-15 00:00:00'
+     and end_at at time zone 'Africa/Cairo' = '2026-06-17 00:00:00'),
+  1, 'الخانات الخاصة: missions مُعبّأة من payload (الوجهة والتواريخ)');
 
 -- مأمورية payload تغطي جمعة (2026-06-19) → بدل راحة أسبوعي تلقائي
 insert into public.requests (id, request_type, employee_id, status, workflow_status, title, payload)
@@ -137,8 +145,8 @@ update public.requests set status = 'approved' where id = '33333333-0000-4000-80
 select is(
   (select count(*)::int from public.attendance_daily
    where employee_id = '11111111-0000-4000-8000-000000000301'
-     and work_date between '2026-06-18' and '2026-06-19' and status = 'on_leave'),
-  2, 'مأمورية payload (18-19) → on_leave');
+     and work_date between '2026-06-18' and '2026-06-19' and status = 'present'),
+  2, 'مأمورية payload (18-19) → present');
 select is(
   (select count(*)::int from public.leave_ledger_entries
    where source_key = 'weekly-rest:credit:11111111-0000-4000-8000-000000000301:2026-06-19'),
@@ -156,8 +164,16 @@ update public.requests set status = 'approved' where id = '33333333-0000-4000-80
 select is(
   (select count(*)::int from public.attendance_daily
    where employee_id = '11111111-0000-4000-8000-000000000301'
-     and work_date between '2026-06-22' and '2026-06-23' and status = 'on_leave'),
-  2, 'قافلة payload → on_leave بلا غياب');
+     and work_date between '2026-06-22' and '2026-06-23' and status = 'present'),
+  2, 'قافلة payload → present بلا غياب');
+select is(
+  (select count(*)::int from public.convoy_requests
+   where request_id = '33333333-0000-4000-8000-000000000303'
+     and employee_id = '11111111-0000-4000-8000-000000000301'
+     and destination = 'الريف الأوروبي'
+     and departure_at at time zone 'Africa/Cairo' = '2026-06-22 00:00:00'
+     and return_at at time zone 'Africa/Cairo' = '2026-06-23 00:00:00'),
+  1, 'الخانات الخاصة: convoy_requests مُعبّأة من payload (الوجهة والتواريخ)');
 
 -- =====================================================================
 -- 4) فاندي معتمد من payload (فرع جديد كامل)
@@ -171,8 +187,44 @@ update public.requests set status = 'approved' where id = '33333333-0000-4000-80
 select is(
   (select count(*)::int from public.attendance_daily
    where employee_id = '11111111-0000-4000-8000-000000000301'
-     and work_date between '2026-06-24' and '2026-06-25' and status = 'on_leave'),
-  2, 'فاندي payload → on_leave بلا غياب');
+     and work_date between '2026-06-24' and '2026-06-25' and status = 'present'),
+  2, 'فاندي payload → present بلا غياب');
+
+-- =====================================================================
+-- 5) مأمورية بأوقات: بصمة حضور أول يوم + بصمة انصراف آخر يوم
+--    (الانصراف يُسجَّل من endTime — امتداد خارج وقت العمل)
+-- =====================================================================
+insert into public.requests (id, request_type, employee_id, status, workflow_status, title, payload)
+values ('33333333-0000-4000-8000-000000000307', 'mission',
+        '11111111-0000-4000-8000-000000000301', 'pending', 'submitted', 'مأمورية بأوقات',
+        '{"startDate":"2026-06-10","endDate":"2026-06-11","location":"الإسكندرية","startTime":"09:15","endTime":"19:40"}');
+update public.requests set status = 'approved' where id = '33333333-0000-4000-8000-000000000307';
+
+select is(
+  (select to_char(first_check_in at time zone 'Africa/Cairo', 'HH24:MI') from public.attendance_daily
+   where employee_id = '11111111-0000-4000-8000-000000000301' and work_date = '2026-06-10'),
+  '09:15', 'بصمة حضور أول يوم = startTime المأمورية');
+select is(
+  (select to_char(last_check_out at time zone 'Africa/Cairo', 'HH24:MI') from public.attendance_daily
+   where employee_id = '11111111-0000-4000-8000-000000000301' and work_date = '2026-06-11'),
+  '19:40', 'بصمة انصراف آخر يوم = endTime المأمورية (امتداد خارج العمل)');
+select is(
+  (select count(*)::int from public.attendance_daily
+   where employee_id = '11111111-0000-4000-8000-000000000301'
+     and work_date = '2026-06-10' and last_check_out is null),
+  1, 'لا بصمة انصراف في أول يوم (الانصراف في آخر يوم فقط)');
+
+-- =====================================================================
+-- 6) تصفية بصمة الخروج الناقصة: يوم مأمورية لا يُصفّى كنقص
+--    (البصمة المُشتقّة من المأمورية ليست نقصاً)
+-- =====================================================================
+select is(
+  public.finalize_missing_checkouts(),
+  0, 'finalize_missing_checkouts: صفر صفوف مأمورية تُصفّى كنقص');
+select is(
+  (select status from public.attendance_daily
+   where employee_id = '11111111-0000-4000-8000-000000000301' and work_date = '2026-06-10'),
+  'present', 'يوم مأمورية ببصمة حضور بلا انصراف يبقى present');
 
 -- =====================================================================
 -- 5) إجازة معتمدة (مسار قائم لا انحدار) + إجازة متداخلة مع مأمورية (لأولوية الترتيب)
@@ -204,6 +256,13 @@ insert into public.leave_requests (request_id, employee_id, leave_type_id, start
 values ('33333333-0000-4000-8000-000000000306', '11111111-0000-4000-8000-000000000301',
         (select id from public.leave_types where code = 'annual'), '2026-06-16', '2026-06-17', 2);
 update public.requests set status = 'approved' where id = '33333333-0000-4000-8000-000000000306';
+
+-- حارس التداخل: إجازة متداخلة مع مأمورية لا تُزيل صفة الحضور
+select is(
+  (select count(*)::int from public.attendance_daily
+   where employee_id = '11111111-0000-4000-8000-000000000301'
+     and work_date in ('2026-06-16','2026-06-17') and status = 'present'),
+  2, 'يومَا الإجازة المتداخلان مع المأمورية يبقيان present (المأمورية تسبق)');
 
 -- =====================================================================
 -- 6) الكشف الشهري (persona HR): الترتيب الجديد + الملخص
@@ -249,7 +308,7 @@ select is(
 
 select is(
   ((public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2026, 6))->'summary'->>'missionDays')::int,
-  4, 'الكشف: missionDays = 4 (15-18)');
+  6, 'الكشف: missionDays = 6 (10-11 + 15-18)');
 select is(
   ((public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2026, 6))->'summary'->>'convoyFundiDays')::int,
   4, 'الكشف: convoyFundiDays = 4 (قافلة 2 + فاندي 2)');
@@ -258,6 +317,6 @@ select is(
   2, 'الكشف: leaveDays = 2 (8-9 فقط، والمتداخلة مأمورية)');
 select is(
   ((public.get_employee_monthly_attendance_statement('11111111-0000-4000-8000-000000000301', 2026, 6))->'summary'->>'absentDays')::int,
-  16, 'الكشف: absentDays = 16 (بلا أي يوم عمل معتمد)');
+  14, 'الكشف: absentDays = 14 (بلا أي يوم عمل معتمد)');
 
 rollback;
