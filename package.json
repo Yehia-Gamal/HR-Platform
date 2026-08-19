@@ -1,56 +1,58 @@
 {
-    "name":  "ahla-shabab-management-os",
-    "version":  "0.10.0",
-    "private":  true,
-    "type":  "module",
-    "workspaces":  [
-                       "apps/admin_web",
-                       "packages/shared-contracts",
-                       "packages/design-tokens"
-                   ],
-    "scripts":  {
-                    "dev:web":  "npm run dev --workspace @ahla/admin-web",
-                    "build":  "npm run build --workspace @ahla/shared-contracts && npm run build --workspace @ahla/admin-web",
-                    "test":  "npm run test --workspace @ahla/shared-contracts && npm run test --workspace @ahla/admin-web",
-                    "test:coverage":  "npm run test:coverage --workspace @ahla/admin-web",
-                    "typecheck":  "npm run typecheck --workspace @ahla/shared-contracts && npm run typecheck --workspace @ahla/admin-web",
-                    "check":  "npm run typecheck && npm run build --workspace @ahla/shared-contracts && npm run test && npm run build",
-                    "manifest":  "node scripts/generate-manifest.mjs",
-                    "check:dart-source":  "python3 scripts/validate_dart_sources.py",
-                    "check:migrations":  "node scripts/check-migrations-integrity.mjs && node scripts/check-function-refs.mjs && node scripts/generate-migrations-manifest.mjs",
-                    "check:all":  "npm run check && npm run check:dart-source && node scripts/validate-foundation.mjs && npm run check:migrations && npm run check:secrets",
-                    "check:secrets":  "node scripts/check-no-secrets.mjs",
-                    "release-gate":  "node scripts/release-gate.mjs",
-                    "test:e2e":  "playwright test --config apps/admin_web/playwright.config.ts --project=chromium-desktop",
-                    "lint":  "eslint apps/admin_web/src/",
-                    "lint:fix":  "eslint apps/admin_web/src/ --fix",
-                    "format":  "prettier --write \u0027apps/admin_web/src/**/*.{ts,tsx}\u0027",
-                    "format:check":  "prettier --check \u0027apps/admin_web/src/**/*.{ts,tsx}\u0027",
-                    "size":  "size-limit",
-                    "size:why":  "size-limit --why"
-                },
-    "size-limit":  [
-                       {
-                           "path":  "apps/admin_web/dist/assets/*.js",
-                           "limit":  "600 KB"
-                       },
-                       {
-                           "path":  "apps/admin_web/dist/assets/*.css",
-                           "limit":  "160 KB"
-                       }
-                   ],
-    "engines":  {
-                    "node":  "\u003e=22.12.0"
-                },
-    "devDependencies":  {
-                            "@eslint/js":  "^10.0.1",
-                            "eslint":  "^10.8.0",
-                            "eslint-plugin-react-hooks":  "^7.1.1",
-                            "prettier":  "^3.9.6",
-                            "supabase":  "^2.109.1",
-                            "typescript-eslint":  "^8.65.0"
-                        },
-    "optionalDependencies":  {
-                                 "@supabase/cli-windows-x64":  "^2.111.0"
-                             }
+    "name": "ahla-shabab-management-os",
+    "version": "0.10.0",
+    "private": true,
+    "type": "module",
+    "workspaces": [
+        "apps/admin_web",
+        "packages/shared-contracts",
+        "packages/design-tokens"
+    ],
+    "scripts": {
+        "dev:web": "npm run dev --workspace @ahla/admin-web",
+        "build": "npm run build --workspace @ahla/shared-contracts && npm run build --workspace @ahla/admin-web",
+        "test": "npm run test --workspace @ahla/shared-contracts && npm run test --workspace @ahla/admin-web",
+        "test:coverage": "npm run test:coverage --workspace @ahla/admin-web",
+        "typecheck": "npm run typecheck --workspace @ahla/shared-contracts && npm run typecheck --workspace @ahla/admin-web",
+        "check": "npm run typecheck && npm run build --workspace @ahla/shared-contracts && npm run test && npm run build",
+        "manifest": "node scripts/generate-manifest.mjs",
+        "check:dart-source": "python3 scripts/validate_dart_sources.py",
+        "check:migrations": "node scripts/check-migrations-integrity.mjs && node scripts/check-function-refs.mjs && node scripts/generate-migrations-manifest.mjs",
+        "check:all": "npm run check && npm run check:dart-source && node scripts/validate-foundation.mjs && npm run check:migrations && npm run check:secrets",
+        "check:secrets": "node scripts/check-no-secrets.mjs",
+        "release-gate": "node scripts/release-gate.mjs",
+        "test:e2e": "playwright test --config apps/admin_web/playwright.config.ts --project=chromium-desktop",
+        "lint": "eslint apps/admin_web/src/",
+        "lint:fix": "eslint apps/admin_web/src/ --fix",
+        "format": "prettier --write 'apps/admin_web/src/**/*.{ts,tsx}'",
+        "format:check": "prettier --check 'apps/admin_web/src/**/*.{ts,tsx}'",
+        "size": "npm run build --workspace @ahla/admin-web && size-limit",
+        "size:why": "size-limit --why"
+    },
+    "size-limit": [
+        {
+            "path": "apps/admin_web/dist/assets/*.js",
+            "limit": "600 KB"
+        },
+        {
+            "path": "apps/admin_web/dist/assets/*.css",
+            "limit": "160 KB"
+        }
+    ],
+    "engines": {
+        "node": ">=22.12.0"
+    },
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "@size-limit/file": "^13.0.3",
+        "eslint": "^10.8.0",
+        "eslint-plugin-react-hooks": "^7.1.1",
+        "prettier": "^3.9.6",
+        "size-limit": "^13.0.3",
+        "supabase": "^2.109.1",
+        "typescript-eslint": "^8.65.0"
+    },
+    "optionalDependencies": {
+        "@supabase/cli-windows-x64": "^2.111.0"
+    }
 }
