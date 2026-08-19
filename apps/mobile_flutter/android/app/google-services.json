@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "379745613572",
+    "firebase_url": "https://ahla-shabab-default-rtdb.firebaseio.com",
+    "project_id": "ahla-shabab",
+    "storage_bucket": "ahla-shabab.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:379745613572:android:7b47fb4e15aeace3bac251",
+        "android_client_info": {
+          "package_name": "org.ahlashabab.ahla_shabab_management_os"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "379745613572-q2f4jhssr4ghu95o3a524s5im1hoqvjt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCPC19dAM0v1qs0n7aI5K0lrCWvHRBgilI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "379745613572-q2f4jhssr4ghu95o3a524s5im1hoqvjt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
