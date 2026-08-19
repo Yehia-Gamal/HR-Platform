@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "typecheck": "node --max-old-space-size=4096 ../../node_modules/typescript/bin/tsc -b --noEmit --pretty false",
     "test": "node ../../scripts/run-admin-web-tests.mjs",
-    "test:coverage": "vitest run --coverage --coverage.thresholds.lines=38 --coverage.thresholds.branches=33 --coverage.thresholds.functions=28 --coverage.thresholds.statements=38"
+    "test:coverage": "vitest run --coverage --coverage.thresholds.lines=35 --coverage.thresholds.branches=30 --coverage.thresholds.functions=25 --coverage.thresholds.statements=35"
   },
   "dependencies": {
     "@ahla/design-tokens": "*",

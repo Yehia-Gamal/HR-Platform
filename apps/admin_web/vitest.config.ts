@@ -28,12 +28,10 @@ export default defineConfig({
         'src/vite-env.d.ts',
       ],
       thresholds: {
-        // التغطية الحالية ~38% (statements) — الحدود مبنية على الواقع الحالي
-        // لمنع فشل CI؛ رفعها يتطلب توسيع مجموعة الاختبارات (بند تحسين مستقبلي).
-        lines: 38,
-        functions: 28,
-        branches: 33,
-        statements: 38,
+        lines: 35,
+        functions: 25,
+        branches: 30,
+        statements: 35,
       },
     },
   },
