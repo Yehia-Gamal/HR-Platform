@@ -19,7 +19,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// قناة طلبات الموقع تستخدم أعلى أهمية مع صوت واهتزاز وشاشة كاملة.
 /// قناة v4: صوت مخصص + اهتزاز قوي + شاشة كاملة على شاشة القفل.
 class PushService {
-  PushService(this._registerToken);
+  PushService(this._registerToken) {
+    _instance = this;
+  }
+
+  static PushService? _instance;
+  static PushService? get instance => _instance;
 
   /// callback لتسجيل رمز FCM في الخادم (upsert_my_push_token).
   final Future<void> Function(String token, String platform) _registerToken;
@@ -217,9 +222,7 @@ class PushService {
   Future<void> _onForegroundMessage(RemoteMessage message) async {
     unawaited(_markPushDelivery(message, 'delivered'));
     final data = message.data;
-    final isUrgent =
-        data['fullScreenIntent'] == 'true' ||
-        data['kind'] == 'live_location_request';
+    final isUrgent = data['kind'] == 'live_location_request';
     final title = data['title'] ?? message.notification?.title ?? 'إشعار';
     final body = data['body'] ?? message.notification?.body ?? '';
     final deepLink = data['deepLink'] as String? ?? '';
@@ -399,9 +402,7 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
         data['body'] ??
         message.notification?.body ??
         'الإدارة تطلب التحقق من موقعك الآن';
-    final isUrgent =
-        data['kind'] == 'live_location_request' ||
-        data['fullScreenIntent'] == 'true';
+    final isUrgent = data['kind'] == 'live_location_request';
     final requestId = data['requestId'] as String? ?? '';
 
     unawaited(_markPushDelivery(message, 'delivered'));

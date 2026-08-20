@@ -7,8 +7,7 @@ import io.flutter.plugins.firebase.messaging.FlutterFirebaseMessagingService
 class UrgentLocationMessagingService : FlutterFirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         val data = message.data
-        val urgent = data["kind"] == "live_location_request" ||
-            data["fullScreenIntent"] == "true"
+        val urgent = data["kind"] == "live_location_request"
         if (!urgent) {
             super.onMessageReceived(message)
             return

@@ -188,6 +188,7 @@ function buildFcmMessage(token: string, n: NotificationRow | null): Record<strin
   const meta = (n?.metadata ?? {}) as Record<string, unknown>;
   const urgent = n?.priority === 'urgent' || meta.fullScreen === true;
   const high = urgent || n?.priority === 'high';
+  const isLocationRequest = n?.entity_type === 'live_location_request';
   const deepLink = (meta.deepLink as string) ?? n?.action_url ?? '';
   const data: Record<string, string> = {
     kind: String(meta.kind ?? n?.entity_type ?? 'notification'),
@@ -195,7 +196,7 @@ function buildFcmMessage(token: string, n: NotificationRow | null): Record<strin
     entityId: String(meta.entityId ?? n?.entity_id ?? ''),
     deepLink: String(deepLink),
     requestId: String(meta.requestId ?? meta.entityId ?? n?.entity_id ?? ''),
-    fullScreenIntent: urgent ? 'true' : 'false',
+    fullScreenIntent: (urgent && isLocationRequest) ? 'true' : 'false',
     title: String(n?.title ?? ''),
     body: String(n?.body ?? ''),
   };
