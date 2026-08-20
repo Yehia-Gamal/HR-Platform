@@ -1,17 +1,17 @@
 -- pgTAP: 0380 — إشعارات الإطلاع عند التقديم + تفويض الموافقة حسب خطوة workflow
 -- المتطلبات: 0386_approval_time_gating_and_notify_all.sql (التنفيذ النهائي)
 -- ---------------------------------------------------------------------------
--- العقد المطبّق فعلياً في decide_request (0416):
+-- العقد المطبّق فعلياً في decide_request (0416 + 0441):
 --   · المدير المباشر مخوَّل دائماً (مع أو بلا خطوات)
 --   · أبو عمار (operations-manager-1) من الخطوة 2 فما فوق
---   · HR لا دور له في القبول/الرفض
+--   · HR (hr-manager/hr-specialist) مخوَّل في أي خطوة وبأي وقت (غير مقيد — 0441)
 --   · موافقة واحدة تُنهي الطلب وتغلق بقية الخطوات
 
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions,pg_temp;
 
-select plan(13);
+select plan(15);
 
 -- ─── بيانات الاختبار ───────────────────────────────────────────────────────
 
@@ -145,6 +145,7 @@ select is(
 
 -- ─── (3) تفويض الموافقة حسب خطوة workflow ─────────────────────────────────
 -- طلب بثلاث خطوات: 1 مدير مباشر، 2 أوبريشن، 3 أبو عمار (operations-manager-1)
+-- بعد 0441: HR مخوَّل في أي خطوة؛ أبو عمار من الخطوة 3؛ موافقة واحدة تغلق الباقي.
 
 insert into public.requests (
   id, request_type, employee_id, manager_employee_id,
@@ -191,50 +192,82 @@ insert into public.request_steps (
   'operations-manager-1', 48
 );
 
--- HR لا يستطيع الموافقة والخطوة 1 (مدير مباشر) نشطة
+-- HR يعتمد والخطوة 1 (مدير مباشر) نشطة — غير مقيد (0441)
 set local role authenticated;
 set local "request.jwt.claims" to '{"sub":"00000001-0000-0000-0000-000000000004"}';
 set local "request.jwt.claim.sub" to '00000001-0000-0000-0000-000000000004';
 
-select throws_ok(
+select lives_ok(
   $$ select public.decide_request(
     'bb000001-0000-0000-0000-000000000002'::uuid, 'approve') $$,
-  '42501',
-  null,
-  '(6) HR لا يستطيع الموافقة في خطوة المدير المباشر (قبل تصعيدها)'
+  '(6) HR يعتمد الطلب والخطوة 1 (مدير مباشر) نشطة — غير مقيد (0441)'
 );
 
--- إغلاق الخطوة 1 وتفعيل الخطوة 2 (أوبريشن) — HR لا يستطيع بعد
-reset role;
-update public.request_steps
-  set status = 'approved', acted_at = now()
-where id = 'cc000001-0000-0000-0000-000000000001'::uuid;
+select is(
+  (select status from public.requests
+   where id = 'bb000001-0000-0000-0000-000000000002'::uuid),
+  'approved',
+  '(6b) الطلب معتمد بموافقة HR في الخطوة 1'
+);
 
-update public.request_steps
-  set status = 'active'
-where id = 'cc000001-0000-0000-0000-000000000002'::uuid;
+reset role;
+
+-- طلب جديد: الخطوة 2 (الأوبريشن) نشطة — HR يعتمد أيضاً
+insert into public.requests (
+  id, request_type, employee_id, manager_employee_id,
+  status, workflow_status, title
+) values (
+  'bb000001-0000-0000-0000-000000000004'::uuid,
+  'leave',
+  'aa000001-0000-0000-0000-000000000001'::uuid,
+  'aa000001-0000-0000-0000-000000000002'::uuid,
+  'pending', 'submitted', 'طلب خطوة الأوبريشن لاختبار HR'
+);
+
+insert into public.request_steps (id, request_id, step_order, name_ar, step_type, status, assignee_employee_id, sla_hours)
+values ('cc000001-0000-0000-0000-000000000004'::uuid, 'bb000001-0000-0000-0000-000000000004'::uuid, 1, 'المدير المباشر', 'approval', 'approved', 'aa000001-0000-0000-0000-000000000002'::uuid, 2);
+insert into public.request_steps (id, request_id, step_order, name_ar, step_type, status, assignee_role_slug, sla_hours)
+values ('cc000001-0000-0000-0000-000000000005'::uuid, 'bb000001-0000-0000-0000-000000000004'::uuid, 2, 'الأوبريشن', 'approval', 'active', 'operations-manager', 4);
+insert into public.request_steps (id, request_id, step_order, name_ar, step_type, status, assignee_role_slug, sla_hours)
+values ('cc000001-0000-0000-0000-000000000006'::uuid, 'bb000001-0000-0000-0000-000000000004'::uuid, 3, 'الموارد البشرية', 'approval', 'pending', 'operations-manager-1', 48);
 
 set local role authenticated;
 set local "request.jwt.claims" to '{"sub":"00000001-0000-0000-0000-000000000004"}';
 set local "request.jwt.claim.sub" to '00000001-0000-0000-0000-000000000004';
 
-select throws_ok(
+select lives_ok(
   $$ select public.decide_request(
-    'bb000001-0000-0000-0000-000000000002'::uuid, 'approve') $$,
-  '42501',
-  null,
-  '(7) HR لا يستطيع الموافقة في خطوة الأوبريشن (لا دور له إطلاقاً)'
+    'bb000001-0000-0000-0000-000000000004'::uuid, 'approve') $$,
+  '(7) HR يعتمد والخطوة 2 (الأوبريشن) نشطة — غير مقيد (0441)'
 );
 
--- إغلاق الخطوة 2 وتفعيل الخطوة 3 (أبو عمار) — الآن يستطيع
-reset role;
-update public.request_steps
-  set status = 'approved', acted_at = now()
-where id = 'cc000001-0000-0000-0000-000000000002'::uuid;
+select is(
+  (select status from public.requests
+   where id = 'bb000001-0000-0000-0000-000000000004'::uuid),
+  'approved',
+  '(7b) الطلب معتمد بموافقة HR في خطوة الأوبريشن'
+);
 
-update public.request_steps
-  set status = 'active'
-where id = 'cc000001-0000-0000-0000-000000000003'::uuid;
+reset role;
+
+-- طلب جديد: الخطوة 3 (أبو عمار) نشطة — أبو عمار يعتمد
+insert into public.requests (
+  id, request_type, employee_id, manager_employee_id,
+  status, workflow_status, title
+) values (
+  'bb000001-0000-0000-0000-000000000005'::uuid,
+  'leave',
+  'aa000001-0000-0000-0000-000000000001'::uuid,
+  'aa000001-0000-0000-0000-000000000002'::uuid,
+  'pending', 'submitted', 'طلب خطوة أبو عمار'
+);
+
+insert into public.request_steps (id, request_id, step_order, name_ar, step_type, status, assignee_employee_id, sla_hours)
+values ('cc000001-0000-0000-0000-000000000007'::uuid, 'bb000001-0000-0000-0000-000000000005'::uuid, 1, 'المدير المباشر', 'approval', 'approved', 'aa000001-0000-0000-0000-000000000002'::uuid, 2);
+insert into public.request_steps (id, request_id, step_order, name_ar, step_type, status, assignee_role_slug, sla_hours)
+values ('cc000001-0000-0000-0000-000000000008'::uuid, 'bb000001-0000-0000-0000-000000000005'::uuid, 2, 'الأوبريشن', 'approval', 'approved', 'operations-manager', 4);
+insert into public.request_steps (id, request_id, step_order, name_ar, step_type, status, assignee_role_slug, sla_hours)
+values ('cc000001-0000-0000-0000-000000000009'::uuid, 'bb000001-0000-0000-0000-000000000005'::uuid, 3, 'الموارد البشرية', 'approval', 'active', 'operations-manager-1', 48);
 
 set local role authenticated;
 set local "request.jwt.claims" to '{"sub":"00000001-0000-0000-0000-000000000003"}';
@@ -242,7 +275,7 @@ set local "request.jwt.claim.sub" to '00000001-0000-0000-0000-000000000003';
 
 select lives_ok(
   $$ select public.decide_request(
-    'bb000001-0000-0000-0000-000000000002'::uuid, 'approve') $$,
+    'bb000001-0000-0000-0000-000000000005'::uuid, 'approve') $$,
   '(8) أبو عمار (operations-manager-1) يستطيع الموافقة عندما تكون الخطوة 3 نشطة'
 );
 
@@ -252,7 +285,7 @@ reset role;
 select ok(
   not exists(
     select 1 from public.request_steps
-    where request_id = 'bb000001-0000-0000-0000-000000000002'::uuid
+    where request_id = 'bb000001-0000-0000-0000-000000000005'::uuid
       and status in ('pending','active','escalated')
   ),
   '(9) موافقة واحدة تُغلق جميع الخطوات المعلقة (لا مرحلتان)'
@@ -260,7 +293,7 @@ select ok(
 
 select is(
   (select status from public.requests
-   where id = 'bb000001-0000-0000-0000-000000000002'::uuid),
+   where id = 'bb000001-0000-0000-0000-000000000005'::uuid),
   'approved',
   '(10) الطلب انتقل لحالة approved بنقرة واحدة'
 );

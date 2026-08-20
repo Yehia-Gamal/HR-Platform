@@ -1,6 +1,6 @@
--- 0111: V25 — لا يوجد تجاوز زمني يفتح باب الاعتماد لـ HR (بعد 0416).
--- العقد الثنائي: مدير مباشر → أبو عمار (operations-manager-1)؛ الخطوة 2 نهائية.
---   · HR بلا أي دور في القبول/الرفض مهما انتهت المهل (لا تجاوز زمني).
+-- 0111: V25 — HR (hr-manager) غير مقيد (0441): يعتمد أي طلب في أي وقت.
+-- العقد: مدير مباشر → أبو عمار (operations-manager-1)؛ الخطوة 2 نهائية.
+--   · HR بلا أي قيد زمني أو مرحلي: يعتمد قبل/بعد انتهاء المهلة وأي خطوة.
 --   · انتهاء مهلة الخطوة 1 → تصعيد (process_request_sla) ينشّط الخطوة 2.
 --   · انتهاء مهلة الخطوة 2 → تذكير دوري لأبو عمار + إعادة ضبط المهلة (24س)،
 --     وليس إنشاء خطوة 3 إطلاقاً.
@@ -8,7 +8,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(27);
+select plan(28);
 
 -- =====================================================================
 -- 1. تعريف سير العمل leave_approval_v1 (خطوة HR معطّلة)
@@ -51,7 +51,7 @@ select is(
 );
 
 -- =====================================================================
--- 2. decide_request — HR مستبعد من منطق القبول كلياً
+-- 2. decide_request — HR مدمج في منطق القبول (غير مقيد — 0441)
 -- =====================================================================
 select lives_ok(
   $live$do $t$
@@ -63,12 +63,12 @@ select lives_ok(
        or v_src not ilike '%v_current_step >= 2%'
        or v_src not ilike '%operations-manager-1%'
        or v_src not ilike '%(status = ''active'') desc%'
-       or v_src ilike '%hr-specialist%'
+       or v_src not ilike '%hr-manager%'
        or v_src ilike '%v_current_step >= 3%' then
-      raise exception 'منطق الصلاحية الثنائية (مدير / أبو عمار، بلا HR) غير موجود في decide_request';
+      raise exception 'منطق الصلاحية (مدير دائماً / أبو عمار step>=2 أو مهلة متجاوزة / HR غير مقيد — 0441) غير موجود في decide_request';
     end if;
   end $t$$live$,
-  'decide_request يمنح المدير وأبا عمار فقط (بلا فرع HR)'
+  'decide_request يحوي الصلاحية (مدير / أبو عمار / HR غير مقيد — 0441)'
 );
 
 -- =====================================================================
@@ -162,7 +162,7 @@ select is(
 );
 
 -- =====================================================================
--- 6. انتهاء المهلة وحده لا يفتح باب HR (لا تجاوز زمني)
+-- 6. HR يعتمد في أي وقت: انتهاء مهلة الخطوة 1 لا يقيّد HR (0441)
 -- =====================================================================
 reset role;
 update public.request_steps set escalation_deadline = now() - interval '1 day'
@@ -171,28 +171,94 @@ where request_id = (select id from wf_runtime where kind = 'hr_bypass')
 
 select pg_temp.act_as_0111('97000000-0000-4000-8000-000000000104');
 set local role authenticated;
-select throws_ok(
+select lives_ok(
   $live$
     select public.decide_request(
       (select id from wf_runtime where kind = 'hr_bypass'),
-      'approve', 'محاولة HR بعد انتهاء مهلة المدير'
+      'approve', 'اعتماد HR بعد انتهاء مهلة المدير'
     )
   $live$,
-  '42501',
-  null,
-  'انتهاء مهلة الخطوة 1 وحده لا يخوّل HR (لا تجاوز زمني — الخطوة 1 ما زالت نشطة)'
+  'HR يعتمد الطلب حتى بعد انتهاء مهلة الخطوة 1 (غير مقيد — 0441)'
 );
 
 select is(
   (select status from public.requests
    where id = (select id from wf_runtime where kind = 'hr_bypass')),
-  'pending', 'الطلب يبقى pending بعد رفض المحاولة الزمنية'
+  'approved', 'الطلب معتمد بقرار HR'
+);
+
+select is(
+  (select count(*)::integer from public.request_steps
+   where request_id = (select id from wf_runtime where kind = 'hr_bypass')
+     and status in ('active','pending','escalated')),
+  0, 'اعتماد HR أغلق جميع الخطوات المعلقة'
 );
 
 -- =====================================================================
--- 7. التصعيد 1→2: HR ما زال مرفوضاً في مرحلة الأوبريشن
+-- 7. تحكم: أبو عمار ما زال مقيداً على الطلب الجديد (لم تتجاوز مهلته)
 -- =====================================================================
+select pg_temp.act_as_0111('97000000-0000-4000-8000-000000000101');
+set local role authenticated;
+
+do $ctl$
+declare v_req public.requests;
+begin
+  v_req := public.submit_request(
+    'leave',
+    null,
+    '97000000-0000-4000-8000-000000000202',
+    'إجازة تحكم أبو عمار 0111',
+    'اختبار التحكم',
+    jsonb_build_object('leaveType', 'annual')
+  );
+  insert into wf_runtime values('control', v_req.id);
+end $ctl$;
+
+select pg_temp.act_as_0111('97000000-0000-4000-8000-000000000103');
+set local role authenticated;
+select throws_ok(
+  $live$
+    select public.decide_request(
+      (select id from wf_runtime where kind = 'control'),
+      'approve', 'محاولة أبو عمار على طلب جديد'
+    )
+  $live$,
+  '42501',
+  null,
+  'أبو عمار ممنوع من الطلب الجديد قبل المهلة (تحكم)'
+);
+
+-- =====================================================================
+-- 8. المسار الثنائي بلا تدخل HR: تصعيد 1→2 ثم تذكير ثم قرار أبو عمار
+-- =====================================================================
+select pg_temp.act_as_0111('97000000-0000-4000-8000-000000000101');
+set local role authenticated;
+
+do $ts$
+declare v_req public.requests;
+begin
+  v_req := public.submit_request(
+    'leave',
+    null,
+    '97000000-0000-4000-8000-000000000202',
+    'إجازة ثنائية 0111',
+    'اختبار المسار الثنائي',
+    jsonb_build_object('leaveType', 'annual')
+  );
+  insert into wf_runtime values('two_step', v_req.id);
+end $ts$;
+
+select is(
+  (select status from public.request_steps
+   where request_id = (select id from wf_runtime where kind = 'two_step') and step_order = 1),
+  'active', 'الخطوة 1 نشطة عند التقديم (المسار الثنائي)'
+);
+
+-- التصعيد 1→2
 reset role;
+update public.request_steps set escalation_deadline = now() - interval '1 day'
+where request_id = (select id from wf_runtime where kind = 'two_step')
+  and status in ('active', 'escalated');
 select set_config('request.jwt.claims','{"role":"service_role"}',true);
 select is(
   public.process_request_sla(10),
@@ -201,50 +267,28 @@ select is(
 
 select is(
   (select status from public.request_steps
-   where request_id = (select id from wf_runtime where kind = 'hr_bypass') and step_order = 2),
+   where request_id = (select id from wf_runtime where kind = 'two_step') and step_order = 2),
   'active', 'الخطوة 2 صارت نشطة'
 );
 
 select is(
   (select assignee_employee_id from public.request_steps
-   where request_id = (select id from wf_runtime where kind = 'hr_bypass') and step_order = 2),
+   where request_id = (select id from wf_runtime where kind = 'two_step') and step_order = 2),
   '97000000-0000-4000-8000-000000000203', 'الخطوة 2 أُسندت لأبو عمار (أول موظف فعّال بدور operations-manager-1)'
 );
 
 select is(
   (select workflow_status from public.requests
-   where id = (select id from wf_runtime where kind = 'hr_bypass')),
+   where id = (select id from wf_runtime where kind = 'two_step')),
   'awaiting_operator', 'الطلب بانتظار قرار الأوبريشن'
 );
 
-select pg_temp.act_as_0111('97000000-0000-4000-8000-000000000104');
-set local role authenticated;
-select throws_ok(
-  $live$
-    select public.decide_request(
-      (select id from wf_runtime where kind = 'hr_bypass'),
-      'approve', 'محاولة HR في مرحلة الأوبريشن'
-    )
-  $live$,
-  '42501',
-  null,
-  'HR لا يعتمد في الخطوة 2 (لا دور له إطلاقاً في العقد الثنائي) حتى بعد تصعيد مهلة المدير'
-);
-
-select is(
-  (select status from public.requests
-   where id = (select id from wf_runtime where kind = 'hr_bypass')),
-  'pending', 'الطلب يبقى pending بعد رفض HR في المرحلة الثانية'
-);
-
--- =====================================================================
--- 8. الخطوة 2 نهائية: انتهاء مهلة الأوبريشن → تذكير وإعادة مهلة لا خطوة 3
--- =====================================================================
+-- الخطوة 2 نهائية: انتهاء مهلة الأوبريشن → تذكير وإعادة مهلة لا خطوة 3
 reset role;
 update public.request_steps set escalation_deadline = null
-where request_id = (select id from wf_runtime where kind = 'hr_bypass') and step_order = 1;
+where request_id = (select id from wf_runtime where kind = 'two_step') and step_order = 1;
 update public.request_steps set escalation_deadline = now() - interval '1 hour'
-where request_id = (select id from wf_runtime where kind = 'hr_bypass')
+where request_id = (select id from wf_runtime where kind = 'two_step')
   and step_order = 2 and status = 'active';
 select set_config('request.jwt.claims','{"role":"service_role"}',true);
 -- يُعالج التذكير في الخطوة النهائية ولا يُنشئ خطوة تالية؛ القيمة المُرجعة لا
@@ -253,25 +297,25 @@ select public.process_request_sla(10);
 
 select is(
   (select count(*)::integer from public.request_steps
-   where request_id = (select id from wf_runtime where kind = 'hr_bypass')),
+   where request_id = (select id from wf_runtime where kind = 'two_step')),
   2, 'لا خطوة ثالثة تُنشأ إطلاقاً (خطوتان فقط)'
 );
 
 select ok(
   (select status from public.request_steps
-   where request_id = (select id from wf_runtime where kind = 'hr_bypass') and step_order = 2) = 'active',
+   where request_id = (select id from wf_runtime where kind = 'two_step') and step_order = 2) = 'active',
   'الخطوة 2 تبقى نشطة بعد التذكير (لا انتقال لأي خطوة تالية)'
 );
 
 select ok(
   (select escalation_deadline from public.request_steps
-   where request_id = (select id from wf_runtime where kind = 'hr_bypass') and step_order = 2) > now() + interval '20 hours',
+   where request_id = (select id from wf_runtime where kind = 'two_step') and step_order = 2) > now() + interval '20 hours',
   'مهلة الخطوة 2 أُعيد ضبطها إلى 24 ساعة بعد التذكير'
 );
 
 select is(
   (select workflow_status from public.requests
-   where id = (select id from wf_runtime where kind = 'hr_bypass')),
+   where id = (select id from wf_runtime where kind = 'two_step')),
   'awaiting_operator', 'الطلب لا يصبح escalated في الخطوة النهائية'
 );
 
@@ -291,21 +335,19 @@ select ok(
 select ok(
   not exists (
     select 1 from public.request_actions
-    where request_id = (select id from wf_runtime where kind = 'hr_bypass')
+    where request_id = (select id from wf_runtime where kind = 'two_step')
       and actor_employee_id = '97000000-0000-4000-8000-000000000202'
   ),
   'لا إجراء منسوب للمدير المباشر على الطلب'
 );
 
--- =====================================================================
--- 9. القرار النهائي: أبو عمار يعتمد في الخطوة 2
--- =====================================================================
+-- القرار النهائي: أبو عمار يعتمد في الخطوة 2
 select pg_temp.act_as_0111('97000000-0000-4000-8000-000000000103');
 set local role authenticated;
 select lives_ok(
   $live$
     select public.decide_request(
-      (select id from wf_runtime where kind = 'hr_bypass'),
+      (select id from wf_runtime where kind = 'two_step'),
       'approve', 'اعتماد أبو عمار النهائي في الخطوة 2'
     )
   $live$,
@@ -314,32 +356,32 @@ select lives_ok(
 
 select is(
   (select status from public.requests
-   where id = (select id from wf_runtime where kind = 'hr_bypass')),
+   where id = (select id from wf_runtime where kind = 'two_step')),
   'approved', 'الطلب معتمد بقرار أبو عمار'
 );
 
 select is(
   (select status from public.request_steps
-   where request_id = (select id from wf_runtime where kind = 'hr_bypass') and step_order = 2),
+   where request_id = (select id from wf_runtime where kind = 'two_step') and step_order = 2),
   'approved', 'الخطوة 2 سُجّلت كمعتمدة'
 );
 
 select is(
   (select workflow_status from public.requests
-   where id = (select id from wf_runtime where kind = 'hr_bypass')),
+   where id = (select id from wf_runtime where kind = 'two_step')),
   'completed', 'سير العمل اكتمل بعد القرار'
 );
 
 select is(
   (select count(*)::integer from public.request_steps
-   where request_id = (select id from wf_runtime where kind = 'hr_bypass')
+   where request_id = (select id from wf_runtime where kind = 'two_step')
      and status = 'approved'),
   1, 'خطوة واحدة فقط سُجّلت معتمدة (الخطوة 2)'
 );
 
 select is(
   (select count(*)::integer from public.request_steps
-   where request_id = (select id from wf_runtime where kind = 'hr_bypass')),
+   where request_id = (select id from wf_runtime where kind = 'two_step')),
   2, 'عدد الخطوات النهائي = 2 (لا وجود لخطوة HR)'
 );
 

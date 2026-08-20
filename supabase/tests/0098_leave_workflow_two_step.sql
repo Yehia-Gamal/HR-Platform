@@ -3,12 +3,12 @@
 -- (مدير مباشر 2س → أبو عمار operations-manager-1 4س)، وأن decide_request:
 --   1) موافقة واحدة تُنهي الطلب (المدير المباشر يعتمد فيُكمل فوراً).
 --   2) التصعيد المرحلي (process_request_sla) ينشّط الخطوة الثانية.
---   3) الصلاحية مرحلية: مدير دائماً / أبو عمار step>=2 / بدون HR.
+--   3) الصلاحية: مدير دائماً / أبو عمار step>=2 / HR غير مقيد (0441).
 
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(56);
+select plan(58);
 
 -- =====================================================================
 -- 1. تعريف سير العمل leave_approval_v1 (بنية 0396)
@@ -192,12 +192,11 @@ select lives_ok(
        or v_src not ilike '%operations-manager-1%'
        or v_src not ilike '%v_current_step >= 2%'
        or v_src not ilike '%(status = ''active'') desc%'
-       or v_src ilike '%hr-specialist%'
-       or v_src ilike '%hr-manager%' then
-      raise exception 'منطق الصلاحية الثنائية (مدير / أبو عمار) غير موجود في decide_request';
+       or v_src not ilike '%hr-manager%' then
+      raise exception 'منطق الصلاحية المحدث (مدير دائماً / أبو عمار step>=2 أو مهلة متجاوزة / HR غير مقيد — 0441) غير موجود في decide_request';
     end if;
   end $t$$live$,
-  'decide_request يحوي الصلاحية الثنائية (مدير دائماً / أبو عمار step>=2)'
+  'decide_request يحوي الصلاحية (مدير دائماً / أبو عمار step>=2 أو مهلة متجاوزة / HR غير مقيد)'
 );
 
 -- =====================================================================
@@ -458,7 +457,7 @@ select is(
 );
 
 -- =====================================================================
--- 8. المرحلة النهائية: انتهاء مهلة أبو عمار → تذكير دوري (لا مرحلة ثالثة)
+-- 8. HR غير مقيد (0441): يعتمد في مرحلة أبو عمار — ثم مسار نهائي بلا HR
 -- =====================================================================
 select pg_temp.act_as_0096('96000000-0000-4000-8000-000000000101');
 set local role authenticated;
@@ -470,8 +469,8 @@ begin
     'leave',
     null,
     '96000000-0000-4000-8000-000000000202',
-    'إجازة تصعيد نهائي V25',
-    'اختبار المرحلة النهائية',
+    'إجازة اعتماد HR V25',
+    'اختبار HR غير المقيد في المرحلة الثانية',
     jsonb_build_object('leaveType', 'annual')
   );
   insert into wf_runtime values('tier3', v_req.id);
@@ -488,27 +487,62 @@ select is(
   1, 'التصعيد الأول ينشّط الخطوة 2'
 );
 
--- HR لا يعتمد قبل المرحلة 2 (الطلب في الخطوة 2 بعد التصعيد الأول فقط)
+-- HR يعتمد في مرحلة أبو عمار (الخطوة 2) — غير مقيد (0441)
 select pg_temp.act_as_0096('96000000-0000-4000-8000-000000000104');
 set local role authenticated;
-select throws_ok(
+select lives_ok(
   $live$
     select public.decide_request(
       (select id from wf_runtime where kind = 'tier3'),
-      'approve', 'محاولة HR قبل المرحلة النهائية'
+      'approve', 'اعتماد HR في مرحلة أبو عمار'
     )
   $live$,
-  '42501',
-  null,
-  'HR لا يعتمد في مرحلة أبو عمار (لا دور له إطلاقاً)'
+  'HR يعتمد الطلب في مرحلة أبو عمار (غير مقيد — 0441)'
+);
+
+select is(
+  (select status from public.requests
+   where id = (select id from wf_runtime where kind = 'tier3')),
+  'approved', 'الطلب معتمد بقرار HR'
+);
+
+-- =====================================================================
+-- 9. المرحلة النهائية بلا تدخل HR: انتهاء مهلة أبو عمار → تذكير دوري
+-- =====================================================================
+select pg_temp.act_as_0096('96000000-0000-4000-8000-000000000101');
+set local role authenticated;
+
+do $emp4$
+declare v_req public.requests;
+begin
+  v_req := public.submit_request(
+    'leave',
+    null,
+    '96000000-0000-4000-8000-000000000202',
+    'إجازة تصعيد نهائي V25',
+    'اختبار المرحلة النهائية',
+    jsonb_build_object('leaveType', 'annual')
+  );
+  insert into wf_runtime values('tier4', v_req.id);
+end $emp4$;
+
+-- التصعيد الأول: 1→2
+reset role;
+update public.request_steps set escalation_deadline = now() - interval '1 hour'
+where request_id = (select id from wf_runtime where kind = 'tier4')
+  and status in ('active', 'escalated');
+select set_config('request.jwt.claims','{"role":"service_role"}',true);
+select is(
+  public.process_request_sla(10),
+  1, 'التصعيد الأول ينشّط الخطوة 2 (المرحلة النهائية)'
 );
 
 -- لا تصعيد بعد الخطوة 2: انتهاء مهلة أبو عمار → تذكير دوري فقط
 reset role;
 update public.request_steps set escalation_deadline = null
-where request_id = (select id from wf_runtime where kind = 'tier3') and step_order = 1;
+where request_id = (select id from wf_runtime where kind = 'tier4') and step_order = 1;
 update public.request_steps set escalation_deadline = now() - interval '1 hour'
-where request_id = (select id from wf_runtime where kind = 'tier3')
+where request_id = (select id from wf_runtime where kind = 'tier4')
   and step_order = 2 and status = 'active';
 select set_config('request.jwt.claims','{"role":"service_role"}',true);
 select is(
@@ -518,19 +552,19 @@ select is(
 
 select is(
   (select status from public.request_steps
-   where request_id = (select id from wf_runtime where kind = 'tier3') and step_order = 2),
+   where request_id = (select id from wf_runtime where kind = 'tier4') and step_order = 2),
   'active', 'الخطوة 2 تبقى نشطة بعد التذكير'
 );
 
 select is(
   (select assignee_employee_id from public.request_steps
-   where request_id = (select id from wf_runtime where kind = 'tier3') and step_order = 2),
+   where request_id = (select id from wf_runtime where kind = 'tier4') and step_order = 2),
   '96000000-0000-4000-8000-000000000203', 'الخطوة 2 أُسندت لأبو عمار (أول موظف operations-manager-1)'
 );
 
 select is(
   (select workflow_status from public.requests
-   where id = (select id from wf_runtime where kind = 'tier3')),
+   where id = (select id from wf_runtime where kind = 'tier4')),
   'awaiting_operator', 'الطلب يبقى بانتظار أبو عمار (لا مرحلة ثالثة)'
 );
 
@@ -540,7 +574,7 @@ set local role authenticated;
 select lives_ok(
   $live$
     select public.decide_request(
-      (select id from wf_runtime where kind = 'tier3'),
+      (select id from wf_runtime where kind = 'tier4'),
       'approve', 'اعتماد أبو عمار النهائي'
     )
   $live$,
@@ -549,13 +583,13 @@ select lives_ok(
 
 select is(
   (select status from public.requests
-   where id = (select id from wf_runtime where kind = 'tier3')),
+   where id = (select id from wf_runtime where kind = 'tier4')),
   'approved', 'الطلب معتمد بقرار أبو عمار'
 );
 
 select is(
   (select status from public.request_steps
-   where request_id = (select id from wf_runtime where kind = 'tier3') and step_order = 2),
+   where request_id = (select id from wf_runtime where kind = 'tier4') and step_order = 2),
   'approved', 'الخطوة 2 سُجّلت كمعتمدة لقرار أبو عمار'
 );
 
