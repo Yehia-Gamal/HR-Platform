@@ -38,27 +38,13 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
     final requests = ref.watch(mobileRequestsProvider);
     final balances = ref.watch(myLeaveBalancesProvider);
     // تبويبات بلا إعادة تحميل: الإجازات/الطلبات + تكليفات العمل (البند 12).
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: TabBar(
-          tabs: const [
-            Tab(text: 'الإجازات والطلبات'),
-            Tab(text: 'تكليفات العمل'),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => _createRequest(context, ref),
-          icon: const Icon(Icons.add),
-          label: const Text('طلب جديد'),
-        ),
-        body: TabBarView(
-          children: [
-            _buildRequestsTab(context, requests, balances),
-            const _WorkAssignmentsTab(),
-          ],
-        ),
+    return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _createRequest(context, ref),
+        icon: const Icon(Icons.add),
+        label: const Text('طلب جديد'),
       ),
+      body: _buildRequestsTab(context, requests, balances),
     );
   }
 
@@ -787,77 +773,4 @@ class _RequestCard extends StatelessWidget {
   };
 }
 
-/// تبويب تكليفات العمل (مأمورية/قافلة/فاندي) — لا تُخصم من رصيد الإجازات.
-class _WorkAssignmentsTab extends ConsumerWidget {
-  const _WorkAssignmentsTab();
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    const scope = 'mine';
-    final assignments = ref.watch(workAssignmentsProvider(scope));
-    return RefreshIndicator(
-      onRefresh: () async => ref.invalidate(workAssignmentsProvider(scope)),
-      child: assignments.when(
-        loading: () => ListView(
-          children: const [
-            SizedBox(height: 260),
-            Center(child: CircularProgressIndicator()),
-          ],
-        ),
-        error: (error, _) => ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            Text(humanizeError(error), textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () => ref.invalidate(workAssignmentsProvider(scope)),
-              child: const Text('إعادة المحاولة'),
-            ),
-          ],
-        ),
-        data: (items) => ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Text(
-              'تكليفات عمل رسمية (مأمورية / قافلة / فاندي)',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'لا تُخصم من رصيد الإجازات ولا تُحتسب غيابًا.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 12),
-            if (items.isEmpty) ...[
-              const SizedBox(height: 100),
-              const Icon(Icons.work_off_outlined, size: 48, semanticLabel: 'لا توجد تكليفات'),
-              const Center(child: Text('لا توجد تكليفات عمل')),
-            ] else
-              ...items.map(
-                (item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Card(
-                    child: ListTile(
-                      title: Text(
-                        item.title,
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      subtitle: Text(
-                        '${item.typeLabel} · '
-                        '${DateFormat('d MMM', 'ar').format(item.startAt)}'
-                        '${item.isFullDay ? '' : ' (بالساعات)'}'
-                        '${item.targetAmount != null ? ' · مستهدف ${item.targetAmount!.toStringAsFixed(0)}' : ''}',
-                      ),
-                      trailing: Chip(label: Text(item.status)),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
