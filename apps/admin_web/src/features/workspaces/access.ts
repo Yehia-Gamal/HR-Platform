@@ -37,6 +37,7 @@ export const HR_PAGE_SEGMENTS = [
   'reports',
   'holidays',
   'requests',
+  'leave-tools',
   'devices',
   'organization',
   'official-feed',

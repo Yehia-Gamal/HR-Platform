@@ -260,6 +260,8 @@ class _StatementBody extends StatelessWidget {
             _LegendDot(color: const Color(0xFF6366F1), label: 'إجازة'),
             _LegendDot(color: const Color(0xFFF59E0B), label: 'مراجعة'),
             _LegendDot(color: const Color(0xFF90A4AE), label: 'راحة/عطلة'),
+            _LegendDot(color: const Color(0xFF0EA5E9), label: 'مأمورية'),
+            _LegendDot(color: const Color(0xFF8B5CF6), label: 'قافلة/فاندي'),
             _LegendDot(color: const Color(0xFFBDBDBD), label: 'قادم'),
           ],
         ),
@@ -1048,6 +1050,7 @@ class _DayDetailSheet extends ConsumerWidget {
     if (s == 'يحتاج مراجعة') return 'flagged';
     if (day!.hasLeave) return 'on_leave';
     if (day!.hasMission) return 'mission';
+    if (day!.hasConvoyFundi) return 'convoy_fundi';
     return 'unregistered';
   }
 

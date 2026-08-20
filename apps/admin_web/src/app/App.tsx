@@ -68,6 +68,7 @@ const InstapayPage = lazy(() => import('../features/finance/InstapayPage').then(
 const AuditTrailPage = lazy(() => import('../features/management/AuditTrailPage').then((m) => ({ default: m.AuditTrailPage })));
 const SystemSettingsPage = lazy(() => import('../features/management/SystemSettingsPage').then((m) => ({ default: m.SystemSettingsPage })));
 const LeavesPage = lazy(() => import('../features/leaves/LeavesPage').then((m) => ({ default: m.LeavesPage })));
+const LeaveToolsPage = lazy(() => import('../features/leave-tools/LeaveToolsPage').then((m) => ({ default: m.LeaveToolsPage })));
 
 export function App() {
   // Mobile deep-link redirect — no auth required, shown before any other check.
@@ -508,6 +509,14 @@ function HrWorkspaceRoutes() {
         element={
           <RequirePermission perm="requests.request.read">
             <LeavesPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="leave-tools"
+        element={
+          <RequirePermission perm="requests.leave.balance.adjust">
+            <LeaveToolsPage />
           </RequirePermission>
         }
       />

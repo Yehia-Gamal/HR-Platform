@@ -468,6 +468,8 @@ class AttendanceState {
     required this.lastEventStatus,
     required this.todayStatus,
     required this.localDeviceStatus,
+    required this.todayCheckInAt,
+    required this.todayCheckOutAt,
   });
   factory AttendanceState.fromJson(Map<String, dynamic> json) =>
       AttendanceState(
@@ -490,6 +492,12 @@ class AttendanceState {
         lastEventStatus: json['lastEventStatus'] as String?,
         todayStatus: json['todayStatus'] as String?,
         localDeviceStatus: json['localDeviceStatus'] as String?,
+        todayCheckInAt: json['todayCheckInAt'] == null
+            ? null
+            : DateTime.parse(json['todayCheckInAt'] as String),
+        todayCheckOutAt: json['todayCheckOutAt'] == null
+            ? null
+            : DateTime.parse(json['todayCheckOutAt'] as String),
       );
   final bool attendanceRequired;
   final bool selfPunchEnabled;
@@ -504,6 +512,12 @@ class AttendanceState {
 
   /// حالة الجهاز المحلي: null (لا يوجد)، 'pending'، 'active'، 'blocked'، إلخ.
   final String? localDeviceStatus;
+
+  /// 0439: أول توقيت حضور اليوم (بتوقيت UTC) — null قبل البصمة الأولى.
+  final DateTime? todayCheckInAt;
+
+  /// 0439: آخر توقيت انصراف اليوم (بتوقيت UTC) — null قبل اكتمال اليوم.
+  final DateTime? todayCheckOutAt;
 }
 
 class MobileFeedItem {
@@ -1374,24 +1388,23 @@ class MobileNotificationItem {
 
   /// هل الإشعار من الأنواع المعلوماتية (لا صفحة موبايل محددة)؟
   /// هذه الأنواع تُعلَّم مقروءة عند النقر وتُعرض في القائمة دون فتح مسار.
-  bool get isInformational =>
-      const {
-        'daily_report',
-        'daily_report_like',
-        'daily_report_comment',
-        'attendance_manager_notify',
-        'work_assignments',
-        'kpi_appeals',
-        'break_glass_requests',
-        'offboarding_cases',
-        'privacy_requests',
-        'service_requests',
-        'wellbeing_requests',
-        'document_signature_requests',
-        'employee_device',
-        'public_holiday',
-        'role',
-      }.contains(canonicalType);
+  bool get isInformational => const {
+    'daily_report',
+    'daily_report_like',
+    'daily_report_comment',
+    'attendance_manager_notify',
+    'work_assignments',
+    'kpi_appeals',
+    'break_glass_requests',
+    'offboarding_cases',
+    'privacy_requests',
+    'service_requests',
+    'wellbeing_requests',
+    'document_signature_requests',
+    'employee_device',
+    'public_holiday',
+    'role',
+  }.contains(canonicalType);
 }
 
 class MobileLeaveBalance {
@@ -2058,13 +2071,13 @@ class DisputeHeldSession {
   final String? location;
 
   static String typeLabel(String t) => switch (t) {
-        'hearing' => 'جلسة استماع',
-        'investigation' => 'جلسة تحقيق',
-        'mediation' => 'جلسة وساطة',
-        'follow_up' => 'جلسة متابعة',
-        'decision' => 'جلسة قرار',
-        _ => t,
-      };
+    'hearing' => 'جلسة استماع',
+    'investigation' => 'جلسة تحقيق',
+    'mediation' => 'جلسة وساطة',
+    'follow_up' => 'جلسة متابعة',
+    'decision' => 'جلسة قرار',
+    _ => t,
+  };
 }
 
 class MobileDisputeDecision {
@@ -3037,11 +3050,10 @@ class EmployeeDepartmentLink {
 
 class EmployeeRoleLink {
   const EmployeeRoleLink({required this.slug, required this.name});
-  factory EmployeeRoleLink.fromJson(Map<String, dynamic> j) =>
-      EmployeeRoleLink(
-        slug: j['slug'] as String? ?? '',
-        name: j['name'] as String? ?? '',
-      );
+  factory EmployeeRoleLink.fromJson(Map<String, dynamic> j) => EmployeeRoleLink(
+    slug: j['slug'] as String? ?? '',
+    name: j['name'] as String? ?? '',
+  );
   final String slug;
   final String name;
 }

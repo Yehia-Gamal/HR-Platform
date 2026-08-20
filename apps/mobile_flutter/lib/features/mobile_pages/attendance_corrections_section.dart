@@ -1,4 +1,5 @@
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
@@ -20,9 +21,7 @@ class AttendanceCorrectionsSection extends ConsumerWidget {
       children: [
         Row(
           children: [
-            const Expanded(
-              child: MobileSectionHeader(title: 'طلبات التصحيح'),
-            ),
+            const Expanded(child: MobileSectionHeader(title: 'طلبات التصحيح')),
             IconButton.filledTonal(
               tooltip: 'طلب تصحيح',
               icon: const Icon(Icons.edit_calendar_outlined, size: 18),
@@ -58,8 +57,7 @@ class AttendanceCorrectionsSection extends ConsumerWidget {
               trailing: IconButton(
                 tooltip: 'إعادة المحاولة',
                 icon: const Icon(Icons.refresh_rounded),
-                onPressed: () =>
-                    ref.invalidate(myAttendanceServicesProvider),
+                onPressed: () => ref.invalidate(myAttendanceServicesProvider),
               ),
             ),
           ),
@@ -138,93 +136,109 @@ Future<void> showAttendanceCorrectionSheet(
   DateTime workDate = DateTime.now().subtract(const Duration(days: 1));
   String type = 'missing_check_in';
   final reason = TextEditingController();
+  // 0439: نعرض وقت البصمة المتوقع من جدول الموظف عند اختيار اليوم ونوع التصحيح.
+  final schedule =
+      ref.read(myAttendanceServicesProvider).asData?.value.schedule ??
+      const <MobileScheduleDay>[];
   final accepted = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
     builder: (sheetContext) => StatefulBuilder(
-      builder: (sheetContext, setState) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          0,
-          20,
-          MediaQuery.viewInsetsOf(sheetContext).bottom + 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'طلب تصحيح حضور',
-              style: Theme.of(
-                sheetContext,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 14),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('يوم العمل'),
-              subtitle: Text(DateFormat('d MMMM y', 'ar').format(workDate)),
-              trailing: const Tooltip(
-                message: 'اختيار يوم العمل',
-                child: Icon(Icons.calendar_month_outlined),
+      builder: (sheetContext, setState) {
+        final day = _scheduleDayFor(schedule, workDate);
+        final expectedLabel = _expectedTimeLabel(type, day);
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            0,
+            20,
+            MediaQuery.viewInsetsOf(sheetContext).bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'طلب تصحيح حضور',
+                style: Theme.of(
+                  sheetContext,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
               ),
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: sheetContext,
-                  firstDate: DateTime.now().subtract(
-                    const Duration(days: 365),
+              const SizedBox(height: 14),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('يوم العمل'),
+                subtitle: Text(DateFormat('d MMMM y', 'ar').format(workDate)),
+                trailing: const Tooltip(
+                  message: 'اختيار يوم العمل',
+                  child: Icon(Icons.calendar_month_outlined),
+                ),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: sheetContext,
+                    firstDate: DateTime.now().subtract(
+                      const Duration(days: 365),
+                    ),
+                    lastDate: DateTime.now(),
+                    initialDate: workDate,
+                  );
+                  if (picked != null) setState(() => workDate = picked);
+                },
+              ),
+              DropdownButtonFormField<String>(
+                value: type,
+                decoration: const InputDecoration(labelText: 'نوع التصحيح'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'missing_check_in',
+                    child: Text('بصمة حضور ناقصة'),
                   ),
-                  lastDate: DateTime.now(),
-                  initialDate: workDate,
-                );
-                if (picked != null) setState(() => workDate = picked);
-              },
-            ),
-            DropdownButtonFormField<String>(
-              value: type,
-              decoration: const InputDecoration(labelText: 'نوع التصحيح'),
-              items: const [
-                DropdownMenuItem(
-                  value: 'missing_check_in',
-                  child: Text('بصمة حضور ناقصة'),
-                ),
-                DropdownMenuItem(
-                  value: 'missing_check_out',
-                  child: Text('بصمة انصراف ناقصة'),
-                ),
-                DropdownMenuItem(
-                  value: 'wrong_time',
-                  child: Text('وقت غير صحيح'),
-                ),
-                DropdownMenuItem(
-                  value: 'wrong_status',
-                  child: Text('حالة اليوم غير صحيحة'),
-                ),
-                DropdownMenuItem(value: 'mission', child: Text('مأمورية')),
-                DropdownMenuItem(value: 'leave', child: Text('إجازة')),
-                DropdownMenuItem(value: 'other', child: Text('أخرى')),
-              ],
-              onChanged: (value) => setState(() => type = value ?? 'other'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: reason,
-              minLines: 3,
-              maxLines: 5,
-              decoration: const InputDecoration(
-                labelText: 'سبب التصحيح',
-                hintText: 'اشرح ما حدث بوضوح',
+                  DropdownMenuItem(
+                    value: 'missing_check_out',
+                    child: Text('بصمة انصراف ناقصة'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'wrong_time',
+                    child: Text('وقت غير صحيح'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'wrong_status',
+                    child: Text('حالة اليوم غير صحيحة'),
+                  ),
+                  DropdownMenuItem(value: 'mission', child: Text('مأمورية')),
+                  DropdownMenuItem(value: 'leave', child: Text('إجازة')),
+                  DropdownMenuItem(value: 'other', child: Text('أخرى')),
+                ],
+                onChanged: (value) => setState(() => type = value ?? 'other'),
               ),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () => Navigator.pop(sheetContext, true),
-              child: const Text('إرسال للمراجعة'),
-            ),
-          ],
-        ),
-      ),
+              // 0439: وقت البصمة المتوقع لليوم المختار حسب نوع التصحيح.
+              if (expectedLabel != null) ...[
+                const SizedBox(height: 12),
+                _ExpectedTimeTile(
+                  label: expectedLabel,
+                  shiftName: day?.shiftName,
+                ),
+              ],
+              const SizedBox(height: 12),
+              TextField(
+                controller: reason,
+                minLines: 3,
+                maxLines: 5,
+                decoration: const InputDecoration(
+                  labelText: 'سبب التصحيح',
+                  hintText: 'اشرح ما حدث بوضوح',
+                ),
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () => Navigator.pop(sheetContext, true),
+                child: const Text('إرسال للمراجعة'),
+              ),
+            ],
+          ),
+        );
+      },
     ),
   );
   if (accepted != true) {
@@ -275,3 +289,85 @@ String _correctionType(String value) => switch (value) {
   'leave' => 'إجازة',
   _ => 'تصحيح',
 };
+
+/// 0439: البحث عن يوم العمل في الجدول (للعرض فقط — لا يعدّل الطلب).
+MobileScheduleDay? _scheduleDayFor(
+  List<MobileScheduleDay> schedule,
+  DateTime date,
+) {
+  for (final s in schedule) {
+    if (s.workDate.year == date.year &&
+        s.workDate.month == date.month &&
+        s.workDate.day == date.day) {
+      return s;
+    }
+  }
+  return null;
+}
+
+/// 0439: نص الوقت المتوقع حسب نوع التصحيح — null إذا لم يوجد وقت أو لا يناسب النوع.
+String? _expectedTimeLabel(String type, MobileScheduleDay? day) {
+  if (day == null) return null;
+  final start = _fmtShiftTime(day.startTime);
+  final end = _fmtShiftTime(day.endTime);
+  switch (type) {
+    case 'missing_check_in':
+      return start.isEmpty ? null : 'وقت الدخول المتوقع: $start';
+    case 'missing_check_out':
+      return end.isEmpty ? null : 'وقت الخروج المتوقع: $end';
+    case 'wrong_time':
+      if (start.isNotEmpty && end.isNotEmpty) {
+        return 'وقتا الوردية المتوقعان: $start — $end';
+      }
+      if (start.isNotEmpty) return 'الوقت المتوقع: $start';
+      if (end.isNotEmpty) return 'الوقت المتوقع: $end';
+      return null;
+    default:
+      return null;
+  }
+}
+
+/// تنظيف صيغة الوقت من الخادم: "09:00:00" ← "09:00".
+String _fmtShiftTime(String? value) {
+  if (value == null || value.isEmpty) return '';
+  if (value.length >= 8 && value.endsWith(':00')) {
+    return value.substring(0, 5);
+  }
+  return value;
+}
+
+/// بطاقة صغيرة توضح الوقت المتوقع للتصحيح حسب اليوم والنوع.
+class _ExpectedTimeTile extends StatelessWidget {
+  const _ExpectedTimeTile({required this.label, this.shiftName});
+  final String label;
+  final String? shiftName;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer.withValues(alpha: .35),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: scheme.primary.withValues(alpha: .4)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.schedule_outlined, size: 18, color: scheme.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              shiftName == null ? label : '$label — وردية: $shiftName',
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -33,10 +33,7 @@ void main() {
     });
 
     test('يستخدم القيم الافتراضية للحقول الناقصة', () {
-      final json = <String, dynamic>{
-        'id': 'req-002',
-        'requestType': 'permit',
-      };
+      final json = <String, dynamic>{'id': 'req-002', 'requestType': 'permit'};
       final req = MobileRequest.fromJson(json);
       expect(req.employeeName, 'موظف');
       expect(req.status, 'pending');
@@ -75,8 +72,9 @@ void main() {
     });
 
     test('يستخدم صفر كقيمة افتراضية لكل الحقول', () {
-      final summary =
-          ManagerDashboardSummary.fromJson(const <String, dynamic>{});
+      final summary = ManagerDashboardSummary.fromJson(
+        const <String, dynamic>{},
+      );
       expect(summary.teamMembers, 0);
       expect(summary.pendingRequests, 0);
       expect(summary.pendingKpi, 0);
@@ -144,8 +142,9 @@ void main() {
     });
 
     test('يستخدم القيم الافتراضية بدون dailyReport', () {
-      final summary =
-          ExecutiveDashboardSummary.fromJson(const <String, dynamic>{});
+      final summary = ExecutiveDashboardSummary.fromJson(
+        const <String, dynamic>{},
+      );
       expect(summary.attendancePresent, 0);
       expect(summary.attendanceRequired, 0);
       expect(summary.attendanceRate, 0);
@@ -173,8 +172,7 @@ void main() {
     });
 
     test('يستخدم القيم الافتراضية للحقول الناقصة', () {
-      final summary =
-          EmployeeHomeSummary.fromJson(const <String, dynamic>{});
+      final summary = EmployeeHomeSummary.fromJson(const <String, dynamic>{});
       expect(summary.pendingRequests, 0);
       expect(summary.activeTasks, 0);
       expect(summary.kpiStage, isNull);
@@ -226,8 +224,9 @@ void main() {
     });
 
     test('يستخدم القيم الافتراضية للاسم والحالة', () {
-      final step = MobileRequestStep.fromJson(
-          const <String, dynamic>{'id': 'step-003'});
+      final step = MobileRequestStep.fromJson(const <String, dynamic>{
+        'id': 'step-003',
+      });
       expect(step.name, 'مرحلة اعتماد');
       expect(step.status, 'pending');
       expect(step.order, 0);
@@ -248,8 +247,9 @@ void main() {
     });
 
     test('يستخدم القيم الافتراضية للحقول الناقصة', () {
-      final att = MobileRequestAttachment.fromJson(
-          const <String, dynamic>{'path': 'file.bin'});
+      final att = MobileRequestAttachment.fromJson(const <String, dynamic>{
+        'path': 'file.bin',
+      });
       expect(att.mimeType, 'application/octet-stream');
       expect(att.sizeBytes, 0);
     });
@@ -269,6 +269,8 @@ void main() {
         'lastEventStatus': 'present',
         'todayStatus': 'present',
         'localDeviceStatus': 'active',
+        'todayCheckInAt': '2026-07-15T06:00:00Z',
+        'todayCheckOutAt': '2026-07-15T14:00:00Z',
       };
       final state = AttendanceState.fromJson(json);
       expect(state.attendanceRequired, isTrue);
@@ -282,6 +284,8 @@ void main() {
       expect(state.lastEventStatus, 'present');
       expect(state.todayStatus, 'present');
       expect(state.localDeviceStatus, 'active');
+      expect(state.todayCheckInAt!.hour, 6);
+      expect(state.todayCheckOutAt!.hour, 14);
     });
 
     test('يدعم أسماء الحقول القديمة (activePasskeys)', () {
@@ -318,6 +322,8 @@ void main() {
       expect(state.lastEventAt, isNull);
       expect(state.todayStatus, isNull);
       expect(state.localDeviceStatus, isNull);
+      expect(state.todayCheckInAt, isNull);
+      expect(state.todayCheckOutAt, isNull);
     });
   });
 
@@ -571,8 +577,9 @@ void main() {
     });
 
     test('يستخدم القيم الافتراضية للحقول الناقصة', () {
-      final notif = MobileNotificationItem.fromJson(
-          const <String, dynamic>{'id': 'n5'});
+      final notif = MobileNotificationItem.fromJson(const <String, dynamic>{
+        'id': 'n5',
+      });
       expect(notif.title, '');
       expect(notif.body, isNull);
       expect(notif.category, 'general');
@@ -605,8 +612,9 @@ void main() {
     });
 
     test('يستخدم القيم الافتراضية للحقول الناقصة', () {
-      final balance = MobileLeaveBalance.fromJson(
-          const <String, dynamic>{'leave_type_id': 'lt-002'});
+      final balance = MobileLeaveBalance.fromJson(const <String, dynamic>{
+        'leave_type_id': 'lt-002',
+      });
       expect(balance.code, '');
       expect(balance.name, 'إجازة');
       expect(balance.availableUnits, 0.0);

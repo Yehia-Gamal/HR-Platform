@@ -495,6 +495,8 @@ class _SparkDot extends StatelessWidget {
       return (Colors.grey.shade400, 'إجازة');
     }
     if (day.hasLeave) return (Colors.blue.shade400, 'إجازة');
+    if (day.hasMission) return (const Color(0xFF0EA5E9), 'مأمورية');
+    if (day.hasConvoyFundi) return (const Color(0xFF8B5CF6), 'قافلة/فاندي');
     if (day.isAbsent) return (Colors.red.shade400, 'غياب');
     if (day.lateMinutes > 0) return (Colors.orange.shade400, 'تأخر ${day.lateMinutes} د');
     if (day.isCompleted) return (Colors.green.shade500, 'حضور كامل');

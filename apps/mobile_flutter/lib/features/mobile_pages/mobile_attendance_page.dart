@@ -71,7 +71,10 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       _startAutoRefresh();
       if (_issueKind != null && _pendingRetry != null && !_working) {
         Future<void>.delayed(const Duration(milliseconds: 600), () {
-          if (mounted && _issueKind != null && _pendingRetry != null && !_working) {
+          if (mounted &&
+              _issueKind != null &&
+              _pendingRetry != null &&
+              !_working) {
             _recheckAndRetry();
           }
         });
@@ -127,7 +130,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
                       children: [
                         SizedBox(
                           height: constraints.maxHeight,
-                          child: const Center(child: CircularProgressIndicator()),
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
                         ),
                       ],
                     ),
@@ -169,8 +174,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           _InfoBanner(
             icon: Icons.verified_user_outlined,
             title: 'لا توجد بصمة شخصية لهذا الحساب',
-            body:
-                'سياسة الحساب الحالية لا تتطلب حضورًا أو انصرافًا شخصيًا.',
+            body: 'سياسة الحساب الحالية لا تتطلب حضورًا أو انصرافًا شخصيًا.',
           ),
           const SizedBox(height: 16),
           _QuickLinksRow(working: _working),
@@ -186,21 +190,31 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
         : 'تسجيل الانصراف';
     final actionIcon = action == 'CHECK_IN' ? Icons.login : Icons.logout;
 
+    // 0439: اكتمل اليوم (حضور + انصراف) → نخفي زر البصمة ونعرض التوقيتين.
+    // بعد منتصف الليل يمرّر الخادم اليوم الجديد فتعود القيم فارغة ويظهر الزر.
+    final dayCompleted = value.todayCheckOutAt != null;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         // ── بطاقة الإجراء الرئيسية ──
-        _PunchCard(
-          actionLabel: actionLabel,
-          actionIcon: actionIcon,
-          isCheckIn: action == 'CHECK_IN',
-          hasActiveDevice: value.hasActiveLocalDevice,
-          devicePending: value.localDeviceStatus == 'pending',
-          canPunch: value.canPunch,
-          working: _working,
-          onRegister: _register,
-          onPunch: () => _punch(action),
-        ),
+        if (dayCompleted)
+          _DayCompletedCard(
+            checkIn: value.todayCheckInAt,
+            checkOut: value.todayCheckOutAt,
+          )
+        else
+          _PunchCard(
+            actionLabel: actionLabel,
+            actionIcon: actionIcon,
+            isCheckIn: action == 'CHECK_IN',
+            hasActiveDevice: value.hasActiveLocalDevice,
+            devicePending: value.localDeviceStatus == 'pending',
+            canPunch: value.canPunch,
+            working: _working,
+            onRegister: _register,
+            onPunch: () => _punch(action),
+          ),
         const SizedBox(height: 14),
 
         // ── بطاقة حالة اليوم ──
@@ -319,9 +333,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       }
     } on GpsAccuracyException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } catch (error, stack) {
       if (mounted) {
@@ -329,7 +343,8 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           debugPrint('[_register] ${error.runtimeType}: $error\n$stack');
         }
         final msg = error.toString();
-        final isCancelled = msg.contains('إلغاء') ||
+        final isCancelled =
+            msg.contains('إلغاء') ||
             msg.toLowerCase().contains('cancel') ||
             msg.toLowerCase().contains('dismissed');
         final text = isCancelled
@@ -381,9 +396,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     try {
       final result = await ref
           .read(mobileCommandsProvider)
-          .punchAttendanceLocal(
-            eventType: action,
-          );
+          .punchAttendanceLocal(eventType: action);
 
       // الخادم يرجع ok: false عند رفض العملية (خارج النطاق، تكرار، إلخ)
       if (result['ok'] != true) {
@@ -396,8 +409,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(_humanizePunchError(errorCode)),
-              backgroundColor:
-                  isConfigIssue ? AppColors.statusWarning : AppColors.statusDanger,
+              backgroundColor: isConfigIssue
+                  ? AppColors.statusWarning
+                  : AppColors.statusDanger,
             ),
           );
         }
@@ -497,9 +511,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       }
     } on GpsAccuracyException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } catch (error, stack) {
       if (mounted) {
@@ -507,7 +521,8 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           debugPrint('[_punch] ${error.runtimeType}: $error\n$stack');
         }
         final msg = error.toString();
-        final isCancelled = msg.contains('إلغاء') ||
+        final isCancelled =
+            msg.contains('إلغاء') ||
             msg.toLowerCase().contains('cancel') ||
             msg.toLowerCase().contains('dismissed');
         final text = isCancelled
@@ -563,10 +578,7 @@ class _PendingRetry {
 }
 
 /// نوع مشكلة الموقع — يحدد سلوك إعادة المحاولة التلقائية.
-enum _LocationIssueKind {
-  gpsOff,
-  deniedForever,
-}
+enum _LocationIssueKind { gpsOff, deniedForever }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // بطاقة البصمة الرئيسية — إجراء واحد واضح
@@ -613,11 +625,7 @@ class _PunchCard extends StatelessWidget {
             ),
             child: Column(
               children: [
-                Icon(
-                  Icons.fingerprint,
-                  color: scheme.onPrimary,
-                  size: 38,
-                ),
+                Icon(Icons.fingerprint, color: scheme.onPrimary, size: 38),
                 const SizedBox(height: 10),
                 Text(
                   actionLabel,
@@ -693,6 +701,88 @@ class _PunchCard extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// بطاقة اكتمال اليوم — تظهر مكان زر البصمة بعد حضور وانصراف اليوم
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _DayCompletedCard extends StatelessWidget {
+  const _DayCompletedCard({required this.checkIn, required this.checkOut});
+  final DateTime? checkIn;
+  final DateTime? checkOut;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final formatter = DateFormat('h:mm a', 'ar');
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.statusSuccess, scheme.secondary],
+              ),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.check_circle_outline,
+                  color: scheme.onPrimary,
+                  size: 38,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'اكتمل حضورك وانصرافك اليوم',
+                  style: TextStyle(
+                    color: scheme.onPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'ستظهر بصمتك من جديد بعد منتصف الليل',
+                  style: TextStyle(
+                    color: scheme.onPrimary.withValues(alpha: 0.7),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _StatusRow(
+                  icon: Icons.login,
+                  label: 'الحضور',
+                  value: checkIn == null
+                      ? '—'
+                      : formatter.format(checkIn!.toLocal()),
+                  valueColor: AppColors.statusSuccess,
+                ),
+                const SizedBox(height: 8),
+                _StatusRow(
+                  icon: Icons.logout,
+                  label: 'الانصراف',
+                  value: checkOut == null
+                      ? '—'
+                      : formatter.format(checkOut!.toLocal()),
+                  valueColor: AppColors.statusSuccess,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // بطاقة حالة اليوم — تُخفي الحقول الفارغة
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -705,7 +795,8 @@ class _TodayStatusCard extends StatelessWidget {
     final formatter = DateFormat('h:mm a', 'ar');
     final scheme = Theme.of(context).colorScheme;
     final hasEvent = state.lastEventType != null;
-    final hasStatus = state.todayStatus != null &&
+    final hasStatus =
+        state.todayStatus != null &&
         state.todayStatus != '—' &&
         state.todayStatus!.isNotEmpty;
 
@@ -768,10 +859,7 @@ class _TodayStatusCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 'لم تُسجَّل أي عملية حضور اليوم',
-                style: TextStyle(
-                  color: scheme.onSurfaceVariant,
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
               ),
             ],
           ],
@@ -802,17 +890,22 @@ class _StatusRow extends StatelessWidget {
       children: [
         Icon(icon, size: 16, color: scheme.onSurfaceVariant),
         const SizedBox(width: 8),
-        Text(label, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
-        const Spacer(),
-        if (trailing != null) trailing!
-        else Text(
-          value ?? '—',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 13,
-            color: valueColor,
-          ),
+        Text(
+          label,
+          style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
         ),
+        const Spacer(),
+        if (trailing != null)
+          trailing!
+        else
+          Text(
+            value ?? '—',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: valueColor,
+            ),
+          ),
       ],
     );
   }
@@ -836,11 +929,11 @@ class _QuickLinksRow extends StatelessWidget {
           onTap: working
               ? null
               : () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const AttendanceHistoryPage(),
-                    ),
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AttendanceHistoryPage(),
                   ),
+                ),
         ),
         const SizedBox(width: 8),
         _QuickLink(
@@ -849,11 +942,11 @@ class _QuickLinksRow extends StatelessWidget {
           onTap: working
               ? null
               : () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const MonthlyAttendanceStatementPage(),
-                    ),
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const MonthlyAttendanceStatementPage(),
                   ),
+                ),
         ),
         const SizedBox(width: 8),
         _QuickLink(
@@ -862,11 +955,9 @@ class _QuickLinksRow extends StatelessWidget {
           onTap: working
               ? null
               : () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const PasskeyDevicesPage(),
-                    ),
-                  ),
+                  context,
+                  MaterialPageRoute(builder: (_) => const PasskeyDevicesPage()),
+                ),
         ),
       ],
     );
@@ -1061,12 +1152,18 @@ class _CorrectionsSection extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.edit_calendar_rounded, size: 22, color: scheme.primary),
+                Icon(
+                  Icons.edit_calendar_rounded,
+                  size: 22,
+                  color: scheme.primary,
+                ),
                 const SizedBox(width: 8),
-                Text('تصحيحات الحضور',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        )),
+                Text(
+                  'تصحيحات الحضور',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const Spacer(),
                 TextButton.icon(
                   icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
@@ -1088,50 +1185,59 @@ class _CorrectionsSection extends ConsumerWidget {
                 child: Center(
                   child: Text(
                     'لا توجد طلبات تصحيح سابقة',
-                    style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               )
             else
-              ...corrections.take(3).map((c) => ListTile(
-                    dense: true,
-                    leading: Icon(
-                      c.status == 'approved'
-                          ? Icons.check_circle_outline
-                          : c.status == 'rejected'
-                              ? Icons.cancel_outlined
-                              : Icons.pending_actions,
-                      size: 20,
-                      color: c.status == 'approved'
-                          ? AppColors.statusSuccess
-                          : c.status == 'rejected'
-                              ? AppColors.statusDanger
-                              : AppColors.statusWarning,
-                    ),
-                    title: Text(DateFormat('yyyy/MM/dd').format(c.workDate),
-                        style: const TextStyle(fontSize: 13)),
-                    subtitle: Text(
-                      c.reason.isNotEmpty ? c.reason : c.type,
-                      style: const TextStyle(fontSize: 12),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: Text(
-                      c.status == 'approved'
-                          ? 'موافق'
-                          : c.status == 'rejected'
-                              ? 'مرفوض'
-                              : 'معلّق',
-                      style: TextStyle(
-                        fontSize: 11,
+              ...corrections
+                  .take(3)
+                  .map(
+                    (c) => ListTile(
+                      dense: true,
+                      leading: Icon(
+                        c.status == 'approved'
+                            ? Icons.check_circle_outline
+                            : c.status == 'rejected'
+                            ? Icons.cancel_outlined
+                            : Icons.pending_actions,
+                        size: 20,
                         color: c.status == 'approved'
                             ? AppColors.statusSuccess
                             : c.status == 'rejected'
-                                ? AppColors.statusDanger
-                                : AppColors.statusWarning,
+                            ? AppColors.statusDanger
+                            : AppColors.statusWarning,
+                      ),
+                      title: Text(
+                        DateFormat('yyyy/MM/dd').format(c.workDate),
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                      subtitle: Text(
+                        c.reason.isNotEmpty ? c.reason : c.type,
+                        style: const TextStyle(fontSize: 12),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: Text(
+                        c.status == 'approved'
+                            ? 'موافق'
+                            : c.status == 'rejected'
+                            ? 'مرفوض'
+                            : 'معلّق',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: c.status == 'approved'
+                              ? AppColors.statusSuccess
+                              : c.status == 'rejected'
+                              ? AppColors.statusDanger
+                              : AppColors.statusWarning,
+                        ),
                       ),
                     ),
-                  )),
+                  ),
           ],
         ),
       ),

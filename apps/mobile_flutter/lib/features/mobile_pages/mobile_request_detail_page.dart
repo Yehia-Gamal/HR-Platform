@@ -108,7 +108,8 @@ class _RequestContent extends ConsumerWidget {
           ),
         ],
         if (request.type == 'mission' ||
-            request.type == 'convoy') ...[
+            request.type == 'convoy' ||
+            request.type == 'fundraising') ...[
           const SizedBox(height: 12),
           _MissionExecutionCard(request: request),
         ],

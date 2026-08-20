@@ -39,11 +39,11 @@ export default defineConfig({
 
   /* Start the same isolated test server locally and in CI. */
   webServer: {
-    command: `npm run dev -- --host 127.0.0.1 --port ${playwrightPort} --strictPort`,
+    command: `npm run preview -- --host 127.0.0.1 --port ${playwrightPort} --strictPort`,
     url: playwrightUrl,
     cwd: webRoot,
     reuseExistingServer: false,
-    timeout: 120_000,
+    timeout: 180_000,
     env: {
       VITE_ENABLE_DEV_MOCKS: 'true',
       VITE_APP_ENVIRONMENT: 'development',
