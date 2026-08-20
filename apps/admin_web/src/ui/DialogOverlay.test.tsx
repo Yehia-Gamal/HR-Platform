@@ -84,4 +84,32 @@ describe('DialogOverlay', () => {
     const heading = screen.getByText('عنوان المودال');
     expect(heading.id).toBe(labelledBy);
   });
+
+  it('ينقل التركيز إلى أول حقل إدخال عند الفتح (لا زر الإغلاق)', () => {
+    render(
+      <DialogOverlay title="نموذج" onClose={() => {}}>
+        <input aria-label="حقل الاسم" />
+      </DialogOverlay>,
+    );
+    expect(screen.getByLabelText('حقل الاسم')).toHaveFocus();
+  });
+
+  it('إعادة رندر الوالد مع onClose جديد لا تسرق التركيز من حقل الكتابة', () => {
+    const { rerender } = render(
+      <DialogOverlay title="نموذج" onClose={() => {}}>
+        <input aria-label="حقل التعليق" />
+      </DialogOverlay>,
+    );
+    const input = screen.getByLabelText('حقل التعليق');
+    input.focus();
+    expect(input).toHaveFocus();
+
+    // المحاكاة الفعلية للخلل: كل ضغطة حرف تعيد رندر الوالد بمعرّف onClose جديد
+    rerender(
+      <DialogOverlay title="نموذج" onClose={() => {}}>
+        <input aria-label="حقل التعليق" value="أ" onChange={() => {}} />
+      </DialogOverlay>,
+    );
+    expect(input).toHaveFocus();
+  });
 });

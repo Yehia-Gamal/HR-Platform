@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 const FOCUSABLE = 'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+const INPUT_SELECTOR = 'textarea:not([disabled]),input:not([disabled]),select:not([disabled])';
 
 export function DialogOverlay({
   title,
@@ -18,21 +19,29 @@ export function DialogOverlay({
   const titleId = useId();
   const dialogRef = useRef<HTMLElement>(null);
   const previousFocusRef = useRef<Element | null>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     // حفظ العنصر الحالي لاستعادة التركيز عند الإغلاق
     previousFocusRef.current = document.activeElement;
 
-    // نقل التركيز إلى أول عنصر قابل للتركيز داخل المودال
+    // نقل التركيز إلى أول حقل إدخال إن وُجد، وإلا أول عنصر قابل للتركيز —
+    // حتى لا يُسرق التركيز من الحقول بواسطة زر الإغلاق (X) عند كل إعادة رندر.
     const dialog = dialogRef.current;
     if (dialog) {
-      const first = dialog.querySelector<HTMLElement>(FOCUSABLE);
-      if (first) first.focus();
+      const firstInput = dialog.querySelector<HTMLElement>(INPUT_SELECTOR);
+      const firstFocusable = dialog.querySelector<HTMLElement>(FOCUSABLE);
+      const target = firstInput ?? firstFocusable;
+      if (target) target.focus();
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -67,7 +76,7 @@ export function DialogOverlay({
         previousFocusRef.current.focus();
       }
     };
-  }, [onClose]);
+  }, []);
 
   return createPortal(
     <div

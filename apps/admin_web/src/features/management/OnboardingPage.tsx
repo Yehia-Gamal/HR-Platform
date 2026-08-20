@@ -167,7 +167,7 @@ export function OnboardingPage() {
               </div>
               <div className="space-y-3">
                 {tasks.map((task, index) => (
-                  <div key={`${index}-${task.title}`} className="grid gap-3 rounded-xl bg-[var(--surface-muted)] p-3 sm:grid-cols-[1.5fr_1fr_120px_auto]">
+                  <div key={index} className="grid gap-3 rounded-xl bg-[var(--surface-muted)] p-3 sm:grid-cols-[1.5fr_1fr_120px_auto]">
                     <input
                       className="input"
                       required

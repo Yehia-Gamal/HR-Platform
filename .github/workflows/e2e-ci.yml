@@ -9,6 +9,13 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # قيم عامة (project URL + publishable/anon key) — آمنة للنشر في الواجهة؛
+      # على مستوى الـ job حتى يبني `vite build` بها (الزر لا يُفعَّل بلا hasSupabaseConfig)
+      CI: true
+      VITE_SUPABASE_URL: https://ujzzvqsodyhnnnpkoaml.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_Q5JTOX-mLp5Y9wmxlZyTnQ_QBu5wPC2
+      VITE_ENABLE_DEV_MOCKS: 'true'
     defaults:
       run:
         working-directory: apps/admin_web
@@ -32,12 +39,6 @@ jobs:
 
       - name: Run E2E tests
         run: npx playwright test
-        env:
-          CI: true
-          # قيم عامة (project URL + publishable/anon key) — آمنة للنشر في الواجهة
-          VITE_SUPABASE_URL: https://ujzzvqsodyhnnnpkoaml.supabase.co
-          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_Q5JTOX-mLp5Y9wmxlZyTnQ_QBu5wPC2
-          VITE_ENABLE_DEV_MOCKS: 'true'
 
       - name: Upload test results
         if: always()
