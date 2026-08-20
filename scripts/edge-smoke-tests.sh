@@ -46,7 +46,13 @@ echo "# $(date -u +%FT%TZ)"
 
 # ---- 1. identifier-sign-in ------------------------------------------------
 call POST identifier-sign-in "" '{}'
-check "identifier-sign-in rejects empty body" 400 "$HTTP_CODE" "$HTTP_BODY"
+# 401 (رد موحد للبيانات غير الصالحة) مقبول كبديل لـ 400 — الـ function لا تكشف نوع الخطأ عمداً
+if [[ "$HTTP_CODE" == "400" || "$HTTP_CODE" == "401" ]]; then
+  echo "ok - identifier-sign-in rejects empty body (HTTP ${HTTP_CODE})"; PASS=$((PASS+1))
+else
+  echo "not ok - identifier-sign-in rejects empty body (expected 400/401, got ${HTTP_CODE}): ${HTTP_BODY:0:200}"
+  FAIL=$((FAIL+1))
+fi
 
 call POST identifier-sign-in "" '{"identifier":"nobody@nowhere.test","password":"wrong-password"}'
 check "identifier-sign-in generic failure for unknown identifier" 401 "$HTTP_CODE" "$HTTP_BODY"

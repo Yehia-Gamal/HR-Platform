@@ -40,6 +40,9 @@ jobs:
 
       - name: Serve Edge Functions
         run: |
+          # LOGIN_HASH_PEPPER سري محلي — يولَّد عشوائياً لكل تشغيل (لا يُكتب في المستودع)
+          echo "LOGIN_HASH_PEPPER=$(openssl rand -hex 32)" > supabase/functions/.env
+          echo "DENO_ENV=local" >> supabase/functions/.env
           npx supabase functions serve &
           sleep 5
 
