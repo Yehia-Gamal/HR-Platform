@@ -8,10 +8,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// صفحة إنشاء إعلان أو تعميم رسمي من الموبايل (للمدير التنفيذي والأدمن).
+/// صفحة موحدة لإصدار ونشر القرارات والتعاميم الرسمية من الموبايل (للمدير التنفيذي والأدمن).
 /// تستدعي RPC publish_official_announcement لنشر فوري لجميع الموظفين.
 class ExecutiveAnnouncementPage extends ConsumerStatefulWidget {
-  const ExecutiveAnnouncementPage({super.key});
+  const ExecutiveAnnouncementPage({super.key, this.initialType = 'announcement'});
+
+  /// النوع الأولي للمنشور (إعلان/تعميم أو قرار إداري)
+  final String initialType;
 
   @override
   ConsumerState<ExecutiveAnnouncementPage> createState() =>
@@ -22,9 +25,9 @@ class _ExecutiveAnnouncementPageState
     extends ConsumerState<ExecutiveAnnouncementPage> {
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
-  String _category = 'general';
+  late String _category;
   String _priority = 'normal';
-  String _postType = 'announcement';
+  late String _postType;
   bool _requiresAcknowledgement = false;
   bool _submitting = false;
 
@@ -34,20 +37,18 @@ class _ExecutiveAnnouncementPageState
   bool _uploading = false;
 
   static const _postTypes = <String, String>{
-    'announcement': 'إعلان',
-    'alert': 'تنبيه',
-    'poll': 'تصويت',
-    'meeting': 'اجتماع',
-    'holiday_notice': 'إشعار عطلة',
-    'kpi_notice': 'إشعار أداء',
-    'attendance_notice': 'إشعار حضور',
+    'announcement': 'تعميم أو إعلان عام',
+    'standard': 'قرار إداري رسمي',
+    'poll': 'تصويت واستطلاع رأي',
   };
 
   static const _categories = <String, String>{
-    'general': 'تعميم عام',
+    'general': 'قرار إداري / تعميم عام',
+    'policy': 'سياسة ولائحة جديدة',
+    'directive': 'توجيه تنفيذي',
     'hr': 'شؤون موظفين',
-    'operational': 'تشغيلي',
-    'financial': 'مالي',
+    'operational': 'تشغيلي وميداني',
+    'financial': 'مالي وإداري',
     'event': 'فعالية أو مناسبة',
     'safety': 'سلامة وأمان',
   };
@@ -58,6 +59,17 @@ class _ExecutiveAnnouncementPageState
     'high': 'مهمة',
     'urgent': 'عاجلة',
   };
+
+  @override
+  void initState() {
+    super.initState();
+    _postType = widget.initialType == 'poll'
+        ? 'poll'
+        : widget.initialType == 'decision'
+            ? 'standard'
+            : 'announcement';
+    _category = widget.initialType == 'decision' ? 'general' : 'general';
+  }
 
   @override
   void dispose() {
@@ -71,7 +83,7 @@ class _ExecutiveAnnouncementPageState
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('نشر إعلان أو تعميم')),
+      appBar: AppBar(title: const Text('نشر قرار أو تعميم رسمي')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -81,11 +93,11 @@ class _ExecutiveAnnouncementPageState
               padding: const EdgeInsets.all(14),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: scheme.primary),
+                  Icon(Icons.campaign_rounded, color: scheme.primary),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'سيُنشر الإعلان فوراً ويصل كإشعار لجميع الموظفين.',
+                      'يُنشر القرار أو التعميم فوراً في الخلاصة الرسمية ويصل كإشعار لجميع الموظفين المعنيين.',
                       style: TextStyle(color: scheme.onPrimaryContainer),
                     ),
                   ),

@@ -473,7 +473,7 @@ function CreateLeaveForEmployeeSection() {
 function BulkAssignmentSection() {
   const create = useCreateBulkAssignment();
   const [search, setSearch] = useState('');
-  const [assignmentType, setAssignmentType] = useState<'CONVOY' | 'FUNDRAISING'>('CONVOY');
+  const [assignmentType, setAssignmentType] = useState<'MISSION' | 'CONVOY' | 'FUNDRAISING'>('CONVOY');
   const [title, setTitle] = useState('');
   const [startAt, setStartAt] = useState('');
   const [endAt, setEndAt] = useState('');
@@ -481,6 +481,7 @@ function BulkAssignmentSection() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [useAllActive, setUseAllActive] = useState(true);
   const [targetAmount, setTargetAmount] = useState('');
+  const [needsReport, setNeedsReport] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { options, isLoading } = useEmployeeOptions(search);
   const activeIds = useMemo(() => options.filter((e) => e.isActive).map((e) => e.id), [options]);
@@ -517,6 +518,7 @@ function BulkAssignmentSection() {
       setEndAt('');
       setLocation('');
       setTargetAmount('');
+      setNeedsReport(false);
       setSelected(new Set());
     } catch (err) {
       setError(safeErrorMessage(err));
@@ -530,8 +532,8 @@ function BulkAssignmentSection() {
           <BriefcaseBusiness className="size-5" aria-hidden="true" />
         </span>
         <div>
-          <h2 className="text-sm font-black">إضافة قافلة / فاندي</h2>
-          <p className="text-xs text-[var(--text-muted)]">تكليف كل الموظفين أو مجموعة محددة بقافلة أو فاندي — يوم عمل معتمد لا يُبصمون فيه.</p>
+          <h2 className="text-sm font-black">إضافة مأمورية / قافلة / فاندي</h2>
+          <p className="text-xs text-[var(--text-muted)]">تكليف كل الموظفين أو مجموعة محددة — يوم عمل معتمد لا يُبصمون فيه.</p>
         </div>
       </div>
 
@@ -543,9 +545,10 @@ function BulkAssignmentSection() {
           <div className="relative">
             <select
               value={assignmentType}
-              onChange={(e) => setAssignmentType(e.target.value as 'CONVOY' | 'FUNDRAISING')}
+              onChange={(e) => setAssignmentType(e.target.value as 'MISSION' | 'CONVOY' | 'FUNDRAISING')}
               className="input-field w-full appearance-none text-sm"
             >
+              <option value="MISSION">مأمورية</option>
               <option value="CONVOY">قافلة</option>
               <option value="FUNDRAISING">فاندي (جمع تبرعات)</option>
             </select>
@@ -610,6 +613,18 @@ function BulkAssignmentSection() {
             />
           </label>
         )}
+        <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] p-3">
+          <input
+            type="checkbox"
+            id="needs-report"
+            className="size-4 accent-[var(--brand-primary)]"
+            checked={needsReport}
+            onChange={(e) => setNeedsReport(e.target.checked)}
+          />
+          <label htmlFor="needs-report" className="flex-1 text-sm font-semibold">
+            طلب تقرير من الموظف بعد التنفيذ
+          </label>
+        </div>
       </div>
 
       <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] p-3">
@@ -656,7 +671,7 @@ function BulkAssignmentSection() {
       >
         {create.isPending
           ? 'جارٍ الإنشاء...'
-          : `إنشاء ${assignmentType === 'CONVOY' ? 'القافلة' : 'الفاندي'} لـ ${useAllActive ? activeIds.length : selected.size} موظف`}
+          : `إنشاء ${assignmentType === 'MISSION' ? 'المأمورية' : assignmentType === 'CONVOY' ? 'القافلة' : 'الفاندي'} لـ ${useAllActive ? activeIds.length : selected.size} موظف`}
       </button>
     </form>
   );
@@ -667,14 +682,14 @@ function BulkAssignmentSection() {
 export function LeaveToolsPage() {
   const auth = useAuth();
   const canManageAssignments =
-    auth.access != null && hasAnyPermission(auth.access, ['assignments.convoy.manage', 'operations.convoy.manage', 'assignments.fundraising.manage']);
+    auth.access != null && hasAnyPermission(auth.access, ['assignments.mission.manage', 'assignments.convoy.manage', 'operations.convoy.manage', 'assignments.fundraising.manage']);
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="الموارد البشرية"
         title="أدوات الإجازات والتكليفات"
-        description="منح بدل الراحة، ضبط أرصدة الإجازات، إنشاء إجازة بدل الموظف، وتكليف القوافل والفاندي"
+        description="منح بدل الراحة، ضبط أرصدة الإجازات، إنشاء إجازة بدل الموظف، وتكليف المأموريات والقوافل والفاندي"
       />
 
       <div className="flex items-start gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 text-sm">

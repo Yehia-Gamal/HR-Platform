@@ -4,8 +4,8 @@ import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_brief_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_home_box.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_people_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_decisions_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/people_hub_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_announcement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/disputes_portal_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_attendance_tab.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_page.dart';
@@ -138,7 +138,7 @@ class ExecutiveHomePage extends ConsumerWidget {
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const ExecutivePeoplePage(),
+                      builder: (_) => const PeopleHubPage(),
                     ),
                   ),
                 ),
@@ -147,11 +147,11 @@ class ExecutiveHomePage extends ConsumerWidget {
               Expanded(
                 child: _ExecutiveQuickLink(
                   icon: Icons.campaign_outlined,
-                  label: 'إصدار قرارات',
+                  label: 'قرار أو تعميم',
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const ExecutiveDecisionsPage(),
+                      builder: (_) => const ExecutiveAnnouncementPage(),
                     ),
                   ),
                 ),
@@ -245,7 +245,9 @@ class ExecutiveHomePage extends ConsumerWidget {
                   () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const ExecutiveDecisionsPage(),
+                      builder: (_) => const ExecutiveAnnouncementPage(
+                        initialType: 'decision',
+                      ),
                     ),
                   ),
                 ),

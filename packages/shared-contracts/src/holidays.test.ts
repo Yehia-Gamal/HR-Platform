@@ -56,6 +56,23 @@ describe('official holiday contracts — V17 §1.7', () => {
     });
     expect(deptHoliday.scope).toBe('department');
     expect(deptHoliday.departmentId).toBe(uuid);
+
+    // Rejection tests when id is missing
+    expect(() =>
+      createHolidayInputSchema.parse({
+        name: 'عطلة إدارية',
+        date: '2026-12-01',
+        scope: 'department',
+      })
+    ).toThrow();
+
+    expect(() =>
+      createHolidayInputSchema.parse({
+        name: 'عطلة جهة',
+        date: '2026-12-01',
+        scope: 'legal_entity',
+      })
+    ).toThrow();
   });
 
   it('update input allows partial fields', () => {

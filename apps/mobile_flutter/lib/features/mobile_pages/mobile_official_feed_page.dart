@@ -3,7 +3,6 @@ import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_announcement_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_decisions_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_feed_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
@@ -163,30 +162,14 @@ class MobileOfficialFeedPage extends ConsumerWidget {
               _CreateOptionTile(
                 icon: Icons.campaign_rounded,
                 iconColor: scheme.primary,
-                title: 'إعلان أو تعميم',
-                subtitle: 'يُنشر فوراً ويصل كإشعار لجميع الموظفين',
+                title: 'نشر قرار أو تعميم رسمي',
+                subtitle: 'قرار إداري، تعميم، توجيه تنفيذي، أو إعلان رسمي',
                 onTap: () {
                   Navigator.pop(sheetContext);
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => const ExecutiveAnnouncementPage(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 10),
-              _CreateOptionTile(
-                icon: Icons.gavel_rounded,
-                iconColor: scheme.tertiary,
-                title: 'قرار إداري',
-                subtitle: 'يُحفظ كمسودة ويمر بمراحل الاعتماد والنشر',
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ExecutiveDecisionsPage(),
                     ),
                   );
                 },

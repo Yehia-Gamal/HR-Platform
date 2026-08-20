@@ -7,17 +7,14 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/location_incomin
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_announcement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_attendance_tab.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_brief_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_decisions_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_emergency_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_governance_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_people_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_risk_center_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_directory_search_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/people_hub_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_feed_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/disputes_portal_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_disputes_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_employees_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notifications_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_official_feed_page.dart';
@@ -25,7 +22,6 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_profile_p
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_team_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/org_chart_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/team_operations_summary_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/team_requests_page.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
@@ -230,9 +226,9 @@ class WorkspaceScaffold extends ConsumerWidget {
           page: const ExecutiveBriefPage(),
         ),
         _MoreItem(
-          icon: Icons.manage_search_rounded,
-          label: 'دليل الموظفين التنفيذي',
-          page: const ExecutivePeoplePage(),
+          icon: Icons.groups_rounded,
+          label: 'الموظفون والهيكل التنظيمي',
+          page: const PeopleHubPage(),
         ),
         _MoreItem(
           icon: Icons.people_alt_outlined,
@@ -248,13 +244,8 @@ class WorkspaceScaffold extends ConsumerWidget {
           page: MobileKpiPage(access: contextData),
         ),
         _MoreItem(
-          icon: Icons.description_outlined,
-          label: 'إصدار قرار',
-          page: const ExecutiveDecisionsPage(),
-        ),
-        _MoreItem(
-          icon: Icons.record_voice_over_outlined,
-          label: 'نشر تعميم',
+          icon: Icons.campaign_outlined,
+          label: 'نشر قرار أو تعميم',
           page: const ExecutiveAnnouncementPage(),
         ),
         _MoreItem(
@@ -314,11 +305,11 @@ class WorkspaceScaffold extends ConsumerWidget {
           label: 'الملخص التشغيلي',
           page: const TeamOperationsSummaryPage(),
         ),
-        // إدارة الموظفين: دليل الموظفين + الملف الشامل (get_employees_enriched).
+        // إدارة الموظفين: موحّدة ضمن PeopleHubPage (تبويب السجل)
         _MoreItem(
           icon: Icons.manage_accounts_outlined,
-          label: 'إدارة الموظفين',
-          page: const MobileEmployeesPage(),
+          label: 'إدارة وسجل الموظفين',
+          page: const PeopleHubPage(initialTab: 1),
         ),
       ],
       // V20: التقارير اليومية للجميع — زر إضافة تقرير داخل الصفحة نفسها
@@ -339,18 +330,7 @@ class WorkspaceScaffold extends ConsumerWidget {
               ]),
         ),
       ),
-      // دليل الموظفين الموحد — متاح لجميع الأدوار
-      _MoreItem(
-        icon: Icons.contacts_outlined,
-        label: 'دليل الموظفين',
-        page: const MobileDirectorySearchPage(),
-      ),
-      // V20: الهيكل التنظيمي والشكاوى متاحة للجميع
-      _MoreItem(
-        icon: Icons.account_tree_rounded,
-        label: 'الهيكل التنظيمي',
-        page: const OrgChartPage(),
-      ),
+      // [مُدمَج] الموظفون والهيكل متاحان من قائمة التنفيذي أعلاه.
       _MoreItem(
         icon: Icons.gavel_rounded,
         label: 'الشكاوى ولجنة الخلافات',

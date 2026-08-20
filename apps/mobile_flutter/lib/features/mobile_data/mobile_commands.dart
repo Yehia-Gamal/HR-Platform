@@ -37,6 +37,7 @@ class MobileCommands {
           params: {'p_request_id': requestId},
         ));
     ref.invalidate(mobileRequestsProvider);
+    ref.invalidate(mobileRequestDetailProvider(requestId));
     ref.invalidate(employeeHomeProvider);
   }
 
@@ -54,6 +55,7 @@ class MobileCommands {
           },
         ));
     ref.invalidate(mobileRequestsProvider);
+    ref.invalidate(mobileRequestDetailProvider(requestId));
     ref.invalidate(employeeHomeProvider);
   }
     Future<Map<String, dynamic>> uploadRequestAttachment({

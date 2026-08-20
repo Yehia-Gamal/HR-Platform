@@ -488,16 +488,16 @@ class _MissionExecutionCard extends ConsumerWidget {
   }
 
   Future<void> _end(BuildContext context, WidgetRef ref) async {
-    final report = await showModalBottomSheet<String>(
+    final result = await showModalBottomSheet<({String report, String? outcome})>(
       context: context,
       isScrollControlled: true,
       builder: (context) => _EndMissionSheet(),
     );
-    if (report == null) return;
+    if (result == null) return;
     try {
       await ref
           .read(mobileCommandsProvider)
-          .endMission(requestId: request.id, report: report);
+          .endMission(requestId: request.id, report: result.report, outcome: result.outcome);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم إنهاء المأمورية وحفظ التقرير')),
@@ -612,10 +612,12 @@ class _EndMissionSheet extends StatefulWidget {
 
 class _EndMissionSheetState extends State<_EndMissionSheet> {
   final _reportController = TextEditingController();
+  final _outcomeController = TextEditingController();
 
   @override
   void dispose() {
     _reportController.dispose();
+    _outcomeController.dispose();
     super.dispose();
   }
 
@@ -627,7 +629,8 @@ class _EndMissionSheetState extends State<_EndMissionSheet> {
       );
       return;
     }
-    Navigator.pop(context, report);
+    final outcome = _outcomeController.text.trim();
+    Navigator.pop(context, (report: report, outcome: outcome.isEmpty ? null : outcome));
   }
 
   @override
@@ -655,6 +658,16 @@ class _EndMissionSheetState extends State<_EndMissionSheet> {
             maxLines: 4,
             decoration: const InputDecoration(
               labelText: 'تقرير التنفيذ (إلزامي)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _outcomeController,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'النتيجة (اختياري)',
+              hintText: 'مثال: اكتمل التسليم، تأجل جزئيًا…',
               border: OutlineInputBorder(),
             ),
           ),

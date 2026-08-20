@@ -14,10 +14,9 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 // (must_change_password) فلا تبقى سارية بعد ذلك. السياسة 12–72 حرفاً متوافقة
 // مع validateHrIssuedPassword (12+ حرف، أحرف كبيرة/صغيرة، رقم، رمز، لا معرّفات
 // الموظف، لا قواميس، لا أنماط لوحة مفاتيح).
-const inputSchema = z.object({
-  employeeId: z.string().uuid(),
-  password: z.string().min(12).max(72),
-});
+import { adminSetPasswordInputSchema } from "../_shared/contracts.ts";
+
+const inputSchema = adminSetPasswordInputSchema;
 
 Deno.serve(createHandler({ functionName: "admin-set-password", version: "1.0.0" }, async (req, ctx) => {
   if (req.method === "OPTIONS") return preflight(req);

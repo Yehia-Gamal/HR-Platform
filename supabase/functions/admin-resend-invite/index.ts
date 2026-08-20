@@ -16,7 +16,9 @@ const DEFAULT_INVITE_REDIRECT =
 const INVITE_REDIRECT =
   Deno.env.get("APP_INVITE_REDIRECT_URL")?.trim() || DEFAULT_INVITE_REDIRECT;
 
-const inputSchema = z.object({ employeeId: z.string().uuid() });
+import { adminResendInviteInputSchema } from "../_shared/contracts.ts";
+
+const inputSchema = adminResendInviteInputSchema;
 
 Deno.serve(createHandler({ functionName: "admin-resend-invite", version: "1.0.0" }, async (req, ctx) => {
   if (req.method === "OPTIONS") return preflight(req);

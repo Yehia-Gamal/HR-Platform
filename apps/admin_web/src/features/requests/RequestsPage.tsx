@@ -27,6 +27,22 @@ const labels: Record<RequestSummary['requestType'], string> = {
   early_permit: 'إذن انصراف',
   attendance_correction: 'تصحيح حضور',
 };
+
+/// تنسيق فترة الطلب من startDate/endDate (YYYY-MM-DD) بالعربية — يعرض
+/// التاريخ الواحد إذا لم تُحدد نهاية.
+function formatPeriodLabel(startDate: unknown, endDate: unknown): string {
+  const fmt = new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short', year: 'numeric' });
+  const parse = (value: unknown): Date | null => {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(value)) return null;
+    const parsed = new Date(`${value.slice(0, 10)}T00:00:00`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+  const start = parse(startDate);
+  const end = parse(endDate);
+  if (!start) return 'بدون فترة محددة';
+  if (!end || end.getTime() === start.getTime()) return fmt.format(start);
+  return `${fmt.format(start)} — ${fmt.format(end)}`;
+}
 const assignmentLabels: Record<WorkAssignment['assignmentType'], string> = { MISSION: 'مأمورية', CONVOY: 'قافلة', FUNDRAISING: 'فاندي' };
 type TypeTab = 'all' | 'leave' | 'mission' | 'convoy' | 'fundraising' | 'attendance_permit' | 'corrections';
 const typeTabs: { key: TypeTab; label: string }[] = [
@@ -285,6 +301,12 @@ export function RequestsPage() {
                   {/* التكليف: المكان + الوقت المخطط + حالة التنفيذ */}
                   {item.requestType === 'mission' || item.requestType === 'convoy' || item.requestType === 'fundraising' ? (
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-[var(--surface-muted)] px-3 py-2 text-sm">
+                      {typeof item.payload?.startDate === 'string' || typeof item.payload?.endDate === 'string' ? (
+                        <span className="inline-flex items-center gap-1.5 font-bold">
+                          <CalendarDays className="size-3.5 text-brand" aria-hidden="true" />
+                          {formatPeriodLabel(item.payload.startDate, item.payload.endDate)}
+                        </span>
+                      ) : null}
                       {typeof item.payload?.location === 'string' ? (
                         <span className="inline-flex items-center gap-1.5 font-bold">
                           <MapPin className="size-3.5 text-brand" aria-hidden="true" />

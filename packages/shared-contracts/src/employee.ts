@@ -153,6 +153,23 @@ export const createEmployeeResultSchema = z.object({
 
 export type CreateEmployeeResult = z.infer<typeof createEmployeeResultSchema>;
 
+export const adminSetPasswordInputSchema = z.object({
+  employeeId: z.string().uuid(),
+  password: z.string().min(12, 'كلمة المرور يجب ألا تقل عن 12 حرفاً').max(72, 'كلمة المرور يجب ألا تزيد عن 72 حرفاً'),
+});
+export type AdminSetPasswordInput = z.infer<typeof adminSetPasswordInputSchema>;
+
+export const adminUpdateEmailInputSchema = z.object({
+  employeeId: z.string().uuid(),
+  email: z.string().email('صيغة البريد الإلكتروني غير صالحة'),
+});
+export type AdminUpdateEmailInput = z.infer<typeof adminUpdateEmailInputSchema>;
+
+export const adminResendInviteInputSchema = z.object({
+  employeeId: z.string().uuid(),
+});
+export type AdminResendInviteInput = z.infer<typeof adminResendInviteInputSchema>;
+
 export const employee360Schema = z.object({
   id: z.string().uuid(),
   employeeCode: z.string(),

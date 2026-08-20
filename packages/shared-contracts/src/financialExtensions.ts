@@ -3,6 +3,24 @@ import { z } from 'zod';
 const uuid = z.string().uuid();
 const isoDate = z.string().datetime({ offset: true }).nullable();
 
+/** مسير رواتب دوري */
+export const payrollRunSchema = z
+  .object({
+    id: uuid,
+    periodMonth: z.string().regex(/^\d{4}-\d{2}$/, 'صيغة الشهر غير صالحة (YYYY-MM)'),
+    legalEntityId: uuid.nullable().optional(),
+    status: z.enum(['draft', 'calculating', 'approved', 'paid', 'cancelled']),
+    totalGross: z.number().nonnegative(),
+    totalNet: z.number().nonnegative(),
+    totalDeductions: z.number().nonnegative(),
+    employeeCount: z.number().int().nonnegative(),
+    approvedBy: uuid.nullable().optional(),
+    approvedAt: isoDate.optional(),
+    createdAt: z.string().datetime().optional(),
+  })
+  .strict();
+export type PayrollRun = z.infer<typeof payrollRunSchema>;
+
 /** مخالفة مالية على موظف تُخصم من راتبه */
 export const employeePenaltySchema = z
   .object({

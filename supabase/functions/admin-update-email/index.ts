@@ -13,10 +13,9 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 // auth.users (وليس في جدول employees)، لذا يُنفَّذ التغيير بصلاحية
 // service_role عبر GoTrue Admin REST API مع تأكيد البريد فوراً كي لا يفشل
 // تسجيل الدخول برسالة "Email not confirmed".
-const inputSchema = z.object({
-  employeeId: z.string().uuid(),
-  email: z.string().email(),
-});
+import { adminUpdateEmailInputSchema } from "../_shared/contracts.ts";
+
+const inputSchema = adminUpdateEmailInputSchema;
 
 Deno.serve(createHandler({ functionName: "admin-update-email", version: "1.0.0" }, async (req, ctx) => {
   if (req.method === "OPTIONS") return preflight(req);

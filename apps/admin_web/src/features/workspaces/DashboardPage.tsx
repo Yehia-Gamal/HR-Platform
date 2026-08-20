@@ -263,7 +263,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                 <p className="mt-1 text-xs text-[var(--text-muted)]">تظهر المؤشرات والمهام المسموح بها فقط وفق دورك ومسؤولياتك الحالية.</p>
               </div>
               <div className="rounded-xl bg-[var(--surface-muted)] px-3 py-2 text-xs font-bold text-[var(--text-muted)]">
-                آخر مزامنة: {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(data.lastUpdatedAt))}
+                آخر مزامنة: {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(data.lastUpdatedAt ?? Date.now()))}
               </div>
             </section>
           ) : null}

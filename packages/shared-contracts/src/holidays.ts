@@ -40,16 +40,25 @@ export type OfficialHoliday = z.infer<typeof officialHolidaySchema>;
 
 // ─── مدخلات إنشاء عطلة ───────────────────────────────────────────────────────
 
-export const createHolidayInputSchema = z.object({
-  name: z.string().min(3).max(200),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  scope: holidayScopeSchema.default('all'),
-  legalEntityId: z.string().uuid().optional(),
-  departmentId: z.string().uuid().optional(),
-  excludedDepartmentIds: z.array(z.string().uuid()).default([]),
-  notes: z.string().max(500).optional(),
-});
+export const createHolidayInputSchema = z
+  .object({
+    name: z.string().min(3).max(200),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    scope: holidayScopeSchema.default('all'),
+    legalEntityId: z.string().uuid().optional(),
+    departmentId: z.string().uuid().optional(),
+    excludedDepartmentIds: z.array(z.string().uuid()).default([]),
+    notes: z.string().max(500).optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.scope === 'legal_entity' && !data.legalEntityId) return false;
+      if (data.scope === 'department' && !data.departmentId) return false;
+      return true;
+    },
+    { message: 'يجب تحديد الجهة أو الإدارة حسب النطاق المختار' }
+  );
 export type CreateHolidayInput = z.infer<typeof createHolidayInputSchema>;
 
 // ─── مدخلات تعديل عطلة ───────────────────────────────────────────────────────

@@ -122,7 +122,9 @@ class _ReportRow extends StatelessWidget {
       try {
         dateLabel = DateFormat('d MMM', 'ar')
             .format(DateTime.parse('${reportDate}T00:00:00'));
-      } catch (_) {}
+      } catch (_) {
+        dateLabel = reportDate;
+      }
     }
 
     return Row(

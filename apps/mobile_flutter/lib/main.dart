@@ -50,7 +50,8 @@ Future<void> main() async {
     // Firebase/FCM: آمن عند غياب Google Play Services (محاكيات، أجهزة بدون GMS).
     try {
       FirebaseMessaging.onBackgroundMessage(firebaseBackgroundHandler);
-      final push = PushService((token, platform) async {
+      // إنشاء PushService وحفظ المرجع في singleton للوصول العام
+      final pushService = PushService((token, platform) async {
         final client = Supabase.instance.client;
         if (client.auth.currentSession == null) return;
         await client.rpc<dynamic>(
@@ -58,7 +59,7 @@ Future<void> main() async {
           params: {'p_fcm_token': token, 'p_platform': platform},
         );
       });
-      unawaited(push.initialize());
+      await pushService.initialize();
       Supabase.instance.client.auth.onAuthStateChange.listen((event) {
         if (event.session == null) return;
         unawaited(

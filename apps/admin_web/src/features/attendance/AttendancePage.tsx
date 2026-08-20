@@ -144,14 +144,14 @@ export function AttendancePage() {
             />
             <MetricCard
               label="بصمات غير مكتملة"
-              value={data.incomplete}
+              value={data.incomplete ?? 0}
               icon={AlertTriangle}
               hint="سجلات جزئية أو معلقة"
               to={detailsUrl('incomplete', dateIso, departmentId, branchId)}
             />
             <MetricCard
               label="تحتاج مراجعة"
-              value={data.pendingReview}
+              value={data.pendingReview ?? 0}
               icon={Users}
               hint="تنبيهات تحتاج تدخل بشري"
               to={detailsUrl('pending_review', dateIso, departmentId, branchId)}
@@ -160,7 +160,7 @@ export function AttendancePage() {
               label="طلبات الموقع"
               value={data.locationRequestsToday ?? 0}
               icon={MapPin}
-              hint={`استُجيب: ${data.locationRespondedToday ?? 0}`}
+              hint={`استُجيب: ${data.locationRequestsResponded ?? data.locationRespondedToday ?? 0}`}
               to={detailsUrl('location_requests', dateIso, departmentId, branchId)}
             />
           </section>
@@ -202,7 +202,7 @@ export function AttendancePage() {
             </span>
             <span className="flex items-center gap-1.5">
               <Clock3 className="size-3.5 shrink-0 text-brand" aria-hidden="true" />
-              آخر تحديث: {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(data.lastUpdatedAt))}
+              آخر تحديث: {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(data.lastUpdatedAt ?? Date.now()))}
             </span>
           </div>
         </>

@@ -16,34 +16,9 @@ const DEFAULT_INVITE_REDIRECT =
 const INVITE_REDIRECT =
   Deno.env.get("APP_INVITE_REDIRECT_URL")?.trim() || DEFAULT_INVITE_REDIRECT;
 
-const nullableUuid = z.string().uuid().nullish();
-const inputSchema = z.object({
-  fullNameAr: z.string().trim().min(3).max(160),
-  fullNameEn: z.string().trim().max(160).optional(),
-  employeeCode: z.string().trim().min(2).max(50).optional(),
-  email: z.string().email(),
-  // هاتف مصري محلي (01…) أو دولي E.164 (+20…).
-  phoneE164: z.string().trim().regex(/^(01\d{9}|\+[1-9]\d{7,14})$/),
-  roleSlug: z.string().trim().min(2),
-  jobTitleName: z.string().trim().max(160).optional(),
-  photoUrl: z.string().url().max(1000).optional(),
-  managerEmployeeId: nullableUuid,
-  departmentId: nullableUuid,
-  teamId: nullableUuid,
-  branchId: nullableUuid,
-  workSiteId: nullableUuid,
-  jobTitleId: nullableUuid,
-  positionId: nullableUuid,
-  gradeId: nullableUuid,
-  employmentTypeId: nullableUuid,
-  hireDate: z.string().date().optional(),
-  // كلمة مرور أولية يحددها الإداري اختياريًا — تُقيَّم بنفس سياسة
-  // validateHrIssuedPassword (12–72، أحرف كبيرة/صغيرة، رقم، رمز خاص،
-  // لا معرّفات/قواميس/أنماط لوحة مفاتيح). تُفرض تغييرها عند أول دخول.
-  initialPassword: z.string().trim().optional(),
-  sendInvite: z.boolean().default(false),
-});
+import { createEmployeeInputSchema } from "../_shared/contracts.ts";
 
+const inputSchema = createEmployeeInputSchema;
 type Input = z.infer<typeof inputSchema>;
 
 const STANDARD_EMPLOYEE_ROLES = new Set([
@@ -80,7 +55,7 @@ function inaccessibleRandomPassword(): string {
   return `Cdx!9-${crypto.randomUUID()}-aZ`;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return preflight(req);
   try {
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);

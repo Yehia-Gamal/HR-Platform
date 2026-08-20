@@ -26,7 +26,7 @@ describe('useAttendanceDashboard — mock data schema validation', () => {
   it('has a valid lastUpdatedAt ISO timestamp', () => {
     const parsed = attendanceDashboardSchema.parse(mockAttendanceDashboard);
     expect(parsed.lastUpdatedAt).toBeDefined();
-    const date = new Date(parsed.lastUpdatedAt);
+    const date = new Date(parsed.lastUpdatedAt!);
     expect(date.getTime()).not.toBeNaN();
   });
 

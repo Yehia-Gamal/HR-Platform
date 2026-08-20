@@ -166,7 +166,7 @@ export function useGrantRestCreditBulk() {
 // ─── قافلة / فاندي جماعية (create_work_assignment) ──────────────────────────
 
 export interface CreateBulkAssignmentInput {
-  assignmentType: 'CONVOY' | 'FUNDRAISING';
+  assignmentType: 'MISSION' | 'CONVOY' | 'FUNDRAISING';
   title: string;
   startAt: string;
   endAt: string;
@@ -175,6 +175,7 @@ export interface CreateBulkAssignmentInput {
   description?: string;
   targetAmount?: number | null;
   campaignName?: string;
+  needsReport?: boolean;
 }
 
 export function useCreateBulkAssignment() {
@@ -191,6 +192,7 @@ export function useCreateBulkAssignment() {
         p_participant_ids: input.participantIds,
         p_description: input.description ?? null,
         p_location: input.location ?? null,
+        p_needs_report: input.needsReport ?? false,
         p_payload: {
           isFullDay: true,
           campaignName: input.campaignName ?? null,

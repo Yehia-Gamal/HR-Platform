@@ -20,9 +20,12 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
   final Set<String> _expanded = {};
   final Map<String, TextEditingController> _commentControllers = {};
   bool _viewsRecorded = false;
+  final _searchCtrl = TextEditingController();
+  String _search = '';
 
   @override
   void dispose() {
+    _searchCtrl.dispose();
     for (final c in _commentControllers.values) {
       c.dispose();
     }
@@ -47,6 +50,7 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'تحديث',
             onPressed: () => ref.invalidate(dailyReportsFeedProvider(null)),
           ),
         ],
@@ -58,7 +62,40 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
         label: const Text('تقرير اليوم'),
         onPressed: () => _composeReport(context),
       ),
-      body: feed.when(
+      body: Column(
+        children: [
+          // ── شريط البحث ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            child: TextField(
+              controller: _searchCtrl,
+              decoration: InputDecoration(
+                hintText: 'بحث بالاسم أو القسم أو المسمى…',
+                prefixIcon: const Icon(Icons.search_rounded),
+                suffixIcon: _search.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          setState(() => _search = '');
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: scheme.surfaceContainerHighest.withValues(alpha: .5),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+              onChanged: (v) => setState(() => _search = v.trim().toLowerCase()),
+            ),
+          ),
+          const SizedBox(height: 4),
+          // ── المحتوى ──
+          Expanded(
+            child: feed.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => RefreshIndicator(
           onRefresh: () async => ref.invalidate(dailyReportsFeedProvider(null)),
@@ -79,15 +116,28 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
             ],
           ),
         ),
-        data: (items) {
-          if (items.isNotEmpty && !_viewsRecorded) {
+        data: (rawItems) {
+          final items = _search.isEmpty
+              ? rawItems
+              : rawItems.where((item) {
+                  final name = (item['employeeName'] as String? ?? '').toLowerCase();
+                  final dept = (item['department'] as String? ?? '').toLowerCase();
+                  final job = (item['jobTitle'] as String? ?? '').toLowerCase();
+                  final ach = (item['achievements'] as String? ?? '').toLowerCase();
+                  return name.contains(_search) ||
+                      dept.contains(_search) ||
+                      job.contains(_search) ||
+                      ach.contains(_search);
+                }).toList(growable: false);
+
+          if (rawItems.isNotEmpty && !_viewsRecorded) {
             _viewsRecorded = true;
             WidgetsBinding.instance.addPostFrameCallback((_) async {
               try {
                 await ref
                     .read(mobileCommandsProvider)
                     .recordDailyReportsViews(
-                      items.map((e) => e['id'] as String).toList(),
+                      rawItems.map((e) => e['id'] as String).toList(),
                     );
               } catch (_) {
                 // المشاهدة تحليلية؛ فشلها لا يمنع قراءة التقارير.
@@ -102,13 +152,17 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
                   Icon(Icons.article_outlined,
                       size: 64, color: scheme.outline),
                   const SizedBox(height: 16),
-                  const Text(
-                    'لا توجد تقارير بعد',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    _search.isNotEmpty
+                        ? 'لا توجد تقارير مطابقة للبحث'
+                        : 'لا توجد تقارير بعد',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'عندما يرفع الموظفون تقاريرهم اليومية ستظهر هنا.',
+                    _search.isNotEmpty
+                        ? 'جرّب البحث بكلمات أخرى أو مسح حقل البحث.'
+                        : 'عندما يرفع الموظفون تقاريرهم اليومية ستظهر هنا.',
                     style: TextStyle(color: scheme.onSurfaceVariant),
                     textAlign: TextAlign.center,
                   ),
@@ -149,7 +203,10 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
           );
         },
       ),
-    );
+    ),
+  ],
+),
+);
   }
 
   void _onLike(String reportId) async {
@@ -705,7 +762,9 @@ class _CommentBubble extends StatelessWidget {
       try {
         final dt = DateTime.parse(createdAt);
         timeLabel = DateFormat('d MMM، HH:mm', 'ar').format(dt);
-      } catch (_) {}
+      } catch (_) {
+        timeLabel = createdAt;
+      }
     }
 
     return Padding(

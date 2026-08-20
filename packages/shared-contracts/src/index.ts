@@ -48,3 +48,4 @@ export * from './helpdeskGovernance.js';
 export * from './financialExtensions.js';
 
 export * from './leaves.js';
+export * from './workflow.js';

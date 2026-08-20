@@ -143,11 +143,19 @@ export const attendanceDashboardSchema = z.object({
   onMission: z.number().optional(),
   /** بصمة دخول بلا انصراف (0355) */
   missingCheckout: z.number().optional(),
-  incomplete: z.number(),
-  pendingReview: z.number(),
+  /** بصمات غير مكتملة — اختياري لتوافق DB القديم */
+  incomplete: z.number().optional(),
+  /** قيد المراجعة — اختياري لتوافق DB القديم */
+  pendingReview: z.number().optional(),
   locationRequestsToday: z.number().optional(),
+  /** اسم الحقل الفعلي من DB (0444) — يُعاد تسميته من locationRespondedToday */
+  locationRequestsResponded: z.number().optional(),
+  /** اسم قديم — يُقبل للتوافق */
   locationRespondedToday: z.number().optional(),
-  lastUpdatedAt: z.string(),
+  /** تاريخ اللوحة — اختياري */
+  date: z.string().optional(),
+  /** آخر تحديث — اختياري لتوافق DB القديم */
+  lastUpdatedAt: z.string().optional(),
 });
 export type AttendanceDashboard = z.infer<typeof attendanceDashboardSchema>;
 

@@ -40,15 +40,29 @@ final locationRequestByIdProvider = FutureProvider.autoDispose
     });
 
 /// لوحة الحضور اليومي للمدير التنفيذي — تستدعي get_executive_attendance_today().
+/// ملاحظة: الدالة (0444) تُرجع jsonb مباشرةً (مصفوفة JSON)، وليس setof record.
+/// Supabase client يُسلّم jsonb كـ `List<dynamic>` تلقائياً.
 final executiveAttendanceTodayProvider =
     FutureProvider.autoDispose<List<AttendanceTodayEmployee>>((ref) async {
       final data = await ref
           .watch(supabaseProvider)
           .rpc<dynamic>('get_executive_attendance_today')
           .timeout(const Duration(seconds: 15));
-      return _asList(
-        data,
-      ).map(AttendanceTodayEmployee.fromJson).toList(growable: false);
+      // الدالة تُعيد jsonb مباشرة — قد تصل كـ List أو String (jsonb decoded)
+      final List<dynamic> raw;
+      if (data is List) {
+        raw = data;
+      } else if (data is String) {
+        // في بعض الإصدارات يُرجع supabase الـ jsonb كـ String
+        raw = (data as dynamic) is List ? data as List<dynamic> : [];
+      } else {
+        raw = const [];
+      }
+      return raw
+          .map((e) => AttendanceTodayEmployee.fromJson(
+                Map<String, dynamic>.from(e as Map<dynamic, dynamic>),
+              ))
+          .toList(growable: false);
     });
 
 /// يستطلع طلبات الموقع المعلقة للمستخدم الحالي كل 15 ثانية.

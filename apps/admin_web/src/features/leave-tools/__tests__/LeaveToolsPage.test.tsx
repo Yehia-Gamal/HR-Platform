@@ -109,7 +109,7 @@ describe('LeaveToolsPage', () => {
     expect(screen.getByText('منح بدل راحة أسبوعي (جماعي)')).toBeDefined();
     expect(screen.getByText('ضبط رصيد إجازة')).toBeDefined();
     expect(screen.getByText('إنشاء إجازة بدل الموظف')).toBeDefined();
-    expect(screen.getByText('إضافة قافلة / فاندي')).toBeDefined();
+    expect(screen.getByText('إضافة مأمورية / قافلة / فاندي')).toBeDefined();
   });
 
   it('يعرض إشعار أن الإجازة المرضية مفتوحة', () => {
