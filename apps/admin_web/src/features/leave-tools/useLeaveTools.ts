@@ -21,7 +21,16 @@ const MOCK_LEAVE_TYPES: LeaveTypeOption[] = [
   { id: 'lt-annual', code: 'annual', nameAr: 'إجازة سنوية', isPaid: true, requiresAttachment: false, maxDaysPerYear: 24, affectsBalance: true, color: null },
   { id: 'lt-casual', code: 'casual', nameAr: 'إجازة عارضة', isPaid: true, requiresAttachment: false, maxDaysPerYear: 5, affectsBalance: true, color: null },
   { id: 'lt-sick', code: 'sick', nameAr: 'إجازة مرضية', isPaid: true, requiresAttachment: false, maxDaysPerYear: null, affectsBalance: false, color: null },
-  { id: 'lt-unpaid', code: 'unpaid', nameAr: 'إجازة بدون أجر', isPaid: false, requiresAttachment: false, maxDaysPerYear: null, affectsBalance: true, color: null },
+  {
+    id: 'lt-unpaid',
+    code: 'unpaid',
+    nameAr: 'إجازة بدون أجر',
+    isPaid: false,
+    requiresAttachment: false,
+    maxDaysPerYear: null,
+    affectsBalance: true,
+    color: null,
+  },
 ];
 
 export function useLeaveTypes() {
@@ -117,10 +126,7 @@ export function useAdjustLeaveBalance() {
     },
     meta: { successMessage: 'تم تعديل رصيد الإجازة بنجاح' },
     onSuccess: async () => {
-      await Promise.all([
-        client.invalidateQueries({ queryKey: ['leave-balances'] }),
-        client.invalidateQueries({ queryKey: ['employee-360'] }),
-      ]);
+      await Promise.all([client.invalidateQueries({ queryKey: ['leave-balances'] }), client.invalidateQueries({ queryKey: ['employee-360'] })]);
     },
   });
 }
@@ -195,10 +201,7 @@ export function useCreateBulkAssignment() {
     },
     meta: { successMessage: 'تم إنشاء التكليف الجماعي بنجاح' },
     onSuccess: async () => {
-      await Promise.all([
-        client.invalidateQueries({ queryKey: ['work-assignments'] }),
-        client.invalidateQueries({ queryKey: ['requests'] }),
-      ]);
+      await Promise.all([client.invalidateQueries({ queryKey: ['work-assignments'] }), client.invalidateQueries({ queryKey: ['requests'] })]);
     },
   });
 }
