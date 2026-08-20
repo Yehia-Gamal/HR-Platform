@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
+import { useAuth } from '../auth/AuthProvider';
 
 /**
  * لقطة صحة النظام من get_system_health() RPC.
@@ -7,8 +8,10 @@ import { rpc } from '../../core/rpc';
  * تجدّد كل 30 ثانية.
  */
 export function useSystemHealth() {
+  const auth = useAuth();
   return useQuery({
     queryKey: ['system-health'],
+    enabled: !auth.isMock,
     queryFn: () => rpc<Record<string, unknown>>('get_system_health'),
     refetchInterval: 30_000,
     staleTime: 20_000,

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSupabase } from '../../core/supabase';
+import { useAuth } from '../auth/AuthProvider';
 
 export interface SystemAlert {
   id: string;
@@ -25,8 +26,10 @@ export interface SystemAlert {
  * RLS يسمح لـ full_access / system.release.read بقراءتها.
  */
 export function useSystemAlerts() {
+  const auth = useAuth();
   return useQuery({
     queryKey: ['system-alerts'],
+    enabled: !auth.isMock,
     queryFn: async (): Promise<SystemAlert[]> => {
       const supabase = await getSupabase();
       const { data, error } = await supabase

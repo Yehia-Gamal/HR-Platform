@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
 import { getSupabase } from '../../core/supabase';
+import { useAuth } from '../auth/AuthProvider';
 
 export interface CronJobHealth {
   jobid: number;
@@ -34,9 +35,10 @@ export interface CronHealthSummary {
  * observability.read / admin.observability / full access.
  */
 export function useCronHealthSummary(enabled = true) {
+  const auth = useAuth();
   return useQuery({
     queryKey: ['cron-health-summary'],
-    enabled,
+    enabled: enabled && !auth.isMock,
     queryFn: () => rpc<CronHealthSummary>('get_cron_health_summary'),
     refetchInterval: 60_000,
     staleTime: 45_000,
@@ -48,9 +50,10 @@ export function useCronHealthSummary(enabled = true) {
  * قائمة تفصيلية لصحة مهام pg_cron من get_cron_job_health().
  */
 export function useCronJobHealth(enabled = true) {
+  const auth = useAuth();
   return useQuery({
     queryKey: ['cron-job-health'],
-    enabled,
+    enabled: enabled && !auth.isMock,
     queryFn: () => rpc<CronJobHealth[]>('get_cron_job_health'),
     refetchInterval: 60_000,
     staleTime: 45_000,
@@ -76,9 +79,10 @@ export interface ObservabilityEvent {
  * RLS يسمح بقراءتها لـ full access / observability.read / admin.observability.
  */
 export function useObservabilityEvents(enabled = true, limit = 50) {
+  const auth = useAuth();
   return useQuery({
     queryKey: ['observability-events', limit],
-    enabled,
+    enabled: enabled && !auth.isMock,
     queryFn: async (): Promise<ObservabilityEvent[]> => {
       const supabase = await getSupabase();
       const { data, error } = await supabase.from('observability_events').select('*').order('created_at', { ascending: false }).limit(limit);
