@@ -133,9 +133,34 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
         const SizedBox(height: 18),
         MetricGrid(
           cards: [
-            ('مكتملة', completed.toString(), Icons.verified_outlined, null),
-            ('قيد التجهيز', active.toString(), Icons.sync_rounded, null),
-            ('متعذرة', failed.toString(), Icons.error_outline_rounded, null),
+            // كل بطاقة تفتح قائمتها: الحالة داخل تبويب التقارير أو الجدولة.
+            (
+              'مكتملة',
+              completed.toString(),
+              Icons.verified_outlined,
+              () => setState(() {
+                section = 0;
+                filter = 'completed';
+              }),
+            ),
+            (
+              'قيد التجهيز',
+              active.toString(),
+              Icons.sync_rounded,
+              () => setState(() {
+                section = 0;
+                filter = 'running';
+              }),
+            ),
+            (
+              'متعذرة',
+              failed.toString(),
+              Icons.error_outline_rounded,
+              () => setState(() {
+                section = 0;
+                filter = 'failed';
+              }),
+            ),
             (
               'جداول نشطة',
               data.reportSchedules
@@ -143,7 +168,7 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
                   .length
                   .toString(),
               Icons.schedule_rounded,
-              null,
+              () => setState(() => section = 1),
             ),
           ],
         ),
@@ -319,22 +344,59 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
                 style: TextStyle(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: report.summary.entries
-                    .take(8)
-                    .map(
-                      (entry) => Chip(
-                        label: Text('${entry.key}: ${entry.value}'),
-                        backgroundColor: Theme.of(
-                          sheetContext,
-                        ).colorScheme.surfaceContainerHighest,
-                        side: BorderSide.none,
-                        shape: const StadiumBorder(),
-                      ),
-                    )
-                    .toList(growable: false),
+              // 0440+: عرض مُقروء للملخص — تسميات عربية، فكّ تعشيش
+              // الكائنات، وتنسيق التواريخ — بدل أزواج JSON خام.
+              Builder(
+                builder: (sheetContext) {
+                  final rows = _flattenSummary(report.summary);
+                  return Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < rows.length; i++) ...[
+                          if (i > 0)
+                            const Divider(height: 1, indent: 16, endIndent: 16),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    rows[i].$1,
+                                    style: Theme.of(sheetContext)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: Theme.of(
+                                            sheetContext,
+                                          ).colorScheme.onSurfaceVariant,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Flexible(
+                                  child: Text(
+                                    rows[i].$2,
+                                    textAlign: TextAlign.end,
+                                    style: Theme.of(sheetContext)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(fontWeight: FontWeight.w900),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
             if (report.storagePath != null) ...[
@@ -373,6 +435,73 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
         ).showSnackBar(SnackBar(content: Text(humanizeError(e))));
       }
     }
+  }
+
+  /// تسميات عربية لمفاتيح الملخص المعروفة — والمجهول يُعرض كما هو.
+  static const Map<String, String> _summaryKeyLabels = {
+    'date': 'التاريخ',
+    'headcount': 'عدد الموظفين',
+    'attendance': 'الحضور',
+    'present': 'حاضر',
+    'late': 'متأخر',
+    'absent': 'غائب',
+    'onLeave': 'في إجازة',
+    'total': 'الإجمالي',
+    'reportType': 'نوع التقرير',
+    'generatedAt': 'وقت الإنشاء',
+    'openDisputes': 'قضايا مفتوحة',
+    'activeKpiCycles': 'دورات تقييم نشطة',
+    'pendingRequests': 'طلبات معلقة',
+  };
+
+  /// ترجمة قيم معروفة (أنواع تقارير وأشباهها).
+  static const Map<String, String> _summaryValueLabels = {
+    'executive_daily': 'تنفيذي يومي',
+    'daily': 'يومي',
+    'weekly': 'أسبوعي',
+    'monthly': 'شهري',
+  };
+
+  /// يفكّ ملخص التقرير إلى صفوف «تسمية ← قيمة» قابلة للقراءة:
+  /// كائن متشعّب → صفوف فرعية، قائمة → عدد، تاريخ ISO → تنسيق عربي.
+  static List<(String, String)> _flattenSummary(Map summary) {
+    final rows = <(String, String)>[];
+    void addRow(String key, Object? value) {
+      rows.add((_summaryKeyLabels[key] ?? key, _scalar(value)));
+    }
+
+    for (final entry in summary.entries) {
+      final key = entry.key.toString();
+      final value = entry.value;
+      if (value is Map && value.isNotEmpty) {
+        // كائن مثل attendance: {late: 0, total: 1, ...} → صف لكل حقل.
+        for (final sub in value.entries) {
+          addRow(sub.key.toString(), sub.value);
+        }
+      } else if (value is List) {
+        rows.add((
+          _summaryKeyLabels[key] ?? key,
+          value.isEmpty ? 'لا يوجد' : '${value.length}',
+        ));
+      } else {
+        addRow(key, value);
+      }
+    }
+    return rows;
+  }
+
+  static String _scalar(Object? value) {
+    if (value == null) return '—';
+    if (value is Map) return value.isEmpty ? 'لا يوجد' : '${value.length}';
+    if (value is List) return value.isEmpty ? 'لا يوجد' : '${value.length}';
+    final text = value.toString();
+    if (text.contains('T') && text.length > 10) {
+      final date = DateTime.tryParse(text);
+      if (date != null) {
+        return DateFormat('d MMMM y، h:mm a', 'ar').format(date.toLocal());
+      }
+    }
+    return _summaryValueLabels[text] ?? text;
   }
 
   static String _period(ExecutiveReportRun report) {

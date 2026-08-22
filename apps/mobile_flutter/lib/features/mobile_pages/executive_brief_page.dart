@@ -1,10 +1,16 @@
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_executive_insights_models.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_executive_insights_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_attendance_tab.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_reports_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_risk_center_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/location_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_operations_center_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/people_hub_page.dart';
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -55,10 +61,7 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
                 ),
               ),
               const SizedBox(height: 12),
-              Text(
-                humanizeError(error),
-                textAlign: TextAlign.center,
-              ),
+              Text(humanizeError(error), textAlign: TextAlign.center),
               const SizedBox(height: 14),
               OutlinedButton.icon(
                 onPressed: () =>
@@ -76,6 +79,18 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
 
   Widget _content(MobileExecutiveBrief item) {
     final scheme = Theme.of(context).colorScheme;
+    final access = ref.watch(accessContextProvider).value;
+    // 0439+: كل بطاقة رقم تفتح وجهتها — الصفحات التي تحتاج صلاحية تعطل
+    // النقر فقط إذا لم يُحمَّل سياق الوصول بعد.
+    final operationsTap = access == null
+        ? null
+        : () => _openPage(MobileOperationsCenterPage(access: access));
+    final kpiTap = access == null
+        ? null
+        : () => _openPage(MobileKpiPage(access: access));
+    final locationRequestsTap = access == null
+        ? null
+        : () => _openPage(LocationRequestsPage(access: access));
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
@@ -94,10 +109,7 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
             children: [
               Row(
                 children: [
-                  const Icon(
-                    Icons.auto_awesome_outlined,
-                    color: Colors.white,
-                  ),
+                  const Icon(Icons.auto_awesome_outlined, color: Colors.white),
                   const SizedBox(width: 9),
                   const Text(
                     'ملخص اليوم',
@@ -152,6 +164,7 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
                 previous: item.attendance.presentYesterday,
                 icon: Icons.groups_rounded,
                 positiveWhenHigher: true,
+                onTap: () => _openPage(const ExecutiveAttendanceTab()),
               ),
             ),
             const SizedBox(width: 10),
@@ -162,6 +175,7 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
                 previous: item.attendance.lateYesterday,
                 icon: Icons.schedule_rounded,
                 positiveWhenHigher: false,
+                onTap: () => _openPage(const ExecutiveAttendanceTab()),
               ),
             ),
           ],
@@ -173,25 +187,25 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
               'غياب اليوم',
               item.attendance.absentToday.toString(),
               Icons.person_off_outlined,
-              null,
+              () => _openPage(const ExecutiveAttendanceTab()),
             ),
             (
               'إجازات اليوم',
               item.attendance.onLeaveToday.toString(),
               Icons.event_busy_outlined,
-              null,
+              () => _openPage(const ExecutiveAttendanceTab()),
             ),
             (
               'اعتمادات معلقة',
               item.decisions.pendingApprovals.toString(),
               Icons.approval_outlined,
-              null,
+              () => _openPage(const MobileActionInboxPage()),
             ),
             (
               'تقارير جاهزة',
               item.decisions.reportsReadyToday.toString(),
               Icons.analytics_outlined,
-              null,
+              () => _openPage(const ExecutiveReportsPage()),
             ),
           ],
         ),
@@ -203,18 +217,78 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
         const SizedBox(height: 10),
         MetricGrid(
           cards: [
-            ('الموظفون النشطون', _daily(item, 'employees', 'active').toString(), Icons.groups_rounded, null),
-            ('المطلوب حضورهم', _daily(item, 'employees', 'requiredToday').toString(), Icons.badge_outlined, null),
-            ('لم يسجلوا بعد', _daily(item, 'attendance', 'notYet').toString(), Icons.hourglass_top_rounded, null),
-            ('لم يسجلوا الانصراف', _daily(item, 'attendance', 'missingCheckout').toString(), Icons.logout_rounded, null),
-            ('مأموريات', _daily(item, 'workStatus', 'missions').toString(), Icons.work_history_outlined, null),
-            ('قوافل', _daily(item, 'workStatus', 'convoys').toString(), Icons.directions_bus_outlined, null),
-            ('فاندي', _daily(item, 'workStatus', 'fundraising').toString(), Icons.volunteer_activism_outlined, null),
-            ('KPI عند الموظف', _daily(item, 'kpi', 'atEmployee').toString(), Icons.person_outline, null),
-            ('KPI عند المدير', _daily(item, 'kpi', 'atManager').toString(), Icons.supervisor_account_outlined, null),
-            ('KPI عند HR', _daily(item, 'kpi', 'atHr').toString(), Icons.fact_check_outlined, null),
-            ('تقارير KPI جاهزة', _daily(item, 'kpi', 'ready').toString(), Icons.analytics_outlined, null),
-            ('طلبات موقع بلا رد', _daily(item, 'followUp', 'unansweredLocationRequests').toString(), Icons.location_searching_rounded, null),
+            (
+              'الموظفون النشطون',
+              _daily(item, 'employees', 'active').toString(),
+              Icons.groups_rounded,
+              () => _openPage(const PeopleHubPage()),
+            ),
+            (
+              'المطلوب حضورهم',
+              _daily(item, 'employees', 'requiredToday').toString(),
+              Icons.badge_outlined,
+              () => _openPage(const ExecutiveAttendanceTab()),
+            ),
+            (
+              'لم يسجلوا بعد',
+              _daily(item, 'attendance', 'notYet').toString(),
+              Icons.hourglass_top_rounded,
+              () => _openPage(const ExecutiveAttendanceTab()),
+            ),
+            (
+              'لم يسجلوا الانصراف',
+              _daily(item, 'attendance', 'missingCheckout').toString(),
+              Icons.logout_rounded,
+              () => _openPage(const ExecutiveAttendanceTab()),
+            ),
+            (
+              'مأموريات',
+              _daily(item, 'workStatus', 'missions').toString(),
+              Icons.work_history_outlined,
+              operationsTap,
+            ),
+            (
+              'قوافل',
+              _daily(item, 'workStatus', 'convoys').toString(),
+              Icons.directions_bus_outlined,
+              operationsTap,
+            ),
+            (
+              'فاندي',
+              _daily(item, 'workStatus', 'fundraising').toString(),
+              Icons.volunteer_activism_outlined,
+              operationsTap,
+            ),
+            (
+              'KPI عند الموظف',
+              _daily(item, 'kpi', 'atEmployee').toString(),
+              Icons.person_outline,
+              kpiTap,
+            ),
+            (
+              'KPI عند المدير',
+              _daily(item, 'kpi', 'atManager').toString(),
+              Icons.supervisor_account_outlined,
+              kpiTap,
+            ),
+            (
+              'KPI عند HR',
+              _daily(item, 'kpi', 'atHr').toString(),
+              Icons.fact_check_outlined,
+              kpiTap,
+            ),
+            (
+              'تقارير KPI جاهزة',
+              _daily(item, 'kpi', 'ready').toString(),
+              Icons.analytics_outlined,
+              () => _openPage(const ExecutiveReportsPage()),
+            ),
+            (
+              'طلبات موقع بلا رد',
+              _daily(item, 'followUp', 'unansweredLocationRequests').toString(),
+              Icons.location_searching_rounded,
+              locationRequestsTap,
+            ),
           ],
         ),
         const SizedBox(height: 20),
@@ -295,6 +369,9 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
     );
   }
 
+  void _openPage(Widget page) =>
+      Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+
   void _openHighlight(String kind) {
     final Widget page = switch (kind) {
       'risk' || 'incident' => const ExecutiveRiskCenterPage(),
@@ -339,6 +416,7 @@ class _ComparisonCard extends StatelessWidget {
     required this.previous,
     required this.icon,
     required this.positiveWhenHigher,
+    this.onTap,
   });
 
   final String label;
@@ -346,6 +424,7 @@ class _ComparisonCard extends StatelessWidget {
   final int previous;
   final IconData icon;
   final bool positiveWhenHigher;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -355,45 +434,49 @@ class _ComparisonCard extends StatelessWidget {
     final positive = positiveWhenHigher ? delta >= 0 : delta <= 0;
     final color = positive ? AppColors.statusSuccess : AppColors.statusDanger;
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(15),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: scheme.primary),
-            const SizedBox(height: 12),
-            Text(
-              value.toString(),
-              style: textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            Text(
-              label,
-              style: textTheme.labelMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 7),
-            Row(
-              children: [
-                Icon(
-                  delta == 0
-                      ? Icons.remove_rounded
-                      : delta > 0
-                      ? Icons.arrow_upward_rounded
-                      : Icons.arrow_downward_rounded,
-                  size: 15,
-                  color: color,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(15),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: scheme.primary),
+              const SizedBox(height: 12),
+              Text(
+                value.toString(),
+                style: textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
                 ),
-                Text(
-                  delta == 0 ? 'مثل أمس' : '${delta.abs()} عن أمس',
-                  style: textTheme.labelSmall?.copyWith(color: color),
+              ),
+              Text(
+                label,
+                style: textTheme.labelMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w800,
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 7),
+              Row(
+                children: [
+                  Icon(
+                    delta == 0
+                        ? Icons.remove_rounded
+                        : delta > 0
+                        ? Icons.arrow_upward_rounded
+                        : Icons.arrow_downward_rounded,
+                    size: 15,
+                    color: color,
+                  ),
+                  Text(
+                    delta == 0 ? 'مثل أمس' : '${delta.abs()} عن أمس',
+                    style: textTheme.labelSmall?.copyWith(color: color),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

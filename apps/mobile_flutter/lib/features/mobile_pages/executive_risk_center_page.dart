@@ -55,10 +55,7 @@ class _ExecutiveRiskCenterPageState
                         color: Theme.of(context).colorScheme.error,
                       ),
                       const SizedBox(height: 12),
-                      Text(
-                        humanizeError(error),
-                        textAlign: TextAlign.center,
-                      ),
+                      Text(humanizeError(error), textAlign: TextAlign.center),
                       const SizedBox(height: 16),
                       FilledButton.tonalIcon(
                         onPressed: () => ref.invalidate(
@@ -158,24 +155,42 @@ class _ExecutiveRiskCenterPageState
         const SizedBox(height: 18),
         MetricGrid(
           cards: [
-            ('مخاطر مفتوحة', data.risks.length.toString(), Icons.trending_up, null),
+            // كل بطاقة تفتح قائمتها بالشدة المطابقة داخل الصفحة نفسها.
+            (
+              'مخاطر مفتوحة',
+              data.risks.length.toString(),
+              Icons.trending_up,
+              () => setState(() {
+                section = 0;
+                severity = 'all';
+              }),
+            ),
             (
               'مخاطر حرجة',
               criticalRisks.toString(),
               Icons.warning_amber_rounded,
-              null,
+              () => setState(() {
+                section = 0;
+                severity = 'critical';
+              }),
             ),
             (
               'حوادث نشطة',
               data.incidents.length.toString(),
               Icons.report_outlined,
-              null,
+              () => setState(() {
+                section = 1;
+                severity = 'all';
+              }),
             ),
             (
               'حوادث حرجة',
               criticalIncidents.toString(),
               Icons.crisis_alert_rounded,
-              null,
+              () => setState(() {
+                section = 1;
+                severity = 'critical';
+              }),
             ),
           ],
         ),
@@ -217,9 +232,9 @@ class _ExecutiveRiskCenterPageState
               section == 0
                   ? 'عدد المخاطر: ${risks.length}'
                   : 'عدد الحوادث: ${incidents.length}',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant),
             ),
             const Spacer(),
             if (severity != 'all')

@@ -48,10 +48,7 @@ class _ExecutiveGovernancePageState
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 12),
-            Text(
-              humanizeError(error),
-              textAlign: TextAlign.center,
-            ),
+            Text(humanizeError(error), textAlign: TextAlign.center),
             const SizedBox(height: 14),
             OutlinedButton.icon(
               onPressed: () =>
@@ -110,9 +107,7 @@ class _ExecutiveGovernancePageState
                       'الحوكمة والتنفيذ',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w900,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onPrimaryContainer,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -120,9 +115,7 @@ class _ExecutiveGovernancePageState
                       'تقدم تنفيذ القرارات والتصويتات والاجتماعات التنفيذية القادمة.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         height: 1.45,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onPrimaryContainer,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
                       ),
                     ),
                   ],
@@ -134,14 +127,30 @@ class _ExecutiveGovernancePageState
         const SizedBox(height: 18),
         MetricGrid(
           cards: [
-            ('بنود مفتوحة', openExecution.toString(), Icons.route_outlined, null),
-            ('بنود معطلة', blocked.toString(), Icons.block_outlined, null),
-            ('تصويتات مفتوحة', polls.toString(), Icons.how_to_vote_outlined, null),
+            // كل بطاقة تنقل إلى قسمها داخل الصفحة نفسها.
+            (
+              'بنود مفتوحة',
+              openExecution.toString(),
+              Icons.route_outlined,
+              () => setState(() => section = 0),
+            ),
+            (
+              'بنود معطلة',
+              blocked.toString(),
+              Icons.block_outlined,
+              () => setState(() => section = 0),
+            ),
+            (
+              'تصويتات مفتوحة',
+              polls.toString(),
+              Icons.how_to_vote_outlined,
+              () => setState(() => section = 1),
+            ),
             (
               'اجتماعات قادمة',
               data.meetings.length.toString(),
               Icons.groups_2_outlined,
-              null,
+              () => setState(() => section = 2),
             ),
           ],
         ),

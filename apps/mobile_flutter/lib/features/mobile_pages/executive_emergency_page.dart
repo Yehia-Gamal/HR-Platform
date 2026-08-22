@@ -2,6 +2,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_operations
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_operations_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/disputes_portal_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_risk_center_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
@@ -98,25 +99,45 @@ class ExecutiveEmergencyPage extends ConsumerWidget {
                     'إجراءات عاجلة',
                     item.urgentActions.toString(),
                     Icons.priority_high_rounded,
-                    null,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MobileActionInboxPage(),
+                      ),
+                    ),
                   ),
                   (
                     'قضايا مفتوحة',
                     item.openCases.toString(),
                     Icons.balance_rounded,
-                    null,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const DisputesPortalPage(),
+                      ),
+                    ),
                   ),
                   (
                     'طلبات موقع نشطة',
                     item.activeLocationRequests.toString(),
                     Icons.location_searching_rounded,
-                    null,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ExecutiveLocationPage(),
+                      ),
+                    ),
                   ),
                   (
                     'اعتمادات معلقة',
                     item.pendingApprovals.toString(),
                     Icons.approval_rounded,
-                    null,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MobileActionInboxPage(),
+                      ),
+                    ),
                   ),
                 ],
               ),

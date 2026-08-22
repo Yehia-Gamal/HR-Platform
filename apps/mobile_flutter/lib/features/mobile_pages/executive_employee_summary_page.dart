@@ -3,7 +3,11 @@ import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_executive_insights_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/employee_profile_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_tasks_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
@@ -49,10 +53,7 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(height: 12),
-              Text(
-                humanizeError(error),
-                textAlign: TextAlign.center,
-              ),
+              Text(humanizeError(error), textAlign: TextAlign.center),
               const SizedBox(height: 16),
               Center(
                 child: FilledButton.tonalIcon(
@@ -78,8 +79,8 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
   ) {
     final scheme = Theme.of(context).colorScheme;
     final access = ref.watch(accessContextProvider).value;
-    final canGrantRest = access?.hasPermission('requests.leave.balance.adjust') ??
-        false;
+    final canGrantRest =
+        access?.hasPermission('requests.leave.balance.adjust') ?? false;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
@@ -116,24 +117,54 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
         const SizedBox(height: 14),
         MetricGrid(
           cards: [
+            // كل بطاقة تفتح وجهتها — الصفحات التي تحتاج سياق وصول تعطل
+            // النقر فقط إذا لم يُحمَّل بعد.
             (
               'طلبات معلقة',
               item.pendingRequests.toString(),
               Icons.approval_rounded,
-              null,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const MobileActionInboxPage(),
+                ),
+              ),
             ),
-            ('مهام مفتوحة', item.openTasks.toString(), Icons.task_outlined, null),
+            (
+              'مهام مفتوحة',
+              item.openTasks.toString(),
+              Icons.task_outlined,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MobileTasksPage()),
+              ),
+            ),
             (
               'KPI الأخير',
               item.latestKpi?.score?.toStringAsFixed(1) ?? '—',
               Icons.analytics_outlined,
-              null,
+              access == null
+                  ? null
+                  : () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MobileKpiPage(access: access),
+                      ),
+                    ),
             ),
             (
               'وثائق قريبة',
               item.expiringDocuments.toString(),
               Icons.warning_amber_rounded,
-              null,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EmployeeProfilePage(
+                    employeeId: item.id,
+                    employeeName: item.name,
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -195,12 +226,16 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
             color: scheme.tertiaryContainer.withValues(alpha: .45),
             child: ListTile(
               contentPadding: const EdgeInsets.all(16),
-              leading: const CircleAvatar(child: Icon(Icons.card_giftcard_rounded)),
+              leading: const CircleAvatar(
+                child: Icon(Icons.card_giftcard_rounded),
+              ),
               title: const Text(
                 'منح بدل راحة أسبوعي',
                 style: TextStyle(fontWeight: FontWeight.w900),
               ),
-              subtitle: const Text('أضف رصيد بدل راحة عن يوم أو عدة أيام محددة.'),
+              subtitle: const Text(
+                'أضف رصيد بدل راحة عن يوم أو عدة أيام محددة.',
+              ),
               trailing: IconButton.filledTonal(
                 tooltip: 'منح بدل راحة',
                 icon: const Icon(Icons.add_rounded),
@@ -307,9 +342,7 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
                     workDate: selectedDate,
                     days: days,
                   );
-              ref.invalidate(
-                mobileExecutiveEmployeeSummaryProvider(item.id),
-              );
+              ref.invalidate(mobileExecutiveEmployeeSummaryProvider(item.id));
               ref.invalidate(mobileRequestsProvider);
               if (sheetContext.mounted) {
                 Navigator.pop(sheetContext);
@@ -328,9 +361,9 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
                 setSheetState(() => submitting = false);
               }
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(humanizeError(error))),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
               }
             }
           }
