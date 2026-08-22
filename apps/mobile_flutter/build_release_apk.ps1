@@ -14,11 +14,10 @@ if ([string]::IsNullOrWhiteSpace($env:RELEASE_KEYSTORE_PATH)) {
 if ([string]::IsNullOrWhiteSpace($env:RELEASE_KEY_ALIAS)) {
   $env:RELEASE_KEY_ALIAS = "ahla-shabab"
 }
-if ([string]::IsNullOrWhiteSpace($env:RELEASE_STORE_PASSWORD)) {
-  $env:RELEASE_STORE_PASSWORD = "NmGHpUBEAW6xXYTomd"
-}
-if ([string]::IsNullOrWhiteSpace($env:RELEASE_KEY_PASSWORD)) {
-  $env:RELEASE_KEY_PASSWORD = "NmGHpUBEAW6xXYTomd"
+# كلمات المرور لا تُكتب في المستودع أبداً — مررها كمتغيرات بيئة عند البناء.
+if ([string]::IsNullOrWhiteSpace($env:RELEASE_STORE_PASSWORD) -or [string]::IsNullOrWhiteSpace($env:RELEASE_KEY_PASSWORD)) {
+  Write-Error "Missing RELEASE_STORE_PASSWORD / RELEASE_KEY_PASSWORD environment variables."
+  exit 1
 }
 
 Write-Host "Building signed production release APK..." -ForegroundColor Cyan
