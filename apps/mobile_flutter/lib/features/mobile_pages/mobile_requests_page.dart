@@ -224,6 +224,8 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
     DateTime? startDate;
     DateTime? endDate;
     DateTime? permitDate;
+    TimeOfDay? startTime;
+    TimeOfDay? endTime;
     final title = TextEditingController();
     final reason = TextEditingController();
     final location = TextEditingController();
@@ -279,6 +281,8 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                     startDate = null;
                     endDate = null;
                     permitDate = null;
+                    startTime = null;
+                    endTime = null;
                   }),
                 ),
                 const SizedBox(height: 12),
@@ -367,6 +371,56 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                     decoration: const InputDecoration(
                       labelText: 'المكان أو جهة التكليف',
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final picked = await _pickTime(
+                              sheetContext,
+                              startTime,
+                            );
+                            if (picked != null) {
+                              setModalState(() {
+                                startTime = picked;
+                                if (endTime != null &&
+                                    endTime!.isBefore(picked)) {
+                                  endTime = picked;
+                                }
+                              });
+                            }
+                          },
+                          icon: const Icon(Icons.schedule, size: 18),
+                          label: Text(
+                            startTime == null
+                                ? 'من وقت (اختياري)'
+                                : _formatTimeValue(startTime!),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final picked = await _pickTime(
+                              sheetContext,
+                              endTime ?? startTime,
+                            );
+                            if (picked != null) {
+                              setModalState(() => endTime = picked);
+                            }
+                          },
+                          icon: const Icon(Icons.schedule, size: 18),
+                          label: Text(
+                            endTime == null
+                                ? 'إلى وقت (اختياري)'
+                                : _formatTimeValue(endTime!),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -555,6 +609,8 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
         'startDate': _dateValue(startDate!),
         'endDate': _dateValue(endDate!),
         'location': requestLocation,
+        if (startTime != null) 'startTime': _formatTimeValue(startTime!),
+        if (endTime != null) 'endTime': _formatTimeValue(endTime!),
       });
     } else if (type == 'permit' ||
         type == 'late_permit' ||
@@ -670,6 +726,20 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
 
   static String _dateValue(DateTime value) =>
       '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
+
+  static Future<TimeOfDay?> _pickTime(
+    BuildContext context,
+    TimeOfDay? initial,
+  ) {
+    return showTimePicker(
+      context: context,
+      initialTime: initial ?? const TimeOfDay(hour: 9, minute: 0),
+    );
+  }
+
+  /// صيغة HH:MM ثابتة (الخادم يرفض "9:00" — يتطلب خانتين).
+  static String _formatTimeValue(TimeOfDay value) =>
+      '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
 }
 
 class _DateButton extends StatelessWidget {

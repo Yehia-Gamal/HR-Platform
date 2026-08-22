@@ -1,0 +1,6 @@
+{
+  "keystorePath": "release-keystore-v2.jks",
+  "storePassword": "<كلمة مرور الـ keystore>",
+  "keyPassword": "<كلمة مرور المفتاح>",
+  "keyAlias": "ahla-shabab"
+}

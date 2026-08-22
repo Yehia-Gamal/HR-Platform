@@ -78,6 +78,11 @@ describe('notificationTargetPath', () => {
     }
   });
 
+  it('يرسم التكليفات (work_assignments) إلى صفحة الطلبات حيث تُعرض', () => {
+    expect(notificationTargetPath(item({ entityType: 'work_assignments', entityId: 'asg-1' }), 'admin')).toBe('/admin/hr/requests');
+    expect(notificationTargetPath(item({ entityType: 'work_assignments', entityId: 'asg-1' }), 'hr')).toBe('/hr/requests');
+  });
+
   it('مساحة hr لا تملك صفحة نزاعات', () => {
     expect(notificationTargetPath(item({ entityType: 'dispute' }), 'hr')).toBeNull();
   });

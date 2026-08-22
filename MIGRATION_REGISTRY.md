@@ -219,6 +219,13 @@
 | 0407 | `0407_executive_attendance_today_fix.sql` | إصلاح executive_attendance_today. |
 | 0408 | `0408_mobile_operations_center_rpc.sql` | RPC مركز عمليات الموبايل. |
 | 0410 | `0410_fix_mobile_operations_center_cartesian.sql` | إصلاح الجداء الديكارتي في `get_mobile_operations_center` ومطابقة بوابته للويب (`reports.read` / `operations.*`). |
+| 0443 | `0443_deep_audit_phase1_hardening.sql` | تشديد RLS لـ learning_course_sessions + توحيد CHECK أنواع الطلبات السبعة + policy لـ password_reset_requests. |
+| 0444 | `0444_exclude_executive_from_attendance_and_lists.sql` | استبعاد المدير التنفيذي من الحضور والقوائم (10 دوال) + حذف overload بلا معاملات لـ get_executive_attendance_today. |
+| 0445 | `0445_grants_for_0444_functions_and_pgrst_reload.sql` | منح EXECUTE بدقة لدوال 0444 (revoke عن public/anon) + صلاحية is_employee_executive للمستدعي invoker + NOTIFY pgrst reload. |
+
+> **ملاحظة:** الإدخالات 0411–0442 موجودة في المجلد لكن لم تُوثَّق في هذا الجدول بعد — راجع أسماء الملفات مباشرة حتى يكتمل التوثيق.
+>
+> **سكربت نشر الدفعة 0443–0445 على الإنتاج:** `python scripts/deploy_audit_batch_0443_0445.py` (idempotent: يفحص المتتبَّع، يطبّق المفقود بالترتيب، ثم يشغّل فحوص التحقق القياسية).
 ---
 
 > ⚠️ **مخاطرة مؤجلة (0293 — سلة الصور العامة):** سلة `employee-avatars` عادت إلى `public = true` لإصلاح الصور المكسورة (يُخزَّن `photo_url` كرابط عام `object/public/...` ويُستهلك في الويب والموبايل والـ RPCs). هذا يعكس توصية التدقيق (0056) ويُعرّض صور الموظفين للقراءة العامة.

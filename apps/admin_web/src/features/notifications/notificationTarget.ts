@@ -25,6 +25,7 @@ const ENTITY_TYPE_PATHS: Record<NotificationWorkspace, Partial<Record<string, st
   admin: {
     request: '/admin/hr/requests',
     request_decision: '/admin/hr/requests',
+    work_assignments: '/admin/hr/requests',
     kpi: '/admin/performance/cycles',
     kpi_evaluation: '/admin/performance/cycles',
     attendance: '/admin/hr/attendance',
@@ -40,6 +41,7 @@ const ENTITY_TYPE_PATHS: Record<NotificationWorkspace, Partial<Record<string, st
   hr: {
     request: '/hr/requests',
     request_decision: '/hr/requests',
+    work_assignments: '/hr/requests',
     kpi: '/hr/performance',
     kpi_evaluation: '/hr/performance',
     attendance: '/hr/attendance',
