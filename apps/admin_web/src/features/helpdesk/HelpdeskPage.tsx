@@ -50,11 +50,21 @@ export function HelpdeskPage() {
 
   const data = useMemo(() => query.data ?? [], [query.data]);
   const term = search.trim().toLocaleLowerCase('ar');
+  // النقر على بطاقات الملخص يصفّي القائمة سريعاً.
+  const [quickFilter, setQuickFilter] = useState<'all' | 'open' | 'urgent' | 'resolved'>('all');
   const filtered = useMemo(() => {
     const rows = tab === 'mine' ? data.filter((t) => t.requester_employee_id === myEmployeeId) : data;
-    if (!term) return rows;
-    return rows.filter((t) => `${t.subject} ${t.category ?? ''} ${t.requester_name ?? ''}`.toLocaleLowerCase('ar').includes(term));
-  }, [data, tab, term, myEmployeeId]);
+    const byQuick =
+      quickFilter === 'all'
+        ? rows
+        : quickFilter === 'urgent'
+          ? rows.filter((t) => t.priority === 'urgent')
+          : quickFilter === 'open'
+            ? rows.filter((t) => ['open', 'in_progress'].includes(t.status))
+            : rows.filter((t) => ['resolved', 'closed'].includes(t.status));
+    if (!term) return byQuick;
+    return byQuick.filter((t) => `${t.subject} ${t.category ?? ''} ${t.requester_name ?? ''}`.toLocaleLowerCase('ar').includes(term));
+  }, [data, tab, term, myEmployeeId, quickFilter]);
 
   const openCount = data.filter((t) => ['open', 'in_progress'].includes(t.status)).length;
   const urgentCount = data.filter((t) => t.priority === 'urgent' && ['open', 'in_progress'].includes(t.status)).length;
@@ -106,10 +116,10 @@ export function HelpdeskPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="التذاكر المفتوحة" value={openCount} icon={Inbox} hint="مفتوحة أو قيد التنفيذ" />
-        <MetricCard label="عاجلة" value={urgentCount} icon={LifeBuoy} hint="بأولوية عاجلة مفتوحة" />
-        <MetricCard label="تم إغلاقها" value={resolvedCount} icon={CircleCheck} hint="محلولة أو مغلقة" />
-        <MetricCard label="الإجمالي" value={data.length} icon={Headphones} hint="كل التذاكر" />
+        <MetricCard label="التذاكر المفتوحة" value={openCount} icon={Inbox} hint="مفتوحة أو قيد التنفيذ" onClick={() => setQuickFilter('open')} />
+        <MetricCard label="عاجلة" value={urgentCount} icon={LifeBuoy} hint="بأولوية عاجلة مفتوحة" onClick={() => setQuickFilter('urgent')} />
+        <MetricCard label="تم إغلاقها" value={resolvedCount} icon={CircleCheck} hint="محلولة أو مغلقة" onClick={() => setQuickFilter('resolved')} />
+        <MetricCard label="الإجمالي" value={data.length} icon={Headphones} hint="كل التذاكر" onClick={() => setQuickFilter('all')} />
       </div>
 
       <div className="card flex items-center gap-4 p-2">

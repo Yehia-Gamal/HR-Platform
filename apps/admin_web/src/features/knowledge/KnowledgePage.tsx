@@ -92,9 +92,15 @@ export function KnowledgePage() {
         <MetricSkeletonRow count={3} />
       ) : (
         <section className="grid gap-3 sm:grid-cols-3">
-          <MetricCard label="مقالات منشورة" value={publishedCount} icon={BookOpen} hint="متاحة للجميع" />
-          <MetricCard label="مسودات" value={draftCount} icon={BookOpen} hint="غير منشورة" />
-          <MetricCard label="تصنيفات" value={categories.length} icon={FolderPlus} hint="فئات مُدارة" />
+          <MetricCard label="مقالات منشورة" value={publishedCount} icon={BookOpen} hint="متاحة للجميع" onClick={() => setStatusFilter('published')} />
+          <MetricCard label="مسودات" value={draftCount} icon={BookOpen} hint="غير منشورة" onClick={() => setStatusFilter('draft')} />
+          <MetricCard
+            label="تصنيفات"
+            value={categories.length}
+            icon={FolderPlus}
+            hint="فئات مُدارة"
+            onClick={canManageCategories ? () => setCategoryOpen(true) : undefined}
+          />
         </section>
       )}
 
