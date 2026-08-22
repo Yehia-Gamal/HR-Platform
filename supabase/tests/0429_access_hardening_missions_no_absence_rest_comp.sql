@@ -201,11 +201,11 @@ select is(
    where x->>'id' = '11111111-0000-4000-8000-000000000202'),
   'present',
   'حالة الزميل الحاضر في الدليل = present');
-select is(
-  (select x->>'statusToday' from jsonb_array_elements(public.get_mobile_employee_directory(null, 100)) x
-   where x->>'id' = '11111111-0000-4000-8000-000000000205'),
-  'absent',
-  'حالة من لا سجل له في الدليل = absent');
+-- 0444: المدير التنفيذي مستبعد من دليل الموظفين بالكامل
+select ok(
+  not exists (select 1 from jsonb_array_elements(public.get_mobile_employee_directory(null, 100)) x
+    where x->>'id' = '11111111-0000-4000-8000-000000000205'),
+  'المدير التنفيذي مستبعد من دليل الموظفين (0444)');
 select ok(
   not exists (select 1 from jsonb_array_elements(public.get_mobile_employee_directory(null, 100)) x
     where x ? 'lateMinutes' or x ? 'workDate' or x ? 'leaveBalance'),
