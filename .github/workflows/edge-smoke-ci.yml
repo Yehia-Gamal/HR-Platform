@@ -27,6 +27,11 @@ jobs:
         # مثبَّت — الإصدارات الأحدث (2.115+) تكسر supabase start في بيئة نظيفة
         run: npm install -g supabase@2.111.0
 
+      # تخفيف Docker Hub rate limit عند توفر التوكنات (اختياري — يُتجاهل بلا أسرار)
+      - name: Docker Hub login
+        continue-on-error: true
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
       # contracts.ts يجسر إلى packages/shared-contracts/dist — يجب بناؤه
       # قبل functions serve وإلا فشل تحميل الدوال
       - name: Build shared contracts
@@ -36,7 +41,8 @@ jobs:
 
       - name: Start Supabase
         run: |
-          npx supabase start
+          # استثناء خدمات غير لازمة للاختبار الدخاني (يقلل سحب الصور ويسرّع الإقلاع)
+          npx supabase start -x studio,imgproxy,mailpit,logflare,vector,realtime,supavisor
           echo "Waiting for services to be ready..."
           sleep 10
 

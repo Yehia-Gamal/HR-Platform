@@ -14,7 +14,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx supabase start
+      # تخفيف Docker Hub rate limit عند توفر التوكنات (اختياري — يُتجاهل بلا أسرار)
+      - name: Docker Hub login
+        continue-on-error: true
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      # استثناء خدمات غير لازمة لاختبارات pgTAP — toomanyrequests أوقع الجوب
+      # مراراً على runners ذات IP مشترك، والاستثناءات تقلل السحب وتسرّع الإقلاع
+      - run: npx supabase start -x studio,imgproxy,mailpit,logflare,vector,realtime,supavisor
       # Reset + test twice: proves the build is repeatable from an empty
       # database and does not depend on leftover state (plan gate P0.3).
       - run: npx supabase db reset
