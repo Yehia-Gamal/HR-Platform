@@ -152,6 +152,7 @@ export function RequestsPage() {
               value={balance.availableUnits}
               hint={`محجوز ${balance.reservedUnits} · مستهلك ${balance.consumedUnits}`}
               icon={CalendarDays}
+              onClick={() => setTypeTab('leave')}
             />
           ))}
         </section>

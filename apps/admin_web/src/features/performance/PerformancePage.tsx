@@ -129,11 +129,11 @@ export function PerformancePage() {
         </section>
       ) : null}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <MetricCard label="إجمالي التقييمات" value={counts.total} icon={UsersRound} />
-        <MetricCard label="مراجعة متوازية" value={counts.parallel} icon={Gauge} />
-        <MetricCard label="عند المديرين" value={counts.manager} icon={Gauge} />
-        <MetricCard label="عند HR" value={counts.hr} icon={Gauge} />
-        <MetricCard label="المكتملة" value={counts.completed} icon={CheckCircle2} />
+        <MetricCard label="إجمالي التقييمات" value={counts.total} icon={UsersRound} onClick={() => setStage('all')} />
+        <MetricCard label="مراجعة متوازية" value={counts.parallel} icon={Gauge} onClick={() => setStage('parallel_review')} />
+        <MetricCard label="عند المديرين" value={counts.manager} icon={Gauge} onClick={() => setStage('manager_review')} />
+        <MetricCard label="عند HR" value={counts.hr} icon={Gauge} onClick={() => setStage('hr_review')} />
+        <MetricCard label="المكتملة" value={counts.completed} icon={CheckCircle2} onClick={() => setStage('finalized')} />
       </section>
       <FilterBar
         searchValue={search}

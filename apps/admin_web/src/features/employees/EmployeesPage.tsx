@@ -54,7 +54,11 @@ export function EmployeesPage() {
           employee.fullNameAr.toLowerCase().includes(query) ||
           employee.employeeCode.toLowerCase().includes(query) ||
           employee.phoneE164?.includes(query);
-        return matchesQuery && (status === 'all' || employee.status === status);
+        return matchesQuery &&
+          (status === 'all' ||
+            (status === 'inactive'
+              ? ['suspended', 'terminated', 'archived'].includes(employee.status)
+              : employee.status === status));
       })
       .sort((a, b) => {
         if (sort === 'name') return a.fullNameAr.localeCompare(b.fullNameAr, 'ar');
@@ -228,15 +232,16 @@ export function EmployeesPage() {
       ) : (
         <>
           <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="إجمالي الملفات" value={all.length} icon={UsersRound} hint="جميع الحالات داخل نطاقك" />
+            <MetricCard label="إجمالي الملفات" value={all.length} icon={UsersRound} hint="جميع الحالات داخل نطاقك" onClick={() => setStatus('all')} />
             <MetricCard
               label="موظفون نشطون"
               value={active}
               icon={UserRound}
               hint={all.length ? `${Math.round((active / all.length) * 100)}% من الملفات` : 'لا توجد بيانات'}
+              onClick={() => setStatus('active')}
             />
-            <MetricCard label="تهيئة ودعوات" value={onboarding} icon={RefreshCw} hint="لم تكتمل رحلة التفعيل" />
-            <MetricCard label="موقوف أو منتهي" value={inactive} icon={ArrowUpDown} hint="سجلات محفوظة للتاريخ والتدقيق" />
+            <MetricCard label="تهيئة ودعوات" value={onboarding} icon={RefreshCw} hint="لم تكتمل رحلة التفعيل" onClick={() => setStatus('onboarding')} />
+            <MetricCard label="موقوف أو منتهي" value={inactive} icon={ArrowUpDown} hint="سجلات محفوظة للتاريخ والتدقيق" onClick={() => setStatus('inactive')} />
           </section>
 
           <FilterBar
@@ -261,6 +266,7 @@ export function EmployeesPage() {
               <option value="notice_period">فترة إخطار</option>
               <option value="terminated">منتهي</option>
               <option value="archived">مؤرشف</option>
+              <option value="inactive">موقوف أو منتهي (الكل)</option>
             </select>
             <select className="input" value={sort} onChange={(event) => setSort(event.target.value as SortMode)} aria-label="ترتيب الموظفين">
               <option value="newest">الأحدث إضافة</option>

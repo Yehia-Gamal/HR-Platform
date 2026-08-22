@@ -134,10 +134,10 @@ export function GovernancePage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="مخاطر حرجة" value={criticalRisks} icon={ShieldAlert} hint="بشدة مرتفعة أو حرجة" />
-        <MetricCard label="مخاطر مفتوحة" value={openRisks} icon={AlertTriangle} hint="قيد التقييم أو المعالجة" />
-        <MetricCard label="حوادث مفتوحة" value={openIncidents} icon={AlertTriangle} hint="مفتوحة أو قيد التحقيق" />
-        <MetricCard label="إجمالي الحوادث" value={incidents.length} icon={ClipboardList} hint="كل الحوادث المسجلة" />
+        <MetricCard label="مخاطر حرجة" value={criticalRisks} icon={ShieldAlert} hint="بشدة مرتفعة أو حرجة" onClick={() => setTab('risks')} />
+        <MetricCard label="مخاطر مفتوحة" value={openRisks} icon={AlertTriangle} hint="قيد التقييم أو المعالجة" onClick={() => setTab('risks')} />
+        <MetricCard label="حوادث مفتوحة" value={openIncidents} icon={AlertTriangle} hint="مفتوحة أو قيد التحقيق" onClick={() => setTab('incidents')} />
+        <MetricCard label="إجمالي الحوادث" value={incidents.length} icon={ClipboardList} hint="كل الحوادث المسجلة" onClick={() => setTab('incidents')} />
       </div>
 
       <div className="card flex items-center gap-4 p-2">

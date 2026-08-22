@@ -212,10 +212,20 @@ export function KpiCyclesPage() {
       ) : (
         <>
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="الدورات" value={totals.cycles} icon={CalendarDays} />
-            <MetricCard label="التقييمات" value={totals.evaluations} icon={UsersRound} />
-            <MetricCard label="المدرجة في التقارير" value={totals.finalized} icon={CheckCircle2} />
-            <MetricCard label="الاعتراضات" value={totals.appeals} icon={Scale} />
+            <MetricCard
+              label="الدورات"
+              value={totals.cycles}
+              icon={CalendarDays}
+              onClick={() => document.getElementById('cycles-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
+            <MetricCard label="التقييمات" value={totals.evaluations} icon={UsersRound} to="../performance" />
+            <MetricCard label="المدرجة في التقارير" value={totals.finalized} icon={CheckCircle2} to="../performance" />
+            <MetricCard
+              label="الاعتراضات"
+              value={totals.appeals}
+              icon={Scale}
+              onClick={() => document.getElementById('appeals-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
           </section>
 
           {data?.canManageCycles ? (
@@ -236,7 +246,7 @@ export function KpiCyclesPage() {
             </form>
           ) : null}
 
-          <section className="space-y-3">
+          <section id="cycles-list" className="space-y-3">
             {data?.cycles.length === 0 ? (
               <EmptyState title="لا توجد دورات" description="جهّز دورة الشهر من البطاقة السابقة." />
             ) : (
@@ -504,7 +514,7 @@ export function KpiCyclesPage() {
             </section>
           ) : null}
 
-          <section className="card p-5">
+          <section id="appeals-section" className="card p-5">
             <h2 className="text-lg font-black">اعتراضات التقييم</h2>
             {data?.appeals.length === 0 ? (
               <EmptyState title="لا توجد اعتراضات معلقة" description="تظهر هنا الاعتراضات على النتائج المعتمدة." />

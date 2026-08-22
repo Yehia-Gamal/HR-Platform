@@ -110,51 +110,51 @@ export function ReportsPage() {
         <>
           {/* الحضور */}
           <ReportSection title="الحضور" description="إحصائيات أحداث الحضور والانصراف">
-            <MetricCard label="إجمالي الأحداث" value={num(d.attendance.totalEvents)} icon={Clock} />
-            <MetricCard label="تسجيل دخول اليوم" value={num(d.attendance.checkIns)} icon={UserCheck} />
-            <MetricCard label="تسجيل خروج اليوم" value={num(d.attendance.checkOuts)} icon={UserMinus} />
-            <MetricCard label="بانتظار المراجعة" value={num(d.attendance.pendingReview)} icon={Inbox} hint="تصحيحات واستثناءات" />
-            <MetricCard label="هذا الشهر" value={num(d.attendance.thisMonth)} icon={CalendarDays} />
+            <MetricCard label="إجمالي الأحداث" value={num(d.attendance.totalEvents)} icon={Clock} to="../attendance" />
+            <MetricCard label="تسجيل دخول اليوم" value={num(d.attendance.checkIns)} icon={UserCheck} to="../attendance/details" />
+            <MetricCard label="تسجيل خروج اليوم" value={num(d.attendance.checkOuts)} icon={UserMinus} to="../attendance/details" />
+            <MetricCard label="بانتظار المراجعة" value={num(d.attendance.pendingReview)} icon={Inbox} hint="تصحيحات واستثناءات" to="../attendance" />
+            <MetricCard label="هذا الشهر" value={num(d.attendance.thisMonth)} icon={CalendarDays} to="../attendance/report" />
           </ReportSection>
 
           {/* الإجازات */}
           <ReportSection title="الإجازات" description="طلبات الإجازة وحالتها">
-            <MetricCard label="إجمالي الطلبات" value={num(d.leaves.totalRequests)} icon={Inbox} />
-            <MetricCard label="معتمدة" value={num(d.leaves.approved)} icon={UserCheck} />
-            <MetricCard label="معلقة" value={num(d.leaves.pending)} icon={Clock} />
-            <MetricCard label="مرفوضة" value={num(d.leaves.rejected)} icon={FileWarning} />
-            <MetricCard label="إجازات حالية" value={num(d.leaves.activeNow)} icon={CalendarDays} hint="موظفون في إجازة الآن" />
+            <MetricCard label="إجمالي الطلبات" value={num(d.leaves.totalRequests)} icon={Inbox} to="../leaves" />
+            <MetricCard label="معتمدة" value={num(d.leaves.approved)} icon={UserCheck} to="../leaves" />
+            <MetricCard label="معلقة" value={num(d.leaves.pending)} icon={Clock} to="../leaves" />
+            <MetricCard label="مرفوضة" value={num(d.leaves.rejected)} icon={FileWarning} to="../leaves" />
+            <MetricCard label="إجازات حالية" value={num(d.leaves.activeNow)} icon={CalendarDays} hint="موظفون في إجازة الآن" to="../holidays" />
           </ReportSection>
 
           {/* التكليفات */}
           <ReportSection title="التكليفات" description="المهام والتكليفات الخارجية">
-            <MetricCard label="الإجمالي" value={num(d.assignments.total)} icon={Briefcase} />
-            <MetricCard label="نشطة" value={num(d.assignments.active)} icon={Activity} />
-            <MetricCard label="مكتملة" value={num(d.assignments.completed)} icon={UserCheck} />
-            <MetricCard label="معلقة" value={num(d.assignments.pending)} icon={Clock} />
+            <MetricCard label="الإجمالي" value={num(d.assignments.total)} icon={Briefcase} to="../requests" />
+            <MetricCard label="نشطة" value={num(d.assignments.active)} icon={Activity} to="../requests" />
+            <MetricCard label="مكتملة" value={num(d.assignments.completed)} icon={UserCheck} to="../requests" />
+            <MetricCard label="معلقة" value={num(d.assignments.pending)} icon={Clock} to="../requests" />
           </ReportSection>
 
           {/* الأداء */}
           <ReportSection title="الأداء (KPI)" description="دورات التقييم والمؤشرات">
-            <MetricCard label="دورات نشطة" value={num(d.kpi.activeCycles)} icon={Target} />
-            <MetricCard label="إجمالي التقييمات" value={num(d.kpi.totalEvaluations)} icon={Users} />
-            <MetricCard label="بانتظار التقييم" value={num(d.kpi.pendingEvaluations)} icon={Clock} hint="لم تُعتمد بعد" />
-            <MetricCard label="مكتملة" value={num(d.kpi.completedEvaluations)} icon={UserCheck} />
+            <MetricCard label="دورات نشطة" value={num(d.kpi.activeCycles)} icon={Target} to="/admin/performance/cycles" />
+            <MetricCard label="إجمالي التقييمات" value={num(d.kpi.totalEvaluations)} icon={Users} to="../performance" />
+            <MetricCard label="بانتظار التقييم" value={num(d.kpi.pendingEvaluations)} icon={Clock} hint="لم تُعتمد بعد" to="../performance" />
+            <MetricCard label="مكتملة" value={num(d.kpi.completedEvaluations)} icon={UserCheck} to="../performance" />
           </ReportSection>
 
           {/* النزاعات */}
           <ReportSection title="النزاعات" description="حالة التظلمات والشكاوى">
-            <MetricCard label="الإجمالي" value={num(d.disputes.total)} icon={Scale} />
-            <MetricCard label="مفتوحة" value={num(d.disputes.open)} icon={FileWarning} />
-            <MetricCard label="محلولة" value={num(d.disputes.resolved)} icon={UserCheck} />
-            <MetricCard label="مصعّدة" value={num(d.disputes.escalated)} icon={Activity} />
+            <MetricCard label="الإجمالي" value={num(d.disputes.total)} icon={Scale} to="/admin/disputes" />
+            <MetricCard label="مفتوحة" value={num(d.disputes.open)} icon={FileWarning} to="/admin/disputes" />
+            <MetricCard label="محلولة" value={num(d.disputes.resolved)} icon={UserCheck} to="/admin/disputes" />
+            <MetricCard label="مصعّدة" value={num(d.disputes.escalated)} icon={Activity} to="/admin/disputes" />
           </ReportSection>
 
           {/* الموقع */}
           <ReportSection title="طلبات الموقع" description="طلبات تحديد الموقع الجغرافي">
-            <MetricCard label="إجمالي الطلبات" value={num(d.location.totalRequests)} icon={MapPin} />
-            <MetricCard label="معلقة" value={num(d.location.pending)} icon={Clock} />
-            <MetricCard label="تمت الاستجابة" value={num(d.location.responded)} icon={UserCheck} />
+            <MetricCard label="إجمالي الطلبات" value={num(d.location.totalRequests)} icon={MapPin} to="/admin/live-location" />
+            <MetricCard label="معلقة" value={num(d.location.pending)} icon={Clock} to="/admin/live-location" />
+            <MetricCard label="تمت الاستجابة" value={num(d.location.responded)} icon={UserCheck} to="/admin/live-location" />
           </ReportSection>
 
           {/* بيانات التوليد */}

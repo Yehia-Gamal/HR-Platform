@@ -69,10 +69,15 @@ export function AttendanceOperationsPage() {
       ) : (
         <>
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="الأيام المجدولة" value={data.summary.scheduled} icon={CalendarClock} />
-            <MetricCard label="الحضور" value={data.summary.present} icon={CheckCircle2} />
-            <MetricCard label="الغياب" value={data.summary.absent} icon={UsersRound} />
-            <MetricCard label="إضافي معلق" value={data.summary.pendingOvertime} icon={Clock3} />
+            <MetricCard label="الأيام المجدولة" value={data.summary.scheduled} icon={CalendarClock} to="../report" />
+            <MetricCard label="الحضور" value={data.summary.present} icon={CheckCircle2} to="../report" />
+            <MetricCard label="الغياب" value={data.summary.absent} icon={UsersRound} to="../report" />
+            <MetricCard
+              label="إضافي معلق"
+              value={data.summary.pendingOvertime}
+              icon={Clock3}
+              onClick={() => document.getElementById('overtime-requests')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
           </section>
 
           <section className="grid gap-6 xl:grid-cols-[380px_1fr]">
@@ -248,7 +253,7 @@ export function AttendanceOperationsPage() {
                 إغلاق الشهر
               </button>
             </div>
-            <div className="card p-5">
+            <div id="overtime-requests" className="card p-5">
               <h2 className="text-lg font-black">العمل الإضافي</h2>
               {data && data.overtime.length === 0 ? (
                 <EmptyState title="لا يوجد عمل إضافي" description="طلبات العمل الإضافي في الشهر المحدد ستظهر هنا." />

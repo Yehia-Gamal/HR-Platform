@@ -1,4 +1,5 @@
 import { AlertCircle, ArrowLeft, ClipboardList, Clock3, FileCheck2, Gavel, Inbox, Landmark, Megaphone, PenLine } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -25,6 +26,12 @@ export function ActionCenterPage() {
   const query = useActionCenter();
   const items = query.data ?? [];
   const isInitialLoading = query.isLoading && items.length === 0;
+  // النقر على بطاقات الملخص يصفّي القائمة حسب الأولوية.
+  const [priority, setPriority] = useState<'all' | 'urgent' | 'high'>('all');
+  const visible = useMemo(
+    () => (priority === 'all' ? items : items.filter((x) => x.priority === priority)),
+    [items, priority],
+  );
 
   return (
     <div className="space-y-6">
@@ -38,9 +45,9 @@ export function ActionCenterPage() {
         <MetricSkeletonRow count={3} />
       ) : (
         <section className="grid gap-4 sm:grid-cols-3">
-          <MetricCard label="إجمالي العناصر" value={items.length} icon={Inbox} />
-          <MetricCard label="عاجل" value={items.filter((x) => x.priority === 'urgent').length} icon={AlertCircle} />
-          <MetricCard label="مرتفع" value={items.filter((x) => x.priority === 'high').length} icon={Clock3} />
+          <MetricCard label="إجمالي العناصر" value={items.length} icon={Inbox} onClick={() => setPriority('all')} />
+          <MetricCard label="عاجل" value={items.filter((x) => x.priority === 'urgent').length} icon={AlertCircle} onClick={() => setPriority('urgent')} />
+          <MetricCard label="مرتفع" value={items.filter((x) => x.priority === 'high').length} icon={Clock3} onClick={() => setPriority('high')} />
         </section>
       )}
 
@@ -48,11 +55,14 @@ export function ActionCenterPage() {
         <ErrorState title="تعذر تحميل مركز الإجراءات" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
       ) : isInitialLoading ? (
         <ListSkeleton rows={3} label="جارٍ تحميل الإجراءات" />
-      ) : items.length === 0 ? (
-        <EmptyState title="لا توجد إجراءات معلقة" description="لا توجد عناصر تحتاج تدخلك حاليًا." />
+      ) : visible.length === 0 ? (
+        <EmptyState
+          title={priority === 'all' ? 'لا توجد إجراءات معلقة' : 'لا توجد عناصر بهذه الأولوية'}
+          description={priority === 'all' ? 'لا توجد عناصر تحتاج تدخلك حاليًا.' : 'جرّب أولوية أخرى أو اعرض الكل.'}
+        />
       ) : (
         <section className="space-y-3">
-          {items.map((item) => {
+          {visible.map((item) => {
             const meta = KIND_META[item.kind] ?? KIND_META.task;
             const Icon = meta.icon;
             return (

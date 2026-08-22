@@ -324,6 +324,9 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
   const [dayFilter, setDayFilter] = useState<DayFilter>('all');
   const [daySort, setDaySort] = useState<DaySort>('date-asc');
   const [daySearch, setDaySearch] = useState('');
+  // النقر على بطاقات الملخص يفلتر الأيام ثم ينزل إلى جدولها.
+  const scrollToDays = () =>
+    document.getElementById('day-filters')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   const filteredSortedDays = useMemo(() => sortDays(filterDays(data.days, dayFilter, daySearch), daySort), [data.days, dayFilter, daySort, daySearch]);
 
   // بيانات خريطة الحضور: في الوضع الوهمي نُولّد 30 يومًا عشوائية للعرض؛
@@ -371,21 +374,86 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
           <AttendancePercentageRing percentage={s.coverageRate} label="تغطية الأيام" />
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 print:grid-cols-4">
-          <MetricCard label="أيام الحضور" value={presentInDue} hint={`من ${dueDays} يوم عمل في الشهر`} icon={UserCheck} />
-          <MetricCard label="أيام الغياب" value={s.absentDays} icon={AlertTriangle} />
-          <MetricCard label="وردية مفتوحة" value={s.openShiftDays} hint="حاضر — بانتظار الانصراف" icon={Clock} />
-          <MetricCard label="أيام قادمة" value={s.upcomingDays} hint={`من ${s.scheduledDays} مجدولة شهريًا`} icon={CalendarDays} />
-          <MetricCard label="أيام الإجازات" value={s.leaveDays} icon={CalendarDays} />
-          <MetricCard label="أيام المأموريات" value={s.missionDays} icon={TrendingUp} />
-          <MetricCard label="إذنات" value={s.permitCount} icon={Clock} />
-          <MetricCard label="قوافل/فاندي" value={s.convoyFundiDays} icon={CalendarDays} />
+          <MetricCard
+            label="أيام الحضور"
+            value={presentInDue}
+            hint={`من ${dueDays} يوم عمل في الشهر`}
+            icon={UserCheck}
+            onClick={() => {
+              setDayFilter('present');
+              scrollToDays();
+            }}
+          />
+          <MetricCard
+            label="أيام الغياب"
+            value={s.absentDays}
+            icon={AlertTriangle}
+            onClick={() => {
+              setDayFilter('absent');
+              scrollToDays();
+            }}
+          />
+          <MetricCard
+            label="وردية مفتوحة"
+            value={s.openShiftDays}
+            hint="حاضر — بانتظار الانصراف"
+            icon={Clock}
+            onClick={() => {
+              setDayFilter('open');
+              scrollToDays();
+            }}
+          />
+          <MetricCard
+            label="أيام قادمة"
+            value={s.upcomingDays}
+            hint={`من ${s.scheduledDays} مجدولة شهريًا`}
+            icon={CalendarDays}
+            onClick={() => {
+              setDayFilter('upcoming');
+              scrollToDays();
+            }}
+          />
+          <MetricCard
+            label="أيام الإجازات"
+            value={s.leaveDays}
+            icon={CalendarDays}
+            onClick={() => {
+              setDayFilter('leave');
+              scrollToDays();
+            }}
+          />
+          <MetricCard
+            label="أيام المأموريات"
+            value={s.missionDays}
+            icon={TrendingUp}
+            onClick={() => {
+              setDayFilter('mission');
+              scrollToDays();
+            }}
+          />
+          <MetricCard
+            label="إذنات"
+            value={s.permitCount}
+            icon={Clock}
+            onClick={scrollToDays}
+          />
+          <MetricCard
+            label="قوافل/فاندي"
+            value={s.convoyFundiDays}
+            icon={CalendarDays}
+            onClick={() => {
+              setDayFilter('convoy');
+              scrollToDays();
+            }}
+          />
           <MetricCard
             label="ساعات العمل"
             value={workedHours.toFixed(1)}
             hint={complianceAvailable ? `من ${requiredHours.toFixed(1)} س شهريًا | عجز ${deficitHours.toFixed(1)} س` : 'الساعات المطلوبة غير متاحة'}
             icon={Timer}
+            onClick={scrollToDays}
           />
-          <MetricCard label="ساعات إضافية" value={`${s.totalOvertimeMinutes} د`} icon={ArrowUpRight} />
+          <MetricCard label="ساعات إضافية" value={`${s.totalOvertimeMinutes} د`} icon={ArrowUpRight} onClick={scrollToDays} />
         </div>
       </div>
 
@@ -400,7 +468,7 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
       </div>
 
       {/* فلترة الأيام */}
-      <div className="filter-bar print:hidden">
+      <div id="day-filters" className="filter-bar print:hidden">
         <div className="filter-bar-heading">
           <span className="filter-bar-title">
             <Filter className="size-3.5" aria-hidden="true" />

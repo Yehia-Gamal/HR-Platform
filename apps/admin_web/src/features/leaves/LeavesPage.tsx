@@ -381,10 +381,10 @@ export function LeavesPage() {
         <MetricSkeletonRow />
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <MetricCard label="إجمالي الطلبات" value={metrics.total} icon={CalendarDays} />
-          <MetricCard label="قيد المراجعة" value={metrics.pending} icon={Clock3} />
-          <MetricCard label="معتمدة" value={metrics.approved} icon={Check} />
-          <MetricCard label="مرفوضة" value={metrics.rejected} icon={FileX} />
+          <MetricCard label="إجمالي الطلبات" value={metrics.total} icon={CalendarDays} onClick={() => setStatus('')} />
+          <MetricCard label="بانتظار الموافقة" value={metrics.pending} icon={Clock3} onClick={() => setStatus('pending')} />
+          <MetricCard label="معتمد" value={metrics.approved} icon={Check} onClick={() => setStatus('approved')} />
+          <MetricCard label="مرفوض" value={metrics.rejected} icon={FileX} onClick={() => setStatus('rejected')} />
         </div>
       )}
 
