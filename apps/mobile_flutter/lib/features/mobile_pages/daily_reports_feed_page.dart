@@ -22,6 +22,8 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
   bool _viewsRecorded = false;
   final _searchCtrl = TextEditingController();
   String _search = '';
+  /// فلتر القسم النشط — فارغ يعني «الكل». يُبنى تلقائياً من أقسام التقارير المحمّلة.
+  String _deptFilter = '';
 
   @override
   void dispose() {
@@ -117,9 +119,23 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
           ),
         ),
         data: (rawItems) {
-          final items = _search.isEmpty
+          // فلتر الأقسام: يُبنى من الأقسام الظاهرة فعلياً في التقارير المحمّلة.
+          final departments = <String>{
+            for (final item in rawItems)
+              if ((item['department'] as String? ?? '').trim().isNotEmpty)
+                (item['department'] as String).trim(),
+          }.toList()
+            ..sort();
+          final byDept = _deptFilter.isEmpty
               ? rawItems
-              : rawItems.where((item) {
+              : rawItems
+                  .where((item) =>
+                      (item['department'] as String? ?? '').trim() ==
+                      _deptFilter)
+                  .toList(growable: false);
+          final items = _search.isEmpty
+              ? byDept
+              : byDept.where((item) {
                   final name = (item['employeeName'] as String? ?? '').toLowerCase();
                   final dept = (item['department'] as String? ?? '').toLowerCase();
                   final job = (item['jobTitle'] as String? ?? '').toLowerCase();
@@ -144,62 +160,84 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
               }
             });
           }
+          // شريط رقائق الأقسام يظهر فقط مع أكثر من قسم حتى لا يشوّش القوائم الصغيرة.
+          final Widget? deptChips = departments.length > 1
+              ? _DepartmentFilterRow(
+                  departments: departments,
+                  selected: _deptFilter,
+                  onSelect: (value) => setState(() => _deptFilter = value),
+                )
+              : null;
           if (items.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.article_outlined,
-                      size: 64, color: scheme.outline),
-                  const SizedBox(height: 16),
-                  Text(
-                    _search.isNotEmpty
-                        ? 'لا توجد تقارير مطابقة للبحث'
-                        : 'لا توجد تقارير بعد',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            return Column(
+              children: [
+              ?deptChips,
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.article_outlined,
+                            size: 64, color: scheme.outline),
+                        const SizedBox(height: 16),
+                        Text(
+                          _search.isNotEmpty || _deptFilter.isNotEmpty
+                              ? 'لا توجد تقارير مطابقة للفلتر'
+                              : 'لا توجد تقارير بعد',
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _search.isNotEmpty || _deptFilter.isNotEmpty
+                              ? 'جرّب قسمًا آخر أو امسح البحث.'
+                              : 'عندما يرفع الموظفون تقاريرهم اليومية ستظهر هنا.',
+                          style: TextStyle(color: scheme.onSurfaceVariant),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _search.isNotEmpty
-                        ? 'جرّب البحث بكلمات أخرى أو مسح حقل البحث.'
-                        : 'عندما يرفع الموظفون تقاريرهم اليومية ستظهر هنا.',
-                    style: TextStyle(color: scheme.onSurfaceVariant),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
+                ),
+              ],
             );
           }
-          return RefreshIndicator(
-            onRefresh: () async =>
-                ref.invalidate(dailyReportsFeedProvider(null)),
-            child: ListView.builder(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                final item = items[index];
-                return _ReportCard(
-                  item: item,
-                  isExpanded: _expanded.contains(item['id']),
-                  onToggleExpand: () => setState(() {
-                    final id = item['id'] as String;
-                    if (_expanded.contains(id)) {
-                      _expanded.remove(id);
-                    } else {
-                      _expanded.add(id);
-                    }
-                  }),
-                  commentController: _commentCtrl(item['id'] as String),
-                  onLike: () => _onLike(item['id'] as String),
-                  onComment: () => _onComment(item['id'] as String),
-                  onDeleteComment: (commentId) =>
-                      _onDeleteComment(commentId),
-                  onShowEngagement: () =>
-                      _showEngagement(item['id'] as String),
-                );
-              },
-            ),
+          return Column(
+            children: [
+                ?deptChips,
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async =>
+                      ref.invalidate(dailyReportsFeedProvider(null)),
+                  child: ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return _ReportCard(
+                        item: item,
+                        isExpanded: _expanded.contains(item['id']),
+                        onToggleExpand: () => setState(() {
+                          final id = item['id'] as String;
+                          if (_expanded.contains(id)) {
+                            _expanded.remove(id);
+                          } else {
+                            _expanded.add(id);
+                          }
+                        }),
+                        commentController: _commentCtrl(item['id'] as String),
+                        onLike: () => _onLike(item['id'] as String),
+                        onComment: () => _onComment(item['id'] as String),
+                        onDeleteComment: (commentId) =>
+                            _onDeleteComment(commentId),
+                        onShowEngagement: () =>
+                            _showEngagement(item['id'] as String),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -1004,6 +1042,66 @@ class _EngagementRow extends StatelessWidget {
             Text(
               detail,
               style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// شريط رقائق فلتر الأقسام — يُبنى تلقائياً من الأقسام الموجودة في التقارير.
+class _DepartmentFilterRow extends StatelessWidget {
+  const _DepartmentFilterRow({
+    required this.departments,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  final List<String> departments;
+  final String selected;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      height: 46,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
+        children: [
+          for (final entry in <MapEntry<String, String>>[
+            const MapEntry('الكل', ''),
+            ...departments.map((d) => MapEntry(d, d)),
+          ])
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: 8),
+              child: Material(
+                color: selected == entry.value
+                    ? scheme.primary
+                    : scheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(99),
+                child: InkWell(
+                  onTap: () => onSelect(entry.value),
+                  borderRadius: BorderRadius.circular(99),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    child: Text(
+                      entry.key,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        color: selected == entry.value
+                            ? scheme.onPrimary
+                            : scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
         ],
       ),
