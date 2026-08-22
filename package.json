@@ -14,7 +14,7 @@
         "test": "npm run test --workspace @ahla/shared-contracts && npm run test --workspace @ahla/admin-web",
         "test:coverage": "npm run test:coverage --workspace @ahla/admin-web",
         "typecheck": "npm run typecheck --workspace @ahla/shared-contracts && npm run typecheck --workspace @ahla/admin-web",
-        "check": "npm run typecheck && npm run build --workspace @ahla/shared-contracts && npm run test && npm run build",
+        "check": "node scripts/check-no-bom.mjs && npm run typecheck && npm run build --workspace @ahla/shared-contracts && npm run test && npm run build",
         "manifest": "node scripts/generate-manifest.mjs",
         "check:dart-source": "python3 scripts/validate_dart_sources.py",
         "check:migrations": "node scripts/check-migrations-integrity.mjs && node scripts/check-function-refs.mjs && node scripts/generate-migrations-manifest.mjs",
