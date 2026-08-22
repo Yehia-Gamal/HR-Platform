@@ -3,6 +3,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dar
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_self_service_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -54,49 +55,61 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
     AsyncValue<List<MobileLeaveBalance>> balances,
   ) {
     return RefreshIndicator(
-        onRefresh: () async => ref.invalidate(mobileRequestsProvider),
-        child: requests.when(
-          loading: () => ListView(
-            children: const [
-              SizedBox(height: 260),
-              Center(child: CircularProgressIndicator(semanticsLabel: 'جاري التحميل')),
-            ],
-          ),
-          error: (error, _) => ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              Text(
-                humanizeError(error),
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: () => ref.invalidate(mobileRequestsProvider),
-                child: const Text('إعادة المحاولة'),
-              ),
-            ],
-          ),
-          data: (items) => ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
-            children: [
-              ...[
-                const MobileSectionHeader(title: 'أرصدة الإجازات'),
-                const SizedBox(height: 10),
-                balances.when(
-                  loading: () => const LinearProgressIndicator(),
-                  error: (_, _) => const Text('تعذر تحميل الأرصدة الآن.'),
-                  data: (values) => SizedBox(
-                    height: 116,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: values.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 10),
-                      itemBuilder: (context, index) {
-                        final balance = values[index];
-                        return SizedBox(
-                          width: 190,
-                          child: Card(
+      onRefresh: () async => ref.invalidate(mobileRequestsProvider),
+      child: requests.when(
+        loading: () => ListView(
+          children: const [
+            SizedBox(height: 260),
+            Center(
+              child: CircularProgressIndicator(semanticsLabel: 'جاري التحميل'),
+            ),
+          ],
+        ),
+        error: (error, _) => ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
+            Text(
+              humanizeError(error),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () => ref.invalidate(mobileRequestsProvider),
+              child: const Text('إعادة المحاولة'),
+            ),
+          ],
+        ),
+        data: (items) => ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
+          children: [
+            ...[
+              const MobileSectionHeader(title: 'أرصدة الإجازات'),
+              const SizedBox(height: 10),
+              balances.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (_, _) => const Text('تعذر تحميل الأرصدة الآن.'),
+                data: (values) => SizedBox(
+                  height: 116,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: values.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 10),
+                    itemBuilder: (context, index) {
+                      final balance = values[index];
+                      return SizedBox(
+                        width: 190,
+                        child: Card(
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            // النقر على رصيد الإجازة يفتح الخدمة الذاتية
+                            // حيث يُقدَّم طلب الإجازة الجديد.
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const MobileSelfServicePage(),
+                              ),
+                            ),
                             child: Padding(
                               padding: const EdgeInsets.all(14),
                               child: Column(
@@ -126,65 +139,66 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                               ),
                             ),
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      );
+                    },
                   ),
                 ),
-                const SizedBox(height: 18),
-              ],
-              const MobileSectionHeader(title: 'طلباتي'),
-              const SizedBox(height: 10),
-              MobileFilterBar(
-                searchHint: 'بحث بالاسم أو العنوان أو رقم الطلب',
-                controller: _searchController,
-                onSearchChanged: (value) =>
-                    setState(() => _search = value.trim().toLowerCase()),
-                options: const [
-                  MobileFilterOption('all', 'الكل'),
-                  MobileFilterOption('pending', 'قيد المراجعة'),
-                  MobileFilterOption('approved', 'معتمد'),
-                  MobileFilterOption('rejected', 'مرفوض'),
-                  MobileFilterOption('cancelled', 'ملغي'),
-                ],
-                selected: _status,
-                onSelected: (value) => setState(() => _status = value),
-                resultLabel:
-                    '${items.where(_matches).length} من ${items.length} طلب',
-                onClear: _search.isEmpty && _status == 'all'
-                    ? null
-                    : () {
-                        _searchController.clear();
-                        setState(() {
-                          _search = '';
-                          _status = 'all';
-                        });
-                      },
               ),
-              const SizedBox(height: 12),
-              if (items.where(_matches).isEmpty) ...[
-                const SizedBox(height: 100),
-                Center(
-                  child: Icon(
-                    Icons.search_off_rounded,
-                    size: 48,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    semanticLabel: 'لا توجد نتائج',
-                  ),
-                ),
-                const Center(child: Text('لا توجد طلبات مطابقة للفلاتر')),
-              ] else
-                ...items
-                    .where(_matches)
-                    .map(
-                      (item) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _RequestCard(item: item),
-                      ),
-                    ),
+              const SizedBox(height: 18),
             ],
-          ),
+            const MobileSectionHeader(title: 'طلباتي'),
+            const SizedBox(height: 10),
+            MobileFilterBar(
+              searchHint: 'بحث بالاسم أو العنوان أو رقم الطلب',
+              controller: _searchController,
+              onSearchChanged: (value) =>
+                  setState(() => _search = value.trim().toLowerCase()),
+              options: const [
+                MobileFilterOption('all', 'الكل'),
+                MobileFilterOption('pending', 'قيد المراجعة'),
+                MobileFilterOption('approved', 'معتمد'),
+                MobileFilterOption('rejected', 'مرفوض'),
+                MobileFilterOption('cancelled', 'ملغي'),
+              ],
+              selected: _status,
+              onSelected: (value) => setState(() => _status = value),
+              resultLabel:
+                  '${items.where(_matches).length} من ${items.length} طلب',
+              onClear: _search.isEmpty && _status == 'all'
+                  ? null
+                  : () {
+                      _searchController.clear();
+                      setState(() {
+                        _search = '';
+                        _status = 'all';
+                      });
+                    },
+            ),
+            const SizedBox(height: 12),
+            if (items.where(_matches).isEmpty) ...[
+              const SizedBox(height: 100),
+              Center(
+                child: Icon(
+                  Icons.search_off_rounded,
+                  size: 48,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  semanticLabel: 'لا توجد نتائج',
+                ),
+              ),
+              const Center(child: Text('لا توجد طلبات مطابقة للفلاتر')),
+            ] else
+              ...items
+                  .where(_matches)
+                  .map(
+                    (item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _RequestCard(item: item),
+                    ),
+                  ),
+          ],
         ),
+      ),
     );
   }
 
@@ -246,10 +260,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                   items: const [
                     DropdownMenuItem(value: 'leave', child: Text('إجازة')),
                     DropdownMenuItem(value: 'mission', child: Text('مأمورية')),
-                    DropdownMenuItem(
-                      value: 'permit',
-                      child: Text('طلب إذن'),
-                    ),
+                    DropdownMenuItem(value: 'permit', child: Text('طلب إذن')),
                     DropdownMenuItem(
                       value: 'attendance_correction',
                       child: Text('تصحيح حضور'),
@@ -367,7 +378,10 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                       helperText: 'سيظهر للمدير مع أي تعارض في فترة الطلب.',
                     ),
                     items: [
-                      const DropdownMenuItem(value: '', child: Text('دون بديل')),
+                      const DropdownMenuItem(
+                        value: '',
+                        child: Text('دون بديل'),
+                      ),
                       for (final employee in substituteOptions)
                         DropdownMenuItem(
                           value: employee.id,
@@ -390,7 +404,9 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                         requestFullMetadata: false,
                       );
                       if (picked.isNotEmpty) {
-                        setModalState(() => attachments = picked.take(5).toList());
+                        setModalState(
+                          () => attachments = picked.take(5).toList(),
+                        );
                       }
                     },
                     icon: const Icon(Icons.attach_file_rounded),
@@ -447,10 +463,9 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Theme.of(sheetContext)
-                          .colorScheme
-                          .primaryContainer
-                          .withValues(alpha: .25),
+                      color: Theme.of(
+                        sheetContext,
+                      ).colorScheme.primaryContainer.withValues(alpha: .25),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -458,8 +473,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                         Icon(
                           Icons.info_outline,
                           size: 20,
-                          color:
-                              Theme.of(sheetContext).colorScheme.primary,
+                          color: Theme.of(sheetContext).colorScheme.primary,
                         ),
                         const SizedBox(width: 10),
                         const Expanded(
@@ -536,9 +550,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
         'endDate': _dateValue(endDate!),
         if (substituteId.isNotEmpty) 'substituteEmployeeId': substituteId,
       });
-    } else if (type == 'mission' ||
-        type == 'convoy' ||
-        type == 'fundraising') {
+    } else if (type == 'mission' || type == 'convoy' || type == 'fundraising') {
       payload.addAll({
         'startDate': _dateValue(startDate!),
         'endDate': _dateValue(endDate!),
@@ -557,8 +569,9 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
     // حل النوع الموحّد "permit" إلى النوع الفعلي للباك إند.
     var resolvedType = type;
     if (type == 'permit') {
-      resolvedType =
-          permitKind == 'early_departure' ? 'early_permit' : 'late_permit';
+      resolvedType = permitKind == 'early_departure'
+          ? 'early_permit'
+          : 'late_permit';
     }
 
     final commands = ref.read(mobileCommandsProvider);
@@ -579,7 +592,11 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
       }
       if (uploaded.isNotEmpty) payload['attachmentPaths'] = uploaded;
       await commands.submitRequest(
-          resolvedType, requestTitle, requestReason, payload);
+        resolvedType,
+        requestTitle,
+        requestReason,
+        payload,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم إرسال الطلب إلى مسار الاعتماد.')),
@@ -613,7 +630,9 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
   }) {
     if (title.trim().length < 3) return 'اكتب عنوانًا واضحًا للطلب.';
     if (reason.trim().length < 3) return 'اكتب سبب الطلب وتفاصيله.';
-    if (reason.trim().length > 300) return 'السبب طويل جدًا (300 حرف كحد أقصى).';
+    if (reason.trim().length > 300) {
+      return 'السبب طويل جدًا (300 حرف كحد أقصى).';
+    }
     if (type == 'leave' ||
         type == 'mission' ||
         type == 'convoy' ||
@@ -625,15 +644,11 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
         return 'تاريخ النهاية يجب ألا يسبق البداية.';
       }
     }
-    if ((type == 'mission' ||
-            type == 'convoy' ||
-            type == 'fundraising') &&
+    if ((type == 'mission' || type == 'convoy' || type == 'fundraising') &&
         location.trim().length < 2) {
       return 'حدد مكان أو جهة التكليف.';
     }
-    if (type == 'permit' ||
-        type == 'late_permit' ||
-        type == 'early_permit') {
+    if (type == 'permit' || type == 'late_permit' || type == 'early_permit') {
       if (permitDate == null) return 'حدد تاريخ الإذن.';
     }
     return null;
@@ -713,9 +728,9 @@ class _RequestCard extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               item.title ?? _typeLabel(item.type),
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 10),
             Row(
@@ -772,5 +787,3 @@ class _RequestCard extends StatelessWidget {
     _ => 'طلب',
   };
 }
-
-
