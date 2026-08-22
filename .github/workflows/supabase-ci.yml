@@ -28,9 +28,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # contracts.ts يجسر إلى packages/shared-contracts/dist — يحتاج npm + بناء
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build --workspace @ahla/shared-contracts
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          # مثبَّت — v2.x العائم جلب إصداراً جديدًا كسر deno check في CI (2026-08-20)
+          deno-version: 2.9.5
       # يلتقط أخطاء الصياغة والاستيراد والأنواع في كل الدوال الخادمية قبل النشر.
       - run: deno check supabase/functions/*/index.ts
       # يشغّل اختبارات الوحدة للدوال الخادمية (تطبيع الهاتف وغيرها).

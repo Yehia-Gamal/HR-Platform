@@ -14,7 +14,7 @@ on:
 jobs:
   edge-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     steps:
       - uses: actions/checkout@v4
@@ -24,7 +24,15 @@ jobs:
           node-version: 22
 
       - name: Setup Supabase CLI
-        run: npm install -g supabase
+        # مثبَّت — الإصدارات الأحدث (2.115+) تكسر supabase start في بيئة نظيفة
+        run: npm install -g supabase@2.111.0
+
+      # contracts.ts يجسر إلى packages/shared-contracts/dist — يجب بناؤه
+      # قبل functions serve وإلا فشل تحميل الدوال
+      - name: Build shared contracts
+        run: |
+          npm ci
+          npm run build --workspace @ahla/shared-contracts
 
       - name: Start Supabase
         run: |

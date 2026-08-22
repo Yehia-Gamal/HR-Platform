@@ -682,7 +682,8 @@ function BulkAssignmentSection() {
 export function LeaveToolsPage() {
   const auth = useAuth();
   const canManageAssignments =
-    auth.access != null && hasAnyPermission(auth.access, ['assignments.mission.manage', 'assignments.convoy.manage', 'operations.convoy.manage', 'assignments.fundraising.manage']);
+    auth.access != null &&
+    hasAnyPermission(auth.access, ['assignments.mission.manage', 'assignments.convoy.manage', 'operations.convoy.manage', 'assignments.fundraising.manage']);
 
   return (
     <div className="space-y-6">

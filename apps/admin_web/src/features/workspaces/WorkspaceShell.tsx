@@ -12,6 +12,7 @@ import {
   CalendarClock,
   CalendarDays,
   Cable,
+  Camera,
   ChevronDown,
   ClipboardList,
   FileClock,
@@ -51,6 +52,7 @@ import { getShortName } from '../../ui/formatDisplayName';
 import { useAuth } from '../auth/AuthProvider';
 import { useNotifications } from '../notifications/useNotifications';
 import { hasAnyPermission, isUnifiedAdminActive } from './access';
+import { ChangePhotoDialog } from './ChangePhotoDialog';
 import { isFeatureEnabled, type FeatureFlagKey } from '../../ui/featureFlags';
 
 interface NavItem {
@@ -217,6 +219,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
   const notificationsQuery = useNotifications();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [changePhotoOpen, setChangePhotoOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() =>
     (() => {
       try {
@@ -428,6 +431,16 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
                   <Bell className="size-4" aria-hidden="true" />
                   الإشعارات{unreadCount ? ` (${unreadCount})` : ''}
                 </button>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.currentTarget.closest('details')?.removeAttribute('open');
+                    setChangePhotoOpen(true);
+                  }}
+                >
+                  <Camera className="size-4" aria-hidden="true" />
+                  تغيير صورتي
+                </button>
                 <button type="button" onClick={() => void auth.signOut()}>
                   <LogOut className="size-4" aria-hidden="true" />
                   تسجيل الخروج
@@ -436,6 +449,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
             </details>
           </div>
         </header>
+        <ChangePhotoDialog open={changePhotoOpen} currentPhotoUrl={profilePhotoUrl} onClose={() => setChangePhotoOpen(false)} />
         <main id="main-content" tabIndex={-1} key={location.pathname} className="page-container">
           <RouteErrorBoundary>
             <Outlet />
