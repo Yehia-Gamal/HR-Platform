@@ -1152,8 +1152,14 @@ export function EmployeeDetailPage() {
                 value={item.attendance30.present}
                 hint={`${item.attendance30.lateDays} أيام تأخير`}
                 icon={BadgeCheck}
+                onClick={() => document.getElementById('attendance-kpi-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
               />
-              <MetricCard label="أيام الغياب" value={item.attendance30.absent} icon={Clock3} />
+              <MetricCard
+                label="أيام الغياب"
+                value={item.attendance30.absent}
+                icon={Clock3}
+                onClick={() => document.getElementById('attendance-kpi-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              />
               <MetricCard
                 label="الطلبات المعلقة"
                 value={item.requestCounts.pending}
@@ -1166,6 +1172,7 @@ export function EmployeeDetailPage() {
                 value={item.latestKpi?.finalScore ?? item.latestKpi?.currentStage ?? '—'}
                 hint={item.latestKpi?.finalRating ?? undefined}
                 icon={Gauge}
+                onClick={() => document.getElementById('attendance-kpi-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
               />
             </section>
 
@@ -1252,6 +1259,26 @@ export function EmployeeDetailPage() {
                   )}
                 </div>
               </article>
+            </section>
+
+            {/* الحضور والتقييم — آخر 30 يوماً (وجهة بطاقات الملخص) */}
+            <section id="attendance-kpi-section" className="card p-5">
+              <h3 className="font-black">الحضور والتقييم — آخر 30 يوماً</h3>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <Data label="أيام حضور" value={String(item.attendance30.present)} />
+                <Data label="أيام تأخير" value={String(item.attendance30.lateDays)} />
+                <Data label="أيام غياب" value={String(item.attendance30.absent)} />
+                <Data
+                  label="أحدث تقييم"
+                  value={
+                    item.latestKpi
+                      ? [item.latestKpi.finalScore ?? item.latestKpi.currentStage, item.latestKpi.finalRating]
+                          .filter(Boolean)
+                          .join(' · ')
+                      : '—'
+                  }
+                />
+              </div>
             </section>
 
             {/* إدارات الموظف — V17 multi-department */}
