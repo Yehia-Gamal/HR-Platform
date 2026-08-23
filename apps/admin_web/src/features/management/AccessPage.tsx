@@ -265,14 +265,14 @@ export function AccessPage() {
         <>
           {/* ── الإحصائيات ── */}
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="الأدوار" value={data.roles.length} icon={ShieldCheck} onClick={() => setTab('perms')} />
-            <MetricCard label="الصلاحيات" value={data.permissions.length} icon={KeyRound} onClick={() => setTab('perms')} />
-            <MetricCard label="المستخدمون" value={data.users.length} icon={Users} onClick={() => setTab('users')} />
-            <MetricCard label="الصلاحيات الحساسة" value={data.permissions.filter((p) => p.sensitive).length} icon={ShieldCheck} onClick={() => setTab('perms')} />
+            <MetricCard label="الأدوار" value={data.roles.length} icon={ShieldCheck} onClick={() => document.getElementById('access-roles')?.scrollIntoView({ behavior: 'smooth' })} />
+            <MetricCard label="الصلاحيات" value={data.permissions.length} icon={KeyRound} onClick={() => document.getElementById('access-roles')?.scrollIntoView({ behavior: 'smooth' })} />
+            <MetricCard label="المستخدمون" value={data.users.length} icon={Users} onClick={() => document.getElementById('access-assignments')?.scrollIntoView({ behavior: 'smooth' })} />
+            <MetricCard label="الصلاحيات الحساسة" value={data.permissions.filter((p) => p.sensitive).length} icon={ShieldCheck} onClick={() => document.getElementById('access-roles')?.scrollIntoView({ behavior: 'smooth' })} />
           </section>
 
           {/* ── بطاقات قوالب الأدوار ── */}
-          <section>
+          <section id="access-roles">
             <div className="mb-4">
               <h2 className="text-lg font-black">قوالب الأدوار المعتمدة</h2>
               <p className="muted mt-1 text-sm">اضغط على بطاقة لتعديل صلاحياتها وإسناد المستخدمين.</p>
@@ -372,7 +372,7 @@ export function AccessPage() {
           </section>
 
           {/* ── إسنادات المستخدمين ── */}
-          <section className="card overflow-hidden">
+          <section id="access-assignments" className="card overflow-hidden">
             <div className="border-b border-[var(--border)] p-5">
               <h2 className="font-black">إسنادات المستخدمين</h2>
             </div>
