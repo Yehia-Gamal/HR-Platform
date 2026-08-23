@@ -77,16 +77,20 @@ export function LearningPage() {
   const totalEnrollments = courses.reduce((sum, c) => sum + c.enrollments, 0);
   const completedEnrollments = enrollments.filter((e) => e.status === 'completed').length;
 
+  // النقر على بطاقات الملخص يصفّي قائمة الدورات سريعاً.
+  const [courseQuick, setCourseQuick] = useState<'all' | 'active' | 'mandatory'>('all');
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return courses
       .filter((c) => {
         const matchSearch = !q || c.title.toLowerCase().includes(q) || c.code.toLowerCase().includes(q);
         const matchCategory = category === 'all' || c.category === category;
-        return matchSearch && matchCategory;
+        const matchQuick =
+          courseQuick === 'all' || (courseQuick === 'active' ? c.active : c.mandatory);
+        return matchSearch && matchCategory && matchQuick;
       })
       .sort((a, b) => a.title.localeCompare(b.title, 'ar'));
-  }, [courses, search, category]);
+  }, [courses, search, category, courseQuick]);
 
   const dirty = Boolean(search.trim() || category !== 'all');
   const clearFilters = () => {
@@ -212,10 +216,10 @@ export function LearningPage() {
         <MetricSkeletonRow count={4} />
       ) : (
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="الدورات النشطة" value={activeCourses} icon={BookOpen} hint="دورات مفعّلة للموظفين" />
-          <MetricCard label="إجمالي التسجيل" value={totalEnrollments} icon={GraduationCap} hint="عبر كل الدورات" />
-          <MetricCard label="دورات إجبارية" value={mandatoryCount} icon={Award} hint="ضمن خطة التدريب" />
-          <MetricCard label="تسجيلات مكتملة" value={completedEnrollments} icon={CheckCircle2} hint="من سجلات الموظفين" />
+          <MetricCard label="الدورات النشطة" value={activeCourses} icon={BookOpen} hint="دورات مفعّلة للموظفين" onClick={() => setCourseQuick('active')} />
+          <MetricCard label="إجمالي التسجيل" value={totalEnrollments} icon={GraduationCap} hint="عبر كل الدورات" onClick={() => setCourseQuick('all')} />
+          <MetricCard label="دورات إجبارية" value={mandatoryCount} icon={Award} hint="ضمن خطة التدريب" onClick={() => setCourseQuick('mandatory')} />
+          <MetricCard label="تسجيلات مكتملة" value={completedEnrollments} icon={CheckCircle2} hint="من سجلات الموظفين" onClick={() => setCourseQuick('all')} />
         </section>
       )}
 

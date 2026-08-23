@@ -165,15 +165,40 @@ export function RecruitmentPage() {
       {data ? (
         <>
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-            <MetricCard label="طلبات التوظيف" value={data.requisitions} icon={BriefcaseBusiness} />
-            <MetricCard label="تنتظر الاعتماد" value={data.pendingRequisitions} icon={FileClock} />
-            <MetricCard label="إعلانات مفتوحة" value={data.openPostings} icon={UserPlus} />
-            <MetricCard label="المرشحون" value={data.candidates} icon={Users} />
-            <MetricCard label="تم تعيينهم" value={data.hiredApplications} icon={CheckCircle2} />
+            <MetricCard
+              label="طلبات التوظيف"
+              value={data.requisitions}
+              icon={BriefcaseBusiness}
+              onClick={() => document.getElementById('requisitions-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
+            <MetricCard
+              label="تنتظر الاعتماد"
+              value={data.pendingRequisitions}
+              icon={FileClock}
+              onClick={() => document.getElementById('requisitions-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
+            <MetricCard
+              label="إعلانات مفتوحة"
+              value={data.openPostings}
+              icon={UserPlus}
+              onClick={() => document.getElementById('requisitions-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
+            <MetricCard
+              label="المرشحون"
+              value={data.candidates}
+              icon={Users}
+              onClick={() => document.getElementById('applications-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
+            <MetricCard
+              label="تم تعيينهم"
+              value={data.hiredApplications}
+              icon={CheckCircle2}
+              onClick={() => document.getElementById('applications-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
           </section>
 
           <section className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
-            <article className="card overflow-hidden">
+            <article id="requisitions-list" className="card overflow-hidden">
               <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
                 <div>
                   <h2 className="font-black">أحدث طلبات التوظيف</h2>
@@ -395,7 +420,7 @@ export function RecruitmentPage() {
             </div>
           </article>
 
-          <article className="card overflow-hidden">
+          <article id="applications-list" className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
               <div>
                 <h2 className="font-black">العروض الوظيفية والتعيين</h2>
