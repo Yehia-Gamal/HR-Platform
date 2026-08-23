@@ -1215,7 +1215,12 @@ export function DisputesPage() {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="جديدة" value={summary?.new ?? 0} icon={ShieldAlert} onClick={() => setStatusFilter('open')} />
         <MetricCard label="تجاوزت 24 ساعة" value={summary?.overdue ?? 0} icon={Clock3} onClick={() => setStatusFilter('overdue')} />
-        <MetricCard label="بانتظار إفادات" value={summary?.waitingStatements ?? 0} icon={MessageSquareText} onClick={() => setStatusFilter('waiting_for_respondent')} />
+        <MetricCard
+          label="بانتظار إفادات"
+          value={summary?.waitingStatements ?? 0}
+          icon={MessageSquareText}
+          onClick={() => setStatusFilter('waiting_for_respondent')}
+        />
         <MetricCard label="تنفيذات معلقة" value={summary?.pendingExecution ?? 0} icon={UserCheck} onClick={() => setStatusFilter('pending_execution')} />
       </section>
 

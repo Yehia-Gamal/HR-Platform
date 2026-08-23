@@ -28,10 +28,7 @@ export function ActionCenterPage() {
   const isInitialLoading = query.isLoading && items.length === 0;
   // النقر على بطاقات الملخص يصفّي القائمة حسب الأولوية.
   const [priority, setPriority] = useState<'all' | 'urgent' | 'high'>('all');
-  const visible = useMemo(
-    () => (priority === 'all' ? items : items.filter((x) => x.priority === priority)),
-    [items, priority],
-  );
+  const visible = useMemo(() => (priority === 'all' ? items : items.filter((x) => x.priority === priority)), [items, priority]);
 
   return (
     <div className="space-y-6">

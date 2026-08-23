@@ -85,7 +85,13 @@ function PendingDevicesPanel() {
   return (
     <div className="space-y-5">
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <MetricCard label="إجمالي المعلّقة" value={allDevices.length} icon={MonitorSmartphone} hint="أجهزة تنتظر المراجعة أو محظورة" onClick={() => setStatusFilter('all')} />
+        <MetricCard
+          label="إجمالي المعلّقة"
+          value={allDevices.length}
+          icon={MonitorSmartphone}
+          hint="أجهزة تنتظر المراجعة أو محظورة"
+          onClick={() => setStatusFilter('all')}
+        />
         <MetricCard label="بانتظار الموافقة" value={pendingCount} icon={Clock3} hint="أجهزة جديدة لم تُراجع بعد" onClick={() => setStatusFilter('pending')} />
         <MetricCard label="محظورة" value={blockedCount} icon={ShieldAlert} hint="أجهزة تم رفضها وتحتاج مراجعة" onClick={() => setStatusFilter('blocked')} />
       </section>

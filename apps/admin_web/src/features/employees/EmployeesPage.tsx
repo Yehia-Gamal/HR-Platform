@@ -54,11 +54,10 @@ export function EmployeesPage() {
           employee.fullNameAr.toLowerCase().includes(query) ||
           employee.employeeCode.toLowerCase().includes(query) ||
           employee.phoneE164?.includes(query);
-        return matchesQuery &&
-          (status === 'all' ||
-            (status === 'inactive'
-              ? ['suspended', 'terminated', 'archived'].includes(employee.status)
-              : employee.status === status));
+        return (
+          matchesQuery &&
+          (status === 'all' || (status === 'inactive' ? ['suspended', 'terminated', 'archived'].includes(employee.status) : employee.status === status))
+        );
       })
       .sort((a, b) => {
         if (sort === 'name') return a.fullNameAr.localeCompare(b.fullNameAr, 'ar');

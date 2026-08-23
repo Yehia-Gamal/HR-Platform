@@ -325,8 +325,7 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
   const [daySort, setDaySort] = useState<DaySort>('date-asc');
   const [daySearch, setDaySearch] = useState('');
   // النقر على بطاقات الملخص يفلتر الأيام ثم ينزل إلى جدولها.
-  const scrollToDays = () =>
-    document.getElementById('day-filters')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const scrollToDays = () => document.getElementById('day-filters')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   const filteredSortedDays = useMemo(() => sortDays(filterDays(data.days, dayFilter, daySearch), daySort), [data.days, dayFilter, daySort, daySearch]);
 
   // بيانات خريطة الحضور: في الوضع الوهمي نُولّد 30 يومًا عشوائية للعرض؛
@@ -431,12 +430,7 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
               scrollToDays();
             }}
           />
-          <MetricCard
-            label="إذنات"
-            value={s.permitCount}
-            icon={Clock}
-            onClick={scrollToDays}
-          />
+          <MetricCard label="إذنات" value={s.permitCount} icon={Clock} onClick={scrollToDays} />
           <MetricCard
             label="قوافل/فاندي"
             value={s.convoyFundiDays}

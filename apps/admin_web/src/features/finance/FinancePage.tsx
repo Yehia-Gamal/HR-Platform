@@ -335,16 +335,46 @@ export function FinancePage() {
       ) : (
         <section className="grid gap-3 sm:grid-cols-3">
           <MetricCard label="دورات رواتب" value={payrollRuns.length} icon={WalletCards} hint="إجمالي الدورات" onClick={() => setTab('payroll')} />
-          <MetricCard label="هياكل رواتب نشطة" value={structures.filter((s) => s.active).length} icon={TrendingUp} hint={`من ${structures.length} هيكل`} onClick={() => setTab('structures')} />
-          <MetricCard label="سلف نشطة" value={loans.filter((l) => l.status === 'active').length} icon={HandCoins} hint={`من ${loans.length} سلفة`} onClick={() => setTab('loans')} />
+          <MetricCard
+            label="هياكل رواتب نشطة"
+            value={structures.filter((s) => s.active).length}
+            icon={TrendingUp}
+            hint={`من ${structures.length} هيكل`}
+            onClick={() => setTab('structures')}
+          />
+          <MetricCard
+            label="سلف نشطة"
+            value={loans.filter((l) => l.status === 'active').length}
+            icon={HandCoins}
+            hint={`من ${loans.length} سلفة`}
+            onClick={() => setTab('loans')}
+          />
         </section>
       )}
 
       {tab === 'campaigns' && !catalog.isLoading && (
         <section className="grid gap-3 sm:grid-cols-3">
-          <MetricCard label="حملات نشطة" value={campaigns.filter((c) => c.status === 'active').length} icon={Megaphone} hint={`من ${campaigns.length} حملة`} onClick={() => setTab('campaigns')} />
-          <MetricCard label="استبيانات" value={campaigns.filter((c) => c.campaignType === 'survey').length} icon={Megaphone} hint="نوع استبيان" onClick={() => setTab('campaigns')} />
-          <MetricCard label="مكتملة" value={campaigns.filter((c) => c.status === 'completed').length} icon={Megaphone} hint="حملات مكتملة" onClick={() => setTab('campaigns')} />
+          <MetricCard
+            label="حملات نشطة"
+            value={campaigns.filter((c) => c.status === 'active').length}
+            icon={Megaphone}
+            hint={`من ${campaigns.length} حملة`}
+            onClick={() => setTab('campaigns')}
+          />
+          <MetricCard
+            label="استبيانات"
+            value={campaigns.filter((c) => c.campaignType === 'survey').length}
+            icon={Megaphone}
+            hint="نوع استبيان"
+            onClick={() => setTab('campaigns')}
+          />
+          <MetricCard
+            label="مكتملة"
+            value={campaigns.filter((c) => c.status === 'completed').length}
+            icon={Megaphone}
+            hint="حملات مكتملة"
+            onClick={() => setTab('campaigns')}
+          />
         </section>
       )}
 
