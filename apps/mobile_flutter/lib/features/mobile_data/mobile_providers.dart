@@ -10,8 +10,8 @@ import 'package:ahla_shabab_management_os/features/mobile_data/release_governanc
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 part 'mobile_location_providers.dart';
 part 'mobile_commands.dart';
@@ -34,22 +34,26 @@ final mobileActionTargetProvider =
       ref,
       item,
     ) async {
-      final data = await _withTimeout(ref
-          .watch(supabaseProvider)
-          .rpc<dynamic>(
-            'resolve_mobile_action_target',
-            params: {'p_action_id': item.id, 'p_kind': item.kind},
-          ));
+      final data = await _withTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'resolve_mobile_action_target',
+              params: {'p_action_id': item.id, 'p_kind': item.kind},
+            ),
+      );
       return MobileActionTarget.fromJson(_asMap(data));
     });
 final mobileRequestDetailProvider =
     FutureProvider.family<MobileRequestDetail, String>((ref, requestId) async {
-      final data = await _withTimeout(ref
-          .watch(supabaseProvider)
-          .rpc<dynamic>(
-            'get_mobile_request_detail',
-            params: {'p_request_id': requestId},
-          ));
+      final data = await _withTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'get_mobile_request_detail',
+              params: {'p_request_id': requestId},
+            ),
+      );
       return MobileRequestDetail.fromJson(_asMap(data));
     });
 final mobileFeedDetailProvider =
@@ -57,12 +61,14 @@ final mobileFeedDetailProvider =
       ref,
       key,
     ) async {
-      final data = await _withTimeout(ref
-          .watch(supabaseProvider)
-          .rpc<dynamic>(
-            'get_mobile_feed_item',
-            params: {'p_kind': key.kind, 'p_item_id': key.id},
-          ));
+      final data = await _withTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'get_mobile_feed_item',
+              params: {'p_kind': key.kind, 'p_item_id': key.id},
+            ),
+      );
       return MobileFeedItem.fromJson(_asMap(data));
     });
 final myPasskeysProvider = FutureProvider<List<PasskeyDevice>>((ref) async {
@@ -77,7 +83,10 @@ final myAttendanceHistoryProvider = FutureProvider<List<AttendanceHistoryItem>>(
     final data = await rpcWithTimeout(
       ref
           .watch(supabaseProvider)
-          .rpc<dynamic>('get_my_attendance_history', params: {'p_limit': 100, 'p_days': 30}),
+          .rpc<dynamic>(
+            'get_my_attendance_history',
+            params: {'p_limit': 100, 'p_days': 30},
+          ),
     );
     return _asList(
       data,
@@ -111,12 +120,14 @@ final markNotificationOpenedProvider = FutureProvider.family<void, String>((
   ref,
   notificationId,
 ) async {
-  await _withTimeout(ref
-      .watch(supabaseProvider)
-      .rpc<void>(
-        'mark_my_notification_delivery',
-        params: {'p_notification_id': notificationId, 'p_status': 'opened'},
-      ));
+  await _withTimeout(
+    ref
+        .watch(supabaseProvider)
+        .rpc<void>(
+          'mark_my_notification_delivery',
+          params: {'p_notification_id': notificationId, 'p_status': 'opened'},
+        ),
+  );
 });
 
 final employeeHomeProvider = FutureProvider<EmployeeHomeSummary>((ref) async {
@@ -202,24 +213,29 @@ final workAssignmentsProvider =
 
 // كشف الحضور والانصراف الشهري الشخصي (V12 §18 — get_my_monthly_attendance_statement).
 final myMonthlyStatementProvider =
-    FutureProvider.family<MonthlyAttendanceStatement, (int, int)>(
-  (ref, params) async {
-    final data = await rpcWithTimeout(
-      ref.watch(supabaseProvider).rpc<dynamic>(
-        'get_my_monthly_attendance_statement',
-        params: {'p_year': params.$1, 'p_month': params.$2},
-      ),
-    );
-    return MonthlyAttendanceStatement.fromJson(_asMap(data));
-  },
-);
+    FutureProvider.family<MonthlyAttendanceStatement, (int, int)>((
+      ref,
+      params,
+    ) async {
+      final data = await rpcWithTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'get_my_monthly_attendance_statement',
+              params: {'p_year': params.$1, 'p_month': params.$2},
+            ),
+      );
+      return MonthlyAttendanceStatement.fromJson(_asMap(data));
+    });
 final mobileKpiProvider = FutureProvider<List<MobileKpiEvaluation>>((
   ref,
 ) async {
   try {
-    final data = await _withTimeout(ref
-        .watch(supabaseProvider)
-        .rpc<dynamic>('get_kpi_inbox', params: {'p_limit': 100}));
+    final data = await _withTimeout(
+      ref
+          .watch(supabaseProvider)
+          .rpc<dynamic>('get_kpi_inbox', params: {'p_limit': 100}),
+    );
     final result = _asList(
       data,
     ).map(MobileKpiEvaluation.fromJson).toList(growable: false);
@@ -252,11 +268,14 @@ final attendanceStateProvider = FutureProvider<AttendanceState>((ref) async {
     // 0226: Pass installation_id so the server checks THIS device specifically,
     // not all devices. Prevents canPunch=true on a replaced/revoked device.
     final installationId = await ref.watch(installationIdProvider.future);
-    final data = await _withTimeout(ref
-        .watch(supabaseProvider)
-        .rpc<dynamic>('get_my_attendance_state', params: {
-          'p_installation_id': installationId,
-        }));
+    final data = await _withTimeout(
+      ref
+          .watch(supabaseProvider)
+          .rpc<dynamic>(
+            'get_my_attendance_state',
+            params: {'p_installation_id': installationId},
+          ),
+    );
     final result = AttendanceState.fromJson(_asMap(data));
     // Cache for offline use.
     OfflineCache.instance.put(OfflineCache.attendanceState, _asMap(data));
@@ -269,6 +288,24 @@ final attendanceStateProvider = FutureProvider<AttendanceState>((ref) async {
     if (cached != null) return AttendanceState.fromJson(_asMap(cached));
     rethrow;
   }
+});
+
+/// قناة Realtime لأحداث الحضور — تحدّث حالة البصمة فوراً بدل انتظار الاستقصاء.
+/// RLS على attendance_events يقصر التغييرات المُبلَّغة على ما يملك المستخدم
+/// صلاحية قراءته، لذا لا حاجة لفلتر إضافي على القناة.
+final attendanceRealtimeProvider = Provider<void>((ref) {
+  final client = ref.watch(supabaseProvider);
+  final channel = client.channel('attendance-realtime')
+    ..onPostgresChanges(
+      event: PostgresChangeEvent.insert,
+      schema: 'public',
+      table: 'attendance_events',
+      callback: (_) => ref.invalidate(attendanceStateProvider),
+    )
+    ..subscribe();
+  ref.onDispose(() {
+    ref.read(supabaseProvider).removeChannel(channel);
+  });
 });
 final mobileFeedProvider = FutureProvider<List<MobileFeedItem>>((ref) async {
   final data = await rpcWithTimeout(
@@ -316,7 +353,9 @@ final employeeDirectoryProvider = FutureProvider.autoDispose
             params: {'p_search': search, 'p_limit': 40},
           )
           .timeout(const Duration(seconds: 10));
-      return _asList(data).map(DirectoryEmployee.fromJson).toList(growable: false);
+      return _asList(
+        data,
+      ).map(DirectoryEmployee.fromJson).toList(growable: false);
     });
 
 final disputeDirectoryProvider =
@@ -324,12 +363,14 @@ final disputeDirectoryProvider =
       ref,
       search,
     ) async {
-      final data = await _withTimeout(ref
-          .watch(supabaseProvider)
-          .rpc<dynamic>(
-            'get_dispute_participant_directory',
-            params: {'p_search': search, 'p_limit': 100},
-          ));
+      final data = await _withTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'get_dispute_participant_directory',
+              params: {'p_search': search, 'p_limit': 100},
+            ),
+      );
       return _asList(
         data,
       ).map(DisputeDirectoryEmployee.fromJson).toList(growable: false);
@@ -341,33 +382,41 @@ final disputeCaseHeldSessionsProvider =
       ref,
       caseId,
     ) async {
-      final data = await _withTimeout(ref
-          .watch(supabaseProvider)
-          .from('dispute_sessions')
-          .select('id, session_type, status, scheduled_at, held_at, location')
-          .eq('case_id', caseId)
-          .eq('status', 'held')
-          .order('held_at', ascending: false));
+      final data = await _withTimeout(
+        ref
+            .watch(supabaseProvider)
+            .from('dispute_sessions')
+            .select('id, session_type, status, scheduled_at, held_at, location')
+            .eq('case_id', caseId)
+            .eq('status', 'held')
+            .order('held_at', ascending: false),
+      );
       return (data as List<dynamic>)
-          .map((e) => DisputeHeldSession.fromJson(
-              Map<String, dynamic>.from(e as Map)))
+          .map(
+            (e) => DisputeHeldSession.fromJson(
+              Map<String, dynamic>.from(e as Map),
+            ),
+          )
           .toList(growable: false);
     });
 
 /// أطراف القضية (مشتكى عليه / شاهد / مقدّم الشكوى / ذو صلة)
 final disputeCasePartiesProvider =
-    FutureProvider.family<List<DisputeCaseParty>, String>((
-      ref,
-      caseId,
-    ) async {
-      final data = await _withTimeout(ref
-          .watch(supabaseProvider)
-          .from('dispute_parties')
-          .select('id, employee_id, party_type, notification_status, employees(full_name_ar)')
-          .eq('case_id', caseId));
+    FutureProvider.family<List<DisputeCaseParty>, String>((ref, caseId) async {
+      final data = await _withTimeout(
+        ref
+            .watch(supabaseProvider)
+            .from('dispute_parties')
+            .select(
+              'id, employee_id, party_type, notification_status, employees(full_name_ar)',
+            )
+            .eq('case_id', caseId),
+      );
       return (data as List<dynamic>)
-          .map((e) => DisputeCaseParty.fromJson(
-              Map<String, dynamic>.from(e as Map)))
+          .map(
+            (e) =>
+                DisputeCaseParty.fromJson(Map<String, dynamic>.from(e as Map)),
+          )
           .toList(growable: false);
     });
 
@@ -380,46 +429,58 @@ final mobileProfileProvider = FutureProvider<MobileProfile>((ref) async {
 
 final mobileTasksProvider = FutureProvider<List<MobileTask>>((ref) async {
   final data = await rpcWithTimeout(
-    ref.watch(supabaseProvider).rpc<dynamic>('get_my_mobile_tasks', params: {'p_limit': 100}),
+    ref
+        .watch(supabaseProvider)
+        .rpc<dynamic>('get_my_mobile_tasks', params: {'p_limit': 100}),
   );
   return _asList(data).map(MobileTask.fromJson).toList(growable: false);
 });
 
 final mobileTeamProvider = FutureProvider<List<MobileTeamMember>>((ref) async {
   final data = await rpcWithTimeout(
-    ref.watch(supabaseProvider).rpc<dynamic>('get_my_mobile_team', params: {'p_limit': 100}),
+    ref
+        .watch(supabaseProvider)
+        .rpc<dynamic>('get_my_mobile_team', params: {'p_limit': 100}),
   );
   return _asList(data).map(MobileTeamMember.fromJson).toList(growable: false);
 });
 
 // الملف الشامل لعضو فريق (V22 § — get_employee_360) من جهة المدير المباشر.
-final employee360Provider =
-    FutureProvider.family<Employee360, String>((ref, employeeId) async {
-      final data = await rpcWithTimeout(
-        ref
-            .watch(supabaseProvider)
-            .rpc<dynamic>('get_employee_360', params: {'p_employee_id': employeeId}),
-      );
-      return Employee360.fromJson(_asMap(data));
-    });
+final employee360Provider = FutureProvider.family<Employee360, String>((
+  ref,
+  employeeId,
+) async {
+  final data = await rpcWithTimeout(
+    ref
+        .watch(supabaseProvider)
+        .rpc<dynamic>(
+          'get_employee_360',
+          params: {'p_employee_id': employeeId},
+        ),
+  );
+  return Employee360.fromJson(_asMap(data));
+});
 
 // كشف الحضور والانصراف الشهري لموظف محدد (المدير/HR) — get_employee_monthly_attendance_statement.
 final employeeMonthlyStatementProvider =
-    FutureProvider.family<MonthlyAttendanceStatement, (String, int, int)>(
-  (ref, params) async {
-    final data = await rpcWithTimeout(
-      ref.watch(supabaseProvider).rpc<dynamic>(
-        'get_employee_monthly_attendance_statement',
-        params: {
-          'p_employee_id': params.$1,
-          'p_year': params.$2,
-          'p_month': params.$3,
-        },
-      ),
-    );
-    return MonthlyAttendanceStatement.fromJson(_asMap(data));
-  },
-);
+    FutureProvider.family<MonthlyAttendanceStatement, (String, int, int)>((
+      ref,
+      params,
+    ) async {
+      final data = await rpcWithTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'get_employee_monthly_attendance_statement',
+              params: {
+                'p_employee_id': params.$1,
+                'p_year': params.$2,
+                'p_month': params.$3,
+              },
+            ),
+      );
+      return MonthlyAttendanceStatement.fromJson(_asMap(data));
+    });
 
 // دليل الموظفين الإداري (إدارة الموظفين) — get_employees_enriched، مقيد بصلاحية
 // can_access_employee داخل الدالة (security definer).
@@ -428,18 +489,20 @@ final mobileEmployeesProvider = FutureProvider.autoDispose
       final search = params.$1.trim();
       final status = params.$2;
       final data = await rpcWithTimeout(
-        ref.watch(supabaseProvider).rpc<dynamic>(
-          'get_employees_enriched',
-          params: {
-            'p_search': search.isEmpty ? null : search,
-            'p_status': status == 'all' ? null : status,
-            'p_limit': 200,
-          },
-        ),
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'get_employees_enriched',
+              params: {
+                'p_search': search.isEmpty ? null : search,
+                'p_status': status == 'all' ? null : status,
+                'p_limit': 200,
+              },
+            ),
       );
-      return _asList(data)
-          .map(MobileEmployeeSummary.fromJson)
-          .toList(growable: false);
+      return _asList(
+        data,
+      ).map(MobileEmployeeSummary.fromJson).toList(growable: false);
     });
 
 final mobileDailyReportsProvider =
@@ -460,7 +523,6 @@ final mobileDailyReportsProvider =
       ).map(MobileDailyReport.fromJson).toList(growable: false);
     });
 
-
 /// V17 §14 — Executive admin-action commands
 final myLearningCatalogProvider = FutureProvider<MobileLearningCatalog>((
   ref,
@@ -470,7 +532,6 @@ final myLearningCatalogProvider = FutureProvider<MobileLearningCatalog>((
   );
   return MobileLearningCatalog.fromJson(_asMap(data));
 });
-
 
 final myServicePortalProvider = FutureProvider<MobileServicePortal>((
   ref,
@@ -487,12 +548,13 @@ final myPayslipsProvider = FutureProvider<List<MobilePayslip>>((ref) async {
   return _asList(data).map(MobilePayslip.fromJson).toList(growable: false);
 });
 
-
 final myLeaveBalancesProvider = FutureProvider<List<MobileLeaveBalance>>((
   ref,
 ) async {
   final data = await rpcWithTimeout(
-    ref.watch(supabaseProvider).rpc<dynamic>(
+    ref
+        .watch(supabaseProvider)
+        .rpc<dynamic>(
           'get_my_leave_balances',
           params: {'p_year': DateTime.now().year},
         ),
@@ -531,14 +593,20 @@ final committeeDisputePortalProvider = FutureProvider<CommitteeDisputePortal>((
 
 /// 0198 — آراء/توصيات أعضاء اللجنة لقضية محددة
 final disputeCaseRecommendationsProvider =
-    FutureProvider.family<DisputeCaseRecommendations, String>((ref, caseId) async {
-  final data = await rpcWithTimeout(
-    ref.watch(supabaseProvider).rpc<dynamic>('get_dispute_case_recommendations', params: {
-      'p_case_id': caseId,
-    }),
-  );
-  return DisputeCaseRecommendations.fromJson(_asMap(data));
-});
+    FutureProvider.family<DisputeCaseRecommendations, String>((
+      ref,
+      caseId,
+    ) async {
+      final data = await rpcWithTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'get_dispute_case_recommendations',
+              params: {'p_case_id': caseId},
+            ),
+      );
+      return DisputeCaseRecommendations.fromJson(_asMap(data));
+    });
 
 final myOffboardingPortalProvider = FutureProvider<MobileOffboardingPortal>((
   ref,
@@ -554,42 +622,50 @@ final myOffboardingPortalProvider = FutureProvider<MobileOffboardingPortal>((
 /// صفحة التقارير اليومية العامة — يراها كل المستخدمين.
 /// تستخدم cursor pagination (p_before) لتحميل لا نهائي.
 final dailyReportsFeedProvider =
-    FutureProvider.family<List<Map<String, dynamic>>, String?>((ref, beforeDate) async {
-  final params = <String, dynamic>{'p_limit': 20};
-  if (beforeDate != null) params['p_before'] = beforeDate;
-  final data = await rpcWithTimeout(
-    ref.watch(supabaseProvider).rpc<dynamic>(
-      'get_public_daily_reports_feed',
-      params: params,
-    ),
-  );
-  final list = data as List<dynamic>? ?? [];
-  return list
-      .map((e) => Map<String, dynamic>.from(e as Map<dynamic, dynamic>))
-      .toList(growable: false);
-});
+    FutureProvider.family<List<Map<String, dynamic>>, String?>((
+      ref,
+      beforeDate,
+    ) async {
+      final params = <String, dynamic>{'p_limit': 20};
+      if (beforeDate != null) params['p_before'] = beforeDate;
+      final data = await rpcWithTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>('get_public_daily_reports_feed', params: params),
+      );
+      final list = data as List<dynamic>? ?? [];
+      return list
+          .map((e) => Map<String, dynamic>.from(e as Map<dynamic, dynamic>))
+          .toList(growable: false);
+    });
 
 /// قائمة كاملة بمن شاهد ومن تفاعل مع تقرير يومي (0425).
 final dailyReportEngagementProvider =
     FutureProvider.family<Map<String, dynamic>, String>((ref, reportId) async {
-  final data = await rpcWithTimeout(
-    ref.watch(supabaseProvider).rpc<dynamic>(
-      'get_daily_report_engagement',
-      params: {'p_report_id': reportId},
-    ),
-  );
-  return _asMap(data);
-});
+      final data = await rpcWithTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'get_daily_report_engagement',
+              params: {'p_report_id': reportId},
+            ),
+      );
+      return _asMap(data);
+    });
 
 /// قائمة كاملة بمن شاهد ومن تفاعل مع إعلان (0425).
 final announcementEngagementProvider =
-    FutureProvider.family<Map<String, dynamic>, String>((ref, announcementId) async {
-  final data = await rpcWithTimeout(
-    ref.watch(supabaseProvider).rpc<dynamic>(
-      'get_announcement_engagement',
-      params: {'p_announcement_id': announcementId},
-    ),
-  );
-  return _asMap(data);
-});
-
+    FutureProvider.family<Map<String, dynamic>, String>((
+      ref,
+      announcementId,
+    ) async {
+      final data = await rpcWithTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'get_announcement_engagement',
+              params: {'p_announcement_id': announcementId},
+            ),
+      );
+      return _asMap(data);
+    });

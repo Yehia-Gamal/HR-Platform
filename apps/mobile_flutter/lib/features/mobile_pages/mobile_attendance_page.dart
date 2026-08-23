@@ -29,7 +29,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     with WidgetsBindingObserver {
   bool _working = false;
 
-  /// تحديث تلقائي لبيانات الحضور والتصحيحات أثناء ظهور الصفحة.
+  /// تحديث احتياطي لبيانات الحضور والتصحيحات أثناء ظهور الصفحة.
+  /// التحديث الفوري يأتي من قناة Realtime (attendanceRealtimeProvider) —
+  /// يبقى المؤقت صمام أمان لانقطاع socket أو تعثر القناة.
   Timer? _refreshTimer;
 
   /// نوع مشكلة الموقع — لتحديد زر الإعدادات المناسب.
@@ -52,10 +54,10 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     super.dispose();
   }
 
-  /// تحديث تلقائي كل 30 ثانية فقط عندما تكون الصفحة ظاهرة.
+  /// تحديث احتياطي كل 60 ثانية فقط عندما تكون الصفحة ظاهرة.
   void _startAutoRefresh() {
     _refreshTimer?.cancel();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
       if (!mounted) return;
       final route = ModalRoute.of(context);
       if (route?.isCurrent != true) return;
@@ -114,6 +116,8 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
 
   @override
   Widget build(BuildContext context) {
+    // تفعيل قناة Realtime طوال عمر الصفحة — بطلان الحالة فور أي بصمة جديدة.
+    ref.watch(attendanceRealtimeProvider);
     final state = ref.watch(attendanceStateProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('الحضور والانصراف')),
@@ -629,9 +633,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(error))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     } finally {
       if (mounted) setState(() => _working = false);
@@ -651,7 +655,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('عند العودة إلى المقر أكّد إنهاء المهمة مع تقرير موجز.'),
+              const Text(
+                'عند العودة إلى المقر أكّد إنهاء المهمة مع تقرير موجز.',
+              ),
               const SizedBox(height: 12),
               TextField(
                 controller: reportController,
@@ -688,7 +694,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     if (_working) return;
     setState(() => _working = true);
     try {
-      await ref.read(mobileCommandsProvider).endMission(
+      await ref
+          .read(mobileCommandsProvider)
+          .endMission(
             requestId: mission.requestId,
             report: reportController.text.trim(),
             outcome: outcomeController.text.trim().isEmpty
@@ -706,9 +714,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(error))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     } finally {
       if (mounted) setState(() => _working = false);
@@ -865,10 +873,10 @@ class _MissionStartCard extends StatelessWidget {
   final VoidCallback onStart;
 
   String get _typeLabel => switch (type) {
-        'convoy' => 'تكليف قافلة',
-        'fundraising' => 'مهمة فاندي',
-        _ => 'مأمورية',
-      };
+    'convoy' => 'تكليف قافلة',
+    'fundraising' => 'مهمة فاندي',
+    _ => 'مأمورية',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -926,8 +934,10 @@ class _MissionStartCard extends StatelessWidget {
                 label: const Text('بدء المأمورية الآن'),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  textStyle:
-                      const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ),
@@ -965,8 +975,11 @@ class _MissionInProgressCard extends StatelessWidget {
             decoration: BoxDecoration(color: scheme.tertiaryContainer),
             child: Column(
               children: [
-                Icon(Icons.route_outlined,
-                    color: scheme.onTertiaryContainer, size: 38),
+                Icon(
+                  Icons.route_outlined,
+                  color: scheme.onTertiaryContainer,
+                  size: 38,
+                ),
                 const SizedBox(height: 10),
                 Text(
                   'تم بدء المأمورية',
@@ -1005,8 +1018,10 @@ class _MissionInProgressCard extends StatelessWidget {
                 label: const Text('إنهاء المأمورية والعودة للمقر'),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  textStyle:
-                      const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ),
