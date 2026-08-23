@@ -132,8 +132,9 @@ begin
   values ('11111111-0000-4000-8000-000000000201', '11111111-0000-4000-8000-000000000203', 'primary');
 
   -- حضور اليوم للموظف الزميل (لاختبار الحالة العامة في الدليل) + حضور للزميل بلا رصيد
+  -- بتاريخ القاهرة اتساقاً مع get_mobile_employee_directory (نافذة منتصف الليل UTC≠القاهرة)
   insert into public.attendance_daily (employee_id, work_date, status)
-  values ('11111111-0000-4000-8000-000000000202', current_date, 'present');
+  values ('11111111-0000-4000-8000-000000000202', (now() at time zone 'Africa/Cairo')::date, 'present');
 end $fixture$;
 
 -- =====================================================================
