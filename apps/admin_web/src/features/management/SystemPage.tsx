@@ -25,11 +25,38 @@ export function SystemPage() {
       ) : d ? (
         <>
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            <MetricCard label="الميزات المفعلة" value={`${d.enabledFlags}/${d.totalFlags}`} icon={Flag} onClick={() => document.getElementById('system-sections')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
-            <MetricCard label="أخطاء غير محلولة" value={d.unresolvedErrors} icon={ShieldAlert} trend={d.unresolvedErrors > 0 ? 'يتطلب متابعة' : undefined} onClick={() => document.getElementById('system-sections')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
-            <MetricCard label="أخطاء حرجة" value={d.fatalErrors} icon={Activity} hint={d.fatalErrors > 0 ? 'يتطلب تدخلاً فورياً' : undefined} onClick={() => document.getElementById('system-sections')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
-            <MetricCard label="آخر نسخة احتياطية" value={d.latestBackupStatus ?? 'لا يوجد'} icon={DatabaseBackup} onClick={() => document.getElementById('system-sections')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
-            <MetricCard label="إعدادات النظام" value={d.settingsCount} icon={Settings} onClick={() => document.getElementById('system-sections')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
+            <MetricCard
+              label="الميزات المفعلة"
+              value={`${d.enabledFlags}/${d.totalFlags}`}
+              icon={Flag}
+              onClick={() => document.getElementById('system-sections')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
+            <MetricCard
+              label="أخطاء غير محلولة"
+              value={d.unresolvedErrors}
+              icon={ShieldAlert}
+              trend={d.unresolvedErrors > 0 ? 'يتطلب متابعة' : undefined}
+              onClick={() => document.getElementById('system-sections')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
+            <MetricCard
+              label="أخطاء حرجة"
+              value={d.fatalErrors}
+              icon={Activity}
+              hint={d.fatalErrors > 0 ? 'يتطلب تدخلاً فورياً' : undefined}
+              onClick={() => document.getElementById('system-sections')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
+            <MetricCard
+              label="آخر نسخة احتياطية"
+              value={d.latestBackupStatus ?? 'لا يوجد'}
+              icon={DatabaseBackup}
+              onClick={() => document.getElementById('system-sections')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
+            <MetricCard
+              label="إعدادات النظام"
+              value={d.settingsCount}
+              icon={Settings}
+              onClick={() => document.getElementById('system-sections')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
           </section>
 
           <section id="system-sections" className="grid gap-5 xl:grid-cols-2">

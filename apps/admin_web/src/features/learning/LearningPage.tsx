@@ -85,8 +85,7 @@ export function LearningPage() {
       .filter((c) => {
         const matchSearch = !q || c.title.toLowerCase().includes(q) || c.code.toLowerCase().includes(q);
         const matchCategory = category === 'all' || c.category === category;
-        const matchQuick =
-          courseQuick === 'all' || (courseQuick === 'active' ? c.active : c.mandatory);
+        const matchQuick = courseQuick === 'all' || (courseQuick === 'active' ? c.active : c.mandatory);
         return matchSearch && matchCategory && matchQuick;
       })
       .sort((a, b) => a.title.localeCompare(b.title, 'ar'));

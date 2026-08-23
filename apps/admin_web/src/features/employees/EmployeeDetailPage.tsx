@@ -1271,11 +1271,7 @@ export function EmployeeDetailPage() {
                 <Data
                   label="أحدث تقييم"
                   value={
-                    item.latestKpi
-                      ? [item.latestKpi.finalScore ?? item.latestKpi.currentStage, item.latestKpi.finalRating]
-                          .filter(Boolean)
-                          .join(' · ')
-                      : '—'
+                    item.latestKpi ? [item.latestKpi.finalScore ?? item.latestKpi.currentStage, item.latestKpi.finalRating].filter(Boolean).join(' · ') : '—'
                   }
                 />
               </div>

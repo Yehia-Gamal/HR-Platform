@@ -265,10 +265,30 @@ export function AccessPage() {
         <>
           {/* ── الإحصائيات ── */}
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="الأدوار" value={data.roles.length} icon={ShieldCheck} onClick={() => document.getElementById('access-roles')?.scrollIntoView({ behavior: 'smooth' })} />
-            <MetricCard label="الصلاحيات" value={data.permissions.length} icon={KeyRound} onClick={() => document.getElementById('access-roles')?.scrollIntoView({ behavior: 'smooth' })} />
-            <MetricCard label="المستخدمون" value={data.users.length} icon={Users} onClick={() => document.getElementById('access-assignments')?.scrollIntoView({ behavior: 'smooth' })} />
-            <MetricCard label="الصلاحيات الحساسة" value={data.permissions.filter((p) => p.sensitive).length} icon={ShieldCheck} onClick={() => document.getElementById('access-roles')?.scrollIntoView({ behavior: 'smooth' })} />
+            <MetricCard
+              label="الأدوار"
+              value={data.roles.length}
+              icon={ShieldCheck}
+              onClick={() => document.getElementById('access-roles')?.scrollIntoView({ behavior: 'smooth' })}
+            />
+            <MetricCard
+              label="الصلاحيات"
+              value={data.permissions.length}
+              icon={KeyRound}
+              onClick={() => document.getElementById('access-roles')?.scrollIntoView({ behavior: 'smooth' })}
+            />
+            <MetricCard
+              label="المستخدمون"
+              value={data.users.length}
+              icon={Users}
+              onClick={() => document.getElementById('access-assignments')?.scrollIntoView({ behavior: 'smooth' })}
+            />
+            <MetricCard
+              label="الصلاحيات الحساسة"
+              value={data.permissions.filter((p) => p.sensitive).length}
+              icon={ShieldCheck}
+              onClick={() => document.getElementById('access-roles')?.scrollIntoView({ behavior: 'smooth' })}
+            />
           </section>
 
           {/* ── بطاقات قوالب الأدوار ── */}

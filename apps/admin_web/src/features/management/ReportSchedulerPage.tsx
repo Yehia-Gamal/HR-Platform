@@ -64,10 +64,30 @@ export function ReportSchedulerPage() {
       ) : (
         <>
           <section className="grid gap-4 sm:grid-cols-4">
-            <MetricCard label="الجداول" value={data.schedules.length} icon={AlarmClockCheck} onClick={() => document.getElementById('scheduler-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
-            <MetricCard label="عمليات التشغيل" value={data.runs.length} icon={FileBarChart2} onClick={() => document.getElementById('scheduler-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
-            <MetricCard label="إشعارات منتظرة" value={data.notificationQueue.queued} icon={Send} onClick={() => document.getElementById('scheduler-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
-            <MetricCard label="فشل التسليم" value={data.notificationQueue.failed} icon={Send} onClick={() => document.getElementById('scheduler-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
+            <MetricCard
+              label="الجداول"
+              value={data.schedules.length}
+              icon={AlarmClockCheck}
+              onClick={() => document.getElementById('scheduler-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
+            <MetricCard
+              label="عمليات التشغيل"
+              value={data.runs.length}
+              icon={FileBarChart2}
+              onClick={() => document.getElementById('scheduler-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
+            <MetricCard
+              label="إشعارات منتظرة"
+              value={data.notificationQueue.queued}
+              icon={Send}
+              onClick={() => document.getElementById('scheduler-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
+            <MetricCard
+              label="فشل التسليم"
+              value={data.notificationQueue.failed}
+              icon={Send}
+              onClick={() => document.getElementById('scheduler-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
           </section>
 
           <section id="scheduler-section" className="grid gap-5 xl:grid-cols-[1.2fr_1fr]">

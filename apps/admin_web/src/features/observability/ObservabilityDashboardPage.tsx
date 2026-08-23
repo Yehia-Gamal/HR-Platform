@@ -177,8 +177,20 @@ export function ObservabilityDashboardPage() {
 
       {/* ─── بطاقات الصحة الإجمالية ─── */}
       <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="تنبيهات حرجة (P0)" value={p0Count} hint={p0Count > 0 ? 'تحتاج تدخلاً فورياً' : 'لا توجد تنبيهات حرجة'} icon={ShieldAlert} onClick={() => document.getElementById('alerts-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
-        <MetricCard label="تنبيهات (P1)" value={p1Count} hint={p1Count > 0 ? 'تحتاج مراجعة' : 'لا توجد تنبيهات'} icon={AlertTriangle} onClick={() => document.getElementById('alerts-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
+        <MetricCard
+          label="تنبيهات حرجة (P0)"
+          value={p0Count}
+          hint={p0Count > 0 ? 'تحتاج تدخلاً فورياً' : 'لا توجد تنبيهات حرجة'}
+          icon={ShieldAlert}
+          onClick={() => document.getElementById('alerts-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+        />
+        <MetricCard
+          label="تنبيهات (P1)"
+          value={p1Count}
+          hint={p1Count > 0 ? 'تحتاج مراجعة' : 'لا توجد تنبيهات'}
+          icon={AlertTriangle}
+          onClick={() => document.getElementById('alerts-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+        />
         <MetricCard
           label="أخطاء آخر ساعة"
           value={monitors?.errors ? num(monitors.errors.errors_last_1h) : '—'}
@@ -262,9 +274,27 @@ export function ObservabilityDashboardPage() {
       {/* ─── صحة المهام المجدولة (pg_cron) ─── */}
       {canReadDetail && cronSummary && (
         <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="مهام نشطة" value={num(cronSummary.active)} hint={`من أصل ${num(cronSummary.total_jobs)} مهمة مجدولة`} icon={Activity} onClick={() => document.getElementById('cron-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
-          <MetricCard label="مهام سليمة" value={num(cronSummary.healthy)} hint={`${num(cronSummary.unstable)} غير مستقرة`} icon={CheckCircle2} onClick={() => document.getElementById('cron-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
-          <MetricCard label="مهام فاشلة" value={num(cronSummary.failing)} hint={`${num(cronSummary.failures_24h_total)} فشل في 24 ساعة`} icon={AlertOctagon} onClick={() => document.getElementById('cron-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
+          <MetricCard
+            label="مهام نشطة"
+            value={num(cronSummary.active)}
+            hint={`من أصل ${num(cronSummary.total_jobs)} مهمة مجدولة`}
+            icon={Activity}
+            onClick={() => document.getElementById('cron-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          />
+          <MetricCard
+            label="مهام سليمة"
+            value={num(cronSummary.healthy)}
+            hint={`${num(cronSummary.unstable)} غير مستقرة`}
+            icon={CheckCircle2}
+            onClick={() => document.getElementById('cron-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          />
+          <MetricCard
+            label="مهام فاشلة"
+            value={num(cronSummary.failing)}
+            hint={`${num(cronSummary.failures_24h_total)} فشل في 24 ساعة`}
+            icon={AlertOctagon}
+            onClick={() => document.getElementById('cron-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          />
           <MetricCard
             label="لم تعمل بعد / معطّلة"
             value={num(cronSummary.never_run) + num(cronSummary.disabled)}

@@ -70,7 +70,13 @@ export function OfficialHolidaysPage() {
 
       <section className="grid gap-3 sm:grid-cols-3">
         <MetricCard label="إجمالي العطل" value={all.length} icon={CalendarDays} hint={`عام ${year}`} onClick={() => setSearch('')} />
-        <MetricCard label="عطل فعّالة" value={active} icon={CalendarDays} hint={`${all.length ? Math.round((active / all.length) * 100) : 0}%`} onClick={() => setSearch('')} />
+        <MetricCard
+          label="عطل فعّالة"
+          value={active}
+          icon={CalendarDays}
+          hint={`${all.length ? Math.round((active / all.length) * 100) : 0}%`}
+          onClick={() => setSearch('')}
+        />
         <MetricCard label="عطل متكررة سنويًا" value={recurring} icon={RefreshCw} onClick={() => setSearch('')} />
       </section>
 

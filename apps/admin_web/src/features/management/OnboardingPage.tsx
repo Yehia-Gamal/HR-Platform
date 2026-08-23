@@ -29,11 +29,7 @@ export function OnboardingPage() {
   // النقر على بطاقات الملخص يصفّي قائمة الرحلات حسب الحالة.
   const [statusQuick, setStatusQuick] = useState<'all' | 'in_progress' | 'completed'>('all');
   const data = query.data;
-  const visibleJourneys = data
-    ? statusQuick === 'all'
-      ? data.journeys
-      : data.journeys.filter((item) => item.status === statusQuick)
-    : [];
+  const visibleJourneys = data ? (statusQuick === 'all' ? data.journeys : data.journeys.filter((item) => item.status === statusQuick)) : [];
 
   async function create(event: FormEvent) {
     event.preventDefault();
@@ -71,9 +67,24 @@ export function OnboardingPage() {
       {data ? (
         <>
           <section className="grid gap-4 sm:grid-cols-3">
-            <MetricCard label="الرحلات النشطة" value={data.journeys.filter((item) => item.status === 'in_progress').length} icon={Rocket} onClick={() => setStatusQuick('in_progress')} />
-            <MetricCard label="المكتملة" value={data.journeys.filter((item) => item.status === 'completed').length} icon={CheckCircle2} onClick={() => setStatusQuick('completed')} />
-            <MetricCard label="مهام معلقة" value={data.journeys.reduce((sum, item) => sum + item.totalTasks - item.completedTasks, 0)} icon={ClipboardCheck} onClick={() => setStatusQuick('all')} />
+            <MetricCard
+              label="الرحلات النشطة"
+              value={data.journeys.filter((item) => item.status === 'in_progress').length}
+              icon={Rocket}
+              onClick={() => setStatusQuick('in_progress')}
+            />
+            <MetricCard
+              label="المكتملة"
+              value={data.journeys.filter((item) => item.status === 'completed').length}
+              icon={CheckCircle2}
+              onClick={() => setStatusQuick('completed')}
+            />
+            <MetricCard
+              label="مهام معلقة"
+              value={data.journeys.reduce((sum, item) => sum + item.totalTasks - item.completedTasks, 0)}
+              icon={ClipboardCheck}
+              onClick={() => setStatusQuick('all')}
+            />
           </section>
           <section className="space-y-4">
             {visibleJourneys.length ? (

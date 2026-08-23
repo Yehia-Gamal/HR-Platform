@@ -145,10 +145,22 @@ export function LifecyclePage() {
         <MetricSkeletonRow count={4} />
       ) : (
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="رحلات قيد التنفيذ" value={inProgress} icon={PackageCheck} hint="في مرحلة التهيئة حالياً" onClick={() => setStatusFilter('in_progress')} />
+          <MetricCard
+            label="رحلات قيد التنفيذ"
+            value={inProgress}
+            icon={PackageCheck}
+            hint="في مرحلة التهيئة حالياً"
+            onClick={() => setStatusFilter('in_progress')}
+          />
           <MetricCard label="رحلات مكتملة" value={completed} icon={CheckCircle2} hint="اجتازت مرحلة التهيئة" onClick={() => setStatusFilter('completed')} />
           <MetricCard label="متوسط الإنجاز" value={`${avgProgress}%`} icon={Award} hint="عبر جميع الرحلات" onClick={() => setStatusFilter('all')} />
-          <MetricCard label="موظفون في التهيئة" value={onboardingEmployees} icon={UsersRound} hint="من قائمة الموظفين المتاحة" onClick={() => setStatusFilter('all')} />
+          <MetricCard
+            label="موظفون في التهيئة"
+            value={onboardingEmployees}
+            icon={UsersRound}
+            hint="من قائمة الموظفين المتاحة"
+            onClick={() => setStatusFilter('all')}
+          />
         </section>
       )}
 
