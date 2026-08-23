@@ -455,6 +455,49 @@ class KpiEvaluationForm {
   final String? relation;
 }
 
+/// 0450: حالة يوم المأمورية/التكليف — تقود تحول زر البصمة في صفحة الحضور.
+class MissionToday {
+  const MissionToday({
+    required this.requestId,
+    required this.type,
+    required this.execStatus,
+    this.startTime,
+    this.startedAt,
+    this.endedAt,
+    required this.autoCheckout,
+  });
+
+  factory MissionToday.fromJson(Map<String, dynamic> json) => MissionToday(
+        requestId: json['requestId'] as String,
+        type: json['type'] as String? ?? 'mission',
+        execStatus: json['execStatus'] as String? ?? 'approved',
+        startTime: json['startTime'] as String?,
+        startedAt: json['startedAt'] == null
+            ? null
+            : DateTime.parse(json['startedAt'] as String),
+        endedAt: json['endedAt'] == null
+            ? null
+            : DateTime.parse(json['endedAt'] as String),
+        autoCheckout: json['autoCheckout'] as bool? ?? false,
+      );
+
+  final String requestId;
+
+  /// mission | convoy | fundraising
+  final String type;
+
+  /// approved (لم تبدأ) | in_progress | completed
+  final String execStatus;
+
+  /// الوقت المتوقع للبداية من الطلب (HH:mm) إن وُجد.
+  final String? startTime;
+  final DateTime? startedAt;
+  final DateTime? endedAt;
+
+  /// انتهت بعد نهاية الدوام ⇒ انصراف تلقائي بلا بصمة إضافية.
+  final bool autoCheckout;
+}
+
 class AttendanceState {
   const AttendanceState({
     required this.attendanceRequired,
@@ -470,6 +513,7 @@ class AttendanceState {
     required this.localDeviceStatus,
     required this.todayCheckInAt,
     required this.todayCheckOutAt,
+    this.missionToday,
   });
   factory AttendanceState.fromJson(Map<String, dynamic> json) =>
       AttendanceState(
@@ -498,6 +542,11 @@ class AttendanceState {
         todayCheckOutAt: json['todayCheckOutAt'] == null
             ? null
             : DateTime.parse(json['todayCheckOutAt'] as String),
+        missionToday: json['missionToday'] == null
+            ? null
+            : MissionToday.fromJson(
+                Map<String, dynamic>.from(json['missionToday'] as Map),
+              ),
       );
   final bool attendanceRequired;
   final bool selfPunchEnabled;
@@ -518,6 +567,9 @@ class AttendanceState {
 
   /// 0439: آخر توقيت انصراف اليوم (بتوقيت UTC) — null قبل اكتمال اليوم.
   final DateTime? todayCheckOutAt;
+
+  /// 0450: يوم مأمورية/تكليف معتمد لليوم — يقود تحول زر البصمة.
+  final MissionToday? missionToday;
 }
 
 class MobileFeedItem {

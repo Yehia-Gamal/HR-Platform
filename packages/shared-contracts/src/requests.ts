@@ -80,6 +80,16 @@ export const createRequestInputSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   /** تاريخ النهاية (اختياري — طلبات اليوم الواحد) */
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  /** وقت بداية المأمورية/التكليف (اختياري — HH:mm بنظام 24 ساعة) */
+  startTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .optional(),
+  /** وقت نهاية المأمورية/التكليف (اختياري — HH:mm بنظام 24 ساعة) */
+  endTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .optional(),
   /** معرّفات المرفقات */
   attachmentIds: z.array(z.string().uuid()).default([]),
   /** ملاحظات إضافية */

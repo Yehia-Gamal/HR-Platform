@@ -194,6 +194,49 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     // بعد منتصف الليل يمرّر الخادم اليوم الجديد فتعود القيم فارغة ويظهر الزر.
     final dayCompleted = value.todayCheckOutAt != null;
 
+    // 0450: يوم مأمورية/تكليف — زر البصمة يتحول لدورة المأمورية كاملة:
+    // approved → زر بدء، in_progress → بطاقة جارية بانتظار الإنهاء،
+    // completed قبل نهاية الدوام → يعود زر الانصراف العادي تلقائيًا
+    // (لأن الخادم سجّل أول حضور = توقيت البدء)، وبعد نهاية الدوام →
+    // اكتمال تلقائي بلا بصمة إضافية.
+    final mission = value.missionToday;
+    if (!dayCompleted && mission != null) {
+      if (mission.execStatus == 'approved') {
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _MissionStartCard(
+              type: mission.type,
+              startTime: mission.startTime,
+              working: _working,
+              onStart: () => _startMission(mission.requestId),
+            ),
+            const SizedBox(height: 14),
+            _TodayStatusCard(state: value),
+            const SizedBox(height: 14),
+            _QuickLinksRow(working: _working),
+          ],
+        );
+      }
+      if (mission.execStatus == 'in_progress') {
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _MissionInProgressCard(
+              startedAt: mission.startedAt,
+              working: _working,
+              onEnd: () => _endMissionFlow(mission),
+            ),
+            const SizedBox(height: 14),
+            _TodayStatusCard(state: value),
+            const SizedBox(height: 14),
+            _QuickLinksRow(working: _working),
+          ],
+        );
+      }
+      // completed && !autoCheckout ⇒ تسقط للأسفل: زر انصراف عادي.
+    }
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -567,6 +610,110 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
         return 'حدث خطأ غير متوقع ($code). حاول مرة أخرى.';
     }
   }
+
+  // ── 0450: دورة يوم المأمورية ─────────────────────────────────────────
+  /// بدء المأمورية من نقطة المهمة مباشرة — بلا حاجة لبصمة المقر.
+  Future<void> _startMission(String requestId) async {
+    if (_working) return;
+    setState(() => _working = true);
+    try {
+      await ref.read(mobileCommandsProvider).startMission(requestId);
+      ref.invalidate(attendanceStateProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم بدء المأمورية — بالتوفيق في مهمتك.'),
+            backgroundColor: AppColors.statusSuccess,
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(error))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _working = false);
+    }
+  }
+
+  /// إنهاء المأمورية مع تقرير إلزامي — بعده يعود زر الانصراف تلقائيًا
+  /// أو يكتمل اليوم إن تجاوز الوقت نهاية الدوام (انصراف تلقائي).
+  Future<void> _endMissionFlow(MissionToday mission) async {
+    final reportController = TextEditingController();
+    final outcomeController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('إنهاء المأمورية'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('عند العودة إلى المقر أكّد إنهاء المهمة مع تقرير موجز.'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: reportController,
+                maxLines: 3,
+                maxLength: 500,
+                decoration: const InputDecoration(
+                  labelText: 'تقرير المأمورية *',
+                  hintText: 'ماذا أنجزت في المهمة؟',
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: outcomeController,
+                decoration: const InputDecoration(
+                  labelText: 'النتيجة (اختياري)',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('لاحقًا'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('إنهاء المأمورية'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    if (_working) return;
+    setState(() => _working = true);
+    try {
+      await ref.read(mobileCommandsProvider).endMission(
+            requestId: mission.requestId,
+            report: reportController.text.trim(),
+            outcome: outcomeController.text.trim().isEmpty
+                ? null
+                : outcomeController.text.trim(),
+          );
+      ref.invalidate(attendanceStateProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم إنهاء المأمورية بنجاح.'),
+            backgroundColor: AppColors.statusSuccess,
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(error))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _working = false);
+    }
+  }
 }
 
 /// العملية المعلقة بعد العودة من إعدادات GPS — لإعادة المحاولة تلقائياً.
@@ -695,6 +842,176 @@ class _PunchCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 14),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
         ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 0450: بطاقات دورة يوم المأمورية — تحل محل زر البصمة في يوم التكليف
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _MissionStartCard extends StatelessWidget {
+  const _MissionStartCard({
+    required this.type,
+    required this.startTime,
+    required this.working,
+    required this.onStart,
+  });
+
+  final String type;
+  final String? startTime;
+  final bool working;
+  final VoidCallback onStart;
+
+  String get _typeLabel => switch (type) {
+        'convoy' => 'تكليف قافلة',
+        'fundraising' => 'مهمة فاندي',
+        _ => 'مأمورية',
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [scheme.primary, scheme.secondary],
+              ),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.tour_outlined, color: scheme.onPrimary, size: 38),
+                const SizedBox(height: 10),
+                Text(
+                  'لديك $_typeLabel اليوم',
+                  style: TextStyle(
+                    color: scheme.onPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  startTime == null
+                      ? 'ابدأ مباشرة من نقطة المهمة — لا حاجة للمرور بالمقر.'
+                      : 'الوقت المتوقع للبداية: $startTime — لا حاجة للمرور بالمقر.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: scheme.onPrimary.withValues(alpha: 0.85),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: working ? null : onStart,
+                icon: working
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.play_arrow_rounded),
+                label: const Text('بدء المأمورية الآن'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  textStyle:
+                      const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MissionInProgressCard extends StatelessWidget {
+  const _MissionInProgressCard({
+    required this.startedAt,
+    required this.working,
+    required this.onEnd,
+  });
+
+  final DateTime? startedAt;
+  final bool working;
+  final VoidCallback onEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final startedLabel = startedAt == null
+        ? null
+        : DateFormat('h:mm a', 'ar').format(startedAt!.toLocal());
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(color: scheme.tertiaryContainer),
+            child: Column(
+              children: [
+                Icon(Icons.route_outlined,
+                    color: scheme.onTertiaryContainer, size: 38),
+                const SizedBox(height: 10),
+                Text(
+                  'تم بدء المأمورية',
+                  style: TextStyle(
+                    color: scheme.onTertiaryContainer,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  startedLabel == null
+                      ? 'بانتظار الانتهاء — عند العودة إلى المقر أنهِ المهمة.'
+                      : 'بدأت الساعة $startedLabel — بانتظار الانتهاء عند العودة للمقر.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: scheme.onTertiaryContainer.withValues(alpha: 0.85),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: working ? null : onEnd,
+                icon: working
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.task_alt_rounded),
+                label: const Text('إنهاء المأمورية والعودة للمقر'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  textStyle:
+                      const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
