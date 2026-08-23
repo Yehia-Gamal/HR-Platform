@@ -177,24 +177,26 @@ export function ObservabilityDashboardPage() {
 
       {/* ─── بطاقات الصحة الإجمالية ─── */}
       <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="تنبيهات حرجة (P0)" value={p0Count} hint={p0Count > 0 ? 'تحتاج تدخلاً فورياً' : 'لا توجد تنبيهات حرجة'} icon={ShieldAlert} />
-        <MetricCard label="تنبيهات (P1)" value={p1Count} hint={p1Count > 0 ? 'تحتاج مراجعة' : 'لا توجد تنبيهات'} icon={AlertTriangle} />
+        <MetricCard label="تنبيهات حرجة (P0)" value={p0Count} hint={p0Count > 0 ? 'تحتاج تدخلاً فورياً' : 'لا توجد تنبيهات حرجة'} icon={ShieldAlert} onClick={() => document.getElementById('alerts-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
+        <MetricCard label="تنبيهات (P1)" value={p1Count} hint={p1Count > 0 ? 'تحتاج مراجعة' : 'لا توجد تنبيهات'} icon={AlertTriangle} onClick={() => document.getElementById('alerts-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
         <MetricCard
           label="أخطاء آخر ساعة"
           value={monitors?.errors ? num(monitors.errors.errors_last_1h) : '—'}
           hint={monitors?.errors ? `${num(monitors.errors.fatal_last_1h)} حرجة` : undefined}
           icon={XCircle}
+          onClick={() => document.getElementById('alerts-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
         />
         <MetricCard
           label="أحداث أمنية حرجة"
           value={monitors?.security ? num(monitors.security.critical_last_1h) : '—'}
           hint={monitors?.security ? `${num(monitors.security.high_last_1h)} عالية` : undefined}
           icon={Shield}
+          onClick={() => document.getElementById('alerts-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
         />
       </section>
 
       {/* ─── التنبيهات المفتوحة ─── */}
-      <section className="card p-5">
+      <section id="alerts-section" className="card p-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="flex items-center gap-2 font-black">
             <Bell className="size-5 text-[var(--brand)]" aria-hidden="true" />
@@ -260,20 +262,21 @@ export function ObservabilityDashboardPage() {
       {/* ─── صحة المهام المجدولة (pg_cron) ─── */}
       {canReadDetail && cronSummary && (
         <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="مهام نشطة" value={num(cronSummary.active)} hint={`من أصل ${num(cronSummary.total_jobs)} مهمة مجدولة`} icon={Activity} />
-          <MetricCard label="مهام سليمة" value={num(cronSummary.healthy)} hint={`${num(cronSummary.unstable)} غير مستقرة`} icon={CheckCircle2} />
-          <MetricCard label="مهام فاشلة" value={num(cronSummary.failing)} hint={`${num(cronSummary.failures_24h_total)} فشل في 24 ساعة`} icon={AlertOctagon} />
+          <MetricCard label="مهام نشطة" value={num(cronSummary.active)} hint={`من أصل ${num(cronSummary.total_jobs)} مهمة مجدولة`} icon={Activity} onClick={() => document.getElementById('cron-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
+          <MetricCard label="مهام سليمة" value={num(cronSummary.healthy)} hint={`${num(cronSummary.unstable)} غير مستقرة`} icon={CheckCircle2} onClick={() => document.getElementById('cron-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
+          <MetricCard label="مهام فاشلة" value={num(cronSummary.failing)} hint={`${num(cronSummary.failures_24h_total)} فشل في 24 ساعة`} icon={AlertOctagon} onClick={() => document.getElementById('cron-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
           <MetricCard
             label="لم تعمل بعد / معطّلة"
             value={num(cronSummary.never_run) + num(cronSummary.disabled)}
             hint={`${num(cronSummary.never_run)} لم تعمل · ${num(cronSummary.disabled)} معطّلة`}
             icon={Ban}
+            onClick={() => document.getElementById('cron-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
           />
         </section>
       )}
 
       {canReadDetail && cronJobs.length > 0 && (
-        <section className="card overflow-hidden">
+        <section id="cron-section" className="card overflow-hidden">
           <div className="border-b border-[var(--border)] p-5">
             <h3 className="flex items-center gap-2 font-black">
               <Clock className="size-5 text-[var(--brand)]" aria-hidden="true" />
