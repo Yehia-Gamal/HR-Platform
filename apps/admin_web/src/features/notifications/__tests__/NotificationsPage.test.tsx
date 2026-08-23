@@ -1,14 +1,21 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '../../../ui/Toast';
 import { NotificationsPage } from '../NotificationsPage';
 
 function Wrapper({ children }: { children: React.ReactNode }) {
+  // 0455: BroadcastAlertButton يستخدم TanStack Query داخليًا — نوفّر عميلًا للاختبار.
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
   return (
-    <MemoryRouter>
-      <ToastProvider>{children}</ToastProvider>
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <ToastProvider>{children}</ToastProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 }
 
@@ -40,6 +47,11 @@ vi.mock('../useNotifications', () => ({
   useNotifications: () => notifReturn,
   useMarkNotificationsRead: () => markReturn,
   useDeleteNotifications: () => deleteReturn,
+}));
+
+// زر التنبيه الشامل يحتاج سياق المصادقة — بلا صلاحيات يختفي من الواجهة.
+vi.mock('../../auth/AuthProvider', () => ({
+  useAuth: () => ({ session: null, access: null, isMock: true }),
 }));
 
 const dataQuery = {
