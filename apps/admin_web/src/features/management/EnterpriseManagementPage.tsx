@@ -21,19 +21,20 @@ export function EnterpriseManagementPage() {
       <PageHeader title="مركز الإدارة المؤسسية" description="الاستراتيجية والمشروعات والمخاطر والخدمات والاجتماعات والجودة والأتمتة والحوكمة من لوحة واحدة." />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <MetricCard label="الأهداف" value={d.objectives.length} hint="أهداف استراتيجية" icon={Target} />
-        <MetricCard label="المشروعات" value={d.projects.length} hint="محافظ ومبادرات" icon={BriefcaseBusiness} />
+        <MetricCard label="الأهداف" value={d.objectives.length} hint="أهداف استراتيجية" icon={Target} onClick={() => document.getElementById('enterprise-panels')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
+        <MetricCard label="المشروعات" value={d.projects.length} hint="محافظ ومبادرات" icon={BriefcaseBusiness} onClick={() => document.getElementById('enterprise-panels')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
         <MetricCard
           label="المخاطر المفتوحة"
           value={d.risks.filter((x) => x.status !== 'closed').length}
           hint={`من ${d.risks.length} مخاطر`}
           icon={CircleAlert}
+          onClick={() => document.getElementById('enterprise-panels')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
         />
-        <MetricCard label="طلبات الخدمة" value={d.serviceRequests.length} hint="واردة ومفتوحة" icon={MessagesSquare} />
-        <MetricCard label="حالات الجودة" value={d.qualityCases.length} hint="قيد المتابعة" icon={ListChecks} />
+        <MetricCard label="طلبات الخدمة" value={d.serviceRequests.length} hint="واردة ومفتوحة" icon={MessagesSquare} onClick={() => document.getElementById('enterprise-panels')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
+        <MetricCard label="حالات الجودة" value={d.qualityCases.length} hint="قيد المتابعة" icon={ListChecks} onClick={() => document.getElementById('enterprise-panels')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-3">
+      <section id="enterprise-panels" className="grid gap-5 xl:grid-cols-3">
         <Panel title="الأهداف والمشروعات" icon={<Gauge className="size-5" aria-hidden="true" />} isEmpty={d.objectives.length === 0 && d.projects.length === 0}>
           {d.objectives.slice(0, 5).map((x) => (
             <Row key={x.id} title={`${x.code} — ${x.title}`} subtitle={`التقدم ${x.progress}%`} status={x.status} />
