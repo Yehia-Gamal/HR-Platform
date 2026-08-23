@@ -225,6 +225,7 @@
 | 0449 | `0449_time_formats_12h_arabic.sql` | صيغة الوقت 12 ساعة (ص/م) في الإشعارات والتنبيهات وجلسات اللجان وكشوف الحضور. |
 | 0450 | `0450_mission_day_attendance_flow.sql` | دورة يوم المأمورية: end_my_mission يسجّل attendance_daily تلقائياً (حضور=توقيت البدء، انصراف تلقائي بعد shift_end_time) + get_my_attendance_state يعيد missionToday لتحول زر البصمة. |
 | 0451 | `0451_assignment_approval_present_day.sql` | قبول mission/convoy/fundraising يُنشئ صفوف present لكل أيام الفترة (يوم عمل عادي) — trigger + backfill، إدراج فقط للأيام الغائبة. |
+| 0452 | `0452_multi_mission_day_priority.sql` | تعدد المأموريات في يوم واحد: أولوية العرض (جارية ← غير مبدوءة ← منتهية) + تحصين start_my_mission ضد تكرار التنفيذ. |
 
 > **ملاحظة:** الإدخالات 0411–0442 موجودة في المجلد لكن لم تُوثَّق في هذا الجدول بعد — راجع أسماء الملفات مباشرة حتى يكتمل التوثيق.
 >
