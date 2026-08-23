@@ -222,6 +222,8 @@
 | 0443 | `0443_deep_audit_phase1_hardening.sql` | تشديد RLS لـ learning_course_sessions + توحيد CHECK أنواع الطلبات السبعة + policy لـ password_reset_requests. |
 | 0444 | `0444_exclude_executive_from_attendance_and_lists.sql` | استبعاد المدير التنفيذي من الحضور والقوائم (10 دوال) + حذف overload بلا معاملات لـ get_executive_attendance_today. |
 | 0445 | `0445_grants_for_0444_functions_and_pgrst_reload.sql` | منح EXECUTE بدقة لدوال 0444 (revoke عن public/anon) + صلاحية is_employee_executive للمستدعي invoker + NOTIFY pgrst reload. |
+| 0449 | `0449_time_formats_12h_arabic.sql` | صيغة الوقت 12 ساعة (ص/م) في الإشعارات والتنبيهات وجلسات اللجان وكشوف الحضور. |
+| 0450 | `0450_mission_day_attendance_flow.sql` | دورة يوم المأمورية: end_my_mission يسجّل attendance_daily تلقائياً (حضور=توقيت البدء، انصراف تلقائي بعد shift_end_time) + get_my_attendance_state يعيد missionToday لتحول زر البصمة. |
 
 > **ملاحظة:** الإدخالات 0411–0442 موجودة في المجلد لكن لم تُوثَّق في هذا الجدول بعد — راجع أسماء الملفات مباشرة حتى يكتمل التوثيق.
 >
