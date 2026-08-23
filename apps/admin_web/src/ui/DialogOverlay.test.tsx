@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DialogOverlay } from './DialogOverlay';
@@ -111,5 +112,49 @@ describe('DialogOverlay', () => {
       </DialogOverlay>,
     );
     expect(input).toHaveFocus();
+  });
+
+  it('الكتابة الفعلية المتتالية (حالة مضبوطة) تبقي التركيز على الحقل لا على زر X', () => {
+    function Host() {
+      const [value, setValue] = useState('');
+      return (
+        <DialogOverlay title="طلب إجازة" onClose={() => {}}>
+          <input aria-label="السبب" value={value} onChange={(e) => setValue(e.target.value)} />
+          <button onClick={() => {}}>حفظ</button>
+        </DialogOverlay>
+      );
+    }
+    render(<Host />);
+    const input = screen.getByLabelText('السبب');
+    expect(input).toHaveFocus();
+    // محاكاة ثلاث ضغطات متتالية — كل واحدة تعيد رندر الشجرة بحالة جديدة
+    for (const ch of ['أ', 'ب', 'ج']) {
+      fireEvent.change(input, { target: { value: ch } });
+      expect(document.activeElement).toBe(input);
+    }
+    expect(screen.getByRole('button', { name: 'إغلاق' })).not.toHaveFocus();
+  });
+
+  it('حوار بلا حقول إدخال يركّز أول زر إجراء وليس زر الإغلاق', () => {
+    render(
+      <DialogOverlay title="تأكيد" onClose={() => {}}>
+        <p>هل أنت متأكد من الحذف؟</p>
+        <button onClick={() => {}}>إلغاء</button>
+        <button onClick={() => {}}>حذف</button>
+      </DialogOverlay>,
+    );
+    expect(screen.getByRole('button', { name: 'إلغاء' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'إغلاق' })).not.toHaveFocus();
+  });
+
+  it('حوار محتواه زر الإغلاق فقط يركّز الحوار نفسه (لا X)', () => {
+    render(
+      <DialogOverlay title="تنبيه" onClose={() => {}}>
+        <p>انتهت الجلسة</p>
+      </DialogOverlay>,
+    );
+    const dialog = screen.getByRole('dialog').parentElement?.querySelector('section');
+    expect(document.activeElement).toBe(dialog);
+    expect(screen.getByRole('button', { name: 'إغلاق' })).not.toHaveFocus();
   });
 });

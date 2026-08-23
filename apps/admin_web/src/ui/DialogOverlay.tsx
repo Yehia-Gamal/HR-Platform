@@ -4,6 +4,8 @@ import { X } from 'lucide-react';
 
 const FOCUSABLE = 'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
 const INPUT_SELECTOR = 'textarea:not([disabled]),input:not([disabled]),select:not([disabled])';
+// زر الإغلاق (X) لا يستقبل تركيزاً برمجياً أبداً — يُستثنى من اختيار التركيز الأول
+const CLOSE_EXCLUDE = '[data-dialog-close]';
 
 export function DialogOverlay({
   title,
@@ -29,14 +31,16 @@ export function DialogOverlay({
     // حفظ العنصر الحالي لاستعادة التركيز عند الإغلاق
     previousFocusRef.current = document.activeElement;
 
-    // نقل التركيز إلى أول حقل إدخال إن وُجد، وإلا أول عنصر قابل للتركيز —
-    // حتى لا يُسرق التركيز من الحقول بواسطة زر الإغلاق (X) عند كل إعادة رندر.
+    // نقل التركيز إلى أول حقل إدخال إن وُجد، وإلا أول عنصر قابل للتركيز غير زر
+    // الإغلاق، وإلا الحوار نفسه — بحيث يستحيل أن يسرق زر X التركيز مهما كان
+    // السيناريو (فتح أول مرة، إعادة تركيب، محتوى غير متزامن).
     const dialog = dialogRef.current;
     if (dialog) {
       const firstInput = dialog.querySelector<HTMLElement>(INPUT_SELECTOR);
-      const firstFocusable = dialog.querySelector<HTMLElement>(FOCUSABLE);
-      const target = firstInput ?? firstFocusable;
-      if (target) target.focus();
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE));
+      const firstFocusable = focusable.find((el) => !el.matches(CLOSE_EXCLUDE)) ?? null;
+      const target = firstInput ?? firstFocusable ?? dialog;
+      target.focus();
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -88,12 +92,12 @@ export function DialogOverlay({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <section ref={dialogRef} className={`card ${maxWidth} w-full max-h-[90vh] overflow-y-auto p-6`}>
+      <section ref={dialogRef} tabIndex={-1} className={`card ${maxWidth} w-full max-h-[90vh] overflow-y-auto p-6 focus:outline-none`}>
         <div className="mb-5 flex items-center justify-between">
           <h2 id={titleId} className="text-xl font-black">
             {title}
           </h2>
-          <button className="icon-button" onClick={onClose} aria-label="إغلاق">
+          <button className="icon-button" onClick={onClose} aria-label="إغلاق" data-dialog-close>
             <X className="size-5" />
           </button>
         </div>
