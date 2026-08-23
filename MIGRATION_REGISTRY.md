@@ -219,15 +219,49 @@
 | 0407 | `0407_executive_attendance_today_fix.sql` | إصلاح executive_attendance_today. |
 | 0408 | `0408_mobile_operations_center_rpc.sql` | RPC مركز عمليات الموبايل. |
 | 0410 | `0410_fix_mobile_operations_center_cartesian.sql` | إصلاح الجداء الديكارتي في `get_mobile_operations_center` ومطابقة بوابته للويب (`reports.read` / `operations.*`). |
+| 0411 | `0411_drop_phantom_integer_overloads.sql` | إزالة overloads وهمية بأنواع integer لأمان استدعاء الـ RPCs. |
+| 0412 | `0412_employee_dossier_rpcs.sql` | RPCs ملف الموظف الشامل للويب (مهام، KPI، قرارات، تقارير). |
+| 0413 | `0413_fix_executive_attendance_today_role.sql` | إصلاح فحص دور الوصول في قائمة حضور التنفيذي. |
+| 0414 | `0414_fix_kpi_evaluations_admin_group_by.sql` | إصلاح GROUP BY في عرض تقييمات KPI الإدارية. |
+| 0415 | `0415_attendance_overview_matview.sql` | Materialized View لنظرة الحضور التنفيذية. |
+| 0416 | `0416_two_tier_approval_exec_fullscreen.sql` | اعتماد بطاقتَي قرار + وضع ملء الشاشة للتنفيذي. |
+| 0417 | `0417_dynamic_location_request_sender.sql` | مُرسل ديناميكي لإشعار طلب الموقع حسب الطالب. |
+| 0418 | `0418_fix_executive_attendance_today_role_final.sql` | الإصلاح النهائي لدور حضور التنفيذي. |
+| 0419 | `0419_employee_edit_simplify.sql` | تبسيط نموذج ومنطق تعديل الموظف. |
+| 0420 | `0420_fix_request_ordering_and_kpi_notifications.sql` | ترتيب صندوق الطلبات + إصلاح إشعارات KPI. |
+| 0421 | `0421_fix_live_location_push_repeat_loop.sql` | كسر حلقة تكرار دفع إشعارات طلبات الموقع. |
+| 0422 | `0422_drop_legacy_submit_my_request_overload.sql` | إزالة overload قديم لـ submit_my_request. |
+| 0423 | `0423_drop_ambiguous_request_live_location_overload.sql` | إزالة overload غامض لـ request_live_location. |
+| 0424 | `0424_drop_ambiguous_acknowledge_and_devices_overloads.sql` | إزالة overloads غامضة للإقرار وإدارة الأجهزة. |
+| 0425 | `0425_daily_report_views_and_engagement.sql` | مشاهدات التقارير اليومية والتفاعل (إعجاب/تعليق). |
+| 0426 | `0426_drop_legacy_get_attendance_dashboard_overload.sql` | إزالة overload القديم للوحة الحضور (توقيع date فقط). |
+| 0427 | `0427_notifications_delete_and_action_center_order.sql` | حذف الإشعارات + ترتيب مركز الإجراءات. |
+| 0428 | `0428_weekly_rest_comp_credit.sql` | رصيد تعويض الراحة الأسبوعية تلقائياً. |
+| 0429 | `0429_access_hardening_missions_no_absence_rest_comp.sql` | تشديد وصول + التكليفات لا تولّد غياباً أو تعويض راحة. |
+| 0430 | `0430_fix_attendance_mission_convoy_classification.sql` | تصنيف حضور المأمورية/القافلة في الكشف اليومي. |
+| 0431 | `0431_fix_incomplete_fingerprint_classification.sql` | تصنيف «بصمة غير مكتملة» بدقة. |
+| 0432 | `0432_fix_payload_mission_convoy_fundraising.sql` | توحيد payload المأمورية/القافلة/الفاندي. |
+| 0433 | `0433_fix_mission_convoy_fundraising_workflow_definitions.sql` | تعريفات مسار الاعتماد للمأمورية/القافلة/الفاندي. |
+| 0434 | `0434_fix_v287_vandi_classification.sql` | إصلاح تصنيف الفاندي في كشف v287. |
+| 0435 | `0435_normalize_notification_entity_types.sql` | توحيد أنواع كيانات الإشعارات عبر المنظومة. |
+| 0436 | `0436_unified_two_hour_sla_and_attendance_self_notify.sql` | SLA موحد ساعتين + إشعار ذاتي بالحضور. |
+| 0437 | `0437_fix_mission_convoy_fundi_as_present.sql` | المأمورية/القافلة/الفاندي = حاضر + منع ازدواج خصم الإجازات. |
+| 0438 | `0438_leave_tools_admin.sql` | أدوات إدارة الإجازات للمسؤول. |
+| 0439 | `0439_attendance_state_today_times.sql` | توقيتا حضور/انصراف اليوم في get_my_attendance_state. |
+| 0440 | `0440_fix_decide_request_exceeded_old_requests.sql` | decide_request يعالج الطلبات المتجاوزة زمنياً. |
+| 0441 | `0441_grant_hr_unrestricted_request_decision.sql` | قرار HR غير مقيد زمنياً على الطلبات. |
+| 0442 | `0442_fix_mission_execution_fundraising_and_period.sql` | الفاندي قابل للتنفيذ + منع البدء بعد انتهاء الفترة + إغلاق التنفيذ عند الإلغاء. |
 | 0443 | `0443_deep_audit_phase1_hardening.sql` | تشديد RLS لـ learning_course_sessions + توحيد CHECK أنواع الطلبات السبعة + policy لـ password_reset_requests. |
 | 0444 | `0444_exclude_executive_from_attendance_and_lists.sql` | استبعاد المدير التنفيذي من الحضور والقوائم (10 دوال) + حذف overload بلا معاملات لـ get_executive_attendance_today. |
 | 0445 | `0445_grants_for_0444_functions_and_pgrst_reload.sql` | منح EXECUTE بدقة لدوال 0444 (revoke عن public/anon) + صلاحية is_employee_executive للمستدعي invoker + NOTIFY pgrst reload. |
+| 0446 | `0446_attendance_notify_personalized_normal.sql` | إشعار الحضور بصيغة شخصية طبيعية بدل النمط الحرفي. |
+| 0447 | `0447_restore_attendance_dashboard_keys.sql` | استعادة مفاتيح لوحة الحضور التي تراجعت في 0444 (incomplete/pendingReview/isWeekend/locationRespondedToday) مع التوافقية الثنائية. |
+| 0448 | `0448_reapply_0445_grants_for_prod_alignment.sql` | إعادة تطبيق تشديد 0445 ديناميكياً عبر pg_proc لمعالجة انجراف ترقيم الإنتاج. |
 | 0449 | `0449_time_formats_12h_arabic.sql` | صيغة الوقت 12 ساعة (ص/م) في الإشعارات والتنبيهات وجلسات اللجان وكشوف الحضور. |
 | 0450 | `0450_mission_day_attendance_flow.sql` | دورة يوم المأمورية: end_my_mission يسجّل attendance_daily تلقائياً (حضور=توقيت البدء، انصراف تلقائي بعد shift_end_time) + get_my_attendance_state يعيد missionToday لتحول زر البصمة. |
 | 0451 | `0451_assignment_approval_present_day.sql` | قبول mission/convoy/fundraising يُنشئ صفوف present لكل أيام الفترة (يوم عمل عادي) — trigger + backfill، إدراج فقط للأيام الغائبة. |
-| 0452 | `0452_multi_mission_day_priority.sql` | تعدد المأموريات في يوم واحد: أولوية العرض (جارية ← غير مبدوءة ← منتهية) + تحصين start_my_mission ضد تكرار التنفيذ. |
-
-> **ملاحظة:** الإدخالات 0411–0442 موجودة في المجلد لكن لم تُوثَّق في هذا الجدول بعد — راجع أسماء الملفات مباشرة حتى يكتمل التوثيق.
+| 0452 | `0452_resubmit_rejected_request.sql` | إعادة إرسال الطلب المرفوض من جديد بمسار اعتماد كامل. |
+| 0453 | `0453_multi_mission_day_priority.sql` | تعدد المأموريات في يوم واحد: أولوية العرض (جارية ← غير مبدوءة ← منتهية) + تحصين start_my_mission ضد تكرار التنفيذ. |
 >
 > **سكربت نشر الدفعة 0443–0445 على الإنتاج:** `python scripts/deploy_audit_batch_0443_0445.py` (idempotent: يفحص المتتبَّع، يطبّق المفقود بالترتيب، ثم يشغّل فحوص التحقق القياسية).
 ---
