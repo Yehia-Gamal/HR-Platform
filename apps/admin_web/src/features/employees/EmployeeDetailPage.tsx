@@ -1154,7 +1154,13 @@ export function EmployeeDetailPage() {
                 icon={BadgeCheck}
               />
               <MetricCard label="أيام الغياب" value={item.attendance30.absent} icon={Clock3} />
-              <MetricCard label="الطلبات المعلقة" value={item.requestCounts.pending} hint={`${item.requestCounts.approved} معتمدة`} icon={FileText} />
+              <MetricCard
+                label="الطلبات المعلقة"
+                value={item.requestCounts.pending}
+                hint={`${item.requestCounts.approved} معتمدة`}
+                icon={FileText}
+                onClick={() => document.getElementById('latest-requests')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              />
               <MetricCard
                 label="أحدث تقييم"
                 value={item.latestKpi?.finalScore ?? item.latestKpi?.currentStage ?? '—'}
@@ -1203,7 +1209,7 @@ export function EmployeeDetailPage() {
             </section>
 
             <section className="grid gap-5 xl:grid-cols-2">
-              <article className="card overflow-hidden">
+              <article id="latest-requests" className="card overflow-hidden">
                 <div className="border-b border-[var(--border)] p-5">
                   <h3 className="font-black">أحدث الطلبات</h3>
                 </div>
