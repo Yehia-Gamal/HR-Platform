@@ -2,14 +2,24 @@ import 'dart:async';
 
 import 'package:ahla_shabab_management_os/app.dart';
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
+import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/notifications/notification_handler.dart';
 import 'package:ahla_shabab_management_os/core/security/secure_session_storage.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+/// يعرض snackbar عبر سياق الموجّه الجذري — السياق مملوك للموجّه لا لودجت
+/// يُفكك، فلا ينطبق تحذير الاستخدام عبر الفجوات الزمنية.
+void showRootSnackBar(String message) {
+  final context = appRouter.routerDelegate.navigatorKey.currentContext;
+  if (context == null) return;
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+}
 
 /// خدمة الإشعارات العاجلة: FCM + إشعار محلي بشاشة كاملة لطلب الموقع.
 ///
@@ -84,6 +94,12 @@ class PushService {
     await _local.initialize(
       initSettings,
       onDidReceiveNotificationResponse: (response) {
+        // أزرار القرار السريع (المقدمة): جلسة حية → تنفيذ RPC مباشر.
+        final action = response.actionId;
+        if (action == 'approve' || action == 'reject') {
+          unawaited(_executeQuickDecision(action, response.payload ?? ''));
+          return;
+        }
         _processLocalNotificationTap(response.payload);
       },
     );
@@ -148,9 +164,7 @@ class PushService {
     // نضع أيضاً علامة "مقروء" على إشعار التطبيق الداخلي المطابق، لأن فتح Push
     // من خارج التطبيق لا يمرّ بصفحة الإشعارات التي تفعل ذلك عادةً.
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      unawaited(
-        _markPushDelivery(message, 'opened'),
-      );
+      unawaited(_markPushDelivery(message, 'opened'));
       _routeFromMessage(message);
     });
 
@@ -158,9 +172,7 @@ class PushService {
     // مهلة ثابتة قد تسبق ربط الموجّه فيضيع التوجيه صامتاً.
     final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
     if (initialMessage != null) {
-      unawaited(
-        _markPushDelivery(initialMessage, 'opened'),
-      );
+      unawaited(_markPushDelivery(initialMessage, 'opened'));
       _routeFromMessage(initialMessage, coldStart: true);
     }
 
@@ -173,7 +185,11 @@ class PushService {
       if (launchDetails?.didNotificationLaunchApp == true &&
           launchPayload != null &&
           launchPayload.isNotEmpty) {
-        _processLocalNotificationTap(launchPayload, coldStart: true);
+        _processLocalNotificationTap(
+          launchPayload,
+          coldStart: true,
+          actionId: launchDetails?.notificationResponse?.actionId,
+        );
       }
     } catch (_) {
       // لا يمنع بقية التهيئة.
@@ -217,8 +233,7 @@ class PushService {
     final entityType = canonicalNotificationEntityType(
       data['entityType'] as String? ?? data['kind'] as String? ?? '',
     );
-    final entityId =
-        data['entityId'] as String? ?? requestId;
+    final entityId = data['entityId'] as String? ?? requestId;
     final notificationKey = deepLink.isNotEmpty
         ? deepLink
         : requestId.isNotEmpty
@@ -239,6 +254,15 @@ class PushService {
         // fallback to flutter_local_notifications
       }
     }
+
+    // إشعار قرار موظف مسؤول: عنوانه من قوالب الخلفية الثابتة — نعرض زرّي
+    // موافقة/رفض فوق الإشعار مباشرة (تنفيذ فوري في المقدمة، وفتح صفحة
+    // الطلب بورقة القرار من الخلفية).
+    final isDecisionRequest =
+        entityType == 'request' &&
+        (title.contains('بانتظار') ||
+            title.contains('محوّل إليك') ||
+            title.contains('موافقتك'));
 
     final androidDetails = AndroidNotificationDetails(
       _urgentChannel.id,
@@ -262,6 +286,12 @@ class PushService {
       timeoutAfter: 5 * 60 * 1000,
       // FLAG_INSISTENT (4) يكرر الصوت حتى يتفاعل المستخدم.
       additionalFlags: isUrgent ? Int32List.fromList([4]) : null,
+      actions: isDecisionRequest
+          ? const [
+              AndroidNotificationAction('approve', 'موافقة'),
+              AndroidNotificationAction('reject', 'رفض'),
+            ]
+          : null,
     );
     final details = NotificationDetails(
       android: androidDetails,
@@ -352,7 +382,14 @@ class PushService {
   ///
   /// الحمولة بصيغة: notificationId\u0001deepLink\u0001entityType\u0001entityId
   /// حيث الحقلان الأخيران fallback لما لا يمكن تحليله من deepLink.
-  void _processLocalNotificationTap(String? payload, {bool coldStart = false}) {
+  ///
+  /// [actionId] يأتي من أزرار الموافقة/الرفض عند الإقلاع البارد — يُلحق
+  /// كاستعلام action لمسار الطلب فتفتح ورقة القرار جاهزة (بلا تنفيذ صامت).
+  void _processLocalNotificationTap(
+    String? payload, {
+    bool coldStart = false,
+    String? actionId,
+  }) {
     if (payload == null || payload.isEmpty) return;
     final parts = payload.split('\u0001');
     final notificationId = parts.isNotEmpty ? parts[0] : '';
@@ -369,9 +406,10 @@ class PushService {
     if (deepLink.isNotEmpty) {
       final route = resolveRouteFromDeepLink(deepLink);
       if (route != '/') {
+        final target = _withDecisionAction(route, actionId, entityType);
         coldStart
-            ? unawaited(_navigateWhenReady(route, deepLink))
-            : _navigate(route, deepLink);
+            ? unawaited(_navigateWhenReady(target, deepLink))
+            : _navigate(target, deepLink);
         return;
       }
     }
@@ -383,13 +421,58 @@ class PushService {
       );
       if (route != '/') {
         final link = 'entityType=$entityType/entityId=$entityId';
+        final target = _withDecisionAction(route, actionId, entityType);
         coldStart
-            ? unawaited(_navigateWhenReady(route, link))
-            : _navigate(route, link);
+            ? unawaited(_navigateWhenReady(target, link))
+            : _navigate(target, link);
         return;
       }
     }
     // لا يوجد مسار قابل للحل — ابقَ على الرئيسية.
+  }
+
+  /// يلحق إجراء القرار (approve/reject) كاستعلام لمسار الطلب فقط —
+  /// صفحة الطلب تفتح ورقة القرار جاهزة بدل التنفيذ الصامت.
+  String _withDecisionAction(
+    String route,
+    String? actionId,
+    String entityType,
+  ) {
+    if (actionId != 'approve' && actionId != 'reject') return route;
+    if (entityType != 'request') return route;
+    if (route.contains('?')) return '$route&action=$actionId';
+    return '$route?action=$actionId';
+  }
+
+  /// تنفيذ قرار سريع من أزرار الإشعار في المقدمة — الجلسة حية والـ RPC
+  /// يفرض الصلاحيات؛ النتيجة تظهر كـ snackbar ويُلغى الإشعار.
+  Future<void> _executeQuickDecision(String? actionId, String payload) async {
+    if (actionId != 'approve' && actionId != 'reject') return;
+    final parts = payload.split('\u0001');
+    final entityType = parts.length >= 3 ? parts[2] : '';
+    final entityId = parts.length >= 4 ? parts[3] : '';
+    final notificationKey = parts.isNotEmpty ? parts[0] : '';
+    if (entityType != 'request' || entityId.isEmpty) return;
+    String message;
+    try {
+      await Supabase.instance.client.rpc<dynamic>(
+        'decide_request',
+        params: {
+          'p_request_id': entityId,
+          'p_decision': actionId,
+          'p_comment': null,
+        },
+      );
+      if (notificationKey.isNotEmpty) {
+        _local.cancel(_stableNotificationId(notificationKey));
+      }
+      message = actionId == 'approve'
+          ? 'تمت الموافقة على الطلب ✓'
+          : 'تم رفض الطلب ✓';
+    } catch (error) {
+      message = humanizeError(error);
+    }
+    showRootSnackBar(message);
   }
 
   /// هل التطبيق معفى من تحسين البطارية؟
@@ -507,8 +590,7 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
     final entityType = canonicalNotificationEntityType(
       data['entityType'] as String? ?? data['kind'] as String? ?? '',
     );
-    final entityId =
-        data['entityId'] as String? ?? requestId;
+    final entityId = data['entityId'] as String? ?? requestId;
 
     await plugin.show(
       _stableNotificationId(notificationKey),
@@ -609,7 +691,9 @@ Future<void> _markInAppNotificationRead(String? notificationId) async {
     if (client.auth.currentSession == null) return;
     await client.rpc<void>(
       'mark_my_notifications_read',
-      params: {'p_ids': [notificationId]},
+      params: {
+        'p_ids': [notificationId],
+      },
     );
   } catch (error) {
     if (kDebugMode) debugPrint('Mark in-app notification read failed: $error');

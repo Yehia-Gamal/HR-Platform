@@ -15,7 +15,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// عبر RPC تحليل إضافي — لأن شاشة الموقع تجلب الطلب بالمعرّف في استدعاء واحد
 /// بنفس سياسة الوصول، فالخطوة الوسيطة كانت تزيد زمن الفتح وتتسبب بشاشة المهلة.
 bool _isLocationKind(String kind) => switch (kind) {
-  'location' || 'location_request' || 'live_location' || 'live_location_request' => true,
+  'location' ||
+  'location_request' ||
+  'live_location' ||
+  'live_location_request' => true,
   _ => false,
 };
 
@@ -33,11 +36,16 @@ class _ActionLoader extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.notifications_active_outlined,
-                  size: 44, color: scheme.primary),
+              Icon(
+                Icons.notifications_active_outlined,
+                size: 44,
+                color: scheme.primary,
+              ),
               const SizedBox(height: 16),
-              Text('جاري فتح الإشعار...',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'جاري فتح الإشعار...',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 24),
               const CircularProgressIndicator(),
               const SizedBox(height: 28),
@@ -161,7 +169,11 @@ class MobileActionDeepLinkPage extends ConsumerWidget {
               ),
             ),
           ),
-          data: mobilePageForActionTarget,
+          data: (target) => mobilePageForActionTarget(
+            target,
+            // أزرار إشعار القرار: تمرير الإجراء لصفحة الطلب فقط.
+            initialAction: canonicalKind == 'request' ? action : null,
+          ),
         );
       },
     );

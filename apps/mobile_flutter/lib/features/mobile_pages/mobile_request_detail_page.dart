@@ -12,9 +12,17 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MobileRequestDetailPage extends ConsumerWidget {
-  const MobileRequestDetailPage({required this.requestId, super.key});
+  const MobileRequestDetailPage({
+    required this.requestId,
+    this.initialAction,
+    super.key,
+  });
 
   final String requestId;
+
+  /// من أزرار إشعار القرار (approve/reject) — يفتح ورقة القرار جاهزة
+  /// بعد تحميل الطلب، بشرط أن يكون المستخدم مخوّلاً للقرار.
+  final String? initialAction;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,7 +40,10 @@ class MobileRequestDetailPage extends ConsumerWidget {
           data: (request) => RefreshIndicator(
             onRefresh: () async =>
                 ref.invalidate(mobileRequestDetailProvider(requestId)),
-            child: _RequestContent(request: request),
+            child: _RequestContent(
+              request: request,
+              initialAction: initialAction,
+            ),
           ),
         ),
       ),
@@ -40,14 +51,37 @@ class MobileRequestDetailPage extends ConsumerWidget {
   }
 }
 
+/// حارس تكرار الفتح التلقائي لورقة القرار — مرة واحدة لكل طلب لكل تشغيل.
+final _autoDecisionOpened = <String>{};
+
 class _RequestContent extends ConsumerWidget {
-  const _RequestContent({required this.request});
+  const _RequestContent({required this.request, this.initialAction});
 
   final MobileRequestDetail request;
+  final String? initialAction;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final formatter = DateFormat('d MMMM y، h:mm a', 'ar');
+    // فتح تلقائي لورقة القرار عند القدوم من زر إشعار — مرة واحدة،
+    // وبشرط أن يكون المستخدم مخوّلاً والطلب ما زال معلقاً.
+    final String decision;
+    switch (initialAction) {
+      case 'approve':
+        decision = 'approve';
+      case 'reject':
+        decision = 'reject';
+      default:
+        decision = '';
+    }
+    if (decision.isNotEmpty &&
+        request.canDecide &&
+        request.status == 'pending' &&
+        _autoDecisionOpened.add(request.id)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) _decide(context, ref, decision);
+      });
+    }
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -554,34 +588,34 @@ class _MissionExecutionCard extends ConsumerWidget {
   final MobileRequestDetail request;
 
   String _statusLabel(BuildContext context, String status) => switch (status) {
-        'in_progress' => 'قيد التنفيذ',
-        'completed' => 'منجزة',
-        _ => 'لم تبدأ',
-      };
+    'in_progress' => 'قيد التنفيذ',
+    'completed' => 'منجزة',
+    _ => 'لم تبدأ',
+  };
 
   Widget _row(String label, String value) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(width: 110, child: Text(label)),
-            Expanded(
-              child: Text(
-                value,
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-            ),
-          ],
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(width: 110, child: Text(label)),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
         ),
-      );
+      ],
+    ),
+  );
 
   Future<void> _start(BuildContext context, WidgetRef ref) async {
     try {
       await ref.read(mobileCommandsProvider).startMission(request.id);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('بدأت المأمورية بنجاح')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('بدأت المأمورية بنجاح')));
       }
     } catch (error) {
       if (context.mounted) {
@@ -593,16 +627,21 @@ class _MissionExecutionCard extends ConsumerWidget {
   }
 
   Future<void> _end(BuildContext context, WidgetRef ref) async {
-    final result = await showModalBottomSheet<({String report, String? outcome})>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => _EndMissionSheet(),
-    );
+    final result =
+        await showModalBottomSheet<({String report, String? outcome})>(
+          context: context,
+          isScrollControlled: true,
+          builder: (context) => _EndMissionSheet(),
+        );
     if (result == null) return;
     try {
       await ref
           .read(mobileCommandsProvider)
-          .endMission(requestId: request.id, report: result.report, outcome: result.outcome);
+          .endMission(
+            requestId: request.id,
+            report: result.report,
+            outcome: result.outcome,
+          );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم إنهاء المأمورية وحفظ التقرير')),
@@ -665,7 +704,10 @@ class _MissionExecutionCard extends ConsumerWidget {
                 formatter.format(execution.startedAt!.toLocal()),
               ),
               if (execution.endedAt != null)
-                _row('وقت الإنهاء', formatter.format(execution.endedAt!.toLocal())),
+                _row(
+                  'وقت الإنهاء',
+                  formatter.format(execution.endedAt!.toLocal()),
+                ),
               if (execution.actualMinutes != null)
                 _row('المدة الفعلية', '${execution.actualMinutes} دقيقة'),
             ],
@@ -735,7 +777,10 @@ class _EndMissionSheetState extends State<_EndMissionSheet> {
       return;
     }
     final outcome = _outcomeController.text.trim();
-    Navigator.pop(context, (report: report, outcome: outcome.isEmpty ? null : outcome));
+    Navigator.pop(context, (
+      report: report,
+      outcome: outcome.isEmpty ? null : outcome,
+    ));
   }
 
   @override
@@ -963,7 +1008,10 @@ class _RequestPayloadCard extends StatelessWidget {
                   ),
                 ],
                 // ── رقائق إضافية ──
-                if (days != null || minutes != null || payload['leaveType'] != null || payload['permitKind'] != null) ...[
+                if (days != null ||
+                    minutes != null ||
+                    payload['leaveType'] != null ||
+                    payload['permitKind'] != null) ...[
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
@@ -1073,7 +1121,10 @@ class _InfoChip extends StatelessWidget {
         children: [
           Icon(icon, size: 15, color: scheme.onSurfaceVariant),
           const SizedBox(width: 5),
-          Text(text, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5)),
+          Text(
+            text,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5),
+          ),
         ],
       ),
     );
