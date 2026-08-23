@@ -1,6 +1,7 @@
 import type { KpiEvaluationSummary } from '@ahla/shared-contracts';
 import { AlertTriangle, CheckCircle2, ClipboardList, Gauge, User, UsersRound } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useUrlState } from '../../core/useUrlState';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
@@ -44,7 +45,8 @@ const TAB_DEFS: KpiTabDef[] = [
 export function PerformancePage() {
   const query = usePerformance();
   const [search, setSearch] = useState('');
-  const [stage, setStage] = useState('all');
+  // مرحلة التقييم مرتبطة بالعنوان — تبقى بعد التحديث والمشاركة.
+  const [stage, setStage] = useUrlState('stage', 'all');
   const [selected, setSelected] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<KpiRelation | null>(null);
   const all = useMemo(() => query.data ?? [], [query.data]);

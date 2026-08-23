@@ -1,6 +1,7 @@
 import { LEAVE_TYPE_COLORS, LEAVE_TYPE_LABELS, type LeaveAdminRow } from '@ahla/shared-contracts';
 import { CalendarDays, Check, Clock3, Download, FileX, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useUrlState } from '../../core/useUrlState';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
@@ -325,8 +326,9 @@ function LeaveRow({ row, onSelect }: { row: LeaveAdminRow; onSelect: (r: LeaveAd
 
 export function LeavesPage() {
   const [year, setYear] = useState(CURRENT_YEAR);
-  const [status, setStatus] = useState('');
-  const [leaveType, setLeaveType] = useState('');
+  // الفلاتر مرتبطة بعنوان الصفحة — تبقى بعد التحديث والمشاركة.
+  const [status, setStatus] = useUrlState('status', '');
+  const [leaveType, setLeaveType] = useUrlState('type', '');
   const [selected, setSelected] = useState<LeaveAdminRow | null>(null);
 
   const query = useAdminLeaves({

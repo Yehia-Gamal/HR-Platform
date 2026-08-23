@@ -1,6 +1,7 @@
 import { MISSION_EXECUTION_STATUS_LABELS, type RequestSummary, type WorkAssignment } from '@ahla/shared-contracts';
 import { CalendarDays, Check, Clock, MapPin, RotateCcw, Truck, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useUrlState } from '../../core/useUrlState';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
@@ -99,7 +100,8 @@ export function RequestsPage() {
   const balances = useMyLeaveBalances();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
-  const [typeTab, setTypeTab] = useState<TypeTab>('all');
+  // تبويب التصنيف مرتبط بالعنوان — يبقى بعد التحديث والمشاركة.
+  const [typeTab, setTypeTab] = useUrlState('type', 'all');
   const [selected, setSelected] = useState<RequestSummary | null>(null);
   const [comment, setComment] = useState('');
   const canDecide =
