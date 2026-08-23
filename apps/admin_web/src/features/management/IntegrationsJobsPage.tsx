@@ -68,10 +68,10 @@ export function IntegrationsJobsPage() {
         }
       />
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="موصلات نشطة" value={active} icon={Cable} />
-        <MetricCard label="موصلات بها خطأ" value={errors} icon={TriangleAlert} />
-        <MetricCard label="رسائل في الطابور" value={queued} icon={Boxes} />
-        <MetricCard label="تشغيلات فاشلة" value={failedJobs} icon={Bot} />
+        <MetricCard label="موصلات نشطة" value={active} icon={Cable} onClick={() => setTab('connectors')} />
+        <MetricCard label="موصلات بها خطأ" value={errors} icon={TriangleAlert} onClick={() => setTab('logs')} />
+        <MetricCard label="رسائل في الطابور" value={queued} icon={Boxes} onClick={() => setTab('outbox')} />
+        <MetricCard label="تشغيلات فاشلة" value={failedJobs} icon={Bot} onClick={() => setTab('automations')} />
       </section>
 
       <section className="filter-bar flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

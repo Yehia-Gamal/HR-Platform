@@ -115,10 +115,10 @@ export function ExecutiveMonitoringPage({ embedded: _embedded = false }: { embed
       )}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="إجمالي الموظفين" value={summary.total ?? 0} icon={Users} />
-        <MetricCard label="حاضر" value={summary.present ?? 0} icon={Activity} />
-        <MetricCard label="متأخر / لم يحضر" value={(summary.late ?? 0) + (summary.notYet ?? 0)} icon={CalendarClock} />
-        <MetricCard label="طلبات موقع نشطة" value={summary.activeLocationRequests ?? 0} icon={MapPin} />
+        <MetricCard label="إجمالي الموظفين" value={summary.total ?? 0} icon={Users} onClick={() => setFilter('all')} />
+        <MetricCard label="حاضر" value={summary.present ?? 0} icon={Activity} onClick={() => setFilter('present')} />
+        <MetricCard label="متأخر / لم يحضر" value={(summary.late ?? 0) + (summary.notYet ?? 0)} icon={CalendarClock} onClick={() => setFilter('late')} />
+        <MetricCard label="طلبات موقع نشطة" value={summary.activeLocationRequests ?? 0} icon={MapPin} onClick={() => setFilter('no_response')} />
       </section>
 
       <section className="grid gap-4 sm:grid-cols-3 xl:grid-cols-6 text-center">

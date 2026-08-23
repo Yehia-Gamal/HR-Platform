@@ -185,10 +185,10 @@ export function OrganizationPage() {
       {data ? (
         <>
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
-            <MetricCard label={'الكيانات'} value={data.entities.length} icon={Building2} />
-            <MetricCard label={'الفروع'} value={data.branches.length} icon={Building2} />
-            <MetricCard label={'الإدارات'} value={data.departments.length} icon={UsersRound} />
-            <MetricCard label={'المناصب'} value={data.positions.length} icon={BriefcaseBusiness} />
+            <MetricCard label={'الكيانات'} value={data.entities.length} icon={Building2} onClick={() => setFilter('')} />
+            <MetricCard label={'الفروع'} value={data.branches.length} icon={Building2} onClick={() => setFilter('')} />
+            <MetricCard label={'الإدارات'} value={data.departments.length} icon={UsersRound} onClick={() => setFilter('')} />
+            <MetricCard label={'المناصب'} value={data.positions.length} icon={BriefcaseBusiness} onClick={() => setFilter('')} />
             <MetricCard
               label={'الشواغر'}
               value={data.positions.reduce((sum, item) => sum + Math.max(item.headcount - item.assignedCount, 0), 0)}

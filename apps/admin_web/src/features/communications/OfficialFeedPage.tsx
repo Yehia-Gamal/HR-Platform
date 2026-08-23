@@ -256,10 +256,10 @@ export function OfficialFeedPage() {
         }
       />
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="المنشورات" value={allItems.length} icon={Megaphone} />
-        <MetricCard label="القرارات" value={allItems.filter((x) => x.kind === 'decision').length} icon={FileText} />
-        <MetricCard label="تحتاج إقرارًا" value={allItems.filter((x) => x.requiresAcknowledgement).length} icon={CheckCircle2} />
-        <MetricCard label="عاجل" value={allItems.filter((x) => x.priority === 'urgent').length} icon={BellRing} />
+        <MetricCard label="المنشورات" value={allItems.length} icon={Megaphone} onClick={() => { setKind('all'); setPriority('all'); }} />
+        <MetricCard label="القرارات" value={allItems.filter((x) => x.kind === 'decision').length} icon={FileText} onClick={() => setKind('decision')} />
+        <MetricCard label="تحتاج إقرارًا" value={allItems.filter((x) => x.requiresAcknowledgement).length} icon={CheckCircle2} onClick={() => { setKind('all'); setPriority('all'); }} />
+        <MetricCard label="عاجل" value={allItems.filter((x) => x.priority === 'urgent').length} icon={BellRing} onClick={() => setPriority('urgent')} />
       </section>
       <FilterBar
         searchValue={search}

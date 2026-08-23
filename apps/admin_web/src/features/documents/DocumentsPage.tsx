@@ -232,9 +232,9 @@ export function DocumentsPage() {
         <MetricSkeletonRow count={3} />
       ) : (
         <section className="grid gap-3 sm:grid-cols-3">
-          <MetricCard label="مستندات تنتهي قريباً" value={catalog.data?.expiringDocuments ?? 0} icon={FileCheck} hint="خلال 30 يوماً" />
-          <MetricCard label="عهد مُسلّمة" value={catalog.data?.assignedAssets ?? 0} icon={Package} hint="موكّلة لموظفين حالياً" />
-          <MetricCard label="حالات خروج نشطة" value={catalog.data?.openOffboarding ?? 0} icon={UserMinus} hint="قيد التخليص" />
+          <MetricCard label="مستندات تنتهي قريباً" value={catalog.data?.expiringDocuments ?? 0} icon={FileCheck} hint="خلال 30 يوماً" onClick={() => setTab('documents')} />
+          <MetricCard label="عهد مُسلّمة" value={catalog.data?.assignedAssets ?? 0} icon={Package} hint="موكّلة لموظفين حالياً" onClick={() => setTab('assets')} />
+          <MetricCard label="حالات خروج نشطة" value={catalog.data?.openOffboarding ?? 0} icon={UserMinus} hint="قيد التخليص" onClick={() => setTab('offboarding')} />
         </section>
       )}
 

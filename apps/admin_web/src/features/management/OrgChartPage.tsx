@@ -153,10 +153,10 @@ export function OrgChartPage({ embedded = false }: { embedded?: boolean }) {
 
       {/* بطاقات الإحصائيات */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <MetricCard label="إجمالي الموظفين" value={stats.totalEmployees} icon={Users} />
-        <MetricCard label="عدد المديرين" value={stats.managersCount} icon={GitBranch} />
-        <MetricCard label="أقصى عمق هرمي" value={stats.maxDepth} icon={GitBranch} />
-        <MetricCard label="متوسط المرؤوسين" value={stats.avgDirectReports} icon={Users} />
+        <MetricCard label="إجمالي الموظفين" value={stats.totalEmployees} icon={Users} onClick={() => setSearch('')} />
+        <MetricCard label="عدد المديرين" value={stats.managersCount} icon={GitBranch} onClick={() => setSearch('')} />
+        <MetricCard label="أقصى عمق هرمي" value={stats.maxDepth} icon={GitBranch} onClick={() => setSearch('')} />
+        <MetricCard label="متوسط المرؤوسين" value={stats.avgDirectReports} icon={Users} onClick={() => setSearch('')} />
       </div>
 
       {/* البحث */}
