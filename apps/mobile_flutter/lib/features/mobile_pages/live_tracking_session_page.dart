@@ -185,71 +185,143 @@ class _LiveTrackingSessionPageState
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final totalSeconds = widget.request.durationMinutes * 60;
+    final progress = totalSeconds <= 0 ? 0.0 : secondsLeft / totalSeconds;
+    final minutes = secondsLeft ~/ 60;
+    final seconds = secondsLeft % 60;
+
     return PopScope(
       canPop: false,
       child: Scaffold(
-        appBar: AppBar(title: const Text('جلسة التتبع النشطة')),
+        appBar: AppBar(
+          title: const Text('جلسة التتبع النشطة'),
+          actions: [
+            // شارة «مباشر» النابضة — 0451
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: 14),
+              child: Center(
+                child: _LiveBadge(),
+              ),
+            ),
+          ],
+        ),
         body: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(
-                Icons.location_searching,
-                size: 70,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'الموقع قيد المشاركة',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const SizedBox(height: 24),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
+              const SizedBox(height: 4),
+              // ── العدّاد الدائري ──
+              Center(
+                child: SizedBox(
+                  width: 190,
+                  height: 190,
+                  child: Stack(
+                    alignment: Alignment.center,
                     children: [
-                      Text(
-                        '${secondsLeft ~/ 60}:${(secondsLeft % 60).toString().padLeft(2, '0')}',
-                        style: Theme.of(context).textTheme.displaySmall
-                            ?.copyWith(fontWeight: FontWeight.w900),
-                      ),
-                      Text(
-                        'تم إرسال $sent نقطة موقع',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      SizedBox(
+                        width: 190,
+                        height: 190,
+                        child: CircularProgressIndicator(
+                          value: progress.clamp(0.0, 1.0),
+                          strokeWidth: 10,
+                          backgroundColor: scheme.surfaceContainerHighest
+                              .withValues(alpha: .6),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            scheme.primary,
+                          ),
+                          strokeCap: StrokeCap.round,
                         ),
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '$minutes:${seconds.toString().padLeft(2, '0')}',
+                            style: Theme.of(context)
+                                .textTheme
+                                .displaySmall
+                                ?.copyWith(fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'الوقت المتبقي',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
               ),
+              const SizedBox(height: 18),
+
+              // ── معلومات الجلسة ──
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(
+                    color: scheme.outlineVariant.withValues(alpha: .6),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    children: [
+                      _sessionRow(
+                        context,
+                        icon: Icons.person_outline_rounded,
+                        label: 'الطالب',
+                        value: widget.request.requesterName,
+                      ),
+                      const SizedBox(height: 8),
+                      _sessionRow(
+                        context,
+                        icon: Icons.swap_horiz_rounded,
+                        label: 'نوع الجلسة',
+                        value: 'تتبع ${widget.request.durationMinutes} دقيقة',
+                      ),
+                      const SizedBox(height: 8),
+                      _sessionRow(
+                        context,
+                        icon: Icons.send_outlined,
+                        label: 'نقاط أُرسلت',
+                        value: '$sent',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ── أخطاء الموقع ──
               if (error != null) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.errorContainer,
-                    borderRadius: BorderRadius.circular(20),
+                    color: scheme.error.withValues(alpha: .07),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
                       Icon(
-                        Icons.error_outline,
-                        color: Theme.of(context).colorScheme.onErrorContainer,
+                        Icons.error_outline_rounded,
+                        size: 20,
+                        color: scheme.error,
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           error!,
                           style: TextStyle(
-                            color:
-                                Theme.of(context).colorScheme.onErrorContainer,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.error,
                           ),
                         ),
                       ),
@@ -258,49 +330,46 @@ class _LiveTrackingSessionPageState
                 ),
                 if (_issueKind == _LocationIssueKind.gpsOff) ...[
                   const SizedBox(height: 8),
-                  FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.tonalIcon(
+                      onPressed: () => Geolocator.openLocationSettings(),
+                      icon: const Icon(Icons.gps_fixed_rounded, size: 18),
+                      label: const Text('فتح إعدادات الموقع'),
                     ),
-                    onPressed: () => Geolocator.openLocationSettings(),
-                    icon: const Icon(Icons.gps_fixed_rounded, size: 18),
-                    label: const Text('فتح إعدادات الموقع'),
                   ),
                 ],
                 if (_issueKind == _LocationIssueKind.deniedForever) ...[
                   const SizedBox(height: 8),
-                  FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.tonalIcon(
+                      onPressed: () => Geolocator.openAppSettings(),
+                      icon: const Icon(Icons.settings_rounded, size: 18),
+                      label: const Text('فتح إعدادات التطبيق'),
                     ),
-                    onPressed: () => Geolocator.openAppSettings(),
-                    icon: const Icon(Icons.settings_rounded, size: 18),
-                    label: const Text('فتح إعدادات التطبيق'),
                   ),
                 ],
                 if (_issueKind == _LocationIssueKind.permissionDenied) ...[
                   const SizedBox(height: 8),
-                  FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.amber.shade800,
-                      foregroundColor: Colors.white,
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.tonalIcon(
+                      onPressed: () async {
+                        final perm = await Geolocator.requestPermission();
+                        if (!mounted) return;
+                        if (perm == LocationPermission.always ||
+                            perm == LocationPermission.whileInUse) {
+                          setState(() {
+                            error = null;
+                            _issueKind = null;
+                          });
+                          _start();
+                        }
+                      },
+                      icon: const Icon(Icons.location_on_rounded, size: 18),
+                      label: const Text('منح صلاحية الموقع'),
                     ),
-                    onPressed: () async {
-                      final perm = await Geolocator.requestPermission();
-                      if (!mounted) return;
-                      if (perm == LocationPermission.always ||
-                          perm == LocationPermission.whileInUse) {
-                        setState(() {
-                          error = null;
-                          _issueKind = null;
-                        });
-                        _start();
-                      }
-                    },
-                    icon: const Icon(Icons.location_on_rounded, size: 18),
-                    label: const Text('منح صلاحية الموقع'),
                   ),
                 ],
               ],
@@ -309,13 +378,96 @@ class _LiveTrackingSessionPageState
                 onPressed: _finish,
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(52),
+                  foregroundColor: scheme.error,
+                  backgroundColor: scheme.error.withValues(alpha: .08),
                 ),
                 icon: const Icon(Icons.stop_circle_outlined),
                 label: const Text('إنهاء المشاركة الآن'),
               ),
+              const SizedBox(height: 6),
+              Text(
+                'عند انتهاء المدة تُغلق الجلسة وتتوقف المشاركة تلقائياً.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 11.5, color: scheme.onSurfaceVariant),
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// صف معلومات الجلسة — 0451
+  Widget _sessionRow(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: 17, color: scheme.onSurfaceVariant),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+        ),
+        const Spacer(),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+        ),
+      ],
+    );
+  }
+}
+
+/// شارة «مباشر» بنبض — 0451
+class _LiveBadge extends StatefulWidget {
+  @override
+  State<_LiveBadge> createState() => _LiveBadgeState();
+}
+
+class _LiveBadgeState extends State<_LiveBadge>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 1),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: scheme.error.withValues(alpha: .1),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FadeTransition(
+            opacity: Tween<double>(begin: .35, end: 1).animate(_controller),
+            child: Icon(Icons.circle, size: 9, color: scheme.error),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            'مباشر',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              color: scheme.error,
+            ),
+          ),
+        ],
       ),
     );
   }
