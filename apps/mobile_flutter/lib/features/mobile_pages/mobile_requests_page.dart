@@ -1,4 +1,3 @@
-import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
@@ -225,7 +224,6 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
     DateTime? endDate;
     DateTime? permitDate;
     TimeOfDay? startTime;
-    TimeOfDay? endTime;
     final title = TextEditingController();
     final reason = TextEditingController();
     final location = TextEditingController();
@@ -282,7 +280,6 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                     endDate = null;
                     permitDate = null;
                     startTime = null;
-                    endTime = null;
                   }),
                 ),
                 const SizedBox(height: 12),
@@ -372,58 +369,26 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                       labelText: 'المكان أو جهة التكليف',
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            final picked = await _pickTime(
-                              sheetContext,
-                              startTime,
-                            );
-                            if (picked != null) {
-                              setModalState(() {
-                                startTime = picked;
-                                if (endTime != null &&
-                                    endTime!.isBefore(picked)) {
-                                  endTime = picked;
-                                }
-                              });
-                            }
-                          },
-                          icon: const Icon(Icons.schedule, size: 18),
-                          label: Text(
-                            startTime == null
-                                ? 'من وقت (اختياري)'
-                                : _formatTimeValue(startTime!),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            final picked = await _pickTime(
-                              sheetContext,
-                              endTime ?? startTime,
-                            );
-                            if (picked != null) {
-                              setModalState(() => endTime = picked);
-                            }
-                          },
-                          icon: const Icon(Icons.schedule, size: 18),
-                          label: Text(
-                            endTime == null
-                                ? 'إلى وقت (اختياري)'
-                                : _formatTimeValue(endTime!),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                ],
+                   const SizedBox(height: 12),
+                   OutlinedButton.icon(
+                     onPressed: () async {
+                       final picked = await _pickTime(
+                         sheetContext,
+                         startTime,
+                       );
+                       if (picked != null) {
+                         setModalState(() => startTime = picked);
+                       }
+                     },
+                     icon: const Icon(Icons.schedule, size: 18),
+                     label: Text(
+                       startTime == null
+                           ? 'وقت بداية المأمورية (اختياري)'
+                           : 'وقت البداية: ${_formatTimeValue(startTime!)}',
+                     ),
+                   ),
+                   const SizedBox(height: 12),
+                 ],
                 if (type == 'leave') ...[
                   DropdownButtonFormField<String>(
                     value: substituteId,
@@ -610,7 +575,6 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
         'endDate': _dateValue(endDate!),
         'location': requestLocation,
         if (startTime != null) 'startTime': _formatTimeValue(startTime!),
-        if (endTime != null) 'endTime': _formatTimeValue(endTime!),
       });
     } else if (type == 'permit' ||
         type == 'late_permit' ||
@@ -770,81 +734,167 @@ class _RequestCard extends StatelessWidget {
 
   final MobileRequest item;
 
+  IconData get _typeIcon => switch (item.type) {
+    'mission' => Icons.work_history_rounded,
+    'convoy' => Icons.directions_bus_rounded,
+    'fundraising' => Icons.volunteer_activism_rounded,
+    'leave' => Icons.beach_access_rounded,
+    'late_permit' || 'early_permit' => Icons.schedule_rounded,
+    'attendance_correction' => Icons.fact_check_outlined,
+    _ => Icons.description_rounded,
+  };
+
+  bool get _isReturned =>
+      item.status == 'rejected' || item.status == 'returned';
+
   @override
-  Widget build(BuildContext context) => Card(
-    child: InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => MobileRequestDetailPage(requestId: item.id),
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(
+          color: _isReturned
+              ? scheme.error.withValues(alpha: .35)
+              : scheme.outlineVariant.withValues(alpha: .6),
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                MobileStatusPill(item.status),
-                const Spacer(),
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MobileRequestDetailPage(requestId: item.id),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: scheme.primary.withValues(alpha: .1),
+                    child: Icon(
+                      _typeIcon,
+                      size: 22,
+                      color: scheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.title ?? _typeLabel(item.type),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
+                            height: 1.3,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${_typeLabel(item.type)} · #${item.number}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  MobileStatusPill(item.status),
+                ],
+              ),
+              if (item.reason?.trim().isNotEmpty == true) ...[
+                const SizedBox(height: 10),
                 Text(
-                  '#${item.number}',
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              item.title ?? _typeLabel(item.type),
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                AppAvatar(
-                  name: item.employeeName,
-                  photoUrl: item.employeePhotoUrl,
-                  radius: 16,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    item.employeeName,
-                    style: Theme.of(context).textTheme.bodySmall,
+                  item.reason!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.5,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
-            ),
-            if (item.reason?.trim().isNotEmpty == true) ...[
-              const SizedBox(height: 10),
-              Text(item.reason!, maxLines: 3, overflow: TextOverflow.ellipsis),
+              // 0451: دلالة الإرجاع — الطلب قابل للتعديل وإعادة الرفع
+              if (_isReturned) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.error.withValues(alpha: .07),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.edit_note_rounded,
+                        size: 16,
+                        color: scheme.error,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'أُرجع إليك — افتحه لتعديل أي جزء وإعادة الرفع',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: scheme.error,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const Divider(height: 20),
+              Row(
+                children: [
+                  Icon(
+                    Icons.route_outlined,
+                    size: 16,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      item.activeStepName ?? 'اكتمل المسار',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    DateFormat('d MMM', 'ar').format(item.createdAt),
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ],
-            const Divider(height: 26),
-            Row(
-              children: [
-                const Icon(Icons.route_outlined, size: 18),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    item.activeStepName ?? 'اكتمل المسار',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-                Text(
-                  DateFormat('d MMM', 'ar').format(item.createdAt),
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 
   static String _typeLabel(String type) => switch (type) {
     'leave' => 'طلب إجازة',
