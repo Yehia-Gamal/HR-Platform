@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/app.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/push_service.dart';
@@ -53,17 +54,32 @@ class _MobileLocationRequestDeepLinkPageState
     final access = ref.watch(accessContextProvider).value;
     return request.when(
       // لا مؤقت مهلة ثابت — المزوّد يحمل timeout=15s خاصاً به، فيتوقف على
-      // spinner أثناء التحميل المشروع (إقلاع بطيء) ثم يعرض إعادة المحاولة
-      // عند الفشل، بدل شاشة مهلة بيضاء ميتة.
-      loading: () => const Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('جاري فتح الطلب...'),
-            ],
+      // شاشة الانتظار أثناء التحميل المشروع (إقلاع بطيء) ثم يعرض إعادة
+      // المحاولة عند الفشل، مع زر «الرئيسية» متاح دائماً كمسار هروب.
+      loading: () => Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.location_on_outlined,
+                  size: 44,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(height: 16),
+                Text('جاري فتح الطلب...',
+                    style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 24),
+                const CircularProgressIndicator(),
+                const SizedBox(height: 28),
+                TextButton.icon(
+                  onPressed: () => appRouter.go('/'),
+                  icon: const Icon(Icons.home_outlined),
+                  label: const Text('الرئيسية'),
+                ),
+              ],
+            ),
           ),
         ),
       ),

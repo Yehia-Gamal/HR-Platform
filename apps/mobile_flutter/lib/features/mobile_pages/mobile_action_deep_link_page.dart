@@ -19,6 +19,41 @@ bool _isLocationKind(String kind) => switch (kind) {
   _ => false,
 };
 
+/// شاشة انتظار موحّدة لفتح الإشعار — بدل spinner أبيض عاري كان يبدو صفحة
+/// معطوبة، نعرض علامة التطبيق + نص الحالة + زر «الرئيسية» كمسار هروب دائم.
+class _ActionLoader extends StatelessWidget {
+  const _ActionLoader();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.notifications_active_outlined,
+                  size: 44, color: scheme.primary),
+              const SizedBox(height: 16),
+              Text('جاري فتح الإشعار...',
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 24),
+              const CircularProgressIndicator(),
+              const SizedBox(height: 28),
+              TextButton.icon(
+                onPressed: () => appRouter.go('/'),
+                icon: const Icon(Icons.home_outlined),
+                label: const Text('الرئيسية'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class MobileActionDeepLinkPage extends ConsumerWidget {
   const MobileActionDeepLinkPage({
     required this.kind,
@@ -41,8 +76,7 @@ class MobileActionDeepLinkPage extends ConsumerWidget {
     final canonicalKind = canonicalNotificationEntityType(kind) ?? '';
     final session = ref.watch(authSessionProvider);
     return session.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const _ActionLoader(),
       error: (error, _) => Scaffold(
         appBar: AppBar(title: const Text('فتح الإشعار')),
         body: Center(
@@ -96,12 +130,10 @@ class MobileActionDeepLinkPage extends ConsumerWidget {
         );
         final target = ref.watch(mobileActionTargetProvider(item));
         return target.when(
-          // لا مؤقت مهلة ثابت هنا: المزوّد يحمل timeout=15s خاصاً به، فيتوقّف
-          // على spinner أثناء التحميل المشروع ثم يعرض إعادة المحاولة عند الفشل
-          // — بدل إظهار شاشة مهلة بيضاء ميتة.
-          loading: () => const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          ),
+          // لا مؤقت مهلة ثابت هنا: المزوّد يحمل timeout=20s خاصاً به، فيتوقّف
+          // على شاشة الانتظار أثناء التحميل المشروع ثم يعرض إعادة المحاولة
+          // عند الفشل — مع زر «الرئيسية» متاح دائماً كمسار هروب.
+          loading: () => const _ActionLoader(),
           error: (error, _) => Scaffold(
             appBar: AppBar(title: const Text('فتح الإجراء')),
             body: Center(

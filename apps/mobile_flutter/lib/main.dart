@@ -48,52 +48,23 @@ Future<void> main() async {
     CrashReporter.instance.initialize(Supabase.instance.client);
 
     // Firebase/FCM: آمن عند غياب Google Play Services (محاكيات، أجهزة بدون GMS).
+    // تسجيل معالج الخلفية فقط هنا — رخيص وبلا شبكة، وشرط المكوّن أن يتم مبكراً.
     try {
       FirebaseMessaging.onBackgroundMessage(firebaseBackgroundHandler);
-      // إنشاء PushService وحفظ المرجع في singleton للوصول العام
-      final pushService = PushService((token, platform) async {
-        final client = Supabase.instance.client;
-        if (client.auth.currentSession == null) return;
-        await client.rpc<dynamic>(
-          'upsert_my_push_token',
-          params: {'p_fcm_token': token, 'p_platform': platform},
-        );
-      });
-      await pushService.initialize();
-      Supabase.instance.client.auth.onAuthStateChange.listen((event) {
-        if (event.session == null) return;
-        unawaited(
-          FirebaseMessaging.instance
-              .getToken()
-              .then((token) async {
-                if (token == null) return;
-                final platform = defaultTargetPlatform == TargetPlatform.iOS
-                    ? 'ios'
-                    : 'android';
-                await Supabase.instance.client.rpc<dynamic>(
-                  'upsert_my_push_token',
-                  params: {'p_fcm_token': token, 'p_platform': platform},
-                );
-              })
-              .catchError((Object error) {
-                if (kDebugMode) {
-                  debugPrint('Post-login FCM registration failed: $error');
-                }
-                unawaited(
-                  CrashReporter.instance.captureError(error, null, context: 'fcm_token_registration'),
-                );
-              }),
-        );
-      });
-    } catch (e, st) {
-      // FCM غير متوفر على هذا الجهاز — يستمر التطبيق بدون إشعارات.
+    } catch (e) {
       if (kDebugMode) {
-        debugPrint('FCM setup failed: $e');
+        debugPrint('FCM background handler registration failed: $e');
       }
-      unawaited(
-        CrashReporter.instance.captureError(e, st, context: 'fcm_setup'),
-      );
     }
+    // إنشاء PushService وحفظ المرجع في singleton للوصول العام
+    final pushService = PushService((token, platform) async {
+      final client = Supabase.instance.client;
+      if (client.auth.currentSession == null) return;
+      await client.rpc<dynamic>(
+        'upsert_my_push_token',
+        params: {'p_fcm_token': token, 'p_platform': platform},
+      );
+    });
 
     runApp(
       ProviderScope(
@@ -105,6 +76,49 @@ Future<void> main() async {
         child: const AhlaShababApp(),
       ),
     );
+
+    // بقية تهيئة الدفع بعد أول إطار — كانت بالكامل قبل runApp (getToken +
+    // تسجيل الرمز عبر الشبكة + حوار إعفاء البطارية) فتعليق الإقلاع على
+    // شاشة الإطلاق السوداء ثوانياً على الشبكات البطيئة، وكان الحوار يقفز
+    // فوق شاشة البداية فيبدو التطبيق معلقاً.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        unawaited(pushService.initialize());
+        Supabase.instance.client.auth.onAuthStateChange.listen((event) {
+          if (event.session == null) return;
+          unawaited(
+            FirebaseMessaging.instance
+                .getToken()
+                .then((token) async {
+                  if (token == null) return;
+                  final platform = defaultTargetPlatform == TargetPlatform.iOS
+                      ? 'ios'
+                      : 'android';
+                  await Supabase.instance.client.rpc<dynamic>(
+                    'upsert_my_push_token',
+                    params: {'p_fcm_token': token, 'p_platform': platform},
+                  );
+                })
+                .catchError((Object error) {
+                  if (kDebugMode) {
+                    debugPrint('Post-login FCM registration failed: $error');
+                  }
+                  unawaited(
+                    CrashReporter.instance.captureError(error, null, context: 'fcm_token_registration'),
+                  );
+                }),
+          );
+        });
+      } catch (e, st) {
+        // FCM غير متوفر على هذا الجهاز — يستمر التطبيق بدون إشعارات.
+        if (kDebugMode) {
+          debugPrint('FCM setup failed: $e');
+        }
+        unawaited(
+          CrashReporter.instance.captureError(e, st, context: 'fcm_setup'),
+        );
+      }
+    });
   } on Object catch (error, stackTrace) {
     if (kDebugMode) {
       debugPrint('Application initialization failed: $error\n$stackTrace');

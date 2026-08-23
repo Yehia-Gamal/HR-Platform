@@ -84,41 +84,7 @@ class PushService {
     await _local.initialize(
       initSettings,
       onDidReceiveNotificationResponse: (response) {
-        final payload = response.payload;
-        if (payload == null || payload.isEmpty) return;
-        // الحمولة بصيغة: notificationId\u0001deepLink\u0001entityType\u0001entityId
-        // حيث الحقلان الأخيران fallback لما لا يمكن تحليله من deepLink.
-        final parts = payload.split('\u0001');
-        final notificationId = parts.isNotEmpty ? parts[0] : '';
-        final deepLink = parts.length >= 2 ? parts[1] : '';
-        final entityType = parts.length >= 3 ? parts[2] : '';
-        final entityId = parts.length >= 4 ? parts[3] : '';
-        if (notificationId.isNotEmpty) {
-          unawaited(_markInAppNotificationRead(notificationId));
-          _local.cancel(_stableNotificationId(notificationId));
-        } else if (deepLink.isNotEmpty) {
-          _local.cancel(_stableNotificationId(deepLink));
-        }
-        // أولوية 1: حلّ deepLink عبر المحلل الموحّد.
-        if (deepLink.isNotEmpty) {
-          final route = resolveRouteFromDeepLink(deepLink);
-          if (route != '/') {
-            _navigate(route, deepLink);
-            return;
-          }
-        }
-        // أولوية 2: استنتج المسار من entityType/entityId.
-        if (entityType.isNotEmpty && entityId.isNotEmpty) {
-          final route = resolveNotificationRoute(
-            type: entityType,
-            entityId: entityId,
-          );
-          if (route != '/') {
-            _navigate(route, 'entityType=$entityType/entityId=$entityId');
-            return;
-          }
-        }
-        // لا يوجد مسار قابل للحل — ابقَ على الرئيسية.
+        _processLocalNotificationTap(response.payload);
       },
     );
     await _local
@@ -188,24 +154,43 @@ class PushService {
       _routeFromMessage(message);
     });
 
-    // فتح التطبيق من حالة الإنهاء التام — تأخير بسيط لاستقبال GoRouter للشجرة.
+    // فتح التطبيق من حالة الإنهاء التام — ننتظر جاهزية شجرة GoRouter بدل
+    // مهلة ثابتة قد تسبق ربط الموجّه فيضيع التوجيه صامتاً.
     final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
     if (initialMessage != null) {
       unawaited(
         _markPushDelivery(initialMessage, 'opened'),
       );
-      Future<void>.delayed(const Duration(milliseconds: 400), () {
-        _routeFromMessage(initialMessage);
-      });
+      _routeFromMessage(initialMessage, coldStart: true);
+    }
+
+    // الإقلاع البارد بنقرة على إشعار محلي (نُشر من معالج الخلفية): كانت
+    // الحمولة تضيع بالكامل لأن onDidReceiveNotificationResponse لا يُستدعى
+    // عند بدء العملية — الاسترجاع يتم فقط عبر launch details هنا.
+    try {
+      final launchDetails = await _local.getNotificationAppLaunchDetails();
+      final launchPayload = launchDetails?.notificationResponse?.payload;
+      if (launchDetails?.didNotificationLaunchApp == true &&
+          launchPayload != null &&
+          launchPayload.isNotEmpty) {
+        _processLocalNotificationTap(launchPayload, coldStart: true);
+      }
+    } catch (_) {
+      // لا يمنع بقية التهيئة.
     }
 
     _ready = true;
 
     // طلب إعفاء من تحسين البطارية (Samsung/Xiaomi تقتل العملية في الخلفية).
     // بدون هذا الإعفاء لن تصل إشعارات FCM العاجلة عندما يكون التطبيق مغلقاً.
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      await requestBatteryOptimizationExemption();
-    }
+    // مؤجل 10 ثوانٍ: كان حوار النظام يقفز فوراً فوق شاشة البداية أثناء
+    // الإقلاع البارد فيبدو التطبيق معلقاً، وكان جزءاً من المسار الحرج
+    // قبل runApp فطالت الشاشة السوداء.
+    unawaited(
+      Future<void>.delayed(const Duration(seconds: 10), () {
+        return requestBatteryOptimizationExemption();
+      }),
+    );
   }
 
   Future<void> _safeRegister(String token) async {
@@ -304,7 +289,10 @@ class PushService {
   /// توجيه موحد من FCM message: يستخرج deepLink إن وُجد، ثم يحسب المسار من
   /// entityType/entityId/(kind+requestId) كـ fallback حتى تعمل الإشعارات التي
   /// لا تحمل deepLink (مثل الإشعارات القديمة ذات action_url = '/location-requests').
-  void _routeFromMessage(RemoteMessage message) {
+  ///
+  /// [coldStart] يعني أن العملية بدأت للتو بنقرة الإشعار (getInitialMessage) —
+  /// فيؤجل التنقل حتى جاهزية شجرة GoRouter بدل go() المباشر.
+  void _routeFromMessage(RemoteMessage message, {bool coldStart = false}) {
     final data = message.data;
     // §10 — وسّم الإشعار الداخلي المقابل كمقروء بمجرد فتحه من خارج التطبيق.
     unawaited(_markInAppNotificationRead(data['notificationId'] as String?));
@@ -315,7 +303,9 @@ class PushService {
       final route = resolveRouteFromDeepLink(deepLink);
       if (route != '/') {
         _local.cancel(_stableNotificationId(deepLink));
-        _navigate(route, deepLink);
+        coldStart
+            ? unawaited(_navigateWhenReady(route, deepLink))
+            : _navigate(route, deepLink);
         return;
       }
       // deepLink موجود لكن غير قابل للحل — نكمل للـ fallback.
@@ -329,7 +319,10 @@ class PushService {
     if (idLike.isNotEmpty) {
       _local.cancel(_stableNotificationId(route));
     }
-    _navigate(route, deepLink as String? ?? route);
+    final link = deepLink is String && deepLink.isNotEmpty ? deepLink : route;
+    coldStart
+        ? unawaited(_navigateWhenReady(route, link))
+        : _navigate(route, link);
   }
 
   /// تنقل آمن إلى مسار GoRouter — يلتقط الأخطاء لمنع الانهيار.
@@ -341,6 +334,62 @@ class PushService {
         debugPrint('Router navigation failed for $originalLink → $route: $e');
       }
     }
+  }
+
+  /// تنقل بعد جاهزية شجرة GoRouter — للإقلاع البارد حيث قد يُستدعى التوجيه
+  /// قبل أن يبني MaterialApp.router المفوّض فيضيع go() الأول. ننتظر حتى
+  /// يتوفر سياق الموجّه (حتى ~6 ثوانٍ) ثم ننفذ التنقل.
+  Future<void> _navigateWhenReady(String route, String originalLink) async {
+    for (var attempt = 0; attempt < 40; attempt++) {
+      final context = appRouter.routerDelegate.navigatorKey.currentContext;
+      if (context != null && context.mounted) break;
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+    }
+    _navigate(route, originalLink);
+  }
+
+  /// معالج موحّد لنقرة إشعار محلي — من المقدمة ومن استرجاع الإقلاع البارد.
+  ///
+  /// الحمولة بصيغة: notificationId\u0001deepLink\u0001entityType\u0001entityId
+  /// حيث الحقلان الأخيران fallback لما لا يمكن تحليله من deepLink.
+  void _processLocalNotificationTap(String? payload, {bool coldStart = false}) {
+    if (payload == null || payload.isEmpty) return;
+    final parts = payload.split('\u0001');
+    final notificationId = parts.isNotEmpty ? parts[0] : '';
+    final deepLink = parts.length >= 2 ? parts[1] : '';
+    final entityType = parts.length >= 3 ? parts[2] : '';
+    final entityId = parts.length >= 4 ? parts[3] : '';
+    if (notificationId.isNotEmpty) {
+      unawaited(_markInAppNotificationRead(notificationId));
+      _local.cancel(_stableNotificationId(notificationId));
+    } else if (deepLink.isNotEmpty) {
+      _local.cancel(_stableNotificationId(deepLink));
+    }
+    // أولوية 1: حلّ deepLink عبر المحلل الموحّد.
+    if (deepLink.isNotEmpty) {
+      final route = resolveRouteFromDeepLink(deepLink);
+      if (route != '/') {
+        coldStart
+            ? unawaited(_navigateWhenReady(route, deepLink))
+            : _navigate(route, deepLink);
+        return;
+      }
+    }
+    // أولوية 2: استنتج المسار من entityType/entityId.
+    if (entityType.isNotEmpty && entityId.isNotEmpty) {
+      final route = resolveNotificationRoute(
+        type: entityType,
+        entityId: entityId,
+      );
+      if (route != '/') {
+        final link = 'entityType=$entityType/entityId=$entityId';
+        coldStart
+            ? unawaited(_navigateWhenReady(route, link))
+            : _navigate(route, link);
+        return;
+      }
+    }
+    // لا يوجد مسار قابل للحل — ابقَ على الرئيسية.
   }
 
   /// هل التطبيق معفى من تحسين البطارية؟
