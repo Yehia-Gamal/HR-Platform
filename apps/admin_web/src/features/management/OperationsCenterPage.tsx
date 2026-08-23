@@ -85,10 +85,10 @@ export function OperationsCenterPage() {
       />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="مهام مفتوحة" value={openTasks} icon={ListTodo} />
-        <MetricCard label="أولوية عاجلة" value={urgentTasks} icon={CircleAlert} />
-        <MetricCard label="مأموريات" value={data?.missions.length ?? 0} icon={CalendarClock} />
-        <MetricCard label="قوافل مجدولة" value={data?.convoys.length ?? 0} icon={BusFront} />
+        <MetricCard label="مهام مفتوحة" value={openTasks} icon={ListTodo} onClick={() => setTab('tasks')} />
+        <MetricCard label="أولوية عاجلة" value={urgentTasks} icon={CircleAlert} onClick={() => setTab('tasks')} />
+        <MetricCard label="مأموريات" value={data?.missions.length ?? 0} icon={CalendarClock} onClick={() => setTab('missions')} />
+        <MetricCard label="قوافل مجدولة" value={data?.convoys.length ?? 0} icon={BusFront} onClick={() => setTab('convoys')} />
       </section>
 
       <section className="filter-bar flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

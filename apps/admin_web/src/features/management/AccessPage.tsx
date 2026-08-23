@@ -265,10 +265,10 @@ export function AccessPage() {
         <>
           {/* ── الإحصائيات ── */}
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="الأدوار" value={data.roles.length} icon={ShieldCheck} />
-            <MetricCard label="الصلاحيات" value={data.permissions.length} icon={KeyRound} />
-            <MetricCard label="المستخدمون" value={data.users.length} icon={Users} />
-            <MetricCard label="الصلاحيات الحساسة" value={data.permissions.filter((p) => p.sensitive).length} icon={ShieldCheck} />
+            <MetricCard label="الأدوار" value={data.roles.length} icon={ShieldCheck} onClick={() => setTab('perms')} />
+            <MetricCard label="الصلاحيات" value={data.permissions.length} icon={KeyRound} onClick={() => setTab('perms')} />
+            <MetricCard label="المستخدمون" value={data.users.length} icon={Users} onClick={() => setTab('users')} />
+            <MetricCard label="الصلاحيات الحساسة" value={data.permissions.filter((p) => p.sensitive).length} icon={ShieldCheck} onClick={() => setTab('perms')} />
           </section>
 
           {/* ── بطاقات قوالب الأدوار ── */}

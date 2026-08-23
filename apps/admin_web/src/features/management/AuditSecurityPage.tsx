@@ -101,10 +101,10 @@ export function AuditSecurityPage() {
         description="مركز قراءة ومعالجة للأحداث الأمنية، وسجل تغييرات غير قابل للتعديل، والأجهزة المسجلة دون إظهار المعرّفات أو الأسرار الحساسة."
       />
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="أحداث غير معالجة" value={unhandled} icon={ShieldAlert} />
-        <MetricCard label="عالية الخطورة" value={critical} icon={AlertTriangle} />
-        <MetricCard label="أجهزة نشطة" value={activeDevices} icon={Laptop} />
-        <MetricCard label="نشطة وغير موثوقة" value={untrusted} icon={Fingerprint} />
+        <MetricCard label="أحداث غير معالجة" value={unhandled} icon={ShieldAlert} onClick={() => setTab('security')} />
+        <MetricCard label="عالية الخطورة" value={critical} icon={AlertTriangle} onClick={() => setTab('security')} />
+        <MetricCard label="أجهزة نشطة" value={activeDevices} icon={Laptop} onClick={() => setTab('devices')} />
+        <MetricCard label="نشطة وغير موثوقة" value={untrusted} icon={Fingerprint} onClick={() => setTab('devices')} />
       </section>
 
       <section className="filter-bar flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

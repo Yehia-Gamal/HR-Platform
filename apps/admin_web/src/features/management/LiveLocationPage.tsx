@@ -112,10 +112,10 @@ export function LiveLocationPage() {
       ) : (
         <>
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="ضمن نطاق الوصول" value={data.length} icon={Users} />
-            <MetricCard label="متصلون خلال 15 دقيقة" value={fresh} icon={Signal} />
-            <MetricCard label="طلبات نشطة" value={active} icon={Activity} />
-            <MetricCard label="دون موقع مسجل" value={missing} icon={SignalLow} />
+            <MetricCard label="ضمن نطاق الوصول" value={data.length} icon={Users} onClick={() => setFilter('all')} />
+            <MetricCard label="متصلون خلال 15 دقيقة" value={fresh} icon={Signal} onClick={() => setFilter('fresh')} />
+            <MetricCard label="طلبات نشطة" value={active} icon={Activity} onClick={() => setFilter('active')} />
+            <MetricCard label="دون موقع مسجل" value={missing} icon={SignalLow} onClick={() => setFilter('no_signal')} />
           </section>
 
           <FilterBar
