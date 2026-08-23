@@ -41,6 +41,27 @@ class MobileCommands {
     ref.invalidate(employeeHomeProvider);
   }
 
+  /// 0451: تعديل طلب مرفوض/مُرجَع وإعادة رفعه — للمالك حصراً.
+  Future<void> resubmitRequest({
+    required String requestId,
+    required String title,
+    required String reason,
+    required Map<String, dynamic> payload,
+  }) async {
+    await _withTimeout(ref.read(supabaseProvider).rpc<dynamic>(
+          'resubmit_my_request',
+          params: {
+            'p_request_id': requestId,
+            'p_title': title,
+            'p_reason': reason,
+            'p_payload': payload,
+          },
+        ));
+    ref.invalidate(mobileRequestsProvider);
+    ref.invalidate(mobileRequestDetailProvider(requestId));
+    ref.invalidate(employeeHomeProvider);
+  }
+
   Future<void> endMission({
     required String requestId,
     required String report,

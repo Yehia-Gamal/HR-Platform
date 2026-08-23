@@ -333,7 +333,7 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
-      builder: (ctx) => _NewRequestSheet(type: type, permitKind: permitKind),
+      builder: (ctx) => NewRequestSheet(type: type, permitKind: permitKind),
     );
     if (result == null || !context.mounted) return;
 
@@ -568,15 +568,18 @@ class _RequestCard extends StatelessWidget {
 
 // ── نموذج طلب جديد ──
 
-class _NewRequestSheet extends StatefulWidget {
-  const _NewRequestSheet({required this.type, this.permitKind});
+class NewRequestSheet extends StatefulWidget {
+  const NewRequestSheet({super.key, required this.type, this.permitKind, this.initial});
   final String type;
   final String? permitKind;
+
+  /// 0451: قيم مسبقة عند تعديل طلب مرفوض (title/reason/payload).
+  final Map<String, dynamic>? initial;
   @override
-  State<_NewRequestSheet> createState() => _NewRequestSheetState();
+  State<NewRequestSheet> createState() => NewRequestSheetState();
 }
 
-class _NewRequestSheetState extends State<_NewRequestSheet> {
+class NewRequestSheetState extends State<NewRequestSheet> {
   final _titleController = TextEditingController();
   final _reasonController = TextEditingController();
   final _locationController = TextEditingController();
@@ -592,6 +595,38 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
   void initState() {
     super.initState();
     _permitKind = widget.permitKind ?? 'late_arrival';
+    // 0451: تعبئة القيم الحالية عند تعديل طلب مرفوض
+    final init = widget.initial;
+    if (init != null) {
+      _titleController.text = (init['title'] as String?) ?? '';
+      _reasonController.text = (init['reason'] as String?) ?? '';
+      final payload = init['payload'];
+      if (payload is Map) {
+        final p = Map<String, dynamic>.from(payload);
+        _startDate = _parseDate(p['startDate']);
+        _endDate = _parseDate(p['endDate']);
+        _permitDate = _parseDate(p['permitDate']);
+        _locationController.text = (p['location'] as String?) ?? '';
+        _startTime = _parseTime(p['startTime']);
+        _endTime = _parseTime(p['endTime']);
+        if (p['leaveType'] is String) _leaveType = p['leaveType'] as String;
+        if (p['permitKind'] is String) _permitKind = p['permitKind'] as String;
+      }
+    }
+  }
+
+  static DateTime? _parseDate(Object? value) {
+    if (value is! String || value.length < 10) return null;
+    return DateTime.tryParse(value.substring(0, 10));
+  }
+
+  static TimeOfDay? _parseTime(Object? value) {
+    if (value is! String) return null;
+    final parts = value.split(':');
+    final h = int.tryParse(parts.isNotEmpty ? parts[0] : '');
+    final m = int.tryParse(parts.length > 1 ? parts[1] : '');
+    if (h == null || m == null) return null;
+    return TimeOfDay(hour: h, minute: m);
   }
 
   String get _typeLabel => switch (widget.type) {

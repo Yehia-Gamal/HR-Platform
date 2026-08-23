@@ -2,6 +2,8 @@ import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_self_service_page.dart'
+    show NewRequestSheet;
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -226,6 +228,21 @@ class _RequestContent extends ConsumerWidget {
             ),
           ),
         ],
+        // 0451: المالك يعدّل الطلب المرفوض/المُرجَع ويعيد رفعه
+        if (request.canResubmit &&
+            (request.status == 'rejected' || request.status == 'returned')) ...[
+          const SizedBox(height: 12),
+          _ResubmitBanner(),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () => _resubmit(context, ref),
+              icon: const Icon(Icons.edit_note_rounded),
+              label: const Text('تعديل وإعادة رفع الطلب'),
+            ),
+          ),
+        ],
         if (request.canDecide && request.status == 'pending') ...[
           const SizedBox(height: 12),
           Row(
@@ -310,6 +327,45 @@ class _RequestContent extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم سحب الطلب وإيقاف مسار الاعتماد.')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+      }
+    }
+  }
+
+  /// 0451: فتح نموذج التعديل معبّأً بالقيم الحالية ثم إعادة الرفع.
+  Future<void> _resubmit(BuildContext context, WidgetRef ref) async {
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => NewRequestSheet(
+        type: request.type,
+        initial: {
+          'title': request.title,
+          'reason': request.reason,
+          'payload': request.payload,
+        },
+      ),
+    );
+    if (result == null || !context.mounted) return;
+
+    try {
+      await ref
+          .read(mobileCommandsProvider)
+          .resubmitRequest(
+            requestId: request.id,
+            title: result['title'] as String,
+            reason: result['reason'] as String,
+            payload: result['payload'] as Map<String, dynamic>,
+          );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تعديل الطلب وإعادة رفعه للمراجعة.')),
         );
       }
     } catch (error) {
@@ -443,6 +499,55 @@ class _RequestContent extends ConsumerWidget {
 }
 
 /// بطاقة تنفيذ المأمورية/القافلة: بدء، إنهاء بالتقرير، أو عرض نتيجة منجزة.
+/// 0451: بانر الإرجاع — يوضّح للموظف أن الطلب رُفض/أُرجع ويمكن تعديله.
+class _ResubmitBanner extends StatelessWidget {
+  const _ResubmitBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: scheme.error.withValues(alpha: .07),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: scheme.error.withValues(alpha: .35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline_rounded, color: scheme.error, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'تم إرجاع هذا الطلب',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: scheme.error,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'راجع ملاحظات القرار أدناه، عدّل ما يلزم في الطلب ثم أعد رفعه '
+                  'ليبدأ مسار اعتماد جديد.',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    height: 1.5,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MissionExecutionCard extends ConsumerWidget {
   const _MissionExecutionCard({required this.request});
 
@@ -682,94 +787,217 @@ class _EndMissionSheetState extends State<_EndMissionSheet> {
   }
 }
 
+/// صندوق بيانات الطلب — تصميم 0451: أيقونة نوع + وجهة بارزة + نطاق تاريخي
+/// + أوقات 12 ساعة + رقائق (أيام/مدة) بدل صفوف نصية جافة.
 class _RequestPayloadCard extends StatelessWidget {
   const _RequestPayloadCard({required this.requestType, required this.payload});
   final String requestType;
   final Map<String, dynamic> payload;
 
-  @override
-  Widget build(BuildContext context) {
-    final rows = _rows();
-    if (rows.isEmpty) return const SizedBox.shrink();
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'بيانات الطلب',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 10),
-            for (final row in rows)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 5),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(width: 120, child: Text(row.$1)),
-                    Expanded(
-                      child: Text(
-                        row.$2,
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
+  IconData get _typeIcon => switch (requestType) {
+    'mission' => Icons.work_history_rounded,
+    'convoy' => Icons.directions_bus_rounded,
+    'fundraising' => Icons.volunteer_activism_rounded,
+    'leave' => Icons.beach_access_rounded,
+    'late_permit' || 'early_permit' => Icons.schedule_rounded,
+    _ => Icons.description_rounded,
+  };
+
+  String get _typeTitle => switch (requestType) {
+    'mission' => 'بيانات المأمورية',
+    'convoy' => 'بيانات القافلة',
+    'fundraising' => 'بيانات الفاندي',
+    'leave' => 'بيانات الإجازة',
+    'late_permit' || 'early_permit' => 'بيانات الإذن',
+    _ => 'بيانات الطلب',
+  };
+
+  /// 0451: 'HH:mm' → 'h:mm ص/م'
+  static String _time12(Object? raw) {
+    if (raw is! String) return '—';
+    final parts = raw.split(':');
+    final h = int.tryParse(parts.isNotEmpty ? parts[0] : '');
+    final m = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
+    if (h == null) return raw;
+    final period = h < 12 ? 'ص' : 'م';
+    final h12 = h % 12 == 0 ? 12 : h % 12;
+    return '$h12:${m.toString().padLeft(2, '0')} $period';
   }
 
-  List<(String, String)> _rows() {
-    final rows = <(String, String)>[];
-    String? dateLabel(String key) {
-      final raw = payload[key]?.toString();
-      if (raw == null || raw.isEmpty) return null;
-      final parsed = DateTime.tryParse(raw);
-      return parsed == null
-          ? raw
-          : DateFormat('EEEE، d MMMM y', 'ar').format(parsed);
-    }
+  String? _dateLabel(String key) {
+    final raw = payload[key]?.toString();
+    if (raw == null || raw.isEmpty) return null;
+    final parsed = DateTime.tryParse(raw);
+    return parsed == null ? raw : DateFormat('EEE، d MMM', 'ar').format(parsed);
+  }
 
-    if (requestType == 'leave') {
-      rows.add(('نوع الإجازة', _leaveType(payload['leaveType']?.toString())));
-      final start = dateLabel('startDate');
-      final end = dateLabel('endDate');
-      if (start != null) rows.add(('تاريخ البداية', start));
-      if (end != null) rows.add(('تاريخ النهاية', end));
-      if (payload['days'] != null) {
-        rows.add(('عدد الأيام', '${payload['days']}'));
-      }
-    } else if (requestType == 'mission' ||
-        requestType == 'convoy' ||
-        requestType == 'fundraising') {
-      final start = dateLabel('startDate');
-      final end = dateLabel('endDate');
-      if (start != null) rows.add(('تاريخ البداية', start));
-      if (end != null) rows.add(('تاريخ النهاية', end));
-      if (payload['location'] != null) {
-        rows.add(('المكان', '${payload['location']}'));
-      }
-      if (payload['days'] != null) {
-        rows.add(('عدد الأيام', '${payload['days']}'));
-      }
-    } else if (requestType == 'late_permit' || requestType == 'early_permit') {
-      final date = dateLabel('permitDate');
-      if (date != null) rows.add(('تاريخ الإذن', date));
-      rows.add(('نوع الإذن', _permitType(payload['permitKind']?.toString())));
-      if (payload['minutes'] != null) {
-        rows.add(('المدة', '${payload['minutes']} دقيقة'));
-      }
-    } else {
-      for (final entry in payload.entries) {
-        rows.add((entry.key, '${entry.value}'));
-      }
-    }
-    return rows;
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final accent = scheme.primary;
+    final start = _dateLabel('startDate');
+    final end = _dateLabel('endDate');
+    final location = payload['location']?.toString();
+    final startTime = payload['startTime'];
+    final endTime = payload['endTime'];
+    final days = payload['days']?.toString();
+    final minutes = payload['minutes']?.toString();
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: .6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── ترويسة ملونة ──
+          Container(
+            color: accent.withValues(alpha: .08),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: accent.withValues(alpha: .15),
+                  child: Icon(_typeIcon, size: 20, color: accent),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  _typeTitle,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── الوجهة (مأمورية/قافلة/فاندي) ──
+                if (location != null && location.isNotEmpty) ...[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.place_rounded, size: 18, color: accent),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          location,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                // ── النطاق الزمني ──
+                if (start != null || end != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest.withValues(
+                        alpha: .45,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.date_range_rounded,
+                          size: 18,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            (start != null && end != null && start != end)
+                                ? '$start ← $end'
+                                : (start ?? end ?? ''),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                // ── أوقات الانطلاق/العودة (12 ساعة) ──
+                if (startTime != null || endTime != null) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      if (startTime != null)
+                        Expanded(
+                          child: _TimeChip(
+                            icon: Icons.logout_rounded,
+                            label: 'الانطلاق',
+                            value: _time12(startTime),
+                          ),
+                        ),
+                      if (startTime != null && endTime != null)
+                        const SizedBox(width: 8),
+                      if (endTime != null)
+                        Expanded(
+                          child: _TimeChip(
+                            icon: Icons.login_rounded,
+                            label: 'العودة',
+                            value: _time12(endTime),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+                // ── رقائق إضافية ──
+                if (days != null || minutes != null || payload['leaveType'] != null || payload['permitKind'] != null) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (days != null)
+                        _InfoChip(
+                          icon: Icons.event_available_rounded,
+                          text: '$days يوم',
+                        ),
+                      if (minutes != null)
+                        _InfoChip(
+                          icon: Icons.timer_outlined,
+                          text: '$minutes دقيقة',
+                        ),
+                      if (payload['leaveType'] != null)
+                        _InfoChip(
+                          icon: Icons.category_rounded,
+                          text: _leaveType(payload['leaveType']?.toString()),
+                        ),
+                      if (payload['permitKind'] != null)
+                        _InfoChip(
+                          icon: Icons.category_rounded,
+                          text: _permitType(payload['permitKind']?.toString()),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   static String _leaveType(String? value) => switch (value) {
@@ -778,6 +1006,7 @@ class _RequestPayloadCard extends StatelessWidget {
     'emergency' => 'عارضة / طارئة',
     'casual' => 'عارضة',
     'unpaid' => 'بدون راتب',
+    'weekly_rest_comp' => 'بدل راحة أسبوعية',
     _ => value ?? '—',
   };
 
@@ -786,6 +1015,69 @@ class _RequestPayloadCard extends StatelessWidget {
     'early_departure' => 'إذن انصراف',
     _ => value ?? '—',
   };
+}
+
+/// رقاقة وقت (انطلاق/عودة) — 0451
+class _TimeChip extends StatelessWidget {
+  const _TimeChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: scheme.primary.withValues(alpha: .06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: scheme.primary.withValues(alpha: .25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: scheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            '$label $value',
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// رقاقة معلومة (أيام/مدة/نوع) — 0451
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: .5),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: scheme.onSurfaceVariant),
+          const SizedBox(width: 5),
+          Text(text, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5)),
+        ],
+      ),
+    );
+  }
 }
 
 /// ملخص مسار الاعتماد — بطاقة مدمجة تعرض التقدم الإجمالي

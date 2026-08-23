@@ -887,6 +887,7 @@ class MobileRequestDetail {
     required this.updatedAt,
     required this.canDecide,
     required this.canCancel,
+    required this.canResubmit,
     required this.steps,
     required this.attachments,
     required this.substituteName,
@@ -916,6 +917,7 @@ class MobileRequestDetail {
             : DateTime.parse(json['updatedAt'] as String),
         canDecide: json['canDecide'] as bool? ?? false,
         canCancel: json['canCancel'] as bool? ?? false,
+        canResubmit: json['canResubmit'] as bool? ?? false,
         steps: (json['steps'] as List<dynamic>? ?? const [])
             .map(
               (item) => MobileRequestStep.fromJson(
@@ -971,6 +973,9 @@ class MobileRequestDetail {
   final DateTime? updatedAt;
   final bool canDecide;
   final bool canCancel;
+
+  /// 0451: هل يمكن للمالك تعديل الطلب المرفوض/المُرجَع ورفعه مجدداً؟
+  final bool canResubmit;
   final List<MobileRequestStep> steps;
   final List<MobileRequestAttachment> attachments;
   final String? substituteName;
