@@ -467,7 +467,7 @@ class _AnnouncementEngagementSheet extends ConsumerWidget {
     if (value == null) return '';
     try {
       final dt = DateTime.parse(value as String);
-      return DateFormat('d MMM، HH:mm', 'ar').format(dt);
+      return DateFormat('d MMM، h:mm a', 'ar').format(dt);
     } catch (_) {
       return '';
     }

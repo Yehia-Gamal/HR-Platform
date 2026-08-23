@@ -867,7 +867,16 @@ class _DayDetailSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    String fmt(String? t) => (t == null || t.length < 5) ? '—' : t.substring(0, 5);
+    // 0449: عرض الوقت بنظام 12 ساعة مع ص/م بدل اقتطاع HH24 الخام
+    String fmt(String? t) {
+      if (t == null || t.length < 5) return '—';
+      final h = int.tryParse(t.substring(0, 2));
+      final m = int.tryParse(t.substring(3, 5));
+      if (h == null || m == null) return '—';
+      final period = h < 12 ? 'ص' : 'م';
+      final h12 = h % 12 == 0 ? 12 : h % 12;
+      return '$h12:${m.toString().padLeft(2, '0')} $period';
+    }
 
     return DraggableScrollableSheet(
       initialChildSize: 0.55,

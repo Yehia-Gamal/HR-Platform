@@ -7,7 +7,16 @@ const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'ماي�
 const WARN_STATUSES = new Set(['غائب دون إذن', 'يحتاج مراجعة']);
 
 export function fmtTime(t: string | null) {
-  return t ? t.slice(0, 5) : '—';
+  if (!t) return '—';
+  const m = /^(\d{1,2}):(\d{2})/.exec(t);
+  if (!m) return t;
+  let h = parseInt(m[1], 10);
+  const min = m[2];
+  if (Number.isNaN(h)) return t;
+  // 0449: عرض بنظام 12 ساعة مع ص/م
+  const period = h < 12 ? 'ص' : 'م';
+  h = h % 12 === 0 ? 12 : h % 12;
+  return `${String(h).padStart(2, '0')}:${min} ${period}`;
 }
 
 export function pctColor(pct: number) {

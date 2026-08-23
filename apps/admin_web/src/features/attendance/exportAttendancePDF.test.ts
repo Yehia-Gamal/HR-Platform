@@ -6,12 +6,17 @@ describe('fmtTime', () => {
     expect(fmtTime(null)).toBe('—');
   });
 
-  it('returns first 5 chars of "08:30:00" → "08:30"', () => {
-    expect(fmtTime('08:30:00')).toBe('08:30');
+  it('formats "08:30:00" as 12h morning "08:30 ص"', () => {
+    expect(fmtTime('08:30:00')).toBe('08:30 ص');
   });
 
-  it('returns first 5 chars of "14:15" → "14:15"', () => {
-    expect(fmtTime('14:15')).toBe('14:15');
+  it('formats "14:15" as 12h afternoon "02:15 م"', () => {
+    expect(fmtTime('14:15')).toBe('02:15 م');
+  });
+
+  it('formats midnight "00:10" as "12:10 ص" and noon "12:00" as "12:00 م"', () => {
+    expect(fmtTime('00:10')).toBe('12:10 ص');
+    expect(fmtTime('12:00')).toBe('12:00 م');
   });
 });
 

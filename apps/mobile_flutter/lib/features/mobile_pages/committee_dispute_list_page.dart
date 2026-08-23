@@ -1309,7 +1309,7 @@ class _RecommendationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final df = DateFormat('d MMM y — HH:mm', 'ar');
+    final df = DateFormat('d MMM y — h:mm a', 'ar');
     final isNote = rec.statementType == 'committee_note';
 
     return Card(
@@ -3088,8 +3088,11 @@ class _SessionScheduleSheetState extends ConsumerState<_SessionScheduleSheet> {
   String _formatDate(DateTime d) =>
       '${d.year}/${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}';
 
-  String _formatTime(TimeOfDay t) =>
-      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+  String _formatTime(TimeOfDay t) {
+    final period = t.hour < 12 ? 'ص' : 'م';
+    final h12 = t.hour % 12 == 0 ? 12 : t.hour % 12;
+    return '$h12:${t.minute.toString().padLeft(2, '0')} $period';
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -7,6 +7,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.d
 import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 /// طريقة عرض صفحة الفريق: إدارة فريقي / ملفات أعضاء الفريق / جداول الحضور.
 enum TeamPageMode {
@@ -356,7 +357,7 @@ class _MemberCard extends StatelessWidget {
     final checkIn = member.firstCheckIn;
     final time = checkIn == null
         ? null
-        : '${checkIn.hour.toString().padLeft(2, '0')}:${checkIn.minute.toString().padLeft(2, '0')}';
+        : DateFormat('h:mm a', 'ar').format(checkIn.toLocal());
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(12),

@@ -8,6 +8,7 @@ import { MetricSkeletonRow, ListSkeleton } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useAttendanceOperations, useAttendanceOperationsCommands } from './useAdvancedOperations';
+import { fmtTime } from '../attendance/attendanceShared';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useToast } from '../../ui/Toast';
 import { cairoMonthIso } from '../../core/cairoTime';
@@ -171,7 +172,7 @@ export function AttendanceOperationsPage() {
                       <StatusBadge value={item.active ? 'active' : 'inactive'} />
                     </div>
                     <p className="muted mt-2 text-sm">
-                      {item.startTime.slice(0, 5)} — {item.endTime.slice(0, 5)} · سماح {item.graceInMinutes} دقيقة
+                      {fmtTime(item.startTime)} — {fmtTime(item.endTime)} · سماح {item.graceInMinutes} دقيقة
                     </p>
                   </button>
                 ))}
