@@ -94,37 +94,102 @@ class LocationRequestsPage extends ConsumerWidget {
                             child: Column(
                               children: [
                                 ExcludeSemantics(
-                                  child: Icon(
-                                    Icons.location_off_outlined,
-                                    size: 52,
-                                    color: Theme.of(context)
+                                  child: CircleAvatar(
+                                    radius: 36,
+                                    backgroundColor: Theme.of(context)
                                         .colorScheme
-                                        .onSurfaceVariant,
+                                        .surfaceContainerHighest
+                                        .withValues(alpha: .6),
+                                    child: Icon(
+                                      Icons.location_off_outlined,
+                                      size: 40,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 14),
                                 Text(
                                   'لا توجد طلبات موقع',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontWeight: FontWeight.w900,
+                                    fontSize: 16,
                                     color: Theme.of(context)
                                         .colorScheme
                                         .onSurfaceVariant,
                                   ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'ستظهر هنا طلبات الإدارة لمشاركة موقعك —\nوكل مشاركة مؤقتة بموافقتك.',
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        height: 1.6,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                      ),
                                 ),
                               ],
                             ),
                           ),
                         ],
                       )
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: items.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: 10),
-                        itemBuilder: (context, index) => _RequestCard(
-                            request: items[index], access: access),
+                    : Column(
+                        children: [
+                          // ── لافتة الخصوصية — 0451 ──
+                          Container(
+                            margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 9,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withValues(alpha: .06),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.verified_user_rounded,
+                                  size: 16,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'مشاركتك بموافقتك فقط، مؤقتة، ومسجلة في سجل التدقيق.',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: ListView.separated(
+                              padding: const EdgeInsets.all(16),
+                              itemCount: items.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: 12),
+                              itemBuilder: (context, index) => _RequestCard(
+                                  request: items[index], access: access),
+                            ),
+                          ),
+                        ],
                       ),
               ),
             ),
@@ -302,108 +367,345 @@ class _RequestCardState extends ConsumerState<_RequestCard>
   @override
   Widget build(BuildContext context) {
     final request = widget.request;
+    final scheme = Theme.of(context).colorScheme;
     final pending = request.status == 'pending';
+
+    // 0451: عدّاد الانتهاء — تحذير بصري عند اقتراب انتهاء صلاحية الطلب
+    final expiresIn = request.expiresAt?.difference(DateTime.now());
+    final expiresSoon = pending &&
+        expiresIn != null &&
+        expiresIn.inSeconds > 0 &&
+        expiresIn.inMinutes < 2;
+    final expired = pending &&
+        (expiresIn == null || expiresIn.inSeconds <= 0);
+
     return Card(
       margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(
+          color: pending
+              ? (expiresSoon
+                    ? scheme.error.withValues(alpha: .5)
+                    : scheme.primary.withValues(alpha: .35))
+              : scheme.outlineVariant.withValues(alpha: .6),
+          width: pending ? 1.4 : 1,
+        ),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // ── الترويسة: أيقونة + الطالب + الحالة ──
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: (pending
+                          ? scheme.primary
+                          : scheme.onSurfaceVariant)
+                      .withValues(alpha: .12),
+                  child: Icon(
+                    request.isTracking
+                        ? Icons.my_location_rounded
+                        : Icons.location_on_rounded,
+                    size: 24,
+                    color: pending
+                        ? scheme.primary
+                        : scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    'طلب من ${request.requesterName}',
-                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        request.isTracking
+                            ? 'طلب تتبع مباشر'
+                            : 'طلب مشاركة موقعك',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'من ${request.requesterName}',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 MobileStatusPill(request.status),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              '${_mode(request.mode)} · ${request.durationMinutes} دقيقة · ${DateFormat('d MMM - h:mm a', 'ar').format(request.requestedAt.toLocal())}',
-              style: Theme.of(context).textTheme.bodySmall,
+            const SizedBox(height: 12),
+
+            // ── تفاصيل الطلب ──
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest.withValues(alpha: .45),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  _metaRow(
+                    context,
+                    icon: Icons.swap_horiz_rounded,
+                    label: 'النوع',
+                    value: _mode(request.mode),
+                  ),
+                  const SizedBox(height: 6),
+                  _metaRow(
+                    context,
+                    icon: Icons.timer_outlined,
+                    label: 'المدة',
+                    value: '${request.durationMinutes} دقيقة',
+                  ),
+                  const SizedBox(height: 6),
+                  _metaRow(
+                    context,
+                    icon: Icons.schedule_rounded,
+                    label: 'وصل',
+                    value: DateFormat(
+                      'd MMM · h:mm a',
+                      'ar',
+                    ).format(request.requestedAt.toLocal()),
+                  ),
+                ],
+              ),
             ),
-            if (error != null) ...[
-              const SizedBox(height: 8),
+
+            // ── سبب الطلب ──
+            if (request.reason.trim().isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  border: BorderDirectional(
+                    start: BorderSide(
+                      color: scheme.primary.withValues(alpha: .5),
+                      width: 3,
+                    ),
+                  ),
+                  color: scheme.surfaceContainerHighest.withValues(
+                    alpha: .3,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  request.reason,
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.5,
+                    fontStyle: FontStyle.italic,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+
+            // ─ـ تحذير الانتهاء الوشيك ──
+            if (expiresSoon) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: scheme.error.withValues(alpha: .08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.hourglass_bottom_rounded,
+                      size: 16,
+                      color: scheme.error,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'ينتهي الطلب خلال ${expiresIn.inMinutes + 1} دقيقة تقريباً',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: scheme.error,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            if (expired) ...[
+              const SizedBox(height: 10),
               Text(
-                error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+                'انتهت صلاحية هذا الطلب — لم يعد قابلاً للاستجابة.',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+
+            // ── أخطاء الموقع وأزرار المعالجة ──
+            if (error != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: scheme.error.withValues(alpha: .07),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.error_outline_rounded,
+                      size: 18,
+                      color: scheme.error,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        error!,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               if (_issueKind == _LocationIssueKind.gpsOff) ...[
-                const SizedBox(height: 6),
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonalIcon(
+                    onPressed: () => Geolocator.openLocationSettings(),
+                    icon: const Icon(Icons.gps_fixed_rounded, size: 18),
+                    label: const Text('فتح إعدادات الموقع'),
                   ),
-                  onPressed: () => Geolocator.openLocationSettings(),
-                  icon: const Icon(Icons.gps_fixed_rounded, size: 18),
-                  label: const Text('فتح إعدادات الموقع'),
                 ),
               ],
               if (_issueKind == _LocationIssueKind.deniedForever) ...[
-                const SizedBox(height: 6),
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonalIcon(
+                    onPressed: () => Geolocator.openAppSettings(),
+                    icon: const Icon(Icons.settings_rounded, size: 18),
+                    label: const Text('فتح إعدادات التطبيق'),
                   ),
-                  onPressed: () => Geolocator.openAppSettings(),
-                  icon: const Icon(Icons.settings_rounded, size: 18),
-                  label: const Text('فتح إعدادات التطبيق'),
                 ),
               ],
               if (_issueKind == _LocationIssueKind.permissionDenied) ...[
-                const SizedBox(height: 6),
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.amber.shade800,
-                    foregroundColor: Colors.white,
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonalIcon(
+                    onPressed: () async {
+                      final perm = await Geolocator.requestPermission();
+                      if (!mounted) return;
+                      if (perm == LocationPermission.always ||
+                          perm == LocationPermission.whileInUse) {
+                        setState(() {
+                          error = null;
+                          _issueKind = null;
+                        });
+                        _respond(true);
+                      }
+                    },
+                    icon: const Icon(Icons.location_on_rounded, size: 18),
+                    label: const Text('منح صلاحية الموقع'),
                   ),
-                  onPressed: () async {
-                    final perm = await Geolocator.requestPermission();
-                    if (!mounted) return;
-                    if (perm == LocationPermission.always ||
-                        perm == LocationPermission.whileInUse) {
-                      setState(() {
-                        error = null;
-                        _issueKind = null;
-                      });
-                      _respond(true);
-                    }
-                  },
-                  icon: const Icon(Icons.location_on_rounded, size: 18),
-                  label: const Text('منح صلاحية الموقع'),
                 ),
               ],
             ],
-            if (pending) ...[
+
+            // ── أزرار الاستجابة ──
+            if (pending && !expired) ...[
               const SizedBox(height: 14),
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
+                    child: OutlinedButton.icon(
                       onPressed: busy ? null : () => _respond(false),
-                      child: const Text('رفض'),
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                      label: const Text('رفض'),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: FilledButton(
+                    flex: 2,
+                    child: FilledButton.icon(
                       onPressed: busy ? null : () => _respond(true),
-                      child:
-                          Text(busy ? 'جارٍ التنفيذ...' : 'موافقة ومشاركة'),
+                      icon: busy
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.share_location_rounded,
+                              size: 18,
+                            ),
+                      label: Text(busy ? 'جارٍ التنفيذ...' : 'موافقة ومشاركة'),
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'مشاركتك لمرة واحدة ومسجلة في السجل — يمكنك الرفض بحرية.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
               ),
             ],
           ],
         ),
       ),
+    );
+  }
+
+  /// صف معلومات مصغر (أيقونة + تسمية + قيمة) — 0451
+  Widget _metaRow(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: scheme.onSurfaceVariant),
+        const SizedBox(width: 7),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
+        ),
+        const Spacer(),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
+        ),
+      ],
     );
   }
 
