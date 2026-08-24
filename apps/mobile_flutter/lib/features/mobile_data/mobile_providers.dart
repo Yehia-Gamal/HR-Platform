@@ -24,9 +24,11 @@ List<Map<String, dynamic>> _asList(dynamic value) =>
         .toList(growable: false);
 
 /// Wraps an RPC call with a timeout to prevent infinite spinners (P0-21).
+/// 0457: increased from 20s → 30s to reduce false-negative timeouts on
+/// edge-function chains (challenge → verify → record).
 Future<T> _withTimeout<T>(
   Future<T> future, [
-  Duration t = const Duration(seconds: 20),
+  Duration t = const Duration(seconds: 30),
 ]) => future.timeout(t);
 
 final mobileActionTargetProvider =

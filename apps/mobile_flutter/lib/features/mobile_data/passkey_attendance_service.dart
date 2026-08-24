@@ -38,10 +38,14 @@ class PasskeyAttendanceService {
   Future<void> register({String deviceLabel = 'هاتف الموظف'}) async {
     final challengeResponse = await _client.functions
         .invoke('webauthn-challenge', body: const {'type': 'register'})
-        .timeout(const Duration(seconds: 20));
+        .timeout(const Duration(seconds: 30));
     _throwOnFunctionError(challengeResponse);
 
-    final request = RegisterRequestType.fromJson(_map(challengeResponse.data));
+    final challengeData = _map(challengeResponse.data);
+    // 0457: استخراج challengeId لإرساله مع التسجيل لمنع سباق التسجيل المزدوج
+    final challengeId = challengeData['challengeId']?.toString();
+
+    final request = RegisterRequestType.fromJson(challengeData);
     final RegisterResponseType credential;
     try {
       credential = await _authenticator.register(request);
@@ -61,6 +65,7 @@ class PasskeyAttendanceService {
           'passkey-register',
           body: {
             'deviceLabel': deviceLabel,
+            'challengeId': challengeId,
             'response': {
               'id': credential.id,
               'rawId': credential.rawId,
@@ -76,7 +81,7 @@ class PasskeyAttendanceService {
             },
           },
         )
-        .timeout(const Duration(seconds: 20));
+        .timeout(const Duration(seconds: 30));
     _throwOnFunctionError(finishResponse);
   }
 
@@ -85,7 +90,7 @@ class PasskeyAttendanceService {
     final operationId = const Uuid().v4();
     final challengeResponse = await _client.functions
         .invoke('webauthn-challenge', body: const {'type': 'auth'})
-        .timeout(const Duration(seconds: 20));
+        .timeout(const Duration(seconds: 30));
     _throwOnFunctionError(challengeResponse);
 
     final challengeData = _map(challengeResponse.data);
@@ -134,7 +139,7 @@ class PasskeyAttendanceService {
             },
           },
         )
-        .timeout(const Duration(seconds: 20));
+        .timeout(const Duration(seconds: 30));
     _throwOnFunctionError(verifyResponse);
     return _map(verifyResponse.data);
   }

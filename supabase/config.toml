@@ -85,7 +85,7 @@ enable_confirmations = true
 # or have HR resend — the resend path is already rate-limited via
 # auth_invite_log.
 otp_expiry = 3600
-secure_password_change = true
+secure_password_change = false
 
 [storage]
 enabled = true

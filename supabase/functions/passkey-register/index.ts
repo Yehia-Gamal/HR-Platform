@@ -72,14 +72,19 @@ Deno.serve(createHandler({ functionName: "passkey-register", version: "1.0.0" },
   const credentialId = String(response.id ?? "");
   if (!credentialId) return json(req, { error: "credential_response_required" }, 400);
 
-  const { data: challenge, error: challengeError } = await admin
+  // 0457: دعم challengeId صريح لمنع سباق التسجيل المزدوج
+  let challengeQuery = admin
     .from("webauthn_challenges")
     .select("id, challenge, options_json, relying_party_id")
     .eq("user_id", userData.user.id)
     .eq("employee_id", profile.employee_id)
     .eq("type", "register")
     .is("used_at", null)
-    .gt("expires_at", new Date().toISOString())
+    .gt("expires_at", new Date().toISOString());
+  if (typeof input.challengeId === "string" && input.challengeId) {
+    challengeQuery = challengeQuery.eq("id", input.challengeId);
+  }
+  const { data: challenge, error: challengeError } = await challengeQuery
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();

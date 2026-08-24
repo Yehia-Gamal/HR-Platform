@@ -867,7 +867,27 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
     });
 
     try {
-      final response = await Supabase.instance.client.auth.updateUser(
+      final client = Supabase.instance.client;
+
+      // 0457: تحقق من قوة كلمة المرور على الخادم أولاً
+      final strengthResult = await client
+          .rpc<Map<String, dynamic>>('validate_password_strength',
+              params: {'p_password': _passwordController.text})
+          .timeout(const Duration(seconds: 10));
+      final valid = strengthResult['valid'] == true;
+      if (!valid) {
+        final issues = (strengthResult['issues'] as List<dynamic>?)
+                ?.map((e) => '• $e')
+                .join('\n') ??
+            '';
+        if (mounted) {
+          setState(() => _error =
+              'كلمة المرور لا تلبي متطلبات الأمان:\n$issues');
+        }
+        return;
+      }
+
+      final response = await client.auth.updateUser(
         UserAttributes(password: _passwordController.text),
       );
       if (response.user == null) {
@@ -879,8 +899,17 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
           const SnackBar(content: Text('تم تغيير الرقم السري بنجاح')),
         );
       }
-    } on AuthException {
-      if (mounted) setState(() => _error = 'تعذر تغيير الرقم السري. تحقق من المتطلبات وأعد المحاولة.');
+    } on AuthException catch (e) {
+      final msg = e.message.toLowerCase();
+      String errorMsg;
+      if (msg.contains('reauthentication') || msg.contains('recent login')) {
+        errorMsg = 'يجب إعادة تسجيل الدخول قبل تغيير كلمة المرور. سجّل الدخول ثم أعد المحاولة.';
+      } else if (msg.contains('session') || msg.contains('expired')) {
+        errorMsg = 'انتهت صلاحية الجلسة. سجّل الدخول من جديد.';
+      } else {
+        errorMsg = 'تعذر تغيير الرقم السري. تحقق من المتطلبات وأعد المحاولة.';
+      }
+      if (mounted) setState(() => _error = errorMsg);
     } catch (_) {
       if (mounted) setState(() => _error = 'تعذر تغيير الرقم السري بأمان. أعد المحاولة.');
     } finally {
@@ -935,8 +964,8 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
                 ),
               ),
               validator: (val) {
-                if (val == null || val.length < 8) {
-                  return 'الرقم السري يجب أن يكون 8 أحرف على الأقل';
+                if (val == null || val.length < 12) {
+                  return 'الرقم السري يجب أن يكون 12 حرفًا على الأقل';
                 }
                 return null;
               },
