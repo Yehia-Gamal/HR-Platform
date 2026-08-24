@@ -262,6 +262,7 @@
 | 0451 | `0451_assignment_approval_present_day.sql` | قبول mission/convoy/fundraising يُنشئ صفوف present لكل أيام الفترة (يوم عمل عادي) — trigger + backfill، إدراج فقط للأيام الغائبة. |
 | 0452 | `0452_resubmit_rejected_request.sql` | إعادة إرسال الطلب المرفوض من جديد بمسار اعتماد كامل. |
 | 0453 | `0453_multi_mission_day_priority.sql` | تعدد المأموريات في يوم واحد: أولوية العرض (جارية ← غير مبدوءة ← منتهية) + تحصين start_my_mission ضد تكرار التنفيذ. |
+| 0454 | `0454_archive_attendance_events.sql` | أرشفة أحداث الحضور: جدول attendance_events_archive (LIKE كامل مع الفهارس بلا قيود FK) — يحسّن أداء الجدول الأصلي، والوصول للأرشيف لـ service_role فقط. |
 >
 > **سكربت نشر الدفعة 0443–0445 على الإنتاج:** `python scripts/deploy_audit_batch_0443_0445.py` (idempotent: يفحص المتتبَّع، يطبّق المفقود بالترتيب، ثم يشغّل فحوص التحقق القياسية).
 ---
