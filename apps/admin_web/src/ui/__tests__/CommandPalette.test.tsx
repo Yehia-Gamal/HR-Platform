@@ -79,9 +79,7 @@ describe('CommandPalette', () => {
     fireEvent.change(input, { target: { value: 'الإشعارات' } });
     fireEvent.keyDown(input, { key: 'Enter' });
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(screen.getByTestId('location-probe').textContent).toBe(
-      '/hr/notifications',
-    );
+    expect(screen.getByTestId('location-probe').textContent).toBe('/hr/notifications');
   });
 
   it('الأسهم تحرك التحديد ثم Enter ينقل للمسار الصحيح', () => {
@@ -91,18 +89,14 @@ describe('CommandPalette', () => {
     // القائمة الافتراضية تبدأ بالرئيسية ثم الإشعارات…
     fireEvent.keyDown(input, { key: 'ArrowDown' });
     fireEvent.keyDown(input, { key: 'Enter' });
-    expect(screen.getByTestId('location-probe').textContent).toBe(
-      '/hr/notifications',
-    );
+    expect(screen.getByTestId('location-probe').textContent).toBe('/hr/notifications');
   });
 
   it('النقر على البند ينتقل، والنقر على الخلفية يغلق دون تنقل', () => {
     renderPalette('/hr');
     open();
     fireEvent.click(screen.getByText('الهيكل التنظيمي'));
-    expect(screen.getByTestId('location-probe').textContent).toBe(
-      '/hr/organization',
-    );
+    expect(screen.getByTestId('location-probe').textContent).toBe('/hr/organization');
 
     open();
     fireEvent.click(screen.getByRole('presentation'));

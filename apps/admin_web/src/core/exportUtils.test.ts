@@ -44,9 +44,7 @@ describe('toCsv', () => {
   });
 
   it('يمنع حقن الصيغ — الخلايا التي تبدأ بـ = + - @ تُسبق بفاصلة عليا', () => {
-    const csv = toCsv(columns, [
-      { name: '=SUM(A1:A2)', amount: -5, note: '@risk' },
-    ]);
+    const csv = toCsv(columns, [{ name: '=SUM(A1:A2)', amount: -5, note: '@risk' }]);
     expect(csv).toContain("'=SUM(A1:A2)");
     expect(csv).toContain("'-5");
     expect(csv).toContain("'@risk");

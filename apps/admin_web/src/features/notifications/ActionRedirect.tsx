@@ -42,9 +42,7 @@ export function ActionRedirect() {
   const { pathname } = useLocation();
 
   // مساحة العمل: من الرابط إن بدأ بـ /admin، وإلا الافتراضية للمستخدم.
-  const workspace = pathname.startsWith('/admin')
-    ? '/admin'
-    : `/${(auth.access && firstWebWorkspace(auth.access)) || 'hr'}`;
+  const workspace = pathname.startsWith('/admin') ? '/admin' : `/${(auth.access && firstWebWorkspace(auth.access)) || 'hr'}`;
 
   if (!UUID_RE.test(actionId)) {
     return <Navigate to={workspace} replace />;

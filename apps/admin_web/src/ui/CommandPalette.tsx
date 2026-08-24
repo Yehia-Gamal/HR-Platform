@@ -72,9 +72,7 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   // مساحة العمل الحالية من الرابط — الافتراض /hr.
-  const workspace = pathname.startsWith('/admin')
-    ? '/admin'
-    : '/hr';
+  const workspace = pathname.startsWith('/admin') ? '/admin' : '/hr';
 
   // الاختصار العام: Ctrl+K / Cmd+K للفتح والإغلاق، Escape للإغلاق.
   useEffect(() => {
@@ -103,9 +101,7 @@ export function CommandPalette() {
     const pool = ITEMS.filter((item) => !item.adminOnly || workspace === '/admin');
     const q = query.trim().toLowerCase();
     if (!q) return pool;
-    return pool.filter(
-      (item) => item.label.toLowerCase().includes(q) || item.path.includes(q),
-    );
+    return pool.filter((item) => item.label.toLowerCase().includes(q) || item.path.includes(q));
   }, [query, workspace]);
 
   const go = (item: CommandItem) => {
@@ -130,11 +126,7 @@ export function CommandPalette() {
   if (!open) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-start justify-center bg-black/40 p-4 pt-[12vh]"
-      onClick={() => setOpen(false)}
-      role="presentation"
-    >
+    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/40 p-4 pt-[12vh]" onClick={() => setOpen(false)} role="presentation">
       <div
         className="card w-full max-w-xl overflow-hidden p-0"
         dir="rtl"
@@ -160,27 +152,15 @@ export function CommandPalette() {
                 onMouseEnter={() => setActive(index)}
                 onClick={() => go(item)}
                 className={`flex w-full items-center justify-between gap-3 rounded-xl px-4 py-2.5 text-start text-sm font-bold ${
-                  index === active
-                    ? 'bg-[var(--brand-primary)] text-white'
-                    : 'text-[var(--text-primary)] hover:bg-[var(--surface-muted)]'
+                  index === active ? 'bg-[var(--brand-primary)] text-white' : 'text-[var(--text-primary)] hover:bg-[var(--surface-muted)]'
                 }`}
               >
                 <span>{item.label}</span>
-                <span
-                  className={`text-xs font-bold ${
-                    index === active ? 'text-white/70' : 'text-[var(--text-muted)]'
-                  }`}
-                >
-                  {item.group}
-                </span>
+                <span className={`text-xs font-bold ${index === active ? 'text-white/70' : 'text-[var(--text-muted)]'}`}>{item.group}</span>
               </button>
             </li>
           ))}
-          {results.length === 0 ? (
-            <li className="p-6 text-center text-sm text-[var(--text-muted)]">
-              لا توجد صفحات مطابقة.
-            </li>
-          ) : null}
+          {results.length === 0 ? <li className="p-6 text-center text-sm text-[var(--text-muted)]">لا توجد صفحات مطابقة.</li> : null}
         </ul>
         <div className="flex items-center justify-between border-t border-[var(--border)] px-5 py-2 text-xs text-[var(--text-muted)]">
           <span>↑↓ للتنقل · Enter للفتح · Esc للإغلاق</span>
