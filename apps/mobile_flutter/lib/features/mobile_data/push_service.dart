@@ -4,6 +4,7 @@ import 'package:ahla_shabab_management_os/app.dart';
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/notifications/notification_handler.dart';
+import 'package:ahla_shabab_management_os/core/notifications/notification_preferences.dart';
 import 'package:ahla_shabab_management_os/core/security/secure_session_storage.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -591,6 +592,16 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
       data['entityType'] as String? ?? data['kind'] as String? ?? '',
     );
     final entityId = data['entityId'] as String? ?? requestId;
+
+    // تفضيلات المستخدم (بند 8): كتم القنوات وساعات الهدوء — طلبات الموقع
+    // العاجلة تتجاوز دائماً (إشعار أمان). الإشعار يبقى في صفحة الإشعارات
+    // الداخلية وإن مُنع عرضه المنبثق.
+    try {
+      final prefs = await NotificationPreferences.load();
+      if (prefs.shouldSuppress(entityType ?? '')) return;
+    } catch (_) {
+      // فشل قراءة التفضيلات → نعرض كالمعتاد.
+    }
 
     await plugin.show(
       _stableNotificationId(notificationKey),

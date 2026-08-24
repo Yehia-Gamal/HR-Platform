@@ -3,6 +3,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_router.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_feed_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/notification_settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -101,7 +102,8 @@ class _MobileNotificationsPageState
   @override
   Widget build(BuildContext context) {
     final notifications = ref.watch(myNotificationsProvider);
-    final items = notifications.asData?.value ?? const <MobileNotificationItem>[];
+    final items =
+        notifications.asData?.value ?? const <MobileNotificationItem>[];
     final unread = items.where((x) => !x.isRead).toList();
     final visible = _filter == _NotifFilter.unread ? unread : items;
     final allVisibleSelected =
@@ -111,13 +113,20 @@ class _MobileNotificationsPageState
         title: const Text('الإشعارات'),
         actions: [
           if (_selecting)
-            TextButton(
-              onPressed: _exitSelection,
-              child: const Text('إلغاء'),
-            )
+            TextButton(onPressed: _exitSelection, child: const Text('إلغاء'))
           else ...[
             IconButton(
-              tooltip: 'تحديد الإشعارات',
+              tooltip: 'تفضيلات الإشعارات',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const NotificationSettingsPage(),
+                ),
+              ),
+              icon: const Icon(Icons.tune_rounded),
+            ),
+            IconButton(
+              tooltip: 'تحديد متعدد',
               onPressed: _enterSelection,
               icon: const Icon(Icons.checklist_rounded),
             ),
@@ -125,12 +134,12 @@ class _MobileNotificationsPageState
               tooltip: 'تعليم الكل كمقروء',
               onPressed: () async {
                 final messenger = ScaffoldMessenger.of(context);
-                await ref
-                    .read(mobileCommandsProvider)
-                    .markNotificationsRead();
+                await ref.read(mobileCommandsProvider).markNotificationsRead();
                 if (!mounted) return;
                 messenger.showSnackBar(
-                  const SnackBar(content: Text('تم تعليم كل الإشعارات كمقروءة')),
+                  const SnackBar(
+                    content: Text('تم تعليم كل الإشعارات كمقروءة'),
+                  ),
                 );
               },
               icon: const Icon(Icons.done_all_rounded),
@@ -163,7 +172,9 @@ class _MobileNotificationsPageState
                         ),
                         const SizedBox(width: 12),
                         const Expanded(
-                          child: Text('تعذر تحميل الإشعارات. اسحب لأسفل لإعادة المحاولة.'),
+                          child: Text(
+                            'تعذر تحميل الإشعارات. اسحب لأسفل لإعادة المحاولة.',
+                          ),
                         ),
                       ],
                     ),
@@ -181,7 +192,8 @@ class _MobileNotificationsPageState
                         _FilterChip(
                           label: 'الكل (${items.length})',
                           selected: _filter == _NotifFilter.all,
-                          onTap: () => setState(() => _filter = _NotifFilter.all),
+                          onTap: () =>
+                              setState(() => _filter = _NotifFilter.all),
                         ),
                         const SizedBox(width: 8),
                         _FilterChip(
@@ -271,7 +283,9 @@ class _MobileNotificationsPageState
                             ? () => _deselectAll(visible)
                             : () => _selectAll(visible),
                         child: Text(
-                          allVisibleSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل',
+                          allVisibleSelected
+                              ? 'إلغاء تحديد الكل'
+                              : 'تحديد الكل',
                         ),
                       ),
                       const Spacer(),
@@ -298,13 +312,9 @@ class _MobileNotificationsPageState
   Future<void> _deleteOne(MobileNotificationItem item) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await ref
-          .read(mobileCommandsProvider)
-          .deleteNotifications([item.id]);
+      await ref.read(mobileCommandsProvider).deleteNotifications([item.id]);
       if (!mounted) return;
-      messenger.showSnackBar(
-        const SnackBar(content: Text('تم حذف الإشعار')),
-      );
+      messenger.showSnackBar(const SnackBar(content: Text('تم حذف الإشعار')));
     } catch (_) {
       if (!mounted) return;
       messenger.showSnackBar(
@@ -318,9 +328,7 @@ class _MobileNotificationsPageState
     // تملك صفحة موبايل (كان النقر عليها لا يفعل شيئاً إطلاقاً).
     if (!item.isRead) {
       try {
-        await ref
-            .read(mobileCommandsProvider)
-            .markNotificationsRead([item.id]);
+        await ref.read(mobileCommandsProvider).markNotificationsRead([item.id]);
       } catch (_) {
         // فشل التعليم لا يمنع فتح الإشعار.
       }
@@ -361,9 +369,7 @@ class _MobileNotificationsPageState
       );
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('تعذر فتح الإشعار بأمان. أعد المحاولة.'),
           ),
@@ -448,7 +454,9 @@ class _NotificationCard extends StatelessWidget {
                     CircleAvatar(
                       backgroundColor: urgent
                           ? Theme.of(context).colorScheme.errorContainer
-                          : Theme.of(context).colorScheme.surfaceContainerHighest,
+                          : Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
                       child: Icon(
                         _icon(item.category),
                         color: urgent
@@ -490,7 +498,8 @@ class _NotificationCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  if (item.priority != 'normal') MobileStatusPill(item.priority),
+                  if (item.priority != 'normal')
+                    MobileStatusPill(item.priority),
                 ],
               ),
               if (item.body != null && item.body!.trim().isNotEmpty) ...[
@@ -517,9 +526,7 @@ class _NotificationCard extends StatelessWidget {
                       icon: Icon(
                         Icons.delete_outline_rounded,
                         size: 20,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.error,
+                        color: Theme.of(context).colorScheme.error,
                       ),
                       onPressed: onDelete,
                     ),
