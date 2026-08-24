@@ -83,34 +83,34 @@ select lives_ok(
   'الاستثناء يتحقق من فترة صلاحية الدور (effective_from/to)');
 
 -- =====================================================================
--- (7-8) advance_kpi_stage: Executive يعتمد ولا يُقيَّم
+-- (7-8) advance_kpi_stage: عقد المسار المبسّط 0470
 -- =====================================================================
 
--- (7) V23 مسار executive_review يتطلب دور executive
+-- (7) 0470: مرحلة executive_review أُزيلت من المسار القانوني
 select lives_ok(
   $live$do $t$
   declare v_src text;
   begin
     select prosrc into v_src from pg_proc
     where proname='advance_kpi_stage' and pronamespace='public'::regnamespace;
-    if v_src not ilike '%executive_review%' then
-      raise exception 'advance_kpi_stage لا تتعامل مع executive_review';
+    if v_src ilike '%executive_review%' then
+      raise exception '0470: executive_review يجب أن تكون قد أُزيلت من advance_kpi_stage';
     end if;
   end $t$$live$,
-  'advance_kpi_stage تدعم مرحلة executive_review');
+  '0470: advance_kpi_stage بلا مرحلة executive_review');
 
--- (8) Executive يحتاج current_has_active_role للاعتماد
+-- (8) الاعتماد صار خطوة مدير واحدة تنتهي بانتظار إقرار الموظف
 select lives_ok(
   $live$do $t$
   declare v_src text;
   begin
     select prosrc into v_src from pg_proc
     where proname='advance_kpi_stage' and pronamespace='public'::regnamespace;
-    if v_src not ilike '%current_has_active_role%executive%' then
-      raise exception 'executive_review لا تتحقق من current_has_active_role';
+    if v_src not ilike '%manager_review%' or v_src not ilike '%EMPLOYEE_ACKNOWLEDGEMENT_PENDING%' then
+      raise exception '0470: اعتماد المدير الواحد + حالة الإقرار مفقودتان';
     end if;
   end $t$$live$,
-  'executive_review تتطلب current_has_active_role(executive)');
+  '0470: اعتماد المدير الواحد ينتهي بـ EMPLOYEE_ACKNOWLEDGEMENT_PENDING');
 
 -- =====================================================================
 -- (9-10) التحقق السلوكي: Executive مستثنى من التقييمات
