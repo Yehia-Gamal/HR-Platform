@@ -14,6 +14,7 @@ import { WorkspaceShell } from '../features/workspaces/WorkspaceShell';
 import { BroadcastAlertBanner } from '../features/notifications/BroadcastAlert';
 import { ForbiddenState } from '../ui/ForbiddenState';
 import { CommandPalette } from '../ui/CommandPalette';
+import { ActionRedirect } from '../features/notifications/ActionRedirect';
 import { FeatureGate } from '../ui/FeatureGate';
 
 // ---------------------------------------------------------------------------
@@ -120,7 +121,10 @@ function AuthenticatedApp() {
       <BroadcastAlertBanner />
       {/* لوحة الأوامر (Ctrl+K) — تنقل سريع لكل صفحات مساحة العمل. */}
       <CommandPalette />
+      {/* الروابط الموحّدة (بند 10): رابط التطبيق /action/{kind}/{id} يفتح
+          على المتصفح ويُحوَّل لأفضل صفحة ويب مكافئة. */}
       <Routes>
+        <Route path="/action/:kind/:actionId" element={<ActionRedirect />} />
         <Route path="/" element={<Navigate to={workspacePath(defaultWorkspace)} replace />} />
 
         {/* مساحة الموارد البشرية المستقلة — تبقى كما هي لحسابات HR التي لا تملك main_admin */}
