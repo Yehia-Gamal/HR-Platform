@@ -96,8 +96,8 @@ export function PasswordSetupPage() {
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
-    if (password.length < 8) {
-      setError('كلمة المرور يجب ألا تقل عن 8 أحرف.');
+    if (password.length < 6) {
+      setError('كلمة المرور يجب ألا تقل عن 6 أحرف.');
       return;
     }
     if (password !== confirmation) {
@@ -124,7 +124,7 @@ export function PasswordSetupPage() {
         // رسائل خطأ محددة لسياسات كلمة المرور
         const msg = updateError.message?.toLowerCase() ?? '';
         if (msg.includes('weak') || msg.includes('strength') || msg.includes('policy') || msg.includes('short')) {
-          setError('كلمة المرور ضعيفة. استخدم مزيجًا من الأحرف الكبيرة والصغيرة والأرقام، بطول لا يقل عن 8 أحرف.');
+          setError('كلمة المرور ضعيفة. يجب ألا تقل عن 6 أحرف.');
         } else if (msg.includes('same') || msg.includes('previous') || msg.includes('reuse')) {
           setError('لا يمكن إعادة استخدام نفس كلمة المرور السابقة. اختر كلمة مرور مختلفة.');
         } else if (msg.includes('session') || msg.includes('token') || msg.includes('expired')) {

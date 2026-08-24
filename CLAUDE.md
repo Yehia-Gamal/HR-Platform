@@ -96,6 +96,7 @@ npx vercel --prod                  # يتطلب VERCEL_TOKEN
 - **Web:** Vercel (`vercel.json` في الجذر). مشروع: `prj_ZLbewe64wIFujXhWruZQNdLgmGep`.
 - **Mobile:** Flutter APK/AAB عبر CI أو يدوي. Keystore مطلوب.
 - **Supabase:** `npx supabase db push` للـ migrations. `npx supabase functions deploy` للـ Edge Functions.
+- **النشر المعمّم لأي نطاق migrations (idempotent):** `python scripts/deploy_migrations.py --from 0460 [--to NNNN] [--force]` — يفحص التتبع البعيد ويطبّق المفقود بالترتيب ثم يشغّل فحوص التحقق. الـ token من `SUPABASE_ACCESS_TOKEN`.
 - **نشر migration عبر Management API (PowerShell 5.1):** يجب إرسال النص **bytes** مع `-ContentType 'application/json; charset=utf-8'` وإلا حوّل PS كل حرف عربي إلى `?` (أفسد هذا دوال 0434/0436 في prod). النمط الآمن:
   ```powershell
   $json = @{ query = $sql } | ConvertTo-Json
@@ -109,6 +110,8 @@ npx vercel --prod                  # يتطلب VERCEL_TOKEN
 
 - الفرع الرئيسي: `main`.
 - عند الـ commit أضف `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
+- **تعديل دالة SQL منشورة:** استبدال كنوني (`create or replace` بنسخة نظيفة كاملة) لا رقعة regex على `pg_get_functiondef` — رقعة 0458 انزاحت زمنياً 3 ساعات فكسرت نافذة منتصف الليل، و0460 أعادت البناء كنونياً مع ترميم الصفوف المتأثرة. النمط الصحيح هو المرجع.
+- **إعداد إغلاق الحضور التلقائي:** عمود `attendance_settings.shift_end_time` (افتراضي `18:00` بتوقيت القاهرة) يتحكم في auto-checkout عند إنهاء مأمورية (0450).
 - Vercel URL: `https://ahla-shabab-management-os.vercel.app`
 - Supabase ref: `ujzzvqsodyhnnnpkoaml`
 

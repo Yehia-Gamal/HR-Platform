@@ -194,7 +194,7 @@ class _SetPasswordPageState extends ConsumerState<SetPasswordPage> {
             ),
             validator: (value) {
               final pass = value ?? '';
-              if (pass.length < 12) return 'كلمة المرور يجب أن تكون 12 حرفًا على الأقل.';
+              if (pass.length < 6) return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل.';
               return null;
             },
           ),

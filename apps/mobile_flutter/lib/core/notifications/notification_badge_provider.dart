@@ -31,11 +31,11 @@ final unreadNotificationCountProvider = Provider<AsyncValue<int>>((ref) {
 /// قائمة الإشعارات غير المقروءة فقط.
 final unreadNotificationsProvider =
     Provider<AsyncValue<List<MobileNotificationItem>>>((ref) {
-  final notifications = ref.watch(myNotificationsProvider);
-  return notifications.whenData(
-    (items) => items.where((item) => !item.isRead).toList(growable: false),
-  );
-});
+      final notifications = ref.watch(myNotificationsProvider);
+      return notifications.whenData(
+        (items) => items.where((item) => !item.isRead).toList(growable: false),
+      );
+    });
 
 /// مزوّد شارة الإشعارات — يجمع العدد والإجراءات في واجهة واحدة.
 ///
@@ -46,8 +46,8 @@ final unreadNotificationsProvider =
 /// - `refresh()` — إعادة تحميل قائمة الإشعارات.
 final notificationBadgeProvider =
     NotifierProvider<NotificationBadgeController, int>(
-  NotificationBadgeController.new,
-);
+      NotificationBadgeController.new,
+    );
 
 class NotificationBadgeController extends Notifier<int> {
   @override
@@ -64,9 +64,9 @@ class NotificationBadgeController extends Notifier<int> {
   /// تحديد إشعار واحد كمقروء بالمعرّف.
   Future<void> markAsRead(String notificationId) async {
     try {
-      await ref
-          .read(mobileCommandsProvider)
-          .markNotificationsRead([notificationId]);
+      await ref.read(mobileCommandsProvider).markNotificationsRead([
+        notificationId,
+      ]);
       // إبطال القائمة لإعادة الحساب.
       ref.invalidate(myNotificationsProvider);
     } catch (_) {

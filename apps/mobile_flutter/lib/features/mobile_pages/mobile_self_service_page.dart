@@ -2,6 +2,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dar
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/knowledge_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_payslips_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_learning_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/service_portal_page.dart';
@@ -169,8 +170,19 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                     ),
                   ),
                 ),
-                const Spacer(),
-                const Expanded(child: SizedBox.shrink()),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _ServiceCard(
+                    icon: Icons.menu_book_rounded,
+                    title: 'قاعدة المعرفة',
+                    subtitle: 'أدلة ومراجع للجميع',
+                    color: const Color(0xFF7C2D92),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const KnowledgePage()),
+                    ),
+                  ),
+                ),
               ],
             ),
 

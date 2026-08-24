@@ -11,9 +11,8 @@ const PUBLISHABLE_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 // كلمة مرور موظف يضعها الإداري من لوحة الويب. تُفرض تغييرها عند أول دخول
-// (must_change_password) فلا تبقى سارية بعد ذلك. السياسة 12–72 حرفاً متوافقة
-// مع validateHrIssuedPassword (12+ حرف، أحرف كبيرة/صغيرة، رقم، رمز، لا معرّفات
-// الموظف، لا قواميس، لا أنماط لوحة مفاتيح).
+// (must_change_password) فلا تبقى سارية بعد ذلك. السياسة 6–72 حرفاً (مبسّطة)
+// متوافقة مع validateHrIssuedPassword (6+ أحرف بلا شروط تعقيد).
 import { adminSetPasswordInputSchema } from "../_shared/contracts.ts";
 
 const inputSchema = adminSetPasswordInputSchema;

@@ -544,6 +544,20 @@ final myServicePortalProvider = FutureProvider<MobileServicePortal>((
   );
   return MobileServicePortal.fromJson(_asMap(data));
 });
+
+/// قاعدة المعرفة (0352) — المنشور فقط لغير المدراء + بحث وتصنيف.
+final knowledgeCatalogProvider =
+    FutureProvider.family<Map<String, dynamic>, String>((ref, query) async {
+      final data = await rpcWithTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'get_knowledge_catalog',
+              params: {'p_query': query, 'p_status': 'published'},
+            ),
+      );
+      return _asMap(data);
+    });
 final myPayslipsProvider = FutureProvider<List<MobilePayslip>>((ref) async {
   final data = await rpcWithTimeout(
     ref.watch(supabaseProvider).rpc<dynamic>('get_my_payslips'),

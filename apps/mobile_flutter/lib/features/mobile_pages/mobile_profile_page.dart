@@ -964,8 +964,8 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
                 ),
               ),
               validator: (val) {
-                if (val == null || val.length < 12) {
-                  return 'الرقم السري يجب أن يكون 12 حرفًا على الأقل';
+                if (val == null || val.length < 6) {
+                  return 'الرقم السري يجب أن يكون 6 أحرف على الأقل';
                 }
                 return null;
               },

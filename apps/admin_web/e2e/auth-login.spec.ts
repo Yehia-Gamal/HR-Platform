@@ -53,7 +53,7 @@ test.describe('تسجيل الدخول', () => {
 
     // React Hook Form يعرض رسالتي التحقق تحت الحقلين ولا يرسل الطلب.
     await expect(page.getByText(/أدخل البريد أو الهاتف أو كود الموظف/)).toBeVisible();
-    await expect(page.getByText(/كلمة المرور لا تقل عن 8 أحرف/)).toBeVisible();
+    await expect(page.getByText(/كلمة المرور لا تقل عن 6 أحرف/)).toBeVisible();
   });
 
   test('يظهر خطأ عند بيانات خاطئة', async ({ page }) => {

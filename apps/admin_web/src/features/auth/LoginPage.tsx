@@ -11,7 +11,7 @@ import { ErrorBanner } from '../../ui/ErrorState';
 import { useAuth } from './AuthProvider';
 const schema = z.object({
   identifier: z.string().trim().min(2, 'أدخل البريد أو الهاتف أو كود الموظف.'),
-  password: z.string().min(8, 'كلمة المرور لا تقل عن 8 أحرف.'),
+  password: z.string().min(6, 'كلمة المرور لا تقل عن 6 أحرف.'),
 });
 type FormData = z.infer<typeof schema>;
 

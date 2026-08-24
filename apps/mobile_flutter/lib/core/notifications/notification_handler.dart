@@ -51,9 +51,7 @@ String resolveRouteFromDeepLink(String deepLink) {
   try {
     final uri = Uri.parse(deepLink);
     final segments = uri.pathSegments;
-    final parts = deepLink.contains('://')
-        ? [uri.host, ...segments]
-        : segments;
+    final parts = deepLink.contains('://') ? [uri.host, ...segments] : segments;
 
     // أولوية 1: مسار /action/{kind}/{id} القياسي.
     final idx = parts.indexOf('action');
@@ -100,11 +98,21 @@ String _withQuery(String route, Uri uri) {
 /// هل النوع (kind) معروف في خريطة التنقل؟
 bool _isKnownActionKind(String kind) {
   return switch (kind) {
-    'request' || 'request_decision' || 'kpi' || 'kpi_evaluation' ||
-    'attendance' || 'attendance_alert' || 'punch_reminder' ||
-    'location' || 'location_request' || 'live_location_request' ||
-    'dispute' || 'task' || 'decision' || 'announcement' || 'recognition'
-        => true,
+    'request' ||
+    'request_decision' ||
+    'kpi' ||
+    'kpi_evaluation' ||
+    'attendance' ||
+    'attendance_alert' ||
+    'punch_reminder' ||
+    'location' ||
+    'location_request' ||
+    'live_location_request' ||
+    'dispute' ||
+    'task' ||
+    'decision' ||
+    'announcement' ||
+    'recognition' => true,
     _ => false,
   };
 }
@@ -134,8 +142,9 @@ String resolveNotificationRoute({
     'request' => '/action/request/$entityId',
     'kpi' => '/action/kpi/$entityId',
     'attendance' => '/action/attendance/$entityId',
-    'location' || 'location_request' || 'live_location_request' =>
-      '/action/live_location_request/$entityId',
+    'location' ||
+    'location_request' ||
+    'live_location_request' => '/action/live_location_request/$entityId',
     'dispute' => '/action/dispute/$entityId',
     'task' => '/action/task/$entityId',
     'decision' => '/action/decision/$entityId',
@@ -180,8 +189,8 @@ String resolveNotificationRouteFromData(Map<String, dynamic> data) {
       data['requestId'] as String? ??
       (data['metadata'] is Map
           ? ((data['metadata'] as Map)['entityId'] ??
-                (data['metadata'] as Map)['requestId'])
-              as String?
+                    (data['metadata'] as Map)['requestId'])
+                as String?
           : null);
 
   if (rawActionUrl != null && rawActionUrl.isNotEmpty) {

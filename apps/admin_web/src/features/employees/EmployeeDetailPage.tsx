@@ -291,36 +291,14 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
     setPwdError(null);
     setPwdSuccess(false);
 
-    // SEC: فحص قوة كلمة المرور على الواجهة — مطابق لـ validateHrIssuedPassword
-    // في admin-set-password Edge Function. رسائل عربية واضحة لكل قاعدة.
+    // SEC: سياسة مبسّطة بطلب الإدارة — 6 أحرف كحد أدنى بلا شروط تعقيد.
+    // المطابق لـ validateHrIssuedPassword في admin-set-password Edge Function.
     const pwd = newPassword;
     let err: string | null = null;
-    if (pwd.length < 12) {
-      err = 'كلمة المرور يجب أن تكون 12 حرفًا على الأقل.';
+    if (pwd.length < 6) {
+      err = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل.';
     } else if (pwd.length > 72) {
       err = 'كلمة المرور يجب ألا تتجاوز 72 حرفًا.';
-    } else if (!/[A-Z]/.test(pwd)) {
-      err = 'كلمة المرور يجب أن تحتوي حرفًا كبيرًا واحدًا على الأقل (A-Z).';
-    } else if (!/[a-z]/.test(pwd)) {
-      err = 'كلمة المرور يجب أن تحتوي حرفًا صغيرًا واحدًا على الأقل (a-z).';
-    } else if (!/\d/.test(pwd)) {
-      err = 'كلمة المرور يجب أن تحتوي رقمًا واحدًا على الأقل (0-9).';
-    } else if (!/[!@#$%^&*()_\-+=[\]{};':"\\|,.<>/?`~]/.test(pwd)) {
-      err = 'كلمة المرور يجب أن تحتوي رمزًا خاصًا واحدًا على الأقل (!@#$...).';
-    } else if (/(.)\1{4,}/.test(pwd)) {
-      err = 'كلمة المرور تحتوي تكرارًا مفرطًا لنفس الحرف (5+ على التوالي).';
-    } else {
-      const sequences = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm', 'abcdefghijklmnopqrstuvwxyz', '0123456789'];
-      const lower = pwd.toLowerCase();
-      for (const seq of sequences) {
-        for (let i = 0; i + 4 <= seq.length; i++) {
-          if (lower.includes(seq.slice(i, i + 4))) {
-            err = 'كلمة المرور تحتوي تسلسلًا مألوفًا من لوحة المفاتيح أو أرقام.';
-            break;
-          }
-        }
-        if (err) break;
-      }
     }
     if (err) {
       setPwdError(err);

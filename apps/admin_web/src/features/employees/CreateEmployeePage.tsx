@@ -176,16 +176,8 @@ export function CreateEmployeePage() {
         role_assignment_forbidden: 'ليس لديك صلاحية إسناد هذا المنصب.',
         account_create_failed: 'تعذر إنشاء حساب الدخول. أعد المحاولة لاحقًا.',
         manager_not_active: 'المدير المباشر المختار غير نشط.',
-        password_too_short_min_12: 'كلمة المرور يجب ألا تقل عن 12 حرفًا.',
+        password_too_short_min_6: 'كلمة المرور يجب ألا تقل عن 6 أحرف.',
         password_too_long_max_72: 'كلمة المرور يجب ألا تزيد عن 72 حرفًا.',
-        password_needs_uppercase: 'كلمة المرور يجب أن تحتوي حرفًا كبيرًا واحدًا على الأقل.',
-        password_needs_lowercase: 'كلمة المرور يجب أن تحتوي حرفًا صغيرًا واحدًا على الأقل.',
-        password_needs_digit: 'كلمة المرور يجب أن تحتوي رقمًا واحدًا على الأقل.',
-        password_needs_symbol: 'كلمة المرور يجب أن تحتوي رمزًا خاصًا واحدًا على الأقل (!@#$%^&*...).',
-        password_keyboard_sequence: 'كلمة المرور تحتوي تسلسلًا شائعًا من لوحة المفاتيح.',
-        password_contains_common_word: 'كلمة المرور تحتوي كلمة شائعة ممنوعة.',
-        password_contains_identifier: 'كلمة المرور تشبه بيانات الموظف (الاسم/الهاتف/البريد/الكود).',
-        password_too_repetitive: 'كلمة المرور تحتوي تكرارًا مفرطًا لنفس الحرف (5+ على التوالي).',
         weak_password: 'كلمة المرور غير آمنة. اختر كلمة مرور أقوى.',
       };
       let message = 'تعذر إنشاء الموظف.';
@@ -315,7 +307,7 @@ export function CreateEmployeePage() {
                 <Field
                   label="كلمة المرور الأولية"
                   error={form.formState.errors.initialPassword?.message}
-                  hint="اختياري — اتركه فارغاً لتولّد الخادم كلمة مرور مؤقتة آمنة. إن أدخلتها: 12–72 حرفًا بحرف كبير وصغير ورقم ورمز خاص."
+                  hint="اختياري — اتركه فارغاً ليولّد الخادم كلمة مرور مؤقتة من 6 أرقام. إن أدخلتها: 6–72 حرفاً بلا شروط أخرى."
                 >
                   <span className="relative block">
                     <input

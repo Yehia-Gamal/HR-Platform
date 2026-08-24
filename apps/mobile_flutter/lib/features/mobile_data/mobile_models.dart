@@ -468,18 +468,18 @@ class MissionToday {
   });
 
   factory MissionToday.fromJson(Map<String, dynamic> json) => MissionToday(
-        requestId: json['requestId'] as String,
-        type: json['type'] as String? ?? 'mission',
-        execStatus: json['execStatus'] as String? ?? 'approved',
-        startTime: json['startTime'] as String?,
-        startedAt: json['startedAt'] == null
-            ? null
-            : DateTime.parse(json['startedAt'] as String),
-        endedAt: json['endedAt'] == null
-            ? null
-            : DateTime.parse(json['endedAt'] as String),
-        autoCheckout: json['autoCheckout'] as bool? ?? false,
-      );
+    requestId: json['requestId'] as String,
+    type: json['type'] as String? ?? 'mission',
+    execStatus: json['execStatus'] as String? ?? 'approved',
+    startTime: json['startTime'] as String?,
+    startedAt: json['startedAt'] == null
+        ? null
+        : DateTime.parse(json['startedAt'] as String),
+    endedAt: json['endedAt'] == null
+        ? null
+        : DateTime.parse(json['endedAt'] as String),
+    autoCheckout: json['autoCheckout'] as bool? ?? false,
+  );
 
   final String requestId;
 
@@ -2614,6 +2614,52 @@ class MobileLearningItem {
   final double? score;
   final DateTime? completedAt;
   final DateTime? expiresAt;
+}
+
+/// مقالة معرفة منشورة (0352) — قراءة فقط على الموبايل.
+/// الحقول snake_case لأن الـ RPC يبني الصفوف بـ row_to_json.
+class KnowledgeArticle {
+  const KnowledgeArticle({
+    required this.id,
+    required this.title,
+    required this.category,
+    required this.categoryName,
+    required this.body,
+    this.updatedAt,
+  });
+
+  factory KnowledgeArticle.fromJson(Map<String, dynamic> json) =>
+      KnowledgeArticle(
+        id: json['id'] as String,
+        title: json['title'] as String? ?? '',
+        category: json['category'] as String? ?? '',
+        categoryName: json['category_name'] as String? ?? '',
+        body: json['body'] as String? ?? '',
+        updatedAt: json['updated_at'] == null
+            ? null
+            : DateTime.tryParse(json['updated_at'].toString()),
+      );
+
+  final String id;
+  final String title;
+  final String category;
+  final String categoryName;
+  final String body;
+  final DateTime? updatedAt;
+}
+
+/// تصنيف معرفة (0352).
+class KnowledgeCategory {
+  const KnowledgeCategory({required this.id, required this.name});
+
+  factory KnowledgeCategory.fromJson(Map<String, dynamic> json) =>
+      KnowledgeCategory(
+        id: json['id']?.toString() ?? '',
+        name: json['name']?.toString() ?? '',
+      );
+
+  final String id;
+  final String name;
 }
 
 class MobileLearningCatalog {

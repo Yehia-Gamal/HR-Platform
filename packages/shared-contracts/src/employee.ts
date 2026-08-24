@@ -52,10 +52,9 @@ export const createEmployeeInputSchema = z.object({
   roleSlug: z.string().trim().min(2),
   jobTitleName: z.string().trim().max(160).optional(),
   // كلمة المرور الأولية (اختيارية): إن أدخلها مسؤول HR تُفحص قوّتها فورياً
-  // (12–72 حرفًا، أحرف كبيرة/صغيرة، رقم ورمز خاص، لا معرّفات/قواميس/أنماط)
-  // وإن تُركت فارغة تولّد Edge Function كلمة مرور مؤقتة آمنة تلقائياً.
-  // لا تُشتق من الهاتف/الكود/الاسم أبداً.
-  initialPassword: z.string().trim().min(12, 'كلمة المرور يجب ألا تقل عن 12 حرفًا').max(72, 'كلمة المرور يجب ألا تزيد عن 72 حرفًا').optional(),
+  // (سياسة مبسّطة بطلب الإدارة: 6–72 حرفاً بلا شروط تعقيد)
+  // وإن تُركت فارغة تولّد Edge Function كلمة مرور مؤقتة (6 أرقام) تلقائياً.
+  initialPassword: z.string().trim().min(6, 'كلمة المرور يجب ألا تقل عن 6 أحرف').max(72, 'كلمة المرور يجب ألا تزيد عن 72 حرفاً').optional(),
   photoUrl: z.string().url().max(1000).optional(),
   managerEmployeeId: optionalUuid,
   departmentId: optionalUuid,
@@ -148,14 +147,14 @@ export const createEmployeeResultSchema = z.object({
   invitationSent: z.boolean(),
   // كلمة مرور مؤقتة مولّدة تلقائياً (عند ترك حقل كلمة المرور فارغاً) — تُعرض
   // مرة واحدة فقط على شاشة الإنشاء ولا تُعاد ثانية.
-  temporaryPassword: z.string().min(12).max(72).optional(),
+  temporaryPassword: z.string().min(6).max(72).optional(),
 });
 
 export type CreateEmployeeResult = z.infer<typeof createEmployeeResultSchema>;
 
 export const adminSetPasswordInputSchema = z.object({
   employeeId: z.string().uuid(),
-  password: z.string().min(12, 'كلمة المرور يجب ألا تقل عن 12 حرفاً').max(72, 'كلمة المرور يجب ألا تزيد عن 72 حرفاً'),
+  password: z.string().min(6, 'كلمة المرور يجب ألا تقل عن 6 أحرف').max(72, 'كلمة المرور يجب ألا تزيد عن 72 حرفاً'),
 });
 export type AdminSetPasswordInput = z.infer<typeof adminSetPasswordInputSchema>;
 

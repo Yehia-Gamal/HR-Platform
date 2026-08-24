@@ -120,8 +120,8 @@ Deno.serve(async (req: Request) => {
   const employeeCode = input.employeeCode?.trim() || phoneE164;
 
   // ─── التحقق من كلمة المرور الأولية إن أُدخلت يدويًا ───
-  // نفس قواعد validateHrIssuedPassword: طول 12–72، فئات إلزامية، لا
-  // معرّفات/قواميس/أنماط. الأكواد تُطابق خريطة الرسائل في CreateEmployeePage.
+  // نفس قواعد validateHrIssuedPassword المبسّطة: طول 6–72 فقط. الأكواد
+  // تُطابق خريطة الرسائل في CreateEmployeePage.
   if (input.initialPassword) {
     const verdict = validateHrIssuedPassword(input.initialPassword, {
       email: input.email,
