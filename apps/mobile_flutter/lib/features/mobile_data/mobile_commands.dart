@@ -195,6 +195,23 @@ class MobileCommands {
     ref.invalidate(executiveDashboardProvider);
   }
 
+  /// فتح تذكرة خدمة (0035) — عبر طابور المزامنة عند الانقطاع.
+  Future<void> submitServiceRequest({
+    required String catalogItemId,
+    required String title,
+    required String description,
+    String priority = 'normal',
+  }) async {
+    await _rpcQueued('service_request', 'submit_my_service_request', {
+      'p_catalog_item_id': catalogItemId,
+      'p_title': title,
+      'p_description': description,
+      'p_priority': priority,
+      'p_payload': <String, dynamic>{},
+    });
+    ref.invalidate(myServicePortalProvider);
+  }
+
   Future<void> cancelRequest(String id, String reason) async {
     await _withTimeout(
       ref

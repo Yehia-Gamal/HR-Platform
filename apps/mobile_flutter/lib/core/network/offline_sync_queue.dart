@@ -40,13 +40,14 @@ class SyncQueueItem {
 
   /// وصف عربي مقروء لنوع العملية.
   String get actionLabel => switch (action) {
-    'punch_attendance' => 'تسجيل حضور/انصراف',
-    'submit_request' => 'إرسال طلب',
-    'decide_request' => 'قرار على طلب',
-    'request_correction' => 'طلب تصحيح حضور',
-    'save_daily_report' => 'حفظ تقرير يومي',
-    _ => action,
-  };
+        'punch_attendance' => 'تسجيل حضور/انصراف',
+        'submit_request' => 'إرسال طلب',
+        'decide_request' => 'قرار على طلب',
+        'request_correction' => 'طلب تصحيح حضور',
+        'save_daily_report' => 'حفظ تقرير يومي',
+        'service_request' => 'فتح تذكرة خدمة',
+        _ => action,
+      };
 }
 
 /// استثناء يُرمى عندما تُدرج العملية في طابور المزامنة بدل تنفيذها —
