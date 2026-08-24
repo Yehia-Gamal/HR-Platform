@@ -10,13 +10,21 @@ export interface ExportColumn<T> {
   get: (row: T) => string | number | null | undefined;
 }
 
-function csvCell(value: string | number | null | undefined): string {
+/**
+ * يحمي خلية CSV: يمنع حقن الصيغ (أي خلية تبدأ بـ = + - @ tab أو CR تُسبق
+ * بفاصلة عليا) ويغلّف ما يحتوي فاصلة أو تنصيص أو سطر جديد بتنصيص مزدوج.
+ * متاحة عمومًا لبناة التقارير المخصصة خارج نموذج الأعمدة.
+ */
+export function csvSafeCell(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return '';
-  const s = String(value);
-  if (/[",\n]/.test(s)) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
+  let s = String(value);
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  if (/[",\n\r]/.test(s)) s = `"${s.replace(/"/g, '""')}"`;
   return s;
+}
+
+function csvCell(value: string | number | null | undefined): string {
+  return csvSafeCell(value);
 }
 
 /** توليد محتوى CSV مع BOM لدعم العربية في Excel */

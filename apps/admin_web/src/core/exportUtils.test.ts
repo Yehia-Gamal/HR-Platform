@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toCsv, type ExportColumn } from './exportUtils';
+import { csvSafeCell, toCsv, type ExportColumn } from './exportUtils';
 
 interface Row {
   name: string;
@@ -41,5 +41,21 @@ describe('toCsv', () => {
     const csv = toCsv(columns, [{ name: '', amount: 0, note: null }]);
     const lines = csv.slice(1).split('\n');
     expect(lines[1]).toBe(',0,');
+  });
+
+  it('يمنع حقن الصيغ — الخلايا التي تبدأ بـ = + - @ تُسبق بفاصلة عليا', () => {
+    const csv = toCsv(columns, [
+      { name: '=SUM(A1:A2)', amount: -5, note: '@risk' },
+    ]);
+    expect(csv).toContain("'=SUM(A1:A2)");
+    expect(csv).toContain("'-5");
+    expect(csv).toContain("'@risk");
+  });
+
+  it('csvSafeCell يحمي الخلية الفردية ويغلّف الفواصل', () => {
+    expect(csvSafeCell('=cmd')).toBe("'=cmd");
+    expect(csvSafeCell('سبب, إضافي')).toBe('"سبب, إضافي"');
+    expect(csvSafeCell(null)).toBe('');
+    expect(csvSafeCell(42)).toBe('42');
   });
 });

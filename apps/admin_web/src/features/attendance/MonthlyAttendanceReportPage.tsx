@@ -16,6 +16,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { csvSafeCell as csvSafe } from '../../core/exportUtils';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { safeErrorMessage } from '../../core/errorMapper';
@@ -48,16 +49,8 @@ import { useEmployeeMonthlyStatement } from './useMonthlyStatement';
 import { useAuth } from '../auth/AuthProvider';
 
 // ─── تصدير CSV ─────────────────────────────────────────────────
-
-/** يحمي خلايا CSV من كسر الأعمدة (فاصلة / سطر جديد) ومن حقن الصيغ (=+−@) */
-function csvSafe(v: unknown): string {
-  let s = String(v ?? '');
-  // حماية من حقن الصيغ: أي خلية تبدأ بحرف صيغة يُسبق بفاصلة عليا
-  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
-  // إن احتوت على فاصلة أو علامة تنصيص أو سطر جديد — تُغلّف بتنصيص مزدوج
-  if (/[",\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
-  return s;
-}
+// الحماية (csvSafe) مصدرها النواة exportUtils — حماية حقن الصيغ موحّدة
+// لكل صفحات النظام.
 
 function exportCSV(data: AttendanceStatement) {
   const { employee: emp, period, days, summary: s } = data;
