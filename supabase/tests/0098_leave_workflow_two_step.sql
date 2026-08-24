@@ -188,15 +188,17 @@ select lives_ok(
   begin
     select prosrc into v_src from pg_proc
     where proname='decide_request' and pronamespace='public'::regnamespace;
+    -- 0462: المسار الطبيعي فقط — مدير دائماً / أبو عمار step>=2 أو مهلة
+    -- متجاوزة / full_access، وبلا أي تجاوز لـ HR.
     if v_src not ilike '%current_has_active_role%'
        or v_src not ilike '%operations-manager-1%'
        or v_src not ilike '%v_current_step >= 2%'
        or v_src not ilike '%(status = ''active'') desc%'
-       or v_src not ilike '%hr-manager%' then
-      raise exception 'منطق الصلاحية المحدث (مدير دائماً / أبو عمار step>=2 أو مهلة متجاوزة / HR غير مقيد — 0441) غير موجود في decide_request';
+       or v_src ilike '%hr-manager%' then
+      raise exception 'منطق الصلاحية المحدث (المسار الطبيعي — 0462، بلا تجاوز HR) غير موجود في decide_request';
     end if;
   end $t$$live$,
-  'decide_request يحوي الصلاحية (مدير دائماً / أبو عمار step>=2 أو مهلة متجاوزة / HR غير مقيد)'
+  'decide_request يحوي الصلاحية الطبيعية (مدير دائماً / أبو عمار step>=2 أو مهلة متجاوزة — بلا HR)'
 );
 
 -- =====================================================================
@@ -457,7 +459,8 @@ select is(
 );
 
 -- =====================================================================
--- 8. HR غير مقيد (0441): يعتمد في مرحلة أبو عمار — ثم مسار نهائي بلا HR
+-- 8. بلا تجاوز HR (0462): محاولة HR في مرحلة أبو عمار تُرفض — المسار
+--    الطبيعي وحده هو الفاعل.
 -- =====================================================================
 select pg_temp.act_as_0096('96000000-0000-4000-8000-000000000101');
 set local role authenticated;
@@ -470,7 +473,7 @@ begin
     null,
     '96000000-0000-4000-8000-000000000202',
     'إجازة اعتماد HR V25',
-    'اختبار HR غير المقيد في المرحلة الثانية',
+    'اختبار رفض HR في المرحلة الثانية',
     jsonb_build_object('leaveType', 'annual')
   );
   insert into wf_runtime values('tier3', v_req.id);
@@ -487,24 +490,31 @@ select is(
   1, 'التصعيد الأول ينشّط الخطوة 2'
 );
 
--- HR يعتمد في مرحلة أبو عمار (الخطوة 2) — غير مقيد (0441)
+-- HR يحاول الاعتماد في مرحلة أبو عمار — مرفوض (0462 ألغى تجاوز 0441)
 select pg_temp.act_as_0096('96000000-0000-4000-8000-000000000104');
 set local role authenticated;
-select lives_ok(
+select throws_ok(
   $live$
     select public.decide_request(
       (select id from wf_runtime where kind = 'tier3'),
-      'approve', 'اعتماد HR في مرحلة أبو عمار'
+      'approve', 'محاولة اعتماد HR في مرحلة أبو عمار'
     )
   $live$,
-  'HR يعتمد الطلب في مرحلة أبو عمار (غير مقيد — 0441)'
+  '42501',
+  null,
+  'HR لا يعتمد في مرحلة أبو عمار (المسار الطبيعي فقط — 0462)'
 );
 
 select is(
   (select status from public.requests
    where id = (select id from wf_runtime where kind = 'tier3')),
-  'approved', 'الطلب معتمد بقرار HR'
+  'pending', 'الطلب يبقى معلقاً بعد رفض محاولة HR'
 );
+
+-- إبعاد الطلب المرفوض محاولته عن نطاق معالج SLA كي لا يُحصى في الأقسام التالية
+reset role;
+update public.request_steps set escalation_deadline = now() + interval '10 years'
+where request_id = (select id from wf_runtime where kind = 'tier3');
 
 -- =====================================================================
 -- 9. المرحلة النهائية بلا تدخل HR: انتهاء مهلة أبو عمار → تذكير دوري

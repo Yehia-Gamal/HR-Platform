@@ -192,22 +192,24 @@ insert into public.request_steps (
   'operations-manager-1', 48
 );
 
--- HR يعتمد والخطوة 1 (مدير مباشر) نشطة — غير مقيد (0441)
+-- HR يحاول الاعتماد والخطوة 1 (مدير مباشر) نشطة — مرفوض (0462 ألغى تجاوز 0441)
 set local role authenticated;
 set local "request.jwt.claims" to '{"sub":"00000001-0000-0000-0000-000000000004"}';
 set local "request.jwt.claim.sub" to '00000001-0000-0000-0000-000000000004';
 
-select lives_ok(
+select throws_ok(
   $$ select public.decide_request(
     'bb000001-0000-0000-0000-000000000002'::uuid, 'approve') $$,
-  '(6) HR يعتمد الطلب والخطوة 1 (مدير مباشر) نشطة — غير مقيد (0441)'
+  '42501',
+  null,
+  '(6) HR مرفوض والخطوة 1 (مدير مباشر) نشطة — المسار الطبيعي فقط (0462)'
 );
 
 select is(
   (select status from public.requests
    where id = 'bb000001-0000-0000-0000-000000000002'::uuid),
-  'approved',
-  '(6b) الطلب معتمد بموافقة HR في الخطوة 1'
+  'pending',
+  '(6b) الطلب يبقى معلقاً بعد رفض محاولة HR في الخطوة 1'
 );
 
 reset role;
@@ -235,17 +237,19 @@ set local role authenticated;
 set local "request.jwt.claims" to '{"sub":"00000001-0000-0000-0000-000000000004"}';
 set local "request.jwt.claim.sub" to '00000001-0000-0000-0000-000000000004';
 
-select lives_ok(
+select throws_ok(
   $$ select public.decide_request(
     'bb000001-0000-0000-0000-000000000004'::uuid, 'approve') $$,
-  '(7) HR يعتمد والخطوة 2 (الأوبريشن) نشطة — غير مقيد (0441)'
+  '42501',
+  null,
+  '(7) HR مرفوض والخطوة 2 (الأوبريشن) نشطة — المسار الطبيعي فقط (0462)'
 );
 
 select is(
   (select status from public.requests
    where id = 'bb000001-0000-0000-0000-000000000004'::uuid),
-  'approved',
-  '(7b) الطلب معتمد بموافقة HR في خطوة الأوبريشن'
+  'pending',
+  '(7b) الطلب يبقى معلقاً بعد رفض محاولة HR في خطوة الأوبريشن'
 );
 
 reset role;
