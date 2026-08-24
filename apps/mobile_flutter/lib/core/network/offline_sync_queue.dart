@@ -17,12 +17,12 @@ class SyncQueueItem {
   });
 
   factory SyncQueueItem.fromJson(Map<String, dynamic> json) => SyncQueueItem(
-        id: json['id'] as String,
-        action: json['action'] as String,
-        payload: Map<String, dynamic>.from(json['payload'] as Map),
-        createdAt: json['createdAt'] as String,
-        retryCount: (json['retryCount'] as num?)?.toInt() ?? 0,
-      );
+    id: json['id'] as String,
+    action: json['action'] as String,
+    payload: Map<String, dynamic>.from(json['payload'] as Map),
+    createdAt: json['createdAt'] as String,
+    retryCount: (json['retryCount'] as num?)?.toInt() ?? 0,
+  );
 
   final String id;
   final String action;
@@ -31,21 +31,34 @@ class SyncQueueItem {
   int retryCount;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'action': action,
-        'payload': payload,
-        'createdAt': createdAt,
-        'retryCount': retryCount,
-      };
+    'id': id,
+    'action': action,
+    'payload': payload,
+    'createdAt': createdAt,
+    'retryCount': retryCount,
+  };
 
   /// وصف عربي مقروء لنوع العملية.
   String get actionLabel => switch (action) {
-        'punch_attendance' => 'تسجيل حضور/انصراف',
-        'submit_request' => 'إرسال طلب',
-        'decide_request' => 'قرار على طلب',
-        'save_daily_report' => 'حفظ تقرير يومي',
-        _ => action,
-      };
+    'punch_attendance' => 'تسجيل حضور/انصراف',
+    'submit_request' => 'إرسال طلب',
+    'decide_request' => 'قرار على طلب',
+    'request_correction' => 'طلب تصحيح حضور',
+    'save_daily_report' => 'حفظ تقرير يومي',
+    _ => action,
+  };
+}
+
+/// استثناء يُرمى عندما تُدرج العملية في طابور المزامنة بدل تنفيذها —
+/// الرسالة تخبر المستخدم أن الإرسال سيحدث تلقائياً عند عودة الاتصال.
+class OfflineQueuedException implements Exception {
+  OfflineQueuedException(this.action);
+  final String action;
+
+  @override
+  String toString() =>
+      'لا يوجد اتصال الآن — العملية أُضيفت لطابور المزامنة '
+      'وستُرسل تلقائياً عند عودة الاتصال.';
 }
 
 /// طابور مزامنة يخزن العمليات الفاشلة/غير المتصلة في FlutterSecureStorage
@@ -74,12 +87,14 @@ class OfflineSyncQueue {
   /// أضف عملية جديدة إلى الطابور.
   Future<void> enqueue(String action, Map<String, dynamic> payload) async {
     final items = await _load();
-    items.add(SyncQueueItem(
-      id: _uuid.v4(),
-      action: action,
-      payload: payload,
-      createdAt: DateTime.now().toUtc().toIso8601String(),
-    ));
+    items.add(
+      SyncQueueItem(
+        id: _uuid.v4(),
+        action: action,
+        payload: payload,
+        createdAt: DateTime.now().toUtc().toIso8601String(),
+      ),
+    );
     await _save(items);
     countNotifier.value = items.length;
   }
@@ -177,10 +192,7 @@ class OfflineSyncQueue {
   }
 
   /// تنفيذ عملية واحدة حسب نوعها.
-  Future<void> _executeAction(
-    SupabaseClient client,
-    SyncQueueItem item,
-  ) async {
+  Future<void> _executeAction(SupabaseClient client, SyncQueueItem item) async {
     switch (item.action) {
       case 'punch_attendance':
         await client
@@ -211,8 +223,11 @@ class OfflineSyncQueue {
       if (raw == null || raw.isEmpty) return [];
       final list = jsonDecode(raw) as List<dynamic>;
       return list
-          .map((e) => SyncQueueItem.fromJson(
-              Map<String, dynamic>.from(e as Map<dynamic, dynamic>)))
+          .map(
+            (e) => SyncQueueItem.fromJson(
+              Map<String, dynamic>.from(e as Map<dynamic, dynamic>),
+            ),
+          )
           .toList();
     } catch (_) {
       return [];

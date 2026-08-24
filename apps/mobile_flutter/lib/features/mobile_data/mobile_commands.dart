@@ -7,6 +7,44 @@ final mobileCommandsProvider = Provider<MobileCommands>(
 class MobileCommands {
   MobileCommands(this.ref);
   final Ref ref;
+
+  /// هل الخطأ انقطاع اتصال صريح — لم يصل الطلب للخادم إطلاقاً؟
+  /// المهل الزمنية (TimeoutException) غامقة — قد يكون الطلب نُفّذ —
+  /// فلا تؤهل للطابور إلا للعمليات ذات مفتاح idempotency.
+  bool _isConnectivityError(Object error) {
+    if (error is SocketException) return true;
+    final msg = error.toString().toLowerCase();
+    return msg.contains('socketexception') ||
+        msg.contains('clientexception') ||
+        msg.contains('failed host lookup') ||
+        msg.contains('connection refused') ||
+        msg.contains('connection closed') ||
+        msg.contains('network is unreachable');
+  }
+
+  /// ينفذ RPC فوراً؛ عند انقطاع صريح يُدرج في طابور المزامنة (بند 11)
+  /// ليُنفذ تلقائياً عند عودة الاتصال عبر مؤشر المزامنة الموجود.
+  Future<void> _rpcQueued(
+    String action,
+    String rpcName,
+    Map<String, dynamic> params,
+  ) async {
+    try {
+      await _withTimeout(
+        ref.read(supabaseProvider).rpc<dynamic>(rpcName, params: params),
+      );
+    } catch (error) {
+      if (_isConnectivityError(error)) {
+        await OfflineSyncQueue.instance.enqueue(action, {
+          'rpc_name': rpcName,
+          'rpc_params': params,
+        });
+        throw OfflineQueuedException(action);
+      }
+      rethrow;
+    }
+  }
+
   Future<void> submitRequest(
     String type,
     String title,
@@ -15,27 +53,26 @@ class MobileCommands {
   ) async {
     // مفتاح idempotency يمنع الإرسال المزدوج عند إعادة المحاولة أو الضغط المزدوج.
     final idempotencyKey = const Uuid().v4();
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'submit_my_request',
-          params: {
-            'p_request_type':    type,
-            'p_title':           title,
-            'p_reason':          reason,
-            'p_payload':         payload,
-            'p_idempotency_key': idempotencyKey,
-          },
-        ));
+    await _rpcQueued('submit_request', 'submit_my_request', {
+      'p_request_type': type,
+      'p_title': title,
+      'p_reason': reason,
+      'p_payload': payload,
+      'p_idempotency_key': idempotencyKey,
+    });
     ref.invalidate(mobileRequestsProvider);
     ref.invalidate(employeeHomeProvider);
   }
 
   Future<void> startMission(String requestId) async {
-    await _withTimeout(ref.read(supabaseProvider).rpc<dynamic>(
-          'start_my_mission',
-          params: {'p_request_id': requestId},
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'start_my_mission',
+            params: {'p_request_id': requestId},
+          ),
+    );
     ref.invalidate(mobileRequestsProvider);
     ref.invalidate(mobileRequestDetailProvider(requestId));
     ref.invalidate(employeeHomeProvider);
@@ -48,15 +85,19 @@ class MobileCommands {
     required String reason,
     required Map<String, dynamic> payload,
   }) async {
-    await _withTimeout(ref.read(supabaseProvider).rpc<dynamic>(
-          'resubmit_my_request',
-          params: {
-            'p_request_id': requestId,
-            'p_title': title,
-            'p_reason': reason,
-            'p_payload': payload,
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'resubmit_my_request',
+            params: {
+              'p_request_id': requestId,
+              'p_title': title,
+              'p_reason': reason,
+              'p_payload': payload,
+            },
+          ),
+    );
     ref.invalidate(mobileRequestsProvider);
     ref.invalidate(mobileRequestDetailProvider(requestId));
     ref.invalidate(employeeHomeProvider);
@@ -67,19 +108,24 @@ class MobileCommands {
     required String report,
     String? outcome,
   }) async {
-    await _withTimeout(ref.read(supabaseProvider).rpc<dynamic>(
-          'end_my_mission',
-          params: {
-            'p_request_id': requestId,
-            'p_report': report,
-            'p_outcome': outcome,
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'end_my_mission',
+            params: {
+              'p_request_id': requestId,
+              'p_report': report,
+              'p_outcome': outcome,
+            },
+          ),
+    );
     ref.invalidate(mobileRequestsProvider);
     ref.invalidate(mobileRequestDetailProvider(requestId));
     ref.invalidate(employeeHomeProvider);
   }
-    Future<Map<String, dynamic>> uploadRequestAttachment({
+
+  Future<Map<String, dynamic>> uploadRequestAttachment({
     required Uint8List bytes,
     required String fileName,
     required String mimeType,
@@ -94,11 +140,14 @@ class MobileCommands {
       _ => 'jpg',
     };
     final path = '$userId/${const Uuid().v4()}.$extension';
-    await client.storage.from('request-attachments').uploadBinary(
+    await client.storage
+        .from('request-attachments')
+        .uploadBinary(
           path,
           bytes,
           fileOptions: FileOptions(contentType: normalizedMime, upsert: false),
-        ).timeout(const Duration(seconds: 60));
+        )
+        .timeout(const Duration(seconds: 60));
     return {
       'path': path,
       'name': fileName,
@@ -119,7 +168,9 @@ class MobileCommands {
 
   static String _allowedImageMime(String mimeType, String fileName) {
     final value = mimeType.toLowerCase();
-    if (value == 'image/png' || value == 'image/webp' || value == 'image/jpeg') {
+    if (value == 'image/png' ||
+        value == 'image/webp' ||
+        value == 'image/jpeg') {
       return value;
     }
     final lowerName = fileName.toLowerCase();
@@ -133,16 +184,11 @@ class MobileCommands {
     String decision,
     String? comment,
   ) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'decide_request',
-          params: {
-            'p_request_id': id,
-            'p_decision': decision,
-            'p_comment': comment,
-          },
-        ));
+    await _rpcQueued('decide_request', 'decide_request', {
+      'p_request_id': id,
+      'p_decision': decision,
+      'p_comment': comment,
+    });
     ref.invalidate(mobileRequestsProvider);
     ref.invalidate(mobileActionCenterProvider);
     ref.invalidate(managerDashboardProvider);
@@ -150,12 +196,14 @@ class MobileCommands {
   }
 
   Future<void> cancelRequest(String id, String reason) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'cancel_request',
-          params: {'p_request_id': id, 'p_reason': reason.trim()},
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'cancel_request',
+            params: {'p_request_id': id, 'p_reason': reason.trim()},
+          ),
+    );
     ref.invalidate(mobileRequestsProvider);
     ref.invalidate(mobileRequestDetailProvider(id));
     ref.invalidate(mobileActionCenterProvider);
@@ -179,22 +227,24 @@ class MobileCommands {
       'isFullDay': isFullDay,
       'targetAmount': ?targetAmount,
     };
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'create_work_assignment',
-          params: {
-            'p_assignment_type': assignmentType,
-            'p_title': title.trim(),
-            'p_start_at': startAt.toUtc().toIso8601String(),
-            'p_end_at': endAt.toUtc().toIso8601String(),
-            'p_participant_ids': participantIds,
-            'p_description': description?.trim(),
-            'p_location': location?.trim(),
-            'p_needs_report': needsReport,
-            'p_payload': payload,
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'create_work_assignment',
+            params: {
+              'p_assignment_type': assignmentType,
+              'p_title': title.trim(),
+              'p_start_at': startAt.toUtc().toIso8601String(),
+              'p_end_at': endAt.toUtc().toIso8601String(),
+              'p_participant_ids': participantIds,
+              'p_description': description?.trim(),
+              'p_location': location?.trim(),
+              'p_needs_report': needsReport,
+              'p_payload': payload,
+            },
+          ),
+    );
     ref.invalidate(workAssignmentsProvider('team'));
     ref.invalidate(workAssignmentsProvider('mine'));
     ref.invalidate(employeeHomeProvider);
@@ -206,16 +256,18 @@ class MobileCommands {
     String decision,
     String? comment,
   ) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'decide_work_assignment',
-          params: {
-            'p_assignment_id': id,
-            'p_decision': decision,
-            'p_comment': comment?.trim(),
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'decide_work_assignment',
+            params: {
+              'p_assignment_id': id,
+              'p_decision': decision,
+              'p_comment': comment?.trim(),
+            },
+          ),
+    );
     ref.invalidate(workAssignmentsProvider('team'));
     ref.invalidate(workAssignmentsProvider('mine'));
   }
@@ -227,17 +279,19 @@ class MobileCommands {
     String? outcome,
     double? achievedAmount,
   }) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'submit_assignment_report',
-          params: {
-            'p_assignment_id': id,
-            'p_report': report.trim(),
-            'p_outcome': outcome?.trim(),
-            'p_achieved_amount': achievedAmount,
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'submit_assignment_report',
+            params: {
+              'p_assignment_id': id,
+              'p_report': report.trim(),
+              'p_outcome': outcome?.trim(),
+              'p_achieved_amount': achievedAmount,
+            },
+          ),
+    );
     ref.invalidate(workAssignmentsProvider('mine'));
     ref.invalidate(workAssignmentsProvider('team'));
   }
@@ -248,17 +302,19 @@ class MobileCommands {
     String? note, {
     List<Map<String, dynamic>>? scores,
   }) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'advance_kpi_stage',
-          params: {
-            'p_evaluation_id': id,
-            'p_action': action,
-            'p_scores': scores,
-            'p_note': note,
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'advance_kpi_stage',
+            params: {
+              'p_evaluation_id': id,
+              'p_action': action,
+              'p_scores': scores,
+              'p_note': note,
+            },
+          ),
+    );
     ref.invalidate(mobileKpiProvider);
     ref.invalidate(kpiEvaluationFormProvider(id));
     ref.invalidate(mobileActionCenterProvider);
@@ -268,16 +324,18 @@ class MobileCommands {
   }
 
   Future<void> returnKpi(String id, String targetStage, String note) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'return_kpi_stage',
-          params: {
-            'p_evaluation_id': id,
-            'p_target_stage': targetStage,
-            'p_note': note,
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'return_kpi_stage',
+            params: {
+              'p_evaluation_id': id,
+              'p_target_stage': targetStage,
+              'p_note': note,
+            },
+          ),
+    );
     ref.invalidate(mobileKpiProvider);
     ref.invalidate(kpiEvaluationFormProvider(id));
     ref.invalidate(mobileActionCenterProvider);
@@ -294,26 +352,28 @@ class MobileCommands {
     String? evidenceSource,
     String? employeeNote,
   }) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'save_kpi_goal',
-          params: {
-            'p_evaluation_id': evaluationId,
-            'p_goal_id': goal.id,
-            'p_title': goal.title,
-            'p_description': null,
-            'p_target_value': goal.targetValue,
-            'p_achieved_value': achievedValue,
-            'p_unit': goal.unit,
-            'p_weight': goal.weight,
-            'p_due_date': null,
-            'p_evidence_source': evidenceSource,
-            'p_employee_note': employeeNote,
-            'p_manager_note': null,
-            'p_status': status,
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'save_kpi_goal',
+            params: {
+              'p_evaluation_id': evaluationId,
+              'p_goal_id': goal.id,
+              'p_title': goal.title,
+              'p_description': null,
+              'p_target_value': goal.targetValue,
+              'p_achieved_value': achievedValue,
+              'p_unit': goal.unit,
+              'p_weight': goal.weight,
+              'p_due_date': null,
+              'p_evidence_source': evidenceSource,
+              'p_employee_note': employeeNote,
+              'p_manager_note': null,
+              'p_status': status,
+            },
+          ),
+    );
     ref.invalidate(kpiEvaluationFormProvider(evaluationId));
   }
 
@@ -321,12 +381,14 @@ class MobileCommands {
     String evaluationId,
     Map<String, dynamic> session,
   ) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'save_kpi_review_session',
-          params: {'p_evaluation_id': evaluationId, 'p_session': session},
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'save_kpi_review_session',
+            params: {'p_evaluation_id': evaluationId, 'p_session': session},
+          ),
+    );
     ref.invalidate(kpiEvaluationFormProvider(evaluationId));
   }
 
@@ -339,20 +401,22 @@ class MobileCommands {
     int cancelled,
     String? note,
   ) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'save_kpi_compliance_metric',
-          params: {
-            'p_evaluation_id': evaluationId,
-            'p_metric': metric,
-            'p_required': required,
-            'p_actual': actual,
-            'p_exempt': exempt,
-            'p_cancelled': cancelled,
-            'p_note': note,
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'save_kpi_compliance_metric',
+            params: {
+              'p_evaluation_id': evaluationId,
+              'p_metric': metric,
+              'p_required': required,
+              'p_actual': actual,
+              'p_exempt': exempt,
+              'p_cancelled': cancelled,
+              'p_note': note,
+            },
+          ),
+    );
     ref.invalidate(kpiEvaluationFormProvider(evaluationId));
   }
 
@@ -361,57 +425,62 @@ class MobileCommands {
     String? note,
     String? appealReason,
   ) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'acknowledge_kpi_evaluation',
-          params: {
-            'p_evaluation_id': evaluationId,
-            'p_note': note,
-            'p_appeal_reason': appealReason,
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'acknowledge_kpi_evaluation',
+            params: {
+              'p_evaluation_id': evaluationId,
+              'p_note': note,
+              'p_appeal_reason': appealReason,
+            },
+          ),
+    );
     ref.invalidate(mobileKpiProvider);
     ref.invalidate(kpiEvaluationFormProvider(evaluationId));
     ref.invalidate(mobileActionCenterProvider);
   }
 
-  Future<void> requestLocation(
-    String employeeId,
-    String reason,
-  ) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'request_live_location',
-          params: {
-            'p_employee_id': employeeId,
-            'p_mode': 'snapshot',
-            'p_reason': reason,
-          },
-        ));
+  Future<void> requestLocation(String employeeId, String reason) async {
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'request_live_location',
+            params: {
+              'p_employee_id': employeeId,
+              'p_mode': 'snapshot',
+              'p_reason': reason,
+            },
+          ),
+    );
     ref.invalidate(locationDirectoryProvider);
     ref.invalidate(executiveDashboardProvider);
   }
 
   Future<void> cancelLocationRequest(String requestId) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'cancel_location_request_as_requester',
-          params: {'p_request_id': requestId},
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'cancel_location_request_as_requester',
+            params: {'p_request_id': requestId},
+          ),
+    );
     ref.invalidate(locationDirectoryProvider);
     ref.invalidate(executiveDashboardProvider);
   }
 
   Future<void> respondLocation(String requestId, bool accept) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'respond_live_location_request',
-          params: {'p_request_id': requestId, 'p_accept': accept},
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'respond_live_location_request',
+            params: {'p_request_id': requestId, 'p_accept': accept},
+          ),
+    );
     ref.invalidate(myLocationRequestsProvider);
     ref.invalidate(employeeHomeProvider);
   }
@@ -427,41 +496,47 @@ class MobileCommands {
     bool isMock = false,
     String? addressAr,
   }) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'submit_live_location_point',
-          params: {
-            'p_request_id': requestId,
-            'p_latitude': latitude,
-            'p_longitude': longitude,
-            'p_accuracy': accuracy,
-            'p_altitude': altitude,
-            'p_speed': speed,
-            'p_heading': heading,
-            'p_is_mock': isMock,
-            'p_address_ar': addressAr,
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'submit_live_location_point',
+            params: {
+              'p_request_id': requestId,
+              'p_latitude': latitude,
+              'p_longitude': longitude,
+              'p_accuracy': accuracy,
+              'p_altitude': altitude,
+              'p_speed': speed,
+              'p_heading': heading,
+              'p_is_mock': isMock,
+              'p_address_ar': addressAr,
+            },
+          ),
+    );
     ref.invalidate(myLocationRequestsProvider);
   }
 
   Future<void> upsertPushToken(String fcmToken, String platform) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'upsert_my_push_token',
-          params: {'p_fcm_token': fcmToken, 'p_platform': platform},
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'upsert_my_push_token',
+            params: {'p_fcm_token': fcmToken, 'p_platform': platform},
+          ),
+    );
   }
 
   Future<void> completeLocation(String requestId) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'complete_my_live_location_request',
-          params: {'p_request_id': requestId},
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'complete_my_live_location_request',
+            params: {'p_request_id': requestId},
+          ),
+    );
     ref.invalidate(myLocationRequestsProvider);
   }
 
@@ -490,7 +565,9 @@ class MobileCommands {
         '$employeeId/$requestId/${DateTime.now().toUtc().microsecondsSinceEpoch}.mp4';
     final client = ref.read(supabaseProvider);
     await _withTimeout(
-      client.storage.from('live-location-videos').upload(
+      client.storage
+          .from('live-location-videos')
+          .upload(
             storagePath,
             file,
             fileOptions: const FileOptions(
@@ -500,21 +577,23 @@ class MobileCommands {
           ),
       const Duration(seconds: 60),
     );
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'register_live_location_video',
-          params: {
-            'p_request_id': requestId,
-            'p_storage_path': storagePath,
-            'p_duration_seconds': durationSeconds,
-            'p_size_bytes': sizeBytes,
-            'p_mime_type': 'video/mp4',
-            'p_latitude': latitude,
-            'p_longitude': longitude,
-            'p_accuracy': accuracy,
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'register_live_location_video',
+            params: {
+              'p_request_id': requestId,
+              'p_storage_path': storagePath,
+              'p_duration_seconds': durationSeconds,
+              'p_size_bytes': sizeBytes,
+              'p_mime_type': 'video/mp4',
+              'p_latitude': latitude,
+              'p_longitude': longitude,
+              'p_accuracy': accuracy,
+            },
+          ),
+    );
     ref.invalidate(myLocationRequestsProvider);
   }
 
@@ -522,12 +601,14 @@ class MobileCommands {
     String requestId, {
     required String storagePath,
   }) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'register_live_location_map_snapshot',
-          params: {'p_request_id': requestId, 'p_storage_path': storagePath},
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'register_live_location_map_snapshot',
+            params: {'p_request_id': requestId, 'p_storage_path': storagePath},
+          ),
+    );
     ref.invalidate(myLocationRequestsProvider);
   }
 
@@ -642,29 +723,31 @@ class MobileCommands {
   }
 
   Future<void> revokePasskey(String credentialId, String reason) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'revoke_my_passkey',
-          params: {
-            'p_credential_id': credentialId,
-            'p_reason': reason.trim().isEmpty ? null : reason.trim(),
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'revoke_my_passkey',
+            params: {
+              'p_credential_id': credentialId,
+              'p_reason': reason.trim().isEmpty ? null : reason.trim(),
+            },
+          ),
+    );
     ref.invalidate(myPasskeysProvider);
     ref.invalidate(attendanceStateProvider);
   }
 
   /// هاتف مفقود — يلغي الجهاز النشط ويسمح بتسجيل جهاز جديد
   Future<void> requestDeviceReplacement(String reason) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'request_device_replacement',
-          params: {
-            'p_reason': reason.trim().isEmpty ? null : reason.trim(),
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'request_device_replacement',
+            params: {'p_reason': reason.trim().isEmpty ? null : reason.trim()},
+          ),
+    );
     ref.invalidate(myPasskeysProvider);
     ref.invalidate(attendanceStateProvider);
   }
@@ -680,16 +763,22 @@ class MobileCommands {
     final params = item.kind == 'decision'
         ? {'p_decision_id': item.id, 'p_acknowledge': true}
         : {'p_announcement_id': item.id};
-    await _withTimeout(ref.read(supabaseProvider).rpc<dynamic>(function, params: params));
+    await _withTimeout(
+      ref.read(supabaseProvider).rpc<dynamic>(function, params: params),
+    );
     ref.invalidate(mobileFeedProvider);
     ref.invalidate(employeeHomeProvider);
   }
 
   Future<void> recordAnnouncementView(String announcementId) async {
-    await _withTimeout(ref.read(supabaseProvider).rpc<dynamic>(
-      'record_announcement_view',
-      params: {'p_announcement_id': announcementId},
-    ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'record_announcement_view',
+            params: {'p_announcement_id': announcementId},
+          ),
+    );
     ref.invalidate(mobileFeedProvider);
   }
 
@@ -697,13 +786,17 @@ class MobileCommands {
     String announcementId,
     String reactionType,
   ) async {
-    await _withTimeout(ref.read(supabaseProvider).rpc<dynamic>(
-      'toggle_announcement_reaction',
-      params: {
-        'p_announcement_id': announcementId,
-        'p_reaction_type': reactionType,
-      },
-    ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'toggle_announcement_reaction',
+            params: {
+              'p_announcement_id': announcementId,
+              'p_reaction_type': reactionType,
+            },
+          ),
+    );
     ref.invalidate(mobileFeedProvider);
     ref.invalidate(
       mobileFeedDetailProvider((kind: 'announcement', id: announcementId)),
@@ -718,17 +811,19 @@ extension ExecutiveDisputeCommands on MobileCommands {
     required String text,
     String statementType = 'recommendation',
   }) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'submit_dispute_statement',
-          params: {
-            'p_case_id': caseId,
-            'p_statement_type': statementType,
-            'p_statement_text': text.trim(),
-            'p_visibility': 'committee_only',
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'submit_dispute_statement',
+            params: {
+              'p_case_id': caseId,
+              'p_statement_type': statementType,
+              'p_statement_text': text.trim(),
+              'p_visibility': 'committee_only',
+            },
+          ),
+    );
     ref.invalidate(disputeCaseRecommendationsProvider(caseId));
     ref.invalidate(committeeDisputePortalProvider);
   }
@@ -740,18 +835,20 @@ extension ExecutiveDisputeCommands on MobileCommands {
     String? modifiedAction,
     String? modifiedDetail,
   }) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'decide_admin_action',
-          params: {
-            'p_case_id': caseId,
-            'p_decision': decision,
-            'p_reason': reason.trim(),
-            'p_modified_action': modifiedAction,
-            'p_modified_detail': modifiedDetail?.trim(),
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'decide_admin_action',
+            params: {
+              'p_case_id': caseId,
+              'p_decision': decision,
+              'p_reason': reason.trim(),
+              'p_modified_action': modifiedAction,
+              'p_modified_detail': modifiedDetail?.trim(),
+            },
+          ),
+    );
     ref.invalidate(executiveDisputeInboxProvider);
     ref.invalidate(committeeDisputePortalProvider);
     ref.invalidate(myDisputePortalProvider);
@@ -764,16 +861,18 @@ extension ExecutiveDisputeCommands on MobileCommands {
     required String action,
     required String detail,
   }) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'propose_admin_action',
-          params: {
-            'p_case_id': caseId,
-            'p_action': action,
-            'p_detail': detail.trim(),
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'propose_admin_action',
+            params: {
+              'p_case_id': caseId,
+              'p_action': action,
+              'p_detail': detail.trim(),
+            },
+          ),
+    );
     ref.invalidate(committeeDisputePortalProvider);
     ref.invalidate(executiveDisputeInboxProvider);
   }
@@ -783,15 +882,14 @@ extension ExecutiveDisputeCommands on MobileCommands {
     required String caseId,
     required String notes,
   }) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'execute_admin_action',
-          params: {
-            'p_case_id': caseId,
-            'p_notes': notes.trim(),
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'execute_admin_action',
+            params: {'p_case_id': caseId, 'p_notes': notes.trim()},
+          ),
+    );
     ref.invalidate(committeeDisputePortalProvider);
     ref.invalidate(executiveDisputeInboxProvider);
     ref.invalidate(executiveDashboardProvider);
@@ -806,21 +904,23 @@ extension ExecutiveDisputeCommands on MobileCommands {
     String? location,
     String modality = 'in_person',
   }) async {
-    final result = await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'schedule_dispute_session_v2',
-          params: {
-            'p_case_id': caseId,
-            'p_type': type,
-            'p_scheduled_at': scheduledAt.toUtc().toIso8601String(),
-            'p_ends_at': endsAt?.toUtc().toIso8601String(),
-            'p_location': location?.trim().isEmpty ?? true
-                ? null
-                : location?.trim(),
-            'p_modality': modality,
-          },
-        ));
+    final result = await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'schedule_dispute_session_v2',
+            params: {
+              'p_case_id': caseId,
+              'p_type': type,
+              'p_scheduled_at': scheduledAt.toUtc().toIso8601String(),
+              'p_ends_at': endsAt?.toUtc().toIso8601String(),
+              'p_location': location?.trim().isEmpty ?? true
+                  ? null
+                  : location?.trim(),
+              'p_modality': modality,
+            },
+          ),
+    );
     ref.invalidate(committeeDisputePortalProvider);
     ref.invalidate(executiveDisputeInboxProvider);
     ref.invalidate(myDisputePortalProvider);
@@ -835,18 +935,20 @@ extension ExecutiveDisputeCommands on MobileCommands {
     required String rationale,
     required String outcome,
   }) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'issue_dispute_decision',
-          params: {
-            'p_case_id': caseId,
-            'p_session_id': sessionId,
-            'p_text': text.trim(),
-            'p_rationale': rationale.trim(),
-            'p_outcome': outcome,
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'issue_dispute_decision',
+            params: {
+              'p_case_id': caseId,
+              'p_session_id': sessionId,
+              'p_text': text.trim(),
+              'p_rationale': rationale.trim(),
+              'p_outcome': outcome,
+            },
+          ),
+    );
     ref.invalidate(committeeDisputePortalProvider);
     ref.invalidate(executiveDisputeInboxProvider);
     ref.invalidate(myDisputePortalProvider);
@@ -861,18 +963,22 @@ extension ExecutiveDisputeCommands on MobileCommands {
     String? to,
     String? text,
   }) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'record_dispute_settlement',
-          params: {
-            'p_case_id': caseId,
-            'p_type': type,
-            'p_from': from,
-            'p_to': to,
-            'p_text': (text?.trim().isNotEmpty ?? false) ? text!.trim() : null,
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'record_dispute_settlement',
+            params: {
+              'p_case_id': caseId,
+              'p_type': type,
+              'p_from': from,
+              'p_to': to,
+              'p_text': (text?.trim().isNotEmpty ?? false)
+                  ? text!.trim()
+                  : null,
+            },
+          ),
+    );
     ref.invalidate(committeeDisputePortalProvider);
     ref.invalidate(executiveDisputeInboxProvider);
     ref.invalidate(myDisputePortalProvider);
@@ -885,17 +991,19 @@ extension ExecutiveDisputeCommands on MobileCommands {
     String? reason,
     Map<String, dynamic>? metadata,
   }) async {
-    final result = await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'transition_dispute_case',
-          params: {
-            'p_case_id': caseId,
-            'p_action': action,
-            'p_reason': reason?.trim(),
-            'p_metadata': metadata ?? {},
-          },
-        ));
+    final result = await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'transition_dispute_case',
+            params: {
+              'p_case_id': caseId,
+              'p_action': action,
+              'p_reason': reason?.trim(),
+              'p_metadata': metadata ?? {},
+            },
+          ),
+    );
     ref.invalidate(committeeDisputePortalProvider);
     ref.invalidate(executiveDisputeInboxProvider);
     ref.invalidate(myDisputePortalProvider);
@@ -910,17 +1018,19 @@ extension MobileLearningCommands on MobileCommands {
     int? progress,
     double? score,
   }) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'transition_learning_enrollment',
-          params: {
-            'p_enrollment_id': enrollmentId,
-            'p_status': status,
-            'p_progress': progress,
-            'p_score': score,
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'transition_learning_enrollment',
+            params: {
+              'p_enrollment_id': enrollmentId,
+              'p_status': status,
+              'p_progress': progress,
+              'p_score': score,
+            },
+          ),
+    );
     ref.invalidate(myLearningCatalogProvider);
   }
 }
@@ -932,18 +1042,20 @@ extension MobileServiceCommands on MobileCommands {
     String? description,
     String priority = 'normal',
   }) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'submit_my_service_request',
-          params: {
-            'p_catalog_item_id': catalogItemId,
-            'p_title': title.trim(),
-            'p_description': description?.trim(),
-            'p_priority': priority,
-            'p_payload': <String, dynamic>{},
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'submit_my_service_request',
+            params: {
+              'p_catalog_item_id': catalogItemId,
+              'p_title': title.trim(),
+              'p_description': description?.trim(),
+              'p_priority': priority,
+              'p_payload': <String, dynamic>{},
+            },
+          ),
+    );
     ref.invalidate(myServicePortalProvider);
   }
 }
@@ -958,80 +1070,87 @@ extension MobileNewFeaturesCommands on MobileCommands {
     String? reason,
     int? batteryLevel,
   }) async {
-    final result = await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'share_my_location_proactively',
-          params: {
-            'p_latitude': latitude,
-            'p_longitude': longitude,
-            'p_accuracy': accuracy,
-            'p_duration_minutes': durationMinutes,
-            'p_reason': reason,
-            'p_battery_level': batteryLevel,
-          },
-        ));
+    final result = await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'share_my_location_proactively',
+            params: {
+              'p_latitude': latitude,
+              'p_longitude': longitude,
+              'p_accuracy': accuracy,
+              'p_duration_minutes': durationMinutes,
+              'p_reason': reason,
+              'p_battery_level': batteryLevel,
+            },
+          ),
+    );
     return Map<String, dynamic>.from(result as Map<dynamic, dynamic>);
   }
 
   /// تبديل الإعجاب على تقرير يومي.
   Future<void> toggleDailyReportLike(String reportId) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'toggle_daily_report_like',
-          params: {'p_report_id': reportId},
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'toggle_daily_report_like',
+            params: {'p_report_id': reportId},
+          ),
+    );
     ref.invalidate(dailyReportsFeedProvider(null));
   }
 
   /// إضافة تعليق على تقرير يومي.
   Future<void> addDailyReportComment(String reportId, String comment) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'add_daily_report_comment',
-          params: {
-            'p_report_id': reportId,
-            'p_comment': comment.trim(),
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'add_daily_report_comment',
+            params: {'p_report_id': reportId, 'p_comment': comment.trim()},
+          ),
+    );
     ref.invalidate(dailyReportsFeedProvider(null));
   }
 
   /// حذف تعليق على تقرير يومي (للصاحب فقط).
   Future<void> deleteDailyReportComment(String commentId) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'delete_daily_report_comment',
-          params: {'p_comment_id': commentId},
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'delete_daily_report_comment',
+            params: {'p_comment_id': commentId},
+          ),
+    );
     ref.invalidate(dailyReportsFeedProvider(null));
   }
 
   /// تسجيل جماعي لمشاهدات التقارير الظاهرة حالياً في صفحة التقارير.
   Future<void> recordDailyReportsViews(List<String> reportIds) async {
     if (reportIds.isEmpty) return;
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'record_daily_reports_views',
-          params: {'p_report_ids': reportIds},
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'record_daily_reports_views',
+            params: {'p_report_ids': reportIds},
+          ),
+    );
     ref.invalidate(dailyReportsFeedProvider(null));
   }
 
   /// قائمة كاملة بمن شاهد ومن تفاعل مع تقرير يومي.
-  Future<Map<String, dynamic>> getDailyReportEngagement(
-    String reportId,
-  ) async {
-    final result = await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'get_daily_report_engagement',
-          params: {'p_report_id': reportId},
-        ));
+  Future<Map<String, dynamic>> getDailyReportEngagement(String reportId) async {
+    final result = await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'get_daily_report_engagement',
+            params: {'p_report_id': reportId},
+          ),
+    );
     return Map<String, dynamic>.from(result as Map<dynamic, dynamic>);
   }
 
@@ -1039,40 +1158,48 @@ extension MobileNewFeaturesCommands on MobileCommands {
   Future<Map<String, dynamic>> getAnnouncementEngagement(
     String announcementId,
   ) async {
-    final result = await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'get_announcement_engagement',
-          params: {'p_announcement_id': announcementId},
-        ));
+    final result = await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'get_announcement_engagement',
+            params: {'p_announcement_id': announcementId},
+          ),
+    );
     return Map<String, dynamic>.from(result as Map<dynamic, dynamic>);
   }
 }
 
 extension MobileDailyCommands on MobileCommands {
   Future<void> transitionTask(String taskId, String status) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'transition_my_task',
-          params: {'p_task_id': taskId, 'p_status': status},
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'transition_my_task',
+            params: {'p_task_id': taskId, 'p_status': status},
+          ),
+    );
     ref.invalidate(mobileTasksProvider);
     ref.invalidate(employeeHomeProvider);
   }
 
   Future<void> markNotificationsRead([List<String>? ids]) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>('mark_my_notifications_read', params: {'p_ids': ids}));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>('mark_my_notifications_read', params: {'p_ids': ids}),
+    );
     ref.invalidate(myNotificationsProvider);
     ref.invalidate(employeeHomeProvider);
   }
 
   Future<void> deleteNotifications(List<String> ids) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>('delete_my_notifications', params: {'p_ids': ids}));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>('delete_my_notifications', params: {'p_ids': ids}),
+    );
     ref.invalidate(myNotificationsProvider);
     ref.invalidate(employeeHomeProvider);
   }
@@ -1083,17 +1210,19 @@ extension MobileDailyCommands on MobileCommands {
     required DateTime workDate,
     required int days,
   }) async {
-    final granted = await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<int>(
-          'grant_weekly_rest_credit',
-          params: {
-            'p_employee_id': employeeId,
-            'p_work_date':
-                '${workDate.year.toString().padLeft(4, '0')}-${workDate.month.toString().padLeft(2, '0')}-${workDate.day.toString().padLeft(2, '0')}',
-            'p_days': days,
-          },
-        ));
+    final granted = await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<int>(
+            'grant_weekly_rest_credit',
+            params: {
+              'p_employee_id': employeeId,
+              'p_work_date':
+                  '${workDate.year.toString().padLeft(4, '0')}-${workDate.month.toString().padLeft(2, '0')}-${workDate.day.toString().padLeft(2, '0')}',
+              'p_days': days,
+            },
+          ),
+    );
     return granted;
   }
 
@@ -1105,17 +1234,12 @@ extension MobileDailyCommands on MobileCommands {
   }) async {
     final date =
         '${reportDate.year.toString().padLeft(4, '0')}-${reportDate.month.toString().padLeft(2, '0')}-${reportDate.day.toString().padLeft(2, '0')}';
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'upsert_my_daily_report',
-          params: {
-            'p_report_date': date,
-            'p_achievements': achievements,
-            'p_blockers': blockers,
-            'p_tomorrow_plan': tomorrowPlan,
-          },
-        ));
+    await _rpcQueued('save_daily_report', 'upsert_my_daily_report', {
+      'p_report_date': date,
+      'p_achievements': achievements,
+      'p_blockers': blockers,
+      'p_tomorrow_plan': tomorrowPlan,
+    });
     ref.invalidate(mobileDailyReportsProvider(null));
     ref.invalidate(employeeHomeProvider);
   }
@@ -1125,15 +1249,17 @@ extension MobileDailyCommands on MobileCommands {
     required String comment,
     required String employeeId,
   }) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'review_daily_report',
-          params: {
-            'p_report_id': reportId,
-            'p_manager_comment': comment.trim(),
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'review_daily_report',
+            params: {
+              'p_report_id': reportId,
+              'p_manager_comment': comment.trim(),
+            },
+          ),
+    );
     ref.invalidate(mobileDailyReportsProvider(employeeId));
     ref.invalidate(mobileTeamProvider);
   }
@@ -1148,18 +1274,20 @@ extension MobileDailyCommands on MobileCommands {
     final due = dueDate == null
         ? null
         : '${dueDate.year.toString().padLeft(4, '0')}-${dueDate.month.toString().padLeft(2, '0')}-${dueDate.day.toString().padLeft(2, '0')}';
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'create_team_task',
-          params: {
-            'p_employee_id': employeeId,
-            'p_title': title,
-            'p_description': description,
-            'p_priority': priority,
-            'p_due_date': due,
-          },
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'create_team_task',
+            params: {
+              'p_employee_id': employeeId,
+              'p_title': title,
+              'p_description': description,
+              'p_priority': priority,
+              'p_due_date': due,
+            },
+          ),
+    );
     ref.invalidate(mobileTeamProvider);
     ref.invalidate(managerDashboardProvider);
   }
@@ -1176,20 +1304,15 @@ extension MobileSelfServiceCommands on MobileCommands {
   }) async {
     String date(DateTime value) =>
         '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'request_attendance_correction',
-          params: {
-            'p_work_date': date(workDate),
-            'p_type': type,
-            'p_reason': reason.trim(),
-            'p_check_in': checkIn?.toUtc().toIso8601String(),
-            'p_check_out': checkOut?.toUtc().toIso8601String(),
-            'p_status': requestedStatus,
-            'p_attachment_path': null,
-          },
-        ));
+    await _rpcQueued('request_correction', 'request_attendance_correction', {
+      'p_work_date': date(workDate),
+      'p_type': type,
+      'p_reason': reason.trim(),
+      'p_check_in': checkIn?.toUtc().toIso8601String(),
+      'p_check_out': checkOut?.toUtc().toIso8601String(),
+      'p_status': requestedStatus,
+      'p_attachment_path': null,
+    });
     ref.invalidate(myAttendanceServicesProvider);
     ref.invalidate(myAttendanceHistoryProvider);
   }
@@ -1202,26 +1325,28 @@ extension MobileSelfServiceCommands on MobileCommands {
     required List<String> respondentIds,
     List<String> witnessIds = const [],
   }) async {
-    final data = await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'submit_my_dispute_v23',
-          params: {
-            'p_title': title.trim(),
-            'p_description': description.trim(),
-            'p_case_type': caseType,
-            'p_parties': [
-              for (final id in respondentIds)
-                {'employeeId': id, 'type': 'respondent'},
-            ],
-            'p_witnesses': [
-              for (final id in witnessIds)
-                {'employeeId': id, 'type': 'witness'},
-            ],
-            'p_truth_confirmed': true,
-            'p_confidentiality_accepted': true,
-          },
-        ));
+    final data = await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'submit_my_dispute_v23',
+            params: {
+              'p_title': title.trim(),
+              'p_description': description.trim(),
+              'p_case_type': caseType,
+              'p_parties': [
+                for (final id in respondentIds)
+                  {'employeeId': id, 'type': 'respondent'},
+              ],
+              'p_witnesses': [
+                for (final id in witnessIds)
+                  {'employeeId': id, 'type': 'witness'},
+              ],
+              'p_truth_confirmed': true,
+              'p_confidentiality_accepted': true,
+            },
+          ),
+    );
     ref.invalidate(myDisputePortalProvider);
     return data as String;
   }
@@ -1240,24 +1365,29 @@ extension MobileSelfServiceCommands on MobileCommands {
       _ => 'jpg',
     };
     final path = '$caseId/${const Uuid().v4()}.$extension';
-    await client.storage.from('dispute-evidence').uploadBinary(
+    await client.storage
+        .from('dispute-evidence')
+        .uploadBinary(
           path,
           bytes,
           fileOptions: FileOptions(contentType: normalizedMime, upsert: false),
-        ).timeout(const Duration(seconds: 60));
+        )
+        .timeout(const Duration(seconds: 60));
     try {
-      await _withTimeout(client.rpc<dynamic>(
-        'register_dispute_evidence',
-        params: {
-          'p_case_id': caseId,
-          'p_title': fileName,
-          'p_storage_path': path,
-          'p_mime_type': normalizedMime,
-          'p_file_size_bytes': bytes.length,
-          'p_visibility': 'submitter_and_committee',
-          'p_description': null,
-        },
-      ));
+      await _withTimeout(
+        client.rpc<dynamic>(
+          'register_dispute_evidence',
+          params: {
+            'p_case_id': caseId,
+            'p_title': fileName,
+            'p_storage_path': path,
+            'p_mime_type': normalizedMime,
+            'p_file_size_bytes': bytes.length,
+            'p_visibility': 'submitter_and_committee',
+            'p_description': null,
+          },
+        ),
+      );
     } catch (e) {
       await client.storage.from('dispute-evidence').remove([path]);
       rethrow;
@@ -1266,23 +1396,26 @@ extension MobileSelfServiceCommands on MobileCommands {
   }
 
   Future<void> cancelDispute(String caseId, String reason) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'cancel_my_dispute',
-          params: {'p_case_id': caseId, 'p_reason': reason.trim()},
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'cancel_my_dispute',
+            params: {'p_case_id': caseId, 'p_reason': reason.trim()},
+          ),
+    );
     ref.invalidate(myDisputePortalProvider);
   }
 
   Future<void> appealDisputeDecision(String decisionId, String reason) async {
-    await _withTimeout(ref
-        .read(supabaseProvider)
-        .rpc<dynamic>(
-          'submit_dispute_appeal',
-          params: {'p_decision_id': decisionId, 'p_reason': reason.trim()},
-        ));
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'submit_dispute_appeal',
+            params: {'p_decision_id': decisionId, 'p_reason': reason.trim()},
+          ),
+    );
     ref.invalidate(myDisputePortalProvider);
   }
 }
-
