@@ -28,6 +28,7 @@ const EmployeeDetailPage = lazy(() => import('../features/employees/EmployeeDeta
 const AttendancePage = lazy(() => import('../features/attendance/AttendancePage').then((m) => ({ default: m.AttendancePage })));
 const AttendanceDrilldownPage = lazy(() => import('../features/attendance/AttendanceDrilldownPage').then((m) => ({ default: m.AttendanceDrilldownPage })));
 const AttendanceOperationsPage = lazy(() => import('../features/advanced/AttendanceOperationsPage').then((m) => ({ default: m.AttendanceOperationsPage })));
+const AttendanceHubPage = lazy(() => import('../features/attendance/AttendanceHubPage').then((m) => ({ default: m.AttendanceHubPage })));
 const MonthlyAttendanceReportPage = lazy(() =>
   import('../features/attendance/MonthlyAttendanceReportPage').then((m) => ({ default: m.MonthlyAttendanceReportPage })),
 );
@@ -422,7 +423,7 @@ function HrWorkspaceRoutes() {
         path="attendance"
         element={
           <RequirePermission perm="attendance.record.read">
-            <AttendancePage />
+            <AttendanceHubPage />
           </RequirePermission>
         }
       />
@@ -437,17 +438,13 @@ function HrWorkspaceRoutes() {
       <Route
         path="attendance/operations"
         element={
-          <RequirePermission perm="attendance.roster.read">
-            <AttendanceOperationsPage />
-          </RequirePermission>
+          <Navigate to="../attendance?tab=operations" replace />
         }
       />
       <Route
         path="attendance/report"
         element={
-          <RequirePermission perm="attendance.record.read">
-            <MonthlyAttendanceReportPage />
-          </RequirePermission>
+          <Navigate to="../attendance?tab=report" replace />
         }
       />
       <Route

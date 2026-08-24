@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+﻿import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { prepareAvatarFile } from './avatarImage';
 
 // --- Mocks for Canvas / ImageBitmap ---
@@ -37,23 +37,37 @@ afterEach(() => {
 });
 
 function fakeFile(name: string, type: string, sizeKB = 100): File {
-  const buf = new ArrayBuffer(sizeKB * 1024);
+  const buf = new Uint8Array(sizeKB * 1024);
   return new File([buf], name, { type });
 }
 
 describe('prepareAvatarFile', () => {
   it('يرفض الصيغ غير المدعومة', async () => {
-    await expect(prepareAvatarFile(fakeFile('test.gif', 'image/gif'))).rejects.toThrow('الصيغة غير مدعومة');
+    await prepareAvatarFile(fakeFile('test.gif', 'image/gif')).then(
+      () => expect.fail('يجب أن يرفض'),
+      (e) => expect(String(e)).toContain('الصيغة غير مدعومة'),
+    );
   });
 
   it('يرفض الملفات الأكبر من 5MB', async () => {
     const bigFile = fakeFile('big.png', 'image/png', 6 * 1024);
-    await expect(prepareAvatarFile(bigFile)).rejects.toThrow('5 ميجابايت');
+    await prepareAvatarFile(bigFile).then(
+      () => expect.fail('يجب أن يرفض'),
+      (e) => expect(String(e)).toContain('5 ميجابايت'),
+    );
   });
 
   it('يرفض الصور الأصغر من 512px', async () => {
-    vi.mocked(globalThis.createImageBitmap).mockResolvedValueOnce(makeMockBitmap(256, 256) as unknown as ImageBitmap);
-    await expect(prepareAvatarFile(fakeFile('small.png', 'image/png'))).rejects.toThrow('512×512');
+    // إعادة stub صريحة: mockResolvedValueOnce يتأثر بترتيب التنقل في
+    // السلسلة الكاملة — الـ stub الكامل حتمي.
+    vi.stubGlobal(
+      'createImageBitmap',
+      vi.fn(() => Promise.resolve(makeMockBitmap(256, 256) as unknown as ImageBitmap)),
+    );
+    await prepareAvatarFile(fakeFile('small.png', 'image/png')).then(
+      () => expect.fail('يجب أن يرفض'),
+      (e) => expect(String(e)).toContain('512'),
+    );
   });
 
   it('يعيد ملف WebP بالاسم الصحيح', async () => {

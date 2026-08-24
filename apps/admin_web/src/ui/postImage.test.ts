@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+﻿import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { preparePostImage } from './postImage';
 
 function makeMockBitmap(w: number, h: number) {
@@ -36,18 +36,24 @@ afterEach(() => {
 });
 
 function fakeFile(name: string, type: string, sizeKB = 100): File {
-  const buf = new ArrayBuffer(sizeKB * 1024);
+  const buf = new Uint8Array(sizeKB * 1024);
   return new File([buf], name, { type });
 }
 
 describe('preparePostImage', () => {
   it('يرفض الصيغ غير المدعومة', async () => {
-    await expect(preparePostImage(fakeFile('test.bmp', 'image/bmp'))).rejects.toThrow('الصيغة غير مدعومة');
+    await preparePostImage(fakeFile('test.bmp', 'image/bmp')).then(
+      () => expect.fail('يجب أن يرفض'),
+      (e) => expect(String(e)).toContain('الصيغة غير مدعومة'),
+    );
   });
 
   it('يرفض الملفات الأكبر من 5MB', async () => {
     const bigFile = fakeFile('big.png', 'image/png', 6 * 1024);
-    await expect(preparePostImage(bigFile)).rejects.toThrow('5 ميجابايت');
+    await preparePostImage(bigFile).then(
+      () => expect.fail('يجب أن يرفض'),
+      (e) => expect(String(e)).toContain('5 ميجابايت'),
+    );
   });
 
   it('يعيد ملف WebP بالاسم الصحيح', async () => {
