@@ -41,8 +41,17 @@ jobs:
 
       - name: Start Supabase
         run: |
-          # استثناء خدمات غير لازمة للاختبار الدخاني (يقلل سحب الصور ويسرّع الإقلاع)
-          npx supabase start -x studio,imgproxy,mailpit,logflare,vector,realtime,supavisor
+          # استثناء خدمات غير لازمة للاختبار الدخاني + 3 محاولات بتراجع 90 ثانية
+          # لامتصاص Docker Hub rate-limit العابر على runners ذات IP مشترك
+          ok=0
+          for i in 1 2 3; do
+            if npx supabase start -x studio,imgproxy,mailpit,logflare,vector,realtime,supavisor; then
+              ok=1; break
+            fi
+            echo "::warning::supabase start failed (attempt $i) — backing off"
+            sleep 90
+          done
+          [ "$ok" = "1" ] || exit 1
           echo "Waiting for services to be ready..."
           sleep 10
 

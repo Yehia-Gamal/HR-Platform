@@ -22,7 +22,17 @@ jobs:
       # مراراً على runners ذات IP مشترك، والاستثناءات تقلل السحب وتسرّع الإقلاع.
       # edge-runtime مستثنى تحديداً: حزم الدوال تتطلب packages/shared-contracts/dist
       # المبني، وdatabase job لا يبنيه (edge-smoke يبنيه صراحة)
-      - run: npx supabase start -x studio,imgproxy,mailpit,logflare,vector,realtime,supavisor,edge-runtime
+      # مع 3 محاولات وتراجع 90 ثانية لامتصاص Docker Hub rate-limit العابر
+      - name: Start Supabase
+        run: |
+          for i in 1 2 3; do
+            if npx supabase start -x studio,imgproxy,mailpit,logflare,vector,realtime,supavisor,edge-runtime; then
+              exit 0
+            fi
+            echo "::warning::supabase start failed (attempt $i) — likely Docker Hub rate limit; backing off"
+            sleep 90
+          done
+          exit 1
       # Reset + test twice: proves the build is repeatable from an empty
       # database and does not depend on leftover state (plan gate P0.3).
       - run: npx supabase db reset
