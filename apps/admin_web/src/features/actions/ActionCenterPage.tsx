@@ -24,7 +24,7 @@ const KIND_META: Record<ActionCenterItem['kind'], { label: string; icon: typeof 
 
 export function ActionCenterPage() {
   const query = useActionCenter();
-  const items = query.data ?? [];
+  const items = useMemo(() => query.data ?? [], [query.data]);
   const isInitialLoading = query.isLoading && items.length === 0;
   // النقر على بطاقات الملخص يصفّي القائمة حسب الأولوية.
   const [priority, setPriority] = useState<'all' | 'urgent' | 'high'>('all');
