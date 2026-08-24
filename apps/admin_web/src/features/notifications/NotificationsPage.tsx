@@ -12,6 +12,7 @@ import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { relativeTime } from '../../core/formatTime';
 import { notificationTargetPath, notificationWorkspaceFromPath } from './notificationTarget';
 import { notificationCategoryIcon, notificationCategoryLabel } from './notificationMeta';
+import { BroadcastAlertButton } from './BroadcastAlert';
 import { useDeleteNotifications, useMarkNotificationsRead, useNotifications } from './useNotifications';
 
 type Filter = 'all' | 'unread';
@@ -95,6 +96,7 @@ export function NotificationsPage() {
             </>
           ) : (
             <>
+              <BroadcastAlertButton />
               <button
                 disabled={!items.length || mark.isPending}
                 onClick={() =>

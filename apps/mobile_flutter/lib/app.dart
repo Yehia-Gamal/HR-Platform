@@ -4,6 +4,7 @@ import 'package:ahla_shabab_management_os/core/notifications/notification_handle
 import 'package:ahla_shabab_management_os/core/theme/app_theme.dart';
 import 'package:ahla_shabab_management_os/core/theme/theme_mode_controller.dart';
 import 'package:ahla_shabab_management_os/core/widgets/connectivity_banner.dart';
+import 'package:ahla_shabab_management_os/features/broadcast_alert/broadcast_alert_overlay.dart';
 import 'package:ahla_shabab_management_os/features/workspaces/app_gate.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_deep_link_page.dart';
 import 'package:flutter/foundation.dart';
@@ -92,7 +93,11 @@ class _AhlaShababAppState extends ConsumerState<AhlaShababApp> {
       builder: (context, child) => Column(
         children: [
           const ConnectivityBanner(),
-          Expanded(child: child ?? const SizedBox.shrink()),
+          Expanded(
+            child: BroadcastAlertOverlay(
+              child: child ?? const SizedBox.shrink(),
+            ),
+          ),
         ],
       ),
     );
