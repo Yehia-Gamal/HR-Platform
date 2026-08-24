@@ -181,6 +181,8 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
           ],
         ),
         const SizedBox(height: 10),
+        const _AttendanceTrendChart(),
+        const SizedBox(height: 10),
         MetricGrid(
           cards: [
             (
@@ -407,6 +409,206 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
     'high' => AppColors.statusWarning,
     _ => Theme.of(context).colorScheme.primary,
   };
+}
+
+/// رسم بياني شريطي لاتجاه الحضور — آخر 14 يوماً من attendance_daily.
+/// كل عمود: حضور (أخضر) + تأخير (برتقالي) + غياب (أحمر) بنِسَب اليوم.
+/// النقر يفتح تبويب الحضور التنفيذي.
+class _AttendanceTrendChart extends ConsumerWidget {
+  const _AttendanceTrendChart();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final trend = ref.watch(mobileAttendanceTrendProvider(14));
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ExecutiveAttendanceTab()),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.insights_rounded, size: 18, color: scheme.primary),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'اتجاه الحضور — آخر 14 يوماً',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    Icons.arrow_outward_rounded,
+                    size: 15,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              trend.when(
+                loading: () => const SizedBox(
+                  height: 90,
+                  child: Center(
+                    child: SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
+                error: (_, _) => Text(
+                  'تعذر تحميل الاتجاه — اسحب للتحديث.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                data: (points) {
+                  if (points.isEmpty) {
+                    return Text(
+                      'لا توجد بيانات حضور بعد.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    );
+                  }
+                  // أعلى إجمالي يومي لتحديد ارتفاع الأعمدة نسبياً.
+                  var maxTotal = 1;
+                  for (final p in points) {
+                    if (p.total > maxTotal) maxTotal = p.total;
+                  }
+                  return Column(
+                    children: [
+                      SizedBox(
+                        height: 90,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            for (final p in points)
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 2,
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      if (p.absent > 0)
+                                        _TrendSegment(
+                                          fraction: p.absent / maxTotal,
+                                          color: AppColors.statusDanger,
+                                        ),
+                                      if (p.late > 0)
+                                        _TrendSegment(
+                                          fraction: p.late / maxTotal,
+                                          color: AppColors.statusWarning,
+                                        ),
+                                      if (p.present > 0)
+                                        _TrendSegment(
+                                          fraction: p.present / maxTotal,
+                                          color: AppColors.statusSuccess,
+                                        ),
+                                      if (p.total == 0)
+                                        _TrendSegment(
+                                          fraction: 0.04,
+                                          color: scheme.outlineVariant,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          for (final p in points)
+                            Expanded(
+                              child: Text(
+                                p.asDate == null ? '' : '${p.asDate!.day}',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          _TrendLegend(
+                            color: AppColors.statusSuccess,
+                            label: 'حاضر',
+                          ),
+                          const SizedBox(width: 12),
+                          _TrendLegend(
+                            color: AppColors.statusWarning,
+                            label: 'متأخر',
+                          ),
+                          const SizedBox(width: 12),
+                          _TrendLegend(
+                            color: AppColors.statusDanger,
+                            label: 'غائب',
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// شريحة ملونة داخل عمود الاتجاه — الارتفاع نسبي من أعلى إجمالي.
+class _TrendSegment extends StatelessWidget {
+  const _TrendSegment({required this.fraction, required this.color});
+  final double fraction;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: (fraction.clamp(0.0, 1.0)) * 90,
+      width: double.infinity,
+      color: color,
+    );
+  }
+}
+
+class _TrendLegend extends StatelessWidget {
+  const _TrendLegend({required this.color, required this.label});
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 10)),
+      ],
+    );
+  }
 }
 
 class _ComparisonCard extends StatelessWidget {

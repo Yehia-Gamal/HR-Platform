@@ -11,6 +11,34 @@ DateTime? _date(dynamic value) =>
 
 DateTime _reqDate(dynamic value) => _date(value) ?? DateTime(0);
 
+/// نقطة واحدة في اتجاه الحضور اليومي (0456) — تغذي الرسم البياني
+/// في الملخص التنفيذي.
+class AttendanceTrendPoint {
+  const AttendanceTrendPoint({
+    required this.date,
+    required this.present,
+    required this.late,
+    required this.absent,
+  });
+
+  factory AttendanceTrendPoint.fromJson(Map<String, dynamic> json) =>
+      AttendanceTrendPoint(
+        date: json['workDate']?.toString() ?? '',
+        present: (json['present'] as num?)?.toInt() ?? 0,
+        late: (json['late'] as num?)?.toInt() ?? 0,
+        absent: (json['absent'] as num?)?.toInt() ?? 0,
+      );
+
+  final String date;
+  final int present;
+  final int late;
+  final int absent;
+
+  int get total => present + late + absent;
+
+  DateTime? get asDate => DateTime.tryParse(date);
+}
+
 class MobileExecutiveBrief {
   const MobileExecutiveBrief({
     required this.period,

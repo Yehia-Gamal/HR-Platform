@@ -9,6 +9,24 @@ Map<String, dynamic> _asMap(dynamic value) =>
 List<Map<String, dynamic>> _asList(dynamic value) =>
     (value as List<dynamic>? ?? const []).map(_asMap).toList(growable: false);
 
+/// اتجاه الحضور اليومي (0456) — سلسلة آخر N يوم للرسم البياني التنفيذي.
+/// الدالة security invoker: RLS على attendance_daily يحدد النطاق
+/// (التنفيذي يرى المنظمة، المدير فريقه).
+final mobileAttendanceTrendProvider =
+    FutureProvider.family<List<AttendanceTrendPoint>, int>((ref, days) async {
+      final data = await rpcWithTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'get_mobile_attendance_trend',
+              params: {'p_days': days},
+            ),
+      );
+      return _asList(
+        data,
+      ).map(AttendanceTrendPoint.fromJson).toList(growable: false);
+    });
+
 final mobileExecutiveBriefProvider =
     FutureProvider.family<MobileExecutiveBrief, String>((ref, period) async {
       final data = await rpcWithTimeout(
