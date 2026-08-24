@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ahla_shabab_management_os/app.dart';
 import 'package:ahla_shabab_management_os/core/notifications/notification_handler.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
@@ -114,7 +116,14 @@ class MobileActionDeepLinkPage extends ConsumerWidget {
       data: (value) {
         if (value == null) return const LoginPage();
         if (notificationId case final id? when id.isNotEmpty) {
-          ref.watch(markNotificationOpenedProvider(id));
+          // تعليم الإشعار «مفتوحاً» حريقٌ ونسيان: ممنوع ربطه بحالة الواجهة —
+          // ref.watch هنا كان يرمي خطأ الـ RPC داخل build عند البداية الباردة
+          // (جلسة غير جاهزة/شبكة ضعيفة) فيُسقط الصفحة بشاشة سوداء بدل الفتح.
+          unawaited(
+            ref
+                .read(markNotificationOpenedProvider(id).future)
+                .catchError((_) {}),
+          );
         }
 
         // مسار سريع لطلبات الموقع: تُفتح شاشة الإرسال مباشرة بمعرّف الطلب
