@@ -131,25 +131,35 @@ const adminSections: NavSection[] = [
     ],
   },
   {
-    title: 'إدارة الموظفين',
+    title: 'الموظفون',
     items: [
       { label: 'الموظفون والهيكل', to: '/admin/hr/employees', icon: Users, permission: 'people.employee.read' },
       { label: 'هيكل المنظمة', to: '/admin/hr/organization', icon: Building2, permission: 'organization.entity.read' },
+      { label: 'أجهزة الموظفين', to: '/admin/hr/devices', icon: Smartphone, permission: 'access.role.read' },
+      { label: 'دورة حياة الموظف', to: '/admin/hr/lifecycle', icon: PackageCheck, permission: 'people.employee.read' },
+      { label: 'Onboarding', to: '/admin/hr/onboarding', icon: ListChecks, permission: 'onboarding.journey.read' },
+      { label: 'التوظيف', to: '/admin/hr/recruitment', icon: BriefcaseBusiness, permission: 'recruitment.requisition.read' },
+      { label: 'إدارة المستندات', to: '/admin/hr/documents', icon: FileSignature, permission: 'documents.document.read' },
+      { label: 'استوديو المستندات', to: '/admin/hr/documents/studio', icon: FileSignature, permission: 'documents.document.read' },
+    ],
+  },
+  {
+    title: 'الحضور والموقع',
+    items: [
       { label: 'الحضور والانصراف', to: '/admin/hr/attendance', icon: Activity, permission: 'attendance.record.read' },
       { label: 'الورديات وإغلاق الحضور', to: '/admin/hr/attendance/operations', icon: CalendarClock, permission: 'attendance.roster.read' },
       { label: 'كشف الحضور الشهري', to: '/admin/hr/attendance/report', icon: FileSignature, permission: 'attendance.record.read' },
-      { label: 'إدارة الإجازات', to: '/admin/hr/leaves', icon: CalendarDays, permission: 'requests.request.read' },
-      { label: 'أدوات الإجازات والتكليفات', to: '/admin/hr/leave-tools', icon: TimerReset, permission: 'requests.leave.balance.adjust' },
-      { label: 'طلبات الموظفين', to: '/admin/hr/requests', icon: ClipboardList, permission: 'requests.request.read' },
-      { label: 'العطل الرسمية', to: '/admin/hr/holidays', icon: CalendarDays, permission: 'holidays.manage' },
       { label: 'الموقع الحي للموظفين', to: '/admin/live-location', icon: MapPin, permission: 'live_location.request' },
       { label: 'المراقبة التنفيذية', to: '/admin/executive-monitoring', icon: Activity, permission: 'people.employee.read' },
-      { label: 'أجهزة الموظفين', to: '/admin/hr/devices', icon: Smartphone, permission: 'access.role.read' },
-      { label: 'التوظيف', to: '/admin/hr/recruitment', icon: BriefcaseBusiness, permission: 'recruitment.requisition.read' },
-      { label: 'Onboarding', to: '/admin/hr/onboarding', icon: ListChecks, permission: 'onboarding.journey.read' },
-      { label: 'دورة حياة الموظف', to: '/admin/hr/lifecycle', icon: PackageCheck, permission: 'people.employee.read' },
-      { label: 'إدارة المستندات', to: '/admin/hr/documents', icon: FileSignature, permission: 'documents.document.read' },
-      { label: 'استوديو المستندات', to: '/admin/hr/documents/studio', icon: FileSignature, permission: 'documents.document.read' },
+    ],
+  },
+  {
+    title: 'الطلبات والإجازات',
+    items: [
+      { label: 'طلبات الموظفين', to: '/admin/hr/requests', icon: ClipboardList, permission: 'requests.request.read' },
+      { label: 'إدارة الإجازات', to: '/admin/hr/leaves', icon: CalendarDays, permission: 'requests.request.read' },
+      { label: 'أدوات الإجازات والتكليفات', to: '/admin/hr/leave-tools', icon: TimerReset, permission: 'requests.leave.balance.adjust' },
+      { label: 'العطل الرسمية', to: '/admin/hr/holidays', icon: CalendarDays, permission: 'holidays.manage' },
     ],
   },
   {
@@ -176,17 +186,22 @@ const adminSections: NavSection[] = [
     ],
   },
   {
-    title: 'الحوكمة والنظام',
+    title: 'الأمن والتدقيق',
+    items: [
+      { label: 'التدقيق والأمان', to: '/admin/audit-security', icon: ShieldCheck, permission: 'audit.view' },
+      { label: 'سجل التدقيق', to: '/admin/audit-trail', icon: ScrollText, permission: 'audit.view' },
+      { label: 'الحوكمة والمخاطر', to: '/admin/governance', icon: ShieldAlert, featureFlag: 'governance' },
+    ],
+  },
+  {
+    title: 'النظام والتكامل',
     items: [
       { label: 'الأدوار والصلاحيات', to: '/admin/access', icon: ShieldCheck, permission: 'access.role.read' },
       { label: 'الإدارة المؤسسية', to: '/admin/enterprise', icon: Building2, permission: 'organization.entity.read' },
-      { label: 'التدقيق والأمان', to: '/admin/audit-security', icon: ShieldCheck, permission: 'audit.view' },
-      { label: 'سجل التدقيق', to: '/admin/audit-trail', icon: ScrollText, permission: 'audit.view' },
-      { label: 'لوحة المراقبة', to: '/admin/observability', icon: Activity, permission: 'system.release.read' },
       { label: 'إعدادات النظام', to: '/admin/settings', icon: Settings, permission: 'system.settings.read' },
       { label: 'إعدادات التشغيل', to: '/admin/system-settings', icon: Settings2, permission: 'settings.manage' },
       { label: 'التكاملات والمهام الخلفية', to: '/admin/integrations', icon: Cable, permission: 'system.integration.view' },
-      { label: 'الحوكمة والمخاطر', to: '/admin/governance', icon: ShieldAlert, featureFlag: 'governance' },
+      { label: 'لوحة المراقبة', to: '/admin/observability', icon: Activity, permission: 'system.release.read' },
     ],
   },
   {
@@ -229,6 +244,33 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
       }
     })(),
   );
+  // أكورديون الأقسام (بند تنظيم اللوحة): الأقسام مطوية افتراضياً إلا
+  // القسم الذي يحوي الصفحة النشطة — والتغيير يُحفظ في المتصفح.
+  const [expandedSections, setExpandedSections] = useState<
+    Record<string, boolean>
+  >(() => {
+    try {
+      return JSON.parse(
+        window.localStorage.getItem('ahla-sidebar-sections') ?? '{}',
+      ) as Record<string, boolean>;
+    } catch {
+      return {};
+    }
+  });
+  const toggleSection = (title: string) => {
+    setExpandedSections((prev) => {
+      const next = { ...prev, [title]: !(prev[title] ?? false) };
+      try {
+        window.localStorage.setItem(
+          'ahla-sidebar-sections',
+          JSON.stringify(next),
+        );
+      } catch {
+        /* التخزين اختياري */
+      }
+      return next;
+    });
+  };
   const access = auth.access;
   if (!access) throw new Error('WorkspaceShell requires an authenticated session');
   // الأدمن الرئيسي يرى قائمة موحّدة واحدة تجمع الإدارة + HR + اللجنة —
@@ -329,30 +371,61 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
         </div>
 
         <nav className="sidebar-nav" aria-label={currentWorkspaceLabel}>
-          {allowedSections.map((section) => (
-            <section key={section.title} className="sidebar-section">
-              {!collapsed ? <h2>{section.title}</h2> : <span className="sidebar-divider" />}
-              <div className="space-y-1">
-                {section.items.map((item) => {
-                  const Icon = item.icon;
-                  const exact = item.to === '/hr' || item.to === '/admin' || item.to === '/committee';
-                  return (
-                    <NavLink
-                      key={item.to}
-                      to={item.to}
-                      end={exact}
-                      title={collapsed ? item.label : undefined}
-                      onClick={() => setOpen(false)}
-                      className={({ isActive }) => `sidebar-link ${isActive ? 'is-active' : ''}`}
-                    >
-                      <Icon className="size-5 shrink-0" aria-hidden="true" />
-                      {!collapsed ? <span className="truncate">{item.label}</span> : null}
-                    </NavLink>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+          {allowedSections.map((section) => {
+            // القسم الذي يحوي الصفحة النشطة يُوسَّع تلقائياً ما لم يطوِه المستخدم.
+            const hasActive = section.items.some((item) => {
+              const exact =
+                item.to === '/hr' || item.to === '/admin' || item.to === '/committee';
+              return exact
+                ? location.pathname === item.to
+                : location.pathname.startsWith(item.to);
+            });
+            const isExpanded = collapsed
+              ? true
+              : (expandedSections[section.title] ?? hasActive);
+            return (
+              <section key={section.title} className="sidebar-section">
+                {!collapsed ? (
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between px-3 pb-1 pt-3 text-[11px] font-black uppercase tracking-wide text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
+                    onClick={() => toggleSection(section.title)}
+                    aria-expanded={isExpanded}
+                  >
+                    <span>{section.title}</span>
+                    <ChevronDown
+                      className={`size-3.5 transition-transform ${isExpanded ? '' : 'rotate-90'}`}
+                      aria-hidden="true"
+                    />
+                  </button>
+                ) : (
+                  <span className="sidebar-divider" />
+                )}
+                {isExpanded ? (
+                  <div className="space-y-1">
+                    {section.items.map((item) => {
+                      const Icon = item.icon;
+                      const exact =
+                        item.to === '/hr' || item.to === '/admin' || item.to === '/committee';
+                      return (
+                        <NavLink
+                          key={item.to}
+                          to={item.to}
+                          end={exact}
+                          title={collapsed ? item.label : undefined}
+                          onClick={() => setOpen(false)}
+                          className={({ isActive }) => `sidebar-link ${isActive ? 'is-active' : ''}`}
+                        >
+                          <Icon className="size-5 shrink-0" aria-hidden="true" />
+                          {!collapsed ? <span className="truncate">{item.label}</span> : null}
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </section>
+            );
+          })}
         </nav>
 
         <div className="sidebar-footer">
