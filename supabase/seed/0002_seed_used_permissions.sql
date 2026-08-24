@@ -166,6 +166,18 @@ begin
     where exists (select 1 from unnest(r.prefixes) pre where p.code like pre || '%')
     on conflict (role_id, permission_id, scope) do nothing;
   end loop;
+
+  -- 0455: منحة التنبيه الشامل — تُنفَّذ في المايجريشنات قبل بذر الأدوار
+  -- (executive-director يُبذَر هنا في الـseed بعد المايجريشنات)، لذا نكررها
+  -- هنا لضمان عمل db reset المحلي بنفس مصفوفة الإنتاج.
+  select id into v_role from public.roles where slug = 'executive-director';
+  if v_role is not null then
+    insert into public.role_permissions (role_id, permission_id, scope)
+    select v_role, p.id, 'organization'
+    from public.permissions p
+    where p.code = 'alerts.broadcast.send'
+    on conflict (role_id, permission_id, scope) do nothing;
+  end if;
 end $$;
 
 commit;
