@@ -266,6 +266,8 @@
 | 0455 | `0455_broadcast_alerts.sql` | التنبيه الشامل: صلاحية alerts.broadcast.send للمدير التنفيذي ومدير HR (بنطاق organization) + جدول broadcast_alerts + RPC send_broadcast_alert يضيء أجهزة كل الموظفين عبر FCM. |
 | 0456 | `0456_attendance_trend_rpc.sql` | RPC اتجاه الحضور لآخر 14 يوماً (حاضر/غائب/متأخر) من attendance_daily للملخص التنفيذي — security invoker تحت RLS. |
 | 0457 | `0457_fix_critical_production_bugs.sql` | إصلاحات إنتاج حرجة: resolve_request_approver يعتمد lookup كامل في manager_relations (تسلسل المديرين + HR)، رسالة واضحة عند غياب المدير المباشر، وإصلاح RPC التقييم الذاتي. |
+| 0458 | `0458_fix_midnight_punch_window.sql` | إصلاح نافذة تجميع بصمة منتصف الليل في record_attendance_event/local_biometric — `::timestamptz` مع جلسة UTC كانت تنزاح 3 ساعات فتُسقط بصمات الفجر من كشف اليوم + ترميم آخر 90 يومًا (رقعة regex عبر pg_get_functiondef). |
+| 0460 | `0460_attendance_midnight_window_canonical.sql` | تثبيت الأجسام القياسية للدالتين بنفس صيغة الإصلاح (`date::timestamp at time zone`) بلا اعتماد على regex + إعادة نموذج الصلاحيات المعتمد (service_role فقط) + ترميم إضافي محصّن لصفوف first_check_in الفارغة خلال 60 يومًا (غير المعتمدة فقط، مع استبعاد ورديات الليل والإجازات). |
 >
 > **سكربت نشر الدفعة 0443–0445 على الإنتاج:** `python scripts/deploy_audit_batch_0443_0445.py` (idempotent: يفحص المتتبَّع، يطبّق المفقود بالترتيب، ثم يشغّل فحوص التحقق القياسية).
 >
