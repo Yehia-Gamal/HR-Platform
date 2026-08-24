@@ -11,7 +11,9 @@ import { WebReleaseCheckError, WebReleaseStatusPage } from '../features/auth/Web
 import { useRegisterWebDevice, useWebReleasePolicy } from '../features/auth/useWebReleasePolicy';
 import { firstWebWorkspace, hasAnyPermission, hrPathToAdmin } from '../features/workspaces/access';
 import { WorkspaceShell } from '../features/workspaces/WorkspaceShell';
+import { BroadcastAlertBanner } from '../features/notifications/BroadcastAlert';
 import { ForbiddenState } from '../ui/ForbiddenState';
+import { CommandPalette } from '../ui/CommandPalette';
 import { FeatureGate } from '../ui/FeatureGate';
 
 // ---------------------------------------------------------------------------
@@ -114,6 +116,10 @@ function AuthenticatedApp() {
 
   return (
     <Suspense fallback={<LoadingScreen />}>
+      {/* التنبيه الشامل: يغطي الشاشة بأي صفحة ما دام هناك تنبيه نشط. */}
+      <BroadcastAlertBanner />
+      {/* لوحة الأوامر (Ctrl+K) — تنقل سريع لكل صفحات مساحة العمل. */}
+      <CommandPalette />
       <Routes>
         <Route path="/" element={<Navigate to={workspacePath(defaultWorkspace)} replace />} />
 
