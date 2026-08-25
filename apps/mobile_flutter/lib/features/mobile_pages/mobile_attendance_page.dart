@@ -198,52 +198,39 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     // بعد منتصف الليل يمرّر الخادم اليوم الجديد فتعود القيم فارغة ويظهر الزر.
     final dayCompleted = value.todayCheckOutAt != null;
 
-    // 0450: يوم مأمورية/تكليف — زر البصمة يتحول لدورة المأمورية كاملة:
-    // approved → زر بدء، in_progress → بطاقة جارية بانتظار الإنهاء،
-    // completed قبل نهاية الدوام → يعود زر الانصراف العادي تلقائيًا
-    // (لأن الخادم سجّل أول حضور = توقيت البدء)، وبعد نهاية الدوام →
-    // اكتمال تلقائي بلا بصمة إضافية.
+    // 0450 (مُعدّل بطلب الإدارة): زر البصمة يبقى ظاهراً دائماً (حضور/انصراف)
+    // وبطاقات المأمورية إضافية فوقه لا بديلة عنه:
+    // approved → بطاقة بدء المأمورية (تُحسب حضوراً)، in_progress → بطاقة
+    // جارية بانتظار الإنهاء (الإنهاء = عودة للمجمع + موقع نطاق المجمع)،
+    // وبعد الإنهاء يبقى زر الانصراف العادي متاحاً حتى بعد نهاية الدوام.
     final mission = value.missionToday;
+    Widget? missionCard;
     if (!dayCompleted && mission != null) {
       if (mission.execStatus == 'approved') {
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _MissionStartCard(
-              type: mission.type,
-              startTime: mission.startTime,
-              working: _working,
-              onStart: () => _startMission(mission.requestId),
-            ),
-            const SizedBox(height: 14),
-            _TodayStatusCard(state: value),
-            const SizedBox(height: 14),
-            _QuickLinksRow(working: _working),
-          ],
+        missionCard = _MissionStartCard(
+          type: mission.type,
+          startTime: mission.startTime,
+          working: _working,
+          onStart: () => _startMission(mission.requestId),
+        );
+      } else if (mission.execStatus == 'in_progress') {
+        missionCard = _MissionInProgressCard(
+          startedAt: mission.startedAt,
+          working: _working,
+          onEnd: () => _endMissionFlow(mission),
         );
       }
-      if (mission.execStatus == 'in_progress') {
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _MissionInProgressCard(
-              startedAt: mission.startedAt,
-              working: _working,
-              onEnd: () => _endMissionFlow(mission),
-            ),
-            const SizedBox(height: 14),
-            _TodayStatusCard(state: value),
-            const SizedBox(height: 14),
-            _QuickLinksRow(working: _working),
-          ],
-        );
-      }
-      // completed && !autoCheckout ⇒ تسقط للأسفل: زر انصراف عادي.
     }
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // ── بطاقة المأمورية (إضافية — لا تحجب زر البصمة) ──
+        if (missionCard != null) ...[
+          missionCard,
+          const SizedBox(height: 14),
+        ],
+
         // ── بطاقة الإجراء الرئيسية ──
         if (dayCompleted)
           _DayCompletedCard(
