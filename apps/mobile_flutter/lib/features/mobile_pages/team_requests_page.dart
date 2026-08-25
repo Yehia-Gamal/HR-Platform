@@ -4,6 +4,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dar
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/shared/permission_gate.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -48,25 +49,26 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
           .toList(growable: false);
     }
     return switch (_filter) {
-      'pending' => result
-          .where((r) => r.status == 'pending')
-          .toList(growable: false),
-      'approved' => result
-          .where(
-            (r) =>
-                r.status == 'approved' ||
-                r.status == 'completed' ||
-                r.status == 'escalated',
-          )
-          .toList(growable: false),
-      'closed' => result
-          .where(
-            (r) =>
-                r.status == 'rejected' ||
-                r.status == 'returned' ||
-                r.status == 'cancelled',
-          )
-          .toList(growable: false),
+      'pending' =>
+        result.where((r) => r.status == 'pending').toList(growable: false),
+      'approved' =>
+        result
+            .where(
+              (r) =>
+                  r.status == 'approved' ||
+                  r.status == 'completed' ||
+                  r.status == 'escalated',
+            )
+            .toList(growable: false),
+      'closed' =>
+        result
+            .where(
+              (r) =>
+                  r.status == 'rejected' ||
+                  r.status == 'returned' ||
+                  r.status == 'cancelled',
+            )
+            .toList(growable: false),
       _ => result,
     };
   }
@@ -136,7 +138,9 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              decision == 'approve' ? 'تم اعتماد الطلب بنجاح.' : 'تم رفض الطلب.',
+              decision == 'approve'
+                  ? 'تم اعتماد الطلب بنجاح.'
+                  : 'تم رفض الطلب.',
             ),
           ),
         );
@@ -157,8 +161,7 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
     final requestsAsync = ref.watch(mobileRequestsProvider);
 
     final teamIds = switch (teamAsync) {
-      AsyncData(value: final members) =>
-        members.map((m) => m.id).toSet(),
+      AsyncData(value: final members) => members.map((m) => m.id).toSet(),
       _ => <String>{},
     };
 
@@ -167,47 +170,27 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
       _ => <MobileRequest>[],
     };
     final pendingCount = switch (requestsAsync) {
-      AsyncData(value: final requests) => _apply(requests, teamIds)
-          .where((r) => r.status == 'pending')
-          .length,
+      AsyncData(value: final requests) => _apply(
+        requests,
+        teamIds,
+      ).where((r) => r.status == 'pending').length,
       _ => 0,
     };
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('اعتماد طلبات الفريق')),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(mobileRequestsProvider);
-            ref.invalidate(mobileTeamProvider);
-          },
-          child: teamAsync.maybeWhen(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 40,
-                    color: theme.colorScheme.error,
-                  ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text(
-                      humanizeError(error),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => ref.invalidate(mobileTeamProvider),
-                    child: const Text('إعادة المحاولة'),
-                  ),
-                ],
-              ),
-            ),
-            orElse: () => requestsAsync.maybeWhen(
+    // بوابة القرار: الصفحة كلها محجوبة عن من لا يملك صلاحية اعتماد أو رفض
+    // (نمط CTB-01 في الويب — الخادم يبقى مصدر الحقيقة).
+    return PermissionGate(
+      permission: null,
+      anyOf: const ['requests.request.approve', 'requests.request.reject'],
+      child: Scaffold(
+        appBar: AppBar(title: const Text('اعتماد طلبات الفريق')),
+        body: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(mobileRequestsProvider);
+              ref.invalidate(mobileTeamProvider);
+            },
+            child: teamAsync.maybeWhen(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Center(
                 child: Column(
@@ -227,64 +210,91 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () => ref.invalidate(mobileRequestsProvider),
+                      onPressed: () => ref.invalidate(mobileTeamProvider),
                       child: const Text('إعادة المحاولة'),
                     ),
                   ],
                 ),
               ),
-              orElse: () => ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                children: [
-                  MobileSectionHeader(
-                    title: 'اعتماد طلبات الفريق',
-                    subtitle:
-                        'طلبات أعضاء فريقك المباشر — اعتمد أو ارفض مباشرة من هنا.',
-                  ),
-                  const SizedBox(height: 8),
-                  MobileFilterBar(
-                    searchHint: 'بحث بالاسم أو العنوان أو السبب',
-                    controller: _search,
-                    onSearchChanged: (v) => setState(() => _query = v),
-                    options: [
-                      const MobileFilterOption('pending', 'معلّقة'),
-                      const MobileFilterOption('approved', 'معتمدة'),
-                      const MobileFilterOption('closed', 'مرفوضة/ملغاة'),
-                      const MobileFilterOption('all', 'الكل'),
-                    ],
-                    selected: _filter,
-                    onSelected: (v) => setState(() => _filter = v),
-                    resultLabel: filtered.isEmpty
-                        ? 'لا نتائج'
-                        : '${filtered.length} طلب',
-                  ),
-                  if (pendingCount > 0 && _filter == 'pending') ...[
-                    const SizedBox(height: 8),
-                    _PendingBanner(count: pendingCount),
-                  ],
-                  const SizedBox(height: 8),
-                  if (filtered.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 48),
-                      child: Center(child: Text('لا توجد طلبات مطابقة')),
-                    )
-                  else
-                    ...filtered.map(
-                      (request) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _RequestCard(
-                          request: request,
-                          onTap: () => _openDetail(request),
-                          onApprove: request.status == 'pending'
-                              ? () => _decide(request, 'approve')
-                              : null,
-                          onReject: request.status == 'pending'
-                              ? () => _decide(request, 'reject')
-                              : null,
+              orElse: () => requestsAsync.maybeWhen(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 40,
+                        color: theme.colorScheme.error,
+                      ),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Text(
+                          humanizeError(error),
+                          textAlign: TextAlign.center,
                         ),
                       ),
+                      TextButton(
+                        onPressed: () => ref.invalidate(mobileRequestsProvider),
+                        child: const Text('إعادة المحاولة'),
+                      ),
+                    ],
+                  ),
+                ),
+                orElse: () => ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                  children: [
+                    MobileSectionHeader(
+                      title: 'اعتماد طلبات الفريق',
+                      subtitle:
+                          'طلبات أعضاء فريقك المباشر — اعتمد أو ارفض مباشرة من هنا.',
                     ),
-                ],
+                    const SizedBox(height: 8),
+                    MobileFilterBar(
+                      searchHint: 'بحث بالاسم أو العنوان أو السبب',
+                      controller: _search,
+                      onSearchChanged: (v) => setState(() => _query = v),
+                      options: [
+                        const MobileFilterOption('pending', 'معلّقة'),
+                        const MobileFilterOption('approved', 'معتمدة'),
+                        const MobileFilterOption('closed', 'مرفوضة/ملغاة'),
+                        const MobileFilterOption('all', 'الكل'),
+                      ],
+                      selected: _filter,
+                      onSelected: (v) => setState(() => _filter = v),
+                      resultLabel: filtered.isEmpty
+                          ? 'لا نتائج'
+                          : '${filtered.length} طلب',
+                    ),
+                    if (pendingCount > 0 && _filter == 'pending') ...[
+                      const SizedBox(height: 8),
+                      _PendingBanner(count: pendingCount),
+                    ],
+                    const SizedBox(height: 8),
+                    if (filtered.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 48),
+                        child: Center(child: Text('لا توجد طلبات مطابقة')),
+                      )
+                    else
+                      ...filtered.map(
+                        (request) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _RequestCard(
+                            request: request,
+                            onTap: () => _openDetail(request),
+                            onApprove: request.status == 'pending'
+                                ? () => _decide(request, 'approve')
+                                : null,
+                            onReject: request.status == 'pending'
+                                ? () => _decide(request, 'reject')
+                                : null,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -453,32 +463,31 @@ class _RequestCard extends StatelessWidget {
     );
   }
 
-  Widget _metaChip(ThemeData theme, {required IconData icon, required String text}) =>
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(8),
+  Widget _metaChip(
+    ThemeData theme, {
+    required IconData icon,
+    required String text,
+  }) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: theme.colorScheme.surfaceContainerHigh,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: theme.colorScheme.onSurfaceVariant),
+        const SizedBox(width: 3),
+        Text(
+          text,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w700,
+          ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 12,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 3),
-            Text(
-              text,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      );
+      ],
+    ),
+  );
 
   static String _typeLabel(String type) => switch (type) {
     'leave' => 'طلب إجازة',

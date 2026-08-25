@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/shared/permission_gate.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,7 +12,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// صفحة موحدة لإصدار ونشر القرارات والتعاميم الرسمية من الموبايل (للمدير التنفيذي والأدمن).
 /// تستدعي RPC publish_official_announcement لنشر فوري لجميع الموظفين.
 class ExecutiveAnnouncementPage extends ConsumerStatefulWidget {
-  const ExecutiveAnnouncementPage({super.key, this.initialType = 'announcement'});
+  const ExecutiveAnnouncementPage({
+    super.key,
+    this.initialType = 'announcement',
+  });
 
   /// النوع الأولي للمنشور (إعلان/تعميم أو قرار إداري)
   final String initialType;
@@ -66,8 +70,8 @@ class _ExecutiveAnnouncementPageState
     _postType = widget.initialType == 'poll'
         ? 'poll'
         : widget.initialType == 'decision'
-            ? 'standard'
-            : 'announcement';
+        ? 'standard'
+        : 'announcement';
     _category = widget.initialType == 'decision' ? 'general' : 'general';
   }
 
@@ -82,184 +86,200 @@ class _ExecutiveAnnouncementPageState
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('نشر قرار أو تعميم رسمي')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            color: scheme.primaryContainer.withValues(alpha: 0.3),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Row(
-                children: [
-                  Icon(Icons.campaign_rounded, color: scheme.primary),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'يُنشر القرار أو التعميم فوراً في الخلاصة الرسمية ويصل كإشعار لجميع الموظفين المعنيين.',
-                      style: TextStyle(color: scheme.onPrimaryContainer),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          DropdownButtonFormField<String>(
-            value: _postType,
-            decoration: const InputDecoration(
-              labelText: 'نوع المنشور',
-              prefixIcon: Icon(Icons.article_outlined),
-              border: OutlineInputBorder(),
-            ),
-            items: _postTypes.entries
-                .map((e) =>
-                    DropdownMenuItem(value: e.key, child: Text(e.value)))
-                .toList(),
-            onChanged: (v) => setState(() => _postType = v!),
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            value: _category,
-            decoration: const InputDecoration(
-              labelText: 'التصنيف',
-              prefixIcon: Icon(Icons.category_outlined),
-              border: OutlineInputBorder(),
-            ),
-            items: _categories.entries
-                .map((e) =>
-                    DropdownMenuItem(value: e.key, child: Text(e.value)))
-                .toList(),
-            onChanged: (v) => setState(() => _category = v!),
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            value: _priority,
-            decoration: const InputDecoration(
-              labelText: 'الأولوية',
-              prefixIcon: Icon(Icons.flag_outlined),
-              border: OutlineInputBorder(),
-            ),
-            items: _priorities.entries
-                .map((e) =>
-                    DropdownMenuItem(value: e.key, child: Text(e.value)))
-                .toList(),
-            onChanged: (v) => setState(() => _priority = v!),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _titleController,
-            decoration: const InputDecoration(
-              labelText: 'عنوان الإعلان',
-              prefixIcon: Icon(Icons.title),
-              border: OutlineInputBorder(),
-            ),
-            textInputAction: TextInputAction.next,
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _bodyController,
-            maxLines: 6,
-            decoration: const InputDecoration(
-              labelText: 'نص الإعلان أو التعميم',
-              border: OutlineInputBorder(),
-              alignLabelWithHint: true,
-            ),
-          ),
-          const SizedBox(height: 16),
-          // ─── صورة مرفقة (اختياري) ───
-          Text('صورة مرفقة (اختياري)',
-              style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 8),
-          if (_imageBytes != null)
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.memory(_imageBytes!,
-                      height: 180,
-                      width: double.infinity,
-                      fit: BoxFit.cover),
-                ),
-                PositionedDirectional(
-                  top: 6,
-                  start: 6,
-                  child: CircleAvatar(
-                    radius: 16,
-                    backgroundColor: scheme.error,
-                    child: IconButton(
-                      iconSize: 16,
-                      padding: EdgeInsets.zero,
-                      icon: Icon(Icons.close, color: scheme.onError),
-                      onPressed: () => setState(() {
-                        _pickedImage = null;
-                        _imageBytes = null;
-                      }),
-                    ),
-                  ),
-                ),
-              ],
-            )
-          else
-            OutlinedButton.icon(
-              onPressed: _pickImage,
-              icon: const Icon(Icons.add_photo_alternate_outlined),
-              label: const Text('اختر صورة للإعلان (حتى 5 ميجابايت)'),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
-              ),
-            ),
-          const SizedBox(height: 12),
-          SwitchListTile(
-            title: const Text('يتطلب إقرار بالاطلاع'),
-            subtitle: const Text('سيُطلب من كل موظف تأكيد قراءته'),
-            value: _requiresAcknowledgement,
-            onChanged: (v) => setState(() => _requiresAcknowledgement = v),
-            contentPadding: EdgeInsets.zero,
-          ),
-          if (_priority == 'urgent') ...[
-            const SizedBox(height: 8),
+    // بوابة النشر: الصفحة كلها محجوبة عن من لا يملك صلاحية إدارة التعميمات
+    // (الكود مؤكد من جدول permissions في الإنتاج).
+    return PermissionGate(
+      permission: 'comms.announcement.manage',
+      child: Scaffold(
+        appBar: AppBar(title: const Text('نشر قرار أو تعميم رسمي')),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
             Card(
-              color: scheme.errorContainer,
+              color: scheme.primaryContainer.withValues(alpha: 0.3),
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 child: Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded,
-                        color: scheme.onErrorContainer),
-                    const SizedBox(width: 10),
+                    Icon(Icons.campaign_rounded, color: scheme.primary),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'الإعلانات العاجلة تظهر بشكل بارز لجميع الموظفين.',
-                        style: TextStyle(color: scheme.onErrorContainer),
+                        'يُنشر القرار أو التعميم فوراً في الخلاصة الرسمية ويصل كإشعار لجميع الموظفين المعنيين.',
+                        style: TextStyle(color: scheme.onPrimaryContainer),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-          ],
-          const SizedBox(height: 28),
-          FilledButton.icon(
-            onPressed: _submitting ? null : _submit,
-            icon: _submitting
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+            const SizedBox(height: 20),
+            DropdownButtonFormField<String>(
+              value: _postType,
+              decoration: const InputDecoration(
+                labelText: 'نوع المنشور',
+                prefixIcon: Icon(Icons.article_outlined),
+                border: OutlineInputBorder(),
+              ),
+              items: _postTypes.entries
+                  .map(
+                    (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
                   )
-                : const Icon(Icons.send),
-            label: Text(_uploading
-                ? 'جارٍ رفع الصورة...'
-                : _submitting
-                    ? 'جارٍ النشر...'
-                    : 'نشر الإعلان الآن'),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
+                  .toList(),
+              onChanged: (v) => setState(() => _postType = v!),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: _category,
+              decoration: const InputDecoration(
+                labelText: 'التصنيف',
+                prefixIcon: Icon(Icons.category_outlined),
+                border: OutlineInputBorder(),
+              ),
+              items: _categories.entries
+                  .map(
+                    (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
+                  )
+                  .toList(),
+              onChanged: (v) => setState(() => _category = v!),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: _priority,
+              decoration: const InputDecoration(
+                labelText: 'الأولوية',
+                prefixIcon: Icon(Icons.flag_outlined),
+                border: OutlineInputBorder(),
+              ),
+              items: _priorities.entries
+                  .map(
+                    (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
+                  )
+                  .toList(),
+              onChanged: (v) => setState(() => _priority = v!),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _titleController,
+              decoration: const InputDecoration(
+                labelText: 'عنوان الإعلان',
+                prefixIcon: Icon(Icons.title),
+                border: OutlineInputBorder(),
+              ),
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _bodyController,
+              maxLines: 6,
+              decoration: const InputDecoration(
+                labelText: 'نص الإعلان أو التعميم',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 16),
+            // ─── صورة مرفقة (اختياري) ───
+            Text(
+              'صورة مرفقة (اختياري)',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 8),
+            if (_imageBytes != null)
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.memory(
+                      _imageBytes!,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  PositionedDirectional(
+                    top: 6,
+                    start: 6,
+                    child: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: scheme.error,
+                      child: IconButton(
+                        iconSize: 16,
+                        padding: EdgeInsets.zero,
+                        icon: Icon(Icons.close, color: scheme.onError),
+                        onPressed: () => setState(() {
+                          _pickedImage = null;
+                          _imageBytes = null;
+                        }),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              OutlinedButton.icon(
+                onPressed: _pickImage,
+                icon: const Icon(Icons.add_photo_alternate_outlined),
+                label: const Text('اختر صورة للإعلان (حتى 5 ميجابايت)'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
+              ),
+            const SizedBox(height: 12),
+            SwitchListTile(
+              title: const Text('يتطلب إقرار بالاطلاع'),
+              subtitle: const Text('سيُطلب من كل موظف تأكيد قراءته'),
+              value: _requiresAcknowledgement,
+              onChanged: (v) => setState(() => _requiresAcknowledgement = v),
+              contentPadding: EdgeInsets.zero,
+            ),
+            if (_priority == 'urgent') ...[
+              const SizedBox(height: 8),
+              Card(
+                color: scheme.errorContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        color: scheme.onErrorContainer,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'الإعلانات العاجلة تظهر بشكل بارز لجميع الموظفين.',
+                          style: TextStyle(color: scheme.onErrorContainer),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 28),
+            FilledButton.icon(
+              onPressed: _submitting ? null : _submit,
+              icon: _submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.send),
+              label: Text(
+                _uploading
+                    ? 'جارٍ رفع الصورة...'
+                    : _submitting
+                    ? 'جارٍ النشر...'
+                    : 'نشر الإعلان الآن',
+              ),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(50),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -295,8 +315,9 @@ class _ExecutiveAnnouncementPageState
     if (title.length < 3 || body.length < 10) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content:
-              Text('العنوان (3 أحرف على الأقل) والمحتوى (10 أحرف) مطلوبان'),
+          content: Text(
+            'العنوان (3 أحرف على الأقل) والمحتوى (10 أحرف) مطلوبان',
+          ),
         ),
       );
       return;
@@ -336,34 +357,39 @@ class _ExecutiveAnnouncementPageState
           final ext = _pickedImage!.name.split('.').last.toLowerCase();
           final path =
               '${DateTime.now().millisecondsSinceEpoch}_${_pickedImage!.name.hashCode}.$ext';
-          final bucket =
-              Supabase.instance.client.storage.from('announcements');
-          await bucket.uploadBinary(
-            path,
-            _imageBytes!,
-            fileOptions: FileOptions(
-              contentType: _pickedImage!.mimeType ?? 'image/jpeg',
-              upsert: false,
-            ),
-          ).timeout(const Duration(seconds: 60));
+          final bucket = Supabase.instance.client.storage.from('announcements');
+          await bucket
+              .uploadBinary(
+                path,
+                _imageBytes!,
+                fileOptions: FileOptions(
+                  contentType: _pickedImage!.mimeType ?? 'image/jpeg',
+                  upsert: false,
+                ),
+              )
+              .timeout(const Duration(seconds: 60));
           bannerUrl = bucket.getPublicUrl(path);
         } finally {
           if (mounted) setState(() => _uploading = false);
         }
       }
 
-      await rpcWithTimeout(ref.read(supabaseProvider).rpc<dynamic>(
-        'publish_official_announcement',
-        params: {
-          'p_title': title,
-          'p_body': body,
-          'p_category': _category,
-          'p_priority': _priority,
-          'p_requires_acknowledgement': _requiresAcknowledgement,
-          'p_banner_url': bannerUrl,
-          'p_post_type': _postType,
-        },
-      ));
+      await rpcWithTimeout(
+        ref
+            .read(supabaseProvider)
+            .rpc<dynamic>(
+              'publish_official_announcement',
+              params: {
+                'p_title': title,
+                'p_body': body,
+                'p_category': _category,
+                'p_priority': _priority,
+                'p_requires_acknowledgement': _requiresAcknowledgement,
+                'p_banner_url': bannerUrl,
+                'p_post_type': _postType,
+              },
+            ),
+      );
       // تحديث القائمة
       ref.invalidate(mobileFeedProvider);
       if (mounted) {
@@ -377,9 +403,9 @@ class _ExecutiveAnnouncementPageState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(e))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(e))));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
