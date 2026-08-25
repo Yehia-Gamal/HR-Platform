@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ReactNode } from 'react';
+﻿import { lazy, Suspense, type ReactNode } from 'react';
 import type { WorkspaceId } from '@ahla/shared-contracts';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
 import { LoadingScreen } from '../ui/LoadingScreen';
@@ -25,9 +25,6 @@ const DashboardPage = lazy(() => import('../features/workspaces/DashboardPage').
 const EmployeesPage = lazy(() => import('../features/employees/EmployeesPage').then((m) => ({ default: m.EmployeesPage })));
 const CreateEmployeePage = lazy(() => import('../features/employees/CreateEmployeePage').then((m) => ({ default: m.CreateEmployeePage })));
 const EmployeeDetailPage = lazy(() => import('../features/employees/EmployeeDetailPage').then((m) => ({ default: m.EmployeeDetailPage })));
-const AttendancePage = lazy(() => import('../features/attendance/AttendancePage').then((m) => ({ default: m.AttendancePage })));
-const AttendanceDrilldownPage = lazy(() => import('../features/attendance/AttendanceDrilldownPage').then((m) => ({ default: m.AttendanceDrilldownPage })));
-const AttendanceOperationsPage = lazy(() => import('../features/advanced/AttendanceOperationsPage').then((m) => ({ default: m.AttendanceOperationsPage })));
 const AttendanceHubPage = lazy(() => import('../features/attendance/AttendanceHubPage').then((m) => ({ default: m.AttendanceHubPage })));
 const MonthlyAttendanceReportPage = lazy(() =>
   import('../features/attendance/MonthlyAttendanceReportPage').then((m) => ({ default: m.MonthlyAttendanceReportPage })),
@@ -35,7 +32,6 @@ const MonthlyAttendanceReportPage = lazy(() =>
 const PerformancePage = lazy(() => import('../features/performance/PerformancePage').then((m) => ({ default: m.PerformancePage })));
 const RecruitmentPage = lazy(() => import('../features/management/RecruitmentPage').then((m) => ({ default: m.RecruitmentPage })));
 const OnboardingPage = lazy(() => import('../features/management/OnboardingPage').then((m) => ({ default: m.OnboardingPage })));
-const ReportsPage = lazy(() => import('../features/management/ReportsPage').then((m) => ({ default: m.ReportsPage })));
 const OfficialHolidaysPage = lazy(() => import('../features/holidays/OfficialHolidaysPage').then((m) => ({ default: m.OfficialHolidaysPage })));
 const RequestsPage = lazy(() => import('../features/requests/RequestsPage').then((m) => ({ default: m.RequestsPage })));
 const DeviceApprovalPage = lazy(() => import('../features/devices/DeviceApprovalPage').then((m) => ({ default: m.DeviceApprovalPage })));
@@ -45,30 +41,26 @@ const NotificationsPage = lazy(() => import('../features/notifications/Notificat
 const ActionCenterPage = lazy(() => import('../features/actions/ActionCenterPage').then((m) => ({ default: m.ActionCenterPage })));
 const LiveLocationPage = lazy(() => import('../features/management/LiveLocationPage').then((m) => ({ default: m.LiveLocationPage })));
 const KpiCyclesPage = lazy(() => import('../features/advanced/KpiCyclesPage').then((m) => ({ default: m.KpiCyclesPage })));
+const FinanceHubPage = lazy(() => import('../features/finance/FinanceHubPage').then((m) => ({ default: m.FinanceHubPage })));
 const DisputesPage = lazy(() => import('../features/advanced/DisputesPage').then((m) => ({ default: m.DisputesPage })));
+const ReportsHubPage = lazy(() => import('../features/management/ReportsHubPage').then((m) => ({ default: m.ReportsHubPage })));
+const DocumentsHubPage = lazy(() => import('../features/documents/DocumentsHubPage').then((m) => ({ default: m.DocumentsHubPage })));
 const AccessPage = lazy(() => import('../features/management/AccessPage').then((m) => ({ default: m.AccessPage })));
 const SystemPage = lazy(() => import('../features/management/SystemPage').then((m) => ({ default: m.SystemPage })));
-const ReportSchedulerPage = lazy(() => import('../features/management/ReportSchedulerPage').then((m) => ({ default: m.ReportSchedulerPage })));
 const EnterpriseManagementPage = lazy(() => import('../features/management/EnterpriseManagementPage').then((m) => ({ default: m.EnterpriseManagementPage })));
 const AuditSecurityPage = lazy(() => import('../features/management/AuditSecurityPage').then((m) => ({ default: m.AuditSecurityPage })));
 const ObservabilityDashboardPage = lazy(() =>
   import('../features/observability/ObservabilityDashboardPage').then((m) => ({ default: m.ObservabilityDashboardPage })),
 );
 const IntegrationsJobsPage = lazy(() => import('../features/management/IntegrationsJobsPage').then((m) => ({ default: m.IntegrationsJobsPage })));
-const AnalyticsDashboardPage = lazy(() => import('../features/analytics/AnalyticsDashboardPage').then((m) => ({ default: m.AnalyticsDashboardPage })));
 /* V17 §4.2: feature-flagged pages — shown only when the corresponding flag in featureFlags.ts is true */
 const LearningPage = lazy(() => import('../features/learning/LearningPage').then((m) => ({ default: m.LearningPage })));
 const LifecyclePage = lazy(() => import('../features/lifecycle/LifecyclePage').then((m) => ({ default: m.LifecyclePage })));
 const ExecutiveMonitoringPage = lazy(() => import('../features/management/ExecutiveMonitoringPage').then((m) => ({ default: m.ExecutiveMonitoringPage })));
-const DocumentsPage = lazy(() => import('../features/documents/DocumentsPage').then((m) => ({ default: m.DocumentsPage })));
-const DocumentsStudioPage = lazy(() => import('../features/documents/DocumentsStudioPage').then((m) => ({ default: m.DocumentsStudioPage })));
 const OrganizationPage = lazy(() => import('../features/management/OrganizationPage').then((m) => ({ default: m.OrganizationPage })));
-const FinancePage = lazy(() => import('../features/finance/FinancePage').then((m) => ({ default: m.FinancePage })));
 const KnowledgePage = lazy(() => import('../features/knowledge/KnowledgePage').then((m) => ({ default: m.KnowledgePage })));
 const HelpdeskPage = lazy(() => import('../features/helpdesk/HelpdeskPage').then((m) => ({ default: m.HelpdeskPage })));
 const GovernancePage = lazy(() => import('../features/governance/GovernancePage').then((m) => ({ default: m.GovernancePage })));
-const EmployeePenaltiesPage = lazy(() => import('../features/finance/EmployeePenaltiesPage').then((m) => ({ default: m.EmployeePenaltiesPage })));
-const InstapayPage = lazy(() => import('../features/finance/InstapayPage').then((m) => ({ default: m.InstapayPage })));
 const AuditTrailPage = lazy(() => import('../features/management/AuditTrailPage').then((m) => ({ default: m.AuditTrailPage })));
 const SystemSettingsPage = lazy(() => import('../features/management/SystemSettingsPage').then((m) => ({ default: m.SystemSettingsPage })));
 const LeavesPage = lazy(() => import('../features/leaves/LeavesPage').then((m) => ({ default: m.LeavesPage })));
@@ -245,17 +237,13 @@ function AuthenticatedApp() {
             <Route
               path="reports/scheduler"
               element={
-                <RequirePermission perm="reports.schedule.manage">
-                  <ReportSchedulerPage />
-                </RequirePermission>
+                <Navigate to="../reports?tab=scheduler" replace />
               }
             />
             <Route
               path="analytics"
               element={
-                <RequirePermission perm="reports.people.read">
-                  <AnalyticsDashboardPage />
-                </RequirePermission>
+                <Navigate to="../reports?tab=analytics" replace />
               }
             />
             <Route
@@ -287,24 +275,20 @@ function AuthenticatedApp() {
               path="finance"
               element={
                 <FeatureGate feature="peopleFinance">
-                  <FinancePage />
+                  <FinanceHubPage />
                 </FeatureGate>
               }
             />
             <Route
               path="finance/penalties"
               element={
-                <RequirePermission perm={['payroll.run.manage', 'payroll.run.approve']}>
-                  <EmployeePenaltiesPage />
-                </RequirePermission>
+                <Navigate to="../finance?tab=penalties" replace />
               }
             />
             <Route
               path="finance/instapay"
               element={
-                <RequirePermission perm={['payroll.run.manage', 'payroll.run.approve', 'payroll.payslip.read']}>
-                  <InstapayPage />
-                </RequirePermission>
+                <Navigate to="../finance?tab=instapay" replace />
               }
             />
             <Route
@@ -475,16 +459,14 @@ function HrWorkspaceRoutes() {
         path="reports"
         element={
           <RequirePermission perm="reports.people.read">
-            <ReportsPage />
+            <ReportsHubPage />
           </RequirePermission>
         }
       />
       <Route
         path="analytics"
         element={
-          <RequirePermission perm="reports.people.read">
-            <AnalyticsDashboardPage />
-          </RequirePermission>
+          <Navigate to="../reports?tab=analytics" replace />
         }
       />
       <Route
@@ -547,16 +529,14 @@ function HrWorkspaceRoutes() {
         path="documents"
         element={
           <RequirePermission perm="documents.document.read">
-            <DocumentsPage />
+            <DocumentsHubPage />
           </RequirePermission>
         }
       />
       <Route
         path="documents/studio"
         element={
-          <RequirePermission perm="documents.document.read">
-            <DocumentsStudioPage />
-          </RequirePermission>
+          <Navigate to="../documents?tab=studio" replace />
         }
       />
       <Route

@@ -111,7 +111,7 @@ describe('CommandPalette', () => {
 
     const input = screen.getByLabelText('بحث لوحة الأوامر');
     fireEvent.change(input, { target: { value: 'finance' } });
-    // finance + finance/penalties + finance/instapay داخل /admin
-    expect(screen.getByText('3 صفحة')).toBeTruthy();
+    // finance فقط بعد دمج مركز المالية (الغرامات وInstaPay تبويبات داخله)
+    expect(screen.getByText('1 صفحة')).toBeTruthy();
   });
 });

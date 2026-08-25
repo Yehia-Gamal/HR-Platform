@@ -83,8 +83,6 @@ const hrSections: NavSection[] = [
     title: 'الوقت والخدمات',
     items: [
       { label: 'الحضور', to: '/hr/attendance', icon: Activity, permission: 'attendance.record.read' },
-      { label: 'الورديات وإغلاق الحضور', to: '/hr/attendance/operations', icon: CalendarClock, permission: 'attendance.roster.read' },
-      { label: 'كشف الحضور الشهري', to: '/hr/attendance/report', icon: FileSignature, permission: 'attendance.record.read' },
       { label: 'طلب إجازة', to: '/hr/requests', icon: ClipboardList, permission: 'requests.request.read' },
       { label: 'إدارة الإجازات', to: '/hr/leaves', icon: CalendarDays, permission: 'requests.request.read' },
       { label: 'أدوات الإجازات والتكليفات', to: '/hr/leave-tools', icon: TimerReset, permission: 'requests.leave.balance.adjust' },
@@ -104,15 +102,13 @@ const hrSections: NavSection[] = [
       { label: 'التوظيف', to: '/hr/recruitment', icon: BriefcaseBusiness, permission: 'recruitment.requisition.read' },
       { label: 'Onboarding', to: '/hr/onboarding', icon: ListChecks, permission: 'onboarding.journey.read' },
       { label: 'دورة حياة الموظف', to: '/hr/lifecycle', icon: PackageCheck, featureFlag: 'lifecycle' },
-      { label: 'إدارة المستندات', to: '/hr/documents', icon: FileSignature, featureFlag: 'documents' },
-      { label: 'استوديو المستندات', to: '/hr/documents/studio', icon: FileSignature, featureFlag: 'documents' },
+      { label: 'المستندات', to: '/hr/documents', icon: FileSignature, featureFlag: 'documents' },
     ],
   },
   {
-    title: 'التواصل والتحليلات',
+    title: 'التواصل والتقارير',
     items: [
-      { label: 'تقارير HR', to: '/hr/reports', icon: FileClock, permission: 'reports.people.read' },
-      { label: 'التحليلات', to: '/hr/analytics', icon: BarChart3, permission: 'reports.people.read' },
+      { label: 'التقارير والتحليلات', to: '/hr/reports', icon: FileClock, permission: 'reports.people.read' },
       { label: 'الأخبار والقرارات', to: '/hr/official-feed', icon: Megaphone, permission: ['comms.announcement.read', 'comms.decision.read'] },
       { label: 'التقارير اليومية', to: '/hr/daily-reports', icon: ClipboardList },
       { label: 'قاعدة المعرفة', to: '/hr/knowledge', icon: BookOpen },
@@ -139,16 +135,13 @@ const adminSections: NavSection[] = [
       { label: 'دورة حياة الموظف', to: '/admin/hr/lifecycle', icon: PackageCheck, permission: 'people.employee.read' },
       { label: 'Onboarding', to: '/admin/hr/onboarding', icon: ListChecks, permission: 'onboarding.journey.read' },
       { label: 'التوظيف', to: '/admin/hr/recruitment', icon: BriefcaseBusiness, permission: 'recruitment.requisition.read' },
-      { label: 'إدارة المستندات', to: '/admin/hr/documents', icon: FileSignature, permission: 'documents.document.read' },
-      { label: 'استوديو المستندات', to: '/admin/hr/documents/studio', icon: FileSignature, permission: 'documents.document.read' },
+      { label: 'المستندات', to: '/admin/hr/documents', icon: FileSignature, permission: 'documents.document.read' },
     ],
   },
   {
     title: 'الحضور والموقع',
     items: [
-      { label: 'الحضور والانصراف', to: '/admin/hr/attendance', icon: Activity, permission: 'attendance.record.read' },
-      { label: 'الورديات وإغلاق الحضور', to: '/admin/hr/attendance/operations', icon: CalendarClock, permission: 'attendance.roster.read' },
-      { label: 'كشف الحضور الشهري', to: '/admin/hr/attendance/report', icon: FileSignature, permission: 'attendance.record.read' },
+      { label: 'الحضور', to: '/admin/hr/attendance', icon: Activity, permission: 'attendance.record.read' },
       { label: 'الموقع الحي للموظفين', to: '/admin/live-location', icon: MapPin, permission: 'live_location.request' },
       { label: 'المراقبة التنفيذية', to: '/admin/executive-monitoring', icon: Activity, permission: 'people.employee.read' },
     ],
@@ -176,13 +169,6 @@ const adminSections: NavSection[] = [
       { label: 'لجنة الخلافات', to: '/admin/disputes', icon: Gavel, permission: ['disputes.case.manage', 'disputes.portal.access'] },
       { label: 'مكتب الخدمات', to: '/admin/helpdesk', icon: Headphones, featureFlag: 'helpdesk' },
       { label: 'الرواتب والمالية', to: '/admin/finance', icon: WalletCards, featureFlag: 'peopleFinance' },
-      { label: 'المخالفات المالية', to: '/admin/finance/penalties', icon: AlertTriangle, permission: ['payroll.run.manage', 'payroll.run.approve'] },
-      {
-        label: 'صرف InstaPay',
-        to: '/admin/finance/instapay',
-        icon: Banknote,
-        permission: ['payroll.run.manage', 'payroll.run.approve', 'payroll.payslip.read'],
-      },
     ],
   },
   {
@@ -207,9 +193,7 @@ const adminSections: NavSection[] = [
   {
     title: 'التقارير والتواصل',
     items: [
-      { label: 'تقارير HR', to: '/admin/hr/reports', icon: FileClock, permission: 'reports.people.read' },
-      { label: 'التحليلات', to: '/admin/analytics', icon: BarChart3, permission: 'reports.people.read' },
-      { label: 'جدولة التقارير', to: '/admin/reports/scheduler', icon: TimerReset, permission: 'reports.schedule.manage' },
+      { label: 'التقارير والتحليلات', to: '/admin/hr/reports', icon: FileClock, permission: 'reports.people.read' },
       { label: 'الأخبار والقرارات', to: '/admin/hr/official-feed', icon: Megaphone, permission: ['comms.announcement.read', 'comms.decision.read'] },
       { label: 'التقارير اليومية', to: '/admin/hr/daily-reports', icon: ClipboardList, permission: ['reports.daily.read', 'people.employee.read'] },
       { label: 'قاعدة المعرفة', to: '/admin/knowledge', icon: BookOpen, permission: 'knowledge.article.read' },
