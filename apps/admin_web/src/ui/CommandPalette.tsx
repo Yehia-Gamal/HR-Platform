@@ -33,7 +33,7 @@ const ITEMS: CommandItem[] = [
   { label: 'دورات KPI', path: 'performance/cycles', group: 'الأداء والتقارير', adminOnly: true },
   { label: 'التقارير والتحليلات', path: 'reports', group: 'الأداء والتقارير' },
   { label: 'التقارير اليومية', path: 'daily-reports', group: 'الأداء والتقارير' },
-  { label: 'قاعدة المعرفة', path: 'knowledge', group: 'المعرفة والتعلم' },
+  { label: 'التدريب والمعرفة', path: 'knowledge', group: 'المعرفة والتعلم' },
   { label: 'التعلم والتدريب', path: 'learning', group: 'المعرفة والتعلم' },
   { label: 'المستندات', path: 'documents', group: 'المعرفة والتعلم' },
   { label: 'النشر الرسمي', path: 'official-feed', group: 'الاتصال' },
@@ -48,7 +48,6 @@ const ITEMS: CommandItem[] = [
   { label: 'المالية', path: 'finance', group: 'المالية', adminOnly: true },
   { label: 'الصلاحيات والوصول', path: 'access', group: 'النظام', adminOnly: true },
   { label: 'الإعدادات', path: 'settings', group: 'النظام', adminOnly: true },
-  { label: 'إعدادات النظام', path: 'system-settings', group: 'النظام', adminOnly: true },
   { label: 'الأمن والمراجعة', path: 'audit-security', group: 'النظام', adminOnly: true },
   { label: 'سجل التدقيق', path: 'audit-trail', group: 'النظام', adminOnly: true },
   { label: 'المراقبة التقنية', path: 'observability', group: 'النظام', adminOnly: true },
@@ -66,7 +65,8 @@ export function CommandPalette() {
   // مساحة العمل الحالية من الرابط — الافتراض /hr.
   const workspace = pathname.startsWith('/admin') ? '/admin' : '/hr';
 
-  // الاختصار العام: Ctrl+K / Cmd+K للفتح والإغلاق، Escape للإغلاق.
+  // الاختصار العام: Ctrl+K / Cmd+K للفتح والإغلاق، Escape للإغلاق،
+  // وحدث مخصص من زر الهيدر.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
@@ -76,8 +76,13 @@ export function CommandPalette() {
         setOpen(false);
       }
     };
+    const onOpenEvent = () => setOpen(true);
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('ahla:command-palette', onOpenEvent);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('ahla:command-palette', onOpenEvent);
+    };
   }, []);
 
   // تركيز الحقل عند كل فتح.

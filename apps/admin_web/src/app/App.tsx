@@ -43,6 +43,8 @@ const LiveLocationPage = lazy(() => import('../features/management/LiveLocationP
 const KpiCyclesPage = lazy(() => import('../features/advanced/KpiCyclesPage').then((m) => ({ default: m.KpiCyclesPage })));
 const FinanceHubPage = lazy(() => import('../features/finance/FinanceHubPage').then((m) => ({ default: m.FinanceHubPage })));
 const DisputesPage = lazy(() => import('../features/advanced/DisputesPage').then((m) => ({ default: m.DisputesPage })));
+const SettingsHubPage = lazy(() => import('../features/management/SettingsHubPage').then((m) => ({ default: m.SettingsHubPage })));
+const KnowledgeHubPage = lazy(() => import('../features/knowledge/KnowledgeHubPage').then((m) => ({ default: m.KnowledgeHubPage })));
 const ReportsHubPage = lazy(() => import('../features/management/ReportsHubPage').then((m) => ({ default: m.ReportsHubPage })));
 const DocumentsHubPage = lazy(() => import('../features/documents/DocumentsHubPage').then((m) => ({ default: m.DocumentsHubPage })));
 const AccessPage = lazy(() => import('../features/management/AccessPage').then((m) => ({ default: m.AccessPage })));
@@ -222,8 +224,14 @@ function AuthenticatedApp() {
               path="settings"
               element={
                 <RequirePermission perm="system.settings.read">
-                  <SystemPage />
+                  <SettingsHubPage />
                 </RequirePermission>
+              }
+            />
+            <Route
+              path="system-settings"
+              element={
+                <Navigate to="../settings?tab=operations" replace />
               }
             />
             <Route
@@ -302,9 +310,7 @@ function AuthenticatedApp() {
             <Route
               path="system-settings"
               element={
-                <RequirePermission perm="settings.manage">
-                  <SystemSettingsPage />
-                </RequirePermission>
+                <Navigate to="../settings?tab=operations" replace />
               }
             />
             <Route
@@ -334,19 +340,20 @@ function AuthenticatedApp() {
             {/* notifications/knowledge: مرئيان لكل أعضاء المساحة — لا يحتاجان permission خاص */}
             <Route path="notifications" element={<NotificationsPage />} />
             <Route
-              path="knowledge"
-              element={
-                <RequirePermission perm="knowledge.article.read">
-                  <KnowledgePage />
-                </RequirePermission>
-              }
-            />
-          </Route>
-        </Route>
-
-        <Route element={<WorkspaceGuard workspace="committee" />}>
-          <Route path="/committee" element={<WorkspaceShell workspace="committee" />}>
-            <Route
+        path="knowledge"
+        element={
+          <RequirePermission perm="knowledge.article.read">
+            <KnowledgeHubPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="learning"
+        element={
+          <Navigate to="../knowledge?tab=learning" replace />
+        }
+      />
+      <Route
               index
               element={
                 <RequirePermission perm="disputes.portal.access">

@@ -1,4 +1,4 @@
-import type { WorkspaceId } from '@ahla/shared-contracts';
+﻿import type { WorkspaceId } from '@ahla/shared-contracts';
 import {
   Activity,
   AlertTriangle,
@@ -40,6 +40,7 @@ import {
   Users,
   WalletCards,
   X,
+  Search,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
@@ -111,7 +112,7 @@ const hrSections: NavSection[] = [
       { label: 'التقارير والتحليلات', to: '/hr/reports', icon: FileClock, permission: 'reports.people.read' },
       { label: 'الأخبار والقرارات', to: '/hr/official-feed', icon: Megaphone, permission: ['comms.announcement.read', 'comms.decision.read'] },
       { label: 'التقارير اليومية', to: '/hr/daily-reports', icon: ClipboardList },
-      { label: 'قاعدة المعرفة', to: '/hr/knowledge', icon: BookOpen },
+      { label: 'التدريب والمعرفة', to: '/hr/knowledge', icon: BookOpen },
       { label: 'الإشعارات', to: '/hr/notifications', icon: Bell },
     ],
   },
@@ -184,8 +185,7 @@ const adminSections: NavSection[] = [
     items: [
       { label: 'الأدوار والصلاحيات', to: '/admin/access', icon: ShieldCheck, permission: 'access.role.read' },
       { label: 'الإدارة المؤسسية', to: '/admin/enterprise', icon: Building2, permission: 'organization.entity.read' },
-      { label: 'إعدادات النظام', to: '/admin/settings', icon: Settings, permission: 'system.settings.read' },
-      { label: 'إعدادات التشغيل', to: '/admin/system-settings', icon: Settings2, permission: 'settings.manage' },
+      { label: 'الإعدادات', to: '/admin/settings', icon: Settings, permission: 'system.settings.read' },
       { label: 'التكاملات والمهام الخلفية', to: '/admin/integrations', icon: Cable, permission: 'system.integration.view' },
       { label: 'لوحة المراقبة', to: '/admin/observability', icon: Activity, permission: 'system.release.read' },
     ],
@@ -196,7 +196,7 @@ const adminSections: NavSection[] = [
       { label: 'التقارير والتحليلات', to: '/admin/hr/reports', icon: FileClock, permission: 'reports.people.read' },
       { label: 'الأخبار والقرارات', to: '/admin/hr/official-feed', icon: Megaphone, permission: ['comms.announcement.read', 'comms.decision.read'] },
       { label: 'التقارير اليومية', to: '/admin/hr/daily-reports', icon: ClipboardList, permission: ['reports.daily.read', 'people.employee.read'] },
-      { label: 'قاعدة المعرفة', to: '/admin/knowledge', icon: BookOpen, permission: 'knowledge.article.read' },
+      { label: 'التدريب والمعرفة', to: '/admin/knowledge', icon: BookOpen, permission: 'knowledge.article.read' },
     ],
   },
 ];
@@ -436,6 +436,14 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
           <div className="header-context flex min-w-0 items-center gap-3">
             <button className="icon-button mobile-nav-control" aria-label="فتح القائمة" onClick={() => setOpen(true)}>
               <Menu className="size-5" aria-hidden="true" />
+            </button>
+            <button
+              className="icon-button desktop-nav-control"
+              aria-label="لوحة الأوامر (Ctrl+K)"
+              title="لوحة الأوامر (Ctrl+K)"
+              onClick={() => window.dispatchEvent(new CustomEvent('ahla:command-palette'))}
+            >
+              <Search className="size-4.5" aria-hidden="true" />
             </button>
             <button className="icon-button desktop-nav-control" aria-label={collapsed ? 'توسيع القائمة' : 'تصغير القائمة'} onClick={toggleCollapsed}>
               {collapsed ? <PanelRightOpen className="size-4.5" aria-hidden="true" /> : <PanelRightClose className="size-4.5" aria-hidden="true" />}
