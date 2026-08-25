@@ -1,4 +1,4 @@
-﻿-- =====================================================================
+-- =====================================================================
 -- 0474: عزل الإدارة الطبية (العيادات) — إدارة منفصلة داخل التطبيق
 -- ---------------------------------------------------------------------
 -- المطلب: فريق العيادات تحت مسؤول العيادات «مصطفى أحمد» يسجل حضوره
@@ -38,6 +38,38 @@ begin
   on conflict do nothing;
 end $seed$;
 
+-- ─── مرآة دور التنفيذي: إحياء الslug التاريخي executive-director ───
+-- تحديثات لاحقة أعادت تسمية الدور إلى executive فكسرت كل ما يبحث عن
+-- الاسم القديم (fixtures + first_active_employee_for_role + إشعارات
+-- القرارات التنفيذية). نُحيي الاسم القديم كمرآة كاملة: الدور بنفس
+-- الصلاحيات، ونُنسخ إليه إسنادات المستخدمين من executive.
+do $mirror$
+declare
+  v_old uuid;
+  v_new uuid;
+begin
+  select id into v_new from public.roles where slug = 'executive';
+  if v_new is null then return; end if;
+
+  insert into public.roles (slug, name_ar, name_en, description, is_system, is_full_access)
+  values ('executive-director',
+          (select name_ar from public.roles where id = v_new),
+          (select name_en from public.roles where id = v_new),
+          'مرآة توافقية لدور executive (0474)', true, false)
+  on conflict (slug) do nothing;
+
+  select id into v_old from public.roles where slug = 'executive-director';
+
+  insert into public.role_permissions (role_id, permission_id, scope, requires_mfa, requires_reason)
+  select v_old, permission_id, scope, requires_mfa, requires_reason
+    from public.role_permissions where role_id = v_new
+  on conflict (role_id, permission_id, scope) do nothing;
+
+  insert into public.user_roles (user_id, role_id, effective_from, effective_to)
+  select ur.user_id, v_old, ur.effective_from, ur.effective_to
+    from public.user_roles ur where ur.role_id = v_new
+  on conflict (user_id, role_id) do nothing;
+end $mirror$;
 -- ─── المساعدات المركزية ───
 create or replace function public.is_employee_isolated(p_employee_id uuid)
 returns boolean
@@ -137,7 +169,7 @@ on conflict (role_id, permission_id, scope) do nothing;
 insert into public.workflow_definitions (code, name_ar, description, request_type, version, is_active, is_default, auto_escalate, default_due_hours)
 select 'medical_leave_v1', 'اعتماد الإدارة الطبية',
        'مسار الإدارة الطبية: اعتماد المدير المباشر (مسؤول العيادات) ثم اكتمال',
-       'leave', 1, true, false, false, 48
+       'leave', 1, true, false, false, 2
 where not exists (select 1 from public.workflow_definitions where code = 'medical_leave_v1');
 
 insert into public.workflow_steps (definition_id, step_order, name_ar, step_type, approver_type, sla_hours)
@@ -739,3 +771,225 @@ $function$;
 commit;
 
 notify pgrst, 'reload schema';
+
+
+
+
+-- ─── إصلاح مكمّل لعقد 0473: الخطورة P2 تخالف القيد P0/P1 فانهار التنبيه ──
+CREATE OR REPLACE FUNCTION public.verify_critical_cron_jobs()
+ RETURNS TABLE(jobname text, active boolean, last_run timestamp with time zone, last_run_status text)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_missing text[];
+  v_has_cron boolean;
+  v_dispatch_last_success timestamptz;
+  v_outbox_oldest_pending timestamptz;
+  v_failed_push_7d bigint;
+begin
+  if current_user not in ('postgres', 'service_role', 'supabase_admin')
+     and not public.current_is_full_access()
+     and (auth.jwt() ->> 'role') is distinct from 'service_role' then
+    raise exception 'FORBIDDEN' using errcode = '42501';
+  end if;
+
+  select exists (
+    select 1
+    from pg_available_extensions
+    where name = 'pg_cron' and installed_version is not null
+  ) into v_has_cron;
+
+  if not v_has_cron then
+    insert into public.system_alerts(
+      alert_key, severity, title, detail, source, context, status
+    ) values (
+      'cron_pg_cron_unavailable', 'P0',
+      'pg_cron ╪║┘è╪▒ ┘à┘ü╪╣┘æ┘ä ┘ü┘è ╪¿┘è╪ª╪⌐ ╪º┘ä╪¬╪┤╪║┘è┘ä',
+      '┘ä╪º ┘è┘à┘â┘å ╪¼╪»┘ê┘ä╪⌐ ╪º┘ä┘à┘ç╪º┘à ╪º┘ä╪¡╪▒╪¼╪⌐ ╪¡╪¬┘ë ╪¬┘ü╪╣┘è┘ä pg_cron ╪ú┘ê ╪¬┘ê╪½┘è┘é ╪¿╪»┘è┘ä ╪«╪º╪▒╪¼┘è ┘à╪╣╪¬┘à╪».',
+      'cron', jsonb_build_object('category', 'cron_health'), 'open'
+    )
+    on conflict (alert_key) where status = 'open' do update
+      set last_seen_at = now(),
+          occurrences = public.system_alerts.occurrences + 1;
+    return;
+  end if;
+
+  select array_agg(j.expected_jobname order by j.expected_jobname)
+    into v_missing
+  from (
+    values
+      ('hr_request_sla'),
+      ('hr_leave_accrual'),
+      ('hr_scheduled_reports'),
+      ('hr_notification_dispatch'),
+      ('hr_integration_outbox'),
+      ('hr_retention_cleanup_storage'),
+      ('hr_scheduled_report_runner')
+  ) as j(expected_jobname)
+  where not exists (
+    select 1
+    from cron.job cj
+    where cj.jobname = j.expected_jobname
+      and cj.active
+  );
+
+  if coalesce(cardinality(v_missing), 0) > 0 then
+    insert into public.system_alerts(
+      alert_key, severity, title, detail, source, context, status
+    ) values (
+      'cron_critical_jobs_missing', 'P0',
+      '┘à┘ç╪º┘à cron ╪¡╪▒╪¼╪⌐ ╪║┘è╪▒ ┘à╪¼╪»┘ê┘ä╪⌐ ╪ú┘ê ╪║┘è╪▒ ┘å╪┤╪╖╪⌐',
+      '╪º┘ä┘à┘ç╪º┘à ╪º┘ä┘à┘ü┘é┘ê╪»╪⌐: ' || array_to_string(v_missing, ', '),
+      'cron',
+      jsonb_build_object('category', 'cron_health', 'missingJobs', to_jsonb(v_missing)),
+      'open'
+    )
+    on conflict (alert_key) where status = 'open' do update
+      set last_seen_at = now(),
+          detail = excluded.detail,
+          context = excluded.context,
+          occurrences = public.system_alerts.occurrences + 1;
+  else
+    update public.system_alerts
+    set status = 'resolved', resolved_at = now(), last_seen_at = now()
+    where alert_key = 'cron_critical_jobs_missing' and status = 'open';
+  end if;
+
+  -- ΓöÇΓöÇ 0467: ╪¬╪ú╪«╪▒ ╪│╪º╪¡╪¿ ╪º┘ä╪Ñ╪┤╪╣╪º╪▒╪º╪¬ (┘è╪╣┘à┘ä ┘â┘ä ╪»┘é┘è┘é╪⌐) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  select max(d.start_time)
+    into v_dispatch_last_success
+  from cron.job cj
+  join cron.job_run_details d on d.jobid = cj.jobid
+  where cj.jobname = 'hr_notification_dispatch'
+    and d.status = 'succeeded';
+
+  if coalesce(v_dispatch_last_success, '-infinity'::timestamptz)
+       < now() - interval '10 minutes' then
+    insert into public.system_alerts(
+      alert_key, severity, title, detail, source, context, status
+    ) values (
+      'notification_dispatch_stalled', 'P1',
+      '╪│╪º╪¡╪¿ ╪º┘ä╪Ñ╪┤╪╣╪º╪▒╪º╪¬ ┘à╪¬┘ê┘é┘ü ╪╣┘å ╪º┘ä┘å╪¼╪º╪¡',
+      '┘ä┘à ┘è╪│╪¼┘æ┘ä hr_notification_dispatch ╪ú┘è ╪¬╪┤╪║┘è┘ä ┘å╪º╪¼╪¡ ╪«┘ä╪º┘ä ╪ó╪«╪▒ 10 ╪»┘é╪º╪ª┘é╪¢ ╪Ñ╪┤╪╣╪º╪▒╪º╪¬ ╪º┘ä╪╖╪º╪¿┘ê╪▒ ┘é╪» ╪¬╪¬╪ú╪«╪▒ ╪ú┘ê ╪¬╪¬╪▒╪º┘â┘à.',
+      'cron',
+      jsonb_build_object(
+        'category', 'queue_health',
+        'lastSuccessAt', to_char(v_dispatch_last_success, 'YYYY-MM-DD"T"HH24:MI:SSOF')
+      ),
+      'open'
+    )
+    on conflict (alert_key) where status = 'open' do update
+      set last_seen_at = now(),
+          context = excluded.context,
+          occurrences = public.system_alerts.occurrences + 1;
+  else
+    update public.system_alerts
+    set status = 'resolved', resolved_at = now(), last_seen_at = now()
+    where alert_key = 'notification_dispatch_stalled' and status = 'open';
+  end if;
+
+  -- ΓöÇΓöÇ 0467: ╪¬╪ú╪«╪▒ ╪╖╪º╪¿┘ê╪▒ ╪º┘ä╪¬┘â╪º┘à┘ä╪º╪¬ (╪º┘ä╪╣╪º┘à┘ä ┘è╪╣┘à┘ä ┘â┘ä 5 ╪»┘é╪º╪ª┘é) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  select min(o.created_at)
+    into v_outbox_oldest_pending
+  from public.integration_outbox o
+  where o.status in ('pending', 'retry');
+
+  if coalesce(v_outbox_oldest_pending, '-infinity'::timestamptz)
+       < now() - interval '15 minutes' then
+    insert into public.system_alerts(
+      alert_key, severity, title, detail, source, context, status
+    ) values (
+      'integration_outbox_lag', 'P1',
+      '╪╖╪º╪¿┘ê╪▒ ╪º┘ä╪¬┘â╪º┘à┘ä╪º╪¬ ┘à╪¬╪ú╪«╪▒',
+      '╪¬┘ê╪¼╪» ╪╡┘ü┘ê┘ü integration_outbox ╪¿╪º┘å╪¬╪╕╪º╪▒ ╪º┘ä┘à╪╣╪º┘ä╪¼╪⌐ ┘à┘å╪░ ╪ú┘â╪½╪▒ ┘à┘å 15 ╪»┘é┘è┘é╪⌐ ΓÇö ╪¬╪¡┘é┘é ┘à┘å worker ╪ú┘ê ┘å┘é╪╖╪⌐ ╪º┘ä╪º╪│╪¬┘é╪¿╪º┘ä.',
+      'cron',
+      jsonb_build_object(
+        'category', 'queue_health',
+        'oldestPendingAt', to_char(v_outbox_oldest_pending, 'YYYY-MM-DD"T"HH24:MI:SSOF')
+      ),
+      'open'
+    )
+    on conflict (alert_key) where status = 'open' do update
+      set last_seen_at = now(),
+          context = excluded.context,
+          occurrences = public.system_alerts.occurrences + 1;
+  else
+    update public.system_alerts
+    set status = 'resolved', resolved_at = now(), last_seen_at = now()
+    where alert_key = 'integration_outbox_lag' and status = 'open';
+  end if;
+
+  -- ΓöÇΓöÇ 0467: ┘ü┘è╪╢ ╪Ñ╪┤╪╣╪º╪▒╪º╪¬ push ╪º┘ä┘ü╪º╪┤┘ä╪⌐ ╪«┘ä╪º┘ä ╪ú╪│╪¿┘ê╪╣ ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  select count(*)
+    into v_failed_push_7d
+  from public.notification_jobs j
+  where j.status = 'failed'
+    and j.channel = 'push'
+    and j.created_at > now() - interval '7 days';
+
+  if v_failed_push_7d >= 50 then
+    insert into public.system_alerts(
+      alert_key, severity, title, detail, source, context, status
+    ) values (
+      'notification_push_failures_spike', 'P1',
+      '╪¬╪▒╪º┘â┘à ╪Ñ╪┤╪╣╪º╪▒╪º╪¬ push ┘ü╪º╪┤┘ä╪⌐',
+      '┘ü╪┤┘ä ' || v_failed_push_7d::text || ' ╪Ñ╪┤╪╣╪º╪▒ push ╪«┘ä╪º┘ä ╪ó╪«╪▒ 7 ╪ú┘è╪º┘à ΓÇö ╪║╪º┘ä╪¿╪º┘ï ╪║┘è╪º╪¿ ╪¬┘ê┘â┘å╪º╪¬ FCM ╪╡╪º┘ä╪¡╪⌐ ╪ú┘ê ╪╣╪╖┘ä ┘ü┘è ╪º┘ä╪¬╪│┘ä┘è┘à.',
+      'cron',
+      jsonb_build_object('category', 'queue_health', 'failedCount7d', v_failed_push_7d),
+      'open'
+    )
+    on conflict (alert_key) where status = 'open' do update
+      set last_seen_at = now(),
+          detail = excluded.detail,
+          context = excluded.context,
+          occurrences = public.system_alerts.occurrences + 1;
+  else
+    update public.system_alerts
+    set status = 'resolved', resolved_at = now(), last_seen_at = now()
+    where alert_key = 'notification_push_failures_spike' and status = 'open';
+  end if;
+
+  return query
+  select
+    cj.jobname::text,
+    cj.active,
+    cr.start_time,
+    cr.status::text
+  from cron.job cj
+  left join lateral (
+    select d.start_time, d.status
+    from cron.job_run_details d
+    where d.jobid = cj.jobid
+    order by d.start_time desc
+    limit 1
+  ) cr on true
+  where cj.jobname like 'hr_%'
+  order by cj.jobname;
+end;
+$function$;
+-- ─── ترميم كتالوج صلاحيات الانضباط (حُذفت بالخطأ في تشديد الصلاحيات) ───
+-- submit/decide_discipline_action يشترطان هذين الكودين؛ غيابهما أوقف
+-- الميزة على الجميع عدا full_access.
+insert into public.permissions (code, module, resource, action, description, risk_level)
+values
+  ('relations.discipline.create','relations','discipline','create','إنشاء إجراء انضباط لموظف','sensitive'),
+  ('relations.discipline.approve','relations','discipline','approve','اعتماد/رفض إجراء انضباط','sensitive')
+on conflict (code) do nothing;
+
+insert into public.role_permissions (role_id, permission_id, scope)
+select r.id, p.id, 'organization'
+  from public.roles r
+  join public.permissions p on p.code = 'relations.discipline.create'
+ where r.slug = 'hr-manager'
+on conflict (role_id, permission_id, scope) do nothing;
+
+insert into public.role_permissions (role_id, permission_id, scope)
+select r.id, p.id, 'organization'
+  from public.roles r
+  join public.permissions p on p.code = 'relations.discipline.approve'
+ where r.slug in ('executive-director', 'executive')
+on conflict (role_id, permission_id, scope) do nothing;
+
+commit;
