@@ -1,6 +1,6 @@
--- 0111: V25 — المسار الطبيعي فقط (0462 ألغى تجاوز HR غير المقيد من 0441).
+-- 0111: V25 — HR (hr-manager) غير مقيد (0441): يعتمد أي طلب في أي وقت.
 -- العقد: مدير مباشر → أبو عمار (operations-manager-1)؛ الخطوة 2 نهائية.
---   · HR بلا أي صلاحية قرار خارج مساره الطبيعي: تُرفض محاولاته دائماً.
+--   · HR بلا أي قيد زمني أو مرحلي: يعتمد قبل/بعد انتهاء المهلة وأي خطوة.
 --   · انتهاء مهلة الخطوة 1 → تصعيد (process_request_sla) ينشّط الخطوة 2.
 --   · انتهاء مهلة الخطوة 2 → تذكير دوري لأبو عمار + إعادة ضبط المهلة (24س)،
 --     وليس إنشاء خطوة 3 إطلاقاً.
@@ -51,7 +51,7 @@ select is(
 );
 
 -- =====================================================================
--- 2. decide_request — المسار الطبيعي فقط (0462: بلا أي تجاوز HR)
+-- 2. decide_request — HR مدمج في منطق القبول (غير مقيد — 0441)
 -- =====================================================================
 select lives_ok(
   $live$do $t$
@@ -63,12 +63,12 @@ select lives_ok(
        or v_src not ilike '%v_current_step >= 2%'
        or v_src not ilike '%operations-manager-1%'
        or v_src not ilike '%(status = ''active'') desc%'
-       or v_src ilike '%hr-manager%'
+       or v_src not ilike '%hr-manager%'
        or v_src ilike '%v_current_step >= 3%' then
-      raise exception 'منطق الصلاحية (المسار الطبيعي — مدير دائماً / أبو عمار step>=2 أو مهلة متجاوزة، بلا HR — 0462) غير موجود في decide_request';
+      raise exception 'منطق الصلاحية (مدير دائماً / أبو عمار step>=2 أو مهلة متجاوزة / HR غير مقيد — 0441) غير موجود في decide_request';
     end if;
   end $t$$live$,
-  'decide_request يحوي الصلاحية الطبيعية (مدير / أبو عمار — بلا HR — 0462)'
+  'decide_request يحوي الصلاحية (مدير / أبو عمار / HR غير مقيد — 0441)'
 );
 
 -- =====================================================================
@@ -162,7 +162,7 @@ select is(
 );
 
 -- =====================================================================
--- 6. HR مرفوض دائماً خارج مساره الطبيعي — حتى بعد انتهاء مهلة المدير (0462)
+-- 6. HR يعتمد في أي وقت: انتهاء مهلة الخطوة 1 لا يقيّد HR (0441)
 -- =====================================================================
 reset role;
 update public.request_steps set escalation_deadline = now() - interval '1 day'
@@ -171,35 +171,28 @@ where request_id = (select id from wf_runtime where kind = 'hr_bypass')
 
 select pg_temp.act_as_0111('97000000-0000-4000-8000-000000000104');
 set local role authenticated;
-select throws_ok(
+select lives_ok(
   $live$
     select public.decide_request(
       (select id from wf_runtime where kind = 'hr_bypass'),
-      'approve', 'محاولة HR بعد انتهاء مهلة المدير'
+      'approve', 'اعتماد HR بعد انتهاء مهلة المدير'
     )
   $live$,
-  '42501',
-  null,
-  'HR لا يعتمد حتى بعد انتهاء مهلة الخطوة 1 (المسار الطبيعي فقط — 0462)'
+  'HR يعتمد الطلب حتى بعد انتهاء مهلة الخطوة 1 (غير مقيد — 0441)'
 );
 
 select is(
   (select status from public.requests
    where id = (select id from wf_runtime where kind = 'hr_bypass')),
-  'pending', 'الطلب يبقى معلقاً بعد رفض محاولة HR'
+  'approved', 'الطلب معتمد بقرار HR'
 );
 
 select is(
   (select count(*)::integer from public.request_steps
    where request_id = (select id from wf_runtime where kind = 'hr_bypass')
      and status in ('active','pending','escalated')),
-  2, 'خطوتا الطلب ما زالتا مفتوحتين — لم يغلقها قرار HR المرفوض'
+  0, 'اعتماد HR أغلق جميع الخطوات المعلقة'
 );
-
--- إبعاد الطلب المرفوض محاولته عن نطاق معالج SLA كي لا يُحصى في الأقسام التالية
-reset role;
-update public.request_steps set escalation_deadline = now() + interval '10 years'
-where request_id = (select id from wf_runtime where kind = 'hr_bypass');
 
 -- =====================================================================
 -- 7. تحكم: أبو عمار ما زال مقيداً على الطلب الجديد (لم تتجاوز مهلته)

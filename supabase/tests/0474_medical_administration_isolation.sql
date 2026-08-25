@@ -1,5 +1,5 @@
--- =====================================================================
--- 0472: عزل الإدارة الطبية — مصفوفة الرؤية والمسار الطبي
+﻿-- =====================================================================
+-- 0474: عزل الإدارة الطبية — مصفوفة الرؤية والمسار الطبي
 -- ---------------------------------------------------------------------
 -- يثبت: علم العزل على القسم، المساعدات المركزية، الدليل المتبادل
 -- (الموظف العادي لا يرى الطاقم الطبي والطاقم يرى قسمه ومديره فقط)،
@@ -64,7 +64,7 @@ begin
     ) t(u,slug) join public.roles r on r.slug=t.slug;
 end $fixture$;
 
-create or replace function pg_temp.act_as_0472(p_user uuid) returns void
+create or replace function pg_temp.act_as_0474(p_user uuid) returns void
 language plpgsql as $$
 begin
   perform set_config('request.jwt.claims',
@@ -73,6 +73,7 @@ begin
 end $$;
 
 create temp table pg_temp.t472(kind text primary key, id uuid) on commit drop;
+grant select, insert, update on pg_temp.t472 to authenticated;
 
 -- =====================================================================
 -- 1) البنية والمساعدات.
@@ -97,11 +98,11 @@ select is(
   1, 'المسار الطبي بخطوة اعتماد واحدة فعّالة');
 
 -- رؤية المعزول: المدير وزميل القسم فقط
-select pg_temp.act_as_0472('d4720000-0000-4000-8000-000000000203');
+select pg_temp.act_as_0474('d4720000-0000-4000-8000-000000000103');
 select is(
   (select public.can_view_isolated_employee('d4720000-0000-4000-8000-000000000204'::uuid)),
   true, 'مسؤول العيادات يرى طاقمه المعزول');
-select pg_temp.act_as_0472('d4720000-0000-4000-8000-000000000201');
+select pg_temp.act_as_0474('d4720000-0000-4000-8000-000000000101');
 select is(
   (select public.can_view_isolated_employee('d4720000-0000-4000-8000-000000000204'::uuid)),
   false, 'موظف خارجي لا يرى المعزولين');
@@ -109,7 +110,7 @@ select is(
 -- =====================================================================
 -- 2) الدليل المتبادل.
 -- =====================================================================
-select pg_temp.act_as_0472('d4720000-0000-4000-8000-000000000201'); -- موظف عادي
+select pg_temp.act_as_0474('d4720000-0000-4000-8000-000000000101'); -- موظف عادي
 select ok(
   not exists (
     select 1 from jsonb_array_elements(public.get_mobile_employee_directory(null,100)) x
@@ -119,7 +120,7 @@ select ok(
   ),
   'الدليل لا يعرض الإدارة الطبية للموظف العادي');
 
-select pg_temp.act_as_0472('d4720000-0000-4000-8000-000000000104'); -- طبيب
+select pg_temp.act_as_0474('d4720000-0000-4000-8000-000000000104'); -- طبيب
 select ok(
   not exists (
     select 1 from jsonb_array_elements(public.get_mobile_employee_directory(null,100)) x
@@ -138,7 +139,7 @@ insert into public.attendance_daily(employee_id, work_date, status, is_finalized
   ('d4720000-0000-4000-8000-000000000201', (now() at time zone 'Africa/Cairo')::date, 'present', true),
   ('d4720000-0000-4000-8000-000000000204', (now() at time zone 'Africa/Cairo')::date, 'present', true);
 
-select pg_temp.act_as_0472('d4720000-0000-4000-8000-000000000201');
+select pg_temp.act_as_0474('d4720000-0000-4000-8000-000000000101');
 select is(
   (select total from (
      select public.get_attendance_day_roster(
@@ -156,7 +157,7 @@ select is(
 -- =====================================================================
 -- 4) المسار: طلبات المعزول ← medical_leave_v1؛ والعادي ← مساره.
 -- =====================================================================
-select pg_temp.act_as_0472('d4720000-0000-4000-8000-000000000104');
+select pg_temp.act_as_0474('d4720000-0000-4000-8000-000000000104');
 set local role authenticated;
 do $sub$
 declare v_req public.requests;
@@ -179,12 +180,12 @@ select is(
      and status='active'),
   1, 'المسار الطبي خطوة نشطة واحدة');
 select is(
-  (select ws.approver_type from public.request_steps ws
+  (select ws.assignee_role_slug from public.request_steps ws
    where ws.request_id=(select id from pg_temp.t472 where kind='med')),
-  'direct_manager', 'خطوة المسار الطبي لمديره المباشر (مسؤول العيادات)');
+  null, 'خطوة المسار الطبي للمدير المباشر (بلا دور مُعيَّن)');
 
 reset role;
-select pg_temp.act_as_0472('d4720000-0000-4000-8000-000000000201');
+select pg_temp.act_as_0474('d4720000-0000-4000-8000-000000000101');
 set local role authenticated;
 do $sub2$
 declare v_req public.requests;
