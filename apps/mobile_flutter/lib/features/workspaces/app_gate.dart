@@ -70,6 +70,23 @@ class _AuthenticatedGate extends ConsumerWidget {
 
     final session = ref.watch(authSessionProvider);
     final connectivity = ref.watch(connectivityProvider);
+    // 0471-UX: عند انقطاع الشبكة لا معنى لعرض «تسجيل الخروج» — الحل هو
+    // إعادة المحاولة بعد عودة الاتصال. الخروج يُعرض فقط عند اتصال سليم
+    // (أي أن المشكلة في الجلسة نفسها لا في الشبكة).
+    final offlineLike = connectivity == ConnectivityState.offline ||
+        connectivity == ConnectivityState.reconnecting ||
+        connectivity == ConnectivityState.serverUnavailable;
+
+    // 0471-UX: عند عودة الاتصال بعد انقطاع، نعيد تحميل الصلاحيات تلقائيًا
+    // إن كانت في حالة خطأ — بدل ترك المستخدم أمام زر إعادة المحاولة.
+    ref.listen(connectivityProvider, (previous, next) {
+      if (previous != ConnectivityState.online &&
+          next == ConnectivityState.online) {
+        if (ref.read(accessContextProvider) is AsyncError) {
+          ref.invalidate(accessContextProvider);
+        }
+      }
+    });
 
     return session.when(
       loading: () => _TimedLoadingPage(
@@ -79,7 +96,7 @@ class _AuthenticatedGate extends ConsumerWidget {
           ref.invalidate(authSessionProvider);
           ref.invalidate(accessContextProvider);
         },
-        onSignOut: signOut,
+        onSignOut: offlineLike ? null : signOut,
       ),
       error: (_, _) => _ErrorPage(
         message: 'تعذر استعادة جلسة الدخول بأمان. أعد تسجيل الدخول.',
@@ -117,12 +134,14 @@ class _AuthenticatedGate extends ConsumerWidget {
             label: 'جارٍ تحميل الصلاحيات…',
             timeout: const Duration(seconds: 20),
             onRetry: () => ref.invalidate(accessContextProvider),
-            onSignOut: signOut,
+            onSignOut: offlineLike ? null : signOut,
           ),
           error: (_, _) => _ErrorPage(
-            message: 'تعذر تحميل صلاحيات الحساب. تحقق من الاتصال وأعد المحاولة.',
+            message: offlineLike
+                ? 'انقطع الاتصال أثناء تحميل الصلاحيات. سيتم إعادة المحاولة تلقائيًا — أو اضغط إعادة المحاولة بعد عودة الإنترنت.'
+                : 'تعذر تحميل صلاحيات الحساب. تحقق من الاتصال وأعد المحاولة.',
             onRetry: () => ref.invalidate(accessContextProvider),
-            onSignOut: signOut,
+            onSignOut: offlineLike ? null : signOut,
           ),
           data: (contextData) {
             if (contextData == null) return const LoginPage();

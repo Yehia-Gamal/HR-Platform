@@ -35,8 +35,14 @@ final accessContextProvider = FutureProvider<AccessContext?>((ref) async {
   final session = ref.watch(authSessionProvider).value;
   if (session == null) return null;
   final client = ref.watch(supabaseProvider);
-  final response = await rpcWithTimeout(
-    client.rpc<dynamic>('get_my_access_context'),
+  // 0471-UX: انقطات الشبكة اللحظية كانت تُسقط الواجهة إلى صفحة
+  // «تسجيل الخروج» فورًا. نعيد المحاولة بتراجع متزايد قبل الاستسلام —
+  // أغلب الحالات تُحل تلقائيًا خلال ثوانٍ دون إزعاج المستخدم.
+  final response = await retryWithBackoff(
+    () => rpcWithTimeout(
+      client.rpc<dynamic>('get_my_access_context'),
+    ),
+    maxRetries: 3,
   );
   return AccessContext.fromJson(
     Map<String, dynamic>.from(response as Map<dynamic, dynamic>),
