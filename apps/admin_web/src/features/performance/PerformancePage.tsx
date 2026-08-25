@@ -16,12 +16,12 @@ import { safeErrorMessage } from '../../core/errorMapper';
 
 const stageLabel: Record<KpiEvaluationSummary['currentStage'], string> = {
   self: 'التقييم الذاتي',
-  parallel_review: 'مراجعة متوازية',
-  hr_review: 'مراجعة HR',
-  manager_review: 'مراجعة المدير المباشر',
+  parallel_review: 'مراجعة متوازية (قديم)',
+  hr_review: 'مراجعة HR (قديم)',
+  manager_review: 'عند المدير المباشر',
   manager_final: 'اعتماد المدير (قديم)',
-  secretary_review: 'مراجعة السكرتير',
-  executive_review: 'مراجعة المدير التنفيذي',
+  secretary_review: 'مراجعة السكرتير (قديم)',
+  executive_review: 'مراجعة المدير التنفيذي (قديم)',
   finalized: 'مدرج في التقرير الشهري',
   closed: 'مغلق',
   archived: 'مؤرشف',
@@ -79,9 +79,9 @@ export function PerformancePage() {
 
   const counts = {
     total: tabItems.length,
-    parallel: tabItems.filter((item) => item.currentStage === 'parallel_review').length,
+    self: tabItems.filter((item) => item.currentStage === 'self').length,
     manager: tabItems.filter((item) => item.currentStage === 'manager_review').length,
-    hr: tabItems.filter((item) => item.currentStage === 'hr_review').length,
+    awaitingAck: tabItems.filter((item) => (item.workflowStatus as string) === 'EMPLOYEE_ACKNOWLEDGEMENT_PENDING').length,
     completed: tabItems.filter((item) => ['finalized', 'closed', 'archived'].includes(item.currentStage)).length,
     overdue: tabItems.filter((item) => (item.workflowStatus as string) === 'OVERDUE').length,
   };
@@ -91,7 +91,7 @@ export function PerformancePage() {
       <PageHeader
         eyebrow="الأداء"
         title="KPI والأداء"
-        description="الموظف يقيّم ذاتيًا، ثم تراجع HR والمدير بالتوازي، ثم السكرتير التنفيذي يراجع والمدير التنفيذي يعتمد."
+        description="الموظف يقيّم ذاتيًا، ثم يقيّم المدير المباشر ويعتمد في خطوة واحدة، وأخيرًا يُقرّ الموظف بالنتيجة."
       />
 
       {/* 0204: شريط التابات */}
@@ -132,9 +132,9 @@ export function PerformancePage() {
       ) : null}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <MetricCard label="إجمالي التقييمات" value={counts.total} icon={UsersRound} onClick={() => setStage('all')} />
-        <MetricCard label="مراجعة متوازية" value={counts.parallel} icon={Gauge} onClick={() => setStage('parallel_review')} />
+        <MetricCard label="بانتظار الموظفين" value={counts.self} icon={User} onClick={() => setStage('self')} />
         <MetricCard label="عند المديرين" value={counts.manager} icon={Gauge} onClick={() => setStage('manager_review')} />
-        <MetricCard label="عند HR" value={counts.hr} icon={Gauge} onClick={() => setStage('hr_review')} />
+        <MetricCard label="بانتظار الإقرار" value={counts.awaitingAck} icon={AlertTriangle} onClick={() => setStage('finalized')} />
         <MetricCard label="المكتملة" value={counts.completed} icon={CheckCircle2} onClick={() => setStage('finalized')} />
       </section>
       <FilterBar
@@ -151,11 +151,7 @@ export function PerformancePage() {
         <select className="input" aria-label="تصفية حسب مرحلة التقييم" value={stage} onChange={(event) => setStage(event.target.value)}>
           <option value="all">كل المراحل</option>
           <option value="self">التقييم الذاتي</option>
-          <option value="parallel_review">مراجعة متوازية (V23)</option>
-          <option value="hr_review">مراجعة HR</option>
-          <option value="manager_review">مراجعة المدير</option>
-          <option value="secretary_review">مراجعة السكرتير</option>
-          <option value="executive_review">مراجعة المدير التنفيذي</option>
+          <option value="manager_review">عند المدير المباشر</option>
           <option value="finalized">مدرج في التقرير</option>
           <option value="closed">مغلق</option>
           <option value="archived">مؤرشف</option>

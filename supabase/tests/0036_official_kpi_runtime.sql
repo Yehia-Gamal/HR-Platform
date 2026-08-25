@@ -151,7 +151,7 @@ select is((select (final_breakdown->>'TARGET')::numeric from public.kpi_evaluati
 select set_config('request.jwt.claims','{"sub":"81000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','81000000-0000-4000-8000-000000000002',true);
 select lives_ok(
- $$select public.acknowledge_kpi_result((select evaluation_id from kpi_runtime_result),true,'أقر بالنتيجة')$$,
+ $$select public.acknowledge_kpi_evaluation((select evaluation_id from kpi_runtime_result),'أقر بالنتيجة',null)$$,
  'الموظف يُقر النتيجة المقفلة');
 select is((select workflow_status from public.kpi_evaluations where id=(select evaluation_id from kpi_runtime_result)),
  'EMPLOYEE_ACKNOWLEDGED','الحالة تصبح مُقرّاً بها');
@@ -160,7 +160,7 @@ select is((select workflow_status from public.kpi_evaluations where id=(select e
 select set_config('request.jwt.claims','{"sub":"81000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','81000000-0000-4000-8000-000000000003',true);
 select throws_ok(
- $$select public.acknowledge_kpi_result((select evaluation_id from kpi_runtime_result),true,'مدير يحاول')$$,
+ $$select public.acknowledge_kpi_evaluation((select evaluation_id from kpi_runtime_result),'مدير يحاول',null)$$,
  '42501',null,'الإقرار حق حصري لمالك التقييم');
 
 -- ═══ T9-T11: التوثيق وحلّ الموافِق ═══

@@ -17,9 +17,10 @@ export function usePerformance() {
   });
 }
 
-// V23: وسّعنا نوع action ليشمل مراحل المسار المتوازي الجديدة.
+// 0470: المسار القانوني الوحيد — ذاتي ثم اعتماد المدير الشامل.
 export type KpiAdvanceAction =
-  'self' | 'hr' | 'hr_review' | 'manager' | 'manager_review' | 'manager_final' | 'finalize' | 'parallel_review' | 'secretary_review' | 'executive_review';
+  | 'self'
+  | 'manager_review';
 
 export function useAdvanceKpi() {
   const auth = useAuth();

@@ -1,5 +1,6 @@
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
@@ -134,16 +135,13 @@ class _KpiEvaluationDetailPageState
   }
 
   Widget _content(KpiEvaluationForm form) {
-    // V23: في المراجعة المتوازية، الموظف يمكنه تعديل الدرجات أيضًا.
+    // 0470: المسار القانوني الوحيد — ذاتي ثم اعتماد المدير الشامل.
     final canEditScores =
-        form.editableStage == 'self' ||
-        form.editableStage == 'manager_review' ||
-        form.editableStage == 'parallel_review';
+        form.editableStage == 'self' || form.editableStage == 'manager_review';
     final canAct = form.editableStage != null && !form.locked;
-    // V23: إظهار الامتثال والجلسة في المراجعة المتوازية.
-    final isParallel = form.editableStage == 'parallel_review';
-    final showCompliance = form.editableStage == 'hr_review' || isParallel;
-    final showSession = form.editableStage == 'manager_review' || isParallel;
+    final showCompliance = form.editableStage == 'hr_review' ||
+        form.complianceEditable;
+    final showSession = form.editableStage == 'manager_review';
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -187,31 +185,34 @@ class _KpiEvaluationDetailPageState
           ),
         ),
         const SizedBox(height: 12),
-        // V23: مؤشر تقدم المراجعة المتوازية.
-        if (form.currentStage == 'parallel_review') ...[
-          Card(
-            color: Theme.of(context).colorScheme.secondaryContainer,
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Row(
-                children: [
-                  const Icon(Icons.sync_rounded, size: 20),
-                  const SizedBox(width: 10),
-                  Text(
-                    'HR ${form.hrCompleted == true ? '✓' : '⏳'} · المدير ${form.managerCompleted == true ? '✓' : '⏳'}',
-                    style: const TextStyle(fontWeight: FontWeight.w900),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
         _KpiStageStepper(
           currentStage: form.currentStage,
           parallelFlow: form.parallelFlow,
         ),
         const SizedBox(height: 12),
+        // 0470: إقرار الموظف على نتيجته النهائية المقفلة.
+        ...(() {
+          final myEmployeeId =
+              ref.watch(accessContextProvider).value?.employeeId;
+          final isOwner = myEmployeeId != null &&
+              form.workflowStatus == 'EMPLOYEE_ACKNOWLEDGEMENT_PENDING' &&
+              form.locked &&
+              myEmployeeId == form.employeeId;
+          return isOwner
+              ? [
+                  _AcknowledgementCard(
+                    onAcknowledge: (ack, note) async {
+                      // التوقيع: (id, note عند الإقرار, سبب الاعتراض)
+                      await ref
+                          .read(mobileCommandsProvider)
+                          .acknowledgeKpi(form.id, ack ? note : null,
+                              ack ? null : note);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ]
+              : const <Widget>[];
+        })(),
         if (form.goals.isNotEmpty) ...[
           const MobileSectionHeader(title: 'الأهداف — 40 درجة'),
           const SizedBox(height: 8),
@@ -447,19 +448,10 @@ class _KpiEvaluationDetailPageState
     );
   }
 
-  // V23: تسميات أزرار الاعتماد حسب المرحلة والسياق.
+  // 0470: تسميات أزرار الاعتماد — المسار الوحيد.
   String _submitLabel(String? stage, {bool parallel = false}) => switch (stage) {
-    'self' => 'تسليم التقييم الذاتي',
-    'hr_review' => parallel
-        ? 'اعتماد مراجعة HR وإرسال'
-        : 'اعتماد مراجعة الموارد البشرية',
-    'manager_review' => parallel
-        ? 'اعتماد مراجعة المدير وإرسال'
-        : 'اعتماد مراجعة المدير المباشر',
-    'manager_final' => 'اعتماد النتيجة وإدراجها في التقرير',
-    'parallel_review' => 'اعتماد مراجعتي وإرسال',
-    'secretary_review' => 'اعتماد وإرسال للمدير التنفيذي',
-    'executive_review' => 'إقرار واعتماد نهائي',
+    'self' => 'تسليم التقييم الذاتي للمدير',
+    'manager_review' => 'تقييم واعتماد نهائي بخطوة واحدة',
     _ => 'حفظ وإرسال',
   };
 
@@ -641,19 +633,9 @@ class _KpiEvaluationDetailPageState
   }
 
   Future<void> _returnStage(KpiEvaluationForm form) async {
-    // V23: أهداف الإرجاع حسب المرحلة الفعلية (editableStage).
-    // في V23 parallel، editableStage يكون 'hr_review' أو 'manager_review'،
-    // وليس 'parallel_review'، لذا نطابق على القيمة الفعلية.
-    final parallel = form.parallelFlow == true;
+    // 0470: الإرجاع المتاح فقط من المدير إلى الموظف.
     final target = switch (form.editableStage) {
-      'hr_review' when parallel => 'self',
-      'manager_review' when parallel => 'self',
-      'hr_review' => 'self',
-      'manager_review' => 'hr_review',
-      'manager_final' => 'manager_review',
-      'parallel_review' => 'self',
-      'secretary_review' => 'self',
-      'executive_review' => 'secretary_review',
+      'manager_review' => 'self',
       _ => null,
     };
     if (target == null) return;
@@ -995,6 +977,116 @@ class _KpiEvaluationDetailPageState
   }
 }
 
+/// 0470: إقرار الموظف بنتيجة تقييمه أو اعتراضه عليها (موثق تدقيقياً).
+class _AcknowledgementCard extends StatefulWidget {
+  const _AcknowledgementCard({required this.onAcknowledge});
+  final Future<void> Function(bool ack, String? note) onAcknowledge;
+
+  @override
+  State<_AcknowledgementCard> createState() => _AcknowledgementCardState();
+}
+
+class _AcknowledgementCardState extends State<_AcknowledgementCard> {
+  bool _busy = false;
+
+  Future<void> _act(bool ack) async {
+    String? note;
+    if (!ack) {
+      final controller = TextEditingController();
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('اعتراض على النتيجة'),
+          content: TextField(
+            controller: controller,
+            minLines: 2,
+            maxLines: 5,
+            decoration: const InputDecoration(
+              labelText: 'سبب الاعتراض',
+              hintText: 'اذكر نقاطك بوضوح ليتم مراجعتها',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('إرسال الاعتراض'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+      note = controller.text.trim().isEmpty ? null : controller.text.trim();
+    }
+    setState(() => _busy = true);
+    try {
+      await widget.onAcknowledge(ack, note);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(ack ? 'تم تسجيل إقرارك بالنتيجة' : 'تم توثيق اعتراضك'),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذر تنفيذ العملية، حاول مجددًا')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Theme.of(context).colorScheme.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'بانتظار إقرارك بهذه النتيجة',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 6),
+            const Text('راجع الدرجة والتقدير أعلاه ثم أخبرنا برأيك.'),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: _busy ? null : () => _act(true),
+                    icon: const Icon(Icons.check_circle_outline_rounded),
+                    label: const Text('أُقر بالنتيجة'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _busy ? null : () => _act(false),
+                    icon: const Icon(Icons.gavel_rounded),
+                    label: const Text('أعترض'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _KpiStageStepper extends StatelessWidget {
   const _KpiStageStepper({
     required this.currentStage,
@@ -1003,22 +1095,13 @@ class _KpiStageStepper extends StatelessWidget {
   final String currentStage;
   final bool parallelFlow;
 
-  // V23: المسار المتوازي يمر بمراحل مختلفة عن V17.
-  List<(String, String)> get _stages => parallelFlow
-      ? const [
-          ('self', 'الموظف'),
-          ('parallel_review', 'HR + المدير'),
-          ('secretary_review', 'السكرتير'),
-          ('executive_review', 'التنفيذي'),
-          ('finalized', 'معتمد'),
-        ]
-      : const [
-          ('self', 'الموظف'),
-          ('hr_review', 'الموارد البشرية'),
-          ('manager_review', 'المدير'),
-          ('manager_final', 'اعتماد نهائي'),
-          ('finalized', 'معتمد'),
-        ];
+  // 0470: المسار الوحيد — ذاتي ثم اعتماد المدير الشامل.
+  // الدورات القديمة بمراحل تاريخية تُعامل كمكتملة للعرض فقط.
+  List<(String, String)> get _stages => const [
+        ('self', 'الموظف'),
+        ('manager_review', 'المدير'),
+        ('finalized', 'معتمد'),
+      ];
 
   int _resolveIndex() {
     final stages = _stages;

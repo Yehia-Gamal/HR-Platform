@@ -77,6 +77,8 @@ export const kpiEvaluationFormSchema = z.object({
   managerCompleted: z.boolean().optional(),
   parallelFlow: z.boolean().optional(),
   version: z.number().optional(),
+  // 0470: HR يدخل الاستثناءات في أي مرحلة قبل القفل
+  complianceEditable: z.boolean().optional(),
 });
 export type KpiEvaluationForm = z.infer<typeof kpiEvaluationFormSchema>;
 

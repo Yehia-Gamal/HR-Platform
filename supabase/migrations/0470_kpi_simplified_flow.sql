@@ -266,9 +266,11 @@ on conflict (evaluation_id,criterion_id,reviewer_stage) do nothing;
  return v_eval;
 end $$;
 
--- ─── 6) اعتراف/اعتراض الموظف على النتيجة النهائية ──────────────────────────
-create or replace function public.acknowledge_kpi_result(
- p_evaluation_id uuid, p_ack boolean, p_note text default null
+-- ─── 6) إقرار/اعتراض الموظف على النتيجة النهائية ──────────────────────────
+-- التوقيع متوافق مع واجهة الموبايل (acknowledge_kpi_evaluation):
+--   p_note = تعليق حر عند الإقرار، p_appeal_reason = سبب الاعتراض الموثق.
+create or replace function public.acknowledge_kpi_evaluation(
+ p_evaluation_id uuid, p_note text default null, p_appeal_reason text default null
 )
 returns public.kpi_evaluations
 language plpgsql security definer set search_path = public, pg_temp as $$
@@ -277,18 +279,19 @@ begin
  select * into strict v_eval from public.kpi_evaluations where id=p_evaluation_id for update;
  if v_eval.employee_id<>public.current_employee_id() then raise exception 'FORBIDDEN' using errcode='42501'; end if;
  if not v_eval.locked or v_eval.current_stage<>'finalized' then raise exception 'KPI_NOT_FINALIZED'; end if;
- if length(coalesce(p_note,''))>2000 then raise exception 'NOTE_TOO_LONG'; end if;
+ if length(coalesce(p_note,''))>2000 or length(coalesce(p_appeal_reason,''))>2000
+  then raise exception 'NOTE_TOO_LONG'; end if;
 
- if p_ack then
+ if coalesce(trim(p_appeal_reason),'')<>'' then
+  -- الاعتراض لا يغيّر الحالة المقفلة؛ يوثَّق ويُبلَّغ للموافق لحسمه
+  perform public.log_audit_event('kpi.result.disputed','workflow','warning','kpi_evaluations',v_eval.id,
+   'اعتراض الموظف على نتيجة التقييم',trim(p_appeal_reason),
+   jsonb_build_object('finalScore',v_eval.final_score,'approver',public.kpi_resolve_approver_for_employee(v_eval.employee_id)));
+ else
   update public.kpi_evaluations set workflow_status='EMPLOYEE_ACKNOWLEDGED',updated_at=now()
    where id=v_eval.id returning * into v_eval;
   perform public.log_audit_event('kpi.result.acknowledged','workflow','notice','kpi_evaluations',v_eval.id,
    'إقرار الموظف بنتيجة تقييمه',nullif(trim(p_note),''),null);
- else
-  -- الاعتراض لا يغيّر الحالة المقفلة؛ يوثَّق ويُبلَّغ للموافق لحسمه خارج النظام أو عبر التظلم
-  perform public.log_audit_event('kpi.result.disputed','workflow','warning','kpi_evaluations',v_eval.id,
-   'اعتراض الموظف على نتيجة التقييم',nullif(trim(p_note),''),
-   jsonb_build_object('finalScore',v_eval.final_score,'approver',public.kpi_resolve_approver_for_employee(v_eval.employee_id)));
  end if;
  return v_eval;
 end $$;
@@ -402,11 +405,73 @@ revoke all on function public.advance_kpi_stage(uuid,text,jsonb,text) from publi
 grant  execute on function public.advance_kpi_stage(uuid,text,jsonb,text) to authenticated;
 revoke all on function public.return_kpi_stage(uuid,text,text)           from public, anon;
 grant  execute on function public.return_kpi_stage(uuid,text,text)       to authenticated;
-revoke all on function public.acknowledge_kpi_result(uuid,boolean,text)  from public, anon;
-grant  execute on function public.acknowledge_kpi_result(uuid,boolean,text) to authenticated;
+revoke all on function public.acknowledge_kpi_evaluation(uuid,text,text)  from public, anon;
+grant  execute on function public.acknowledge_kpi_evaluation(uuid,text,text) to authenticated;
 revoke all on function public.kpi_resolve_approver_for_employee(uuid)    from public, anon;
 grant  execute on function public.kpi_resolve_approver_for_employee(uuid) to authenticated;
 revoke all on function public.create_kpi_cycle_admin(date,uuid,timestamptz,timestamptz,timestamptz,timestamptz,boolean,boolean) from public, anon;
 grant  execute on function public.create_kpi_cycle_admin(date,uuid,timestamptz,timestamptz,timestamptz,timestamptz,boolean,boolean) to authenticated;
+
+-- ─── 6.7) نموذج التقييم: قابلية تحرير بعقد 0470 ───────────────────────────
+-- editableStage يخص فاعل المسار فقط (self / manager_review)، بينما
+-- complianceEditable تُمكّن مراجع HR من إدخال الاستثناءات في أي مرحلة قبل القفل.
+create or replace function public.get_kpi_evaluation_form(p_evaluation_id uuid)
+returns jsonb language plpgsql volatile security definer set search_path=public,pg_temp as $$
+declare v_eval public.kpi_evaluations; v_employee public.employees; v_cycle public.kpi_cycles;
+ v_editable text; v_compliance_editable boolean:=false; v_locked boolean; v_criteria jsonb;
+begin
+ select * into strict v_eval from public.kpi_evaluations where id=p_evaluation_id for update;
+ if not public.kpi_can_read_evaluation(p_evaluation_id) then raise exception 'FORBIDDEN' using errcode='42501'; end if;
+ select * into v_employee from public.employees where id=v_eval.employee_id;
+ select * into v_cycle from public.kpi_cycles where id=v_eval.cycle_id;
+ v_locked:=v_eval.locked or v_cycle.status<>'open' or now()>public.kpi_effective_deadline(v_cycle);
+
+ if not v_locked then
+  if v_eval.current_stage='self' and v_eval.employee_id=public.current_employee_id()
+     and (public.current_is_full_access() or public.has_permission('performance.kpi.self_assess')) then
+   v_editable:='self';
+  elsif v_eval.current_stage='manager_review' and public.kpi_can_approve(v_eval) then
+   v_editable:='manager_review';
+  end if;
+  -- استثناءات HR متاحة في أي مرحلة غير مقفلة (0470)
+  if not v_eval.locked and public.current_is_hr_reviewer() then v_compliance_editable:=true; end if;
+ end if;
+
+ -- انتقالات حالة العرض
+ if v_editable='manager_review' and v_eval.workflow_status='SUBMITTED_TO_DIRECT_MANAGER' then
+  update public.kpi_evaluations set workflow_status='MANAGER_EVALUATION_IN_PROGRESS',updated_at=now() where id=v_eval.id returning * into v_eval;
+  perform public.log_audit_event('kpi.manager.review_started','workflow','info','kpi_evaluations',v_eval.id,'بدء المدير المباشر مراجعة التقييم',null,null);
+ end if;
+
+ select coalesce(jsonb_agg(jsonb_build_object(
+  'id',c.id,'code',c.code,'name',c.name_ar,'description',c.description,'sectionCode',c.section_code,
+  'weight',c.weight,'maxScore',c.max_score,'sortOrder',c.sort_order,'sourceType',c.source_type,
+  'evaluatorStage',c.evaluator_stage,'calculationMethod',c.calculation_method,
+  'editable',case when v_editable='self' then true
+                  when v_editable='manager_review' then c.evaluator_stage='manager'
+                  else false end,
+  'effectiveScore',public.kpi_effective_score(v_eval.id,c.id),
+  'stageScores',coalesce((select jsonb_object_agg(s.reviewer_stage,jsonb_build_object('score',s.score,'note',s.note)) from public.kpi_scores s where s.evaluation_id=v_eval.id and s.criterion_id=c.id),'{}')
+ ) order by c.sort_order),'[]'::jsonb) into v_criteria from public.kpi_criteria c where c.template_id=v_eval.template_id;
+
+ return jsonb_build_object(
+  'id',v_eval.id,'employeeId',v_eval.employee_id,'employeeName',v_employee.full_name_ar,'employeeCode',v_employee.employee_code,
+  'periodMonth',v_cycle.period_month,'currentStage',v_eval.current_stage,'workflowStatus',v_eval.workflow_status,'editableStage',v_editable,
+  'complianceEditable',v_compliance_editable,
+  'locked',v_locked,'finalScore',v_eval.final_score,'finalRating',v_eval.final_rating,'criteria',v_criteria,
+  'parallelFlow',false,'hrCompleted',v_eval.hr_completed,'managerCompleted',v_eval.manager_completed,'version',v_eval.version,
+  'cycle',jsonb_build_object('id',v_cycle.id,'status',v_cycle.status,'scheduledOpenAt',v_cycle.scheduled_open_at,'deadlineAt',v_cycle.deadline_at,'extendedUntil',v_cycle.extended_until,'effectiveDeadline',public.kpi_effective_deadline(v_cycle)),
+  'goals',coalesce((select jsonb_agg(jsonb_build_object('id',g.id,'title',g.title,'description',g.description,'targetValue',g.target_value,'achievedValue',g.achieved_value,'unit',g.unit,'weight',g.weight,'dueDate',g.due_date,'evidenceSource',g.evidence_source,'employeeNote',g.employee_note,'managerNote',g.manager_note,'status',g.status,'calculatedScore',g.calculated_score) order by g.created_at) from public.kpi_goals g where g.evaluation_id=v_eval.id),'[]'::jsonb),
+  'session',(select jsonb_build_object('id',s.id,'scheduledAt',s.scheduled_at,'heldAt',s.held_at,'mode',s.mode,'discussionSummary',s.discussion_summary,'strengths',s.strengths,'improvementPoints',s.improvement_points,'nextMonthGoals',s.next_month_goals,'employeeNotes',s.employee_notes,'managerNotes',s.manager_notes,'employeeAttended',s.employee_attended,'managerAttended',s.manager_attended,'employeeConfirmedAt',s.employee_confirmed_at) from public.kpi_review_sessions s where s.evaluation_id=v_eval.id),
+  'compliance',coalesce((select jsonb_agg(jsonb_build_object('metric',r.metric,'requiredCount',r.required_count,'actualCount',r.actual_count,'exemptCount',r.exempt_count,'cancelledCount',r.cancelled_count,'score',r.calculated_score,'note',r.note)) from public.kpi_compliance_records r where r.evaluation_id=v_eval.id),'[]'::jsonb),
+  'attendance',(select jsonb_build_object('periodStart',a.period_start,'periodEnd',a.period_end,'lateCount',a.late_count,'earlyLeaveCount',a.early_leave_count,'unexcusedAbsenceCount',a.unexcused_absence_count,'shortagePenalty',a.shortage_penalty,'missingPunchCount',a.missing_punch_count,'score',a.score,'hasPendingItems',a.has_pending_items,'calculatedAt',a.calculated_at) from public.kpi_attendance_snapshots a where a.evaluation_id=v_eval.id),
+  'evidence',coalesce((select jsonb_agg(jsonb_build_object('id',x.id,'criterionId',x.criterion_id,'type',x.evidence_type,'title',x.title,'description',x.description,'storagePath',x.storage_path,'externalUrl',x.external_url,'submittedStage',x.submitted_stage,'createdAt',x.created_at) order by x.created_at) from public.kpi_evidence x where x.evaluation_id=v_eval.id),'[]'::jsonb),
+  'validationErrors',to_jsonb(public.get_kpi_validation_errors(v_eval.id)),
+  'lastUpdatedAt',coalesce(v_eval.updated_at,v_eval.created_at)
+ );
+end $$;
+
+revoke all on function public.get_kpi_evaluation_form(uuid) from public, anon;
+grant  execute on function public.get_kpi_evaluation_form(uuid) to authenticated;
 
 commit;

@@ -243,7 +243,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
     try {
       await advance.mutateAsync({
         evaluationId: form.id,
-        action: form.editableStage as 'self' | 'hr_review' | 'manager_review',
+        action: form.editableStage as 'self' | 'manager_review',
         note,
         scores: ['self', 'manager_review'].includes(form.editableStage)
           ? editableCriteria.map((criterion) => ({
@@ -297,7 +297,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
           <button role="tab" aria-selected={tab === 'criteria'} className={tabCls(tab === 'criteria')} onClick={() => setTab('criteria')}>
             المعايير
           </button>
-          {form.editableStage === 'hr_review' ? (
+          {(form.editableStage === 'hr_review' || form.complianceEditable) ? (
             <button role="tab" aria-selected={tab === 'compliance'} className={tabCls(tab === 'compliance')} onClick={() => setTab('compliance')}>
               الالتزام
             </button>
@@ -548,7 +548,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
             </section>
           )}
 
-          {tab === 'compliance' && form.editableStage === 'hr_review' && (
+          {tab === 'compliance' && (form.editableStage === 'hr_review' || form.complianceEditable) && (
             <section className="grid gap-3 md:grid-cols-2">
               {(['PRAYER', 'HALAQA'] as const).map((metric) => {
                 const value = compliance[metric];
@@ -690,7 +690,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
                     className="btn-secondary"
                     disabled={pending || note.trim().length < 5}
                     onClick={() => {
-                      const target = form.editableStage === 'hr_review' ? 'self' : form.editableStage === 'manager_review' ? 'hr_review' : 'self';
+                      const target = 'self'; // 0470: الإرجاع المتاح فقط manager_review ← self
                       commands.returnStage.mutate(
                         { p_evaluation_id: form.id, p_target_stage: target, p_note: note },
                         {
@@ -705,7 +705,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
                 ) : null}
                 <button className="btn-primary" disabled={pending} onClick={() => void submit()}>
                   <CheckCircle2 className="size-4" aria-hidden="true" />
-                  {form.editableStage === 'manager_review' ? 'اعتماد النتيجة وإدراجها في التقرير' : 'اعتماد المرحلة وإرسال'}
+                  {form.editableStage === 'manager_review' ? 'تقييم واعتماد نهائي بخطوة واحدة' : 'اعتماد المرحلة وإرسال'}
                 </button>
               </div>
             </section>

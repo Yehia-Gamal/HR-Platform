@@ -373,6 +373,7 @@ class KpiEvaluationForm {
     required this.attendance,
     required this.validationErrors,
     this.parallelFlow = false,
+    this.complianceEditable = false,
     this.hrCompleted = false,
     this.managerCompleted = false,
     this.version = 1,
@@ -425,6 +426,7 @@ class KpiEvaluationForm {
                 .map((item) => item.toString())
                 .toList(growable: false),
         parallelFlow: json['parallelFlow'] as bool? ?? false,
+        complianceEditable: json['complianceEditable'] as bool? ?? false,
         hrCompleted: json['hrCompleted'] as bool? ?? false,
         managerCompleted: json['managerCompleted'] as bool? ?? false,
         version: json['version'] as int? ?? 1,
@@ -447,6 +449,8 @@ class KpiEvaluationForm {
   final List<String> validationErrors;
   // V23: حقول المسار المتوازي.
   final bool parallelFlow;
+  // 0470: HR يدخل الاستثناءات في أي مرحلة قبل القفل.
+  final bool complianceEditable;
   final bool hrCompleted;
   final bool managerCompleted;
   final int version;
