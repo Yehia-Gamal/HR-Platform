@@ -6,6 +6,7 @@ import { safeErrorMessage } from '../core/errorMapper';
 import { useAuth } from '../features/auth/AuthProvider';
 import { LoginPage } from '../features/auth/LoginPage';
 import { isPasswordRecoveryLocation, PasswordSetupPage } from '../features/auth/PasswordSetupPage';
+import { AttendanceDrilldownPage } from '../features/attendance/AttendanceDrilldownPage';
 import { MobileRedirectPage } from '../features/auth/MobileRedirectPage';
 import { WebReleaseCheckError, WebReleaseStatusPage } from '../features/auth/WebReleaseStatusPage';
 import { useRegisterWebDevice, useWebReleasePolicy } from '../features/auth/useWebReleasePolicy';
