@@ -369,12 +369,13 @@ class PushService {
 
   /// تنقل بعد جاهزية شجرة GoRouter — للإقلاع البارد حيث قد يُستدعى التوجيه
   /// قبل أن يبني MaterialApp.router المفوّض فيضيع go() الأول. ننتظر حتى
-  /// يتوفر سياق الموجّه (حتى ~6 ثوانٍ) ثم ننفذ التنقل.
+  /// يتوفر سياق الموجّه — حتى ~20 ثانية (الإقلاع البارد على أجهزة بطيئة
+  /// كان يتجاوز مهلة الـ 6 ثوانٍ القديمة فيضيع التنقل بصمت) ثم ننفذ التنقل.
   Future<void> _navigateWhenReady(String route, String originalLink) async {
-    for (var attempt = 0; attempt < 40; attempt++) {
+    for (var attempt = 0; attempt < 100; attempt++) {
       final context = appRouter.routerDelegate.navigatorKey.currentContext;
       if (context != null && context.mounted) break;
-      await Future<void>.delayed(const Duration(milliseconds: 150));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
     }
     _navigate(route, originalLink);
   }
