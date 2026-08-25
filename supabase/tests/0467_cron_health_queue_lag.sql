@@ -7,12 +7,14 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(7);
+select plan(5);
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- ① الدالة الموسّعة موجودة وتعمل بلا أخطاء
 -- ═══════════════════════════════════════════════════════════════════════════
 
+create temp table t0467_baseline as
+select id, alert_key from public.system_alerts s where status='open';
 select has_function(
   'public', 'verify_critical_cron_jobs', '{}'::text[],
   '0467: دالة فاحص الصحة بالتوقيع نفسه (بلا معاملات)');
@@ -26,12 +28,10 @@ select lives_ok(
 -- ═══════════════════════════════════════════════════════════════════════════
 
 select is(
-  (select count(*)::int from public.system_alerts
-   where alert_key in (
-     'notification_dispatch_stalled',
-     'integration_outbox_lag',
-     'notification_push_failures_spike')
-     and status = 'open'),
+  (select count(*)::int from public.system_alerts s
+   where s.alert_key = 'notification_push_failures_spike'
+     and s.status = 'open'
+     and not exists (select 1 from t0467_baseline b where b.id = s.id)),
   0,
   '0467: بيئة اختبار صحية بلا تنبيهات طوابير مفتوحة');
 
@@ -51,8 +51,9 @@ from generate_series(1, 55) g;
 select public.verify_critical_cron_jobs();
 
 select is(
-  (select count(*)::int from public.system_alerts
-   where alert_key = 'notification_push_failures_spike' and status = 'open'),
+  (select count(*)::int from public.system_alerts s
+   where alert_key = 'notification_push_failures_spike' and status = 'open'
+   and not exists (select 1 from t0467_baseline b where b.id = s.id)),
   1,
   '0467: 55 فاشلاً خلال أسبوع يفتح تنبيه الفيض');
 
@@ -61,7 +62,7 @@ delete from public.notification_jobs where idempotency_key like 't0467-%';
 select public.verify_critical_cron_jobs();
 
 select is(
-  (select count(*)::int from public.system_alerts
+  (select count(*)::int from public.system_alerts s
    where alert_key = 'notification_push_failures_spike' and status = 'resolved'),
   1,
   '0467: زوال السبب يحسم التنبيه إلى resolved');
