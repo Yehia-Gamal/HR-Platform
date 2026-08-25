@@ -1,3 +1,4 @@
+import { cairoTodayIso } from '../../core/cairoTime';
 import { Heart, MessageCircle, Send, Trash2, ChevronDown, ChevronUp, Plus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { safeErrorMessage } from '../../core/errorMapper';
@@ -118,7 +119,7 @@ export function DailyReportsFeedPage() {
               onClick={() => {
                 submitReport.mutate(
                   {
-                    reportDate: new Date().toISOString().slice(0, 10),
+                    reportDate: cairoTodayIso(),
                     achievements: draft.achievements.trim(),
                     blockers: draft.blockers.trim() || undefined,
                     tomorrowPlan: draft.tomorrowPlan.trim() || undefined,

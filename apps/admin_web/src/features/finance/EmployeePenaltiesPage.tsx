@@ -1,3 +1,4 @@
+import { cairoTodayIso } from '../../core/cairoTime';
 import { useMemo, useState, type FormEvent } from 'react';
 import { AlertTriangle, FileSpreadsheet, Printer } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
@@ -123,7 +124,7 @@ export function EmployeePenaltiesPage() {
       { key: 'status', header: 'الحالة', get: (p) => PENALTY_STATUS_LABELS[p.status] ?? p.status },
       { key: 'issuedAt', header: 'تاريخ الإصدار', get: (p) => (p.issuedAt ? dateFormatter.format(new Date(p.issuedAt)) : '—') },
     ];
-    downloadCsv(`employee-penalties-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(cols, rows));
+    downloadCsv(`employee-penalties-${cairoTodayIso()}.csv`, toCsv(cols, rows));
   };
 
   const handlePdfExport = () => {

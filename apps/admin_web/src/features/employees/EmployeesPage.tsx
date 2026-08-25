@@ -1,3 +1,4 @@
+import { cairoTodayIso } from '../../core/cairoTime';
 import { ArrowUpDown, FileSpreadsheet, Network, Plus, Printer, RefreshCw, UserRound, UsersRound } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
@@ -91,7 +92,7 @@ export function EmployeesPage() {
   ];
 
   const handleCsvExport = () => {
-    downloadCsv(`employees-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(exportColumns, filtered));
+    downloadCsv(`employees-${cairoTodayIso()}.csv`, toCsv(exportColumns, filtered));
   };
 
   const handlePdfExport = () => {

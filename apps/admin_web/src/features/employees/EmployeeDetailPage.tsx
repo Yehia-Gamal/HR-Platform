@@ -1,3 +1,4 @@
+import { cairoTodayIso } from '../../core/cairoTime';
 import type { Employee360 } from '@ahla/shared-contracts';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -667,7 +668,7 @@ function GrantRestCompDialog({
   onSuccess: () => void;
 }) {
   const grant = useGrantWeeklyRestCredit();
-  const [workDate, setWorkDate] = useState(new Date().toISOString().slice(0, 10));
+  const [workDate, setWorkDate] = useState(cairoTodayIso());
   const [days, setDays] = useState(1);
   const [error, setError] = useState<string | null>(null);
 

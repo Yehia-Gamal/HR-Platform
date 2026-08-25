@@ -1,3 +1,4 @@
+import { cairoTodayIso } from '../../core/cairoTime';
 import { useMemo, useState } from 'react';
 import { FileSpreadsheet, Printer, Send } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
@@ -70,7 +71,7 @@ export function InstapayPage() {
       { key: 'amount', header: 'المبلغ', get: (i) => i.amount },
       { key: 'status', header: 'الحالة', get: (i) => INSTAPAY_STATUS_LABELS[i.status] ?? i.status },
     ];
-    downloadCsv(`instapay-batches-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(cols, items));
+    downloadCsv(`instapay-batches-${cairoTodayIso()}.csv`, toCsv(cols, items));
   };
 
   const handlePdfExport = () => {

@@ -1,3 +1,4 @@
+import { cairoTodayIso } from '../../core/cairoTime';
 import { BriefcaseBusiness, CalendarDays, ChevronDown, Search, SlidersHorizontal, Users, WalletCards } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { ErrorBanner } from '../../ui/ErrorState';
@@ -108,7 +109,7 @@ function BulkRestCreditSection() {
   const grant = useGrantRestCreditBulk();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [workDate, setWorkDate] = useState(new Date().toISOString().slice(0, 10));
+  const [workDate, setWorkDate] = useState(cairoTodayIso());
   const [days, setDays] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const { options, isLoading } = useEmployeeOptions(search);

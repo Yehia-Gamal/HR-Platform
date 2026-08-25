@@ -1,3 +1,4 @@
+import { cairoTodayIso } from '../../core/cairoTime';
 import { useMemo, useState } from 'react';
 import { FileSpreadsheet, Printer } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
@@ -76,7 +77,7 @@ export function AuditTrailPage() {
       { key: 'summary', header: 'الملخص', get: (a) => a.summaryAr },
       { key: 'table', header: 'الجدول', get: (a) => a.targetTable },
     ];
-    downloadCsv(`audit-trail-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(cols, rows));
+    downloadCsv(`audit-trail-${cairoTodayIso()}.csv`, toCsv(cols, rows));
   };
 
   const handlePdfExport = () => {

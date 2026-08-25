@@ -1,3 +1,4 @@
+import { cairoTodayIso } from '../../core/cairoTime';
 import { useMemo, useState } from 'react';
 import type { PeopleFinanceCatalog } from '@ahla/shared-contracts';
 import { WalletCards, TrendingUp, HandCoins, RefreshCw, Users2, Megaphone, FileSpreadsheet } from 'lucide-react';
@@ -117,7 +118,7 @@ export function FinancePage() {
   };
 
   const exportCurrentTab = () => {
-    const date = new Date().toISOString().slice(0, 10);
+    const date = cairoTodayIso();
     if (tab === 'payroll') {
       const cols: ExportColumn<PayrollRun>[] = [
         { key: 'period', header: 'الشهر', get: (r) => r.periodMonth },
