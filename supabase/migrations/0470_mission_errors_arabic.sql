@@ -41,7 +41,7 @@ begin
      where request_id = p_request_id
        and status in ('in_progress','completed')
   ) then
-    raise exception 'ØªÙ Ø¨Ø¯Ø¡ ÙØ°Ù Ø§ÙÙØ£ÙÙØ±ÙØ© ÙØ³Ø¨ÙÙØ§' using errcode = '22023';
+    raise exception 'تم بدء هذه المأمورية مسبقًا' using errcode = '22023';
   end if;
 
   begin
@@ -50,7 +50,7 @@ begin
     v_end := null;
   end;
   if v_end is not null and v_today > v_end then
-    raise exception 'ÙØ§ ÙÙÙÙ Ø¨Ø¯Ø¡ Ø§ÙÙØ£ÙÙØ±ÙØ© Ø¨Ø¹Ø¯ Ø§ÙØªÙØ§Ø¡ ÙØ¯ØªÙØ§' using errcode = '22023';
+    raise exception 'لا يمكن بدء المأمورية بعد انتهاء مدتها' using errcode = '22023';
   end if;
 
   insert into public.mission_executions(request_id, employee_id, status, started_at)
