@@ -1,5 +1,5 @@
 import { useSearchParams } from 'react-router';
-import { SettingsPage } from './SystemPage';
+import { SystemPage as SettingsPage } from './SystemPage';
 import { SystemSettingsPage } from './SystemSettingsPage';
 
 /**
