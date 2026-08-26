@@ -49,5 +49,17 @@ export function ActionRedirect() {
   }
 
   const segment = KIND_TO_SEGMENT[kind.toLowerCase()] ?? '';
-  return <Navigate to={segment ? `${workspace}/${segment}` : workspace} replace />;
+  // بعض الصفحات تدعم فتح عنصر تفصيلي ب’enriched param:
+  //   request → /requests?request={id}  (يفتح حوار الطلب + قراره)
+  const enrichedSegments: Record<string, string> = {
+    request: 'requests',
+  };
+  if (!segment) return <Navigate to={workspace} replace />;
+  const hasParam = kind.toLowerCase() in enrichedSegments;
+  return (
+    <Navigate
+      to={hasParam ? `${workspace}/${segment}?request=${actionId}` : `${workspace}/${segment}`}
+      replace
+    />
+  );
 }
