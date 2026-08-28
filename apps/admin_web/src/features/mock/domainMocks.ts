@@ -476,53 +476,6 @@ export const mockKpiEvaluations: KpiEvaluationSummary[] = [
   },
 ];
 
-export const mockKpiCycles: {
-  id: string;
-  periodMonth: string;
-  status: string;
-  templateName: string;
-  evaluations: number;
-  finalized: number;
-  averageScore: number | null;
-}[] = [
-  {
-    id: '43000000-0000-4000-8000-000000000001',
-    periodMonth: '2026-07-01',
-    status: 'locked',
-    templateName: 'دورة KPI سنوية',
-    evaluations: 42,
-    finalized: 38,
-    averageScore: 84.5,
-  },
-  {
-    id: '43000000-0000-4000-8000-000000000002',
-    periodMonth: '2026-06-01',
-    status: 'locked',
-    templateName: 'دورة KPI سنوية',
-    evaluations: 40,
-    finalized: 40,
-    averageScore: 82.3,
-  },
-  {
-    id: '43000000-0000-4000-8000-000000000003',
-    periodMonth: '2026-05-01',
-    status: 'locked',
-    templateName: 'دورة KPI سنوية',
-    evaluations: 38,
-    finalized: 35,
-    averageScore: 81.1,
-  },
-];
-
-export const mockKpiStageCounts: Record<string, number> = {
-  self: 12,
-  manager_review: 18,
-  hr_review: 8,
-  executive_review: 4,
-  finalized: 22,
-  closed: 18,
-};
-
 export const mockOfficialFeed: OfficialFeedItem[] = [
   {
     id: '44000000-0000-4000-8000-000000000001',
@@ -1334,9 +1287,6 @@ export const mockEnterpriseManagement: EnterpriseManagementCatalog = {
 /* ------------------------------------------------------------------ */
 /*  Advanced Operations mocks (from useAdvancedOperations)              */
 /* ------------------------------------------------------------------ */
-/* ------------------------------------------------------------------ */
-/*  Advanced Operations mocks (from useAdvancedOperations)              */
-/* ------------------------------------------------------------------ */
 
 export const mockAttendanceOps: AttendanceOperationsCatalog = {
   month: iso().slice(0, 7) + '-01',
@@ -1348,143 +1298,14 @@ export const mockAttendanceOps: AttendanceOperationsCatalog = {
   summary: { scheduled: 0, present: 0, absent: 0, pendingCorrections: 0, pendingOvertime: 0 },
   lastUpdatedAt: iso(),
 };
-
 export const mockKpiAdminCatalog: KpiAdminCatalog = {
   month: iso().slice(0, 7) + '-01',
-  cycles: [
-    {
-      id: '43000000-0000-4000-8000-000000000001',
-      periodMonth: '2026-07-01',
-      status: 'locked',
-      templateId: '43000000-0000-4000-8000-000000000001',
-      templateName: 'نموذج KPI الرسمي',
-      selfDueAt: null,
-      managerDueAt: null,
-      secretaryDueAt: null,
-      executiveDueAt: null,
-      scheduledOpenAt: null,
-      deadlineAt: null,
-      extendedUntil: null,
-      effectiveDeadline: null,
-      openedAt: null,
-      lockedAt: null,
-      overrideReason: null,
-      evaluations: 42,
-      finalized: 38,
-      overdue: 0,
-      averageScore: 84.5,
-      employeeEvaluations: [],
-    },
-  ],
-  templates: [
-    { id: '43000000-0000-4000-8000-000000000001', name: 'نموذج KPI الرسمي', version: 1, active: true, officialCode: 'OFFICIAL_KPI_100', criteria: [] },
-  ],
+  cycles: [],
+  templates: [],
   appeals: [],
-  stageCounts: { self: 12, manager_review: 18, hr_review: 8, executive_review: 4, finalized: 22, closed: 18 },
-  canManageCycles: true,
-  officialTemplateId: '43000000-0000-4000-8000-000000000001',
+  stageCounts: {},
   lastUpdatedAt: iso(),
 };
-
-export const mockKpiCycles = [
-  {
-    id: '43000000-0000-4000-8000-000000000001',
-    periodMonth: '2026-07-01',
-    status: 'locked',
-    templateName: 'نموذج KPI الرسمي',
-    evaluations: 42,
-    finalized: 38,
-    averageScore: 84.5,
-  },
-  {
-    id: '43000000-0000-4000-8000-000000000002',
-    periodMonth: '2026-06-01',
-    status: 'locked',
-    templateName: 'نموذج KPI الرسمي',
-    evaluations: 40,
-    finalized: 40,
-    averageScore: 82.3,
-  },
-  {
-    id: '43000000-0000-4000-8000-000000000003',
-    periodMonth: '2026-05-01',
-    status: 'locked',
-    templateName: 'نموذج KPI الرسمي',
-    evaluations: 38,
-    finalized: 35,
-    averageScore: 81.1,
-  },
-];
-
-export const mockKpiStageCounts = {
-  self: 12,
-  manager_review: 18,
-  hr_review: 8,
-  executive_review: 4,
-  finalized: 22,
-  closed: 18,
-};
-
-export const mockKpiEvaluations = [
-  {
-    id: '42000000-0000-4000-8000-000000000001',
-    employeeId: '30000000-0000-4000-8000-000000000001',
-    employeeName: 'أحمد محمود',
-    employeeCode: 'EMP-104',
-    cycleId: '43000000-0000-4000-8000-000000000001',
-    periodMonth: '2026-07-01',
-    currentStage: 'manager_review',
-    workflowStatus: 'MANAGER_REVIEW',
-    locked: false,
-    editable: 'manager_review',
-    finalScore: null,
-    finalRating: null,
-    finalBreakdown: null,
-    managerComment: null,
-    hrComment: null,
-    criteria: [],
-    scores: {},
-  },
-  {
-    id: '42000000-0000-4000-8000-000000000002',
-    employeeId: '30000000-0000-4000-8000-000000000002',
-    employeeName: 'محمود علي',
-    employeeCode: 'EMP-087',
-    cycleId: '43000000-0000-4000-8000-000000000001',
-    periodMonth: '2026-07-01',
-    currentStage: 'hr_review',
-    workflowStatus: 'HR_REVIEW',
-    locked: false,
-    editable: 'hr_review',
-    finalScore: null,
-    finalRating: null,
-    finalBreakdown: null,
-    managerComment: null,
-    hrComment: null,
-    criteria: [],
-    scores: {},
-  },
-  {
-    id: '42000000-0000-4000-8000-000000000003',
-    employeeId: '30000000-0000-4000-8000-000000000003',
-    employeeName: 'سارة حسن',
-    employeeCode: 'EMP-132',
-    cycleId: '43000000-0000-4000-8000-000000000001',
-    periodMonth: '2026-07-01',
-    currentStage: 'manager_review',
-    workflowStatus: 'MANAGER_REVIEW',
-    locked: false,
-    editable: 'manager_review',
-    finalScore: 88,
-    finalRating: 'ممتاز',
-    finalBreakdown: null,
-    managerComment: null,
-    hrComment: null,
-    criteria: [],
-    scores: {},
-  },
-];
-
 export const mockDisputeOps: DisputeOperationsCatalog = {
   cases: [],
   summary: {
@@ -1506,3 +1327,310 @@ export const mockDisputeOps: DisputeOperationsCatalog = {
 };
 
 /* ------------------------------------------------------------------ */
+/*  Holidays / Employees / Organization-Lookups (inline → centralised) */
+/* ------------------------------------------------------------------ */
+
+export const mockHolidays: Holiday[] = [
+  {
+    id: '00000000-0000-4000-8000-000000000001',
+    name: 'عيد الفطر',
+    name_en: 'Eid Al-Fitr',
+    holiday_date: '2026-03-31',
+    end_date: '2026-04-02',
+    scope: 'all',
+    legal_entity_id: null,
+    department_id: null,
+    excluded_department_ids: [],
+    notes: null,
+    is_recurring: true,
+    is_active: true,
+    created_at: iso(),
+    created_by: null,
+  },
+];
+
+export const mockOrganizationLookups: OrganizationLookups = {
+  roles: [
+    { id: 'role-employee', slug: 'employee', label: 'موظف' },
+    { id: 'role-manager', slug: 'direct-manager', label: 'مدير مباشر' },
+    { id: 'role-hr', slug: 'hr-specialist', label: 'HR Specialist' },
+  ],
+  managers: [{ id: '30000000-0000-4000-8000-000000000002', label: 'مدير مباشر تجريبي · EMP-002' }],
+  branches: [],
+  workSites: [],
+  departments: [],
+  teams: [],
+  jobTitles: [],
+  positions: [],
+  grades: [],
+  employmentTypes: [],
+};
+
+export const mockDevelopmentEmployees: EmployeeSummary[] = [
+  {
+    id: '30000000-0000-4000-8000-000000000001',
+    employeeCode: 'EMP-001',
+    fullNameAr: 'موظف تجريبي للتطوير',
+    fullNameEn: null,
+    phoneE164: '+201000000001',
+    status: 'active',
+    isActive: true,
+    photoUrl: null,
+    departmentId: null,
+    teamId: null,
+    branchId: null,
+    department: 'الإدارة التجريبية',
+    team: null,
+    branch: 'المقر الرئيسي',
+    jobTitle: 'موظف تجريبي',
+    createdAt: iso(),
+  },
+  {
+    id: '30000000-0000-4000-8000-000000000002',
+    employeeCode: 'EMP-002',
+    fullNameAr: 'مدير مباشر تجريبي',
+    fullNameEn: null,
+    phoneE164: '+201000000002',
+    status: 'onboarding',
+    isActive: true,
+    photoUrl: null,
+    departmentId: null,
+    teamId: null,
+    branchId: null,
+    department: 'الإدارة التجريبية',
+    team: null,
+    branch: 'المقر الرئيسي',
+    jobTitle: 'مدير مباشر',
+    createdAt: iso(),
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/*  Attendance Statement mock (from useMonthlyStatement)               */
+/* ------------------------------------------------------------------ */
+
+export const mockAttendanceStatement: AttendanceStatement = {
+  employee: {
+    id: '30000000-0000-4000-8000-000000000001',
+    employeeCode: 'EMP-001',
+    fullNameAr: 'موظف تجريبي للتطوير',
+    jobTitle: 'موظف تجريبي',
+    department: 'الإدارة التجريبية',
+    manager: 'مدير مباشر تجريبي',
+    branch: 'المقر الرئيسي',
+    hireDate: '2024-01-15',
+  },
+  period: {
+    year: 2026,
+    month: 7,
+    startDate: '2026-07-01',
+    endDate: '2026-07-31',
+    generatedAt: iso(),
+  },
+  days: [
+    {
+      date: '2026-07-01',
+      dayNameAr: 'الأربعاء',
+      checkIn: '08:02:00',
+      checkOut: '16:05:00',
+      shiftName: 'الفترة الصباحية',
+      workHours: 8.0,
+      requiredHours: 8,
+      lateMinutes: 2,
+      earlyLeaveMinutes: 0,
+      overtimeMinutes: 5,
+      status: 'حاضر',
+      isAbsent: false,
+      isOfficialHoliday: false,
+      hasLeave: false,
+      hasMission: false,
+      hasLatePermit: false,
+      hasEarlyPermit: false,
+      hasPermit: false,
+      hasConvoyFundi: false,
+      missingCheckIn: false,
+      missingCheckOut: false,
+      hasCorrection: false,
+      correctionNote: null,
+      notes: null,
+      penalties: 0,
+      isFuture: false,
+      isDue: true,
+      isOpenShift: false,
+      isCompleted: true,
+    },
+    {
+      date: '2026-07-02',
+      dayNameAr: 'الخميس',
+      checkIn: null,
+      checkOut: null,
+      shiftName: '',
+      workHours: 0,
+      requiredHours: 0,
+      lateMinutes: 0,
+      earlyLeaveMinutes: 0,
+      overtimeMinutes: 0,
+      status: 'راحة أسبوعية',
+      isAbsent: false,
+      isOfficialHoliday: false,
+      hasLeave: false,
+      hasMission: false,
+      hasLatePermit: false,
+      hasEarlyPermit: false,
+      hasPermit: false,
+      hasConvoyFundi: false,
+      missingCheckIn: false,
+      missingCheckOut: false,
+      hasCorrection: false,
+      correctionNote: null,
+      notes: null,
+      penalties: 0,
+      isFuture: false,
+      isDue: false,
+      isOpenShift: false,
+      isCompleted: false,
+    },
+    {
+      date: '2026-07-03',
+      dayNameAr: 'الجمعة',
+      checkIn: null,
+      checkOut: null,
+      shiftName: '',
+      workHours: 0,
+      requiredHours: 0,
+      lateMinutes: 0,
+      earlyLeaveMinutes: 0,
+      overtimeMinutes: 0,
+      status: 'راحة أسبوعية',
+      isAbsent: false,
+      isOfficialHoliday: false,
+      hasLeave: false,
+      hasMission: false,
+      hasLatePermit: false,
+      hasEarlyPermit: false,
+      hasPermit: false,
+      hasConvoyFundi: false,
+      missingCheckIn: false,
+      missingCheckOut: false,
+      hasCorrection: false,
+      correctionNote: null,
+      notes: null,
+      penalties: 0,
+      isFuture: false,
+      isDue: false,
+      isOpenShift: false,
+      isCompleted: false,
+    },
+  ],
+  capabilities: { canEditDays: false },
+  summary: {
+    totalDays: 31,
+    scheduledDays: 22,
+    dueScheduledDays: 22,
+    upcomingDays: 0,
+    presentDays: 18,
+    absentDays: 1,
+    openShiftDays: 0,
+    completedPresenceDays: 18,
+    leaveDays: 2,
+    permitCount: 1,
+    missionDays: 1,
+    convoyFundiDays: 0,
+    holidayDays: 0,
+    restDays: 9,
+    totalWorkHours: 142.5,
+    totalRequiredHours: 176,
+    averageWorkHours: 7.9,
+    totalLateMinutes: 28,
+    totalEarlyLeaveMinutes: 12,
+    totalOvertimeMinutes: 35,
+    missingCheckInCount: 1,
+    missingCheckOutCount: 0,
+    correctionCount: 1,
+    attendanceRate: 81.8,
+    attendanceRateBasis: {
+      presentInDue: 18,
+      dueDays: 22,
+      presentDays: 18,
+      absentDays: 1,
+      openShiftDays: 0,
+      upcomingDays: 0,
+    },
+    hoursComplianceRate: 80.9,
+    hoursComplianceAvailable: true,
+    coverageRate: 81.8,
+    coverageDays: 18,
+    totalDeficitMinutes: 40,
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/*  HR Reports Summary mock (from useHrReportsSummary)                 */
+/* ------------------------------------------------------------------ */
+
+export const mockHrReportsSummary: HrReportsSummary = {
+  attendance: { totalEvents: 1200, checkIns: 35, checkOuts: 28, pendingReview: 5, thisMonth: 820 },
+  leaves: { totalRequests: 95, approved: 72, pending: 12, rejected: 11, activeNow: 3 },
+  assignments: { total: 45, active: 8, completed: 30, pending: 7 },
+  kpi: { activeCycles: 1, totalEvaluations: 42, pendingEvaluations: 15, completedEvaluations: 27 },
+  disputes: { total: 6, open: 2, resolved: 4, escalated: 1 },
+  location: { totalRequests: 18, pending: 3, responded: 15 },
+  generatedAt: iso(),
+};
+
+/* ------------------------------------------------------------------ */
+/*  Daily Reports feed mock (from useDailyReportsFeed)                 */
+/* ------------------------------------------------------------------ */
+
+export const mockDailyReportFeed: DailyReportFeedItem[] = [
+  {
+    id: '44000000-0000-4000-8000-000000000003',
+    employeeId: '30000000-0000-4000-8000-000000000001',
+    employeeName: 'أحمد محمد',
+    employeeCode: 'EMP-001',
+    photoUrl: null,
+    jobTitle: 'مهندس أنظمة',
+    department: 'تقنية المعلومات',
+    managerName: 'سارة حسن',
+    reportDate: new Date(now.getTime() - 8 * 3_600_000).toISOString().slice(0, 10),
+    achievements: 'استكمال تجهيز بيئة الاختبار وإعداد تقارير الأسبوع.',
+    blockers: 'انتظار اعتماد المتطلبات الجديدة من العمليات.',
+    tomorrowPlan: 'البدء بترحيل بيانات الوحدات القديمة.',
+    managerComment: 'عمل جيد، تابع الترحيل بحذر.',
+    reviewedByName: 'سارة حسن',
+    reviewedAt: iso(-6),
+    createdAt: iso(-8),
+    likesCount: 3,
+    isLikedByMe: false,
+    comments: [
+      {
+        id: '44000000-0000-4000-8000-000000000004',
+        employeeId: '30000000-0000-4000-8000-000000000002',
+        employeeName: 'سارة حسن',
+        comment: 'ممتاز، استمر بالتوثيق.',
+        createdAt: iso(-5),
+      },
+    ],
+  },
+  {
+    id: '44000000-0000-4000-8000-000000000005',
+    employeeId: '30000000-0000-4000-8000-000000000002',
+    employeeName: 'سارة حسن',
+    employeeCode: 'EMP-002',
+    photoUrl: null,
+    jobTitle: 'مديرة الموارد البشرية',
+    department: 'الموارد البشرية',
+    managerName: 'خالد العلي',
+    reportDate: new Date(now.getTime() - 32 * 3_600_000).toISOString().slice(0, 10),
+    achievements: 'مراجعة سياسات التوظيف وتحديث دليل الإعداد.',
+    blockers: null,
+    tomorrowPlan: 'مقابلة مرشحين جدد لقسم المالية.',
+    managerComment: null,
+    reviewedByName: null,
+    reviewedAt: null,
+    createdAt: iso(-32),
+    likesCount: 1,
+    isLikedByMe: false,
+    comments: [],
+  },
+];

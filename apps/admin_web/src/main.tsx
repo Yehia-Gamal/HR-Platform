@@ -14,24 +14,21 @@ import './styles.css';
 // تسجيل Service Worker للإشعارات
 function registerSW() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker
-      .register('/sw.js')
-      .then((reg) => {
-        console.warn('[SW] Registered:', reg.scope);
-        // تحديث فوري عند وجود إصدار جديد
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // إشعار المستخدم بالتحديث
-                emitToast({ message: 'يتوفر تحديث جديد — أعد تحميل الصفحة', tone: 'info', duration: 8000 });
-              }
-            });
-          }
-        });
-      })
-      .catch((err) => console.error('[SW] Registration failed:', err));
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      console.warn('[SW] Registered:', reg.scope);
+      // تحديث فوري عند وجود إصدار جديد
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // إشعار المستخدم بالتحديث
+              emitToast({ message: 'يتوفر تحديث جديد — أعد تحميل الصفحة', tone: 'info', duration: 8000 });
+            }
+          });
+        }
+      });
+    }).catch((err) => console.error('[SW] Registration failed:', err));
   }
 }
 

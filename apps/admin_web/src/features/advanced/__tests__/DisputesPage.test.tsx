@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '../../../ui/Toast';
-// Force re-evaluation of module after component extraction
 import { DisputesPage } from '../DisputesPage';
 
 function Wrapper({ children }: { children: ReactNode }) {
