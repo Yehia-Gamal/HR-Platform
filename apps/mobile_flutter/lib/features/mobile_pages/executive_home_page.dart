@@ -8,6 +8,8 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/people_hub_page.
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_announcement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/disputes_portal_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_attendance_tab.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_emergency_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_governance_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
@@ -273,6 +275,28 @@ class ExecutiveHomePage extends ConsumerWidget {
                     ),
                   ),
                 ),
+                (
+                  'الحوكمة',
+                  '—',
+                  Icons.gavel_rounded,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ExecutiveGovernancePage(),
+                    ),
+                  ),
+                ),
+                (
+                  'الطوارئ',
+                  '—',
+                  Icons.warning_amber_rounded,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ExecutiveEmergencyPage(),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -331,6 +355,20 @@ class ExecutiveHomePage extends ConsumerWidget {
                     title: 'تقارير KPI المعتمدة',
                     subtitle:
                         '${item.pendingFinalKpi} تقريرًا اعتمدها المديرون ومتاحًا للعرض',
+                  ),
+                  const Divider(indent: 16, endIndent: 16),
+                  _PriorityTile(
+                    icon: Icons.gavel_rounded,
+                    color: scheme.tertiary,
+                    title: 'الحوكمة والامتثال',
+                    subtitle: 'مراجعة السياسات والتدقيق والمخاطر المؤسسية',
+                  ),
+                  const Divider(indent: 16, endIndent: 16),
+                  _PriorityTile(
+                    icon: Icons.warning_amber_rounded,
+                    color: scheme.error,
+                    title: 'إدارة الطوارئ والأزمات',
+                    subtitle: 'خطط الاستمرارية والحوادث الحرجة والاستجابة السريعة',
                   ),
                 ],
               ),
