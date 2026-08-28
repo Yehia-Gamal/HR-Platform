@@ -130,77 +130,92 @@ export function PerformancePage() {
           <p className="font-bold">{counts.overdue} تقييم متأخر عن الموعد النهائي — يُرجى المتابعة مع المديرين والموظفين المعنيين.</p>
         </section>
       ) : null}
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <MetricCard label="إجمالي التقييمات" value={counts.total} icon={UsersRound} onClick={() => setStage('all')} />
-        <MetricCard label="بانتظار الموظفين" value={counts.self} icon={User} onClick={() => setStage('self')} />
-        <MetricCard label="عند المديرين" value={counts.manager} icon={Gauge} onClick={() => setStage('manager_review')} />
-        <MetricCard label="بانتظار الإقرار" value={counts.awaitingAck} icon={AlertTriangle} onClick={() => setStage('finalized')} />
-        <MetricCard label="المكتملة" value={counts.completed} icon={CheckCircle2} onClick={() => setStage('finalized')} />
-      </section>
-      <FilterBar
-        searchValue={search}
-        onSearchChange={setSearch}
-        searchPlaceholder="بحث باسم الموظف أو الكود"
-        resultText={`عرض ${items.length} من ${tabItems.length} تقييم`}
-        isDirty={Boolean(search || stage !== 'all')}
-        onClear={() => {
-          setSearch('');
-          setStage('all');
-        }}
-      >
-        <select className="input" aria-label="تصفية حسب مرحلة التقييم" value={stage} onChange={(event) => setStage(event.target.value)}>
-          <option value="all">كل المراحل</option>
-          <option value="self">التقييم الذاتي</option>
-          <option value="manager_review">عند المدير المباشر</option>
-          <option value="finalized">مدرج في التقرير</option>
-          <option value="closed">مغلق</option>
-          <option value="archived">مؤرشف</option>
-        </select>
-      </FilterBar>
-      {selected ? <KpiEvaluationEditor evaluationId={selected} onDone={() => setSelected(null)} /> : null}
-      {query.isError ? (
-        <ErrorState description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
-      ) : query.isLoading ? (
-        <ListSkeleton rows={3} label="جارٍ تحميل التقييمات" />
-      ) : items.length === 0 ? (
-        <EmptyState title="لا توجد تقييمات" description="لا توجد تقييمات مطابقة في الدورة الحالية." />
-      ) : null}
-      <section className="space-y-4">
-        {items.map((item) => (
-          <article key={item.id} className="card p-5">
-            <div className="grid gap-5 lg:grid-cols-[1fr_240px]">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <StatusBadge value={item.currentStage} />
-                  <span className="muted text-xs">
-                    {new Intl.DateTimeFormat('ar-EG', { month: 'long', year: 'numeric' }).format(new Date(item.periodMonth))}
-                  </span>
-                </div>
-                <div className="mt-3 flex items-center gap-3">
-                  <UserAvatar displayName={item.employeeName} size="sm" />
+
+      {currentTab?.key === 'analytics' ? (
+        <section>
+          <KpiComparisonCharts
+            currentEvaluations={all}
+            previousEvaluations={comparisonQuery?.data?.previous ?? []}
+            cycles={historyQuery.data?.cycles ?? []}
+            selectedPeriod={comparePeriod}
+            onPeriodChange={setComparePeriod}
+          />
+        </section>
+      ) : (
+        <>
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <MetricCard label="إجمالي التقييمات" value={counts.total} icon={UsersRound} onClick={() => setStage('all')} />
+            <MetricCard label="بانتظار الموظفين" value={counts.self} icon={User} onClick={() => setStage('self')} />
+            <MetricCard label="عند المديرين" value={counts.manager} icon={Gauge} onClick={() => setStage('manager_review')} />
+            <MetricCard label="بانتظار الإقرار" value={counts.awaitingAck} icon={AlertTriangle} onClick={() => setStage('finalized')} />
+            <MetricCard label="المكتملة" value={counts.completed} icon={CheckCircle2} onClick={() => setStage('finalized')} />
+          </section>
+          <FilterBar
+            searchValue={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="بحث باسم الموظف أو الكود"
+            resultText={`عرض ${items.length} من ${tabItems.length} تقييم`}
+            isDirty={Boolean(search || stage !== 'all')}
+            onClear={() => {
+              setSearch('');
+              setStage('all');
+            }}
+          >
+            <select className="input" aria-label="تصفية حسب مرحلة التقييم" value={stage} onChange={(event) => setStage(event.target.value)}>
+              <option value="all">كل المراحل</option>
+              <option value="self">التقييم الذاتي</option>
+              <option value="manager_review">عند المدير المباشر</option>
+              <option value="finalized">مدرج في التقرير</option>
+              <option value="closed">مغلق</option>
+              <option value="archived">مؤرشف</option>
+            </select>
+          </FilterBar>
+          {selected ? <KpiEvaluationEditor evaluationId={selected} onDone={() => setSelected(null)} /> : null}
+          {query.isError ? (
+            <ErrorState description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
+          ) : query.isLoading ? (
+            <ListSkeleton rows={3} label="جارٍ تحميل التقييمات" />
+          ) : items.length === 0 ? (
+            <EmptyState title="لا توجد تقييمات" description="لا توجد تقييمات مطابقة في الدورة الحالية." />
+          ) : null}
+          <section className="space-y-4">
+            {items.map((item) => (
+              <article key={item.id} className="card p-5">
+                <div className="grid gap-5 lg:grid-cols-[1fr_240px]">
                   <div>
-                    <h2 className="text-lg font-black">{item.employeeName}</h2>
-                    <p className="muted mt-1 text-sm">
-                      {item.employeeCode || 'بدون كود'} · {stageLabel[item.currentStage]}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusBadge value={item.currentStage} />
+                      <span className="muted text-xs">
+                        {new Intl.DateTimeFormat('ar-EG', { month: 'long', year: 'numeric' }).format(new Date(item.periodMonth))}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex items-center gap-3">
+                      <UserAvatar displayName={item.employeeName} size="sm" />
+                      <div>
+                        <h2 className="text-lg font-black">{item.employeeName}</h2>
+                        <p className="muted mt-1 text-sm">
+                          {item.employeeCode || 'بدون كود'} · {stageLabel[item.currentStage]}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <span className={chipClass}>
+                        النتيجة: <strong>{item.finalScore ?? 'لم تعتمد'}</strong>
+                      </span>
+                      <span className={chipClass}>
+                        التقدير: <strong>{item.finalRating ?? '—'}</strong>
+                      </span>
+                    </div>
                   </div>
+                  <button className="btn-primary self-center" onClick={() => setSelected(item.id)}>
+                    فتح نموذج التقييم
+                  </button>
                 </div>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <span className={chipClass}>
-                    النتيجة: <strong>{item.finalScore ?? 'لم تعتمد'}</strong>
-                  </span>
-                  <span className={chipClass}>
-                    التقدير: <strong>{item.finalRating ?? '—'}</strong>
-                  </span>
-                </div>
-              </div>
-              <button className="btn-primary self-center" onClick={() => setSelected(item.id)}>
-                فتح نموذج التقييم
-              </button>
-            </div>
-          </article>
-        ))}
-      </section>
+              </article>
+            ))}
+          </section>
+        </>
+      )}
     </div>
   );
 }
