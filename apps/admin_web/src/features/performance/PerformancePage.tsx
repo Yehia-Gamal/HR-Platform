@@ -13,6 +13,7 @@ import { KpiEvaluationEditor } from './KpiEvaluationEditor';
 import { usePerformance } from './usePerformance';
 import type { KpiEvaluationSummary } from '@ahla/shared-contracts';
 import { safeErrorMessage } from '../../core/errorMapper';
+import type { KpiEvaluationSummary } from '@ahla/shared-contracts';
 
 const stageLabel: Record<KpiEvaluationSummary['currentStage'], string> = {
   self: 'التقييم الذاتي',
