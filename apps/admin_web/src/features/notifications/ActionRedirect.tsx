@@ -56,10 +56,5 @@ export function ActionRedirect() {
   };
   if (!segment) return <Navigate to={workspace} replace />;
   const hasParam = kind.toLowerCase() in enrichedSegments;
-  return (
-    <Navigate
-      to={hasParam ? `${workspace}/${segment}?request=${actionId}` : `${workspace}/${segment}`}
-      replace
-    />
-  );
+  return <Navigate to={hasParam ? `${workspace}/${segment}?request=${actionId}` : `${workspace}/${segment}`} replace />;
 }
