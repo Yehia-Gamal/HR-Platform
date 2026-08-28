@@ -148,7 +148,7 @@ select is(
 select ok(
   (select count(distinct it->>'eventType')
      from jsonb_array_elements(
-       public.get_audit_trail_page('workflow', null, null, null, null, null, null, 20, 0) -> 'items') it
+       public.get_audit_trail_page(null, null, null, null, null, null, null, 20, 0) -> 'items') it
      where it->>'eventType' in ('penalty.issued', 'penalty.waived', 'instapay.batch_generated')) = 3,
   'سجل التدقيق يعرض أحداث إصدار وإسقاط المخالفة وتوليد الدفعة');
 

@@ -177,7 +177,7 @@ select throws_ok(
   $$select public.admin_create_leave_request(
     '04380000-0000-4000-8000-000000000101', 'unknown_type',
     '2030-06-01', '2030-06-03', 'نوع غير معروف')$$,
-  '22023', 'unsupported leave type',
+  '22023', 'نوع إجازة غير مدعوم',
   '(9) نوع إجازة غير معروف يُرفض'
 );
 

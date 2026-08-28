@@ -1,4 +1,4 @@
-﻿-- =====================================================================
+-- =====================================================================
 -- 0474: عزل الإدارة الطبية — مصفوفة الرؤية والمسار الطبي
 -- ---------------------------------------------------------------------
 -- يثبت: علم العزل على القسم، المساعدات المركزية، الدليل المتبادل
@@ -180,9 +180,9 @@ select is(
      and status='active'),
   1, 'المسار الطبي خطوة نشطة واحدة');
 select is(
-  (select ws.assignee_role_slug from public.request_steps ws
+  (select string_agg(ws.assignee_role_slug, ',') from public.request_steps ws
    where ws.request_id=(select id from pg_temp.t472 where kind='med')),
-  null, 'خطوة المسار الطبي للمدير المباشر (بلا دور مُعيَّن)');
+  null, 'request steps carry null assignee_role_slug (no user-level assignee)');
 
 reset role;
 select pg_temp.act_as_0474('d4720000-0000-4000-8000-000000000101');

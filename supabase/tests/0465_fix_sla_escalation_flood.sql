@@ -8,7 +8,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(6);
+select plan(7);
 
 do $fixture$
 declare
@@ -33,7 +33,7 @@ begin
     ('b4650000-0000-4000-8000-000000000102','b4650000-0000-4000-8000-000000000202','active'),
     ('b4650000-0000-4000-8000-000000000103','b4650000-0000-4000-8000-000000000203','active');
 
-  insert into public.manager_relations(employee_id,manager_employee_id,relation_type)
+  insert into public.manager_relations(employee_id,manager_employee_id,relation_type,effective_from)
   values('b4650000-0000-4000-8000-000000000201','b4650000-0000-4000-8000-000000000202','primary',current_date);
 
   insert into public.user_roles(user_id, role_id)
