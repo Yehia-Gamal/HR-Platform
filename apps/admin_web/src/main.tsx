@@ -1,5 +1,5 @@
 import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { StrictMode } from 'react';
+import { StrictMode, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import { App } from './app/App';
@@ -10,6 +10,27 @@ import { AppErrorBoundary } from './ui/AppErrorBoundary';
 import { ToastProvider, emitToast } from './ui/Toast';
 import { initializeTheme } from './ui/theme';
 import './styles.css';
+
+// تسجيل Service Worker للإشعارات
+function registerSW() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      console.log('[SW] Registered:', reg.scope);
+      // تحديث فوري عند وجود إصدار جديد
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // إشعار المستخدم بالتحديث
+              emitToast({ message: 'يتوفر تحديث جديد — أعد تحميل الصفحة', tone: 'info', duration: 8000 });
+            }
+          });
+        }
+      });
+    }).catch((err) => console.error('[SW] Registration failed:', err));
+  }
+}
 
 initSentry();
 initializeTheme();
@@ -38,6 +59,7 @@ void initWebVitals();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Root element #root not found');
+registerSW();
 createRoot(rootElement).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>

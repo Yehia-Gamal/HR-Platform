@@ -156,6 +156,30 @@ Deno.serve(createHandler({ functionName: "notification-dispatcher", version: "1.
         sent += 1; continue;
       }
 
+      // Web Push (VAPID) — للمتصفحات.
+      const webTargets = (subscriptions ?? []).filter((s) => s.platform === 'web' && s.endpoint);
+      const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
+      if (vapidPrivateKey && webTargets.length) {
+        let anyOk = false; let lastErr = '';
+        for (const sub of webTargets) {
+          const res = await sendWebPush(vapidPrivateKey, sub, notification);
+          if (res.ok) {
+            anyOk = true;
+            await logDelivery(supabase, job, sub.id, 'sent', null, null);
+          } else {
+            lastErr = `WEB_PUSH_${res.status}:${await res.text().catch(() => '')}`;
+            await logDelivery(supabase, job, sub.id, 'failed', null, lastErr);
+            // 404/410 = اشتراك منتهي → عطّله.
+            if (res.status === 404 || res.status === 410) {
+              await supabase.from('push_subscriptions').update({ is_active: false }).eq('id', sub.id);
+            }
+          }
+        }
+        if (!anyOk) throw new Error(lastErr || 'WEB_PUSH_ALL_FAILED');
+        await supabase.from('notification_jobs').update({ status: 'sent', sent_at: new Date().toISOString(), last_error: null }).eq('id', job.id);
+        sent += 1; continue;
+      }
+
       // احتياط: مزوّد خارجي عام.
       const providerUrl = Deno.env.get('PUSH_PROVIDER_URL'); const providerToken = Deno.env.get('PUSH_PROVIDER_TOKEN');
       if (!providerUrl || !(subscriptions?.length)) throw new Error('NO_PUSH_PROVIDER_OR_DEVICE');
@@ -283,6 +307,159 @@ function pemToArrayBuffer(pem: string): ArrayBuffer {
   const bin = atob(b64); const buf = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
   return buf.buffer;
+}
+
+// يرسل إشعار Web Push عبر بروتوكول VAPID (RFC 8030).
+async function sendWebPush(
+  vapidPrivateKey: string,
+  subscription: { endpoint: string; p256dh_key: string; auth_key: string },
+  notification: { id: string; title: string | null; body: string | null; action_url: string | null; priority: string | null; metadata: Record<string, unknown> | null; entity_id: string | null; entity_type: string | null } | null,
+): Promise<Response> {
+  const payload = JSON.stringify({
+    title: notification?.title ?? 'أحلى شباب',
+    body: notification?.body ?? 'إشعار جديد',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    data: {
+      notificationId: notification?.id,
+      entityId: notification?.entity_id,
+      entityType: notification?.entity_type,
+      actionUrl: notification?.action_url,
+      metadata: notification?.metadata,
+    },
+    actions: [{ action: 'open', title: 'فتح' }, { action: 'dismiss', title: 'تجاهل' }],
+    requireInteraction: notification?.priority === 'urgent',
+    tag: notification?.id ?? 'default',
+    dir: 'rtl',
+    lang: 'ar',
+    vibrate: [200, 100, 200],
+    timestamp: Date.now(),
+  });
+
+  const endpoint = subscription.endpoint;
+  const p256dh = subscription.p256dh_key;
+  const auth = subscription.auth_key;
+
+  const vapidHeaders = await createVapidHeaders(vapidPrivateKey, endpoint);
+
+  return fetch(endpoint, {
+    method: 'POST',
+    signal: AbortSignal.timeout(15_000),
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Encoding': 'aes128gcm',
+      'TTL': '86400',
+      ...vapidHeaders,
+    },
+    body: await encryptWebPushPayload(payload, p256dh, auth),
+  });
+}
+
+// ينشئ رؤوس VAPID Authorization + Crypto-Key.
+async function createVapidHeaders(vapidPrivateKeyPem: string, endpoint: string): Promise<Record<string, string>> {
+  const url = new URL(endpoint);
+  const audience = `${url.protocol}//${url.host}`;
+
+  const vapidPublicKey = await deriveVapidPublicKey(vapidPrivateKeyPem);
+
+  const header = { alg: 'ES256', typ: 'JWT' };
+  const now = Math.floor(Date.now() / 1000);
+  const claims = {
+    aud: audience,
+    exp: now + 86400,
+    sub: `mailto:admin@ahla-shabab.org`,
+  };
+
+  const enc = (obj: unknown) => b64url(new TextEncoder().encode(JSON.stringify(obj)));
+  const signingInput = `${enc(header)}.${enc(claims)}`;
+
+  const privateKeyData = pemToArrayBuffer(vapidPrivateKeyPem);
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8', privateKeyData, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign'],
+  );
+  const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, cryptoKey, new TextEncoder().encode(signingInput));
+  const jwt = `${signingInput}.${b64url(new Uint8Array(sig))}`;
+
+  return {
+    Authorization: `vapid t=${jwt}, k=${b64url(vapidPublicKey)}`,
+    'Crypto-Key': `p256ecdsa=${b64url(vapidPublicKey)}`,
+  };
+}
+
+// يستخرج المفتاح العام (SPKI) من المفتاح الخاص PKCS#8.
+async function deriveVapidPublicKey(vapidPrivateKeyPem: string): Promise<Uint8Array> {
+  const privateKeyData = pemToArrayBuffer(vapidPrivateKeyPem);
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8', privateKeyData, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign'],
+  );
+  const spki = await crypto.subtle.exportKey('spki', cryptoKey);
+  // SPKI = 0x30 0x59 0x30 0x13 0x06 0x07 0x2a 0x86 0x48 0xce 0x3d 0x02 0x01 0x06 0x08 0x2a 0x86 0x48 0xce 0x3d 0x03 0x01 0x07 0x03 0x42 0x00 + 65 bytes uncompressed public key
+  const full = new Uint8Array(spki);
+  // نأخذ الـ 65 بايت الأخيرة (uncompressed P-256 public key: 0x04 + 32B X + 32B Y)
+  return full.slice(-65);
+}
+
+// يشفّر الحمولة بـ AES-128-GCM لمعيار Web Push.
+async function encryptWebPushPayload(
+  payload: string,
+  p256dhBase64: string,
+  authBase64: string,
+): Promise<ArrayBuffer> {
+  const dh = base64urlToBuffer(p256dhBase64);
+  const auth = base64urlToBuffer(authBase64);
+
+  // ECDH: نشتق سراً مشتركاً باستخدام مفتاحنا المؤقت + مفتاح المستخدم العام.
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const localKeyPair = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits']);
+  const localPublicKey = await crypto.subtle.exportKey('raw', localKeyPair.publicKey);
+  const sharedSecret = await crypto.subtle.deriveBits(
+    { name: 'ECDH', public: await crypto.subtle.importKey('raw', dh, { name: 'ECDH', namedCurve: 'P-256' }, false, []) },
+    localKeyPair.privateKey,
+    128,
+  );
+
+  // HKDF-SHA256 لاستخراج مفتاح التشفير ومفتاح المصادقة.
+  const ikm = new Uint8Array(sharedSecret);
+  const prk = await crypto.subtle.importKey('raw', auth, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const infoEnc = new TextEncoder().encode('Content-Encoding: aes128gcm\u0000');
+  const infoAuth = new TextEncoder().encode('Content-Encoding: auth\u0000');
+
+  const encKey = await hkdf(ikm, salt, infoEnc, 16);
+  const authKey = await hkdf(ikm, salt, infoAuth, 16);
+
+  // AES-128-GCM تشفير.
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encCryptoKey = await crypto.subtle.importKey('raw', encKey, { name: 'AES-GCM' }, false, ['encrypt']);
+  const payloadBytes = new TextEncoder().encode(payload);
+  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, encCryptoKey, payloadBytes);
+
+  // بناء الرسالة: salt (16) + rs (1) + id (1) + localPublicKey (65) + ciphertext
+  const record = new Uint8Array(16 + 1 + 1 + 65 + new Uint8Array(ciphertext).byteLength);
+  let offset = 0;
+  record.set(salt, offset); offset += 16;
+  record.set(new Uint8Array([0]), offset); offset += 1; // rs = 0 (no padding)
+  record.set(new Uint8Array([0]), offset); offset += 1; // id = 0 (direct)
+  record.set(new Uint8Array(localPublicKey), offset); offset += 65;
+  record.set(new Uint8Array(ciphertext), offset);
+
+  return record.buffer;
+}
+
+function base64urlToBuffer(str: string): Uint8Array {
+  const padding = '='.repeat((4 - (str.length % 4)) % 4);
+  const b64 = (str + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const bin = atob(b64);
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return buf;
+}
+
+async function hkdf(ikm: Uint8Array, salt: Uint8Array, info: Uint8Array, length: number): Promise<Uint8Array> {
+  const prkKey = await crypto.subtle.importKey('raw', ikm, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const prk = await crypto.subtle.sign('HMAC', prkKey, salt);
+  const prkKey2 = await crypto.subtle.importKey('raw', new Uint8Array(prk), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const okm = await crypto.subtle.sign('HMAC', prkKey2, new Uint8Array([...info, 1]));
+  return new Uint8Array(okm).slice(0, length);
 }
 
 function respond(req: Request, body: unknown, status = 200) {
