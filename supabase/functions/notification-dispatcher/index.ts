@@ -38,6 +38,8 @@ interface SubscriptionRow {
   fcm_token: string | null;
   endpoint: string | null;
   platform: string | null;
+  p256dh_key: string | null;
+  auth_key: string | null;
 }
 
 function createAdminClient(url: string, key: string) {
@@ -99,7 +101,7 @@ Deno.serve(
         .maybeSingle()) as { data: NotificationRow | null };
       const { data: subscriptions } = (await supabase
         .from('push_subscriptions')
-        .select('id,fcm_token,endpoint,platform')
+        .select('id,fcm_token,endpoint,platform,p256dh_key,auth_key')
         .eq('user_id', job.recipient_user_id)
         .eq('is_active', true)) as { data: SubscriptionRow[] | null; error: any };
 
@@ -325,7 +327,7 @@ async function mintFcmAccessToken(serviceAccountJson: string): Promise<string> {
   const enc = (obj: unknown) => b64url(new TextEncoder().encode(JSON.stringify(obj)));
   const signingInput = `${enc(header)}.${enc(claim)}`;
   const keyData = pemToArrayBuffer(sa.private_key);
-  const cryptoKey = await crypto.subtle.importKey('pkcs8', keyData, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' } as const, false, ['sign']);
+  const cryptoKey = await crypto.subtle.importKey('pkcs8', keyData, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' } as RsaHashedImportParams, false, ['sign']);
   const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey, new TextEncoder().encode(signingInput));
   const assertion = `${signingInput}.${b64url(new Uint8Array(sig))}`;
 
@@ -433,7 +435,7 @@ async function createVapidHeaders(vapidPrivateKeyPem: string, endpoint: string):
   const signingInput = `${enc(header)}.${enc(claims)}`;
 
   const privateKeyData = pemToArrayBuffer(vapidPrivateKeyPem);
-  const cryptoKey = await crypto.subtle.importKey('pkcs8', privateKeyData, { name: 'ECDSA', namedCurve: 'P-256' } as const, false, ['sign']);
+  const cryptoKey = await crypto.subtle.importKey('pkcs8', privateKeyData, { name: 'ECDSA', namedCurve: 'P-256' } as EcKeyImportParams, false, ['sign']);
   const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, cryptoKey, new TextEncoder().encode(signingInput));
   const jwt = `${signingInput}.${b64url(new Uint8Array(sig))}`;
 
@@ -446,7 +448,7 @@ async function createVapidHeaders(vapidPrivateKeyPem: string, endpoint: string):
 // يستخرج المفتاح العام (SPKI) من المفتاح الخاص PKCS#8.
 async function deriveVapidPublicKey(vapidPrivateKeyPem: string): Promise<Uint8Array> {
   const privateKeyData = pemToArrayBuffer(vapidPrivateKeyPem);
-  const cryptoKey = await crypto.subtle.importKey('pkcs8', privateKeyData, { name: 'ECDSA', namedCurve: 'P-256' } as const, false, ['sign']);
+  const cryptoKey = await crypto.subtle.importKey('pkcs8', privateKeyData, { name: 'ECDSA', namedCurve: 'P-256' } as EcKeyImportParams, false, ['sign']);
   const spki = await crypto.subtle.exportKey('spki', cryptoKey);
   // SPKI = 0x30 0x59 0x30 0x13 0x06 0x07 0x2a 0x86 0x48 0xce 0x3d 0x02 0x01 0x06 0x08 0x2a 0x86 0x48 0xce 0x3d 0x03 0x01 0x07 0x03 0x42 0x00 + 65 bytes uncompressed public key
   const full = new Uint8Array(spki);
@@ -464,14 +466,14 @@ async function encryptWebPushPayload(payload: string, p256dhBase64: string, auth
   const localKeyPair = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits']);
   const localPublicKey = await crypto.subtle.exportKey('raw', localKeyPair.publicKey);
   const sharedSecret = await crypto.subtle.deriveBits(
-    { name: 'ECDH', public: await crypto.subtle.importKey('raw', dh, { name: 'ECDH', namedCurve: 'P-256' } as const, false, []) },
+    { name: 'ECDH', public: await crypto.subtle.importKey('raw', dh, { name: 'ECDH', namedCurve: 'P-256' } as EcKeyImportParams, false, []) },
     localKeyPair.privateKey,
     128,
   );
 
   // HKDF-SHA256 لاستخراج مفتاح التشفير ومفتاح المصادقة.
   const ikm = new Uint8Array(sharedSecret);
-  const prk = await crypto.subtle.importKey('raw', auth, { name: 'HMAC', hash: 'SHA-256' } as const, false, ['sign']);
+  const prk = await crypto.subtle.importKey('raw', auth, { name: 'HMAC', hash: 'SHA-256' } as HmacImportParams, false, ['sign']);
   const infoEnc = new TextEncoder().encode('Content-Encoding: aes128gcm\u0000');
   const infoAuth = new TextEncoder().encode('Content-Encoding: auth\u0000');
 
@@ -480,7 +482,7 @@ async function encryptWebPushPayload(payload: string, p256dhBase64: string, auth
 
   // AES-128-GCM تشفير.
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encCryptoKey = await crypto.subtle.importKey('raw', encKey, { name: 'AES-GCM' } as const, false, ['encrypt']);
+  const encCryptoKey = await crypto.subtle.importKey('raw', encKey, { name: 'AES-GCM' } as AesKeyImportParams, false, ['encrypt']);
   const payloadBytes = new TextEncoder().encode(payload);
   const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, encCryptoKey, payloadBytes);
 
@@ -510,9 +512,9 @@ function base64urlToBuffer(str: string): Uint8Array {
 }
 
 async function hkdf(ikm: Uint8Array, salt: Uint8Array, info: Uint8Array, length: number): Promise<Uint8Array> {
-  const prkKey = await crypto.subtle.importKey('raw', ikm, { name: 'HMAC', hash: 'SHA-256' } as const, false, ['sign']);
+  const prkKey = await crypto.subtle.importKey('raw', ikm, { name: 'HMAC', hash: 'SHA-256' } as HmacImportParams, false, ['sign']);
   const prk = await crypto.subtle.sign('HMAC', prkKey, salt);
-  const prkKey2 = await crypto.subtle.importKey('raw', new Uint8Array(prk), { name: 'HMAC', hash: 'SHA-256' } as const, false, ['sign']);
+  const prkKey2 = await crypto.subtle.importKey('raw', new Uint8Array(prk), { name: 'HMAC', hash: 'SHA-256' } as HmacImportParams, false, ['sign']);
   const okm = await crypto.subtle.sign('HMAC', prkKey2, new Uint8Array([...info, 1]));
   return new Uint8Array(okm).slice(0, length);
 }
