@@ -1,4 +1,3 @@
-import type { KpiEvaluationSummary } from '@ahla/shared-contracts';
 import { AlertTriangle, CheckCircle2, ClipboardList, Gauge, User, UsersRound } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useUrlState } from '../../core/useUrlState';
@@ -12,6 +11,7 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { KpiEvaluationEditor } from './KpiEvaluationEditor';
 import { usePerformance } from './usePerformance';
+import type { KpiEvaluationSummary } from '@ahla/shared-contracts';
 import { safeErrorMessage } from '../../core/errorMapper';
 
 const stageLabel: Record<KpiEvaluationSummary['currentStage'], string> = {

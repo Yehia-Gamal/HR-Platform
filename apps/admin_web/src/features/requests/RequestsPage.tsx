@@ -1,4 +1,4 @@
-﻿import { MISSION_EXECUTION_STATUS_LABELS, type RequestSummary, type WorkAssignment } from '@ahla/shared-contracts';
+﻿import { MISSION_EXECUTION_STATUS_LABELS, type RequestSummary, type WorkAssignment, type AttendanceOperationsCatalog } from '@ahla/shared-contracts';
 import { CalendarDays, Check, Clock, MapPin, RotateCcw, Truck, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useUrlState } from '../../core/useUrlState';
@@ -112,7 +112,7 @@ export function RequestsPage() {
   const correctionsQuery = useAttendanceOperations(currentMonth);
   const correctionsCommands = useAttendanceOperationsCommands();
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
-  const corrections = correctionsQuery.data?.corrections ?? [];
+  const corrections: AttendanceOperationsCatalog['corrections'] = correctionsQuery.data?.corrections ?? [];
 
   const filtered = useMemo(
     () =>
