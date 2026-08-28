@@ -27,9 +27,6 @@ const EmployeesPage = lazy(() => import('../features/employees/EmployeesPage').t
 const CreateEmployeePage = lazy(() => import('../features/employees/CreateEmployeePage').then((m) => ({ default: m.CreateEmployeePage })));
 const EmployeeDetailPage = lazy(() => import('../features/employees/EmployeeDetailPage').then((m) => ({ default: m.EmployeeDetailPage })));
 const AttendanceHubPage = lazy(() => import('../features/attendance/AttendanceHubPage').then((m) => ({ default: m.AttendanceHubPage })));
-const MonthlyAttendanceReportPage = lazy(() =>
-  import('../features/attendance/MonthlyAttendanceReportPage').then((m) => ({ default: m.MonthlyAttendanceReportPage })),
-);
 const PerformancePage = lazy(() => import('../features/performance/PerformancePage').then((m) => ({ default: m.PerformancePage })));
 const RecruitmentPage = lazy(() => import('../features/management/RecruitmentPage').then((m) => ({ default: m.RecruitmentPage })));
 const OnboardingPage = lazy(() => import('../features/management/OnboardingPage').then((m) => ({ default: m.OnboardingPage })));
@@ -49,7 +46,6 @@ const KnowledgeHubPage = lazy(() => import('../features/knowledge/KnowledgeHubPa
 const ReportsHubPage = lazy(() => import('../features/management/ReportsHubPage').then((m) => ({ default: m.ReportsHubPage })));
 const DocumentsHubPage = lazy(() => import('../features/documents/DocumentsHubPage').then((m) => ({ default: m.DocumentsHubPage })));
 const AccessPage = lazy(() => import('../features/management/AccessPage').then((m) => ({ default: m.AccessPage })));
-const SystemPage = lazy(() => import('../features/management/SystemPage').then((m) => ({ default: m.SystemPage })));
 const EnterpriseManagementPage = lazy(() => import('../features/management/EnterpriseManagementPage').then((m) => ({ default: m.EnterpriseManagementPage })));
 const AuditSecurityPage = lazy(() => import('../features/management/AuditSecurityPage').then((m) => ({ default: m.AuditSecurityPage })));
 const ObservabilityDashboardPage = lazy(() =>
@@ -65,7 +61,6 @@ const KnowledgePage = lazy(() => import('../features/knowledge/KnowledgePage').t
 const HelpdeskPage = lazy(() => import('../features/helpdesk/HelpdeskPage').then((m) => ({ default: m.HelpdeskPage })));
 const GovernancePage = lazy(() => import('../features/governance/GovernancePage').then((m) => ({ default: m.GovernancePage })));
 const AuditTrailPage = lazy(() => import('../features/management/AuditTrailPage').then((m) => ({ default: m.AuditTrailPage })));
-const SystemSettingsPage = lazy(() => import('../features/management/SystemSettingsPage').then((m) => ({ default: m.SystemSettingsPage })));
 const LeavesPage = lazy(() => import('../features/leaves/LeavesPage').then((m) => ({ default: m.LeavesPage })));
 const LeaveToolsPage = lazy(() => import('../features/leave-tools/LeaveToolsPage').then((m) => ({ default: m.LeaveToolsPage })));
 

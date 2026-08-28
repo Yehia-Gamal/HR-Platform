@@ -1,8 +1,7 @@
 ﻿import { MISSION_EXECUTION_STATUS_LABELS, type RequestSummary, type WorkAssignment } from '@ahla/shared-contracts';
 import { CalendarDays, Check, Clock, MapPin, RotateCcw, Truck, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useUrlState } from '../../core/useUrlState';
-import { useSearchParams } from 'react-router';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';

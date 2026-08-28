@@ -1,10 +1,7 @@
 ﻿import type { WorkspaceId } from '@ahla/shared-contracts';
 import {
   Activity,
-  AlertTriangle,
   BadgeCheck,
-  Banknote,
-  BarChart3,
   Bell,
   BookOpen,
   BriefcaseBusiness,
@@ -31,7 +28,6 @@ import {
   PanelRightOpen,
   ScrollText,
   Settings,
-  Settings2,
   ShieldAlert,
   ShieldCheck,
   Smartphone,
