@@ -1,5 +1,5 @@
 import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { StrictMode, useEffect } from 'react';
+import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import { App } from './app/App';
@@ -15,7 +15,7 @@ import './styles.css';
 function registerSW() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').then((reg) => {
-      console.log('[SW] Registered:', reg.scope);
+      console.warn('[SW] Registered:', reg.scope);
       // تحديث فوري عند وجود إصدار جديد
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing;

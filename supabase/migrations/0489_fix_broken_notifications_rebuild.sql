@@ -92,7 +92,7 @@ set
       format(
         'اقترب وقت الحضور (%s). لا تنسَ تسجيل البصمة.',
         coalesce(
-          (select to_char(s.start_time at time zone ''Africa/Cairo'', ''hh12:mi AM'') from public.shifts s where s.id = (n.metadata->>'shiftId')::uuid),
+          (select to_char(s.start_time, 'hh12:mi') || case when extract(hour from s.start_time) < 12 then ' ص' else ' م' end from public.shifts s where s.id = (n.metadata->>'shiftId')::uuid),
           'غير محدد'
         )
       )
@@ -100,7 +100,7 @@ set
       format(
         'اقترب وقت الانصراف (%s). لا تنسَ تسجيل بصمة الانصراف.',
         coalesce(
-          (select to_char(s.end_time at time zone ''Africa/Cairo'', ''hh12:mi AM'') from public.shifts s where s.id = (n.metadata->>'shiftId')::uuid),
+          (select to_char(s.end_time, 'hh12:mi') || case when extract(hour from s.end_time) < 12 then ' ص' else ' م' end from public.shifts s where s.id = (n.metadata->>'shiftId')::uuid),
           'غير محدد'
         )
       )

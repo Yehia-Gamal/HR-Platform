@@ -53,7 +53,7 @@ const BRIDGE_FILENAMES = new Set([
   '0370_bridge_placeholder.sql',
   // 0377 → كان مكرراً مع 0357_device_auto_accept_registration، حُذف وأُضيف placeholder للحفاظ على التسلسل.
   '0377_placeholder.sql',
-  // 0479, 0486 → فجوات عرضية من جلسات متوازية أضافت 0480+ دون 0479/0486.
+  // 0479, 0486 → فجوات من جلسة موازية قفزت 0478→0480 و 0485→0487.
   '0479_bridge_placeholder.sql',
   '0486_bridge_placeholder.sql',
 ]);
