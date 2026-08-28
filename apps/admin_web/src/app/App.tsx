@@ -224,12 +224,7 @@ function AuthenticatedApp() {
                 </RequirePermission>
               }
             />
-            <Route
-              path="system-settings"
-              element={
-                <Navigate to="../settings?tab=operations" replace />
-              }
-            />
+            <Route path="system-settings" element={<Navigate to="../settings?tab=operations" replace />} />
             <Route
               path="governance"
               element={
@@ -238,18 +233,8 @@ function AuthenticatedApp() {
                 </FeatureGate>
               }
             />
-            <Route
-              path="reports/scheduler"
-              element={
-                <Navigate to="../reports?tab=scheduler" replace />
-              }
-            />
-            <Route
-              path="analytics"
-              element={
-                <Navigate to="../reports?tab=analytics" replace />
-              }
-            />
+            <Route path="reports/scheduler" element={<Navigate to="../reports?tab=scheduler" replace />} />
+            <Route path="analytics" element={<Navigate to="../reports?tab=analytics" replace />} />
             <Route
               path="enterprise"
               element={
@@ -283,18 +268,8 @@ function AuthenticatedApp() {
                 </FeatureGate>
               }
             />
-            <Route
-              path="finance/penalties"
-              element={
-                <Navigate to="../finance?tab=penalties" replace />
-              }
-            />
-            <Route
-              path="finance/instapay"
-              element={
-                <Navigate to="../finance?tab=instapay" replace />
-              }
-            />
+            <Route path="finance/penalties" element={<Navigate to="../finance?tab=penalties" replace />} />
+            <Route path="finance/instapay" element={<Navigate to="../finance?tab=instapay" replace />} />
             <Route
               path="audit-trail"
               element={
@@ -303,12 +278,7 @@ function AuthenticatedApp() {
                 </RequirePermission>
               }
             />
-            <Route
-              path="system-settings"
-              element={
-                <Navigate to="../settings?tab=operations" replace />
-              }
-            />
+            <Route path="system-settings" element={<Navigate to="../settings?tab=operations" replace />} />
             <Route
               path="audit-security"
               element={
@@ -336,20 +306,15 @@ function AuthenticatedApp() {
             {/* notifications/knowledge: مرئيان لكل أعضاء المساحة — لا يحتاجان permission خاص */}
             <Route path="notifications" element={<NotificationsPage />} />
             <Route
-        path="knowledge"
-        element={
-          <RequirePermission perm="knowledge.article.read">
-            <KnowledgeHubPage />
-          </RequirePermission>
-        }
-      />
-      <Route
-        path="learning"
-        element={
-          <Navigate to="../knowledge?tab=learning" replace />
-        }
-      />
-      <Route
+              path="knowledge"
+              element={
+                <RequirePermission perm="knowledge.article.read">
+                  <KnowledgeHubPage />
+                </RequirePermission>
+              }
+            />
+            <Route path="learning" element={<Navigate to="../knowledge?tab=learning" replace />} />
+            <Route
               index
               element={
                 <RequirePermission perm="disputes.portal.access">
@@ -422,18 +387,8 @@ function HrWorkspaceRoutes() {
           </RequirePermission>
         }
       />
-      <Route
-        path="attendance/operations"
-        element={
-          <Navigate to="../attendance?tab=operations" replace />
-        }
-      />
-      <Route
-        path="attendance/report"
-        element={
-          <Navigate to="../attendance?tab=report" replace />
-        }
-      />
+      <Route path="attendance/operations" element={<Navigate to="../attendance?tab=operations" replace />} />
+      <Route path="attendance/report" element={<Navigate to="../attendance?tab=report" replace />} />
       <Route
         path="performance"
         element={
@@ -466,12 +421,7 @@ function HrWorkspaceRoutes() {
           </RequirePermission>
         }
       />
-      <Route
-        path="analytics"
-        element={
-          <Navigate to="../reports?tab=analytics" replace />
-        }
-      />
+      <Route path="analytics" element={<Navigate to="../reports?tab=analytics" replace />} />
       <Route
         path="holidays"
         element={
@@ -536,12 +486,7 @@ function HrWorkspaceRoutes() {
           </RequirePermission>
         }
       />
-      <Route
-        path="documents/studio"
-        element={
-          <Navigate to="../documents?tab=studio" replace />
-        }
-      />
+      <Route path="documents/studio" element={<Navigate to="../documents?tab=studio" replace />} />
       <Route
         path="organization"
         element={

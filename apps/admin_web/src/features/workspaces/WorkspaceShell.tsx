@@ -226,13 +226,9 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
   );
   // أكورديون الأقسام (بند تنظيم اللوحة): الأقسام مطوية افتراضياً إلا
   // القسم الذي يحوي الصفحة النشطة — والتغيير يُحفظ في المتصفح.
-  const [expandedSections, setExpandedSections] = useState<
-    Record<string, boolean>
-  >(() => {
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
     try {
-      return JSON.parse(
-        window.localStorage.getItem('ahla-sidebar-sections') ?? '{}',
-      ) as Record<string, boolean>;
+      return JSON.parse(window.localStorage.getItem('ahla-sidebar-sections') ?? '{}') as Record<string, boolean>;
     } catch {
       return {};
     }
@@ -241,10 +237,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
     setExpandedSections((prev) => {
       const next = { ...prev, [title]: !(prev[title] ?? false) };
       try {
-        window.localStorage.setItem(
-          'ahla-sidebar-sections',
-          JSON.stringify(next),
-        );
+        window.localStorage.setItem('ahla-sidebar-sections', JSON.stringify(next));
       } catch {
         /* التخزين اختياري */
       }
@@ -354,15 +347,10 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
           {allowedSections.map((section) => {
             // القسم الذي يحوي الصفحة النشطة يُوسَّع تلقائياً ما لم يطوِه المستخدم.
             const hasActive = section.items.some((item) => {
-              const exact =
-                item.to === '/hr' || item.to === '/admin' || item.to === '/committee';
-              return exact
-                ? location.pathname === item.to
-                : location.pathname.startsWith(item.to);
+              const exact = item.to === '/hr' || item.to === '/admin' || item.to === '/committee';
+              return exact ? location.pathname === item.to : location.pathname.startsWith(item.to);
             });
-            const isExpanded = collapsed
-              ? true
-              : (expandedSections[section.title] ?? hasActive);
+            const isExpanded = collapsed ? true : (expandedSections[section.title] ?? hasActive);
             return (
               <section key={section.title} className="sidebar-section">
                 {!collapsed ? (
@@ -373,10 +361,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
                     aria-expanded={isExpanded}
                   >
                     <span>{section.title}</span>
-                    <ChevronDown
-                      className={`size-3.5 transition-transform ${isExpanded ? '' : 'rotate-90'}`}
-                      aria-hidden="true"
-                    />
+                    <ChevronDown className={`size-3.5 transition-transform ${isExpanded ? '' : 'rotate-90'}`} aria-hidden="true" />
                   </button>
                 ) : (
                   <span className="sidebar-divider" />
@@ -385,8 +370,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
                   <div className="space-y-1">
                     {section.items.map((item) => {
                       const Icon = item.icon;
-                      const exact =
-                        item.to === '/hr' || item.to === '/admin' || item.to === '/committee';
+                      const exact = item.to === '/hr' || item.to === '/admin' || item.to === '/committee';
                       return (
                         <NavLink
                           key={item.to}

@@ -18,9 +18,7 @@ export function usePerformance() {
 }
 
 // 0470: المسار القانوني الوحيد — ذاتي ثم اعتماد المدير الشامل.
-export type KpiAdvanceAction =
-  | 'self'
-  | 'manager_review';
+export type KpiAdvanceAction = 'self' | 'manager_review';
 
 export function useAdvanceKpi() {
   const auth = useAuth();

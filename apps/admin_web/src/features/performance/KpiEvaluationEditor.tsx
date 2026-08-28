@@ -297,7 +297,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
           <button role="tab" aria-selected={tab === 'criteria'} className={tabCls(tab === 'criteria')} onClick={() => setTab('criteria')}>
             المعايير
           </button>
-          {(form.editableStage === 'hr_review' || form.complianceEditable) ? (
+          {form.editableStage === 'hr_review' || form.complianceEditable ? (
             <button role="tab" aria-selected={tab === 'compliance'} className={tabCls(tab === 'compliance')} onClick={() => setTab('compliance')}>
               الالتزام
             </button>

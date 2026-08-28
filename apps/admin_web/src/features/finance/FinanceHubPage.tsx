@@ -19,9 +19,7 @@ type TabKey = (typeof TABS)[number]['key'];
 export function FinanceHubPage() {
   const [params, setParams] = useSearchParams();
   const raw = params.get('tab');
-  const tab: TabKey = TABS.some((t) => t.key === raw)
-    ? (raw as TabKey)
-    : 'operations';
+  const tab: TabKey = TABS.some((t) => t.key === raw) ? (raw as TabKey) : 'operations';
 
   const setTab = (key: TabKey) => {
     const next = new URLSearchParams(params);
@@ -35,11 +33,7 @@ export function FinanceHubPage() {
 
   return (
     <div className="space-y-4">
-      <div
-        className="flex flex-wrap gap-1 rounded-xl border border-[var(--border)] p-1"
-        role="tablist"
-        aria-label="أقسام المالية"
-      >
+      <div className="flex flex-wrap gap-1 rounded-xl border border-[var(--border)] p-1" role="tablist" aria-label="أقسام المالية">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -48,9 +42,7 @@ export function FinanceHubPage() {
             aria-selected={tab === t.key}
             onClick={() => setTab(t.key)}
             className={`rounded-lg px-3.5 py-1.5 text-xs font-black transition-colors ${
-              tab === t.key
-                ? 'bg-[var(--brand-primary)] text-white'
-                : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)]'
+              tab === t.key ? 'bg-[var(--brand-primary)] text-white' : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)]'
             }`}
           >
             {t.label}
@@ -58,13 +50,7 @@ export function FinanceHubPage() {
         ))}
       </div>
 
-      {tab === 'penalties' ? (
-        <EmployeePenaltiesPage />
-      ) : tab === 'instapay' ? (
-        <InstapayPage />
-      ) : (
-        <FinancePage />
-      )}
+      {tab === 'penalties' ? <EmployeePenaltiesPage /> : tab === 'instapay' ? <InstapayPage /> : <FinancePage />}
     </div>
   );
 }
