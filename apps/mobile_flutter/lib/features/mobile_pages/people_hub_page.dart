@@ -4,8 +4,10 @@ import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/employee_profile_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_employee_summary_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/org_chart_page.dart';
+import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -347,15 +349,33 @@ class _EmployeeRegistryTabState extends ConsumerState<_EmployeeRegistryTab> {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: _RegistryCard(
                     employee: emp,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EmployeeProfilePage(
-                          employeeId: emp.id,
-                          employeeName: emp.fullNameAr,
+                    // 0451: المدير التنفيذي يفتح ملخصه التنفيذي الغني للشخص
+                    // بدل الملف العام — بقية الأدوار على الملف الطبيعي.
+                    onTap: () {
+                      final access = ref.read(accessContextProvider).value;
+                      final isExecutive = (access?.roles.contains(
+                                'executive-director',
+                              ) ??
+                              false) ||
+                          (access?.workspaces.contains(
+                                WorkspaceId.executive,
+                              ) ??
+                              false);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => isExecutive
+                              ? ExecutiveEmployeeSummaryPage(
+                                  employeeId: emp.id,
+                                  employeeName: emp.fullNameAr,
+                                )
+                              : EmployeeProfilePage(
+                                  employeeId: emp.id,
+                                  employeeName: emp.fullNameAr,
+                                ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ),
               ),
