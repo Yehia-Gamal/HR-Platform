@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Download, Printer, Search, ShieldCheck, TrendingUp, Users } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Download, Printer, ShieldCheck, TrendingUp, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { cairoTodayIso } from '../../core/cairoTime';
@@ -7,7 +7,6 @@ import { ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { SkeletonCard } from '../../ui/Skeletons';
-import { StatusBadge } from '../../ui/StatusBadge';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { useExecutiveDailyReport, useExecutiveDailyReportDetail, exportExecutiveDailyReportPdf } from './useAttendanceDashboard';
@@ -54,10 +53,6 @@ function fmtTime12(iso: string | null | undefined): string {
   return `${String(h).padStart(2, '0')}:${min} ${period}`;
 }
 
-function pctColor(pct: number): string {
-  return pct >= 90 ? '#059669' : pct >= 75 ? '#f59e0b' : '#dc2626';
-}
-
 export function ExecutiveDailyReportPage() {
   const { toast } = useToast();
   const auth = useAuth();
@@ -66,7 +61,7 @@ export function ExecutiveDailyReportPage() {
   const dateIso = /^\d{4}-\d{2}-\d{2}$/.test(dateParam ?? '') ? (dateParam as string) : cairoTodayIso();
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
-  const [branchFilter, setBranchFilter] = useState('');
+  const [branchFilter] = useState('');
   const [isExporting, setIsExporting] = useState(false);
 
   const canViewExecutive = Boolean(auth.access && hasPermission(auth.access, 'reports.executive.read'));
@@ -323,13 +318,8 @@ export function ExecutiveDailyReportPage() {
                 />
                 <select className="input w-auto" value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)} aria-label="تصفية حسب الإدارة">
                   <option value="">كل الإدارات</option>
-                  {(d.employees as any[])
-                    .map(e => e.departmentId).filter(Boolean)
-                    .reduce<string[]>((acc, id: string) => acc.includes(id) ? acc : [...acc, id], [])
-                    .map(id => {
-                      const emp = d.employees.find(e => e.departmentId === id);
-                      return <option key={id} value={id}>{emp?.departmentName}</option>;
-                    })}
+                  {Array.from(new Map(d.employees.filter(e => e.departmentId).map(e => [e.departmentId as string, e])).values())
+                    .map(e => <option key={e.departmentId} value={e.departmentId ?? ''}>{e.departmentName}</option>)}
                 </select>
               </div>
             )}

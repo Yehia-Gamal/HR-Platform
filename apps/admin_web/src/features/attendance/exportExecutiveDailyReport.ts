@@ -1,6 +1,4 @@
-import type { AttendanceRosterItem, ExecutiveDailyReportDetail } from '@ahla/shared-contracts';
-import { rpc } from '../../core/rpc';
-import { attendanceRateParts } from './attendanceShared';
+import type { ExecutiveDailyReportDetail } from '@ahla/shared-contracts';
 
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
@@ -56,12 +54,9 @@ function statusClass(status: string | null): string {
 }
 
 export function exportExecutiveDailyReport(data: ExecutiveDailyReportDetail, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية') {
-  const { dateIso, summary, employees, missions, convoys, leaves, locationRequests, disputes, reports } = data;
+  const { dateIso, summary, employees, missions, convoys, leaves, locationRequests, disputes } = data;
   const missionsArr = missions ?? [];
   const convoysArr = convoys ?? [];
-  const leavesArr = leaves ?? [];
-  const locationRequestsArr = locationRequests ?? [];
-  const disputesArr = disputes ?? [];
   const date = new Date(dateIso);
   const dayName = date.toLocaleDateString('ar-EG', { weekday: 'long' });
   const monthName = MONTHS[date.getMonth()];
@@ -73,7 +68,6 @@ export function exportExecutiveDailyReport(data: ExecutiveDailyReportDetail, org
   const absentCount = employees.filter((e) => e.status === 'absent').length;
   const leaveCount = employees.filter((e) => e.status === 'on_leave').length;
   const missionCount = employees.filter((e) => e.status === 'on_mission').length;
-  const missingCheckoutCount = employees.filter((e) => e.status === 'missing_checkout').length;
   const onTimeCount = employees.filter((e) => e.status === 'present').length;
 
   const attendancePct = totalEmployees > 0 ? ((presentCount / totalEmployees) * 100).toFixed(1) : '0.0';
