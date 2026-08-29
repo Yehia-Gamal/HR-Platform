@@ -2,10 +2,11 @@
 import { FileText } from 'lucide-react';
 import { formatDate } from './DisputeTypes';
 import type { DisputeCase, RunFn } from './DisputeTypes';
+import type { DisputeCommands } from '../useAdvancedOperations';
 
 interface Props {
   selected: DisputeCase;
-  commands: ReturnType<typeof useDisputeCommands>;
+  commands: DisputeCommands;
   run: RunFn;
 }
 

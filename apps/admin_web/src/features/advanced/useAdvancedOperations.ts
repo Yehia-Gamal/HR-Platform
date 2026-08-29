@@ -185,3 +185,5 @@ export function useDisputeCommands() {
     ...useDisputeAdminActionCommands(),
   };
 }
+
+export type DisputeCommands = ReturnType<typeof useDisputeCommands>;

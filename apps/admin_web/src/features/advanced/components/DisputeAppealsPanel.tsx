@@ -1,11 +1,12 @@
 ﻿import { useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 import type { DisputeCase, RunFn } from './DisputeTypes';
+import type { DisputeCommands } from '../useAdvancedOperations';
 import { StatusBadge } from '../../../ui/StatusBadge';
 
 interface Props {
   selected: DisputeCase;
-  commands: ReturnType<typeof useDisputeCommands>;
+  commands: DisputeCommands;
   run: RunFn;
 }
 

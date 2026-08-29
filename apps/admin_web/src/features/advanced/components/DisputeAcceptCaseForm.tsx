@@ -1,12 +1,12 @@
 ﻿import { useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import type { DisputeCase, Person, RunFn } from './DisputeTypes';
-import type { useDisputeCommands } from '../useAdvancedOperations';
+import type { DisputeCommands } from '../useAdvancedOperations';
 
 interface Props {
   selected: DisputeCase;
   people: Person[];
-  commands: ReturnType<typeof useDisputeCommands>;
+  commands: DisputeCommands;
   run: RunFn;
 }
 

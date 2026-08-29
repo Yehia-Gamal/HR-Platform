@@ -1,12 +1,13 @@
 ﻿import { useState } from 'react';
 import { Briefcase, ShieldCheck, ClipboardCheck, AlertTriangle } from 'lucide-react';
 import type { DisputeCase, RunFn } from './DisputeTypes';
+import type { DisputeCommands } from '../useAdvancedOperations';
 import { StatusBadge } from '../../../ui/StatusBadge';
 import { formatDate } from './DisputeTypes';
 
 interface Props {
   selected: DisputeCase;
-  commands: ReturnType<typeof useDisputeCommands>;
+  commands: DisputeCommands;
   run: RunFn;
 }
 
