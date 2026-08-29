@@ -53,7 +53,15 @@ export function AttendanceHubPage() {
         ))}
       </div>
 
-      {tab === 'operations' ? <AttendanceOperationsPage /> : tab === 'report' ? <MonthlyAttendanceReportPage /> : tab === 'executive' ? <ExecutiveDailyReportPage /> : <AttendancePage />}
+      {tab === 'operations' ? (
+        <AttendanceOperationsPage />
+      ) : tab === 'report' ? (
+        <MonthlyAttendanceReportPage />
+      ) : tab === 'executive' ? (
+        <ExecutiveDailyReportPage />
+      ) : (
+        <AttendancePage />
+      )}
     </div>
   );
 }

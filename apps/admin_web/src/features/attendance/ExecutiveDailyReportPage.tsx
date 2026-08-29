@@ -83,7 +83,16 @@ export function ExecutiveDailyReportPage() {
     return <ErrorState title="غير مصرح" description="هذا التقرير متاح للتنفيذيين والسكرتارية التنفيذية فقط." />;
   }
   if (report.isError || detail.isError) {
-    return <ErrorState title="تعذر تحميل التقرير" description={safeErrorMessage(report.error ?? detail.error)} onRetry={() => { void report.refetch(); void detail.refetch(); }} />;
+    return (
+      <ErrorState
+        title="تعذر تحميل التقرير"
+        description={safeErrorMessage(report.error ?? detail.error)}
+        onRetry={() => {
+          void report.refetch();
+          void detail.refetch();
+        }}
+      />
+    );
   }
   if (report.isLoading || detail.isLoading) {
     return (
@@ -141,12 +150,7 @@ export function ExecutiveDailyReportPage() {
         actions={
           <div className="flex flex-wrap gap-2">
             {canExport ? (
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={handleExport}
-                disabled={isExporting}
-              >
+              <button type="button" className="btn-primary" onClick={handleExport} disabled={isExporting}>
                 <Download className="size-4" aria-hidden="true" />
                 {isExporting ? 'جاري التصدير…' : 'تصدير PDF'}
               </button>
@@ -178,51 +182,24 @@ export function ExecutiveDailyReportPage() {
         </label>
         <div className="flex-1" />
         <div className="flex items-center gap-4 text-sm text-[var(--text-muted)]">
-          <span><ShieldCheck className="size-4" aria-hidden="true" /> صلاحية تنفيذية</span>
-          <span><Users className="size-4" aria-hidden="true" /> {totalEmployees} موظف نشط</span>
+          <span>
+            <ShieldCheck className="size-4" aria-hidden="true" /> صلاحية تنفيذية
+          </span>
+          <span>
+            <Users className="size-4" aria-hidden="true" /> {totalEmployees} موظف نشط
+          </span>
         </div>
       </div>
 
       {/* بطاقات الملخص التنفيذي */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-7">
-        <MetricCard
-          label="إجمالي الموظفين"
-          value={totalEmployees}
-          icon={Users}
-        />
-        <MetricCard
-          label="مطلوب حضورهم اليوم"
-          value={requiredToday}
-          icon={Users}
-          hint={`الحضور: ${attendancePct}%`}
-        />
-        <MetricCard
-          label="حضور فعلي"
-          value={present}
-          hint={late > 0 ? `متأخرين: ${late}` : undefined}
-          icon={TrendingUp}
-        />
-        <MetricCard
-          label="متأخرون"
-          value={late}
-          icon={TrendingUp}
-        />
-        <MetricCard
-          label="غياب"
-          value={absent}
-          icon={TrendingUp}
-        />
-        <MetricCard
-          label="بصمة بلا انصراف"
-          value={missingCheckout}
-          icon={TrendingUp}
-        />
-        <MetricCard
-          label="لم يسجلوا بعد"
-          value={notYet}
-          hint={`مغادرون: ${checkedOut}`}
-          icon={TrendingUp}
-        />
+        <MetricCard label="إجمالي الموظفين" value={totalEmployees} icon={Users} />
+        <MetricCard label="مطلوب حضورهم اليوم" value={requiredToday} icon={Users} hint={`الحضور: ${attendancePct}%`} />
+        <MetricCard label="حضور فعلي" value={present} hint={late > 0 ? `متأخرين: ${late}` : undefined} icon={TrendingUp} />
+        <MetricCard label="متأخرون" value={late} icon={TrendingUp} />
+        <MetricCard label="غياب" value={absent} icon={TrendingUp} />
+        <MetricCard label="بصمة بلا انصراف" value={missingCheckout} icon={TrendingUp} />
+        <MetricCard label="لم يسجلوا بعد" value={notYet} hint={`مغادرون: ${checkedOut}`} icon={TrendingUp} />
       </section>
 
       {/* بطاقات حالة العمل */}
@@ -243,17 +220,8 @@ export function ExecutiveDailyReportPage() {
 
       {/* طلبات الموقع */}
       <section className="grid gap-4 sm:grid-cols-2">
-        <MetricCard
-          label="طلبات موقع نشطة"
-          value={s.followUp?.activeLocationRequests ?? 0}
-          icon={ShieldCheck}
-        />
-        <MetricCard
-          label="طلبات بلا استجابة"
-          value={s.followUp?.unansweredLocationRequests ?? 0}
-          hint="حرجة"
-          icon={ShieldCheck}
-        />
+        <MetricCard label="طلبات موقع نشطة" value={s.followUp?.activeLocationRequests ?? 0} icon={ShieldCheck} />
+        <MetricCard label="طلبات بلا استجابة" value={s.followUp?.unansweredLocationRequests ?? 0} hint="حرجة" icon={ShieldCheck} />
       </section>
 
       {/* KPI */}
@@ -279,21 +247,34 @@ export function ExecutiveDailyReportPage() {
             <table className="data-table w-full">
               <thead className="sticky top-0 z-10">
                 <tr>
-                  <th>الكود</th><th>الاسم</th><th>الحالة</th><th>الإدارة</th>
-                  <th>الحضور</th><th>الانصراف</th><th>التأخير</th>
-                  <th>الوردية</th><th>الموقع</th><th>العذر</th><th>ساعات العمل</th>
+                  <th>الكود</th>
+                  <th>الاسم</th>
+                  <th>الحالة</th>
+                  <th>الإدارة</th>
+                  <th>الحضور</th>
+                  <th>الانصراف</th>
+                  <th>التأخير</th>
+                  <th>الوردية</th>
+                  <th>الموقع</th>
+                  <th>العذر</th>
+                  <th>ساعات العمل</th>
                 </tr>
               </thead>
               <tbody>
                 {d.employees
-                  .filter(emp => !search || `${emp.employeeName} ${emp.employeeCode ?? ''} ${emp.departmentName ?? ''}`.toLowerCase().includes(search.toLowerCase()))
-                  .filter(emp => !deptFilter || emp.departmentId === deptFilter)
-                  .filter(emp => !branchFilter || emp.branchId === branchFilter)
-                  .map(emp => (
+                  .filter(
+                    (emp) =>
+                      !search || `${emp.employeeName} ${emp.employeeCode ?? ''} ${emp.departmentName ?? ''}`.toLowerCase().includes(search.toLowerCase()),
+                  )
+                  .filter((emp) => !deptFilter || emp.departmentId === deptFilter)
+                  .filter((emp) => !branchFilter || emp.branchId === branchFilter)
+                  .map((emp) => (
                     <tr key={emp.employeeId} className={statusClass(emp.status)}>
                       <td>{emp.employeeCode ?? '—'}</td>
                       <td>{emp.employeeName}</td>
-                      <td><span className={`status-pill ${statusClass(emp.status)}`}>{statusLabel(emp.status)}</span></td>
+                      <td>
+                        <span className={`status-pill ${statusClass(emp.status)}`}>{statusLabel(emp.status)}</span>
+                      </td>
                       <td>{emp.departmentName ?? '—'}</td>
                       <td>{fmtTime12(emp.firstCheckIn)}</td>
                       <td>{fmtTime12(emp.lastCheckOut)}</td>
@@ -318,8 +299,11 @@ export function ExecutiveDailyReportPage() {
                 />
                 <select className="input w-auto" value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)} aria-label="تصفية حسب الإدارة">
                   <option value="">كل الإدارات</option>
-                  {Array.from(new Map(d.employees.filter(e => e.departmentId).map(e => [e.departmentId as string, e])).values())
-                    .map(e => <option key={e.departmentId} value={e.departmentId ?? ''}>{e.departmentName}</option>)}
+                  {Array.from(new Map(d.employees.filter((e) => e.departmentId).map((e) => [e.departmentId as string, e])).values()).map((e) => (
+                    <option key={e.departmentId} value={e.departmentId ?? ''}>
+                      {e.departmentName}
+                    </option>
+                  ))}
                 </select>
               </div>
             )}
@@ -332,9 +316,20 @@ export function ExecutiveDailyReportPage() {
         <section className="card p-4">
           <h2 className="font-black mb-4">المأموريات ({d.missions.length})</h2>
           <table className="data-table w-full">
-            <thead><tr><th>الكود</th><th>الاسم</th><th>النوع</th><th>الوجهة</th><th>البداية</th><th>النهاية</th><th>الحالة</th><th>الغرض</th></tr></thead>
+            <thead>
+              <tr>
+                <th>الكود</th>
+                <th>الاسم</th>
+                <th>النوع</th>
+                <th>الوجهة</th>
+                <th>البداية</th>
+                <th>النهاية</th>
+                <th>الحالة</th>
+                <th>الغرض</th>
+              </tr>
+            </thead>
             <tbody>
-              {d.missions.map(m => (
+              {d.missions.map((m) => (
                 <tr key={m.id}>
                   <td>{m.employeeCode ?? '—'}</td>
                   <td>{m.employeeName}</td>
@@ -342,7 +337,9 @@ export function ExecutiveDailyReportPage() {
                   <td>{m.destination}</td>
                   <td>{fmtTime12(m.startAt)}</td>
                   <td>{fmtTime12(m.endAt)}</td>
-                  <td><span className={`status-pill ${statusClass(m.status)}`}>{statusLabel(m.status)}</span></td>
+                  <td>
+                    <span className={`status-pill ${statusClass(m.status)}`}>{statusLabel(m.status)}</span>
+                  </td>
                   <td>{m.purpose ?? '—'}</td>
                 </tr>
               ))}
@@ -356,9 +353,19 @@ export function ExecutiveDailyReportPage() {
         <section className="card p-4">
           <h2 className="font-black mb-4">القوافل ({d.convoys.length})</h2>
           <table className="data-table w-full">
-            <thead><tr><th>الكود</th><th>العنوان</th><th>النوع</th><th>المشاركون</th><th>البداية</th><th>النهاية</th><th>الحالة</th></tr></thead>
+            <thead>
+              <tr>
+                <th>الكود</th>
+                <th>العنوان</th>
+                <th>النوع</th>
+                <th>المشاركون</th>
+                <th>البداية</th>
+                <th>النهاية</th>
+                <th>الحالة</th>
+              </tr>
+            </thead>
             <tbody>
-              {d.convoys.map(c => (
+              {d.convoys.map((c) => (
                 <tr key={c.id}>
                   <td>{c.code}</td>
                   <td>{c.title}</td>
@@ -366,7 +373,9 @@ export function ExecutiveDailyReportPage() {
                   <td>{c.participantsCount}</td>
                   <td>{fmtTime12(c.startAt)}</td>
                   <td>{fmtTime12(c.endAt)}</td>
-                  <td><span className={`status-pill ${statusClass(c.status)}`}>{statusLabel(c.status)}</span></td>
+                  <td>
+                    <span className={`status-pill ${statusClass(c.status)}`}>{statusLabel(c.status)}</span>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -379,9 +388,19 @@ export function ExecutiveDailyReportPage() {
         <section className="card p-4">
           <h2 className="font-black mb-4">الإجازات ({d.leaves.length})</h2>
           <table className="data-table w-full">
-            <thead><tr><th>الكود</th><th>الاسم</th><th>النوع</th><th>البداية</th><th>النهاية</th><th>الأيام</th><th>الحالة</th></tr></thead>
+            <thead>
+              <tr>
+                <th>الكود</th>
+                <th>الاسم</th>
+                <th>النوع</th>
+                <th>البداية</th>
+                <th>النهاية</th>
+                <th>الأيام</th>
+                <th>الحالة</th>
+              </tr>
+            </thead>
             <tbody>
-              {d.leaves.map(l => (
+              {d.leaves.map((l) => (
                 <tr key={l.id}>
                   <td>{l.employeeCode ?? '—'}</td>
                   <td>{l.employeeName}</td>
@@ -389,7 +408,9 @@ export function ExecutiveDailyReportPage() {
                   <td>{fmtTime12(l.startAt)}</td>
                   <td>{fmtTime12(l.endAt)}</td>
                   <td>{l.daysCount}</td>
-                  <td><span className={`status-pill ${statusClass(l.status)}`}>{statusLabel(l.status)}</span></td>
+                  <td>
+                    <span className={`status-pill ${statusClass(l.status)}`}>{statusLabel(l.status)}</span>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -402,16 +423,27 @@ export function ExecutiveDailyReportPage() {
         <section className="card p-4">
           <h2 className="font-black mb-4">طلبات الموقع ({d.locationRequests.length})</h2>
           <table className="data-table w-full">
-            <thead><tr><th>الكود</th><th>الاسم</th><th>النوع</th><th>الموقع</th><th>وقت الطلب</th><th>الحالة</th></tr></thead>
+            <thead>
+              <tr>
+                <th>الكود</th>
+                <th>الاسم</th>
+                <th>النوع</th>
+                <th>الموقع</th>
+                <th>وقت الطلب</th>
+                <th>الحالة</th>
+              </tr>
+            </thead>
             <tbody>
-              {d.locationRequests.map(lr => (
+              {d.locationRequests.map((lr) => (
                 <tr key={lr.id}>
                   <td>{lr.employeeCode ?? '—'}</td>
                   <td>{lr.employeeName}</td>
                   <td>{lr.requestType}</td>
                   <td>{lr.locationName}</td>
                   <td>{fmtTime12(lr.requestedAt)}</td>
-                  <td><span className={`status-pill ${statusClass(lr.status)}`}>{statusLabel(lr.status)}</span></td>
+                  <td>
+                    <span className={`status-pill ${statusClass(lr.status)}`}>{statusLabel(lr.status)}</span>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -424,14 +456,25 @@ export function ExecutiveDailyReportPage() {
         <section className="card p-4">
           <h2 className="font-black mb-4">الخلافات ({d.disputes.length})</h2>
           <table className="data-table w-full">
-            <thead><tr><th>الرقم</th><th>العنوان</th><th>النوع</th><th>الحالة</th><th>الأولوية</th><th>مقدم الطلب</th></tr></thead>
+            <thead>
+              <tr>
+                <th>الرقم</th>
+                <th>العنوان</th>
+                <th>النوع</th>
+                <th>الحالة</th>
+                <th>الأولوية</th>
+                <th>مقدم الطلب</th>
+              </tr>
+            </thead>
             <tbody>
-              {d.disputes.map(dsp => (
+              {d.disputes.map((dsp) => (
                 <tr key={dsp.id}>
                   <td>{dsp.caseNumber}</td>
                   <td>{dsp.title}</td>
                   <td>{dsp.caseType}</td>
-                  <td><span className={`status-pill ${statusClass(dsp.status)}`}>{statusLabel(dsp.status)}</span></td>
+                  <td>
+                    <span className={`status-pill ${statusClass(dsp.status)}`}>{statusLabel(dsp.status)}</span>
+                  </td>
                   <td>{dsp.priority}</td>
                   <td>{dsp.actorName ?? '—'}</td>
                 </tr>

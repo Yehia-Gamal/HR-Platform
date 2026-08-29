@@ -94,11 +94,10 @@ export function exportExecutiveDailyReport(data: ExecutiveDailyReportDetail, org
     )
     .join('');
 
-  const missionRows =
-    missionsArr.length
-      ? missionsArr
-          .map(
-            (m) => `
+  const missionRows = missionsArr.length
+    ? missionsArr
+        .map(
+          (m) => `
     <tr>
       <td style="padding:6px 8px;text-align:center">${esc(m.employeeCode ?? '—')}</td>
       <td style="padding:6px 8px">${esc(m.employeeName)}</td>
@@ -110,15 +109,14 @@ export function exportExecutiveDailyReport(data: ExecutiveDailyReportDetail, org
       <td style="padding:6px 8px">${esc(m.purpose ?? '—')}</td>
     </tr>
   `,
-          )
-          .join('')
-      : '<tr><td colspan="8" style="padding:16px;text-align:center;color:#6b7280">لا توجد مأموريات لهذا اليوم</td></tr>';
+        )
+        .join('')
+    : '<tr><td colspan="8" style="padding:16px;text-align:center;color:#6b7280">لا توجد مأموريات لهذا اليوم</td></tr>';
 
-  const convoyRows =
-    convoysArr.length
-      ? convoysArr
-          .map(
-            (c) => `
+  const convoyRows = convoysArr.length
+    ? convoysArr
+        .map(
+          (c) => `
     <tr>
       <td style="padding:6px 8px;text-align:center">${esc(c.code)}</td>
       <td style="padding:6px 8px">${esc(c.title)}</td>
@@ -129,15 +127,14 @@ export function exportExecutiveDailyReport(data: ExecutiveDailyReportDetail, org
       <td style="padding:6px 8px;text-align:center"><span class="status-badge ${statusClass(c.status)}">${esc(statusLabel(c.status))}</span></td>
     </tr>
   `,
-          )
-          .join('')
-      : '<tr><td colspan="7" style="padding:16px;text-align:center;color:#6b7280">لا توجد قوافل لهذا اليوم</td></tr>';
+        )
+        .join('')
+    : '<tr><td colspan="7" style="padding:16px;text-align:center;color:#6b7280">لا توجد قوافل لهذا اليوم</td></tr>';
 
-const leaveRows =
-    leaves?.length
-      ? leaves
-          .map(
-            (l) => `
+  const leaveRows = leaves?.length
+    ? leaves
+        .map(
+          (l) => `
     <tr>
       <td style="padding:6px 8px;text-align:center">${esc(l.employeeCode ?? '—')}</td>
       <td style="padding:6px 8px">${esc(l.employeeName)}</td>
@@ -148,15 +145,14 @@ const leaveRows =
       <td style="padding:6px 8px;text-align:center"><span class="status-badge ${statusClass(l.status)}">${esc(statusLabel(l.status))}</span></td>
     </tr>
   `,
-          )
-          .join('')
-      : '<tr><td colspan="7" style="padding:16px;text-align:center;color:#6b7280">لا توجد إجازات لهذا اليوم</td></tr>';
+        )
+        .join('')
+    : '<tr><td colspan="7" style="padding:16px;text-align:center;color:#6b7280">لا توجد إجازات لهذا اليوم</td></tr>';
 
-  const locationRows =
-    locationRequests?.length
-      ? locationRequests
-          .map(
-            (lr) => `
+  const locationRows = locationRequests?.length
+    ? locationRequests
+        .map(
+          (lr) => `
     <tr>
       <td style="padding:6px 8px;text-align:center">${esc(lr.employeeCode ?? '—')}</td>
       <td style="padding:6px 8px">${esc(lr.employeeName)}</td>
@@ -166,15 +162,14 @@ const leaveRows =
       <td style="padding:6px 8px;text-align:center"><span class="status-badge ${statusClass(lr.status)}">${esc(statusLabel(lr.status))}</span></td>
     </tr>
   `,
-          )
-          .join('')
-      : '<tr><td colspan="6" style="padding:16px;text-align:center;color:#6b7280">لا توجد طلبات موقع لهذا اليوم</td></tr>';
+        )
+        .join('')
+    : '<tr><td colspan="6" style="padding:16px;text-align:center;color:#6b7280">لا توجد طلبات موقع لهذا اليوم</td></tr>';
 
-  const disputeRows =
-    disputes?.length
-      ? disputes
-          .map(
-            (d) => `
+  const disputeRows = disputes?.length
+    ? disputes
+        .map(
+          (d) => `
     <tr>
       <td style="padding:6px 8px;text-align:center">${esc(d.caseNumber)}</td>
       <td style="padding:6px 8px">${esc(d.title)}</td>
@@ -184,9 +179,9 @@ const leaveRows =
       <td style="padding:6px 8px;text-align:center">${esc(d.actorName ?? '—')}</td>
     </tr>
   `,
-          )
-          .join('')
-      : '<tr><td colspan="6" style="padding:16px;text-align:center;color:#6b7280">لا توجد خلافات لهذا اليوم</td></tr>';
+        )
+        .join('')
+    : '<tr><td colspan="6" style="padding:16px;text-align:center;color:#6b7280">لا توجد خلافات لهذا اليوم</td></tr>';
 
   const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
