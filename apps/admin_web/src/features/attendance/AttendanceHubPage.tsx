@@ -2,6 +2,7 @@ import { useSearchParams } from 'react-router';
 import { AttendancePage } from './AttendancePage';
 import { AttendanceOperationsPage } from '../advanced/AttendanceOperationsPage';
 import { MonthlyAttendanceReportPage } from './MonthlyAttendanceReportPage';
+import { ExecutiveDailyReportPage } from './ExecutiveDailyReportPage';
 
 /**
  * مركز الحضور الموحّد — يدمج التفاصيل والتشغيل والكشف الشهري في صفحة
@@ -13,6 +14,7 @@ const TABS = [
   { key: 'details', label: 'الحضور' },
   { key: 'operations', label: 'الورديات والتشغيل' },
   { key: 'report', label: 'الكشف الشهري' },
+  { key: 'executive', label: 'التقرير التنفيذي' },
 ] as const;
 
 type TabKey = (typeof TABS)[number]['key'];
@@ -51,7 +53,7 @@ export function AttendanceHubPage() {
         ))}
       </div>
 
-      {tab === 'operations' ? <AttendanceOperationsPage /> : tab === 'report' ? <MonthlyAttendanceReportPage /> : <AttendancePage />}
+      {tab === 'operations' ? <AttendanceOperationsPage /> : tab === 'report' ? <MonthlyAttendanceReportPage /> : tab === 'executive' ? <ExecutiveDailyReportPage /> : <AttendancePage />}
     </div>
   );
 }

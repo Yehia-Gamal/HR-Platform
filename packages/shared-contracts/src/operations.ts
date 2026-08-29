@@ -161,6 +161,148 @@ export const attendanceDashboardSchema = z.object({
 });
 export type AttendanceDashboard = z.infer<typeof attendanceDashboardSchema>;
 
+// ─── التقرير التنفيذي اليومي الشامل (get_v10_executive_daily_report) ───
+export const executiveDailyReportSchema = z.object({
+  date: z.string(),
+  employees: z.object({
+    active: z.number(),
+    requiredToday: z.number(),
+  }),
+  attendance: z.object({
+    present: z.number(),
+    late: z.number(),
+    absent: z.number(),
+    notYet: z.number(),
+    checkedOut: z.number(),
+    missingCheckout: z.number(),
+  }),
+  workStatus: z.object({
+    approvedLeave: z.number(),
+    missions: z.number(),
+    convoys: z.number(),
+    fundraising: z.number(),
+  }),
+  requests: z.object({
+    pendingLeave: z.number(),
+    pendingMission: z.number(),
+  }),
+  kpi: z.object({
+    atEmployee: z.number(),
+    atManager: z.number(),
+    atHr: z.number(),
+    ready: z.number(),
+    overdue: z.number(),
+  }),
+  cases: z.object({
+    new: z.number(),
+    open: z.number(),
+  }),
+  followUp: z.object({
+    decisions: z.number(),
+    missingReports: z.number(),
+    activeLocationRequests: z.number(),
+    unansweredLocationRequests: z.number(),
+  }),
+  sources: z.record(z.string(), z.string()),
+  generatedAt: z.string(),
+});
+export type ExecutiveDailyReport = z.infer<typeof executiveDailyReportSchema>;
+
+export const executiveDailyReportDetailSchema = z.object({
+  dateIso: z.string(),
+  summary: executiveDailyReportSchema,
+  employees: z.array(z.object({
+    employeeId: z.string().uuid(),
+    employeeName: z.string(),
+    employeeCode: z.string().nullable(),
+    photoUrl: z.string().nullable().optional(),
+    departmentId: z.string().uuid().nullable().optional(),
+    departmentName: z.string().nullable(),
+    branchId: z.string().uuid().nullable().optional(),
+    branchName: z.string().nullable().optional(),
+    jobTitle: z.string().nullable().optional(),
+    managerId: z.string().uuid().nullable().optional(),
+    managerName: z.string().nullable().optional(),
+    status: z.string().nullable(),
+    lateMinutes: z.number().nullable(),
+    firstCheckIn: z.string().nullable(),
+    lastCheckOut: z.string().nullable(),
+    shiftName: z.string().nullable().optional(),
+    shiftStartAt: z.string().nullable().optional(),
+    shiftEndAt: z.string().nullable().optional(),
+    requiresReview: z.boolean().optional(),
+    reviewReason: z.string().nullable().optional(),
+    hasApprovedLeave: z.boolean().optional(),
+    leaveCode: z.string().nullable().optional(),
+    leaveIsPaid: z.boolean().nullable().optional(),
+    hasMission: z.boolean().optional(),
+    locationRequestStatus: z.string().nullable(),
+    locationRequestedAt: z.string().nullable().optional(),
+    locationRespondedAt: z.string().nullable().optional(),
+    workHours: z.number().nullable().optional(),
+  })),
+  missions: z.array(z.object({
+    id: z.string().uuid(),
+    employeeId: z.string().uuid(),
+    employeeName: z.string(),
+    employeeCode: z.string().nullable(),
+    missionType: z.string(),
+    destination: z.string(),
+    startAt: z.string(),
+    endAt: z.string(),
+    status: z.string(),
+    purpose: z.string().nullable(),
+  })).optional(),
+  convoys: z.array(z.object({
+    id: z.string().uuid(),
+    code: z.string(),
+    title: z.string(),
+    type: z.string(),
+    participantsCount: z.number(),
+    startAt: z.string(),
+    endAt: z.string(),
+    status: z.string(),
+  })).optional(),
+  leaves: z.array(z.object({
+    id: z.string().uuid(),
+    employeeId: z.string().uuid(),
+    employeeName: z.string(),
+    employeeCode: z.string().nullable(),
+    leaveType: z.string(),
+    startAt: z.string(),
+    endAt: z.string(),
+    daysCount: z.number(),
+    status: z.string(),
+  })).optional(),
+  locationRequests: z.array(z.object({
+    id: z.string().uuid(),
+    employeeId: z.string().uuid(),
+    employeeName: z.string(),
+    employeeCode: z.string().nullable(),
+    requestType: z.string(),
+    locationName: z.string(),
+    requestedAt: z.string(),
+    status: z.string(),
+  })).optional(),
+  disputes: z.array(z.object({
+    id: z.string().uuid(),
+    caseNumber: z.string(),
+    title: z.string(),
+    caseType: z.string(),
+    status: z.string(),
+    priority: z.string(),
+    actorName: z.string().nullable(),
+  })).optional(),
+  reports: z.array(z.object({
+    id: z.string().uuid(),
+    employeeId: z.string().uuid(),
+    employeeName: z.string(),
+    title: z.string(),
+    status: z.string(),
+  })).optional(),
+});
+export type ExecutiveDailyReportDetail = z.infer<typeof executiveDailyReportDetailSchema>;
+
 // فئات لوحة الحضور التفصيلية — تُستخدم لفتح قائمة الموظفين لكل بطاقة.
 export const attendanceRosterCategorySchema = z.enum([
   'scheduled',

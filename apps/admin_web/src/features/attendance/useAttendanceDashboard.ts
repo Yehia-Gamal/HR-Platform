@@ -221,7 +221,34 @@ export function useExecutiveDailyReport(dateIso?: string) {
     enabled: auth.status === 'authenticated',
     staleTime: 60_000,
     queryFn: async (): Promise<ExecutiveDailyReport> => {
-      if (auth.isMock) return (await loadDomainMocks()).mockAttendanceDashboard as ExecutiveDailyReport;
+      if (auth.isMock) {
+        const mock = (await loadDomainMocks()).mockAttendanceDashboard;
+        // تحويل AttendanceDashboard إلى ExecutiveDailyReport للمعاينة
+        return {
+          date: targetDate,
+          employees: { active: mock.scheduled ?? 0, requiredToday: mock.scheduled ?? 0 },
+          attendance: {
+            present: mock.present ?? 0,
+            late: mock.late ?? 0,
+            absent: mock.absent ?? 0,
+            notYet: mock.missingCheckout ?? 0,
+            checkedOut: mock.present ?? 0,
+            missingCheckout: mock.missingCheckout ?? 0,
+          },
+          workStatus: {
+            approvedLeave: mock.onLeave ?? 0,
+            missions: mock.onMission ?? 0,
+            convoys: 0,
+            fundraising: 0,
+          },
+          requests: { pendingLeave: 0, pendingMission: 0 },
+          kpi: { atEmployee: 0, atManager: 0, atHr: 0, ready: 0, overdue: 0 },
+          cases: { new: 0, open: 0 },
+          followUp: { decisions: 0, missingReports: 0, activeLocationRequests: 0, unansweredLocationRequests: 0 },
+          sources: {},
+          generatedAt: new Date().toISOString(),
+        } as ExecutiveDailyReport;
+      }
       const data = await rpc('get_v10_executive_daily_report', { p_date: targetDate });
       return executiveDailyReportSchema.parse(data);
     },
@@ -240,7 +267,21 @@ export function useExecutiveDailyReportDetail(dateIso?: string) {
     enabled: auth.status === 'authenticated',
     staleTime: 60_000,
     queryFn: async (): Promise<ExecutiveDailyReportDetail> => {
-      if (auth.isMock) return (await loadDomainMocks()).mockAttendanceDashboard as ExecutiveDailyReportDetail;
+      if (auth.isMock) {
+        const mocks = await loadDomainMocks();
+        const summary = executiveDailyReportSchema.parse(mocks.mockAttendanceDashboard);
+        return {
+          dateIso: targetDate,
+          summary,
+          employees: [],
+          missions: [],
+          convoys: [],
+          leaves: [],
+          locationRequests: [],
+          disputes: [],
+          reports: [],
+        };
+      }
       // ملاحظة: يحتاج RPC جديد get_executive_daily_report_detail مع التفاصيل
       // حالياً يعيد الملخص الأساسي كبديل
       const data = await rpc('get_v10_executive_daily_report', { p_date: targetDate });
