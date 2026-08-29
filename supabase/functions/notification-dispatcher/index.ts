@@ -195,7 +195,7 @@ Deno.serve(
           let anyOk = false;
           let lastErr = '';
           for (const sub of webTargets) {
-            const res = await sendWebPush(vapidPrivateKey, sub, notification);
+            const res = await sendWebPush(vapidPrivateKey, { endpoint: sub.endpoint!, p256dh_key: sub.p256dh_key!, auth_key: sub.auth_key! }, notification);
             if (res.ok) {
               anyOk = true;
               await logDelivery(supabase, job, sub.id, 'sent', null, null);
@@ -458,8 +458,8 @@ async function deriveVapidPublicKey(vapidPrivateKeyPem: string): Promise<Uint8Ar
 
 // يشفّر الحمولة بـ AES-128-GCM لمعيار Web Push.
 async function encryptWebPushPayload(payload: string, p256dhBase64: string, authBase64: string): Promise<ArrayBuffer> {
-  const dh = base64urlToBuffer(p256dhBase64);
-  const auth = base64urlToBuffer(authBase64);
+  const dh = base64urlToArray(p256dhBase64);
+  const auth = base64urlToArray(authBase64);
 
   // ECDH: نشتق سراً مشتركاً باستخدام مفتاحنا المؤقت + مفتاح المستخدم العام.
   const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -482,7 +482,7 @@ async function encryptWebPushPayload(payload: string, p256dhBase64: string, auth
 
   // AES-128-GCM تشفير.
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encCryptoKey = await crypto.subtle.importKey('raw', encKey, { name: 'AES-GCM' } as AesKeyImportParams, false, ['encrypt']);
+  const encCryptoKey = await crypto.subtle.importKey('raw', encKey, { name: 'AES-GCM' }, false, ['encrypt']);
   const payloadBytes = new TextEncoder().encode(payload);
   const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, encCryptoKey, payloadBytes);
 
@@ -502,7 +502,7 @@ async function encryptWebPushPayload(payload: string, p256dhBase64: string, auth
   return record.buffer;
 }
 
-function base64urlToBuffer(str: string): Uint8Array {
+function base64urlToArray(str: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (str.length % 4)) % 4);
   const b64 = (str + padding).replace(/-/g, '+').replace(/_/g, '/');
   const bin = atob(b64);
@@ -511,7 +511,7 @@ function base64urlToBuffer(str: string): Uint8Array {
   return buf;
 }
 
-async function hkdf(ikm: Uint8Array, salt: Uint8Array, info: Uint8Array, length: number): Promise<Uint8Array> {
+async function hkdf(ikm: Uint8Array<ArrayBuffer>, salt: Uint8Array<ArrayBuffer>, info: Uint8Array, length: number): Promise<Uint8Array<ArrayBuffer>> {
   const prkKey = await crypto.subtle.importKey('raw', ikm, { name: 'HMAC', hash: 'SHA-256' } as HmacImportParams, false, ['sign']);
   const prk = await crypto.subtle.sign('HMAC', prkKey, salt);
   const prkKey2 = await crypto.subtle.importKey('raw', new Uint8Array(prk), { name: 'HMAC', hash: 'SHA-256' } as HmacImportParams, false, ['sign']);
