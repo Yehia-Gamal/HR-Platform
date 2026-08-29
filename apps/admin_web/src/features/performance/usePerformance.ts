@@ -4,8 +4,6 @@ import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
 import { loadDomainMocks } from '../mock/loadDomainMocks';
 
-export type { KpiEvaluationSummary } from '@ahla/shared-contracts';
-
 export function usePerformance() {
   const auth = useAuth();
   return useQuery({

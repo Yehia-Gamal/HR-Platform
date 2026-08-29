@@ -11,11 +11,11 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { KpiEvaluationEditor } from './KpiEvaluationEditor';
 import { usePerformance } from './usePerformance';
-import type { KpiEvaluationSummary } from '@ahla/shared-contracts';
 import { safeErrorMessage } from '../../core/errorMapper';
-import type { KpiEvaluationSummary } from '@ahla/shared-contracts';
 
-const stageLabel: Record<KpiEvaluationSummary['currentStage'], string> = {
+type EvaluationStage =
+  'self' | 'parallel_review' | 'hr_review' | 'manager_review' | 'manager_final' | 'secretary_review' | 'executive_review' | 'finalized' | 'closed' | 'archived';
+const stageLabel: Record<EvaluationStage, string> = {
   self: 'التقييم الذاتي',
   parallel_review: 'مراجعة متوازية (قديم)',
   hr_review: 'مراجعة HR (قديم)',

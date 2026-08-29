@@ -1,4 +1,19 @@
-import { AlertTriangle, Briefcase, CalendarPlus, CheckCircle2, Clock3, ClipboardCheck, Gavel, MessageSquareText, Scale, Send, ShieldAlert, ShieldCheck, UserCheck, UsersRound } from 'lucide-react';
+import {
+  AlertTriangle,
+  Briefcase,
+  CalendarPlus,
+  CheckCircle2,
+  Clock3,
+  ClipboardCheck,
+  Gavel,
+  MessageSquareText,
+  Scale,
+  Send,
+  ShieldAlert,
+  ShieldCheck,
+  UserCheck,
+  UsersRound,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { EmptyState } from '../../ui/EmptyState';
@@ -10,17 +25,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { useDisputeCommands, useDisputeOperations, useDisputeParticipantDirectory } from './useAdvancedOperations';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useToast } from '../../ui/Toast';
-import {
-  type DisputeCase,
-  type Person,
-  type RunFn,
-  actionsFor,
-  formatDate,
-  remainingLabel,
-  terminalStatuses,
-  caseTypes,
-  transitionLabels,
-} from './components';
+import { type DisputeCase, type Person, type RunFn, actionsFor, formatDate, remainingLabel, terminalStatuses, caseTypes, transitionLabels } from './components';
 import {
   DisputeCaseListItem,
   DisputeCaseDetailHeader,
@@ -98,7 +103,16 @@ export function DisputesPage() {
   };
 
   const submittedStatuses = ['submitted', 'needs_more_information'] as const;
-  const committeeStatuses = ['accepted', 'under_review', 'waiting_for_respondent', 'waiting_for_witness', 'session_scheduled', 'committee_deliberation', 'returned_to_committee', 'reopened'] as const;
+  const committeeStatuses = [
+    'accepted',
+    'under_review',
+    'waiting_for_respondent',
+    'waiting_for_witness',
+    'session_scheduled',
+    'committee_deliberation',
+    'returned_to_committee',
+    'reopened',
+  ] as const;
 
   return (
     <div className="space-y-6">
@@ -164,7 +178,9 @@ export function DisputesPage() {
             {query.isLoading ? (
               <ListSkeleton rows={4} label="جارٍ تحميل القضايا" />
             ) : (
-              filteredCases.map((item) => <DisputeCaseListItem key={item.id} item={item} isSelected={selectedCase === item.id} onSelect={() => chooseCase(item)} />)
+              filteredCases.map((item) => (
+                <DisputeCaseListItem key={item.id} item={item} isSelected={selectedCase === item.id} onSelect={() => chooseCase(item)} />
+              ))
             )}
           </div>
           {!query.isLoading && filteredCases.length === 0 ? <EmptyState title="لا توجد قضايا مطابقة" description="غيّر الفلاتر أو عبارة البحث." /> : null}
