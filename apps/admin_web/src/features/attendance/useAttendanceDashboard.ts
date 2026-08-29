@@ -3,11 +3,14 @@ import {
   attendanceRosterCategorySchema,
   attendanceRosterItemSchema,
   attendanceRosterPageSchema,
+  executiveDailyReportSchema,
   type AttendanceDashboard,
   type AttendanceRosterCategory,
   type AttendanceRosterItem,
   type AttendanceRosterPage,
   type AttendanceRosterSort,
+  type ExecutiveDailyReport,
+  type ExecutiveDailyReportDetail,
 } from '@ahla/shared-contracts';
 import { useQuery } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
@@ -204,4 +207,74 @@ export async function exportAttendancePdf(filters: Omit<AttendanceRosterFilters,
     win.document.write(html);
     win.document.close();
   }
+}
+
+/**
+ * يجلب التقرير التنفيذي اليومي الشامل (get_v10_executive_daily_report).
+ * متاح للتنفيذيين والسكرتارية التنفيذية وصلاحية reports.executive.read.
+ */
+export function useExecutiveDailyReport(dateIso?: string) {
+  const auth = useAuth();
+  const targetDate = dateIso ?? cairoTodayIso();
+  return useQuery({
+    queryKey: ['executive-daily-report', auth.isMock, targetDate],
+    enabled: auth.status === 'authenticated',
+    staleTime: 60_000,
+    queryFn: async (): Promise<ExecutiveDailyReport> => {
+      if (auth.isMock) return (await loadDomainMocks()).mockAttendanceDashboard as ExecutiveDailyReport;
+      const data = await rpc('get_v10_executive_daily_report', { p_date: targetDate });
+      return executiveDailyReportSchema.parse(data);
+    },
+  });
+}
+
+/**
+ * يجلب التقرير التنفيذي التفصيلي مع بيانات الموظفين والمأموريات والقوافل والإجازات.
+ * يتطلب بيانات تفصيلية من RPC مخصص أو تجميع من عدة مصادر.
+ */
+export function useExecutiveDailyReportDetail(dateIso?: string) {
+  const auth = useAuth();
+  const targetDate = dateIso ?? cairoTodayIso();
+  return useQuery({
+    queryKey: ['executive-daily-report-detail', auth.isMock, targetDate],
+    enabled: auth.status === 'authenticated',
+    staleTime: 60_000,
+    queryFn: async (): Promise<ExecutiveDailyReportDetail> => {
+      if (auth.isMock) return (await loadDomainMocks()).mockAttendanceDashboard as ExecutiveDailyReportDetail;
+      // ملاحظة: يحتاج RPC جديد get_executive_daily_report_detail مع التفاصيل
+      // حالياً يعيد الملخص الأساسي كبديل
+      const data = await rpc('get_v10_executive_daily_report', { p_date: targetDate });
+      const summary = executiveDailyReportSchema.parse(data);
+      return {
+        dateIso: targetDate,
+        summary,
+        employees: [],
+        missions: [],
+        convoys: [],
+        leaves: [],
+        locationRequests: [],
+        disputes: [],
+        reports: [],
+      };
+    },
+  });
+}
+
+export async function exportExecutiveDailyReportPdf(dateIso?: string): Promise<void> {
+  const targetDate = dateIso ?? cairoTodayIso();
+  const { exportExecutiveDailyReport } = await import('./exportExecutiveDailyReport');
+  const data = await rpc('get_v10_executive_daily_report', { p_date: targetDate });
+  const summary = executiveDailyReportSchema.parse(data);
+  const detail: ExecutiveDailyReportDetail = {
+    dateIso: targetDate,
+    summary,
+    employees: [],
+    missions: [],
+    convoys: [],
+    leaves: [],
+    locationRequests: [],
+    disputes: [],
+    reports: [],
+  };
+  exportExecutiveDailyReport(detail);
 }

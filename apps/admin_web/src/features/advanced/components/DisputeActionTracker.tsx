@@ -6,7 +6,7 @@ import { StatusBadge } from '../../../ui/StatusBadge';
 
 interface Props {
   selected: DisputeCase;
-  commands: ReturnType<typeof import('../useAdvancedOperations').useDisputeCommands>;
+  commands: ReturnType<typeof useDisputeCommands>;
   run: RunFn;
 }
 
