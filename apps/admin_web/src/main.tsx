@@ -24,10 +24,18 @@ function registerSW() {
           if (newWorker) {
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // إشعار المستخدم بالتحديث
                 emitToast({ message: 'يتوفر تحديث جديد — أعد تحميل الصفحة', tone: 'info', duration: 8000 });
               }
             });
+          }
+        });
+        // استقبال NOTIFICATION_CLICK من Service Worker عند فتح التطبيق
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data?.type === 'NOTIFICATION_CLICK') {
+            const { data = {} } = event.data;
+            const targetUrl = data.actionUrl || data.url || '/';
+            // توجيه عبر window.location لتفعيل router
+            window.location.href = targetUrl;
           }
         });
       })

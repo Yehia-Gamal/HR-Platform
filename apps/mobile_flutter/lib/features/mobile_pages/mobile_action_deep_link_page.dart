@@ -25,9 +25,38 @@ bool _isLocationKind(String kind) => switch (kind) {
 };
 
 /// شاشة انتظار موحّدة لفتح الإشعار — بدل spinner أبيض عاري كان يبدو صفحة
-/// معطوبة، نعرض علامة التطبيق + نص الحالة + زر «الرئيسية» كمسار هروب دائم.
-class _ActionLoader extends StatelessWidget {
-  const _ActionLoader();
+/// معطوبة، نعرض علامة التطبيق + نص الحالة.
+///
+/// تحمل مهلة تلقائية (نمط _TimedLoadingPage في app_gate): بعد مرورها تظهر
+/// أزرار «إعادة المحاولة» و«الرئيسية» — يستحيل بقاء المستخدم على شاشة
+/// سوداء بلا نهاية مهما علّق استعادة الجلسة أو RPC تحليل الهدف (P0-21).
+class _ActionLoader extends StatefulWidget {
+  const _ActionLoader({this.onRetry});
+
+  final VoidCallback? onRetry;
+
+  @override
+  State<_ActionLoader> createState() => _ActionLoaderState();
+}
+
+class _ActionLoaderState extends State<_ActionLoader> {
+  static const Duration _timeout = Duration(seconds: 25);
+  bool _showFallback = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(_timeout, () {
+      if (mounted) setState(() => _showFallback = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,28 +64,60 @@ class _ActionLoader extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.notifications_active_outlined,
-                size: 44,
-                color: scheme.primary,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(28),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.notifications_active_outlined,
+                    size: 44,
+                    color: scheme.primary,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'جاري فتح الإشعار...',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 24),
+                  const CircularProgressIndicator(),
+                  if (!_showFallback) ...[
+                    const SizedBox(height: 28),
+                    TextButton.icon(
+                      onPressed: () => appRouter.go('/'),
+                      icon: const Icon(Icons.home_outlined),
+                      label: const Text('الرئيسية'),
+                    ),
+                  ],
+                  if (_showFallback) ...[
+                    const SizedBox(height: 24),
+                    Text(
+                      'يبدو أن فتح الإشعار تأخر.\nتحقق من اتصالك بالإنترنت وجرّب الخيارات التالية:',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        height: 1.7,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    if (widget.onRetry != null)
+                      FilledButton.icon(
+                        onPressed: widget.onRetry,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('إعادة المحاولة'),
+                      ),
+                    const SizedBox(height: 10),
+                    TextButton.icon(
+                      onPressed: () => appRouter.go('/'),
+                      icon: const Icon(Icons.home_outlined),
+                      label: const Text('الرئيسية'),
+                    ),
+                  ],
+                ],
               ),
-              const SizedBox(height: 16),
-              Text(
-                'جاري فتح الإشعار...',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 24),
-              const CircularProgressIndicator(),
-              const SizedBox(height: 28),
-              TextButton.icon(
-                onPressed: () => appRouter.go('/'),
-                icon: const Icon(Icons.home_outlined),
-                label: const Text('الرئيسية'),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -86,7 +147,12 @@ class MobileActionDeepLinkPage extends ConsumerWidget {
     final canonicalKind = canonicalNotificationEntityType(kind) ?? '';
     final session = ref.watch(authSessionProvider);
     return session.when(
-      loading: () => const _ActionLoader(),
+      loading: () => _ActionLoader(
+        onRetry: () {
+          ref.invalidate(authSessionProvider);
+          ref.invalidate(accessContextProvider);
+        },
+      ),
       error: (error, _) => Scaffold(
         appBar: AppBar(title: const Text('فتح الإشعار')),
         body: Center(
@@ -147,10 +213,11 @@ class MobileActionDeepLinkPage extends ConsumerWidget {
         );
         final target = ref.watch(mobileActionTargetProvider(item));
         return target.when(
-          // لا مؤقت مهلة ثابت هنا: المزوّد يحمل timeout=20s خاصاً به، فيتوقّف
-          // على شاشة الانتظار أثناء التحميل المشروع ثم يعرض إعادة المحاولة
-          // عند الفشل — مع زر «الرئيسية» متاح دائماً كمسار هروب.
-          loading: () => const _ActionLoader(),
+          // المزوّد يحمل timeout=30s خاصاً به، وشاشة الانتظار نفسها تستسلم
+          // بعد 25s بأزرار إعادة محاولة/رئيسية — طبقتا حماية متكاملتان.
+          loading: () => _ActionLoader(
+            onRetry: () => ref.invalidate(mobileActionTargetProvider(item)),
+          ),
           error: (error, _) => Scaffold(
             appBar: AppBar(title: const Text('فتح الإجراء')),
             body: Center(

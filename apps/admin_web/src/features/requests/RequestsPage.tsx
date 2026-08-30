@@ -1,6 +1,7 @@
 ﻿import { MISSION_EXECUTION_STATUS_LABELS, type RequestSummary, type WorkAssignment, type AttendanceOperationsCatalog } from '@ahla/shared-contracts';
 import { CalendarDays, Check, Clock, MapPin, RotateCcw, Truck, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { useUrlState } from '../../core/useUrlState';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { useAuth } from '../auth/AuthProvider';
@@ -103,6 +104,25 @@ export function RequestsPage() {
   // تبويب التصنيف مرتبط بالعنوان — يبقى بعد التحديث والمشاركة.
   const [typeTab, setTypeTab] = useUrlState('type', 'all');
   const [selected, setSelected] = useState<RequestSummary | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestParam = searchParams.get('request');
+  // فتح طلب محدد من الرابط (?request={id}) — الصادر من إشعار أو /action/request.
+  // تُحذف المعلمة بعد فتح الحوار حتى لا يُعاد فتحه عند كل تحديث.
+  useEffect(() => {
+    if (!requestParam) return;
+    const match = (query.data ?? []).find((item) => item.id === requestParam);
+    if (match) {
+      setSelected(match);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('request');
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  }, [requestParam, query.data, setSearchParams]);
   const [comment, setComment] = useState('');
   const canDecide =
     auth.access != null &&

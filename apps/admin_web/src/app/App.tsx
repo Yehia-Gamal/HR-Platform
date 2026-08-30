@@ -334,6 +334,30 @@ function AuthenticatedApp() {
           </Route>
         </Route>
 
+        {/* مساحة لجنة الخلافات — قضايا المنازعات وإشعاراتها */}
+        <Route element={<WorkspaceGuard workspace="committee" />}>
+          <Route path="/committee" element={<WorkspaceShell workspace="committee" />}>
+            <Route
+              index
+              element={
+                <RequirePermission perm="disputes.portal.access">
+                  <DisputesPage />
+                </RequirePermission>
+              }
+            />
+            <Route
+              path="disputes"
+              element={
+                <RequirePermission perm="disputes.portal.access">
+                  <DisputesPage />
+                </RequirePermission>
+              }
+            />
+            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="*" element={<Navigate to="/committee" replace />} />
+          </Route>
+        </Route>
+
         <Route path="*" element={<Navigate to={workspacePath(defaultWorkspace)} replace />} />
       </Routes>
     </Suspense>

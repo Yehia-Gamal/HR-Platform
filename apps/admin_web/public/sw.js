@@ -59,7 +59,8 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   const { action, data = {} } = event;
-  const targetUrl = data.url || '/';
+  // الـ payload من الـ edge function يستخدم actionUrl وليس url
+  const targetUrl = data.actionUrl || data.url || '/';
 
   // إذا كان هناك action محدد، قد نريد توجيه مختلف
   if (action === 'dismiss') return;
