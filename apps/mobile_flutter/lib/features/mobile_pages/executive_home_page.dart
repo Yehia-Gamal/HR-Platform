@@ -11,6 +11,6 @@ class ExecutiveHomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return ExecutiveWorkspace(access: access);
+    return ExecutiveWorkspaceV2(access: access);
   }
 }
