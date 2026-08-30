@@ -84,9 +84,11 @@ comment on function public.kpi_resolve_approver_for_employee(uuid) is
 -- ─── 3) هل المستدعي مخوّل باعتماد هذا التقييم؟ ─────────────────────────────
 create or replace function public.kpi_can_approve(p_evaluation public.kpi_evaluations)
 returns boolean
-language sql stable security definer set search_path = public, pg_temp as $$
-  select public.current_is_full_access()
+language plpgsql stable security definer set search_path = public, pg_temp as $$
+begin
+  return public.current_is_full_access()
       or public.current_employee_id() = public.kpi_resolve_approver_for_employee(p_evaluation.employee_id);
+end;
 $$;
 
 -- ─── 4) إنشاء الدورة: تجاهل علم المسار المتواز قسراً ───────────────────────

@@ -11,6 +11,7 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { KpiEvaluationEditor } from './KpiEvaluationEditor';
 import { usePerformance } from './usePerformance';
+import { useHasSubordinates } from '../employees/useHasSubordinates';
 import { safeErrorMessage } from '../../core/errorMapper';
 
 type EvaluationStage =
@@ -45,6 +46,7 @@ const TAB_DEFS: KpiTabDef[] = [
 
 export function PerformancePage() {
   const query = usePerformance();
+  const { data: hasSubordinates } = useHasSubordinates();
   const [search, setSearch] = useState('');
   // مرحلة التقييم مرتبطة بالعنوان — تبقى بعد التحديث والمشاركة.
   const [stage, setStage] = useUrlState('stage', 'all');
@@ -52,16 +54,19 @@ export function PerformancePage() {
   const [activeTab, setActiveTab] = useState<KpiRelation | null>(null);
   const all = useMemo(() => query.data ?? [], [query.data]);
 
+  // تبويبات متاحة: إخفاء "فريقي" إذا لا يوجد مرؤوسون
+  const tabDefs = useMemo(() => (hasSubordinates ? TAB_DEFS : TAB_DEFS.filter((t) => t.key !== 'team')), [hasSubordinates]);
+
   // 0204: تقسيم البيانات حسب relation
   const { availableTabs, currentTab } = useMemo(() => {
-    const tabs = TAB_DEFS.filter((t) => all.some((item) => item.relation === t.key));
+    const tabs = tabDefs.filter((t) => all.some((item) => item.relation === t.key));
     // إذا لم توجد relation (بيانات قديمة) — عرض الكل بدون تابات.
     const hasRelation = all.some((item) => item.relation);
     if (!hasRelation) return { availableTabs: [] as KpiTabDef[], currentTab: null };
     // اختيار التاب النشط: المحدد أو أول تاب متوفر.
     const current = tabs.find((t) => t.key === activeTab) ?? tabs[0] ?? null;
     return { availableTabs: tabs, currentTab: current };
-  }, [all, activeTab]);
+  }, [all, activeTab, tabDefs]);
 
   // تصفية حسب التاب النشط + البحث + المرحلة.
   const tabItems = useMemo(() => {

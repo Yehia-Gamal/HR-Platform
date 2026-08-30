@@ -135,6 +135,7 @@ Future<void> showAttendanceCorrectionSheet(
 ) async {
   DateTime workDate = DateTime.now().subtract(const Duration(days: 1));
   String type = 'missing_check_in';
+  TimeOfDay? actualTime;
   final reason = TextEditingController();
   // 0439: نعرض وقت البصمة المتوقع من جدول الموظف عند اختيار اليوم ونوع التصحيح.
   final schedule =
@@ -212,6 +213,29 @@ Future<void> showAttendanceCorrectionSheet(
                 ],
                 onChanged: (value) => setState(() => type = value ?? 'other'),
               ),
+              // 0439: تحديد الوقت الفعلي لتسجيل البصمة (حضور/انصراف) — مثل «طلباتي».
+              if (_editableTimeType(type)) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final picked = await showTimePicker(
+                      context: sheetContext,
+                      initialTime:
+                          actualTime ??
+                          const TimeOfDay(hour: 9, minute: 0),
+                    );
+                    if (picked != null) {
+                      setState(() => actualTime = picked);
+                    }
+                  },
+                  icon: const Icon(Icons.access_time, size: 18),
+                  label: Text(
+                    actualTime == null
+                        ? _actualTimePrompt(type)
+                        : 'الوقت الفعلي: ${actualTime!.format(sheetContext)}',
+                  ),
+                ),
+              ],
               // 0439: وقت البصمة المتوقع لليوم المختار حسب نوع التصحيح.
               if (expectedLabel != null) ...[
                 const SizedBox(height: 12),
@@ -257,12 +281,31 @@ Future<void> showAttendanceCorrectionSheet(
     return;
   }
   try {
+    // 0439: نبني وقت البصمة الفعلي (حضور/انصراف) من الوقت المختار إن وُجد.
+    DateTime? checkIn;
+    DateTime? checkOut;
+    if (actualTime != null) {
+      final base = DateTime(
+        workDate.year,
+        workDate.month,
+        workDate.day,
+        actualTime!.hour,
+        actualTime!.minute,
+      );
+      if (type == 'missing_check_in') {
+        checkIn = base;
+      } else if (type == 'missing_check_out') {
+        checkOut = base;
+      }
+    }
     await ref
         .read(mobileCommandsProvider)
         .requestAttendanceCorrection(
           workDate: workDate,
           type: type,
           reason: reason.text,
+          checkIn: checkIn,
+          checkOut: checkOut,
         );
     if (context.mounted) {
       ScaffoldMessenger.of(
@@ -279,6 +322,20 @@ Future<void> showAttendanceCorrectionSheet(
     reason.dispose();
   }
 }
+
+/// هل يُعرض حقل اختيار الوقت الفعلي لهذا النوع من التصحيح؟
+bool _editableTimeType(String value) => switch (value) {
+  'missing_check_in' => true,
+  'missing_check_out' => true,
+  _ => false,
+};
+
+/// النص الإرشادي لحقل الوقت الفعلي حسب نوع التصحيح المختار.
+String _actualTimePrompt(String type) => switch (type) {
+  'missing_check_in' => 'حدد وقت الحضور الفعلي',
+  'missing_check_out' => 'حدد وقت الانصراف الفعلي',
+  _ => 'حدد الوقت الفعلي',
+};
 
 String _correctionType(String value) => switch (value) {
   'missing_check_in' => 'حضور ناقص',

@@ -12,6 +12,8 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/executive_attend
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_emergency_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_employee_summary_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_governance_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_reports_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_risk_center_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
@@ -152,6 +154,21 @@ class _BriefTab extends ConsumerWidget {
         _buildHeroCard(scheme),
         const SizedBox(height: 14),
         _buildQuickLinks(context),
+        const SizedBox(height: 12),
+        _DetailTile(
+          icon: Icons.speed_rounded,
+          label: 'التقارير التنفيذية',
+          subtitle: 'مركز القيادة التشغيلية والطلبات الميدانية',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => Scaffold(
+                appBar: AppBar(title: const Text('التقارير التنفيذية')),
+                body: const ExecutiveReportsPage(),
+              ),
+            ),
+          ),
+        ),
         const SizedBox(height: 20),
         _buildUrgentAlertsSection(context, ref, scheme),
         const SizedBox(height: 20),
@@ -660,13 +677,14 @@ class _PeopleTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Column(
         children: [
           const TabBar(
             tabs: [
               Tab(icon: Icon(Icons.people_rounded), text: 'الدليل'),
               Tab(icon: Icon(Icons.groups_rounded), text: 'الحضور'),
+              Tab(icon: Icon(Icons.location_searching_rounded), text: 'الموقع'),
             ],
           ),
           Expanded(
@@ -674,6 +692,7 @@ class _PeopleTab extends ConsumerWidget {
               children: [
                 _PeopleDirectoryTab(access: access),
                 const ExecutiveAttendanceTab(),
+                const ExecutiveLocationPage(),
               ],
             ),
           ),
@@ -849,6 +868,43 @@ class _QuickLink extends StatelessWidget {
           ),
         ),
       );
+}
+
+/// بطاقة خدمة عريضة — تُستخدم لعرض خدمة كاملة بنقرة واحدة.
+class _DetailTile extends StatelessWidget {
+  const _DetailTile({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        leading: CircleAvatar(
+          backgroundColor: scheme.primaryContainer,
+          child: Icon(icon, color: scheme.onPrimaryContainer),
+        ),
+        title: Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: onTap,
+      ),
+    );
+  }
 }
 
 class _PriorityTile extends StatelessWidget {

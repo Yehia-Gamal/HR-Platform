@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
@@ -101,7 +101,7 @@ describe('KpiCyclesPage', () => {
         <KpiCyclesPage />
       </Wrapper>,
     );
-    expect(screen.getByText('الدورات')).toBeDefined();
+    expect(screen.getAllByText('الدورات').length).toBeGreaterThan(0);
     expect(screen.getByText('التقييمات')).toBeDefined();
     expect(screen.getByText('المدرجة في التقارير')).toBeDefined();
     expect(screen.getByText('الاعتراضات')).toBeDefined();
@@ -146,5 +146,16 @@ describe('KpiCyclesPage', () => {
     );
     expect(screen.getByText('اعتراضات التقييم')).toBeDefined();
     expect(screen.getByText('لا توجد اعتراضات معلقة')).toBeDefined();
+  });
+
+  it('يُظهر لوحة التحليلات عند التبديل إليها ويعرض حالة عدم وجود بيانات', () => {
+    kpiAdminFn = () => dataQuery;
+    render(
+      <Wrapper>
+        <KpiCyclesPage />
+      </Wrapper>,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: /تحليلات/ }));
+    expect(screen.getByText('المقارنة التاريخية لنتائج KPI')).toBeDefined();
   });
 });

@@ -1,11 +1,33 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { PerformancePage } from '../PerformancePage';
 
+const mockAccess = {
+  userId: '00000000-0000-0000-0000-000000000001',
+  employeeId: '00000000-0000-0000-0000-000000000002',
+  displayName: 'مستخدم اختبار',
+  employeeCode: 'EMP-001',
+  photoUrl: null,
+  roles: ['hr'],
+  permissions: ['*'],
+  workspaces: ['hr'] as const,
+  defaultWorkspace: 'hr' as const,
+  attendancePolicy: { attendanceRequired: false, selfPunchEnabled: false, liveLocationResponseEnabled: false },
+};
+
+vi.mock('../../auth/AuthProvider', () => ({
+  useAuth: () => ({ status: 'authenticated', session: null, access: mockAccess, error: null, isMock: true }),
+}));
+
 let performanceOverrideFn: () => Record<string, unknown>;
+let hasSubordinatesOverrideFn: () => boolean;
 vi.mock('../usePerformance', () => ({
   usePerformance: () => performanceOverrideFn(),
+}));
+vi.mock('../../employees/useHasSubordinates', () => ({
+  useHasSubordinates: () => ({ data: hasSubordinatesOverrideFn() }),
 }));
 
 vi.mock('../KpiEvaluationEditor', () => ({
@@ -64,34 +86,37 @@ const emptyQuery = { data: [], isLoading: false, isError: false, error: null, is
 const loadingQuery = { data: undefined, isLoading: true, isError: false, error: null, isFetching: false, refetch: vi.fn() };
 const dataQuery = { data: mockEvaluations, isLoading: false, isError: false, error: null, isFetching: false, refetch: vi.fn() };
 
+function renderWithProviders(ui: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
 describe('PerformancePage', () => {
+  beforeEach(() => {
+    hasSubordinatesOverrideFn = () => true;
+  });
+
   it('يُعرض بدون أخطاء', () => {
     performanceOverrideFn = () => dataQuery;
-    const { container } = render(
-      <MemoryRouter>
-        <PerformancePage />
-      </MemoryRouter>,
-    );
+    const { container } = renderWithProviders(<PerformancePage />);
     expect(container.firstChild).toBeTruthy();
   });
 
   it('يعرض عنوان الصفحة', () => {
     performanceOverrideFn = () => dataQuery;
-    render(
-      <MemoryRouter>
-        <PerformancePage />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<PerformancePage />);
     expect(screen.getByText('KPI والأداء')).toBeDefined();
   });
 
   it('يعرض تبويبات العرض', () => {
     performanceOverrideFn = () => dataQuery;
-    render(
-      <MemoryRouter>
-        <PerformancePage />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<PerformancePage />);
     expect(screen.getByText('تقييمي')).toBeDefined();
     expect(screen.getByText('فريقي')).toBeDefined();
     expect(screen.getByText('المهام')).toBeDefined();
@@ -99,32 +124,20 @@ describe('PerformancePage', () => {
 
   it('يعرض بطاقات المؤشرات الإحصائية', () => {
     performanceOverrideFn = () => dataQuery;
-    render(
-      <MemoryRouter>
-        <PerformancePage />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<PerformancePage />);
     expect(screen.getByText('إجمالي التقييمات')).toBeDefined();
     expect(screen.getByText('المكتملة')).toBeDefined();
   });
 
   it('يعرض حالة التحميل أثناء جلب البيانات', () => {
     performanceOverrideFn = () => loadingQuery;
-    const { container } = render(
-      <MemoryRouter>
-        <PerformancePage />
-      </MemoryRouter>,
-    );
+    const { container } = renderWithProviders(<PerformancePage />);
     expect(container.querySelector('.animate-pulse')).toBeTruthy();
   });
 
   it('يعرض حالة فارغة عند عدم وجود تقييمات', () => {
     performanceOverrideFn = () => emptyQuery;
-    render(
-      <MemoryRouter>
-        <PerformancePage />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<PerformancePage />);
     expect(screen.getByText('لا توجد تقييمات')).toBeDefined();
   });
 });

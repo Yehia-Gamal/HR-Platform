@@ -10,6 +10,7 @@ import {
   PauseCircle,
   RefreshCcw,
   Scale,
+  TrendingUp,
   Unlock,
   UsersRound,
   XCircle,
@@ -23,6 +24,7 @@ import { MetricSkeletonRow, ListSkeleton } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useKpiAdmin, useKpiAdminCommands } from './useAdvancedOperations';
+import { KpiComparisonCharts } from './KpiComparisonCharts';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useToast } from '../../ui/Toast';
 import { cairoMonthIso, cairoTodayIso } from '../../core/cairoTime';
@@ -60,6 +62,7 @@ export function KpiCyclesPage() {
   const [deadlineAt, setDeadlineAt] = useState<Record<string, string>>({});
   const [appealNotes, setAppealNotes] = useState<Record<string, string>>({});
   const [expandedCycle, setExpandedCycle] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<'cycles' | 'analytics'>('cycles');
   const [policyRules, setPolicyRules] = useState({ late: 1, earlyLeave: 1, unexcusedAbsence: 4, missingPunch: 1, shortagePerHour: 1, maxShortagePerDay: 2 });
   const [ratingMins, setRatingMins] = useState({ excellent: 90, veryGood: 80, good: 70, acceptable: 60 });
   const data = query.data;
@@ -202,7 +205,33 @@ export function KpiCyclesPage() {
         }
       />
       {mutationError ? <ErrorBanner message={safeErrorMessage(mutationError)} /> : null}
-      {query.isError ? (
+      <nav className="flex gap-1 rounded-2xl bg-[var(--surface-muted)] p-1" role="tablist" aria-label="عرض دورات KPI">
+        <button
+          role="tab"
+          aria-selected={activeView === 'cycles'}
+          onClick={() => setActiveView('cycles')}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${activeView === 'cycles' ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+        >
+          <CalendarDays className="size-4" aria-hidden="true" />
+          الدورات
+        </button>
+        <button
+          role="tab"
+          aria-selected={activeView === 'analytics'}
+          onClick={() => setActiveView('analytics')}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${activeView === 'analytics' ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+        >
+          <TrendingUp className="size-4" aria-hidden="true" />
+          تحليلات
+        </button>
+      </nav>
+      {activeView === 'analytics' ? (
+        query.isLoading && !data ? (
+          <MetricSkeletonRow />
+        ) : (
+          <KpiComparisonCharts catalog={data ?? { cycles: [], templates: [] }} />
+        )
+      ) : query.isError ? (
         <ErrorState title="تعذر تحميل دورات KPI" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
       ) : query.isLoading && !data ? (
         <>

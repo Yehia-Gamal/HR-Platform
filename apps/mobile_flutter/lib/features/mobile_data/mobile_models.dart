@@ -688,6 +688,7 @@ class LocationDirectoryEmployee {
     required this.employeeCode,
     required this.jobTitle,
     required this.department,
+    this.photoUrl,
     required this.lastLatitude,
     required this.lastLongitude,
     required this.lastAccuracy,
@@ -702,6 +703,7 @@ class LocationDirectoryEmployee {
         employeeCode: json['employeeCode'] as String?,
         jobTitle: json['jobTitle'] as String?,
         department: json['department'] as String?,
+        photoUrl: json['photoUrl'] as String?,
         lastLatitude: (json['lastLatitude'] as num?)?.toDouble(),
         lastLongitude: (json['lastLongitude'] as num?)?.toDouble(),
         lastAccuracy: (json['lastAccuracy'] as num?)?.toDouble(),
@@ -716,12 +718,185 @@ class LocationDirectoryEmployee {
   final String? employeeCode;
   final String? jobTitle;
   final String? department;
+  final String? photoUrl;
   final double? lastLatitude;
   final double? lastLongitude;
   final double? lastAccuracy;
   final DateTime? lastRecordedAt;
   final String? activeRequestId;
   final String? activeRequestStatus;
+}
+
+/// ملف موقع موظف للمدير التنفيذي — get_employee_location_dossier (0491).
+class ExecutiveEmployeeLocationDossier {
+  const ExecutiveEmployeeLocationDossier({
+    required this.employee,
+    required this.lastPoint,
+    required this.points,
+    required this.requests,
+  });
+  factory ExecutiveEmployeeLocationDossier.fromJson(Map<String, dynamic> json) =>
+      ExecutiveEmployeeLocationDossier(
+        employee: EmployeeLocationProfile.fromJson(
+          Map<String, dynamic>.from(json['employee'] as Map<dynamic, dynamic>? ?? const {}),
+        ),
+        lastPoint: json['lastPoint'] == null
+            ? null
+            : EmployeeLocationPoint.fromJson(
+                Map<String, dynamic>.from(json['lastPoint'] as Map<dynamic, dynamic>),
+              ),
+        points: (json['points'] as List<dynamic>? ?? const [])
+            .map((e) => EmployeeLocationPoint.fromJson(
+                  Map<String, dynamic>.from(e as Map<dynamic, dynamic>),
+                ))
+            .toList(growable: false),
+        requests: (json['requests'] as List<dynamic>? ?? const [])
+            .map((e) => EmployeeLocationRequestItem.fromJson(
+                  Map<String, dynamic>.from(e as Map<dynamic, dynamic>),
+                ))
+            .toList(growable: false),
+      );
+  final EmployeeLocationProfile employee;
+  final EmployeeLocationPoint? lastPoint;
+  final List<EmployeeLocationPoint> points;
+  final List<EmployeeLocationRequestItem> requests;
+}
+
+class EmployeeLocationProfile {
+  const EmployeeLocationProfile({
+    required this.id,
+    required this.name,
+    this.employeeCode,
+    this.photoUrl,
+    this.jobTitle,
+    this.department,
+    this.status,
+  });
+  factory EmployeeLocationProfile.fromJson(Map<String, dynamic> json) =>
+      EmployeeLocationProfile(
+        id: json['id'] as String,
+        name: json['name'] as String? ?? 'موظف',
+        employeeCode: json['employeeCode'] as String?,
+        photoUrl: json['photoUrl'] as String?,
+        jobTitle: json['jobTitle'] as String?,
+        department: json['department'] as String?,
+        status: json['status'] as String?,
+      );
+  final String id;
+  final String name;
+  final String? employeeCode;
+  final String? photoUrl;
+  final String? jobTitle;
+  final String? department;
+  final String? status;
+}
+
+class EmployeeLocationPoint {
+  const EmployeeLocationPoint({
+    required this.id,
+    this.latitude,
+    this.longitude,
+    this.accuracy,
+    this.altitude,
+    this.speed,
+    this.heading,
+    this.isMock = false,
+    this.source,
+    this.batteryLevel,
+    this.addressAr,
+    this.recordedAt,
+    this.createdAt,
+    this.requestId,
+    this.requestMode,
+  });
+  factory EmployeeLocationPoint.fromJson(Map<String, dynamic> json) =>
+      EmployeeLocationPoint(
+        id: json['id'] as String,
+        latitude: (json['latitude'] as num?)?.toDouble(),
+        longitude: (json['longitude'] as num?)?.toDouble(),
+        accuracy: (json['accuracy'] as num?)?.toDouble(),
+        altitude: (json['altitude'] as num?)?.toDouble(),
+        speed: (json['speed'] as num?)?.toDouble(),
+        heading: (json['heading'] as num?)?.toDouble(),
+        isMock: json['isMock'] as bool? ?? false,
+        source: json['source'] as String?,
+        batteryLevel: (json['batteryLevel'] as num?)?.toInt(),
+        addressAr: json['addressAr'] as String?,
+        recordedAt: json['recordedAt'] == null
+            ? null
+            : DateTime.parse(json['recordedAt'] as String),
+        createdAt: json['createdAt'] == null
+            ? null
+            : DateTime.parse(json['createdAt'] as String),
+        requestId: json['requestId'] as String?,
+        requestMode: json['requestMode'] as String?,
+      );
+  final String id;
+  final double? latitude;
+  final double? longitude;
+  final double? accuracy;
+  final double? altitude;
+  final double? speed;
+  final double? heading;
+  final bool isMock;
+  final String? source;
+  final int? batteryLevel;
+  final String? addressAr;
+  final DateTime? recordedAt;
+  final DateTime? createdAt;
+  final String? requestId;
+  final String? requestMode;
+
+  bool get hasCoordinates => latitude != null && longitude != null;
+}
+
+class EmployeeLocationRequestItem {
+  const EmployeeLocationRequestItem({
+    required this.id,
+    required this.status,
+    required this.mode,
+    this.reason,
+    this.requestedByName,
+    this.requestedAt,
+    this.respondedAt,
+    this.startsAt,
+    this.expiresAt,
+    this.durationMinutes,
+    this.pointCount = 0,
+  });
+  factory EmployeeLocationRequestItem.fromJson(Map<String, dynamic> json) =>
+      EmployeeLocationRequestItem(
+        id: json['id'] as String,
+        status: json['status'] as String? ?? 'pending',
+        mode: json['mode'] as String? ?? 'snapshot',
+        reason: json['reason'] as String?,
+        requestedByName: json['requestedByName'] as String?,
+        requestedAt: json['requestedAt'] == null
+            ? null
+            : DateTime.parse(json['requestedAt'] as String),
+        respondedAt: json['respondedAt'] == null
+            ? null
+            : DateTime.parse(json['respondedAt'] as String),
+        startsAt: json['startsAt'] == null
+            ? null
+            : DateTime.parse(json['startsAt'] as String),
+        expiresAt: json['expiresAt'] == null
+            ? null
+            : DateTime.parse(json['expiresAt'] as String),
+        durationMinutes: (json['durationMinutes'] as num?)?.toInt(),
+        pointCount: (json['pointCount'] as num?)?.toInt() ?? 0,
+      );
+  final String id;
+  final String status;
+  final String mode;
+  final String? reason;
+  final String? requestedByName;
+  final DateTime? requestedAt;
+  final DateTime? respondedAt;
+  final DateTime? startsAt;
+  final DateTime? expiresAt;
+  final int? durationMinutes;
+  final int pointCount;
 }
 
 class MobileLocationRequest {

@@ -476,6 +476,30 @@ class MobileCommands {
     ref.invalidate(executiveDashboardProvider);
   }
 
+  /// طلب موقع فوري من جميع الموظفين دفعة واحدة — request_live_location_broadcast (0491).
+  /// يُعيد عدد الطلبات المُنشأة كما أبلغ عنه الباكند.
+  Future<int> requestLocationBroadcast({
+    String reason = 'تحقق ميداني جماعي',
+  }) async {
+    final result = await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'request_live_location_broadcast',
+            params: {
+              'p_mode': 'snapshot',
+              'p_reason': reason,
+            },
+          ),
+    );
+    final map = result is Map ? Map<String, dynamic>.from(result) : <String, dynamic>{};
+    final created = (map['created'] as num?)?.toInt() ?? 0;
+    ref.invalidate(locationDirectoryProvider);
+    ref.invalidate(executiveAttendanceTodayProvider);
+    ref.invalidate(executiveDashboardProvider);
+    return created;
+  }
+
   Future<void> cancelLocationRequest(String requestId) async {
     await _withTimeout(
       ref
@@ -555,6 +579,19 @@ class MobileCommands {
           ),
     );
     ref.invalidate(myLocationRequestsProvider);
+  }
+
+  /// إرسال تنبيه شامل — يصل لكل الموظفين مع فلاش/اهتزاز/صوت.
+  /// يُظهر حوار كتابة الرسالة ثم يستدعي send_broadcast_alert.
+  Future<void> sendBroadcastAlert(String message) async {
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'send_broadcast_alert',
+            params: {'p_message': message},
+          ),
+    );
   }
 
   Future<void> uploadLocationVideo(

@@ -39,6 +39,20 @@ final locationRequestByIdProvider = FutureProvider.autoDispose
       return MobileLocationRequest.fromJson(_asMap(data));
     });
 
+/// ملف موقع موظف للمدير التنفيذي — get_employee_location_dossier (0491).
+/// يعرض آخر نقطة + سجلّ النقاط + سجلّ طلبات الموقع الخاصّة بالموظف.
+final employeeLocationDossierProvider = FutureProvider.autoDispose
+    .family<ExecutiveEmployeeLocationDossier, String>((ref, employeeId) async {
+      final data = await ref
+          .watch(supabaseProvider)
+          .rpc<dynamic>(
+            'get_employee_location_dossier',
+            params: {'p_employee_id': employeeId},
+          )
+          .timeout(const Duration(seconds: 15));
+      return ExecutiveEmployeeLocationDossier.fromJson(_asMap(data));
+    });
+
 /// لوحة الحضور اليومي للمدير التنفيذي — تستدعي get_executive_attendance_today().
 /// ملاحظة: الدالة (0444) تُرجع jsonb مباشرةً (مصفوفة JSON)، وليس setof record.
 /// Supabase client يُسلّم jsonb كـ `List<dynamic>` تلقائياً.

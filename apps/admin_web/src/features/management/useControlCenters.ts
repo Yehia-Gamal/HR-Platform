@@ -161,6 +161,14 @@ export function useOperationsCenter() {
     enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<OperationsCenterData> => {
       if (auth.isMock) return (await loadDomainMocks()).mockOperations;
+      try {
+        // استخدام الـ RPC المخصص مع الصلاحيات المناسبة
+        const data = await rpc<OperationsCenterData>('get_operations_center_data');
+        if (data) return data;
+      } catch (e) {
+        // في حالة فشل الـ RPC (مثلاً صلاحيات غير كافية)، نعود للاستعلام المباشر كحل بديل
+        console.warn('get_operations_center_data RPC failed, falling back to direct queries:', e);
+      }
       const [employeeRows, taskRows, missionRows, convoyRows, requestRows] = await Promise.all([
         tableRows('employees', 'id,full_name_ar', 'full_name_ar', 500),
         tableRows('tasks', 'id,title,description,assignee_employee_id,priority,due_date,status', 'created_at', 200),

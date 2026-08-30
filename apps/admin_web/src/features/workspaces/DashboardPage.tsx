@@ -27,6 +27,7 @@ import { ChartCard } from '../../ui/charts/ChartCard';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { useAuth } from '../auth/AuthProvider';
 import { useDashboardOverview } from '../management/useManagementOverviews';
+import { BroadcastAlertButton } from '../notifications/BroadcastAlert';
 import { useAttendanceTodayOverview } from './useAttendanceTodayOverview';
 import { notificationTargetPath } from '../notifications/notificationTarget';
 import { notificationCategoryIcon, notificationCategoryLabel } from '../notifications/notificationMeta';
@@ -125,7 +126,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
               {type === 'hr' ? 'هذه صورة تشغيلية مباشرة للموظفين والحضور والطلبات والأداء.' : 'هنا أهم القرارات والمخاطر والإجراءات التي تحتاج انتباهك اليوم.'}
             </p>
           </div>
-          <div className="hero-actions">
+          <div className="hero-actions flex-wrap gap-2">
             {quickActions.map((action) => {
               const Icon = action.icon;
               return (
@@ -135,6 +136,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                 </Link>
               );
             })}
+            <BroadcastAlertButton />
           </div>
         </div>
       </section>

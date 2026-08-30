@@ -10,6 +10,7 @@ import type {
   DisputeOperationsCatalog,
   EmployeeSummary,
   EnterpriseManagementCatalog,
+  ExecutiveDailyReport,
   KpiAdminCatalog,
   KpiEvaluationSummary,
   LeaveBalance,
@@ -1404,6 +1405,47 @@ export const mockDevelopmentEmployees: EmployeeSummary[] = [
     createdAt: iso(),
   },
 ];
+
+export const mockManagerRelations = [
+  {
+    id: '50000000-0000-4000-8000-000000000001',
+    managerId: 'e1000000-0000-4000-8000-000000000001',
+    subordinateId: 'e1000000-0000-4000-8000-000000000002',
+    subordinateName: 'أحمد محمد',
+    subordinateCode: 'EMP-001',
+  },
+  {
+    id: '50000000-0000-4000-8000-000000000002',
+    managerId: 'e1000000-0000-4000-8000-000000000001',
+    subordinateId: 'e1000000-0000-4000-8000-000000000003',
+    subordinateName: 'سارة حسن',
+    subordinateCode: 'EMP-002',
+  },
+];
+
+export const mockSubordinates = [
+  { id: 'e1000000-0000-4000-8000-000000000002', employeeCode: 'EMP-001', fullNameAr: 'أحمد محمد', jobTitle: 'مهندس برمجيات', department: 'التقنية' },
+  {
+    id: 'e1000000-0000-4000-8000-000000000003',
+    employeeCode: 'EMP-002',
+    fullNameAr: 'سارة حسن',
+    jobTitle: 'مديرة الموارد البشرية',
+    department: 'الموارد البشرية',
+  },
+];
+
+export const mockExecutiveDailyReport: ExecutiveDailyReport = {
+  date: new Date().toISOString().split('T')[0],
+  employees: { active: 120, requiredToday: 115 },
+  attendance: { present: 95, late: 5, absent: 3, notYet: 12, checkedOut: 80, missingCheckout: 4 },
+  workStatus: { approvedLeave: 8, missions: 2, convoys: 1, fundraising: 0 },
+  requests: { pendingLeave: 4, pendingMission: 1 },
+  kpi: { atEmployee: 15, atManager: 8, atHr: 2, ready: 5, overdue: 1 },
+  cases: { new: 2, open: 5 },
+  followUp: { decisions: 3, missingReports: 1, activeLocationRequests: 2, unansweredLocationRequests: 1 },
+  sources: { attendance: 'get_attendance_dashboard', requests: 'get_request_inbox', kpi: 'get_kpi_inbox' },
+  generatedAt: new Date().toISOString(),
+};
 
 /* ------------------------------------------------------------------ */
 /*  Attendance Statement mock (from useMonthlyStatement)               */

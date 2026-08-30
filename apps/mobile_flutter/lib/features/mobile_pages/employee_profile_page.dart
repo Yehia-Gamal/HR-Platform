@@ -112,7 +112,6 @@ class _ProfileBody extends StatelessWidget {
             _Row('نهاية العقد', _fmtDate(employee.contractEnd)),
             _Row('نهاية فترة التجربة', _fmtDate(employee.probationEnd)),
             if (employee.email != null) _Row('البريد الإلكتروني', employee.email),
-            if (employee.phoneE164 != null) _Row('الهاتف', employee.phoneE164),
           ],
         ),
         if (employee.roles.isNotEmpty)

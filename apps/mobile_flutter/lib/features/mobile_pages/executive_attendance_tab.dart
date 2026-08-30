@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_employee_file_page.dart';
 import 'package:intl/intl.dart';
 
 /// فئات الفلترة المتاحة — تُطابق حالات الحضور.
@@ -604,20 +607,106 @@ class _SummaryChip extends StatelessWidget {
   }
 }
 
-class _AttendanceCard extends StatelessWidget {
+class _AttendanceCard extends ConsumerStatefulWidget {
   const _AttendanceCard({required this.employee});
   final AttendanceTodayEmployee employee;
 
   @override
+  ConsumerState<_AttendanceCard> createState() => _AttendanceCardState();
+}
+
+class _AttendanceCardState extends ConsumerState<_AttendanceCard> {
+  DateTime? _lastRequestedAt;
+  Timer? _cooldownTimer;
+
+  @override
+  void dispose() {
+    _cooldownTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startCooldown() {
+    setState(() => _lastRequestedAt = DateTime.now());
+    _cooldownTimer?.cancel();
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      final elapsed = DateTime.now().difference(_lastRequestedAt!).inSeconds;
+      if (elapsed >= 30) {
+        timer.cancel();
+        setState(() => _lastRequestedAt = null);
+      } else {
+        setState(() {});
+      }
+    });
+  }
+
+  /// يفتح ملف الموظف الكامل (سجلّ المواقع + الطلبات) بدلاً من الورقة السفلية.
+  void _openEmployeeFile(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => ExecutiveLocationEmployeeFilePage(
+          employeeId: widget.employee.id,
+          employeeName: widget.employee.name,
+          photoUrl: widget.employee.photoUrl,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _sendLocationRequest(BuildContext context) async {
+    try {
+      await ref
+          .read(mobileCommandsProvider)
+          .requestLocation(widget.employee.id, 'تحقق ميداني');
+      if (!mounted) return;
+      _startCooldown();
+      ref.invalidate(executiveAttendanceTodayProvider);
+      ref.invalidate(locationDirectoryProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'تم إرسال طلب الموقع إلى ${widget.employee.name} — سيتلقى إشعاراً فورياً.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        final msg = e.toString();
+        final display = msg.contains('cooldown_active')
+            ? 'يرجى الانتظار 30 ثانية بين الطلبات.'
+            : msg.contains('cannot request own location')
+                ? 'لا يمكن طلب موقعك الخاص.'
+                : msg.contains('not active')
+                    ? 'الموظف غير نشط أو لا يملك حساباً مرتبطاً.'
+                    : 'تعذر إرسال الطلب. تحقق من الاتصال وأعد المحاولة.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(display)),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final employee = widget.employee;
     final (statusColor, statusIcon) = _statusVisuals(employee);
+    final inCooldown = _lastRequestedAt != null;
+    final cooldownRemaining = inCooldown
+        ? 30 - DateTime.now().difference(_lastRequestedAt!).inSeconds
+        : 0;
     return Card(
       clipBehavior: Clip.antiAlias,
       elevation: 1,
       shadowColor: statusColor.withValues(alpha: 0.2),
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: InkWell(
-        onTap: () => _showEmployeeSummary(context),
+        onTap: () => _openEmployeeFile(context),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
@@ -674,24 +763,61 @@ class _AttendanceCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: statusColor.withValues(alpha: 0.35),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: statusColor.withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Text(
+                      employee.statusAr,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
-                ),
-                child: Text(
-                  employee.statusAr,
-                  style: TextStyle(
-                    color: statusColor,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12,
+                  // زر صغير لطلب إرسال الموقع الآن من هذا الموظف.
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Tooltip(
+                      message: inCooldown
+                          ? 'انتظر $cooldownRemaining ثانية'
+                          : 'طلب موقع الآن',
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: inCooldown
+                            ? null
+                            : () => _sendLocationRequest(context),
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Icon(
+                            inCooldown
+                                ? Icons.hourglass_top_rounded
+                                : Icons.my_location_rounded,
+                            size: 20,
+                            color: inCooldown
+                                ? Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant
+                                : Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
@@ -700,36 +826,27 @@ class _AttendanceCard extends StatelessWidget {
     );
   }
 
-  void _showEmployeeSummary(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => _EmployeeSummarySheet(employee: employee),
-    );
-  }
-
   Widget _buildDetails(BuildContext context) {
     final parts = <String>[];
     // §2 — اعرض سياقًا واضحًا لكل حالة حتى لو لم يُسجّل حضورًا، بدل
     // بطاقة فارغة لا تُظهر شيئًا للمدير التنفيذي.
-    if (employee.isOnMission) {
+    if (widget.employee.isOnMission) {
       parts.add('في مأمورية خارجية');
     } else {
-      switch (employee.attendanceStatus) {
+      switch (widget.employee.attendanceStatus) {
         case 'present':
         case 'late':
-          if (employee.firstCheckIn != null) {
+          if (widget.employee.firstCheckIn != null) {
             parts.add(
-              'دخول ${DateFormat('h:mm a', 'ar').format(employee.firstCheckIn!.toLocal())}',
+              'دخول ${DateFormat('h:mm a', 'ar').format(widget.employee.firstCheckIn!.toLocal())}',
             );
           }
-          if (employee.lateMinutes > 0) {
-            parts.add('تأخر ${employee.lateMinutes} د');
+          if (widget.employee.lateMinutes > 0) {
+            parts.add('تأخر ${widget.employee.lateMinutes} د');
           }
-          if (employee.lastCheckOut != null) {
+          if (widget.employee.lastCheckOut != null) {
             parts.add(
-              'خروج ${DateFormat('h:mm a', 'ar').format(employee.lastCheckOut!.toLocal())}',
+              'خروج ${DateFormat('h:mm a', 'ar').format(widget.employee.lastCheckOut!.toLocal())}',
             );
           }
           break;
@@ -751,11 +868,11 @@ class _AttendanceCard extends StatelessWidget {
           break;
       }
     }
-    if (employee.lastRecordedAt != null &&
-        (employee.attendanceStatus == 'present' ||
-            employee.attendanceStatus == 'late')) {
+    if (widget.employee.lastRecordedAt != null &&
+        (widget.employee.attendanceStatus == 'present' ||
+            widget.employee.attendanceStatus == 'late')) {
       parts.add(
-        'آخر موقع ${DateFormat('h:mm a', 'ar').format(employee.lastRecordedAt!.toLocal())}',
+        'آخر موقع ${DateFormat('h:mm a', 'ar').format(widget.employee.lastRecordedAt!.toLocal())}',
       );
     }
     if (parts.isEmpty) return const SizedBox.shrink();
@@ -783,174 +900,4 @@ class _AttendanceCard extends StatelessWidget {
     'pending' => (Colors.yellow.shade700, Icons.hourglass_empty_rounded),
     _ => (Colors.grey.shade500, Icons.help_outline_rounded),
   };
-}
-
-/// ورقة ملخص تفصيلي لموظف من قائمة الحضور التنفيذية.
-class _EmployeeSummarySheet extends StatelessWidget {
-  const _EmployeeSummarySheet({required this.employee});
-  final AttendanceTodayEmployee employee;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final (statusColor, _) = _statusVisuals(employee);
-    final f = DateFormat('h:mm a', 'ar');
-    final bottomPad = MediaQuery.of(context).viewInsets.bottom;
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(20, 0, 20, 16 + bottomPad),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                AppAvatar(
-                  name: employee.name,
-                  photoUrl: employee.photoUrl,
-                  radius: 26,
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        employee.name,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w900),
-                      ),
-                      if (employee.employeeCode != null)
-                        Text(
-                          employee.employeeCode!,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                              ),
-                        ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: statusColor.withValues(alpha: 0.35),
-                    ),
-                  ),
-                  child: Text(
-                    employee.statusAr,
-                    style: TextStyle(
-                      color: statusColor,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const Divider(height: 32),
-            _detailRow(
-              context,
-              icon: Icons.business_rounded,
-              label: 'القسم',
-              value: employee.department ?? '—',
-            ),
-            _detailRow(
-              context,
-              icon: Icons.work_outline_rounded,
-              label: 'المسمى الوظيفي',
-              value: employee.jobTitle ?? '—',
-            ),
-            _detailRow(
-              context,
-              icon: Icons.login_rounded,
-              label: 'وقت الدخول',
-              value: employee.firstCheckIn != null
-                  ? f.format(employee.firstCheckIn!.toLocal())
-                  : '—',
-            ),
-            _detailRow(
-              context,
-              icon: Icons.logout_rounded,
-              label: 'وقت الخروج',
-              value: employee.lastCheckOut != null
-                  ? f.format(employee.lastCheckOut!.toLocal())
-                  : '—',
-            ),
-            _detailRow(
-              context,
-              icon: Icons.schedule_rounded,
-              label: 'التأخير',
-              value: employee.lateMinutes > 0
-                  ? '${employee.lateMinutes} دقيقة'
-                  : '—',
-            ),
-            _detailRow(
-              context,
-              icon: Icons.directions_car_rounded,
-              label: 'مأمورية',
-              value: employee.isOnMission ? 'في مأمورية خارجية' : '—',
-            ),
-            if (employee.lastRecordedAt != null)
-              _detailRow(
-                context,
-                icon: Icons.location_on_rounded,
-                label: 'آخر موقع',
-                value: f.format(employee.lastRecordedAt!.toLocal()),
-              ),
-            if (employee.lastLatitude != null &&
-                employee.lastLongitude != null)
-              _detailRow(
-                context,
-                icon: Icons.gps_fixed_rounded,
-                label: 'الإحداثيات',
-                value:
-                    '${employee.lastLatitude!.toStringAsFixed(5)}, ${employee.lastLongitude!.toStringAsFixed(5)}',
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-Widget _detailRow(
-  BuildContext context, {
-  required IconData icon,
-  required String label,
-  required String value,
-}) {
-  final scheme = Theme.of(context).colorScheme;
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
-    child: Row(
-      children: [
-        Icon(icon, size: 18, color: scheme.primary),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-          ),
-        ),
-        Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            style:
-                Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-          ),
-        ),
-      ],
-    ),
-  );
 }

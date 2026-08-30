@@ -24,6 +24,7 @@ import { FeatureGate } from '../ui/FeatureGate';
 // ---------------------------------------------------------------------------
 const DashboardPage = lazy(() => import('../features/workspaces/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 const EmployeesPage = lazy(() => import('../features/employees/EmployeesPage').then((m) => ({ default: m.EmployeesPage })));
+const EmployeeDirectoryPage = lazy(() => import('../features/employees/EmployeeDirectoryPage').then((m) => ({ default: m.EmployeeDirectoryPage })));
 const CreateEmployeePage = lazy(() => import('../features/employees/CreateEmployeePage').then((m) => ({ default: m.CreateEmployeePage })));
 const EmployeeDetailPage = lazy(() => import('../features/employees/EmployeeDetailPage').then((m) => ({ default: m.EmployeeDetailPage })));
 const AttendanceHubPage = lazy(() => import('../features/attendance/AttendanceHubPage').then((m) => ({ default: m.AttendanceHubPage })));
@@ -376,6 +377,14 @@ function HrWorkspaceRoutes() {
         element={
           <RequirePermission perm="people.employee.read">
             <EmployeesPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="employees/directory"
+        element={
+          <RequirePermission perm="people.employee.read">
+            <EmployeeDirectoryPage />
           </RequirePermission>
         }
       />

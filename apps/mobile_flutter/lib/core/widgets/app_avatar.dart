@@ -56,26 +56,39 @@ class AppAvatar extends StatelessWidget {
   // تجاهل lint: مُتغيّر عام متعمَّد (ذاكرة مؤقتة لكل المسارات).
   static final Map<String, Uint8List> _photoCache = {};
 
+  // cache إضافية تحفظ الـ Future نفسه لكل مسار. بدونها يُنشئ FutureBuilder
+  // Futureًا جديدًا في كل build فتظهر حلقة التحميل (وميض) قبل اكتمال التنزيل.
+  // تجاهل lint: مُتغيّر عام متعمَّد (ذاكرة مؤقتة لكل المسارات).
+  static final Map<String, Future<ImageProvider<Object>>> _futureCache = {};
+
   /// يحمّل صورة من bucket employee-avatars الخاص عبر SDK المصادق عليه.
   /// SDK يستخدم مسار `authenticated` تلقائيًا عند download ما يُفعّل سياسة
   /// RLS `employee_avatars_select` (المُضافة في 0211). بهذا يبقى bucket
   /// خاصًا بينما تظهر الصور للمستخدمين المُسجَّلين فقط.
-  static Future<ImageProvider<Object>> _loadPrivateImage(String url) async {
+  static Future<ImageProvider<Object>> _loadPrivateImage(String url) {
     final path = _extractAvatarPath(url);
-    if (path == null) {
-      // رابط خارجي — حمّله مباشرة.
-      return NetworkImage(url);
-    }
-    // استخدم النسخة المُخزَّنة إن وُجدت لتجنّب إعادة التنزيل.
-    final cached = _photoCache[path];
-    if (cached != null) {
-      return MemoryImage(cached);
-    }
-    final Uint8List bytes = await Supabase.instance.client.storage
-        .from('employee-avatars')
-        .download(path);
-    _photoCache[path] = bytes;
-    return MemoryImage(bytes);
+    // مفتاح الكاش: مسار الملف للروابط الداخلية، والرابط كاملًا للخارجية.
+    final key = path ?? url;
+    return _futureCache.putIfAbsent(key, () async {
+      try {
+        if (path != null) {
+          // استخدم النسخة المُخزَّنة إن وُجدت لتجنّب إعادة التنزيل.
+          final cached = _photoCache[path];
+          final Uint8List bytes = cached ??
+              await Supabase.instance.client.storage
+                  .from('employee-avatars')
+                  .download(path);
+          _photoCache[path] = bytes;
+          return MemoryImage(bytes);
+        }
+        // رابط خارجي (mock/CDN) — حمّله مباشرة.
+        return NetworkImage(url);
+      } catch (_) {
+        // عند الفشل أزِل الـ Future من الكاش ليُعاد التنزيل في المرة القادمة.
+        _futureCache.remove(key);
+        rethrow;
+      }
+    });
   }
 
   @override

@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_attendance_tab.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_employee_file_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -127,6 +129,13 @@ class _LocationDirectoryTab extends ConsumerWidget {
             'اطلب موقعاً حديثاً من أي موظف في الجمعية فوراً.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
+          const SizedBox(height: 12),
+          // بث جماعي: طلب موقع فوري من كل الموظفين دفعة واحدة.
+          FilledButton.icon(
+            onPressed: () => _confirmBroadcast(context, ref),
+            icon: const Icon(Icons.campaign_rounded),
+            label: const Text('طلب موقع من الجميع'),
+          ),
           const SizedBox(height: 16),
           MobileFilterBar(
             searchHint: 'بحث باسم الموظف أو الكود',
@@ -209,6 +218,77 @@ class _LocationDirectoryTab extends ConsumerWidget {
       ),
     );
   }
+
+  /// يطلب موقعاً فورياً من جميع الموظفين النشطين دفعة واحدة
+  /// عبر request_live_location_broadcast (0491).
+  Future<void> _confirmBroadcast(BuildContext context, WidgetRef ref) async {
+    final reasonCtrl = TextEditingController(text: 'تحقق ميداني جماعي');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('طلب موقع من الجميع'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'سيُرسل طلب موقع فوري إلى كل الموظفين النشطين ضمن نطاق صلاحيتك والذين لا يملكون طلباً معلقاً.',
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: reasonCtrl,
+              maxLength: 60,
+              maxLines: 1,
+              decoration: const InputDecoration(
+                labelText: 'سبب الطلب',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('إرسال للجميع'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final reason = reasonCtrl.text.trim();
+    try {
+      final created = await ref
+          .read(mobileCommandsProvider)
+          .requestLocationBroadcast(reason: reason);
+      if (!context.mounted) return;
+      ref.invalidate(locationDirectoryProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            created > 0
+                ? 'تم إرسال طلب الموقع إلى $created موظف.'
+                : 'لا يوجد موظفون متاحون للطلب حالياً.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        final msg = e.toString();
+        final display = msg.contains('reason is required')
+            ? 'السبب مطلوب — 5 أحرف على الأقل.'
+            : msg.contains('live location request permission')
+                ? 'لا تملك صلاحية طلب المواقع.'
+                : 'تعذر إرسال الطلب الجماعي. تحقق من الاتصال.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(display)),
+        );
+      }
+    }
+  }
 }
 
 class _EmployeeLocationCard extends ConsumerStatefulWidget {
@@ -254,95 +334,104 @@ class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
         ? 30 - DateTime.now().difference(_lastRequestedAt!).inSeconds 
         : 0;
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  child: ExcludeSemantics(
-                    child: Text(
-                      widget.employee.name.isEmpty
-                          ? '؟'
-                          : widget.employee.name.characters.first,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.employee.name,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w900),
-                      ),
-                      Text(
-                        [
-                          widget.employee.employeeCode,
-                          widget.employee.jobTitle,
-                          widget.employee.department,
-                        ].whereType<String>().join(' · '),
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-                if (widget.employee.activeRequestStatus != null)
-                  MobileStatusPill(widget.employee.activeRequestStatus!),
-              ],
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => ExecutiveLocationEmployeeFilePage(
+              employeeId: widget.employee.id,
+              employeeName: widget.employee.name,
+              photoUrl: widget.employee.photoUrl,
             ),
-            if (widget.employee.lastRecordedAt != null) ...[
-              const Divider(height: 26),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               Row(
                 children: [
+                  AppAvatar(
+                    name: widget.employee.name,
+                    photoUrl: widget.employee.photoUrl,
+                    radius: 22,
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'آخر موقع: ${DateFormat('d MMM - h:mm a', 'ar').format(widget.employee.lastRecordedAt!.toLocal())}',
-                          style: Theme.of(context).textTheme.bodySmall,
+                          widget.employee.name,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                         Text(
-                          'دقة ${widget.employee.lastAccuracy?.round() ?? 0} متر',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                          [
+                            widget.employee.employeeCode,
+                            widget.employee.jobTitle,
+                            widget.employee.department,
+                          ].whereType<String>().join(' · '),
+                          style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],
                     ),
                   ),
-                  // زر فتح خريطة Google Maps لموقع الموظف مباشرة
-                  if (widget.employee.lastLatitude != null &&
-                      widget.employee.lastLongitude != null)
-                    FilledButton.tonalIcon(
-                      onPressed: () => launchUrl(
-                        Uri.parse(
-                          'https://maps.google.com/?q=${widget.employee.lastLatitude},${widget.employee.lastLongitude}',
-                        ),
-                        mode: LaunchMode.externalApplication,
-                      ),
-                      icon: const Icon(Icons.map_rounded, size: 18),
-                      label: const Text('افتح الخريطة'),
-                    ),
+                  if (widget.employee.activeRequestStatus != null)
+                    MobileStatusPill(widget.employee.activeRequestStatus!),
                 ],
               ),
-            ],
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: inCooldown ? null : () => _sendRequest(context, ref),
-              icon: const Icon(Icons.location_on_rounded),
-              label: Text(
-                inCooldown
-                    ? 'انتظر $cooldownRemaining ثانية'
-                    : 'طلب موقع فوري',
+              if (widget.employee.lastRecordedAt != null) ...[
+                const Divider(height: 26),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'آخر موقع: ${DateFormat('d MMM - h:mm a', 'ar').format(widget.employee.lastRecordedAt!.toLocal())}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          Text(
+                            'دقة ${widget.employee.lastAccuracy?.round() ?? 0} متر',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // زر فتح خريطة Google Maps لموقع الموظف مباشرة
+                    if (widget.employee.lastLatitude != null &&
+                        widget.employee.lastLongitude != null)
+                      FilledButton.tonalIcon(
+                        onPressed: () => launchUrl(
+                          Uri.parse(
+                            'https://maps.google.com/?q=${widget.employee.lastLatitude},${widget.employee.lastLongitude}',
+                          ),
+                          mode: LaunchMode.externalApplication,
+                        ),
+                        icon: const Icon(Icons.map_rounded, size: 18),
+                        label: const Text('افتح الخريطة'),
+                      ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: inCooldown ? null : () => _sendRequest(context, ref),
+                icon: const Icon(Icons.location_on_rounded),
+                label: Text(
+                  inCooldown
+                      ? 'انتظر $cooldownRemaining ثانية'
+                      : 'طلب موقع فوري',
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

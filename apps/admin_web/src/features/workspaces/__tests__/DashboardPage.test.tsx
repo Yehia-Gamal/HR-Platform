@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { DashboardPage } from '../DashboardPage';
+import { ToastProvider } from '../../../ui/Toast';
 
 const mockAccess = {
   userId: '00000000-0000-0000-0000-000000000001',
@@ -35,6 +36,11 @@ vi.mock('../../notifications/useNotifications', () => ({
   useNotifications: () => notificationsOverrideFn(),
 }));
 
+vi.mock('../../notifications/useBroadcastAlert', () => ({
+  useActiveBroadcastAlert: () => ({ data: null, isLoading: false, isError: false, error: null, refetch: vi.fn() }),
+  useSendBroadcastAlert: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+
 const mockDashboardData = {
   employees: 42,
   activeEmployees: 38,
@@ -53,16 +59,20 @@ const dataQuery = { data: mockDashboardData, isLoading: false, isError: false, e
 const attendanceEmpty = { data: undefined, isLoading: false, isError: false, error: null };
 const notificationsEmpty = { data: [] };
 
+function renderWithProviders(ui: React.ReactElement) {
+  return render(
+    <MemoryRouter>
+      <ToastProvider>{ui}</ToastProvider>
+    </MemoryRouter>,
+  );
+}
+
 describe('DashboardPage', () => {
   it('يُعرض بدون أخطاء', () => {
     dashboardOverrideFn = () => dataQuery;
     attendanceOverrideFn = () => attendanceEmpty;
     notificationsOverrideFn = () => notificationsEmpty;
-    const { container } = render(
-      <MemoryRouter>
-        <DashboardPage type="hr" />
-      </MemoryRouter>,
-    );
+    const { container } = renderWithProviders(<DashboardPage type="hr" />);
     expect(container.querySelector('.dashboard-hero')).toBeTruthy();
   });
 
@@ -70,11 +80,7 @@ describe('DashboardPage', () => {
     dashboardOverrideFn = () => loadingQuery;
     attendanceOverrideFn = () => attendanceEmpty;
     notificationsOverrideFn = () => notificationsEmpty;
-    const { container } = render(
-      <MemoryRouter>
-        <DashboardPage type="hr" />
-      </MemoryRouter>,
-    );
+    const { container } = renderWithProviders(<DashboardPage type="hr" />);
     // MetricSkeletonRow يعرض عناصر skeleton أثناء التحميل
     expect(container.querySelector('.animate-pulse')).toBeTruthy();
   });
@@ -83,11 +89,7 @@ describe('DashboardPage', () => {
     dashboardOverrideFn = () => dataQuery;
     attendanceOverrideFn = () => attendanceEmpty;
     notificationsOverrideFn = () => notificationsEmpty;
-    render(
-      <MemoryRouter>
-        <DashboardPage type="hr" />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<DashboardPage type="hr" />);
     expect(screen.getByText('إجمالي الموظفين')).toBeDefined();
     expect(screen.getByText('42')).toBeDefined();
     expect(screen.getByText('طلبات معلقة')).toBeDefined();
@@ -97,11 +99,7 @@ describe('DashboardPage', () => {
     dashboardOverrideFn = () => dataQuery;
     attendanceOverrideFn = () => attendanceEmpty;
     notificationsOverrideFn = () => notificationsEmpty;
-    render(
-      <MemoryRouter>
-        <DashboardPage type="hr" />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<DashboardPage type="hr" />);
     expect(screen.getByText('نبض التشغيل')).toBeDefined();
     expect(screen.getByText('أولويات اليوم')).toBeDefined();
   });
@@ -110,11 +108,7 @@ describe('DashboardPage', () => {
     dashboardOverrideFn = () => dataQuery;
     attendanceOverrideFn = () => attendanceEmpty;
     notificationsOverrideFn = () => notificationsEmpty;
-    render(
-      <MemoryRouter>
-        <DashboardPage type="hr" />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<DashboardPage type="hr" />);
     expect(screen.getByText('إضافة موظف')).toBeDefined();
     expect(screen.getByText('مراجعة الطلبات')).toBeDefined();
   });
@@ -138,11 +132,7 @@ describe('DashboardPage', () => {
         },
       ],
     });
-    render(
-      <MemoryRouter>
-        <DashboardPage type="hr" />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<DashboardPage type="hr" />);
     expect(screen.getByText('آخر الإشعارات')).toBeDefined();
     expect(screen.getByText('طلب جديد بانتظار مراجعتك')).toBeDefined();
   });

@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(6);
+select plan(5);
 
 -- ─── Fixture ───
 insert into public.legal_entities (id, code, name)
