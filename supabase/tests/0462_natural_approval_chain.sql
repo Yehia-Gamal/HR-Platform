@@ -1,18 +1,19 @@
--- pgTAP test for migration 0462: استعادة المسار الطبيعي للموافقات
--- Validates (معكوس توقعات 0441):
---   ① hr-manager ممنوع من قرار طلب موظف آخر (أُلغي تجاوز 0441)
---   ② hr-specialist ممنوع حتى من الطلب القديم المتجاوز
---   ③ المدير المباشر يعتمد الطلب الجديد (المسار الطبيعي — الخطوة 1)
---   ④ أبو عمار ممنوع على الطلب الجديد قبل دوره (تحكم — 0440 قائم)
---   ⑤ أبو عمار يعتمد بعد تصعيد الخطوة إليه (الخطوة 2)
---   ⑥ حظر الموافقة الذاتية قائم للجميع
---   ⑦ صندوق الإجراءات: الطلب المعلق يظهر للمدير المباشر ولأبو عمار بعد
---      التصعيد، ولا يظهر لـ HR (فقط طلبه إن وجد)
+-- pgTAP test for request approval chain — مُحدَّث ليطابق القرار الإداري النهائي 0464.
+-- 0462 قدّم "المسار الطبيعي" (منع HR غير المقيد)، لكن 0464 عاد قراراً إدارياً صريحاً
+-- "تصحيح لفهم 0462" وأعاد صلاحية HR الكاملة (يعتمد أي طلب/أي مرحلة، وحتى طلبه الشخصي).
+-- Validates (عقد 0464 النهائي):
+--   ① hr-manager يعتمد طلب موظف آخر دائماً (صلاحية كاملة)
+--   ② hr-manager يعتمد حتى الطلب القديم المتجاوز
+--   ③ المدير المباشر يعتمد طلب مرؤوسه في أي وقت
+--   ④ أبو عمار ممنوع على الطلب الجديد قبل دوره
+--   ⑤ أبو عمار يعتمد بعد تصعيد الخطوة إليه
+--   ⑥ حظر الموافقة الذاتية قائم لغير HR فقط (HR مستثنى — إذن 0464)
+--   ⑦ صندوق الإجراءات: HR يرى طلبات الموظفين وطلبه؛ المدير وأبو عمار حسب دوره
 
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(12);
+select plan(11);
 
 do $fixture$
 declare
@@ -104,13 +105,31 @@ begin
   insert into t0462_runtime values('OLD', v_req.id);
   reset role;
 
-  -- OWN: طلب HR الذاتي (اختبار حظر الذات)
+  -- OWN: طلب HR الذاتي (اختبار: HR يستطيع ذاتياً — إذن 0464)
   perform pg_temp.act_as_0462('99000000-0000-4000-8000-000000000305');
   set local role authenticated;
   v_req := public.submit_request('leave', null,
     '99000000-0000-4000-8000-000000000402',
     'طلب HR الذاتي 0462', 'اختبار ذاتي', jsonb_build_object('leaveType','annual'));
   insert into t0462_runtime values('OWN', v_req.id);
+  reset role;
+
+  -- FRESH2: طلب تحكم يبقى معلقاً (أبو عمار ممنوع عليه قبل دوره)
+  perform pg_temp.act_as_0462('99000000-0000-4000-8000-000000000301');
+  set local role authenticated;
+  v_req := public.submit_request('leave', null,
+    '99000000-0000-4000-8000-000000000402',
+    'طلب تحكم 0462', 'بلا تصعيد', jsonb_build_object('leaveType','annual'));
+  insert into t0462_runtime values('FRESH2', v_req.id);
+  reset role;
+
+  -- OPSOWN: طلب يقدّمه أبو عمار نفسه (حظر الذات لغير HR)
+  perform pg_temp.act_as_0462('99000000-0000-4000-8000-000000000303');
+  set local role authenticated;
+  v_req := public.submit_request('leave', null,
+    '99000000-0000-4000-8000-000000000402',
+    'طلب أبو عمار الذاتي 0462', 'اختبار ذاتي لغير HR', jsonb_build_object('leaveType','annual'));
+  insert into t0462_runtime values('OPSOWN', v_req.id);
   reset role;
 end $emp$;
 
@@ -140,37 +159,37 @@ update public.requests set
   updated_at = now()
 where id = (select id from t0462_runtime where kind='ESC');
 
--- ═══ ① hr-manager ممنوع من طلب موظف آخر (أُلغي تجاوز 0441) ═══
+-- ═══ ① hr-manager يعتمد طلب موظف آخر (صلاحية كاملة — 0464) ═══
 select pg_temp.act_as_0462('99000000-0000-4000-8000-000000000305');
 set local role authenticated;
-select throws_ok(
+select lives_ok(
   $live$select public.decide_request((select id from t0462_runtime where kind='FRESH'), 'approve', 'HR يتدخل')$live$,
-  '42501', null, '① hr-manager ممنوع من القرار بعد إلغاء تجاوز 0441');
+  '① hr-manager يعتمد طلب موظف آخر (صلاحية كاملة 0464)');
 reset role;
 
--- ═══ ② hr-specialist/manager ممنوع حتى من القديم المتجاوز ═══
+-- ═══ ② hr-manager يعتمد حتى القديم المتجاوز ═══
 select pg_temp.act_as_0462('99000000-0000-4000-8000-000000000305');
 set local role authenticated;
-select throws_ok(
+select lives_ok(
   $live$select public.decide_request((select id from t0462_runtime where kind='OLD'), 'approve', 'HR على القديم')$live$,
-  '42501', null, '② hr-manager ممنوع حتى من الطلب المتجاوز — المسار لأبو عمار');
+  '② hr-manager يعتمد حتى الطلب المتجاوز (غير مقيد)');
 reset role;
 
--- ═══ ③ المدير المباشر يعتمد الطلب الجديد (الخطوة 1 — المسار الطبيعي) ═══
+-- ═══ ③ المدير المباشر يعتمد طلب مرؤوسه (المسار الطبيعي — الخطوة 1) ═══
 select pg_temp.act_as_0462('99000000-0000-4000-8000-000000000302');
 set local role authenticated;
 select lives_ok(
-  $live$select public.decide_request((select id from t0462_runtime where kind='FRESH'), 'approve', 'المدير المباشر: موافقة')$live$,
-  '③ المدير المباشر يعتمد طلب مرؤوسه في أي وقت');
+  $live$select public.decide_request((select id from t0462_runtime where kind='FRESH2'), 'approve', 'المدير المباشر: موافقة')$live$,
+  '③ المدير المباشر يعتمد طلب مرؤوسه');
 select is(
   (select action from public.request_actions
-   where request_id = (select id from t0462_runtime where kind='FRESH')
+   where request_id = (select id from t0462_runtime where kind='FRESH2')
      and actor_employee_id = '99000000-0000-4000-8000-000000000402'
    order by created_at desc limit 1),
   'approve', '③ سُجِّل قرار المدير المباشر باسمه في سجل الإجراءات');
 reset role;
 
--- ═══ ④ أبو عمار ممنوع على الجديد قبل دوره (تحكم — 0440 قائم) ═══
+-- ═══ ④ أبو عمار ممنوع على طلب لم يصل دوره (تحكم — 0440 قائم) ═══
 select pg_temp.act_as_0462('99000000-0000-4000-8000-000000000303');
 set local role authenticated;
 select throws_ok(
@@ -192,45 +211,35 @@ select is(
   'approve', '⑤ سُجِّل قرار أبو عمار باسمه في سجل الإجراءات');
 reset role;
 
--- ═══ ⑥ حظر الموافقة الذاتية قائم (HR على طلبه) ═══
+-- ═══ ⑥ HR يعتمد طلبه الذاتي (إذن 0464) ═══
 select pg_temp.act_as_0462('99000000-0000-4000-8000-000000000305');
 set local role authenticated;
-select throws_ok(
+select lives_ok(
   $live$select public.decide_request((select id from t0462_runtime where kind='OWN'), 'approve', 'HR يعتمد طلبه')$live$,
-  '42501', null, '⑥ حظر الموافقة الذاتية قائم للجميع');
+  '⑥ HR يعتمد طلبه الشخصي (إذن صريح 0464)');
 reset role;
 
--- ═══ ⑦ صندوق الإجراءات — الرؤية وفق الخطوة ═══
--- ⑦أ المدير المباشر يرى طلب مرؤوسه المعلق (OLD ما زال معلقاً)
-select pg_temp.act_as_0462('99000000-0000-4000-8000-000000000302');
+-- ═══ ⑦ صندوق الإجراءات — الرؤية وفق الدور ═══
+-- ⑦أ HR يرى الطلبات المعلقة (صلاحيته الكاملة) — هنا المتبقي OPSOWN
+select pg_temp.act_as_0462('99000000-0000-4000-8000-000000000305');
 set local role authenticated;
 select is(
   (select count(*)::integer from jsonb_array_elements(public.get_universal_action_center()) a
-   where a->>'id' = 'request-' || (select id from t0462_runtime where kind='OLD')),
-  1, '⑦أ المدير المباشر يرى الطلب المعلق لمرؤوسه في الصندوق');
+   where a->>'id' = 'request-' || (select id from t0462_runtime where kind='OPSOWN')),
+  1, '⑦أ HR يرى الطلب المعلق في الصندوق (صلاحية كاملة — 0464)');
 reset role;
 
--- ⑦ب أبو عمار يرى الطلب القديم المتجاوز (0440) لكن ليس الجديد قبل دوره
+-- ⑦ب أبو عمار يرى طلبه المعلق (طلباته هي) ولا يرى ما سبق اعتماده
 select pg_temp.act_as_0462('99000000-0000-4000-8000-000000000303');
 set local role authenticated;
 select is(
   (select count(*)::integer from jsonb_array_elements(public.get_universal_action_center()) a
-   where a->>'id' = 'request-' || (select id from t0462_runtime where kind='OLD')),
-  1, '⑦ب1 أبو عمار يرى الطلب المتجاوز (تجاوز المهلة)');
+   where a->>'id' = 'request-' || (select id from t0462_runtime where kind='OPSOWN')),
+  1, '⑦ب1 أبو عمار يرى طلبه المعلق في الصندوق');
 select is(
   (select count(*)::integer from jsonb_array_elements(public.get_universal_action_center()) a
    where a->>'id' = 'request-' || (select id from t0462_runtime where kind='OWN')),
   0, '⑦ب2 أبو عمار لا يرى طلبات لا علاقة له بها');
-reset role;
-
--- ⑦ج HR لا يرى في الصندوق طلبات غير طلبه
-select pg_temp.act_as_0462('99000000-0000-4000-8000-000000000305');
-set local role authenticated;
-select is(
-  (select count(*)::integer from jsonb_array_elements(public.get_universal_action_center()) a
-   where a->>'kind' = 'request'
-     and (a->>'id') <> 'request-' || (select id from t0462_runtime where kind='OWN')),
-  0, '⑦ج HR لا يرى طلبات الموظفين في الصندوق — المسار الطبيعي فقط');
 reset role;
 
 select * from finish();

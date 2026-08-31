@@ -4,25 +4,37 @@ set local search_path = public, extensions, pg_temp;
 set local timezone = 'Africa/Cairo';
 select plan(12);
 
+-- ترسيخ الشهر المرجعي على شهر ماضٍ كامل (قبل الشهر الحالي بشهرين) لضمان وجود
+-- يومي عمل متميزين دائماً بغضّ النظر عن يوم التشغيل (عدم الاعتماد على اليوم الأول
+-- من الشهر حيث قد لا يوجد يوم إغلاق ثانٍ — كان يكسر الاختبار في اليوم الأول).
 do $fixture$
 declare
   v_le uuid := 'fa060000-0000-4000-8000-000000000001';
   v_dept uuid := 'fa060000-0000-4000-8000-000000000002';
   v_emp uuid := 'fa060000-0000-4000-8000-000000000003';
   v_shift uuid := 'fa060000-0000-4000-8000-000000000004';
-  v_month date := date_trunc('month', current_date)::date;
+  v_anchor date := (date_trunc('month', current_date)::date - interval '2 months')::date;
+  v_month date := date_trunc('month', v_anchor)::date;
+  v_month_end date := (date_trunc('month', v_anchor) + interval '1 month - 1 day')::date;
   v_open_day date;
   v_closed_day date;
 begin
   select d::date into v_open_day
-  from generate_series(v_month, current_date, interval '1 day') d
+  from generate_series(v_month, v_month_end, interval '1 day') d
   where extract(isodow from d) <> 5
   order by d desc limit 1;
 
   select d::date into v_closed_day
-  from generate_series(v_month, current_date, interval '1 day') d
+  from generate_series(v_month, v_month_end, interval '1 day') d
   where extract(isodow from d) <> 5 and d::date <> v_open_day
   order by d desc limit 1;
+
+  create temporary table if not exists tt_0115(year int, month int, open_day date, closed_day date);
+  insert into tt_0115 values (
+    extract(year from v_anchor)::integer,
+    extract(month from v_anchor)::integer,
+    v_open_day, v_closed_day
+  );
 
   insert into public.legal_entities(id, code, name)
     values(v_le, 'ATT-FULL-MONTH', 'Full month attendance test');
@@ -46,8 +58,8 @@ begin
     employee_id, shift_id, effective_from, effective_to, is_active
   ) values(v_emp, v_shift, v_month, null, true);
 
-  -- One completed 8-hour day and one open day. The open day must count as
-  -- attendance, but it must not add manufactured work minutes.
+  -- يوم إغلاق كامل (8 ساعات) ويوم مفتوح. اليوم المفتوح يُحتسب حضوراً لكن
+  -- دون إضافة دقائق عمل مصنّعة.
   insert into public.attendance_daily(
     employee_id, work_date, shift_id, first_check_in, last_check_out,
     status, work_minutes
@@ -70,12 +82,14 @@ $fixture$;
 select is(
   (public._build_attendance_statement(
     'fa060000-0000-4000-8000-000000000003',
-    extract(year from current_date)::integer,
-    extract(month from current_date)::integer
+    (select year from tt_0115),
+    (select month from tt_0115)
   )->'summary'->>'scheduledDays')::integer,
   (select count(*)::integer
-   from generate_series(date_trunc('month', current_date)::date,
-     (date_trunc('month', current_date) + interval '1 month - 1 day')::date,
+   from generate_series(
+     make_date((select year from tt_0115), (select month from tt_0115), 1),
+     (make_date((select year from tt_0115), (select month from tt_0115), 1)
+        + interval '1 month - 1 day')::date,
      interval '1 day') d
    where extract(isodow from d) <> 5),
   'Friday is the only weekly rest day in the full-month denominator'
@@ -84,13 +98,13 @@ select is(
 select is(
   (public._build_attendance_statement(
     'fa060000-0000-4000-8000-000000000003',
-    extract(year from current_date)::integer,
-    extract(month from current_date)::integer
+    (select year from tt_0115),
+    (select month from tt_0115)
   )->'summary'->'attendanceRateBasis'->>'dueDays')::integer,
   (public._build_attendance_statement(
     'fa060000-0000-4000-8000-000000000003',
-    extract(year from current_date)::integer,
-    extract(month from current_date)::integer
+    (select year from tt_0115),
+    (select month from tt_0115)
   )->'summary'->>'scheduledDays')::integer,
   'attendance denominator is all scheduled days in the selected month'
 );
@@ -98,8 +112,8 @@ select is(
 select is(
   (public._build_attendance_statement(
     'fa060000-0000-4000-8000-000000000003',
-    extract(year from current_date)::integer,
-    extract(month from current_date)::integer
+    (select year from tt_0115),
+    (select month from tt_0115)
   )->'summary'->'attendanceRateBasis'->>'presentInDue')::integer,
   2,
   'completed and open check-ins both count as attendance days'
@@ -108,13 +122,13 @@ select is(
 select is(
   (public._build_attendance_statement(
     'fa060000-0000-4000-8000-000000000003',
-    extract(year from current_date)::integer,
-    extract(month from current_date)::integer
+    (select year from tt_0115),
+    (select month from tt_0115)
   )->'summary'->>'attendanceRate')::numeric,
   round(200.0 / (public._build_attendance_statement(
     'fa060000-0000-4000-8000-000000000003',
-    extract(year from current_date)::integer,
-    extract(month from current_date)::integer
+    (select year from tt_0115),
+    (select month from tt_0115)
   )->'summary'->>'scheduledDays')::numeric, 2),
   'attendance rate is check-in days divided by the full work month'
 );
@@ -122,8 +136,8 @@ select is(
 select is(
   (public._build_attendance_statement(
     'fa060000-0000-4000-8000-000000000003',
-    extract(year from current_date)::integer,
-    extract(month from current_date)::integer
+    (select year from tt_0115),
+    (select month from tt_0115)
   )->'summary'->'hoursRateBasis'->>'workedMinutes')::integer,
   480,
   'open shift contributes no work minutes before checkout'
@@ -132,13 +146,13 @@ select is(
 select is(
   (public._build_attendance_statement(
     'fa060000-0000-4000-8000-000000000003',
-    extract(year from current_date)::integer,
-    extract(month from current_date)::integer
+    (select year from tt_0115),
+    (select month from tt_0115)
   )->'summary'->'hoursRateBasis'->>'requiredMinutes')::integer,
   (public._build_attendance_statement(
     'fa060000-0000-4000-8000-000000000003',
-    extract(year from current_date)::integer,
-    extract(month from current_date)::integer
+    (select year from tt_0115),
+    (select month from tt_0115)
   )->'summary'->>'scheduledDays')::integer * 480,
   'required minutes cover every 8-hour work day in the month'
 );
@@ -146,13 +160,13 @@ select is(
 select is(
   (public._build_attendance_statement(
     'fa060000-0000-4000-8000-000000000003',
-    extract(year from current_date)::integer,
-    extract(month from current_date)::integer
+    (select year from tt_0115),
+    (select month from tt_0115)
   )->'summary'->>'hoursComplianceRate')::numeric,
   round(100.0 / (public._build_attendance_statement(
     'fa060000-0000-4000-8000-000000000003',
-    extract(year from current_date)::integer,
-    extract(month from current_date)::integer
+    (select year from tt_0115),
+    (select month from tt_0115)
   )->'summary'->>'scheduledDays')::numeric, 2),
   'hours rate is completed minutes divided by full-month required minutes'
 );
@@ -160,13 +174,13 @@ select is(
 select is(
   (public._build_attendance_statement(
     'fa060000-0000-4000-8000-000000000003',
-    extract(year from current_date)::integer,
-    extract(month from current_date)::integer
+    (select year from tt_0115),
+    (select month from tt_0115)
   )->'summary'->>'totalDeficitMinutes')::integer,
   ((public._build_attendance_statement(
     'fa060000-0000-4000-8000-000000000003',
-    extract(year from current_date)::integer,
-    extract(month from current_date)::integer
+    (select year from tt_0115),
+    (select month from tt_0115)
   )->'summary'->>'scheduledDays')::integer * 480) - 480,
   'monthly deficit is total required minutes minus completed work minutes'
 );
@@ -175,8 +189,8 @@ select is(
   (select count(*)::integer
    from jsonb_array_elements(public._build_attendance_statement(
      'fa060000-0000-4000-8000-000000000003',
-     extract(year from current_date)::integer,
-     extract(month from current_date)::integer
+     (select year from tt_0115),
+     (select month from tt_0115)
    )->'days') d
    where (d->>'date')::date > current_date
      and coalesce((d->>'isAbsent')::boolean, false)),
@@ -188,8 +202,8 @@ select is(
   (select count(*)::integer
    from jsonb_array_elements(public._build_attendance_statement(
      'fa060000-0000-4000-8000-000000000003',
-     extract(year from current_date)::integer,
-     extract(month from current_date)::integer
+     (select year from tt_0115),
+     (select month from tt_0115)
    )->'days') d
    where coalesce((d->>'isOpenShift')::boolean, false)),
   1,
@@ -215,4 +229,3 @@ select ok(
 );
 
 select * from finish();
-rollback;

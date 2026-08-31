@@ -6,13 +6,13 @@
 --   ③ أُغلقت خطوات الطلب بعد اعتماد HR
 --   ④ أبو عمار ما زال مقيداً على الطلب الجديد (تحكم)
 --   ⑤ ضابط العمليات ما زال ممنوعاً (تحكم)
---   ⑥ HR لا يعتمد طلبه الذاتي (حماية فساد قائمة)
+--   ⑥ HR يعتمد طلبه الذاتي (إذن صريح — 0464)
 --   ⑦ اعتماد HR يسجَّل بدور الفاعل hr
 
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(8);
+select plan(9);
 
 do $fixture$
 declare
@@ -186,12 +186,16 @@ select throws_ok(
   '42501', null, '⑤ ضابط العمليات ممنوع من الطلب الجديد');
 reset role;
 
--- ═══ ⑥ HR لا يعتمد طلبه الذاتي ═══
+-- ═══ ⑥ HR يعتمد طلبه الذاتي (إذن صريح — 0464) ═══
 select pg_temp.act_as_0441('99000000-0000-4000-8000-000000000105');
 set local role authenticated;
-select throws_ok(
+select lives_ok(
   $live$select public.decide_request((select id from t0441_runtime where kind='OWN'), 'approve', 'HR يعتمد طلبه')$live$,
-  '42501', null, '⑥ HR لا يعتمد طلبه الذاتي (حماية فساد قائمة)');
+  '⑥ HR يعتمد طلبه الذاتي (إذن صريح من الإدارة — 0464)');
+select is(
+  (select status from public.requests
+   where id = (select id from t0441_runtime where kind='OWN')),
+  'approved', '⑥ طلب HR الذاتي أصبح معتمداً');
 reset role;
 
 select * from finish();

@@ -11,11 +11,14 @@ select plan(6);
 
 do $fixture$
 declare
+  v_entity uuid := 'f4920000-0000-4000-8000-000000000000';
   v_dept uuid := 'f4920000-0000-4000-8000-000000000001';
   v_shift uuid;
 begin
-  insert into public.departments(id, code, name)
-  values(v_dept, 'F492-D', 'قسم 0492');
+  insert into public.legal_entities(id, code, name)
+  values(v_entity, 'F492-LE', 'كيان 0492');
+  insert into public.departments(id, legal_entity_id, code, name)
+  values(v_dept, v_entity, 'F492-D', 'قسم 0492');
 
   insert into auth.users(id,email,aud,role) values
     ('f4920000-0000-4000-8000-000000000101','f492-emp@test.local','authenticated','authenticated'),
@@ -37,8 +40,8 @@ begin
   insert into public.user_roles(user_id, role_id)
   select 'f4920000-0000-4000-8000-000000000103', id from public.roles where slug='executive';
 
-  insert into public.shifts(id, is_active, start_time, end_time, grace_in_minutes)
-  values ('f4920000-0000-4000-8000-000000000301', true, '09:00', '17:00', 15);
+  insert into public.shifts(id, code, name, is_active, start_time, end_time, grace_in_minutes)
+  values ('f4920000-0000-4000-8000-000000000301', 'F492-S', 'وردية 0492', true, '09:00', '17:00', 15);
 end $fixture$;
 
 select set_config('request.jwt.claims','{"role":"service_role"}',true);
