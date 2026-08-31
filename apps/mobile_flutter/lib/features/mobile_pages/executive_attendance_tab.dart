@@ -9,7 +9,16 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/executive_locati
 import 'package:intl/intl.dart';
 
 /// فئات الفلترة المتاحة — تُطابق حالات الحضور.
-enum _FilterCategory { all, present, late, absent, mission, onLeave, partial, weekend }
+enum _FilterCategory {
+  all,
+  present,
+  late,
+  absent,
+  mission,
+  onLeave,
+  partial,
+  weekend,
+}
 
 /// تبويب الحضور اليومي — يعرض حالة كل موظف اليوم للمدير التنفيذي
 /// مع شرائح قابلة للنقر للفلترة + بحث فوري.
@@ -82,12 +91,16 @@ class _ExecutiveAttendanceTabState
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.error_outline_rounded,
-                    size: 40,
-                    color: Theme.of(context).colorScheme.error),
+                Icon(
+                  Icons.error_outline_rounded,
+                  size: 40,
+                  color: Theme.of(context).colorScheme.error,
+                ),
                 const SizedBox(height: 12),
-                const Text('تعذر تحميل بيانات الحضور',
-                    textAlign: TextAlign.center),
+                const Text(
+                  'تعذر تحميل بيانات الحضور',
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 12),
                 TextButton.icon(
                   onPressed: () =>
@@ -106,10 +119,11 @@ class _ExecutiveAttendanceTabState
                   Center(
                     child: Column(
                       children: [
-                        Icon(Icons.people_outline_rounded,
-                            size: 48,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant),
+                        Icon(
+                          Icons.people_outline_rounded,
+                          size: 48,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                         const SizedBox(height: 12),
                         const Text('لا يوجد موظفون نشطون'),
                       ],
@@ -197,8 +211,10 @@ class _ExecutiveAttendanceTabState
                           )
                         : null,
                     isDense: true,
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
@@ -228,15 +244,16 @@ class _ExecutiveAttendanceTabState
                   child: Center(
                     child: Column(
                       children: [
-                        Icon(Icons.filter_alt_off_outlined,
-                            size: 40,
-                            color: scheme.onSurfaceVariant),
+                        Icon(
+                          Icons.filter_alt_off_outlined,
+                          size: 40,
+                          color: scheme.onSurfaceVariant,
+                        ),
                         const SizedBox(height: 10),
                         Text(
                           'لا يوجد موظفون في هذه الفئة',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                              ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: scheme.onSurfaceVariant),
                         ),
                         const SizedBox(height: 4),
                         TextButton(
@@ -260,9 +277,9 @@ class _ExecutiveAttendanceTabState
                     '${filtered.length} موظف'
                     '${_selectedFilter != _FilterCategory.all ? ' في فئة «${_filterLabel(_selectedFilter)}»' : ''}',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               const SizedBox(height: 8),
@@ -291,15 +308,16 @@ class _ExecutiveAttendanceTabState
                   padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
                   child: Row(
                     children: [
-                      Icon(Icons.business_rounded,
-                          size: 18, color: scheme.primary),
+                      Icon(
+                        Icons.business_rounded,
+                        size: 18,
+                        color: scheme.primary,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           dept,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
+                          style: Theme.of(context).textTheme.titleSmall
                               ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                       ),
@@ -308,8 +326,8 @@ class _ExecutiveAttendanceTabState
                             ? '${deptEmployees.length} موظف — ${summaryParts.join(' · ')}'
                             : '${deptEmployees.length} موظف',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -399,16 +417,16 @@ class _AttendanceProgress extends StatelessWidget {
               Text(
                 'نسبة الحضور',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               Text(
                 '$pct%  ($present + $late من $total)',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: scheme.primary,
-                    ),
+                  fontWeight: FontWeight.w900,
+                  color: scheme.primary,
+                ),
               ),
             ],
           ),
@@ -681,13 +699,13 @@ class _AttendanceCardState extends ConsumerState<_AttendanceCard> {
         final display = msg.contains('cooldown_active')
             ? 'يرجى الانتظار 30 ثانية بين الطلبات.'
             : msg.contains('cannot request own location')
-                ? 'لا يمكن طلب موقعك الخاص.'
-                : msg.contains('not active')
-                    ? 'الموظف غير نشط أو لا يملك حساباً مرتبطاً.'
-                    : 'تعذر إرسال الطلب. تحقق من الاتصال وأعد المحاولة.';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(display)),
-        );
+            ? 'لا يمكن طلب موقعك الخاص.'
+            : msg.contains('not active')
+            ? 'الموظف غير نشط أو لا يملك حساباً مرتبطاً.'
+            : 'تعذر إرسال الطلب. تحقق من الاتصال وأعد المحاولة.';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(display)));
       }
     }
   }
@@ -745,10 +763,9 @@ class _AttendanceCardState extends ConsumerState<_AttendanceCard> {
                   children: [
                     Text(
                       employee.name,
-                      style:
-                          Theme.of(context).textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w900,
-                              ),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     Text(
                       [
@@ -808,9 +825,7 @@ class _AttendanceCardState extends ConsumerState<_AttendanceCard> {
                                 : Icons.my_location_rounded,
                             size: 20,
                             color: inCooldown
-                                ? Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant
+                                ? Theme.of(context).colorScheme.onSurfaceVariant
                                 : Theme.of(context).colorScheme.primary,
                           ),
                         ),
@@ -879,8 +894,8 @@ class _AttendanceCardState extends ConsumerState<_AttendanceCard> {
     return Text(
       parts.join(' · '),
       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
     );
   }
 }

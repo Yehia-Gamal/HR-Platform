@@ -221,8 +221,7 @@ Future<void> showAttendanceCorrectionSheet(
                     final picked = await showTimePicker(
                       context: sheetContext,
                       initialTime:
-                          actualTime ??
-                          const TimeOfDay(hour: 9, minute: 0),
+                          actualTime ?? const TimeOfDay(hour: 9, minute: 0),
                     );
                     if (picked != null) {
                       setState(() => actualTime = picked);

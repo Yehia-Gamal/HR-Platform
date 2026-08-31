@@ -150,20 +150,22 @@ export function AttendanceReportsPage() {
           <div className="flex items-center gap-2">
             <label className="text-sm font-semibold">النوع:</label>
             <div className="flex rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-1" role="radiogroup">
-              {(['individual', 'team', 'all'] as ReportScope[]).filter((s) => !isIndividual || s === 'individual').map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  role="radio"
-                  aria-checked={scope === s}
-                  onClick={() => setScope(s)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    scope === s ? 'bg-[var(--brand-primary)] text-white' : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)]'
-                  }`}
-                >
-                  {s === 'individual' ? 'فردي' : s === 'team' ? 'فريقي' : 'شامل'}
-                </button>
-              ))}
+              {(['individual', 'team', 'all'] as ReportScope[])
+                .filter((s) => !isIndividual || s === 'individual')
+                .map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    role="radio"
+                    aria-checked={scope === s}
+                    onClick={() => setScope(s)}
+                    className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      scope === s ? 'bg-[var(--brand-primary)] text-white' : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)]'
+                    }`}
+                  >
+                    {s === 'individual' ? 'فردي' : s === 'team' ? 'فريقي' : 'شامل'}
+                  </button>
+                ))}
             </div>
           </div>
 
@@ -192,9 +194,15 @@ export function AttendanceReportsPage() {
 
           <div className="flex-1" />
           <div className="flex items-center gap-4 text-sm text-[var(--text-muted)]">
-            <span className="flex items-center gap-1"><CalendarRange className="size-4" aria-hidden="true" /> {start} → {end}</span>
-            <span className="flex items-center gap-1"><FileText className="size-4" aria-hidden="true" /> {periodLabel}</span>
-            <span className="flex items-center gap-1"><Users className="size-4" aria-hidden="true" /> {scopeLabel}</span>
+            <span className="flex items-center gap-1">
+              <CalendarRange className="size-4" aria-hidden="true" /> {start} → {end}
+            </span>
+            <span className="flex items-center gap-1">
+              <FileText className="size-4" aria-hidden="true" /> {periodLabel}
+            </span>
+            <span className="flex items-center gap-1">
+              <Users className="size-4" aria-hidden="true" /> {scopeLabel}
+            </span>
           </div>
         </div>
       </div>
@@ -213,18 +221,26 @@ export function AttendanceReportsPage() {
       >
         {isIndividual && employeeId ? (
           <>
-            {statement.isError ? <ErrorState title="تعذر تحميل الكشف" description={safeErrorMessage(statement.error)} onRetry={() => void statement.refetch()} /> : null}
-            {statement.isLoading ? <SkeletonCard className="h-72" /> : statement.data ? (
+            {statement.isError ? (
+              <ErrorState title="تعذر تحميل الكشف" description={safeErrorMessage(statement.error)} onRetry={() => void statement.refetch()} />
+            ) : null}
+            {statement.isLoading ? (
+              <SkeletonCard className="h-72" />
+            ) : statement.data ? (
               <div className="space-y-6">
                 <div className="card p-5">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                       <h2 className="text-xl font-black">{statement.data.employee.fullNameAr}</h2>
-                      <p className="muted mt-1">{statement.data.employee.jobTitle} • {statement.data.employee.employeeCode}</p>
+                      <p className="muted mt-1">
+                        {statement.data.employee.jobTitle} • {statement.data.employee.employeeCode}
+                      </p>
                     </div>
                     <div className="rounded-2xl bg-[var(--surface-muted)] p-4 text-start">
                       <p className="muted text-xs">الفترة</p>
-                      <p className="font-black">{MONTHS[statement.data.period.month - 1]} {statement.data.period.year}</p>
+                      <p className="font-black">
+                        {MONTHS[statement.data.period.month - 1]} {statement.data.period.year}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -243,8 +259,16 @@ export function AttendanceReportsPage() {
                     <table className="data-table w-full">
                       <thead className="sticky top-0 z-10">
                         <tr>
-                          <th>التاريخ</th><th>اليوم</th><th>الحضور</th><th>الانصراف</th>
-                          <th>الوردية</th><th>ساعات</th><th>تأخير</th><th>خروج مبكر</th><th>إضافي</th><th>الحالة</th>
+                          <th>التاريخ</th>
+                          <th>اليوم</th>
+                          <th>الحضور</th>
+                          <th>الانصراف</th>
+                          <th>الوردية</th>
+                          <th>ساعات</th>
+                          <th>تأخير</th>
+                          <th>خروج مبكر</th>
+                          <th>إضافي</th>
+                          <th>الحالة</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -259,7 +283,9 @@ export function AttendanceReportsPage() {
                             <td>{d.lateMinutes ? `${d.lateMinutes} د` : '—'}</td>
                             <td>{d.earlyLeaveMinutes ? `${d.earlyLeaveMinutes} د` : '—'}</td>
                             <td>{d.overtimeMinutes ? `${d.overtimeMinutes} د` : '—'}</td>
-                            <td><StatusBadge value={d.status} /></td>
+                            <td>
+                              <StatusBadge value={d.status} />
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -274,7 +300,9 @@ export function AttendanceReportsPage() {
         ) : (
           <div className="space-y-6">
             <div className="card p-4">
-              <h3 className="font-black mb-4">ملخص {scope === 'all' ? 'الشركة' : 'الفريق'} — {periodLabel}</h3>
+              <h3 className="font-black mb-4">
+                ملخص {scope === 'all' ? 'الشركة' : 'الفريق'} — {periodLabel}
+              </h3>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <MetricCard label="إجمالي الموظفين" value={0} icon={Users} />
                 <MetricCard label="حضور فعلي" value={0} icon={BadgeCheck} />

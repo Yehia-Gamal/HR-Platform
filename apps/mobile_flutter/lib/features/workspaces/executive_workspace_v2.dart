@@ -118,15 +118,20 @@ class ExecutiveWorkspaceV2 extends ConsumerWidget {
               if (text.length < 3) return;
               final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
-              commands.sendBroadcastAlert(text).then((_) {
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('أُرسل التنبيه الشامل لكل الموظفين')),
-                );
-              }).catchError((e) {
-                messenger.showSnackBar(
-                  SnackBar(content: Text('فشل الإرسال: $e')),
-                );
-              });
+              commands
+                  .sendBroadcastAlert(text)
+                  .then((_) {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('أُرسل التنبيه الشامل لكل الموظفين'),
+                      ),
+                    );
+                  })
+                  .catchError((e) {
+                    messenger.showSnackBar(
+                      SnackBar(content: Text('فشل الإرسال: $e')),
+                    );
+                  });
             },
             child: const Text('إرسال الآن'),
           ),
@@ -214,7 +219,10 @@ class _BriefTab extends ConsumerWidget {
               const BrandLogoMark(inverse: true, size: 40),
               const SizedBox(width: 10),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: .1),
                   borderRadius: BorderRadius.circular(99),
@@ -305,7 +313,8 @@ class _BriefTab extends ConsumerWidget {
     final urgent =
         notifications.asData?.value
             .where(
-              (n) => !n.isRead && (n.priority == 'urgent' || n.priority == 'high'),
+              (n) =>
+                  !n.isRead && (n.priority == 'urgent' || n.priority == 'high'),
             )
             .take(3)
             .toList() ??
@@ -332,7 +341,10 @@ class _BriefTab extends ConsumerWidget {
                   ),
                   leading: CircleAvatar(
                     backgroundColor: scheme.error.withValues(alpha: .12),
-                    child: Icon(Icons.priority_high_rounded, color: scheme.error),
+                    child: Icon(
+                      Icons.priority_high_rounded,
+                      color: scheme.error,
+                    ),
                   ),
                   title: Text(
                     urgent[i].title,
@@ -402,8 +414,7 @@ class _BriefTab extends ConsumerWidget {
                   const SizedBox(height: 8),
                   Text(humanizeError(error), textAlign: TextAlign.center),
                   TextButton(
-                    onPressed: () =>
-                        ref.invalidate(executiveDashboardProvider),
+                    onPressed: () => ref.invalidate(executiveDashboardProvider),
                     child: const Text('إعادة المحاولة'),
                   ),
                 ],
@@ -424,9 +435,7 @@ class _BriefTab extends ConsumerWidget {
                 Icons.priority_high_rounded,
                 () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const ExecutiveBriefPage(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const ExecutiveBriefPage()),
                 ),
               ),
               (
@@ -471,9 +480,7 @@ class _BriefTab extends ConsumerWidget {
                 Icons.balance_rounded,
                 () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const DisputesPortalPage(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const DisputesPortalPage()),
                 ),
               ),
               (
@@ -519,8 +526,7 @@ class _BriefTab extends ConsumerWidget {
                   const SizedBox(height: 8),
                   Text(humanizeError(error), textAlign: TextAlign.center),
                   TextButton(
-                    onPressed: () =>
-                        ref.invalidate(executiveDashboardProvider),
+                    onPressed: () => ref.invalidate(executiveDashboardProvider),
                     child: const Text('إعادة المحاولة'),
                   ),
                 ],
@@ -593,13 +599,16 @@ class _BriefTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildDisputeSection(BuildContext context, WidgetRef ref, ColorScheme scheme) {
+  Widget _buildDisputeSection(
+    BuildContext context,
+    WidgetRef ref,
+    ColorScheme scheme,
+  ) {
     final disputeInbox = ref.watch(executiveDisputeInboxProvider);
     return disputeInbox.whenOrNull(
           data: (inbox) {
             final counts = inbox.counts;
-            if (counts.awaitingDecision == 0 &&
-                counts.pendingExecution == 0) {
+            if (counts.awaitingDecision == 0 && counts.pendingExecution == 0) {
               return const SizedBox.shrink();
             }
             return Column(
@@ -625,8 +634,13 @@ class _BriefTab extends ConsumerWidget {
                       child: Row(
                         children: [
                           CircleAvatar(
-                            backgroundColor: scheme.error.withValues(alpha: .12),
-                            child: Icon(Icons.gavel_rounded, color: scheme.error),
+                            backgroundColor: scheme.error.withValues(
+                              alpha: .12,
+                            ),
+                            child: Icon(
+                              Icons.gavel_rounded,
+                              color: scheme.error,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -643,13 +657,11 @@ class _BriefTab extends ConsumerWidget {
                                 if (counts.pendingExecution > 0)
                                   Text(
                                     '${counts.pendingExecution} بانتظار التنفيذ',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
+                                    style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
                                           color: scheme.onSurfaceVariant,
                                         ),
-                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -735,8 +747,8 @@ class _DecisionsTab extends ConsumerWidget {
         ],
       ),
     );
-    }
   }
+}
 
 // ════════════════════════════════════════════════════════════════
 // Tab 4: مخاطر
@@ -763,15 +775,15 @@ class _RiskTab extends ConsumerWidget {
               children: [
                 const ExecutiveGovernancePage(),
                 const ExecutiveRiskCenterPage(),
-const ExecutiveEmergencyPage(),
+                const ExecutiveEmergencyPage(),
               ],
             ),
           ),
         ],
       ),
-);
-    }
+    );
   }
+}
 
 /// دليـل الموظفيـن مـع تبـويب محـلي
 class _PeopleDirectoryTab extends ConsumerWidget {
@@ -798,14 +810,21 @@ class _PeopleDirectoryTab extends ConsumerWidget {
                     : null,
                 child: p.photoUrl == null ? const Icon(Icons.person) : null,
               ),
-              title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+              title: Text(
+                p.name,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(p.jobTitle ?? p.department ?? ''),
                   if (p.pendingRequests > 0)
-                    Text('${p.pendingRequests} طلبات',
-                        style: TextStyle(color: Theme.of(context).colorScheme.primary)),
+                    Text(
+                      '${p.pendingRequests} طلبات',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
                 ],
               ),
               trailing: IconButton(
@@ -841,33 +860,33 @@ class _QuickLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        child: Semantics(
-          button: true,
-          label: label,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 18),
-              child: Column(
-                children: [
-                  Icon(icon, color: Theme.of(context).colorScheme.primary),
-                  const SizedBox(height: 7),
-                  Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
+    child: Semantics(
+      button: true,
+      label: label,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 18),
+          child: Column(
+            children: [
+              Icon(icon, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(height: 7),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
-            ),
+            ],
           ),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 /// بطاقة خدمة عريضة — تُستخدم لعرض خدمة كاملة بنقرة واحدة.
@@ -895,10 +914,7 @@ class _DetailTile extends StatelessWidget {
           backgroundColor: scheme.primaryContainer,
           child: Icon(icon, color: scheme.onPrimaryContainer),
         ),
-        title: Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.w900),
-        ),
+        title: Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.chevron_right_rounded),
         onTap: onTap,
@@ -922,22 +938,23 @@ class _PriorityTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListTile(
-        contentPadding: const EdgeInsets.fromLTRB(16, 9, 16, 9),
-        leading: CircleAvatar(
-          backgroundColor: color.withValues(alpha: .12),
-          child: Icon(icon, color: color),
-        ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right_rounded),
-      );
+    contentPadding: const EdgeInsets.fromLTRB(16, 9, 16, 9),
+    leading: CircleAvatar(
+      backgroundColor: color.withValues(alpha: .12),
+      child: Icon(icon, color: color),
+    ),
+    title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+    subtitle: Text(subtitle),
+    trailing: const Icon(Icons.chevron_right_rounded),
+  );
 }
 
 class _BroadcastAlertButton extends ConsumerStatefulWidget {
   const _BroadcastAlertButton();
 
   @override
-  ConsumerState<_BroadcastAlertButton> createState() => _BroadcastAlertButtonState();
+  ConsumerState<_BroadcastAlertButton> createState() =>
+      _BroadcastAlertButtonState();
 }
 
 class _BroadcastAlertButtonState extends ConsumerState<_BroadcastAlertButton> {
@@ -988,15 +1005,20 @@ class _BroadcastAlertButtonState extends ConsumerState<_BroadcastAlertButton> {
               if (text.length < 3) return;
               final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
-              commands.sendBroadcastAlert(text).then((_) {
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('أُرسل التنبيه الشامل لكل الموظفين')),
-                );
-              }).catchError((e) {
-                messenger.showSnackBar(
-                  SnackBar(content: Text('فشل الإرسال: $e')),
-                );
-              });
+              commands
+                  .sendBroadcastAlert(text)
+                  .then((_) {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('أُرسل التنبيه الشامل لكل الموظفين'),
+                      ),
+                    );
+                  })
+                  .catchError((e) {
+                    messenger.showSnackBar(
+                      SnackBar(content: Text('فشل الإرسال: $e')),
+                    );
+                  });
             },
             child: const Text('إرسال الآن'),
           ),
@@ -1026,10 +1048,7 @@ class _BroadcastAlertButtonState extends ConsumerState<_BroadcastAlertButton> {
                   'تنبيه شامل',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
                 ),
               ],
             ),

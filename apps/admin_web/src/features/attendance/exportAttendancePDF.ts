@@ -33,10 +33,10 @@ export function esc(value: unknown): string {
 }
 
 /**
- * يُنشئ مستند HTML منسّق لكشف الحضور ويفتحه في نافذة جديدة مع تشغيل طباعة تلقائي.
- * المستخدم يمكنه حفظه كـ PDF مباشرة من حوار الطباعة (نفس السلوك لكل من زر «تصدير PDF» و«طباعة»).
+ * بناء محتوى جسم كشف الحضور لموظف واحد (داخل <body>) — يُعاد استخدامه لبناء
+ * كشف منفصل لكل موظف أو كشف شامل يضم الجميع.
  */
-export function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية') {
+export function buildStatementBodyHtml(data: AttendanceStatement, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية'): string {
   const { employee: emp, period, days, summary: s } = data;
   const { dueDays, presentInDue } = attendanceRateParts(s);
   const attendancePct = s.attendanceRate ?? (dueDays > 0 ? (presentInDue / dueDays) * 100 : 0);
@@ -83,11 +83,116 @@ export function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمع
     })
     .join('\n');
 
-  const html = `<!DOCTYPE html>
+  return `<div class="page">
+  <!-- الرأس -->
+  <div class="header">
+    <div class="header-right">
+      <h1>📋 كشف الحضور والانصراف الشهري</h1>
+      <p>${monthName} ${period.year} — من ${esc(period.startDate)} إلى ${esc(period.endDate)}</p>
+    </div>
+    <div class="header-left">
+      <div class="org">${esc(orgName)}</div>
+      <div class="sub">منظومة الإدارة المؤسسية</div>
+    </div>
+  </div>
+
+  <!-- بيانات الموظف -->
+  <div class="emp-grid">
+    <div class="emp-field"><label>الاسم</label><span>${esc(emp.fullNameAr)}</span></div>
+    <div class="emp-field"><label>الكود</label><span>${esc(emp.employeeCode ?? '—')}</span></div>
+    <div class="emp-field"><label>الإدارة</label><span>${esc(emp.department)}</span></div>
+    <div class="emp-field"><label>المسمى الوظيفي</label><span>${esc(emp.jobTitle)}</span></div>
+    <div class="emp-field"><label>الفرع</label><span>${esc(emp.branch)}</span></div>
+    <div class="emp-field"><label>المدير المباشر</label><span>${esc(emp.manager)}</span></div>
+    <div class="emp-field"><label>تاريخ التعيين</label><span style="direction:ltr;text-align:right">${esc(emp.hireDate ?? '—')}</span></div>
+    <div class="emp-field"><label>الفترة</label><span>${monthName} ${period.year}</span></div>
+  </div>
+
+  <!-- نسب الحضور والالتزام -->
+  <div class="rates-bar">
+    <div class="rate-item">
+      <div class="pct" style="color:${pctColor(attendancePct)}">${attendancePct.toFixed(0)}%</div>
+      <div class="lbl">نسبة الحضور</div>
+    </div>
+    <div style="width:1px;height:40px;background:#bfdbfe"></div>
+    <div class="rate-item">
+      <div class="pct" style="color:${complianceAvailable ? pctColor(compliancePct) : '#64748b'}">${complianceAvailable ? `${compliancePct.toFixed(0)}%` : 'غير متاح'}</div>
+      <div class="lbl">التزام الساعات</div>
+    </div>
+  </div>
+
+  <!-- ملخص الأرقام -->
+  <div class="summary-grid">
+    <div class="metric"><div class="label">الحضور المحتسب</div><div class="value">${presentInDue}</div><div class="hint">من ${dueDays} أيام مستحقة ومقفلة</div></div>
+    <div class="metric${s.absentDays > 0 ? ' warn' : ''}"><div class="label">أيام الغياب</div><div class="value">${s.absentDays}</div></div>
+    <div class="metric"><div class="label">وردية مفتوحة</div><div class="value">${s.openShiftDays}</div><div class="hint">بانتظار الانصراف</div></div>
+    <div class="metric"><div class="label">أيام قادمة</div><div class="value">${s.upcomingDays}</div><div class="hint">لا تُحسب غيابًا</div></div>
+    <div class="metric"><div class="label">أيام الإجازات</div><div class="value">${s.leaveDays}</div></div>
+    <div class="metric"><div class="label">أيام المأموريات</div><div class="value">${s.missionDays}</div></div>
+    <div class="metric"><div class="label">إذنات</div><div class="value">${s.permitCount}</div></div>
+    <div class="metric"><div class="label">قوافل/فاندي</div><div class="value">${s.convoyFundiDays}</div></div>
+    <div class="metric"><div class="label">ساعات العمل</div><div class="value">${s.totalWorkHours.toFixed(1)}</div><div class="hint">${complianceAvailable ? `مطلوب ${(s.totalRequiredHours ?? 0).toFixed(1)}` : 'الساعات المطلوبة غير متاحة'}</div></div>
+    <div class="metric good"><div class="label">ساعات إضافية</div><div class="value">${s.totalOvertimeMinutes} د</div></div>
+  </div>
+
+  <!-- شريط الإحصائيات السريعة -->
+  <div class="stats-bar">
+    <div class="stat-item"><span class="s-label">تأخير كلي:</span><span class="s-value">${s.totalLateMinutes} د</span></div>
+    <div class="stat-item"><span class="s-label">خروج مبكر:</span><span class="s-value">${s.totalEarlyLeaveMinutes} د</span></div>
+    <div class="stat-item"><span class="s-label">نسيان حضور:</span><span class="s-value">${s.missingCheckInCount}</span></div>
+    <div class="stat-item"><span class="s-label">نسيان انصراف:</span><span class="s-value">${s.missingCheckOutCount}</span></div>
+    <div class="stat-item"><span class="s-label">عطل رسمية:</span><span class="s-value">${s.holidayDays}</span></div>
+    <div class="stat-item"><span class="s-label">أيام راحة:</span><span class="s-value">${s.restDays}</span></div>
+    <div class="stat-item"><span class="s-label">تصحيحات:</span><span class="s-value">${s.correctionCount}</span></div>
+  </div>
+
+  <!-- الجدول اليومي -->
+  <table>
+    <thead>
+      <tr>
+        <th>التاريخ</th><th>اليوم</th><th>الحضور</th><th>الانصراف</th>
+        <th>الوردية</th><th>ساعات فعلية</th><th>التأخير</th>
+        <th>خروج مبكر</th><th>إضافي</th><th>الحالة</th><th>ملاحظات</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${dayRows}
+    </tbody>
+  </table>
+
+  <!-- التذييل -->
+  <div class="footer">
+    <span>تم الإنشاء بواسطة ${esc(systemName)}</span>
+    <span>تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+  </div>
+
+  <!-- التوقيعات -->
+  <div class="signatures">
+    <div class="sig-box">الموظف</div>
+    <div class="sig-box">المدير المباشر</div>
+    <div class="sig-box">الموارد البشرية</div>
+  </div>
+</div>`;
+}
+
+/**
+ * هيكل مستند HTML كامل يُغلّف واحدًا أو أكثر من «أجسام الكشوف».
+ * عند تمرير autoPrint: يضيف سكربت يفتح نافذة الطباعة تلقائيًا بعد التحميل.
+ */
+export function attendanceDocumentShell(title: string, bodyHtml: string, autoPrint = false): string {
+  const script = autoPrint
+    ? `
+<script>
+  window.onload = function() {
+    setTimeout(function() { window.print(); }, 400);
+  };
+</script>`
+    : '';
+  return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <title>كشف حضور — ${esc(emp.fullNameAr)} — ${monthName} ${period.year}</title>
+  <title>${esc(title)}</title>
   <style>
     @page {
       size: A4 landscape;
@@ -104,6 +209,7 @@ export function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمع
       print-color-adjust: exact !important;
     }
     .page { max-width: 1100px; margin: 0 auto; }
+    .page-break { page-break-after: always; break-after: page; }
 
     /* ─── الرأس ─── */
     .header {
@@ -229,104 +335,21 @@ export function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمع
   </style>
 </head>
 <body>
-<div class="page">
-  <!-- الرأس -->
-  <div class="header">
-    <div class="header-right">
-      <h1>📋 كشف الحضور والانصراف الشهري</h1>
-      <p>${monthName} ${period.year} — من ${esc(period.startDate)} إلى ${esc(period.endDate)}</p>
-    </div>
-    <div class="header-left">
-      <div class="org">${esc(orgName)}</div>
-      <div class="sub">منظومة الإدارة المؤسسية</div>
-    </div>
-  </div>
-
-  <!-- بيانات الموظف -->
-  <div class="emp-grid">
-    <div class="emp-field"><label>الاسم</label><span>${esc(emp.fullNameAr)}</span></div>
-    <div class="emp-field"><label>الكود</label><span>${esc(emp.employeeCode ?? '—')}</span></div>
-    <div class="emp-field"><label>الإدارة</label><span>${esc(emp.department)}</span></div>
-    <div class="emp-field"><label>المسمى الوظيفي</label><span>${esc(emp.jobTitle)}</span></div>
-    <div class="emp-field"><label>الفرع</label><span>${esc(emp.branch)}</span></div>
-    <div class="emp-field"><label>المدير المباشر</label><span>${esc(emp.manager)}</span></div>
-    <div class="emp-field"><label>تاريخ التعيين</label><span style="direction:ltr;text-align:right">${esc(emp.hireDate ?? '—')}</span></div>
-    <div class="emp-field"><label>الفترة</label><span>${monthName} ${period.year}</span></div>
-  </div>
-
-  <!-- نسب الحضور والالتزام -->
-  <div class="rates-bar">
-    <div class="rate-item">
-      <div class="pct" style="color:${pctColor(attendancePct)}">${attendancePct.toFixed(0)}%</div>
-      <div class="lbl">نسبة الحضور</div>
-    </div>
-    <div style="width:1px;height:40px;background:#bfdbfe"></div>
-    <div class="rate-item">
-      <div class="pct" style="color:${complianceAvailable ? pctColor(compliancePct) : '#64748b'}">${complianceAvailable ? `${compliancePct.toFixed(0)}%` : 'غير متاح'}</div>
-      <div class="lbl">التزام الساعات</div>
-    </div>
-  </div>
-
-  <!-- ملخص الأرقام -->
-  <div class="summary-grid">
-    <div class="metric"><div class="label">الحضور المحتسب</div><div class="value">${presentInDue}</div><div class="hint">من ${dueDays} أيام مستحقة ومقفلة</div></div>
-    <div class="metric${s.absentDays > 0 ? ' warn' : ''}"><div class="label">أيام الغياب</div><div class="value">${s.absentDays}</div></div>
-    <div class="metric"><div class="label">وردية مفتوحة</div><div class="value">${s.openShiftDays}</div><div class="hint">بانتظار الانصراف</div></div>
-    <div class="metric"><div class="label">أيام قادمة</div><div class="value">${s.upcomingDays}</div><div class="hint">لا تُحسب غيابًا</div></div>
-    <div class="metric"><div class="label">أيام الإجازات</div><div class="value">${s.leaveDays}</div></div>
-    <div class="metric"><div class="label">أيام المأموريات</div><div class="value">${s.missionDays}</div></div>
-    <div class="metric"><div class="label">إذنات</div><div class="value">${s.permitCount}</div></div>
-    <div class="metric"><div class="label">قوافل/فاندي</div><div class="value">${s.convoyFundiDays}</div></div>
-    <div class="metric"><div class="label">ساعات العمل</div><div class="value">${s.totalWorkHours.toFixed(1)}</div><div class="hint">${complianceAvailable ? `مطلوب ${(s.totalRequiredHours ?? 0).toFixed(1)}` : 'الساعات المطلوبة غير متاحة'}</div></div>
-    <div class="metric good"><div class="label">ساعات إضافية</div><div class="value">${s.totalOvertimeMinutes} د</div></div>
-  </div>
-
-  <!-- شريط الإحصائيات السريعة -->
-  <div class="stats-bar">
-    <div class="stat-item"><span class="s-label">تأخير كلي:</span><span class="s-value">${s.totalLateMinutes} د</span></div>
-    <div class="stat-item"><span class="s-label">خروج مبكر:</span><span class="s-value">${s.totalEarlyLeaveMinutes} د</span></div>
-    <div class="stat-item"><span class="s-label">نسيان حضور:</span><span class="s-value">${s.missingCheckInCount}</span></div>
-    <div class="stat-item"><span class="s-label">نسيان انصراف:</span><span class="s-value">${s.missingCheckOutCount}</span></div>
-    <div class="stat-item"><span class="s-label">عطل رسمية:</span><span class="s-value">${s.holidayDays}</span></div>
-    <div class="stat-item"><span class="s-label">أيام راحة:</span><span class="s-value">${s.restDays}</span></div>
-    <div class="stat-item"><span class="s-label">تصحيحات:</span><span class="s-value">${s.correctionCount}</span></div>
-  </div>
-
-  <!-- الجدول اليومي -->
-  <table>
-    <thead>
-      <tr>
-        <th>التاريخ</th><th>اليوم</th><th>الحضور</th><th>الانصراف</th>
-        <th>الوردية</th><th>ساعات فعلية</th><th>التأخير</th>
-        <th>خروج مبكر</th><th>إضافي</th><th>الحالة</th><th>ملاحظات</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${dayRows}
-    </tbody>
-  </table>
-
-  <!-- التذييل -->
-  <div class="footer">
-    <span>تم الإنشاء بواسطة ${esc(systemName)}</span>
-    <span>تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-  </div>
-
-  <!-- التوقيعات -->
-  <div class="signatures">
-    <div class="sig-box">الموظف</div>
-    <div class="sig-box">المدير المباشر</div>
-    <div class="sig-box">الموارد البشرية</div>
-  </div>
-</div>
-
-<script>
-  window.onload = function() {
-    setTimeout(function() { window.print(); }, 400);
-  };
-</script>
+${bodyHtml}
+${script}
 </body>
 </html>`;
+}
+
+/**
+ * يُنشئ مستند HTML منسّق لكشف الحضور ويفتحه في نافذة جديدة مع تشغيل طباعة تلقائي.
+ * المستخدم يمكنه حفظه كـ PDF مباشرة من حوار الطباعة (نفس السلوك لكل من زر «تصدير PDF» و«طباعة»).
+ */
+export function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية') {
+  const { employee: emp, period } = data;
+  const monthName = MONTHS[period.month - 1] ?? '';
+  const body = buildStatementBodyHtml(data, orgName, systemName);
+  const html = attendanceDocumentShell(`كشف حضور — ${emp.fullNameAr} — ${monthName} ${period.year}`, body, true);
 
   const win = window.open('', '_blank');
   if (!win) return;

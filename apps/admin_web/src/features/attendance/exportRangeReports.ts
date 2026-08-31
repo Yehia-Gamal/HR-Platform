@@ -194,12 +194,7 @@ function monthDates(month: string): string[] {
 /**
  * تصدير كشف أسبوعي (PDF/طباعة): employeeIdOrScope === 'all' يعني كل الشركة.
  */
-export async function exportWeeklyAttendancePdf(
-  employeeIdOrScope: string,
-  start: string,
-  end: string,
-  filters?: RangeFilters
-): Promise<void> {
+export async function exportWeeklyAttendancePdf(employeeIdOrScope: string, start: string, end: string, filters?: RangeFilters): Promise<void> {
   const dates = dateRange(start, end);
   if (dates.length === 0) throw new Error('نطاق تاريخ غير صالح');
   const gate = await buildRosterGate(dates, filters);

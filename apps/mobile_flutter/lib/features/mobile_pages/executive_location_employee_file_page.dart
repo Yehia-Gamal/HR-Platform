@@ -89,13 +89,13 @@ class _ExecutiveLocationEmployeeFilePageState
         final display = msg.contains('cooldown_active')
             ? 'يرجى الانتظار 30 ثانية بين الطلبات.'
             : msg.contains('cannot request own location')
-                ? 'لا يمكن طلب موقعك الخاص.'
-                : msg.contains('not active')
-                    ? 'الموظف غير نشط أو لا يملك حساباً مرتبطاً.'
-                    : 'تعذر إرسال الطلب. تحقق من الاتصال وأعد المحاولة.';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(display)),
-        );
+            ? 'لا يمكن طلب موقعك الخاص.'
+            : msg.contains('not active')
+            ? 'الموظف غير نشط أو لا يملك حساباً مرتبطاً.'
+            : 'تعذر إرسال الطلب. تحقق من الاتصال وأعد المحاولة.';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(display)));
       }
     }
   }
@@ -251,13 +251,15 @@ class _ExecutiveLocationEmployeeFilePageState
                 horizontal: 16,
                 vertical: 6,
               ),
-              leading: const CircleAvatar(child: Icon(Icons.my_location_rounded)),
+              leading: const CircleAvatar(
+                child: Icon(Icons.my_location_rounded),
+              ),
               title: Text(
                 last.addressAr?.isNotEmpty == true
                     ? last.addressAr!
                     : last.latitude != null && last.longitude != null
-                        ? '${last.latitude!.toStringAsFixed(5)}, ${last.longitude!.toStringAsFixed(5)}'
-                        : 'بدون إحداثيات',
+                    ? '${last.latitude!.toStringAsFixed(5)}, ${last.longitude!.toStringAsFixed(5)}'
+                    : 'بدون إحداثيات',
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
               subtitle: Text(
@@ -283,7 +285,8 @@ class _ExecutiveLocationEmployeeFilePageState
         const SizedBox(height: 18),
         const MobileSectionHeader(
           title: 'الأماكن والمواقع الحديثة',
-          subtitle: 'سجلّ نقاط الموقع التي تواجد فيها الموظف — اضغط أيقونة الخريطة للعرض.',
+          subtitle:
+              'سجلّ نقاط الموقع التي تواجد فيها الموظف — اضغط أيقونة الخريطة للعرض.',
         ),
         const SizedBox(height: 10),
         if (dossier.points.isEmpty)
@@ -430,8 +433,8 @@ class _PointTile extends StatelessWidget {
         point.addressAr?.isNotEmpty == true
             ? point.addressAr!
             : point.latitude != null && point.longitude != null
-                ? '${point.latitude!.toStringAsFixed(5)}, ${point.longitude!.toStringAsFixed(5)}'
-                : 'نقطة موقع',
+            ? '${point.latitude!.toStringAsFixed(5)}, ${point.longitude!.toStringAsFixed(5)}'
+            : 'نقطة موقع',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),

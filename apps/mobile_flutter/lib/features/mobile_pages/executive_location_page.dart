@@ -109,10 +109,7 @@ class _ExecutiveLocationPageState extends ConsumerState<ExecutiveLocationPage>
 
 // ── تبويب دليل الموقع ─────────────────────────────────────────────────────
 class _LocationDirectoryTab extends ConsumerWidget {
-  const _LocationDirectoryTab({
-    required this.search,
-    required this.onDebounce,
-  });
+  const _LocationDirectoryTab({required this.search, required this.onDebounce});
   final TextEditingController search;
   final VoidCallback onDebounce;
 
@@ -173,7 +170,8 @@ class _LocationDirectoryTab extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     TextButton.icon(
-                      onPressed: () => ref.invalidate(locationDirectoryProvider),
+                      onPressed: () =>
+                          ref.invalidate(locationDirectoryProvider),
                       icon: const Icon(Icons.refresh_rounded),
                       label: const Text('إعادة المحاولة'),
                     ),
@@ -191,7 +189,9 @@ class _LocationDirectoryTab extends ConsumerWidget {
                           Icon(
                             Icons.location_off_rounded,
                             size: 40,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                           const SizedBox(height: 12),
                           Text(
@@ -281,11 +281,11 @@ class _LocationDirectoryTab extends ConsumerWidget {
         final display = msg.contains('reason is required')
             ? 'السبب مطلوب — 5 أحرف على الأقل.'
             : msg.contains('live location request permission')
-                ? 'لا تملك صلاحية طلب المواقع.'
-                : 'تعذر إرسال الطلب الجماعي. تحقق من الاتصال.';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(display)),
-        );
+            ? 'لا تملك صلاحية طلب المواقع.'
+            : 'تعذر إرسال الطلب الجماعي. تحقق من الاتصال.';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(display)));
       }
     }
   }
@@ -296,7 +296,8 @@ class _EmployeeLocationCard extends ConsumerStatefulWidget {
   final LocationDirectoryEmployee employee;
 
   @override
-  ConsumerState<_EmployeeLocationCard> createState() => _EmployeeLocationCardState();
+  ConsumerState<_EmployeeLocationCard> createState() =>
+      _EmployeeLocationCardState();
 }
 
 class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
@@ -330,8 +331,8 @@ class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
   @override
   Widget build(BuildContext context) {
     final bool inCooldown = _lastRequestedAt != null;
-    final int cooldownRemaining = inCooldown 
-        ? 30 - DateTime.now().difference(_lastRequestedAt!).inSeconds 
+    final int cooldownRemaining = inCooldown
+        ? 30 - DateTime.now().difference(_lastRequestedAt!).inSeconds
         : 0;
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -397,9 +398,12 @@ class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
                           ),
                           Text(
                             'دقة ${widget.employee.lastAccuracy?.round() ?? 0} متر',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                           ),
                         ],
                       ),
@@ -440,10 +444,9 @@ class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
   Future<void> _sendRequest(BuildContext context, WidgetRef ref) async {
     try {
       // يُلغي DB أي طلب نشط سابق تلقائياً (migration 0071)
-      await ref.read(mobileCommandsProvider).requestLocation(
-        widget.employee.id,
-        'تحقق ميداني',
-      );
+      await ref
+          .read(mobileCommandsProvider)
+          .requestLocation(widget.employee.id, 'تحقق ميداني');
       if (!mounted) return;
       _startCooldown();
       ref.invalidate(locationDirectoryProvider);
@@ -462,13 +465,13 @@ class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
         final display = msg.contains('cooldown_active')
             ? 'يرجى الانتظار 30 ثانية بين الطلبات.'
             : msg.contains('cannot request own location')
-                ? 'لا يمكن طلب موقعك الخاص.'
-                : msg.contains('not active')
-                    ? 'الموظف غير نشط أو لا يملك حساباً مرتبطاً.'
-                    : 'تعذر إرسال الطلب. تحقق من الاتصال وأعد المحاولة.';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(display)),
-        );
+            ? 'لا يمكن طلب موقعك الخاص.'
+            : msg.contains('not active')
+            ? 'الموظف غير نشط أو لا يملك حساباً مرتبطاً.'
+            : 'تعذر إرسال الطلب. تحقق من الاتصال وأعد المحاولة.';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(display)));
       }
     }
   }

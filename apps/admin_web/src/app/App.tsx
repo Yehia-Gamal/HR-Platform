@@ -28,6 +28,7 @@ const EmployeeDirectoryPage = lazy(() => import('../features/employees/EmployeeD
 const CreateEmployeePage = lazy(() => import('../features/employees/CreateEmployeePage').then((m) => ({ default: m.CreateEmployeePage })));
 const EmployeeDetailPage = lazy(() => import('../features/employees/EmployeeDetailPage').then((m) => ({ default: m.EmployeeDetailPage })));
 const AttendanceHubPage = lazy(() => import('../features/attendance/AttendanceHubPage').then((m) => ({ default: m.AttendanceHubPage })));
+const AttendanceReportsPage = lazy(() => import('../features/attendance/AttendanceReportsPage').then((m) => ({ default: m.AttendanceReportsPage })));
 const PerformancePage = lazy(() => import('../features/performance/PerformancePage').then((m) => ({ default: m.PerformancePage })));
 const RecruitmentPage = lazy(() => import('../features/management/RecruitmentPage').then((m) => ({ default: m.RecruitmentPage })));
 const OnboardingPage = lazy(() => import('../features/management/OnboardingPage').then((m) => ({ default: m.OnboardingPage })));
@@ -409,6 +410,14 @@ function HrWorkspaceRoutes() {
         element={
           <RequirePermission perm="attendance.record.read">
             <AttendanceHubPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="attendance/reports"
+        element={
+          <RequirePermission perm="reports.attendance.read">
+            <AttendanceReportsPage />
           </RequirePermission>
         }
       />
