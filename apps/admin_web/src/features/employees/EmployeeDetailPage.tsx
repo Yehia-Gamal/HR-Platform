@@ -537,7 +537,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
       {canSensitive ? (
         <form onSubmit={(e) => void onPasswordSubmit(e)} className="mt-6 space-y-4 border-t border-[var(--border)] pt-5">
           <h3 className="font-black">تعيين كلمة المرور</h3>
-          <p className="muted text-xs">كلمة مرور قوية (12+ حرف، أحرف كبيرة وصغيرة ورقم ورمز) — يعيّنها الإداري ويتعين على الموظف تغييرها عند أول دخول.</p>
+          <p className="muted text-xs">كلمة مرور (6–72 حرفًا — بلا شروط تعقيد) — يعيّنها الإداري ويتعين على الموظف تغييرها عند أول دخول.</p>
           {pwdError ? <ErrorBanner message={pwdError} /> : null}
           {pwdSuccess ? (
             <p className="rounded-lg bg-[var(--success-soft)] px-3 py-2 text-sm text-[var(--success)]">
@@ -546,7 +546,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
           ) : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1.5 block text-sm font-semibold">كلمة المرور الجديدة (12–72 حرفًا)</span>
+              <span className="mb-1.5 block text-sm font-semibold">كلمة المرور الجديدة (6–72 حرفًا)</span>
               <div className="relative">
                 <input
                   className="input w-full pl-10"
@@ -557,7 +557,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
                     setPwdSuccess(false);
                   }}
                   autoComplete="new-password"
-                  minLength={12}
+                  minLength={6}
                   maxLength={72}
                   disabled={passwordMutation.isPending}
                 />
@@ -582,13 +582,13 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
                   setPwdSuccess(false);
                 }}
                 autoComplete="new-password"
-                minLength={12}
+                minLength={6}
                 maxLength={72}
                 disabled={passwordMutation.isPending}
               />
             </label>
             <div className="sm:col-span-2">
-              <button type="submit" disabled={passwordMutation.isPending || newPassword.length < 12 || newPassword !== confirmPassword} className="btn-primary">
+              <button type="submit" disabled={passwordMutation.isPending || newPassword.length < 6 || newPassword !== confirmPassword} className="btn-primary">
                 {passwordMutation.isPending ? 'جارٍ التعيين…' : 'تعيين كلمة المرور'}
               </button>
             </div>

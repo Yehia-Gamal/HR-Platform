@@ -131,6 +131,7 @@ const SET_PASSWORD_ERROR_MESSAGES: Record<string, string> = {
   lookup_failed: 'تعذر البحث عن بيانات الموظف.',
   server_not_configured: 'الخدمة غير مهيأة. تواصل مع الدعم.',
   invalid_session: 'انتهت صلاحية الجلسة. سجّل الدخول مجددًا.',
+  too_many_requests: 'تجاوزت حد تعيين كلمات المرور (5 لكل 5 دقائق). انتظر قليلًا وأعد المحاولة.',
   INTERNAL_ERROR: 'حدث خطأ غير متوقع في الخادم. أعد المحاولة أو تواصل مع الدعم.',
 };
 
