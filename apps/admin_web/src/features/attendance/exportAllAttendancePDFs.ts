@@ -1,7 +1,7 @@
 import { attendanceStatementSchema, type AttendanceStatement } from '@ahla/shared-contracts';
 import type { EmployeeSummary } from '@ahla/shared-contracts';
 import { rpc } from '../../core/rpc';
-import { attendanceDocumentShell, buildStatementBodyHtml, esc } from './exportAttendancePDF';
+import { attendanceDocumentShell, buildStatementBodyHtml } from './exportAttendancePDF';
 
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
@@ -37,7 +37,12 @@ function downloadHtmlFile(filename: string, html: string): void {
 }
 
 function safeFileNameSegment(s: string): string {
-  return s.replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 40) || 'موظف';
+  return (
+    s
+      .replace(/[\\/:*?"<>|]/g, '')
+      .trim()
+      .slice(0, 40) || 'موظف'
+  );
 }
 
 /**
@@ -80,10 +85,7 @@ export async function exportAllAttendancePdfs(
     .join('\n');
 
   if (combinedBody) {
-    downloadHtmlFile(
-      `كشف-الحضور-الشامل-${monthLabel}-${year}.html`,
-      attendanceDocumentShell(`كشف الحضور الشامل — ${monthLabel} ${year}`, `<div class="page">${combinedBody}</div>`),
-    );
+    downloadHtmlFile(`كشف-الحضور-الشامل-${monthLabel}-${year}.html`, attendanceDocumentShell(`كشف الحضور الشامل — ${monthLabel} ${year}`, combinedBody));
   }
 
   // ملف منفصل لكل موظف — مهلة بسيطة بين التنزيلات لتجنب حظر المتصفح.
@@ -92,7 +94,10 @@ export async function exportAllAttendancePdfs(
     if (!stmt) continue;
     const emp = stmt.employee;
     const name = safeFileNameSegment(`${emp.employeeCode ?? ''}-${emp.fullNameAr}`);
-    downloadHtmlFile(`كشف-حضور-${name}-${monthLabel}-${year}.html`, attendanceDocumentShell(`كشف حضور — ${emp.fullNameAr} — ${monthLabel} ${year}`, buildStatementBodyHtml(stmt, ORG, SYSTEM)));
+    downloadHtmlFile(
+      `كشف-حضور-${name}-${monthLabel}-${year}.html`,
+      attendanceDocumentShell(`كشف حضور — ${emp.fullNameAr} — ${monthLabel} ${year}`, buildStatementBodyHtml(stmt, ORG, SYSTEM)),
+    );
     // مهلة قصيرة غير مُنتظرة لإتاحة متصفح التنزيلات المتعددة
     await new Promise((r) => setTimeout(r, 250));
   }
