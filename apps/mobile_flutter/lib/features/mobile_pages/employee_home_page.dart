@@ -138,6 +138,12 @@ class EmployeeHomePage extends ConsumerWidget {
             subtitle: 'أسرع الإجراءات التي تحتاجها أثناء العمل.',
           ),
           const SizedBox(height: 12),
+          // 0455: زر "تنبيه شامل" بارز — يظهر على الشاشة الرئيسية فقط لمن يملك
+          // alerts.broadcast.send (HR / المدير التنفيذي) — فلاش/صوت/اهتزاز لكل الموظفين.
+          if (access.hasPermission('alerts.broadcast.send')) ...[
+            const _BroadcastAlertCard(),
+            const SizedBox(height: 12),
+          ],
           _QuickAction(
             icon: Icons.location_searching_rounded,
             title: 'طلبات الموقع',
@@ -284,6 +290,138 @@ class EmployeeHomePage extends ConsumerWidget {
     'archived' => 'مؤرشف',
     _ => '—',
   };
+}
+
+/// 0455: بطاقة "تنبيه شامل" بارزة — تُعرض على الشاشة الرئيسية لمن يملك
+/// alerts.broadcast.send (HR / المدير التنفيذي). نفس حوار المساحة التنفيذية:
+/// نص اختياري ثم send_broadcast_alert (فلاش/صوت/اهتزاز لكل الموظفين).
+class _BroadcastAlertCard extends ConsumerWidget {
+  const _BroadcastAlertCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      button: true,
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        elevation: 0,
+        color: scheme.errorContainer,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: InkWell(
+          onTap: () => _showBroadcastDialog(context, ref),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: scheme.error.withValues(alpha: .14),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    Icons.campaign_outlined,
+                    color: scheme.onErrorContainer,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'تنبيه شامل',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: scheme.onErrorContainer,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'أرسل تنبيهاً فورياً لكل الموظفين — فلاش وصوت واهتزاز',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: scheme.onErrorContainer.withValues(alpha: .8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(Icons.chevron_left_rounded, color: scheme.onErrorContainer),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showBroadcastDialog(BuildContext context, WidgetRef ref) {
+    final commands = ref.read(mobileCommandsProvider);
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('إرسال تنبيه شامل'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'سيصل التنبيه فورًا لكامل الموظفين — تومض الشاشة ويُشغَّل فلاش الجهاز والاهتزاز حتى ينتهي التنبيه أو يعطلوه. استخدمه للحالات الطارئة فقط.',
+              style: TextStyle(fontSize: 13, height: 1.5),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              maxLength: 300,
+              maxLines: 3,
+              minLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'نص التنبيه (3 أحرف على الأقل)',
+                hintText: 'مثال: اجتماع طارئ فورًا في المقر الرئيسي',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.length < 3) return;
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.pop(context);
+              commands
+                  .sendBroadcastAlert(text)
+                  .then((_) {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('أُرسل التنبيه الشامل لكل الموظفين'),
+                      ),
+                    );
+                  })
+                  .catchError((e) {
+                    messenger.showSnackBar(
+                      SnackBar(content: Text('فشل الإرسال: $e')),
+                    );
+                  });
+            },
+            child: const Text('إرسال الآن'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _QuickAction extends StatelessWidget {
