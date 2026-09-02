@@ -44,6 +44,7 @@ import {
 } from './attendanceShared';
 import { AttendanceDayEditor } from './AttendanceDayEditor';
 import { AttendanceHeatmap, generateMockHeatmapData, type AttendanceHeatmapDay } from './AttendanceHeatmap';
+import { exportAllAttendancePdfs, type ExportProgress } from './exportAllAttendancePDFs';
 import { exportAttendancePDF } from './exportAttendancePDF';
 import { useEmployeeMonthlyStatement } from './useMonthlyStatement';
 import { useAuth } from '../auth/AuthProvider';
@@ -143,6 +144,9 @@ export function MonthlyAttendanceReportPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [filterText, setFilterText] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
+  const [exportToast, setExportToast] = useState<string | null>(null);
 
   // تحميل كل الموظفين النشطين مرة واحدة
   const employeesQuery = useEmployees(undefined, 'active');
@@ -159,6 +163,29 @@ export function MonthlyAttendanceReportPage() {
     );
   }, [employeesQuery.data, filterText]);
 
+  // طباعة كشوف كافة الموظفين: ملف منفصل لكل موظف + ملف شامل.
+  const handleExportAll = async () => {
+    const all = employeesQuery.data ?? [];
+    if (all.length === 0 || exporting) return;
+    setExporting(true);
+    setExportProgress({ done: 0, total: all.length });
+    try {
+      const { exported, skipped } = await exportAllAttendancePdfs(all, year, month, (p) => {
+        setExportProgress(p);
+        if (p.done === p.total) {
+          // مهلة صغيرة حتى تكتمل آخر تنزيلات الملفات قبل رسالة النجاح
+          setTimeout(() => setExporting(false), 1500);
+        }
+      });
+      setExportToast(`تم إنشاء ${exported} ملف (ملف منفصل لكل موظف + ملف شامل).${skipped > 0 ? ` تعذّر ${skipped} موظف (بدون بيانات).` : ''}`);
+      setTimeout(() => setExportToast(null), 6000);
+    } catch {
+      setExportToast('تعذّر إنشاء الكشوف. أعد المحاولة أو تحقق من اتصالك.');
+      setExporting(false);
+      setTimeout(() => setExportToast(null), 6000);
+    }
+  };
+
   return (
     <div className="space-y-6 print:space-y-3">
       <PageHeader
@@ -166,6 +193,15 @@ export function MonthlyAttendanceReportPage() {
         description="عرض وتصدير كشف الحضور التفصيلي لأي موظف. اختر الموظف والشهر لعرض البيانات."
         actions={
           <div className="flex gap-2 print:hidden">
+            <button
+              className="btn-primary"
+              onClick={() => void handleExportAll()}
+              disabled={exporting || (employeesQuery.data?.length ?? 0) === 0}
+              aria-label="طباعة كشوف كافة الموظفين للشهر المحدد"
+            >
+              <Users className="size-4" aria-hidden="true" />
+              {exporting ? `جارٍ التجهيز… ${exportProgress ? `${exportProgress.done}/${exportProgress.total}` : ''}` : 'طباعة كشوف الجميع'}
+            </button>
             {statementData ? (
               <>
                 <button className="btn-secondary" onClick={handlePrint}>
@@ -176,7 +212,7 @@ export function MonthlyAttendanceReportPage() {
                   <FileDown className="size-4" aria-hidden="true" />
                   تصدير PDF
                 </button>
-                <button className="btn-primary" onClick={() => exportCSV(statementData)}>
+                <button className="btn-secondary" onClick={() => exportCSV(statementData)}>
                   <Download className="size-4" aria-hidden="true" />
                   تصدير CSV
                 </button>
@@ -185,6 +221,12 @@ export function MonthlyAttendanceReportPage() {
           </div>
         }
       />
+
+      {exportToast ? (
+        <div className="rounded-xl border border-[var(--success)] bg-[var(--success)]/10 px-4 py-3 text-sm font-bold text-[var(--success)]" role="status">
+          {exportToast}
+        </div>
+      ) : null}
 
       {/* ─── شريط الفترة + البحث ─── */}
       <section className="card space-y-4 p-5 print:hidden" aria-label="اختيار الموظف والفترة">
