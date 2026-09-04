@@ -1,4 +1,5 @@
-import { Award, CheckCircle2, Gift, Medal, Plus, ShieldCheck, Sparkles, Star, Trophy } from 'lucide-react';
+import { Medal, Plus, ShieldCheck, Sparkles, Star, Trophy } from 'lucide-react';
+import type { Award } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
@@ -80,7 +81,7 @@ const LEVEL_CLASSES: Record<RecognitionBadge['level'], { bg: string; border: str
   },
 };
 
-export function EmployeeRecognitionTab({ employeeId }: { employeeId: string }) {
+export function EmployeeRecognitionTab({ employeeId: _employeeId }: { employeeId: string }) {
   const auth = useAuth();
   const { toast } = useToast();
   const [badges, setBadges] = useState<RecognitionBadge[]>(DEFAULT_BADGES);

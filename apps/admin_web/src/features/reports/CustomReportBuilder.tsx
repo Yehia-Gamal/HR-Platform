@@ -1,15 +1,9 @@
 import {
-  CheckSquare,
   Download,
   FileSpreadsheet,
-  Filter,
   Layers,
   Printer,
-  RefreshCw,
   Search,
-  SlidersHorizontal,
-  Square,
-  Users,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { EmployeeSummary } from '@ahla/shared-contracts';
@@ -84,7 +78,7 @@ export function CustomReportBuilder() {
   ]);
 
   const employeesQuery = useEmployees(searchTerm, selectedStatus);
-  const rawEmployees = employeesQuery.data ?? [];
+  const rawEmployees = useMemo(() => employeesQuery.data ?? [], [employeesQuery.data]);
 
   // استخراج قائمة الإدارات المتاحة
   const departments = useMemo(() => {

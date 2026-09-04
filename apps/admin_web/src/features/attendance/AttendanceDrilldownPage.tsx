@@ -57,7 +57,7 @@ const STATUS_LABELS: Record<string, string> = {
   missing_checkout: 'بصمة بلا انصراف',
 };
 
-function statusLabel(status: string | null): string {
+function _statusLabel(status: string | null): string {
   if (!status) return '—';
   return STATUS_LABELS[status] ?? status;
 }

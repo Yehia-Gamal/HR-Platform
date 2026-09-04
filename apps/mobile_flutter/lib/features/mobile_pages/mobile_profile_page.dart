@@ -1241,9 +1241,9 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
         }
       } catch (_) {
         // في حال تعذر الوصول لدالة الخادم، نتحقق محلياً
-        if (_passwordController.text.length < 12) {
+        if (_passwordController.text.length < 8) {
           if (mounted) {
-            setState(() => _error = 'كلمة المرور يجب ألا تقل عن 12 حرفًا.');
+            setState(() => _error = 'كلمة المرور يجب ألا تقل عن 8 أحرف.');
           }
           return;
         }

@@ -1,8 +1,6 @@
 import {
-  AlertCircle,
   ArrowLeft,
   CalendarDays,
-  CheckCircle2,
   Copy,
   Download,
   Printer,
@@ -64,6 +62,43 @@ export function ExecutiveDailyReportPage() {
   const s = report.data;
   const d = detail.data;
 
+  // Memoize date-derived values so they don't change every render
+  const { dayName, monthName, dateDay } = useMemo(() => {
+    const dt = new Date(dateIso);
+    return {
+      dayName: dt.toLocaleDateString('ar-EG', { weekday: 'long' }),
+      monthName: dt.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' }),
+      dateDay: dt.getDate(),
+    };
+  }, [dateIso]);
+
+  // Pre-compute executive digest text (must be before early returns per rules-of-hooks)
+  const executiveDigestText = useMemo(() => {
+    if (!s) return '';
+    const present = s.attendance?.present ?? 0;
+    const requiredToday = s.employees?.requiredToday ?? 0;
+    const late = s.attendance?.late ?? 0;
+    const absent = s.attendance?.absent ?? 0;
+    const missions = s.workStatus?.missions ?? 0;
+    const convoys = s.workStatus?.convoys ?? 0;
+    const approvedLeave = s.workStatus?.approvedLeave ?? 0;
+    const missingCheckout = s.attendance?.missingCheckout ?? 0;
+    const attendancePct = requiredToday > 0 ? ((present / requiredToday) * 100).toFixed(1) : '0.0';
+    const lines = [
+      `📊 *التقرير التنفيذي اليومي — أحلى شباب*`,
+      `📅 اليوم والتاريخ: ${dayName}، ${dateDay} ${monthName}`,
+      `👥 إجمالي الحضور: ${present} من أصل ${requiredToday} مجدول (نسبة الإنجاز: ${attendancePct}%)`,
+      `⏰ التأخيرات: ${late === 0 ? 'لا توجد تأخيرات مسجلة 👏' : `${late} حالة تأخير`}`,
+      `🚫 الغياب: ${absent > 0 ? `${absent} موظفاً` : 'صفر غياب'}`,
+      `✈️ المأموريات والقوافل: ${missions} مأمورية ميدانية · ${convoys} قوافل عمل`,
+      `🏖️ الإجازات المعتمدة: ${approvedLeave} موظفاً`,
+      `⚠️ تنبيهات المتابعة: ${missingCheckout > 0 ? `${missingCheckout} بصمة بلا انصراف مسجلة تحتاج لتسوية` : 'كافة البصمات منتظمة ومسواة'}`,
+      `---`,
+      `تم التوليد آلياً عبر نظام إدارة الموارد البشرية أحلى شباب`,
+    ];
+    return lines.join('\n');
+  }, [s, dayName, dateDay, monthName]);
+
   if (!canViewExecutive) {
     return <ErrorState title="غير مصرح" description="هذا التقرير متاح للتنفيذيين والسكرتارية التنفيذية فقط." />;
   }
@@ -109,10 +144,6 @@ export function ExecutiveDailyReportPage() {
   const pendingMission = s.requests?.pendingMission ?? 0;
   const attendancePct = requiredToday > 0 ? ((present / requiredToday) * 100).toFixed(1) : '0.0';
 
-  const date = new Date(dateIso);
-  const dayName = date.toLocaleDateString('ar-EG', { weekday: 'long' });
-  const monthName = date.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
-
   const handleExport = async () => {
     setIsExporting(true);
     try {
@@ -127,22 +158,6 @@ export function ExecutiveDailyReportPage() {
 
   const handlePrint = () => window.print();
 
-  const executiveDigestText = useMemo(() => {
-    const lines = [
-      `📊 *التقرير التنفيذي اليومي — أحلى شباب*`,
-      `📅 اليوم والتاريخ: ${dayName}، ${date.getDate()} ${monthName}`,
-      `👥 إجمالي الحضور: ${present} من أصل ${requiredToday} مجدول (نسبة الإنجاز: ${attendancePct}%)`,
-      `⏰ التأخيرات: ${late === 0 ? 'لا توجد تأخيرات مسجلة 👏' : `${late} حالة تأخير`}`,
-      `🚫 الغياب: ${absent > 0 ? `${absent} موظفاً` : 'صفر غياب'}`,
-      `✈️ المأموريات والقوافل: ${missions} مأمورية ميدانية · ${convoys} قوافل عمل`,
-      `🏖️ الإجازات المعتمدة: ${approvedLeave} موظفاً`,
-      `⚠️ تنبيهات المتابعة: ${missingCheckout > 0 ? `${missingCheckout} بصمة بلا انصراف مسجلة تحتاج لتسوية` : 'كافة البصمات منتظمة ومسواة'}`,
-      `---`,
-      `تم التوليد آلياً عبر نظام إدارة الموارد البشرية أحلى شباب`,
-    ];
-    return lines.join('\n');
-  }, [dayName, date, monthName, present, requiredToday, attendancePct, late, absent, missions, convoys, approvedLeave, missingCheckout]);
-
   const handleCopyDigest = async () => {
     try {
       await navigator.clipboard.writeText(executiveDigestText);
@@ -156,7 +171,7 @@ export function ExecutiveDailyReportPage() {
     <div className="space-y-6">
       <PageHeader
         title="التقرير التنفيذي اليومي الشامل"
-        description={`ملخص تنفيذي مفصل ليوم ${dayName}، ${date.getDate()} ${monthName} — الحضور، المأموريات، القوافل، الإجازات، الخلافات، والمتابعات.`}
+        description={`ملخص تنفيذي مفصل ليوم ${dayName}، ${dateDay} ${monthName} — الحضور، المأموريات، القوافل، الإجازات، الخلافات، والمتابعات.`}
         actions={
           <div className="flex flex-wrap gap-2">
             {canExport ? (

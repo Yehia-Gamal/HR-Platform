@@ -6,7 +6,6 @@ import {
   FileCheck,
   Gauge,
   History,
-  Smartphone,
   Sparkles,
 } from 'lucide-react';
 import type { Employee360 } from '@ahla/shared-contracts';

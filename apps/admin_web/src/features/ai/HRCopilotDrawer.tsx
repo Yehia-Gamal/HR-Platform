@@ -1,30 +1,15 @@
 import {
-  AlertTriangle,
-  Award,
   Bot,
-  Building2,
   Calculator,
-  Calendar,
   CheckCircle2,
-  ChevronRight,
-  ClipboardList,
   Copy,
-  FileBadge,
   FileSignature,
-  FileText,
-  HelpCircle,
-  MailCheck,
-  Maximize2,
-  Minimize2,
   Printer,
-  RefreshCw,
   Send,
-  ShieldAlert,
   Sparkles,
-  User,
   X,
 } from 'lucide-react';
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { useToast } from '../../ui/Toast';
 
@@ -129,8 +114,9 @@ export function HRCopilotDrawer({
 
     // الرد الذكي اللحظي بناءً على سياق السؤال
     setTimeout(() => {
-      let reply = '';
       const lower = text.toLowerCase();
+
+      let reply: string;
 
       if (lower.includes('إجاز') || lower.includes('اجاز') || lower.includes('سنوي') || lower.includes('عارض')) {
         reply =
@@ -182,7 +168,7 @@ export function HRCopilotDrawer({
     const role = empRole.trim() || 'الموظف بالشركة';
     const reason = letterReason.trim();
 
-    let content = '';
+    let content: string;
 
     if (letterType === 'warning') {
       content =

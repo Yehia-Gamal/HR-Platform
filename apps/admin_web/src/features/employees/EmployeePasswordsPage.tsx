@@ -17,7 +17,8 @@ import {
   Sparkles,
   Users,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import type { EmployeeSummary } from '@ahla/shared-contracts';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { DialogOverlay } from '../../ui/DialogOverlay';
@@ -32,30 +33,27 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { useEmployees, useResendInvite, useSetEmployeePassword } from './useEmployees';
 
 /**
- * دالة توليد كلمة مرور قوية ومعتمدة تتوافق مع متطلبات الأمان (14 خانة)
- * تشمل أحرفاً كبيرة وصغيرة وأرقاماً ورموزاً خاصة، وتستبعد الأحرف الملتبسة (O, 0, l, 1)
- * لتتوافق تماماً مع فحص validate_password_strength (الحد الأدنى 12 حرفاً)
+ * دالة توليد كلمة مرور سهلة ومقبولة تتكون من 8 خانات
+ * تفتح حساب الموظف مباشرة دون تعقيد
+ * تشمل أحرفاً كبيرة وصغيرة وأرقاماً واضحة، وتستبعد الأحرف الملتبسة (O, 0, l, 1, I)
  */
 export function generateSecurePassword(): string {
   const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
   const lower = 'abcdefghjkmnpqrstuvwxyz';
   const numbers = '23456789';
-  const symbols = '!@#$%&*';
 
   let pwd = '';
+  // 3 أحرف كبيرة
   pwd += upper[Math.floor(Math.random() * upper.length)];
   pwd += upper[Math.floor(Math.random() * upper.length)];
+  pwd += upper[Math.floor(Math.random() * upper.length)];
+  // 3 أحرف صغيرة
   pwd += lower[Math.floor(Math.random() * lower.length)];
   pwd += lower[Math.floor(Math.random() * lower.length)];
+  pwd += lower[Math.floor(Math.random() * lower.length)];
+  // 2 أرقام
   pwd += numbers[Math.floor(Math.random() * numbers.length)];
   pwd += numbers[Math.floor(Math.random() * numbers.length)];
-  pwd += symbols[Math.floor(Math.random() * symbols.length)];
-  pwd += symbols[Math.floor(Math.random() * symbols.length)];
-
-  const allChars = upper + lower + numbers + symbols;
-  for (let i = pwd.length; i < 14; i++) {
-    pwd += allChars[Math.floor(Math.random() * allChars.length)];
-  }
 
   return pwd
     .split('')
@@ -72,7 +70,7 @@ interface ResetPasswordDialogProps {
 function ResetPasswordDialog({ employee, onClose, onSuccess }: ResetPasswordDialogProps) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [mustChangePassword, setMustChangePassword] = useState(true);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const setPasswordMutation = useSetEmployeePassword();
@@ -143,7 +141,7 @@ function ResetPasswordDialog({ employee, onClose, onSuccess }: ResetPasswordDial
               className="flex items-center gap-1 text-xs font-bold text-[var(--primary)] hover:underline"
             >
               <Sparkles className="size-3.5" aria-hidden="true" />
-              توليد كلمة مرور قوية
+              توليد كلمة مرور (8 خانات)
             </button>
           </div>
 
@@ -153,7 +151,7 @@ function ResetPasswordDialog({ employee, onClose, onSuccess }: ResetPasswordDial
               type={showPwd ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="12 حرفاً على الأقل لتلبية متطلبات الأمان..."
+              placeholder="8 أحرف سهلة ومقبولة..."
               className="input pr-3 pl-10 font-mono text-sm"
               dir="ltr"
               autoFocus
@@ -169,7 +167,7 @@ function ResetPasswordDialog({ employee, onClose, onSuccess }: ResetPasswordDial
             </button>
           </div>
           <p className="mt-1 text-[11px] text-[var(--muted)]">
-            يُفضل استخدام زر التوليد لضمان استيفاء شروط الأمان (12 حرفاً، أحرف كبيرة وصغيرة وأرقام ورموز).
+            كلمة مرور سهلة من 8 خانات تفتح ملف الموظف مباشرة دون تعقيد.
           </p>
         </div>
 
@@ -202,8 +200,8 @@ function ResetPasswordDialog({ employee, onClose, onSuccess }: ResetPasswordDial
             </span>
             <p className="mt-0.5 text-[var(--muted)] leading-relaxed">
               {mustChangePassword
-                ? 'سيُطلب من الموظف تعيين كلمة مرور خاصة جديدة (12 حرفاً على الأقل) فور تسجيل دخوله الأول لضمان سرية حسابه.'
-                : 'سيعتمد الموظف كلمة المرور المحددة هنا مباشرة دون مطالبته بتغييرها عند الدخول.'}
+                ? 'سيُطلب من الموظف تعيين كلمة مرور جديدة عند أول تسجيل دخول.'
+                : 'سيعتمد الموظف كلمة المرور المحددة وتفتح حسابه مباشرة دون مطالبته بتغييرها.'}
             </p>
           </div>
         </label>
@@ -237,9 +235,21 @@ export function EmployeePasswordsPage() {
   const resendInviteMutation = useResendInvite();
   const setPasswordMutation = useSetEmployeePassword();
 
+  const [searchParams] = useSearchParams();
+  const targetEmployeeId = searchParams.get('employeeId');
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+
+  useEffect(() => {
+    if (targetEmployeeId && employees.length > 0) {
+      const found = employees.find((e) => e.id === targetEmployeeId);
+      if (found) {
+        setSearchQuery(found.employeeCode);
+      }
+    }
+  }, [targetEmployeeId, employees]);
 
   // سجل كلمات المرور المؤقتة المعينة في الجلسة للمسؤول [employeeId: password]
   const [sessionPasswords, setSessionPasswords] = useState<Record<string, string>>({});
@@ -329,15 +339,15 @@ export function EmployeePasswordsPage() {
     }
   };
 
-  // توليد كلمة مرور فورية وتعيينها للموظف
+  // توليد كلمة مرور فورية (8 خانات) وتعيينها للموظف لتفتح ملفه مباشرة
   const handleInstantGenerateAndSet = async (employee: EmployeeSummary) => {
     const newPwd = generateSecurePassword();
     try {
-      await setPasswordMutation.mutateAsync({ employeeId: employee.id, password: newPwd });
+      await setPasswordMutation.mutateAsync({ employeeId: employee.id, password: newPwd, mustChangePassword: false });
       setSessionPasswords((prev) => ({ ...prev, [employee.id]: newPwd }));
       setVisiblePasswords((prev) => ({ ...prev, [employee.id]: true }));
       toast({
-        message: `تم توليد وتعيين كلمة المرور للموظف ${employee.fullNameAr}: (${newPwd})`,
+        message: `تم تعيين كلمة مرور (8 خانات) للموظف ${employee.fullNameAr}: (${newPwd}) - تفتح حسابه مباشرة`,
         tone: 'success',
       });
     } catch (err) {

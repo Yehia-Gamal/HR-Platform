@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createEmployeeInputSchema, createEmployeeResultSchema, employee360Schema } from './employee.js';
+import { adminSetPasswordInputSchema, createEmployeeInputSchema, createEmployeeResultSchema, employee360Schema } from './employee.js';
 
 const base = {
   fullNameAr: 'أحمد يوسف',
@@ -75,15 +75,19 @@ describe('createEmployeeInputSchema — initialPassword', () => {
     expect(createEmployeeInputSchema.parse({ ...base, initialPassword: 'B!tterF!sh2026X' }).initialPassword).toBe('B!tterF!sh2026X');
   });
 
-  it('enforces min 12 / max 72', () => {
-    expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'Abcdef1!' })).toThrow();
+  it('enforces min 6 / max 72', () => {
+    expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'Ab1!' })).toThrow();
     expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'A1'.repeat(37) })).toThrow();
   });
 
-  it('requires upper + lower + digit + symbol', () => {
-    expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'strongpassword1!' })).toThrow();
-    expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'STRONGPASSWORD1!' })).toThrow();
-    expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'Strongpassword1' })).toThrow();
+  it('requires upper + lower + digit', () => {
+    expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'strongpassword1' })).toThrow();
+    expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'STRONGPASSWORD1' })).toThrow();
+    expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'Strongpassword' })).toThrow();
+  });
+
+  it('accepts an 8-character password with upper, lower, and digit', () => {
+    expect(createEmployeeInputSchema.parse({ ...base, initialPassword: 'kP4x9m2A' }).initialPassword).toBe('kP4x9m2A');
   });
 
   it('rejects 5+ repeated characters in a row', () => {
@@ -99,6 +103,16 @@ describe('createEmployeeInputSchema — initialPassword', () => {
   it('rejects common words and keyboard sequences', () => {
     expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'Password1' })).toThrow();
     expect(() => createEmployeeInputSchema.parse({ ...base, initialPassword: 'Qwerty12A' })).toThrow();
+  });
+});
+
+describe('adminSetPasswordInputSchema', () => {
+  it('defaults mustChangePassword to false', () => {
+    const parsed = adminSetPasswordInputSchema.parse({
+      employeeId: '11111111-1111-4111-8111-111111111111',
+      password: 'kP4x9m2A',
+    });
+    expect(parsed.mustChangePassword).toBe(false);
   });
 });
 

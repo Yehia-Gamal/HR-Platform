@@ -583,9 +583,20 @@ function HrWorkspaceRoutes() {
         }
       />
       <Route path="notifications" element={<NotificationsPage />} />
-      <Route path="*" element={<Navigate to="employees" replace />} />
+      <Route path="*" element={<HrCatchAll />} />
     </Routes>
   );
+}
+
+/**
+ * Catch-all redirect for unmatched HR routes.
+ * Uses an ABSOLUTE path instead of a relative one to prevent infinite redirect
+ * loops (e.g. /admin/hr/passwords/employees/employees/employees/…).
+ */
+function HrCatchAll() {
+  const location = useLocation();
+  const target = location.pathname.startsWith('/admin/hr') ? '/admin/hr/employees' : '/hr/employees';
+  return <Navigate to={target} replace />;
 }
 
 /**

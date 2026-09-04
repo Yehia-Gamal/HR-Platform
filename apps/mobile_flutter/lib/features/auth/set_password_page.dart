@@ -184,7 +184,7 @@ class _SetPasswordPageState extends ConsumerState<SetPasswordPage> {
             autofillHints: const [AutofillHints.newPassword],
             decoration: InputDecoration(
               labelText: 'كلمة المرور الجديدة',
-              helperText: '12 حرفاً على الأقل تشمل أحرفاً كبيرة وصغيرة وأرقاماً ورموزاً',
+              helperText: '8 أحرف على الأقل (أحرف وأرقام سهلة ومقبولة)',
               helperMaxLines: 2,
               prefixIcon: const Icon(Icons.lock_outline_rounded),
               suffixIcon: IconButton(
@@ -196,13 +196,7 @@ class _SetPasswordPageState extends ConsumerState<SetPasswordPage> {
             ),
             validator: (value) {
               final pass = value ?? '';
-              if (pass.length < 12) return 'كلمة المرور يجب أن تكون 12 حرفًا على الأقل.';
-              if (!pass.contains(RegExp(r'[A-Z]'))) return 'يجب أن تحتوي على حرف كبير واحد على الأقل (A-Z).';
-              if (!pass.contains(RegExp(r'[a-z]'))) return 'يجب أن تحتوي على حرف صغير واحد على الأقل (a-z).';
-              if (!pass.contains(RegExp(r'[0-9]'))) return 'يجب أن تحتوي على رقم واحد على الأقل (0-9).';
-              if (!pass.contains(RegExp(r'[!@#$%^&*()_\-+=[\]{};:\x27",.<>/?`~|\\]'))) {
-                return 'يجب أن تحتوي على رمز خاص واحد على الأقل (!@#$...).';
-              }
+              if (pass.length < 8) return 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.';
               return null;
             },
           ),

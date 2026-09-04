@@ -28,6 +28,7 @@ export function firstWebWorkspace(context: AccessContext): WorkspaceId | null {
  */
 export const HR_PAGE_SEGMENTS = [
   'employees',
+  'passwords',
   'attendance',
   'attendance/operations',
   'attendance/report',

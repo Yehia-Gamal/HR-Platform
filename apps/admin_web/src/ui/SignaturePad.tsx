@@ -1,4 +1,4 @@
-import { Check, Download, Eraser, PenTool, RotateCcw, ShieldCheck, X } from 'lucide-react';
+import { Check, Download, PenTool, RotateCcw, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DialogOverlay } from './DialogOverlay';
 

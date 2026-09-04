@@ -1,3 +1,4 @@
+import '@testing-library/jest-dom/vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
@@ -84,15 +85,15 @@ describe('EmployeePasswordsPage', () => {
   it('renders page header, metric cards, and employee table', () => {
     renderPage();
 
-    expect(screen.getByText('إدارة كلمات المرور وحسابات الموظفين')).toBeInTheDocument();
-    expect(screen.getByText('إجمالي الموظفين')).toBeInTheDocument();
-    expect(screen.getByText('حسابات مفعلة')).toBeInTheDocument();
-    expect(screen.getByText('بانتظار تفعيل كلمة المرور')).toBeInTheDocument();
+    expect(screen.getByText('إدارة كلمات المرور وحسابات الموظفين')).toBeTruthy();
+    expect(screen.getByText('إجمالي الموظفين')).toBeTruthy();
+    expect(screen.getByText('حسابات مفعلة')).toBeTruthy();
+    expect(screen.getByText('بانتظار تفعيل كلمة المرور')).toBeTruthy();
 
-    expect(screen.getByText('أحمد محمد')).toBeInTheDocument();
-    expect(screen.getByText('EMP-101')).toBeInTheDocument();
-    expect(screen.getByText('سارة خالد')).toBeInTheDocument();
-    expect(screen.getByText('EMP-102')).toBeInTheDocument();
+    expect(screen.getByText('أحمد محمد')).toBeTruthy();
+    expect(screen.getByText('EMP-101')).toBeTruthy();
+    expect(screen.getByText('سارة خالد')).toBeTruthy();
+    expect(screen.getByText('EMP-102')).toBeTruthy();
   });
 
   it('filters employees by search term', () => {
@@ -101,8 +102,8 @@ describe('EmployeePasswordsPage', () => {
     const searchInput = screen.getByLabelText('البحث عن موظف');
     fireEvent.change(searchInput, { target: { value: 'سارة' } });
 
-    expect(screen.getByText('سارة خالد')).toBeInTheDocument();
-    expect(screen.queryByText('أحمد محمد')).not.toBeInTheDocument();
+    expect(screen.getByText('سارة خالد')).toBeTruthy();
+    expect(screen.queryByText('أحمد محمد')).toBeNull();
   });
 
   it('opens reset password dialog and triggers set password mutation', async () => {
@@ -113,9 +114,9 @@ describe('EmployeePasswordsPage', () => {
       fireEvent.click(changePwdButtons[0]);
     });
 
-    expect(screen.getByText('إعادة تعيين كلمة مرور الموظف')).toBeInTheDocument();
+    expect(screen.getByText('إعادة تعيين كلمة مرور الموظف')).toBeTruthy();
 
-    const generateButton = screen.getByText('توليد كلمة مرور قوية');
+    const generateButton = screen.getByText('توليد كلمة مرور (8 خانات)');
     await act(async () => {
       fireEvent.click(generateButton);
     });
@@ -141,21 +142,19 @@ describe('EmployeePasswordsPage', () => {
     expect(mockMutateResendInvite).toHaveBeenCalledWith('00000000-0000-0000-0000-000000000020');
   });
 
-  it('generates secure passwords that meet all security requirements (>= 12 chars, upper, lower, digit, symbol)', () => {
+  it('generates secure passwords that meet requirements (8 chars, upper, lower, digit)', () => {
     for (let i = 0; i < 50; i++) {
       const pwd = generateSecurePassword();
-      expect(pwd.length).toBeGreaterThanOrEqual(12);
-      expect(pwd.length).toBe(14);
+      expect(pwd.length).toBe(8);
       expect(/[A-Z]/.test(pwd)).toBe(true);
       expect(/[a-z]/.test(pwd)).toBe(true);
       expect(/[0-9]/.test(pwd)).toBe(true);
-      expect(/[!@#$%&*]/.test(pwd)).toBe(true);
       // Ensure no 5 consecutive identical characters
       expect(/(.)\1{4,}/.test(pwd)).toBe(false);
     }
   });
 
-  it('allows toggling mustChangePassword in reset password dialog', async () => {
+  it('allows toggling mustChangePassword in reset password dialog (default false)', async () => {
     renderPage();
 
     const changePwdButtons = screen.getAllByText('تغيير كلمة المرور');
@@ -165,16 +164,10 @@ describe('EmployeePasswordsPage', () => {
 
     const checkbox = screen.getByRole('checkbox', {
       name: /إلزام الموظف بتغيير كلمة المرور عند أول تسجيل دخول/i,
-    });
-    expect(checkbox).toBeChecked();
+    }) as HTMLInputElement;
+    expect(checkbox.checked).toBe(false);
 
-    // Toggle off
-    await act(async () => {
-      fireEvent.click(checkbox);
-    });
-    expect(checkbox).not.toBeChecked();
-
-    const generateButton = screen.getByText('توليد كلمة مرور قوية');
+    const generateButton = screen.getByText('توليد كلمة مرور (8 خانات)');
     await act(async () => {
       fireEvent.click(generateButton);
     });

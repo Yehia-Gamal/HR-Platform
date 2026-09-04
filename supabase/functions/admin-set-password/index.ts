@@ -141,7 +141,7 @@ Deno.serve(createHandler({ functionName: "admin-set-password", version: "1.0.0" 
         // SEC: must_change_password في app_metadata (server-only) — لا يستطيع الموظف تجاوزها بـ updateUser
         app_metadata: {
           ...(authUser.user?.app_metadata ?? {}),
-          must_change_password: input.mustChangePassword ?? true,
+          must_change_password: input.mustChangePassword ?? false,
         },
       }),
     },
@@ -192,7 +192,7 @@ Deno.serve(createHandler({ functionName: "admin-set-password", version: "1.0.0" 
       p_target_table: "employees",
       p_target_id: input.employeeId,
       p_summary_ar: "تعيين كلمة مرور موظف من لوحة الإدارة",
-      p_description: `admin-set-password: password reset by admin, must_change_password=${input.mustChangePassword ?? true}`,
+      p_description: `admin-set-password: password reset by admin, must_change_password=${input.mustChangePassword ?? false}`,
       p_metadata: { actor: userData.user.id, employee_id: input.employeeId },
     }),
   ]);

@@ -82,9 +82,7 @@ export const createEmployeeInputSchema = z.object({
   if (!/[A-Z]/.test(pwd)) return fail('كلمة المرور تحتاج حرفًا كبيرًا واحدًا على الأقل.');
   if (!/[a-z]/.test(pwd)) return fail('كلمة المرور تحتاج حرفًا صغيرًا واحدًا على الأقل.');
   if (!/\d/.test(pwd)) return fail('كلمة المرور تحتاج رقمًا واحدًا على الأقل.');
-  if (!/[!@#$%^&*()_\-+=[\]{};':"\\|,.<>/?`~]/.test(pwd)) {
-    return fail('كلمة المرور تحتاج رمزًا خاصًا واحدًا على الأقل (!@#$%^&*...).');
-  }
+  // الرموز الخاصة اختيارية لتسهيل الإدخال والإملاء
   // GoTrue/bcrypt ترفض كلمة المرور الأطول من 72 بايت — الأحرف العربية
   // متعددة البايت قد تتجاوز الحد بايتيًا رغم كونها ≤ 72 حرفًا.
   if (new TextEncoder().encode(pwd).length > 72) {
@@ -155,7 +153,7 @@ export type CreateEmployeeResult = z.infer<typeof createEmployeeResultSchema>;
 export const adminSetPasswordInputSchema = z.object({
   employeeId: z.string().uuid(),
   password: z.string().min(6, 'كلمة المرور يجب ألا تقل عن 6 أحرف').max(72, 'كلمة المرور يجب ألا تزيد عن 72 حرفاً'),
-  mustChangePassword: z.boolean().optional().default(true),
+  mustChangePassword: z.boolean().optional().default(false),
 });
 export type AdminSetPasswordInput = z.infer<typeof adminSetPasswordInputSchema>;
 

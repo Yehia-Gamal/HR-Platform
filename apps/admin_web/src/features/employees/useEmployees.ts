@@ -145,7 +145,7 @@ export function useSetEmployeePassword() {
     mutationFn: async ({
       employeeId,
       password,
-      mustChangePassword,
+      mustChangePassword = false,
     }: {
       employeeId: string;
       password: string;

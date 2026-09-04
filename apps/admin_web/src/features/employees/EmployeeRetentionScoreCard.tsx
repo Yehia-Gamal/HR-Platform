@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, HeartHandshake, Info, ShieldCheck, Sparkles, TrendingUp } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, HeartHandshake, ShieldCheck, Sparkles } from 'lucide-react';
 import type { Employee360 } from '@ahla/shared-contracts';
 
 interface EmployeeRetentionScoreCardProps {
