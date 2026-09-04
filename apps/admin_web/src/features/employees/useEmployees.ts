@@ -142,9 +142,22 @@ export function useSetEmployeePassword() {
   const auth = useAuth();
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async ({ employeeId, password }: { employeeId: string; password: string }): Promise<void> => {
+    mutationFn: async ({
+      employeeId,
+      password,
+      mustChangePassword,
+    }: {
+      employeeId: string;
+      password: string;
+      mustChangePassword?: boolean;
+    }): Promise<void> => {
       if (auth.isMock) return;
-      await invokeEdgeFunction('admin-set-password', { employeeId, password }, SET_PASSWORD_ERROR_MESSAGES, 'تعذر تعيين كلمة المرور. أعد المحاولة لاحقًا.');
+      await invokeEdgeFunction(
+        'admin-set-password',
+        { employeeId, password, mustChangePassword },
+        SET_PASSWORD_ERROR_MESSAGES,
+        'تعذر تعيين كلمة المرور. أعد المحاولة لاحقًا.'
+      );
     },
     meta: { successMessage: 'تم تعيين كلمة المرور بنجاح' },
     onSuccess: async (_, { employeeId }) => {

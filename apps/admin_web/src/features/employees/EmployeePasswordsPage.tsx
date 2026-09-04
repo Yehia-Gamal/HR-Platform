@@ -32,22 +32,28 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { useEmployees, useResendInvite, useSetEmployeePassword } from './useEmployees';
 
 /**
- * دالة توليد كلمة مرور قوية وسهلة التداول من 10 خانات
- * تضمن وجود أحرف كبيرة وصغيرة وأرقام ورموز خاصة بدون الأحرف الملتبسة (O, 0, l, 1)
+ * دالة توليد كلمة مرور قوية ومعتمدة تتوافق مع متطلبات الأمان (14 خانة)
+ * تشمل أحرفاً كبيرة وصغيرة وأرقاماً ورموزاً خاصة، وتستبعد الأحرف الملتبسة (O, 0, l, 1)
+ * لتتوافق تماماً مع فحص validate_password_strength (الحد الأدنى 12 حرفاً)
  */
-function generateSecurePassword(): string {
-  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz';
+export function generateSecurePassword(): string {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghjkmnpqrstuvwxyz';
   const numbers = '23456789';
   const symbols = '!@#$%&*';
 
   let pwd = '';
-  pwd += letters[Math.floor(Math.random() * 24)]; // Uppercase
-  pwd += letters[24 + Math.floor(Math.random() * 24)]; // Lowercase
+  pwd += upper[Math.floor(Math.random() * upper.length)];
+  pwd += upper[Math.floor(Math.random() * upper.length)];
+  pwd += lower[Math.floor(Math.random() * lower.length)];
+  pwd += lower[Math.floor(Math.random() * lower.length)];
+  pwd += numbers[Math.floor(Math.random() * numbers.length)];
   pwd += numbers[Math.floor(Math.random() * numbers.length)];
   pwd += symbols[Math.floor(Math.random() * symbols.length)];
+  pwd += symbols[Math.floor(Math.random() * symbols.length)];
 
-  const allChars = letters + numbers + symbols;
-  for (let i = pwd.length; i < 10; i++) {
+  const allChars = upper + lower + numbers + symbols;
+  for (let i = pwd.length; i < 14; i++) {
     pwd += allChars[Math.floor(Math.random() * allChars.length)];
   }
 
@@ -66,6 +72,7 @@ interface ResetPasswordDialogProps {
 function ResetPasswordDialog({ employee, onClose, onSuccess }: ResetPasswordDialogProps) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [mustChangePassword, setMustChangePassword] = useState(true);
   const [showPwd, setShowPwd] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const setPasswordMutation = useSetEmployeePassword();
@@ -96,7 +103,7 @@ function ResetPasswordDialog({ employee, onClose, onSuccess }: ResetPasswordDial
     }
 
     try {
-      await setPasswordMutation.mutateAsync({ employeeId: employee.id, password });
+      await setPasswordMutation.mutateAsync({ employeeId: employee.id, password, mustChangePassword });
       onSuccess(password);
       onClose();
     } catch (err) {
@@ -146,7 +153,7 @@ function ResetPasswordDialog({ employee, onClose, onSuccess }: ResetPasswordDial
               type={showPwd ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="6 أحرف على الأقل..."
+              placeholder="12 حرفاً على الأقل لتلبية متطلبات الأمان..."
               className="input pr-3 pl-10 font-mono text-sm"
               dir="ltr"
               autoFocus
@@ -161,6 +168,9 @@ function ResetPasswordDialog({ employee, onClose, onSuccess }: ResetPasswordDial
               {showPwd ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
           </div>
+          <p className="mt-1 text-[11px] text-[var(--muted)]">
+            يُفضل استخدام زر التوليد لضمان استيفاء شروط الأمان (12 حرفاً، أحرف كبيرة وصغيرة وأرقام ورموز).
+          </p>
         </div>
 
         <div>
@@ -179,12 +189,24 @@ function ResetPasswordDialog({ employee, onClose, onSuccess }: ResetPasswordDial
           />
         </div>
 
-        <div className="rounded-lg bg-blue-500/10 p-3 text-[11px] leading-relaxed text-blue-600 dark:text-blue-400">
-          <p className="font-bold">ملاحظة أمنية هامة:</p>
-          <p>
-            سيتم إلزام الموظف بتغيير كلمة المرور التي تعينها له فور تسجيل دخوله الأول لضمان الخصوصية وسرية الحساب.
-          </p>
-        </div>
+        <label className="flex items-start gap-2.5 cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-3 hover:bg-[var(--surface-hover)] transition-colors">
+          <input
+            type="checkbox"
+            checked={mustChangePassword}
+            onChange={(e) => setMustChangePassword(e.target.checked)}
+            className="mt-0.5 rounded text-[var(--primary)] focus:ring-[var(--primary)]"
+          />
+          <div className="text-xs">
+            <span className="font-bold text-[var(--text)]">
+              إلزام الموظف بتغيير كلمة المرور عند أول تسجيل دخول
+            </span>
+            <p className="mt-0.5 text-[var(--muted)] leading-relaxed">
+              {mustChangePassword
+                ? 'سيُطلب من الموظف تعيين كلمة مرور خاصة جديدة (12 حرفاً على الأقل) فور تسجيل دخوله الأول لضمان سرية حسابه.'
+                : 'سيعتمد الموظف كلمة المرور المحددة هنا مباشرة دون مطالبته بتغييرها عند الدخول.'}
+            </p>
+          </div>
+        </label>
 
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="btn-secondary" disabled={setPasswordMutation.isPending}>

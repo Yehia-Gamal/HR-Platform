@@ -1241,9 +1241,9 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
         }
       } catch (_) {
         // في حال تعذر الوصول لدالة الخادم، نتحقق محلياً
-        if (_passwordController.text.length < 6) {
+        if (_passwordController.text.length < 12) {
           if (mounted) {
-            setState(() => _error = 'كلمة المرور يجب ألا تقل عن 6 أحرف.');
+            setState(() => _error = 'كلمة المرور يجب ألا تقل عن 12 حرفًا.');
           }
           return;
         }
@@ -1335,8 +1335,8 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
                 ),
               ),
               validator: (val) {
-                if (val == null || val.length < 6) {
-                  return 'الرقم السري يجب أن يكون 6 أحرف على الأقل';
+                if (val == null || val.length < 12) {
+                  return 'الرقم السري يجب أن يكون 12 حرفًا على الأقل';
                 }
                 return null;
               },

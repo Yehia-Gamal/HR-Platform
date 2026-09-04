@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { EmployeePasswordsPage } from '../EmployeePasswordsPage';
+import { EmployeePasswordsPage, generateSecurePassword } from '../EmployeePasswordsPage';
 import { ToastProvider } from '../../../ui/Toast';
 
 const mockMutateSetPassword = vi.fn().mockResolvedValue(undefined);
@@ -139,5 +139,56 @@ describe('EmployeePasswordsPage', () => {
     });
 
     expect(mockMutateResendInvite).toHaveBeenCalledWith('00000000-0000-0000-0000-000000000020');
+  });
+
+  it('generates secure passwords that meet all security requirements (>= 12 chars, upper, lower, digit, symbol)', () => {
+    for (let i = 0; i < 50; i++) {
+      const pwd = generateSecurePassword();
+      expect(pwd.length).toBeGreaterThanOrEqual(12);
+      expect(pwd.length).toBe(14);
+      expect(/[A-Z]/.test(pwd)).toBe(true);
+      expect(/[a-z]/.test(pwd)).toBe(true);
+      expect(/[0-9]/.test(pwd)).toBe(true);
+      expect(/[!@#$%&*]/.test(pwd)).toBe(true);
+      // Ensure no 5 consecutive identical characters
+      expect(/(.)\1{4,}/.test(pwd)).toBe(false);
+    }
+  });
+
+  it('allows toggling mustChangePassword in reset password dialog', async () => {
+    renderPage();
+
+    const changePwdButtons = screen.getAllByText('تغيير كلمة المرور');
+    await act(async () => {
+      fireEvent.click(changePwdButtons[0]);
+    });
+
+    const checkbox = screen.getByRole('checkbox', {
+      name: /إلزام الموظف بتغيير كلمة المرور عند أول تسجيل دخول/i,
+    });
+    expect(checkbox).toBeChecked();
+
+    // Toggle off
+    await act(async () => {
+      fireEvent.click(checkbox);
+    });
+    expect(checkbox).not.toBeChecked();
+
+    const generateButton = screen.getByText('توليد كلمة مرور قوية');
+    await act(async () => {
+      fireEvent.click(generateButton);
+    });
+
+    const submitBtn = screen.getByText('حفظ وتعيين كلمة المرور');
+    await act(async () => {
+      fireEvent.click(submitBtn);
+    });
+
+    expect(mockMutateSetPassword).toHaveBeenCalledWith(
+      expect.objectContaining({
+        employeeId: '00000000-0000-0000-0000-000000000010',
+        mustChangePassword: false,
+      })
+    );
   });
 });

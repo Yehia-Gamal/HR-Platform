@@ -96,8 +96,12 @@ export function PasswordSetupPage() {
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
-    if (password.length < 6) {
-      setError('كلمة المرور يجب ألا تقل عن 6 أحرف.');
+    if (password.length < 12) {
+      setError('كلمة المرور يجب ألا تقل عن 12 حرفاً وفقاً لمتطلبات الأمان.');
+      return;
+    }
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*()_\-+=[\]{};':"\\|,.<>/?`~]/.test(password)) {
+      setError('يجب أن تحتوي كلمة المرور على أحرف كبيرة وصغيرة وأرقام ورموز خاصة (!@#$...).');
       return;
     }
     if (password !== confirmation) {
@@ -238,7 +242,7 @@ export function PasswordSetupPage() {
               <form className="space-y-4" onSubmit={submit}>
                 <div className="mb-5 flex items-start gap-3 rounded-2xl bg-[var(--brand-primary-soft)] p-4 text-sm text-[var(--brand-primary)]">
                   <ShieldCheck className="mt-0.5 size-5 shrink-0" />
-                  <p className="leading-7 font-bold">اختر كلمة مرور قوية لا تستخدمها في حساب آخر.</p>
+                  <p className="leading-7 font-bold">اختر كلمة مرور قوية (12 حرفاً على الأقل تشمل أحرفاً كبيرة وصغيرة وأرقاماً ورموزاً).</p>
                 </div>
                 <label className="block">
                   <span className="mb-1.5 block text-sm font-bold">كلمة المرور الجديدة</span>
@@ -249,7 +253,8 @@ export function PasswordSetupPage() {
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
                       autoComplete="new-password"
-                      minLength={8}
+                      minLength={12}
+                      placeholder="12 حرفاً على الأقل..."
                       required
                     />
                     <button
@@ -270,7 +275,8 @@ export function PasswordSetupPage() {
                     value={confirmation}
                     onChange={(event) => setConfirmation(event.target.value)}
                     autoComplete="new-password"
-                    minLength={8}
+                    minLength={12}
+                    placeholder="أعد كتابة كلمة المرور..."
                     required
                   />
                 </label>

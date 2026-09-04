@@ -155,6 +155,7 @@ export type CreateEmployeeResult = z.infer<typeof createEmployeeResultSchema>;
 export const adminSetPasswordInputSchema = z.object({
   employeeId: z.string().uuid(),
   password: z.string().min(6, 'كلمة المرور يجب ألا تقل عن 6 أحرف').max(72, 'كلمة المرور يجب ألا تزيد عن 72 حرفاً'),
+  mustChangePassword: z.boolean().optional().default(true),
 });
 export type AdminSetPasswordInput = z.infer<typeof adminSetPasswordInputSchema>;
 
