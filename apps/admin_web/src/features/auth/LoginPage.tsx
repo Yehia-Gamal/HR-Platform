@@ -256,7 +256,16 @@ export function LoginPage() {
               </div>
             ) : null}
           </div>
-          <p className="mt-4 text-center text-xs text-[var(--text-muted)]">باستخدام المنصة أنت ملتزم بسياسات الأمن والخصوصية المعتمدة.</p>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-[var(--text-muted)]">
+            <span>باستخدام المنصة أنت توافق على</span>
+            <a href="/privacy" target="_blank" rel="noreferrer" className="font-semibold underline hover:text-[var(--text)]">
+              سياسة الخصوصية
+            </a>
+            <span>•</span>
+            <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold underline hover:text-[var(--text)]">
+              شروط الاستخدام
+            </a>
+          </div>
         </div>
       </section>
     </main>

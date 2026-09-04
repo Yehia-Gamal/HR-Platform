@@ -66,10 +66,26 @@ const GovernancePage = lazy(() => import('../features/governance/GovernancePage'
 const AuditTrailPage = lazy(() => import('../features/management/AuditTrailPage').then((m) => ({ default: m.AuditTrailPage })));
 const LeavesPage = lazy(() => import('../features/leaves/LeavesPage').then((m) => ({ default: m.LeavesPage })));
 const LeaveToolsPage = lazy(() => import('../features/leave-tools/LeaveToolsPage').then((m) => ({ default: m.LeaveToolsPage })));
+const PrivacyPolicyPage = lazy(() => import('../features/legal/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })));
+const TermsPage = lazy(() => import('../features/legal/TermsPage').then((m) => ({ default: m.TermsPage })));
 
 export function App() {
   // Mobile deep-link redirect — no auth required, shown before any other check.
   if (window.location.pathname === '/mobile-redirect') return <MobileRedirectPage />;
+  if (window.location.pathname === '/privacy') {
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <PrivacyPolicyPage />
+      </Suspense>
+    );
+  }
+  if (window.location.pathname === '/terms') {
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <TermsPage />
+      </Suspense>
+    );
+  }
 
   // روابط التفعيل والاسترداد (بما فيها الروابط المنتهية) يجب أن تسبق بوابات
   // الإصدار والمصادقة حتى لا تظهر للموظف شاشة مساحة ويب غير مصرح بها.
@@ -119,6 +135,8 @@ function AuthenticatedApp() {
           على المتصفح ويُحوَّل لأفضل صفحة ويب مكافئة. */}
       <Routes>
         <Route path="/action/:kind/:actionId" element={<ActionRedirect />} />
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
         <Route path="/" element={<Navigate to={workspacePath(defaultWorkspace)} replace />} />
 
         {/* مساحة الموارد البشرية المستقلة — تبقى كما هي لحسابات HR التي لا تملك main_admin */}

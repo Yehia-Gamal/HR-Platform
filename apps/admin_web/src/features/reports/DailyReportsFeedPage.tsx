@@ -17,6 +17,8 @@ import {
   useToggleDailyReportLike,
 } from './useDailyReportsFeed';
 
+import { DailyReportsSummarizerCard } from './DailyReportsSummarizerCard';
+
 export function DailyReportsFeedPage() {
   const { toast } = useToast();
   const auth = useAuth();
@@ -63,6 +65,9 @@ export function DailyReportsFeedPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <PageHeader title="التقارير اليومية" description="سجل مفتوح لكل الموظفين: الإنجازات والمعوقات وخطة الغد — تفاعل بالإعجاب والتعليق." />
+
+      {/* بطاقة الملخص التنفيذي الذكي */}
+      <DailyReportsSummarizerCard reports={items} />
 
       {/* زر تقرير جديد + النموذج */}
       <div className="flex justify-end">
