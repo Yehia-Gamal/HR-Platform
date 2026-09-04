@@ -283,7 +283,6 @@ function AuthenticatedApp() {
                 </RequirePermission>
               }
             />
-            <Route path="system-settings" element={<Navigate to="../settings?tab=operations" replace />} />
             <Route
               path="audit-security"
               element={
@@ -319,23 +318,7 @@ function AuthenticatedApp() {
               }
             />
             <Route path="learning" element={<Navigate to="../knowledge?tab=learning" replace />} />
-            <Route
-              index
-              element={
-                <RequirePermission perm="disputes.portal.access">
-                  <DisputesPage />
-                </RequirePermission>
-              }
-            />
-            <Route
-              path="disputes"
-              element={
-                <RequirePermission perm="disputes.portal.access">
-                  <DisputesPage />
-                </RequirePermission>
-              }
-            />
-            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="*" element={<Navigate to="/admin" replace />} />
           </Route>
         </Route>
 
@@ -578,7 +561,7 @@ function HrWorkspaceRoutes() {
         element={
           <RequirePermission perm="organization.org_chart.read">
             {/* دُمج في صفحة الموظفين الموحّدة (تبويب الهيكل التنظيمي) */}
-            <Navigate to="employees?tab=org-chart" replace />
+            <OrgChartRedirect />
           </RequirePermission>
         }
       />
@@ -586,6 +569,14 @@ function HrWorkspaceRoutes() {
       <Route path="*" element={<HrCatchAll />} />
     </Routes>
   );
+}
+
+function OrgChartRedirect() {
+  const location = useLocation();
+  const target = location.pathname.startsWith('/admin/hr')
+    ? '/admin/hr/employees?tab=org-chart'
+    : '/hr/employees?tab=org-chart';
+  return <Navigate to={target} replace />;
 }
 
 /**

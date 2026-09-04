@@ -229,6 +229,18 @@ function ResetPasswordDialog({ employee, onClose, onSuccess }: ResetPasswordDial
   );
 }
 
+/**
+ * تطبيع النصوص العربية لضمان مرونة البحث (تجاهل التشكيل وتوحيد الألف والتاء المربوطة والياء)
+ */
+function normalizeArabicText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .replace(/[\u064B-\u065F]/g, '');
+}
+
 export function EmployeePasswordsPage() {
   const { toast } = useToast();
   const { data: employees = [], isLoading, isError, error, refetch } = useEmployees();
@@ -274,13 +286,14 @@ export function EmployeePasswordsPage() {
 
   // تصفية الموظفين
   const filteredEmployees = useMemo(() => {
+    const normalizedQuery = normalizeArabicText(searchQuery.trim());
     return employees.filter((emp) => {
       const matchSearch =
-        !searchQuery.trim() ||
-        emp.fullNameAr.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (emp.fullNameEn && emp.fullNameEn.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        emp.employeeCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (emp.phoneE164 && emp.phoneE164.includes(searchQuery));
+        !normalizedQuery ||
+        normalizeArabicText(emp.fullNameAr).includes(normalizedQuery) ||
+        (emp.fullNameEn && emp.fullNameEn.toLowerCase().includes(normalizedQuery)) ||
+        emp.employeeCode.toLowerCase().includes(normalizedQuery) ||
+        (emp.phoneE164 && emp.phoneE164.includes(normalizedQuery));
 
       const matchStatus =
         statusFilter === 'all' ||

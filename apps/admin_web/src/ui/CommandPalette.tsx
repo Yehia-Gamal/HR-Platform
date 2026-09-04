@@ -109,7 +109,31 @@ export function CommandPalette() {
       return;
     }
     if (workspace === '/admin') {
-      const HR_PREFIXES = ['employees', 'passwords', 'attendance', 'requests', 'leaves', 'leave-tools', 'holidays', 'onboarding', 'lifecycle', 'devices', 'reports', 'daily-reports', 'official-feed', 'learning', 'documents'];
+      if (item.path === 'performance/cycles') {
+        navigate('/admin/performance/cycles');
+        return;
+      }
+      const HR_PREFIXES = [
+        'employees',
+        'passwords',
+        'attendance',
+        'requests',
+        'leaves',
+        'leave-tools',
+        'holidays',
+        'onboarding',
+        'lifecycle',
+        'devices',
+        'reports',
+        'daily-reports',
+        'official-feed',
+        'learning',
+        'documents',
+        'performance',
+        'recruitment',
+        'organization',
+        'org-chart',
+      ];
       if (HR_PREFIXES.some((p) => item.path === p || item.path.startsWith(`${p}/`))) {
         navigate(`/admin/hr/${item.path}`);
         return;

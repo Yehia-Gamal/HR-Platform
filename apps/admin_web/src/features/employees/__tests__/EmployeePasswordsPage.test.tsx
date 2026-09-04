@@ -106,6 +106,17 @@ describe('EmployeePasswordsPage', () => {
     expect(screen.queryByText('أحمد محمد')).toBeNull();
   });
 
+  it('supports forgiving Arabic search (unhamzated search matches hamzated names)', () => {
+    renderPage();
+
+    const searchInput = screen.getByLabelText('البحث عن موظف');
+    // 'احمد' (without hamza) should match 'أحمد محمد' (with hamza)
+    fireEvent.change(searchInput, { target: { value: 'احمد' } });
+
+    expect(screen.getByText('أحمد محمد')).toBeTruthy();
+    expect(screen.queryByText('سارة خالد')).toBeNull();
+  });
+
   it('opens reset password dialog and triggers set password mutation', async () => {
     renderPage();
 
