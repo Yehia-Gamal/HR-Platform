@@ -29,6 +29,7 @@ node_modules/
 staging_generated_secrets.local.txt
 supabase/.branches/
 supabase/.temp/
+.temp/
 tmp_*
 .claude/worktrees/
 *.apk
