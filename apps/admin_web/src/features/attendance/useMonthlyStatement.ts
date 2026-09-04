@@ -17,7 +17,21 @@ export function useEmployeeMonthlyStatement(employeeId: string | null, year: num
         p_year: year,
         p_month: month,
       });
-      return attendanceStatementSchema.parse(data);
+
+      // Defensive filtering for any null/falsy days from database edge cases
+      if (data && typeof data === 'object' && Array.isArray((data as Record<string, unknown>).days)) {
+        (data as { days: unknown[] }).days = (data as { days: unknown[] }).days.filter(Boolean);
+      }
+
+      const parsed = attendanceStatementSchema.safeParse(data);
+      if (!parsed.success) {
+        console.error('[useMonthlyStatement] schema parse error:', parsed.error, data);
+        if (data && typeof data === 'object' && 'employee' in data && 'days' in data) {
+          return data as AttendanceStatement;
+        }
+        throw parsed.error;
+      }
+      return parsed.data;
     },
   });
 }

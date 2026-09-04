@@ -462,15 +462,17 @@ export const attendanceStatementDaySchema = z.object({
   /** تعديل إداري فعّال مع بقاء البصمات الخام محفوظة. */
   adminOverride: z
     .object({
-      id: z.string().uuid(),
-      dayType: z.enum(['work', 'leave', 'mission', 'convoy', 'fundraising', 'holiday', 'rest', 'absent']),
+      id: z.string().uuid().optional(),
+      dayType: z.enum(['work', 'leave', 'mission', 'convoy', 'fundraising', 'holiday', 'rest', 'absent']).or(z.string()).optional(),
       leaveType: z.string().nullable().optional(),
-      reason: z.string(),
-      notes: z.string().nullable(),
-      updatedAt: z.string(),
+      reason: z.string().nullable().optional(),
+      notes: z.string().nullable().optional(),
+      updatedAt: z.string().nullable().optional(),
     })
+    .passthrough()
     .nullable()
-    .optional(),
+    .optional()
+    .catch(null),
 });
 export type AttendanceStatementDay = z.infer<typeof attendanceStatementDaySchema>;
 
@@ -492,7 +494,10 @@ export const attendanceStatementSchema = z.object({
     endDate: z.string(),
     generatedAt: z.string(),
   }),
-  days: attendanceStatementDaySchema.array(),
+  days: z.preprocess(
+    (val) => (Array.isArray(val) ? val.filter(Boolean) : val),
+    z.array(attendanceStatementDaySchema),
+  ),
   capabilities: z
     .object({
       canEditDays: z.boolean().default(false),

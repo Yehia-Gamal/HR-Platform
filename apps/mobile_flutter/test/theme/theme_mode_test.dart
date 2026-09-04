@@ -83,7 +83,7 @@ void main() {
 
     test('لون خلفية الصفحة هو lightBackground', () {
       expect(theme.scaffoldBackgroundColor, AppColors.lightBackground);
-      expect(theme.scaffoldBackgroundColor, const Color(0xFFF4F7FB));
+      expect(theme.scaffoldBackgroundColor, const Color(0xFFF3F6FB));
     });
 
     test('يحتوي على colorScheme', () {
@@ -113,7 +113,7 @@ void main() {
 
     test('لون خلفية الصفحة هو darkBackground', () {
       expect(theme.scaffoldBackgroundColor, AppColors.darkBackground);
-      expect(theme.scaffoldBackgroundColor, const Color(0xFF020611));
+      expect(theme.scaffoldBackgroundColor, const Color(0xFF060B16));
     });
 
     test('يحتوي على colorScheme داكن', () {

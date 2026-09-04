@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   AlertTriangle,
   ArrowRight,
+  Award,
   BadgeCheck,
   BriefcaseBusiness,
   Building2,
@@ -15,7 +16,9 @@ import {
   Eye,
   EyeOff,
   Gauge,
+  History,
   ImagePlus,
+  KeyRound,
   Lock,
   Mail,
   MailCheck,
@@ -24,6 +27,8 @@ import {
   Pencil,
   Phone,
   Plus,
+  Printer,
+  QrCode,
   ShieldCheck,
   Star,
   Trash2,
@@ -32,7 +37,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
@@ -71,6 +76,9 @@ import { EmployeeLocationTab } from './EmployeeLocationTab';
 import { EmployeeTasksTab } from './EmployeeTasksTab';
 import { EmployeeKpiTab } from './EmployeeKpiTab';
 import { EmployeeReportsTab } from './EmployeeReportsTab';
+import { EmployeeRecognitionTab } from './EmployeeRecognitionTab';
+import { EmployeeRetentionScoreCard } from './EmployeeRetentionScoreCard';
+import { EmployeeActivityTimeline } from './EmployeeActivityTimeline';
 
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
 
@@ -953,18 +961,102 @@ function AddDepartmentDialog({ employeeId, onClose, onSuccess }: { employeeId: s
 }
 
 // ---------------------------------------------------------------------------
+// PrintableIdBadgeDialog — بطاقة الهوية الوظيفية المعتمدة
+// ---------------------------------------------------------------------------
+function PrintableIdBadgeDialog({
+  employee,
+  onClose,
+}: {
+  employee: Employee360;
+  onClose: () => void;
+}) {
+  const handlePrint = () => {
+    window.print();
+  };
+
+  return (
+    <DialogOverlay title="بطاقة الهوية الوظيفية المعتمدة" onClose={onClose} maxWidth="max-w-md">
+      <div className="space-y-4">
+        <p className="text-xs text-[var(--muted)]">
+          معاينة بطاقة الهوية الرسمية للموظف. يمكنك طباعتها فورياً بحجم بطاقة العمل القياسية.
+        </p>
+
+        {/* The ID Card Preview */}
+        <div
+          id="printable-id-card"
+          className="relative overflow-hidden rounded-2xl border-2 border-[var(--primary)] bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-900 p-6 text-white shadow-xl"
+        >
+          {/* Top Header */}
+          <div className="flex items-center justify-between border-b border-white/20 pb-3">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="size-6 text-emerald-400" />
+              <div>
+                <h4 className="text-xs font-black tracking-wider uppercase">جمعية أهل مصر</h4>
+                <p className="text-[10px] text-white/70">بطاقة هوية وظيفية معتمدة</p>
+              </div>
+            </div>
+            <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300 border border-emerald-500/40">
+              {employee.status === 'active' ? 'نشط ومفعل' : employee.status}
+            </span>
+          </div>
+
+          {/* Body */}
+          <div className="my-5 flex items-center gap-4">
+            <UserAvatar displayName={employee.fullNameAr} photoUrl={employee.photoUrl} size="lg" />
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base font-black text-white">{employee.fullNameAr}</h3>
+              {employee.fullNameEn ? <p className="text-xs text-white/70">{employee.fullNameEn}</p> : null}
+              <p className="mt-1 text-xs font-bold text-amber-300">{employee.jobTitle ?? 'موظف'}</p>
+              <p className="text-[11px] text-white/60">{employee.department ?? 'الإدارة العامة'}</p>
+            </div>
+          </div>
+
+          {/* Footer with Code & Barcode aesthetic */}
+          <div className="flex items-center justify-between rounded-xl bg-black/30 p-3 backdrop-blur-sm border border-white/10">
+            <div>
+              <span className="block text-[10px] text-white/60">الرقم الوظيفي:</span>
+              <span className="font-mono text-xs font-black tracking-widest text-emerald-400">{employee.employeeCode}</span>
+            </div>
+            <div className="text-left">
+              <span className="block text-[10px] text-white/60">تاريخ التعيين:</span>
+              <span className="font-mono text-xs text-white/90">{employee.hireDate ?? '—'}</span>
+            </div>
+            <div className="flex size-10 items-center justify-center rounded-lg bg-white p-1 shadow">
+              <QrCode className="size-8 text-black" />
+            </div>
+          </div>
+        </div>
+
+        {/* Dialog Actions */}
+        <div className="flex justify-end gap-3 pt-2">
+          <button type="button" onClick={onClose} className="btn-secondary">
+            إغلاق
+          </button>
+          <button type="button" onClick={handlePrint} className="btn-primary">
+            <Printer className="size-4" aria-hidden="true" />
+            طباعة البطاقة
+          </button>
+        </div>
+      </div>
+    </DialogOverlay>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // EmployeeDetailPage — Main component
 // ---------------------------------------------------------------------------
-type EmployeeTabId = 'overview' | 'leaves' | 'attendance' | 'locations' | 'tasks' | 'kpi' | 'reports';
+type EmployeeTabId = 'overview' | 'timeline' | 'leaves' | 'attendance' | 'locations' | 'tasks' | 'kpi' | 'reports' | 'recognition';
 
 const EMPLOYEE_TABS: { id: EmployeeTabId; label: string; icon: LucideIcon }[] = [
   { id: 'overview', label: 'النبذة', icon: Eye },
+  { id: 'timeline', label: 'سجل النشاط', icon: History },
   { id: 'leaves', label: 'الإجازات', icon: CalendarDays },
   { id: 'attendance', label: 'الحضور والانصراف', icon: Clock3 },
   { id: 'locations', label: 'مواقع العمل', icon: MapPin },
   { id: 'tasks', label: 'المهام', icon: CheckSquare },
   { id: 'kpi', label: 'الأداء', icon: Gauge },
   { id: 'reports', label: 'التقارير', icon: FileText },
+  { id: 'recognition', label: 'التقدير والأوسمة', icon: Award },
 ];
 
 export function EmployeeDetailPage() {
@@ -981,8 +1073,10 @@ export function EmployeeDetailPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showAddDeptDialog, setShowAddDeptDialog] = useState(false);
   const [showGrantRestDialog, setShowGrantRestDialog] = useState(false);
+  const [showBadgeDialog, setShowBadgeDialog] = useState(false);
   const [activeTab, setActiveTab] = useState<EmployeeTabId>('overview');
   const navigate = useNavigate();
+  const location = useLocation();
   const item = query.data;
 
   if (query.isError) {
@@ -1057,6 +1151,18 @@ export function EmployeeDetailPage() {
                 منح بدل راحة
               </button>
             ) : null}
+            <button type="button" className="btn-secondary" onClick={() => setShowBadgeDialog(true)}>
+              <QrCode className="size-4" aria-hidden="true" />
+              بطاقة الهوية الوظيفية
+            </button>
+            <Link
+              to={location.pathname.startsWith('/admin') ? `/admin/hr/passwords?employeeId=${item.id}` : `/hr/passwords?employeeId=${item.id}`}
+              className="btn-secondary"
+              title="إدارة كلمة المرور وحساب الموظف"
+            >
+              <KeyRound className="size-4 text-[var(--brand-primary)]" aria-hidden="true" />
+              كلمة المرور
+            </Link>
             <Link to="/hr/employees" className="btn-secondary">
               <ArrowRight className="size-4" aria-hidden="true" />
               عودة للموظفين
@@ -1256,6 +1362,12 @@ export function EmployeeDetailPage() {
               </div>
             </section>
 
+            {/* مؤشر الاستقرار والولاء الوظيفي التنبؤي */}
+            <EmployeeRetentionScoreCard employee={item} />
+
+            {/* سجل النشاط والمحطات الإدارية */}
+            <EmployeeActivityTimeline employee={item} />
+
             {/* إدارات الموظف — V17 multi-department */}
             {employeeId && <DepartmentsSection employeeId={employeeId} canEdit={canEdit} onAdd={() => setShowAddDeptDialog(true)} />}
 
@@ -1272,12 +1384,14 @@ export function EmployeeDetailPage() {
           </div>
         ) : null}
 
+        {activeTab === 'timeline' ? <EmployeeActivityTimeline employee={item} /> : null}
         {activeTab === 'leaves' && employeeId ? <EmployeeLeaveTab employeeId={employeeId} /> : null}
         {activeTab === 'attendance' && employeeId ? <MonthlyStatementSection employeeId={employeeId} /> : null}
         {activeTab === 'locations' && employeeId ? <EmployeeLocationTab employeeId={employeeId} /> : null}
         {activeTab === 'tasks' && employeeId ? <EmployeeTasksTab employeeId={employeeId} /> : null}
         {activeTab === 'kpi' && employeeId ? <EmployeeKpiTab employeeId={employeeId} /> : null}
         {activeTab === 'reports' && employeeId ? <EmployeeReportsTab employeeId={employeeId} /> : null}
+        {activeTab === 'recognition' && employeeId ? <EmployeeRecognitionTab employeeId={employeeId} /> : null}
       </Tabs>
 
       {showManagerDialog && employeeId && (
@@ -1346,6 +1460,7 @@ export function EmployeeDetailPage() {
           }}
         />
       ) : null}
+      {showBadgeDialog ? <PrintableIdBadgeDialog employee={item} onClose={() => setShowBadgeDialog(false)} /> : null}
     </div>
   );
 }

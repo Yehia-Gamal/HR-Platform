@@ -1,10 +1,10 @@
-import { AlertTriangle, CircleCheck, CircleMinus, CircleX, Clock3, FileText, Megaphone } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CircleCheck, CircleMinus, CircleX, Clock3, FileText, Megaphone } from 'lucide-react';
 
 type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'violet';
 const map: Record<string, { label: string; tone: Tone; icon: typeof CircleCheck }> = {
   draft: { label: 'مسودة', tone: 'neutral', icon: CircleMinus },
-  invited: { label: 'نشط', tone: 'success', icon: CircleCheck },
-  onboarding: { label: 'تهيئة', tone: 'violet', icon: Clock3 },
+  invited: { label: 'تمت الدعوة', tone: 'info', icon: Clock3 },
+  onboarding: { label: 'قيد التهيئة', tone: 'violet', icon: Clock3 },
   active: { label: 'نشط', tone: 'success', icon: CircleCheck },
   inactive: { label: 'غير نشط', tone: 'neutral', icon: CircleMinus },
   accepted: { label: 'مقبول', tone: 'success', icon: CircleCheck },
@@ -23,6 +23,21 @@ const map: Record<string, { label: string; tone: Tone; icon: typeof CircleCheck 
   cancelled: { label: 'ملغي', tone: 'neutral', icon: CircleMinus },
   withdrawn: { label: 'مسحوب', tone: 'neutral', icon: CircleMinus },
   expired: { label: 'منتهي الصلاحية', tone: 'danger', icon: Clock3 },
+  // حضور وانصراف وإجازات
+  present: { label: 'حاضر', tone: 'success', icon: CircleCheck },
+  late: { label: 'متأخر', tone: 'warning', icon: Clock3 },
+  absent: { label: 'غائب', tone: 'danger', icon: CircleX },
+  on_leave: { label: 'في إجازة', tone: 'info', icon: CalendarDays },
+  leave: { label: 'في إجازة', tone: 'info', icon: CalendarDays },
+  missing_checkout: { label: 'دون انصراف', tone: 'warning', icon: AlertTriangle },
+  missing_checkin: { label: 'دون حضور', tone: 'warning', icon: AlertTriangle },
+  mission: { label: 'مأمورية', tone: 'violet', icon: Clock3 },
+  convoy_fundi: { label: 'قافلة/فاندي', tone: 'violet', icon: Clock3 },
+  rest: { label: 'راحة', tone: 'neutral', icon: CircleMinus },
+  holiday: { label: 'عطلة رسمية', tone: 'info', icon: Megaphone },
+  overtime: { label: 'عمل إضافي', tone: 'warning', icon: Clock3 },
+  adjusted: { label: 'مُعدَّل', tone: 'info', icon: Clock3 },
+  flagged: { label: 'مُعلَّم', tone: 'warning', icon: AlertTriangle },
   self: { label: 'تقييم ذاتي', tone: 'info', icon: Clock3 },
   manager: { label: 'عند المدير', tone: 'violet', icon: Clock3 },
   secretary: { label: 'عند السكرتير', tone: 'info', icon: Clock3 },

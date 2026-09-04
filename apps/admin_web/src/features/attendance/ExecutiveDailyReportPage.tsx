@@ -1,5 +1,17 @@
-import { ArrowLeft, CalendarDays, Download, Printer, ShieldCheck, TrendingUp, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import {
+  AlertCircle,
+  ArrowLeft,
+  CalendarDays,
+  CheckCircle2,
+  Copy,
+  Download,
+  Printer,
+  ShieldCheck,
+  Sparkles,
+  TrendingUp,
+  Users,
+} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { cairoTodayIso } from '../../core/cairoTime';
 import { EmptyState } from '../../ui/EmptyState';
@@ -7,39 +19,12 @@ import { ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { SkeletonCard } from '../../ui/Skeletons';
+import { StatusBadge } from '../../ui/StatusBadge';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { useExecutiveDailyReport, useExecutiveDailyReportDetail, exportExecutiveDailyReportPdf } from './useAttendanceDashboard';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useToast } from '../../ui/Toast';
-
-const STATUS_LABELS: Record<string, string> = {
-  present: 'حاضر',
-  late: 'متأخر',
-  absent: 'غائب',
-  on_leave: 'إجازة',
-  holiday: 'عطلة',
-  weekend: 'عطلة الأسبوع',
-  partial: 'جزئي',
-  pending: 'قيد الانتظار',
-  on_mission: 'مأمورية',
-  missing_checkout: 'بصمة بلا انصراف',
-};
-
-function statusLabel(status: string | null): string {
-  if (!status) return '—';
-  return STATUS_LABELS[status] ?? status;
-}
-
-function statusClass(status: string | null): string {
-  if (status === 'present') return 'status-pill--ok';
-  if (status === 'late') return 'status-pill--warn';
-  if (status === 'absent') return 'status-pill--danger';
-  if (status === 'missing_checkout') return 'status-pill--warn';
-  if (status === 'on_leave') return 'status-pill--ok';
-  if (status === 'on_mission') return 'status-pill--neutral';
-  return 'status-pill--neutral';
-}
 
 function fmtTime12(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -142,6 +127,31 @@ export function ExecutiveDailyReportPage() {
 
   const handlePrint = () => window.print();
 
+  const executiveDigestText = useMemo(() => {
+    const lines = [
+      `📊 *التقرير التنفيذي اليومي — أحلى شباب*`,
+      `📅 اليوم والتاريخ: ${dayName}، ${date.getDate()} ${monthName}`,
+      `👥 إجمالي الحضور: ${present} من أصل ${requiredToday} مجدول (نسبة الإنجاز: ${attendancePct}%)`,
+      `⏰ التأخيرات: ${late === 0 ? 'لا توجد تأخيرات مسجلة 👏' : `${late} حالة تأخير`}`,
+      `🚫 الغياب: ${absent > 0 ? `${absent} موظفاً` : 'صفر غياب'}`,
+      `✈️ المأموريات والقوافل: ${missions} مأمورية ميدانية · ${convoys} قوافل عمل`,
+      `🏖️ الإجازات المعتمدة: ${approvedLeave} موظفاً`,
+      `⚠️ تنبيهات المتابعة: ${missingCheckout > 0 ? `${missingCheckout} بصمة بلا انصراف مسجلة تحتاج لتسوية` : 'كافة البصمات منتظمة ومسواة'}`,
+      `---`,
+      `تم التوليد آلياً عبر نظام إدارة الموارد البشرية أحلى شباب`,
+    ];
+    return lines.join('\n');
+  }, [dayName, date, monthName, present, requiredToday, attendancePct, late, absent, missions, convoys, approvedLeave, missingCheckout]);
+
+  const handleCopyDigest = async () => {
+    try {
+      await navigator.clipboard.writeText(executiveDigestText);
+      toast({ message: 'تم نسخ الملخص التنفيذي إلى الحافظة بنجاح!', tone: 'success' });
+    } catch {
+      toast({ message: 'تعذر نسخ الملخص تلقائياً، يرجى المحاولة يدوياً.', tone: 'error' });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -239,6 +249,74 @@ export function ExecutiveDailyReportPage() {
         <MetricCard label="قضايا مفتوحة" value={s.cases?.open ?? 0} icon={ShieldCheck} />
       </section>
 
+      {/* الموجز التحليلي التنفيذي الذكي */}
+      <section className="card p-5 border-r-4 border-r-[var(--brand-primary)] bg-gradient-to-l from-[var(--surface)] to-[var(--surface-muted)]">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[var(--border)]">
+          <div className="flex items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
+              <Sparkles className="size-4" aria-hidden="true" />
+            </span>
+            <div>
+              <h2 className="text-base font-black">الموجز التحليلي والملخص التنفيذي لليوم</h2>
+              <p className="text-xs muted">قراءة ذكية وموجزة لحالة العمليات والحضور والانضباط</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleCopyDigest()}
+            className="btn-secondary text-xs flex items-center gap-1.5"
+            title="نسخ الملخص التنفيذي للمشاركة"
+          >
+            <Copy className="size-3.5" aria-hidden="true" />
+            نسخ الملخص التنفيذي
+          </button>
+        </div>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3.5 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[var(--text-muted)]">نسبة الحضور والإنجاز</span>
+              <span className="font-black text-sm text-[var(--success)]">{attendancePct}%</span>
+            </div>
+            <p className="text-xs leading-relaxed">
+              حضور <strong className="tabular">{present}</strong> من إجمالي <strong className="tabular">{requiredToday}</strong> موظفاً مجدولاً اليوم.
+              {absent > 0 ? ` سُجل غياب ${absent} موظفاً.` : ' لا يوجد أي غياب مسجل.'}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3.5 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[var(--text-muted)]">مؤشر الانضباط والتأخيرات</span>
+              <span className={`font-black text-sm ${late > 0 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
+                {late === 0 ? 'انضباط كامل' : `${late} متأخر`}
+              </span>
+            </div>
+            <p className="text-xs leading-relaxed">
+              {late === 0
+                ? 'لم تسجل أي حالات تأخير عن مواعيد الحضور المحددة للورديات.'
+                : `تم رصد ${late} موظفاً تجاوزوا موعد الحضور المحدد، وتتطلب مراجعة مبررات التأخير.`}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3.5 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[var(--text-muted)]">العمليات الميدانية والسلامة</span>
+              <span className="font-black text-sm text-[var(--brand-primary)]">{missions + convoys} مهمة</span>
+            </div>
+            <p className="text-xs leading-relaxed">
+              {missions > 0 ? `${missions} مأموريات نشطة · ` : ''}
+              {convoys > 0 ? `${convoys} قوافل · ` : ''}
+              {approvedLeave > 0 ? `${approvedLeave} في إجازة معتمدة · ` : ''}
+              {missingCheckout > 0 ? (
+                <span className="text-[var(--warning)] font-bold">{missingCheckout} بصمة بلا انصراف مسجلة تحتاج لتسوية.</span>
+              ) : (
+                'كافة البصمات منتظمة ومسواة.'
+              )}
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* تفاصيل الموظفين - إذا متاح */}
       {d?.employees && d.employees.length > 0 && (
         <section className="card p-4">
@@ -269,11 +347,11 @@ export function ExecutiveDailyReportPage() {
                   .filter((emp) => !deptFilter || emp.departmentId === deptFilter)
                   .filter((emp) => !branchFilter || emp.branchId === branchFilter)
                   .map((emp) => (
-                    <tr key={emp.employeeId} className={statusClass(emp.status)}>
+                    <tr key={emp.employeeId}>
                       <td>{emp.employeeCode ?? '—'}</td>
                       <td>{emp.employeeName}</td>
                       <td>
-                        <span className={`status-pill ${statusClass(emp.status)}`}>{statusLabel(emp.status)}</span>
+                        <StatusBadge status={emp.status ?? undefined} />
                       </td>
                       <td>{emp.departmentName ?? '—'}</td>
                       <td>{fmtTime12(emp.firstCheckIn)}</td>
@@ -338,7 +416,7 @@ export function ExecutiveDailyReportPage() {
                   <td>{fmtTime12(m.startAt)}</td>
                   <td>{fmtTime12(m.endAt)}</td>
                   <td>
-                    <span className={`status-pill ${statusClass(m.status)}`}>{statusLabel(m.status)}</span>
+                    <StatusBadge status={m.status ?? undefined} />
                   </td>
                   <td>{m.purpose ?? '—'}</td>
                 </tr>
@@ -374,7 +452,7 @@ export function ExecutiveDailyReportPage() {
                   <td>{fmtTime12(c.startAt)}</td>
                   <td>{fmtTime12(c.endAt)}</td>
                   <td>
-                    <span className={`status-pill ${statusClass(c.status)}`}>{statusLabel(c.status)}</span>
+                    <StatusBadge status={c.status ?? undefined} />
                   </td>
                 </tr>
               ))}
@@ -409,7 +487,7 @@ export function ExecutiveDailyReportPage() {
                   <td>{fmtTime12(l.endAt)}</td>
                   <td>{l.daysCount}</td>
                   <td>
-                    <span className={`status-pill ${statusClass(l.status)}`}>{statusLabel(l.status)}</span>
+                    <StatusBadge status={l.status ?? undefined} />
                   </td>
                 </tr>
               ))}
@@ -442,7 +520,7 @@ export function ExecutiveDailyReportPage() {
                   <td>{lr.locationName}</td>
                   <td>{fmtTime12(lr.requestedAt)}</td>
                   <td>
-                    <span className={`status-pill ${statusClass(lr.status)}`}>{statusLabel(lr.status)}</span>
+                    <StatusBadge status={lr.status ?? undefined} />
                   </td>
                 </tr>
               ))}
@@ -473,7 +551,7 @@ export function ExecutiveDailyReportPage() {
                   <td>{dsp.title}</td>
                   <td>{dsp.caseType}</td>
                   <td>
-                    <span className={`status-pill ${statusClass(dsp.status)}`}>{statusLabel(dsp.status)}</span>
+                    <StatusBadge status={dsp.status ?? undefined} />
                   </td>
                   <td>{dsp.priority}</td>
                   <td>{dsp.actorName ?? '—'}</td>

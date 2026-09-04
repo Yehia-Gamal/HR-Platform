@@ -117,6 +117,20 @@ export function FinancePage() {
     setStatusFilter('all');
   };
 
+  const exportWpsPayroll = () => {
+    const date = cairoTodayIso();
+    const cols: ExportColumn<PayrollRun>[] = [
+      { key: 'period', header: 'الشهر المالي', get: (r) => r.periodMonth },
+      { key: 'currency', header: 'العملة', get: (r) => r.currency },
+      { key: 'gross', header: 'إجمالي المستحق', get: (r) => (r.totals as Record<string, unknown> | null)?.gross as number | undefined },
+      { key: 'net', header: 'صافي التحويل البنكي', get: (r) => (r.totals as Record<string, unknown> | null)?.net as number | undefined },
+      { key: 'status', header: 'حالة الدورة', get: (r) => PAYROLL_RUN_STATUS_LABELS[r.status] ?? r.status },
+      { key: 'bankFormat', header: 'صيغة التحويل', get: () => 'WPS-Standard-ACH' },
+      { key: 'approvedAt', header: 'تاريخ الاعتماد المالي', get: (r) => (r.approvedAt ? dateFormatter.format(new Date(r.approvedAt)) : '—') },
+    ];
+    downloadCsv(`wps-bank-payroll-${date}.csv`, toCsv(cols, filteredPayroll));
+  };
+
   const exportCurrentTab = () => {
     const date = cairoTodayIso();
     if (tab === 'payroll') {
@@ -319,6 +333,18 @@ export function FinancePage() {
         description="إدارة دورات الرواتب وهياكل الأجور والسلف وخطط القوى العاملة."
         actions={
           <div className="flex items-center gap-2">
+            {tab === 'payroll' && (
+              <button
+                type="button"
+                className="btn-primary flex items-center gap-1.5"
+                onClick={exportWpsPayroll}
+                disabled={filteredPayroll.length === 0}
+                title="تصدير ملف التحويل البنكي وحماية الأجور WPS"
+              >
+                <FileSpreadsheet className="size-4" aria-hidden="true" />
+                تصدير WPS بنكي
+              </button>
+            )}
             <button type="button" className="btn-secondary" onClick={exportCurrentTab} disabled={currentData.length === 0} title="تصدير Excel (CSV)">
               <FileSpreadsheet className="size-4" aria-hidden="true" />
               تصدير

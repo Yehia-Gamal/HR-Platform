@@ -1,7 +1,7 @@
 import { cairoTodayIso } from '../../core/cairoTime';
-import { ArrowUpDown, FileSpreadsheet, Network, Plus, Printer, RefreshCw, UserRound, UsersRound } from 'lucide-react';
+import { ArrowUpDown, FileSpreadsheet, KeyRound, Network, Plus, Printer, RefreshCw, UserRound, UsersRound } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useLocation, useSearchParams } from 'react-router';
 import { downloadCsv, printReport, toCsv, type ExportColumn } from '../../core/exportUtils';
 import { MetricCard } from '../../ui/MetricCard';
 import { FilterBar } from '../../ui/FilterBar';
@@ -27,6 +27,7 @@ type EmployeesTab = 'directory' | 'org-chart';
 export function EmployeesPage() {
   const auth = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [sort, setSort] = useState<SortMode>('newest');
@@ -188,6 +189,14 @@ export function EmployeesPage() {
               <FileSpreadsheet className="size-4" aria-hidden="true" />
               تصدير
             </button>
+            <Link
+              to={location.pathname.startsWith('/admin') ? '/admin/hr/passwords' : '/hr/passwords'}
+              className="btn-secondary"
+              title="إدارة كلمات المرور والحسابات"
+            >
+              <KeyRound className="size-4 text-[var(--brand-primary)]" aria-hidden="true" />
+              كلمات المرور
+            </Link>
             {canCreate && (
               <Link to="/hr/employees/new" className="btn-primary">
                 <Plus className="size-4" aria-hidden="true" />

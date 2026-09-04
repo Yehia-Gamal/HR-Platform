@@ -235,4 +235,52 @@ describe('useMonthlyStatement — attendanceStatementSchema validation', () => {
     const parsed = attendanceStatementSchema.parse(statementWithNullHireDate);
     expect(parsed.employee.hireDate).toBeNull();
   });
+
+  it('parses day with adminOverride where leaveType is null (work day edit)', () => {
+    const dayWithWorkOverride = {
+      ...mockDay,
+      adminOverride: {
+        id: '11111111-1111-4111-8111-111111111111',
+        dayType: 'work',
+        leaveType: null,
+        reason: 'تعديل بصمة دخول وخروج من قبل الإدارة',
+        notes: null,
+        updatedAt: '2026-08-01T10:00:00Z',
+      },
+    };
+    const parsed = attendanceStatementDaySchema.parse(dayWithWorkOverride);
+    expect(parsed.adminOverride).not.toBeNull();
+    expect(parsed.adminOverride?.dayType).toBe('work');
+    expect(parsed.adminOverride?.leaveType).toBeNull();
+  });
+
+  it('parses day with adminOverride where leaveType is defined (leave edit)', () => {
+    const dayWithLeaveOverride = {
+      ...mockDay,
+      adminOverride: {
+        id: '22222222-2222-4222-8222-222222222222',
+        dayType: 'leave',
+        leaveType: 'annual',
+        reason: 'إجازة اعتيادية معتمدة',
+        notes: 'موافقة المدير',
+        updatedAt: '2026-08-02T10:00:00Z',
+      },
+    };
+    const parsed = attendanceStatementDaySchema.parse(dayWithLeaveOverride);
+    expect(parsed.adminOverride).not.toBeNull();
+    expect(parsed.adminOverride?.dayType).toBe('leave');
+    expect(parsed.adminOverride?.leaveType).toBe('annual');
+  });
+
+  it('statement filters out any null days without throwing', () => {
+    const statementWithNullDay = {
+      ...mockStatement,
+      days: [mockDay, null, mockDay],
+    };
+    const parsed = attendanceStatementSchema.parse(statementWithNullDay);
+    expect(parsed.days.length).toBe(2);
+    expect(parsed.days[0].date).toBe(mockDay.date);
+    expect(parsed.days[1].date).toBe(mockDay.date);
+  });
 });
+

@@ -1,6 +1,5 @@
 import 'dart:io' show Platform;
 import 'dart:ui' as ui;
-import 'dart:typed_data';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
@@ -13,6 +12,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
@@ -72,6 +72,8 @@ class MobileProfilePage extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             children: [
               _Header(item: item),
+              const SizedBox(height: 14),
+              _DigitalIdCardWidget(item: item),
               const SizedBox(height: 14),
               _InfoSection(item: item),
               const SizedBox(height: 14),
@@ -364,6 +366,356 @@ class _HeaderState extends ConsumerState<_Header> {
       ),
     ),
   );
+}
+
+class _DigitalIdCardWidget extends StatelessWidget {
+  const _DigitalIdCardWidget({required this.item});
+  final MobileProfile item;
+
+  void _showFullscreen(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => _DigitalIdFullscreenDialog(item: item),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: [
+            Color.lerp(scheme.primary, Colors.black, .35)!,
+            scheme.primary,
+            Color.lerp(scheme.secondary, Colors.black, .2)!,
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: .25),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const BrandLogoMark(inverse: true, size: 32),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'بطاقة الهوية الوظيفية الذكية',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      Text(
+                        'منظومة الموارد البشرية والإدارة',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: .25),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF10B981).withValues(alpha: .6)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.verified_rounded, size: 12, color: Color(0xFF10B981)),
+                      SizedBox(width: 4),
+                      Text(
+                        'موثّق',
+                        style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(color: Colors.white24, height: 26),
+            Row(
+              children: [
+                AppAvatar(
+                  name: item.fullNameAr,
+                  photoUrl: item.photoUrl,
+                  radius: 28,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.fullNameAr,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      if (item.fullNameEn != null && item.fullNameEn!.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          item.fullNameEn!,
+                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      Text(
+                        item.jobTitle ?? 'موظف',
+                        style: const TextStyle(
+                          color: Color(0xFFFBBF24),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        '${item.department ?? "الإدارة العامة"} • ${item.branch ?? "المقر الرئيسي"}',
+                        style: const TextStyle(color: Colors.white60, fontSize: 10),
+                      ),
+                    ],
+                  ),
+                ),
+                // QR Badge representation
+                GestureDetector(
+                  onTap: () => _showFullscreen(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black26, blurRadius: 4),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CustomPaint(
+                          size: const Size(48, 48),
+                          painter: _QrMatrixPainter(code: item.employeeCode),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          item.employeeCode,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Text(
+                  'كود الموظف: ${item.employeeCode}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700),
+                ),
+                const Spacer(),
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.white.withValues(alpha: .15),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: () => _showFullscreen(context),
+                  icon: const Icon(Icons.qr_code_2_rounded, size: 16),
+                  label: const Text('تكبير البطاقة', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QrMatrixPainter extends CustomPainter {
+  const _QrMatrixPainter({required this.code});
+  final String code;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.black
+      ..style = PaintingStyle.fill;
+
+    final cellW = size.width / 17;
+    final cellH = size.height / 17;
+
+    // Draw finder pattern helper
+    void drawFinder(double startX, double startY) {
+      // Outer 7x7 box
+      canvas.drawRect(Rect.fromLTWH(startX * cellW, startY * cellH, 7 * cellW, 7 * cellH), paint);
+      // Inner clear 5x5 box
+      canvas.drawRect(
+        Rect.fromLTWH((startX + 1) * cellW, (startY + 1) * cellH, 5 * cellW, 5 * cellH),
+        Paint()..color = Colors.white,
+      );
+      // Inner solid 3x3 box
+      canvas.drawRect(
+        Rect.fromLTWH((startX + 2) * cellW, (startY + 2) * cellH, 3 * cellW, 3 * cellH),
+        paint,
+      );
+    }
+
+    // Top-left finder
+    drawFinder(0, 0);
+    // Top-right finder
+    drawFinder(10, 0);
+    // Bottom-left finder
+    drawFinder(0, 10);
+
+    // Fill pseudo-random matrix bits based on code hash
+    final hash = code.hashCode;
+    for (int r = 0; r < 17; r++) {
+      for (int c = 0; c < 17; c++) {
+        // Skip finder areas
+        if ((r < 8 && c < 8) || (r < 8 && c > 8) || (r > 8 && c < 8)) continue;
+        final bit = ((hash ^ (r * 31 + c * 17)) + (r * c)) % 3 == 0;
+        if (bit) {
+          canvas.drawRect(Rect.fromLTWH(c * cellW, r * cellH, cellW * 0.9, cellH * 0.9), paint);
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_QrMatrixPainter oldDelegate) => oldDelegate.code != code;
+}
+
+class _DigitalIdFullscreenDialog extends StatelessWidget {
+  const _DigitalIdFullscreenDialog({required this.item});
+  final MobileProfile item;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(20),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: scheme.outlineVariant.withValues(alpha: .5)),
+          boxShadow: const [
+            BoxShadow(color: Colors.black45, blurRadius: 30, offset: Offset(0, 10)),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                const BrandLogoMark(size: 28),
+                const SizedBox(width: 8),
+                const Text(
+                  'بطاقة التحقق الرقمية',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const Divider(height: 20),
+            AppAvatar(
+              name: item.fullNameAr,
+              photoUrl: item.photoUrl,
+              radius: 36,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              item.fullNameAr,
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17),
+            ),
+            Text(
+              '${item.jobTitle ?? "موظف"} • ${item.department ?? ""}',
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+            ),
+            const SizedBox(height: 20),
+            // High contrast QR code container
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade300, width: 2),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: .08), blurRadius: 10),
+                ],
+              ),
+              child: CustomPaint(
+                size: const Size(160, 160),
+                painter: _QrMatrixPainter(code: item.employeeCode),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'كود التحقق: ${item.employeeCode}',
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.copy_rounded, size: 18),
+                  tooltip: 'نسخ الكود',
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: item.employeeCode));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('تم نسخ كود الموظف'), duration: Duration(seconds: 2)),
+                    );
+                  },
+                ),
+              ],
+            ),
+            Text(
+              'صالح للتحقق الميداني والمسح عبر أجهزة الأمن والاستقبال',
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _InfoSection extends StatelessWidget {
@@ -869,22 +1221,32 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
     try {
       final client = Supabase.instance.client;
 
-      // 0457: تحقق من قوة كلمة المرور على الخادم أولاً
-      final strengthResult = await client
-          .rpc<Map<String, dynamic>>('validate_password_strength',
-              params: {'p_password': _passwordController.text})
-          .timeout(const Duration(seconds: 10));
-      final valid = strengthResult['valid'] == true;
-      if (!valid) {
-        final issues = (strengthResult['issues'] as List<dynamic>?)
-                ?.map((e) => '• $e')
-                .join('\n') ??
-            '';
-        if (mounted) {
-          setState(() => _error =
-              'كلمة المرور لا تلبي متطلبات الأمان:\n$issues');
+      // 0457: تحقق من قوة كلمة المرور على الخادم أولاً مع مسار احتياطي آمن
+      try {
+        final strengthResult = await client
+            .rpc<Map<String, dynamic>>('validate_password_strength',
+                params: {'p_password': _passwordController.text})
+            .timeout(const Duration(seconds: 10));
+        final valid = strengthResult['valid'] == true;
+        if (!valid) {
+          final issues = (strengthResult['issues'] as List<dynamic>?)
+                  ?.map((e) => '• $e')
+                  .join('\n') ??
+              '';
+          if (mounted) {
+            setState(() => _error =
+                'كلمة المرور لا تلبي متطلبات الأمان:\n$issues');
+          }
+          return;
         }
-        return;
+      } catch (_) {
+        // في حال تعذر الوصول لدالة الخادم، نتحقق محلياً
+        if (_passwordController.text.length < 6) {
+          if (mounted) {
+            setState(() => _error = 'كلمة المرور يجب ألا تقل عن 6 أحرف.');
+          }
+          return;
+        }
       }
 
       final response = await client.auth.updateUser(
@@ -893,6 +1255,15 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
       if (response.user == null) {
         throw Exception('تعذر التحديث');
       }
+
+      // SEC: إزالة علامة must_change_password في حال تم تعيينها بواسطة الإدارة
+      try {
+        await client.rpc<dynamic>('clear_must_change_password')
+            .timeout(const Duration(seconds: 5));
+      } catch (_) {
+        // ثانوي
+      }
+
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(

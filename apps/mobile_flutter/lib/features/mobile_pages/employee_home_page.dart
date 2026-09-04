@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
@@ -10,10 +11,14 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_tasks_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notifications_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/my_payslips_page.dart';
+import 'package:ahla_shabab_management_os/core/network/offline_sync_queue.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EmployeeHomePage extends ConsumerWidget {
   const EmployeeHomePage({required this.access, super.key});
@@ -133,6 +138,9 @@ class EmployeeHomePage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 20),
+          const _ConnectivitySyncBanner(),
+          const _RecognitionSummaryCard(),
+          _ProactiveSmartAlertBanner(summary: summary.value, access: access),
           const MobileSectionHeader(
             title: 'اختصارات اليوم',
             subtitle: 'أسرع الإجراءات التي تحتاجها أثناء العمل.',
@@ -153,6 +161,30 @@ class EmployeeHomePage extends ConsumerWidget {
               context,
               MaterialPageRoute(
                 builder: (_) => LocationRequestsPage(access: access),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          _QuickAction(
+            icon: Icons.receipt_long_rounded,
+            title: 'قسائم الرواتب والمستحقات',
+            subtitle: 'استعراض قسائم الراتب والمكافآت والبدلات',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const MyPayslipsPage(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          _QuickAction(
+            icon: Icons.calendar_month_rounded,
+            title: 'كشف الحضور الشهري',
+            subtitle: 'سجل البصمات ومعدل الالتزام والدوام',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const MonthlyAttendanceStatementPage(),
               ),
             ),
           ),
@@ -686,3 +718,910 @@ class _SparkDot extends StatelessWidget {
     return (Colors.grey.shade300, 'غير مسجل');
   }
 }
+
+class _ConnectivitySyncBanner extends ConsumerWidget {
+  const _ConnectivitySyncBanner();
+
+  void _showSyncDetailsBottomSheet(BuildContext context, WidgetRef ref, bool isOffline) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => _SyncDetailsSheet(isOffline: isOffline),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final connectivity = ref.watch(connectivityProvider);
+    final isOffline = connectivity == ConnectivityState.offline ||
+        connectivity == ConnectivityState.reconnecting;
+
+    final primaryColor = isOffline ? const Color(0xFFF59E0B) : const Color(0xFF10B981);
+    final icon = isOffline ? Icons.cloud_off_rounded : Icons.cloud_done_rounded;
+    final text = isOffline
+        ? 'وضع عدم الاتصال نشط · البصمات تحفظ محلياً وسترفع فور عودة الشبكة (اضغط للتفاصيل)'
+        : 'متصل بالخادم · البصمات والمزامنة آمنة ومحدثة (اضغط للتفاصيل)';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: primaryColor.withValues(alpha: isOffline ? .1 : .08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: isOffline ? .3 : .24),
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _showSyncDetailsBottomSheet(context, ref, isOffline),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 14, vertical: isOffline ? 10 : 8),
+            child: Row(
+              children: [
+                Icon(icon, size: isOffline ? 20 : 16, color: primaryColor),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    text,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: isOffline ? const Color(0xFFB45309) : const Color(0xFF10B981),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 12,
+                  color: isOffline ? const Color(0xFFB45309) : const Color(0xFF10B981),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SyncDetailsSheet extends ConsumerStatefulWidget {
+  const _SyncDetailsSheet({required this.isOffline});
+  final bool isOffline;
+
+  @override
+  ConsumerState<_SyncDetailsSheet> createState() => _SyncDetailsSheetState();
+}
+
+class _SyncDetailsSheetState extends ConsumerState<_SyncDetailsSheet> {
+  bool _isSyncing = false;
+  List<SyncQueueItem> _items = [];
+  DateTime? _lastSync;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSyncInfo();
+  }
+
+  Future<void> _loadSyncInfo() async {
+    final items = await OfflineSyncQueue.instance.getAll();
+    final lastSync = await OfflineSyncQueue.instance.lastSyncTime;
+    if (mounted) {
+      setState(() {
+        _items = items;
+        _lastSync = lastSync;
+      });
+    }
+  }
+
+  Future<void> _triggerManualSync() async {
+    setState(() => _isSyncing = true);
+    try {
+      final client = Supabase.instance.client;
+      final syncedCount = await OfflineSyncQueue.instance.processQueue(client);
+      ref.invalidate(employeeHomeProvider);
+      await _loadSyncInfo();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              syncedCount > 0
+                  ? 'تمت مزامنة $syncedCount عملية بنجاح مع الخادم.'
+                  : 'تم التحقق من المزامنة — لا توجد عمليات معلقة.',
+            ),
+            backgroundColor: const Color(0xFF10B981),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر الاتصال بالخادم لمزامنة البيانات حالياً.'),
+            backgroundColor: Color(0xFFEF4444),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSyncing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final statusColor = widget.isOffline ? const Color(0xFFF59E0B) : const Color(0xFF10B981);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: scheme.onSurfaceVariant.withValues(alpha: .3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  widget.isOffline ? Icons.cloud_off_rounded : Icons.cloud_done_rounded,
+                  color: statusColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'حالة الاتصال ومزامنة البصمات',
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+                    ),
+                    Text(
+                      widget.isOffline ? 'وضع بدون اتصال (Offline)' : 'متصل بالخادم سحابياً',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: statusColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest.withValues(alpha: .4),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: scheme.outlineVariant.withValues(alpha: .4)),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('العمليات المعلقة في الطابور:', style: TextStyle(fontSize: 12)),
+                    Text(
+                      '${_items.length} عملية',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        color: _items.isEmpty ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('آخر مزامنة ناجحة:', style: TextStyle(fontSize: 12)),
+                    Text(
+                      _lastSync != null
+                          ? DateFormat('HH:mm  yyyy/MM/dd').format(_lastSync!.toLocal())
+                          : 'لم تسجل بعد',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          if (_items.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            const Text(
+              'العمليات بانتظار الإرسال:',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+            ),
+            const SizedBox(height: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 140),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: _items.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 4),
+                itemBuilder: (context, idx) {
+                  final item = _items[idx];
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: scheme.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: scheme.outlineVariant.withValues(alpha: .5)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(item.actionLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                        Text(
+                          'محاولات: ${item.retryCount}',
+                          style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: _isSyncing ? null : _triggerManualSync,
+            icon: _isSyncing
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.sync_rounded),
+            label: Text(_isSyncing ? 'جاري المزامنة...' : 'مزامنة يدوية فورية الآن'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecognitionSummaryCard extends StatelessWidget {
+  const _RecognitionSummaryCard();
+
+  void _showDetails(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _RecognitionDetailsSheet(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFF59E0B).withValues(alpha: .28),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withValues(alpha: .06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _showDetails(context),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B).withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.emoji_events_rounded,
+                    color: Color(0xFFF59E0B),
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Text(
+                            'أوسمة التميز والتحفيز',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13,
+                            ),
+                          ),
+                          Spacer(),
+                          Text(
+                            '⭐ 150 نقطة',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12,
+                              color: Color(0xFFF59E0B),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'درع الالتزام التام · وسام دقة المواعيد',
+                              style: TextStyle(
+                                color: scheme.onSurfaceVariant,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_left_rounded,
+                            size: 16,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecognitionDetailsSheet extends StatelessWidget {
+  const _RecognitionDetailsSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: scheme.outlineVariant.withValues(alpha: .5),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF59E0B).withValues(alpha: .12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.emoji_events_rounded,
+                      color: Color(0xFFF59E0B),
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'أوسمة التميز والتقدير الوظيفي',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                      ),
+                      Text(
+                        'سجل نقاط التحفيز والإنجاز المؤسسي',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // بطاقة الرتبة الحالية
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFFF59E0B).withValues(alpha: .15),
+                      const Color(0xFFD97706).withValues(alpha: .05),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: .3)),
+                ),
+                child: Column(
+                  children: [
+                    const Row(
+                      children: [
+                        Text(
+                          '🥈 الرتبة الحالية: الفضي (Silver)',
+                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                        ),
+                        Spacer(),
+                        Text(
+                          '150 / 250 نقطة',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFFD97706),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(99),
+                      child: LinearProgressIndicator(
+                        value: 150 / 250,
+                        minHeight: 8,
+                        backgroundColor: scheme.outlineVariant.withValues(alpha: .3),
+                        valueColor: const AlwaysStoppedAnimation(Color(0xFFF59E0B)),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'المستوى التالي: الذهبي 🥇',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                        ),
+                        Text(
+                          'متبقي 100 نقطة للترقية',
+                          style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'الأوسمة المستحقة الممنوحة لك:',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+              ),
+              const SizedBox(height: 8),
+              _buildBadgeItem(
+                context,
+                icon: '🏆',
+                title: 'درع الالتزام والانضباط التام',
+                description: 'حضور كامل خلال الشهر بدون أي تأخيرات أو انقطاع غير مبرر.',
+                points: '+50 نقطة',
+              ),
+              _buildBadgeItem(
+                context,
+                icon: '⚡',
+                title: 'وسام سرعة الاستجابة الميدانية',
+                description: 'إنجاز كافة المهام والمأموريات الموكلة في الموعد المحدد وبدقة.',
+                points: '+40 نقطة',
+              ),
+              _buildBadgeItem(
+                context,
+                icon: '🤝',
+                title: 'وسام روح الفريق والمبادرة',
+                description: 'مشاركة فعالة ومتميزة في إسناد زملاء العمل بالمقر والمواقع.',
+                points: '+35 نقطة',
+              ),
+              _buildBadgeItem(
+                context,
+                icon: '🛡️',
+                title: 'وسام الاستقرار والانتماء المؤسسي',
+                description: 'إتمام أكثر من عام من العطاء والخدمة المستمرة بتفانٍ وإخلاص.',
+                points: '+25 نقطة',
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest.withValues(alpha: .35),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: scheme.outlineVariant.withValues(alpha: .4)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.tips_and_updates_outlined, size: 20, color: Color(0xFF3B82F6)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'نصيحة: حافظ على تسجيل البصمة في موعدها وأكمل مهامك اليومية لكسب نقاط إضافية والترقية للرتبة الذهبية.',
+                        style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Widget _buildBadgeItem(
+    BuildContext context, {
+    required String icon,
+    required String title,
+    required String description,
+    required String points,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: .4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(icon, style: const TextStyle(fontSize: 24)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+                      ),
+                    ),
+                    Text(
+                      points,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                        color: Color(0xFF10B981),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  description,
+                  style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProactiveSmartAlertBanner extends StatelessWidget {
+  const _ProactiveSmartAlertBanner({
+    required this.summary,
+    required this.access,
+  });
+
+  final EmployeeHomeSummary? summary;
+  final AccessContext access;
+
+  @override
+  Widget build(BuildContext context) {
+    if (summary == null) return const SizedBox.shrink();
+
+    final pendingLoc = summary!.pendingLocationRequests;
+    final pendingReq = summary!.pendingRequests;
+    final unreadAnnouncements = summary!.unreadOfficial;
+
+    // حالة عدم وجود طلبات معلقة: نصيحة ذكية محفزة
+    if (pendingLoc == 0 && pendingReq == 0 && unreadAnnouncements == 0) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.lightbulb_outline_rounded,
+                size: 20,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '💡 نصيحة اليوم: سجل حضورك وانصرافك في الموعد المحدد للحفاظ على رصيد نقاط تميزك ونيل درع الانضباط!',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11.5,
+                      ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // تنبيه استباقي: طلبات موقع معلقة تحتاج استجابة
+    if (pendingLoc > 0) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => LocationRequestsPage(access: access),
+              ),
+            ),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.location_searching_rounded,
+                      size: 18,
+                      color: Colors.amber,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'تنبيه استباقي: لديك طلب موقع بانتظار استجابتك',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12,
+                              ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'انقر هنا للموافقة المؤقتة ومشاركة موقعك الميداني مع الإدارة.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.75),
+                                fontSize: 11,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.amber),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // تنبيه بالقرارات أو الإعلانات الرسمية غير المقروءة
+    if (unreadAnnouncements > 0) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const MobileNotificationsPage(),
+              ),
+            ),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.campaign_rounded,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'إعلانات وقرارات إدارية جديدة ($unreadAnnouncements)',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12,
+                              ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'يرجى الاطلاع على القرارات الإدارية وتحديثات سياسات العمل.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.75),
+                                fontSize: 11,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // تنبيه بالطلبات قيد المراجعة
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const MobileRequestsPage(),
+            ),
+          ),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.blue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.pending_actions_rounded,
+                    size: 18,
+                    color: Colors.blue,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'لديك $pendingReq طلبات إجازة/خدمات قيد المراجعة',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 12,
+                            ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'انقر لمتابعة حالة الاعتماد وتحديثات الإدارة.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.75),
+                              fontSize: 11,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.blue),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+

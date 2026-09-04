@@ -1,4 +1,4 @@
-﻿import type { WorkspaceId } from '@ahla/shared-contracts';
+import type { WorkspaceId } from '@ahla/shared-contracts';
 import {
   Activity,
   BadgeCheck,
@@ -16,6 +16,7 @@ import {
   FileSignature,
   Gauge,
   Gavel,
+  KeyRound,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -38,7 +39,7 @@ import {
   X,
   Search,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { AppLogo } from '../../ui/AppLogo';
 import { RouteErrorBoundary } from '../../ui/RouteErrorBoundary';
@@ -51,6 +52,7 @@ import { useNotifications } from '../notifications/useNotifications';
 import { hasAnyPermission, isUnifiedAdminActive } from './access';
 import { ChangePhotoDialog } from './ChangePhotoDialog';
 import { isFeatureEnabled, type FeatureFlagKey } from '../../ui/featureFlags';
+import { HRCopilotDrawer } from '../ai/HRCopilotDrawer';
 
 interface NavItem {
   label: string;
@@ -97,8 +99,9 @@ const hrSections: NavSection[] = [
     title: 'رحلة الموظف',
     items: [
       { label: 'التوظيف', to: '/hr/recruitment', icon: BriefcaseBusiness, permission: 'recruitment.requisition.read' },
-      { label: 'Onboarding', to: '/hr/onboarding', icon: ListChecks, permission: 'onboarding.journey.read' },
+      { label: 'تهيئة الموظفين', to: '/hr/onboarding', icon: ListChecks, permission: 'onboarding.journey.read' },
       { label: 'دورة حياة الموظف', to: '/hr/lifecycle', icon: PackageCheck, featureFlag: 'lifecycle' },
+      { label: 'كلمات المرور والحسابات', to: '/hr/passwords', icon: KeyRound, permission: 'people.employee.read' },
       { label: 'المستندات', to: '/hr/documents', icon: FileSignature, featureFlag: 'documents' },
     ],
   },
@@ -127,10 +130,11 @@ const adminSections: NavSection[] = [
     title: 'الموظفون',
     items: [
       { label: 'الموظفون والهيكل', to: '/admin/hr/employees', icon: Users, permission: 'people.employee.read' },
+      { label: 'كلمات المرور والحسابات', to: '/admin/hr/passwords', icon: KeyRound, permission: 'people.employee.read' },
       { label: 'هيكل المنظمة', to: '/admin/hr/organization', icon: Building2, permission: 'organization.entity.read' },
       { label: 'أجهزة الموظفين', to: '/admin/hr/devices', icon: Smartphone, permission: 'access.role.read' },
       { label: 'دورة حياة الموظف', to: '/admin/hr/lifecycle', icon: PackageCheck, permission: 'people.employee.read' },
-      { label: 'Onboarding', to: '/admin/hr/onboarding', icon: ListChecks, permission: 'onboarding.journey.read' },
+      { label: 'تهيئة الموظفين', to: '/admin/hr/onboarding', icon: ListChecks, permission: 'onboarding.journey.read' },
       { label: 'التوظيف', to: '/admin/hr/recruitment', icon: BriefcaseBusiness, permission: 'recruitment.requisition.read' },
       { label: 'المستندات', to: '/admin/hr/documents', icon: FileSignature, permission: 'documents.document.read' },
     ],
@@ -215,6 +219,18 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [changePhotoOpen, setChangePhotoOpen] = useState(false);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key === 'c' || e.key === 'C' || e.key === 'ؤ')) {
+        e.preventDefault();
+        setIsCopilotOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
   const [collapsed, setCollapsed] = useState(() =>
     (() => {
       try {
@@ -441,6 +457,16 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
           <div className="header-actions flex items-center gap-2">
             <WorkspaceSearch destinations={allItems.map((item) => ({ label: item.label, to: item.to, group: item.group }))} />
             <ThemeToggle />
+            {/* زر المساعد الإداري الذكي HR Copilot */}
+            <button
+              type="button"
+              className={`icon-button relative ${isCopilotOpen ? 'bg-[var(--brand-primary)]/15 text-[var(--brand-primary)] ring-2 ring-[var(--brand-primary)]' : ''}`}
+              aria-label="المساعد الإداري الذكي (Alt+C)"
+              title="المساعد الإداري الذكي (Alt+C)"
+              onClick={() => setIsCopilotOpen((prev) => !prev)}
+            >
+              <Sparkles className="size-4.5 text-amber-500" aria-hidden="true" />
+            </button>
             <button
               type="button"
               className="icon-button relative"
@@ -495,6 +521,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
           </div>
         </header>
         <ChangePhotoDialog open={changePhotoOpen} currentPhotoUrl={profilePhotoUrl} onClose={() => setChangePhotoOpen(false)} />
+        <HRCopilotDrawer isOpen={isCopilotOpen} onClose={() => setIsCopilotOpen(false)} />
         <main id="main-content" tabIndex={-1} key={location.pathname} className="page-container">
           <RouteErrorBoundary>
             <Outlet />

@@ -36,7 +36,7 @@ export function AttendanceHubPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-1 rounded-xl border border-[var(--border)] p-1" role="tablist" aria-label="أقسام الحضور">
+      <div className="flex flex-wrap gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xs" role="tablist" aria-label="أقسام الحضور">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -44,8 +44,10 @@ export function AttendanceHubPage() {
             role="tab"
             aria-selected={tab === t.key}
             onClick={() => setTab(t.key)}
-            className={`rounded-lg px-3.5 py-1.5 text-xs font-black transition-colors ${
-              tab === t.key ? 'bg-[var(--brand-primary)] text-white' : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)]'
+            className={`rounded-lg px-3.5 py-1.5 text-xs font-black transition-all ${
+              tab === t.key
+                ? 'bg-[var(--brand-primary)] text-white shadow-xs'
+                : 'text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
             {t.label}

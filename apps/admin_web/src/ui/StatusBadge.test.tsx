@@ -38,12 +38,16 @@ describe('StatusBadge', () => {
   // اختبار تغطية كل الحالات المهمة
   const criticalStatuses = [
     ['draft', 'مسودة', 'neutral'],
+    ['invited', 'تمت الدعوة', 'info'],
     ['active', 'نشط', 'success'],
     ['pending', 'قيد المراجعة', 'warning'],
     ['rejected', 'مرفوض', 'danger'],
     ['approved', 'معتمد', 'success'],
     ['cancelled', 'ملغي', 'neutral'],
     ['terminated', 'منتهي', 'danger'],
+    ['present', 'حاضر', 'success'],
+    ['absent', 'غائب', 'danger'],
+    ['on_leave', 'في إجازة', 'info'],
   ] as const;
 
   criticalStatuses.forEach(([status, label, tone]) => {

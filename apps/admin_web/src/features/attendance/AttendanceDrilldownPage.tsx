@@ -14,6 +14,7 @@ import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { Pagination } from '../../ui/Pagination';
 import { SkeletonCard } from '../../ui/Skeletons';
+import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useOrganizationLookups } from '../employees/useOrganizationLookups';
 import { useHrPrefix } from '../workspaces/access';
@@ -85,14 +86,6 @@ function formatTime(iso: string | null | undefined): string {
   return new Intl.DateTimeFormat('ar-EG', { timeStyle: 'short' }).format(new Date(iso));
 }
 
-function statusBadgeClass(status: string | null): string {
-  if (status === 'present') return 'status-pill--ok';
-  if (status === 'late') return 'status-pill--warn';
-  if (status === 'absent') return 'status-pill--danger';
-  if (status === 'missing_checkout') return 'status-pill--warn';
-  if (status === 'on_leave') return 'status-pill--ok';
-  return 'status-pill--neutral';
-}
 
 export function AttendanceDrilldownPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -346,7 +339,7 @@ function Row({ item }: { item: AttendanceRosterItem }) {
         </div>
       </td>
       <td>
-        <span className={`status-pill ${statusBadgeClass(item.status)}`}>{statusLabel(item.status)}</span>
+        <StatusBadge status={item.status ?? undefined} />
       </td>
       <td className="text-xs text-[var(--text-muted)]">{item.departmentName ?? '—'}</td>
       <td>

@@ -298,7 +298,10 @@ class MetricCard extends StatelessWidget {
                 value,
                 style: Theme.of(
                   context,
-                ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+                ).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
               const SizedBox(height: 2),
               Text(

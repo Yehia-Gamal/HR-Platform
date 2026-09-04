@@ -20,6 +20,7 @@ const ITEMS: CommandItem[] = [
   { label: 'الهيكل التنظيمي', path: 'organization', group: 'عام' },
   { label: 'المخطط التنظيمي', path: 'org-chart', group: 'عام' },
   { label: 'الموظفون', path: 'employees', group: 'الموظفون' },
+  { label: 'كلمات المرور والحسابات', path: 'passwords', group: 'الموظفون' },
   { label: 'إضافة موظف', path: 'employees/new', group: 'الموظفون' },
   { label: 'دورة الحياة', path: 'lifecycle', group: 'الموظفون' },
   { label: 'التهيئة والتأهيل', path: 'onboarding', group: 'الموظفون' },
@@ -103,7 +104,18 @@ export function CommandPalette() {
 
   const go = (item: CommandItem) => {
     setOpen(false);
-    navigate(item.path ? `${workspace}/${item.path}` : workspace);
+    if (!item.path) {
+      navigate(workspace);
+      return;
+    }
+    if (workspace === '/admin') {
+      const HR_PREFIXES = ['employees', 'passwords', 'attendance', 'requests', 'leaves', 'leave-tools', 'holidays', 'onboarding', 'lifecycle', 'devices', 'reports', 'daily-reports', 'official-feed', 'learning', 'documents'];
+      if (HR_PREFIXES.some((p) => item.path === p || item.path.startsWith(`${p}/`))) {
+        navigate(`/admin/hr/${item.path}`);
+        return;
+      }
+    }
+    navigate(`${workspace}/${item.path}`);
   };
 
   const onKeyDown = (event: React.KeyboardEvent) => {

@@ -1,4 +1,4 @@
-﻿import { lazy, Suspense, type ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import type { WorkspaceId } from '@ahla/shared-contracts';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
 import { LoadingScreen } from '../ui/LoadingScreen';
@@ -27,6 +27,7 @@ const EmployeesPage = lazy(() => import('../features/employees/EmployeesPage').t
 const EmployeeDirectoryPage = lazy(() => import('../features/employees/EmployeeDirectoryPage').then((m) => ({ default: m.EmployeeDirectoryPage })));
 const CreateEmployeePage = lazy(() => import('../features/employees/CreateEmployeePage').then((m) => ({ default: m.CreateEmployeePage })));
 const EmployeeDetailPage = lazy(() => import('../features/employees/EmployeeDetailPage').then((m) => ({ default: m.EmployeeDetailPage })));
+const EmployeePasswordsPage = lazy(() => import('../features/employees/EmployeePasswordsPage').then((m) => ({ default: m.EmployeePasswordsPage })));
 const AttendanceHubPage = lazy(() => import('../features/attendance/AttendanceHubPage').then((m) => ({ default: m.AttendanceHubPage })));
 const AttendanceReportsPage = lazy(() => import('../features/attendance/AttendanceReportsPage').then((m) => ({ default: m.AttendanceReportsPage })));
 const PerformancePage = lazy(() => import('../features/performance/PerformancePage').then((m) => ({ default: m.PerformancePage })));
@@ -137,6 +138,8 @@ function AuthenticatedApp() {
             {/* صفحات HR داخل القائمة الموحّدة */}
             <Route path="hr" element={<DashboardPage type="hr" />} />
             <Route path="hr/*" element={<HrWorkspaceRoutes />} />
+            <Route path="passwords" element={<Navigate to="/admin/hr/passwords" replace />} />
+            <Route path="employees/passwords" element={<Navigate to="/admin/hr/passwords" replace />} />
             <Route
               path="actions"
               element={
@@ -405,6 +408,15 @@ function HrWorkspaceRoutes() {
           </RequirePermission>
         }
       />
+      <Route
+        path="passwords"
+        element={
+          <RequirePermission perm={['people.employee.update_sensitive', 'people.employee.read']}>
+            <EmployeePasswordsPage />
+          </RequirePermission>
+        }
+      />
+      <Route path="employees/passwords" element={<Navigate to="../passwords" replace />} />
       <Route
         path="attendance"
         element={

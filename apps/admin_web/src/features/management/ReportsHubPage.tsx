@@ -2,14 +2,16 @@ import { useSearchParams } from 'react-router';
 import { ReportsPage } from './ReportsPage';
 import { ReportSchedulerPage } from './ReportSchedulerPage';
 import { AnalyticsDashboardPage } from '../analytics/AnalyticsDashboardPage';
+import { CustomReportBuilder } from '../reports/CustomReportBuilder';
 
 /**
- * مركز التقارير الموحّد — التقارير والجدولة والتحليلات بتبويبات.
+ * مركز التقارير الموحّد — التقارير والجدولة والتحليلات ومنشئ التقارير بتبويبات.
  * المسارات القديمة (reports/scheduler، analytics) تُحوَّل هنا.
  */
 
 const TABS = [
   { key: 'reports', label: 'تقارير HR' },
+  { key: 'builder', label: 'منشئ التقارير المخصص' },
   { key: 'scheduler', label: 'الجدولة' },
   { key: 'analytics', label: 'التحليلات' },
 ] as const;
@@ -50,7 +52,15 @@ export function ReportsHubPage() {
         ))}
       </div>
 
-      {tab === 'scheduler' ? <ReportSchedulerPage /> : tab === 'analytics' ? <AnalyticsDashboardPage /> : <ReportsPage />}
+      {tab === 'builder' ? (
+        <CustomReportBuilder />
+      ) : tab === 'scheduler' ? (
+        <ReportSchedulerPage />
+      ) : tab === 'analytics' ? (
+        <AnalyticsDashboardPage />
+      ) : (
+        <ReportsPage />
+      )}
     </div>
   );
 }
