@@ -1875,67 +1875,68 @@ class AttendanceStatementSummary {
 
   factory AttendanceStatementSummary.fromJson(
     Map<String, dynamic> json,
-  ) => AttendanceStatementSummary(
-    totalDays: (json['totalDays'] as num?)?.toInt() ?? 0,
-    scheduledDays: (json['scheduledDays'] as num?)?.toInt() ?? 0,
-    dueScheduledDays:
-        (json['dueScheduledDays'] as num?)?.toInt() ??
-        (json['scheduledDays'] as num?)?.toInt() ??
-        0,
-    upcomingDays: (json['upcomingDays'] as num?)?.toInt() ?? 0,
-    presentDays: (json['presentDays'] as num?)?.toInt() ?? 0,
-    absentDays: (json['absentDays'] as num?)?.toInt() ?? 0,
-    openShiftDays: (json['openShiftDays'] as num?)?.toInt() ?? 0,
-    completedPresenceDays:
-        (json['completedPresenceDays'] as num?)?.toInt() ?? 0,
-    leaveDays: (json['leaveDays'] as num?)?.toInt() ?? 0,
-    missionDays: (json['missionDays'] as num?)?.toInt() ?? 0,
-    permitCount: (json['permitCount'] as num?)?.toInt() ?? 0,
-    convoyFundiDays: (json['convoyFundiDays'] as num?)?.toInt() ?? 0,
-    holidayDays: (json['holidayDays'] as num?)?.toInt() ?? 0,
-    restDays: (json['restDays'] as num?)?.toInt() ?? 0,
-    totalWorkHours: (json['totalWorkHours'] as num?)?.toDouble() ?? 0,
-    totalRequiredHours: (json['totalRequiredHours'] as num?)?.toDouble() ?? 0,
-    averageWorkHours: (json['averageWorkHours'] as num?)?.toDouble() ?? 0,
-    totalLateMinutes: (json['totalLateMinutes'] as num?)?.toInt() ?? 0,
-    totalEarlyLeaveMinutes:
-        (json['totalEarlyLeaveMinutes'] as num?)?.toInt() ?? 0,
-    totalOvertimeMinutes: (json['totalOvertimeMinutes'] as num?)?.toInt() ?? 0,
-    missingCheckInCount: (json['missingCheckInCount'] as num?)?.toInt() ?? 0,
-    missingCheckOutCount: (json['missingCheckOutCount'] as num?)?.toInt() ?? 0,
-    correctionCount: (json['correctionCount'] as num?)?.toInt() ?? 0,
-    attendanceRate: (json['attendanceRate'] as num?)?.toDouble(),
-    attendanceRatePresentDays:
-        ((json['attendanceRateBasis'] as Map<String, dynamic>?)?['presentInDue']
-                as num?)
-            ?.toInt() ??
-        (json['presentDays'] as num?)?.toInt() ??
-        0,
-    attendanceRateDueDays:
-        ((json['attendanceRateBasis'] as Map<String, dynamic>?)?['dueDays']
-                as num?)
-            ?.toInt() ??
-        (json['scheduledDays'] as num?)?.toInt() ??
-        (json['dueScheduledDays'] as num?)?.toInt() ??
-        0,
-    hoursComplianceRate: (json['hoursComplianceRate'] as num?)?.toDouble() ?? 0,
-    hoursComplianceAvailable:
-        json['hoursComplianceAvailable'] as bool? ??
-        ((json['totalRequiredHours'] as num?)?.toDouble() ?? 0) > 0,
-    coverageRate: (json['coverageRate'] as num?)?.toDouble() ?? 0,
-    coverageDays: (json['coverageDays'] as num?)?.toInt() ?? 0,
-    totalDeficitMinutes: (json['totalDeficitMinutes'] as num?)?.toInt() ?? 0,
-    hoursRateWorkedMinutes:
-        (((json['hoursRateBasis'] as Map<String, dynamic>?)?['workedMinutes'])
-                as num?)
-            ?.toInt() ??
-        (((json['totalWorkHours'] as num?)?.toDouble() ?? 0) * 60).round(),
-    hoursRateRequiredMinutes:
-        (((json['hoursRateBasis'] as Map<String, dynamic>?)?['requiredMinutes'])
-                as num?)
-            ?.toInt() ??
-        (((json['totalRequiredHours'] as num?)?.toDouble() ?? 0) * 60).round(),
-  );
+  ) {
+    final rateBasis = json['attendanceRateBasis'] is Map
+        ? Map<String, dynamic>.from(json['attendanceRateBasis'] as Map)
+        : null;
+    final hoursBasis = json['hoursRateBasis'] is Map
+        ? Map<String, dynamic>.from(json['hoursRateBasis'] as Map)
+        : null;
+
+    return AttendanceStatementSummary(
+      totalDays: (json['totalDays'] as num?)?.toInt() ?? 0,
+      scheduledDays: (json['scheduledDays'] as num?)?.toInt() ?? 0,
+      dueScheduledDays:
+          (json['dueScheduledDays'] as num?)?.toInt() ??
+          (json['scheduledDays'] as num?)?.toInt() ??
+          0,
+      upcomingDays: (json['upcomingDays'] as num?)?.toInt() ?? 0,
+      presentDays: (json['presentDays'] as num?)?.toInt() ?? 0,
+      absentDays: (json['absentDays'] as num?)?.toInt() ?? 0,
+      openShiftDays: (json['openShiftDays'] as num?)?.toInt() ?? 0,
+      completedPresenceDays:
+          (json['completedPresenceDays'] as num?)?.toInt() ?? 0,
+      leaveDays: (json['leaveDays'] as num?)?.toInt() ?? 0,
+      missionDays: (json['missionDays'] as num?)?.toInt() ?? 0,
+      permitCount: (json['permitCount'] as num?)?.toInt() ?? 0,
+      convoyFundiDays: (json['convoyFundiDays'] as num?)?.toInt() ?? 0,
+      holidayDays: (json['holidayDays'] as num?)?.toInt() ?? 0,
+      restDays: (json['restDays'] as num?)?.toInt() ?? 0,
+      totalWorkHours: (json['totalWorkHours'] as num?)?.toDouble() ?? 0,
+      totalRequiredHours: (json['totalRequiredHours'] as num?)?.toDouble() ?? 0,
+      averageWorkHours: (json['averageWorkHours'] as num?)?.toDouble() ?? 0,
+      totalLateMinutes: (json['totalLateMinutes'] as num?)?.toInt() ?? 0,
+      totalEarlyLeaveMinutes:
+          (json['totalEarlyLeaveMinutes'] as num?)?.toInt() ?? 0,
+      totalOvertimeMinutes: (json['totalOvertimeMinutes'] as num?)?.toInt() ?? 0,
+      missingCheckInCount: (json['missingCheckInCount'] as num?)?.toInt() ?? 0,
+      missingCheckOutCount: (json['missingCheckOutCount'] as num?)?.toInt() ?? 0,
+      correctionCount: (json['correctionCount'] as num?)?.toInt() ?? 0,
+      attendanceRate: (json['attendanceRate'] as num?)?.toDouble(),
+      attendanceRatePresentDays:
+          (rateBasis?['presentInDue'] as num?)?.toInt() ??
+          (json['presentDays'] as num?)?.toInt() ??
+          0,
+      attendanceRateDueDays:
+          (rateBasis?['dueDays'] as num?)?.toInt() ??
+          (json['scheduledDays'] as num?)?.toInt() ??
+          (json['dueScheduledDays'] as num?)?.toInt() ??
+          0,
+      hoursComplianceRate: (json['hoursComplianceRate'] as num?)?.toDouble() ?? 0,
+      hoursComplianceAvailable:
+          json['hoursComplianceAvailable'] as bool? ??
+          ((json['totalRequiredHours'] as num?)?.toDouble() ?? 0) > 0,
+      coverageRate: (json['coverageRate'] as num?)?.toDouble() ?? 0,
+      coverageDays: (json['coverageDays'] as num?)?.toInt() ?? 0,
+      totalDeficitMinutes: (json['totalDeficitMinutes'] as num?)?.toInt() ?? 0,
+      hoursRateWorkedMinutes:
+          (hoursBasis?['workedMinutes'] as num?)?.toInt() ??
+          (((json['totalWorkHours'] as num?)?.toDouble() ?? 0) * 60).round(),
+      hoursRateRequiredMinutes:
+          (hoursBasis?['requiredMinutes'] as num?)?.toInt() ??
+          (((json['totalRequiredHours'] as num?)?.toDouble() ?? 0) * 60).round(),
+    );
+  }
 
   final int totalDays;
   final int scheduledDays;
@@ -1992,9 +1993,15 @@ class MonthlyAttendanceStatement {
   });
 
   factory MonthlyAttendanceStatement.fromJson(Map<String, dynamic> json) {
-    final emp = (json['employee'] as Map<String, dynamic>?) ?? {};
-    final period = (json['period'] as Map<String, dynamic>?) ?? {};
-    final sumJson = (json['summary'] as Map<String, dynamic>?) ?? {};
+    final emp = json['employee'] is Map
+        ? Map<String, dynamic>.from(json['employee'] as Map)
+        : <String, dynamic>{};
+    final period = json['period'] is Map
+        ? Map<String, dynamic>.from(json['period'] as Map)
+        : <String, dynamic>{};
+    final sumJson = json['summary'] is Map
+        ? Map<String, dynamic>.from(json['summary'] as Map)
+        : <String, dynamic>{};
     final daysJson = (json['days'] as List<dynamic>?) ?? [];
     return MonthlyAttendanceStatement(
       employeeNameAr: emp['fullNameAr'] as String? ?? '',
@@ -2010,8 +2017,11 @@ class MonthlyAttendanceStatement {
       endDate: period['endDate'] as String? ?? '',
       generatedAt: period['generatedAt'] as String? ?? '',
       days: daysJson
+          .where((e) => e != null && e is Map)
           .map(
-            (e) => AttendanceStatementDay.fromJson(e as Map<String, dynamic>),
+            (e) => AttendanceStatementDay.fromJson(
+              Map<String, dynamic>.from(e as Map),
+            ),
           )
           .toList(growable: false),
       summary: AttendanceStatementSummary.fromJson(sumJson),

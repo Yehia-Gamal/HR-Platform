@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
@@ -17,10 +18,22 @@ import 'package:uuid/uuid.dart';
 part 'mobile_location_providers.dart';
 part 'mobile_commands.dart';
 
-Map<String, dynamic> _asMap(dynamic value) =>
-    Map<String, dynamic>.from(value as Map<dynamic, dynamic>);
+Map<String, dynamic> _asMap(dynamic value) {
+  if (value == null) return const {};
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) return Map<String, dynamic>.from(value);
+  if (value is String) {
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is Map) return Map<String, dynamic>.from(decoded);
+    } catch (_) {}
+  }
+  return const {};
+}
+
 List<Map<String, dynamic>> _asList(dynamic value) =>
     (value as List<dynamic>? ?? const [])
+        .where((e) => e != null)
         .map((e) => _asMap(e))
         .toList(growable: false);
 

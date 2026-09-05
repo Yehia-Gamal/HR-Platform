@@ -163,6 +163,10 @@ String humanizeError(Object error, [StackTrace? stack]) {
 
 String _humanizePostgrest(PostgrestException error) {
   final code = error.code;
+  final m = error.message;
+  if (m.contains('NO_EMPLOYEE_LINKED')) {
+    return 'حسابك غير مرتبط بملف موظف. تواصل مع إدارة الموارد البشرية.';
+  }
   switch (code) {
     case '42703':
       return 'تعذر تحميل البيانات. تواصل مع مسؤول النظام.';
