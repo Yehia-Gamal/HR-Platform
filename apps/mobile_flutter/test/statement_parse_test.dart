@@ -1,5 +1,4 @@
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
-import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
