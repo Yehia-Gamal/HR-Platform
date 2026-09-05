@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 import { createLogger } from '../_shared/logger.ts';
 import { json, preflight } from '../_shared/cors.ts';
 import { createHandler } from '../_shared/withHandler.ts';
