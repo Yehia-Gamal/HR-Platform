@@ -1755,6 +1755,8 @@ class AttendanceStatementDay {
     required this.isDue,
     required this.isOpenShift,
     required this.isCompleted,
+    this.hasAdminOverride = false,
+    this.adminOverride,
     this.leaveDetail,
     this.assignmentDetail,
     this.permitDetail,
@@ -1788,6 +1790,11 @@ class AttendanceStatementDay {
         isDue: json['isDue'] as bool? ?? false,
         isOpenShift: json['isOpenShift'] as bool? ?? false,
         isCompleted: json['isCompleted'] as bool? ?? false,
+        hasAdminOverride: (json['adminOverride'] != null && json['adminOverride'] is Map) ||
+            (json['hasAdminOverride'] as bool? ?? false),
+        adminOverride: json['adminOverride'] is Map
+            ? Map<String, dynamic>.from(json['adminOverride'] as Map)
+            : null,
         leaveDetail: _mapDayDetail(json['details'], 'leave'),
         assignmentDetail: _mapDayDetail(json['details'], 'assignment'),
         permitDetail: _mapDayDetail(json['details'], 'permit'),
@@ -1827,6 +1834,8 @@ class AttendanceStatementDay {
   final bool isDue;
   final bool isOpenShift;
   final bool isCompleted;
+  final bool hasAdminOverride;
+  final Map<String, dynamic>? adminOverride;
 
   /// تفاصيل إيضاحية تعبَّأ من backend (0252) — كلها اختيارية.
   final Map<String, dynamic>? leaveDetail;
@@ -1976,6 +1985,8 @@ class AttendanceStatementSummary {
 /// كشف الحضور والانصراف الشهري الكامل (V12 §18).
 class MonthlyAttendanceStatement {
   const MonthlyAttendanceStatement({
+    this.employeeId = '',
+    this.canEditDays = false,
     required this.employeeNameAr,
     required this.employeeCode,
     required this.jobTitle,
@@ -2002,8 +2013,13 @@ class MonthlyAttendanceStatement {
     final sumJson = json['summary'] is Map
         ? Map<String, dynamic>.from(json['summary'] as Map)
         : <String, dynamic>{};
+    final cap = json['capabilities'] is Map
+        ? Map<String, dynamic>.from(json['capabilities'] as Map)
+        : <String, dynamic>{};
     final daysJson = (json['days'] as List<dynamic>?) ?? [];
     return MonthlyAttendanceStatement(
+      employeeId: emp['id'] as String? ?? json['employeeId'] as String? ?? '',
+      canEditDays: cap['canEditDays'] as bool? ?? false,
       employeeNameAr: emp['fullNameAr'] as String? ?? '',
       employeeCode: emp['employeeCode'] as String?,
       jobTitle: emp['jobTitle'] as String? ?? '',
@@ -2028,6 +2044,8 @@ class MonthlyAttendanceStatement {
     );
   }
 
+  final String employeeId;
+  final bool canEditDays;
   final String employeeNameAr;
   final String? employeeCode;
   final String jobTitle;

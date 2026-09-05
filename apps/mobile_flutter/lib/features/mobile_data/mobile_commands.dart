@@ -1472,4 +1472,52 @@ extension MobileSelfServiceCommands on MobileCommands {
     );
     ref.invalidate(myDisputePortalProvider);
   }
+
+  /// تعديل يوم إدارياً (حالة اليوم أو ساعات العمل)
+  Future<void> setAttendanceDayAdmin({
+    required String employeeId,
+    required String date,
+    required String dayType,
+    String? checkIn,
+    String? checkOut,
+    bool clearCheckIn = false,
+    bool clearCheckOut = false,
+    String? reason,
+    String? notes,
+    String? leaveType,
+  }) async {
+    await _withTimeout(
+      ref.read(supabaseProvider).rpc<dynamic>(
+        'set_employee_attendance_day_admin',
+        params: {
+          'p_employee_id': employeeId,
+          'p_work_date': date,
+          'p_day_type': dayType,
+          'p_check_in': checkIn,
+          'p_check_out': checkOut,
+          'p_clear_check_in': clearCheckIn,
+          'p_clear_check_out': clearCheckOut,
+          'p_reason': reason ?? 'تعديل إداري معتمد',
+          'p_notes': notes,
+          'p_leave_type': leaveType,
+        },
+      ),
+    );
+  }
+
+  /// إلغاء التعديل الإداري والعودة لاحتساب النظام الأصلي
+  Future<void> clearAttendanceDayAdmin({
+    required String employeeId,
+    required String date,
+  }) async {
+    await _withTimeout(
+      ref.read(supabaseProvider).rpc<dynamic>(
+        'clear_employee_attendance_day_admin',
+        params: {
+          'p_employee_id': employeeId,
+          'p_work_date': date,
+        },
+      ),
+    );
+  }
 }

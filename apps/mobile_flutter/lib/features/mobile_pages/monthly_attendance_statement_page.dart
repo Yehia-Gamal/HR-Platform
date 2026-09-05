@@ -244,6 +244,7 @@ class _StatementBody extends StatelessWidget {
                   color: scheme.onSurfaceVariant)),
         const SizedBox(height: 10),
         _MonthlyCalendarGrid(
+          statement: statement,
           days: statement.days,
           year: statement.year,
           month: statement.month,
@@ -530,10 +531,12 @@ class _SummaryTile extends StatelessWidget {
 
 class _MonthlyCalendarGrid extends StatelessWidget {
   const _MonthlyCalendarGrid({
+    required this.statement,
     required this.days,
     required this.year,
     required this.month,
   });
+  final MonthlyAttendanceStatement statement;
   final List<AttendanceStatementDay> days;
   final int year;
   final int month;
@@ -600,6 +603,7 @@ class _MonthlyCalendarGrid extends StatelessWidget {
                   );
                   return Expanded(
                     child: _CalendarDayCell(
+                      statement: statement,
                       dayNum: dayNum,
                       dayData: dayData,
                       isToday: isToday,
@@ -622,6 +626,7 @@ class _MonthlyCalendarGrid extends StatelessWidget {
 
 class _CalendarDayCell extends StatelessWidget {
   const _CalendarDayCell({
+    required this.statement,
     required this.dayNum,
     required this.dayData,
     required this.isToday,
@@ -629,6 +634,7 @@ class _CalendarDayCell extends StatelessWidget {
     required this.year,
     required this.month,
   });
+  final MonthlyAttendanceStatement statement;
   final int dayNum;
   final AttendanceStatementDay? dayData;
   final bool isToday;
@@ -830,6 +836,7 @@ class _CalendarDayCell extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => _DayDetailSheet(
+        statement: statement,
         day: dayData,
         dayNum: dayNum,
         isFuture: isFuture,
@@ -845,6 +852,7 @@ class _CalendarDayCell extends StatelessWidget {
 
 class _DayDetailSheet extends ConsumerWidget {
   const _DayDetailSheet({
+    required this.statement,
     required this.day,
     required this.dayNum,
     required this.isFuture,
@@ -852,6 +860,7 @@ class _DayDetailSheet extends ConsumerWidget {
     required this.year,
     required this.month,
   });
+  final MonthlyAttendanceStatement statement;
   final AttendanceStatementDay? day;
   final int dayNum;
   final bool isFuture;
@@ -927,6 +936,40 @@ class _DayDetailSheet extends ConsumerWidget {
             ),
 
             const SizedBox(height: 16),
+
+            if (day?.hasAdminOverride == true) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEF0FB),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.verified_user_outlined, size: 18, color: Color(0xFF6366F1)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'تعديل إداري مسجل: ${day?.adminOverride?['dayType'] ?? ''}',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF3D4FA8)),
+                          ),
+                          if (day?.adminOverride?['reason'] != null)
+                            Text(
+                              'السبب: ${day!.adminOverride!['reason']}',
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF475569)),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
 
             // ─ بطاقة الحضور/الانصراف (أيام فائتة فقط) ─
             if (!isFuture && day != null) ...[
@@ -1145,6 +1188,27 @@ class _DayDetailSheet extends ConsumerWidget {
       ));
     }
 
+    // ── إجراءات المدير / المشرف المعتمد (تعديل اليوم إدارياً أو إلغاؤه) ──
+    if (statement.canEditDays) {
+      actions.add(_ActionTile(
+        icon: Icons.edit_calendar_rounded,
+        label: 'تعديل اليوم إدارياً (حالة اليوم وساعات العمل)',
+        subtitle: 'تعديل نوع اليوم إلى عمل أو إجازة أو مأمورية أو ضبط الساعات.',
+        color: scheme.primary,
+        onTap: () => _openAdminEditDaySheet(context, ref),
+      ));
+    }
+
+    if (day?.hasAdminOverride == true && statement.canEditDays) {
+      actions.add(_ActionTile(
+        icon: Icons.restart_alt_rounded,
+        label: 'إلغاء التعديل الإداري والعودة لاحتساب النظام',
+        subtitle: 'حذف الاستثناء الإداري واستعادة الاحتساب التلقائي للبصمات.',
+        color: scheme.error,
+        onTap: () => _revertAdminOverride(context, ref),
+      ));
+    }
+
     if (actions.isEmpty) {
       actions.add(Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1156,6 +1220,76 @@ class _DayDetailSheet extends ConsumerWidget {
     }
 
     return actions;
+  }
+
+  // ── إلغاء التعديل الإداري والعودة لاحتساب النظام ──
+  Future<void> _revertAdminOverride(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('إلغاء التعديل الإداري'),
+        content: const Text(
+          'هل أنت متأكد من رغبتك في إلغاء التعديل الإداري والعودة لاحتساب النظام الأصلي للبصمات؟',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('تراجع'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('تأكيد الإلغاء'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    Navigator.pop(context);
+    try {
+      final empId = statement.employeeId;
+      await ref.read(mobileCommandsProvider).clearAttendanceDayAdmin(
+            employeeId: empId,
+            date: _dateStr,
+          );
+      _invalidateProviders(ref);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم إلغاء التعديل الإداري واستعادة احتساب النظام.')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(error))),
+        );
+      }
+    }
+  }
+
+  // ── فتح ورقة التعديل الإداري ──
+  Future<void> _openAdminEditDaySheet(BuildContext context, WidgetRef ref) async {
+    Navigator.pop(context);
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _AdminEditDaySheet(
+        statement: statement,
+        day: day,
+        dateStr: _dateStr,
+        dayNum: dayNum,
+        year: year,
+        month: month,
+      ),
+    );
+    if (result == true) {
+      _invalidateProviders(ref);
+    }
   }
 
   // ── فتح نموذج طلب إجازة سريع ──
@@ -1273,6 +1407,13 @@ class _DayDetailSheet extends ConsumerWidget {
   void _invalidateProviders(WidgetRef ref) {
     ref.invalidate(mobileRequestsProvider);
     ref.invalidate(myMonthlyStatementProvider((year, month)));
+    if (statement.employeeId.isNotEmpty) {
+      ref.invalidate(
+        employeeMonthlyStatementProvider(
+          (statement.employeeId, year, month),
+        ),
+      );
+    }
   }
 }
 
@@ -1670,3 +1811,365 @@ class _DetailChip extends StatelessWidget {
     );
   }
 }
+
+// ─── ورقة تعديل اليوم إدارياً ─────────────────────────────────────
+
+class _AdminEditDaySheet extends ConsumerStatefulWidget {
+  const _AdminEditDaySheet({
+    required this.statement,
+    required this.day,
+    required this.dateStr,
+    required this.dayNum,
+    required this.year,
+    required this.month,
+  });
+
+  final MonthlyAttendanceStatement statement;
+  final AttendanceStatementDay? day;
+  final String dateStr;
+  final int dayNum;
+  final int year;
+  final int month;
+
+  @override
+  ConsumerState<_AdminEditDaySheet> createState() => _AdminEditDaySheetState();
+}
+
+class _AdminEditDaySheetState extends ConsumerState<_AdminEditDaySheet> {
+  late String _dayType;
+  late String _leaveType;
+  late TextEditingController _checkInController;
+  late TextEditingController _checkOutController;
+  late TextEditingController _reasonController;
+  late TextEditingController _notesController;
+  bool _clearCheckIn = false;
+  bool _clearCheckOut = false;
+  bool _isSubmitting = false;
+
+  static const _dayTypes = [
+    ('work', 'يوم عمل (حاضر)', Icons.work_outline),
+    ('leave', 'إجازة معتمدة', Icons.beach_access_outlined),
+    ('mission', 'مأمورية عمل', Icons.directions_car_outlined),
+    ('convoy', 'قافلة خيرية', Icons.volunteer_activism_outlined),
+    ('fundraising', 'فاندي تبرعات', Icons.stars_outlined),
+    ('rest', 'راحة أسبوعية', Icons.wb_sunny_outlined),
+    ('holiday', 'عطلة رسمية', Icons.calendar_today_outlined),
+    ('absent', 'تأكيد غياب', Icons.cancel_outlined),
+  ];
+
+  static const _leaveTypes = [
+    ('annual', 'إجازة سنوية (اعتيادية)'),
+    ('casual', 'إجازة عارضة'),
+    ('sick', 'إجازة مرضية'),
+    ('unpaid', 'إجازة بدون راتب'),
+    ('weekly_rest_comp', 'بدل راحة أسبوعية'),
+  ];
+
+  static const _quickHours = [
+    ('8 ساعات (09:00 - 17:00)', '09:00', '17:00'),
+    ('8 ساعات (08:00 - 16:00)', '08:00', '16:00'),
+    ('4 ساعات (09:00 - 13:00)', '09:00', '13:00'),
+    ('10 ساعات (08:00 - 18:00)', '08:00', '18:00'),
+  ];
+
+  static const _presetReasons = [
+    'تعديل ساعات العمل المعتمدة',
+    'تصحيح وقت الحضور والانصراف',
+    'إجازة معتمدة من الإدارة',
+    'مأمورية عمل رسمية',
+    'عطلة رسمية معتمدة',
+    'دوام كامل معتمد',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final existingType = widget.day?.adminOverride?['dayType'] as String? ?? 'work';
+    _dayType = existingType;
+    _leaveType = widget.day?.adminOverride?['leaveType'] as String? ?? 'annual';
+    _checkInController = TextEditingController(
+      text: widget.day?.checkIn != null && widget.day!.checkIn!.length >= 5
+          ? widget.day!.checkIn!.substring(0, 5)
+          : '09:00',
+    );
+    _checkOutController = TextEditingController(
+      text: widget.day?.checkOut != null && widget.day!.checkOut!.length >= 5
+          ? widget.day!.checkOut!.substring(0, 5)
+          : '17:00',
+    );
+    _reasonController = TextEditingController(
+      text: widget.day?.adminOverride?['reason'] as String? ?? 'تعديل ساعات وحضور معتمد',
+    );
+    _notesController = TextEditingController(
+      text: widget.day?.adminOverride?['notes'] as String? ?? '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _checkInController.dispose();
+    _checkOutController.dispose();
+    _reasonController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() => _isSubmitting = true);
+    try {
+      final empId = widget.statement.employeeId;
+      await ref.read(mobileCommandsProvider).setAttendanceDayAdmin(
+            employeeId: empId,
+            date: widget.dateStr,
+            dayType: _dayType,
+            checkIn: _dayType == 'work' && !_clearCheckIn ? _checkInController.text.trim() : null,
+            checkOut: _dayType == 'work' && !_clearCheckOut ? _checkOutController.text.trim() : null,
+            clearCheckIn: _dayType != 'work' || _clearCheckIn,
+            clearCheckOut: _dayType != 'work' || _clearCheckOut,
+            reason: _reasonController.text.trim().isNotEmpty
+                ? _reasonController.text.trim()
+                : 'تعديل إداري معتمد',
+            notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
+            leaveType: _dayType == 'leave' || _dayType == 'absent' ? _leaveType : null,
+          );
+      if (mounted) {
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم حفظ التعديل الإداري بنجاح.')),
+        );
+      }
+    } catch (error) {
+      setState(() => _isSubmitting = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(error))),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      maxChildSize: 0.95,
+      minChildSize: 0.4,
+      expand: false,
+      builder: (context, scrollController) {
+        return ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: scheme.onSurfaceVariant.withValues(alpha: .3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Text(
+              'تعديل إداري ليوم ${widget.dateStr}',
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'تعديل حالة اليوم أو ساعات العمل وتوثيقه في سجل التدقيق.',
+              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 16),
+
+            // 1. اختيار حالة اليوم
+            Text(
+              'حالة اليوم',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: scheme.primary),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _dayTypes.map((t) {
+                final isSelected = _dayType == t.$1;
+                return ChoiceChip(
+                  avatar: Icon(t.$3, size: 16, color: isSelected ? scheme.onPrimary : scheme.primary),
+                  label: Text(t.$2, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  selected: isSelected,
+                  selectedColor: scheme.primary,
+                  labelStyle: TextStyle(color: isSelected ? scheme.onPrimary : scheme.onSurface),
+                  onSelected: (val) {
+                    if (val) {
+                      setState(() {
+                        _dayType = t.$1;
+                        if (_dayType == 'leave' || _dayType == 'absent') {
+                          _leaveType = _dayType == 'absent' ? 'unpaid' : 'annual';
+                        }
+                      });
+                    }
+                  },
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+
+            // 2. تفاصيل الإجازة إن اختيرت
+            if (_dayType == 'leave' || _dayType == 'absent') ...[
+              Text(
+                'نوع الإجازة',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: scheme.primary),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _leaveType,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+                items: _leaveTypes.map((lt) => DropdownMenuItem(value: lt.$1, child: Text(lt.$2))).toList(),
+                onChanged: (val) => setState(() => _leaveType = val ?? 'annual'),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // 3. ساعات وأوقات العمل عند اختيار يوم عمل
+            if (_dayType == 'work') ...[
+              Text(
+                'ساعات وأوقات العمل',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: scheme.primary),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: _quickHours.map((qh) {
+                  final isActive = _checkInController.text == qh.$2 &&
+                      _checkOutController.text == qh.$3 &&
+                      !_clearCheckIn &&
+                      !_clearCheckOut;
+                  return ActionChip(
+                    label: Text(qh.$1, style: const TextStyle(fontSize: 11)),
+                    backgroundColor: isActive ? scheme.primaryContainer : null,
+                    side: BorderSide(color: isActive ? scheme.primary : scheme.outlineVariant),
+                    onPressed: () {
+                      setState(() {
+                        _checkInController.text = qh.$2;
+                        _checkOutController.text = qh.$3;
+                        _clearCheckIn = false;
+                        _clearCheckOut = false;
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _checkInController,
+                      enabled: !_clearCheckIn,
+                      decoration: const InputDecoration(
+                        labelText: 'وقت الحضور (HH:MM)',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _checkOutController,
+                      enabled: !_clearCheckOut,
+                      decoration: const InputDecoration(
+                        labelText: 'وقت الانصراف (HH:MM)',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: CheckboxListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('بدون حضور', style: TextStyle(fontSize: 11)),
+                      value: _clearCheckIn,
+                      onChanged: (v) => setState(() => _clearCheckIn = v ?? false),
+                    ),
+                  ),
+                  Expanded(
+                    child: CheckboxListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('بدون انصراف', style: TextStyle(fontSize: 11)),
+                      value: _clearCheckOut,
+                      onChanged: (v) => setState(() => _clearCheckOut = v ?? false),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // 4. سبب التعديل
+            Text(
+              'سبب التعديل',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: scheme.primary),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: _presetReasons.map((pr) {
+                return ActionChip(
+                  label: Text(pr, style: const TextStyle(fontSize: 11)),
+                  onPressed: () => setState(() => _reasonController.text = pr),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _reasonController,
+              decoration: const InputDecoration(
+                labelText: 'اكتب سبب التعديل…',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 5. ملاحظات
+            TextField(
+              controller: _notesController,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'ملاحظات إضافية (اختيارية)',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // 6. زر الحفظ
+            FilledButton.icon(
+              icon: _isSubmitting
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.save_rounded),
+              label: Text(_isSubmitting ? 'جارٍ الحفظ…' : 'حفظ التعديل الإداري'),
+              onPressed: _isSubmitting ? null : _submit,
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+

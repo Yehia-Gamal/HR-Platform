@@ -90,6 +90,7 @@ export function buildDayTags(d: AttendanceStatementDay): { label: string; varian
   if (d.isOpenShift) tags.push({ label: 'بانتظار الانصراف', variant: 'info' });
   if (d.isFuture) tags.push({ label: 'قادم', variant: 'info' });
   if (d.hasCorrection) tags.push({ label: 'تصحيح', variant: 'info' });
+  if (d.adminOverride) tags.push({ label: 'تعديل إداري', variant: 'purple' });
   if (d.penalties > 0) tags.push({ label: `جزاء: ${d.penalties}`, variant: 'warn' });
   return tags;
 }
