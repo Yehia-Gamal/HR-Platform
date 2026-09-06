@@ -60,6 +60,7 @@ export function buildStatementBodyHtml(data: AttendanceStatement, orgName = 'ج�
       if (d.isOpenShift) tags.push('بانتظار الانصراف');
       if (d.isFuture) tags.push('قادم');
       if (d.hasCorrection) tags.push('تصحيح');
+      if (d.adminOverride) tags.push('تعديل إداري');
       if (d.penalties > 0) tags.push(`جزاء: ${d.penalties}`);
 
       const isRest = d.status === 'راحة أسبوعية' || d.status === 'عطلة رسمية';

@@ -17,6 +17,7 @@ import { exportAttendancePDF } from './exportAttendancePDF';
 import { exportAttendancePdf, exportExecutiveDailyReportPdf } from './useAttendanceDashboard';
 import { exportWeeklyAttendancePdf, exportMonthlyAttendancePdf } from './exportRangeReports';
 import { useEmployeeMonthlyStatement } from './useMonthlyStatement';
+import { AttendanceDayEditor } from './AttendanceDayEditor';
 
 export type ReportPeriod = 'day' | 'week' | 'month';
 export type ReportScope = 'individual' | 'team' | 'all';
@@ -269,6 +270,7 @@ export function AttendanceReportsPage() {
                           <th>خروج مبكر</th>
                           <th>إضافي</th>
                           <th>الحالة</th>
+                          {statement.data.capabilities.canEditDays ? <th>إجراء</th> : null}
                         </tr>
                       </thead>
                       <tbody>
@@ -286,6 +288,11 @@ export function AttendanceReportsPage() {
                             <td>
                               <StatusBadge value={d.status} />
                             </td>
+                            {statement.data.capabilities.canEditDays ? (
+                              <td className="p-1 text-center">
+                                <AttendanceDayEditor employeeId={statement.data.employee.id} day={d} />
+                              </td>
+                            ) : null}
                           </tr>
                         ))}
                       </tbody>

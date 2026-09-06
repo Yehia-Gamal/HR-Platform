@@ -13,9 +13,10 @@ const shellSource = fs.readFileSync(path.resolve(__dirname, '../features/workspa
 const routePaths = [...appSource.matchAll(/path=["']([^"']+)["']/g)].map((m) => m[1]);
 
 describe('V23 §13: الميزات المحذوفة', () => {
-  it('§13.1: مسار الخصوصية المستقلة غير موجود في التوجيه', () => {
-    const hasPrivacyRoute = routePaths.some((p) => /\bprivacy\b/i.test(p));
-    expect(hasPrivacyRoute).toBe(false);
+  it('§13.1: مسار الخصوصية المستقلة لمساحات العمل غير موجود في التوجيه', () => {
+    // V23 §13.1: مسار خصوصية الموظف في مساحات العمل محذوف (يُستثنى مسار السياسة العامة القانوني /privacy للمتاجر)
+    const hasWorkspacePrivacyRoute = routePaths.some((p) => p !== '/privacy' && /\bprivacy\b/i.test(p));
+    expect(hasWorkspacePrivacyRoute).toBe(false);
   });
 
   it('§13.4: مسار العهد غير موجود في التوجيه', () => {
