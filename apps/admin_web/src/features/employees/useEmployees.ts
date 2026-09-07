@@ -214,7 +214,10 @@ export function useChangeManager() {
       });
     },
     meta: { successMessage: 'تم تغيير المدير المباشر بنجاح' },
-    onSuccess: () => client.invalidateQueries({ queryKey: ['employees'] }),
+    onSuccess: (_data, variables) => {
+      void client.invalidateQueries({ queryKey: ['employees'] });
+      void client.invalidateQueries({ queryKey: ['employee-360', variables.employeeId] });
+    },
   });
 }
 
