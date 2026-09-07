@@ -4,8 +4,12 @@
 
 -- ═══════════════════════════════════════════════════════════════════
 -- 1) Fix change_employee_manager_admin: remove employees.manager_id references
+-- NOTE: DROP+CREATE is required because CREATE OR REPLACE sometimes fails
+-- to replace the function body when deployed via Management API.
 -- ═══════════════════════════════════════════════════════════════════
-CREATE OR REPLACE FUNCTION public.change_employee_manager_admin(
+DROP FUNCTION IF EXISTS public.change_employee_manager_admin(uuid, uuid, text);
+
+CREATE FUNCTION public.change_employee_manager_admin(
   p_employee_id UUID,
   p_manager_id UUID,
   p_reason TEXT
