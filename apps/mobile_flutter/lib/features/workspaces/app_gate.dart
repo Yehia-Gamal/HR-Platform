@@ -9,7 +9,7 @@ import 'package:ahla_shabab_management_os/features/auth/login_page.dart';
 import 'package:ahla_shabab_management_os/features/auth/set_password_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/release_governance.dart';
-import 'package:ahla_shabab_management_os/features/workspaces/committee_workspace.dart';
+
 import 'package:ahla_shabab_management_os/features/workspaces/employee_workspace.dart';
 import 'package:ahla_shabab_management_os/features/workspaces/executive_workspace.dart';
 import 'package:ahla_shabab_management_os/features/workspaces/manager_workspace.dart';
@@ -150,7 +150,6 @@ class _AuthenticatedGate extends ConsumerWidget {
               WorkspaceId.manager => ManagerWorkspace(access: contextData),
               WorkspaceId.fieldOperations =>
                 OperationsWorkspace(access: contextData),
-              WorkspaceId.committee => CommitteeWorkspace(access: contextData),
               WorkspaceId.employee => EmployeeWorkspace(access: contextData),
               _ => _WebOnlyPage(access: contextData),
             };
@@ -186,9 +185,6 @@ class _AuthenticatedGate extends ConsumerWidget {
     }
     if (context.workspaces.contains(WorkspaceId.manager)) {
       return WorkspaceId.manager;
-    }
-    if (context.workspaces.contains(WorkspaceId.committee)) {
-      return WorkspaceId.committee;
     }
     if (context.workspaces.contains(WorkspaceId.employee)) {
       return WorkspaceId.employee;

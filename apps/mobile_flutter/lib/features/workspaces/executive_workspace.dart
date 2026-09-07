@@ -24,13 +24,7 @@ class _ExecutiveWorkspaceState extends State<ExecutiveWorkspace> {
       contextData: widget.access,
       currentIndex: 0,
       onDestinationSelected: (_) {},
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.dashboard_outlined),
-          selectedIcon: Icon(Icons.dashboard),
-          label: 'الرئيسية',
-        ),
-      ],
+      destinations: const [],
       body: ExecutiveHomePage(access: widget.access),
     );
   }

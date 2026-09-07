@@ -45,7 +45,6 @@ class MobileExecutiveBrief {
     required this.briefDate,
     required this.attendance,
     required this.decisions,
-    required this.risk,
     required this.highlights,
     required this.dailyReport,
     required this.generatedAt,
@@ -58,7 +57,6 @@ class MobileExecutiveBrief {
         briefDate: _reqDate(json['briefDate']),
         attendance: ExecutiveBriefAttendance.fromJson(_map(json['attendance'])),
         decisions: ExecutiveBriefDecisions.fromJson(_map(json['decisions'])),
-        risk: ExecutiveBriefRisk.fromJson(_map(json['risk'])),
         highlights: _items(
           json['highlights'],
           ExecutiveBriefHighlight.fromJson,
@@ -72,7 +70,6 @@ class MobileExecutiveBrief {
   final DateTime briefDate;
   final ExecutiveBriefAttendance attendance;
   final ExecutiveBriefDecisions decisions;
-  final ExecutiveBriefRisk risk;
   final List<ExecutiveBriefHighlight> highlights;
   final Map<String, dynamic> dailyReport;
   final DateTime generatedAt;
@@ -136,28 +133,6 @@ class ExecutiveBriefDecisions {
   final int decisionsInReview;
   final int publishedToday;
   final int reportsReadyToday;
-}
-
-class ExecutiveBriefRisk {
-  const ExecutiveBriefRisk({
-    required this.criticalRisks,
-    required this.highRisks,
-    required this.activeIncidents,
-    required this.criticalIncidents,
-  });
-
-  factory ExecutiveBriefRisk.fromJson(Map<String, dynamic> json) =>
-      ExecutiveBriefRisk(
-        criticalRisks: (json['criticalRisks'] as num?)?.toInt() ?? 0,
-        highRisks: (json['highRisks'] as num?)?.toInt() ?? 0,
-        activeIncidents: (json['activeIncidents'] as num?)?.toInt() ?? 0,
-        criticalIncidents: (json['criticalIncidents'] as num?)?.toInt() ?? 0,
-      );
-
-  final int criticalRisks;
-  final int highRisks;
-  final int activeIncidents;
-  final int criticalIncidents;
 }
 
 class ExecutiveBriefHighlight {

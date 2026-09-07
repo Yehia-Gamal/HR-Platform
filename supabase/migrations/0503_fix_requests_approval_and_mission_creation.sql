@@ -648,13 +648,14 @@ grant execute on function public.submit_my_request(text, text, text, jsonb, uuid
 -- ============================================================================
 -- 4) تحديث resubmit_my_request — للمأموريات المعادة
 -- ============================================================================
+drop function if exists public.resubmit_my_request(uuid, text, text, jsonb);
 create or replace function public.resubmit_my_request(
   p_request_id uuid,
   p_title      text,
   p_reason     text,
   p_payload    jsonb default '{}'::jsonb
 )
-returns public.requests
+returns jsonb
 language plpgsql
 security definer
 set search_path = public, pg_temp
@@ -770,7 +771,7 @@ begin
     request_id, actor_employee_id, action, to_status, comment, created_by
   ) values (v_req.id, public.current_employee_id(), 'resubmit', 'pending', p_reason, auth.uid());
 
-  return v_req;
+  return to_jsonb(v_req);
 end;
 $$;
 

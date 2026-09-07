@@ -392,50 +392,6 @@ final disputeDirectoryProvider =
       ).map(DisputeDirectoryEmployee.fromJson).toList(growable: false);
     });
 
-/// جلسات القضية المُعقدة — مطلوبة لإصدار قرار اللجنة
-final disputeCaseHeldSessionsProvider =
-    FutureProvider.family<List<DisputeHeldSession>, String>((
-      ref,
-      caseId,
-    ) async {
-      final data = await _withTimeout(
-        ref
-            .watch(supabaseProvider)
-            .from('dispute_sessions')
-            .select('id, session_type, status, scheduled_at, held_at, location')
-            .eq('case_id', caseId)
-            .eq('status', 'held')
-            .order('held_at', ascending: false),
-      );
-      return (data as List<dynamic>)
-          .map(
-            (e) => DisputeHeldSession.fromJson(
-              Map<String, dynamic>.from(e as Map),
-            ),
-          )
-          .toList(growable: false);
-    });
-
-/// أطراف القضية (مشتكى عليه / شاهد / مقدّم الشكوى / ذو صلة)
-final disputeCasePartiesProvider =
-    FutureProvider.family<List<DisputeCaseParty>, String>((ref, caseId) async {
-      final data = await _withTimeout(
-        ref
-            .watch(supabaseProvider)
-            .from('dispute_parties')
-            .select(
-              'id, employee_id, party_type, notification_status, employees(full_name_ar)',
-            )
-            .eq('case_id', caseId),
-      );
-      return (data as List<dynamic>)
-          .map(
-            (e) =>
-                DisputeCaseParty.fromJson(Map<String, dynamic>.from(e as Map)),
-          )
-          .toList(growable: false);
-    });
-
 final mobileProfileProvider = FutureProvider<MobileProfile>((ref) async {
   final data = await rpcWithTimeout(
     ref.watch(supabaseProvider).rpc<dynamic>('get_my_mobile_profile'),
@@ -591,52 +547,6 @@ final myLeaveBalancesProvider = FutureProvider<List<MobileLeaveBalance>>((
   );
   return _asList(data).map(MobileLeaveBalance.fromJson).toList(growable: false);
 });
-
-final myDisputePortalProvider = FutureProvider<MobileDisputePortal>((
-  ref,
-) async {
-  final data = await rpcWithTimeout(
-    ref.watch(supabaseProvider).rpc<dynamic>('get_my_dispute_portal'),
-  );
-  return MobileDisputePortal.fromJson(_asMap(data));
-});
-
-/// V17 §14 — Executive dispute inbox (admin-action workflow)
-final executiveDisputeInboxProvider = FutureProvider<ExecutiveDisputeInbox>((
-  ref,
-) async {
-  final data = await rpcWithTimeout(
-    ref.watch(supabaseProvider).rpc<dynamic>('get_executive_dispute_inbox'),
-  );
-  return ExecutiveDisputeInbox.fromJson(_asMap(data));
-});
-
-/// V18 — Committee dispute portal (all-cases card-list for committee members)
-final committeeDisputePortalProvider = FutureProvider<CommitteeDisputePortal>((
-  ref,
-) async {
-  final data = await rpcWithTimeout(
-    ref.watch(supabaseProvider).rpc<dynamic>('get_committee_dispute_portal'),
-  );
-  return CommitteeDisputePortal.fromJson(_asMap(data));
-});
-
-/// 0198 — آراء/توصيات أعضاء اللجنة لقضية محددة
-final disputeCaseRecommendationsProvider =
-    FutureProvider.family<DisputeCaseRecommendations, String>((
-      ref,
-      caseId,
-    ) async {
-      final data = await rpcWithTimeout(
-        ref
-            .watch(supabaseProvider)
-            .rpc<dynamic>(
-              'get_dispute_case_recommendations',
-              params: {'p_case_id': caseId},
-            ),
-      );
-      return DisputeCaseRecommendations.fromJson(_asMap(data));
-    });
 
 final myOffboardingPortalProvider = FutureProvider<MobileOffboardingPortal>((
   ref,

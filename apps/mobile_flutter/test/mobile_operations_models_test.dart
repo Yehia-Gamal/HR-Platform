@@ -68,7 +68,7 @@ void main() {
     expect(value.missingReports.single.employeeCode, 'E-101');
   });
 
-  test('executive command center parses reports, votes and risk records', () {
+  test('executive command center parses reports and votes', () {
     final value = MobileExecutiveCommandCenter.fromJson({
       'reports': [
         {
@@ -113,21 +113,6 @@ void main() {
           ],
         },
       ],
-      'risks': [
-        {
-          'id': 'risk-1',
-          'title': 'تأخر التوريد',
-          'description': null,
-          'likelihood': 'high',
-          'impact': 'high',
-          'severity': 'critical',
-          'status': 'mitigating',
-          'ownerName': 'مدير التشغيل',
-          'updatedAt': null,
-          'createdAt': '2026-07-12T10:00:00Z',
-        },
-      ],
-      'incidents': [],
       'meetings': [],
       'lastUpdatedAt': '2026-07-13T10:00:00Z',
     });
@@ -136,7 +121,6 @@ void main() {
     expect(value.polls.single.participationPercent, 70);
     expect(value.polls.single.canVote, isTrue);
     expect(value.polls.single.options, hasLength(2));
-    expect(value.risks.single.severity, 'critical');
   });
 
   test('operations center parses summary, tasks, missions and convoys', () {

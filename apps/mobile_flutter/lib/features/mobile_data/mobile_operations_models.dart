@@ -209,8 +209,6 @@ class MobileExecutiveCommandCenter {
     required this.reportSchedules,
     required this.executionItems,
     required this.polls,
-    required this.risks,
-    required this.incidents,
     required this.meetings,
     required this.lastUpdatedAt,
   });
@@ -227,8 +225,6 @@ class MobileExecutiveCommandCenter {
           ExecutiveDecisionExecution.fromJson,
         ),
         polls: _items(json['polls'], ExecutiveDecisionPoll.fromJson),
-        risks: _items(json['risks'], ExecutiveRiskItem.fromJson),
-        incidents: _items(json['incidents'], ExecutiveIncidentItem.fromJson),
         meetings: _items(json['meetings'], ExecutiveMeeting.fromJson),
         lastUpdatedAt: _reqDate(json['lastUpdatedAt']),
       );
@@ -237,8 +233,6 @@ class MobileExecutiveCommandCenter {
   final List<ExecutiveReportSchedule> reportSchedules;
   final List<ExecutiveDecisionExecution> executionItems;
   final List<ExecutiveDecisionPoll> polls;
-  final List<ExecutiveRiskItem> risks;
-  final List<ExecutiveIncidentItem> incidents;
   final List<ExecutiveMeeting> meetings;
   final DateTime lastUpdatedAt;
 }
@@ -442,80 +436,6 @@ class ExecutiveDecisionPoll {
   double get participationPercent =>
       eligibleCount == 0 ? 0 : (voteCount / eligibleCount) * 100;
   bool get hasVoted => myOptionIds.isNotEmpty || myRating != null;
-}
-
-class ExecutiveRiskItem {
-  const ExecutiveRiskItem({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.likelihood,
-    required this.impact,
-    required this.severity,
-    required this.status,
-    required this.ownerName,
-    required this.updatedAt,
-    required this.createdAt,
-  });
-
-  factory ExecutiveRiskItem.fromJson(Map<String, dynamic> json) =>
-      ExecutiveRiskItem(
-        id: json['id'] as String,
-        title: json['title'] as String? ?? 'مخاطرة',
-        description: json['description'] as String?,
-        likelihood: json['likelihood'] as String? ?? 'medium',
-        impact: json['impact'] as String? ?? 'medium',
-        severity: json['severity'] as String? ?? 'medium',
-        status: json['status'] as String? ?? 'open',
-        ownerName: json['ownerName'] as String?,
-        updatedAt: _date(json['updatedAt']),
-        createdAt: _reqDate(json['createdAt']),
-      );
-
-  final String id;
-  final String title;
-  final String? description;
-  final String likelihood;
-  final String impact;
-  final String severity;
-  final String status;
-  final String? ownerName;
-  final DateTime? updatedAt;
-  final DateTime createdAt;
-}
-
-class ExecutiveIncidentItem {
-  const ExecutiveIncidentItem({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.severity,
-    required this.status,
-    required this.reporterName,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  factory ExecutiveIncidentItem.fromJson(Map<String, dynamic> json) =>
-      ExecutiveIncidentItem(
-        id: json['id'] as String,
-        title: json['title'] as String? ?? 'حادث',
-        description: json['description'] as String?,
-        severity: json['severity'] as String? ?? 'medium',
-        status: json['status'] as String? ?? 'open',
-        reporterName: json['reporterName'] as String?,
-        createdAt: _reqDate(json['createdAt']),
-        updatedAt: _date(json['updatedAt']),
-      );
-
-  final String id;
-  final String title;
-  final String? description;
-  final String severity;
-  final String status;
-  final String? reporterName;
-  final DateTime createdAt;
-  final DateTime? updatedAt;
 }
 
 class ExecutiveMeeting {

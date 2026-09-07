@@ -4,7 +4,7 @@ import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_executive_insights_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_attendance_tab.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_reports_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_risk_center_page.dart';
+
 import 'package:ahla_shabab_management_os/features/mobile_pages/location_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
@@ -310,7 +310,7 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
                 style: TextStyle(fontWeight: FontWeight.w900),
               ),
               subtitle: Text(
-                'يمكن متابعة التقارير والحوكمة وفق الجدول المعتاد.',
+                'يمكن متابعة التقارير وفق الجدول المعتاد.',
               ),
             ),
           )
@@ -376,7 +376,6 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
 
   void _openHighlight(String kind) {
     final Widget page = switch (kind) {
-      'risk' || 'incident' => const ExecutiveRiskCenterPage(),
       'report' => Scaffold(
         appBar: AppBar(title: const Text('التقارير التنفيذية')),
         body: const ExecutiveReportsPage(),
@@ -397,7 +396,6 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
 
   static IconData _icon(String kind) => switch (kind) {
     'incident' => Icons.crisis_alert_rounded,
-    'risk' => Icons.warning_amber_rounded,
     'kpi' => Icons.speed_outlined,
     'report' => Icons.analytics_outlined,
     'attendance' => Icons.schedule_rounded,
