@@ -7,14 +7,11 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/location_incomin
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_announcement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_attendance_tab.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_brief_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_emergency_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_governance_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_risk_center_page.dart';
+
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/people_hub_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_feed_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/disputes_portal_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_disputes_page.dart';
+
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notifications_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_official_feed_page.dart';
@@ -144,7 +141,7 @@ class WorkspaceScaffold extends ConsumerWidget {
           body: SafeArea(
             top: false,
             bottom: false,
-            child: useNavigationRail
+            child: useNavigationRail && destinations.isNotEmpty
                 ? Row(
                     children: [
                       NavigationRail(
@@ -182,7 +179,7 @@ class WorkspaceScaffold extends ConsumerWidget {
                   )
                 : body,
           ),
-          bottomNavigationBar: useNavigationRail
+          bottomNavigationBar: useNavigationRail || destinations.isEmpty
               ? null
               : SafeArea(
                   top: false,
@@ -248,29 +245,7 @@ class WorkspaceScaffold extends ConsumerWidget {
           label: 'نشر قرار أو تعميم',
           page: const ExecutiveAnnouncementPage(),
         ),
-        _MoreItem(
-          icon: Icons.admin_panel_settings_outlined,
-          label: 'مركز القيادة والحوكمة',
-          page: Scaffold(
-            appBar: AppBar(title: const Text('مركز القيادة والحوكمة')),
-            body: const ExecutiveGovernancePage(),
-          ),
-        ),
-        _MoreItem(
-          icon: Icons.warning_amber_rounded,
-          label: 'مركز المخاطر والحوادث',
-          page: const ExecutiveRiskCenterPage(),
-        ),
-        _MoreItem(
-          icon: Icons.emergency_outlined,
-          label: 'الاستجابة السريعة',
-          page: const ExecutiveEmergencyPage(),
-        ),
-        _MoreItem(
-          icon: Icons.gavel_outlined,
-          label: 'القضايا',
-          page: const DisputesPortalPage(),
-        ),
+
         _MoreItem(
           icon: Icons.approval_outlined,
           label: 'الطلبات والاعتمادات',
@@ -330,12 +305,7 @@ class WorkspaceScaffold extends ConsumerWidget {
               ]),
         ),
       ),
-      // [مُدمَج] الموظفون والهيكل متاحان من قائمة التنفيذي أعلاه.
-      _MoreItem(
-        icon: Icons.gavel_rounded,
-        label: 'الشكاوى ولجنة الخلافات',
-        page: const MobileDisputesPage(),
-      ),
+
       _MoreItem(
         icon: Icons.account_circle_rounded,
         label: 'حسابي وملفي',

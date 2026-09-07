@@ -6,15 +6,15 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dar
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_brief_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_home_box.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/disputes_portal_page.dart';
+
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_announcement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_attendance_tab.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_emergency_page.dart';
+
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_employee_summary_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_governance_page.dart';
+
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_reports_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_risk_center_page.dart';
+
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notifications_page.dart';
@@ -32,7 +32,7 @@ class ExecutiveWorkspaceV2 extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return DefaultTabController(
-      length: 4,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('المدير التنفيذي'),
@@ -56,7 +56,6 @@ class ExecutiveWorkspaceV2 extends ConsumerWidget {
               Tab(icon: Icon(Icons.auto_awesome_outlined), text: 'ملخص'),
               Tab(icon: Icon(Icons.manage_search_rounded), text: 'أشخاص'),
               Tab(icon: Icon(Icons.campaign_outlined), text: 'قرارات'),
-              Tab(icon: Icon(Icons.gavel_rounded), text: 'مخاطر'),
             ],
           ),
         ),
@@ -70,7 +69,6 @@ class ExecutiveWorkspaceV2 extends ConsumerWidget {
               _BriefTab(access: access),
               _PeopleTab(access: access),
               _DecisionsTab(access: access),
-              _RiskTab(access: access),
             ],
           ),
         ),
@@ -184,7 +182,6 @@ class _BriefTab extends ConsumerWidget {
         _buildPriorityCompass(context, ref, data, scheme),
         const SizedBox(height: 16),
         _buildSecurityNote(scheme),
-        _buildDisputeSection(context, ref, scheme),
       ],
     );
   }
@@ -253,7 +250,7 @@ class _BriefTab extends ConsumerWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'القرارات والمخاطر والاعتمادات التي تحتاج متابعة الآن، دون تشتيت بتفاصيل غير ضرورية.',
+            'القرارات والاعتمادات التي تحتاج متابعة الآن، دون تشتيت بتفاصيل غير ضرورية.',
             style: TextStyle(
               color: Colors.white.withValues(alpha: .76),
               height: 1.55,
@@ -376,7 +373,6 @@ class _BriefTab extends ConsumerWidget {
   String _urgentCategoryLabel(String category) => switch (category) {
     'request' => 'طلب بانتظار قرار',
     'decision' => 'قرار رسمي',
-    'dispute' => 'قضية مصعّدة',
     'kpi' => 'تقييم أداء',
     'announcement' => 'إعلان',
     'attendance' => 'حضور',
@@ -475,15 +471,6 @@ class _BriefTab extends ConsumerWidget {
                 ),
               ),
               (
-                'قضايا مفتوحة',
-                item.openCases.toString(),
-                Icons.balance_rounded,
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const DisputesPortalPage()),
-                ),
-              ),
-              (
                 'طلبات موقع',
                 item.activeLocationRequests.toString(),
                 Icons.location_searching_rounded,
@@ -559,21 +546,6 @@ class _BriefTab extends ConsumerWidget {
                   subtitle:
                       '${item.pendingFinalKpi} تقريرًا اعتمدها المديرون ومتاحًا للعرض',
                 ),
-                const Divider(indent: 16, endIndent: 16),
-                _PriorityTile(
-                  icon: Icons.gavel_rounded,
-                  color: scheme.tertiary,
-                  title: 'الحوكمة والامتثال',
-                  subtitle: 'مراجعة السياسات والتدقيق والمخاطر المؤسسية',
-                ),
-                const Divider(indent: 16, endIndent: 16),
-                _PriorityTile(
-                  icon: Icons.warning_amber_rounded,
-                  color: scheme.error,
-                  title: 'إدارة الطوارئ والأزمات',
-                  subtitle:
-                      'خطط الاستمرارية والحوادث الحرجة والاستجابة السريعة',
-                ),
               ],
             ),
           ),
@@ -597,85 +569,6 @@ class _BriefTab extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  Widget _buildDisputeSection(
-    BuildContext context,
-    WidgetRef ref,
-    ColorScheme scheme,
-  ) {
-    final disputeInbox = ref.watch(executiveDisputeInboxProvider);
-    return disputeInbox.whenOrNull(
-          data: (inbox) {
-            final counts = inbox.counts;
-            if (counts.awaitingDecision == 0 && counts.pendingExecution == 0) {
-              return const SizedBox.shrink();
-            }
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 16),
-                const MobileSectionHeader(
-                  title: 'الإجراءات الإدارية',
-                  subtitle: 'قضايا تحتاج قرارًا أو متابعة تنفيذ.',
-                ),
-                const SizedBox(height: 12),
-                Card(
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const DisputesPortalPage(),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            backgroundColor: scheme.error.withValues(
-                              alpha: .12,
-                            ),
-                            child: Icon(
-                              Icons.gavel_rounded,
-                              color: scheme.error,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (counts.awaitingDecision > 0)
-                                  Text(
-                                    '${counts.awaitingDecision} بانتظار القرار',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                if (counts.pendingExecution > 0)
-                                  Text(
-                                    '${counts.pendingExecution} بانتظار التنفيذ',
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(
-                                          color: scheme.onSurfaceVariant,
-                                        ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          const Icon(Icons.chevron_right_rounded),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        ) ??
-        const SizedBox.shrink();
   }
 }
 
@@ -741,41 +634,6 @@ class _DecisionsTab extends ConsumerWidget {
                 const MobileActionInboxPage(),
                 const ExecutiveAnnouncementPage(),
                 MobileKpiPage(access: access, employeeOnly: false),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ════════════════════════════════════════════════════════════════
-// Tab 4: مخاطر
-// ═══════════════════════════════════════════════════════════════
-class _RiskTab extends ConsumerWidget {
-  const _RiskTab({required this.access});
-  final AccessContext access;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return DefaultTabController(
-      length: 3,
-      child: Column(
-        children: [
-          const TabBar(
-            tabs: [
-              Tab(icon: Icon(Icons.gavel_rounded), text: 'حوكمة'),
-              Tab(icon: Icon(Icons.warning_amber_rounded), text: 'مخاطر'),
-              Tab(icon: Icon(Icons.emergency_rounded), text: 'طوارئ'),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                const ExecutiveGovernancePage(),
-                const ExecutiveRiskCenterPage(),
-                const ExecutiveEmergencyPage(),
               ],
             ),
           ),
