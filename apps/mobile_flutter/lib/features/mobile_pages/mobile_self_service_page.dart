@@ -425,6 +425,7 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
             result['payload'] as Map<String, dynamic>,
           );
       ref.invalidate(mobileRequestsProvider);
+      ref.invalidate(myLeaveBalancesProvider);
       ref.invalidate(employeeHomeProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -725,12 +726,16 @@ class NewRequestSheetState extends State<NewRequestSheet> {
   }
 
   Future<void> _pickDate(bool isStart) async {
-    final initial = isStart ? DateTime.now() : (_startDate ?? DateTime.now());
+    final now = DateTime.now();
+    final monthStart = DateTime(now.year, now.month, 1);
+    final isRetroactiveAllowed = widget.type == 'leave' && (_leaveType == 'casual' || _leaveType == 'sick');
+    final baseFirst = isRetroactiveAllowed ? monthStart : now;
+    final initial = isStart ? (isRetroactiveAllowed ? (_startDate ?? now) : now) : (_startDate ?? now);
     // تاريخ النهاية لا يمكن أن يسبق تاريخ البداية.
-    final first = isStart ? DateTime.now() : (_startDate ?? DateTime.now());
+    final first = isStart ? baseFirst : (_startDate ?? baseFirst);
     final picked = await showDatePicker(
       context: context,
-      initialDate: initial,
+      initialDate: initial.isBefore(first) ? first : initial,
       firstDate: first,
       lastDate: DateTime.now().add(const Duration(days: 365)),
       locale: const Locale('ar'),
@@ -816,6 +821,21 @@ class NewRequestSheetState extends State<NewRequestSheet> {
           'endDate': _endDate!.toIso8601String().substring(0, 10),
         };
       case 'mission':
+        final loc = _locationController.text.trim();
+        if (loc.length < 2) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('يرجى إدخال موقع المأمورية')),
+          );
+          return;
+        }
+        final now = DateTime.now();
+        payload = {
+          'startDate': now.toIso8601String().substring(0, 10),
+          'endDate': now.toIso8601String().substring(0, 10),
+          'location': loc,
+          'startTime': _formatTime(TimeOfDay.fromDateTime(now)),
+          'startedAtCreation': true,
+        };
       case 'convoy':
       case 'fundraising':
         if (_startDate == null || _endDate == null) {
@@ -947,8 +967,44 @@ class NewRequestSheetState extends State<NewRequestSheet> {
                 ),
               ],
             ),
-          ] else if (widget.type == 'mission' ||
-              widget.type == 'convoy' ||
+          ] else if (widget.type == 'mission') ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.primaryContainer.withValues(alpha: .25),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'تبدأ المأمورية فور إنشائها وتُسجل من الوقت الحالي دون الحاجة لتحديد وقت أو تواريخ.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _locationController,
+              decoration: const InputDecoration(
+                labelText: 'الموقع / الوجهة',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ] else if (widget.type == 'convoy' ||
               widget.type == 'fundraising') ...[
             Row(
               children: [

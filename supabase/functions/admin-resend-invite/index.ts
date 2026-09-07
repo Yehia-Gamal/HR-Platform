@@ -77,16 +77,11 @@ Deno.serve(createHandler({ functionName: "admin-resend-invite", version: "1.0.0"
   //
   // كلمة مرور مؤقتة عشوائية آمنة تُمرَّر للموظف عبر رابط البريد فقط — لا
   // نشتقها من رقم الهاتف (كان ذلك قابلاً للتخمين من أي مسرِّب بيانات).
-  // تُجبر على التغيير عند أول دخول عبر must_change_password فلا تبقى سارية.
-  const password = generateSecureTemporaryPassword();
   const { error: confirmError } = await admin.auth.admin.updateUserById(profile.id, {
     email_confirm: true,
-    password,
     user_metadata: {
       ...(authUser.user?.user_metadata ?? {}),
     },
-    // SEC: must_change_password في app_metadata (server-only) — لا يستطيع الموظف تجاوزها بـ updateUser
-    app_metadata: { must_change_password: true },
   });
   if (confirmError) {
     ctx.log.error("admin-resend-invite email_confirm update failed", confirmError);

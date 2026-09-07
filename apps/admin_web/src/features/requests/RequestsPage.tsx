@@ -1,4 +1,4 @@
-﻿import { MISSION_EXECUTION_STATUS_LABELS, type RequestSummary, type WorkAssignment, type AttendanceOperationsCatalog } from '@ahla/shared-contracts';
+import { MISSION_EXECUTION_STATUS_LABELS, REQUEST_STATUS_LABELS, type RequestSummary, type WorkAssignment, type AttendanceOperationsCatalog } from '@ahla/shared-contracts';
 import { CalendarDays, Check, Clock, MapPin, RotateCcw, Truck, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
@@ -126,7 +126,23 @@ export function RequestsPage() {
   const [comment, setComment] = useState('');
   const canDecide =
     auth.access != null &&
-    (hasPermission(auth.access, 'requests.request.approve') || hasPermission(auth.access, 'requests.approve') || auth.access.workspaces.includes('main_admin'));
+    (hasPermission(auth.access, 'requests.request.approve') ||
+      hasPermission(auth.access, 'requests.approve') ||
+      hasPermission(auth.access, 'requests.decide') ||
+      auth.access.roles.some((r) =>
+        [
+          'admin',
+          'super-admin',
+          'executive',
+          'executive-director',
+          'general-manager',
+          'hr-manager',
+          'hr-specialist',
+          'hr-officer',
+          'operations-manager',
+        ].includes(r),
+      ) ||
+      auth.access.workspaces.includes('main_admin'));
   const assignments = useWorkAssignments('team');
   // تصحيحات الحضور
   const correctionsQuery = useAttendanceOperations(currentMonth);
@@ -474,44 +490,58 @@ export function RequestsPage() {
               ) : null}
             </div>
           ) : null}
-          <label className="mt-5 block text-sm font-bold">
-            ملاحظة القرار
-            <textarea
-              className="input mt-2 min-h-28 resize-y"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="الرفض يتطلب سببًا واضحًا، والموافقة يمكن أن تتضمن ملاحظة."
-            />
-          </label>
-          <p id="reject-hint" className="muted mt-2 text-xs">
-            يتطلب الرفض إدخال سبب لا يقل عن ٣ أحرف.
-          </p>
-          {decision.isError ? (
-            <div className="mt-3">
-              <ErrorBanner message={safeErrorMessage(decision.error)} />
+          {selected.status === 'pending' ? (
+            canDecide ? (
+              <>
+                <label className="mt-5 block text-sm font-bold">
+                  ملاحظة القرار
+                  <textarea
+                    className="input mt-2 min-h-28 resize-y"
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="الرفض يتطلب سببًا واضحًا، والموافقة يمكن أن تتضمن ملاحظة."
+                  />
+                </label>
+                <p id="reject-hint" className="muted mt-2 text-xs">
+                  يتطلب الرفض إدخال سبب لا يقل عن ٣ أحرف.
+                </p>
+                {decision.isError ? (
+                  <div className="mt-3">
+                    <ErrorBanner message={safeErrorMessage(decision.error)} />
+                  </div>
+                ) : null}
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <button
+                    className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-black text-white disabled:opacity-50"
+                    style={{ background: 'var(--success)' }}
+                    disabled={decision.isPending}
+                    onClick={() => void submitDecision('approve')}
+                  >
+                    <Check className="size-5" aria-hidden="true" />
+                    اعتماد
+                  </button>
+                  <button
+                    className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-black text-white disabled:opacity-50"
+                    style={{ background: 'var(--danger)' }}
+                    aria-describedby="reject-hint"
+                    disabled={decision.isPending || comment.trim().length < 3}
+                    onClick={() => void submitDecision('reject')}
+                  >
+                    <X className="size-5" aria-hidden="true" />
+                    رفض مع السبب
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="mt-5 text-center p-3 rounded-xl bg-[var(--surface-muted)] text-sm muted">
+                ليس لديك صلاحية اتخاذ قرار على هذا الطلب في المرحلة الحالية.
+              </div>
+            )
+          ) : (
+            <div className="mt-5 text-center p-3 rounded-xl bg-[var(--surface-muted)] text-sm font-bold">
+              حالة الطلب: {REQUEST_STATUS_LABELS[selected.status] ?? selected.status}
             </div>
-          ) : null}
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <button
-              className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-black text-white disabled:opacity-50"
-              style={{ background: 'var(--success)' }}
-              disabled={decision.isPending}
-              onClick={() => void submitDecision('approve')}
-            >
-              <Check className="size-5" aria-hidden="true" />
-              اعتماد
-            </button>
-            <button
-              className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-black text-white disabled:opacity-50"
-              style={{ background: 'var(--danger)' }}
-              aria-describedby="reject-hint"
-              disabled={decision.isPending || comment.trim().length < 3}
-              onClick={() => void submitDecision('reject')}
-            >
-              <X className="size-5" aria-hidden="true" />
-              رفض مع السبب
-            </button>
-          </div>
+          )}
         </DialogOverlay>
       ) : null}
     </div>

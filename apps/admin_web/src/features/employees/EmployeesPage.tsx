@@ -20,8 +20,9 @@ import { useEmployees } from './useEmployees';
 import { EmployeeSearchSuggestions } from './EmployeeSearchSuggestions';
 import { renderSafeIntlPhoneText } from '../../ui/phoneDisplay';
 import { OrgChartPage } from '../management/OrgChartPage';
+import { hierarchyCompare } from '@ahla/shared-contracts';
 
-type SortMode = 'newest' | 'name' | 'code';
+type SortMode = 'newest' | 'name' | 'code' | 'hierarchy';
 type EmployeesTab = 'directory' | 'org-chart';
 
 export function EmployeesPage() {
@@ -30,7 +31,7 @@ export function EmployeesPage() {
   const location = useLocation();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
-  const [sort, setSort] = useState<SortMode>('newest');
+  const [sort, setSort] = useState<SortMode>('hierarchy');
   const [page, setPage] = useState(1);
   const [searchFocused, setSearchFocused] = useState(false);
   const pageSize = 25;
@@ -62,6 +63,7 @@ export function EmployeesPage() {
         );
       })
       .sort((a, b) => {
+        if (sort === 'hierarchy') return hierarchyCompare(a, b);
         if (sort === 'name') return a.fullNameAr.localeCompare(b.fullNameAr, 'ar');
         if (sort === 'code') return a.employeeCode.localeCompare(b.employeeCode);
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -258,11 +260,11 @@ export function EmployeesPage() {
             onSearchChange={setSearch}
             searchPlaceholder="بحث بالاسم أو الكود أو الهاتف"
             resultText={`عرض ${filtered.length} من ${all.length} ملف`}
-            isDirty={Boolean(search || status !== 'all' || sort !== 'newest')}
+            isDirty={Boolean(search || status !== 'all' || sort !== 'hierarchy')}
             onClear={() => {
               setSearch('');
               setStatus('all');
-              setSort('newest');
+              setSort('hierarchy');
             }}
             searchAdornment={<EmployeeSearchSuggestions query={search} employees={all} open={searchFocused} onClose={() => setSearchFocused(false)} />}
             onSearchFocusChange={setSearchFocused}
@@ -278,6 +280,7 @@ export function EmployeesPage() {
               <option value="inactive">موقوف أو منتهي (الكل)</option>
             </select>
             <select className="input" value={sort} onChange={(event) => setSort(event.target.value as SortMode)} aria-label="ترتيب الموظفين">
+              <option value="hierarchy">الهيكل الإداري</option>
               <option value="newest">الأحدث إضافة</option>
               <option value="name">الاسم أبجديًا</option>
               <option value="code">كود الموظف</option>

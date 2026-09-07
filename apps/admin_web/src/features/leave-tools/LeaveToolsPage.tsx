@@ -504,12 +504,15 @@ function BulkAssignmentSection() {
       setError('اختر موظفاً واحداً على الأقل.');
       return;
     }
+    const nowIso = new Date().toISOString();
+    const effectiveStartAt = assignmentType === 'MISSION' ? nowIso : startAt;
+    const effectiveEndAt = assignmentType === 'MISSION' ? nowIso : endAt;
     try {
       await create.mutateAsync({
         assignmentType,
         title: title.trim(),
-        startAt,
-        endAt,
+        startAt: effectiveStartAt,
+        endAt: effectiveEndAt,
         participantIds,
         location: location.trim() || undefined,
         targetAmount: assignmentType === 'FUNDRAISING' && targetAmount ? Number(targetAmount) : null,
@@ -568,28 +571,36 @@ function BulkAssignmentSection() {
             disabled={create.isPending}
           />
         </label>
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">من</span>
-          <input
-            type="datetime-local"
-            className="input-field w-full text-sm"
-            value={startAt}
-            onChange={(e) => setStartAt(e.target.value)}
-            required
-            disabled={create.isPending}
-          />
-        </label>
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">إلى</span>
-          <input
-            type="datetime-local"
-            className="input-field w-full text-sm"
-            value={endAt}
-            onChange={(e) => setEndAt(e.target.value)}
-            required
-            disabled={create.isPending}
-          />
-        </label>
+        {assignmentType !== 'MISSION' ? (
+          <>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">من</span>
+              <input
+                type="datetime-local"
+                className="input-field w-full text-sm"
+                value={startAt}
+                onChange={(e) => setStartAt(e.target.value)}
+                required
+                disabled={create.isPending}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">إلى</span>
+              <input
+                type="datetime-local"
+                className="input-field w-full text-sm"
+                value={endAt}
+                onChange={(e) => setEndAt(e.target.value)}
+                required
+                disabled={create.isPending}
+              />
+            </label>
+          </>
+        ) : (
+          <div className="col-span-2 rounded-xl bg-[var(--brand-accent-soft)] p-3 text-xs text-[var(--brand-primary)]">
+            تبدأ المأمورية تلقائياً الآن من وقت الإنشاء وتستمر حتى انتهاء المهمة دون الحاجة لتحديد توقيتات مسبقة.
+          </div>
+        )}
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">الموقع (اختياري)</span>
           <input

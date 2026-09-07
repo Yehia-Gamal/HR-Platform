@@ -138,11 +138,16 @@ Deno.serve(createHandler({ functionName: "admin-set-password", version: "1.0.0" 
         user_metadata: {
           ...(authUser.user?.user_metadata ?? {}),
         },
-        // SEC: must_change_password في app_metadata (server-only) — لا يستطيع الموظف تجاوزها بـ updateUser
-        app_metadata: {
-          ...(authUser.user?.app_metadata ?? {}),
-          must_change_password: input.mustChangePassword ?? false,
-        },
+        // SEC: إزالة must_change_password لفتح الحساب فوراً إلا إذا طلب الأدمن صراحة إلزام التغيير
+        app_metadata: (() => {
+          const meta = { ...(authUser.user?.app_metadata ?? {}) };
+          if (input.mustChangePassword === true) {
+            meta.must_change_password = true;
+          } else {
+            delete meta.must_change_password;
+          }
+          return meta;
+        })(),
       }),
     },
   );

@@ -8,6 +8,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/executive_employ
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/org_chart_page.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
+import 'package:ahla_shabab_management_os/shared/hierarchy_sort.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -165,12 +166,17 @@ class _DirectoryTabState extends ConsumerState<_DirectoryTab> {
                   ),
                 );
               }
+              final sorted = sortByHierarchy<DirectoryEmployee>(
+                items,
+                (e) => e.jobTitle ?? '',
+                (e) => e.name,
+              );
               return ListView.separated(
                 padding:
                     const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                itemCount: items.length,
+                itemCount: sorted.length,
                 separatorBuilder: (_, _) => const Divider(height: 1),
-                itemBuilder: (ctx, i) => _DirectoryTile(employee: items[i]),
+                itemBuilder: (ctx, i) => _DirectoryTile(employee: sorted[i]),
               );
             },
           ),
@@ -314,7 +320,13 @@ class _EmployeeRegistryTabState extends ConsumerState<_EmployeeRegistryTab> {
             ),
           ],
         ),
-        data: (data) => ListView(
+        data: (data) {
+          final sorted = sortByHierarchy<MobileEmployeeSummary>(
+            data,
+            (e) => e.jobTitle ?? '',
+            (e) => e.fullNameAr,
+          );
+          return ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
           children: [
             MobileFilterBar(
@@ -334,17 +346,17 @@ class _EmployeeRegistryTabState extends ConsumerState<_EmployeeRegistryTab> {
               selected: _status,
               onSelected: (v) => setState(() => _status = v),
               resultLabel:
-                  data.isEmpty ? 'لا نتائج' : '${data.length} موظف',
+                  sorted.isEmpty ? 'لا نتائج' : '${sorted.length} موظف',
             ),
             const SizedBox(height: 10),
-            if (data.isEmpty)
+            if (sorted.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 48),
                 child:
                     Center(child: Text('لا يوجد موظفون مطابقون')),
               )
             else
-              ...data.map(
+              ...sorted.map(
                 (emp) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: _RegistryCard(
@@ -370,17 +382,18 @@ class _EmployeeRegistryTabState extends ConsumerState<_EmployeeRegistryTab> {
                                   employeeName: emp.fullNameAr,
                                 )
                               : EmployeeProfilePage(
-                                  employeeId: emp.id,
-                                  employeeName: emp.fullNameAr,
-                                ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
+                                   employeeId: emp.id,
+                                   employeeName: emp.fullNameAr,
+                                 ),
+                         ),
+                       );
+                     },
+                   ),
+                 ),
+               ),
           ],
-        ),
+          );
+        },
       ),
     );
   }

@@ -311,52 +311,94 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                   ),
                   const SizedBox(height: 12),
                 ],
+                if (type == 'mission') ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(sheetContext).colorScheme.primaryContainer.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Theme.of(sheetContext).colorScheme.primary.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          color: Theme.of(sheetContext).colorScheme.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'تبدأ المأمورية تلقائياً من تاريخ ووقت الإنشاء الآن دون الحاجة لتحديد موعد بداية أو نهاية.',
+                            style: Theme.of(sheetContext).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(sheetContext).colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 if (type == 'leave' ||
-                    type == 'mission' ||
                     type == 'convoy' ||
                     type == 'fundraising') ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _DateButton(
-                          label: 'من تاريخ',
-                          value: startDate,
-                          onPressed: () async {
-                            final picked = await _pickDate(
-                              sheetContext,
-                              startDate,
-                            );
-                            if (picked != null) {
-                              setModalState(() {
-                                startDate = picked;
-                                if (endDate != null &&
-                                    endDate!.isBefore(picked)) {
-                                  endDate = picked;
+                  Builder(
+                    builder: (context) {
+                      final now = DateTime.now();
+                      final monthStart = DateTime(now.year, now.month, 1);
+                      final allowedFirstDate = (type == 'leave' && (leaveType == 'casual' || leaveType == 'sick'))
+                          ? monthStart
+                          : null;
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: _DateButton(
+                              label: 'من تاريخ',
+                              value: startDate,
+                              firstDate: allowedFirstDate,
+                              onPressed: () async {
+                                final picked = await _pickDate(
+                                  sheetContext,
+                                  startDate,
+                                  firstDate: allowedFirstDate,
+                                );
+                                if (picked != null) {
+                                  setModalState(() {
+                                    startDate = picked;
+                                    if (endDate != null &&
+                                        endDate!.isBefore(picked)) {
+                                      endDate = picked;
+                                    }
+                                  });
                                 }
-                              });
-                            }
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _DateButton(
-                          label: 'إلى تاريخ',
-                          value: endDate,
-                          firstDate: startDate,
-                          onPressed: () async {
-                            final picked = await _pickDate(
-                              sheetContext,
-                              endDate ?? startDate,
-                              firstDate: startDate,
-                            );
-                            if (picked != null) {
-                              setModalState(() => endDate = picked);
-                            }
-                          },
-                        ),
-                      ),
-                    ],
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _DateButton(
+                              label: 'إلى تاريخ',
+                              value: endDate,
+                              firstDate: startDate ?? allowedFirstDate,
+                              onPressed: () async {
+                                final picked = await _pickDate(
+                                  sheetContext,
+                                  endDate ?? startDate,
+                                  firstDate: startDate ?? allowedFirstDate,
+                                );
+                                if (picked != null) {
+                                  setModalState(() => endDate = picked);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -369,26 +411,28 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                       labelText: 'المكان أو جهة التكليف',
                     ),
                   ),
-                   const SizedBox(height: 12),
-                   OutlinedButton.icon(
-                     onPressed: () async {
-                       final picked = await _pickTime(
-                         sheetContext,
-                         startTime,
-                       );
-                       if (picked != null) {
-                         setModalState(() => startTime = picked);
-                       }
-                     },
-                     icon: const Icon(Icons.schedule, size: 18),
-                     label: Text(
-                       startTime == null
-                           ? 'وقت بداية المأمورية (اختياري)'
-                           : 'وقت البداية: ${_formatTimeValue(startTime!)}',
-                     ),
-                   ),
-                   const SizedBox(height: 12),
-                 ],
+                  const SizedBox(height: 12),
+                  if (type != 'mission') ...[
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final picked = await _pickTime(
+                          sheetContext,
+                          startTime,
+                        );
+                        if (picked != null) {
+                          setModalState(() => startTime = picked);
+                        }
+                      },
+                      icon: const Icon(Icons.schedule, size: 18),
+                      label: Text(
+                        startTime == null
+                            ? 'وقت بداية التكليف (اختياري)'
+                            : 'وقت البداية: ${_formatTimeValue(startTime!)}',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ],
                 if (type == 'leave') ...[
                   DropdownButtonFormField<String>(
                     value: substituteId,
@@ -569,7 +613,20 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
         'endDate': _dateValue(endDate!),
         if (substituteId.isNotEmpty) 'substituteEmployeeId': substituteId,
       });
-    } else if (type == 'mission' || type == 'convoy' || type == 'fundraising') {
+    } else if (type == 'mission') {
+      final now = DateTime.now();
+      final todayStr =
+          '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final timeStr =
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+      payload.addAll({
+        'startDate': todayStr,
+        'endDate': todayStr,
+        'startTime': timeStr,
+        'location': requestLocation,
+        'startedAtCreation': true,
+      });
+    } else if (type == 'convoy' || type == 'fundraising') {
       payload.addAll({
         'startDate': _dateValue(startDate!),
         'endDate': _dateValue(endDate!),
@@ -617,6 +674,8 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
         requestReason,
         payload,
       );
+      ref.invalidate(mobileRequestsProvider);
+      ref.invalidate(myLeaveBalancesProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم إرسال الطلب إلى مسار الاعتماد.')),
@@ -654,7 +713,6 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
       return 'السبب طويل جدًا (300 حرف كحد أقصى).';
     }
     if (type == 'leave' ||
-        type == 'mission' ||
         type == 'convoy' ||
         type == 'fundraising') {
       if (startDate == null || endDate == null) {
