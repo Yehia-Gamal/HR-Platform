@@ -5,7 +5,7 @@ import { useResolvedAvatarUrl } from './useResolvedAvatarUrl';
 type AvatarSize = 'sm' | 'md' | 'lg';
 
 export function avatarInitial(displayName: string) {
-  return Array.from(displayName.trim())[0] ?? '؟';
+  return Array.from((displayName ?? '').trim())[0] ?? '؟';
 }
 
 export function UserAvatar({
@@ -41,7 +41,7 @@ export function UserAvatar({
     >
       {resolvedUrl && !failed ? (
         <img src={resolvedUrl} alt="" loading={eager ? 'eager' : 'lazy'} decoding="async" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} />
-      ) : displayName.trim() ? (
+      ) : (displayName ?? '').trim() ? (
         <span aria-hidden="true">{avatarInitial(displayName)}</span>
       ) : (
         <UserRound aria-hidden="true" />

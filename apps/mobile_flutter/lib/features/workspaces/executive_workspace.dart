@@ -3,9 +3,9 @@ import 'package:ahla_shabab_management_os/features/workspaces/workspace_scaffold
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
 
-/// V23 — المساحة التنفيذية الموحّدة: تبويبات ExecutiveWorkspaceV2 الأربعة
-/// (ملخص/أشخاص/قرارات/مخاطر) هي سطح التنقل الوحيد، بلا شريط سفلي مكرر
-/// للخدمات المتشابهة (الوارد/القضايا/الموقع/التقارير).
+/// V23 — المساحة التنفيذية الموحّدة: تبويبات ExecutiveWorkspaceV2 الثلاثة
+/// (ملخص/أشخاص/قرارات) هي سطح التنقل الوحيد، بلا شريط سفلي مكرر
+/// للخدمات المتشابهة.
 class ExecutiveWorkspace extends StatefulWidget {
   const ExecutiveWorkspace({required this.access, super.key});
 
