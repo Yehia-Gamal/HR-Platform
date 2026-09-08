@@ -31,6 +31,7 @@ const LEAVE_TYPE_TABS = [
   { key: 'casual', label: 'عارضة' },
   { key: 'sick', label: 'مرضية' },
   { key: 'unpaid', label: 'بدون أجر' },
+  { key: 'weekly_rest_comp', label: 'بدل راحة' },
 ] as const;
 
 const STATUS_AR: Record<string, string> = {

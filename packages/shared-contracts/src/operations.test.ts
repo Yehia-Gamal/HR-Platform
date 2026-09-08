@@ -15,8 +15,8 @@ import {
 } from './operations.js';
 
 describe('leave and work-assignment contracts', () => {
-  it('exposes the four legal leave codes and excludes maternity/childcare', () => {
-    expect(leaveTypeCodeSchema.options).toEqual(['annual', 'casual', 'sick', 'unpaid']);
+  it('exposes the legal leave codes and excludes maternity/childcare', () => {
+    expect(leaveTypeCodeSchema.options).toEqual(['annual', 'casual', 'sick', 'unpaid', 'weekly_rest_comp']);
     expect(() => leaveTypeCodeSchema.parse('maternity')).toThrow();
     expect(() => leaveTypeCodeSchema.parse('childcare')).toThrow();
   });

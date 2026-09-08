@@ -679,7 +679,12 @@ function BulkAssignmentSection() {
       <button
         type="submit"
         className="btn-primary w-full"
-        disabled={create.isPending || title.trim().length < 3 || !startAt || !endAt || (useAllActive ? activeIds.length === 0 : selected.size === 0)}
+        disabled={
+          create.isPending ||
+          title.trim().length < 3 ||
+          (assignmentType !== 'MISSION' && (!startAt || !endAt)) ||
+          (useAllActive ? activeIds.length === 0 : selected.size === 0)
+        }
       >
         {create.isPending
           ? 'جارٍ الإنشاء...'

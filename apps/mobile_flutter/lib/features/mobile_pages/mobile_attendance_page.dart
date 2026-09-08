@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import 'package:local_auth/local_auth.dart';
 
 class MobileAttendancePage extends ConsumerStatefulWidget {
   const MobileAttendancePage({super.key});
@@ -28,6 +29,9 @@ class MobileAttendancePage extends ConsumerStatefulWidget {
 class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     with WidgetsBindingObserver {
   bool _working = false;
+
+  /// فحص توفر قفل الشاشة (نقش/PIN) أو البصمة محلياً على الجهاز.
+  bool? _deviceLockConfigured;
 
   /// تحديث احتياطي لبيانات الحضور والتصحيحات أثناء ظهور الصفحة.
   /// التحديث الفوري يأتي من قناة Realtime (attendanceRealtimeProvider) —
@@ -45,6 +49,18 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _startAutoRefresh();
+    _checkDeviceSecurity();
+  }
+
+  Future<void> _checkDeviceSecurity() async {
+    if (kIsWeb) return;
+    try {
+      final localAuth = LocalAuthentication();
+      final supported = await localAuth.isDeviceSupported();
+      if (mounted) setState(() => _deviceLockConfigured = supported);
+    } catch (_) {
+      if (mounted) setState(() => _deviceLockConfigured = false);
+    }
   }
 
   @override
@@ -71,6 +87,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _startAutoRefresh();
+      _checkDeviceSecurity();
       if (_issueKind != null && _pendingRetry != null && !_working) {
         Future<void>.delayed(const Duration(milliseconds: 600), () {
           if (mounted &&
@@ -231,6 +248,57 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           const SizedBox(height: 14),
         ],
 
+        // ── تنبيه قفل الشاشة عند عدم ضبطه ──
+        if (_deviceLockConfigured == false) ...[
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.statusWarning.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.statusWarning.withValues(alpha: 0.4),
+                width: 1.2,
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.lock_reset_rounded,
+                  color: AppColors.statusWarning,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'إعداد قفل الشاشة مطلوب',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: AppColors.statusWarning,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'لم يتم ضبط قفل شاشة (نقش أو PIN) أو بصمة على هذا الهاتف. يُرجى ضبط قفل الشاشة من إعدادات الهاتف لتتمكن من تسجيل الحضور.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          height: 1.4,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+        ],
+
         // ── بطاقة الإجراء الرئيسية ──
         if (dayCompleted)
           _DayCompletedCard(
@@ -252,7 +320,10 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
         const SizedBox(height: 14),
 
         // ── بطاقة حالة اليوم ──
-        _TodayStatusCard(state: value),
+        _TodayStatusCard(
+          state: value,
+          deviceLockConfigured: _deviceLockConfigured,
+        ),
         const SizedBox(height: 14),
 
         // V20: تصحيحات الحضور داخل صفحة البصمة — لا حاجة لصفحة منفصلة.
@@ -372,24 +443,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
         ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } catch (error, stack) {
-      if (mounted) {
-        if (kDebugMode) {
-          debugPrint('[_register] ${error.runtimeType}: $error\n$stack');
-        }
-        final msg = error.toString();
-        final isCancelled =
-            msg.contains('إلغاء') ||
-            msg.toLowerCase().contains('cancel') ||
-            msg.toLowerCase().contains('dismissed');
-        final text = isCancelled
-            ? 'تم إلغاء التحقق.'
-            : msg.contains('الجهاز لا يدعم')
-            ? 'فعّل قفل الشاشة (نقش أو PIN) من إعدادات الجهاز.'
-            : humanizeError(error, stack);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(text)));
-      }
+      _showErrorFeedback(error, stack, contextTag: '_register');
     } finally {
       if (mounted) setState(() => _working = false);
     }
@@ -550,24 +604,78 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
         ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } catch (error, stack) {
-      if (mounted) {
-        if (kDebugMode) {
-          debugPrint('[_punch] ${error.runtimeType}: $error\n$stack');
-        }
-        final msg = error.toString();
-        final isCancelled =
-            msg.contains('إلغاء') ||
-            msg.toLowerCase().contains('cancel') ||
-            msg.toLowerCase().contains('dismissed');
-        final text = isCancelled
-            ? 'تم إلغاء التحقق.'
-            : humanizeError(error, stack);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(text)));
-      }
+      _showErrorFeedback(error, stack, contextTag: '_punch');
     } finally {
       if (mounted) setState(() => _working = false);
+    }
+  }
+
+  /// إظهار رسائل الخطأ بوضوح وتوجيه الموظف إذا كانت المشكلة في قفل الشاشة أو البصمة.
+  void _showErrorFeedback(
+    dynamic error,
+    StackTrace? stack, {
+    required String contextTag,
+  }) {
+    if (!mounted) return;
+    if (kDebugMode) {
+      debugPrint('[$contextTag] ${error.runtimeType}: $error\n$stack');
+    }
+    final msg = error.toString();
+    final isCancelled =
+        msg.contains('إلغاء') ||
+        msg.toLowerCase().contains('cancel') ||
+        msg.toLowerCase().contains('dismissed');
+    if (isCancelled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم إلغاء التحقق.')),
+      );
+      return;
+    }
+
+    final text = humanizeError(error, stack);
+    final isPasscodeIssue =
+        text.contains('قفل الشاشة') ||
+        text.contains('PIN') ||
+        text.contains('PasscodeNotSet') ||
+        text.contains('NotEnrolled') ||
+        msg.contains('PasscodeNotSet') ||
+        msg.contains('NotEnrolled') ||
+        msg.contains('الجهاز لا يدعم');
+
+    if (isPasscodeIssue) {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: const Icon(
+            Icons.lock_reset_rounded,
+            color: AppColors.statusWarning,
+            size: 36,
+          ),
+          title: const Text(
+            'إعداد قفل الشاشة مطلوب',
+            textAlign: TextAlign.center,
+          ),
+          content: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 14, height: 1.5),
+          ),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('حسناً، فهمت'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(text),
+          backgroundColor: AppColors.statusDanger,
+        ),
+      );
     }
   }
 
@@ -1106,8 +1214,12 @@ class _DayCompletedCard extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class _TodayStatusCard extends StatelessWidget {
-  const _TodayStatusCard({required this.state});
+  const _TodayStatusCard({
+    required this.state,
+    this.deviceLockConfigured,
+  });
   final AttendanceState state;
+  final bool? deviceLockConfigured;
 
   @override
   Widget build(BuildContext context) {
@@ -1143,10 +1255,16 @@ class _TodayStatusCard extends StatelessWidget {
             _StatusRow(
               icon: Icons.lock_outline,
               label: 'أمان الجهاز',
-              value: state.hasActiveLocalDevice ? 'مفعلة' : 'غير مفعلة',
-              valueColor: state.hasActiveLocalDevice
-                  ? AppColors.statusSuccess
-                  : scheme.error,
+              value: !state.hasActiveLocalDevice
+                  ? 'غير مفعلة'
+                  : (deviceLockConfigured == false)
+                      ? 'مفعلة (قفل الشاشة مطلوب)'
+                      : 'مفعلة',
+              valueColor: !state.hasActiveLocalDevice
+                  ? scheme.error
+                  : (deviceLockConfigured == false)
+                      ? AppColors.statusWarning
+                      : AppColors.statusSuccess,
             ),
 
             // آخر عملية (فقط عند وجود بيانات)

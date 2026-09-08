@@ -728,7 +728,10 @@ class NewRequestSheetState extends State<NewRequestSheet> {
   Future<void> _pickDate(bool isStart) async {
     final now = DateTime.now();
     final monthStart = DateTime(now.year, now.month, 1);
-    final isRetroactiveAllowed = widget.type == 'leave' && (_leaveType == 'casual' || _leaveType == 'sick');
+    final isRetroactiveAllowed = widget.type == 'leave' ||
+        widget.type == 'mission' ||
+        widget.type == 'convoy' ||
+        widget.type == 'fundraising';
     final baseFirst = isRetroactiveAllowed ? monthStart : now;
     final initial = isStart ? (isRetroactiveAllowed ? (_startDate ?? now) : now) : (_startDate ?? now);
     // تاريخ النهاية لا يمكن أن يسبق تاريخ البداية.
@@ -815,10 +818,15 @@ class NewRequestSheetState extends State<NewRequestSheet> {
           );
           return;
         }
+        final now = DateTime.now();
+        final isSingleDay = _startDate == _endDate;
+        final isPastOrToday = !_startDate!.isAfter(DateTime(now.year, now.month, now.day));
+        final isCurrentMonth = _startDate!.year == now.year && _startDate!.month == now.month;
         payload = {
           'leaveType': _leaveType,
           'startDate': _startDate!.toIso8601String().substring(0, 10),
           'endDate': _endDate!.toIso8601String().substring(0, 10),
+          if (isSingleDay && isPastOrToday && isCurrentMonth) 'dayMark': true,
         };
       case 'mission':
         final loc = _locationController.text.trim();
@@ -859,12 +867,17 @@ class NewRequestSheetState extends State<NewRequestSheet> {
           );
           return;
         }
+        final nowC = DateTime.now();
+        final isSingleDayC = _startDate == _endDate;
+        final isPastOrTodayC = !_startDate!.isAfter(DateTime(nowC.year, nowC.month, nowC.day));
+        final isCurrentMonthC = _startDate!.year == nowC.year && _startDate!.month == nowC.month;
         payload = {
           'startDate': _startDate!.toIso8601String().substring(0, 10),
           'endDate': _endDate!.toIso8601String().substring(0, 10),
           'location': loc,
           if (_startTime != null) 'startTime': _formatTime(_startTime!),
           if (_endTime != null) 'endTime': _formatTime(_endTime!),
+          if (isSingleDayC && isPastOrTodayC && isCurrentMonthC) 'dayMark': true,
         };
       case 'permit':
       case 'late_permit':

@@ -382,7 +382,7 @@ export type LeaveBalance = z.infer<typeof leaveBalanceSchema>;
 
 // أنواع الإجازات القانونية (تُطابق أكواد leave_types في الترحيل 0060).
 // ملاحظة: 'emergency' القديم يُخرَّط إلى 'casual' في الباك إند للتوافق الخلفي.
-export const leaveTypeCodeSchema = z.enum(['annual', 'casual', 'sick', 'unpaid']);
+export const leaveTypeCodeSchema = z.enum(['annual', 'casual', 'sick', 'unpaid', 'weekly_rest_comp']);
 export type LeaveTypeCode = z.infer<typeof leaveTypeCodeSchema>;
 
 // تكليفات العمل: مأمورية / قافلة / فاندي (وحدة work_assignments — الترحيل 0063).

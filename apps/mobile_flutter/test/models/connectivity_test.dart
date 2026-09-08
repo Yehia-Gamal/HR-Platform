@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -105,6 +106,50 @@ void main() {
       final msg = humanizeError(Exception('دقة الموقع منخفضة جدًا'));
       // The message contains Arabic, so it returns the cleaned text.
       expect(msg, contains('دقة الموقع'));
+    });
+  });
+
+  group('humanizeError — PlatformException وقيود قفل الشاشة والبصمة', () {
+    test('PasscodeNotSet يرجع رسالة إعداد قفل الشاشة', () {
+      final msg = humanizeError(
+        PlatformException(code: 'PasscodeNotSet', message: 'Phone passcode is not set'),
+      );
+      expect(msg, contains('لم يتم ضبط قفل للشاشة'));
+    });
+
+    test('NotEnrolled يرجع رسالة تسجيل بصمة أو قفل شاشة', () {
+      final msg = humanizeError(
+        PlatformException(code: 'NotEnrolled', message: 'No biometric enrolled'),
+      );
+      expect(msg, contains('لم يتم تسجيل أي بصمة'));
+    });
+
+    test('NotAvailable يرجع رسالة عدم توفر التحقق', () {
+      final msg = humanizeError(
+        PlatformException(code: 'NotAvailable', message: 'Credentials not available'),
+      );
+      expect(msg, contains('التحقق البيومتري أو قفل الشاشة غير متاح'));
+    });
+
+    test('LockedOut يرجع رسالة الانتظار دقيقة', () {
+      final msg = humanizeError(
+        PlatformException(code: 'LockedOut', message: 'Locked out due to too many attempts'),
+      );
+      expect(msg, contains('تم إيقاف التحقق مؤقتًا'));
+    });
+
+    test('PermanentlyLockedOut يرجع رسالة إدخال PIN', () {
+      final msg = humanizeError(
+        PlatformException(code: 'PermanentlyLockedOut', message: 'Permanently locked out'),
+      );
+      expect(msg, contains('تم إيقاف البصمة نهائيًا'));
+    });
+
+    test('userCanceled يرجع رسالة إلغاء التحقق', () {
+      final msg = humanizeError(
+        PlatformException(code: 'UserCancel', message: 'User canceled'),
+      );
+      expect(msg, 'تم إلغاء التحقق.');
     });
   });
 

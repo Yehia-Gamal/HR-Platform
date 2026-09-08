@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_probe.dart';
@@ -129,6 +130,28 @@ String humanizeError(Object error, [StackTrace? stack]) {
     return _humanizeFunctionError(error);
   }
 
+  if (error is PlatformException) {
+    return _humanizePlatformException(error);
+  }
+
+  if (msg.contains('PasscodeNotSet') ||
+      msg.contains('passcode is not set') ||
+      msg.contains('No passcode')) {
+    return 'لم يتم ضبط قفل للشاشة (نقش أو PIN) على هاتفك. يُرجى ضبط قفل الشاشة من إعدادات الهاتف للمتابعة.';
+  }
+  if (msg.contains('NotEnrolled')) {
+    return 'لم يتم تسجيل أي بصمة أو قفل شاشة على هاتفك. يُرجى ضبط قفل الشاشة أو البصمة من إعدادات الهاتف.';
+  }
+  if (msg.contains('NotAvailable')) {
+    return 'التحقق البيومتري أو قفل الشاشة غير متوفر على هذا الجهاز. تأكد من تفعيل قفل الشاشة من إعدادات الهاتف.';
+  }
+  if (msg.contains('LockedOut')) {
+    return 'تم إيقاف التحقق مؤقتًا لكثرة المحاولات الخاطئة. انتظر دقيقة ثم حاول مجددًا.';
+  }
+  if (msg.contains('PermanentlyLockedOut')) {
+    return 'تم إيقاف البصمة نهائيًا بسبب محاولات خاطئة متكررة. افتح قفل الهاتف برمز PIN أولاً لإعادة تفعيلها.';
+  }
+
   if (msg.contains('CameraException') || msg.contains('SecurityException')) {
     return 'تعذر تشغيل الكاميرا. تحقق من صلاحية الكاميرا في إعدادات التطبيق.';
   }
@@ -159,6 +182,38 @@ String humanizeError(Object error, [StackTrace? stack]) {
   }
 
   return 'حدث خطأ غير متوقع. أعد المحاولة أو تواصل مع المسؤول.';
+}
+
+String _humanizePlatformException(PlatformException error) {
+  final code = error.code;
+  final msg = error.message ?? '';
+
+  if (code == 'PasscodeNotSet' ||
+      msg.contains('passcode') ||
+      msg.contains('PasscodeNotSet')) {
+    return 'لم يتم ضبط قفل للشاشة (نقش أو PIN) على هاتفك. يُرجى تعيين قفل الشاشة من إعدادات الهاتف للمتابعة.';
+  }
+  if (code == 'NotEnrolled' || msg.contains('NotEnrolled')) {
+    return 'لم يتم تسجيل أي بصمة أو قفل شاشة على هاتفك. يُرجى ضبط قفل الشاشة أو البصمة من إعدادات الهاتف.';
+  }
+  if (code == 'NotAvailable' || msg.contains('NotAvailable')) {
+    return 'التحقق البيومتري أو قفل الشاشة غير متاح على هذا الجهاز. تأكد من تفعيل قفل الشاشة من إعدادات الهاتف.';
+  }
+  if (code == 'LockedOut' || msg.contains('LockedOut')) {
+    return 'تم إيقاف التحقق مؤقتًا لكثرة المحاولات الخاطئة. انتظر دقيقة ثم حاول مجددًا.';
+  }
+  if (code == 'PermanentlyLockedOut' || msg.contains('PermanentlyLockedOut')) {
+    return 'تم إيقاف البصمة نهائيًا. افتح قفل الهاتف برمز PIN أولاً لإعادة تفعيلها.';
+  }
+  if (code.toLowerCase().contains('cancel') ||
+      msg.toLowerCase().contains('cancel') ||
+      msg.toLowerCase().contains('dismissed')) {
+    return 'تم إلغاء التحقق.';
+  }
+  if (code == 'PERMISSION_DENIED' || code == 'LOCATION_SERVICES_DISABLED') {
+    return 'خدمة أو صلاحية الموقع غير مفعلة. يرجى تفعيل GPS ومنح الصلاحية للتطبيق.';
+  }
+  return 'تعذر إتمام التحقق من أمان الجهاز ($code). تأكد من إعداد قفل الشاشة أو البصمة.';
 }
 
 String _humanizePostgrest(PostgrestException error) {

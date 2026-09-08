@@ -21,8 +21,8 @@ const TICKET_FIELDS = [
   'sla_due_at',
   'created_at',
   'updated_at',
-  'requester:requester_employee_id!hr_tickets_requester_employee_id_fkey(full_name_ar)',
-  'assignee:assignee_employee_id!hr_tickets_assignee_employee_id_fkey(full_name_ar)',
+  'requester:employees!hr_tickets_requester_employee_id_fkey(full_name_ar)',
+  'assignee:employees!hr_tickets_assignee_employee_id_fkey(full_name_ar)',
 ].join(',');
 
 export function useHelpdeskTickets() {

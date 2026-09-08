@@ -32,7 +32,8 @@ def run_query(sql):
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", errors="replace")
-        print(f"HTTP {e.code}: {body}")
+        body_bytes = body.encode("utf-8", errors="replace")
+        sys.stderr.buffer.write(f"HTTP {e.code}: ".encode("ascii") + body_bytes + b"\n")
         raise
 
 

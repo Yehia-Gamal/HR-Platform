@@ -46,6 +46,12 @@ function registerSW() {
 initSentry();
 initializeTheme();
 
+// معالجة خطأ تحميل الحزم بعد نشر إصدار جديد
+window.addEventListener('vite:preloadError', (event) => {
+  console.warn('[Vite] Preload error detected, reloading page...', event);
+  window.location.reload();
+});
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { staleTime: 30_000, retry: 1 },

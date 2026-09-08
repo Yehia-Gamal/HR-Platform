@@ -21,7 +21,7 @@ export function useRisks() {
       const { data, error } = await supabase
         .from('risks')
         .select(
-          'id,title,description,likelihood,impact,severity,owner_employee_id,status,created_at,updated_at,owner:owner_employee_id!risks_owner_employee_id_fkey(full_name_ar)',
+          'id,title,description,likelihood,impact,severity,owner_employee_id,status,created_at,updated_at,owner:employees!risks_owner_employee_id_fkey(full_name_ar)',
         )
         .order('created_at', { ascending: false })
         .limit(200);
@@ -47,7 +47,7 @@ export function useIncidents() {
       const supabase = await getSupabase();
       const { data, error } = await supabase
         .from('incidents')
-        .select('id,title,description,severity,reported_by,status,resolved_at,created_at,reporter:reported_by!incidents_reported_by_fkey(full_name_ar)')
+        .select('id,title,description,severity,reported_by,status,resolved_at,created_at,reporter:employees!incidents_reported_by_fkey(full_name_ar)')
         .order('created_at', { ascending: false })
         .limit(200);
       if (error) throw error;

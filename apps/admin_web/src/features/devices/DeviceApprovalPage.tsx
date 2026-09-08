@@ -381,6 +381,18 @@ function DeviceActionDialog({
   );
 }
 
+function safeFormatDate(val?: string | null): string {
+  if (!val) return '';
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function safeFormatTime(val?: string | null): string {
+  if (!val) return '';
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? '' : d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+}
+
 function PendingDeviceCard({
   device,
   onAction,
@@ -390,9 +402,8 @@ function PendingDeviceCard({
   onAction: (device: PendingDevice, approved: boolean) => void;
   isPending: boolean;
 }) {
-  const registeredDate = new Date(device.registeredAt);
-  const dateStr = registeredDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
-  const timeStr = registeredDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = safeFormatDate(device.registeredAt);
+  const timeStr = safeFormatTime(device.registeredAt);
   const platformLabel =
     device.platform === 'android'
       ? 'أندرويد'
@@ -474,8 +485,7 @@ function AdminDeviceCard({
   isDeletePending: boolean;
   isReinstatePending: boolean;
 }) {
-  const registeredDate = new Date(device.registeredAt);
-  const dateStr = registeredDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+  const dateStr = safeFormatDate(device.registeredAt);
   const platformLabel =
     device.platform === 'android'
       ? 'أندرويد'
@@ -512,8 +522,8 @@ function AdminDeviceCard({
             {device.rejectionReason ? <p className="mt-1 text-xs text-[var(--danger)]">ملاحظة: {device.rejectionReason}</p> : null}
             <p className="mt-1 text-xs text-[var(--text-muted)]">
               تاريخ التسجيل: {dateStr}
-              {device.approvedAt ? ` — تمت الموافقة: ${new Date(device.approvedAt).toLocaleDateString('ar-EG')}` : ''}
-              {device.revokedAt ? ` — تم الإلغاء: ${new Date(device.revokedAt).toLocaleDateString('ar-EG')}` : ''}
+              {device.approvedAt ? ` — تمت الموافقة: ${safeFormatDate(device.approvedAt)}` : ''}
+              {device.revokedAt ? ` — تم الإلغاء: ${safeFormatDate(device.revokedAt)}` : ''}
             </p>
           </div>
         </div>

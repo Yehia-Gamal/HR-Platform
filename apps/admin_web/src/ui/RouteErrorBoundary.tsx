@@ -14,13 +14,18 @@ import { captureError } from '../core/sentry';
 interface State {
   hasError: boolean;
   errorId: string | null;
+  caughtError: Error | null;
 }
 
 export class RouteErrorBoundary extends Component<PropsWithChildren, State> {
-  state: State = { hasError: false, errorId: null };
+  state: State = { hasError: false, errorId: null, caughtError: null };
 
-  static getDerivedStateFromError(): State {
-    return { hasError: true, errorId: crypto.randomUUID().slice(0, 8).toUpperCase() };
+  static getDerivedStateFromError(error: Error): State {
+    return {
+      hasError: true,
+      errorId: crypto.randomUUID().slice(0, 8).toUpperCase(),
+      caughtError: error,
+    };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
@@ -39,8 +44,22 @@ export class RouteErrorBoundary extends Component<PropsWithChildren, State> {
     }
   }
 
+  private isChunkError = (): boolean => {
+    const msg = this.state.caughtError?.message?.toLowerCase() || '';
+    return (
+      msg.includes('failed to fetch dynamically imported module') ||
+      msg.includes('importing a module script failed') ||
+      msg.includes('chunkloaderror') ||
+      msg.includes('loading chunk')
+    );
+  };
+
   private retry = () => {
-    this.setState({ hasError: false, errorId: null });
+    if (this.isChunkError()) {
+      window.location.reload();
+      return;
+    }
+    this.setState({ hasError: false, errorId: null, caughtError: null });
   };
 
   render() {
