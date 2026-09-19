@@ -225,7 +225,7 @@ export function AssociationProjectsPage() {
           {filtered.map((p) => (
             <div
               key={p.id}
-              className="w-full text-right flex items-center gap-4 p-4 rounded-lg border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+              className="w-full text-end flex items-center gap-4 p-4 rounded-lg border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
               onClick={() => setSelectedId(p.id)}
             >
               <div className={`w-3 h-3 rounded-full shrink-0 ${

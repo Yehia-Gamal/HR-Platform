@@ -1,7 +1,7 @@
 import { cairoTodayIso } from '../../core/cairoTime';
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
-import { AlertTriangle, Ban, CheckCircle2, Clock, Coins, FileSpreadsheet, HeartHandshake, Printer, ShieldAlert, XCircle, Zap } from 'lucide-react';
+import { AlertTriangle, Ban, CheckCircle2, Clock, Coins, FileSpreadsheet, HeartHandshake, Printer, RefreshCw, ShieldAlert, Sparkles, XCircle, Zap } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { downloadCsv, printReport, toCsv, type ExportColumn } from '../../core/exportUtils';
 import { DataTable, type DataTableColumn } from '../../ui/DataTable';
@@ -23,6 +23,7 @@ import {
   useInstantPenalties,
   useLiftInstantPenaltySuspension,
   usePendingPenaltyEmployees,
+  useTriggerCheckPenaltiesNow,
 } from './useInstantPenalties';
 
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
@@ -61,7 +62,10 @@ export function InstantPenaltiesPage() {
   const generatePenalty = useGenerateInstantPenalty();
   const cancelPenalty = useCancelInstantPenalty();
   const liftSuspension = useLiftInstantPenaltySuspension();
+  const triggerCheck = useTriggerCheckPenaltiesNow();
   const { data: employees } = useEmployees();
+
+  const [checkFeedback, setCheckFeedback] = useState<string | null>(null);
 
   const [formOpen, setFormOpen] = useState(false);
   const [employeeId, setEmployeeId] = useState('');
@@ -123,12 +127,24 @@ export function InstantPenaltiesPage() {
     { key: 'workDate', header: 'التاريخ', sortable: true, render: (p) => dateFormatter.format(new Date(p.workDate + 'T00:00:00')) },
     {
       key: 'lateMinutes',
-      header: 'التأخير',
+      header: 'التأخير / الحالة',
       sortable: true,
       render: (p) => (
-        <span className="font-bold text-amber-600">
-          {p.lateMinutes} <span className="text-xs font-normal">دقيقة</span>
-        </span>
+        <div className="flex flex-col gap-1">
+          <span className="font-bold text-amber-600 flex items-center gap-1">
+            <span>{p.lateMinutes}</span>
+            <span className="text-xs font-normal">دقيقة</span>
+          </span>
+          {p.notes && p.notes.includes('لم يسجل بصمة') ? (
+            <span className="inline-block w-fit rounded bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40">
+              لم يبصم حتى الآن
+            </span>
+          ) : p.notes && p.notes.includes('تأخير حضور فعلي') ? (
+            <span className="inline-block w-fit rounded bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400">
+              بصم متأخراً
+            </span>
+          ) : null}
+        </div>
       ),
     },
     {
@@ -311,15 +327,43 @@ export function InstantPenaltiesPage() {
     <div className="space-y-5">
       <PageHeader
         eyebrow="الموارد البشرية"
-        title="الغرامات الفورية للتأخير"
-        description="نظام الغرامات الفورية: الحضور يبدأ 10:00 ص، سماح 15 دقيقة (10:00 - 10:15 بدون خصم) | حتى 10:30 (20 ج.م) | حتى 11:00 (50 ج.م) | حتى 12:00 (150 ج.م). عدم السداد في نفس اليوم يُضاعف الخصم لـ 500 ج.م في اليوم الثاني، وعدم السداد في اليوم الثاني يؤدي لغلق السيستم وإيقاف الموظف عن العمل في اليوم الثالث مع إشعار كامل الفريق حتى السداد للـ HR وتوريدها لصندوق الزمالة."
+        title="الغرامات الفورية للتأخير وعدم البصمة"
+        description="نظام الخصومات التلقائي: موعد العمل الرسمي يبدأ 10:00 ص، فترة سماح 15 دقيقة (10:00 - 10:15 ص بدون أي خصم). أي موظف لم يسجل بصمة الحضور بحلول 10:00 ص يُحتسب عليه الخصم تلقائياً فور انتهاء فترة السماح ويُصعّد مع الوقت: 10:16-10:30 (20 ج.م) | 10:31-11:00 (50 ج.م) | بعد 11:00 (150 ج.م). عدم السداد يُصعّد المبلغ لـ 500 ج.م في اليوم الثاني، ثم غلق السيستم وإيقاف الحساب في اليوم الثالث حتى السداد للـ HR وإيداع المبلغ بصندوق الزمالة."
         actions={
-          <button type="button" className="btn-primary" onClick={() => setFormOpen((v) => !v)} disabled={generatePenalty.isPending}>
-            <Zap className="size-4" aria-hidden="true" />
-            إنشاء غرامة يدوياً
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="btn-secondary flex items-center gap-1.5 text-xs sm:text-sm font-medium"
+              onClick={async () => {
+                try {
+                  const res = await triggerCheck.mutateAsync();
+                  setCheckFeedback(res.message);
+                  setTimeout(() => setCheckFeedback(null), 8000);
+                } catch (err) {
+                  setCheckFeedback('حدث خطأ أثناء الفحص: ' + safeErrorMessage(err));
+                }
+              }}
+              disabled={triggerCheck.isPending}
+              title="فحص فوري وتطبيق الخصومات على من لم يبصم حتى الآن وتحديث الشرائح"
+            >
+              <RefreshCw className={`size-4 ${triggerCheck.isPending ? 'animate-spin text-primary' : ''}`} aria-hidden="true" />
+              <span>{triggerCheck.isPending ? 'جارٍ الفحص والتطبيق...' : 'فحص وتطبيق الخصومات التلقائية الآن'}</span>
+            </button>
+            <button type="button" className="btn-primary" onClick={() => setFormOpen((v) => !v)} disabled={generatePenalty.isPending}>
+              <Zap className="size-4" aria-hidden="true" />
+              <span>إنشاء غرامة يدوياً</span>
+            </button>
+          </div>
         }
       />
+
+      {/* ─── رسالة تأكيد الفحص التلقائي ────────────────────────────── */}
+      {checkFeedback && (
+        <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3.5 text-sm text-blue-800 dark:text-blue-300 flex items-center gap-2.5">
+          <Sparkles className="size-4 shrink-0 text-blue-500" />
+          <span className="font-medium">{checkFeedback}</span>
+        </div>
+      )}
 
       {/* ─── رابط لصندوق الزمالة والتكافل ──────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/20 via-emerald-900/10 to-transparent p-4">
@@ -466,7 +510,7 @@ export function InstantPenaltiesPage() {
                     <p className="font-bold text-red-700">{e.employeeName ?? '—'}</p>
                     <p className="text-xs text-[var(--text-muted)]">{e.departmentName ?? '—'}</p>
                   </div>
-                  <div className="text-left">
+                   <div className="text-end">
                     <span className="font-black text-red-600 block">{formatCurrency(e.totalAmount)}</span>
                     <span className="text-[10px] text-red-500 font-bold">مطلوب 500 ج.م</span>
                   </div>

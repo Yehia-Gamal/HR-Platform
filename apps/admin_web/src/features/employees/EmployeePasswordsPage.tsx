@@ -111,7 +111,7 @@ function ResetPasswordDialog({ employee, onClose, onSuccess }: ResetPasswordDial
 
   return (
     <DialogOverlay title="إعادة تعيين كلمة مرور الموظف" onClose={onClose} maxWidth="max-w-md">
-      <form onSubmit={handleSubmit} className="space-y-4 text-right">
+      <form onSubmit={handleSubmit} className="space-y-4 text-end">
         <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
           <UserAvatar displayName={employee.fullNameAr} photoUrl={employee.photoUrl} size="md" />
           <div className="min-w-0 flex-1">
@@ -517,7 +517,7 @@ export function EmployeePasswordsPage() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-right text-xs">
+            <table className="w-full text-end text-xs">
               <thead className="border-b border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--muted)]">
                 <tr>
                   <th scope="col" className="p-4 font-bold">الموظف والكود</th>
@@ -583,7 +583,7 @@ export function EmployeePasswordsPage() {
                             <span className="font-mono text-xs font-black text-emerald-700 dark:text-emerald-300" dir="ltr">
                               {isVisible ? sessionPwd : '••••••••••'}
                             </span>
-                            <div className="flex items-center gap-1 border-r border-emerald-500/20 pr-2 mr-1">
+                            <div className="flex items-center gap-1 border-s border-emerald-500/20 ps-2 me-1">
                               <button
                                 type="button"
                                 onClick={() => toggleVisibility(emp.id)}

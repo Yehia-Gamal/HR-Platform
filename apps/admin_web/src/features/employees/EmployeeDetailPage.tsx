@@ -1017,7 +1017,7 @@ function PrintableIdBadgeDialog({
               <span className="block text-[10px] text-white/60">الرقم الوظيفي:</span>
               <span className="font-mono text-xs font-black tracking-widest text-emerald-400">{employee.employeeCode}</span>
             </div>
-            <div className="text-left">
+            <div className="text-end">
               <span className="block text-[10px] text-white/60">تاريخ التعيين:</span>
               <span className="font-mono text-xs text-white/90">{employee.hireDate ?? '—'}</span>
             </div>

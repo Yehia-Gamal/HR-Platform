@@ -18,7 +18,7 @@ export function ProjectCard({ project, onClick, onQuickUpdate }: Props) {
   const colors = LED_COLORS[led];
 
   return (
-    <div className={`text-right w-full p-0 ${ledCardClass(led)} group overflow-hidden`}>
+    <div className={`text-end w-full p-0 ${ledCardClass(led)} group overflow-hidden`}>
       {/* شريط LED العلوي */}
       <div className={`h-1.5 w-full ${
         led === 'active' ? 'bg-emerald-500' : led === 'halted' ? 'bg-red-500' : 'bg-gray-400'
@@ -53,7 +53,7 @@ export function ProjectCard({ project, onClick, onQuickUpdate }: Props) {
         </div>
 
         {/* الاسم والكود */}
-        <button onClick={onClick} className="w-full text-right cursor-pointer">
+        <button onClick={onClick} className="w-full text-end cursor-pointer">
           <h3 className="text-lg font-extrabold text-gray-900 dark:text-white mb-1 leading-tight group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
             {project.name}
           </h3>

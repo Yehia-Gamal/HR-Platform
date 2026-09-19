@@ -51,7 +51,7 @@ export function DailyReportsSummarizerCard({ reports }: DailyReportsSummarizerCa
   if (reports.length === 0) return null;
 
   return (
-    <div className="card p-5 border rounded-2xl bg-gradient-to-br from-[var(--surface)] to-[var(--surface-muted)] text-right space-y-4 shadow-sm border-[var(--border)]">
+    <div className="card p-5 border rounded-2xl bg-gradient-to-br from-[var(--surface)] to-[var(--surface-muted)] text-end space-y-4 shadow-sm border-[var(--border)]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
         <div className="flex items-center gap-2.5">
           <div className="size-10 rounded-xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center">

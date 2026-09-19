@@ -261,7 +261,7 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
 
       {open ? (
         <DialogOverlay title={`تعديل يوم ${day.dayNameAr} (${day.date})`} onClose={() => setOpen(false)} maxWidth="max-w-2xl">
-          <div className="space-y-4 text-right">
+          <div className="space-y-4 text-end">
             {/* إشعار وجود تعديل إداري سابق مع زر الإلغاء */}
             {day.adminOverride ? (
               <div className="flex flex-col gap-2 rounded-xl border border-amber-300 bg-amber-50/80 p-3.5 text-xs dark:border-amber-800/80 dark:bg-amber-950/30 sm:flex-row sm:items-center sm:justify-between">
@@ -313,7 +313,7 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
                           setReason(presets[0]);
                         }
                       }}
-                      className={`flex flex-col items-start gap-1 rounded-xl border p-2.5 text-right transition ${
+                      className={`flex flex-col items-start gap-1 rounded-xl border p-2.5 text-end transition ${
                         isSelected
                           ? `${cfg.bgColor} ring-2 ring-[var(--primary)] shadow-sm`
                           : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-hover)]'
@@ -485,7 +485,7 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
       {markOpen ? (
         <DialogOverlay title={`طلب تحديد يوم ${day.date}`} onClose={() => setMarkOpen(false)} maxWidth="max-w-lg">
           <form
-            className="space-y-4 text-right"
+            className="space-y-4 text-end"
             onSubmit={(e) => {
               e.preventDefault();
               markMutation.mutate();

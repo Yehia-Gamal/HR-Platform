@@ -264,13 +264,13 @@ export function CustomReportBuilder() {
         <div className="flex flex-wrap items-center gap-3 flex-1">
           {/* البحث */}
           <div className="relative min-w-[220px] flex-1 sm:max-w-xs">
-            <Search className="absolute right-3 top-2.5 size-4 text-[var(--text-muted)]" aria-hidden="true" />
+            <Search className="absolute end-3 top-2.5 size-4 text-[var(--text-muted)]" aria-hidden="true" />
             <input
               type="text"
               placeholder="بحث بالاسم أو الكود..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="input w-full pr-9 text-xs"
+              className="input w-full ps-9 text-xs"
             />
           </div>
 

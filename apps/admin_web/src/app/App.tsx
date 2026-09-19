@@ -44,6 +44,7 @@ const LiveLocationPage = lazy(() => import('../features/management/LiveLocationP
 const KpiCyclesPage = lazy(() => import('../features/advanced/KpiCyclesPage').then((m) => ({ default: m.KpiCyclesPage })));
 const FinanceHubPage = lazy(() => import('../features/finance/FinanceHubPage').then((m) => ({ default: m.FinanceHubPage })));
 const FellowshipFundPage = lazy(() => import('../features/finance/FellowshipFundPage').then((m) => ({ default: m.FellowshipFundPage })));
+const MyInstantPenaltiesPage = lazy(() => import('../features/finance/MyInstantPenaltiesPage').then((m) => ({ default: m.MyInstantPenaltiesPage })));
 const DisputesPage = lazy(() => import('../features/advanced/DisputesPage').then((m) => ({ default: m.DisputesPage })));
 const SettingsHubPage = lazy(() => import('../features/management/SettingsHubPage').then((m) => ({ default: m.SettingsHubPage })));
 const KnowledgeHubPage = lazy(() => import('../features/knowledge/KnowledgeHubPage').then((m) => ({ default: m.KnowledgeHubPage })));
@@ -137,6 +138,8 @@ function AuthenticatedApp() {
           على المتصفح ويُحوَّل لأفضل صفحة ويب مكافئة. */}
       <Routes>
         <Route path="/action/:kind/:actionId" element={<ActionRedirect />} />
+        <Route path="/me/penalties" element={<MyInstantPenaltiesPage />} />
+        <Route path="/me/*" element={<Navigate to="/me/penalties" replace />} />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/" element={<Navigate to={workspacePath(defaultWorkspace)} replace />} />

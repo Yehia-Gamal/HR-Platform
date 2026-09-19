@@ -133,7 +133,7 @@ export function DocumentsStudioPage() {
           <div className="overflow-x-auto rounded-xl border border-[var(--border-color)] bg-[var(--surface)]">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-[var(--surface-muted)] text-right">
+                <tr className="bg-[var(--surface-muted)] text-end">
                   <th className="px-4 py-3 font-semibold">الرقم المرجعي</th>
                   <th className="px-4 py-3 font-semibold">العنوان</th>
                   <th className="px-4 py-3 font-semibold">النوع</th>
@@ -171,7 +171,7 @@ export function DocumentsStudioPage() {
           <div className="overflow-x-auto rounded-xl border border-[var(--border-color)] bg-[var(--surface)]">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-[var(--surface-muted)] text-right">
+                <tr className="bg-[var(--surface-muted)] text-end">
                   <th className="px-4 py-3 font-semibold">الرمز</th>
                   <th className="px-4 py-3 font-semibold">الاسم</th>
                   <th className="px-4 py-3 font-semibold">النوع</th>

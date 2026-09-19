@@ -288,7 +288,7 @@ export function HRCopilotDrawer({
 
   return (
     <aside
-      className="fixed inset-y-0 left-0 z-50 flex w-full max-w-lg flex-col border-r border-[var(--border)] bg-[var(--surface)] shadow-2xl transition-all duration-300 animate-in slide-in-from-left"
+      className="fixed inset-y-0 start-0 z-50 flex w-full max-w-lg flex-col border-r border-[var(--border)] bg-[var(--surface)] shadow-2xl transition-all duration-300 animate-in slide-in-from-start"
       aria-label="المساعد الإداري الذكي HR Copilot"
     >
       {/* Header */}
@@ -597,7 +597,7 @@ export function HRCopilotDrawer({
                   {calcResult.deductedAmount} <span className="text-sm font-bold">ج.م</span>
                 </span>
               </div>
-              <div className="text-left">
+              <div className="text-end">
                 <span className="text-[11px] text-[var(--text-muted)] block">النسبة المعتمدة</span>
                 <span className="rounded-full bg-rose-500/10 text-rose-600 px-2.5 py-1 text-xs font-black border border-rose-500/20">
                   {calcResult.deductionFactor === 0 ? 'بدون خصم مالي' : `${calcResult.deductionFactor} يوم عمل`}

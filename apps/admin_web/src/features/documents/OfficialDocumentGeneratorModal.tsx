@@ -77,14 +77,14 @@ export function OfficialDocumentGeneratorModal({
     <DialogOverlay title="توليد الوثائق الرسمية وقوالب الـ PDF" onClose={onClose} maxWidth="max-w-5xl">
       <div className="flex flex-col lg:flex-row gap-6 p-6 max-h-[85vh] overflow-y-auto">
         {/* اللوحة الجانبية: تخصيص المستند */}
-        <div className="w-full lg:w-80 shrink-0 space-y-5 border-b lg:border-b-0 lg:border-l border-[var(--border)] pl-0 lg:pl-6 pb-6 lg:pb-0">
+        <div className="w-full lg:w-80 shrink-0 space-y-5 border-b lg:border-b-0 lg:border-e border-[var(--border)] ps-0 lg:pe-6 pb-6 lg:pb-0">
           <div>
             <label className="block text-xs font-bold text-[var(--text)] mb-2">نوع الوثيقة الرسمية</label>
             <div className="space-y-2">
               <button
                 type="button"
                 onClick={() => setDocType('salary_certificate')}
-                className={`w-full text-right p-3 rounded-xl border text-xs font-bold transition-all flex items-center gap-2.5 ${
+                className={`w-full text-end p-3 rounded-xl border text-xs font-bold transition-all flex items-center gap-2.5 ${
                   docType === 'salary_certificate'
                     ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]'
                     : 'border-[var(--border)] hover:bg-[var(--surface-muted)] text-[var(--text)]'
@@ -97,7 +97,7 @@ export function OfficialDocumentGeneratorModal({
               <button
                 type="button"
                 onClick={() => setDocType('employment_contract')}
-                className={`w-full text-right p-3 rounded-xl border text-xs font-bold transition-all flex items-center gap-2.5 ${
+                className={`w-full text-end p-3 rounded-xl border text-xs font-bold transition-all flex items-center gap-2.5 ${
                   docType === 'employment_contract'
                     ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]'
                     : 'border-[var(--border)] hover:bg-[var(--surface-muted)] text-[var(--text)]'
@@ -110,7 +110,7 @@ export function OfficialDocumentGeneratorModal({
               <button
                 type="button"
                 onClick={() => setDocType('clearance_settlement')}
-                className={`w-full text-right p-3 rounded-xl border text-xs font-bold transition-all flex items-center gap-2.5 ${
+                className={`w-full text-end p-3 rounded-xl border text-xs font-bold transition-all flex items-center gap-2.5 ${
                   docType === 'clearance_settlement'
                     ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]'
                     : 'border-[var(--border)] hover:bg-[var(--surface-muted)] text-[var(--text)]'
@@ -233,7 +233,7 @@ export function OfficialDocumentGeneratorModal({
                   <p className="text-xs text-slate-500 mt-1 font-sans">إدارة الموارد البشرية والعمليات المركزية</p>
                   <p className="text-[10px] text-slate-400 font-mono mt-0.5">HR & Central Operations Directorate</p>
                 </div>
-                <div className="text-left">
+                <div className="text-end">
                   <div className="size-14 rounded-xl border-2 border-slate-900 flex items-center justify-center font-bold text-lg text-slate-900 font-sans shadow-xs">
                     HR
                   </div>
@@ -264,29 +264,29 @@ export function OfficialDocumentGeneratorModal({
                   </p>
 
                   <div className="my-5 border border-slate-300 rounded-lg overflow-hidden">
-                    <table className="w-full text-xs text-right divide-y divide-slate-200">
+                    <table className="w-full text-xs text-end divide-y divide-slate-200">
                       <thead className="bg-slate-100 text-slate-700 font-bold">
                         <tr>
                           <th className="p-2.5">بيان الراتب والبدلات</th>
-                          <th className="p-2.5 text-left">المبلغ الشهري (بالجنيه المصري)</th>
+                          <th className="p-2.5 text-end">المبلغ الشهري (بالجنيه المصري)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
                         <tr>
                           <td className="p-2.5">الراتب الأساسي (Basic Salary)</td>
-                          <td className="p-2.5 text-left font-mono font-bold">{basicSalary.toLocaleString()} ج.م</td>
+                          <td className="p-2.5 text-end font-mono font-bold">{basicSalary.toLocaleString()} ج.م</td>
                         </tr>
                         <tr>
                           <td className="p-2.5">بدل السكن والإعاشة (Housing)</td>
-                          <td className="p-2.5 text-left font-mono font-bold">{housing.toLocaleString()} ج.م</td>
+                          <td className="p-2.5 text-end font-mono font-bold">{housing.toLocaleString()} ج.م</td>
                         </tr>
                         <tr>
                           <td className="p-2.5">بدل الانتقال والميدان (Transport)</td>
-                          <td className="p-2.5 text-left font-mono font-bold">{transport.toLocaleString()} ج.م</td>
+                          <td className="p-2.5 text-end font-mono font-bold">{transport.toLocaleString()} ج.م</td>
                         </tr>
                         <tr className="bg-slate-50 font-bold text-slate-900">
                           <td className="p-2.5">إجمالي الراتب الشهري الشامل (Gross Salary)</td>
-                          <td className="p-2.5 text-left font-mono text-sm font-black">{total.toLocaleString()} ج.م</td>
+                          <td className="p-2.5 text-end font-mono text-sm font-black">{total.toLocaleString()} ج.م</td>
                         </tr>
                       </tbody>
                     </table>

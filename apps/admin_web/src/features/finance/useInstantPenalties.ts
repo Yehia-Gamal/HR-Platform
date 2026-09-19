@@ -176,3 +176,29 @@ export function useLiftInstantPenaltySuspension() {
     },
   });
 }
+
+// ─── فحص وتطبيق الخصومات التلقائية الآن ─────────────────────────────
+
+export interface TriggerCheckResult {
+  success: boolean;
+  processedCount: number;
+  serverTimeCairo: string;
+  message: string;
+}
+
+export function useTriggerCheckPenaltiesNow() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (): Promise<TriggerCheckResult> => {
+      const res = await rpc('trigger_check_instant_penalties_now');
+      return res as TriggerCheckResult;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [INSTANT_PENALTIES_KEY] });
+      void queryClient.invalidateQueries({ queryKey: [PENDING_EMPLOYEES_KEY] });
+      void queryClient.invalidateQueries({ queryKey: ['fellowship-fund-summary'] });
+      void queryClient.invalidateQueries({ queryKey: ['fellowship-fund-transactions'] });
+    },
+  });
+}
+

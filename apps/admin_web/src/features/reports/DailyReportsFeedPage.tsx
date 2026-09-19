@@ -171,7 +171,7 @@ export function DailyReportsFeedPage() {
                       {item.department ? <span className={chipClass('neutral')}>{item.department}</span> : null}
                     </div>
                   </div>
-                  <div className="shrink-0 text-left">
+                   <div className="shrink-0 text-end">
                     <p className="text-xs font-bold text-[var(--text-muted)]">
                       {new Intl.DateTimeFormat('ar-EG', {
                         day: 'numeric',

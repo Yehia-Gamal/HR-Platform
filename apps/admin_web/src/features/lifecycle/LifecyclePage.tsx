@@ -63,7 +63,7 @@ export function LifecyclePage() {
       render: (j) => (
         <div>
           <span className="font-bold">{j.employeeName}</span>
-          {j.employeeCode ? <span className="mr-2 text-xs text-[var(--text-muted)]">{j.employeeCode}</span> : null}
+          {j.employeeCode ? <span className="me-2 text-xs text-[var(--text-muted)]">{j.employeeCode}</span> : null}
         </div>
       ),
     },

@@ -2998,3 +2998,62 @@ class EmployeeTaskBrief {
   final String? priority;
   final DateTime? dueDate;
 }
+
+// ── MobileInstantPenalty ─────────────────────────────────────────────────
+// غرامة حضور فورية — تُعرض للموظف في صفحة غراماتي.
+class MobileInstantPenalty {
+  const MobileInstantPenalty({
+    required this.id,
+    required this.workDate,
+    required this.lateMinutes,
+    required this.originalAmount,
+    required this.currentAmount,
+    required this.currency,
+    required this.status,
+    this.escalationLevel,
+    this.paidAt,
+    this.suspendedAt,
+    this.suspensionLiftedAt,
+    this.notes,
+    required this.createdAt,
+  });
+
+  factory MobileInstantPenalty.fromJson(Map<String, dynamic> j) =>
+      MobileInstantPenalty(
+        id: j['id'] as String? ?? '',
+        workDate: j['work_date'] as String? ?? j['workDate'] as String? ?? '',
+        lateMinutes: (j['late_minutes'] as num?)?.toInt() ??
+            (j['lateMinutes'] as num?)?.toInt() ??
+            0,
+        originalAmount: (j['original_amount'] as num?)?.toDouble() ??
+            (j['originalAmount'] as num?)?.toDouble() ??
+            0,
+        currentAmount: (j['current_amount'] as num?)?.toDouble() ??
+            (j['currentAmount'] as num?)?.toDouble() ??
+            0,
+        currency: j['currency'] as String? ?? 'EGP',
+        status: j['status'] as String? ?? 'pending_payment',
+        escalationLevel: (j['escalation_level'] as num?)?.toInt() ??
+            (j['escalationLevel'] as num?)?.toInt(),
+        paidAt: _optDate(j['paid_at'] ?? j['paidAt']),
+        suspendedAt: _optDate(j['suspended_at'] ?? j['suspendedAt']),
+        suspensionLiftedAt:
+            _optDate(j['suspension_lifted_at'] ?? j['suspensionLiftedAt']),
+        notes: j['notes'] as String?,
+        createdAt: _reqDate(j['created_at'] ?? j['createdAt']),
+      );
+
+  final String id;
+  final String workDate;
+  final int lateMinutes;
+  final double originalAmount;
+  final double currentAmount;
+  final String currency;
+  final String status;
+  final int? escalationLevel;
+  final DateTime? paidAt;
+  final DateTime? suspendedAt;
+  final DateTime? suspensionLiftedAt;
+  final String? notes;
+  final DateTime createdAt;
+}

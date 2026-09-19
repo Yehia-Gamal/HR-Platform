@@ -70,7 +70,7 @@ export function Tabs({ tabs, activeTab, onTabChange, children, ariaLabel = 'أل
           >
             {tab.label}
             {tab.count != null ? (
-              <span className="mr-1.5 rounded-full bg-current/10 px-1.5 py-0.5 text-[.65rem] font-black leading-none">{tab.count}</span>
+              <span className="me-1.5 rounded-full bg-current/10 px-1.5 py-0.5 text-[.65rem] font-black leading-none">{tab.count}</span>
             ) : null}
           </button>
         ))}

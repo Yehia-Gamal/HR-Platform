@@ -284,13 +284,13 @@ export function FellowshipFundPage() {
 
             {/* البحث */}
             <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search className="w-3.5 h-3.5 absolute end-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="بحث بالاسم أو السبب أو الفئة..."
-                className="input pr-8 text-xs py-1.5 w-56"
+                className="input ps-8 text-xs py-1.5 w-56"
               />
             </div>
           </div>
@@ -310,7 +310,7 @@ export function FellowshipFundPage() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-right text-xs">
+            <table className="w-full text-end text-xs">
               <thead>
                 <tr className="border-b border-[var(--border)] text-[var(--text-muted)] bg-[var(--surface-raised)]/40">
                   <th className="p-3 font-bold">الحركة</th>
@@ -404,7 +404,7 @@ export function FellowshipFundPage() {
       {/* ═══ حوار سحب مبلغ من صندوق الزمالة (خاص بالأدمن فقط) ═══ */}
       {withdrawOpen && (
         <DialogOverlay title="سحب مبلغ من صندوق الزمالة والتكافل" onClose={() => setWithdrawOpen(false)} maxWidth="max-w-lg">
-          <form onSubmit={handleWithdrawSubmit} className="space-y-4 p-4 text-right">
+           <form onSubmit={handleWithdrawSubmit} className="space-y-4 p-4 text-end">
             {/* لافتة الشفافية والتنبيه */}
             <div className="rounded-xl border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 p-3 text-xs text-amber-800 dark:text-amber-300 space-y-1">
               <div className="flex items-center gap-1.5 font-bold">

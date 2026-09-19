@@ -235,10 +235,10 @@ export function MonthlyAttendanceReportPage() {
           <label className="text-sm font-bold">
             <span className="block mb-1">بحث سريع</span>
             <div className="relative">
-              <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
+              <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
               <input
                 type="search"
-                className="input w-full pr-9"
+                className="input w-full ps-9"
                 placeholder="فلترة بالاسم أو الكود أو الإدارة…"
                 value={filterText}
                 onChange={(e) => setFilterText(e.target.value)}
@@ -300,7 +300,7 @@ export function MonthlyAttendanceReportPage() {
                     key={emp.id}
                     type="button"
                     onClick={() => setSelectedEmployeeId(isSelected ? null : emp.id)}
-                    className={`relative flex items-center gap-3 rounded-xl border-2 p-3 text-right transition-all duration-200 ${
+                    className={`relative flex items-center gap-3 rounded-xl border-2 p-3 text-end transition-all duration-200 ${
                       isSelected
                         ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/5 shadow-md ring-2 ring-[var(--brand-primary)]/20'
                         : 'border-[var(--border)] bg-[var(--surface)] hover:border-[var(--brand-primary)]/40 hover:shadow-sm'
@@ -519,10 +519,10 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="filter-search relative flex-1 min-w-[200px]">
-            <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
+            <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
             <input
               type="search"
-              className="input pr-9"
+              className="input ps-9"
               placeholder="بحث بالتاريخ أو اليوم أو الحالة…"
               value={daySearch}
               onChange={(e) => setDaySearch(e.target.value)}
@@ -557,7 +557,7 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
 
       {/* الجدول اليومي */}
       <section className="overflow-x-auto rounded-xl border border-[var(--border)] print:overflow-visible" aria-label="تفاصيل الحضور اليومي">
-        <table className="w-full min-w-[1000px] text-right text-sm print:min-w-0 print:text-[9px]">
+        <table className="w-full min-w-[1000px] text-right text-sm print:min-w-0 print:text-[9px] text-end">
           <thead className="bg-[var(--surface-muted)] text-xs font-black print:text-[8px] print:bg-gray-100">
             <tr>
               <th className="p-2.5 print:p-1">التاريخ</th>

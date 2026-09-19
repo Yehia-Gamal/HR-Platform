@@ -111,7 +111,7 @@ export function DocumentsPage() {
       render: (d) => (
         <div>
           <span className="font-bold">{d.employeeName}</span>
-          {d.employeeCode ? <span className="mr-2 text-xs text-[var(--text-muted)]">{d.employeeCode}</span> : null}
+          {d.employeeCode ? <span className="me-2 text-xs text-[var(--text-muted)]">{d.employeeCode}</span> : null}
         </div>
       ),
     },
@@ -192,7 +192,7 @@ export function DocumentsPage() {
           <div>
             <span className="font-bold">{a.assignment.employeeName}</span>
             {a.assignment.status ? (
-              <span className="mr-2 text-xs text-[var(--text-muted)]">{ASSET_STATUS_LABELS[a.assignment.status] ?? a.assignment.status}</span>
+              <span className="me-2 text-xs text-[var(--text-muted)]">{ASSET_STATUS_LABELS[a.assignment.status] ?? a.assignment.status}</span>
             ) : null}
           </div>
         ) : (
@@ -216,7 +216,7 @@ export function DocumentsPage() {
       render: (o) => (
         <div>
           <span className="font-bold">{o.employeeName}</span>
-          {o.employeeCode ? <span className="mr-2 text-xs text-[var(--text-muted)]">{o.employeeCode}</span> : null}
+          {o.employeeCode ? <span className="me-2 text-xs text-[var(--text-muted)]">{o.employeeCode}</span> : null}
         </div>
       ),
     },

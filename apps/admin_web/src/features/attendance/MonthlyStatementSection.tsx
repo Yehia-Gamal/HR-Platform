@@ -199,10 +199,10 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="filter-search relative flex-1 min-w-[200px]">
-            <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
+            <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
             <input
               type="search"
-              className="input pr-9"
+              className="input ps-9"
               placeholder="بحث بالتاريخ أو اليوم أو الحالة…"
               value={daySearch}
               onChange={(e) => setDaySearch(e.target.value)}

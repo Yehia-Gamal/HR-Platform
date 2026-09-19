@@ -162,7 +162,7 @@ export function EmployeeActivityTimeline({ employee }: EmployeeActivityTimelineP
         </div>
       </div>
 
-      <div className="relative border-r-2 border-[var(--border)] pr-6 space-y-6 mr-3">
+      <div className="relative border-s-2 border-[var(--border)] ps-6 space-y-6 ms-3">
         {events.map((evt) => {
           const IconComponent = evt.icon;
           const styles = toneClasses[evt.tone];
@@ -170,7 +170,7 @@ export function EmployeeActivityTimeline({ employee }: EmployeeActivityTimelineP
             <div key={evt.id} className="relative group">
               {/* Dot on the timeline line */}
               <div
-                className={`absolute -right-[31px] top-1.5 flex size-4 items-center justify-center rounded-full border-2 border-[var(--surface)] ${styles.dot}`}
+                className={`absolute -start-[31px] top-1.5 flex size-4 items-center justify-center rounded-full border-2 border-[var(--surface)] ${styles.dot}`}
                 aria-hidden="true"
               />
 

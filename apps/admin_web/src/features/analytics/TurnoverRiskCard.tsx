@@ -28,7 +28,7 @@ export function TurnoverRiskCard({ assessment, onInitiateRetentionPlan }: Turnov
         : 'منخفض ومستقر (ارتباط وظيفي قوي)';
 
   return (
-    <div className="card p-5 space-y-4 border rounded-2xl bg-[var(--surface)] text-right">
+    <div className="card p-5 space-y-4 border rounded-2xl bg-[var(--surface)] text-end">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
