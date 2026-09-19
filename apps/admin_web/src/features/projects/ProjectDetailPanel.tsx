@@ -6,7 +6,6 @@ import { useOrganizationLookups } from '../employees/useOrganizationLookups';
 import { useEmployees } from '../employees/useEmployees';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { DialogOverlay } from '../../ui/DialogOverlay';
-import { format } from 'date-fns';
 import { X, Plus, CheckCircle2, Clock, FileText, Ban, Edit3, Trash2, Pencil } from 'lucide-react';
 
 interface Props {
@@ -40,8 +39,8 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
   const deleteStep = useDeleteProjectStep();
   const updateProject = useUpdateAssociationProject();
   const { data: org } = useOrganizationLookups();
-  const employeesHook = useEmployees();
-  const employees = employeesHook[0] ?? [];
+  const { data: employeesData } = useEmployees();
+  const employees = employeesData ?? [];
 
   // edit project state
   const [editName, setEditName] = useState(project.name);
@@ -212,7 +211,15 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
                     <div key={u.id} className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm font-medium">{u.authorName}</span>
-                        <span className="text-xs text-gray-400">{format(new Date(u.createdAt), 'yyyy/MM/dd HH:mm')}</span>
+                        <span className="text-xs text-gray-400">
+                          {new Date(u.createdAt).toLocaleDateString('ar-EG', {
+                            year: 'numeric',
+                            month: 'numeric',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">{u.note}</p>
                       {u.progress != null && <p className="text-xs text-gray-500 mt-1">نسبة الإنجاز: {u.progress}%</p>}
@@ -247,14 +254,14 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
               <label className="block">
                 <span className="text-sm font-medium">المسؤول</span>
                 <select className="input mt-1 w-full" value={editOwnerId} onChange={(e) => setEditOwnerId(e.target.value)}>
-                  {employees.map((e) => <option key={e.id} value={e.id}>{e.fullNameAr}</option>)}
+                  {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.fullNameAr}</option>)}
                 </select>
               </label>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <label className="block">
                 <span className="text-sm font-medium">الحالة</span>
-                <select className="input mt-1 w-full" value={editStatus} onChange={(e) => setEditStatus(e.target.value)}>
+                <select className="input mt-1 w-full" value={editStatus} onChange={(e) => setEditStatus(e.target.value as AssociationProjectDetail['project']['status'])}>
                   <option value="planned">مخطط</option>
                   <option value="active">نشط</option>
                   <option value="on_hold">متوقف</option>
@@ -264,7 +271,7 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
               </label>
               <label className="block">
                 <span className="text-sm font-medium">الأولوية</span>
-                <select className="input mt-1 w-full" value={editPriority} onChange={(e) => setEditPriority(e.target.value)}>
+                <select className="input mt-1 w-full" value={editPriority} onChange={(e) => setEditPriority(e.target.value as AssociationProjectDetail['project']['priority'])}>
                   <option value="low">منخفضة</option>
                   <option value="medium">متوسطة</option>
                   <option value="high">عالية</option>

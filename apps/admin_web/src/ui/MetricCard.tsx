@@ -28,7 +28,7 @@ export function MetricCard({
         <div className="min-w-0">
           <p className="truncate text-xs font-extrabold text-[var(--text-muted)]">{label}</p>
           <div className="mt-2 flex flex-wrap items-end gap-2">
-            <p className="text-3xl font-black tracking-tight">{value}</p>
+            <p className="text-3xl font-black tracking-tight text-[var(--text)]">{value}</p>
             {trend ? (
               <span className="metric-trend">
                 <ArrowUpLeft className="size-3" aria-hidden="true" />

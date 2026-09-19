@@ -22,6 +22,8 @@ const map: Record<string, { label: string; tone: Tone; icon: typeof CircleCheck 
   rejected: { label: 'مرفوض', tone: 'danger', icon: CircleX },
   cancelled: { label: 'ملغي', tone: 'neutral', icon: CircleMinus },
   withdrawn: { label: 'مسحوب', tone: 'neutral', icon: CircleMinus },
+  returned: { label: 'معاد', tone: 'info', icon: Clock3 },
+  escalated: { label: 'مُصعَّدة', tone: 'danger', icon: AlertTriangle },
   expired: { label: 'منتهي الصلاحية', tone: 'danger', icon: Clock3 },
   // حضور وانصراف وإجازات
   present: { label: 'حاضر', tone: 'success', icon: CircleCheck },
