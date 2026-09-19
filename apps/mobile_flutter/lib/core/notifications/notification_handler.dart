@@ -36,8 +36,12 @@ String? canonicalNotificationEntityType(String? raw) => switch (raw) {
   'overtime_records' ||
   'work_rosters' ||
   'attendance_alert' ||
-  'punch_reminder' => 'attendance',
   'daily_reports' => 'daily_report',
+  'instant_penalty' ||
+  'instant_penalty_doubled' ||
+  'instant_penalty_suspended' ||
+  'instant_penalty_paid' ||
+  'instant_penalty_cancelled' => 'instant_penalty',
   _ => raw,
 };
 
@@ -158,7 +162,8 @@ String resolveNotificationRoute({
     'daily_report' ||
     'daily_report_like' ||
     'daily_report_comment' ||
-    'attendance_manager_notify' => '/',
+    'attendance_manager_notify' ||
+    'instant_penalty' => '/',
     _ => '/',
   };
 }

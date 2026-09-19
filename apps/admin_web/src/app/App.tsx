@@ -50,6 +50,7 @@ const ReportsHubPage = lazy(() => import('../features/management/ReportsHubPage'
 const DocumentsHubPage = lazy(() => import('../features/documents/DocumentsHubPage').then((m) => ({ default: m.DocumentsHubPage })));
 const AccessPage = lazy(() => import('../features/management/AccessPage').then((m) => ({ default: m.AccessPage })));
 const EnterpriseManagementPage = lazy(() => import('../features/management/EnterpriseManagementPage').then((m) => ({ default: m.EnterpriseManagementPage })));
+const AssociationProjectsPage = lazy(() => import('../features/projects/AssociationProjectsPage').then((m) => ({ default: m.AssociationProjectsPage })));
 const AuditSecurityPage = lazy(() => import('../features/management/AuditSecurityPage').then((m) => ({ default: m.AuditSecurityPage })));
 const ObservabilityDashboardPage = lazy(() =>
   import('../features/observability/ObservabilityDashboardPage').then((m) => ({ default: m.ObservabilityDashboardPage })),
@@ -263,6 +264,14 @@ function AuthenticatedApp() {
               element={
                 <RequirePermission perm="organization.entity.read">
                   <EnterpriseManagementPage />
+                </RequirePermission>
+              }
+            />
+            <Route
+              path="association-projects"
+              element={
+                <RequirePermission perm="*">
+                  <AssociationProjectsPage />
                 </RequirePermission>
               }
             />

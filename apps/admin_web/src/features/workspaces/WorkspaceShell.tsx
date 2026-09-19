@@ -14,6 +14,7 @@ import {
   ClipboardList,
   FileClock,
   FileSignature,
+  FolderKanban,
   Gauge,
   Gavel,
   KeyRound,
