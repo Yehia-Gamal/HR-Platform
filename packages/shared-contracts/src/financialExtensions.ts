@@ -306,3 +306,12 @@ export const confirmPenaltyToFundResultSchema = z.object({
   message: z.string(),
 });
 export type ConfirmPenaltyToFundResult = z.infer<typeof confirmPenaltyToFundResultSchema>;
+
+/** نتيجة فحص وتطبيق الخصومات التلقائية */
+export const triggerCheckResultSchema = z.object({
+  success: z.boolean(),
+  processedCount: z.number(),
+  serverTimeCairo: z.string(),
+  message: z.string(),
+});
+export type TriggerCheckResult = z.infer<typeof triggerCheckResultSchema>;

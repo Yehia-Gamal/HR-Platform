@@ -229,7 +229,7 @@ export function InstantPenaltiesPage() {
         <div className="min-w-[140px]">
           <span className="font-bold block leading-tight">{p.employeeName ?? '—'}</span>
           <span className="text-[11px] text-[var(--text-muted)] block">{p.departmentName ?? '—'}</span>
-          {p.status === 'suspended' && <span className="inline-block mt-1 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-black text-red-700">معلّق</span>}
+          {p.status === 'suspended' && <span className="inline-block mt-1 rounded-full bg-red-100 dark:bg-red-950/50 px-1.5 py-0.5 text-[10px] font-black text-red-700 dark:text-red-300">معلّق</span>}
         </div>
       ),
     },
@@ -240,7 +240,7 @@ export function InstantPenaltiesPage() {
       sortable: true,
       render: (p) => (
         <div className="flex flex-col gap-0.5">
-          <span className="font-bold text-amber-600 whitespace-nowrap">
+          <span className="font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap">
             {p.lateMinutes} <span className="text-xs font-normal">دقيقة</span>
           </span>
           {p.notes && p.notes.includes('لم يسجل بصمة') ? (
@@ -265,7 +265,7 @@ export function InstantPenaltiesPage() {
       header: 'المطلوب',
       sortable: true,
       render: (p) => (
-        <span className={`font-black whitespace-nowrap ${p.status === 'paid' ? 'text-emerald-600' : 'text-[var(--danger)]'}`}>
+        <span className={`font-black whitespace-nowrap ${p.status === 'paid' ? 'text-emerald-600 dark:text-emerald-400' : 'text-[var(--danger)]'}`}>
           {formatCurrency(p.currentAmount)}
         </span>
       ),
@@ -285,7 +285,7 @@ export function InstantPenaltiesPage() {
       header: 'إجراءات',
       render: (p) => {
         if (p.status === 'paid') {
-          return <span className="text-xs text-emerald-600 font-bold whitespace-nowrap">✓ مدفوعة ومُزيلَة</span>;
+          return <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold whitespace-nowrap">✓ مدفوعة ومُزيلَة</span>;
         }
         if (p.status === 'cancelled') {
           return <span className="text-xs text-[var(--text-muted)] font-bold">ملغاة</span>;
@@ -1495,7 +1495,7 @@ export function InstantPenaltiesPage() {
                                 <td className="p-3 text-[var(--text-secondary)]">{p.departmentName ?? '—'}</td>
                                 <td className="p-3 whitespace-nowrap text-[var(--text-muted)]">{dateFormatter.format(new Date(p.workDate + 'T00:00:00'))}</td>
                                 <td className="p-3 text-center">
-                                  <span className="font-bold text-amber-600">{p.lateMinutes} د</span>
+                                  <span className="font-bold text-amber-600 dark:text-amber-400">{p.lateMinutes} د</span>
                                 </td>
                                 <td className="p-3 text-end font-black font-mono text-[var(--text-primary)]">{formatCurrency(p.currentAmount)}</td>
                                 <td className="p-3 text-center">
@@ -1520,7 +1520,7 @@ export function InstantPenaltiesPage() {
                                       <span>إيداع بالصندوق</span>
                                     </button>
                                   ) : p.status === 'paid' ? (
-                                    <span className="text-[11px] text-emerald-600 font-bold">✓ تم الإيداع</span>
+                                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">✓ تم الإيداع</span>
                                   ) : (
                                     <span className="text-[11px] text-[var(--text-muted)]">ملغاة</span>
                                   )}

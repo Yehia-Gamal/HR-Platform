@@ -54,24 +54,45 @@ export function EmployeePenaltiesPage() {
   }, [penalties.data, search]);
 
   const columns: DataTableColumn<(typeof rows)[number]>[] = [
-    { key: 'employeeName', header: 'الموظف', sortable: true, render: (p) => <span className="font-bold">{p.employeeName ?? '—'}</span> },
-    { key: 'departmentName', header: 'الإدارة', render: (p) => p.departmentName ?? '—' },
-    { key: 'penaltyType', header: 'النوع', render: (p) => PENALTY_TYPE_LABELS[p.penaltyType] ?? p.penaltyType },
+    {
+      key: 'employeeName',
+      header: 'الموظف',
+      sortable: true,
+      render: (p) => (
+        <div className="min-w-[140px]">
+          <span className="font-bold block leading-tight">{p.employeeName ?? '—'}</span>
+          <span className="text-[11px] text-[var(--text-muted)] block">{p.departmentName ?? '—'}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'penaltyType',
+      header: 'النوع',
+      render: (p) => (
+        <span className="rounded-md bg-[var(--surface-raised)] px-2 py-1 text-[11px] font-medium border border-[var(--border)] whitespace-nowrap">
+          {PENALTY_TYPE_LABELS[p.penaltyType] ?? p.penaltyType}
+        </span>
+      ),
+    },
     {
       key: 'reason',
       header: 'السبب',
       render: (p) => (
-        <span className="block max-w-[240px] truncate" title={p.reason}>
+        <span className="block max-w-[200px] truncate text-[var(--text-primary)] leading-tight" title={p.reason}>
           {p.reason}
         </span>
       ),
     },
-    { key: 'amount', header: 'المبلغ', sortable: true, render: (p) => <span className="font-black text-[var(--danger)]">{formatCurrency(p.amount)}</span> },
-    { key: 'issuedAt', header: 'تاريخ الإصدار', render: (p) => (p.issuedAt ? dateFormatter.format(new Date(p.issuedAt)) : '—') },
+    { key: 'amount', header: 'المبلغ', sortable: true, render: (p) => <span className="font-black text-[var(--danger)] whitespace-nowrap">{formatCurrency(p.amount)}</span> },
+    { key: 'issuedAt', header: 'التاريخ', render: (p) => <span className="whitespace-nowrap">{p.issuedAt ? dateFormatter.format(new Date(p.issuedAt)) : '—'}</span> },
     {
       key: 'status',
       header: 'الحالة',
-      render: (p) => <StatusBadge status={p.status} label={PENALTY_STATUS_LABELS[p.status] ?? p.status} />,
+      render: (p) => (
+        <div className="flex items-center gap-1.5 whitespace-nowrap">
+          <StatusBadge status={p.status} label={PENALTY_STATUS_LABELS[p.status] ?? p.status} />
+        </div>
+      ),
     },
     {
       key: 'actions',
@@ -80,7 +101,7 @@ export function EmployeePenaltiesPage() {
         p.status === 'issued' || p.status === 'deducted' ? (
           <button
             type="button"
-            className="btn-ghost text-xs"
+            className="btn-ghost text-[11px] !min-h-0 !py-1.5"
             disabled={waivePenalty.isPending}
             onClick={() => {
               setWaiveTargetId(p.id);

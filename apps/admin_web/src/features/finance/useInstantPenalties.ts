@@ -4,11 +4,13 @@ import {
   generateInstantPenaltyResultSchema,
   instantPenaltySchema,
   pendingPenaltyEmployeeSchema,
+  triggerCheckResultSchema,
   type CancelInstantPenaltyResult,
   type ConfirmInstantPenaltyPaymentResult,
   type GenerateInstantPenaltyResult,
   type InstantPenalty,
   type PendingPenaltyEmployee,
+  type TriggerCheckResult,
 } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
@@ -185,19 +187,13 @@ export function useLiftInstantPenaltySuspension() {
 
 // ─── فحص وتطبيق الخصومات التلقائية الآن ─────────────────────────────
 
-export interface TriggerCheckResult {
-  success: boolean;
-  processedCount: number;
-  serverTimeCairo: string;
-  message: string;
-}
-
 export function useTriggerCheckPenaltiesNow() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (): Promise<TriggerCheckResult> => {
-      const res = await rpc('trigger_check_instant_penalties_now');
-      return res as TriggerCheckResult;
+      return triggerCheckResultSchema.parse(
+        await rpc('trigger_check_instant_penalties_now'),
+      );
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [INSTANT_PENALTIES_KEY] });

@@ -2,12 +2,10 @@ import {
   fellowshipFundSummarySchema,
   fellowshipFundTransactionSchema,
   withdrawFellowshipFundResultSchema,
-  confirmPenaltyToFundResultSchema,
   type FellowshipFundSummary,
   type FellowshipFundTransaction,
   type WithdrawFellowshipFundInput,
   type WithdrawFellowshipFundResult,
-  type ConfirmPenaltyToFundResult,
 } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
@@ -108,25 +106,3 @@ export function useWithdrawFromFellowshipFund() {
   });
 }
 
-// ─── تأكيد استلام الغرامة وإيداعها في الصندوق ──────────────────────────
-export function useConfirmPenaltyToFund() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (args: { penaltyId: string; notes?: string }): Promise<ConfirmPenaltyToFundResult> => {
-      return confirmPenaltyToFundResultSchema.parse(
-        await rpc('confirm_instant_penalty_payment', {
-          p_penalty_id: args.penaltyId,
-          p_notes: args.notes ?? null,
-        }),
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instant-penalties'] });
-      queryClient.invalidateQueries({ queryKey: ['instant-penalties-pending-employees'] });
-      queryClient.invalidateQueries({ queryKey: [FELLOWSHIP_FUND_SUMMARY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [FELLOWSHIP_FUND_TX_KEY] });
-      queryClient.invalidateQueries({ queryKey: ['employees'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    },
-  });
-}

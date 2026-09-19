@@ -1,21 +1,14 @@
 import { useState, useMemo } from 'react';
 import {
   Coins,
-  HeartHandshake,
   ArrowDownLeft,
   ArrowUpRight,
   ShieldCheck,
   History,
-  Users,
   Search,
   AlertTriangle,
-  FileText,
   Clock,
-  CheckCircle2,
-  TrendingUp,
-  TrendingDown,
   Sparkles,
-  Receipt,
   UserCheck,
 } from 'lucide-react';
 import {
@@ -141,7 +134,7 @@ export function FellowshipFundPage() {
             </div>
 
             <div>
-              <p className="text-xs text-gray-400 font-medium">الرصيد المتاح حالياً بالصندوق</p>
+              <p className="text-xs text-white/60 font-medium">الرصيد المتاح حالياً بالصندوق</p>
               <div className="flex items-baseline gap-2 mt-1">
                 <h2 className="text-4xl md:text-5xl font-black tracking-tight text-white font-mono">
                   {currentBalance.toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -150,7 +143,7 @@ export function FellowshipFundPage() {
               </div>
             </div>
 
-            <p className="text-xs text-gray-400 max-w-xl leading-relaxed">
+            <p className="text-xs text-white/60 max-w-xl leading-relaxed">
               تُورّد كل مبالغ غرامات الحضور والانصراف تلقائياً إلى هذا الصندوق لمساعدة الزملاء والمناسبات الاجتماعية، ويكون كل سحب أو إيداع معلناً للجميع بإشعار فوري.
             </p>
           </div>
@@ -165,7 +158,7 @@ export function FellowshipFundPage() {
               <p className="text-xl font-black font-mono text-emerald-300">
                 {(summary?.totalInflows ?? 0).toLocaleString('ar-EG')} ج.م
               </p>
-              <p className="text-[11px] text-gray-400 mt-1">
+              <p className="text-[11px] text-white/50 mt-1">
                 {summary?.inflowsCount ?? 0} عملية إيداع
               </p>
             </div>
@@ -178,7 +171,7 @@ export function FellowshipFundPage() {
               <p className="text-xl font-black font-mono text-red-300">
                 {(summary?.totalOutflows ?? 0).toLocaleString('ar-EG')} ج.م
               </p>
-              <p className="text-[11px] text-gray-400 mt-1">
+              <p className="text-[11px] text-white/50 mt-1">
                 {summary?.outflowsCount ?? 0} عملية سحب
               </p>
             </div>
@@ -360,7 +353,7 @@ export function FellowshipFundPage() {
 
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5 font-bold text-[var(--text-primary)]">
-                          <UserCheck className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                          <UserCheck className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
                           <span className="truncate max-w-[140px]">{tx.employeeName}</span>
                         </div>
                       </td>
@@ -382,7 +375,7 @@ export function FellowshipFundPage() {
 
                       <td className="px-4 py-3 text-[var(--text-muted)] whitespace-nowrap">
                         <p className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-gray-400" />
+                          <Clock className="w-3 h-3 text-[var(--text-muted)]" />
                           {new Date(tx.createdAt).toLocaleDateString('ar-EG', {
                             year: 'numeric',
                             month: 'short',
@@ -392,7 +385,7 @@ export function FellowshipFundPage() {
                           })}
                         </p>
                         {tx.performerName && (
-                          <p className="text-[10px] text-gray-400 mt-0.5">بواسطة: {tx.performerName}</p>
+                          <p className="text-[10px] text-[var(--text-muted)] mt-0.5">بواسطة: {tx.performerName}</p>
                         )}
                       </td>
                     </tr>
@@ -423,7 +416,7 @@ export function FellowshipFundPage() {
             </div>
 
             {actionError && (
-              <div className="rounded-lg bg-red-50 dark:bg-red-950/30 p-2.5 text-xs text-red-600 dark:text-red-400 border border-red-200">
+              <div className="rounded-lg bg-red-50 dark:bg-red-950/30 p-2.5 text-xs text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/30">
                 {actionError}
               </div>
             )}

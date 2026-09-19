@@ -193,7 +193,7 @@ export function MyInstantPenaltiesPage() {
                     <div className="flex items-center gap-2">
                       <h3 className="font-black text-sm">{dateFormatter.format(new Date(p.workDate + 'T00:00:00'))}</h3>
                       {p.status === 'suspended' && (
-                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-black text-red-700">معلّق</span>
+                        <span className="rounded-full bg-red-100 dark:bg-red-950/50 px-2 py-0.5 text-[10px] font-black text-red-700 dark:text-red-300">معلّق</span>
                       )}
                     </div>
                     <p className="text-xs text-[var(--text-muted)] mt-0.5">
@@ -206,7 +206,7 @@ export function MyInstantPenaltiesPage() {
                   <span
                     className={`text-lg font-black font-mono ${
                       p.status === 'paid'
-                        ? 'text-emerald-600'
+                        ? 'text-emerald-600 dark:text-emerald-400'
                         : p.status === 'cancelled'
                           ? 'text-[var(--text-muted)] line-through'
                           : 'text-[var(--danger)]'
