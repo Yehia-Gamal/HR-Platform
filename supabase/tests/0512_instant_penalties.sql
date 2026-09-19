@@ -8,8 +8,9 @@
 --   4) confirm_instant_penalty_payment — سداد + رفع التعليق
 --   5) get_instant_penalties — استعلام مع فلاتر
 --   6) get_employees_with_pending_instant_penalties — المطالبين بالدفع
---   7) lift_instant_penalty_suspension — رفع التعليق بدون دفع
---   8) الحماية: anon ممنوع، موظف عادي مرفوض
+--   7) lift_instant_penalty_suspension — رفع التعليق (يُعيد للحالة pending_payment)
+--   8) cancel_instant_penalty — إلغاء غرامة
+--   9) الحماية: anon ممنوع، موظف عادي مرفوض
 -- كل شيء ضمن معاملة تُلغى (rollback).
 -- =====================================================================
 
@@ -17,7 +18,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
 set local timezone = 'Africa/Cairo';
-select plan(28);
+select plan(36);
 
 -- =====================================================================
 -- Fixture: كيان + إدارة + وظيفة + موظف مسؤول (full-access) + موظف عادي
@@ -91,6 +92,8 @@ select has_function('public', 'get_employees_with_pending_instant_penalties', ar
   'get_employees_with_pending_instant_penalties() موجودة');
 select has_function('public', 'lift_instant_penalty_suspension', array['uuid', 'text'],
   'lift_instant_penalty_suspension(uuid, text) موجودة');
+select has_function('public', 'cancel_instant_penalty', array['uuid', 'text'],
+  'cancel_instant_penalty(uuid, text) موجودة');
 
 -- =====================================================================
 -- 2) calc_instant_penalty_amount — كل الشرايح
@@ -176,7 +179,6 @@ select is(
 -- =====================================================================
 -- 6) فترة السماح: تأخير 10 دقائق = لا غرامة
 -- =====================================================================
--- إنشاء غرامة لموظف آخر بتأخير 10 دقائق
 select lives_ok(
   format($q$ select public.generate_instant_penalty(
     %L::uuid, current_date, 10) $q$,
@@ -216,7 +218,7 @@ select lives_ok(
   format($q$ select public.confirm_instant_penalty_payment(
     (select id from public.instant_attendance_penalties limit 1),
     'تم الدفع يدوياً') $q$),
-  'تأكيد الدفع يُنفذ بنجاح');
+  'تأكيد الدفع يُ التنفيذ بنجاح');
 
 select is(
   (select status from public.instant_attendance_penalties
@@ -238,7 +240,7 @@ select is(
   'لا يوجد موظفين مطالبين بالدفع بعد السداد');
 
 -- =====================================================================
--- 10) lift_instant_penalty_suspension — رفع التعليق بدون دفع
+-- 10) lift_instant_penalty_suspension — رفع التعليق (يُعيد pending_payment)
 -- =====================================================================
 -- إنشاء غرامة جديدة ثم تعليقها يدوياً
 insert into public.instant_attendance_penalties(
@@ -248,7 +250,7 @@ insert into public.instant_attendance_penalties(
 ) values (
   nullif(current_setting('app.t0512_emp', true), '')::uuid,
   current_date - 5, 90,
-  150.00, 150.00, 'EGP',
+  150.00, 500.00, 'EGP',
   'suspended', 'suspended', nullif(current_setting('app.t0512_user_a', true), '')::uuid
 );
 
@@ -257,7 +259,7 @@ select lives_ok(
     (select id from public.instant_attendance_penalties
      where status = 'suspended' limit 1),
     'إعفاء إداري') $q$),
-  'lift_instant_penalty_suspension يُنفذ بنجاح');
+  'lift_instant_penalty_suspension يُ التنفيذ بنجاح');
 
 -- التحقق من إعادة تفعيل الحساب
 select is(
@@ -272,8 +274,63 @@ select is(
   true,
   'is_active يعود true بعد رفع التعليق');
 
+-- التحقق من تغيير الحالة إلى pending_payment
+select is(
+  (select status from public.instant_attendance_penalties
+   where employee_id = nullif(current_setting('app.t0512_emp', true), '')
+     and work_date = current_date - 5),
+  'pending_payment',
+  'حالة الغرامة تعود pending_payment بعد رفع التعليق');
+
+-- التحقق من إعادة المبلغ الأصلي
+select is(
+  (select current_amount::numeric from public.instant_attendance_penalties
+   where employee_id = nullif(current_setting('app.t0512_emp', true), '')::uuid
+     and work_date = current_date - 5),
+  150.00::numeric,
+  'المبلغ يعود 150 ج.م (الأصلي) بعد رفع التعليق');
+
 -- =====================================================================
--- 11) الحماية: الموظف العادي لا يستطيع الإنشاء
+-- 11) cancel_instant_penalty — إلغاء غرامة
+-- =====================================================================
+-- إنشاء غرامة أخرى للإلغاء
+insert into public.instant_attendance_penalties(
+  employee_id, work_date, late_minutes,
+  original_amount, current_amount, currency,
+  status, escalation_level, created_by
+) values (
+  nullif(current_setting('app.t0512_emp', true), '')::uuid,
+  current_date - 10, 45,
+  50.00, 50.00, 'EGP',
+  'pending_payment', 'initial', nullif(current_setting('app.t0512_user_a', true), '')::uuid
+);
+
+select lives_ok(
+  format($q$ select public.cancel_instant_penalty(
+    (select id from public.instant_attendance_penalties
+     where work_date = current_date - 10 and status = 'pending_payment' limit 1),
+    'خطأ في تسجيل الحضور') $q$),
+  'cancel_instant_penalty يُ التنفيذ بنجاح');
+
+select is(
+  (select status from public.instant_attendance_penalties
+   where employee_id = nullif(current_setting('app.t0512_emp', true), '')::uuid
+     and work_date = current_date - 10),
+  'cancelled',
+  'حالة الغرامة تصبح cancelled بعد الإلغاء');
+
+-- محاولة إلغاء غرامة مدفوعة = خطأ
+select throws_ok(
+  format($q$ select public.cancel_instant_penalty(
+    (select id from public.instant_attendance_penalties
+     where employee_id = %L::uuid and status = 'paid' limit 1),
+    'سبب') $q$,
+    current_setting('app.t0512_emp', true)),
+  22023, '22023',
+  'لا يمكن إلغاء غرامة مدفوعة بالفعل');
+
+-- =====================================================================
+-- 12) الحماية: الموظف العادي لا يستطيع الإنشاء/التعديل
 -- =====================================================================
 reset role;
 
@@ -303,6 +360,13 @@ select throws_ok($$
      where status = 'suspended' limit 1), null)
 $$, 42501, '42501',
   'الموظف العادي لا يستطيع رفع التعليق (42501)');
+
+select throws_ok($$
+  select public.cancel_instant_penalty(
+    (select id from public.instant_attendance_penalties
+     where status = 'pending_payment' limit 1), 'سبب')
+$$, 42501, '42501',
+  'الموظف العادي لا يستطيع إلغاء غرامة (42501)');
 
 reset role;
 

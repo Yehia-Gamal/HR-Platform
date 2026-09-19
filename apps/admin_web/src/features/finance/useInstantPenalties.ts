@@ -1,8 +1,10 @@
 import {
+  cancelInstantPenaltyResultSchema,
   confirmInstantPenaltyPaymentResultSchema,
   generateInstantPenaltyResultSchema,
   instantPenaltySchema,
   pendingPenaltyEmployeeSchema,
+  type CancelInstantPenaltyResult,
   type ConfirmInstantPenaltyPaymentResult,
   type GenerateInstantPenaltyResult,
   type InstantPenalty,
@@ -24,6 +26,7 @@ export const INSTANT_PENALTY_STATUS_LABELS: Record<string, string> = {
   paid: 'مدفوعة',
   doubled: 'مضاعفة (500 ج.م)',
   suspended: 'معلّق عن العمل',
+  cancelled: 'ملغاة',
 };
 
 export const INSTANT_PENALTY_ESCALATION_LABELS: Record<string, string> = {
@@ -116,6 +119,52 @@ export function useConfirmInstantPenaltyPayment() {
     }): Promise<ConfirmInstantPenaltyPaymentResult> => {
       return confirmInstantPenaltyPaymentResultSchema.parse(
         await rpc('confirm_instant_penalty_payment', {
+          p_penalty_id: args.penaltyId,
+          p_notes: args.notes ?? null,
+        }),
+      );
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [INSTANT_PENALTIES_KEY] });
+      void queryClient.invalidateQueries({ queryKey: [PENDING_EMPLOYEES_KEY] });
+    },
+  });
+}
+
+// ─── إلغاء غرامة ────────────────────────────────────────────────────
+
+export function useCancelInstantPenalty() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      penaltyId: string;
+      reason: string;
+    }): Promise<CancelInstantPenaltyResult> => {
+      return cancelInstantPenaltyResultSchema.parse(
+        await rpc('cancel_instant_penalty', {
+          p_penalty_id: args.penaltyId,
+          p_reason: args.reason,
+        }),
+      );
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [INSTANT_PENALTIES_KEY] });
+      void queryClient.invalidateQueries({ queryKey: [PENDING_EMPLOYEES_KEY] });
+    },
+  });
+}
+
+// ─── رفع التعليق بدون دفع (full-access فقط) ─────────────────────────
+
+export function useLiftInstantPenaltySuspension() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      penaltyId: string;
+      notes?: string;
+    }) => {
+      return confirmInstantPenaltyPaymentResultSchema.parse(
+        await rpc('lift_instant_penalty_suspension', {
           p_penalty_id: args.penaltyId,
           p_notes: args.notes ?? null,
         }),

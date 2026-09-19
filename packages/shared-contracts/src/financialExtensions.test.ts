@@ -3,6 +3,7 @@ import {
   addEmployeePenaltySchema,
   auditTrailItemSchema,
   auditTrailPageSchema,
+  cancelInstantPenaltyResultSchema,
   employeePenaltySchema,
   generateInstapayBatchSchema,
   instapayBatchSchema,
@@ -222,5 +223,41 @@ describe('financialExtensions contracts', () => {
     });
     expect(confirmResult.status).toBe('paid');
     expect(confirmResult.wasSuspended).toBe(true);
+  });
+
+  it('cancelInstantPenaltyResultSchema يوثق نتيجة الإلغاء', () => {
+    const cancelResult = cancelInstantPenaltyResultSchema.parse({
+      id: '11111111-1111-4111-8111-111111111111',
+      status: 'cancelled',
+      currentAmount: 200,
+      wasSuspended: false,
+    });
+    expect(cancelResult.status).toBe('cancelled');
+    expect(cancelResult.currentAmount).toBe(200);
+    expect(cancelResult.wasSuspended).toBe(false);
+  });
+
+  it('instantPenaltySchema يقبل الحالة الملغاة', () => {
+    const penalty = instantPenaltySchema.parse({
+      id: '11111111-1111-4111-8111-111111111111',
+      employeeId: '22222222-2222-4222-8222-222222222222',
+      employeeName: 'أحمد',
+      employeeCode: 'E-001',
+      departmentName: 'إدارة',
+      workDate: '2026-09-19',
+      lateMinutes: 25,
+      originalAmount: 20,
+      currentAmount: 20,
+      currency: 'EGP',
+      status: 'cancelled',
+      escalationLevel: 'initial',
+      paidAt: null,
+      confirmedBy: null,
+      suspendedAt: null,
+      suspensionLiftedAt: null,
+      notes: 'إلغاء: خطأ في التسجيل',
+      createdAt: '2026-09-19T10:25:00.000Z',
+    });
+    expect(penalty.status).toBe('cancelled');
   });
 });

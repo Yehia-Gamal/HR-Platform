@@ -156,7 +156,7 @@ export const instantPenaltySchema = z
     originalAmount: z.number(),
     currentAmount: z.number(),
     currency: z.string(),
-    status: z.enum(['pending_payment', 'paid', 'doubled', 'suspended']),
+    status: z.enum(['pending_payment', 'paid', 'doubled', 'suspended', 'cancelled']),
     escalationLevel: z.enum(['initial', 'doubled', 'suspended']),
     paidAt: isoDate,
     confirmedBy: uuid.nullable(),
@@ -208,3 +208,12 @@ export const confirmInstantPenaltyPaymentResultSchema = z.object({
   wasSuspended: z.boolean(),
 });
 export type ConfirmInstantPenaltyPaymentResult = z.infer<typeof confirmInstantPenaltyPaymentResultSchema>;
+
+/** نتيجة إلغاء غرامة */
+export const cancelInstantPenaltyResultSchema = z.object({
+  id: uuid,
+  status: z.string(),
+  currentAmount: z.number(),
+  wasSuspended: z.boolean(),
+});
+export type CancelInstantPenaltyResult = z.infer<typeof cancelInstantPenaltyResultSchema>;

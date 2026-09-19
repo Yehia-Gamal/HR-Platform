@@ -18,7 +18,8 @@
 --     5) get_employees_with_pending_instant_penalties — المطالبين بالدفع
 --     6) auto_escalate_instant_penalties — كرون: مضاعفة + تعليق
 --     7) auto_generate_instant_penalties — كرون: إنشاء تلقائي من الحضور
---     8) lift_instant_penalty_suspension — رفع التعليق يدوياً
+--     8) lift_instant_penalty_suspension — رفع التعليق يدوياً (إعادة لل状态 pending_payment)
+--     9) cancel_instant_penalty — إلغاء غرامة (HR فقط)
 --
 --   الإشعارات: عند كل حدث يُبلَّغ الموظف + المدير + المدير التنفيذي + HR + الفريق.
 --
@@ -40,7 +41,7 @@ create table if not exists public.instant_attendance_penalties (
   current_amount      numeric(12,2) not null check (current_amount > 0),
   currency            text not null default 'EGP',
   status              text not null default 'pending_payment'
-                        check (status in ('pending_payment','paid','doubled','suspended')),
+                        check (status in ('pending_payment','paid','doubled','suspended','cancelled')),
   escalation_level    text not null default 'initial'
                         check (escalation_level in ('initial','doubled','suspended')),
   -- الدفع
@@ -787,7 +788,10 @@ begin
   end if;
 
   update public.instant_attendance_penalties
-     set suspension_lifted_at = now(),
+     set status = 'pending_payment',
+         escalation_level = 'initial',
+         current_amount = original_amount,
+         suspension_lifted_at = now(),
          suspension_lifted_by = v_me,
          notes = coalesce(p_notes, notes),
          updated_at = now()
@@ -855,9 +859,121 @@ end;
 $$;
 
 -- ═══════════════════════════════════════════════════════════════════════
--- 12) الصلاحيات والمنح
+-- 12) RPC: إلغاء غرامة (HR — صلاحية كاملة فقط)
 -- ═══════════════════════════════════════════════════════════════════════
 
+create or replace function public.cancel_instant_penalty(
+  p_penalty_id uuid,
+  p_reason text
+)
+returns jsonb
+language plpgsql security definer set search_path = public, pg_temp
+as $$
+declare
+  v_me uuid := public.current_employee_id();
+  v_row public.instant_attendance_penalties;
+  v_emp_name text;
+  v_was_suspended boolean;
+begin
+  if v_me is null then
+    raise exception 'لا يوجد ملف موظف مرتبط بالمستخدم الحالي' using errcode = '42501';
+  end if;
+
+  if not (public.current_is_full_access()
+          or public.has_any_permission(array['payroll.run.manage', 'payroll.run.approve'])) then
+    raise exception 'غير مسموح: تحتاج صلاحية إدارة الرواتب' using errcode = '42501';
+  end if;
+
+  if p_reason is null or length(trim(p_reason)) < 3 then
+    raise exception 'يجب ذكر سبب الإلغاء' using errcode = '22023';
+  end if;
+
+  select * into v_row
+    from public.instant_attendance_penalties
+   where id = p_penalty_id;
+
+  if not found then
+    raise exception 'الغرامة غير موجودة' using errcode = 'P0002';
+  end if;
+
+  if v_row.status = 'paid' then
+    raise exception 'لا يمكن إلغاء غرامة مدفوعة بالفعل' using errcode = '22023';
+  end if;
+
+  if v_row.status = 'cancelled' then
+    raise exception 'الغرامة ملغاة بالفعل' using errcode = '22023';
+  end if;
+
+  v_was_suspended := (v_row.status = 'suspended');
+
+  update public.instant_attendance_penalties
+     set status = 'cancelled',
+         notes = 'إلغاء: ' || p_reason,
+         suspension_lifted_at = case when v_was_suspended then now() else suspension_lifted_at end,
+         suspension_lifted_by = case when v_was_suspended then v_me else suspension_lifted_by end,
+         updated_at = now()
+   where id = p_penalty_id
+  returning * into v_row;
+
+  select full_name_ar into v_emp_name
+    from public.employees where id = v_row.employee_id;
+
+  -- إعادة تفعيل الحساب إذا كان معلّقاً
+  if v_was_suspended then
+    update public.employees
+       set status = 'active',
+           is_active = true,
+           updated_at = now()
+     where id = v_row.employee_id;
+
+    update public.profiles
+       set status = 'active',
+           updated_at = now()
+     where employee_id = v_row.employee_id;
+  end if;
+
+  perform public.log_audit_event(
+    'instant_penalty.cancelled', 'financial', 'warning',
+    'instant_attendance_penalties', v_row.id,
+    'إلغاء غرامة فورية: ' || coalesce(v_emp_name, 'موظف') || ' — ' || v_row.current_amount || ' ج.م — السبب: ' || p_reason,
+    null,
+    jsonb_build_object(
+      'employeeId', v_row.employee_id,
+      'amount', v_row.current_amount,
+      'reason', p_reason,
+      'wasSuspended', v_was_suspended
+    )
+  );
+
+  perform public._notify_instant_penalty_stakeholders(
+    v_row.employee_id,
+    '❌ تم إلغاء غرامة التأخير',
+    coalesce(v_emp_name, 'الموظف') || ' — تم إلغاء غرامة التأخير بقيمة ' || v_row.current_amount || ' ج.م. السبب: ' || p_reason ||
+      case when v_was_suspended then ' — تم فتح السيستم ورفع التعليق.' else '.' end,
+    'instant_penalty',
+    v_row.id,
+    jsonb_build_object(
+      'employeeId', v_row.employee_id::text,
+      'amount', v_row.current_amount,
+      'reason', p_reason,
+      'wasSuspended', v_was_suspended,
+      'channel', 'instant_penalty_cancelled',
+      'deepLink', 'ahlashabab://action/finance?tab=instant-penalties'
+    )
+  );
+
+  return jsonb_build_object(
+    'id', v_row.id,
+    'status', v_row.status,
+    'currentAmount', v_row.current_amount,
+    'wasSuspended', v_was_suspended
+  );
+end;
+$$;
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- 13) الصلاحيات والمنح
+-- ═══════════════════════════════════════════════════════════════════════
 revoke all on function public.calc_instant_penalty_amount(integer) from public, anon;
 grant execute on function public.calc_instant_penalty_amount(integer) to authenticated, service_role;
 
@@ -885,6 +1001,9 @@ grant execute on function public.auto_generate_instant_penalties() to authentica
 revoke all on function public.lift_instant_penalty_suspension(uuid, text) from public, anon;
 grant execute on function public.lift_instant_penalty_suspension(uuid, text) to authenticated;
 
+revoke all on function public.cancel_instant_penalty(uuid, text) from public, anon;
+grant execute on function public.cancel_instant_penalty(uuid, text) to authenticated;
+
 -- ═══════════════════════════════════════════════════════════════════════
 -- 13) جدولة الكرون
 -- ═══════════════════════════════════════════════════════════════════════
@@ -906,7 +1025,7 @@ begin
     $job$ select public.auto_escalate_instant_penalties() $job$
   );
 
-  -- الإنشاء التلقائي: كل 30 دقيقة خلال نافذة الحضور (08:30 إلى 12:00 UTC ≈ 10:30 إلى 14:00 القاهرة)
+  -- الإنشاء التلقائي: كل 30 دقيقة خلال نافذة الحضور (08:00 إلى 11:59 UTC ≈ 10:00 إلى 13:59 القاهرة)
   perform cron.unschedule(jobname)
     from cron.job
    where jobname = 'hr_auto_generate_instant_penalties';

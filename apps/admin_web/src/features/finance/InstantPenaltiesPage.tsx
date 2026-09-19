@@ -1,6 +1,6 @@
 import { cairoTodayIso } from '../../core/cairoTime';
 import { useMemo, useState, type FormEvent } from 'react';
-import { AlertTriangle, Ban, CheckCircle2, Clock, FileSpreadsheet, Printer, ShieldAlert, Zap } from 'lucide-react';
+import { AlertTriangle, Ban, CheckCircle2, Clock, FileSpreadsheet, Printer, ShieldAlert, XCircle, Zap } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { downloadCsv, printReport, toCsv, type ExportColumn } from '../../core/exportUtils';
 import { DataTable, type DataTableColumn } from '../../ui/DataTable';
@@ -14,9 +14,11 @@ import { useEmployees } from '../employees/useEmployees';
 import {
   INSTANT_PENALTY_ESCALATION_LABELS,
   INSTANT_PENALTY_STATUS_LABELS,
+  useCancelInstantPenalty,
   useConfirmInstantPenaltyPayment,
   useGenerateInstantPenalty,
   useInstantPenalties,
+  useLiftInstantPenaltySuspension,
   usePendingPenaltyEmployees,
 } from './useInstantPenalties';
 
@@ -39,6 +41,8 @@ function StatusIcon({ status }: { status: string }) {
       return <ShieldAlert className="size-4 text-orange-500" aria-hidden="true" />;
     case 'suspended':
       return <Ban className="size-4 text-red-600" aria-hidden="true" />;
+    case 'cancelled':
+      return <XCircle className="size-4 text-gray-400" aria-hidden="true" />;
     default:
       return null;
   }
@@ -51,6 +55,8 @@ export function InstantPenaltiesPage() {
   const pendingEmployees = usePendingPenaltyEmployees();
   const confirmPayment = useConfirmInstantPenaltyPayment();
   const generatePenalty = useGenerateInstantPenalty();
+  const cancelPenalty = useCancelInstantPenalty();
+  const liftSuspension = useLiftInstantPenaltySuspension();
   const { data: employees } = useEmployees();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -154,34 +160,71 @@ export function InstantPenaltiesPage() {
     {
       key: 'actions',
       header: 'إجراءات',
-      render: (p) =>
-        p.status !== 'paid' ? (
-          <button
-            type="button"
-            className={`text-xs ${p.status === 'suspended' ? 'btn-danger' : 'btn-primary'}`}
-            disabled={confirmPayment.isPending}
-            onClick={() => {
-              const confirmMsg =
-                p.status === 'suspended'
-                  ? `هل استلمت 500 ج.م من ${p.employeeName ?? 'الموظف'}؟ سيتم رفع التعليق فوراً وفتح السيستم وعودته للعمل وإشعار الفريق.`
-                  : p.status === 'doubled'
-                    ? `هل استلمت 500 ج.م من ${p.employeeName ?? 'الموظف'}؟`
-                    : `تأكيد استلام ${formatCurrency(p.currentAmount)} من ${p.employeeName ?? 'الموظف'} وإزالة الخصم؟`;
-              if (!window.confirm(confirmMsg)) return;
-              const notes = window.prompt('ملاحظات الدفع (اختياري):');
-              void confirmPayment.mutateAsync({ penaltyId: p.id, notes: notes?.trim() || undefined });
-            }}
-          >
-            <CheckCircle2 className="size-3.5" aria-hidden="true" />
-            {p.status === 'suspended'
-              ? 'استلام 500 ج وفتح السيستم'
-              : p.status === 'doubled'
-                ? 'استلام 500 ج'
-                : 'تأكيد الدفع'}
-          </button>
-        ) : (
-          <span className="text-xs text-emerald-600 font-bold">✓ مدفوعة ومزالة</span>
-        ),
+      render: (p) => {
+        if (p.status === 'paid') {
+          return <span className="text-xs text-emerald-600 font-bold">✓ مدفوعة ومُزيلَة</span>;
+        }
+        if (p.status === 'cancelled') {
+          return <span className="text-xs text-gray-400 font-bold">ملغاة</span>;
+        }
+        return (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              className={`text-xs ${p.status === 'suspended' ? 'btn-danger' : 'btn-primary'}`}
+              disabled={confirmPayment.isPending}
+              onClick={() => {
+                const confirmMsg =
+                  p.status === 'suspended'
+                    ? `هل استلمت 500 ج.م من ${p.employeeName ?? 'الموظف'}؟ سيتم رفع التعليق فوراً وفتح السيستم وعودته للعمل وإشعار الفريق.`
+                    : p.status === 'doubled'
+                      ? `هل استلمت 500 ج.م من ${p.employeeName ?? 'الموظف'}؟`
+                      : `تأكيد استلام ${formatCurrency(p.currentAmount)} من ${p.employeeName ?? 'الموظف'} وإزالة الخصم؟`;
+                if (!window.confirm(confirmMsg)) return;
+                const notes = window.prompt('ملاحظات الدفع (اختياري):');
+                void confirmPayment.mutateAsync({ penaltyId: p.id, notes: notes?.trim() || undefined });
+              }}
+            >
+              <CheckCircle2 className="size-3.5" aria-hidden="true" />
+              {p.status === 'suspended'
+                ? 'استلام 500 ج وفتح السيستم'
+                : p.status === 'doubled'
+                  ? 'استلام 500 ج'
+                  : 'تأكيد الدفع'}
+            </button>
+            {p.status === 'suspended' && (
+              <button
+                type="button"
+                className="btn-secondary text-xs"
+                disabled={liftSuspension.isPending}
+                onClick={() => {
+                  if (!window.confirm(`هل تريد رفع التعليق عن ${p.employeeName ?? 'الموظف'} بدون سداد؟ (full-access فقط)`)) return;
+                  const notes = window.prompt('سبب رفع التعليق:');
+                  if (!notes?.trim()) return;
+                  void liftSuspension.mutateAsync({ penaltyId: p.id, notes: notes.trim() });
+                }}
+              >
+                رفع التعليق
+              </button>
+            )}
+            {(p.status === 'pending_payment' || p.status === 'doubled') && (
+              <button
+                type="button"
+                className="btn-secondary text-xs text-[var(--danger)]"
+                disabled={cancelPenalty.isPending}
+                onClick={() => {
+                  const reason = window.prompt(`إلغاء غرامة ${p.employeeName ?? 'الموظف'} — اذكر السبب:`);
+                  if (!reason?.trim()) return;
+                  void cancelPenalty.mutateAsync({ penaltyId: p.id, reason: reason.trim() });
+                }}
+              >
+                <XCircle className="size-3.5" aria-hidden="true" />
+                إلغاء
+              </button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 

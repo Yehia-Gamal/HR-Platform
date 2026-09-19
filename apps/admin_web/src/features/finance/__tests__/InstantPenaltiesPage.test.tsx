@@ -13,6 +13,7 @@ vi.mock('../useInstantPenalties', () => ({
     paid: 'مدفوعة',
     doubled: 'مضاعفة (500 ج.م)',
     suspended: 'معلّق عن العمل',
+    cancelled: 'ملغاة',
   },
   INSTANT_PENALTY_ESCALATION_LABELS: {
     initial: 'أولية',
@@ -28,6 +29,18 @@ vi.mock('../useInstantPenalties', () => ({
     mutateAsync: vi.fn(),
   }),
   useConfirmInstantPenaltyPayment: () => ({
+    isPending: false,
+    isError: false,
+    error: null,
+    mutateAsync: vi.fn(),
+  }),
+  useCancelInstantPenalty: () => ({
+    isPending: false,
+    isError: false,
+    error: null,
+    mutateAsync: vi.fn(),
+  }),
+  useLiftInstantPenaltySuspension: () => ({
     isPending: false,
     isError: false,
     error: null,
@@ -183,15 +196,16 @@ describe('InstantPenaltiesPage', () => {
     expect(screen.getByText(/25/)).toBeDefined();
   });
 
-  it('يعرض زر تأكيد الدفع للغرامة غير المدفوعة', () => {
+  it('يعرض أزرار تأكيد الدفع والإلغاء للغرامة غير المدفوعة', () => {
     penaltiesData = samplePenalties;
     pendingData = emptyPending;
     employeesData = emptyEmployees;
     renderPage();
     expect(screen.getByText('تأكيد الدفع')).toBeDefined();
+    expect(screen.getByText('إلغاء')).toBeDefined();
   });
 
-  it('يعرض حالة المدفوعة بدون زر', () => {
+  it('يعرض حالة المدفوعة بدون أزرار', () => {
     penaltiesData = {
       ...samplePenalties,
       data: [{ ...samplePenalties.data[0], status: 'paid' }],
@@ -199,7 +213,31 @@ describe('InstantPenaltiesPage', () => {
     pendingData = emptyPending;
     employeesData = emptyEmployees;
     renderPage();
-    expect(screen.getByText('✓ مدفوعة ومزالة')).toBeDefined();
+    expect(screen.getByText('✓ مدفوعة ومُزيلَة')).toBeDefined();
+  });
+
+  it('يعرض حالة الملغاة بدون أزرار', () => {
+    penaltiesData = {
+      ...samplePenalties,
+      data: [{ ...samplePenalties.data[0], status: 'cancelled' }],
+    };
+    pendingData = emptyPending;
+    employeesData = emptyEmployees;
+    renderPage();
+    const matches = screen.getAllByText('ملغاة');
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('يعرض زر فتح السيستم للغرامة المعلّقة', () => {
+    penaltiesData = {
+      ...samplePenalties,
+      data: [{ ...samplePenalties.data[0], status: 'suspended' }],
+    };
+    pendingData = emptyPending;
+    employeesData = emptyEmployees;
+    renderPage();
+    expect(screen.getByText(/استلام 500 ج وفتح السيستم/)).toBeDefined();
+    expect(screen.getByText('رفع التعليق')).toBeDefined();
   });
 
   it('يعرض الموظفين المعلقين عند وجودهم', () => {
@@ -235,5 +273,15 @@ describe('InstantPenaltiesPage', () => {
     renderPage();
     expect(screen.getByText('1')).toBeDefined();
     expect(screen.getByText('موظف مطالب بالدفع')).toBeDefined();
+  });
+
+  it('يعرض الفلاتر مع الحالة الملغاة', () => {
+    penaltiesData = emptyPenalties;
+    pendingData = emptyPending;
+    employeesData = emptyEmployees;
+    renderPage();
+    const select = screen.getByLabelText('تصفية حسب الحالة');
+    expect(select).toBeDefined();
+    expect(screen.getByText('ملغاة')).toBeDefined();
   });
 });
