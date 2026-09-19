@@ -557,7 +557,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
               <span className="mb-1.5 block text-sm font-semibold">كلمة المرور الجديدة (6–72 حرفًا)</span>
               <div className="relative">
                 <input
-                  className="input w-full pl-10"
+                  className="input w-full pe-10"
                   type={showPwd ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => {
@@ -571,7 +571,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
                 />
                 <button
                   type="button"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)]"
+                  className="absolute start-2 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)]"
                   onClick={() => setShowPwd((v) => !v)}
                   aria-label={showPwd ? 'إخفاء' : 'إظهار'}
                 >

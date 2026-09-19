@@ -162,7 +162,7 @@ export function AssociationProjectsPage() {
         ].map((f) => (
           <button
             key={f.key}
-            onClick={() => setSortBy(f.key)}
+            onClick={() => setSortBy(f.key as SortKey)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
               sortBy === f.key
                 ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400'

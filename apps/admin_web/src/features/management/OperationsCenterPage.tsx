@@ -211,8 +211,8 @@ export function OperationsCenterPage() {
             {tasks.map((item) => (
               <article className="space-y-3 p-5" key={item.id}>
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <strong>{item.title}</strong>
+                  <div className="min-w-0 flex-1">
+                    <strong className="block truncate">{item.title}</strong>
                     <div className="mt-1 flex items-center gap-2">
                       <UserAvatar displayName={item.assigneeName} size="sm" />
                       <p className="muted text-xs">

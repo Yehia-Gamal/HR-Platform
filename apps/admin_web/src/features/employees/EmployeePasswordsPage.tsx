@@ -465,13 +465,13 @@ export function EmployeePasswordsPage() {
       <div className="card p-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="relative flex-1">
-            <Search className="absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" aria-hidden="true" />
+            <Search className="absolute end-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" aria-hidden="true" />
             <input
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="البحث بالاسم، الكود الوظيفي، الهاتف..."
-              className="input pr-10 text-sm"
+              className="input ps-10 text-sm"
               aria-label="البحث عن موظف"
             />
           </div>

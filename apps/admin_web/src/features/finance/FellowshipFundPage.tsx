@@ -26,6 +26,7 @@ import {
   type FellowshipFundTransaction,
 } from './useFellowshipFund';
 import { useAuth } from '../auth/AuthProvider';
+import { hasPermission } from '../workspaces/access';
 import { useEmployees } from '../employees/useEmployees';
 import { PageHeader } from '../../ui/PageHeader';
 import { DialogOverlay } from '../../ui/DialogOverlay';
@@ -54,7 +55,14 @@ export function FellowshipFundPage() {
   const employees = employeesData ?? [];
 
   // صلاحية الإدارة للسحب
-  const canWithdraw = auth.hasPermission('payroll.run.manage') || auth.hasPermission('finance.manage') || auth.isFullAccess;
+  const canWithdraw = Boolean(
+    auth.access && (
+      hasPermission(auth.access, 'payroll.run.manage') ||
+      hasPermission(auth.access, 'finance.manage') ||
+      auth.access.workspaces?.includes('main_admin') ||
+      auth.access.permissions?.includes('*')
+    )
+  );
 
   const currentBalance = summary?.currentBalance ?? 0;
 

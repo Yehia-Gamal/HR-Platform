@@ -6,6 +6,7 @@ import { FilterBar } from '../../ui/FilterBar';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { SkeletonCard } from '../../ui/Skeletons';
+import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useEmployees } from './useEmployees';
 import { useOrganizationLookups } from './useOrganizationLookups';
@@ -24,32 +25,6 @@ interface EmployeeDirectoryItem {
   branchId: string | null;
   status: 'draft' | 'invited' | 'onboarding' | 'active' | 'suspended' | 'notice_period' | 'terminated' | 'archived' | 'probation_failed';
   subordinatesCount: number;
-}
-
-function getStatusConfig(status: EmployeeDirectoryItem['status']) {
-  const configs: Record<EmployeeDirectoryItem['status'], { label: string; color: string; icon: typeof Circle }> = {
-    active: { label: 'نشط', color: 'var(--success)', icon: Circle },
-    suspended: { label: 'موقوف', color: 'var(--danger)', icon: Circle },
-    onboarding: { label: 'أونبوردينغ', color: 'var(--info)', icon: Circle },
-    draft: { label: 'مسودة', color: 'var(--text-muted)', icon: Circle },
-    invited: { label: 'مُدعى', color: 'var(--warning)', icon: Circle },
-    notice_period: { label: 'فترة إشعار', color: 'var(--warning)', icon: Circle },
-    terminated: { label: 'منتهي', color: 'var(--danger)', icon: Circle },
-    archived: { label: 'مؤرشف', color: 'var(--text-muted)', icon: Circle },
-    probation_failed: { label: 'فشل تجريبي', color: 'var(--danger)', icon: Circle },
-  };
-  return configs[status] ?? { label: status, color: 'var(--text-muted)', icon: Circle };
-}
-
-function StatusIndicator({ status }: { status: EmployeeDirectoryItem['status'] }) {
-  const config = getStatusConfig(status);
-  const Icon = config.icon;
-  return (
-    <span className="inline-flex items-center gap-1.5" style={{ color: config.color }}>
-      <Icon className="size-2" aria-hidden="true" />
-      <span className="text-xs font-medium">{config.label}</span>
-    </span>
-  );
 }
 
 export function EmployeeDirectoryPage() {
@@ -228,7 +203,7 @@ export function EmployeeDirectoryPage() {
                     <td className="p-3 hidden lg:table-cell">{emp.departmentName ?? '—'}</td>
                     <td className="p-3 hidden lg:table-cell text-[var(--text-muted)]">{emp.jobTitle ?? '—'}</td>
                     <td className="p-3">
-                      <StatusIndicator status={emp.status} />
+                    <StatusBadge status={emp.status} />
                     </td>
                     <td className="p-3 hidden lg:table-cell">
                       {emp.subordinatesCount > 0 ? (
@@ -261,7 +236,7 @@ export function EmployeeDirectoryPage() {
       ) : (
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredEmployees.map((emp) => (
-            <article key={emp.id} className="card p-4 hover:shadow-md transition-shadow" onClick={() => setSelectedEmployee(emp.id)}>
+            <article key={emp.id} className="card cursor-pointer p-4 hover:shadow-md transition-shadow" onClick={() => setSelectedEmployee(emp.id)}>
               <div className="flex items-start gap-3">
                 <UserAvatar displayName={emp.fullNameAr} photoUrl={emp.photoUrl} size="md" />
                 <div className="flex-1 min-w-0">
@@ -342,7 +317,7 @@ function EmployeeDetailModal({ employeeId, onClose, employees }: { employeeId: s
             <InfoField label="المسمى الوظيفي" value={emp.jobTitle ?? '—'} icon={<Workflow className="size-4" />} />
             <InfoField label="الإدارة" value={emp.branchName ?? '—'} icon={<Building2 className="size-4" />} />
             <InfoField label="القسم" value={emp.departmentName ?? '—'} icon={<Building2 className="size-4" />} />
-            <InfoField label="الحالة" value={<StatusIndicator status={emp.status} />} icon={<Circle className="size-4" />} />
+            <InfoField label="الحالة" value={<StatusBadge status={emp.status} />} icon={<Circle className="size-4" />} />
           </div>
 
           {/* Subordinates */}
@@ -369,7 +344,7 @@ function EmployeeDetailModal({ employeeId, onClose, employees }: { employeeId: s
                         {sub.employeeCode} · {sub.jobTitle ?? ''}
                       </p>
                     </div>
-                    <StatusIndicator status={sub.status} />
+                    <StatusBadge status={sub.status} />
                   </button>
                 ))}
               </div>
