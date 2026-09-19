@@ -112,6 +112,11 @@ const map: Record<string, { label: string; tone: Tone; icon: typeof CircleCheck 
   warning: { label: 'تحذير', tone: 'warning', icon: AlertTriangle },
   inbound: { label: 'وارد', tone: 'violet', icon: Clock3 },
   outbound: { label: 'صادر', tone: 'info', icon: Clock3 },
+  // غرامات الحضور الفورية
+  pending_payment: { label: 'بانتظار الدفع', tone: 'warning', icon: Clock3 },
+  paid: { label: 'مدفوعة', tone: 'success', icon: CircleCheck },
+  doubled: { label: 'مضاعفة', tone: 'danger', icon: AlertTriangle },
+  initial: { label: 'أولية', tone: 'info', icon: Clock3 },
 };
 
 export function StatusBadge({ status, value, label }: { status?: string; value?: string; label?: string }) {
