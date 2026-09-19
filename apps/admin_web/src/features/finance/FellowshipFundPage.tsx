@@ -105,7 +105,7 @@ export function FellowshipFundPage() {
     <div className="space-y-6">
       <PageHeader
         title="صندوق الزمالة والتكافل"
-        description="صندوق مالي تشاركي بشفافية كاملة لكافة أعضاء الفريق — إيداعات غرامات التأخير والمساهمات، وسحوبات المساعدات بعلم الجميع."
+        description="صندوق مالي تشاركي — إيداعات غرامات الحضور والمساهمات، وسحوبات المساعدات. كل حركة معلنة للجميع."
         actions={
           <div className="flex items-center gap-3">
             {canWithdraw && (
@@ -186,35 +186,35 @@ export function FellowshipFundPage() {
         </div>
       </div>
 
-      {/* ═══ تفنيط مصادر وأبواب الصندوق (Breakdown by Category) ═══ */}
+      {/* ═══ تفصيل مصادر وأبواب الصندوق (Breakdown by Category) ═══ */}
       {summary?.categoryBreakdown && summary.categoryBreakdown.length > 0 && (
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-base)] p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-500" />
-              تفنيط مبالغ الصندوق وأبواب الصرف والإيداع
+              تفصيل مبالغ الصندوق وأبواب الصرف والإيداع
             </h3>
             <span className="text-xs text-[var(--text-muted)]">
               {summary.categoryBreakdown.length} فئات نشطة
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {summary.categoryBreakdown.map((cat, idx) => {
               const isInflow = cat.type === 'inflow';
               return (
                 <div
                   key={idx}
-                  className={`rounded-xl p-3.5 border transition-all ${
+                  className={`rounded-xl p-4 border transition-all ${
                     isInflow
                       ? 'border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/15'
                       : 'border-amber-500/20 bg-amber-50/40 dark:bg-amber-950/15'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-bold truncate">{cat.category}</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-bold truncate">{cat.category}</span>
                     <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                      className={`text-[10px] px-2.5 py-1 rounded-full font-bold ${
                         isInflow
                           ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
                           : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
@@ -224,8 +224,8 @@ export function FellowshipFundPage() {
                     </span>
                   </div>
                   <div className="flex items-baseline justify-between mt-2">
-                    <span className="text-lg font-black font-mono">
-                      {cat.totalAmount.toLocaleString('ar-EG')} ج.م
+                    <span className="text-xl font-black font-mono">
+                      {cat.totalAmount.toLocaleString('ar-EG')} <span className="text-xs font-medium text-[var(--text-muted)]">ج.م</span>
                     </span>
                     <span className="text-xs text-[var(--text-muted)]">{cat.count} حركة</span>
                   </div>
@@ -298,7 +298,10 @@ export function FellowshipFundPage() {
 
         {/* عرض الحركات */}
         {txLoading ? (
-          <div className="py-12 text-center text-xs text-[var(--text-muted)]">جاري تحميل حركات الصندوق...</div>
+          <div className="py-16 text-center text-sm text-[var(--text-muted)]">
+            <div className="inline-block size-6 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--brand-primary)]" />
+            <p className="mt-3">جاري تحميل حركات الصندوق...</p>
+          </div>
         ) : !transactions || transactions.length === 0 ? (
           <EmptyState
             title="لا توجد حركات مسجلة"
@@ -309,27 +312,27 @@ export function FellowshipFundPage() {
             }
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-end text-xs">
+          <div className="overflow-x-auto -mx-5 px-5">
+            <table className="w-full text-end text-[13px]">
               <thead>
-                <tr className="border-b border-[var(--border)] text-[var(--text-muted)] bg-[var(--surface-raised)]/40">
-                  <th className="p-3 font-bold">الحركة</th>
-                  <th className="p-3 font-bold">المبلغ</th>
-                  <th className="p-3 font-bold">الموظف / المستفيد</th>
-                  <th className="p-3 font-bold">السبب والتفاصيل (لماذا)</th>
-                  <th className="p-3 font-bold">الفئة</th>
-                  <th className="p-3 font-bold">الرصيد المتبقي (الباقي)</th>
-                  <th className="p-3 font-bold">التاريخ والقائم بالعملية</th>
+                <tr className="border-b-2 border-[var(--border)] text-[var(--text-muted)]">
+                  <th className="px-4 py-3 font-bold whitespace-nowrap">الحركة</th>
+                  <th className="px-4 py-3 font-bold whitespace-nowrap">المبلغ</th>
+                  <th className="px-4 py-3 font-bold whitespace-nowrap">الموظف / المستفيد</th>
+                  <th className="px-4 py-3 font-bold whitespace-nowrap">السبب والتفاصيل</th>
+                  <th className="px-4 py-3 font-bold whitespace-nowrap">الفئة</th>
+                  <th className="px-4 py-3 font-bold whitespace-nowrap">الرصيد المتبقي</th>
+                  <th className="px-4 py-3 font-bold whitespace-nowrap">التاريخ والقائم بالعملية</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--border)]">
+              <tbody className="divide-y divide-[var(--border)]/60">
                 {transactions.map((tx) => {
                   const isInflow = tx.transactionType === 'inflow';
                   return (
                     <tr key={tx.id} className="hover:bg-[var(--surface-raised)]/30 transition-colors">
-                      <td className="p-3">
+                      <td className="px-4 py-3">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[11px] ${
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[11px] whitespace-nowrap ${
                             isInflow
                               ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
                               : 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-300'
@@ -338,46 +341,46 @@ export function FellowshipFundPage() {
                           {isInflow ? (
                             <>
                               <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                              إيداع (وارد)
+                              إيداع
                             </>
                           ) : (
                             <>
                               <ArrowUpRight className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
-                              سحب (منصرف)
+                              سحب
                             </>
                           )}
                         </span>
                       </td>
 
-                      <td className="p-3 font-mono font-black text-sm">
+                      <td className="px-4 py-3 font-mono font-black text-sm whitespace-nowrap">
                         <span className={isInflow ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>
-                          {isInflow ? '+' : '-'}{tx.amount.toLocaleString('ar-EG')} ج.م
+                          {isInflow ? '+' : '-'}{tx.amount.toLocaleString('ar-EG')} <span className="text-xs font-medium">ج.م</span>
                         </span>
                       </td>
 
-                      <td className="p-3">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5 font-bold text-[var(--text-primary)]">
-                          <UserCheck className="w-3.5 h-3.5 text-gray-400" />
-                          <span>{tx.employeeName}</span>
+                          <UserCheck className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                          <span className="truncate max-w-[140px]">{tx.employeeName}</span>
                         </div>
                       </td>
 
-                      <td className="p-3 max-w-xs">
-                        <p className="font-medium text-[var(--text-primary)] leading-tight">{tx.reason}</p>
-                        {tx.notes && <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{tx.notes}</p>}
+                      <td className="px-4 py-3 max-w-[200px]">
+                        <p className="font-medium text-[var(--text-primary)] leading-tight line-clamp-2">{tx.reason}</p>
+                        {tx.notes && <p className="text-[11px] text-[var(--text-muted)] mt-0.5 line-clamp-1">{tx.notes}</p>}
                       </td>
 
-                      <td className="p-3">
-                        <span className="rounded-md bg-[var(--surface-raised)] px-2 py-1 text-[11px] font-medium border border-[var(--border)]">
+                      <td className="px-4 py-3">
+                        <span className="rounded-md bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] font-medium border border-[var(--border)] whitespace-nowrap">
                           {tx.category}
                         </span>
                       </td>
 
-                      <td className="p-3 font-mono font-bold text-gray-700 dark:text-gray-300">
-                        {tx.balanceAfter.toLocaleString('ar-EG')} ج.م
+                      <td className="px-4 py-3 font-mono font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                        {tx.balanceAfter.toLocaleString('ar-EG')} <span className="text-xs font-medium">ج.م</span>
                       </td>
 
-                      <td className="p-3 text-[var(--text-muted)]">
+                      <td className="px-4 py-3 text-[var(--text-muted)] whitespace-nowrap">
                         <p className="flex items-center gap-1">
                           <Clock className="w-3 h-3 text-gray-400" />
                           {new Date(tx.createdAt).toLocaleDateString('ar-EG', {

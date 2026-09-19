@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { InstantPenaltiesPage } from '../InstantPenaltiesPage';
@@ -302,4 +302,59 @@ describe('InstantPenaltiesPage', () => {
     expect(select).toBeDefined();
     expect(screen.getByText('ملغاة')).toBeDefined();
   });
+
+  it('يعرض صناديق شرائح الغرامات الـ 4 ويتيح النقر عليها للتصفية', () => {
+    penaltiesData = samplePenalties;
+    pendingData = emptyPending;
+    employeesData = emptyEmployees;
+    renderPage();
+
+    expect(screen.getByText('صندوق غرامات 20 ج.م')).toBeDefined();
+    expect(screen.getByText('صندوق غرامات 50 ج.م')).toBeDefined();
+    expect(screen.getByText('صندوق غرامات 150 ج.م')).toBeDefined();
+    expect(screen.getByText('غرامات مضاعفة 500 ج.م')).toBeDefined();
+
+    // النقر على صندوق 20 ج.م لتفعيله
+    const tier20Box = screen.getByTitle('انقر لتصفية غرامات الـ 20 ج.م');
+    fireEvent.click(tier20Box);
+
+    // التحقق من ظهور شريط التصفية النشطة
+    expect(screen.getByText('تصفية نشطة حسب الصندوق:')).toBeDefined();
+    expect(screen.getByText('صندوق غرامات 20 ج.م (16-30 دقيقة تأخير)')).toBeDefined();
+
+    // النقر على إلغاء التصفية
+    const clearBtn = screen.getByText('إلغاء التصفية ✕');
+    fireEvent.click(clearBtn);
+    expect(screen.queryByText('تصفية نشطة حسب الصندوق:')).toBeNull();
+  });
+
+  it('يفتح نافذة التفاصيل الكاملة عند النقر على تفاصيل الشريحة', () => {
+    penaltiesData = samplePenalties;
+    pendingData = emptyPending;
+    employeesData = emptyEmployees;
+    renderPage();
+
+    const detailButtons = screen.getAllByText('تفاصيل ↗');
+    expect(detailButtons.length).toBeGreaterThanOrEqual(1);
+
+    // النقر على تفاصيل أول شريحة (20 ج.م)
+    fireEvent.click(detailButtons[0]);
+
+    // التحقق من فتح المودال بعنوان صندوق غرامات 20 ج.م
+    expect(screen.getByText('صندوق غرامات 20 ج.م (تأخير 16-30 دقيقة)')).toBeDefined();
+    expect(screen.getByText('تصدير هذه الشريحة Excel')).toBeDefined();
+  });
+
+  it('يفتح كشف الموظفين المطالبين بالدفع عند النقر على كشف الموظفين', () => {
+    penaltiesData = emptyPenalties;
+    pendingData = suspendedEmployees;
+    employeesData = emptyEmployees;
+    renderPage();
+
+    const pendingBtn = screen.getByTitle('عرض تفاصيل الموظفين المطالبين بالدفع');
+    fireEvent.click(pendingBtn);
+
+    expect(screen.getByText('كشف الموظفين المطالبين بالدفع حالياً')).toBeDefined();
+  });
 });
+

@@ -30,8 +30,8 @@ export function FinanceHubPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-1 rounded-xl border border-[var(--border)] p-1 bg-[var(--surface-base)]" role="tablist" aria-label="أقسام الجزاءات وصندوق الزمالة">
+    <div className="space-y-5">
+      <div className="flex flex-wrap gap-1 rounded-xl border border-[var(--border)] p-1 bg-[var(--surface-muted)]/50" role="tablist" aria-label="أقسام الجزاءات وصندوق الزمالة">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -39,8 +39,10 @@ export function FinanceHubPage() {
             role="tab"
             aria-selected={tab === t.key}
             onClick={() => setTab(t.key)}
-            className={`rounded-lg px-4 py-2 text-xs font-black transition-colors ${
-              tab === t.key ? 'bg-[var(--brand-primary)] text-white shadow-sm' : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)]'
+            className={`rounded-lg px-5 py-2.5 text-sm font-bold transition-all ${
+              tab === t.key
+                ? 'bg-[var(--brand-primary)] text-white shadow-md shadow-[var(--brand-primary)]/20'
+                : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)] hover:text-[var(--text-primary)]'
             }`}
           >
             {t.label}
@@ -48,11 +50,13 @@ export function FinanceHubPage() {
         ))}
       </div>
 
-      {tab === 'fellowship-fund' ? (
-        <FellowshipFundPage />
-      ) : (
-        <InstantPenaltiesPage />
-      )}
+      <div className="pt-1">
+        {tab === 'fellowship-fund' ? (
+          <FellowshipFundPage />
+        ) : (
+          <InstantPenaltiesPage />
+        )}
+      </div>
     </div>
   );
 }
