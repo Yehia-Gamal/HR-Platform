@@ -7,7 +7,6 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
-import { loadDomainMocks } from '../mock/loadDomainMocks';
 
 const KEY = 'association-projects';
 
@@ -17,7 +16,12 @@ export function useAssociationProjects() {
     queryKey: [KEY, a.isMock],
     enabled: a.status === 'authenticated',
     queryFn: async (): Promise<AssociationProjectsCatalog> => {
-      if (a.isMock) return (await loadDomainMocks()).mockAssociationProjects;
+      if (a.isMock) {
+        return {
+          projects: [],
+          lastUpdatedAt: new Date().toISOString(),
+        };
+      }
       return associationProjectsCatalogSchema.parse(await rpc('get_association_projects'));
     },
   });
@@ -29,7 +33,9 @@ export function useAssociationProjectDetail(projectId: string | null) {
     queryKey: [KEY, 'detail', projectId, a.isMock],
     enabled: a.status === 'authenticated' && !!projectId,
     queryFn: async (): Promise<AssociationProjectDetail> => {
-      if (a.isMock) return (await loadDomainMocks()).mockAssociationProjectDetail;
+      if (a.isMock) {
+        throw new Error('بيانات تفصيلية غير متوفرة في وضع العرض التجريبي.');
+      }
       return associationProjectDetailSchema.parse(
         await rpc('get_association_project_detail', { p_project_id: projectId }),
       );

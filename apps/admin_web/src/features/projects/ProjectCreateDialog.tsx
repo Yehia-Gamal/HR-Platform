@@ -11,8 +11,7 @@ interface Props {
 export function ProjectCreateDialog({ onClose }: Props) {
   const create = useCreateAssociationProject();
   const { data: org } = useOrganizationLookups();
-  const employeesHook = useEmployees();
-  const employees = employeesHook[0] ?? [];
+  const { data: employees = [] } = useEmployees();
 
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
@@ -60,7 +59,7 @@ export function ProjectCreateDialog({ onClose }: Props) {
             <span className="text-sm font-medium">المسؤول *</span>
             <select className="input mt-1 w-full" value={ownerId} onChange={(e) => setOwnerId(e.target.value)}>
               <option value="">— اختر —</option>
-              {employees.map((e) => <option key={e.id} value={e.id}>{e.fullNameAr}</option>)}
+              {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.fullNameAr}</option>)}
             </select>
           </label>
         </div>

@@ -4,7 +4,6 @@ import { LED_COLORS } from './projectLedStatus';
 import { useAddProjectUpdate, useUpsertProjectStep, useDeleteProjectStep } from './useAssociationProjects';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { DialogOverlay } from '../../ui/DialogOverlay';
-import { format } from 'date-fns';
 import { X, Plus, CheckCircle2, Clock, FileText, Ban, Edit3, Trash2 } from 'lucide-react';
 
 interface Props {
@@ -164,7 +163,7 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
                     <div key={u.id} className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm font-medium">{u.authorName}</span>
-                        <span className="text-xs text-gray-400">{format(new Date(u.createdAt), 'yyyy/MM/dd HH:mm')}</span>
+                        <span className="text-xs text-gray-400">{new Date(u.createdAt).toLocaleDateString('ar-EG')}</span>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">{u.note}</p>
                       {u.progress != null && <p className="text-xs text-gray-500 mt-1">نسبة الإنجاز: {u.progress}%</p>}
