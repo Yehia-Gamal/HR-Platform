@@ -19,6 +19,8 @@ export * from './enterpriseOperations.js';
 
 export * from './enterpriseManagement.js';
 
+export * from './associationProjects.js';
+
 export * from './releaseGovernance.js';
 
 export * from './liveLocation.js';
