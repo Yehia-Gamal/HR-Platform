@@ -355,6 +355,89 @@ describe('InstantPenaltiesPage', () => {
     fireEvent.click(pendingBtn);
 
     expect(screen.getByText('كشف الموظفين المطالبين بالدفع حالياً')).toBeDefined();
+    expect(screen.getByText('تصدير كشف المطالبين Excel')).toBeDefined();
+    expect(screen.getByText('تصفية الجدول بهؤلاء الموظفين ←')).toBeDefined();
+  });
+
+  it('يفتح كشف الموظفين المعلقين ويحتوي على أزرار التصدير وتصفية الجدول', () => {
+    penaltiesData = emptyPenalties;
+    pendingData = suspendedEmployees;
+    employeesData = emptyEmployees;
+    renderPage();
+
+    const suspendedBtn = screen.getByTitle('عرض تفاصيل الموظفين المعلقين');
+    fireEvent.click(suspendedBtn);
+
+    expect(screen.getByText('كشف الموظفين الموقوفين عن العمل (اليوم الثالث)')).toBeDefined();
+    expect(screen.getByText('تصدير كشف المعلقين Excel')).toBeDefined();
+    expect(screen.getByText('تصفية الجدول بالمعلقين ←')).toBeDefined();
+  });
+
+  it('يتعامل صندوق الـ 500 ج.م بشكل دقيق مع المعلقين ويتجاهل الغرامات الملغاة', () => {
+    penaltiesData = {
+      data: [
+        {
+          id: 'p1',
+          employeeId: 'e1',
+          employeeName: 'معلق 1',
+          employeeCode: 'E-01',
+          departmentName: 'إدارة',
+          workDate: '2026-09-17',
+          lateMinutes: 40,
+          originalAmount: 50,
+          currentAmount: 500,
+          currency: 'EGP',
+          status: 'suspended',
+          escalationLevel: 'doubled',
+          paidAt: null,
+          confirmedBy: null,
+          suspendedAt: '2026-09-19T00:00:00Z',
+          suspensionLiftedAt: null,
+          notes: null,
+          createdAt: '2026-09-17T10:40:00Z',
+        },
+        {
+          id: 'p2',
+          employeeId: 'e2',
+          employeeName: 'ملغاة 500',
+          employeeCode: 'E-02',
+          departmentName: 'إدارة',
+          workDate: '2026-09-17',
+          lateMinutes: 60,
+          originalAmount: 50,
+          currentAmount: 500,
+          currency: 'EGP',
+          status: 'cancelled',
+          escalationLevel: 'doubled',
+          paidAt: null,
+          confirmedBy: null,
+          suspendedAt: null,
+          suspensionLiftedAt: null,
+          notes: null,
+          createdAt: '2026-09-17T11:00:00Z',
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    };
+    pendingData = emptyPending;
+    employeesData = emptyEmployees;
+    renderPage();
+
+    // يجب أن يحسب فقط الغرامة غير الملغاة (1 غرامة)
+    const tier500Card = screen.getByTitle('انقر لتصفية الغرامات المضاعفة لـ 500 ج.م');
+    expect(tier500Card).toBeDefined();
+
+    // النقر على تفاصيل صندوق 500 ج.م
+    const detailButtons = screen.getAllByText('تفاصيل ↗');
+    // آخر زر تفاصيل هو لشريحة 500 ج.م
+    fireEvent.click(detailButtons[detailButtons.length - 1]);
+
+    expect(screen.getByText('صندوق الغرامات المضاعفة 500 ج.م (اليوم الثاني)')).toBeDefined();
+    // يجب أن تكون 1 بانتظار التحصيل (لأنها معلقة) و0 موردة بالصندوق
+    expect(screen.getByText('بانتظار التحصيل')).toBeDefined();
   });
 });
 

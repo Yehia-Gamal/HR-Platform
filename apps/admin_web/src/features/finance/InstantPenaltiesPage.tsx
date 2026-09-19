@@ -3,14 +3,11 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import {
   AlertTriangle,
-  ArrowRight,
   Ban,
   CheckCircle2,
   Clock,
   Clock3,
   Coins,
-  ExternalLink,
-  Eye,
   FileSpreadsheet,
   Flame,
   HeartHandshake,
@@ -20,7 +17,6 @@ import {
   ShieldAlert,
   Sparkles,
   SunMedium,
-  Users,
   X,
   XCircle,
   Zap,
@@ -48,6 +44,7 @@ import {
   useLiftInstantPenaltySuspension,
   usePendingPenaltyEmployees,
   useTriggerCheckPenaltiesNow,
+  type PendingPenaltyEmployee,
 } from './useInstantPenalties';
 
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
@@ -70,7 +67,7 @@ function StatusIcon({ status }: { status: string }) {
     case 'suspended':
       return <Ban className="size-4 text-red-600" aria-hidden="true" />;
     case 'cancelled':
-      return <XCircle className="size-4 text-gray-400" aria-hidden="true" />;
+      return <XCircle className="size-4 text-[var(--text-muted)]" aria-hidden="true" />;
     default:
       return null;
   }
@@ -134,7 +131,8 @@ export function InstantPenaltiesPage() {
       (p.currentAmount === 150 || (p.originalAmount === 150 && p.escalationLevel === 'initial'))
     );
     const tier500 = items.filter((p) =>
-      p.status === 'doubled' || p.escalationLevel === 'doubled' || p.currentAmount === 500
+      p.status !== 'cancelled' &&
+      (p.status === 'doubled' || p.escalationLevel === 'doubled' || p.currentAmount === 500)
     );
     const suspended = items.filter((p) => p.status === 'suspended');
 
@@ -148,24 +146,28 @@ export function InstantPenaltiesPage() {
         count: tier20.length,
         total: tier20.reduce((s, p) => s + p.currentAmount, 0),
         pendingCount: tier20.filter((p) => p.status === 'pending_payment').length,
+        paidCount: tier20.filter((p) => p.status === 'paid').length,
         items: tier20,
       },
       tier50: {
         count: tier50.length,
         total: tier50.reduce((s, p) => s + p.currentAmount, 0),
         pendingCount: tier50.filter((p) => p.status === 'pending_payment').length,
+        paidCount: tier50.filter((p) => p.status === 'paid').length,
         items: tier50,
       },
       tier150: {
         count: tier150.length,
         total: tier150.reduce((s, p) => s + p.currentAmount, 0),
         pendingCount: tier150.filter((p) => p.status === 'pending_payment').length,
+        paidCount: tier150.filter((p) => p.status === 'paid').length,
         items: tier150,
       },
       tier500: {
         count: tier500.length,
         total: tier500.reduce((s, p) => s + p.currentAmount, 0),
-        pendingCount: tier500.filter((p) => p.status === 'doubled' || p.status === 'pending_payment').length,
+        pendingCount: tier500.filter((p) => p.status === 'doubled' || p.status === 'pending_payment' || p.status === 'suspended').length,
+        paidCount: tier500.filter((p) => p.status === 'paid').length,
         items: tier500,
       },
       suspended: {
@@ -191,7 +193,7 @@ export function InstantPenaltiesPage() {
     } else if (selectedTier === 'tier-150') {
       items = items.filter((p) => p.status !== 'cancelled' && (p.currentAmount === 150 || (p.originalAmount === 150 && p.escalationLevel === 'initial')));
     } else if (selectedTier === 'tier-500') {
-      items = items.filter((p) => p.status === 'doubled' || p.escalationLevel === 'doubled' || p.currentAmount === 500);
+      items = items.filter((p) => p.status !== 'cancelled' && (p.status === 'doubled' || p.escalationLevel === 'doubled' || p.currentAmount === 500));
     } else if (selectedTier === 'suspended') {
       items = items.filter((p) => p.status === 'suspended');
     }
@@ -286,7 +288,7 @@ export function InstantPenaltiesPage() {
           return <span className="text-xs text-emerald-600 font-bold whitespace-nowrap">✓ مدفوعة ومُزيلَة</span>;
         }
         if (p.status === 'cancelled') {
-          return <span className="text-xs text-gray-400 font-bold">ملغاة</span>;
+          return <span className="text-xs text-[var(--text-muted)] font-bold">ملغاة</span>;
         }
         return (
           <div className="flex flex-wrap items-center gap-1.5">
@@ -504,6 +506,7 @@ export function InstantPenaltiesPage() {
             <div
               role="button"
               tabIndex={0}
+              aria-pressed={selectedTier === 'pending'}
               onClick={() => setSelectedTier((prev) => (prev === 'pending' ? 'all' : 'pending'))}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedTier((prev) => (prev === 'pending' ? 'all' : 'pending')); }}
               className={`card group relative p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
@@ -533,6 +536,7 @@ export function InstantPenaltiesPage() {
                     e.stopPropagation();
                     setActiveModalTier('pending');
                   }}
+                  onKeyDown={(e) => e.stopPropagation()}
                   title="عرض تفاصيل الموظفين المطالبين بالدفع"
                 >
                   <span>كشف الموظفين ↗</span>
@@ -550,6 +554,7 @@ export function InstantPenaltiesPage() {
             <div
               role="button"
               tabIndex={0}
+              aria-pressed={selectedTier === 'suspended'}
               onClick={() => setSelectedTier((prev) => (prev === 'suspended' ? 'all' : 'suspended'))}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedTier((prev) => (prev === 'suspended' ? 'all' : 'suspended')); }}
               className={`card group relative p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
@@ -579,6 +584,7 @@ export function InstantPenaltiesPage() {
                     e.stopPropagation();
                     setActiveModalTier('suspended');
                   }}
+                  onKeyDown={(e) => e.stopPropagation()}
                   title="عرض تفاصيل الموظفين المعلقين"
                 >
                   <span>كشف المعلقين ↗</span>
@@ -596,6 +602,7 @@ export function InstantPenaltiesPage() {
             <div
               role="button"
               tabIndex={0}
+              aria-pressed={activeModalTier === 'total'}
               onClick={() => setActiveModalTier('total')}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveModalTier('total'); }}
               className="card group relative p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-orange-500/40"
@@ -618,6 +625,7 @@ export function InstantPenaltiesPage() {
                     e.stopPropagation();
                     setActiveModalTier('total');
                   }}
+                  onKeyDown={(e) => e.stopPropagation()}
                   title="عرض تفنيط المبالغ المستحقة"
                 >
                   <span>تفنيط المبالغ ↗</span>
@@ -649,6 +657,7 @@ export function InstantPenaltiesPage() {
           <div
             role="button"
             tabIndex={0}
+            aria-pressed={selectedTier === 'tier-20'}
             onClick={() => setSelectedTier((prev) => (prev === 'tier-20' ? 'all' : 'tier-20'))}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedTier((prev) => (prev === 'tier-20' ? 'all' : 'tier-20')); }}
             className={`card group relative p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
@@ -675,6 +684,7 @@ export function InstantPenaltiesPage() {
                   e.stopPropagation();
                   setActiveModalTier('tier-20');
                 }}
+                onKeyDown={(e) => e.stopPropagation()}
               >
                 تفاصيل ↗
               </button>
@@ -698,6 +708,7 @@ export function InstantPenaltiesPage() {
           <div
             role="button"
             tabIndex={0}
+            aria-pressed={selectedTier === 'tier-50'}
             onClick={() => setSelectedTier((prev) => (prev === 'tier-50' ? 'all' : 'tier-50'))}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedTier((prev) => (prev === 'tier-50' ? 'all' : 'tier-50')); }}
             className={`card group relative p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
@@ -724,6 +735,7 @@ export function InstantPenaltiesPage() {
                   e.stopPropagation();
                   setActiveModalTier('tier-50');
                 }}
+                onKeyDown={(e) => e.stopPropagation()}
               >
                 تفاصيل ↗
               </button>
@@ -747,6 +759,7 @@ export function InstantPenaltiesPage() {
           <div
             role="button"
             tabIndex={0}
+            aria-pressed={selectedTier === 'tier-150'}
             onClick={() => setSelectedTier((prev) => (prev === 'tier-150' ? 'all' : 'tier-150'))}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedTier((prev) => (prev === 'tier-150' ? 'all' : 'tier-150')); }}
             className={`card group relative p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
@@ -773,6 +786,7 @@ export function InstantPenaltiesPage() {
                   e.stopPropagation();
                   setActiveModalTier('tier-150');
                 }}
+                onKeyDown={(e) => e.stopPropagation()}
               >
                 تفاصيل ↗
               </button>
@@ -796,6 +810,7 @@ export function InstantPenaltiesPage() {
           <div
             role="button"
             tabIndex={0}
+            aria-pressed={selectedTier === 'tier-500'}
             onClick={() => setSelectedTier((prev) => (prev === 'tier-500' ? 'all' : 'tier-500'))}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedTier((prev) => (prev === 'tier-500' ? 'all' : 'tier-500')); }}
             className={`card group relative p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
@@ -822,6 +837,7 @@ export function InstantPenaltiesPage() {
                   e.stopPropagation();
                   setActiveModalTier('tier-500');
                 }}
+                onKeyDown={(e) => e.stopPropagation()}
               >
                 تفاصيل ↗
               </button>
@@ -914,7 +930,7 @@ export function InstantPenaltiesPage() {
           <div className="flex items-center justify-between">
             <h3 className="flex items-center gap-2 font-black text-red-700 dark:text-red-400">
               <Ban className="size-4" aria-hidden="true" />
-              موظفون موقوفون عن العمل — Day 3
+              موظفون موقوفون عن العمل — اليوم الثالث
             </h3>
             <span className="text-xs font-bold text-red-600 dark:text-red-400">تم إشعار الفريق</span>
           </div>
@@ -925,7 +941,7 @@ export function InstantPenaltiesPage() {
             {(pendingEmployees.data ?? [])
               .filter((e) => e.isSuspended)
               .map((e) => (
-                <div key={e.employeeId} className="flex items-center justify-between rounded-lg bg-white dark:bg-gray-900/60 p-3 shadow-sm border border-red-200 dark:border-red-900/30">
+                <div key={e.employeeId} className="flex items-center justify-between rounded-lg bg-[var(--surface-base)] p-3 shadow-sm border border-red-200 dark:border-red-900/30">
                   <div>
                     <p className="font-bold text-red-700 dark:text-red-400">{e.employeeName ?? '—'}</p>
                     <p className="text-xs text-[var(--text-muted)]">{e.departmentName ?? '—'}</p>
@@ -947,7 +963,7 @@ export function InstantPenaltiesPage() {
             <span className="font-bold text-[var(--text-primary)]">تصفية نشطة حسب الصندوق:</span>
             <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-0.5 font-black text-primary">
               {selectedTier === 'pending' && 'المطالبون بالدفع حالياً'}
-              {selectedTier === 'suspended' && 'المعلّقون عن العمل (Day 3)'}
+              {selectedTier === 'suspended' && 'المعلّقون عن العمل (اليوم الثالث)'}
               {selectedTier === 'tier-20' && 'صندوق غرامات 20 ج.م (16-30 دقيقة تأخير)'}
               {selectedTier === 'tier-50' && 'صندوق غرامات 50 ج.م (31-60 دقيقة تأخير)'}
               {selectedTier === 'tier-150' && 'صندوق غرامات 150 ج.م (تأخير بعد 11:00 ص / عدم بصمة)'}
@@ -965,7 +981,7 @@ export function InstantPenaltiesPage() {
             </button>
             <button
               type="button"
-              className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1 font-bold text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="rounded-lg border border-[var(--border)] bg-[var(--surface-base)] px-2.5 py-1 font-bold text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] transition-colors"
               onClick={() => setSelectedTier('all')}
             >
               إلغاء التصفية ✕
@@ -1027,7 +1043,7 @@ export function InstantPenaltiesPage() {
             activeModalTier === 'pending'
               ? 'كشف الموظفين المطالبين بالدفع حالياً'
               : activeModalTier === 'suspended'
-                ? 'كشف الموظفين الموقوفين عن العمل (Day 3)'
+                ? 'كشف الموظفين الموقوفين عن العمل (اليوم الثالث)'
                 : activeModalTier === 'total'
                   ? 'البيان الشامل وتفنيط الغرامات الفورية'
                   : activeModalTier === 'tier-20'
@@ -1148,6 +1164,49 @@ export function InstantPenaltiesPage() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* أزرار أسفل المودال */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border-subtle)]">
+                  <button
+                    type="button"
+                    className="btn-secondary text-xs flex items-center gap-1.5"
+                    onClick={() => {
+                      const cols: ExportColumn<PendingPenaltyEmployee>[] = [
+                        { key: 'employee', header: 'الموظف', get: (e) => e.employeeName },
+                        { key: 'code', header: 'الكود', get: (e) => e.employeeCode },
+                        { key: 'department', header: 'الإدارة', get: (e) => e.departmentName },
+                        { key: 'count', header: 'عدد الغرامات', get: (e) => e.pendingCount },
+                        { key: 'amount', header: 'إجمالي المبلغ', get: (e) => e.totalAmount },
+                        { key: 'suspended', header: 'معلّق عن العمل', get: (e) => (e.isSuspended ? 'نعم' : 'لا') },
+                      ];
+                      downloadCsv(`pending-penalty-employees-${cairoTodayIso()}.csv`, toCsv(cols, pendingEmployees.data ?? []));
+                    }}
+                    disabled={(pendingEmployees.data ?? []).length === 0}
+                  >
+                    <FileSpreadsheet className="size-4" />
+                    <span>تصدير كشف المطالبين Excel</span>
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="btn-primary !py-1.5 !px-3 text-xs"
+                      onClick={() => {
+                        setSelectedTier('pending');
+                        setActiveModalTier(null);
+                      }}
+                    >
+                      تصفية الجدول بهؤلاء الموظفين ←
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary !py-1.5 !px-3 text-xs"
+                      onClick={() => setActiveModalTier(null)}
+                    >
+                      إغلاق
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1157,7 +1216,7 @@ export function InstantPenaltiesPage() {
                 <div className="rounded-xl border border-red-500/30 bg-red-50/60 dark:bg-red-950/30 p-3.5 text-xs text-red-800 dark:text-red-300">
                   <p className="font-bold flex items-center gap-1.5">
                     <Ban className="size-4 text-red-600" />
-                    تنبيه إيقاف الحسابات ومباشرة العمل (Day 3):
+                    تنبيه إيقاف الحسابات ومباشرة العمل (اليوم الثالث):
                   </p>
                   <p className="mt-1">
                     تم إيقاف حسابات هؤلاء الزملاء برمجياً بسبب عدم سداد غرامة الـ 500 ج.م المضاعفة. لا يمكنهم تسجيل الدخول على المنظومة حتى يتم استلام المبلغ وتوريده لصندوق الزمالة والتكافل.
@@ -1242,6 +1301,49 @@ export function InstantPenaltiesPage() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* أزرار أسفل المودال */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border-subtle)]">
+                  <button
+                    type="button"
+                    className="btn-secondary text-xs flex items-center gap-1.5"
+                    onClick={() => {
+                      const suspendedList = (pendingEmployees.data ?? []).filter((e) => e.isSuspended);
+                      const cols: ExportColumn<PendingPenaltyEmployee>[] = [
+                        { key: 'employee', header: 'الموظف', get: (e) => e.employeeName },
+                        { key: 'code', header: 'الكود', get: (e) => e.employeeCode },
+                        { key: 'department', header: 'الإدارة', get: (e) => e.departmentName },
+                        { key: 'count', header: 'عدد الغرامات', get: (e) => e.pendingCount },
+                        { key: 'amount', header: 'إجمالي المبلغ', get: (e) => e.totalAmount },
+                      ];
+                      downloadCsv(`suspended-employees-${cairoTodayIso()}.csv`, toCsv(cols, suspendedList));
+                    }}
+                    disabled={(pendingEmployees.data ?? []).filter((e) => e.isSuspended).length === 0}
+                  >
+                    <FileSpreadsheet className="size-4" />
+                    <span>تصدير كشف المعلقين Excel</span>
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="btn-primary !py-1.5 !px-3 text-xs"
+                      onClick={() => {
+                        setSelectedTier('suspended');
+                        setActiveModalTier(null);
+                      }}
+                    >
+                      تصفية الجدول بالمعلقين ←
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary !py-1.5 !px-3 text-xs"
+                      onClick={() => setActiveModalTier(null)}
+                    >
+                      إغلاق
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1292,7 +1394,7 @@ export function InstantPenaltiesPage() {
                   <div className="rounded-xl border border-purple-500/30 bg-purple-50/40 dark:bg-purple-950/20 p-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-purple-700 dark:text-purple-300">مضاعفة 500 ج.م</span>
-                      <span className="text-[10px] bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded font-mono">Day 2</span>
+                      <span className="text-[10px] bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded font-mono">اليوم الثاني</span>
                     </div>
                     <p className="mt-2 text-xl font-black text-purple-600 dark:text-purple-400 font-mono">{formatCurrency(tierStats.tier500.total)}</p>
                     <p className="text-[11px] text-[var(--text-muted)] mt-1 flex justify-between">
@@ -1309,13 +1411,22 @@ export function InstantPenaltiesPage() {
                       كل جنيه يتم تحصيله من هذه الغرامات يُودع مباشرة في الصندوق لصالح الفريق، وله سجل حركات كامل ومتاح لجميع الموظفين.
                     </p>
                   </div>
-                  <Link
-                    to="/fellowship-fund"
-                    className="btn-primary !py-2 !px-4 text-xs font-bold whitespace-nowrap bg-emerald-600 hover:bg-emerald-700"
-                    onClick={() => setActiveModalTier(null)}
-                  >
-                    فتح صندوق الزمالة ↗
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      to="/admin/fellowship-fund"
+                      className="btn-primary !py-2 !px-4 text-xs font-bold whitespace-nowrap bg-emerald-600 hover:bg-emerald-700"
+                      onClick={() => setActiveModalTier(null)}
+                    >
+                      فتح صندوق الزمالة ↗
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn-secondary !py-2 !px-4 text-xs font-bold whitespace-nowrap"
+                      onClick={() => setActiveModalTier(null)}
+                    >
+                      إغلاق
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1348,7 +1459,7 @@ export function InstantPenaltiesPage() {
                     </div>
                     <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-center">
                       <span className="text-xs text-emerald-700 dark:text-emerald-300 block">مُورّدة بالصندوق</span>
-                      <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">{tierConfig.stats.count - tierConfig.stats.pendingCount}</span>
+                      <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">{tierConfig.stats.paidCount}</span>
                     </div>
                   </div>
 
@@ -1382,7 +1493,7 @@ export function InstantPenaltiesPage() {
                                   {p.employeeCode && <span className="block text-[10px] text-[var(--text-muted)] font-mono">{p.employeeCode}</span>}
                                 </td>
                                 <td className="p-3 text-[var(--text-secondary)]">{p.departmentName ?? '—'}</td>
-                                <td className="p-3 font-mono text-[var(--text-muted)]">{p.workDate}</td>
+                                <td className="p-3 whitespace-nowrap text-[var(--text-muted)]">{dateFormatter.format(new Date(p.workDate + 'T00:00:00'))}</td>
                                 <td className="p-3 text-center">
                                   <span className="font-bold text-amber-600">{p.lateMinutes} د</span>
                                 </td>
@@ -1411,7 +1522,7 @@ export function InstantPenaltiesPage() {
                                   ) : p.status === 'paid' ? (
                                     <span className="text-[11px] text-emerald-600 font-bold">✓ تم الإيداع</span>
                                   ) : (
-                                    <span className="text-[11px] text-gray-400">ملغاة</span>
+                                    <span className="text-[11px] text-[var(--text-muted)]">ملغاة</span>
                                   )}
                                 </td>
                               </tr>
