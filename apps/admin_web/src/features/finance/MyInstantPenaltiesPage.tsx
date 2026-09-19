@@ -1,6 +1,6 @@
-import { cairoTodayIso } from '../../core/cairoTime';
-import { useMemo, useState } from 'react';
-import { AlertTriangle, Ban, CheckCircle2, Clock, Coins, ShieldAlert, XCircle, Zap } from 'lucide-react';
+import { useMemo } from 'react';
+import { Link } from 'react-router';
+import { AlertTriangle, Ban, CheckCircle2, Clock, Coins, ShieldAlert, XCircle } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -30,7 +30,7 @@ function StatusIcon({ status }: { status: string }) {
     case 'suspended':
       return <Ban className="size-4 text-red-600" aria-hidden="true" />;
     case 'cancelled':
-      return <XCircle className="size-4 text-gray-400" aria-hidden="true" />;
+      return <XCircle className="size-4 text-[var(--text-muted)]" aria-hidden="true" />;
     default:
       return null;
   }
@@ -83,7 +83,7 @@ export function MyInstantPenaltiesPage() {
               <AlertTriangle className="w-3.5 h-3.5" />
               <span>ملخص الغرامات الفورية</span>
             </div>
-            <p className="text-xs text-gray-400 max-w-lg leading-relaxed">
+            <p className="text-xs text-white/60 max-w-lg leading-relaxed">
               الحضور يبدأ 10:00 ص — أول 15 دقيقة سماح بدون خصم. بعد ذلك: 20 ج.م (حتى 10:30) | 50 ج.م (حتى 11:00) | 150 ج.م (حتى 12:00). عدم السداد يُضاعف الغرامة لـ 500 ج.م ثم يُعلّق حسابك.
             </p>
           </div>
@@ -91,17 +91,17 @@ export function MyInstantPenaltiesPage() {
           <div className="grid grid-cols-3 gap-3 w-full md:w-auto shrink-0">
             <div className="rounded-2xl border border-amber-500/20 bg-black/40 p-4 backdrop-blur-sm text-center">
               <p className="text-2xl font-black font-mono text-amber-300">{stats.pendingCount}</p>
-              <p className="text-[10px] text-gray-400 mt-1">بانتظار الدفع</p>
+              <p className="text-[10px] text-white/50 mt-1">بانتظار الدفع</p>
               {stats.pendingAmount > 0 && <p className="text-[11px] font-bold text-amber-400 mt-0.5">{formatCurrency(stats.pendingAmount)}</p>}
             </div>
             <div className="rounded-2xl border border-red-500/20 bg-black/40 p-4 backdrop-blur-sm text-center">
               <p className="text-2xl font-black font-mono text-red-300">{stats.doubledCount + stats.suspendedCount}</p>
-              <p className="text-[10px] text-gray-400 mt-1">مضاعفة/معلّقة</p>
+              <p className="text-[10px] text-white/50 mt-1">مضاعفة/معلّقة</p>
               {stats.doubledAmount > 0 && <p className="text-[11px] font-bold text-red-400 mt-0.5">{formatCurrency(stats.doubledAmount)}</p>}
             </div>
             <div className="rounded-2xl border border-emerald-500/20 bg-black/40 p-4 backdrop-blur-sm text-center">
               <p className="text-2xl font-black font-mono text-emerald-300">{stats.paidCount}</p>
-              <p className="text-[10px] text-gray-400 mt-1">مدفوعة</p>
+              <p className="text-[10px] text-white/50 mt-1">مدفوعة</p>
               {stats.totalPaid > 0 && <p className="text-[11px] font-bold text-emerald-400 mt-0.5">{formatCurrency(stats.totalPaid)}</p>}
             </div>
           </div>
@@ -110,12 +110,12 @@ export function MyInstantPenaltiesPage() {
 
       {/* ─── تنبيه التعليق ──────────────────────────────────────────── */}
       {stats.suspendedCount > 0 && (
-        <div className="rounded-2xl border-2 border-red-300 bg-red-50/80 dark:bg-red-950/30 p-5">
+        <div className="rounded-2xl border-2 border-red-300 dark:border-red-700 bg-red-50/80 dark:bg-red-950/30 p-5">
           <div className="flex items-start gap-3">
             <Ban className="size-6 text-red-600 shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-black text-red-700 text-sm">تم تعليق حسابك عن العمل</h3>
-              <p className="text-xs text-red-600 mt-1 leading-relaxed">
+              <h3 className="font-black text-red-700 dark:text-red-400 text-sm">تم تعليق حسابك عن العمل</h3>
+              <p className="text-xs text-red-600 dark:text-red-400/80 mt-1 leading-relaxed">
                 حسابك مغلق على السيستم لعدم سداد غرامة مضاعفة (500 ج.م). يجب التوجه للـ HR وسداد المبلغ لإعادة فتح حسابك ومباشرة العمل.
               </p>
             </div>
@@ -125,12 +125,12 @@ export function MyInstantPenaltiesPage() {
 
       {/* ─── تنبيه تصعيد ──────────────────────────────────────────── */}
       {stats.doubledCount > 0 && stats.suspendedCount === 0 && (
-        <div className="rounded-2xl border border-orange-300 bg-orange-50/80 dark:bg-orange-950/30 p-5">
+        <div className="rounded-2xl border border-orange-300 dark:border-orange-700 bg-orange-50/80 dark:bg-orange-950/30 p-5">
           <div className="flex items-start gap-3">
             <ShieldAlert className="size-5 text-orange-600 shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-black text-orange-700 text-sm">غرامات مضاعفة — السداد فوراً</h3>
-              <p className="text-xs text-orange-600 mt-1 leading-relaxed">
+              <h3 className="font-black text-orange-700 dark:text-orange-400 text-sm">غرامات مضاعفة — السداد فوراً</h3>
+              <p className="text-xs text-orange-600 dark:text-orange-400/80 mt-1 leading-relaxed">
                 غراماتك تمت مضاعفتها إلى 500 ج.م لعدم السداد في الوقت المحدد. السداد المتأخر سيؤدي لتعليق حسابك عن العمل.
               </p>
             </div>
@@ -140,16 +140,24 @@ export function MyInstantPenaltiesPage() {
 
       {/* ─── بطاقة صندوق الزمالة ───────────────────────────────────── */}
       {fundSummary.data && (
-        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-800/30 bg-emerald-50/50 dark:bg-emerald-950/15 p-4 flex items-center gap-4">
-          <div className="rounded-xl bg-emerald-100 dark:bg-emerald-900/30 p-3">
-            <Coins className="size-5 text-emerald-600 dark:text-emerald-400" />
+        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-800/30 bg-emerald-50/50 dark:bg-emerald-950/15 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl bg-emerald-100 dark:bg-emerald-900/30 p-3 shrink-0">
+              <Coins className="size-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400">صندوق الزمالة والتكافل (الخزنة التشاركية)</h4>
+              <p className="text-[11px] text-emerald-600/80 dark:text-emerald-400/60 mt-0.5">
+                جميع غرامات الحضور المدفوعة تُودع بالكامل في صندوق الزمالة لدعم الزملاء — الرصيد المتاح حالياً: <strong className="font-mono">{formatCurrency(fundSummary.data.currentBalance)}</strong>
+              </p>
+            </div>
           </div>
-          <div className="flex-1">
-            <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400">صندوق الزمالة والتكافل</h4>
-            <p className="text-[11px] text-emerald-600/80 dark:text-emerald-400/60 mt-0.5">
-              جميع غرامات الحضور المدفوعة تُودع في صندوق الزمالة لمساعدة الزملاء — رصيد الصندوق: {formatCurrency(fundSummary.data.currentBalance)}
-            </p>
-          </div>
+          <Link
+            to="/admin/fellowship-fund"
+            className="btn-primary text-xs !py-1.5 !px-3 bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 whitespace-nowrap"
+          >
+            فتح سجل الخزنة والحركات ↗
+          </Link>
         </div>
       )}
 
@@ -170,11 +178,11 @@ export function MyInstantPenaltiesPage() {
               key={p.id}
               className={`rounded-2xl border p-5 transition-all ${
                 p.status === 'suspended'
-                  ? 'border-red-300 bg-red-50/50 dark:bg-red-950/20 shadow-lg shadow-red-500/5'
+                  ? 'border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20 shadow-lg shadow-red-500/5'
                   : p.status === 'doubled'
-                    ? 'border-orange-200 bg-orange-50/30 dark:bg-orange-950/10'
+                    ? 'border-orange-200 dark:border-orange-700 bg-orange-50/30 dark:bg-orange-950/10'
                     : p.status === 'paid'
-                      ? 'border-emerald-200 bg-emerald-50/30 dark:bg-emerald-950/10'
+                      ? 'border-emerald-200 dark:border-emerald-700 bg-emerald-50/30 dark:bg-emerald-950/10'
                       : 'border-[var(--border)] bg-[var(--surface-base)]'
               }`}
             >
@@ -200,7 +208,7 @@ export function MyInstantPenaltiesPage() {
                       p.status === 'paid'
                         ? 'text-emerald-600'
                         : p.status === 'cancelled'
-                          ? 'text-gray-400 line-through'
+                          ? 'text-[var(--text-muted)] line-through'
                           : 'text-[var(--danger)]'
                     }`}
                   >

@@ -90,6 +90,8 @@ const hrSections: NavSection[] = [
       { label: 'إدارة الإجازات', to: '/hr/leaves', icon: CalendarDays, permission: 'requests.request.read' },
       { label: 'أدوات الإجازات والتكليفات', to: '/hr/leave-tools', icon: TimerReset, permission: 'requests.leave.balance.adjust' },
       { label: 'العطل الرسمية', to: '/hr/holidays', icon: CalendarClock, permission: 'holidays.manage' },
+      { label: 'غرامات الحضور والانصراف', to: '/admin/finance?tab=instant-penalties', icon: AlertOctagon },
+      { label: 'صندوق الزمالة والتكافل', to: '/admin/fellowship-fund', icon: HeartHandshake },
     ],
   },
   {
