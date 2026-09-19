@@ -25,6 +25,10 @@ vi.mock('../useEmployees', () => ({
   useEmployees: () => employeesOverrideFn(),
 }));
 
+vi.mock('../../finance/useInstantPenalties', () => ({
+  usePendingPenaltyEmployees: () => ({ data: [] }),
+}));
+
 const mockEmployees = [
   {
     id: '00000000-0000-0000-0000-000000000010',

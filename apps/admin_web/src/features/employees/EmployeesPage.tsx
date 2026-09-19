@@ -17,6 +17,7 @@ import { safeErrorMessage } from '../../core/errorMapper';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { useEmployees } from './useEmployees';
+import { usePendingPenaltyEmployees } from '../finance/useInstantPenalties';
 import { EmployeeSearchSuggestions } from './EmployeeSearchSuggestions';
 import { renderSafeIntlPhoneText } from '../../ui/phoneDisplay';
 import { OrgChartPage } from '../management/OrgChartPage';
@@ -36,9 +37,23 @@ export function EmployeesPage() {
   const [searchFocused, setSearchFocused] = useState(false);
   const pageSize = 25;
   const employees = useEmployees(search, status);
+  const { data: pendingPenalties = [] } = usePendingPenaltyEmployees();
   const canCreate = hasPermission(auth.access, 'people.employee.create');
   const canViewOrgChart = hasPermission(auth.access, 'organization.org_chart.read');
   const all = useMemo(() => employees.data ?? [], [employees.data]);
+
+  const pendingMap = useMemo(() => {
+    const map = new Map<string, (typeof pendingPenalties)[number]>();
+    for (const p of pendingPenalties) {
+      map.set(p.employeeId, p);
+    }
+    return map;
+  }, [pendingPenalties]);
+
+  const totalPendingAmount = useMemo(
+    () => pendingPenalties.reduce((sum, p) => sum + p.totalAmount, 0),
+    [pendingPenalties],
+  );
 
   // تبويب نشط من رابط مباشر (?tab=org-chart) — الدليل افتراضي.
   const tabParam = searchParams.get('tab');
@@ -119,16 +134,40 @@ export function EmployeesPage() {
       {
         key: 'fullNameAr',
         header: 'الموظف',
-        render: (emp) => (
-          <div className="flex items-center gap-3">
-            <UserAvatar displayName={emp.fullNameAr} photoUrl={emp.photoUrl} announceName={false} />
-            <div className="min-w-0">
-              <Link to={`/hr/employees/${emp.id}`} className="block truncate font-black hover:text-[var(--brand-primary)]">
-                {emp.fullNameAr}
-              </Link>
+        render: (emp) => {
+          const penaltyInfo = pendingMap.get(emp.id);
+          return (
+            <div className="flex items-center gap-3">
+              <UserAvatar displayName={emp.fullNameAr} photoUrl={emp.photoUrl} announceName={false} />
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Link to={`/hr/employees/${emp.id}`} className="block truncate font-black hover:text-[var(--brand-primary)]">
+                    {emp.fullNameAr}
+                  </Link>
+                  {penaltyInfo && (
+                    <Link
+                      to={`/admin/finance?tab=instant-penalties&employee=${emp.id}`}
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border transition-colors ${
+                        penaltyInfo.isSuspended
+                          ? 'bg-red-100 text-red-800 border-red-300 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800 animate-pulse'
+                          : penaltyInfo.totalAmount >= 500
+                          ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800'
+                          : 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-800'
+                      }`}
+                      title="اضغط للانتقال السريع لصفحة سداد الغرامة"
+                    >
+                      {penaltyInfo.isSuspended ? (
+                        <>🔒 معلّق ({penaltyInfo.totalAmount} ج.م)</>
+                      ) : (
+                        <>⚠️ مطالب بـ {penaltyInfo.totalAmount} ج.م</>
+                      )}
+                    </Link>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        ),
+          );
+        },
       },
       {
         key: 'employeeCode',
@@ -172,7 +211,7 @@ export function EmployeesPage() {
         ),
       },
     ],
-    [],
+    [pendingMap],
   );
 
   return (
@@ -254,6 +293,28 @@ export function EmployeesPage() {
             <MetricCard label="تهيئة ودعوات" value={onboarding} icon={RefreshCw} hint="لم تكتمل رحلة التفعيل" onClick={() => setStatus('onboarding')} />
             <MetricCard label="موقوف أو منتهي" value={inactive} icon={ArrowUpDown} hint="سجلات محفوظة للتاريخ والتدقيق" onClick={() => setStatus('inactive')} />
           </section>
+
+          {pendingPenalties.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/60 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl" aria-hidden="true">⚠️</span>
+                <div>
+                  <h4 className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                    يوجد {pendingPenalties.length} موظف مطالبين بغرامات فورية للتأخير (إجمالي {totalPendingAmount.toLocaleString('ar-EG')} ج.م)
+                  </h4>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                    الموظفون موضح بجوار أسمائهم علامة حمراء/برتقالية بالقيمة المستحقة. يتم إزالة العلامة فور تأكيد الـ HR للاستلام.
+                  </p>
+                </div>
+              </div>
+              <Link
+                to="/admin/finance?tab=instant-penalties"
+                className="btn-primary !text-xs !py-2 !px-4 font-bold shrink-0"
+              >
+                تحصيل الجزاءات وإزالة العلامة
+              </Link>
+            </div>
+          )}
 
           <FilterBar
             searchValue={search}

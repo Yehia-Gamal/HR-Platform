@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import type { AssociationProjectDetail, AssociationProjectStep } from '@ahla/shared-contracts';
-import { LED_COLORS } from './projectLedStatus';
-import { useAddProjectUpdate, useUpsertProjectStep, useDeleteProjectStep } from './useAssociationProjects';
+import { LED_COLORS, daysSince } from './projectLedStatus';
+import { useAddProjectUpdate, useUpsertProjectStep, useDeleteProjectStep, useUpdateAssociationProject } from './useAssociationProjects';
+import { useOrganizationLookups } from '../employees/useOrganizationLookups';
+import { useEmployees } from '../employees/useEmployees';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { DialogOverlay } from '../../ui/DialogOverlay';
-import { X, Plus, CheckCircle2, Clock, FileText, Ban, Edit3, Trash2 } from 'lucide-react';
+import { format } from 'date-fns';
+import { X, Plus, CheckCircle2, Clock, FileText, Ban, Edit3, Trash2, Pencil } from 'lucide-react';
 
 interface Props {
   detail: AssociationProjectDetail;
@@ -21,6 +24,7 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
   const led = project.ledStatus;
   const colors = LED_COLORS[led];
 
+  const [editOpen, setEditOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
   const [updateNote, setUpdateNote] = useState('');
   const [updateProgress, setUpdateProgress] = useState(project.progress);
@@ -34,6 +38,21 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
   const addUpdate = useAddProjectUpdate();
   const upsertStep = useUpsertProjectStep();
   const deleteStep = useDeleteProjectStep();
+  const updateProject = useUpdateAssociationProject();
+  const { data: org } = useOrganizationLookups();
+  const employeesHook = useEmployees();
+  const employees = employeesHook[0] ?? [];
+
+  // edit project state
+  const [editName, setEditName] = useState(project.name);
+  const [editDesc, setEditDesc] = useState(project.description || '');
+  const [editDeptId, setEditDeptId] = useState(project.departmentId);
+  const [editOwnerId, setEditOwnerId] = useState(project.ownerId);
+  const [editStatus, setEditStatus] = useState(project.status);
+  const [editPriority, setEditPriority] = useState(project.priority);
+  const [editProgress, setEditProgress] = useState(project.progress);
+  const [editStart, setEditStart] = useState(project.startDate || '');
+  const [editEnd, setEditEnd] = useState(project.targetEndDate || '');
 
   async function submitUpdate() {
     await addUpdate.mutateAsync({ projectId: project.id, note: updateNote, progress: updateProgress });
@@ -71,6 +90,17 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
     onRefresh();
   }
 
+  async function submitEdit() {
+    await updateProject.mutateAsync({
+      projectId: project.id, name: editName, description: editDesc,
+      departmentId: editDeptId, ownerEmployeeId: editOwnerId,
+      status: editStatus, priority: editPriority, progress: editProgress,
+      startDate: editStart, targetEndDate: editEnd,
+    });
+    setEditOpen(false);
+    onRefresh();
+  }
+
   const doneCount = steps.filter((s) => s.status === 'done').length;
 
   return (
@@ -81,36 +111,53 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
           className="relative w-full max-w-2xl bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Header */}
           <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b p-6">
             <div className="flex items-start justify-between">
-              <div>
+              <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className={`w-5 h-5 rounded-full ${colors.bg} ${colors.glow} ${led === 'active' ? 'animate-pulse' : ''}`} />
-                  <span className="text-sm font-medium">{colors.label}</span>
+                  <div className="relative">
+                    <div className={`w-5 h-5 rounded-full ${colors.bg} ${colors.glow} ${led === 'active' ? 'animate-pulse' : ''}`} />
+                    {led === 'active' && <div className="absolute inset-0 w-5 h-5 rounded-full bg-emerald-400 animate-ping opacity-30" />}
+                  </div>
+                  <span className="text-sm font-bold">{colors.label}</span>
                 </div>
-                <h2 className="text-2xl font-bold">{project.name}</h2>
+                <h2 className="text-2xl font-extrabold">{project.name}</h2>
                 <p className="text-sm text-gray-500 font-mono">{project.code} — {project.departmentName}</p>
               </div>
-              <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
-                <X />
-              </button>
+              <div className="flex gap-2">
+                <button onClick={() => setEditOpen(true)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600" title="تعديل">
+                  <Pencil className="w-5 h-5" />
+                </button>
+                <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+                  <X />
+                </button>
+              </div>
             </div>
           </div>
 
           <div className="p-6 space-y-6">
+            {/* معلومات المشروع */}
             <section>
               <h3 className="font-bold mb-3">معلومات المشروع</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><span className="text-gray-500">الحالة: </span><StatusBadge status={project.status} /></div>
                 <div><span className="text-gray-500">الأولوية: </span><StatusBadge status={project.priority} /></div>
                 <div><span className="text-gray-500">المسؤول: </span>{project.ownerName}</div>
-                <div><span className="text-gray-500">نسبة الإنجاز: </span>{project.progress}%</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500">نسبة الإنجاز: </span>
+                  <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                    <div className={`h-full rounded-full ${led === 'active' ? 'bg-emerald-500' : led === 'halted' ? 'bg-red-500' : 'bg-gray-400'}`} style={{ width: `${project.progress}%` }} />
+                  </div>
+                  <span className="font-bold">{project.progress}%</span>
+                </div>
                 {project.startDate && <div><span className="text-gray-500">تاريخ البدء: </span>{project.startDate}</div>}
                 {project.targetEndDate && <div><span className="text-gray-500">الموعد النهائي: </span>{project.targetEndDate}</div>}
               </div>
-              {project.description && <p className="mt-3 text-gray-600 dark:text-gray-400">{project.description}</p>}
+              {project.description && <p className="mt-3 text-gray-600 dark:text-gray-400 text-sm">{project.description}</p>}
             </section>
 
+            {/* الخطوات */}
             <section>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-bold">الخطوات ({doneCount}/{steps.length})</h3>
@@ -134,6 +181,7 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
                         <div className="flex-1">
                           <p className={`text-sm font-medium ${s.status === 'done' ? 'line-through text-gray-400' : ''}`}>{s.title}</p>
                           {s.description && <p className="text-xs text-gray-500">{s.description}</p>}
+                          {s.assigneeName && <p className="text-xs text-gray-400 mt-0.5">المسؤول: {s.assigneeName}</p>}
                         </div>
                         <StatusBadge status={s.status} />
                         <div className="flex gap-1">
@@ -147,6 +195,7 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
               )}
             </section>
 
+            {/* تحديثات */}
             <section>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-bold">آخر التحديثات</h3>
@@ -163,7 +212,7 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
                     <div key={u.id} className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm font-medium">{u.authorName}</span>
-                        <span className="text-xs text-gray-400">{new Date(u.createdAt).toLocaleDateString('ar-EG')}</span>
+                        <span className="text-xs text-gray-400">{format(new Date(u.createdAt), 'yyyy/MM/dd HH:mm')}</span>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">{u.note}</p>
                       {u.progress != null && <p className="text-xs text-gray-500 mt-1">نسبة الإنجاز: {u.progress}%</p>}
@@ -176,12 +225,81 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
         </div>
       </div>
 
+      {/* حوار تعديل المشروع */}
+      {editOpen && (
+        <DialogOverlay title="تعديل المشروع" onClose={() => setEditOpen(false)}>
+          <div className="space-y-4 p-4">
+            <label className="block">
+              <span className="text-sm font-medium">اسم المشروع</span>
+              <input className="input mt-1 w-full" value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium">الوصف</span>
+              <textarea className="input mt-1 w-full" rows={2} value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
+            </label>
+            <div className="grid grid-cols-2 gap-4">
+              <label className="block">
+                <span className="text-sm font-medium">الإدارة</span>
+                <select className="input mt-1 w-full" value={editDeptId} onChange={(e) => setEditDeptId(e.target.value)}>
+                  {org?.departments.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium">المسؤول</span>
+                <select className="input mt-1 w-full" value={editOwnerId} onChange={(e) => setEditOwnerId(e.target.value)}>
+                  {employees.map((e) => <option key={e.id} value={e.id}>{e.fullNameAr}</option>)}
+                </select>
+              </label>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <label className="block">
+                <span className="text-sm font-medium">الحالة</span>
+                <select className="input mt-1 w-full" value={editStatus} onChange={(e) => setEditStatus(e.target.value)}>
+                  <option value="planned">مخطط</option>
+                  <option value="active">نشط</option>
+                  <option value="on_hold">متوقف</option>
+                  <option value="completed">مكتمل</option>
+                  <option value="cancelled">ملغى</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium">الأولوية</span>
+                <select className="input mt-1 w-full" value={editPriority} onChange={(e) => setEditPriority(e.target.value)}>
+                  <option value="low">منخفضة</option>
+                  <option value="medium">متوسطة</option>
+                  <option value="high">عالية</option>
+                  <option value="critical">حرجة</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium">نسبة الإنجاز</span>
+                <input type="number" min={0} max={100} className="input mt-1 w-full" value={editProgress} onChange={(e) => setEditProgress(Number(e.target.value))} />
+              </label>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <label className="block">
+                <span className="text-sm font-medium">تاريخ البدء</span>
+                <input type="date" className="input mt-1 w-full" value={editStart} onChange={(e) => setEditStart(e.target.value)} />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium">الموعد النهائي</span>
+                <input type="date" className="input mt-1 w-full" value={editEnd} onChange={(e) => setEditEnd(e.target.value)} />
+              </label>
+            </div>
+            <button onClick={submitEdit} disabled={!editName.trim() || updateProject.isPending} className="btn-primary w-full">
+              {updateProject.isPending ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+            </button>
+          </div>
+        </DialogOverlay>
+      )}
+
+      {/* حوار إضافة تحديث */}
       {updateOpen && (
         <DialogOverlay title="إضافة تحديث" onClose={() => setUpdateOpen(false)}>
           <div className="space-y-4 p-4">
             <label className="block">
               <span className="text-sm font-medium">ملاحظة التحديث</span>
-              <textarea className="input mt-1 w-full" rows={3} value={updateNote} onChange={(e) => setUpdateNote(e.target.value)} />
+              <textarea className="input mt-1 w-full" rows={3} value={updateNote} onChange={(e) => setUpdateNote(e.target.value)} placeholder="اكتب ملاحظة عن التحديث الذي تم..." />
             </label>
             <label className="block">
               <span className="text-sm font-medium">نسبة الإنجاز الحالية</span>
@@ -194,6 +312,7 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
         </DialogOverlay>
       )}
 
+      {/* حوار إضافة/تعديل خطوة */}
       {stepOpen && (
         <DialogOverlay title={editingStep ? 'تعديل خطوة' : 'إضافة خطوة جديدة'} onClose={() => { setStepOpen(false); setEditingStep(null); }}>
           <div className="space-y-4 p-4">
