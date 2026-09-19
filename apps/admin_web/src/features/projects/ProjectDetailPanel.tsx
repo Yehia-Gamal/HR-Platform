@@ -6,6 +6,7 @@ import { useOrganizationLookups } from '../employees/useOrganizationLookups';
 import { useEmployees } from '../employees/useEmployees';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { DialogOverlay } from '../../ui/DialogOverlay';
+import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { X, Plus, CheckCircle2, Clock, FileText, Ban, Edit3, Trash2, Pencil } from 'lucide-react';
 
 interface Props {
@@ -29,6 +30,7 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
   const [updateProgress, setUpdateProgress] = useState(project.progress);
   const [stepOpen, setStepOpen] = useState(false);
   const [editingStep, setEditingStep] = useState<AssociationProjectStep | null>(null);
+  const [deleteStepId, setDeleteStepId] = useState<string | null>(null);
   const [stepTitle, setStepTitle] = useState('');
   const [stepDesc, setStepDesc] = useState('');
   const [stepDue, setStepDue] = useState('');
@@ -86,6 +88,7 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
 
   async function handleDeleteStep(stepId: string) {
     await deleteStep.mutateAsync(stepId);
+    setDeleteStepId(null);
     onRefresh();
   }
 
@@ -185,7 +188,7 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
                         <StatusBadge status={s.status} />
                         <div className="flex gap-1">
                           <button onClick={() => openEditStep(s)} className="p-1 hover:bg-gray-200 rounded"><Edit3 className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => handleDeleteStep(s.id)} className="p-1 hover:bg-red-100 rounded text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setDeleteStepId(s.id)} className="p-1 hover:bg-red-100 rounded text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
                       </div>
                     );
@@ -352,6 +355,31 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
           </div>
         </DialogOverlay>
       )}
+
+      {deleteStepId && (
+        <ConfirmDialog
+          open={Boolean(deleteStepId)}
+          title="حذف الخطوة"
+          message="هل أنت متأكد من حذف هذه الخطوة من المشروع؟"
+          confirmLabel="حذف"
+          cancelLabel="إلغاء"
+          tone="danger"
+          loading={deleteStep.isPending}
+          onConfirm={() => handleDeleteStep(deleteStepId)}
+          onCancel={() => setDeleteStepId(null)}
+        />
+      )}
+
+      <ConfirmDialog
+        open={!!deleteStepId}
+        title="حذف الخطوة"
+        message="هل أنت متأكد من حذف هذه الخطوة؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmLabel="حذف"
+        tone="danger"
+        loading={deleteStep.isPending}
+        onConfirm={() => deleteStepId && handleDeleteStep(deleteStepId)}
+        onCancel={() => setDeleteStepId(null)}
+      />
     </>
   );
 }
