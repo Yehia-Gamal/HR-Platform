@@ -242,7 +242,7 @@ export function EmployeeDirectoryPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="font-bold truncate">{emp.fullNameAr}</h3>
-                    <StatusIndicator status={emp.status} />
+                    <StatusBadge status={emp.status} />
                   </div>
                   <p className="mt-1 text-sm text-[var(--text-muted)] truncate">{emp.employeeCode}</p>
                   <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-[var(--text-muted)]">
