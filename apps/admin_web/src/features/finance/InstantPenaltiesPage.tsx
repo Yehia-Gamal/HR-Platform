@@ -566,10 +566,6 @@ export function InstantPenaltiesPage() {
         />
       )}
 
-      {confirmPayment.isError && (
-        <p className="text-sm text-[var(--danger)]">{safeErrorMessage(confirmPayment.error)}</p>
-      )}
-
       <InputDialog
         open={paymentDialogOpen}
         title="استلام الغرامة وإيداعها في صندوق الزمالة والتكافل"
@@ -582,15 +578,21 @@ export function InstantPenaltiesPage() {
         tone="info"
         required={false}
         loading={confirmPayment.isPending}
+        error={confirmPayment.isError ? safeErrorMessage(confirmPayment.error) : null}
         onConfirm={async () => {
           if (paymentTarget) {
-            await confirmPayment.mutateAsync({ penaltyId: paymentTarget.id, notes: paymentNotes.trim() || undefined });
-            setPaymentDialogOpen(false);
-            setPaymentTarget(null);
-            setPaymentNotes('');
+            try {
+              await confirmPayment.mutateAsync({ penaltyId: paymentTarget.id, notes: paymentNotes.trim() || undefined });
+              setPaymentDialogOpen(false);
+              setPaymentTarget(null);
+              setPaymentNotes('');
+            } catch {
+              // Error is displayed inside InputDialog
+            }
           }
         }}
         onCancel={() => {
+          confirmPayment.reset();
           setPaymentDialogOpen(false);
           setPaymentTarget(null);
           setPaymentNotes('');
@@ -608,15 +610,21 @@ export function InstantPenaltiesPage() {
         confirmLabel="رفع التعليق"
         tone="warning"
         loading={liftSuspension.isPending}
+        error={liftSuspension.isError ? safeErrorMessage(liftSuspension.error) : null}
         onConfirm={async () => {
           if (liftTarget && liftReason.trim()) {
-            await liftSuspension.mutateAsync({ penaltyId: liftTarget.id, notes: liftReason.trim() });
-            setLiftDialogOpen(false);
-            setLiftTarget(null);
-            setLiftReason('');
+            try {
+              await liftSuspension.mutateAsync({ penaltyId: liftTarget.id, notes: liftReason.trim() });
+              setLiftDialogOpen(false);
+              setLiftTarget(null);
+              setLiftReason('');
+            } catch {
+              // Error is displayed inside InputDialog
+            }
           }
         }}
         onCancel={() => {
+          liftSuspension.reset();
           setLiftDialogOpen(false);
           setLiftTarget(null);
           setLiftReason('');
@@ -634,15 +642,21 @@ export function InstantPenaltiesPage() {
         confirmLabel="إلغاء الغرامة"
         tone="danger"
         loading={cancelPenalty.isPending}
+        error={cancelPenalty.isError ? safeErrorMessage(cancelPenalty.error) : null}
         onConfirm={async () => {
           if (cancelTarget && cancelReason.trim()) {
-            await cancelPenalty.mutateAsync({ penaltyId: cancelTarget.id, reason: cancelReason.trim() });
-            setCancelDialogOpen(false);
-            setCancelTarget(null);
-            setCancelReason('');
+            try {
+              await cancelPenalty.mutateAsync({ penaltyId: cancelTarget.id, reason: cancelReason.trim() });
+              setCancelDialogOpen(false);
+              setCancelTarget(null);
+              setCancelReason('');
+            } catch {
+              // Error is displayed inside InputDialog
+            }
           }
         }}
         onCancel={() => {
+          cancelPenalty.reset();
           setCancelDialogOpen(false);
           setCancelTarget(null);
           setCancelReason('');

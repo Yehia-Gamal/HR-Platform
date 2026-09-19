@@ -611,3 +611,20 @@ final announcementEngagementProvider =
       );
       return _asMap(data);
     });
+
+// ─── غرامات الحضور الفورية — للموظف ─────────────────────────────────────
+/// غرامات الحضور الفورية للموظف الحالي — تُقرأ مباشرة من الجدول عبر RLS.
+final myInstantPenaltiesProvider =
+    FutureProvider<List<MobileInstantPenalty>>((ref) async {
+  final client = ref.watch(supabaseProvider);
+  final data = await rpcWithTimeout(
+    client
+        .from('instant_attendance_penalties')
+        .select()
+        .order('work_date', ascending: false)
+        .order('created_at', ascending: false),
+  );
+  return _asList(data)
+      .map(MobileInstantPenalty.fromJson)
+      .toList(growable: false);
+});

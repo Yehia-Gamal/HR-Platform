@@ -201,21 +201,32 @@ export type GenerateInstantPenaltyResult = z.infer<typeof generateInstantPenalty
 
 /** نتيجة تأكيد الدفع */
 export const confirmInstantPenaltyPaymentResultSchema = z.object({
-  id: uuid,
-  status: z.string(),
-  paidAt: isoDate,
-  currentAmount: z.number(),
-  wasSuspended: z.boolean(),
-});
+  id: uuid.optional(),
+  penaltyId: uuid.optional(),
+  status: z.string().optional(),
+  paidAt: z.string().optional(),
+  amount: z.number().optional(),
+  currentAmount: z.number().optional(),
+  wasSuspended: z.boolean().optional(),
+  success: z.boolean().optional(),
+  employeeId: uuid.optional(),
+  employeeName: z.string().optional(),
+  fundBalanceAfter: z.number().optional(),
+  transactionId: uuid.optional(),
+  message: z.string().optional(),
+}).passthrough();
 export type ConfirmInstantPenaltyPaymentResult = z.infer<typeof confirmInstantPenaltyPaymentResultSchema>;
 
 /** نتيجة إلغاء غرامة */
 export const cancelInstantPenaltyResultSchema = z.object({
-  id: uuid,
-  status: z.string(),
-  currentAmount: z.number(),
-  wasSuspended: z.boolean(),
-});
+  id: uuid.optional(),
+  penaltyId: uuid.optional(),
+  status: z.string().optional(),
+  currentAmount: z.number().optional(),
+  wasSuspended: z.boolean().optional(),
+  success: z.boolean().optional(),
+  message: z.string().optional(),
+}).passthrough();
 export type CancelInstantPenaltyResult = z.infer<typeof cancelInstantPenaltyResultSchema>;
 
 /** تفنيط مبالغ صندوق الزمالة حسب الفئة */

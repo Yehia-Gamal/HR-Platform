@@ -127,6 +127,10 @@ export function useConfirmInstantPenaltyPayment() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [INSTANT_PENALTIES_KEY] });
       void queryClient.invalidateQueries({ queryKey: [PENDING_EMPLOYEES_KEY] });
+      void queryClient.invalidateQueries({ queryKey: ['fellowship-fund-summary'] });
+      void queryClient.invalidateQueries({ queryKey: ['fellowship-fund-transactions'] });
+      void queryClient.invalidateQueries({ queryKey: ['fellowship-fund-breakdown'] });
+      void queryClient.invalidateQueries({ queryKey: ['employees'] });
     },
   });
 }
@@ -150,6 +154,7 @@ export function useCancelInstantPenalty() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [INSTANT_PENALTIES_KEY] });
       void queryClient.invalidateQueries({ queryKey: [PENDING_EMPLOYEES_KEY] });
+      void queryClient.invalidateQueries({ queryKey: ['employees'] });
     },
   });
 }
@@ -173,6 +178,7 @@ export function useLiftInstantPenaltySuspension() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [INSTANT_PENALTIES_KEY] });
       void queryClient.invalidateQueries({ queryKey: [PENDING_EMPLOYEES_KEY] });
+      void queryClient.invalidateQueries({ queryKey: ['employees'] });
     },
   });
 }

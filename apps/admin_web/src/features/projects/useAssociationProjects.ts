@@ -158,6 +158,22 @@ export function useUpsertProjectStep() {
   });
 }
 
+export function useUpdateProjectStatus() {
+  const a = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { projectId: string; status: string }) => {
+      if (a.isMock) return;
+      await rpc('update_association_project_admin', {
+        p_project_id: input.projectId,
+        p_status: input.status,
+      });
+    },
+    meta: { successMessage: 'تم تحديث الحالة' },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
+  });
+}
+
 export function useDeleteProjectStep() {
   const a = useAuth();
   const qc = useQueryClient();

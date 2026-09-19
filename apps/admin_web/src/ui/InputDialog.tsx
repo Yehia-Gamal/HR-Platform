@@ -26,6 +26,7 @@ export function InputDialog({
   loading = false,
   required = true,
   minLength = 0,
+  error = null,
 }: {
   open: boolean;
   title: string;
@@ -42,6 +43,7 @@ export function InputDialog({
   loading?: boolean;
   required?: boolean;
   minLength?: number;
+  error?: string | null;
 }) {
   if (!open) return null;
 
@@ -71,6 +73,12 @@ export function InputDialog({
           dir="rtl"
         />
       </label>
+
+      {error && (
+        <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
+          {error}
+        </div>
+      )}
 
       <div className="mt-6 flex gap-3">
         <button className="btn-secondary flex-1" onClick={onCancel} disabled={loading}>

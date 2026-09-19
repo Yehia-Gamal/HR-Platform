@@ -4,6 +4,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_d
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/knowledge_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_payslips_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/my_instant_penalties_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_learning_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/service_portal_page.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
@@ -141,6 +142,25 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _ServiceCard(
+                    icon: Icons.gavel_rounded,
+                    title: 'غرامات الحضور',
+                    subtitle: 'الغرامات الفورية وحالتها',
+                    color: const Color(0xFFDC2626),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MyInstantPenaltiesPage(),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _ServiceCard(
                     icon: Icons.school_rounded,
                     title: 'التعلم والتدريب',
                     subtitle: 'دوراتي وتقدمي',
@@ -151,11 +171,7 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                     ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
+                const SizedBox(width: 10),
                 Expanded(
                   child: _ServiceCard(
                     icon: Icons.support_agent_rounded,
@@ -170,7 +186,11 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
                 Expanded(
                   child: _ServiceCard(
                     icon: Icons.menu_book_rounded,

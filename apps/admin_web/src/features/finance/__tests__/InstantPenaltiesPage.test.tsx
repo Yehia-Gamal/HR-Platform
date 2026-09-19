@@ -33,14 +33,23 @@ vi.mock('../useInstantPenalties', () => ({
     isError: false,
     error: null,
     mutateAsync: vi.fn(),
+    reset: vi.fn(),
   }),
   useCancelInstantPenalty: () => ({
     isPending: false,
     isError: false,
     error: null,
     mutateAsync: vi.fn(),
+    reset: vi.fn(),
   }),
   useLiftInstantPenaltySuspension: () => ({
+    isPending: false,
+    isError: false,
+    error: null,
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+  }),
+  useTriggerCheckPenaltiesNow: () => ({
     isPending: false,
     isError: false,
     error: null,
@@ -50,6 +59,15 @@ vi.mock('../useInstantPenalties', () => ({
 
 vi.mock('../../employees/useEmployees', () => ({
   useEmployees: () => employeesData,
+}));
+
+vi.mock('../useFellowshipFund', () => ({
+  useFellowshipFundSummary: () => ({
+    data: { currentBalance: 300, totalDeposits: 500, totalDisbursements: 200, depositCount: 2, disbursementCount: 1 },
+    isLoading: false,
+    isError: false,
+    error: null,
+  }),
 }));
 
 const emptyPenalties = {
@@ -150,7 +168,7 @@ describe('InstantPenaltiesPage', () => {
     pendingData = emptyPending;
     employeesData = emptyEmployees;
     renderPage();
-    expect(screen.getByText('الغرامات الفورية للتأخير')).toBeDefined();
+    expect(screen.getByText(/الغرامات الفورية للتأخير/)).toBeDefined();
   });
 
   it('يعرض زر إنشاء غرامة يدوية', () => {
@@ -201,7 +219,7 @@ describe('InstantPenaltiesPage', () => {
     pendingData = emptyPending;
     employeesData = emptyEmployees;
     renderPage();
-    expect(screen.getByText('تأكيد الدفع')).toBeDefined();
+    expect(screen.getByText(/استلام من .* وإيداع بالصندوق/)).toBeDefined();
     expect(screen.getByText('إلغاء')).toBeDefined();
   });
 
@@ -236,7 +254,7 @@ describe('InstantPenaltiesPage', () => {
     pendingData = emptyPending;
     employeesData = emptyEmployees;
     renderPage();
-    expect(screen.getByText(/استلام 500 ج وفتح السيستم/)).toBeDefined();
+    expect(screen.getByText(/استلام من .* وإيداع بالصندوق/)).toBeDefined();
     expect(screen.getByText('رفع التعليق')).toBeDefined();
   });
 
