@@ -140,3 +140,71 @@ export const systemSettingSchema = z
   })
   .strict();
 export type SystemSetting = z.infer<typeof systemSettingSchema>;
+
+// ─── غرامات فورية للتأخير ─────────────────────────────────────────────
+
+/** غرامة فورية للتأخير */
+export const instantPenaltySchema = z
+  .object({
+    id: uuid,
+    employeeId: uuid,
+    employeeName: z.string().nullable(),
+    employeeCode: z.string().nullable(),
+    departmentName: z.string().nullable(),
+    workDate: z.string(),
+    lateMinutes: z.number().int(),
+    originalAmount: z.number(),
+    currentAmount: z.number(),
+    currency: z.string(),
+    status: z.enum(['pending_payment', 'paid', 'doubled', 'suspended']),
+    escalationLevel: z.enum(['initial', 'doubled', 'suspended']),
+    paidAt: isoDate,
+    confirmedBy: uuid.nullable(),
+    suspendedAt: isoDate,
+    suspensionLiftedAt: isoDate,
+    notes: z.string().nullable(),
+    createdAt: isoDate,
+  })
+  .strict();
+export type InstantPenalty = z.infer<typeof instantPenaltySchema>;
+
+/** موظف مطالب بدفع غرامة فورية */
+export const pendingPenaltyEmployeeSchema = z
+  .object({
+    employeeId: uuid,
+    employeeName: z.string().nullable(),
+    employeeCode: z.string().nullable(),
+    departmentName: z.string().nullable(),
+    pendingCount: z.number().int(),
+    totalAmount: z.number(),
+    isSuspended: z.boolean(),
+    latestDate: z.string(),
+  })
+  .strict();
+export type PendingPenaltyEmployee = z.infer<typeof pendingPenaltyEmployeeSchema>;
+
+/** نتيجة إنشاء غرامة فورية */
+export const generateInstantPenaltyResultSchema = z.object({
+  id: uuid.nullable().optional(),
+  alreadyExists: z.boolean().optional(),
+  isGracePeriod: z.boolean().optional(),
+  amount: z.number().optional(),
+  message: z.string().optional(),
+  employeeId: uuid.optional(),
+  workDate: z.string().optional(),
+  lateMinutes: z.number().int().optional(),
+  originalAmount: z.number().optional(),
+  currentAmount: z.number().optional(),
+  status: z.string().optional(),
+});
+export type GenerateInstantPenaltyResult = z.infer<typeof generateInstantPenaltyResultSchema>;
+
+/** نتيجة تأكيد الدفع */
+export const confirmInstantPenaltyPaymentResultSchema = z.object({
+  id: uuid,
+  status: z.string(),
+  paidAt: isoDate,
+  currentAmount: z.number(),
+  wasSuspended: z.boolean(),
+});
+export type ConfirmInstantPenaltyPaymentResult = z.infer<typeof confirmInstantPenaltyPaymentResultSchema>;

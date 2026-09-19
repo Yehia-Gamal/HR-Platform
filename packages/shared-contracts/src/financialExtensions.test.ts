@@ -7,6 +7,10 @@ import {
   generateInstapayBatchSchema,
   instapayBatchSchema,
   instapayItemSchema,
+  instantPenaltySchema,
+  pendingPenaltyEmployeeSchema,
+  generateInstantPenaltyResultSchema,
+  confirmInstantPenaltyPaymentResultSchema,
   systemSettingSchema,
 } from './financialExtensions';
 
@@ -153,5 +157,70 @@ describe('financialExtensions contracts', () => {
     });
     expect(parsed.key).toBe('leave_approval_escalation_hours');
     expect(parsed.valueType).toBe('number');
+  });
+
+  it('instantPenaltySchema يفرض بنية الغرامة الفورية مع حالات التصعيد', () => {
+    const penalty = instantPenaltySchema.parse({
+      id: '11111111-1111-4111-8111-111111111111',
+      employeeId: '22222222-2222-4222-8222-222222222222',
+      employeeName: 'أحمد محمود',
+      employeeCode: 'EMP-101',
+      departmentName: 'المبيعات',
+      workDate: '2026-09-19',
+      lateMinutes: 25,
+      originalAmount: 20,
+      currentAmount: 20,
+      currency: 'EGP',
+      status: 'pending_payment',
+      escalationLevel: 'initial',
+      paidAt: null,
+      confirmedBy: null,
+      suspendedAt: null,
+      suspensionLiftedAt: null,
+      notes: null,
+      createdAt: '2026-09-19T10:25:00.000Z',
+    });
+    expect(penalty.lateMinutes).toBe(25);
+    expect(penalty.currentAmount).toBe(20);
+    expect(penalty.status).toBe('pending_payment');
+  });
+
+  it('pendingPenaltyEmployeeSchema يفرض بيانات الموظف المطالب بالغرامة', () => {
+    const pendingEmp = pendingPenaltyEmployeeSchema.parse({
+      employeeId: '22222222-2222-4222-8222-222222222222',
+      employeeName: 'محمد علي',
+      employeeCode: 'EMP-102',
+      departmentName: 'العمليات',
+      pendingCount: 1,
+      totalAmount: 500,
+      isSuspended: true,
+      latestDate: '2026-09-18',
+    });
+    expect(pendingEmp.isSuspended).toBe(true);
+    expect(pendingEmp.totalAmount).toBe(500);
+  });
+
+  it('generateInstantPenaltyResultSchema يدعم فترة السماح بدون غرامة', () => {
+    const graceResult = generateInstantPenaltyResultSchema.parse({
+      id: null,
+      alreadyExists: false,
+      isGracePeriod: true,
+      amount: 0,
+      message: 'التأخير ضمن فترة السماح (15 دقيقة الأولى: 10:00 - 10:15) — لا توجد غرامة مستحقة',
+    });
+    expect(graceResult.isGracePeriod).toBe(true);
+    expect(graceResult.id).toBeNull();
+  });
+
+  it('confirmInstantPenaltyPaymentResultSchema يوثق نتيجة الدفع ورفع التعليق', () => {
+    const confirmResult = confirmInstantPenaltyPaymentResultSchema.parse({
+      id: '11111111-1111-4111-8111-111111111111',
+      status: 'paid',
+      paidAt: '2026-09-19T12:00:00.000Z',
+      currentAmount: 500,
+      wasSuspended: true,
+    });
+    expect(confirmResult.status).toBe('paid');
+    expect(confirmResult.wasSuspended).toBe(true);
   });
 });

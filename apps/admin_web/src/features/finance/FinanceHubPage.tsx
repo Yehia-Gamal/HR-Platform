@@ -2,15 +2,17 @@ import { useSearchParams } from 'react-router';
 import { FinancePage } from './FinancePage';
 import { EmployeePenaltiesPage } from './EmployeePenaltiesPage';
 import { InstapayPage } from './InstapayPage';
+import { InstantPenaltiesPage } from './InstantPenaltiesPage';
 
 /**
- * مركز المالية الموحّد — العمليات والغرامات وInstaPay بتبويبات.
- * المسارات القديمة (finance/penalties|instapay) تُحوَّل هنا عبر redirects.
+ * مركز المالية الموحّد — العمليات والغرامات وInstaPay والغرامات الفورية بتبويبات.
+ * المسارات القديمة (finance/penalties|instapay|instant-penalties) تُحوَّل هنا عبر redirects.
  */
 
 const TABS = [
   { key: 'operations', label: 'الرواتب والتشغيل' },
   { key: 'penalties', label: 'الغرامات' },
+  { key: 'instant-penalties', label: 'الغرامات الفورية' },
   { key: 'instapay', label: 'InstaPay' },
 ] as const;
 
@@ -50,7 +52,16 @@ export function FinanceHubPage() {
         ))}
       </div>
 
-      {tab === 'penalties' ? <EmployeePenaltiesPage /> : tab === 'instapay' ? <InstapayPage /> : <FinancePage />}
+      {tab === 'penalties' ? (
+        <EmployeePenaltiesPage />
+      ) : tab === 'instant-penalties' ? (
+        <InstantPenaltiesPage />
+      ) : tab === 'instapay' ? (
+        <InstapayPage />
+      ) : (
+        <FinancePage />
+      )}
     </div>
   );
 }
+

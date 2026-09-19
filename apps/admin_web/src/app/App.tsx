@@ -293,6 +293,7 @@ function AuthenticatedApp() {
             />
             <Route path="finance/penalties" element={<Navigate to="../finance?tab=penalties" replace />} />
             <Route path="finance/instapay" element={<Navigate to="../finance?tab=instapay" replace />} />
+            <Route path="finance/instant-penalties" element={<Navigate to="../finance?tab=instant-penalties" replace />} />
             <Route
               path="audit-trail"
               element={
