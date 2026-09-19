@@ -7,6 +7,7 @@ import { DataTable, type DataTableColumn } from '../../ui/DataTable';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
+import { InputDialog } from '../../ui/InputDialog';
 import { PageHeader } from '../../ui/PageHeader';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
@@ -35,6 +36,11 @@ export function EmployeePenaltiesPage() {
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
   const [evidenceRef, setEvidenceRef] = useState('');
+
+  const [waiveDialogOpen, setWaiveDialogOpen] = useState(false);
+  const [waiveTargetId, setWaiveTargetId] = useState<string | null>(null);
+  const [waiveTargetName, setWaiveTargetName] = useState('');
+  const [waiveReason, setWaiveReason] = useState('');
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -77,10 +83,10 @@ export function EmployeePenaltiesPage() {
             className="btn-ghost text-xs"
             disabled={waivePenalty.isPending}
             onClick={() => {
-              const reasonText = window.prompt('سبب الإسقاط:');
-              if (reasonText?.trim()) {
-                void waivePenalty.mutateAsync({ penaltyId: p.id, reason: reasonText.trim() });
-              }
+              setWaiveTargetId(p.id);
+              setWaiveTargetName(p.employeeName ?? '');
+              setWaiveReason('');
+              setWaiveDialogOpen(true);
             }}
           >
             إسقاط
@@ -267,6 +273,32 @@ export function EmployeePenaltiesPage() {
           emptyDescription="جرّب تعديل البحث أو الحالة."
         />
       )}
+
+      <InputDialog
+        open={waiveDialogOpen}
+        title="إسقاط مخالفة"
+        message={`هل تريد إسقاط مخالفة ${waiveTargetName}؟ اذكر سبب الإسقاط:`}
+        inputLabel="سبب الإسقاط"
+        inputPlaceholder="اكتب سبب الإسقاط…"
+        inputValue={waiveReason}
+        onInputChange={setWaiveReason}
+        confirmLabel="إسقاط"
+        tone="danger"
+        loading={waivePenalty.isPending}
+        onConfirm={async () => {
+          if (waiveTargetId && waiveReason.trim()) {
+            await waivePenalty.mutateAsync({ penaltyId: waiveTargetId, reason: waiveReason.trim() });
+            setWaiveDialogOpen(false);
+            setWaiveTargetId(null);
+            setWaiveReason('');
+          }
+        }}
+        onCancel={() => {
+          setWaiveDialogOpen(false);
+          setWaiveTargetId(null);
+          setWaiveReason('');
+        }}
+      />
     </div>
   );
 }

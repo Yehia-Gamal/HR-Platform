@@ -43,6 +43,7 @@ const ActionCenterPage = lazy(() => import('../features/actions/ActionCenterPage
 const LiveLocationPage = lazy(() => import('../features/management/LiveLocationPage').then((m) => ({ default: m.LiveLocationPage })));
 const KpiCyclesPage = lazy(() => import('../features/advanced/KpiCyclesPage').then((m) => ({ default: m.KpiCyclesPage })));
 const FinanceHubPage = lazy(() => import('../features/finance/FinanceHubPage').then((m) => ({ default: m.FinanceHubPage })));
+const FellowshipFundPage = lazy(() => import('../features/finance/FellowshipFundPage').then((m) => ({ default: m.FellowshipFundPage })));
 const DisputesPage = lazy(() => import('../features/advanced/DisputesPage').then((m) => ({ default: m.DisputesPage })));
 const SettingsHubPage = lazy(() => import('../features/management/SettingsHubPage').then((m) => ({ default: m.SettingsHubPage })));
 const KnowledgeHubPage = lazy(() => import('../features/knowledge/KnowledgeHubPage').then((m) => ({ default: m.KnowledgeHubPage })));
@@ -300,9 +301,12 @@ function AuthenticatedApp() {
                 </FeatureGate>
               }
             />
-            <Route path="finance/penalties" element={<Navigate to="../finance?tab=penalties" replace />} />
-            <Route path="finance/instapay" element={<Navigate to="../finance?tab=instapay" replace />} />
+            <Route path="fellowship-fund" element={<FellowshipFundPage />} />
+            <Route path="attendance-penalties" element={<Navigate to="../finance?tab=instant-penalties" replace />} />
+            <Route path="finance/penalties" element={<Navigate to="../finance?tab=instant-penalties" replace />} />
+            <Route path="finance/instapay" element={<Navigate to="../finance?tab=instant-penalties" replace />} />
             <Route path="finance/instant-penalties" element={<Navigate to="../finance?tab=instant-penalties" replace />} />
+            <Route path="finance/fellowship-fund" element={<Navigate to="../fellowship-fund" replace />} />
             <Route
               path="audit-trail"
               element={

@@ -2,6 +2,7 @@ import { CalendarClock, CheckCircle2, Clock3, Save, UsersRound } from 'lucide-re
 import { useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
+import { InputDialog } from '../../ui/InputDialog';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { MetricSkeletonRow, ListSkeleton } from '../../ui/Skeletons';
@@ -23,6 +24,10 @@ export function AttendanceOperationsPage() {
   const emptyShift = { id: '', name: '', start: '10:00', end: '18:00', breakMinutes: 0, graceIn: 15, graceOut: 0, active: true };
   const [shift, setShift] = useState(emptyShift);
   const data = query.data;
+
+  const [reopenDialogOpen, setReopenDialogOpen] = useState(false);
+  const [reopenPeriodId, setReopenPeriodId] = useState('');
+  const [reopenReason, setReopenReason] = useState('');
 
   const saveShift = async () => {
     try {
@@ -220,15 +225,9 @@ export function AttendanceOperationsPage() {
                         <button
                           className="btn-secondary mt-3 w-full"
                           onClick={() => {
-                            const reason = window.prompt('سبب إعادة فتح الفترة (8 أحرف على الأقل)');
-                            if (reason)
-                              commands.unlockPeriod.mutate(
-                                { p_period_id: period.id, p_reason: reason },
-                                {
-                                  onSuccess: () => toast({ message: 'تم إعادة فتح الفترة بنجاح', tone: 'success' }),
-                                  onError: () => toast({ message: 'تعذر إعادة فتح الفترة', tone: 'error' }),
-                                },
-                              );
+                            setReopenPeriodId(period.id);
+                            setReopenReason('');
+                            setReopenDialogOpen(true);
                           }}
                         >
                           إعادة فتح الفترة
@@ -312,6 +311,32 @@ export function AttendanceOperationsPage() {
           </section>
         </>
       )}
+
+      <InputDialog
+        open={reopenDialogOpen}
+        title="إعادة فتح الفترة"
+        message="أعد فتح فترة الحضور — اذكر سبب إعادة الفتح (8 أحرف على الأقل):"
+        inputLabel="سبب إعادة الفتح"
+        inputPlaceholder="سبب إعادة فتح الفترة…"
+        inputValue={reopenReason}
+        onInputChange={setReopenReason}
+        confirmLabel="إعادة الفتح"
+        tone="warning"
+        minLength={8}
+        loading={commands.unlockPeriod.isPending}
+        onConfirm={() => {
+          if (reopenReason.trim().length >= 8) {
+            commands.unlockPeriod.mutate(
+              { p_period_id: reopenPeriodId, p_reason: reopenReason.trim() },
+              {
+                onSuccess: () => { toast({ message: 'تم إعادة فتح الفترة بنجاح', tone: 'success' }); setReopenDialogOpen(false); },
+                onError: () => { toast({ message: 'تعذر إعادة فتح الفترة', tone: 'error' }); },
+              },
+            );
+          }
+        }}
+        onCancel={() => setReopenDialogOpen(false)}
+      />
     </div>
   );
 }

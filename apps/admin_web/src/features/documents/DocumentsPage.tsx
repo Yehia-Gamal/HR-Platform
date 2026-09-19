@@ -6,6 +6,7 @@ import { DataTable, type DataTableColumn } from '../../ui/DataTable';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
+import { InputDialog } from '../../ui/InputDialog';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
 import { ListSkeleton, MetricSkeletonRow } from '../../ui/Skeletons';
@@ -70,11 +71,33 @@ export function DocumentsPage() {
     setStatusFilter('all');
   };
 
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectTargetDoc, setRejectTargetDoc] = useState<DocumentItem | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+
   const handleReview = async (doc: DocumentItem, decision: 'verified' | 'rejected' | 'archived') => {
-    const reason = decision === 'rejected' ? (window.prompt('سبب الرفض:') ?? '') : undefined;
+    if (decision === 'rejected') {
+      setRejectTargetDoc(doc);
+      setRejectReason('');
+      setRejectDialogOpen(true);
+      return;
+    }
     try {
-      await reviewDoc.mutateAsync({ documentId: doc.id, decision, reason: reason || undefined });
-      toast({ message: decision === 'verified' ? 'تم توثيق المستند' : decision === 'rejected' ? 'تم رفض المستند' : 'تم أرشفة المستند', tone: 'success' });
+      await reviewDoc.mutateAsync({ documentId: doc.id, decision });
+      toast({ message: decision === 'verified' ? 'تم توثيق المستند' : 'تم أرشفة المستند', tone: 'success' });
+    } catch (err) {
+      toast({ message: safeErrorMessage(err), tone: 'error' });
+    }
+  };
+
+  const confirmReject = async () => {
+    if (!rejectTargetDoc || !rejectReason.trim()) return;
+    try {
+      await reviewDoc.mutateAsync({ documentId: rejectTargetDoc.id, decision: 'rejected', reason: rejectReason.trim() });
+      toast({ message: 'تم رفض المستند', tone: 'success' });
+      setRejectDialogOpen(false);
+      setRejectTargetDoc(null);
+      setRejectReason('');
     } catch (err) {
       toast({ message: safeErrorMessage(err), tone: 'error' });
     }
@@ -345,6 +368,25 @@ export function DocumentsPage() {
           emptyDescription="جرّب تعديل البحث أو الحالة."
         />
       )}
+
+      <InputDialog
+        open={rejectDialogOpen}
+        title="رفض المستند"
+        message={`هل تريد رفض مستند ${rejectTargetDoc?.employeeName ?? ''} — "${rejectTargetDoc?.title ?? ''}"؟ اذكر سبب الرفض:`}
+        inputLabel="سبب الرفض"
+        inputPlaceholder="سبب رفض المستند…"
+        inputValue={rejectReason}
+        onInputChange={setRejectReason}
+        confirmLabel="رفض"
+        tone="danger"
+        loading={reviewDoc.isPending}
+        onConfirm={confirmReject}
+        onCancel={() => {
+          setRejectDialogOpen(false);
+          setRejectTargetDoc(null);
+          setRejectReason('');
+        }}
+      />
     </div>
   );
 }

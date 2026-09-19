@@ -217,3 +217,81 @@ export const cancelInstantPenaltyResultSchema = z.object({
   wasSuspended: z.boolean(),
 });
 export type CancelInstantPenaltyResult = z.infer<typeof cancelInstantPenaltyResultSchema>;
+
+/** تفنيط مبالغ صندوق الزمالة حسب الفئة */
+export const fellowshipFundCategoryBreakdownSchema = z.object({
+  category: z.string(),
+  type: z.enum(['inflow', 'outflow']),
+  totalAmount: z.number(),
+  count: z.number().int(),
+});
+export type FellowshipFundCategoryBreakdown = z.infer<typeof fellowshipFundCategoryBreakdownSchema>;
+
+/** حركة داخل صندوق الزمالة والتكافل */
+export const fellowshipFundTransactionSchema = z.object({
+  id: uuid,
+  transactionType: z.enum(['inflow', 'outflow']),
+  amount: z.number(),
+  sourceType: z.string(),
+  instantPenaltyId: uuid.nullable().optional(),
+  employeeId: uuid.nullable().optional(),
+  employeeName: z.string(),
+  performedBy: uuid.nullable().optional(),
+  performerName: z.string().nullable().optional(),
+  category: z.string(),
+  reason: z.string(),
+  balanceAfter: z.number(),
+  notes: z.string().nullable().optional(),
+  createdAt: z.string(),
+});
+export type FellowshipFundTransaction = z.infer<typeof fellowshipFundTransactionSchema>;
+
+/** ملخص صندوق الزمالة والتكافل */
+export const fellowshipFundSummarySchema = z.object({
+  currentBalance: z.number(),
+  totalInflows: z.number(),
+  totalOutflows: z.number(),
+  inflowsCount: z.number().int(),
+  outflowsCount: z.number().int(),
+  monthlyInflows: z.number(),
+  monthlyOutflows: z.number(),
+  categoryBreakdown: z.array(fellowshipFundCategoryBreakdownSchema),
+  recentTransactions: z.array(fellowshipFundTransactionSchema),
+});
+export type FellowshipFundSummary = z.infer<typeof fellowshipFundSummarySchema>;
+
+/** مدخلات سحب مبلغ من صندوق الزمالة */
+export const withdrawFellowshipFundInputSchema = z.object({
+  amount: z.number().positive('مبلغ السحب يجب أن يكون أكبر من صفر'),
+  category: z.string().min(1, 'يرجى اختيار تصنيف السحب'),
+  reason: z.string().min(3, 'يرجى توضيح سبب السحب بالتفصيل'),
+  beneficiaryEmployeeId: uuid.nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+export type WithdrawFellowshipFundInput = z.infer<typeof withdrawFellowshipFundInputSchema>;
+
+/** نتيجة سحب مبلغ من صندوق الزمالة */
+export const withdrawFellowshipFundResultSchema = z.object({
+  success: z.boolean(),
+  transactionId: uuid,
+  amount: z.number(),
+  category: z.string(),
+  reason: z.string(),
+  balanceAfter: z.number(),
+  message: z.string(),
+});
+export type WithdrawFellowshipFundResult = z.infer<typeof withdrawFellowshipFundResultSchema>;
+
+/** نتيجة تأكيد سداد غرامة وإيداعها في الصندوق */
+export const confirmPenaltyToFundResultSchema = z.object({
+  success: z.boolean(),
+  penaltyId: uuid,
+  employeeId: uuid,
+  employeeName: z.string().nullable().optional(),
+  amount: z.number(),
+  fundBalanceAfter: z.number(),
+  wasSuspended: z.boolean(),
+  transactionId: uuid.optional(),
+  message: z.string(),
+});
+export type ConfirmPenaltyToFundResult = z.infer<typeof confirmPenaltyToFundResultSchema>;

@@ -6,7 +6,7 @@
  */
 
 export function SkeletonCard({ className = '' }: { className?: string }) {
-  return <div className={`card animate-pulse bg-[var(--surface-muted)] ${className}`} aria-hidden="true" />;
+  return <div className={`card animate-pulse ${className}`} aria-hidden="true" />;
 }
 
 /** A grid of metric-card sized skeletons — mirrors the standard 4-up metric row. */

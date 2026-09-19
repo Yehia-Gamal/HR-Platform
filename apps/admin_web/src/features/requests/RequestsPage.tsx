@@ -335,7 +335,7 @@ export function RequestsPage() {
                   </div>
 
                   {/* السبب */}
-                  <p className="line-clamp-2 text-sm leading-7 text-[var(--foreground)]/90">{item.reason || 'لم يضف الموظف سببًا تفصيليًا.'}</p>
+                  <p className="line-clamp-2 text-sm leading-7 text-[var(--text-muted)]">{item.reason || 'لم يضف الموظف سببًا تفصيليًا.'}</p>
 
                   {/* التكليف: المكان + الوقت المخطط + حالة التنفيذ */}
                   {item.requestType === 'mission' || item.requestType === 'convoy' || item.requestType === 'fundraising' ? (

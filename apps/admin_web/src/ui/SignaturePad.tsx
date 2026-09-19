@@ -138,7 +138,7 @@ export function SignaturePad({
   };
 
   return (
-    <div className="space-y-4 text-right">
+    <div className="space-y-4 text-start">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h4 className="text-sm font-black text-[var(--text)] flex items-center gap-2">
@@ -153,12 +153,14 @@ export function SignaturePad({
           <button
             type="button"
             title="حبر أزرق رسمي"
+            aria-label="حبر أزرق رسمي"
             onClick={() => setStrokeColor('#1e3a8a')}
             className={`size-6 rounded-lg bg-blue-900 transition-transform ${strokeColor === '#1e3a8a' ? 'ring-2 ring-[var(--brand-primary)] scale-110' : 'opacity-70 hover:opacity-100'}`}
           />
           <button
             type="button"
             title="حبر أسود كلاسيكي"
+            aria-label="حبر أسود كلاسيكي"
             onClick={() => setStrokeColor('#0f172a')}
             className={`size-6 rounded-lg bg-slate-900 transition-transform ${strokeColor === '#0f172a' ? 'ring-2 ring-[var(--brand-primary)] scale-110' : 'opacity-70 hover:opacity-100'}`}
           />
@@ -187,8 +189,8 @@ export function SignaturePad({
         </div>
 
         {/* علامة أمان */}
-        <div className="pointer-events-none absolute top-3 left-3 flex items-center gap-1 text-[10px] text-[var(--text-muted)] bg-[var(--surface-muted)]/80 px-2 py-0.5 rounded-full border border-[var(--border)]">
-          <ShieldCheck className="size-3 text-emerald-500" aria-hidden="true" />
+        <div className="pointer-events-none absolute top-3 start-3 flex items-center gap-1 text-[10px] text-[var(--text-muted)] bg-[var(--surface-muted)]/80 px-2 py-0.5 rounded-full border border-[var(--border)]">
+          <ShieldCheck className="size-3 text-[var(--success)]" aria-hidden="true" />
           <span>توقيع بيومتري مشفر</span>
         </div>
       </div>

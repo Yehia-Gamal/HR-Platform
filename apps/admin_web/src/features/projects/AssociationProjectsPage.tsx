@@ -1,15 +1,21 @@
 import { useState, useMemo } from 'react';
+import type { AssociationProjectListItem } from '@ahla/shared-contracts';
 import { useAssociationProjects, useAssociationProjectDetail } from './useAssociationProjects';
 import { ProjectCard } from './ProjectCard';
 import { ProjectDetailPanel } from './ProjectDetailPanel';
 import { ProjectCreateDialog } from './ProjectCreateDialog';
+import { QuickUpdateDialog } from './QuickUpdateDialog';
 import { PageHeader } from '../../ui/PageHeader';
 import { MetricCard } from '../../ui/MetricCard';
 import { FilterBar } from '../../ui/FilterBar';
 import { EmptyState } from '../../ui/EmptyState';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { ErrorState } from '../../ui/ErrorState';
-import { FolderKanban, Plus, CircleCheck, CircleMinus, CircleX, LayoutGrid, List } from 'lucide-react';
+import { FolderKanban, Plus, CircleCheck, CircleMinus, CircleX, LayoutGrid, List, ArrowUpDown } from 'lucide-react';
+
+type SortKey = 'priority' | 'progress' | 'lastUpdate' | 'name';
+
+const PRIORITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
 
 export function AssociationProjectsPage() {
   const { data, isLoading, error, refetch } = useAssociationProjects();
@@ -17,21 +23,44 @@ export function AssociationProjectsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [ledFilter, setLedFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [sortBy, setSortBy] = useState<SortKey>('priority');
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [quickUpdateProject, setQuickUpdateProject] = useState<AssociationProjectListItem | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const { data: detail } = useAssociationProjectDetail(selectedId);
 
   const filtered = useMemo(() => {
     if (!data?.projects) return [];
-    return data.projects.filter((p) => {
+    const list = data.projects.filter((p) => {
       const matchSearch = !search || p.name.includes(search) || p.code.includes(search) || p.departmentName.includes(search) || p.ownerName.includes(search);
       const matchStatus = statusFilter === 'all' || p.status === statusFilter;
       const matchLed = ledFilter === 'all' || p.ledStatus === ledFilter;
       const matchPriority = priorityFilter === 'all' || p.priority === priorityFilter;
       return matchSearch && matchStatus && matchLed && matchPriority;
     });
-  }, [data, search, statusFilter, ledFilter, priorityFilter]);
+
+    const sorted = [...list];
+    switch (sortBy) {
+      case 'priority':
+        sorted.sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 99) - (PRIORITY_ORDER[b.priority] ?? 99));
+        break;
+      case 'progress':
+        sorted.sort((a, b) => b.progress - a.progress);
+        break;
+      case 'lastUpdate':
+        sorted.sort((a, b) => {
+          if (!a.lastUpdateAt) return 1;
+          if (!b.lastUpdateAt) return -1;
+          return new Date(b.lastUpdateAt).getTime() - new Date(a.lastUpdateAt).getTime();
+        });
+        break;
+      case 'name':
+        sorted.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+        break;
+    }
+    return sorted;
+  }, [data, search, statusFilter, ledFilter, priorityFilter, sortBy]);
 
   const stats = useMemo(() => {
     const all = data?.projects ?? [];
@@ -76,7 +105,7 @@ export function AssociationProjectsPage() {
       </div>
 
       <div className="flex gap-3 flex-wrap items-center">
-        <span className="text-sm font-medium text-gray-500">فلتر LED:</span>
+        <span className="text-sm font-medium text-gray-500">LED:</span>
         {[
           { key: 'all', label: 'الكل', dot: '' },
           { key: 'active', label: 'نشط', dot: 'bg-emerald-500 shadow-[0_0_6px_2px_rgba(16,185,129,0.5)]' },
@@ -113,6 +142,30 @@ export function AssociationProjectsPage() {
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
               priorityFilter === f.key
                 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                : 'bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+
+        <span className="text-gray-300 dark:text-gray-600 mx-1">|</span>
+
+        <span className="text-sm font-medium text-gray-500 flex items-center gap-1">
+          <ArrowUpDown className="w-3.5 h-3.5" /> ترتيب:
+        </span>
+        {[
+          { key: 'priority', label: 'الأولوية' },
+          { key: 'progress', label: 'التقدم' },
+          { key: 'lastUpdate', label: 'آخر تحديث' },
+          { key: 'name', label: 'الاسم' },
+        ].map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setSortBy(f.key)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              sortBy === f.key
+                ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400'
                 : 'bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700'
             }`}
           >
@@ -159,16 +212,21 @@ export function AssociationProjectsPage() {
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {filtered.map((p) => (
-            <ProjectCard key={p.id} project={p} onClick={() => setSelectedId(p.id)} />
+            <ProjectCard
+              key={p.id}
+              project={p}
+              onClick={() => setSelectedId(p.id)}
+              onQuickUpdate={setQuickUpdateProject}
+            />
           ))}
         </div>
       ) : (
         <div className="space-y-2">
           {filtered.map((p) => (
-            <button
+            <div
               key={p.id}
+              className="w-full text-right flex items-center gap-4 p-4 rounded-lg border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
               onClick={() => setSelectedId(p.id)}
-              className="w-full text-right flex items-center gap-4 p-4 rounded-lg border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               <div className={`w-3 h-3 rounded-full shrink-0 ${
                 p.ledStatus === 'active' ? 'bg-emerald-500 shadow-[0_0_8px_2px_rgba(16,185,129,0.5)] animate-pulse' :
@@ -189,13 +247,25 @@ export function AssociationProjectsPage() {
               <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 shrink-0">
                 <div className={`h-1.5 rounded-full ${p.ledStatus === 'active' ? 'bg-emerald-500' : p.ledStatus === 'halted' ? 'bg-red-500' : 'bg-gray-400'}`} style={{ width: `${p.progress}%` }} />
               </div>
-            </button>
+              {p.ledStatus !== 'stale' && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setQuickUpdateProject(p); }}
+                  className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 transition-colors shrink-0"
+                  title="تحديث سريع"
+                >
+                  ⚡
+                </button>
+              )}
+            </div>
           ))}
         </div>
       )}
 
       {createOpen && <ProjectCreateDialog onClose={() => setCreateOpen(false)} />}
       {detail && <ProjectDetailPanel detail={detail} onClose={() => setSelectedId(null)} onRefresh={refetch} />}
+      {quickUpdateProject && (
+        <QuickUpdateDialog project={quickUpdateProject} onClose={() => { setQuickUpdateProject(null); refetch(); }} />
+      )}
     </div>
   );
 }

@@ -159,6 +159,46 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
               {project.description && <p className="mt-3 text-gray-600 dark:text-gray-400 text-sm">{project.description}</p>}
             </section>
 
+            {/* Timeline بصرية */}
+            {steps.length > 0 && (
+              <section>
+                <h3 className="font-bold mb-3">الجدول الزمني</h3>
+                <div className="relative">
+                  {/* الخط الرأسي */}
+                  <div className="absolute right-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" />
+                  <div className="space-y-4">
+                    {steps.map((s, i) => {
+                      const isDone = s.status === 'done';
+                      const isBlocked = s.status === 'blocked';
+                      const isActive = s.status === 'in_progress';
+                      return (
+                        <div key={s.id} className="flex items-start gap-4 relative">
+                          {/* نقطة على الخط */}
+                          <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
+                            isDone ? 'bg-emerald-500 text-white' :
+                            isBlocked ? 'bg-red-500 text-white' :
+                            isActive ? 'bg-blue-500 text-white animate-pulse' :
+                            'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                          }`}>
+                            {isDone ? '✓' : i + 1}
+                          </div>
+                          {/* المحتوى */}
+                          <div className={`flex-1 pb-4 ${isDone ? 'opacity-60' : ''}`}>
+                            <p className={`text-sm font-medium ${isDone ? 'line-through text-gray-400' : ''}`}>{s.title}</p>
+                            {s.description && <p className="text-xs text-gray-500 mt-0.5">{s.description}</p>}
+                            <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                              {s.assigneeName && <span>المسؤول: {s.assigneeName}</span>}
+                              {s.dueDate && <span>الموعد: {s.dueDate}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </section>
+            )}
+
             {/* الخطوات */}
             <section>
               <div className="flex items-center justify-between mb-3">

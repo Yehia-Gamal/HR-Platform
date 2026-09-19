@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { Fragment, useCallback, useMemo, useState } from 'react';
 
 import { ARABIC_DAYS } from './chartTheme';
 
@@ -111,7 +111,7 @@ export function HeatMap({ data, height = 18, colorScale = 'green' }: HeatMapProp
 
         {/* ── الصفوف (ساعات) ── */}
         {hours.map((h) => (
-          <>
+          <Fragment key={h}>
             {/* تسمية الساعة */}
             <div key={`h-${h}`} className="grid place-items-center text-[0.6rem] font-bold text-[var(--text-muted)]">
               {h % 3 === 0 ? formatHour(h) : ''}
@@ -146,7 +146,7 @@ export function HeatMap({ data, height = 18, colorScale = 'green' }: HeatMapProp
                 />
               );
             })}
-          </>
+          </Fragment>
         ))}
       </div>
 

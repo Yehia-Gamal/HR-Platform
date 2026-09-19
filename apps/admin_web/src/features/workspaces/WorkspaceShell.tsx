@@ -39,6 +39,9 @@ import {
   WalletCards,
   X,
   Search,
+  AlertOctagon,
+  Coins,
+  HeartHandshake,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
@@ -170,7 +173,8 @@ const adminSections: NavSection[] = [
     items: [
       { label: 'لجنة الخلافات', to: '/admin/disputes', icon: Gavel, permission: ['disputes.case.manage', 'disputes.portal.access'] },
       { label: 'مكتب الخدمات', to: '/admin/helpdesk', icon: Headphones, featureFlag: 'helpdesk' },
-      { label: 'الرواتب والمالية', to: '/admin/finance', icon: WalletCards, featureFlag: 'peopleFinance' },
+      { label: 'غرامات الحضور والانصراف', to: '/admin/finance?tab=instant-penalties', icon: AlertOctagon },
+      { label: 'صندوق الزمالة والتكافل', to: '/admin/fellowship-fund', icon: HeartHandshake },
     ],
   },
   {

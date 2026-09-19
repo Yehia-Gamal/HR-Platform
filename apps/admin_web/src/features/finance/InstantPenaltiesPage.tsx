@@ -1,16 +1,19 @@
 import { cairoTodayIso } from '../../core/cairoTime';
 import { useMemo, useState, type FormEvent } from 'react';
-import { AlertTriangle, Ban, CheckCircle2, Clock, FileSpreadsheet, Printer, ShieldAlert, XCircle, Zap } from 'lucide-react';
+import { Link } from 'react-router';
+import { AlertTriangle, Ban, CheckCircle2, Clock, Coins, FileSpreadsheet, HeartHandshake, Printer, ShieldAlert, XCircle, Zap } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { downloadCsv, printReport, toCsv, type ExportColumn } from '../../core/exportUtils';
 import { DataTable, type DataTableColumn } from '../../ui/DataTable';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
+import { InputDialog } from '../../ui/InputDialog';
 import { PageHeader } from '../../ui/PageHeader';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { useEmployees } from '../employees/useEmployees';
+import { useFellowshipFundSummary } from './useFellowshipFund';
 import {
   INSTANT_PENALTY_ESCALATION_LABELS,
   INSTANT_PENALTY_STATUS_LABELS,
@@ -53,6 +56,7 @@ export function InstantPenaltiesPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const penalties = useInstantPenalties(statusFilter === 'all' ? {} : { status: statusFilter });
   const pendingEmployees = usePendingPenaltyEmployees();
+  const fundSummary = useFellowshipFundSummary();
   const confirmPayment = useConfirmInstantPenaltyPayment();
   const generatePenalty = useGenerateInstantPenalty();
   const cancelPenalty = useCancelInstantPenalty();
@@ -63,6 +67,18 @@ export function InstantPenaltiesPage() {
   const [employeeId, setEmployeeId] = useState('');
   const [lateMinutes, setLateMinutes] = useState('');
   const [workDate, setWorkDate] = useState(cairoTodayIso());
+
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentTarget, setPaymentTarget] = useState<{ id: string; name: string; msg: string } | null>(null);
+  const [paymentNotes, setPaymentNotes] = useState('');
+
+  const [liftDialogOpen, setLiftDialogOpen] = useState(false);
+  const [liftTarget, setLiftTarget] = useState<{ id: string; name: string } | null>(null);
+  const [liftReason, setLiftReason] = useState('');
+
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<{ id: string; name: string } | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
 
   // ─── بيانات الجدول ─────────────────────────────────────────────────
 
@@ -171,26 +187,21 @@ export function InstantPenaltiesPage() {
           <div className="flex items-center gap-1">
             <button
               type="button"
-              className={`text-xs ${p.status === 'suspended' ? 'btn-danger' : 'btn-primary'}`}
+              className="btn-primary text-xs flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
               disabled={confirmPayment.isPending}
               onClick={() => {
                 const confirmMsg =
                   p.status === 'suspended'
-                    ? `هل استلمت 500 ج.م من ${p.employeeName ?? 'الموظف'}؟ سيتم رفع التعليق فوراً وفتح السيستم وعودته للعمل وإشعار الفريق.`
-                    : p.status === 'doubled'
-                      ? `هل استلمت 500 ج.م من ${p.employeeName ?? 'الموظف'}؟`
-                      : `تأكيد استلام ${formatCurrency(p.currentAmount)} من ${p.employeeName ?? 'الموظف'} وإزالة الخصم؟`;
-                if (!window.confirm(confirmMsg)) return;
-                const notes = window.prompt('ملاحظات الدفع (اختياري):');
-                void confirmPayment.mutateAsync({ penaltyId: p.id, notes: notes?.trim() || undefined });
+                    ? `هل تم استلام 500 ج.م من الزميل ${p.employeeName ?? 'الموظف'} وتوريدها لصندوق الزمالة؟ سيتم رفع التعليق فوراً وفتح السيستم وعودته لمباشرة العمل وإشعار الفريق.`
+                    : `تأكيد استلام ${formatCurrency(p.currentAmount)} من الزميل ${p.employeeName ?? 'الموظف'} وإيداعها في صندوق الزمالة والتكافل؟`;
+                setPaymentTarget({ id: p.id, name: p.employeeName ?? 'الموظف', msg: confirmMsg });
+                setPaymentNotes('');
+                setPaymentDialogOpen(true);
               }}
+              title="استلام من الموظف وإيداع في صندوق الزمالة"
             >
-              <CheckCircle2 className="size-3.5" aria-hidden="true" />
-              {p.status === 'suspended'
-                ? 'استلام 500 ج وفتح السيستم'
-                : p.status === 'doubled'
-                  ? 'استلام 500 ج'
-                  : 'تأكيد الدفع'}
+              <Coins className="size-3.5 text-amber-300" aria-hidden="true" />
+              <span>استلام من {p.employeeName?.split(' ')[0] ?? 'الموظف'} وإيداع بالصندوق ({formatCurrency(p.currentAmount)})</span>
             </button>
             {p.status === 'suspended' && (
               <button
@@ -199,9 +210,9 @@ export function InstantPenaltiesPage() {
                 disabled={liftSuspension.isPending}
                 onClick={() => {
                   if (!window.confirm(`هل تريد رفع التعليق عن ${p.employeeName ?? 'الموظف'} بدون سداد؟ (full-access فقط)`)) return;
-                  const notes = window.prompt('سبب رفع التعليق:');
-                  if (!notes?.trim()) return;
-                  void liftSuspension.mutateAsync({ penaltyId: p.id, notes: notes.trim() });
+                  setLiftTarget({ id: p.id, name: p.employeeName ?? '' });
+                  setLiftReason('');
+                  setLiftDialogOpen(true);
                 }}
               >
                 رفع التعليق
@@ -213,9 +224,9 @@ export function InstantPenaltiesPage() {
                 className="btn-secondary text-xs text-[var(--danger)]"
                 disabled={cancelPenalty.isPending}
                 onClick={() => {
-                  const reason = window.prompt(`إلغاء غرامة ${p.employeeName ?? 'الموظف'} — اذكر السبب:`);
-                  if (!reason?.trim()) return;
-                  void cancelPenalty.mutateAsync({ penaltyId: p.id, reason: reason.trim() });
+                  setCancelTarget({ id: p.id, name: p.employeeName ?? '' });
+                  setCancelReason('');
+                  setCancelDialogOpen(true);
                 }}
               >
                 <XCircle className="size-3.5" aria-hidden="true" />
@@ -301,7 +312,7 @@ export function InstantPenaltiesPage() {
       <PageHeader
         eyebrow="الموارد البشرية"
         title="الغرامات الفورية للتأخير"
-        description="نظام الغرامات الفورية: الحضور يبدأ 10:00 ص، سماح 15 دقيقة (10:00 - 10:15 بدون خصم) | حتى 10:30 (20 ج.م) | حتى 11:00 (50 ج.م) | حتى 12:00 (150 ج.م). عدم السداد في نفس اليوم يُضاعف الخصم لـ 500 ج.م في اليوم الثاني، وعدم السداد في اليوم الثاني يؤدي لغلق السيستم وإيقاف الموظف عن العمل في اليوم الثالث مع إشعار كامل الفريق حتى السداد للـ HR."
+        description="نظام الغرامات الفورية: الحضور يبدأ 10:00 ص، سماح 15 دقيقة (10:00 - 10:15 بدون خصم) | حتى 10:30 (20 ج.م) | حتى 11:00 (50 ج.م) | حتى 12:00 (150 ج.م). عدم السداد في نفس اليوم يُضاعف الخصم لـ 500 ج.م في اليوم الثاني، وعدم السداد في اليوم الثاني يؤدي لغلق السيستم وإيقاف الموظف عن العمل في اليوم الثالث مع إشعار كامل الفريق حتى السداد للـ HR وتوريدها لصندوق الزمالة."
         actions={
           <button type="button" className="btn-primary" onClick={() => setFormOpen((v) => !v)} disabled={generatePenalty.isPending}>
             <Zap className="size-4" aria-hidden="true" />
@@ -309,6 +320,31 @@ export function InstantPenaltiesPage() {
           </button>
         }
       />
+
+      {/* ─── رابط لصندوق الزمالة والتكافل ──────────────────────────── */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/20 via-emerald-900/10 to-transparent p-4">
+        <div className="flex items-center gap-3">
+          <div className="grid size-10 place-items-center rounded-xl bg-emerald-500/20 text-emerald-400">
+            <Coins className="size-5 animate-pulse text-amber-400" />
+          </div>
+          <div>
+            <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+              <span>صندوق الزمالة والتكافل</span>
+              <span className="text-xs font-normal text-[var(--text-muted)]">(تُورّد إليه كافة الغرامات تلقائياً)</span>
+            </h3>
+            <p className="text-xs text-[var(--text-muted)]">
+              الرصيد المتاح حالياً بالصندوق:{' '}
+              <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                {(fundSummary.data?.currentBalance ?? 0).toLocaleString('ar-EG')} ج.م
+              </span>
+            </p>
+          </div>
+        </div>
+        <Link to="/admin/fellowship-fund" className="btn-primary text-xs flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
+          <HeartHandshake className="size-4" />
+          <span>فتح صندوق الزمالة وسجل الحركات</span>
+        </Link>
+      </div>
 
       {/* ─── إحصائيات سريعة ─────────────────────────────────────────── */}
       {(stats.pendingCount > 0 || stats.suspendedCount > 0) && (
@@ -489,6 +525,85 @@ export function InstantPenaltiesPage() {
       {confirmPayment.isError && (
         <p className="text-sm text-[var(--danger)]">{safeErrorMessage(confirmPayment.error)}</p>
       )}
+
+      <InputDialog
+        open={paymentDialogOpen}
+        title="استلام الغرامة وإيداعها في صندوق الزمالة والتكافل"
+        message={paymentTarget?.msg ?? ''}
+        inputLabel="ملاحظات الاستلام والإيداع (اختياري)"
+        inputPlaceholder="أي تفاصيل أو ملاحظات إضافية…"
+        inputValue={paymentNotes}
+        onInputChange={setPaymentNotes}
+        confirmLabel="تأكيد الاستلام والإيداع بالصندوق"
+        tone="info"
+        required={false}
+        loading={confirmPayment.isPending}
+        onConfirm={async () => {
+          if (paymentTarget) {
+            await confirmPayment.mutateAsync({ penaltyId: paymentTarget.id, notes: paymentNotes.trim() || undefined });
+            setPaymentDialogOpen(false);
+            setPaymentTarget(null);
+            setPaymentNotes('');
+          }
+        }}
+        onCancel={() => {
+          setPaymentDialogOpen(false);
+          setPaymentTarget(null);
+          setPaymentNotes('');
+        }}
+      />
+
+      <InputDialog
+        open={liftDialogOpen}
+        title="رفع التعليق يدوياً"
+        message={`هل تريد رفع التعليق عن ${liftTarget?.name ?? ''} بدون سداد؟ اذكر السبب:`}
+        inputLabel="سبب رفع التعليق"
+        inputPlaceholder="سبب رفع التعليق…"
+        inputValue={liftReason}
+        onInputChange={setLiftReason}
+        confirmLabel="رفع التعليق"
+        tone="warning"
+        loading={liftSuspension.isPending}
+        onConfirm={async () => {
+          if (liftTarget && liftReason.trim()) {
+            await liftSuspension.mutateAsync({ penaltyId: liftTarget.id, notes: liftReason.trim() });
+            setLiftDialogOpen(false);
+            setLiftTarget(null);
+            setLiftReason('');
+          }
+        }}
+        onCancel={() => {
+          setLiftDialogOpen(false);
+          setLiftTarget(null);
+          setLiftReason('');
+        }}
+      />
+
+      <InputDialog
+        open={cancelDialogOpen}
+        title="إلغاء غرامة"
+        message={`إلغاء غرامة ${cancelTarget?.name ?? ''} — اذكر السبب:`}
+        inputLabel="سبب الإلغاء"
+        inputPlaceholder="سبب الإلغاء…"
+        inputValue={cancelReason}
+        onInputChange={setCancelReason}
+        confirmLabel="إلغاء الغرامة"
+        tone="danger"
+        loading={cancelPenalty.isPending}
+        onConfirm={async () => {
+          if (cancelTarget && cancelReason.trim()) {
+            await cancelPenalty.mutateAsync({ penaltyId: cancelTarget.id, reason: cancelReason.trim() });
+            setCancelDialogOpen(false);
+            setCancelTarget(null);
+            setCancelReason('');
+          }
+        }}
+        onCancel={() => {
+          setCancelDialogOpen(false);
+          setCancelTarget(null);
+          setCancelReason('');
+        }}
+      />
     </div>
   );
 }

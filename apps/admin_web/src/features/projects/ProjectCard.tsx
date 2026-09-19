@@ -1,37 +1,33 @@
 import type { AssociationProjectListItem } from '@ahla/shared-contracts';
 import { LED_COLORS, ledCardClass, daysSince } from './projectLedStatus';
 import { StatusBadge } from '../../ui/StatusBadge';
-import { Clock, AlertTriangle, CheckCircle2, Target } from 'lucide-react';
+import { Clock, AlertTriangle, CheckCircle2, Target, Zap } from 'lucide-react';
 
 interface Props {
   project: AssociationProjectListItem;
   onClick: () => void;
+  onQuickUpdate?: (project: AssociationProjectListItem) => void;
 }
 
 const PRIORITY_LABELS: Record<string, string> = {
   low: 'منخفضة', medium: 'متوسطة', high: 'عالية', critical: 'حرجة',
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  planned: 'مخطط', active: 'نشط', on_hold: 'متوقف', completed: 'مكتمل', cancelled: 'ملغى',
-};
-
-export function ProjectCard({ project, onClick }: Props) {
+export function ProjectCard({ project, onClick, onQuickUpdate }: Props) {
   const led = project.ledStatus;
   const colors = LED_COLORS[led];
 
   return (
-    <button onClick={onClick} className={`text-right w-full p-0 ${ledCardClass(led)} group overflow-hidden`}>
+    <div className={`text-right w-full p-0 ${ledCardClass(led)} group overflow-hidden`}>
       {/* شريط LED العلوي */}
       <div className={`h-1.5 w-full ${
         led === 'active' ? 'bg-emerald-500' : led === 'halted' ? 'bg-red-500' : 'bg-gray-400'
       } ${led === 'active' ? 'animate-pulse' : ''}`} />
 
       <div className="p-5">
-        {/* LED + الحالة + الأولوية */}
+        {/* LED + الحالة + الأولوية + زر التحديث السريع */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
-            {/* مؤشر LED الكبير */}
             <div className="relative">
               <div className={`w-5 h-5 rounded-full ${colors.bg} ${colors.glow} ${led === 'active' ? 'animate-pulse' : ''}`} />
               {led === 'active' && (
@@ -42,13 +38,26 @@ export function ProjectCard({ project, onClick }: Props) {
               {colors.label}
             </span>
           </div>
-          <StatusBadge status={project.status} />
+          <div className="flex items-center gap-2">
+            {onQuickUpdate && led !== 'stale' && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onQuickUpdate(project); }}
+                className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 transition-colors"
+                title="تحديث سريع"
+              >
+                <Zap className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <StatusBadge status={project.status} />
+          </div>
         </div>
 
         {/* الاسم والكود */}
-        <h3 className="text-lg font-extrabold text-gray-900 dark:text-white mb-1 leading-tight group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-          {project.name}
-        </h3>
+        <button onClick={onClick} className="w-full text-right cursor-pointer">
+          <h3 className="text-lg font-extrabold text-gray-900 dark:text-white mb-1 leading-tight group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+            {project.name}
+          </h3>
+        </button>
         <p className="text-xs text-gray-400 font-mono mb-3 tracking-wider">{project.code}</p>
 
         {/* الإدارة والمسؤول */}
@@ -106,6 +115,6 @@ export function ProjectCard({ project, onClick }: Props) {
           )}
         </div>
       </div>
-    </button>
+    </div>
   );
 }
