@@ -7,7 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 class AttendanceHistoryPage extends ConsumerWidget {
-  const AttendanceHistoryPage({super.key});
+  const AttendanceHistoryPage({this.highlightDate, super.key});
+
+  /// تاريخ اليوم (yyyy-MM-dd) القادم من إشعار حضور — تُبرز عمليات ذلك اليوم.
+  final String? highlightDate;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -130,7 +133,15 @@ class AttendanceHistoryPage extends ConsumerWidget {
                           ),
                         );
                       }
-                      return _HistoryCard(item: items[index - 1]);
+                      final entry = items[index - 1];
+                      final entryDate = DateFormat(
+                        'yyyy-MM-dd',
+                      ).format(entry.eventAt.toLocal());
+                      return _HistoryCard(
+                        item: entry,
+                        highlighted:
+                            highlightDate != null && entryDate == highlightDate,
+                      );
                     },
                   ),
           ),
@@ -141,9 +152,10 @@ class AttendanceHistoryPage extends ConsumerWidget {
 }
 
 class _HistoryCard extends StatelessWidget {
-  const _HistoryCard({required this.item});
+  const _HistoryCard({required this.item, this.highlighted = false});
 
   final AttendanceHistoryItem item;
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
@@ -160,6 +172,13 @@ class _HistoryCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 6),
+      color: highlighted ? scheme.primary.withValues(alpha: .07) : null,
+      shape: highlighted
+          ? RoundedRectangleBorder(
+              side: BorderSide(color: scheme.primary, width: 2),
+              borderRadius: BorderRadius.circular(12),
+            )
+          : null,
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(

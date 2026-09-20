@@ -9,6 +9,7 @@ import {
   type AttendanceRosterSort,
 } from '@ahla/shared-contracts';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { useEntityFocus } from '../../core/useEntityFocus';
 import { cairoTodayIso } from '../../core/cairoTime';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -86,7 +87,6 @@ function formatTime(iso: string | null | undefined): string {
   return new Intl.DateTimeFormat('ar-EG', { timeStyle: 'short' }).format(new Date(iso));
 }
 
-
 export function AttendanceDrilldownPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -163,6 +163,9 @@ export function AttendanceDrilldownPage() {
   const items = query.data?.items ?? [];
   const total = query.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  // الوصول من إشعار حضور → إبراز صف الموظف صاحب الحدث في يوم الحدث.
+  const focusedId = useEntityFocus(items.length > 0);
 
   const currentCategory = CATEGORIES.find((c) => c.key === category) ?? CATEGORIES[0];
 
@@ -302,7 +305,7 @@ export function AttendanceDrilldownPage() {
               </thead>
               <tbody>
                 {items.map((item) => (
-                  <Row key={item.employeeId} item={item} />
+                  <Row key={item.employeeId} item={item} focused={focusedId === item.employeeId} />
                 ))}
               </tbody>
             </table>
@@ -324,11 +327,11 @@ export function AttendanceDrilldownPage() {
   );
 }
 
-function Row({ item }: { item: AttendanceRosterItem }) {
+function Row({ item, focused }: { item: AttendanceRosterItem; focused: boolean }) {
   const hrPrefix = useHrPrefix();
   const hasExcuse = Boolean(item.hasApprovedLeave) || Boolean(item.hasMission);
   return (
-    <tr>
+    <tr data-focus-id={item.employeeId} className={focused ? 'entity-focus-highlight' : undefined}>
       <td>
         <UserAvatar displayName={item.employeeName} photoUrl={item.photoUrl} size="sm" announceName={false} />
       </td>

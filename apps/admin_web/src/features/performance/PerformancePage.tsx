@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, ClipboardList, Gauge, User, UsersRound } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useUrlState } from '../../core/useUrlState';
+import { useEntityFocus } from '../../core/useEntityFocus';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { FilterBar } from '../../ui/FilterBar';
@@ -82,6 +83,9 @@ export function PerformancePage() {
       }),
     [tabItems, search, stage],
   );
+
+  // الوصول من إشعار تقييم → إبراز بطاقة التقييم نفسها.
+  const focusedId = useEntityFocus(items.length > 0);
 
   const counts = {
     total: tabItems.length,
@@ -173,7 +177,7 @@ export function PerformancePage() {
       ) : null}
       <section className="space-y-4">
         {items.map((item) => (
-          <article key={item.id} className="card p-5">
+          <article key={item.id} data-focus-id={item.id} className={`card p-5 ${focusedId === item.id ? 'entity-focus-highlight' : ''}`}>
             <div className="grid gap-5 lg:grid-cols-[1fr_240px]">
               <div>
                 <div className="flex flex-wrap items-center gap-2">

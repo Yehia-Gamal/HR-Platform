@@ -1,5 +1,6 @@
 import { Ban, CheckCircle2, Clock3, Eye, EyeOff, MonitorSmartphone, RotateCcw, Shield, ShieldAlert, ShieldOff, Smartphone, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
@@ -11,13 +12,17 @@ import { ListSkeleton, MetricSkeletonRow } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { useEntityFocus } from '../../core/useEntityFocus';
 import type { AdminDevice, PendingDevice } from './useDevices';
 import { useAllDevices, useApproveDevice, useDeleteDevice, useDeviceApprovals, useReinstateDevice, useRevokeDevice } from './useDevices';
 
 type Tab = 'pending' | 'all';
 
 export function DeviceApprovalPage() {
-  const [tab, setTab] = useState<Tab>('pending');
+  // إشعار جهاز (`?focus=`) يشير غالباً لجهاز اكتملت مراجعته — يُفتح تبويب
+  // «كل الأجهزة» لأنه الوحيد الذي يعرض كل الحالات.
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<Tab>(searchParams.has('focus') ? 'all' : 'pending');
 
   return (
     <div className="space-y-5">
@@ -227,6 +232,7 @@ function AllDevicesPanel() {
     if (!q) return allDevices;
     return allDevices.filter((d) => `${d.employeeName} ${d.employeeCode ?? ''} ${d.deviceName ?? ''} ${d.platform}`.toLowerCase().includes(q));
   }, [allDevices, search]);
+  const focusedId = useEntityFocus(filtered.length > 0);
   const activeCount = allDevices.filter((d) => d.status === 'active').length;
   const terminatedCount = allDevices.filter((d) => d.status === 'revoked' || d.status === 'replaced' || d.status === 'auto_revoked').length;
 
@@ -306,6 +312,7 @@ function AllDevicesPanel() {
             <AdminDeviceCard
               key={device.id}
               device={device}
+              focused={focusedId === device.id}
               onRevoke={(target) => setDialog({ kind: 'revoke', device: target })}
               onDelete={(target) => setDialog({ kind: 'delete', device: target })}
               onReinstate={(target) => setDialog({ kind: 'reinstate', device: target })}
@@ -470,6 +477,7 @@ const terminatedStatuses: AdminDevice['status'][] = ['revoked', 'replaced', 'aut
 
 function AdminDeviceCard({
   device,
+  focused,
   onRevoke,
   onDelete,
   onReinstate,
@@ -478,6 +486,7 @@ function AdminDeviceCard({
   isReinstatePending,
 }: {
   device: AdminDevice;
+  focused: boolean;
   onRevoke: (device: AdminDevice) => void;
   onDelete: (device: AdminDevice) => void;
   onReinstate: (device: AdminDevice) => void;
@@ -500,7 +509,7 @@ function AdminDeviceCard({
   const canReinstate = ['revoked', 'auto_revoked', 'blocked'].includes(device.status);
   const canDelete = terminatedStatuses.includes(device.status);
   return (
-    <article className="card p-5">
+    <article data-focus-id={device.id} className={`card p-5 ${focused ? 'entity-focus-highlight' : ''}`}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3 min-w-0">
           <div className="mt-1 flex size-10 items-center justify-center rounded-full bg-[var(--surface-alt)]">

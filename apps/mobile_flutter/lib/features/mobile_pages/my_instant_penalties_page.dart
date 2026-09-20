@@ -8,7 +8,10 @@ import 'package:intl/intl.dart';
 
 /// صفحة غرامات الحضور الفورية للموظف — تعرض غراماته وحالتها.
 class MyInstantPenaltiesPage extends ConsumerWidget {
-  const MyInstantPenaltiesPage({super.key});
+  const MyInstantPenaltiesPage({this.highlightId, super.key});
+
+  /// معرّف الغرامة القادمة من إشعار — تُبرز بطاقتها عند الفتح.
+  final String? highlightId;
 
   static final _dateFmt = DateFormat('d MMMM yyyy', 'ar');
   static final _currencyFmt = NumberFormat.currency(
@@ -95,6 +98,7 @@ class MyInstantPenaltiesPage extends ConsumerWidget {
                     item: item,
                     currencyFmt: _currencyFmt,
                     dateFmt: _dateFmt,
+                    highlighted: highlightId != null && item.id == highlightId,
                   ),
                   const SizedBox(height: 10),
                 ],
@@ -298,10 +302,12 @@ class _PenaltyCard extends StatelessWidget {
     required this.item,
     required this.currencyFmt,
     required this.dateFmt,
+    this.highlighted = false,
   });
   final MobileInstantPenalty item;
   final NumberFormat currencyFmt;
   final DateFormat dateFmt;
+  final bool highlighted;
 
   Color _statusColor(BuildContext context) {
     switch (item.status) {
@@ -362,8 +368,20 @@ class _PenaltyCard extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
+      shape: highlighted
+          ? RoundedRectangleBorder(
+              side: BorderSide(
+                color: Theme.of(context).colorScheme.primary,
+                width: 2,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            )
+          : null,
       child: Container(
         decoration: BoxDecoration(
+          color: highlighted
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: .07)
+              : null,
           border: Border(
             right: BorderSide(color: statusColor, width: 4),
           ),
@@ -406,8 +424,15 @@ class _PenaltyCard extends StatelessWidget {
             Row(
               children: [
                 _InfoChip(
-                  icon: Icons.timer,
-                  label: '${item.lateMinutes} دقيقة تأخير',
+                  icon: item.lateMinutes >= 240
+                      ? Icons.person_off_outlined
+                      : Icons.timer,
+                  label: item.lateMinutes >= 240
+                      ? 'لم يسجل بصمة'
+                      : '${item.lateMinutes} دقيقة تأخير',
+                  color: item.lateMinutes >= 240
+                      ? Colors.red.shade700
+                      : null,
                 ),
                 const SizedBox(width: 8),
                 _InfoChip(

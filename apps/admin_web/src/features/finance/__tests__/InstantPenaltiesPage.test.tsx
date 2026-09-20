@@ -219,7 +219,7 @@ describe('InstantPenaltiesPage', () => {
     pendingData = emptyPending;
     employeesData = emptyEmployees;
     renderPage();
-    expect(screen.getByText(/استلام من .* وإيداع بالصندوق/)).toBeDefined();
+    expect(screen.getByText('استلام وإيداع بالصندوق')).toBeDefined();
     expect(screen.getByText('إلغاء')).toBeDefined();
   });
 
@@ -254,7 +254,7 @@ describe('InstantPenaltiesPage', () => {
     pendingData = emptyPending;
     employeesData = emptyEmployees;
     renderPage();
-    expect(screen.getByText(/استلام من .* وإيداع بالصندوق/)).toBeDefined();
+    expect(screen.getByText('استلام وإيداع بالصندوق')).toBeDefined();
     expect(screen.getByText('رفع التعليق')).toBeDefined();
   });
 
@@ -263,8 +263,8 @@ describe('InstantPenaltiesPage', () => {
     pendingData = suspendedEmployees;
     employeesData = emptyEmployees;
     renderPage();
-    expect(screen.getByText(/موظفون موقوفون عن العمل/)).toBeDefined();
-    expect(screen.getByText('أحمد محمد')).toBeDefined();
+    expect(screen.getByText(/موظف موقوف/)).toBeDefined();
+    expect(screen.getByText('1 معلّق عن العمل')).toBeDefined();
   });
 
   it('يعرض إحصائيات عند وجود بيانات', () => {
@@ -289,8 +289,7 @@ describe('InstantPenaltiesPage', () => {
     };
     employeesData = emptyEmployees;
     renderPage();
-    expect(screen.getByText('1')).toBeDefined();
-    expect(screen.getByText('موظف مطالب بالدفع')).toBeDefined();
+    expect(screen.getByText(/موظف مطالب بالدفع/)).toBeDefined();
   });
 
   it('يعرض الفلاتر مع الحالة الملغاة', () => {
@@ -309,23 +308,23 @@ describe('InstantPenaltiesPage', () => {
     employeesData = emptyEmployees;
     renderPage();
 
-    expect(screen.getByText('صندوق غرامات 20 ج.م')).toBeDefined();
-    expect(screen.getByText('صندوق غرامات 50 ج.م')).toBeDefined();
-    expect(screen.getByText('صندوق غرامات 150 ج.م')).toBeDefined();
-    expect(screen.getByText('غرامات مضاعفة 500 ج.م')).toBeDefined();
+    expect(screen.getByText('20 ج.م')).toBeDefined();
+    expect(screen.getByText('50 ج.م')).toBeDefined();
+    expect(screen.getByText('150 ج.م')).toBeDefined();
+    expect(screen.getByText('500 ج.م')).toBeDefined();
 
     // النقر على صندوق 20 ج.م لتفعيله
-    const tier20Box = screen.getByTitle('انقر لتصفية غرامات الـ 20 ج.م');
+    const tier20Box = screen.getByText('20 ج.م').closest('button')!;
     fireEvent.click(tier20Box);
 
     // التحقق من ظهور شريط التصفية النشطة
-    expect(screen.getByText('تصفية نشطة حسب الصندوق:')).toBeDefined();
-    expect(screen.getByText('صندوق غرامات 20 ج.م (16-30 دقيقة تأخير)')).toBeDefined();
+    expect(screen.getByText('تصفية:')).toBeDefined();
+    expect(screen.getByText('شريحة 20 ج.م')).toBeDefined();
 
     // النقر على إلغاء التصفية
-    const clearBtn = screen.getByText('إلغاء التصفية ✕');
+    const clearBtn = screen.getByText('إلغاء ✕');
     fireEvent.click(clearBtn);
-    expect(screen.queryByText('تصفية نشطة حسب الصندوق:')).toBeNull();
+    expect(screen.queryByText('تصفية:')).toBeNull();
   });
 
   it('يفتح نافذة التفاصيل الكاملة عند النقر على تفاصيل الشريحة', () => {
@@ -334,11 +333,12 @@ describe('InstantPenaltiesPage', () => {
     employeesData = emptyEmployees;
     renderPage();
 
-    const detailButtons = screen.getAllByText('تفاصيل ↗');
-    expect(detailButtons.length).toBeGreaterThanOrEqual(1);
+    // تحديد شريحة 20 ج.م أولاً
+    const tier20Box = screen.getByText('20 ج.م').closest('button')!;
+    fireEvent.click(tier20Box);
 
-    // النقر على تفاصيل أول شريحة (20 ج.م)
-    fireEvent.click(detailButtons[0]);
+    const detailBtn = screen.getByText('الكشف التفصيلي ↗');
+    fireEvent.click(detailBtn);
 
     // التحقق من فتح المودال بعنوان صندوق غرامات 20 ج.م
     expect(screen.getByText('صندوق غرامات 20 ج.م (تأخير 16-30 دقيقة)')).toBeDefined();
@@ -351,8 +351,12 @@ describe('InstantPenaltiesPage', () => {
     employeesData = emptyEmployees;
     renderPage();
 
-    const pendingBtn = screen.getByTitle('عرض تفاصيل الموظفين المطالبين بالدفع');
+    const pendingBtn = screen.getByText(/موظف مطالب بالدفع/).closest('button')!;
     fireEvent.click(pendingBtn);
+
+    // فتح المودال عبر زر الكشف التفصيلي
+    const detailBtn = screen.getByText('الكشف التفصيلي ↗');
+    fireEvent.click(detailBtn);
 
     expect(screen.getByText('كشف الموظفين المطالبين بالدفع حالياً')).toBeDefined();
     expect(screen.getByText('تصدير كشف المطالبين Excel')).toBeDefined();
@@ -365,8 +369,12 @@ describe('InstantPenaltiesPage', () => {
     employeesData = emptyEmployees;
     renderPage();
 
-    const suspendedBtn = screen.getByTitle('عرض تفاصيل الموظفين المعلقين');
+    const suspendedBtn = screen.getByRole('button', { name: /معلّق عن العمل/ });
     fireEvent.click(suspendedBtn);
+
+    // فتح المودال عبر زر الكشف التفصيلي
+    const detailBtn = screen.getByText('الكشف التفصيلي ↗');
+    fireEvent.click(detailBtn);
 
     expect(screen.getByText('كشف الموظفين الموقوفين عن العمل (اليوم الثالث)')).toBeDefined();
     expect(screen.getByText('تصدير كشف المعلقين Excel')).toBeDefined();
@@ -427,17 +435,16 @@ describe('InstantPenaltiesPage', () => {
     renderPage();
 
     // يجب أن يحسب فقط الغرامة غير الملغاة (1 غرامة)
-    const tier500Card = screen.getByTitle('انقر لتصفية الغرامات المضاعفة لـ 500 ج.م');
+    const tier500Card = screen.getByText('500 ج.م').closest('button')!;
     expect(tier500Card).toBeDefined();
 
-    // النقر على تفاصيل صندوق 500 ج.م
-    const detailButtons = screen.getAllByText('تفاصيل ↗');
-    // آخر زر تفاصيل هو لشريحة 500 ج.م
-    fireEvent.click(detailButtons[detailButtons.length - 1]);
+    // تحديد شريحة 500 ج.م ثم فتح تفاصيلها
+    fireEvent.click(tier500Card);
+    const detailBtn = screen.getByText('الكشف التفصيلي ↗');
+    fireEvent.click(detailBtn);
 
     expect(screen.getByText('صندوق الغرامات المضاعفة 500 ج.م (اليوم الثاني)')).toBeDefined();
     // يجب أن تكون 1 بانتظار التحصيل (لأنها معلقة) و0 موردة بالصندوق
     expect(screen.getByText('بانتظار التحصيل')).toBeDefined();
   });
 });
-

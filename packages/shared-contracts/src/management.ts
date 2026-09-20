@@ -90,6 +90,9 @@ export const notificationItemSchema = z.object({
   actionUrl: z.string().nullable(),
   entityType: z.string().nullable().optional(),
   entityId: z.string().nullable().optional(),
+  // سياق الحدث الذي يفتحه الإشعار (workDate / employeeId / evaluationId …) —
+  // تعيده get_my_notifications منذ 0523 ويُبنى منه الرابط العميق.
+  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
   isRead: z.boolean(),
   createdAt: z.string(),
 });

@@ -1,6 +1,17 @@
 import { render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '../../../ui/Toast';
+
+// الصفحة تقرأ `?focus=` من الرابط لاختيار التبويب عند القدوم من إشعار جهاز.
+function Wrapper({ children }: { children: ReactNode }) {
+  return (
+    <MemoryRouter>
+      <ToastProvider>{children}</ToastProvider>
+    </MemoryRouter>
+  );
+}
 
 /* ─── mock لكل hooks الأجهزة ────────────────────────────────────── */
 const mockRefetch = vi.fn();
@@ -24,14 +35,14 @@ describe('DeviceApprovalPage', () => {
   it('يعرض عنوان الصفحة والوصف', () => {
     pendingReturn = { data: [], isLoading: false, isError: false, refetch: mockRefetch };
     allReturn = { data: [], isLoading: false, isError: false, refetch: mockRefetch };
-    render(<DeviceApprovalPage />, { wrapper: ToastProvider });
+    render(<DeviceApprovalPage />, { wrapper: Wrapper });
     expect(screen.getByText('أجهزة الموظفين')).toBeDefined();
   });
 
   it('يعرض ألسنة التبويب', () => {
     pendingReturn = { data: [], isLoading: false, isError: false, refetch: mockRefetch };
     allReturn = { data: [], isLoading: false, isError: false, refetch: mockRefetch };
-    render(<DeviceApprovalPage />, { wrapper: ToastProvider });
+    render(<DeviceApprovalPage />, { wrapper: Wrapper });
     expect(screen.getByText('طلبات الأجهزة')).toBeDefined();
     expect(screen.getByText('كل الأجهزة')).toBeDefined();
   });
@@ -39,7 +50,7 @@ describe('DeviceApprovalPage', () => {
   it('يعرض حالة فارغة عند عدم وجود أجهزة معلّقة', () => {
     pendingReturn = { data: [], isLoading: false, isError: false, refetch: mockRefetch };
     allReturn = { data: [], isLoading: false, isError: false, refetch: mockRefetch };
-    render(<DeviceApprovalPage />, { wrapper: ToastProvider });
+    render(<DeviceApprovalPage />, { wrapper: Wrapper });
     expect(screen.getByText('لا توجد أجهزة معلّقة')).toBeDefined();
   });
 
@@ -67,7 +78,7 @@ describe('DeviceApprovalPage', () => {
       refetch: mockRefetch,
     };
     allReturn = { data: [], isLoading: false, isError: false, refetch: mockRefetch };
-    render(<DeviceApprovalPage />, { wrapper: ToastProvider });
+    render(<DeviceApprovalPage />, { wrapper: Wrapper });
     expect(screen.getByText('إجمالي المعلّقة')).toBeDefined();
     // "بانتظار الموافقة" تظهر في المقياس وفي خيارات الفلتر
     expect(screen.getAllByText('بانتظار الموافقة').length).toBeGreaterThanOrEqual(1);
@@ -98,7 +109,7 @@ describe('DeviceApprovalPage', () => {
       refetch: mockRefetch,
     };
     allReturn = { data: [], isLoading: false, isError: false, refetch: mockRefetch };
-    render(<DeviceApprovalPage />, { wrapper: ToastProvider });
+    render(<DeviceApprovalPage />, { wrapper: Wrapper });
     expect(screen.getByText('أحمد محمد')).toBeDefined();
   });
 
@@ -126,7 +137,7 @@ describe('DeviceApprovalPage', () => {
       refetch: mockRefetch,
     };
     allReturn = { data: [], isLoading: false, isError: false, refetch: mockRefetch };
-    render(<DeviceApprovalPage />, { wrapper: ToastProvider });
+    render(<DeviceApprovalPage />, { wrapper: Wrapper });
     expect(screen.getByLabelText('الموافقة على جهاز أحمد محمد')).toBeDefined();
     expect(screen.getByLabelText('رفض جهاز أحمد محمد')).toBeDefined();
   });
@@ -134,7 +145,7 @@ describe('DeviceApprovalPage', () => {
   it('يعرض هياكل التحميل أثناء جلب البيانات', () => {
     pendingReturn = { data: undefined, isLoading: true, isError: false, refetch: mockRefetch };
     allReturn = { data: undefined, isLoading: true, isError: false, refetch: mockRefetch };
-    const { container } = render(<DeviceApprovalPage />, { wrapper: ToastProvider });
+    const { container } = render(<DeviceApprovalPage />, { wrapper: Wrapper });
     expect(container.querySelector('.animate-pulse')).toBeTruthy();
     expect(screen.queryByText('لا توجد أجهزة معلّقة')).toBeNull();
   });
@@ -142,7 +153,7 @@ describe('DeviceApprovalPage', () => {
   it('يعرض حالة الخطأ عند فشل الطلب', () => {
     pendingReturn = { data: undefined, isLoading: false, isError: true, error: new Error('فشل'), refetch: mockRefetch };
     allReturn = { data: [], isLoading: false, isError: false, refetch: mockRefetch };
-    render(<DeviceApprovalPage />, { wrapper: ToastProvider });
+    render(<DeviceApprovalPage />, { wrapper: Wrapper });
     // ErrorState يظهر عند الخطأ
     expect(screen.getByText('إعادة المحاولة')).toBeDefined();
   });

@@ -1,6 +1,10 @@
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_history_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_router.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_daily_reports_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/my_instant_penalties_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_feed_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/notification_settings_page.dart';
@@ -323,6 +327,17 @@ class _MobileNotificationsPageState
     }
   }
 
+  /// الصفحة المحلية المقابلة لنوع الإشعار — `null` إن لم يكن له صفحة مباشرة.
+  Widget? _localPageFor(MobileNotificationItem item) {
+    if (!item.hasLocalRoute) return null;
+    return switch (item.canonicalType) {
+      'instant_penalty' => MyInstantPenaltiesPage(highlightId: item.entityId),
+      'daily_report' => const MobileDailyReportsPage(),
+      'device' => const PasskeyDevicesPage(),
+      _ => null,
+    };
+  }
+
   Future<void> _open(MobileNotificationItem item) async {
     // التعليم كمقروء فوراً عند النقر — حتى للإشعارات المعلوماتية التي لا
     // تملك صفحة موبايل (كان النقر عليها لا يفعل شيئاً إطلاقاً).
@@ -334,7 +349,13 @@ class _MobileNotificationsPageState
       }
     }
     if (!mounted) return;
-    if (!item.hasSupportedAction) return; // معلوماتي — اكتفِ بالتعليم.
+    if (!item.hasSupportedAction) {
+      // معلوماتي: نُصرّح بذلك بدل صمت يبدو للمستخدم وكأن النقر لا يفعل شيئاً.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('إشعار للعلم فقط — لا توجد صفحة مرتبطة به.')),
+      );
+      return;
+    }
 
     try {
       if (item.canonicalType == 'announcement') {
@@ -345,6 +366,28 @@ class _MobileNotificationsPageState
               kind: 'announcement',
               itemId: item.entityId!,
             ),
+          ),
+        );
+        return;
+      }
+
+      // أنواع لها صفحة موبايل مباشرة — لا يعرفها resolve_mobile_action_target
+      // فكان النقر عليها بلا أثر رغم وجود الصفحة في التطبيق.
+      final localPage = _localPageFor(item);
+      if (localPage != null) {
+        await Navigator.push(context, MaterialPageRoute(builder: (_) => localPage));
+        return;
+      }
+
+      // حضور الموظف نفسه (بصمة/تذكير): سجلّه الشخصي على يوم الحدث —
+      // أدق من صفحة خدمات الحضور العامة التي يعيدها الـ RPC.
+      final workDate = item.meta('workDate');
+      final rawType = (item.entityType ?? '').toLowerCase();
+      if (workDate != null && (rawType == 'attendance_daily' || rawType == 'punch_reminder')) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AttendanceHistoryPage(highlightDate: workDate),
           ),
         );
         return;

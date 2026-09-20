@@ -273,4 +273,60 @@ describe('NotificationsPage', () => {
     fireEvent.click(screen.getAllByLabelText('حذف الإشعار')[0]);
     expect(deleteReturn.mutate).toHaveBeenCalledWith(['notif-1'], expect.anything());
   });
+
+  // 0523: النقر كان يفتح القائمة العامة (أو لا شيء) بدل الحدث نفسه.
+  it('يربط الإشعار بوجهة الحدث نفسه لا بالقائمة العامة', () => {
+    notifReturn = dataQuery;
+    markReturn = markMutation;
+    deleteReturn = deleteMutation;
+    render(
+      <Wrapper>
+        <NotificationsPage />
+      </Wrapper>,
+    );
+    const links = screen.getAllByRole('link');
+    expect(links[0].getAttribute('href')).toBe('/hr/requests?request=req-1');
+  });
+
+  it('يبني الوجهة من metadata لإشعارات الحضور', () => {
+    notifReturn = {
+      ...dataQuery,
+      data: [
+        {
+          ...mockNotification,
+          id: 'notif-att',
+          entityType: 'attendance_daily',
+          entityId: 'att-1',
+          actionUrl: '/attendance',
+          metadata: { workDate: '2026-08-24', employeeId: 'emp-9' },
+        },
+      ],
+    };
+    markReturn = markMutation;
+    deleteReturn = deleteMutation;
+    render(
+      <Wrapper>
+        <NotificationsPage />
+      </Wrapper>,
+    );
+    expect(screen.getByRole('link').getAttribute('href')).toBe('/hr/attendance/details?category=scheduled&date=2026-08-24&focus=emp-9');
+  });
+
+  it('الإشعار المعلوماتي يُعلَّم مقروءاً ويخبر المستخدم بدل صمت تام', () => {
+    notifReturn = {
+      ...dataQuery,
+      data: [{ ...mockNotification, id: 'notif-info', entityType: 'broadcast_alert', entityId: 'b1', actionUrl: null }],
+    };
+    markReturn = { ...markMutation, mutate: vi.fn() };
+    deleteReturn = deleteMutation;
+    render(
+      <Wrapper>
+        <NotificationsPage />
+      </Wrapper>,
+    );
+    expect(screen.queryByRole('link')).toBeNull();
+    fireEvent.click(screen.getByLabelText('إشعار غير مقروء', { selector: 'div' }));
+    expect(markReturn.mutate).toHaveBeenCalledWith(['notif-info']);
+    expect(screen.getByText('إشعار للعلم فقط — لا توجد صفحة مرتبطة به.')).toBeTruthy();
+  });
 });

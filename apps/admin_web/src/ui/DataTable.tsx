@@ -23,6 +23,12 @@ interface DataTableProps<T> {
   rowKey: (row: T) => string;
   minWidth?: string;
   ariaLabel?: string;
+  /** أقصى ارتفاع مسموح به مع تمكين التمرير الداخلي وثبات الرؤوس (sticky header). */
+  maxHeight?: string;
+  /** مفتاح الصف القادم من إشعار — يُبرز ويُمرَّر إليه (useEntityFocus). */
+  focusedKey?: string | null;
+  /** كلاس CSS إضافي لكل صف — Useful لتعتيم صفوف مكتملة مثلاً. */
+  rowClassName?: (row: T) => string | undefined;
 }
 
 type SortDir = 'ascending' | 'descending';
@@ -39,7 +45,10 @@ export function DataTable<T>({
   onSelectionChange,
   rowKey,
   minWidth = '720px',
+  maxHeight,
   ariaLabel = 'جدول بيانات',
+  focusedKey = null,
+  rowClassName,
 }: DataTableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('ascending');
@@ -141,9 +150,9 @@ export function DataTable<T>({
 
   return (
     <section className="card overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="data-table w-full text-start text-sm" style={{ minWidth }} aria-label={ariaLabel}>
-          <thead className="bg-[var(--surface-muted)] text-xs text-[var(--text-muted)]">
+      <div className="overflow-x-auto" style={maxHeight ? { maxHeight, overflowY: 'auto' } : undefined}>
+        <table className="data-table w-full text-start text-sm border-separate border-spacing-0" style={{ minWidth }} aria-label={ariaLabel}>
+          <thead className="sticky top-0 z-10 bg-[var(--surface-muted)] backdrop-blur-md shadow-xs text-xs font-bold text-[var(--text-secondary)] border-b border-[var(--border)]">
             <tr>
               {selectable ? (
                 <th scope="col" className="w-12 px-4 py-3.5">
@@ -194,7 +203,12 @@ export function DataTable<T>({
               const key = rowKey(row);
               const isSelected = selectable && selectedKeys?.has(key);
               return (
-                <tr key={key} aria-selected={selectable ? isSelected : undefined}>
+                <tr
+                  key={key}
+                  data-focus-id={key}
+                  className={[focusedKey === key ? 'entity-focus-highlight' : undefined, rowClassName?.(row)].filter(Boolean).join(' ') || undefined}
+                  aria-selected={selectable ? isSelected : undefined}
+                >
                   {selectable ? (
                     <td className="px-4 py-3.5">
                       <input

@@ -1,39 +1,26 @@
-import { useState, useMemo } from 'react';
-import {
-  Coins,
-  ArrowDownLeft,
-  ArrowUpRight,
-  ShieldCheck,
-  History,
-  Search,
-  AlertTriangle,
-  Clock,
-  Sparkles,
-  UserCheck,
-} from 'lucide-react';
-import {
-  useFellowshipFundSummary,
-  useFellowshipFundTransactions,
-  useWithdrawFromFellowshipFund,
-  FELLOWSHIP_CATEGORIES,
-  type FellowshipFundTransaction,
-} from './useFellowshipFund';
+import { useState } from 'react';
+import { Coins, ArrowDownLeft, ArrowUpRight, ShieldCheck, History, Search, AlertTriangle, Clock, Sparkles, UserCheck } from 'lucide-react';
+import { useFellowshipFundSummary, useFellowshipFundTransactions, useWithdrawFromFellowshipFund, FELLOWSHIP_CATEGORIES } from './useFellowshipFund';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { useEmployees } from '../employees/useEmployees';
 import { PageHeader } from '../../ui/PageHeader';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
+import { useEntityFocus } from '../../core/useEntityFocus';
 
 export function FellowshipFundPage() {
   const auth = useAuth();
-  const { data: summary, isLoading: summaryLoading } = useFellowshipFundSummary();
+  const { data: summary } = useFellowshipFundSummary();
   const [typeFilter, setTypeFilter] = useState<'all' | 'inflow' | 'outflow'>('all');
   const [search, setSearch] = useState('');
   const { data: transactions, isLoading: txLoading } = useFellowshipFundTransactions({
     type: typeFilter,
     search,
   });
+
+  // الوصول من إشعار صندوق الزمالة → إبراز حركة الصندوق نفسها.
+  const focusedId = useEntityFocus((transactions?.length ?? 0) > 0);
 
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -49,12 +36,11 @@ export function FellowshipFundPage() {
 
   // صلاحية الإدارة للسحب
   const canWithdraw = Boolean(
-    auth.access && (
-      hasPermission(auth.access, 'payroll.run.manage') ||
+    auth.access &&
+    (hasPermission(auth.access, 'payroll.run.manage') ||
       hasPermission(auth.access, 'finance.manage') ||
       auth.access.workspaces?.includes('main_admin') ||
-      auth.access.permissions?.includes('*')
-    )
+      auth.access.permissions?.includes('*')),
   );
 
   const currentBalance = summary?.currentBalance ?? 0;
@@ -144,7 +130,8 @@ export function FellowshipFundPage() {
             </div>
 
             <p className="text-xs text-white/60 max-w-xl leading-relaxed">
-              تُورّد كل مبالغ غرامات الحضور والانصراف تلقائياً إلى هذا الصندوق لمساعدة الزملاء والمناسبات الاجتماعية، ويكون كل سحب أو إيداع معلناً للجميع بإشعار فوري.
+              تُورّد كل مبالغ غرامات الحضور والانصراف تلقائياً إلى هذا الصندوق لمساعدة الزملاء والمناسبات الاجتماعية، ويكون كل سحب أو إيداع معلناً للجميع بإشعار
+              فوري.
             </p>
           </div>
 
@@ -155,12 +142,8 @@ export function FellowshipFundPage() {
                 <ArrowDownLeft className="w-4 h-4 text-emerald-400" />
                 <span>إجمالي الوارد</span>
               </div>
-              <p className="text-xl font-black font-mono text-emerald-300">
-                {(summary?.totalInflows ?? 0).toLocaleString('ar-EG')} ج.م
-              </p>
-              <p className="text-[11px] text-white/50 mt-1">
-                {summary?.inflowsCount ?? 0} عملية إيداع
-              </p>
+              <p className="text-xl font-black font-mono text-emerald-300">{(summary?.totalInflows ?? 0).toLocaleString('ar-EG')} ج.م</p>
+              <p className="text-[11px] text-white/50 mt-1">{summary?.inflowsCount ?? 0} عملية إيداع</p>
             </div>
 
             <div className="rounded-2xl border border-red-500/20 bg-black/40 p-4 backdrop-blur-sm">
@@ -168,12 +151,8 @@ export function FellowshipFundPage() {
                 <ArrowUpRight className="w-4 h-4 text-red-400" />
                 <span>إجمالي المنصرف</span>
               </div>
-              <p className="text-xl font-black font-mono text-red-300">
-                {(summary?.totalOutflows ?? 0).toLocaleString('ar-EG')} ج.م
-              </p>
-              <p className="text-[11px] text-white/50 mt-1">
-                {summary?.outflowsCount ?? 0} عملية سحب
-              </p>
+              <p className="text-xl font-black font-mono text-red-300">{(summary?.totalOutflows ?? 0).toLocaleString('ar-EG')} ج.م</p>
+              <p className="text-[11px] text-white/50 mt-1">{summary?.outflowsCount ?? 0} عملية سحب</p>
             </div>
           </div>
         </div>
@@ -187,9 +166,7 @@ export function FellowshipFundPage() {
               <Sparkles className="w-4 h-4 text-amber-500" />
               تفصيل مبالغ الصندوق وأبواب الصرف والإيداع
             </h3>
-            <span className="text-xs text-[var(--text-muted)]">
-              {summary.categoryBreakdown.length} فئات نشطة
-            </span>
+            <span className="text-xs text-[var(--text-muted)]">{summary.categoryBreakdown.length} فئات نشطة</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -199,9 +176,7 @@ export function FellowshipFundPage() {
                 <div
                   key={idx}
                   className={`rounded-xl p-4 border transition-all ${
-                    isInflow
-                      ? 'border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/15'
-                      : 'border-amber-500/20 bg-amber-50/40 dark:bg-amber-950/15'
+                    isInflow ? 'border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/15' : 'border-amber-500/20 bg-amber-50/40 dark:bg-amber-950/15'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -246,9 +221,7 @@ export function FellowshipFundPage() {
               <button
                 onClick={() => setTypeFilter('all')}
                 className={`px-3 py-1.5 rounded-md transition-colors ${
-                  typeFilter === 'all'
-                    ? 'bg-[var(--brand-primary)] text-white'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                  typeFilter === 'all' ? 'bg-[var(--brand-primary)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 الكل
@@ -256,9 +229,7 @@ export function FellowshipFundPage() {
               <button
                 onClick={() => setTypeFilter('inflow')}
                 className={`px-3 py-1.5 rounded-md transition-colors ${
-                  typeFilter === 'inflow'
-                    ? 'bg-emerald-600 text-white'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                  typeFilter === 'inflow' ? 'bg-emerald-600 text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 الإيداعات فقط (الوارد)
@@ -266,9 +237,7 @@ export function FellowshipFundPage() {
               <button
                 onClick={() => setTypeFilter('outflow')}
                 className={`px-3 py-1.5 rounded-md transition-colors ${
-                  typeFilter === 'outflow'
-                    ? 'bg-red-600 text-white'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                  typeFilter === 'outflow' ? 'bg-red-600 text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 السحوبات فقط (المنصرف)
@@ -298,11 +267,7 @@ export function FellowshipFundPage() {
         ) : !transactions || transactions.length === 0 ? (
           <EmptyState
             title="لا توجد حركات مسجلة"
-            description={
-              search
-                ? 'لا توجد حركات تطابق معايير البحث الحالية'
-                : 'لم يتم تسجيل أي إيداعات أو سحوبات في صندوق الزمالة حتى الآن'
-            }
+            description={search ? 'لا توجد حركات تطابق معايير البحث الحالية' : 'لم يتم تسجيل أي إيداعات أو سحوبات في صندوق الزمالة حتى الآن'}
           />
         ) : (
           <div className="overflow-x-auto -mx-5 px-5">
@@ -322,7 +287,11 @@ export function FellowshipFundPage() {
                 {transactions.map((tx) => {
                   const isInflow = tx.transactionType === 'inflow';
                   return (
-                    <tr key={tx.id} className="hover:bg-[var(--surface-raised)]/30 transition-colors">
+                    <tr
+                      key={tx.id}
+                      data-focus-id={tx.id}
+                      className={`hover:bg-[var(--surface-raised)]/30 transition-colors ${focusedId === tx.id ? 'entity-focus-highlight' : ''}`}
+                    >
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[11px] whitespace-nowrap ${
@@ -347,7 +316,8 @@ export function FellowshipFundPage() {
 
                       <td className="px-4 py-3 font-mono font-black text-sm whitespace-nowrap">
                         <span className={isInflow ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>
-                          {isInflow ? '+' : '-'}{tx.amount.toLocaleString('ar-EG')} <span className="text-xs font-medium">ج.م</span>
+                          {isInflow ? '+' : '-'}
+                          {tx.amount.toLocaleString('ar-EG')} <span className="text-xs font-medium">ج.م</span>
                         </span>
                       </td>
 
@@ -384,9 +354,7 @@ export function FellowshipFundPage() {
                             minute: '2-digit',
                           })}
                         </p>
-                        {tx.performerName && (
-                          <p className="text-[10px] text-[var(--text-muted)] mt-0.5">بواسطة: {tx.performerName}</p>
-                        )}
+                        {tx.performerName && <p className="text-[10px] text-[var(--text-muted)] mt-0.5">بواسطة: {tx.performerName}</p>}
                       </td>
                     </tr>
                   );
@@ -400,16 +368,14 @@ export function FellowshipFundPage() {
       {/* ═══ حوار سحب مبلغ من صندوق الزمالة (خاص بالأدمن فقط) ═══ */}
       {withdrawOpen && (
         <DialogOverlay title="سحب مبلغ من صندوق الزمالة والتكافل" onClose={() => setWithdrawOpen(false)} maxWidth="max-w-lg">
-           <form onSubmit={handleWithdrawSubmit} className="space-y-4 p-4 text-end">
+          <form onSubmit={handleWithdrawSubmit} className="space-y-4 p-4 text-end">
             {/* لافتة الشفافية والتنبيه */}
             <div className="rounded-xl border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 p-3 text-xs text-amber-800 dark:text-amber-300 space-y-1">
               <div className="flex items-center gap-1.5 font-bold">
                 <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
                 <span>إشعار شفافية إلزامي لكامل الفريق</span>
               </div>
-              <p className="leading-relaxed">
-                سيتم إرسال إشعار فوري لكافة أعضاء الفريق بمبلغ السحب والسبب والرصيد المتبقي بمجرد التنفيذ لضمان علم الجميع.
-              </p>
+              <p className="leading-relaxed">سيتم إرسال إشعار فوري لكافة أعضاء الفريق بمبلغ السحب والسبب والرصيد المتبقي بمجرد التنفيذ لضمان علم الجميع.</p>
               <div className="pt-1 text-[11px] font-mono">
                 الرصيد المتاح حالياً: <span className="font-bold">{currentBalance.toLocaleString('ar-EG')} ج.م</span>
               </div>
@@ -439,27 +405,23 @@ export function FellowshipFundPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold mb-1">فئة السحب *</label>
-                <select
-                  value={withdrawCategory}
-                  onChange={(e) => setWithdrawCategory(e.target.value)}
-                  className="input w-full text-xs"
-                >
+                <select value={withdrawCategory} onChange={(e) => setWithdrawCategory(e.target.value)} className="input w-full text-xs">
                   {FELLOWSHIP_CATEGORIES.filter((c) => c !== 'غرامة تأخير حضور').map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
                   ))}
                 </select>
               </div>
 
               <div>
                 <label className="block text-xs font-bold mb-1">الموظف المستفيد (اختياري)</label>
-                <select
-                  value={beneficiaryId}
-                  onChange={(e) => setBeneficiaryId(e.target.value)}
-                  className="input w-full text-xs"
-                >
+                <select value={beneficiaryId} onChange={(e) => setBeneficiaryId(e.target.value)} className="input w-full text-xs">
                   <option value="">دعم عام / جهة مؤسسية</option>
                   {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>{emp.fullNameAr}</option>
+                    <option key={emp.id} value={emp.id}>
+                      {emp.fullNameAr}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -489,19 +451,10 @@ export function FellowshipFundPage() {
             </div>
 
             <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setWithdrawOpen(false)}
-                className="btn-secondary flex-1"
-                disabled={withdrawMutation.isPending}
-              >
+              <button type="button" onClick={() => setWithdrawOpen(false)} className="btn-secondary flex-1" disabled={withdrawMutation.isPending}>
                 إلغاء
               </button>
-              <button
-                type="submit"
-                className="btn-primary flex-1 bg-red-600 hover:bg-red-700 text-white"
-                disabled={withdrawMutation.isPending}
-              >
+              <button type="submit" className="btn-primary flex-1 bg-red-600 hover:bg-red-700 text-white" disabled={withdrawMutation.isPending}>
                 {withdrawMutation.isPending ? 'جاري تنفيذ السحب...' : 'تأكيد السحب وإشعار الفريق'}
               </button>
             </div>

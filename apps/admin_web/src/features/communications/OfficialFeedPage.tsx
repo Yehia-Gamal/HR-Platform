@@ -13,6 +13,7 @@ import { preparePostImage } from '../../ui/postImage';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { useEntityFocus } from '../../core/useEntityFocus';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import {
@@ -222,6 +223,8 @@ export function OfficialFeedPage() {
   // hasPermission already grants full-access roles via the '*' wildcard,
   // so the previous `|| workspaces.includes('main_admin')` fallback was
   // redundant and risked granting capabilities to non-permissioned admins.
+  // الوصول من إشعار إعلان/قرار/تقدير → إبراز المنشور نفسه داخل القائمة.
+  const focusedId = useEntityFocus(items.length > 0);
   const canPublish = hasPermission(auth.access, 'comms.announcement.manage');
   const canManageDecision = hasPermission(auth.access, 'comms.decision.manage');
   const canApproveDecision = hasPermission(auth.access, 'comms.decision.approve');
@@ -316,7 +319,11 @@ export function OfficialFeedPage() {
             const action = item.kind === 'decision' ? nextAction(item.status) : null;
             const canRun = action === 'approve' ? canApproveDecision : canManageDecision;
             return (
-              <article key={`${item.kind}-${item.id}`} className="card overflow-hidden">
+              <article
+                key={`${item.kind}-${item.id}`}
+                data-focus-id={item.id}
+                className={`card overflow-hidden ${focusedId === item.id ? 'entity-focus-highlight' : ''}`}
+              >
                 <div className="border-b border-[var(--border)] p-5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">

@@ -1038,12 +1038,29 @@ a.no-underline:hover .metric-card--linked {
 .data-table th {
   white-space: nowrap;
   font-weight: var(--font-black);
+  border-bottom: 2px solid var(--border, rgba(0,0,0,0.08));
 }
 .data-table tbody tr {
-  transition: background 140ms ease;
+  transition: background 140ms ease, opacity 140ms ease;
+  border-bottom: 1px solid var(--border-subtle, color-mix(in srgb, var(--border) 30%, transparent));
+}
+.data-table tbody tr:last-child {
+  border-bottom: none;
+}
+.data-table tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--surface-muted) 25%, transparent);
 }
 .data-table tbody tr:hover {
   background: var(--surface-subtle);
+}
+.data-table tbody td {
+  vertical-align: middle;
+}
+.data-table tbody tr.row-dimmed {
+  opacity: 0.55;
+}
+.data-table tbody tr.row-dimmed:hover {
+  opacity: 0.8;
 }
 .mobile-record-card {
   border: 1px solid var(--border);
@@ -2232,4 +2249,31 @@ a.no-underline:hover .metric-card--linked {
   background: var(--surface-hover);
   color: var(--brand-primary);
   border-color: color-mix(in srgb, var(--brand-primary) 40%, transparent);
+}
+
+/* ─── إبراز العنصر القادم من إشعار (useEntityFocus) ───
+   يُبرز الصف/البطاقة التي يشير إليها الإشعار لبضع ثوانٍ بعد الوصول،
+   فيرى المستخدم الحدث نفسه لا القائمة فقط. */
+.entity-focus-highlight {
+  position: relative;
+  border-radius: 0.75rem;
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+  background: color-mix(in srgb, var(--brand-primary) 10%, transparent) !important;
+  animation: entity-focus-pulse 1.1s ease-in-out 3;
+  scroll-margin-block: 6rem;
+}
+@keyframes entity-focus-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand-primary) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 0.45rem color-mix(in srgb, var(--brand-primary) 0%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .entity-focus-highlight {
+    animation: none;
+  }
 }

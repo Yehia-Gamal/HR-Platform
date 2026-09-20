@@ -2,6 +2,7 @@ import { cairoTodayIso } from '../../core/cairoTime';
 import { Heart, MessageCircle, Send, Trash2, ChevronDown, ChevronUp, Plus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { useEntityFocus } from '../../core/useEntityFocus';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { ListSkeleton } from '../../ui/Skeletons';
@@ -33,6 +34,8 @@ export function DailyReportsFeedPage() {
   const [draft, setDraft] = useState({ achievements: '', blockers: '', tomorrowPlan: '' });
 
   const items = useMemo(() => query.data ?? [], [query.data]);
+  // الوصول من إشعار تقرير/إعجاب/تعليق → إبراز التقرير نفسه.
+  const focusedId = useEntityFocus(items.length > 0);
 
   const submitComment = (reportId: string, text: string) => {
     const trimmed = text.trim();
@@ -159,7 +162,10 @@ export function DailyReportsFeedPage() {
             return (
               <article
                 key={item.id}
-                className="report-card overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] transition-[box-shadow,transform] duration-200"
+                data-focus-id={item.id}
+                className={`report-card overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] transition-[box-shadow,transform] duration-200 ${
+                  focusedId === item.id ? 'entity-focus-highlight' : ''
+                }`}
               >
                 {/* ─── رأس البطاقة: الصورة + الاسم + المسمى + المدير + التاريخ ─── */}
                 <div className="flex items-center gap-3 border-b border-[var(--border)] p-4">
@@ -171,7 +177,7 @@ export function DailyReportsFeedPage() {
                       {item.department ? <span className={chipClass('neutral')}>{item.department}</span> : null}
                     </div>
                   </div>
-                   <div className="shrink-0 text-end">
+                  <div className="shrink-0 text-end">
                     <p className="text-xs font-bold text-[var(--text-muted)]">
                       {new Intl.DateTimeFormat('ar-EG', {
                         day: 'numeric',

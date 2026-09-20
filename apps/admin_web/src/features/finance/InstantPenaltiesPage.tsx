@@ -4,24 +4,23 @@ import { Link } from 'react-router';
 import {
   AlertTriangle,
   Ban,
+  Calendar,
   CheckCircle2,
   Clock,
   Clock3,
   Coins,
   FileSpreadsheet,
   Flame,
-  HeartHandshake,
-  Layers,
   Printer,
   RefreshCw,
   ShieldAlert,
   Sparkles,
   SunMedium,
-  X,
   XCircle,
   Zap,
 } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { useEntityFocus } from '../../core/useEntityFocus';
 import { downloadCsv, printReport, toCsv, type ExportColumn } from '../../core/exportUtils';
 import { DataTable, type DataTableColumn } from '../../ui/DataTable';
 import { DialogOverlay } from '../../ui/DialogOverlay';
@@ -76,12 +75,8 @@ function StatusIcon({ status }: { status: string }) {
 export function InstantPenaltiesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedTier, setSelectedTier] = useState<
-    'all' | 'pending' | 'tier-20' | 'tier-50' | 'tier-150' | 'tier-500' | 'suspended'
-  >('all');
-  const [activeModalTier, setActiveModalTier] = useState<
-    'pending' | 'tier-20' | 'tier-50' | 'tier-150' | 'tier-500' | 'suspended' | 'total' | null
-  >(null);
+  const [selectedTier, setSelectedTier] = useState<'all' | 'pending' | 'tier-20' | 'tier-50' | 'tier-150' | 'tier-500' | 'suspended'>('all');
+  const [activeModalTier, setActiveModalTier] = useState<'pending' | 'tier-20' | 'tier-50' | 'tier-150' | 'tier-500' | 'suspended' | 'total' | null>(null);
 
   const penalties = useInstantPenalties(statusFilter === 'all' ? {} : { status: statusFilter });
   const pendingEmployees = usePendingPenaltyEmployees();
@@ -118,22 +113,10 @@ export function InstantPenaltiesPage() {
     const items = penalties.data ?? [];
     const pendingList = items.filter((p) => p.status === 'pending_payment' || p.status === 'doubled' || p.status === 'suspended');
 
-    const tier20 = items.filter((p) =>
-      p.status !== 'cancelled' &&
-      (p.currentAmount === 20 || (p.originalAmount === 20 && p.escalationLevel === 'initial'))
-    );
-    const tier50 = items.filter((p) =>
-      p.status !== 'cancelled' &&
-      (p.currentAmount === 50 || (p.originalAmount === 50 && p.escalationLevel === 'initial'))
-    );
-    const tier150 = items.filter((p) =>
-      p.status !== 'cancelled' &&
-      (p.currentAmount === 150 || (p.originalAmount === 150 && p.escalationLevel === 'initial'))
-    );
-    const tier500 = items.filter((p) =>
-      p.status !== 'cancelled' &&
-      (p.status === 'doubled' || p.escalationLevel === 'doubled' || p.currentAmount === 500)
-    );
+    const tier20 = items.filter((p) => p.status !== 'cancelled' && (p.currentAmount === 20 || (p.originalAmount === 20 && p.escalationLevel === 'initial')));
+    const tier50 = items.filter((p) => p.status !== 'cancelled' && (p.currentAmount === 50 || (p.originalAmount === 50 && p.escalationLevel === 'initial')));
+    const tier150 = items.filter((p) => p.status !== 'cancelled' && (p.currentAmount === 150 || (p.originalAmount === 150 && p.escalationLevel === 'initial')));
+    const tier500 = items.filter((p) => p.status !== 'cancelled' && (p.status === 'doubled' || p.escalationLevel === 'doubled' || p.currentAmount === 500));
     const suspended = items.filter((p) => p.status === 'suspended');
 
     return {
@@ -220,55 +203,121 @@ export function InstantPenaltiesPage() {
 
   // ─── أعمدة الجدول ─────────────────────────────────────────────────
 
+  // الوصول من إشعار غرامة → إبراز صف الغرامة نفسه في الجدول.
+  const focusedId = useEntityFocus(rows.length > 0, 'focus', () => {
+    setCheckFeedback('الغرامة المطلوبة غير ظاهرة ضمن الفلتر الحالي — امسح الفلاتر لعرضها.');
+    setTimeout(() => setCheckFeedback(null), 8000);
+  });
+
   const columns: DataTableColumn<(typeof rows)[number]>[] = [
     {
       key: 'employeeName',
-      header: 'الموظف',
+      header: 'الموظف والإدارة',
+      sortable: true,
+      render: (p) => {
+        const initials = p.employeeName
+          ? p.employeeName
+              .trim()
+              .split(/\s+/)
+              .slice(0, 2)
+              .map((s) => s[0])
+              .join('')
+          : 'م';
+        return (
+          <div className="flex items-center gap-3 min-w-[180px]">
+            <div className="size-9 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0 select-none">
+              {initials}
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="font-bold text-sm text-[var(--text-primary)] leading-snug truncate">{p.employeeName ?? '—'}</span>
+              <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] mt-0.5">
+                {p.employeeCode && (
+                  <span className="font-mono bg-[var(--surface-muted)] px-1.5 py-0.5 rounded text-[10px] text-[var(--text-secondary)]">{p.employeeCode}</span>
+                )}
+                <span className="truncate">{p.departmentName ?? '—'}</span>
+              </div>
+              {p.status === 'suspended' && (
+                <span className="inline-flex items-center gap-1 mt-1 w-fit rounded-full bg-red-100 dark:bg-red-950/60 px-2 py-0.5 text-[10px] font-black text-red-700 dark:text-red-300 border border-red-300 dark:border-red-800">
+                  <Ban className="size-3" /> معلّق عن العمل
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'workDate',
+      header: 'التاريخ',
       sortable: true,
       render: (p) => (
-        <div className="min-w-[140px]">
-          <span className="font-bold block leading-tight">{p.employeeName ?? '—'}</span>
-          <span className="text-[11px] text-[var(--text-muted)] block">{p.departmentName ?? '—'}</span>
-          {p.status === 'suspended' && <span className="inline-block mt-1 rounded-full bg-red-100 dark:bg-red-950/50 px-1.5 py-0.5 text-[10px] font-black text-red-700 dark:text-red-300">معلّق</span>}
+        <div className="flex items-center gap-1.5 text-xs whitespace-nowrap font-mono text-[var(--text-secondary)]">
+          <Calendar className="size-3.5 text-[var(--text-muted)] shrink-0" aria-hidden="true" />
+          <span>{p.workDate}</span>
         </div>
       ),
     },
-    { key: 'workDate', header: 'التاريخ', sortable: true, render: (p) => <span className="whitespace-nowrap">{dateFormatter.format(new Date(p.workDate + 'T00:00:00'))}</span> },
     {
       key: 'lateMinutes',
-      header: 'التأخير',
+      header: 'التأخير / السبب',
       sortable: true,
-      render: (p) => (
-        <div className="flex flex-col gap-0.5">
-          <span className="font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap">
-            {p.lateMinutes} <span className="text-xs font-normal">دقيقة</span>
-          </span>
-          {p.notes && p.notes.includes('لم يسجل بصمة') ? (
-            <span className="inline-block w-fit rounded bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40">
-              لم يبصم
-            </span>
-          ) : p.notes && p.notes.includes('تأخير حضور فعلي') ? (
-            <span className="inline-block w-fit rounded bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400">
-              تأخير فعلي
-            </span>
-          ) : null}
-        </div>
-      ),
+      render: (p) => {
+        const isUnpunched = Boolean(p.notes && p.notes.includes('لم يسجل بصمة'));
+        const isActualLate = Boolean(p.notes && p.notes.includes('تأخير حضور فعلي'));
+        return (
+          <div className="flex flex-col gap-1 min-w-[120px]">
+            {isUnpunched || p.lateMinutes >= 420 ? (
+              <span className="inline-flex items-center gap-1 w-fit rounded-md bg-rose-500/10 border border-rose-500/25 px-2 py-0.5 text-[11px] font-bold text-rose-600 dark:text-rose-400 whitespace-nowrap">
+                <Clock className="size-3 text-rose-500" aria-hidden="true" />
+                لم يسجل بصمة
+              </span>
+            ) : (
+              <span className="font-bold font-mono text-sm text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                {p.lateMinutes} <span className="text-xs font-normal">دقيقة</span>
+              </span>
+            )}
+            {isActualLate && <span className="text-[10px] text-amber-700/80 dark:text-amber-300/80 font-medium">تأخير حضور فعلي</span>}
+            {isUnpunched && <span className="text-[10px] text-[var(--text-muted)] font-mono">تجاوز 11:00 ص</span>}
+          </div>
+        );
+      },
     },
     {
       key: 'originalAmount',
-      header: 'الأصلية',
-      render: (p) => <span className="text-[var(--text-muted)] whitespace-nowrap">{formatCurrency(p.originalAmount)}</span>,
+      header: 'الغرامة الأصلية',
+      render: (p) => (
+        <span className="text-xs font-mono text-[var(--text-muted)] whitespace-nowrap bg-[var(--surface-muted)] px-2 py-1 rounded-md border border-[var(--border-subtle)]">
+          {formatCurrency(p.originalAmount)}
+        </span>
+      ),
     },
     {
       key: 'currentAmount',
-      header: 'المطلوب',
+      header: 'المطلوب سداده',
       sortable: true,
-      render: (p) => (
-        <span className={`font-black whitespace-nowrap ${p.status === 'paid' ? 'text-emerald-600 dark:text-emerald-400' : 'text-[var(--danger)]'}`}>
-          {formatCurrency(p.currentAmount)}
-        </span>
-      ),
+      render: (p) => {
+        const isDoubled = p.currentAmount > p.originalAmount;
+        return (
+          <div className="flex flex-col gap-0.5 whitespace-nowrap">
+            <span
+              className={`font-black font-mono text-base ${
+                p.status === 'paid'
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : isDoubled
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-amber-600 dark:text-amber-400'
+              }`}
+            >
+              {formatCurrency(p.currentAmount)}
+            </span>
+            {isDoubled && (
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-red-600 dark:text-red-400">
+                <Flame className="size-3" aria-hidden="true" /> مضاعف (يوم 2)
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'status',
@@ -282,19 +331,28 @@ export function InstantPenaltiesPage() {
     },
     {
       key: 'actions',
-      header: 'إجراءات',
+      header: 'الإجراءات',
       render: (p) => {
         if (p.status === 'paid') {
-          return <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold whitespace-nowrap">✓ مدفوعة ومُزيلَة</span>;
+          return (
+            <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-bold whitespace-nowrap bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
+              ✓ مدفوعة ومُزيلَة
+            </span>
+          );
         }
         if (p.status === 'cancelled') {
-          return <span className="text-xs text-[var(--text-muted)] font-bold">ملغاة</span>;
+          return (
+            <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)] font-medium whitespace-nowrap bg-[var(--surface-muted)] px-2.5 py-1 rounded-md">
+              <XCircle className="size-3.5" aria-hidden="true" />
+              ملغاة
+            </span>
+          );
         }
         return (
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex items-center gap-2 whitespace-nowrap">
             <button
               type="button"
-              className="btn-primary text-[11px] leading-tight !min-h-0 !py-1.5 !px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap cursor-pointer"
               disabled={confirmPayment.isPending}
               onClick={() => {
                 const confirmMsg =
@@ -305,15 +363,15 @@ export function InstantPenaltiesPage() {
                 setPaymentNotes('');
                 setPaymentDialogOpen(true);
               }}
-              title="استلام من الموظف وإيداع في صندوق الزمالة"
+              title="استلام من الموظف وإيداع في صندوق الزمالة والتكافل"
             >
-              <Coins className="size-3 text-amber-300" aria-hidden="true" />
-              <span>استلام من الموظف وإيداع بالصندوق</span>
+              <Coins className="size-3.5 text-amber-300" aria-hidden="true" />
+              <span>استلام وإيداع بالصندوق</span>
             </button>
             {p.status === 'suspended' && (
               <button
                 type="button"
-                className="btn-secondary text-[11px] !min-h-0 !py-1.5 !px-2.5"
+                className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 transition-all whitespace-nowrap cursor-pointer"
                 disabled={liftSuspension.isPending}
                 onClick={() => {
                   setLiftTarget({ id: p.id, name: p.employeeName ?? '' });
@@ -327,16 +385,17 @@ export function InstantPenaltiesPage() {
             {(p.status === 'pending_payment' || p.status === 'doubled') && (
               <button
                 type="button"
-                className="btn-secondary text-[11px] !min-h-0 !py-1.5 !px-2.5 text-[var(--danger)]"
+                className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[var(--danger)] hover:bg-[var(--danger)]/10 border border-transparent hover:border-[var(--danger)]/20 transition-all whitespace-nowrap cursor-pointer"
                 disabled={cancelPenalty.isPending}
                 onClick={() => {
                   setCancelTarget({ id: p.id, name: p.employeeName ?? '' });
                   setCancelReason('');
                   setCancelDialogOpen(true);
                 }}
+                title="إلغاء الغرامة"
               >
-                <XCircle className="size-3" aria-hidden="true" />
-                إلغاء
+                <XCircle className="size-3.5" aria-hidden="true" />
+                <span>إلغاء</span>
               </button>
             )}
           </div>
@@ -419,7 +478,7 @@ export function InstantPenaltiesPage() {
       <PageHeader
         eyebrow="الموارد البشرية"
         title="الغرامات الفورية للتأخير"
-        description="الحضور يبدأ 10:00 ص — أول 15 دقيقة سماح بدون خصم. بعدها: 20 ج.م (حتى 10:30) | 50 ج.م (حتى 11:00) | 150 ج.م (حتى 12:00). عدم السداد يُضاعف لـ 500 ج.م ثم يُعلّق حسابك."
+        description="الحضور يبدأ 10:00 ص — أول 15 دقيقة سماح بدون خصم، بعدها: 20 ج.م (حتى 10:30) | 50 ج.م (حتى 11:00) | 150 ج.م (حتى 12:00). عدم السداد يُضاعف لـ 500 ج.م ثم يُعلَّق الحساب تلقائياً."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -456,407 +515,168 @@ export function InstantPenaltiesPage() {
         </div>
       )}
 
-      {/* ─── رابط لصندوق الزمالة والتكافل ──────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/20 via-emerald-900/10 to-transparent p-4">
-        <div className="flex items-center gap-3">
-          <div className="grid size-10 place-items-center rounded-xl bg-emerald-500/20 text-emerald-400">
-            <Coins className="size-5 animate-pulse text-amber-400" />
-          </div>
-          <div>
-            <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
-              <span>صندوق الزمالة والتكافل</span>
-              <span className="text-xs font-normal text-[var(--text-muted)]">(تُورّد إليه كافة الغرامات تلقائياً)</span>
-            </h3>
-            <p className="text-xs text-[var(--text-muted)]">
-              الرصيد المتاح حالياً بالصندوق:{' '}
-              <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                {(fundSummary.data?.currentBalance ?? 0).toLocaleString('ar-EG')} ج.م
-              </span>
-            </p>
-          </div>
-        </div>
-        <Link to="/admin/fellowship-fund" className="btn-primary text-xs flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
-          <HeartHandshake className="size-4" />
-          <span>فتح صندوق الزمالة وسجل الحركات</span>
-        </Link>
-      </div>
-
-      {/* ─── إحصائيات سريعة قابلة للنقر للدخول والتصفية ──────────────── */}
-      {(stats.pendingCount > 0 || stats.suspendedCount > 0 || stats.totalOwed > 0) && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-black text-[var(--text-primary)] flex items-center gap-2">
-              <Layers className="size-4 text-[var(--brand-primary)]" aria-hidden="true" />
-              <span>نظرة عامة على المستحقات (انقر على أي خانة للتصفية والدخول لمحتواها)</span>
-            </h2>
-            {selectedTier !== 'all' && (
-              <button
-                type="button"
-                className="text-xs text-[var(--danger)] hover:underline flex items-center gap-1 font-bold"
-                onClick={() => setSelectedTier('all')}
-              >
-                <X className="size-3" />
-                <span>إلغاء التصفية ({selectedTier})</span>
-              </button>
-            )}
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            {/* بطاقة المطالبين بالدفع */}
-            <div
-              role="button"
-              tabIndex={0}
-              aria-pressed={selectedTier === 'pending'}
-              onClick={() => setSelectedTier((prev) => (prev === 'pending' ? 'all' : 'pending'))}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedTier((prev) => (prev === 'pending' ? 'all' : 'pending')); }}
-              className={`card group relative p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
-                selectedTier === 'pending'
-                  ? 'ring-2 ring-amber-500 ring-offset-2 dark:ring-offset-slate-900 bg-amber-50/40 dark:bg-amber-950/30 border-amber-500/50'
-                  : 'hover:border-amber-500/40'
-              }`}
-              title="انقر لتصفية الجدول أو عرض كشف الموظفين المطالبين"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-amber-100 dark:bg-amber-900/30 p-2.5 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
-                    <AlertTriangle className="size-5" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <div className="flex items-baseline gap-2">
-                      <p className="text-2xl font-black text-amber-600 dark:text-amber-400">{stats.pendingCount}</p>
-                      <span className="text-xs text-[var(--text-muted)]">موظف</span>
-                    </div>
-                    <p className="text-xs font-bold text-[var(--text-secondary)]">موظف مطالب بالدفع</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="btn-secondary !py-1 !px-2 text-[11px] font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveModalTier('pending');
-                  }}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  title="عرض تفاصيل الموظفين المطالبين بالدفع"
-                >
-                  <span>كشف الموظفين ↗</span>
-                </button>
-              </div>
-              <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-amber-200/50 dark:border-amber-900/40 text-[11px] text-[var(--text-muted)]">
-                <span>إجمالي المستحق: <strong className="text-amber-700 dark:text-amber-300">{formatCurrency(stats.totalOwed)}</strong></span>
-                <span className="text-amber-600 font-medium group-hover:underline">
-                  {selectedTier === 'pending' ? '✓ التصفية نشطة' : 'انقر للتصفية ←'}
-                </span>
-              </div>
-            </div>
-
-            {/* بطاقة الموظفين المعلقين عن العمل */}
-            <div
-              role="button"
-              tabIndex={0}
-              aria-pressed={selectedTier === 'suspended'}
-              onClick={() => setSelectedTier((prev) => (prev === 'suspended' ? 'all' : 'suspended'))}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedTier((prev) => (prev === 'suspended' ? 'all' : 'suspended')); }}
-              className={`card group relative p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
-                selectedTier === 'suspended'
-                  ? 'ring-2 ring-red-500 ring-offset-2 dark:ring-offset-slate-900 bg-red-50/40 dark:bg-red-950/30 border-red-500/50'
-                  : 'hover:border-red-500/40'
-              }`}
-              title="انقر لتصفية الجدول أو عرض تفاصيل الموظفين المعلقين"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-red-100 dark:bg-red-900/30 p-2.5 text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform">
-                    <Ban className="size-5" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <div className="flex items-baseline gap-2">
-                      <p className="text-2xl font-black text-red-600 dark:text-red-400">{stats.suspendedCount}</p>
-                      <span className="text-xs text-[var(--text-muted)]">موظف</span>
-                    </div>
-                    <p className="text-xs font-bold text-[var(--text-secondary)]">موظف معلّق عن العمل (مغلق السيستم)</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="btn-secondary !py-1 !px-2 text-[11px] font-bold text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveModalTier('suspended');
-                  }}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  title="عرض تفاصيل الموظفين المعلقين"
-                >
-                  <span>كشف المعلقين ↗</span>
-                </button>
-              </div>
-              <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-red-200/50 dark:border-red-900/40 text-[11px] text-[var(--text-muted)]">
-                <span>إيقاف الحساب تلقائياً (اليوم 3)</span>
-                <span className="text-red-600 font-medium group-hover:underline">
-                  {selectedTier === 'suspended' ? '✓ التصفية نشطة' : 'انقر للتصفية ←'}
-                </span>
-              </div>
-            </div>
-
-            {/* بطاقة إجمالي المستحق */}
-            <div
-              role="button"
-              tabIndex={0}
-              aria-pressed={activeModalTier === 'total'}
-              onClick={() => setActiveModalTier('total')}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveModalTier('total'); }}
-              className="card group relative p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-orange-500/40"
-              title="انقر لفتح ملخص وتفنيط المستحقات بالتفصيل"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-orange-100 dark:bg-orange-900/30 p-2.5 text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform">
-                    <ShieldAlert className="size-5" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-black text-orange-600 dark:text-orange-400">{formatCurrency(stats.totalOwed)}</p>
-                    <p className="text-xs font-bold text-[var(--text-secondary)]">إجمالي المستحق</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="btn-secondary !py-1 !px-2 text-[11px] font-bold text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveModalTier('total');
-                  }}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  title="عرض تفنيط المبالغ المستحقة"
-                >
-                  <span>تفنيط المبالغ ↗</span>
-                </button>
-              </div>
-              <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-orange-200/50 dark:border-orange-900/40 text-[11px] text-[var(--text-muted)]">
-                <span>تُورّد بالكامل لصندوق الزمالة</span>
-                <span className="text-orange-600 font-medium group-hover:underline">عرض التفاصيل ↗</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── صناديق شرائح الغرامات (20 ج.م / 50 ج.م / 150 ج.م / 500 ج.م) ── */}
+      {/* ─── ملخص + صناديق شرائح الغرامات ─────────────────────────── */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-black text-[var(--text-primary)] flex items-center gap-2">
-            <Coins className="size-4 text-emerald-500" aria-hidden="true" />
-            <span>صناديق شرائح الغرامات والتأخير (اضغط على أي صندوق للدخول وتصفية محتواه)</span>
-          </h2>
-          <span className="text-xs text-[var(--text-muted)]">
-            فترة السماح 10:00 - 10:15 ص (بدون خصم)
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {stats.pendingCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setSelectedTier((prev) => (prev === 'pending' ? 'all' : 'pending'))}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-bold transition-all cursor-pointer ${
+                selectedTier === 'pending'
+                  ? 'border-amber-500 bg-amber-500/15 text-amber-600 dark:text-amber-400 ring-2 ring-amber-500/30'
+                  : 'border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10'
+              }`}
+            >
+              <AlertTriangle className="size-3.5" />
+              <span>{stats.pendingCount} موظف مطالب بالدفع</span>
+              <span className="font-mono opacity-80 mr-1">({formatCurrency(stats.totalOwed)})</span>
+            </button>
+          )}
+          {stats.suspendedCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setSelectedTier((prev) => (prev === 'suspended' ? 'all' : 'suspended'))}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-bold transition-all cursor-pointer ${
+                selectedTier === 'suspended'
+                  ? 'border-red-500 bg-red-500/15 text-red-600 dark:text-red-400 ring-2 ring-red-500/30'
+                  : 'border-red-500/30 bg-red-500/5 text-red-700 dark:text-red-300 hover:bg-red-500/10'
+              }`}
+            >
+              <Ban className="size-3.5" />
+              <span>{stats.suspendedCount} معلّق عن العمل</span>
+            </button>
+          )}
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/5 px-3 py-1.5 font-bold text-emerald-700 dark:text-emerald-300">
+            <Coins className="size-3.5" />
+            <span>رصيد صندوق الزمالة والتكافل: {formatCurrency(fundSummary.data?.currentBalance ?? 0)}</span>
           </span>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {/* صندوق 20 ج.م */}
-          <div
-            role="button"
-            tabIndex={0}
-            aria-pressed={selectedTier === 'tier-20'}
-            onClick={() => setSelectedTier((prev) => (prev === 'tier-20' ? 'all' : 'tier-20'))}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedTier((prev) => (prev === 'tier-20' ? 'all' : 'tier-20')); }}
-            className={`card group relative p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
-              selectedTier === 'tier-20'
-                ? 'ring-2 ring-sky-500 ring-offset-2 dark:ring-offset-slate-900 bg-sky-50/40 dark:bg-sky-950/30 border-sky-500'
-                : 'border-sky-500/20 hover:border-sky-500/50 bg-gradient-to-b from-sky-500/5 to-transparent'
-            }`}
-            title="انقر لتصفية غرامات الـ 20 ج.م"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <div className="rounded-xl bg-sky-100 dark:bg-sky-900/40 p-2 text-sky-600 dark:text-sky-300">
-                  <Clock3 className="size-4" />
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+          {[
+            {
+              key: 'tier-20' as const,
+              label: '20 ج.م',
+              badge: '16-30 دقيقة',
+              count: tierStats.tier20.count,
+              total: tierStats.tier20.total,
+              pending: tierStats.tier20.pendingCount,
+              icon: Clock3,
+              activeCls: 'border-sky-500 bg-sky-500/10 ring-2 ring-sky-500/30',
+              inactiveCls: 'border-sky-500/25 bg-sky-500/[.03] hover:border-sky-500/50 hover:bg-sky-500/[.06]',
+              iconCls: 'bg-sky-500/15 text-sky-600 dark:text-sky-400',
+              badgeCls: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20',
+              countCls: 'text-sky-600 dark:text-sky-400',
+            },
+            {
+              key: 'tier-50' as const,
+              label: '50 ج.م',
+              badge: '31-60 دقيقة',
+              count: tierStats.tier50.count,
+              total: tierStats.tier50.total,
+              pending: tierStats.tier50.pendingCount,
+              icon: SunMedium,
+              activeCls: 'border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/30',
+              inactiveCls: 'border-amber-500/25 bg-amber-500/[.03] hover:border-amber-500/50 hover:bg-amber-500/[.06]',
+              iconCls: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+              badgeCls: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20',
+              countCls: 'text-amber-600 dark:text-amber-400',
+            },
+            {
+              key: 'tier-150' as const,
+              label: '150 ج.م',
+              badge: '> 11:00 ص / عدم بصمة',
+              count: tierStats.tier150.count,
+              total: tierStats.tier150.total,
+              pending: tierStats.tier150.pendingCount,
+              icon: Zap,
+              activeCls: 'border-orange-500 bg-orange-500/10 ring-2 ring-orange-500/30',
+              inactiveCls: 'border-orange-500/25 bg-orange-500/[.03] hover:border-orange-500/50 hover:bg-orange-500/[.06]',
+              iconCls: 'bg-orange-500/15 text-orange-600 dark:text-orange-400',
+              badgeCls: 'bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20',
+              countCls: 'text-orange-600 dark:text-orange-400',
+            },
+            {
+              key: 'tier-500' as const,
+              label: '500 ج.م',
+              badge: 'مضاعفة اليوم 2',
+              count: tierStats.tier500.count,
+              total: tierStats.tier500.total,
+              pending: tierStats.tier500.pendingCount,
+              icon: Flame,
+              activeCls: 'border-purple-500 bg-purple-500/10 ring-2 ring-purple-500/30',
+              inactiveCls: 'border-purple-500/25 bg-purple-500/[.03] hover:border-purple-500/50 hover:bg-purple-500/[.06]',
+              iconCls: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
+              badgeCls: 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20',
+              countCls: 'text-purple-600 dark:text-purple-400',
+            },
+          ].map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setSelectedTier((prev) => (prev === t.key ? 'all' : t.key))}
+              className={`text-start rounded-xl border p-3.5 transition-all cursor-pointer ${selectedTier === t.key ? t.activeCls : t.inactiveCls}`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className={`rounded-lg p-1.5 ${t.iconCls}`}>
+                    <t.icon className="size-4" aria-hidden="true" />
+                  </div>
+                  <span className="text-xs font-bold text-[var(--text-primary)]">{t.label}</span>
                 </div>
-                <div>
-                  <h3 className="font-bold text-xs text-sky-900 dark:text-sky-200">صندوق غرامات 20 ج.م</h3>
-                  <p className="text-[10px] text-[var(--text-muted)]">تأخير 16-30 دقيقة (10:16 - 10:30)</p>
-                </div>
+                <span className={`text-[10px] rounded border px-1.5 py-0.5 font-mono ${t.badgeCls}`}>{t.badge}</span>
               </div>
-              <button
-                type="button"
-                className="text-[11px] text-sky-600 dark:text-sky-400 hover:underline font-bold"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveModalTier('tier-20');
-                }}
-                onKeyDown={(e) => e.stopPropagation()}
-              >
-                تفاصيل ↗
-              </button>
-            </div>
-            <div className="mt-3 flex items-baseline justify-between">
-              <div>
-                <span className="text-xl font-black text-sky-600 dark:text-sky-400">{tierStats.tier20.count}</span>
-                <span className="text-xs text-[var(--text-muted)] mr-1">غرامة</span>
+              <div className="flex items-baseline justify-between mt-1">
+                <span className={`text-2xl font-black font-mono leading-none ${t.countCls}`}>{t.count}</span>
+                <span className="text-xs font-mono font-bold text-[var(--text-secondary)]">{formatCurrency(t.total)}</span>
               </div>
-              <span className="text-xs font-bold font-mono text-sky-700 dark:text-sky-300">
-                {formatCurrency(tierStats.tier20.total)}
-              </span>
-            </div>
-            <div className="mt-2 flex items-center justify-between pt-2 border-t border-sky-200/40 dark:border-sky-900/30 text-[10px] text-[var(--text-muted)]">
-              <span>{tierStats.tier20.pendingCount} بانتظار التحصيل</span>
-              <span className="text-sky-600 font-bold">{selectedTier === 'tier-20' ? '✓ مفعّل' : 'دخول الصندوق ←'}</span>
-            </div>
-          </div>
-
-          {/* صندوق 50 ج.م */}
-          <div
-            role="button"
-            tabIndex={0}
-            aria-pressed={selectedTier === 'tier-50'}
-            onClick={() => setSelectedTier((prev) => (prev === 'tier-50' ? 'all' : 'tier-50'))}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedTier((prev) => (prev === 'tier-50' ? 'all' : 'tier-50')); }}
-            className={`card group relative p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
-              selectedTier === 'tier-50'
-                ? 'ring-2 ring-amber-500 ring-offset-2 dark:ring-offset-slate-900 bg-amber-50/40 dark:bg-amber-950/30 border-amber-500'
-                : 'border-amber-500/20 hover:border-amber-500/50 bg-gradient-to-b from-amber-500/5 to-transparent'
-            }`}
-            title="انقر لتصفية غرامات الـ 50 ج.م"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <div className="rounded-xl bg-amber-100 dark:bg-amber-900/40 p-2 text-amber-600 dark:text-amber-300">
-                  <SunMedium className="size-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xs text-amber-900 dark:text-amber-200">صندوق غرامات 50 ج.م</h3>
-                  <p className="text-[10px] text-[var(--text-muted)]">تأخير 31-60 دقيقة (10:31 - 11:00)</p>
-                </div>
+              <div className="mt-2.5 pt-2 border-t border-[var(--border-subtle)] text-[11px] flex items-center justify-between">
+                <span className="text-amber-500 font-medium">{t.pending} معلّق</span>
+                <span className={`font-bold text-xs ${selectedTier === t.key ? 'text-primary' : 'text-[var(--text-muted)]'}`}>
+                  {selectedTier === t.key ? 'محدد ✓' : 'عرض ←'}
+                </span>
               </div>
-              <button
-                type="button"
-                className="text-[11px] text-amber-600 dark:text-amber-400 hover:underline font-bold"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveModalTier('tier-50');
-                }}
-                onKeyDown={(e) => e.stopPropagation()}
-              >
-                تفاصيل ↗
-              </button>
-            </div>
-            <div className="mt-3 flex items-baseline justify-between">
-              <div>
-                <span className="text-xl font-black text-amber-600 dark:text-amber-400">{tierStats.tier50.count}</span>
-                <span className="text-xs text-[var(--text-muted)] mr-1">غرامة</span>
-              </div>
-              <span className="text-xs font-bold font-mono text-amber-700 dark:text-amber-300">
-                {formatCurrency(tierStats.tier50.total)}
-              </span>
-            </div>
-            <div className="mt-2 flex items-center justify-between pt-2 border-t border-amber-200/40 dark:border-amber-900/30 text-[10px] text-[var(--text-muted)]">
-              <span>{tierStats.tier50.pendingCount} بانتظار التحصيل</span>
-              <span className="text-amber-600 font-bold">{selectedTier === 'tier-50' ? '✓ مفعّل' : 'دخول الصندوق ←'}</span>
-            </div>
-          </div>
-
-          {/* صندوق 150 ج.م */}
-          <div
-            role="button"
-            tabIndex={0}
-            aria-pressed={selectedTier === 'tier-150'}
-            onClick={() => setSelectedTier((prev) => (prev === 'tier-150' ? 'all' : 'tier-150'))}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedTier((prev) => (prev === 'tier-150' ? 'all' : 'tier-150')); }}
-            className={`card group relative p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
-              selectedTier === 'tier-150'
-                ? 'ring-2 ring-orange-500 ring-offset-2 dark:ring-offset-slate-900 bg-orange-50/40 dark:bg-orange-950/30 border-orange-500'
-                : 'border-orange-500/20 hover:border-orange-500/50 bg-gradient-to-b from-orange-500/5 to-transparent'
-            }`}
-            title="انقر لتصفية غرامات الـ 150 ج.م"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <div className="rounded-xl bg-orange-100 dark:bg-orange-900/40 p-2 text-orange-600 dark:text-orange-300">
-                  <Zap className="size-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xs text-orange-900 dark:text-orange-200">صندوق غرامات 150 ج.م</h3>
-                  <p className="text-[10px] text-[var(--text-muted)]">تأخير بعد 11:00 ص أو لم يبصم</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="text-[11px] text-orange-600 dark:text-orange-400 hover:underline font-bold"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveModalTier('tier-150');
-                }}
-                onKeyDown={(e) => e.stopPropagation()}
-              >
-                تفاصيل ↗
-              </button>
-            </div>
-            <div className="mt-3 flex items-baseline justify-between">
-              <div>
-                <span className="text-xl font-black text-orange-600 dark:text-orange-400">{tierStats.tier150.count}</span>
-                <span className="text-xs text-[var(--text-muted)] mr-1">غرامة</span>
-              </div>
-              <span className="text-xs font-bold font-mono text-orange-700 dark:text-orange-300">
-                {formatCurrency(tierStats.tier150.total)}
-              </span>
-            </div>
-            <div className="mt-2 flex items-center justify-between pt-2 border-t border-orange-200/40 dark:border-orange-900/30 text-[10px] text-[var(--text-muted)]">
-              <span>{tierStats.tier150.pendingCount} بانتظار التحصيل</span>
-              <span className="text-orange-600 font-bold">{selectedTier === 'tier-150' ? '✓ مفعّل' : 'دخول الصندوق ←'}</span>
-            </div>
-          </div>
-
-          {/* صندوق 500 ج.م (المضاعفة) */}
-          <div
-            role="button"
-            tabIndex={0}
-            aria-pressed={selectedTier === 'tier-500'}
-            onClick={() => setSelectedTier((prev) => (prev === 'tier-500' ? 'all' : 'tier-500'))}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedTier((prev) => (prev === 'tier-500' ? 'all' : 'tier-500')); }}
-            className={`card group relative p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
-              selectedTier === 'tier-500'
-                ? 'ring-2 ring-purple-500 ring-offset-2 dark:ring-offset-slate-900 bg-purple-50/40 dark:bg-purple-950/30 border-purple-500'
-                : 'border-purple-500/20 hover:border-purple-500/50 bg-gradient-to-b from-purple-500/5 to-transparent'
-            }`}
-            title="انقر لتصفية الغرامات المضاعفة لـ 500 ج.م"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <div className="rounded-xl bg-purple-100 dark:bg-purple-900/40 p-2 text-purple-600 dark:text-purple-300">
-                  <Flame className="size-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xs text-purple-900 dark:text-purple-200">غرامات مضاعفة 500 ج.م</h3>
-                  <p className="text-[10px] text-[var(--text-muted)]">اليوم 2 لعدم سداد غرامة الأمس</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="text-[11px] text-purple-600 dark:text-purple-400 hover:underline font-bold"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveModalTier('tier-500');
-                }}
-                onKeyDown={(e) => e.stopPropagation()}
-              >
-                تفاصيل ↗
-              </button>
-            </div>
-            <div className="mt-3 flex items-baseline justify-between">
-              <div>
-                <span className="text-xl font-black text-purple-600 dark:text-purple-400">{tierStats.tier500.count}</span>
-                <span className="text-xs text-[var(--text-muted)] mr-1">غرامة</span>
-              </div>
-              <span className="text-xs font-bold font-mono text-purple-700 dark:text-purple-300">
-                {formatCurrency(tierStats.tier500.total)}
-              </span>
-            </div>
-            <div className="mt-2 flex items-center justify-between pt-2 border-t border-purple-200/40 dark:border-purple-900/30 text-[10px] text-[var(--text-muted)]">
-              <span>{tierStats.tier500.pendingCount} بانتظار التحصيل</span>
-              <span className="text-purple-600 font-bold">{selectedTier === 'tier-500' ? '✓ مفعّل' : 'دخول الصندوق ←'}</span>
-            </div>
-          </div>
+            </button>
+          ))}
         </div>
+
+        {selectedTier !== 'all' && (
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-[var(--text-muted)]">تصفية:</span>
+              <span className="font-bold text-primary">
+                {selectedTier === 'pending' && 'المطالبون بالدفع'}
+                {selectedTier === 'suspended' && 'المعلّقون عن العمل'}
+                {selectedTier === 'tier-20' && 'شريحة 20 ج.م'}
+                {selectedTier === 'tier-50' && 'شريحة 50 ج.م'}
+                {selectedTier === 'tier-150' && 'شريحة 150 ج.م'}
+                {selectedTier === 'tier-500' && 'مضاعفة 500 ج.م'}
+              </span>
+              <span className="text-[var(--text-muted)] font-mono">({rows.length})</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button type="button" className="text-primary hover:underline font-bold" onClick={() => setActiveModalTier(selectedTier)}>
+                الكشف التفصيلي ↗
+              </button>
+              <button type="button" className="text-[var(--danger)] hover:underline font-bold" onClick={() => setSelectedTier('all')}>
+                إلغاء ✕
+              </button>
+            </div>
+          </div>
+        )}
+
+        {stats.suspendedCount > 0 && selectedTier !== 'suspended' && (
+          <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-xs text-red-700 dark:text-red-300 flex items-center justify-between">
+            <span className="flex items-center gap-2 font-bold">
+              <Ban className="size-4" />
+              {stats.suspendedCount} موظف موقوف — حسابات مغلقة لعدم سداد 500 ج.م
+            </span>
+            <button type="button" className="font-bold hover:underline" onClick={() => setSelectedTier('suspended')}>
+              عرض الكشف ←
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ─── نموذج الإنشاء اليدوي ──────────────────────────────────── */}
@@ -864,7 +684,8 @@ export function InstantPenaltiesPage() {
         <section className="card p-5">
           <h2 className="font-black">إنشاء غرامة فورية للتأخير</h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            الحضور يبدأ 10:00 ص: من 1-15 دقيقة = سماح بدون خصم (0 ج.م) | حتى 10:30 (16-30 دقيقة) = 20 ج.م | حتى 11:00 (31-60 دقيقة) = 50 ج.م | حتى 12:00 (61-120 دقيقة) = 150 ج.م.
+            الحضور يبدأ 10:00 ص: من 1-15 دقيقة = سماح بدون خصم (0 ج.م) | حتى 10:30 (16-30 دقيقة) = 20 ج.م | حتى 11:00 (31-60 دقيقة) = 50 ج.م | حتى 12:00 (61-120
+            دقيقة) = 150 ج.م.
           </p>
           <form className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" onSubmit={(ev) => void submitPenalty(ev)}>
             <label className="block">
@@ -908,11 +729,7 @@ export function InstantPenaltiesPage() {
               )}
             </label>
             <div className="flex items-end gap-2">
-              <button
-                type="submit"
-                className="btn-primary"
-                disabled={generatePenalty.isPending || !employeeId || !(Number(lateMinutes) > 0)}
-              >
+              <button type="submit" className="btn-primary" disabled={generatePenalty.isPending || !employeeId || !(Number(lateMinutes) > 0)}>
                 {generatePenalty.isPending ? 'جارٍ الحفظ…' : 'تسجيل الغرامة'}
               </button>
               <button type="button" className="btn-secondary" onClick={() => setFormOpen(false)}>
@@ -922,72 +739,6 @@ export function InstantPenaltiesPage() {
             {generatePenalty.isError && <p className="text-sm text-[var(--danger)] sm:col-span-2 lg:col-span-4">{safeErrorMessage(generatePenalty.error)}</p>}
           </form>
         </section>
-      )}
-
-      {/* ─── الموظفين المعلقين ──────────────────────────────────────── */}
-      {(pendingEmployees.data ?? []).some((e) => e.isSuspended) && (
-        <section className="card border-2 border-red-500/30 bg-red-50/50 dark:bg-red-950/20 p-4">
-          <div className="flex items-center justify-between">
-            <h3 className="flex items-center gap-2 font-black text-red-700 dark:text-red-400">
-              <Ban className="size-4" aria-hidden="true" />
-              موظفون موقوفون عن العمل — اليوم الثالث
-            </h3>
-            <span className="text-xs font-bold text-red-600 dark:text-red-400">تم إشعار الفريق</span>
-          </div>
-          <p className="mt-1 text-xs text-red-600 dark:text-red-400/80">
-            حسابات مغلقة لعدم سداد 500 ج.م — لا يمكن تسجيل الدخول حتى السداد للـ HR.
-          </p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {(pendingEmployees.data ?? [])
-              .filter((e) => e.isSuspended)
-              .map((e) => (
-                <div key={e.employeeId} className="flex items-center justify-between rounded-lg bg-[var(--surface-base)] p-3 shadow-sm border border-red-200 dark:border-red-900/30">
-                  <div>
-                    <p className="font-bold text-red-700 dark:text-red-400">{e.employeeName ?? '—'}</p>
-                    <p className="text-xs text-[var(--text-muted)]">{e.departmentName ?? '—'}</p>
-                  </div>
-                  <div className="text-end">
-                    <span className="font-black text-red-600 dark:text-red-400 block">{formatCurrency(e.totalAmount)}</span>
-                    <span className="text-[10px] text-red-500 dark:text-red-400/70 font-bold">معلّق</span>
-                  </div>
-                </div>
-              ))}
-          </div>
-        </section>
-      )}
-
-      {/* ─── شريط التصفية النشطة حسب الصندوق ───────────────────────── */}
-      {selectedTier !== 'all' && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-[var(--text-primary)]">تصفية نشطة حسب الصندوق:</span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-0.5 font-black text-primary">
-              {selectedTier === 'pending' && 'المطالبون بالدفع حالياً'}
-              {selectedTier === 'suspended' && 'المعلّقون عن العمل (اليوم الثالث)'}
-              {selectedTier === 'tier-20' && 'صندوق غرامات 20 ج.م (16-30 دقيقة تأخير)'}
-              {selectedTier === 'tier-50' && 'صندوق غرامات 50 ج.م (31-60 دقيقة تأخير)'}
-              {selectedTier === 'tier-150' && 'صندوق غرامات 150 ج.م (تأخير بعد 11:00 ص / عدم بصمة)'}
-              {selectedTier === 'tier-500' && 'صندوق الغرامات المضاعفة 500 ج.م (اليوم الثاني)'}
-            </span>
-            <span className="text-[var(--text-muted)] font-mono">({rows.length} غرامة مطابقة)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="font-bold text-primary hover:underline"
-              onClick={() => setActiveModalTier(selectedTier)}
-            >
-              عرض الكشف التفصيلي الكامل للمحتوى ↗
-            </button>
-            <button
-              type="button"
-              className="rounded-lg border border-[var(--border)] bg-[var(--surface-base)] px-2.5 py-1 font-bold text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] transition-colors"
-              onClick={() => setSelectedTier('all')}
-            >
-              إلغاء التصفية ✕
-            </button>
-          </div>
-        </div>
       )}
 
       {/* ─── شريط الفلاتر ──────────────────────────────────────────── */}
@@ -1028,11 +779,14 @@ export function InstantPenaltiesPage() {
         <DataTable
           ariaLabel="جدول الغرامات الفورية للتأخير"
           rowKey={(p) => p.id}
+          focusedKey={focusedId}
           data={rows}
-          minWidth="800px"
+          minWidth="920px"
+          maxHeight="75vh"
           columns={columns}
           emptyTitle="لا توجد نتائج"
           emptyDescription="جرّب تعديل البحث أو الحالة."
+          rowClassName={(p) => (p.status === 'paid' || p.status === 'cancelled' ? 'row-dimmed' : undefined)}
         />
       )}
 
@@ -1100,7 +854,7 @@ export function InstantPenaltiesPage() {
                       ) : (
                         (pendingEmployees.data ?? []).map((e) => {
                           const firstPenalty = (penalties.data ?? []).find(
-                            (p) => p.employeeId === e.employeeId && (p.status === 'pending_payment' || p.status === 'doubled' || p.status === 'suspended')
+                            (p) => p.employeeId === e.employeeId && (p.status === 'pending_payment' || p.status === 'doubled' || p.status === 'suspended'),
                           );
                           return (
                             <tr key={e.employeeId} className="hover:bg-[var(--surface-hover)] transition-colors">
@@ -1130,9 +884,10 @@ export function InstantPenaltiesPage() {
                                       className="btn-primary !py-1 !px-2 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                                       onClick={() => {
                                         setActiveModalTier(null);
-                                        const confirmMsg = firstPenalty.status === 'suspended'
-                                          ? `هل تم استلام 500 ج.م من الزميل ${firstPenalty.employeeName ?? 'الموظف'} وتوريدها لصندوق الزمالة؟ سيتم رفع التعليق فوراً وفتح السيستم وعودته لمباشرة العمل وإشعار الفريق.`
-                                          : `تأكيد استلام ${formatCurrency(firstPenalty.currentAmount)} من الزميل ${firstPenalty.employeeName ?? 'الموظف'} وإيداعها في صندوق الزمالة والتكافل؟`;
+                                        const confirmMsg =
+                                          firstPenalty.status === 'suspended'
+                                            ? `هل تم استلام 500 ج.م من الزميل ${firstPenalty.employeeName ?? 'الموظف'} وتوريدها لصندوق الزمالة؟ سيتم رفع التعليق فوراً وفتح السيستم وعودته لمباشرة العمل وإشعار الفريق.`
+                                            : `تأكيد استلام ${formatCurrency(firstPenalty.currentAmount)} من الزميل ${firstPenalty.employeeName ?? 'الموظف'} وإيداعها في صندوق الزمالة والتكافل؟`;
                                         setPaymentTarget({ id: firstPenalty.id, name: firstPenalty.employeeName ?? '', msg: confirmMsg });
                                         setPaymentNotes('');
                                         setPaymentDialogOpen(true);
@@ -1198,11 +953,7 @@ export function InstantPenaltiesPage() {
                     >
                       تصفية الجدول بهؤلاء الموظفين ←
                     </button>
-                    <button
-                      type="button"
-                      className="btn-secondary !py-1.5 !px-3 text-xs"
-                      onClick={() => setActiveModalTier(null)}
-                    >
+                    <button type="button" className="btn-secondary !py-1.5 !px-3 text-xs" onClick={() => setActiveModalTier(null)}>
                       إغلاق
                     </button>
                   </div>
@@ -1219,7 +970,8 @@ export function InstantPenaltiesPage() {
                     تنبيه إيقاف الحسابات ومباشرة العمل (اليوم الثالث):
                   </p>
                   <p className="mt-1">
-                    تم إيقاف حسابات هؤلاء الزملاء برمجياً بسبب عدم سداد غرامة الـ 500 ج.م المضاعفة. لا يمكنهم تسجيل الدخول على المنظومة حتى يتم استلام المبلغ وتوريده لصندوق الزمالة والتكافل.
+                    تم إيقاف حسابات هؤلاء الزملاء برمجياً بسبب عدم سداد غرامة الـ 500 ج.م المضاعفة. لا يمكنهم تسجيل الدخول على المنظومة حتى يتم استلام المبلغ
+                    وتوريده لصندوق الزمالة والتكافل.
                   </p>
                 </div>
 
@@ -1245,9 +997,7 @@ export function InstantPenaltiesPage() {
                         (pendingEmployees.data ?? [])
                           .filter((e) => e.isSuspended)
                           .map((e) => {
-                            const suspendedPenalty = (penalties.data ?? []).find(
-                              (p) => p.employeeId === e.employeeId && p.status === 'suspended'
-                            );
+                            const suspendedPenalty = (penalties.data ?? []).find((p) => p.employeeId === e.employeeId && p.status === 'suspended');
                             return (
                               <tr key={e.employeeId} className="hover:bg-[var(--surface-hover)] transition-colors">
                                 <td className="p-3">
@@ -1335,11 +1085,7 @@ export function InstantPenaltiesPage() {
                     >
                       تصفية الجدول بالمعلقين ←
                     </button>
-                    <button
-                      type="button"
-                      className="btn-secondary !py-1.5 !px-3 text-xs"
-                      onClick={() => setActiveModalTier(null)}
-                    >
+                    <button type="button" className="btn-secondary !py-1.5 !px-3 text-xs" onClick={() => setActiveModalTier(null)}>
                       إغلاق
                     </button>
                   </div>
@@ -1368,7 +1114,9 @@ export function InstantPenaltiesPage() {
                   <div className="rounded-xl border border-amber-500/30 bg-amber-50/40 dark:bg-amber-950/20 p-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-amber-700 dark:text-amber-300">شريحة 50 ج.م</span>
-                      <span className="text-[10px] bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded font-mono">31-60 د</span>
+                      <span className="text-[10px] bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded font-mono">
+                        31-60 د
+                      </span>
                     </div>
                     <p className="mt-2 text-xl font-black text-amber-600 dark:text-amber-400 font-mono">{formatCurrency(tierStats.tier50.total)}</p>
                     <p className="text-[11px] text-[var(--text-muted)] mt-1 flex justify-between">
@@ -1381,7 +1129,9 @@ export function InstantPenaltiesPage() {
                   <div className="rounded-xl border border-orange-500/30 bg-orange-50/40 dark:bg-orange-950/20 p-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-orange-700 dark:text-orange-300">شريحة 150 ج.م</span>
-                      <span className="text-[10px] bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 px-1.5 py-0.5 rounded font-mono">&gt;11:00ص</span>
+                      <span className="text-[10px] bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 px-1.5 py-0.5 rounded font-mono">
+                        &gt;11:00ص
+                      </span>
                     </div>
                     <p className="mt-2 text-xl font-black text-orange-600 dark:text-orange-400 font-mono">{formatCurrency(tierStats.tier150.total)}</p>
                     <p className="text-[11px] text-[var(--text-muted)] mt-1 flex justify-between">
@@ -1394,7 +1144,9 @@ export function InstantPenaltiesPage() {
                   <div className="rounded-xl border border-purple-500/30 bg-purple-50/40 dark:bg-purple-950/20 p-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-purple-700 dark:text-purple-300">مضاعفة 500 ج.م</span>
-                      <span className="text-[10px] bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded font-mono">اليوم الثاني</span>
+                      <span className="text-[10px] bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded font-mono">
+                        اليوم الثاني
+                      </span>
                     </div>
                     <p className="mt-2 text-xl font-black text-purple-600 dark:text-purple-400 font-mono">{formatCurrency(tierStats.tier500.total)}</p>
                     <p className="text-[11px] text-[var(--text-muted)] mt-1 flex justify-between">
@@ -1419,11 +1171,7 @@ export function InstantPenaltiesPage() {
                     >
                       فتح صندوق الزمالة ↗
                     </Link>
-                    <button
-                      type="button"
-                      className="btn-secondary !py-2 !px-4 text-xs font-bold whitespace-nowrap"
-                      onClick={() => setActiveModalTier(null)}
-                    >
+                    <button type="button" className="btn-secondary !py-2 !px-4 text-xs font-bold whitespace-nowrap" onClick={() => setActiveModalTier(null)}>
                       إغلاق
                     </button>
                   </div>
@@ -1432,153 +1180,171 @@ export function InstantPenaltiesPage() {
             )}
 
             {/* 4. تفاصيل الشرائح المحددة (20 / 50 / 150 / 500) */}
-            {(activeModalTier === 'tier-20' || activeModalTier === 'tier-50' || activeModalTier === 'tier-150' || activeModalTier === 'tier-500') && (() => {
-              const tierConfig =
-                activeModalTier === 'tier-20'
-                  ? { label: 'غرامات 20 ج.م', desc: 'الحضور من 10:16 ص إلى 10:30 ص (تأخير 16-30 دقيقة)', stats: tierStats.tier20, color: 'text-sky-600 dark:text-sky-400' }
-                  : activeModalTier === 'tier-50'
-                    ? { label: 'غرامات 50 ج.م', desc: 'الحضور من 10:31 ص إلى 11:00 ص (تأخير 31-60 دقيقة)', stats: tierStats.tier50, color: 'text-amber-600 dark:text-amber-400' }
-                    : activeModalTier === 'tier-150'
-                      ? { label: 'غرامات 150 ج.م', desc: 'الحضور بعد 11:00 ص أو عدم تسجيل البصمة', stats: tierStats.tier150, color: 'text-orange-600 dark:text-orange-400' }
-                      : { label: 'غرامات مضاعفة 500 ج.م', desc: 'عدم سداد غرامة اليوم السابق حتى 10:00 ص اليوم التالي', stats: tierStats.tier500, color: 'text-purple-600 dark:text-purple-400' };
+            {(activeModalTier === 'tier-20' || activeModalTier === 'tier-50' || activeModalTier === 'tier-150' || activeModalTier === 'tier-500') &&
+              (() => {
+                const tierConfig =
+                  activeModalTier === 'tier-20'
+                    ? {
+                        label: 'غرامات 20 ج.م',
+                        desc: 'الحضور من 10:16 ص إلى 10:30 ص (تأخير 16-30 دقيقة)',
+                        stats: tierStats.tier20,
+                        color: 'text-sky-600 dark:text-sky-400',
+                      }
+                    : activeModalTier === 'tier-50'
+                      ? {
+                          label: 'غرامات 50 ج.م',
+                          desc: 'الحضور من 10:31 ص إلى 11:00 ص (تأخير 31-60 دقيقة)',
+                          stats: tierStats.tier50,
+                          color: 'text-amber-600 dark:text-amber-400',
+                        }
+                      : activeModalTier === 'tier-150'
+                        ? {
+                            label: 'غرامات 150 ج.م',
+                            desc: 'الحضور بعد 11:00 ص أو عدم تسجيل البصمة',
+                            stats: tierStats.tier150,
+                            color: 'text-orange-600 dark:text-orange-400',
+                          }
+                        : {
+                            label: 'غرامات مضاعفة 500 ج.م',
+                            desc: 'عدم سداد غرامة اليوم السابق حتى 10:00 ص اليوم التالي',
+                            stats: tierStats.tier500,
+                            color: 'text-purple-600 dark:text-purple-400',
+                          };
 
-              return (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="rounded-xl bg-[var(--surface-muted)] border border-[var(--border-subtle)] p-3 text-center">
-                      <span className="text-xs text-[var(--text-muted)] block">إجمالي الغرامات</span>
-                      <span className="text-lg font-black text-[var(--text-primary)] font-mono">{tierConfig.stats.count}</span>
+                return (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="rounded-xl bg-[var(--surface-muted)] border border-[var(--border-subtle)] p-3 text-center">
+                        <span className="text-xs text-[var(--text-muted)] block">إجمالي الغرامات</span>
+                        <span className="text-lg font-black text-[var(--text-primary)] font-mono">{tierConfig.stats.count}</span>
+                      </div>
+                      <div className="rounded-xl bg-[var(--surface-muted)] border border-[var(--border-subtle)] p-3 text-center">
+                        <span className="text-xs text-[var(--text-muted)] block">إجمالي القيمة</span>
+                        <span className={`text-lg font-black font-mono ${tierConfig.color}`}>{formatCurrency(tierConfig.stats.total)}</span>
+                      </div>
+                      <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 text-center">
+                        <span className="text-xs text-amber-700 dark:text-amber-300 block">بانتظار التحصيل</span>
+                        <span className="text-lg font-black text-amber-600 dark:text-amber-400 font-mono">{tierConfig.stats.pendingCount}</span>
+                      </div>
+                      <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-center">
+                        <span className="text-xs text-emerald-700 dark:text-emerald-300 block">مُورّدة بالصندوق</span>
+                        <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">{tierConfig.stats.paidCount}</span>
+                      </div>
                     </div>
-                    <div className="rounded-xl bg-[var(--surface-muted)] border border-[var(--border-subtle)] p-3 text-center">
-                      <span className="text-xs text-[var(--text-muted)] block">إجمالي القيمة</span>
-                      <span className={`text-lg font-black font-mono ${tierConfig.color}`}>{formatCurrency(tierConfig.stats.total)}</span>
-                    </div>
-                    <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 text-center">
-                      <span className="text-xs text-amber-700 dark:text-amber-300 block">بانتظار التحصيل</span>
-                      <span className="text-lg font-black text-amber-600 dark:text-amber-400 font-mono">{tierConfig.stats.pendingCount}</span>
-                    </div>
-                    <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-center">
-                      <span className="text-xs text-emerald-700 dark:text-emerald-300 block">مُورّدة بالصندوق</span>
-                      <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">{tierConfig.stats.paidCount}</span>
-                    </div>
-                  </div>
 
-                  <div className="overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]">
-                    <table className="w-full text-start text-xs">
-                      <thead className="bg-[var(--surface-muted)] text-[var(--text-muted)] font-bold border-b border-[var(--border-subtle)]">
-                        <tr>
-                          <th className="p-3 text-start">الموظف</th>
-                          <th className="p-3 text-start">الإدارة</th>
-                          <th className="p-3 text-start">تاريخ التأخير</th>
-                          <th className="p-3 text-center">التأخير</th>
-                          <th className="p-3 text-end">المطلوب</th>
-                          <th className="p-3 text-center">الحالة</th>
-                          <th className="p-3 text-center">إجراء سريع</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--border-subtle)]">
-                        {tierConfig.stats.items.length === 0 ? (
+                    <div className="overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]">
+                      <table className="w-full text-start text-xs">
+                        <thead className="bg-[var(--surface-muted)] text-[var(--text-muted)] font-bold border-b border-[var(--border-subtle)]">
                           <tr>
-                            <td colSpan={7} className="p-6 text-center text-[var(--text-muted)]">
-                              لا توجد أي غرامات مسجلة في هذه الشريحة حالياً.
-                            </td>
+                            <th className="p-3 text-start">الموظف</th>
+                            <th className="p-3 text-start">الإدارة</th>
+                            <th className="p-3 text-start">تاريخ التأخير</th>
+                            <th className="p-3 text-center">التأخير</th>
+                            <th className="p-3 text-end">المطلوب</th>
+                            <th className="p-3 text-center">الحالة</th>
+                            <th className="p-3 text-center">إجراء سريع</th>
                           </tr>
-                        ) : (
-                          tierConfig.stats.items.map((p) => {
-                            const isPending = p.status === 'pending_payment' || p.status === 'doubled' || p.status === 'suspended';
-                            return (
-                              <tr key={p.id} className="hover:bg-[var(--surface-hover)] transition-colors">
-                                <td className="p-3 font-bold text-[var(--text-primary)]">
-                                  {p.employeeName ?? '—'}
-                                  {p.employeeCode && <span className="block text-[10px] text-[var(--text-muted)] font-mono">{p.employeeCode}</span>}
-                                </td>
-                                <td className="p-3 text-[var(--text-secondary)]">{p.departmentName ?? '—'}</td>
-                                <td className="p-3 whitespace-nowrap text-[var(--text-muted)]">{dateFormatter.format(new Date(p.workDate + 'T00:00:00'))}</td>
-                                <td className="p-3 text-center">
-                                  <span className="font-bold text-amber-600 dark:text-amber-400">{p.lateMinutes} د</span>
-                                </td>
-                                <td className="p-3 text-end font-black font-mono text-[var(--text-primary)]">{formatCurrency(p.currentAmount)}</td>
-                                <td className="p-3 text-center">
-                                  <StatusBadge status={p.status} label={INSTANT_PENALTY_STATUS_LABELS[p.status] ?? p.status} />
-                                </td>
-                                <td className="p-3 text-center">
-                                  {isPending ? (
-                                    <button
-                                      type="button"
-                                      className="btn-primary !py-1 !px-2.5 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold whitespace-nowrap"
-                                      onClick={() => {
-                                        setActiveModalTier(null);
-                                        const confirmMsg = p.status === 'suspended'
-                                          ? `هل تم استلام 500 ج.م من الزميل ${p.employeeName ?? 'الموظف'} وتوريدها لصندوق الزمالة؟ سيتم رفع التعليق فوراً وفتح السيستم وعودته لمباشرة العمل وإشعار الفريق.`
-                                          : `تأكيد استلام ${formatCurrency(p.currentAmount)} من الزميل ${p.employeeName ?? 'الموظف'} وإيداعها في صندوق الزمالة والتكافل؟`;
-                                        setPaymentTarget({ id: p.id, name: p.employeeName ?? '', msg: confirmMsg });
-                                        setPaymentNotes('');
-                                        setPaymentDialogOpen(true);
-                                      }}
-                                    >
-                                      <Coins className="size-3 text-amber-300" />
-                                      <span>إيداع بالصندوق</span>
-                                    </button>
-                                  ) : p.status === 'paid' ? (
-                                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">✓ تم الإيداع</span>
-                                  ) : (
-                                    <span className="text-[11px] text-[var(--text-muted)]">ملغاة</span>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody className="divide-y divide-[var(--border-subtle)]">
+                          {tierConfig.stats.items.length === 0 ? (
+                            <tr>
+                              <td colSpan={7} className="p-6 text-center text-[var(--text-muted)]">
+                                لا توجد أي غرامات مسجلة في هذه الشريحة حالياً.
+                              </td>
+                            </tr>
+                          ) : (
+                            tierConfig.stats.items.map((p) => {
+                              const isPending = p.status === 'pending_payment' || p.status === 'doubled' || p.status === 'suspended';
+                              return (
+                                <tr key={p.id} className="hover:bg-[var(--surface-hover)] transition-colors">
+                                  <td className="p-3 font-bold text-[var(--text-primary)]">
+                                    {p.employeeName ?? '—'}
+                                    {p.employeeCode && <span className="block text-[10px] text-[var(--text-muted)] font-mono">{p.employeeCode}</span>}
+                                  </td>
+                                  <td className="p-3 text-[var(--text-secondary)]">{p.departmentName ?? '—'}</td>
+                                  <td className="p-3 whitespace-nowrap text-[var(--text-muted)]">{dateFormatter.format(new Date(p.workDate + 'T00:00:00'))}</td>
+                                  <td className="p-3 text-center">
+                                    <span className="font-bold text-amber-600 dark:text-amber-400">{p.lateMinutes} د</span>
+                                  </td>
+                                  <td className="p-3 text-end font-black font-mono text-[var(--text-primary)]">{formatCurrency(p.currentAmount)}</td>
+                                  <td className="p-3 text-center">
+                                    <StatusBadge status={p.status} label={INSTANT_PENALTY_STATUS_LABELS[p.status] ?? p.status} />
+                                  </td>
+                                  <td className="p-3 text-center">
+                                    {isPending ? (
+                                      <button
+                                        type="button"
+                                        className="btn-primary !py-1 !px-2.5 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold whitespace-nowrap"
+                                        onClick={() => {
+                                          setActiveModalTier(null);
+                                          const confirmMsg =
+                                            p.status === 'suspended'
+                                              ? `هل تم استلام 500 ج.م من الزميل ${p.employeeName ?? 'الموظف'} وتوريدها لصندوق الزمالة؟ سيتم رفع التعليق فوراً وفتح السيستم وعودته لمباشرة العمل وإشعار الفريق.`
+                                              : `تأكيد استلام ${formatCurrency(p.currentAmount)} من الزميل ${p.employeeName ?? 'الموظف'} وإيداعها في صندوق الزمالة والتكافل؟`;
+                                          setPaymentTarget({ id: p.id, name: p.employeeName ?? '', msg: confirmMsg });
+                                          setPaymentNotes('');
+                                          setPaymentDialogOpen(true);
+                                        }}
+                                      >
+                                        <Coins className="size-3 text-amber-300" />
+                                        <span>إيداع بالصندوق</span>
+                                      </button>
+                                    ) : p.status === 'paid' ? (
+                                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">✓ تم الإيداع</span>
+                                    ) : (
+                                      <span className="text-[11px] text-[var(--text-muted)]">ملغاة</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
 
-                  {/* أزرار أسفل المودال */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border-subtle)]">
-                    <button
-                      type="button"
-                      className="btn-secondary text-xs flex items-center gap-1.5"
-                      onClick={() => {
-                        const cols: ExportColumn<(typeof tierConfig.stats.items)[number]>[] = [
-                          { key: 'employee', header: 'الموظف', get: (p) => p.employeeName },
-                          { key: 'code', header: 'الكود', get: (p) => p.employeeCode },
-                          { key: 'department', header: 'الإدارة', get: (p) => p.departmentName },
-                          { key: 'date', header: 'التاريخ', get: (p) => p.workDate },
-                          { key: 'lateMinutes', header: 'التأخير (دقيقة)', get: (p) => p.lateMinutes },
-                          { key: 'amount', header: 'المبلغ', get: (p) => p.currentAmount },
-                          { key: 'status', header: 'الحالة', get: (p) => INSTANT_PENALTY_STATUS_LABELS[p.status] ?? p.status },
-                        ];
-                        downloadCsv(`penalties-${activeModalTier}-${cairoTodayIso()}.csv`, toCsv(cols, tierConfig.stats.items));
-                      }}
-                      disabled={tierConfig.stats.items.length === 0}
-                    >
-                      <FileSpreadsheet className="size-4" />
-                      <span>تصدير هذه الشريحة Excel</span>
-                    </button>
-
-                    <div className="flex items-center gap-2">
+                    {/* أزرار أسفل المودال */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border-subtle)]">
                       <button
                         type="button"
-                        className="btn-primary !py-1.5 !px-3 text-xs"
+                        className="btn-secondary text-xs flex items-center gap-1.5"
                         onClick={() => {
-                          setSelectedTier(activeModalTier);
-                          setActiveModalTier(null);
+                          const cols: ExportColumn<(typeof tierConfig.stats.items)[number]>[] = [
+                            { key: 'employee', header: 'الموظف', get: (p) => p.employeeName },
+                            { key: 'code', header: 'الكود', get: (p) => p.employeeCode },
+                            { key: 'department', header: 'الإدارة', get: (p) => p.departmentName },
+                            { key: 'date', header: 'التاريخ', get: (p) => p.workDate },
+                            { key: 'lateMinutes', header: 'التأخير (دقيقة)', get: (p) => p.lateMinutes },
+                            { key: 'amount', header: 'المبلغ', get: (p) => p.currentAmount },
+                            { key: 'status', header: 'الحالة', get: (p) => INSTANT_PENALTY_STATUS_LABELS[p.status] ?? p.status },
+                          ];
+                          downloadCsv(`penalties-${activeModalTier}-${cairoTodayIso()}.csv`, toCsv(cols, tierConfig.stats.items));
                         }}
+                        disabled={tierConfig.stats.items.length === 0}
                       >
-                        تصفية الجدول الرئيسي بهذه الشريحة ←
+                        <FileSpreadsheet className="size-4" />
+                        <span>تصدير هذه الشريحة Excel</span>
                       </button>
-                      <button
-                        type="button"
-                        className="btn-secondary !py-1.5 !px-3 text-xs"
-                        onClick={() => setActiveModalTier(null)}
-                      >
-                        إغلاق
-                      </button>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="btn-primary !py-1.5 !px-3 text-xs"
+                          onClick={() => {
+                            setSelectedTier(activeModalTier);
+                            setActiveModalTier(null);
+                          }}
+                        >
+                          تصفية الجدول الرئيسي بهذه الشريحة ←
+                        </button>
+                        <button type="button" className="btn-secondary !py-1.5 !px-3 text-xs" onClick={() => setActiveModalTier(null)}>
+                          إغلاق
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })()}
+                );
+              })()}
           </div>
         </DialogOverlay>
       )}

@@ -36,10 +36,18 @@ String? canonicalNotificationEntityType(String? raw) => switch (raw) {
   'overtime_records' ||
   'work_rosters' ||
   'attendance_alert' ||
-  'daily_reports' => 'daily_report',
+  'punch_reminder' => 'attendance',
+  'daily_reports' ||
+  'daily_report_like' ||
+  'daily_report_comment' => 'daily_report',
+  'announcements' => 'announcement',
+  'decisions' => 'decision',
+  'employee_device' || 'employee_devices' || 'devices' => 'device',
   'instant_penalty' ||
   'instant_penalty_doubled' ||
   'instant_penalty_suspended' ||
+  'instant_penalty_reinstated' ||
+  'instant_penalty_lifted' ||
   'instant_penalty_paid' ||
   'instant_penalty_cancelled' => 'instant_penalty',
   _ => raw,

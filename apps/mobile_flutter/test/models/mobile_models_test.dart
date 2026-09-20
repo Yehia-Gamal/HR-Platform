@@ -509,6 +509,50 @@ void main() {
       }
     });
 
+    // 0523: أنواع لها صفحة موبايل مباشرة (غرامات/تقارير/أجهزة) — كانت
+    // مُصنَّفة «معلوماتية» فكان النقر عليها لا يفتح شيئاً رغم وجود الصفحة.
+    test('hasLocalRoute يفتح الأنواع ذات الصفحات المحلية', () {
+      for (final raw in [
+        'instant_penalty',
+        'instant_penalty_doubled',
+        'instant_penalty_reinstated',
+        'daily_report',
+        'daily_report_like',
+        'daily_report_comment',
+        'daily_reports',
+        'employee_device',
+        'device',
+      ]) {
+        final notif = MobileNotificationItem.fromJson(<String, dynamic>{
+          'id': 'n-$raw',
+          'entityType': raw,
+          'entityId': 'uuid-123',
+        });
+        expect(notif.hasLocalRoute, isTrue, reason: 'raw=$raw');
+        expect(notif.hasSupportedAction, isTrue, reason: 'raw=$raw');
+        expect(notif.isInformational, isFalse, reason: 'raw=$raw');
+      }
+    });
+
+    test('metadata يُقرأ ويوفّر سياق الحدث للرابط العميق', () {
+      final notif = MobileNotificationItem.fromJson(<String, dynamic>{
+        'id': 'n-1',
+        'entityType': 'attendance_daily',
+        'entityId': 'uuid-123',
+        'metadata': {'workDate': '2026-08-24', 'event': 'attendance_check_out'},
+      });
+      expect(notif.meta('workDate'), '2026-08-24');
+      expect(notif.meta('employeeId'), isNull);
+
+      final bare = MobileNotificationItem.fromJson(<String, dynamic>{
+        'id': 'n-2',
+        'entityType': 'request',
+        'entityId': 'uuid-123',
+      });
+      expect(bare.metadata, isEmpty);
+      expect(bare.meta('workDate'), isNull);
+    });
+
     test('isInformational يغطي الأنواع المعلوماتية (بلا صفحة موبايل)', () {
       for (final raw in [
         'work_assignments',
@@ -519,14 +563,12 @@ void main() {
         'service_requests',
         'wellbeing_requests',
         'document_signature_requests',
-        'employee_device',
         'public_holiday',
         'role',
-        'daily_report',
-        'daily_report_like',
-        'daily_report_comment',
         'attendance_manager_notify',
-        'daily_reports',
+        'broadcast_alert',
+        'fellowship_fund',
+        'weekly_executive_summary',
       ]) {
         final notif = MobileNotificationItem.fromJson(<String, dynamic>{
           'id': 'n-$raw',

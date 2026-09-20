@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import type { DocumentItem, AssetItem, OffboardingCase } from '@ahla/shared-contracts';
 import { FileCheck, Package, UserMinus, RefreshCw, CheckCircle2, XCircle, Archive } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { useEntityFocus } from '../../core/useEntityFocus';
+import { useUrlState } from '../../core/useUrlState';
 import { DataTable, type DataTableColumn } from '../../ui/DataTable';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -28,7 +30,10 @@ export function DocumentsPage() {
   const catalog = useDocumentsCatalog();
   const reviewDoc = useReviewDocument();
   const { toast } = useToast();
-  const [tab, setTab] = useState<Tab>('documents');
+  // التبويب مرتبط بالرابط — إشعار إنهاء الخدمة يفتح `?tab=offboarding` مباشرة.
+  const [tabParam, setTabParam] = useUrlState('tab', 'documents');
+  const tab: Tab = TABS.some((t) => t.key === tabParam) ? (tabParam as Tab) : 'documents';
+  const setTab = (next: Tab) => setTabParam(next);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -64,6 +69,9 @@ export function DocumentsPage() {
       return matchSearch && matchStatus;
     });
   }, [offboarding, search, statusFilter]);
+
+  // الوصول من إشعار إنهاء خدمة → إبراز الحالة نفسها في جدول التبويب.
+  const focusedId = useEntityFocus(tab === 'offboarding' && filteredOffboarding.length > 0);
 
   const dirty = Boolean(search.trim() || statusFilter !== 'all');
   const clearFilters = () => {
@@ -361,6 +369,7 @@ export function DocumentsPage() {
         <DataTable<OffboardingCase>
           ariaLabel="جدول حالات إنهاء الخدمة"
           rowKey={(o) => o.id}
+          focusedKey={focusedId}
           data={filteredOffboarding}
           minWidth="800px"
           columns={offboardingColumns}

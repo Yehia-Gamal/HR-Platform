@@ -1578,6 +1578,7 @@ class MobileNotificationItem {
     required this.entityId,
     required this.isRead,
     required this.createdAt,
+    this.metadata = const {},
   });
 
   factory MobileNotificationItem.fromJson(Map<String, dynamic> json) =>
@@ -1592,6 +1593,9 @@ class MobileNotificationItem {
         entityId: json['entityId'] as String?,
         isRead: json['isRead'] as bool? ?? false,
         createdAt: _reqDate(json['createdAt']),
+        metadata: json['metadata'] is Map
+            ? Map<String, dynamic>.from(json['metadata'] as Map)
+            : const {},
       );
 
   final String id;
@@ -1605,30 +1609,52 @@ class MobileNotificationItem {
   final bool isRead;
   final DateTime createdAt;
 
+  /// سياق الحدث الذي يفتحه الإشعار (workDate / employeeId / evaluationId …).
+  /// تعيده get_my_notifications منذ migration 0523 — بدونه كان التطبيق يفتح
+  /// الصفحة العامة بدل الحدث نفسه.
+  final Map<String, dynamic> metadata;
+
+  /// قراءة آمنة لحقل نصي من [metadata].
+  String? meta(String key) {
+    final value = metadata[key];
+    return value is String && value.trim().isNotEmpty ? value : null;
+  }
+
   /// اسم النوع الموحّد (بعد تطبيع صيغ الخلفية مثل live_location_requests → live_location_request).
   String? get canonicalType => canonicalNotificationEntityType(entityType);
 
+  /// أنواع تُحل عبر resolve_mobile_action_target (تحقق صلاحيات على الخادم).
+  static const _serverResolvedTypes = {
+    'request',
+    'kpi',
+    'decision',
+    'announcement',
+    'dispute',
+    'task',
+    'attendance',
+    'recognition',
+    'live_location_request',
+  };
+
+  /// أنواع لها صفحة موبايل مباشرة — لا يعرفها الـ RPC، وكان النقر عليها
+  /// لا يفتح شيئاً رغم وجود الصفحة في التطبيق.
+  static const _localRouteTypes = {'instant_penalty', 'daily_report', 'device'};
+
   bool get hasSupportedAction =>
       entityId != null &&
-      const {
-        'request',
-        'kpi',
-        'decision',
-        'announcement',
-        'dispute',
-        'task',
-        'attendance',
-        'recognition',
-        'live_location_request',
-      }.contains(canonicalType);
+      (_serverResolvedTypes.contains(canonicalType) ||
+          _localRouteTypes.contains(canonicalType));
+
+  /// هل يُفتح هذا الإشعار بصفحة محلية بدل RPC؟
+  bool get hasLocalRoute => _localRouteTypes.contains(canonicalType);
 
   /// هل الإشعار من الأنواع المعلوماتية (لا صفحة موبايل محددة)؟
   /// هذه الأنواع تُعلَّم مقروءة عند النقر وتُعرض في القائمة دون فتح مسار.
   bool get isInformational => const {
-    'daily_report',
-    'daily_report_like',
-    'daily_report_comment',
     'attendance_manager_notify',
+    'broadcast_alert',
+    'fellowship_fund',
+    'weekly_executive_summary',
     'work_assignments',
     'kpi_appeals',
     'break_glass_requests',

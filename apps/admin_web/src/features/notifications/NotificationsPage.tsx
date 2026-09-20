@@ -263,8 +263,13 @@ export function NotificationsPage() {
                   );
                 }
 
-                // بلا وجهة: بطاقة قابلة للنقر تعلم مقروء فقط عند اللمس.
+                // بلا وجهة: إشعار معلوماتي — يُعلَّم مقروءاً ويُصرَّح بذلك
+                // بدل صمت يبدو للمستخدم وكأن النقر لا يفعل شيئاً.
                 if (!target) {
+                  const openInformational = () => {
+                    if (!n.isRead) mark.mutate([n.id]);
+                    toast({ message: 'إشعار للعلم فقط — لا توجد صفحة مرتبطة به.', tone: 'info' });
+                  };
                   return (
                     <div
                       key={n.id}
@@ -272,11 +277,11 @@ export function NotificationsPage() {
                       tabIndex={0}
                       className="block w-full cursor-pointer"
                       aria-label={n.isRead ? undefined : 'إشعار غير مقروء'}
-                      onClick={() => !n.isRead && mark.mutate([n.id])}
+                      onClick={openInformational}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter' || event.key === ' ') {
                           event.preventDefault();
-                          if (!n.isRead) mark.mutate([n.id]);
+                          openInformational();
                         }
                       }}
                     >
