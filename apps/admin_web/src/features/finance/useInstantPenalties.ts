@@ -301,18 +301,17 @@ export function useExecutiveDailyDigest(date?: string) {
       if (auth.isMock) {
         return {
           date: date ?? new Date().toISOString().slice(0, 10),
-          summary: {
-            totalEmployees: 0,
-            present: 0,
-            attendanceRate: 0,
-            lateCount: 0,
-            absentCount: 0,
-            onMissionOrLeave: 0,
-            activePenaltiesCount: 0,
-            activePenaltiesTotalAmount: 0,
-            fellowshipFundTotalCollected: 0,
-          },
-          formattedDigest: 'موجز تجريبي...',
+          totalActive: 0,
+          present: 0,
+          fieldMissions: 0,
+          leaves: 0,
+          absent: 0,
+          penaltiesIssued: 0,
+          penaltiesIssuedAmount: 0,
+          penaltiesPaid: 0,
+          penaltiesPaidAmount: 0,
+          fundBalance: 0,
+          digestText: 'موجز تجريبي...',
         };
       }
       return executiveDailyDigestSchema.parse(
@@ -335,7 +334,8 @@ export function usePunctualityChampions(month?: string) {
       if (auth.isMock) {
         return {
           month: month ?? new Date().toISOString().slice(0, 7),
-          totalChampions: 0,
+          startDate: '',
+          endDate: '',
           champions: [],
         };
       }

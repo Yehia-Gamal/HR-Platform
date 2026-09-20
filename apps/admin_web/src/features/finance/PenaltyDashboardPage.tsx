@@ -10,7 +10,7 @@ import { AppBarChart } from '../../ui/charts/AppBarChart';
 import { AppLineChart } from '../../ui/charts/AppLineChart';
 import { usePenaltyDashboard } from './usePenaltyDashboard';
 
-const STATUS_ICONS: Record<string, typeof CheckCircle2> = {
+const _STATUS_ICONS: Record<string, typeof CheckCircle2> = {
   pending_payment: AlertTriangle,
   paid: CheckCircle2,
   doubled: ShieldAlert,

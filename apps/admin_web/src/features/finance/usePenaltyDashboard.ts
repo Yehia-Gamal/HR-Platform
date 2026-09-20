@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useInstantPenalties, type InstantPenalty } from './useInstantPenalties';
+import { useInstantPenalties } from './useInstantPenalties';
 
 const currencyFmt = new Intl.NumberFormat('ar-EG', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 });
 const fmt = (n: number) => currencyFmt.format(n);
