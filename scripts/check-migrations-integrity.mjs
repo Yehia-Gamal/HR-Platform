@@ -56,6 +56,10 @@ const BRIDGE_FILENAMES = new Set([
   // 0479, 0486 → فجوات من جلسة موازية قفزت 0478→0480 و 0485→0487.
   '0479_bridge_placeholder.sql',
   '0486_bridge_placeholder.sql',
+  // 0524, 0527 → أرقام مستهلكة في الإنتاج بمحتوى أُعيد ترقيم ملفاته محلياً في
+  //   جلسة موازية (0524→0526، و0527 تجاوزه 0528). البناء من الملفات يصل لنفس الحالة.
+  '0524_bridge_placeholder.sql',
+  '0527_bridge_placeholder.sql',
 ]);
 
 const FILE_RE = /^(\d{4})_([a-z0-9][a-z0-9_]*)\.sql$/i;
