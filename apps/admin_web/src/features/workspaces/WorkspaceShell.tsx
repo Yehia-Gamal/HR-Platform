@@ -36,11 +36,9 @@ import {
   Sparkles,
   TimerReset,
   Users,
-  WalletCards,
   X,
   Search,
   AlertOctagon,
-  Coins,
   HeartHandshake,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -191,7 +189,7 @@ const adminSections: NavSection[] = [
     title: 'النظام والتكامل',
     items: [
       { label: 'الأدوار والصلاحيات', to: '/admin/access', icon: ShieldCheck, permission: 'access.role.read' },
-      { label: 'مشاريع الجمعية', to: '/admin/association-projects', icon: FolderKanban, permission: '*' },
+      { label: 'مشاريع الجمعية', to: '/admin/association-projects', icon: FolderKanban, permission: 'governance.data.manage' },
       { label: 'الإدارة المؤسسية', to: '/admin/enterprise', icon: Building2, permission: 'organization.entity.read' },
       { label: 'الإعدادات', to: '/admin/settings', icon: Settings, permission: 'system.settings.read' },
       { label: 'التكاملات والمهام الخلفية', to: '/admin/integrations', icon: Cable, permission: 'system.integration.view' },

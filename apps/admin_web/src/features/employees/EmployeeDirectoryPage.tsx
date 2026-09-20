@@ -203,7 +203,7 @@ export function EmployeeDirectoryPage() {
                     <td className="p-3 hidden lg:table-cell">{emp.departmentName ?? '—'}</td>
                     <td className="p-3 hidden lg:table-cell text-[var(--text-muted)]">{emp.jobTitle ?? '—'}</td>
                     <td className="p-3">
-                    <StatusBadge status={emp.status} />
+                      <StatusBadge status={emp.status} />
                     </td>
                     <td className="p-3 hidden lg:table-cell">
                       {emp.subordinatesCount > 0 ? (

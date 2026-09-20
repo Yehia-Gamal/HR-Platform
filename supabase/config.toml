@@ -129,3 +129,11 @@ verify_jwt = false
 
 [functions.live-location-map-url]
 verify_jwt = true
+
+# 0524 audit: كانتا غائبتين عن هذا الملف فتعتمدان على الافتراضي الضمني.
+# التصريح صراحةً يمنع انحراف الإعداد بين البيئات.
+[functions.admin-update-email]
+verify_jwt = true
+
+[functions.push-subscribe]
+verify_jwt = true

@@ -274,7 +274,7 @@ function AuthenticatedApp() {
             <Route
               path="association-projects"
               element={
-                <RequirePermission perm="*">
+                <RequirePermission perm="governance.data.manage">
                   <AssociationProjectsPage />
                 </RequirePermission>
               }
@@ -608,9 +608,7 @@ function HrWorkspaceRoutes() {
 
 function OrgChartRedirect() {
   const location = useLocation();
-  const target = location.pathname.startsWith('/admin/hr')
-    ? '/admin/hr/employees?tab=org-chart'
-    : '/hr/employees?tab=org-chart';
+  const target = location.pathname.startsWith('/admin/hr') ? '/admin/hr/employees?tab=org-chart' : '/hr/employees?tab=org-chart';
   return <Navigate to={target} replace />;
 }
 

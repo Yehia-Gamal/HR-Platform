@@ -1,14 +1,4 @@
-import {
-  ArrowLeft,
-  CalendarDays,
-  Copy,
-  Download,
-  Printer,
-  ShieldCheck,
-  Sparkles,
-  TrendingUp,
-  Users,
-} from 'lucide-react';
+import { ArrowLeft, CalendarDays, Copy, Download, Printer, ShieldCheck, Sparkles, TrendingUp, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { cairoTodayIso } from '../../core/cairoTime';

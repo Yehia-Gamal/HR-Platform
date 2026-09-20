@@ -202,20 +202,13 @@ export function SignaturePad({
           <span className="text-[var(--text)] font-semibold">{signerName || 'المستخدم الحالي'}</span>
           {signerId && <span className="tabular text-[11px]">({signerId})</span>}
         </div>
-        <div className="text-[11px] tabular">
-          {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date())}
-        </div>
+        <div className="text-[11px] tabular">{new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date())}</div>
       </div>
 
       {/* شريط الإجراءات والأزرار */}
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={clearSignature}
-            disabled={!hasSignature}
-            className="btn-secondary text-xs flex items-center gap-1.5 py-1.5 px-3"
-          >
+          <button type="button" onClick={clearSignature} disabled={!hasSignature} className="btn-secondary text-xs flex items-center gap-1.5 py-1.5 px-3">
             <RotateCcw className="size-3.5" aria-hidden="true" />
             مسح وإعادة
           </button>
@@ -238,12 +231,7 @@ export function SignaturePad({
               إلغاء
             </button>
           )}
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={!hasSignature}
-            className="btn-primary text-xs flex items-center gap-1.5 py-1.5 px-4"
-          >
+          <button type="button" onClick={handleConfirm} disabled={!hasSignature} className="btn-primary text-xs flex items-center gap-1.5 py-1.5 px-4">
             <Check className="size-3.5" aria-hidden="true" />
             اعتماد التوقيع
           </button>

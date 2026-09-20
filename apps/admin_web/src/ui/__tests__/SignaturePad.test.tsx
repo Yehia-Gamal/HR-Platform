@@ -4,14 +4,7 @@ import { SignaturePad, SignaturePadDialog } from '../SignaturePad';
 
 describe('SignaturePad', () => {
   it('renders title, description and signer info', () => {
-    render(
-      <SignaturePad
-        signerName="أحمد علي"
-        signerId="EMP-100"
-        title="توقيع استلام العهدة"
-        description="برجاء التوقيع لتأكيد الاستلام"
-      />,
-    );
+    render(<SignaturePad signerName="أحمد علي" signerId="EMP-100" title="توقيع استلام العهدة" description="برجاء التوقيع لتأكيد الاستلام" />);
 
     expect(screen.getByText('توقيع استلام العهدة')).toBeInTheDocument();
     expect(screen.getByText('برجاء التوقيع لتأكيد الاستلام')).toBeInTheDocument();
@@ -28,29 +21,14 @@ describe('SignaturePad', () => {
   });
 
   it('renders Dialog variant when isOpen is true', () => {
-    render(
-      <SignaturePadDialog
-        isOpen={true}
-        onClose={() => {}}
-        onConfirm={() => {}}
-        signerName="محمود حسن"
-        title="توقيع القرار الإداري"
-      />,
-    );
+    render(<SignaturePadDialog isOpen={true} onClose={() => {}} onConfirm={() => {}} signerName="محمود حسن" title="توقيع القرار الإداري" />);
 
     expect(screen.getAllByText('توقيع القرار الإداري')[0]).toBeInTheDocument();
     expect(screen.getByText('محمود حسن')).toBeInTheDocument();
   });
 
   it('does not render Dialog variant when isOpen is false', () => {
-    render(
-      <SignaturePadDialog
-        isOpen={false}
-        onClose={() => {}}
-        onConfirm={() => {}}
-        signerName="محمود حسن"
-      />,
-    );
+    render(<SignaturePadDialog isOpen={false} onClose={() => {}} onConfirm={() => {}} signerName="محمود حسن" />);
 
     expect(screen.queryByText('محمود حسن')).not.toBeInTheDocument();
   });

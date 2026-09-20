@@ -1,13 +1,4 @@
-import {
-  Award,
-  Briefcase,
-  Calendar,
-  Clock,
-  FileCheck,
-  Gauge,
-  History,
-  Sparkles,
-} from 'lucide-react';
+import { Award, Briefcase, Calendar, Clock, FileCheck, Gauge, History, Sparkles } from 'lucide-react';
 import type { Employee360 } from '@ahla/shared-contracts';
 
 interface TimelineEvent {
@@ -151,9 +142,7 @@ export function EmployeeActivityTimeline({ employee }: EmployeeActivityTimelineP
             <h3 id="timeline-heading" className="text-lg font-black text-[var(--text)]">
               سجل النشاط والمحطات الإدارية
             </h3>
-            <p className="text-xs text-[var(--muted)]">
-              تتبع زمني متكامل للمحطات الوظيفية والتقييمات وأهم الإجراءات المعتمدة
-            </p>
+            <p className="text-xs text-[var(--muted)]">تتبع زمني متكامل للمحطات الوظيفية والتقييمات وأهم الإجراءات المعتمدة</p>
           </div>
         </div>
         <div className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-subtle)] px-3 py-1 text-xs font-bold text-[var(--muted)]">
@@ -188,9 +177,7 @@ export function EmployeeActivityTimeline({ employee }: EmployeeActivityTimelineP
                     {evt.date}
                   </span>
                 </div>
-                <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">
-                  {evt.description}
-                </p>
+                <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">{evt.description}</p>
               </div>
             </div>
           );

@@ -78,9 +78,7 @@ export function usePendingPenaltyEmployees() {
     refetchInterval: 60_000, // تحديث كل دقيقة
     queryFn: async (): Promise<PendingPenaltyEmployee[]> => {
       if (auth.isMock) return [];
-      return pendingPenaltyEmployeeSchema.array().parse(
-        await rpc('get_employees_with_pending_instant_penalties'),
-      );
+      return pendingPenaltyEmployeeSchema.array().parse(await rpc('get_employees_with_pending_instant_penalties'));
     },
   });
 }
@@ -90,11 +88,7 @@ export function usePendingPenaltyEmployees() {
 export function useGenerateInstantPenalty() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (args: {
-      employeeId: string;
-      workDate: string;
-      lateMinutes: number;
-    }): Promise<GenerateInstantPenaltyResult> => {
+    mutationFn: async (args: { employeeId: string; workDate: string; lateMinutes: number }): Promise<GenerateInstantPenaltyResult> => {
       return generateInstantPenaltyResultSchema.parse(
         await rpc('generate_instant_penalty', {
           p_employee_id: args.employeeId,
@@ -115,10 +109,7 @@ export function useGenerateInstantPenalty() {
 export function useConfirmInstantPenaltyPayment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (args: {
-      penaltyId: string;
-      notes?: string;
-    }): Promise<ConfirmInstantPenaltyPaymentResult> => {
+    mutationFn: async (args: { penaltyId: string; notes?: string }): Promise<ConfirmInstantPenaltyPaymentResult> => {
       return confirmInstantPenaltyPaymentResultSchema.parse(
         await rpc('confirm_instant_penalty_payment', {
           p_penalty_id: args.penaltyId,
@@ -142,10 +133,7 @@ export function useConfirmInstantPenaltyPayment() {
 export function useCancelInstantPenalty() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (args: {
-      penaltyId: string;
-      reason: string;
-    }): Promise<CancelInstantPenaltyResult> => {
+    mutationFn: async (args: { penaltyId: string; reason: string }): Promise<CancelInstantPenaltyResult> => {
       return cancelInstantPenaltyResultSchema.parse(
         await rpc('cancel_instant_penalty', {
           p_penalty_id: args.penaltyId,
@@ -166,10 +154,7 @@ export function useCancelInstantPenalty() {
 export function useLiftInstantPenaltySuspension() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (args: {
-      penaltyId: string;
-      notes?: string;
-    }) => {
+    mutationFn: async (args: { penaltyId: string; notes?: string }) => {
       return confirmInstantPenaltyPaymentResultSchema.parse(
         await rpc('lift_instant_penalty_suspension', {
           p_penalty_id: args.penaltyId,
@@ -191,9 +176,7 @@ export function useTriggerCheckPenaltiesNow() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (): Promise<TriggerCheckResult> => {
-      return triggerCheckResultSchema.parse(
-        await rpc('trigger_check_instant_penalties_now'),
-      );
+      return triggerCheckResultSchema.parse(await rpc('trigger_check_instant_penalties_now'));
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [INSTANT_PENALTIES_KEY] });
@@ -203,4 +186,3 @@ export function useTriggerCheckPenaltiesNow() {
     },
   });
 }
-

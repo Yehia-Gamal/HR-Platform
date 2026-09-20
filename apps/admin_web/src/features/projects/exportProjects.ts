@@ -1,9 +1,10 @@
 import type { AssociationProjectListItem } from '@ahla/shared-contracts';
 import { printReport, downloadCsv, toCsv, type ExportColumn } from '../../core/exportUtils';
 
-const LED_LABELS: Record<string, string> = { active: 'نشط', halted: 'متوقف', stale: 'مطفأ' };
+const LED_LABELS: Record<string, string> = { active: 'نشط', halted: 'متوقف', stale: 'مطفأ', pending: 'بانتظار', rejected: 'مرفوض', draft: 'مسودة' };
 const STATUS_LABELS: Record<string, string> = { planned: 'مخطط', active: 'نشط', on_hold: 'متوقف', completed: 'مكتمل', cancelled: 'ملغى' };
 const PRIORITY_LABELS: Record<string, string> = { low: 'منخفضة', medium: 'متوسطة', high: 'عالية', critical: 'حرجة' };
+const APPROVAL_LABELS: Record<string, string> = { draft: 'مسودة', pending_approval: 'بانتظار الموافقة', approved: 'معتمد', rejected: 'مرفوض' };
 
 export function exportProjectsCsv(projects: AssociationProjectListItem[]): void {
   const columns: ExportColumn<AssociationProjectListItem>[] = [
@@ -12,12 +13,13 @@ export function exportProjectsCsv(projects: AssociationProjectListItem[]): void 
     { key: 'departmentName', header: 'الإدارة', get: (r) => r.departmentName },
     { key: 'ownerName', header: 'المسؤول', get: (r) => r.ownerName },
     { key: 'status', header: 'الحالة', get: (r) => STATUS_LABELS[r.status] ?? r.status },
+    { key: 'approvalStatus', header: 'الموافقة', get: (r) => APPROVAL_LABELS[r.approvalStatus] ?? r.approvalStatus },
     { key: 'priority', header: 'الأولوية', get: (r) => PRIORITY_LABELS[r.priority] ?? r.priority },
     { key: 'ledStatus', header: 'LED', get: (r) => LED_LABELS[r.ledStatus] ?? r.ledStatus },
     { key: 'progress', header: 'نسبة الإنجاز %', get: (r) => r.progress },
     { key: 'completedSteps', header: 'الخطوات المكتملة', get: (r) => r.completedSteps },
     { key: 'remainingSteps', header: 'الخطوات المتبقية', get: (r) => r.remainingSteps },
-    { key: 'lastUpdateAt', header: 'آخر تحديث', get: (r) => r.lastUpdateAt ? new Date(r.lastUpdateAt).toLocaleDateString('ar-EG') : '—' },
+    { key: 'lastUpdateAt', header: 'آخر تحديث', get: (r) => (r.lastUpdateAt ? new Date(r.lastUpdateAt).toLocaleDateString('ar-EG') : '—') },
   ];
   const csv = toCsv(columns, projects);
   downloadCsv(`مشاريع_الجمعية_${new Date().toLocaleDateString('ar-EG')}.csv`, csv);
@@ -57,6 +59,7 @@ export function exportProjectsPdf(projects: AssociationProjectListItem[]): void 
     p.departmentName,
     p.ownerName,
     STATUS_LABELS[p.status] ?? p.status,
+    APPROVAL_LABELS[p.approvalStatus] ?? p.approvalStatus,
     PRIORITY_LABELS[p.priority] ?? p.priority,
     LED_LABELS[p.ledStatus] ?? p.ledStatus,
     `${p.progress}%`,
@@ -64,14 +67,19 @@ export function exportProjectsPdf(projects: AssociationProjectListItem[]): void 
     p.lastUpdateAt ? new Date(p.lastUpdateAt).toLocaleDateString('ar-EG') : '—',
   ]);
 
-  printReport([{
-    title: 'مشاريع الجمعية',
-    subtitle: `تاريخ التصدير: ${new Date().toLocaleDateString('ar-EG')}`,
-    table: {
-      headers: ['الكود', 'المشروع', 'الإدارة', 'المسؤول', 'الحالة', 'الأولوية', 'LED', 'التقدم', 'الخطوات', 'آخر تحديث'],
-      rows,
-    },
-  }], 'تقارير مشاريع الجمعية');
+  printReport(
+    [
+      {
+        title: 'مشاريع الجمعية',
+        subtitle: `تاريخ التصدير: ${new Date().toLocaleDateString('ar-EG')}`,
+        table: {
+          headers: ['الكود', 'المشروع', 'الإدارة', 'المسؤول', 'الحالة', 'الموافقة', 'الأولوية', 'LED', 'التقدم', 'الخطوات', 'آخر تحديث'],
+          rows,
+        },
+      },
+    ],
+    'تقارير مشاريع الجمعية',
+  );
 
   // نحقن الإحصائيات بعد فتح النافذة
   setTimeout(() => {

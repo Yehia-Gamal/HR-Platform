@@ -329,8 +329,13 @@ export function AttendanceOperationsPage() {
             commands.unlockPeriod.mutate(
               { p_period_id: reopenPeriodId, p_reason: reopenReason.trim() },
               {
-                onSuccess: () => { toast({ message: 'تم إعادة فتح الفترة بنجاح', tone: 'success' }); setReopenDialogOpen(false); },
-                onError: () => { toast({ message: 'تعذر إعادة فتح الفترة', tone: 'error' }); },
+                onSuccess: () => {
+                  toast({ message: 'تم إعادة فتح الفترة بنجاح', tone: 'success' });
+                  setReopenDialogOpen(false);
+                },
+                onError: () => {
+                  toast({ message: 'تعذر إعادة فتح الفترة', tone: 'error' });
+                },
               },
             );
           }

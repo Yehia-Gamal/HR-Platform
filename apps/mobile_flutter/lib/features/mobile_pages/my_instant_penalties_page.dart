@@ -309,7 +309,22 @@ class _PenaltyCard extends StatelessWidget {
   final DateFormat dateFmt;
   final bool highlighted;
 
+  bool get _isExempt {
+    if (item.status != 'cancelled') return false;
+    final n = item.notes ?? '';
+    return n.contains('إلغاء بأثر رجعي') ||
+        n.contains('إلغاء تلقائي') ||
+        n.contains('مأمورية') ||
+        n.contains('إجازة') ||
+        n.contains('قافلة') ||
+        n.contains('فاندي') ||
+        n.contains('المدير التنفيذي') ||
+        n.contains('استثناء') ||
+        n.contains('معفى');
+  }
+
   Color _statusColor(BuildContext context) {
+    if (_isExempt) return Colors.teal.shade700;
     switch (item.status) {
       case 'pending_payment':
         return Colors.amber.shade700;
@@ -327,6 +342,7 @@ class _PenaltyCard extends StatelessWidget {
   }
 
   String _statusLabel() {
+    if (_isExempt) return 'معفى (ملغاة)';
     switch (item.status) {
       case 'pending_payment':
         return 'بانتظار الدفع';
@@ -344,6 +360,7 @@ class _PenaltyCard extends StatelessWidget {
   }
 
   IconData _statusIcon() {
+    if (_isExempt) return Icons.verified_outlined;
     switch (item.status) {
       case 'pending_payment':
         return Icons.access_time;

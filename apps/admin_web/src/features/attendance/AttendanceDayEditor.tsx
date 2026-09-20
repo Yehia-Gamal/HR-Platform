@@ -135,7 +135,8 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
 
   const [dayType, setDayType] = useState<string>((day.adminOverride?.dayType as string | undefined) ?? 'work');
   const [leaveType, setLeaveType] = useState<string>(
-    day.adminOverride?.leaveType ?? (day.adminOverride?.dayType === 'leave' || day.adminOverride?.dayType === 'absent' ? DEFAULT_LEAVE_TYPE[day.adminOverride.dayType] : 'annual'),
+    day.adminOverride?.leaveType ??
+      (day.adminOverride?.dayType === 'leave' || day.adminOverride?.dayType === 'absent' ? DEFAULT_LEAVE_TYPE[day.adminOverride.dayType] : 'annual'),
   );
   const [checkIn, setCheckIn] = useState(day.checkIn?.slice(0, 5) ?? '09:00');
   const [checkOut, setCheckOut] = useState(day.checkOut?.slice(0, 5) ?? '17:00');
@@ -153,9 +154,7 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
   useEffect(() => {
     const existingType = (day.adminOverride?.dayType as string | undefined) ?? 'work';
     setDayType(existingType);
-    setLeaveType(
-      day.adminOverride?.leaveType ?? (existingType === 'leave' || existingType === 'absent' ? DEFAULT_LEAVE_TYPE[existingType] : 'annual'),
-    );
+    setLeaveType(day.adminOverride?.leaveType ?? (existingType === 'leave' || existingType === 'absent' ? DEFAULT_LEAVE_TYPE[existingType] : 'annual'));
     setCheckIn(day.checkIn?.slice(0, 5) ?? '09:00');
     setCheckOut(day.checkOut?.slice(0, 5) ?? '17:00');
     setReason(day.adminOverride?.reason ?? 'تعديل ساعات وحضور معتمد');
@@ -381,40 +380,18 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-[var(--text-secondary)]">وقت الحضور</label>
-                    <input
-                      type="time"
-                      className="input w-full"
-                      value={checkIn}
-                      disabled={clearCheckIn}
-                      onChange={(e) => setCheckIn(e.target.value)}
-                    />
+                    <input type="time" className="input w-full" value={checkIn} disabled={clearCheckIn} onChange={(e) => setCheckIn(e.target.value)} />
                     <label htmlFor={clearCheckInId} className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] cursor-pointer">
-                      <input
-                        id={clearCheckInId}
-                        type="checkbox"
-                        checked={clearCheckIn}
-                        onChange={(e) => setClearCheckIn(e.target.checked)}
-                      />
+                      <input id={clearCheckInId} type="checkbox" checked={clearCheckIn} onChange={(e) => setClearCheckIn(e.target.checked)} />
                       <span>حذف وقت الحضور (بدون بصمة حضور)</span>
                     </label>
                   </div>
 
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-[var(--text-secondary)]">وقت الانصراف</label>
-                    <input
-                      type="time"
-                      className="input w-full"
-                      value={checkOut}
-                      disabled={clearCheckOut}
-                      onChange={(e) => setCheckOut(e.target.value)}
-                    />
+                    <input type="time" className="input w-full" value={checkOut} disabled={clearCheckOut} onChange={(e) => setCheckOut(e.target.value)} />
                     <label htmlFor={clearCheckOutId} className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] cursor-pointer">
-                      <input
-                        id={clearCheckOutId}
-                        type="checkbox"
-                        checked={clearCheckOut}
-                        onChange={(e) => setClearCheckOut(e.target.checked)}
-                      />
+                      <input id={clearCheckOutId} type="checkbox" checked={clearCheckOut} onChange={(e) => setClearCheckOut(e.target.checked)} />
                       <span>حذف وقت الانصراف (بدون بصمة انصراف)</span>
                     </label>
                   </div>
@@ -428,12 +405,7 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
               {(PRESET_REASONS[dayType] ?? []).length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
                   {(PRESET_REASONS[dayType] ?? []).map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      className={`filter-chip ${reason === preset ? 'is-active' : ''}`}
-                      onClick={() => setReason(preset)}
-                    >
+                    <button key={preset} type="button" className={`filter-chip ${reason === preset ? 'is-active' : ''}`} onClick={() => setReason(preset)}>
                       {preset}
                     </button>
                   ))}
@@ -459,21 +431,14 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
             </div>
 
             {saveMutation.isError ? (
-              <p className="rounded-lg bg-[var(--danger-soft)] p-3 text-xs font-bold text-[var(--danger)]">
-                {safeErrorMessage(saveMutation.error)}
-              </p>
+              <p className="rounded-lg bg-[var(--danger-soft)] p-3 text-xs font-bold text-[var(--danger)]">{safeErrorMessage(saveMutation.error)}</p>
             ) : null}
 
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" className="btn-secondary text-xs" onClick={() => setOpen(false)}>
                 إلغاء
               </button>
-              <button
-                type="button"
-                className="btn-primary text-xs"
-                disabled={saveMutation.isPending}
-                onClick={() => saveMutation.mutate()}
-              >
+              <button type="button" className="btn-primary text-xs" disabled={saveMutation.isPending} onClick={() => saveMutation.mutate()}>
                 {saveMutation.isPending ? 'جارٍ الحفظ…' : 'حفظ التعديل'}
               </button>
             </div>
@@ -523,9 +488,7 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
             </label>
 
             {markMutation.isError ? (
-              <p className="rounded-lg bg-[var(--danger-soft)] p-3 text-xs font-bold text-[var(--danger)]">
-                {safeErrorMessage(markMutation.error)}
-              </p>
+              <p className="rounded-lg bg-[var(--danger-soft)] p-3 text-xs font-bold text-[var(--danger)]">{safeErrorMessage(markMutation.error)}</p>
             ) : null}
 
             <div className="flex justify-end gap-2 pt-2">

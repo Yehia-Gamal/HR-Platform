@@ -42,8 +42,7 @@ export function EmployeeRetentionScoreCard({ employee }: EmployeeRetentionScoreC
         bgClass: 'bg-sky-500/10 border-sky-500/30',
         barColor: 'bg-sky-500',
         icon: ShieldCheck,
-        recommendation:
-          'مؤشرات الحضور والأداء مستقرة وضمن المعدلات المستهدفة. استمرار التغذية الراجعة الدورية يحافظ على مستوى الحافز.',
+        recommendation: 'مؤشرات الحضور والأداء مستقرة وضمن المعدلات المستهدفة. استمرار التغذية الراجعة الدورية يحافظ على مستوى الحافز.',
       };
     }
     if (finalScore >= 50) {
@@ -53,8 +52,7 @@ export function EmployeeRetentionScoreCard({ employee }: EmployeeRetentionScoreC
         bgClass: 'bg-amber-500/10 border-amber-500/30',
         barColor: 'bg-amber-500',
         icon: AlertTriangle,
-        recommendation:
-          'لوحظ تكرار التأخيرات أو تذبذب الحضور خلال الشهر الأخير؛ يُنصح بعقد جلسة ودية من المدير المباشر لفهم التحديات وتقديم الدعم الإداري.',
+        recommendation: 'لوحظ تكرار التأخيرات أو تذبذب الحضور خلال الشهر الأخير؛ يُنصح بعقد جلسة ودية من المدير المباشر لفهم التحديات وتقديم الدعم الإداري.',
       };
     }
     return {
@@ -96,10 +94,7 @@ export function EmployeeRetentionScoreCard({ employee }: EmployeeRetentionScoreC
           <span className={`text-base font-black tabular ${analysis.colorClass}`}>{finalScore}%</span>
         </div>
         <div className="h-2.5 w-full overflow-hidden rounded-full bg-[var(--surface-muted)]">
-          <div
-            className={`h-full transition-all duration-500 rounded-full ${analysis.barColor}`}
-            style={{ width: `${finalScore}%` }}
-          />
+          <div className={`h-full transition-all duration-500 rounded-full ${analysis.barColor}`} style={{ width: `${finalScore}%` }} />
         </div>
       </div>
 
@@ -117,9 +112,7 @@ export function EmployeeRetentionScoreCard({ employee }: EmployeeRetentionScoreC
         </div>
         <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)]/30 p-2.5 text-center">
           <span className="text-[11px] font-bold text-[var(--text-muted)] block">أحدث تقييم أداء</span>
-          <span className="text-sm font-black text-[var(--text)] tabular mt-0.5 block">
-            {kpiScore !== null ? `${kpiScore}%` : 'قيد التقييم'}
-          </span>
+          <span className="text-sm font-black text-[var(--text)] tabular mt-0.5 block">{kpiScore !== null ? `${kpiScore}%` : 'قيد التقييم'}</span>
         </div>
       </div>
 

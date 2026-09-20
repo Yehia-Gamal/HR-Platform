@@ -12,17 +12,21 @@ export const associationProjectListItemSchema = z.object({
   ownerId: uuid,
   ownerName: z.string(),
   status: z.enum(['planned', 'active', 'on_hold', 'completed', 'cancelled']),
+  approvalStatus: z.enum(['draft', 'pending_approval', 'approved', 'rejected']),
   priority: z.enum(['low', 'medium', 'high', 'critical']),
   progress: z.number(),
   startDate: z.string().nullable(),
   targetEndDate: z.string().nullable(),
   lastUpdateAt: z.string().nullable(),
   lastUpdateNote: z.string().nullable(),
+  approvedBy: uuid.nullable(),
+  approvedAt: z.string().nullable(),
+  rejectionReason: z.string().nullable(),
   totalSteps: z.number(),
   completedSteps: z.number(),
   remainingSteps: z.number(),
   blockedSteps: z.number(),
-  ledStatus: z.enum(['active', 'halted', 'stale']),
+  ledStatus: z.enum(['active', 'halted', 'stale', 'pending', 'rejected', 'draft']),
 });
 export type AssociationProjectListItem = z.infer<typeof associationProjectListItemSchema>;
 
@@ -58,5 +62,6 @@ export type AssociationProjectDetail = z.infer<typeof associationProjectDetailSc
 export const associationProjectsCatalogSchema = z.object({
   projects: z.array(associationProjectListItemSchema),
   lastUpdatedAt: z.string(),
+  isFullAccess: z.boolean().optional(),
 });
 export type AssociationProjectsCatalog = z.infer<typeof associationProjectsCatalogSchema>;

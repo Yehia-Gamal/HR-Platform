@@ -1,14 +1,4 @@
-import {
-  Bot,
-  Calculator,
-  CheckCircle2,
-  Copy,
-  FileSignature,
-  Printer,
-  Send,
-  Sparkles,
-  X,
-} from 'lucide-react';
+import { Bot, Calculator, CheckCircle2, Copy, FileSignature, Printer, Send, Sparkles, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { useToast } from '../../ui/Toast';
@@ -46,13 +36,7 @@ const PRESET_FAQS: { q: string; a: string; category: string }[] = [
   },
 ];
 
-export function HRCopilotDrawer({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
+export function HRCopilotDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const auth = useAuth();
   const { toast } = useToast();
   const [mode, setMode] = useState<CopilotMode>('chat');
@@ -308,13 +292,7 @@ export function HRCopilotDrawer({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onClose}
-          className="icon-button"
-          aria-label="إغلاق المساعد الذكي (Esc)"
-          title="إغلاق (Esc)"
-        >
+        <button type="button" onClick={onClose} className="icon-button" aria-label="إغلاق المساعد الذكي (Esc)" title="إغلاق (Esc)">
           <X className="size-5" aria-hidden="true" />
         </button>
       </div>
@@ -384,10 +362,7 @@ export function HRCopilotDrawer({
           {/* Messages Container */}
           <div className="flex-1 space-y-4 overflow-y-auto p-4">
             {messages.map((m) => (
-              <div
-                key={m.id}
-                className={`flex flex-col ${m.sender === 'user' ? 'items-end' : 'items-start'}`}
-              >
+              <div key={m.id} className={`flex flex-col ${m.sender === 'user' ? 'items-end' : 'items-start'}`}>
                 <div
                   className={`max-w-[88%] rounded-2xl p-3.5 text-xs leading-relaxed shadow-2xs ${
                     m.sender === 'user'
@@ -456,11 +431,7 @@ export function HRCopilotDrawer({
 
             <div>
               <label className="text-[11px] font-bold block mb-1 text-[var(--text-muted)]">نوع الخطاب الإداري</label>
-              <select
-                value={letterType}
-                onChange={(e) => setLetterType(e.target.value as typeof letterType)}
-                className="input w-full text-xs"
-              >
+              <select value={letterType} onChange={(e) => setLetterType(e.target.value as typeof letterType)} className="input w-full text-xs">
                 <option value="warning">إنذار رسمي / لفت نظر بشأن الحضور والانضباط</option>
                 <option value="appreciation">خطاب شكر وتقدير للإنجاز والتميز</option>
                 <option value="experience">شهادة خبرة وإفادة بالخدمة</option>
@@ -526,11 +497,7 @@ export function HRCopilotDrawer({
                     <Copy className="size-3" aria-hidden="true" />
                     نسخ
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => window.print()}
-                    className="btn-secondary text-[11px] py-1 px-2.5 flex items-center gap-1"
-                  >
+                  <button type="button" onClick={() => window.print()} className="btn-secondary text-[11px] py-1 px-2.5 flex items-center gap-1">
                     <Printer className="size-3" aria-hidden="true" />
                     طباعة
                   </button>
@@ -555,9 +522,7 @@ export function HRCopilotDrawer({
             </h4>
 
             <div>
-              <label className="text-[11px] font-bold block mb-1 text-[var(--text-muted)]">
-                الراتب الأساسي الشهري للموظف (ج.م)
-              </label>
+              <label className="text-[11px] font-bold block mb-1 text-[var(--text-muted)]">الراتب الأساسي الشهري للموظف (ج.م)</label>
               <input
                 type="number"
                 min={3000}
@@ -570,14 +535,8 @@ export function HRCopilotDrawer({
             </div>
 
             <div>
-              <label className="text-[11px] font-bold block mb-1 text-[var(--text-muted)]">
-                نوع المخالفة وفق لائحة الجزاءات
-              </label>
-              <select
-                value={penaltyType}
-                onChange={(e) => setPenaltyType(e.target.value as typeof penaltyType)}
-                className="input w-full text-xs"
-              >
+              <label className="text-[11px] font-bold block mb-1 text-[var(--text-muted)]">نوع المخالفة وفق لائحة الجزاءات</label>
+              <select value={penaltyType} onChange={(e) => setPenaltyType(e.target.value as typeof penaltyType)} className="input w-full text-xs">
                 <option value="late_1">تأخير للمرة الأولى خلال الشهر (إنذار)</option>
                 <option value="late_2">تأخير للمرة الثانية خلال الشهر (خصم 25%)</option>
                 <option value="late_3">تأخير للمرة الثالثة خلال الشهر (خصم 50%)</option>

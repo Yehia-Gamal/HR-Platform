@@ -83,8 +83,17 @@ export function EmployeePenaltiesPage() {
         </span>
       ),
     },
-    { key: 'amount', header: 'المبلغ', sortable: true, render: (p) => <span className="font-black text-[var(--danger)] whitespace-nowrap">{formatCurrency(p.amount)}</span> },
-    { key: 'issuedAt', header: 'التاريخ', render: (p) => <span className="whitespace-nowrap">{p.issuedAt ? dateFormatter.format(new Date(p.issuedAt)) : '—'}</span> },
+    {
+      key: 'amount',
+      header: 'المبلغ',
+      sortable: true,
+      render: (p) => <span className="font-black text-[var(--danger)] whitespace-nowrap">{formatCurrency(p.amount)}</span>,
+    },
+    {
+      key: 'issuedAt',
+      header: 'التاريخ',
+      render: (p) => <span className="whitespace-nowrap">{p.issuedAt ? dateFormatter.format(new Date(p.issuedAt)) : '—'}</span>,
+    },
     {
       key: 'status',
       header: 'الحالة',

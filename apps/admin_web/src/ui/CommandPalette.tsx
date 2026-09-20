@@ -185,11 +185,15 @@ export function CommandPalette() {
                 onMouseEnter={() => setActive(index)}
                 onClick={() => go(item)}
                 className={`flex w-full items-center justify-between gap-3 rounded-xl px-4 py-2.5 text-start text-sm font-bold ${
-                  index === active ? 'bg-[var(--brand-primary)] text-white dark:text-[var(--text-primary)]' : 'text-[var(--text-primary)] hover:bg-[var(--surface-muted)]'
+                  index === active
+                    ? 'bg-[var(--brand-primary)] text-white dark:text-[var(--text-primary)]'
+                    : 'text-[var(--text-primary)] hover:bg-[var(--surface-muted)]'
                 }`}
               >
                 <span>{item.label}</span>
-                <span className={`text-xs font-bold ${index === active ? 'text-white/70 dark:text-[var(--text-muted)]' : 'text-[var(--text-muted)]'}`}>{item.group}</span>
+                <span className={`text-xs font-bold ${index === active ? 'text-white/70 dark:text-[var(--text-muted)]' : 'text-[var(--text-muted)]'}`}>
+                  {item.group}
+                </span>
               </button>
             </li>
           ))}

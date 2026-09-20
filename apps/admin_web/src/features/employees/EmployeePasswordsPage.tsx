@@ -135,11 +135,7 @@ function ResetPasswordDialog({ employee, onClose, onSuccess }: ResetPasswordDial
             <label htmlFor="new-pwd-input" className="text-xs font-bold text-[var(--text)]">
               كلمة المرور الجديدة
             </label>
-            <button
-              type="button"
-              onClick={handleAutoGenerate}
-              className="flex items-center gap-1 text-xs font-bold text-[var(--primary)] hover:underline"
-            >
+            <button type="button" onClick={handleAutoGenerate} className="flex items-center gap-1 text-xs font-bold text-[var(--primary)] hover:underline">
               <Sparkles className="size-3.5" aria-hidden="true" />
               توليد كلمة مرور (8 خانات)
             </button>
@@ -166,9 +162,7 @@ function ResetPasswordDialog({ employee, onClose, onSuccess }: ResetPasswordDial
               {showPwd ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
           </div>
-          <p className="mt-1 text-[11px] text-[var(--muted)]">
-            كلمة مرور سهلة من 8 خانات تفتح ملف الموظف مباشرة دون تعقيد.
-          </p>
+          <p className="mt-1 text-[11px] text-[var(--muted)]">كلمة مرور سهلة من 8 خانات تفتح ملف الموظف مباشرة دون تعقيد.</p>
         </div>
 
         <div>
@@ -195,9 +189,7 @@ function ResetPasswordDialog({ employee, onClose, onSuccess }: ResetPasswordDial
             className="mt-0.5 rounded text-[var(--primary)] focus:ring-[var(--primary)]"
           />
           <div className="text-xs">
-            <span className="font-bold text-[var(--text)]">
-              إلزام الموظف بتغيير كلمة المرور عند أول تسجيل دخول
-            </span>
+            <span className="font-bold text-[var(--text)]">إلزام الموظف بتغيير كلمة المرور عند أول تسجيل دخول</span>
             <p className="mt-0.5 text-[var(--muted)] leading-relaxed">
               {mustChangePassword
                 ? 'سيُطلب من الموظف تعيين كلمة مرور جديدة عند أول تسجيل دخول.'
@@ -381,11 +373,7 @@ export function EmployeePasswordsPage() {
       sessionPasswords[emp.id] ?? 'مشفرة في الخادم',
     ]);
 
-    const csvContent =
-      '\uFEFF' +
-      [headers.join(','), ...rows.map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join(
-        '\n'
-      );
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -413,13 +401,7 @@ export function EmployeePasswordsPage() {
   }
 
   if (isError) {
-    return (
-      <ErrorState
-        title="تعذر تحميل بيانات حسابات وكلمات مرور الموظفين"
-        description={safeErrorMessage(error)}
-        onRetry={() => void refetch()}
-      />
-    );
+    return <ErrorState title="تعذر تحميل بيانات حسابات وكلمات مرور الموظفين" description={safeErrorMessage(error)} onRetry={() => void refetch()} />;
   }
 
   return (
@@ -443,11 +425,7 @@ export function EmployeePasswordsPage() {
         <MetricCard label="إجمالي الموظفين" value={stats.total} icon={Users} />
         <MetricCard label="حسابات مفعلة" value={stats.active} icon={ShieldCheck} />
         <MetricCard label="بانتظار تفعيل كلمة المرور" value={stats.pending} icon={Mail} />
-        <MetricCard
-          label="كلمات مرور معينة بالجلسة"
-          value={stats.inSession}
-          icon={KeyRound}
-        />
+        <MetricCard label="كلمات مرور معينة بالجلسة" value={stats.inSession} icon={KeyRound} />
       </section>
 
       {/* تنبيه الإرشادات الأمنية */}
@@ -456,7 +434,8 @@ export function EmployeePasswordsPage() {
         <div>
           <h4 className="font-bold mb-1">السياسة الأمنية لإدارة كلمات المرور:</h4>
           <p className="text-[11px] text-[var(--muted)] leading-normal">
-            تُخزن كلمات المرور الحقيقية في قاعدة البيانات بتشفير أحادي الاتجاه غير قابل للاسترجاع. عند قيامك بتعيين كلمة مرور هنا أو توليدها، يمكنك نسخها للموظف فوراً مع إلزامه آلياً بتغييرها عند أول تسجيل دخول لحماية حسابه. يمكنك أيضاً إرسال رابط آمن ومباشر لإعادة التعيين عبر بريده الرسمي.
+            تُخزن كلمات المرور الحقيقية في قاعدة البيانات بتشفير أحادي الاتجاه غير قابل للاسترجاع. عند قيامك بتعيين كلمة مرور هنا أو توليدها، يمكنك نسخها للموظف
+            فوراً مع إلزامه آلياً بتغييرها عند أول تسجيل دخول لحماية حسابه. يمكنك أيضاً إرسال رابط آمن ومباشر لإعادة التعيين عبر بريده الرسمي.
           </p>
         </div>
       </div>
@@ -511,21 +490,30 @@ export function EmployeePasswordsPage() {
       {/* جدول كلمات المرور والحسابات */}
       <section className="card overflow-hidden" aria-label="جدول كلمات مرور الموظفين">
         {filteredEmployees.length === 0 ? (
-          <EmptyState
-            title="لا توجد نتائج مطابقة"
-            description="لم يتم العثور على موظفين يطابقون معايير البحث والفلترة المحددة."
-          />
+          <EmptyState title="لا توجد نتائج مطابقة" description="لم يتم العثور على موظفين يطابقون معايير البحث والفلترة المحددة." />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-end text-xs">
               <thead className="border-b border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--muted)]">
                 <tr>
-                  <th scope="col" className="p-4 font-bold">الموظف والكود</th>
-                  <th scope="col" className="p-4 font-bold">الإدارة والمسمى</th>
-                  <th scope="col" className="p-4 font-bold">الهاتف</th>
-                  <th scope="col" className="p-4 font-bold">حالة الحساب</th>
-                  <th scope="col" className="p-4 font-bold">كلمة المرور المؤقتة / المعينة</th>
-                  <th scope="col" className="p-4 text-center font-bold">إجراءات التحكم</th>
+                  <th scope="col" className="p-4 font-bold">
+                    الموظف والكود
+                  </th>
+                  <th scope="col" className="p-4 font-bold">
+                    الإدارة والمسمى
+                  </th>
+                  <th scope="col" className="p-4 font-bold">
+                    الهاتف
+                  </th>
+                  <th scope="col" className="p-4 font-bold">
+                    حالة الحساب
+                  </th>
+                  <th scope="col" className="p-4 font-bold">
+                    كلمة المرور المؤقتة / المعينة
+                  </th>
+                  <th scope="col" className="p-4 text-center font-bold">
+                    إجراءات التحكم
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">

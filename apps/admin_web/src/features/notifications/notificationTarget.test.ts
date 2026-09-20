@@ -193,11 +193,9 @@ describe('notificationTargetPath', () => {
     expect(notificationTargetPath(item({ entityType: 'broadcast_alert', entityId: 'b1' }), 'admin')).toBeNull();
   });
 
-  // لا توجد صفحة «رفاهية» في الويب، ومعرّف الطلب من جدول آخر — إشعار معلوماتي
-  // خير من رابط يفتح صفحة لا تحوي العنصر.
-  it('طلبات الرفاهية معلوماتية — لا وجهة مضلِّلة', () => {
-    expect(notificationTargetPath(item({ entityType: 'wellbeing_requests', entityId: 'w1' }), 'admin')).toBeNull();
-    expect(notificationTargetPath(item({ entityType: 'wellbeing_requests', entityId: 'w1' }), 'hr')).toBeNull();
+  it('يرسم الرفاهية إلى الخلاصة الرسمية', () => {
+    expect(notificationTargetPath(item({ entityType: 'wellbeing_requests', entityId: 'w1' }), 'admin')).toBe('/admin/official-feed?focus=w1');
+    expect(notificationTargetPath(item({ entityType: 'wellbeing_requests', entityId: 'w1' }), 'hr')).toBe('/hr/official-feed?focus=w1');
   });
 
   it('يرسم إنهاء الخدمة إلى تبويب إنهاء الخدمة في صفحة المستندات الفعلية', () => {

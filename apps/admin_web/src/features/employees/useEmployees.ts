@@ -156,7 +156,7 @@ export function useSetEmployeePassword() {
         'admin-set-password',
         { employeeId, password, mustChangePassword },
         SET_PASSWORD_ERROR_MESSAGES,
-        'تعذر تعيين كلمة المرور. أعد المحاولة لاحقًا.'
+        'تعذر تعيين كلمة المرور. أعد المحاولة لاحقًا.',
       );
     },
     meta: { successMessage: 'تم تعيين كلمة المرور بنجاح' },

@@ -129,9 +129,7 @@ export function EmployeeRecognitionTab({ employeeId: _employeeId }: { employeeId
             </div>
             <div>
               <h3 className="text-xl font-black">منظومة التقدير والتحفيز الوظيفي</h3>
-              <p className="text-xs text-[var(--text-muted)] mt-1">
-                سجل الأوسمة وشارات الاستحقاق الممنوحة تقديراً للإنجاز والانضباط الميداني
-              </p>
+              <p className="text-xs text-[var(--text-muted)] mt-1">سجل الأوسمة وشارات الاستحقاق الممنوحة تقديراً للإنجاز والانضباط الميداني</p>
             </div>
           </div>
 
@@ -145,11 +143,7 @@ export function EmployeeRecognitionTab({ employeeId: _employeeId }: { employeeId
               <span className="text-2xl font-black text-[var(--brand-primary)] tabular">{badges.length}</span>
             </div>
             {canGrantRecognition && (
-              <button
-                type="button"
-                onClick={() => setShowAddModal(true)}
-                className="btn-primary flex items-center gap-2"
-              >
+              <button type="button" onClick={() => setShowAddModal(true)} className="btn-primary flex items-center gap-2">
                 <Plus className="size-4" aria-hidden="true" />
                 منح وسام تقدير
               </button>
@@ -175,9 +169,7 @@ export function EmployeeRecognitionTab({ employeeId: _employeeId }: { employeeId
                     <span className={`flex size-11 items-center justify-center rounded-xl bg-[var(--surface)] shadow-xs ${levelStyle.text}`}>
                       <Icon className="size-6" aria-hidden="true" />
                     </span>
-                    <span className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[11px] font-black shadow-xs">
-                      +{badge.points} نقطة
-                    </span>
+                    <span className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[11px] font-black shadow-xs">+{badge.points} نقطة</span>
                   </div>
                   <h5 className="mt-3 text-base font-black text-[var(--text)]">{badge.title}</h5>
                   <p className="mt-1 text-xs text-[var(--text-muted)] leading-relaxed">{badge.description}</p>
@@ -197,9 +189,7 @@ export function EmployeeRecognitionTab({ employeeId: _employeeId }: { employeeId
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="card w-full max-w-md p-6 border border-[var(--border)] shadow-xl animate-in fade-in">
             <h3 className="text-lg font-black mb-1">منح وسام تقدير للموظف</h3>
-            <p className="text-xs text-[var(--text-muted)] mb-4">
-              إضافة وسام استحقاق وتكريم لسجل الموظف مع مكافأة نقاط تميز
-            </p>
+            <p className="text-xs text-[var(--text-muted)] mb-4">إضافة وسام استحقاق وتكريم لسجل الموظف مع مكافأة نقاط تميز</p>
             <form onSubmit={handleGrantBadge} className="space-y-4">
               <div>
                 <label className="text-xs font-bold block mb-1">عنوان الوسام / التكريم</label>
@@ -227,11 +217,7 @@ export function EmployeeRecognitionTab({ employeeId: _employeeId }: { employeeId
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold block mb-1">مستوى الوسام</label>
-                  <select
-                    value={newLevel}
-                    onChange={(e) => setNewLevel(e.target.value as RecognitionBadge['level'])}
-                    className="input w-full"
-                  >
+                  <select value={newLevel} onChange={(e) => setNewLevel(e.target.value as RecognitionBadge['level'])} className="input w-full">
                     <option value="diamond">ألماسي (Diamond)</option>
                     <option value="gold">ذهبي (Gold)</option>
                     <option value="silver">فضي (Silver)</option>
@@ -253,11 +239,7 @@ export function EmployeeRecognitionTab({ employeeId: _employeeId }: { employeeId
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="btn-secondary"
-                >
+                <button type="button" onClick={() => setShowAddModal(false)} className="btn-secondary">
                   إلغاء
                 </button>
                 <button type="submit" className="btn-primary">

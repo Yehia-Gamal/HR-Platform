@@ -213,6 +213,19 @@ describe('financialExtensions contracts', () => {
     expect(graceResult.id).toBeNull();
   });
 
+  it('generateInstantPenaltyResultSchema يدعم حالة الإعفاء (مأمورية / إجازة / قافلة / فاندي)', () => {
+    const exemptResult = generateInstantPenaltyResultSchema.parse({
+      id: null,
+      alreadyExists: false,
+      isExempt: true,
+      amount: 0,
+      message: 'الموظف معفى من غرامات الحضور والانصراف: مأمورية عمل رسمية (المعادي)',
+    });
+    expect(exemptResult.isExempt).toBe(true);
+    expect(exemptResult.id).toBeNull();
+    expect(exemptResult.amount).toBe(0);
+  });
+
   it('confirmInstantPenaltyPaymentResultSchema يوثق نتيجة الدفع ورفع التعليق', () => {
     const confirmResult = confirmInstantPenaltyPaymentResultSchema.parse({
       id: '11111111-1111-4111-8111-111111111111',

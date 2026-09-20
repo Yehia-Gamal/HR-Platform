@@ -16,15 +16,7 @@ export type { FellowshipFundSummary, FellowshipFundTransaction, WithdrawFellowsh
 export const FELLOWSHIP_FUND_SUMMARY_KEY = 'fellowship-fund-summary';
 export const FELLOWSHIP_FUND_TX_KEY = 'fellowship-fund-transactions';
 
-export const FELLOWSHIP_CATEGORIES = [
-  'غرامة تأخير حضور',
-  'مساعدة زميل',
-  'مناسبة اجتماعية',
-  'علاج وطوارئ',
-  'تكريم وتميز',
-  'مساهمة تطوعية',
-  'أخرى',
-] as const;
+export const FELLOWSHIP_CATEGORIES = ['غرامة تأخير حضور', 'مساعدة زميل', 'مناسبة اجتماعية', 'علاج وطوارئ', 'تكريم وتميز', 'مساهمة تطوعية', 'أخرى'] as const;
 
 export interface FellowshipFundTransactionsFilter {
   type?: 'all' | 'inflow' | 'outflow';
@@ -54,9 +46,7 @@ export function useFellowshipFundSummary() {
           recentTransactions: [],
         };
       }
-      return fellowshipFundSummarySchema.parse(
-        await rpc('get_fellowship_fund_summary'),
-      );
+      return fellowshipFundSummarySchema.parse(await rpc('get_fellowship_fund_summary'));
     },
   });
 }
@@ -105,4 +95,3 @@ export function useWithdrawFromFellowshipFund() {
     },
   });
 }
-

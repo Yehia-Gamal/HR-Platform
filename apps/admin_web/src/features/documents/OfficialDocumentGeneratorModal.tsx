@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Printer, X, FileText, CheckCircle, Building2, User, Calendar, ShieldCheck, Download } from 'lucide-react';
+import { Printer, FileText, CheckCircle, Building2, ShieldCheck } from 'lucide-react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { SignaturePad } from '../../ui/SignaturePad';
 
@@ -27,12 +27,7 @@ interface OfficialDocumentGeneratorModalProps {
   initialType?: OfficialDocType;
 }
 
-export function OfficialDocumentGeneratorModal({
-  isOpen,
-  onClose,
-  employee,
-  initialType = 'salary_certificate',
-}: OfficialDocumentGeneratorModalProps) {
+export function OfficialDocumentGeneratorModal({ isOpen, onClose, employee, initialType = 'salary_certificate' }: OfficialDocumentGeneratorModalProps) {
   const [docType, setDocType] = useState<OfficialDocType>(initialType);
   const [recipient, setRecipient] = useState('إلى من يهمه الأمر');
   const [purpose, setPurpose] = useState('بناءً على طلب الموظف لتقديمه للجهات الرسمية المعنية');
@@ -64,7 +59,7 @@ export function OfficialDocumentGeneratorModal({
   const basicSalary = emp.basicSalary ?? 6000;
   const housing = emp.housingAllowance ?? 1500;
   const transport = emp.transportAllowance ?? 1000;
-  const total = emp.totalSalary ?? (basicSalary + housing + transport);
+  const total = emp.totalSalary ?? basicSalary + housing + transport;
 
   const issueDate = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'long' }).format(new Date());
   const serialNo = `DOC-${new Date().getFullYear()}-${emp.employeeCode.replace(/\D/g, '') || '99'}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -182,11 +177,7 @@ export function OfficialDocumentGeneratorModal({
             {employeeSignature ? (
               <div className="p-2 border rounded-xl bg-emerald-500/10 border-emerald-500/30 text-emerald-700 text-xs flex items-center justify-between">
                 <span>تم إرفاق التوقيع الحي بنجاح</span>
-                <button
-                  type="button"
-                  onClick={() => setEmployeeSignature(null)}
-                  className="text-xs text-rose-500 underline"
-                >
+                <button type="button" onClick={() => setEmployeeSignature(null)} className="text-xs text-rose-500 underline">
                   إلغاء
                 </button>
               </div>
@@ -203,17 +194,11 @@ export function OfficialDocumentGeneratorModal({
 
           {/* زر التصدير والطباعة المباشرة */}
           <div className="pt-4 border-t border-[var(--border)] space-y-2">
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="btn-primary w-full py-3 text-xs font-bold flex items-center justify-center gap-2 shadow-lg"
-            >
+            <button type="button" onClick={handlePrint} className="btn-primary w-full py-3 text-xs font-bold flex items-center justify-center gap-2 shadow-lg">
               <Printer className="size-4" />
               طباعة / حفظ كـ PDF رسمي
             </button>
-            <p className="text-[11px] text-[var(--text-muted)] text-center">
-              يتم التصدير بأعلى دقة متوافقة مع الطباعة A4 بدون أي تكلفة خارجية.
-            </p>
+            <p className="text-[11px] text-[var(--text-muted)] text-center">يتم التصدير بأعلى دقة متوافقة مع الطباعة A4 بدون أي تكلفة خارجية.</p>
           </div>
         </div>
 
@@ -260,7 +245,11 @@ export function OfficialDocumentGeneratorModal({
                   <p className="text-slate-500 text-xs">تحية طيبة وبعد،،،</p>
 
                   <p>
-                    تشهد مؤسسة «أحلى شباب» بأن السيد/ <strong>{emp.fullNameAr}</strong> (الرقم القومي / الهوية: <span className="font-mono font-bold">{emp.nationalId || '—'}</span>، الكود الوظيفي: <span className="font-mono font-bold">{emp.employeeCode}</span>)، يعمل لدينا وتحت كفالتنا الإدارية بوظيفة <strong>{emp.jobTitle}</strong> بـ <strong>{emp.departmentName}</strong>، وذلك منذ تاريخ التحاقه بالعمل في <span className="font-bold font-mono">{emp.hireDate || '—'}</span> ولا يزال على رأس عمله حتى تاريخ تحرير هذه الشهادة.
+                    تشهد مؤسسة «أحلى شباب» بأن السيد/ <strong>{emp.fullNameAr}</strong> (الرقم القومي / الهوية:{' '}
+                    <span className="font-mono font-bold">{emp.nationalId || '—'}</span>، الكود الوظيفي:{' '}
+                    <span className="font-mono font-bold">{emp.employeeCode}</span>)، يعمل لدينا وتحت كفالتنا الإدارية بوظيفة <strong>{emp.jobTitle}</strong> بـ{' '}
+                    <strong>{emp.departmentName}</strong>، وذلك منذ تاريخ التحاقه بالعمل في <span className="font-bold font-mono">{emp.hireDate || '—'}</span>{' '}
+                    ولا يزال على رأس عمله حتى تاريخ تحرير هذه الشهادة.
                   </p>
 
                   <div className="my-5 border border-slate-300 rounded-lg overflow-hidden">
@@ -305,17 +294,32 @@ export function OfficialDocumentGeneratorModal({
                     إنه في يوم <strong>{issueDate}</strong>، تم الاتفاق والتراضي بين كل من:
                   </p>
                   <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-1">
-                    <p><strong>الطرف الأول:</strong> مؤسسة أحلى شباب، ويمثلها مدير الموارد البشرية.</p>
-                    <p><strong>الطرف الثاني:</strong> السيد/ {emp.fullNameAr}، الرقم القومي: {emp.nationalId || '—'}، الكود: {emp.employeeCode}.</p>
+                    <p>
+                      <strong>الطرف الأول:</strong> مؤسسة أحلى شباب، ويمثلها مدير الموارد البشرية.
+                    </p>
+                    <p>
+                      <strong>الطرف الثاني:</strong> السيد/ {emp.fullNameAr}، الرقم القومي: {emp.nationalId || '—'}، الكود: {emp.employeeCode}.
+                    </p>
                   </div>
 
                   <p className="font-bold">البنود والشروط المتفق عليها:</p>
                   <ol className="list-decimal list-inside space-y-1.5 text-slate-700">
-                    <li><strong>طبيعة العمل:</strong> يعمل الطرف الثاني لدى الطرف الأول بمهنة ({emp.jobTitle}) في ({emp.departmentName}).</li>
-                    <li><strong>مدة العقد:</strong> يبدأ سريان هذا العقد لمدة {contractPeriodYears === '1' ? 'سنة واحدة' : contractPeriodYears === '2' ? 'سنتين' : 'غير محددة'} قابلة للتجديد بموافقة الطرفين.</li>
-                    <li><strong>فترة التجربة:</strong> يخضع الطرف الثاني لفترة تجربة مدتها {probationMonths} أشهر وفقاً لأحكام قانون العمل.</li>
-                    <li><strong>الراتب والمستحقات:</strong> يتقاضى الطرف الثاني راتباً شهرياً إجمالياً قدره ({total.toLocaleString()} ج.م) شاملاً كافة البدلات.</li>
-                    <li><strong>السرية وحماية البيانات:</strong> يتعهد الطرف الثاني بالحفاظ التام على أسرار العمل وعدم إفشاء أي بيانات تشغيلية أو برمجية.</li>
+                    <li>
+                      <strong>طبيعة العمل:</strong> يعمل الطرف الثاني لدى الطرف الأول بمهنة ({emp.jobTitle}) في ({emp.departmentName}).
+                    </li>
+                    <li>
+                      <strong>مدة العقد:</strong> يبدأ سريان هذا العقد لمدة{' '}
+                      {contractPeriodYears === '1' ? 'سنة واحدة' : contractPeriodYears === '2' ? 'سنتين' : 'غير محددة'} قابلة للتجديد بموافقة الطرفين.
+                    </li>
+                    <li>
+                      <strong>فترة التجربة:</strong> يخضع الطرف الثاني لفترة تجربة مدتها {probationMonths} أشهر وفقاً لأحكام قانون العمل.
+                    </li>
+                    <li>
+                      <strong>الراتب والمستحقات:</strong> يتقاضى الطرف الثاني راتباً شهرياً إجمالياً قدره ({total.toLocaleString()} ج.م) شاملاً كافة البدلات.
+                    </li>
+                    <li>
+                      <strong>السرية وحماية البيانات:</strong> يتعهد الطرف الثاني بالحفاظ التام على أسرار العمل وعدم إفشاء أي بيانات تشغيلية أو برمجية.
+                    </li>
                   </ol>
                 </div>
               )}
@@ -323,14 +327,20 @@ export function OfficialDocumentGeneratorModal({
               {/* محتوى: إخلاء طرف ومخالصة */}
               {docType === 'clearance_settlement' && (
                 <div className="space-y-4 text-xs leading-relaxed text-justify">
-                  <p>
-                    تفيد إدارة الموارد البشرية والشؤون المالية بأن الموظف المذكور أدناه قد أتم إجراءات إخلاء الطرف وتسليم العهد الرسمية:
-                  </p>
+                  <p>تفيد إدارة الموارد البشرية والشؤون المالية بأن الموظف المذكور أدناه قد أتم إجراءات إخلاء الطرف وتسليم العهد الرسمية:</p>
                   <div className="grid grid-cols-2 gap-2 text-xs border border-slate-200 p-2.5 rounded-lg bg-slate-50">
-                    <div><strong>الموظف:</strong> {emp.fullNameAr}</div>
-                    <div><strong>الكود الوظيفي:</strong> {emp.employeeCode}</div>
-                    <div><strong>الوظيفة:</strong> {emp.jobTitle}</div>
-                    <div><strong>تاريخ إنهاء العلاقة:</strong> {issueDate}</div>
+                    <div>
+                      <strong>الموظف:</strong> {emp.fullNameAr}
+                    </div>
+                    <div>
+                      <strong>الكود الوظيفي:</strong> {emp.employeeCode}
+                    </div>
+                    <div>
+                      <strong>الوظيفة:</strong> {emp.jobTitle}
+                    </div>
+                    <div>
+                      <strong>تاريخ إنهاء العلاقة:</strong> {issueDate}
+                    </div>
                   </div>
 
                   <div className="space-y-1.5 pt-2">
@@ -352,7 +362,8 @@ export function OfficialDocumentGeneratorModal({
                   </div>
 
                   <p className="text-xs text-slate-600 pt-2">
-                    يقر الموظف باستلامه لكافة مستحقاته المالية ومكافأة نهاية الخدمة وشهادة الخبرة، وتعتبر ذمة المؤسسة بريئة تماماً من أي مطالبات مالية أو عمالية.
+                    يقر الموظف باستلامه لكافة مستحقاته المالية ومكافأة نهاية الخدمة وشهادة الخبرة، وتعتبر ذمة المؤسسة بريئة تماماً من أي مطالبات مالية أو
+                    عمالية.
                   </p>
                 </div>
               )}

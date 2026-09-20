@@ -94,6 +94,7 @@ export function InstantPenaltiesPage() {
   const [employeeId, setEmployeeId] = useState('');
   const [lateMinutes, setLateMinutes] = useState('');
   const [workDate, setWorkDate] = useState(cairoTodayIso());
+  const [formFeedback, setFormFeedback] = useState<string | null>(null);
 
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [paymentTarget, setPaymentTarget] = useState<{ id: string; name: string; msg: string } | null>(null);
@@ -322,12 +323,25 @@ export function InstantPenaltiesPage() {
     {
       key: 'status',
       header: 'الحالة',
-      render: (p) => (
-        <div className="flex items-center gap-1.5 whitespace-nowrap">
-          <StatusIcon status={p.status} />
-          <StatusBadge status={p.status} label={INSTANT_PENALTY_STATUS_LABELS[p.status] ?? p.status} />
-        </div>
-      ),
+      render: (p) => {
+        const isExempt =
+          p.status === 'cancelled' &&
+          (p.notes?.includes('إلغاء بأثر رجعي') ||
+            p.notes?.includes('إلغاء تلقائي') ||
+            p.notes?.includes('مأمورية') ||
+            p.notes?.includes('إجازة') ||
+            p.notes?.includes('قافلة') ||
+            p.notes?.includes('فاندي') ||
+            p.notes?.includes('المدير التنفيذي') ||
+            p.notes?.includes('استثناء') ||
+            p.notes?.includes('معفى'));
+        return (
+          <div className="flex items-center gap-1.5 whitespace-nowrap" title={p.notes ?? undefined}>
+            <StatusIcon status={p.status} />
+            <StatusBadge status={p.status} label={isExempt ? 'معفى (ملغاة)' : (INSTANT_PENALTY_STATUS_LABELS[p.status] ?? p.status)} />
+          </div>
+        );
+      },
     },
     {
       key: 'actions',
@@ -341,10 +355,27 @@ export function InstantPenaltiesPage() {
           );
         }
         if (p.status === 'cancelled') {
+          const isExempt =
+            p.notes?.includes('إلغاء بأثر رجعي') ||
+            p.notes?.includes('إلغاء تلقائي') ||
+            p.notes?.includes('مأمورية') ||
+            p.notes?.includes('إجازة') ||
+            p.notes?.includes('قافلة') ||
+            p.notes?.includes('فاندي') ||
+            p.notes?.includes('المدير التنفيذي') ||
+            p.notes?.includes('استثناء') ||
+            p.notes?.includes('معفى');
           return (
-            <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)] font-medium whitespace-nowrap bg-[var(--surface-muted)] px-2.5 py-1 rounded-md">
+            <span
+              className={`inline-flex items-center gap-1 text-xs font-semibold whitespace-nowrap px-2.5 py-1 rounded-md ${
+                isExempt
+                  ? 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20'
+                  : 'bg-[var(--surface-muted)] text-[var(--text-muted)]'
+              }`}
+              title={p.notes ?? 'ملغاة'}
+            >
               <XCircle className="size-3.5" aria-hidden="true" />
-              ملغاة
+              {isExempt ? 'معفى من الغرامة' : 'ملغاة'}
             </span>
           );
         }
@@ -420,11 +451,16 @@ export function InstantPenaltiesPage() {
     if (!employeeId) return;
     const mins = Number(lateMinutes);
     if (!Number.isFinite(mins) || mins <= 0) return;
-    await generatePenalty.mutateAsync({
+    setFormFeedback(null);
+    const result = await generatePenalty.mutateAsync({
       employeeId,
       workDate,
       lateMinutes: mins,
     });
+    if (result.isExempt) {
+      setFormFeedback(result.message ?? 'الموظف معفى من غرامات الحضور والانصراف (مأمورية / إجازة / قافلة / فاندي)');
+      return;
+    }
     setFormOpen(false);
     setEmployeeId('');
     setLateMinutes('');
@@ -736,6 +772,11 @@ export function InstantPenaltiesPage() {
                 إلغاء
               </button>
             </div>
+            {formFeedback && (
+              <p className="text-sm font-bold text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl sm:col-span-2 lg:col-span-4">
+                ⚠️ {formFeedback}
+              </p>
+            )}
             {generatePenalty.isError && <p className="text-sm text-[var(--danger)] sm:col-span-2 lg:col-span-4">{safeErrorMessage(generatePenalty.error)}</p>}
           </form>
         </section>

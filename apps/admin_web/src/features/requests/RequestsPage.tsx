@@ -1,4 +1,10 @@
-import { MISSION_EXECUTION_STATUS_LABELS, REQUEST_STATUS_LABELS, type RequestSummary, type WorkAssignment, type AttendanceOperationsCatalog } from '@ahla/shared-contracts';
+import {
+  MISSION_EXECUTION_STATUS_LABELS,
+  REQUEST_STATUS_LABELS,
+  type RequestSummary,
+  type WorkAssignment,
+  type AttendanceOperationsCatalog,
+} from '@ahla/shared-contracts';
 import { CalendarDays, Check, Clock, MapPin, RotateCcw, Truck, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';

@@ -10,7 +10,10 @@ interface Props {
 }
 
 const PRIORITY_LABELS: Record<string, string> = {
-  low: 'منخفضة', medium: 'متوسطة', high: 'عالية', critical: 'حرجة',
+  low: 'منخفضة',
+  medium: 'متوسطة',
+  high: 'عالية',
+  critical: 'حرجة',
 };
 
 export function ProjectCard({ project, onClick, onQuickUpdate }: Props) {
@@ -20,9 +23,11 @@ export function ProjectCard({ project, onClick, onQuickUpdate }: Props) {
   return (
     <div className={`text-end w-full p-0 ${ledCardClass(led)} group overflow-hidden`}>
       {/* شريط LED العلوي */}
-      <div className={`h-1.5 w-full ${
-        led === 'active' ? 'bg-emerald-500' : led === 'halted' ? 'bg-red-500' : 'bg-gray-400'
-      } ${led === 'active' ? 'animate-pulse' : ''}`} />
+      <div
+        className={`h-1.5 w-full ${
+          led === 'active' ? 'bg-emerald-500' : led === 'halted' ? 'bg-red-500' : 'bg-gray-400'
+        } ${led === 'active' ? 'animate-pulse' : ''}`}
+      />
 
       <div className="p-5">
         {/* LED + الحالة + الأولوية + زر التحديث السريع */}
@@ -30,18 +35,17 @@ export function ProjectCard({ project, onClick, onQuickUpdate }: Props) {
           <div className="flex items-center gap-2.5">
             <div className="relative">
               <div className={`w-5 h-5 rounded-full ${colors.bg} ${colors.glow} ${led === 'active' ? 'animate-pulse' : ''}`} />
-              {led === 'active' && (
-                <div className="absolute inset-0 w-5 h-5 rounded-full bg-emerald-400 animate-ping opacity-30" />
-              )}
+              {led === 'active' && <div className="absolute inset-0 w-5 h-5 rounded-full bg-emerald-400 animate-ping opacity-30" />}
             </div>
-            <span className="text-xs font-bold tracking-wide text-gray-600 dark:text-gray-300 uppercase">
-              {colors.label}
-            </span>
+            <span className="text-xs font-bold tracking-wide text-gray-600 dark:text-gray-300 uppercase">{colors.label}</span>
           </div>
           <div className="flex items-center gap-2">
             {onQuickUpdate && led !== 'stale' && (
               <button
-                onClick={(e) => { e.stopPropagation(); onQuickUpdate(project); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onQuickUpdate(project);
+                }}
                 className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 transition-colors"
                 title="تحديث سريع"
               >
@@ -77,9 +81,11 @@ export function ProjectCard({ project, onClick, onQuickUpdate }: Props) {
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-700 ease-out ${
-                led === 'active' ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' :
-                led === 'halted' ? 'bg-gradient-to-r from-red-500 to-red-400' :
-                'bg-gray-400'
+                led === 'active'
+                  ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
+                  : led === 'halted'
+                    ? 'bg-gradient-to-r from-red-500 to-red-400'
+                    : 'bg-gray-400'
               }`}
               style={{ width: `${project.progress}%` }}
             />

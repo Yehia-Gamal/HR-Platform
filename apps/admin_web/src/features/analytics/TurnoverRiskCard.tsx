@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle, ShieldAlert, Sparkles, TrendingUp, UserX } from 'lucide-react';
+import { CheckCircle, ShieldAlert, Sparkles, TrendingUp, UserX } from 'lucide-react';
 import type { TurnoverRiskAssessment } from './turnoverRiskEngine';
 
 interface TurnoverRiskCardProps {
@@ -43,9 +43,7 @@ export function TurnoverRiskCard({ assessment, onInitiateRetentionPlan }: Turnov
                 تحليل تنبؤي
               </span>
             </div>
-            <p className="text-xs text-[var(--text-muted)] mt-0.5">
-              خوارزمية ذكية لتحليل الارتباط ورصد بوادر الاستقالة المبكرة
-            </p>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">خوارزمية ذكية لتحليل الارتباط ورصد بوادر الاستقالة المبكرة</p>
           </div>
         </div>
 
@@ -63,13 +61,7 @@ export function TurnoverRiskCard({ assessment, onInitiateRetentionPlan }: Turnov
         <div className="h-2.5 w-full bg-[var(--surface-muted)] rounded-full overflow-hidden p-0.5 border border-[var(--border)]">
           <div
             className={`h-full rounded-full transition-all duration-500 ${
-              isCritical
-                ? 'bg-rose-500'
-                : isHigh
-                  ? 'bg-amber-500'
-                  : isMedium
-                    ? 'bg-yellow-500'
-                    : 'bg-emerald-500'
+              isCritical ? 'bg-rose-500' : isHigh ? 'bg-amber-500' : isMedium ? 'bg-yellow-500' : 'bg-emerald-500'
             }`}
             style={{ width: `${Math.max(5, assessment.overallScore)}%` }}
           />
@@ -82,10 +74,7 @@ export function TurnoverRiskCard({ assessment, onInitiateRetentionPlan }: Turnov
           <h4 className="text-xs font-bold text-[var(--text)]">أهم العوامل المؤدية لارتفاع المؤشر:</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {assessment.topFactors.slice(0, 4).map((f) => (
-              <div
-                key={f.id}
-                className="p-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/40 text-xs space-y-1"
-              >
+              <div key={f.id} className="p-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/40 text-xs space-y-1">
                 <div className="flex items-center justify-between font-bold text-[var(--text)]">
                   <span>{f.name}</span>
                   <span className="text-[10px] font-mono text-rose-500">+{f.impactScore}%</span>
@@ -107,11 +96,7 @@ export function TurnoverRiskCard({ assessment, onInitiateRetentionPlan }: Turnov
 
         {onInitiateRetentionPlan && (
           <div className="pt-2 flex justify-end">
-            <button
-              type="button"
-              onClick={onInitiateRetentionPlan}
-              className="btn-primary text-xs py-1.5 px-3.5 flex items-center gap-1.5 shadow-sm"
-            >
+            <button type="button" onClick={onInitiateRetentionPlan} className="btn-primary text-xs py-1.5 px-3.5 flex items-center gap-1.5 shadow-sm">
               <UserX className="size-3.5" />
               بدء خطة استبقاء الموظف (Retention Plan)
             </button>

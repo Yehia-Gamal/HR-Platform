@@ -53,11 +53,7 @@ export function DocumentsHubPage() {
           ))}
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowDocGenerator(true)}
-          className="btn-primary text-xs flex items-center gap-1.5 py-2 px-3.5 shadow-sm"
-        >
+        <button type="button" onClick={() => setShowDocGenerator(true)} className="btn-primary text-xs flex items-center gap-1.5 py-2 px-3.5 shadow-sm">
           <Printer className="size-4" aria-hidden="true" />
           توليد وطباعة وثيقة رسمية (عقد / شهادة راتب / إخلاء)
         </button>
@@ -65,10 +61,7 @@ export function DocumentsHubPage() {
 
       {tab === 'studio' ? <DocumentsStudioPage /> : <DocumentsPage />}
 
-      <OfficialDocumentGeneratorModal
-        isOpen={showDocGenerator}
-        onClose={() => setShowDocGenerator(false)}
-      />
+      <OfficialDocumentGeneratorModal isOpen={showDocGenerator} onClose={() => setShowDocGenerator(false)} />
     </div>
   );
 }

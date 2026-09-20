@@ -1,10 +1,4 @@
-import {
-  Download,
-  FileSpreadsheet,
-  Layers,
-  Printer,
-  Search,
-} from 'lucide-react';
+import { Download, FileSpreadsheet, Layers, Printer, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { EmployeeSummary } from '@ahla/shared-contracts';
 import { downloadCsv, toCsv, type ExportColumn } from '../../core/exportUtils';
@@ -68,14 +62,7 @@ export function CustomReportBuilder() {
   const [selectedDept, setSelectedDept] = useState<string>('all');
 
   // الأعمدة المختارة افتراضياً
-  const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>([
-    'employeeCode',
-    'fullNameAr',
-    'department',
-    'jobTitle',
-    'branch',
-    'status',
-  ]);
+  const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>(['employeeCode', 'fullNameAr', 'department', 'jobTitle', 'branch', 'status']);
 
   const employeesQuery = useEmployees(searchTerm, selectedStatus);
   const rawEmployees = useMemo(() => employeesQuery.data ?? [], [employeesQuery.data]);
@@ -150,9 +137,7 @@ export function CustomReportBuilder() {
             </div>
             <div>
               <h2 className="text-xl font-black text-[var(--text)]">منشئ التقارير المخصص</h2>
-              <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                تحديد الحقول والأعمدة بحرية، الفلترة حسب الأقسام، والمعاينة والتصدير الفوري لـ Excel
-              </p>
+              <p className="text-xs text-[var(--text-muted)] mt-0.5">تحديد الحقول والأعمدة بحرية، الفلترة حسب الأقسام، والمعاينة والتصدير الفوري لـ Excel</p>
             </div>
           </div>
 
@@ -200,19 +185,11 @@ export function CustomReportBuilder() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={selectAll}
-              className="text-xs font-bold text-[var(--brand-primary)] hover:underline"
-            >
+            <button type="button" onClick={selectAll} className="text-xs font-bold text-[var(--brand-primary)] hover:underline">
               تحديد كل الأعمدة
             </button>
             <span className="text-[var(--border)]">|</span>
-            <button
-              type="button"
-              onClick={clearAll}
-              className="text-xs font-bold text-[var(--text-muted)] hover:underline"
-            >
+            <button type="button" onClick={clearAll} className="text-xs font-bold text-[var(--text-muted)] hover:underline">
               إلغاء التحديد
             </button>
           </div>
@@ -228,9 +205,7 @@ export function CustomReportBuilder() {
               const catFields = AVAILABLE_FIELDS.filter((f) => f.category === cat);
               return (
                 <div key={cat} className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/40 p-3 space-y-2">
-                  <h4 className="text-xs font-black text-[var(--brand-primary)] border-b border-[var(--border)]/70 pb-1.5">
-                    {cat}
-                  </h4>
+                  <h4 className="text-xs font-black text-[var(--brand-primary)] border-b border-[var(--border)]/70 pb-1.5">{cat}</h4>
                   <div className="space-y-1.5">
                     {catFields.map((field) => {
                       const isSelected = selectedFieldIds.includes(field.id);
@@ -245,9 +220,7 @@ export function CustomReportBuilder() {
                             onChange={() => toggleField(field.id)}
                             className="rounded border-[var(--border)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)] size-3.5"
                           />
-                          <span className={isSelected ? 'font-black text-[var(--text)]' : 'text-[var(--text-muted)]'}>
-                            {field.label}
-                          </span>
+                          <span className={isSelected ? 'font-black text-[var(--text)]' : 'text-[var(--text-muted)]'}>{field.label}</span>
                         </label>
                       );
                     })}
@@ -275,11 +248,7 @@ export function CustomReportBuilder() {
           </div>
 
           {/* فلتر الإدارة */}
-          <select
-            value={selectedDept}
-            onChange={(e) => setSelectedDept(e.target.value)}
-            className="input text-xs"
-          >
+          <select value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)} className="input text-xs">
             <option value="all">كل الإدارات والأقسام</option>
             {departments.map((dept) => (
               <option key={dept} value={dept}>
@@ -289,11 +258,7 @@ export function CustomReportBuilder() {
           </select>
 
           {/* فلتر الحالة */}
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="input text-xs"
-          >
+          <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="input text-xs">
             <option value="all">كل الحالات الوظيفية</option>
             <option value="active">نشط (Active)</option>
             <option value="suspended">موقوف (Suspended)</option>

@@ -31,7 +31,11 @@ export function FinanceHubPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap gap-1 rounded-xl border border-[var(--border)] p-1 bg-[var(--surface-muted)]/50" role="tablist" aria-label="أقسام الجزاءات وصندوق الزمالة">
+      <div
+        className="flex flex-wrap gap-1 rounded-xl border border-[var(--border)] p-1 bg-[var(--surface-muted)]/50"
+        role="tablist"
+        aria-label="أقسام الجزاءات وصندوق الزمالة"
+      >
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -50,13 +54,7 @@ export function FinanceHubPage() {
         ))}
       </div>
 
-      <div className="pt-1">
-        {tab === 'fellowship-fund' ? (
-          <FellowshipFundPage />
-        ) : (
-          <InstantPenaltiesPage />
-        )}
-      </div>
+      <div className="pt-1">{tab === 'fellowship-fund' ? <FellowshipFundPage /> : <InstantPenaltiesPage />}</div>
     </div>
   );
 }

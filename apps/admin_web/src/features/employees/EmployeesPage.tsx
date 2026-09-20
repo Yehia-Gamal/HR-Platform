@@ -50,10 +50,7 @@ export function EmployeesPage() {
     return map;
   }, [pendingPenalties]);
 
-  const totalPendingAmount = useMemo(
-    () => pendingPenalties.reduce((sum, p) => sum + p.totalAmount, 0),
-    [pendingPenalties],
-  );
+  const totalPendingAmount = useMemo(() => pendingPenalties.reduce((sum, p) => sum + p.totalAmount, 0), [pendingPenalties]);
 
   // تبويب نشط من رابط مباشر (?tab=org-chart) — الدليل افتراضي.
   const tabParam = searchParams.get('tab');
@@ -151,16 +148,12 @@ export function EmployeesPage() {
                         penaltyInfo.isSuspended
                           ? 'bg-red-100 text-red-800 border-red-300 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800 animate-pulse'
                           : penaltyInfo.totalAmount >= 500
-                          ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800'
-                          : 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-800'
+                            ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800'
+                            : 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-800'
                       }`}
                       title="اضغط للانتقال السريع لصفحة سداد الغرامة"
                     >
-                      {penaltyInfo.isSuspended ? (
-                        <>🔒 معلّق ({penaltyInfo.totalAmount} ج.م)</>
-                      ) : (
-                        <>⚠️ مطالب بـ {penaltyInfo.totalAmount} ج.م</>
-                      )}
+                      {penaltyInfo.isSuspended ? <>🔒 معلّق ({penaltyInfo.totalAmount} ج.م)</> : <>⚠️ مطالب بـ {penaltyInfo.totalAmount} ج.م</>}
                     </Link>
                   )}
                 </div>
@@ -297,7 +290,9 @@ export function EmployeesPage() {
           {pendingPenalties.length > 0 && (
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/60 rounded-2xl">
               <div className="flex items-center gap-3">
-                <span className="text-2xl" aria-hidden="true">⚠️</span>
+                <span className="text-2xl" aria-hidden="true">
+                  ⚠️
+                </span>
                 <div>
                   <h4 className="text-sm font-bold text-amber-900 dark:text-amber-200">
                     يوجد {pendingPenalties.length} موظف مطالبين بغرامات فورية للتأخير (إجمالي {totalPendingAmount.toLocaleString('ar-EG')} ج.م)
@@ -307,10 +302,7 @@ export function EmployeesPage() {
                   </p>
                 </div>
               </div>
-              <Link
-                to="/admin/finance?tab=instant-penalties"
-                className="btn-primary !text-xs !py-2 !px-4 font-bold shrink-0"
-              >
+              <Link to="/admin/finance?tab=instant-penalties" className="btn-primary !text-xs !py-2 !px-4 font-bold shrink-0">
                 تحصيل الجزاءات وإزالة العلامة
               </Link>
             </div>

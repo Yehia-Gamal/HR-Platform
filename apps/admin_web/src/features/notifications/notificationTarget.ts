@@ -88,6 +88,8 @@ export function canonicalEntityType(raw: string | null | undefined): string | nu
     case 'employee_devices':
     case 'devices':
       return 'device';
+    case 'wellbeing_requests':
+      return 'wellbeing';
     default:
       return type;
   }
@@ -236,6 +238,9 @@ function buildTarget(type: string, item: NotificationItem, workspace: Notificati
 
     case 'offboarding_cases':
       return pages.documents ? withParams(pages.documents, { tab: 'offboarding', focus: id }) : null;
+
+    case 'wellbeing':
+      return pages.officialFeed ? withParams(pages.officialFeed, { focus: id }) : null;
 
     case 'break_glass_requests':
     case 'access_review_items':

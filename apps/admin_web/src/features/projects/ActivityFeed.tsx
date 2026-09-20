@@ -96,7 +96,10 @@ export function ActivityFeed({ projects }: Props) {
             const Icon = TYPE_ICONS[a.type] ?? Clock;
             const colors = LED_COLORS[a.ledStatus];
             return (
-              <div key={`${a.projectId}-${a.type}-${i}`} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <div
+                key={`${a.projectId}-${a.type}-${i}`}
+                className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
                 <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${colors.bg}`}>
                   <Icon className="w-4 h-4 text-white" />
                 </div>
@@ -112,9 +115,7 @@ export function ActivityFeed({ projects }: Props) {
                     </div>
                   )}
                 </div>
-                <span className="text-xs text-gray-400 shrink-0">
-                  {new Date(a.timestamp).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' })}
-                </span>
+                <span className="text-xs text-gray-400 shrink-0">{new Date(a.timestamp).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' })}</span>
               </div>
             );
           })

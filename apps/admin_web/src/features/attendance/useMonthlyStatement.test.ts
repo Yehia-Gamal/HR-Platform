@@ -283,4 +283,3 @@ describe('useMonthlyStatement — attendanceStatementSchema validation', () => {
     expect(parsed.days[1].date).toBe(mockDay.date);
   });
 });
-

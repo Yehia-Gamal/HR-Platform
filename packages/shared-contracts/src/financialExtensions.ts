@@ -188,6 +188,7 @@ export const generateInstantPenaltyResultSchema = z.object({
   id: uuid.nullable().optional(),
   alreadyExists: z.boolean().optional(),
   isGracePeriod: z.boolean().optional(),
+  isExempt: z.boolean().optional(),
   amount: z.number().optional(),
   message: z.string().optional(),
   employeeId: uuid.optional(),

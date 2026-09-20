@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Sparkles, AlertCircle, CheckCircle, RefreshCw, Layers } from 'lucide-react';
+import { Sparkles, AlertCircle, RefreshCw } from 'lucide-react';
 import type { DailyReportFeedItem } from '@ahla/shared-contracts';
 
 interface DailyReportsSummarizerCardProps {
@@ -15,13 +15,9 @@ export function DailyReportsSummarizerCard({ reports }: DailyReportsSummarizerCa
     const totalReports = reports.length;
     const uniqueEmployees = new Set(reports.map((r) => r.employeeId)).size;
 
-    const allBlockers = reports
-      .map((r) => r.blockers?.trim())
-      .filter((b): b is string => Boolean(b && b.length > 3 && b !== 'لا يوجد' && b !== 'لا توجد'));
+    const allBlockers = reports.map((r) => r.blockers?.trim()).filter((b): b is string => Boolean(b && b.length > 3 && b !== 'لا يوجد' && b !== 'لا توجد'));
 
-    const allAchievements = reports
-      .map((r) => r.achievements?.trim())
-      .filter((a): a is string => Boolean(a && a.length > 5));
+    const allAchievements = reports.map((r) => r.achievements?.trim()).filter((a): a is string => Boolean(a && a.length > 5));
 
     return {
       totalReports,
@@ -60,22 +56,13 @@ export function DailyReportsSummarizerCard({ reports }: DailyReportsSummarizerCa
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-black text-[var(--text)]">الملخص التنفيذي الذكي للتقارير اليومية</h3>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 font-bold">
-                تحليل فوري مجاني
-              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 font-bold">تحليل فوري مجاني</span>
             </div>
-            <p className="text-xs text-[var(--text-muted)]">
-              تلخيص تقارير الموظفين الميدانيين تلقائياً لإبراز المعوقات التشغيلية الحيوية
-            </p>
+            <p className="text-xs text-[var(--text-muted)]">تلخيص تقارير الموظفين الميدانيين تلقائياً لإبراز المعوقات التشغيلية الحيوية</p>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={generateSmartSummary}
-          disabled={isGenerating}
-          className="btn-secondary text-xs flex items-center gap-1.5 py-1.5 px-3"
-        >
+        <button type="button" onClick={generateSmartSummary} disabled={isGenerating} className="btn-secondary text-xs flex items-center gap-1.5 py-1.5 px-3">
           <RefreshCw className={`size-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
           {customSummary ? 'إعادة التلخيص' : 'توليد الموجز التنفيذي'}
         </button>
@@ -90,9 +77,7 @@ export function DailyReportsSummarizerCard({ reports }: DailyReportsSummarizerCa
 
         <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
           <div className="text-[11px] text-[var(--text-muted)]">معوقات تشغيلية مرصودة</div>
-          <div className={`text-lg font-black mt-0.5 ${analytics.blockersCount > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-            {analytics.blockersCount}
-          </div>
+          <div className={`text-lg font-black mt-0.5 ${analytics.blockersCount > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>{analytics.blockersCount}</div>
         </div>
 
         <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] col-span-2 sm:col-span-1">
@@ -121,10 +106,7 @@ export function DailyReportsSummarizerCard({ reports }: DailyReportsSummarizerCa
           </div>
           <div className="space-y-1.5">
             {analytics.blockersList.map((blocker, idx) => (
-              <div
-                key={idx}
-                className="text-xs p-2.5 rounded-lg bg-rose-500/5 border border-rose-500/15 text-[var(--text)] flex items-start gap-2"
-              >
+              <div key={idx} className="text-xs p-2.5 rounded-lg bg-rose-500/5 border border-rose-500/15 text-[var(--text)] flex items-start gap-2">
                 <span className="size-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
                 <span className="leading-relaxed">{blocker}</span>
               </div>

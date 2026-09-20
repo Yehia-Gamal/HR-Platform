@@ -142,7 +142,7 @@ export function calculateTurnoverRisk(metrics: EmployeeTurnoverMetrics): Turnove
     });
   }
   disputeScore = Math.min(100, disputeScore);
-  totalWeightedScore += disputeScore * 0.20;
+  totalWeightedScore += disputeScore * 0.2;
 
   // 4. الإرهاق وضغط العمل وعدم أخذ الإجازات (وزن 10%)
   let burnoutScore = 0;
@@ -167,7 +167,7 @@ export function calculateTurnoverRisk(metrics: EmployeeTurnoverMetrics): Turnove
     });
   }
   burnoutScore = Math.min(100, burnoutScore);
-  totalWeightedScore += burnoutScore * 0.10;
+  totalWeightedScore += burnoutScore * 0.1;
 
   // 5. الركود الوظيفي (وزن 10%)
   let stagnationScore = 0;
@@ -181,7 +181,7 @@ export function calculateTurnoverRisk(metrics: EmployeeTurnoverMetrics): Turnove
       description: `الموظف في نفس المسمى الوظيفي منذ ${metrics.monthsInRole} شهراً رغم أدائه الجيد دون ترقية.`,
     });
   }
-  totalWeightedScore += stagnationScore * 0.10;
+  totalWeightedScore += stagnationScore * 0.1;
 
   const finalScore = Math.round(Math.min(100, Math.max(0, totalWeightedScore)));
 
@@ -191,7 +191,8 @@ export function calculateTurnoverRisk(metrics: EmployeeTurnoverMetrics): Turnove
 
   if (finalScore >= 75) {
     riskLevel = 'critical';
-    recommendedAction = 'تدخل عاجل من مسؤول الـ HR والمدير المباشر: عقد جلسة استماع مغلقة (1-on-1)، معالجة أسباب النزاع، ومراجعة بيئة العمل فوراً لمنع استقالة مفاجئة.';
+    recommendedAction =
+      'تدخل عاجل من مسؤول الـ HR والمدير المباشر: عقد جلسة استماع مغلقة (1-on-1)، معالجة أسباب النزاع، ومراجعة بيئة العمل فوراً لمنع استقالة مفاجئة.';
   } else if (finalScore >= 50) {
     riskLevel = 'high';
     recommendedAction = 'مخاطر استقالة مرتفعة: يُوصى بتشجيع الموظف على استنفاد جزء من رصيد إجازاته، وتخفيف ضغط العمل، ومراجعة أسباب تراجع الأداء الحالية.';

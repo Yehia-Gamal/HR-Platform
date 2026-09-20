@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { AssociationProjectListItem } from '@ahla/shared-contracts';
-import { LED_COLORS, ledCardClass } from './projectLedStatus';
+import { LED_COLORS } from './projectLedStatus';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { ArrowLeftRight, CheckCircle2, Target, Clock } from 'lucide-react';
@@ -12,12 +12,11 @@ interface Props {
 }
 
 const PRIORITY_LABELS: Record<string, string> = {
-  low: 'منخفضة', medium: 'متوسطة', high: 'عالية', critical: 'حرجة',
+  low: 'منخفضة',
+  medium: 'متوسطة',
+  high: 'عالية',
+  critical: 'حرجة',
 };
-const STATUS_LABELS: Record<string, string> = {
-  planned: 'مخطط', active: 'نشط', on_hold: 'متوقف', completed: 'مكتمل', cancelled: 'ملغى',
-};
-
 function CompareRow({ label, valueA, valueB }: { label: string; valueA: React.ReactNode; valueB: React.ReactNode }) {
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-center py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
@@ -59,7 +58,11 @@ export function ProjectCompare({ projectA, projectB, onClose }: Props) {
           valueB={<span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-bold ${ledB.bg} text-white`}>{ledB.label}</span>}
         />
         <CompareRow label="الحالة" valueA={<StatusBadge status={projectA.status} />} valueB={<StatusBadge status={projectB.status} />} />
-        <CompareRow label="الأولوية" valueA={<StatusBadge status={projectA.priority} label={PRIORITY_LABELS[projectA.priority]} />} valueB={<StatusBadge status={projectB.priority} label={PRIORITY_LABELS[projectB.priority]} />} />
+        <CompareRow
+          label="الأولوية"
+          valueA={<StatusBadge status={projectA.priority} label={PRIORITY_LABELS[projectA.priority]} />}
+          valueB={<StatusBadge status={projectB.priority} label={PRIORITY_LABELS[projectB.priority]} />}
+        />
         <CompareRow label="الإدارة" valueA={projectA.departmentName} valueB={projectB.departmentName} />
         <CompareRow label="المسؤول" valueA={projectA.ownerName} valueB={projectB.ownerName} />
 
@@ -85,25 +88,55 @@ export function ProjectCompare({ projectA, projectB, onClose }: Props) {
 
         <CompareRow
           label="الخطوات"
-          valueA={<span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> {projectA.completedSteps}/{totalA}</span>}
-          valueB={<span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> {projectB.completedSteps}/{totalB}</span>}
+          valueA={
+            <span className="flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> {projectA.completedSteps}/{totalA}
+            </span>
+          }
+          valueB={
+            <span className="flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> {projectB.completedSteps}/{totalB}
+            </span>
+          }
         />
 
         <CompareRow
           label="المتبقية"
-          valueA={<span className="flex items-center gap-1"><Target className="w-3.5 h-3.5 text-blue-500" /> {projectA.remainingSteps}</span>}
-          valueB={<span className="flex items-center gap-1"><Target className="w-3.5 h-3.5 text-blue-500" /> {projectB.remainingSteps}</span>}
+          valueA={
+            <span className="flex items-center gap-1">
+              <Target className="w-3.5 h-3.5 text-blue-500" /> {projectA.remainingSteps}
+            </span>
+          }
+          valueB={
+            <span className="flex items-center gap-1">
+              <Target className="w-3.5 h-3.5 text-blue-500" /> {projectB.remainingSteps}
+            </span>
+          }
         />
 
         <CompareRow
           label="آخر تحديث"
-          valueA={projectA.lastUpdateAt ? <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(projectA.lastUpdateAt).toLocaleDateString('ar-EG')}</span> : '—'}
-          valueB={projectB.lastUpdateAt ? <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(projectB.lastUpdateAt).toLocaleDateString('ar-EG')}</span> : '—'}
+          valueA={
+            projectA.lastUpdateAt ? (
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" /> {new Date(projectA.lastUpdateAt).toLocaleDateString('ar-EG')}
+              </span>
+            ) : (
+              '—'
+            )
+          }
+          valueB={
+            projectB.lastUpdateAt ? (
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" /> {new Date(projectB.lastUpdateAt).toLocaleDateString('ar-EG')}
+              </span>
+            ) : (
+              '—'
+            )
+          }
         />
 
-        {projectA.startDate && projectB.startDate && (
-          <CompareRow label="تاريخ البدء" valueA={projectA.startDate} valueB={projectB.startDate} />
-        )}
+        {projectA.startDate && projectB.startDate && <CompareRow label="تاريخ البدء" valueA={projectA.startDate} valueB={projectB.startDate} />}
         {projectA.targetEndDate && projectB.targetEndDate && (
           <CompareRow label="الموعد النهائي" valueA={projectA.targetEndDate} valueB={projectB.targetEndDate} />
         )}
@@ -136,7 +169,9 @@ export function CompareSelector({ projects, onClose, onSelect }: CompareSelector
           <select className="input mt-1 w-full" value={a} onChange={(e) => setA(e.target.value)}>
             <option value="">— اختر مشروع —</option>
             {projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
+              <option key={p.id} value={p.id}>
+                {p.name} ({p.code})
+              </option>
             ))}
           </select>
         </label>
@@ -149,17 +184,17 @@ export function CompareSelector({ projects, onClose, onSelect }: CompareSelector
           <span className="text-sm font-medium">المشروع الثاني</span>
           <select className="input mt-1 w-full" value={b} onChange={(e) => setB(e.target.value)}>
             <option value="">— اختر مشروع —</option>
-            {projects.filter((p) => p.id !== a).map((p) => (
-              <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
-            ))}
+            {projects
+              .filter((p) => p.id !== a)
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.code})
+                </option>
+              ))}
           </select>
         </label>
 
-        <button
-          onClick={handleCompare}
-          disabled={!a || !b}
-          className="btn-primary w-full"
-        >
+        <button onClick={handleCompare} disabled={!a || !b} className="btn-primary w-full">
           مقارنة
         </button>
       </div>

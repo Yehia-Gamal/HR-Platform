@@ -963,13 +963,7 @@ function AddDepartmentDialog({ employeeId, onClose, onSuccess }: { employeeId: s
 // ---------------------------------------------------------------------------
 // PrintableIdBadgeDialog — بطاقة الهوية الوظيفية المعتمدة
 // ---------------------------------------------------------------------------
-function PrintableIdBadgeDialog({
-  employee,
-  onClose,
-}: {
-  employee: Employee360;
-  onClose: () => void;
-}) {
+function PrintableIdBadgeDialog({ employee, onClose }: { employee: Employee360; onClose: () => void }) {
   const handlePrint = () => {
     window.print();
   };
@@ -977,9 +971,7 @@ function PrintableIdBadgeDialog({
   return (
     <DialogOverlay title="بطاقة الهوية الوظيفية المعتمدة" onClose={onClose} maxWidth="max-w-md">
       <div className="space-y-4">
-        <p className="text-xs text-[var(--muted)]">
-          معاينة بطاقة الهوية الرسمية للموظف. يمكنك طباعتها فورياً بحجم بطاقة العمل القياسية.
-        </p>
+        <p className="text-xs text-[var(--muted)]">معاينة بطاقة الهوية الرسمية للموظف. يمكنك طباعتها فورياً بحجم بطاقة العمل القياسية.</p>
 
         {/* The ID Card Preview */}
         <div

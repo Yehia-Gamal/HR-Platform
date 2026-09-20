@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Send, User, Sparkles, X, MessageSquare, HelpCircle, ShieldCheck } from 'lucide-react';
+import { Bot, Send, User, HelpCircle } from 'lucide-react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
-import { useAuth } from '../auth/AuthProvider';
 
 interface ChatMessage {
   id: string;
@@ -18,14 +17,7 @@ const QUICK_PROMPTS = [
   'ما هي مواعيد الورديات وفترات السماح للتأخير؟',
 ];
 
-export function AiHrAssistantDialog({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
-  const auth = useAuth();
+export function AiHrAssistantDialog({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -108,15 +100,10 @@ export function AiHrAssistantDialog({
         {/* مساحة المحادثة */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[var(--surface)]/50">
           {messages.map((m) => (
-            <div
-              key={m.id}
-              className={`flex items-start gap-2.5 ${m.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
-            >
+            <div key={m.id} className={`flex items-start gap-2.5 ${m.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
               <div
                 className={`size-8 rounded-xl flex items-center justify-center shrink-0 ${
-                  m.sender === 'assistant'
-                    ? 'bg-[var(--brand-primary)]/15 text-[var(--brand-primary)]'
-                    : 'bg-slate-700 text-white'
+                  m.sender === 'assistant' ? 'bg-[var(--brand-primary)]/15 text-[var(--brand-primary)]' : 'bg-slate-700 text-white'
                 }`}
               >
                 {m.sender === 'assistant' ? <Bot className="size-4" /> : <User className="size-4" />}
@@ -129,9 +116,7 @@ export function AiHrAssistantDialog({
                 }`}
               >
                 <p>{m.text}</p>
-                <span className={`block text-[10px] mt-1 ${m.sender === 'assistant' ? 'text-[var(--text-muted)]' : 'text-white/75'}`}>
-                  {m.timestamp}
-                </span>
+                <span className={`block text-[10px] mt-1 ${m.sender === 'assistant' ? 'text-[var(--text-muted)]' : 'text-white/75'}`}>{m.timestamp}</span>
               </div>
             </div>
           ))}

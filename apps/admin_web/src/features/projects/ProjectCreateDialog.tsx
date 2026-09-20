@@ -31,9 +31,14 @@ export function ProjectCreateDialog({ onClose }: Props) {
     if (!canSubmit) return;
     try {
       await create.mutateAsync({
-        code: code.trim(), name: name.trim(), description: desc.trim(),
-        departmentId: deptId, ownerEmployeeId: ownerId, priority,
-        startDate: start, targetEndDate: end,
+        code: code.trim(),
+        name: name.trim(),
+        description: desc.trim(),
+        departmentId: deptId,
+        ownerEmployeeId: ownerId,
+        priority,
+        startDate: start,
+        targetEndDate: end,
       });
       onClose();
     } catch {
@@ -67,14 +72,22 @@ export function ProjectCreateDialog({ onClose }: Props) {
             <span className="text-sm font-medium">الإدارة *</span>
             <select className="input mt-1 w-full" value={deptId} onChange={(e) => setDeptId(e.target.value)}>
               <option value="">— اختر الإدارة —</option>
-              {org?.departments.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
+              {org?.departments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.label}
+                </option>
+              ))}
             </select>
           </label>
           <label className="block">
             <span className="text-sm font-medium">المسؤول *</span>
             <select className="input mt-1 w-full" value={ownerId} onChange={(e) => setOwnerId(e.target.value)}>
               <option value="">— اختر المسؤول —</option>
-              {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.fullNameAr}</option>)}
+              {employees.map((emp) => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.fullNameAr}
+                </option>
+              ))}
             </select>
           </label>
         </div>

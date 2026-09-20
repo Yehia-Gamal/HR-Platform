@@ -10,13 +10,39 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # بوابة ما قبل النشر (تدقيق 0524).
+  # قبلها كانت وظيفة deploy تعمل مباشرة على كل push إلى main بلا أي اعتماد
+  # على web-ci أو security-ci، فكان يكفي فشل اختبار أو نوع ليُنشر إلى الإنتاج.
+  # نُكرّر الفحوص هنا بدل workflow_run لأن workflow_run يُطلق عند اكتمال
+  # سير عمل واحد لا عند نجاح الثلاثة معاً.
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # check = no-bom + typecheck + build contracts + test + build
+      - run: npm run check
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run check:secrets
+      - run: node scripts/validate-foundation.mjs
+      - run: node scripts/check-migrations-integrity.mjs
+
   deploy:
+    needs: gate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Deploy to Vercel production
-        uses: amondnet/vercel-action@v42
+        # مثبَّت على SHA: الوسم المتغيّر v42 يمكن إعادة توجيهه، وهذه الخطوة
+        # تتسلّم VERCEL_TOKEN — تثبيت SHA يغلق مخاطرة سلسلة التوريد.
+        # de09aea = v42 (release 42.3.0, 2026-04-30)
+        uses: amondnet/vercel-action@de09aeac2ace6599ec9b11ef87558759a496bac4
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

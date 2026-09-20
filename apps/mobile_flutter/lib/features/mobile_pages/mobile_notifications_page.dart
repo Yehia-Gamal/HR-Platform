@@ -6,11 +6,26 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_daily_rep
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_instant_penalties_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_feed_detail_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/notification_settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
+/// مجموعة إشعارات مجمّعة — نفس النوع/العنوان مع عدة كيانات.
+class _GroupedNotifications {
+  const _GroupedNotifications({
+    required this.representative,
+    required this.items,
+    required this.label,
+  });
+
+  final MobileNotificationItem representative;
+  final List<MobileNotificationItem> items;
+  final String label;
+
+  bool get isGrouped => items.length > 1;
+  int get unreadCount => items.where((x) => !x.isRead).length;
+}
 
 enum _NotifFilter { all, unread }
 
@@ -57,6 +72,28 @@ class _MobileNotificationsPageState
     });
   }
 
+  /// تجميع الإشعارات حسب النوع + العنوان — الإشعارات المتشابهة
+  /// تُعرض كبطاقة واحدة بعدد، والنقر يفتح كرت التفاصيل.
+  List<_GroupedNotifications> _groupNotifications(
+    List<MobileNotificationItem> items,
+  ) {
+    final map = <String, List<MobileNotificationItem>>{};
+    for (final item in items) {
+      final key = '${item.canonicalType ?? item.category}::${item.title}';
+      map.putIfAbsent(key, () => []).add(item);
+    }
+    return map.entries.map((e) {
+      final list = e.value;
+      final rep = list.first;
+      final count = list.length;
+      return _GroupedNotifications(
+        representative: rep,
+        items: list,
+        label: count > 1 ? '($count)' : '',
+      );
+    }).toList();
+  }
+
   Future<void> _confirmDeleteSelected() async {
     final messenger = ScaffoldMessenger.of(context);
     final count = _selectedIds.length;
@@ -101,6 +138,100 @@ class _MobileNotificationsPageState
         const SnackBar(content: Text('تعذر حذف الإشعارات. أعد المحاولة.')),
       );
     }
+  }
+
+  /// بناء القائمة المجمّعة مع دعم السحب للحذف.
+  Widget _buildGroupedList(List<MobileNotificationItem> visible) {
+    final groups = _groupNotifications(visible);
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 110),
+      itemCount: groups.length,
+      itemBuilder: (context, index) {
+        final group = groups[index];
+        final item = group.representative;
+        final card = _NotificationCard(
+          item: item,
+          groupLabel: group.label,
+          unreadCount: group.unreadCount,
+          selecting: _selecting,
+          selected: _selectedIds.contains(item.id),
+          onToggleSelect: () => _toggleSelect(item.id),
+          onTap: () => _openGroup(group),
+          onLongPress: () {
+            if (!_selecting) _enterSelection();
+            _toggleSelect(item.id);
+          },
+        );
+
+        if (_selecting) return card;
+
+        return Dismissible(
+          key: ValueKey(item.id),
+          direction: DismissDirection.endToStart,
+          confirmDismiss: (_) async {
+            final messenger = ScaffoldMessenger.of(context);
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('حذف الإشعار'),
+                content: Text(
+                  group.isGrouped
+                      ? 'سيتم حذف ${group.items.length} إشعار مرتبط.'
+                      : 'سيتم حذف هذا الإشعار نهائيًا.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('إلغاء'),
+                  ),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: Theme.of(ctx).colorScheme.error,
+                    ),
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('حذف'),
+                  ),
+                ],
+              ),
+            );
+            if (confirmed != true || !mounted) return false;
+            try {
+              final ids = group.items.map((x) => x.id).toList();
+              await ref
+                  .read(mobileCommandsProvider)
+                  .deleteNotifications(ids);
+              if (!mounted) return false;
+              messenger.showSnackBar(
+                const SnackBar(content: Text('تم حذف الإشعار')),
+              );
+              return true;
+            } catch (_) {
+              if (!mounted) return false;
+              messenger.showSnackBar(
+                const SnackBar(
+                  content: Text('تعذر حذف الإشعار. أعد المحاولة.'),
+                ),
+              );
+              return false;
+            }
+          },
+          background: Container(
+            alignment: AlignmentDirectional.centerEnd,
+            padding: const EdgeInsetsDirectional.only(end: 24),
+            margin: const EdgeInsets.only(bottom: 10),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.errorContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.delete_outline_rounded,
+              color: Theme.of(context).colorScheme.onErrorContainer,
+            ),
+          ),
+          child: card,
+        );
+      },
+    );
   }
 
   @override
@@ -244,27 +375,7 @@ class _MobileNotificationsPageState
                               ),
                             ],
                           )
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 110),
-                            itemCount: visible.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(height: 10),
-                            itemBuilder: (context, index) {
-                              final item = visible[index];
-                              return _NotificationCard(
-                                item: item,
-                                selecting: _selecting,
-                                selected: _selectedIds.contains(item.id),
-                                onToggleSelect: () => _toggleSelect(item.id),
-                                onTap: () => _open(item),
-                                onDelete: () => _deleteOne(item),
-                                onLongPress: () {
-                                  if (!_selecting) _enterSelection();
-                                  _toggleSelect(item.id);
-                                },
-                              );
-                            },
-                          ),
+                        : _buildGroupedList(visible),
                   ),
                 ],
               );
@@ -312,21 +423,6 @@ class _MobileNotificationsPageState
     );
   }
 
-  /// حذف إشعار واحد مباشرة من بطاقته (مطابق لصفحة الويب) — بلا وضع تحديد.
-  Future<void> _deleteOne(MobileNotificationItem item) async {
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      await ref.read(mobileCommandsProvider).deleteNotifications([item.id]);
-      if (!mounted) return;
-      messenger.showSnackBar(const SnackBar(content: Text('تم حذف الإشعار')));
-    } catch (_) {
-      if (!mounted) return;
-      messenger.showSnackBar(
-        const SnackBar(content: Text('تعذر حذف الإشعار. أعد المحاولة.')),
-      );
-    }
-  }
-
   /// الصفحة المحلية المقابلة لنوع الإشعار — `null` إن لم يكن له صفحة مباشرة.
   Widget? _localPageFor(MobileNotificationItem item) {
     if (!item.hasLocalRoute) return null;
@@ -336,6 +432,35 @@ class _MobileNotificationsPageState
       'device' => const PasskeyDevicesPage(),
       _ => null,
     };
+  }
+
+  /// فتح مجموعة إشعارات: إذا كان لها صفحة نفتح أول عنصر، وإلا نعلّم الكل مقروءة.
+  Future<void> _openGroup(_GroupedNotifications group) async {
+    if (group.isGrouped) {
+      // تعليم الكل كمقروء في المجموعة.
+      final unreadIds = group.items
+          .where((x) => !x.isRead)
+          .map((x) => x.id)
+          .toList();
+      if (unreadIds.isNotEmpty) {
+        try {
+          await ref
+              .read(mobileCommandsProvider)
+              .markNotificationsRead(unreadIds);
+        } catch (_) {
+          // فشل صامت.
+        }
+      }
+      if (!mounted) return;
+      // فتح أول عنصر له صفحة.
+      final withAction = group.items.firstWhere(
+        (x) => x.hasSupportedAction,
+        orElse: () => group.items.first,
+      );
+      await _open(withAction);
+      return;
+    }
+    await _open(group.representative);
   }
 
   Future<void> _open(MobileNotificationItem item) async {
@@ -462,7 +587,8 @@ class _NotificationCard extends StatelessWidget {
   const _NotificationCard({
     required this.item,
     required this.onTap,
-    required this.onDelete,
+    this.groupLabel = '',
+    this.unreadCount = 0,
     this.selecting = false,
     this.selected = false,
     this.onToggleSelect,
@@ -471,7 +597,8 @@ class _NotificationCard extends StatelessWidget {
 
   final MobileNotificationItem item;
   final VoidCallback onTap;
-  final VoidCallback onDelete;
+  final String groupLabel;
+  final int unreadCount;
   final bool selecting;
   final bool selected;
   final VoidCallback? onToggleSelect;
@@ -479,52 +606,77 @@ class _NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final urgent = item.priority == 'urgent' || item.priority == 'high';
+    final unread = !item.isRead;
     return Card(
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: unread
+            ? BorderSide(
+                color: scheme.primary.withValues(alpha: 0.5),
+                width: 1.5,
+              )
+            : BorderSide.none,
+      ),
       child: Semantics(
-        label: item.isRead ? null : 'إشعار غير مقروء',
+        label: unread ? 'إشعار غير مقروء' : null,
         child: ListTile(
-          contentPadding: const EdgeInsets.all(16),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           leading: selecting
               ? Checkbox(
                   value: selected,
                   onChanged: (_) => onToggleSelect?.call(),
-                  activeColor: Theme.of(context).colorScheme.error,
+                  activeColor: scheme.error,
                 )
-              : Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: urgent
-                          ? Theme.of(context).colorScheme.errorContainer
-                          : Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest,
-                      child: Icon(
-                        _icon(item.category),
-                        color: urgent
-                            ? Theme.of(context).colorScheme.onErrorContainer
-                            : Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    if (!item.isRead)
-                      PositionedDirectional(
-                        start: -2,
-                        top: -2,
-                        child: Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.error,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                  ],
+              : CircleAvatar(
+                  backgroundColor: urgent
+                      ? scheme.errorContainer
+                      : unread
+                          ? scheme.primaryContainer
+                          : scheme.surfaceContainerHighest,
+                  child: Icon(
+                    _icon(item.category),
+                    size: 20,
+                    color: urgent
+                        ? scheme.onErrorContainer
+                        : unread
+                            ? scheme.onPrimaryContainer
+                            : scheme.onSurfaceVariant,
+                  ),
                 ),
-          title: Text(
-            item.title,
-            style: const TextStyle(fontWeight: FontWeight.w900),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  item.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: unread ? scheme.onSurface : scheme.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (groupLabel.isNotEmpty)
+                Container(
+                  margin: const EdgeInsetsDirectional.only(start: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    groupLabel,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+            ],
           ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -532,49 +684,64 @@ class _NotificationCard extends StatelessWidget {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Text(
-                    _categoryLabel(item.category),
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  _CategoryChip(category: item.category),
+                  if (item.priority != 'normal') ...[
+                    const SizedBox(width: 6),
+                    _PriorityBadge(priority: item.priority),
+                  ],
+                  if (unread) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: scheme.primary,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'جديد',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  if (item.priority != 'normal')
-                    MobileStatusPill(item.priority),
+                  ],
                 ],
               ),
               if (item.body != null && item.body!.trim().isNotEmpty) ...[
                 const SizedBox(height: 4),
-                Text(item.body!, maxLines: 3, overflow: TextOverflow.ellipsis),
+                Text(
+                  item.body!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: unread ? null : scheme.onSurfaceVariant,
+                  ),
+                ),
               ],
-              const SizedBox(height: 7),
+              const SizedBox(height: 4),
               Text(
                 _relativeTime(item.createdAt.toLocal()),
-                style: Theme.of(context).textTheme.labelSmall,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
           trailing: selecting
               ? null
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (item.hasSupportedAction)
-                      const Icon(Icons.chevron_left_rounded),
-                    IconButton(
-                      tooltip: 'حذف الإشعار',
-                      visualDensity: VisualDensity.compact,
-                      icon: Icon(
-                        Icons.delete_outline_rounded,
-                        size: 20,
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                      onPressed: onDelete,
-                    ),
-                  ],
-                ),
+              : item.hasSupportedAction
+                  ? Icon(
+                      Icons.chevron_left_rounded,
+                      color: unread
+                          ? scheme.primary
+                          : scheme.onSurfaceVariant,
+                    )
+                  : null,
           onTap: selecting ? onToggleSelect : onTap,
           onLongPress: selecting ? null : onLongPress,
         ),
@@ -607,7 +774,44 @@ class _NotificationCard extends StatelessWidget {
     _ => Icons.notifications_outlined,
   };
 
-  String _categoryLabel(String category) => switch (category) {
+  String _relativeTime(DateTime time) {
+    final now = DateTime.now();
+    final diff = now.difference(time);
+    if (diff.inMinutes < 1) return 'الآن';
+    if (diff.inMinutes < 60) return 'قبل ${diff.inMinutes} د';
+    if (diff.inHours < 24) return 'قبل ${diff.inHours} س';
+    if (diff.inDays < 30) return 'قبل ${diff.inDays} يوم';
+    return DateFormat('d MMM y', 'ar').format(time);
+  }
+}
+
+/// شريحة فئة الإشعار — تصغير معلومات الفئة في سطر واحد.
+class _CategoryChip extends StatelessWidget {
+  const _CategoryChip({required this.category});
+
+  final String category;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        _label(category),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+
+  String _label(String category) => switch (category) {
     'request' => 'طلب',
     'decision' => 'قرار رسمي',
     'announcement' => 'إعلان',
@@ -631,15 +835,45 @@ class _NotificationCard extends StatelessWidget {
     'attendance_manager_notify' => 'حضور',
     _ => 'عام',
   };
+}
 
-  /// وقت نسبي عربي: "الآن"، "قبل 5 د"، "قبل 3 س"، "قبل يومين".
-  String _relativeTime(DateTime time) {
-    final now = DateTime.now();
-    final diff = now.difference(time);
-    if (diff.inMinutes < 1) return 'الآن';
-    if (diff.inMinutes < 60) return 'قبل ${diff.inMinutes} د';
-    if (diff.inHours < 24) return 'قبل ${diff.inHours} س';
-    if (diff.inDays < 30) return 'قبل ${diff.inDays} يوم';
-    return DateFormat('d MMM y', 'ar').format(time);
+/// شارة الأولوية — أوضح من MobileStatusPill مع ألوان مميزة لكل مستوى.
+class _PriorityBadge extends StatelessWidget {
+  const _PriorityBadge({required this.priority});
+
+  final String priority;
+
+  @override
+  Widget build(BuildContext context) {
+    final (color, label) = switch (priority) {
+      'urgent' => (
+        Theme.of(context).colorScheme.error,
+        'عاجل',
+      ),
+      'high' => (
+        const Color(0xFFF57C00),
+        'مهم',
+      ),
+      _ => (
+        Theme.of(context).colorScheme.onSurfaceVariant,
+        priority,
+      ),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 0.5),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: color,
+        ),
+      ),
+    );
   }
 }

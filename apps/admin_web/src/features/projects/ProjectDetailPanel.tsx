@@ -1,7 +1,15 @@
 import { useState } from 'react';
 import type { AssociationProjectDetail, AssociationProjectStep } from '@ahla/shared-contracts';
-import { LED_COLORS, daysSince } from './projectLedStatus';
-import { useAddProjectUpdate, useUpsertProjectStep, useDeleteProjectStep, useUpdateAssociationProject } from './useAssociationProjects';
+import { LED_COLORS, APPROVAL_LABELS, APPROVAL_COLORS } from './projectLedStatus';
+import {
+  useAddProjectUpdate,
+  useUpsertProjectStep,
+  useDeleteProjectStep,
+  useUpdateAssociationProject,
+  useSubmitProjectForApproval,
+  useApproveProject,
+  useRejectProject,
+} from './useAssociationProjects';
 import { useOrganizationLookups } from '../employees/useOrganizationLookups';
 import { useEmployees } from '../employees/useEmployees';
 import { StatusBadge } from '../../ui/StatusBadge';
@@ -16,7 +24,10 @@ interface Props {
 }
 
 const STEP_STATUS_ICON: Record<string, typeof CheckCircle2> = {
-  done: CheckCircle2, in_progress: Clock, pending: FileText, blocked: Ban,
+  done: CheckCircle2,
+  in_progress: Clock,
+  pending: FileText,
+  blocked: Ban,
 };
 
 export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
@@ -40,6 +51,9 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
   const upsertStep = useUpsertProjectStep();
   const deleteStep = useDeleteProjectStep();
   const updateProject = useUpdateAssociationProject();
+  const submitForApproval = useSubmitProjectForApproval();
+  const approveProject = useApproveProject();
+  const rejectProject = useRejectProject();
   const { data: org } = useOrganizationLookups();
   const { data: employeesData } = useEmployees();
   const employees = employeesData ?? [];
@@ -94,10 +108,16 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
 
   async function submitEdit() {
     await updateProject.mutateAsync({
-      projectId: project.id, name: editName, description: editDesc,
-      departmentId: editDeptId, ownerEmployeeId: editOwnerId,
-      status: editStatus, priority: editPriority, progress: editProgress,
-      startDate: editStart, targetEndDate: editEnd,
+      projectId: project.id,
+      name: editName,
+      description: editDesc,
+      departmentId: editDeptId,
+      ownerEmployeeId: editOwnerId,
+      status: editStatus,
+      priority: editPriority,
+      progress: editProgress,
+      startDate: editStart,
+      targetEndDate: editEnd,
     });
     setEditOpen(false);
     onRefresh();
@@ -109,10 +129,7 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
     <>
       <div className="fixed inset-0 z-40 flex justify-end" onClick={onClose}>
         <div className="absolute inset-0 bg-black/40" />
-        <div
-          className="relative w-full max-w-2xl bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
           <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b p-6">
             <div className="flex items-start justify-between">
@@ -125,7 +142,15 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
                   <span className="text-sm font-bold">{colors.label}</span>
                 </div>
                 <h2 className="text-2xl font-extrabold">{project.name}</h2>
-                <p className="text-sm text-gray-500 font-mono">{project.code} — {project.departmentName}</p>
+                <p className="text-sm text-gray-500 font-mono">
+                  {project.code} — {project.departmentName}
+                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${APPROVAL_COLORS[project.approvalStatus]}`}>
+                    {APPROVAL_LABELS[project.approvalStatus]}
+                  </span>
+                  {project.rejectionReason && <span className="text-xs text-rose-500">سبب الرفض: {project.rejectionReason}</span>}
+                </div>
               </div>
               <div className="flex gap-2">
                 <button onClick={() => setEditOpen(true)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600" title="تعديل">
@@ -143,20 +168,77 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
             <section>
               <h3 className="font-bold mb-3">معلومات المشروع</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-gray-500">الحالة: </span><StatusBadge status={project.status} /></div>
-                <div><span className="text-gray-500">الأولوية: </span><StatusBadge status={project.priority} /></div>
-                <div><span className="text-gray-500">المسؤول: </span>{project.ownerName}</div>
+                <div>
+                  <span className="text-gray-500">الحالة: </span>
+                  <StatusBadge status={project.status} />
+                </div>
+                <div>
+                  <span className="text-gray-500">الأولوية: </span>
+                  <StatusBadge status={project.priority} />
+                </div>
+                <div>
+                  <span className="text-gray-500">المسؤول: </span>
+                  {project.ownerName}
+                </div>
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500">نسبة الإنجاز: </span>
                   <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-                    <div className={`h-full rounded-full ${led === 'active' ? 'bg-emerald-500' : led === 'halted' ? 'bg-red-500' : 'bg-gray-400'}`} style={{ width: `${project.progress}%` }} />
+                    <div
+                      className={`h-full rounded-full ${led === 'active' ? 'bg-emerald-500' : led === 'halted' ? 'bg-red-500' : 'bg-gray-400'}`}
+                      style={{ width: `${project.progress}%` }}
+                    />
                   </div>
                   <span className="font-bold">{project.progress}%</span>
                 </div>
-                {project.startDate && <div><span className="text-gray-500">تاريخ البدء: </span>{project.startDate}</div>}
-                {project.targetEndDate && <div><span className="text-gray-500">الموعد النهائي: </span>{project.targetEndDate}</div>}
+                {project.startDate && (
+                  <div>
+                    <span className="text-gray-500">تاريخ البدء: </span>
+                    {project.startDate}
+                  </div>
+                )}
+                {project.targetEndDate && (
+                  <div>
+                    <span className="text-gray-500">الموعد النهائي: </span>
+                    {project.targetEndDate}
+                  </div>
+                )}
               </div>
               {project.description && <p className="mt-3 text-gray-600 dark:text-gray-400 text-sm">{project.description}</p>}
+
+              {/* أزرار الموافقة */}
+              {project.approvalStatus === 'pending_approval' && (
+                <div className="flex gap-2 mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <button
+                    onClick={async () => {
+                      await approveProject.mutateAsync(project.id);
+                      onRefresh();
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors text-sm font-medium"
+                  >
+                    ✅ موافقة
+                  </button>
+                  <button
+                    onClick={async () => {
+                      await rejectProject.mutateAsync({ projectId: project.id });
+                      onRefresh();
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors text-sm font-medium"
+                  >
+                    ❌ رفض
+                  </button>
+                </div>
+              )}
+              {(project.approvalStatus === 'draft' || project.approvalStatus === 'rejected') && (
+                <button
+                  onClick={async () => {
+                    await submitForApproval.mutateAsync(project.id);
+                    onRefresh();
+                  }}
+                  className="mt-4 w-full flex items-center justify-center gap-1.5 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-sm font-medium"
+                >
+                  📤 إرسال للموافقة
+                </button>
+              )}
             </section>
 
             {/* Timeline بصرية */}
@@ -174,12 +256,17 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
                       return (
                         <div key={s.id} className="flex items-start gap-4 relative">
                           {/* نقطة على الخط */}
-                          <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
-                            isDone ? 'bg-emerald-500 text-white' :
-                            isBlocked ? 'bg-red-500 text-white' :
-                            isActive ? 'bg-blue-500 text-white animate-pulse' :
-                            'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-                          }`}>
+                          <div
+                            className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
+                              isDone
+                                ? 'bg-emerald-500 text-white'
+                                : isBlocked
+                                  ? 'bg-red-500 text-white'
+                                  : isActive
+                                    ? 'bg-blue-500 text-white animate-pulse'
+                                    : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                            }`}
+                          >
                             {isDone ? '✓' : i + 1}
                           </div>
                           {/* المحتوى */}
@@ -202,9 +289,18 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
             {/* الخطوات */}
             <section>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold">الخطوات ({doneCount}/{steps.length})</h3>
+                <h3 className="font-bold">
+                  الخطوات ({doneCount}/{steps.length})
+                </h3>
                 <button
-                  onClick={() => { setEditingStep(null); setStepTitle(''); setStepDesc(''); setStepDue(''); setStepStatus('pending'); setStepOpen(true); }}
+                  onClick={() => {
+                    setEditingStep(null);
+                    setStepTitle('');
+                    setStepDesc('');
+                    setStepDue('');
+                    setStepStatus('pending');
+                    setStepOpen(true);
+                  }}
                   className="text-sm flex items-center gap-1 text-emerald-600 hover:underline"
                 >
                   <Plus className="w-4 h-4" /> إضافة خطوة
@@ -218,7 +314,10 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
                   {steps.map((s) => {
                     const Icon = STEP_STATUS_ICON[s.status] || FileText;
                     return (
-                      <div key={s.id} className={`flex items-center gap-3 p-3 rounded-lg border ${s.status === 'done' ? 'bg-emerald-50/50 dark:bg-emerald-950/10' : s.status === 'blocked' ? 'bg-red-50/50 dark:bg-red-950/10' : 'bg-gray-50 dark:bg-gray-800/50'}`}>
+                      <div
+                        key={s.id}
+                        className={`flex items-center gap-3 p-3 rounded-lg border ${s.status === 'done' ? 'bg-emerald-50/50 dark:bg-emerald-950/10' : s.status === 'blocked' ? 'bg-red-50/50 dark:bg-red-950/10' : 'bg-gray-50 dark:bg-gray-800/50'}`}
+                      >
                         <Icon className={`w-5 h-5 ${s.status === 'done' ? 'text-emerald-500' : s.status === 'blocked' ? 'text-red-500' : 'text-gray-400'}`} />
                         <div className="flex-1">
                           <p className={`text-sm font-medium ${s.status === 'done' ? 'line-through text-gray-400' : ''}`}>{s.title}</p>
@@ -227,8 +326,12 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
                         </div>
                         <StatusBadge status={s.status} />
                         <div className="flex gap-1">
-                          <button onClick={() => openEditStep(s)} className="p-1 hover:bg-gray-200 rounded"><Edit3 className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => setDeleteStepId(s.id)} className="p-1 hover:bg-red-100 rounded text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => openEditStep(s)} className="p-1 hover:bg-gray-200 rounded">
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => setDeleteStepId(s.id)} className="p-1 hover:bg-red-100 rounded text-red-500">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
                     );
@@ -291,20 +394,32 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
               <label className="block">
                 <span className="text-sm font-medium">الإدارة</span>
                 <select className="input mt-1 w-full" value={editDeptId} onChange={(e) => setEditDeptId(e.target.value)}>
-                  {org?.departments.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
+                  {org?.departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.label}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="block">
                 <span className="text-sm font-medium">المسؤول</span>
                 <select className="input mt-1 w-full" value={editOwnerId} onChange={(e) => setEditOwnerId(e.target.value)}>
-                  {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.fullNameAr}</option>)}
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.fullNameAr}
+                    </option>
+                  ))}
                 </select>
               </label>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <label className="block">
                 <span className="text-sm font-medium">الحالة</span>
-                <select className="input mt-1 w-full" value={editStatus} onChange={(e) => setEditStatus(e.target.value as AssociationProjectDetail['project']['status'])}>
+                <select
+                  className="input mt-1 w-full"
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value as AssociationProjectDetail['project']['status'])}
+                >
                   <option value="planned">مخطط</option>
                   <option value="active">نشط</option>
                   <option value="on_hold">متوقف</option>
@@ -314,7 +429,11 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
               </label>
               <label className="block">
                 <span className="text-sm font-medium">الأولوية</span>
-                <select className="input mt-1 w-full" value={editPriority} onChange={(e) => setEditPriority(e.target.value as AssociationProjectDetail['project']['priority'])}>
+                <select
+                  className="input mt-1 w-full"
+                  value={editPriority}
+                  onChange={(e) => setEditPriority(e.target.value as AssociationProjectDetail['project']['priority'])}
+                >
                   <option value="low">منخفضة</option>
                   <option value="medium">متوسطة</option>
                   <option value="high">عالية</option>
@@ -323,7 +442,14 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
               </label>
               <label className="block">
                 <span className="text-sm font-medium">نسبة الإنجاز</span>
-                <input type="number" min={0} max={100} className="input mt-1 w-full" value={editProgress} onChange={(e) => setEditProgress(Number(e.target.value))} />
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  className="input mt-1 w-full"
+                  value={editProgress}
+                  onChange={(e) => setEditProgress(Number(e.target.value))}
+                />
               </label>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -349,11 +475,24 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
           <div className="space-y-4 p-4">
             <label className="block">
               <span className="text-sm font-medium">ملاحظة التحديث</span>
-              <textarea className="input mt-1 w-full" rows={3} value={updateNote} onChange={(e) => setUpdateNote(e.target.value)} placeholder="اكتب ملاحظة عن التحديث الذي تم..." />
+              <textarea
+                className="input mt-1 w-full"
+                rows={3}
+                value={updateNote}
+                onChange={(e) => setUpdateNote(e.target.value)}
+                placeholder="اكتب ملاحظة عن التحديث الذي تم..."
+              />
             </label>
             <label className="block">
               <span className="text-sm font-medium">نسبة الإنجاز الحالية</span>
-              <input type="number" min={0} max={100} className="input mt-1 w-full" value={updateProgress} onChange={(e) => setUpdateProgress(Number(e.target.value))} />
+              <input
+                type="number"
+                min={0}
+                max={100}
+                className="input mt-1 w-full"
+                value={updateProgress}
+                onChange={(e) => setUpdateProgress(Number(e.target.value))}
+              />
             </label>
             <button onClick={submitUpdate} disabled={!updateNote.trim() || addUpdate.isPending} className="btn-primary w-full">
               {addUpdate.isPending ? 'جاري الحفظ...' : 'حفظ التحديث'}
@@ -364,7 +503,13 @@ export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
 
       {/* حوار إضافة/تعديل خطوة */}
       {stepOpen && (
-        <DialogOverlay title={editingStep ? 'تعديل خطوة' : 'إضافة خطوة جديدة'} onClose={() => { setStepOpen(false); setEditingStep(null); }}>
+        <DialogOverlay
+          title={editingStep ? 'تعديل خطوة' : 'إضافة خطوة جديدة'}
+          onClose={() => {
+            setStepOpen(false);
+            setEditingStep(null);
+          }}
+        >
           <div className="space-y-4 p-4">
             <label className="block">
               <span className="text-sm font-medium">عنوان الخطوة</span>

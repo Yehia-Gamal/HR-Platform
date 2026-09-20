@@ -84,7 +84,8 @@ export function MyInstantPenaltiesPage() {
               <span>ملخص الغرامات الفورية</span>
             </div>
             <p className="text-xs text-white/60 max-w-lg leading-relaxed">
-              الحضور يبدأ 10:00 ص — أول 15 دقيقة سماح بدون خصم. بعد ذلك: 20 ج.م (حتى 10:30) | 50 ج.م (حتى 11:00) | 150 ج.م (حتى 12:00). عدم السداد يُضاعف الغرامة لـ 500 ج.م ثم يُعلّق حسابك.
+              الحضور يبدأ 10:00 ص — أول 15 دقيقة سماح بدون خصم. بعد ذلك: 20 ج.م (حتى 10:30) | 50 ج.م (حتى 11:00) | 150 ج.م (حتى 12:00). عدم السداد يُضاعف
+              الغرامة لـ 500 ج.م ثم يُعلّق حسابك.
             </p>
           </div>
 
@@ -148,7 +149,8 @@ export function MyInstantPenaltiesPage() {
             <div>
               <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400">صندوق الزمالة والتكافل (الخزنة التشاركية)</h4>
               <p className="text-[11px] text-emerald-600/80 dark:text-emerald-400/60 mt-0.5">
-                جميع غرامات الحضور المدفوعة تُودع بالكامل في صندوق الزمالة لدعم الزملاء — الرصيد المتاح حالياً: <strong className="font-mono">{formatCurrency(fundSummary.data.currentBalance)}</strong>
+                جميع غرامات الحضور المدفوعة تُودع بالكامل في صندوق الزمالة لدعم الزملاء — الرصيد المتاح حالياً:{' '}
+                <strong className="font-mono">{formatCurrency(fundSummary.data.currentBalance)}</strong>
               </p>
             </div>
           </div>
@@ -167,10 +169,7 @@ export function MyInstantPenaltiesPage() {
       ) : penalties.isLoading ? (
         <ListSkeleton rows={4} label="جارٍ تحميل غراماتك…" />
       ) : rows.length === 0 ? (
-        <EmptyState
-          title="لا توجد غرامات فورية"
-          description="ممتاز! لم تُسجَّل أي غرامات تأخير على حسابك. استمر في الحضور في الوقت المحدد (10:00 ص)."
-        />
+        <EmptyState title="لا توجد غرامات فورية" description="ممتاز! لم تُسجَّل أي غرامات تأخير على حسابك. استمر في الحضور في الوقت المحدد (10:00 ص)." />
       ) : (
         <div className="space-y-3">
           {rows.map((p) => (
@@ -193,11 +192,19 @@ export function MyInstantPenaltiesPage() {
                     <div className="flex items-center gap-2">
                       <h3 className="font-black text-sm">{dateFormatter.format(new Date(p.workDate + 'T00:00:00'))}</h3>
                       {p.status === 'suspended' && (
-                        <span className="rounded-full bg-red-100 dark:bg-red-950/50 px-2 py-0.5 text-[10px] font-black text-red-700 dark:text-red-300">معلّق</span>
+                        <span className="rounded-full bg-red-100 dark:bg-red-950/50 px-2 py-0.5 text-[10px] font-black text-red-700 dark:text-red-300">
+                          معلّق
+                        </span>
                       )}
                     </div>
                     <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                      تأخير {p.lateMinutes} دقيقة — غرامة أصلية {formatCurrency(p.originalAmount)}
+                      {p.lateMinutes >= 240 || p.notes?.includes('لم يسجل بصمة') ? (
+                        <span className="inline-flex items-center gap-1 text-red-500 dark:text-red-400 font-semibold">
+                          لم يسجل بصمة — غرامة أصلية {formatCurrency(p.originalAmount)}
+                        </span>
+                      ) : (
+                        `تأخير ${p.lateMinutes} دقيقة — غرامة أصلية ${formatCurrency(p.originalAmount)}`
+                      )}
                     </p>
                   </div>
                 </div>
@@ -218,11 +225,7 @@ export function MyInstantPenaltiesPage() {
                 </div>
               </div>
 
-              {p.notes && (
-                <p className="mt-2 text-[11px] text-[var(--text-muted)] border-t border-[var(--border)] pt-2">
-                  ملاحظات: {p.notes}
-                </p>
-              )}
+              {p.notes && <p className="mt-2 text-[11px] text-[var(--text-muted)] border-t border-[var(--border)] pt-2">ملاحظات: {p.notes}</p>}
             </article>
           ))}
         </div>

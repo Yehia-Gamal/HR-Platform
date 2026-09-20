@@ -25,9 +25,7 @@ export function QuickUpdateDialog({ project, onClose }: Props) {
       <div className="space-y-4 p-4">
         <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
           <Zap className="w-4 h-4 text-emerald-600" />
-          <span className="text-sm text-emerald-700 dark:text-emerald-400">
-            تحديث سريع للمشروع — سيُحدَّث آخر تحديث تلقائياً
-          </span>
+          <span className="text-sm text-emerald-700 dark:text-emerald-400">تحديث سريع للمشروع — سيُحدَّث آخر تحديث تلقائياً</span>
         </div>
 
         <label className="block">
@@ -57,11 +55,7 @@ export function QuickUpdateDialog({ project, onClose }: Props) {
           </div>
         </label>
 
-        <button
-          onClick={submit}
-          disabled={!note.trim() || addUpdate.isPending}
-          className="btn-primary w-full flex items-center justify-center gap-2"
-        >
+        <button onClick={submit} disabled={!note.trim() || addUpdate.isPending} className="btn-primary w-full flex items-center justify-center gap-2">
           {addUpdate.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
           {addUpdate.isPending ? 'جاري الحفظ...' : 'حفظ التحديث'}
         </button>

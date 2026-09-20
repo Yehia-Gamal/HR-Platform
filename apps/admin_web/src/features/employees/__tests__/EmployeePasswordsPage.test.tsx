@@ -67,7 +67,7 @@ const renderPage = () =>
       <ToastProvider>
         <EmployeePasswordsPage />
       </ToastProvider>
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 
 describe('EmployeePasswordsPage', () => {
@@ -137,9 +137,7 @@ describe('EmployeePasswordsPage', () => {
       fireEvent.click(submitBtn);
     });
 
-    expect(mockMutateSetPassword).toHaveBeenCalledWith(
-      expect.objectContaining({ employeeId: '00000000-0000-0000-0000-000000000010' })
-    );
+    expect(mockMutateSetPassword).toHaveBeenCalledWith(expect.objectContaining({ employeeId: '00000000-0000-0000-0000-000000000010' }));
   });
 
   it('triggers send reset link mutation on click', async () => {
@@ -192,7 +190,7 @@ describe('EmployeePasswordsPage', () => {
       expect.objectContaining({
         employeeId: '00000000-0000-0000-0000-000000000010',
         mustChangePassword: false,
-      })
+      }),
     );
   });
 });
