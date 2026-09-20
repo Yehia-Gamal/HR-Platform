@@ -164,9 +164,87 @@ export const instantPenaltySchema = z
     suspensionLiftedAt: isoDate,
     notes: z.string().nullable(),
     createdAt: isoDate,
+    excuseStatus: z.enum(['none', 'submitted', 'approved', 'rejected']).optional().default('none'),
+    excuseText: z.string().nullable().optional(),
+    excuseAttachmentUrl: z.string().nullable().optional(),
+    excuseSubmittedAt: isoDate.optional(),
+    excuseReviewedAt: isoDate.optional(),
+    excuseNotes: z.string().nullable().optional(),
+    paymentMethod: z.enum(['cash', 'instapay', 'vodafone_cash', 'bank_transfer', 'wallet']).optional().default('cash'),
+    receiptAttachmentUrl: z.string().nullable().optional(),
+    receiptSubmittedAt: isoDate.optional(),
+    receiptReferenceNumber: z.string().nullable().optional(),
   })
   .strict();
 export type InstantPenalty = z.infer<typeof instantPenaltySchema>;
+
+/** نتيجة تقديم عذر لغرامة فورية */
+export const submitInstantPenaltyExcuseResultSchema = z.object({
+  success: z.boolean(),
+  penaltyId: uuid.optional(),
+  excuseStatus: z.string().optional(),
+  message: z.string().optional(),
+});
+export type SubmitInstantPenaltyExcuseResult = z.infer<typeof submitInstantPenaltyExcuseResultSchema>;
+
+/** نتيجة مراجعة عذر غرامة فورية */
+export const reviewInstantPenaltyExcuseResultSchema = z.object({
+  success: z.boolean(),
+  penaltyId: uuid.optional(),
+  status: z.string().optional(),
+  excuseStatus: z.string().optional(),
+  message: z.string().optional(),
+});
+export type ReviewInstantPenaltyExcuseResult = z.infer<typeof reviewInstantPenaltyExcuseResultSchema>;
+
+/** نتيجة رفع إيصال سداد إلكتروني */
+export const submitInstantPenaltyReceiptResultSchema = z.object({
+  success: z.boolean(),
+  penaltyId: uuid.optional(),
+  receiptUrl: z.string().nullable().optional(),
+  message: z.string().optional(),
+});
+export type SubmitInstantPenaltyReceiptResult = z.infer<typeof submitInstantPenaltyReceiptResultSchema>;
+
+/** موجز العمليات اليومي للإدارة العليا */
+export const executiveDailyDigestSchema = z.object({
+  date: z.string(),
+  dayName: z.string().optional(),
+  totalActive: z.number().int(),
+  present: z.number().int(),
+  fieldMissions: z.number().int(),
+  leaves: z.number().int(),
+  absent: z.number().int(),
+  penaltiesIssued: z.number().int(),
+  penaltiesIssuedAmount: z.number(),
+  penaltiesPaid: z.number().int(),
+  penaltiesPaidAmount: z.number(),
+  fundBalance: z.number(),
+  digestText: z.string(),
+});
+export type ExecutiveDailyDigest = z.infer<typeof executiveDailyDigestSchema>;
+
+/** بطل الانضباط */
+export const punctualityChampionSchema = z.object({
+  employeeId: uuid,
+  fullName: z.string(),
+  employeeCode: z.string().nullable(),
+  photoUrl: z.string().nullable().optional(),
+  daysAttended: z.number().int(),
+  totalLateMinutes: z.number().int(),
+  rank: z.number().int(),
+});
+export type PunctualityChampion = z.infer<typeof punctualityChampionSchema>;
+
+/** نتائج فرسان الانضباط */
+export const punctualityChampionsResultSchema = z.object({
+  month: z.string(),
+  startDate: z.string(),
+  endDate: z.string(),
+  champions: z.array(punctualityChampionSchema),
+});
+export type PunctualityChampionsResult = z.infer<typeof punctualityChampionsResultSchema>;
+
 
 /** موظف مطالب بدفع غرامة فورية */
 export const pendingPenaltyEmployeeSchema = z

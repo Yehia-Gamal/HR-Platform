@@ -368,9 +368,7 @@ export function InstantPenaltiesPage() {
           return (
             <span
               className={`inline-flex items-center gap-1 text-xs font-semibold whitespace-nowrap px-2.5 py-1 rounded-md ${
-                isExempt
-                  ? 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20'
-                  : 'bg-[var(--surface-muted)] text-[var(--text-muted)]'
+                isExempt ? 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20' : 'bg-[var(--surface-muted)] text-[var(--text-muted)]'
               }`}
               title={p.notes ?? 'ملغاة'}
             >

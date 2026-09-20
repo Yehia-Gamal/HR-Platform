@@ -1,14 +1,14 @@
 import { useSearchParams } from 'react-router';
-import { InstantPenaltiesPage } from './InstantPenaltiesPage';
-import { FellowshipFundPage } from './FellowshipFundPage';
+import { lazy, Suspense } from 'react';
+import { ListSkeleton } from '../../ui/Skeletons';
 
-/**
- * غرامات الحضور والانصراف وصندوق الزمالة والتكافل
- * تم إزالة الرواتب والتشغيل وInstaPay والمالية القديمة وفق التوجيه المعتمد.
- */
+const InstantPenaltiesPage = lazy(() => import('./InstantPenaltiesPage').then((m) => ({ default: m.InstantPenaltiesPage })));
+const FellowshipFundPage = lazy(() => import('./FellowshipFundPage').then((m) => ({ default: m.FellowshipFundPage })));
+const PenaltyDashboardPage = lazy(() => import('./PenaltyDashboardPage').then((m) => ({ default: m.PenaltyDashboardPage })));
 
 const TABS = [
   { key: 'instant-penalties', label: 'غرامات الحضور والانصراف' },
+  { key: 'dashboard', label: 'لوحة الإحصائيات' },
   { key: 'fellowship-fund', label: 'صندوق الزمالة والتكافل' },
 ] as const;
 
@@ -54,7 +54,11 @@ export function FinanceHubPage() {
         ))}
       </div>
 
-      <div className="pt-1">{tab === 'fellowship-fund' ? <FellowshipFundPage /> : <InstantPenaltiesPage />}</div>
+      <div className="pt-1">
+        <Suspense fallback={<ListSkeleton rows={3} label="جارٍ التحميل…" />}>
+          {tab === 'fellowship-fund' ? <FellowshipFundPage /> : tab === 'dashboard' ? <PenaltyDashboardPage /> : <InstantPenaltiesPage />}
+        </Suspense>
+      </div>
     </div>
   );
 }

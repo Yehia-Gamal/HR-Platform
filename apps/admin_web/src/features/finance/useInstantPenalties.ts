@@ -1,22 +1,40 @@
 import {
   cancelInstantPenaltyResultSchema,
   confirmInstantPenaltyPaymentResultSchema,
+  executiveDailyDigestSchema,
   generateInstantPenaltyResultSchema,
   instantPenaltySchema,
   pendingPenaltyEmployeeSchema,
+  punctualityChampionsResultSchema,
+  reviewInstantPenaltyExcuseResultSchema,
+  submitInstantPenaltyExcuseResultSchema,
+  submitInstantPenaltyReceiptResultSchema,
   triggerCheckResultSchema,
   type CancelInstantPenaltyResult,
   type ConfirmInstantPenaltyPaymentResult,
+  type ExecutiveDailyDigest,
   type GenerateInstantPenaltyResult,
   type InstantPenalty,
   type PendingPenaltyEmployee,
+  type PunctualityChampionsResult,
+  type ReviewInstantPenaltyExcuseResult,
+  type SubmitInstantPenaltyExcuseResult,
+  type SubmitInstantPenaltyReceiptResult,
   type TriggerCheckResult,
 } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
 
-export type { InstantPenalty, PendingPenaltyEmployee };
+export type {
+  InstantPenalty,
+  PendingPenaltyEmployee,
+  ExecutiveDailyDigest,
+  PunctualityChampionsResult,
+  SubmitInstantPenaltyExcuseResult,
+  ReviewInstantPenaltyExcuseResult,
+  SubmitInstantPenaltyReceiptResult,
+};
 
 const INSTANT_PENALTIES_KEY = 'instant-penalties';
 const PENDING_EMPLOYEES_KEY = 'instant-penalties-pending-employees';
@@ -35,6 +53,21 @@ export const INSTANT_PENALTY_ESCALATION_LABELS: Record<string, string> = {
   initial: 'أولية',
   doubled: 'مضاعفة',
   suspended: 'تعليق',
+};
+
+export const EXCUSE_STATUS_LABELS: Record<string, string> = {
+  none: 'بدون عذر',
+  submitted: 'عذر قيد المراجعة',
+  approved: 'عذر مقبول (ملغاة)',
+  rejected: 'عذر مرفوض',
+};
+
+export const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cash: 'نقدي',
+  instapay: 'إنستاباي (InstaPay)',
+  vodafone_cash: 'فودافون كاش',
+  bank_transfer: 'تحويل بنكي',
+  wallet: 'محفظة إلكترونية',
 };
 
 // ─── فلاتر ────────────────────────────────────────────────────────────
@@ -183,6 +216,134 @@ export function useTriggerCheckPenaltiesNow() {
       void queryClient.invalidateQueries({ queryKey: [PENDING_EMPLOYEES_KEY] });
       void queryClient.invalidateQueries({ queryKey: ['fellowship-fund-summary'] });
       void queryClient.invalidateQueries({ queryKey: ['fellowship-fund-transactions'] });
+    },
+  });
+}
+
+// ─── تقديم عذر على الغرامة ──────────────────────────────────────────
+
+export function useSubmitInstantPenaltyExcuse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { penaltyId: string; reason: string; attachmentUrl?: string }): Promise<SubmitInstantPenaltyExcuseResult> => {
+      return submitInstantPenaltyExcuseResultSchema.parse(
+        await rpc('submit_instant_penalty_excuse', {
+          p_penalty_id: args.penaltyId,
+          p_reason: args.reason,
+          p_attachment_url: args.attachmentUrl ?? null,
+        }),
+      );
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [INSTANT_PENALTIES_KEY] });
+      void queryClient.invalidateQueries({ queryKey: [PENDING_EMPLOYEES_KEY] });
+    },
+  });
+}
+
+// ─── مراجعة العذر (قبول / رفض) من قبل HR ──────────────────────────
+
+export function useReviewInstantPenaltyExcuse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { penaltyId: string; action: 'approved' | 'rejected'; notes?: string }): Promise<ReviewInstantPenaltyExcuseResult> => {
+      return reviewInstantPenaltyExcuseResultSchema.parse(
+        await rpc('review_instant_penalty_excuse', {
+          p_penalty_id: args.penaltyId,
+          p_action: args.action,
+          p_notes: args.notes ?? null,
+        }),
+      );
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [INSTANT_PENALTIES_KEY] });
+      void queryClient.invalidateQueries({ queryKey: [PENDING_EMPLOYEES_KEY] });
+      void queryClient.invalidateQueries({ queryKey: ['employees'] });
+    },
+  });
+}
+
+// ─── تسجيل إيصال دفع إلكتروني (InstaPay / فودافون كاش) ──────────────
+
+export function useSubmitInstantPenaltyReceipt() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      penaltyId: string;
+      paymentMethod: 'instapay' | 'vodafone_cash' | 'cash' | 'bank_transfer' | 'wallet';
+      receiptUrl?: string;
+      referenceNumber?: string;
+    }): Promise<SubmitInstantPenaltyReceiptResult> => {
+      return submitInstantPenaltyReceiptResultSchema.parse(
+        await rpc('submit_instant_penalty_receipt', {
+          p_penalty_id: args.penaltyId,
+          p_payment_method: args.paymentMethod,
+          p_receipt_url: args.receiptUrl ?? null,
+          p_reference_number: args.referenceNumber ?? null,
+        }),
+      );
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [INSTANT_PENALTIES_KEY] });
+      void queryClient.invalidateQueries({ queryKey: [PENDING_EMPLOYEES_KEY] });
+    },
+  });
+}
+
+// ─── الموجز اليومي للواتساب للإدارة العليا ───────────────────────────
+
+export function useExecutiveDailyDigest(date?: string) {
+  const auth = useAuth();
+  return useQuery({
+    queryKey: ['executive-daily-digest', auth.isMock, date],
+    enabled: auth.status === 'authenticated',
+    queryFn: async (): Promise<ExecutiveDailyDigest> => {
+      if (auth.isMock) {
+        return {
+          date: date ?? new Date().toISOString().slice(0, 10),
+          summary: {
+            totalEmployees: 0,
+            present: 0,
+            attendanceRate: 0,
+            lateCount: 0,
+            absentCount: 0,
+            onMissionOrLeave: 0,
+            activePenaltiesCount: 0,
+            activePenaltiesTotalAmount: 0,
+            fellowshipFundTotalCollected: 0,
+          },
+          formattedDigest: 'موجز تجريبي...',
+        };
+      }
+      return executiveDailyDigestSchema.parse(
+        await rpc('generate_executive_daily_digest', {
+          p_date: date ?? null,
+        }),
+      );
+    },
+  });
+}
+
+// ─── لوحة شرف أبطال الانضباط الشهري ─────────────────────────────────
+
+export function usePunctualityChampions(month?: string) {
+  const auth = useAuth();
+  return useQuery({
+    queryKey: ['punctuality-champions', auth.isMock, month],
+    enabled: auth.status === 'authenticated',
+    queryFn: async (): Promise<PunctualityChampionsResult> => {
+      if (auth.isMock) {
+        return {
+          month: month ?? new Date().toISOString().slice(0, 7),
+          totalChampions: 0,
+          champions: [],
+        };
+      }
+      return punctualityChampionsResultSchema.parse(
+        await rpc('get_punctuality_champions', {
+          p_month: month ?? null,
+        }),
+      );
     },
   });
 }
