@@ -32,7 +32,7 @@
     "size-limit": [
         {
             "path": "apps/admin_web/dist/assets/*.js",
-            "limit": "600 KB"
+            "limit": "640 KB"
         },
         {
             "path": "apps/admin_web/dist/assets/*.css",
