@@ -97,7 +97,7 @@ export function usePushSubscription() {
       setIsSubscribed(true);
       emitToast({ message: 'تم تفعيل الإشعارات', tone: 'success' });
     } catch (err) {
-      console.error('[Push] Subscribe error:', err);
+      if (import.meta.env.DEV) console.error('[Push] Subscribe error:', err);
       emitToast({ message: `فشل التفعيل: ${err instanceof Error ? err.message : 'خطأ غير معروف'}`, tone: 'error' });
     } finally {
       setIsLoading(false);
@@ -115,7 +115,7 @@ export function usePushSubscription() {
       setIsSubscribed(false);
       emitToast({ message: 'تم إلغاء الإشعارات', tone: 'success' });
     } catch (err) {
-      console.error('[Push] Unsubscribe error:', err);
+      if (import.meta.env.DEV) console.error('[Push] Unsubscribe error:', err);
       emitToast({ message: `فشل الإلغاء: ${err instanceof Error ? err.message : 'خطأ غير معروف'}`, tone: 'error' });
     } finally {
       setIsLoading(false);

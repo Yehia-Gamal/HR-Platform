@@ -64,6 +64,8 @@ class MyInstantPenaltiesPage extends ConsumerWidget {
             children: [
               _SummaryCard(items: items),
               const SizedBox(height: 8),
+              const _FellowshipFundNoticeCard(),
+              const SizedBox(height: 8),
               if (items.isEmpty) ...[
                 const SizedBox(height: 48),
                 Icon(
@@ -290,6 +292,96 @@ class _StatChip extends StatelessWidget {
                 ),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// بطاقة توضيح صندوق الزمالة والتكافل واستقلال الغرامات عن الراتب الشهري.
+class _FellowshipFundNoticeCard extends StatelessWidget {
+  const _FellowshipFundNoticeCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: Colors.teal.shade200.withValues(alpha: 0.6),
+          width: 1,
+        ),
+      ),
+      color: Colors.teal.shade50.withValues(alpha: 0.4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.teal.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.volunteer_activism_outlined,
+                size: 20,
+                color: Colors.teal.shade800,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'صندوق الزمالة والتكافل الاجتماعي',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: Colors.teal.shade900,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.teal.shade700,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          '100% للزملاء',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'تنبيه هام: غرامات التأخير الفورية لا ترتبط بالراتب الشهري ولا تُخصم منه إطلاقاً.\n'
+                    'جميع مبالغ الغرامات تودع بالكامل في صندوق الزمالة لدعم الزملاء في الحالات الطارئة، الرعاية الصحية، والمناسبات الاجتماعية.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize: 11.5,
+                      height: 1.45,
+                      color: Colors.teal.shade900.withValues(alpha: 0.85),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -791,7 +883,7 @@ Future<void> _showSubmitExcuseSheet(
                           if (ctx.mounted) {
                             ScaffoldMessenger.of(ctx).showSnackBar(
                               SnackBar(
-                                content: Text('تعذر تقديم العذر: $e'),
+                                content: Text('تعذر تقديم العذر: ${humanizeError(e)}'),
                                 backgroundColor: Colors.red,
                               ),
                             );
@@ -948,7 +1040,7 @@ Future<void> _showSubmitReceiptSheet(
                         if (ctx.mounted) {
                           ScaffoldMessenger.of(ctx).showSnackBar(
                             SnackBar(
-                              content: Text('تعذر إرسال الإيصال: $e'),
+                              content: Text('تعذر إرسال الإيصال: ${humanizeError(e)}'),
                               backgroundColor: Colors.red,
                             ),
                           );

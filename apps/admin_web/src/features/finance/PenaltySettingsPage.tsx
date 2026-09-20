@@ -115,13 +115,19 @@ export function PenaltySettingsPage() {
           <Field
             label="موعد بداية الدوام"
             value={shiftStart}
-            onChange={(v) => { setShiftStart(v); setDirty(true); }}
+            onChange={(v) => {
+              setShiftStart(v);
+              setDirty(true);
+            }}
             type="time"
           />
           <Field
             label="فترة السماح (دقائق)"
             value={graceMinutes}
-            onChange={(v) => { setGraceMinutes(Number(v)); setDirty(true); }}
+            onChange={(v) => {
+              setGraceMinutes(Number(v));
+              setDirty(true);
+            }}
             type="number"
             min={0}
             max={60}
@@ -129,14 +135,20 @@ export function PenaltySettingsPage() {
           <Field
             label="مضاعفة الغرامة (ج.م)"
             value={doubledAmount}
-            onChange={(v) => { setDoubledAmount(Number(v)); setDirty(true); }}
+            onChange={(v) => {
+              setDoubledAmount(Number(v));
+              setDirty(true);
+            }}
             type="number"
             min={0}
           />
           <Field
             label="أيام قبل التصعيد"
             value={maxDays}
-            onChange={(v) => { setMaxDays(Number(v)); setDirty(true); }}
+            onChange={(v) => {
+              setMaxDays(Number(v));
+              setDirty(true);
+            }}
             type="number"
             min={1}
             max={7}
@@ -145,21 +157,27 @@ export function PenaltySettingsPage() {
             <label className="text-xs font-bold text-[var(--text-primary)]">إغلاق تلقائي</label>
             <button
               type="button"
-              onClick={() => { setAutoCheckout(!autoCheckout); setDirty(true); }}
+              onClick={() => {
+                setAutoCheckout(!autoCheckout);
+                setDirty(true);
+              }}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                 autoCheckout ? 'bg-[var(--brand-primary)]' : 'bg-gray-300 dark:bg-gray-600'
               }`}
             >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                autoCheckout ? 'translate-x-6' : 'translate-x-1'
-              }`} />
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${autoCheckout ? 'translate-x-6' : 'translate-x-1'}`}
+              />
             </button>
           </div>
           {autoCheckout && (
             <Field
               label="وقت الإغلاق التلقائي"
               value={autoCheckoutTime}
-              onChange={(v) => { setAutoCheckoutTime(v); setDirty(true); }}
+              onChange={(v) => {
+                setAutoCheckoutTime(v);
+                setDirty(true);
+              }}
               type="time"
             />
           )}
@@ -170,7 +188,15 @@ export function PenaltySettingsPage() {
           <label className="block text-xs font-bold text-[var(--text-primary)] mb-2">أيام العطلة الأسبوعية</label>
           <div className="flex gap-2">
             {['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day) => {
-              const dayAr: Record<string, string> = { Saturday: 'السبت', Sunday: 'الأحد', Monday: 'الاثنين', Tuesday: 'الثلاثاء', Wednesday: 'الأربعاء', Thursday: 'الخميس', Friday: 'الجمعة' };
+              const dayAr: Record<string, string> = {
+                Saturday: 'السبت',
+                Sunday: 'الأحد',
+                Monday: 'الاثنين',
+                Tuesday: 'الثلاثاء',
+                Wednesday: 'الأربعاء',
+                Thursday: 'الخميس',
+                Friday: 'الجمعة',
+              };
               const isSelected = weekends.includes(day);
               return (
                 <button
@@ -198,11 +224,7 @@ export function PenaltySettingsPage() {
       <section className="card p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-black text-[var(--text-primary)]">شرائح الغرامات</h2>
-          <button
-            type="button"
-            onClick={addTier}
-            className="flex items-center gap-1 text-xs font-bold text-[var(--brand-primary)] hover:underline"
-          >
+          <button type="button" onClick={addTier} className="flex items-center gap-1 text-xs font-bold text-[var(--brand-primary)] hover:underline">
             <Plus className="size-3.5" />
             إضافة شريحة
           </button>
@@ -219,6 +241,7 @@ export function PenaltySettingsPage() {
                   value={tier.label}
                   onChange={(e) => updateTier(i, 'label', e.target.value)}
                   placeholder="الاسم"
+                  aria-label="اسم الشريحة"
                   className="input-field flex-1 text-xs"
                 />
                 <input
@@ -226,6 +249,7 @@ export function PenaltySettingsPage() {
                   value={tier.min_late}
                   onChange={(e) => updateTier(i, 'min_late', Number(e.target.value))}
                   placeholder="من"
+                  aria-label="من دقيقة"
                   className="input-field w-20 text-xs text-center"
                   min={0}
                 />
@@ -235,6 +259,7 @@ export function PenaltySettingsPage() {
                   value={tier.max_late}
                   onChange={(e) => updateTier(i, 'max_late', Number(e.target.value))}
                   placeholder="إلى"
+                  aria-label="إلى دقيقة"
                   className="input-field w-20 text-xs text-center"
                   min={0}
                 />
@@ -244,15 +269,12 @@ export function PenaltySettingsPage() {
                   value={tier.amount}
                   onChange={(e) => updateTier(i, 'amount', Number(e.target.value))}
                   placeholder="المبلغ"
+                  aria-label="مبلغ الغرامة"
                   className="input-field w-24 text-xs text-center"
                   min={0}
                 />
                 <span className="text-xs text-[var(--text-muted)]">ج.م</span>
-                <button
-                  type="button"
-                  onClick={() => removeTier(i)}
-                  className="p-1.5 text-red-400 hover:text-red-600 transition-colors"
-                >
+                <button type="button" onClick={() => removeTier(i)} className="p-1.5 text-red-400 hover:text-red-600 transition-colors">
                   <Trash2 className="size-4" />
                 </button>
               </div>
@@ -264,7 +286,14 @@ export function PenaltySettingsPage() {
   );
 }
 
-function Field({ label, value, onChange, type = 'text', min, max }: {
+function Field({
+  label,
+  value,
+  onChange,
+  type = 'text',
+  min,
+  max,
+}: {
   label: string;
   value: string | number;
   onChange: (v: string) => void;
@@ -275,14 +304,7 @@ function Field({ label, value, onChange, type = 'text', min, max }: {
   return (
     <div>
       <label className="block text-xs font-bold text-[var(--text-primary)] mb-1">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        min={min}
-        max={max}
-        className="input-field w-full text-sm"
-      />
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} min={min} max={max} className="input-field w-full text-sm" />
     </div>
   );
 }

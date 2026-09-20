@@ -29,7 +29,7 @@ export function useSystemAlerts() {
   const auth = useAuth();
   return useQuery({
     queryKey: ['system-alerts'],
-    enabled: !auth.isMock,
+    enabled: auth.status === 'authenticated' && !auth.isMock,
     queryFn: async (): Promise<SystemAlert[]> => {
       const supabase = await getSupabase();
       const { data, error } = await supabase

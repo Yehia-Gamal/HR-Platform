@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/network/session_cleanup.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
+import 'package:flutter/foundation.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -152,11 +153,11 @@ class _SetPasswordPageState extends ConsumerState<SetPasswordPage> {
               activation['reason'] == 'already_active' ||
               activation['reason'] == 'no_employee_record';
           if (!activationAccepted) {
-            debugPrint('[SetPassword] Notice: activation status: ${activation['reason']}');
+            if (kDebugMode) debugPrint('[SetPassword] Notice: activation status: ${activation['reason']}');
           }
         }
       } catch (e) {
-        debugPrint('[SetPassword] Warning on activation RPC: $e');
+        if (kDebugMode) debugPrint('[SetPassword] Warning on activation RPC: $e');
       }
 
       // SEC: إزالة علامة must_change_password من app_metadata عبر SECURITY DEFINER
@@ -164,14 +165,14 @@ class _SetPasswordPageState extends ConsumerState<SetPasswordPage> {
         await client.rpc<dynamic>('clear_must_change_password')
             .timeout(const Duration(seconds: 5));
       } catch (e) {
-        debugPrint('[SetPassword] Warning on clear_must_change_password: $e');
+        if (kDebugMode) debugPrint('[SetPassword] Warning on clear_must_change_password: $e');
       }
 
       // CRITICAL: Refresh Supabase session to update local JWT app_metadata!
       try {
         await client.auth.refreshSession().timeout(const Duration(seconds: 8));
       } catch (e) {
-        debugPrint('[SetPassword] Session refresh: $e');
+        if (kDebugMode) debugPrint('[SetPassword] Session refresh: $e');
       }
 
       ref.invalidate(authSessionProvider);

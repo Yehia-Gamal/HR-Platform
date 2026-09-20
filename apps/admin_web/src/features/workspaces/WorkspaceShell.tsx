@@ -309,7 +309,11 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
   const toggleCollapsed = () => {
     const next = !collapsed;
     setCollapsed(next);
-    window.localStorage.setItem('ahla-sidebar', next ? 'collapsed' : 'expanded');
+    try {
+      window.localStorage.setItem('ahla-sidebar', next ? 'collapsed' : 'expanded');
+    } catch (_) {
+      /* private browsing */
+    }
   };
 
   return (

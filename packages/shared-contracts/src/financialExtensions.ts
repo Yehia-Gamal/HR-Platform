@@ -394,3 +394,26 @@ export const triggerCheckResultSchema = z.object({
   message: z.string(),
 });
 export type TriggerCheckResult = z.infer<typeof triggerCheckResultSchema>;
+
+// ─── نظام الطعن على الغرامات ─────────────────────────────────────────────
+
+/** سجل طعن على غرامة */
+export const penaltyDisputeSchema = z
+  .object({
+    id: uuid,
+    penaltyId: uuid,
+    employeeId: uuid,
+    employeeName: z.string().nullable(),
+    department: z.string().nullable(),
+    penaltyDate: z.string(),
+    penaltyAmount: z.number(),
+    reason: z.string(),
+    status: z.enum(['pending', 'approved', 'rejected']),
+    reviewedBy: uuid.nullable().optional(),
+    reviewerName: z.string().nullable().optional(),
+    reviewNote: z.string().nullable().optional(),
+    reviewedAt: isoDate.optional(),
+    createdAt: isoDate,
+  })
+  .strict();
+export type PenaltyDispute = z.infer<typeof penaltyDisputeSchema>;

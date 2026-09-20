@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
+import { useAuth } from '../auth/AuthProvider';
 
 export interface PenaltyDispute {
   id: string;
@@ -19,8 +20,10 @@ export interface PenaltyDispute {
 }
 
 export function usePenaltyDisputes(statusFilter?: string) {
+  const auth = useAuth();
   return useQuery<PenaltyDispute[]>({
     queryKey: ['penaltyDisputes', statusFilter],
+    enabled: auth.status === 'authenticated',
     queryFn: async () => {
       const data = await rpc<PenaltyDispute[]>('get_penalty_disputes', {
         p_status: statusFilter || null,
@@ -62,4 +65,3 @@ export function useReviewPenaltyDispute() {
     },
   });
 }
-

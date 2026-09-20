@@ -25,7 +25,7 @@ export function useEmployeeMonthlyStatement(employeeId: string | null, year: num
 
       const parsed = attendanceStatementSchema.safeParse(data);
       if (!parsed.success) {
-        console.error('[useMonthlyStatement] schema parse error:', parsed.error, data);
+        if (import.meta.env.DEV) console.error('[useMonthlyStatement] schema parse error:', parsed.error, data);
         if (data && typeof data === 'object' && 'employee' in data && 'days' in data) {
           return data as AttendanceStatement;
         }

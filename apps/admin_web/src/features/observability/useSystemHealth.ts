@@ -11,7 +11,7 @@ export function useSystemHealth() {
   const auth = useAuth();
   return useQuery({
     queryKey: ['system-health'],
-    enabled: !auth.isMock,
+    enabled: auth.status === 'authenticated' && !auth.isMock,
     queryFn: () => rpc<Record<string, unknown>>('get_system_health'),
     refetchInterval: 30_000,
     staleTime: 20_000,

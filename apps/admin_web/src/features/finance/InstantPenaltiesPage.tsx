@@ -12,6 +12,7 @@ import {
   FileSpreadsheet,
   Flame,
   MessageSquare,
+  MessageCircle,
   Printer,
   RefreshCw,
   ShieldAlert,
@@ -48,6 +49,7 @@ import {
   useTriggerCheckPenaltiesNow,
   useBulkConfirmPenaltyPayments,
   useBulkCancelPenalties,
+  type InstantPenalty,
   type PendingPenaltyEmployee,
 } from './useInstantPenalties';
 
@@ -124,6 +126,81 @@ export function InstantPenaltiesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkCancelOpen, setBulkCancelOpen] = useState(false);
   const [bulkCancelReason, setBulkCancelReason] = useState('');
+
+  const [earlyWarningModalOpen, setEarlyWarningModalOpen] = useState(false);
+
+  // ─── رادار الإنذار المبكر للموظفين الذين تكرر تأخيرهم (2+ غرامات) ──────
+  const earlyWarningList = useMemo(() => {
+    const items = penalties.data ?? [];
+    const map = new Map<
+      string,
+      { employeeId: string; employeeName: string; phone: string | null; count: number; totalAmount: number; isSuspended: boolean; dates: string[] }
+    >();
+    for (const p of items) {
+      if (p.status === 'cancelled') continue;
+      const emp = employees?.find((e) => e.id === p.employeeId);
+      const existing = map.get(p.employeeId) ?? {
+        employeeId: p.employeeId,
+        employeeName: p.employeeName ?? emp?.fullNameAr ?? 'موظف',
+        phone: emp?.phoneE164 ?? null,
+        count: 0,
+        totalAmount: 0,
+        isSuspended: false,
+        dates: [],
+      };
+      existing.count += 1;
+      existing.totalAmount += p.currentAmount;
+      if (p.status === 'suspended') existing.isSuspended = true;
+      existing.dates.push(p.workDate);
+      map.set(p.employeeId, existing);
+    }
+    return Array.from(map.values())
+      .filter((e) => e.count >= 2)
+      .sort((a, b) => b.count - a.count);
+  }, [penalties.data, employees]);
+
+  function sendEmployeeWhatsAppAlert(p: InstantPenalty) {
+    const emp = employees?.find((e) => e.id === p.employeeId);
+    const rawPhone = emp?.phoneE164 ?? '';
+    let cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+    if (cleanPhone.startsWith('01')) {
+      cleanPhone = '20' + cleanPhone.substring(1);
+    } else if (!cleanPhone.startsWith('20') && cleanPhone.length === 10) {
+      cleanPhone = '20' + cleanPhone;
+    }
+
+    const name = p.employeeName ?? emp?.fullNameAr ?? 'الزميل العزيز';
+    let text = '';
+    if (p.status === 'suspended') {
+      text = `*إشعار هام من إدارة الموارد البشرية (جمعية أحلى شباب)* ⚠️\n\nالسلام عليكم ورحمة الله، أستاذ/ة ${name} 🌸\n\nنود إحاطتكم بأنه قد تم تعليق حسابكم مؤقتاً على السيستم بسبب تجاوز مهلة سداد غرامة الحضور المضاعفة (500 ج.م) ليوم ${p.workDate}.\n\n🤝 *تنويه هام:* جميع الغرامات المحصلة تُودع بالكامل في *صندوق الزمالة والتكافل* لدعم الزملاء والمساعدات الاجتماعية.\n\nيرجى مراجعة إدارة الموارد البشرية لإنهاء السداد ورفع التعليق فوراً.\n\nمع خالص التقدير والاحترام 🌺`;
+    } else if (p.status === 'doubled') {
+      text = `*تنبيه عاجل: غرامة حضور مضاعفة (500 ج.م)* ⚠️\n\nالسلام عليكم ورحمة الله، أستاذ/ة ${name} 🌸\n\nنود تذكيركم بأنه نظراً لانقضاء مهلة الـ 24 ساعة، تضاعفت غرامة الحضور ليوم ${p.workDate} لتصبح *500 ج.م*.\n\n⏰ يرجى سرعة السداد نقداً أو عبر إنستاباي لتفادي تعليق الحساب على السيستم.\n\n🤝 *نحيطكم علماً بأن 100% من حصيلة الغرامات تذهب لصندوق الزمالة والتكافل لدعم الزملاء.*\n\nمع تمنياتنا لكم بالتوفيق 🌺`;
+    } else {
+      text = `*إشعار تسجيل غرامة حضور فورية* ⏰\n\nالسلام عليكم ورحمة الله، أستاذ/ة ${name} 🌸\n\nتم تسجيل غرامة حضور وتأخير ليوم ${p.workDate} بمبلغ *${p.currentAmount} ج.م* (${p.lateMinutes} دقيقة تأخير).\n\n⏳ *المهلة النظامية:* متبقي على مهلة الـ 24 ساعة قبل مضاعفة الغرامة إلى 500 ج.م.\n\n💳 يمكنكم السداد نقداً أو عبر إنستاباي، أو تقديم عذر رسمي عبر تطبيق المنظومة في حال وجود ظرف طارئ.\n\n🤝 *جميع المبالغ المحصلة تذهب لصالح صندوق الزمالة والتكافل ولا تمثل أي ربح للإدارة.*\n\nشكراً لتعاونكم وحرصكم على الانضباط 🌺`;
+    }
+
+    if (cleanPhone) {
+      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+    } else {
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    }
+  }
+
+  function sendEmployeeRadarWhatsApp(emp: { employeeName: string; phone: string | null; count: number; totalAmount: number; dates: string[] }) {
+    let cleanPhone = (emp.phone ?? '').replace(/[^0-9]/g, '');
+    if (cleanPhone.startsWith('01')) {
+      cleanPhone = '20' + cleanPhone.substring(1);
+    } else if (!cleanPhone.startsWith('20') && cleanPhone.length === 10) {
+      cleanPhone = '20' + cleanPhone;
+    }
+    const text = `*رسالة تقدير وتنبيه ودي من الموارد البشرية (أحلى شباب)* 🌸\n\nالسلام عليكم ورحمة الله، أستاذ/ة ${emp.employeeName} العزيز/ة 🌺\n\nنود لفت عنايتكم الكريمة إلى أنه تم رصد تكرار تأخير خلال الفترة الأخيرة بواقع (${emp.count} مرات).\n\nحرصاً منا على مصلحتكم وتفادياً لتراكم أي غرامات إضافية أو تعليق الحساب، نرجو التكرم بالحرص على الحضور بالموعد المحدد (10:00 ص)، ونحن جاهزون للاستماع لأي ظرف قد يواجهكم ومساعدتكم دائماً.\n\nتمنياتنا لكم بكل التوفيق والتميز! 🌟`;
+
+    if (cleanPhone) {
+      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+    } else {
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    }
+  }
 
   // ─── تفنيط وإحصائيات شرائح الغرامات ──────────────────────────────────
 
@@ -444,6 +521,17 @@ export function InstantPenaltiesPage() {
                 <span>إلغاء</span>
               </button>
             )}
+            {(p.status === 'pending_payment' || p.status === 'doubled' || p.status === 'suspended') && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 transition-all whitespace-nowrap cursor-pointer"
+                onClick={() => sendEmployeeWhatsAppAlert(p)}
+                title="إرسال تنبيه واتساب فوري للزميل (مجاناً 100%)"
+              >
+                <MessageCircle className="size-3.5 text-emerald-600" aria-hidden="true" />
+                <span>واتساب</span>
+              </button>
+            )}
           </div>
         );
       },
@@ -612,6 +700,33 @@ export function InstantPenaltiesPage() {
             <span>رصيد صندوق الزمالة والتكافل: {formatCurrency(fundSummary.data?.currentBalance ?? 0)}</span>
           </span>
         </div>
+
+        {/* ─── رادار الإنذار المبكر للتأخير المتكرر ─────────────────────── */}
+        {earlyWarningList.length > 0 && (
+          <div className="rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-3.5 text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0">
+                <ShieldAlert className="size-5" />
+              </div>
+              <div>
+                <p className="font-bold text-amber-900 dark:text-amber-200">
+                  رادار الإنذار المبكر — {earlyWarningList.length} زملاء لديهم تكرار تأخير (2+ غرامات)
+                </p>
+                <p className="text-xs text-amber-800/80 dark:text-amber-300/80">
+                  تنبيه استباقي وتشجيع على الانضباط لحمايتهم قبل الوصول للمضاعفة إلى 500 ج.م أو تعليق الحساب.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition-all cursor-pointer whitespace-nowrap shrink-0"
+              onClick={() => setEarlyWarningModalOpen(true)}
+            >
+              <MessageCircle className="size-3.5" />
+              <span>عرض كشف الرادار والتنبيهات</span>
+            </button>
+          </div>
+        )}
 
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
           {[
@@ -844,9 +959,7 @@ export function InstantPenaltiesPage() {
         <>
           {selectedIds.size > 0 && (
             <div className="flex items-center gap-3 rounded-xl border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/20 p-3">
-              <span className="text-xs font-bold text-blue-700 dark:text-blue-400">
-                تم تحديد {selectedIds.size} غرامة
-              </span>
+              <span className="text-xs font-bold text-blue-700 dark:text-blue-400">تم تحديد {selectedIds.size} غرامة</span>
               <div className="flex-1" />
               <button
                 type="button"
@@ -1465,9 +1578,7 @@ export function InstantPenaltiesPage() {
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <MessageSquare className="size-4 text-blue-500" />
-            <h2 className="text-sm font-black text-[var(--text-primary)]">
-              طعون معلقة — تحتاج مراجعة
-            </h2>
+            <h2 className="text-sm font-black text-[var(--text-primary)]">طعون معلقة — تحتاج مراجعة</h2>
             <span className="rounded-full bg-blue-100 dark:bg-blue-950/50 px-2 py-0.5 text-[10px] font-black text-blue-700 dark:text-blue-400">
               {disputes.data.length}
             </span>
@@ -1487,14 +1598,15 @@ export function InstantPenaltiesPage() {
                   <p className="text-xs text-[var(--text-muted)] mt-0.5">
                     غرامة يوم {dateFormatter.format(new Date(d.penalty_date + 'T00:00:00'))} — {formatCurrency(d.penalty_amount)}
                   </p>
-                  <p className="text-xs text-[var(--text-secondary)] mt-1 bg-[var(--surface-muted)]/50 rounded-lg px-2.5 py-1.5 inline-block">
-                    "{d.reason}"
-                  </p>
+                  <p className="text-xs text-[var(--text-secondary)] mt-1 bg-[var(--surface-muted)]/50 rounded-lg px-2.5 py-1.5 inline-block">"{d.reason}"</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
-                    onClick={() => { setReviewTarget({ id: d.id, employeeName: d.employee_name, reason: d.reason }); setReviewNote(''); }}
+                    onClick={() => {
+                      setReviewTarget({ id: d.id, employeeName: d.employee_name, reason: d.reason });
+                      setReviewNote('');
+                    }}
                     className="btn-primary text-xs !py-1.5 !px-3"
                   >
                     مراجعة
@@ -1657,9 +1769,7 @@ export function InstantPenaltiesPage() {
               />
             </div>
 
-            {reviewDispute.isError && (
-              <p className="text-xs text-[var(--danger)]">{safeErrorMessage(reviewDispute.error)}</p>
-            )}
+            {reviewDispute.isError && <p className="text-xs text-[var(--danger)]">{safeErrorMessage(reviewDispute.error)}</p>}
 
             <div className="flex items-center justify-end gap-2">
               <button
@@ -1694,6 +1804,67 @@ export function InstantPenaltiesPage() {
                 className="btn-primary text-xs !py-2 !px-4"
               >
                 {reviewDispute.isPending ? 'جارٍ…' : 'قبول الطعن'}
+              </button>
+            </div>
+          </div>
+        </DialogOverlay>
+      )}
+
+      {/* ─── نافذة كشف رادار الإنذار المبكر والتنبيهات ──────────────── */}
+      {earlyWarningModalOpen && (
+        <DialogOverlay
+          title="رادار الإنذار المبكر — الزملاء الأكثر عرضة للمضاعفة أو التعليق"
+          onClose={() => setEarlyWarningModalOpen(false)}
+          maxWidth="max-w-2xl"
+        >
+          <div className="space-y-4">
+            <p className="text-xs text-[var(--text-muted)] -mt-2">تنبيهات ودية تشجيعية مجانية 100% عبر الواتساب لتشجيع الانضباط قبل تفاقم الغرامات</p>
+
+            <div className="overflow-y-auto max-h-[60vh] space-y-2.5 pr-1">
+              {earlyWarningList.length === 0 ? (
+                <div className="text-center py-8 text-[var(--text-muted)] text-sm">ممتاز! لا يوجد أي زميل لديه تكرار تأخير حالياً.</div>
+              ) : (
+                earlyWarningList.map((emp) => (
+                  <div
+                    key={emp.employeeId}
+                    className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-[var(--text-primary)]">{emp.employeeName}</span>
+                        {emp.isSuspended && (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-red-500/15 text-red-600 border border-red-500/30">
+                            معلّق عن العمل
+                          </span>
+                        )}
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                          {emp.count} غرامات مسجلة
+                        </span>
+                      </div>
+                      <p className="text-xs text-[var(--text-muted)] mt-1">
+                        إجمالي المبالغ: {formatCurrency(emp.totalAmount)} • تواريخ: {emp.dates.slice(0, 3).join('، ')}
+                        {emp.dates.length > 3 ? ` و+${emp.dates.length - 3} أخرى` : ''}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => sendEmployeeRadarWhatsApp(emp)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-xs transition-all cursor-pointer whitespace-nowrap self-start sm:self-auto"
+                      title="إرسال رسالة نصيحة وتشجيع ودية عبر الواتساب (مجاناً)"
+                    >
+                      <MessageCircle className="size-3.5" />
+                      <span>إرسال تنبيه ودي</span>
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-[var(--border)] flex items-center justify-between text-xs text-[var(--text-muted)]">
+              <span>💡 جميع رسائل الواتساب مجانية بالكامل ومفتوحة عبر الويب والتطبيق مباشرة بدون أي اشتراكات.</span>
+              <button type="button" onClick={() => setEarlyWarningModalOpen(false)} className="btn-secondary text-xs !py-1.5 !px-3">
+                إغلاق
               </button>
             </div>
           </div>

@@ -239,7 +239,10 @@ export function MyInstantPenaltiesPage() {
                 <div className="mt-3 border-t border-[var(--border)] pt-3">
                   <button
                     type="button"
-                    onClick={() => { setDisputeModal({ open: true, penalty: p }); setDisputeReason(''); }}
+                    onClick={() => {
+                      setDisputeModal({ open: true, penalty: p });
+                      setDisputeReason('');
+                    }}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/30 px-3 py-1.5 text-xs font-bold text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
                   >
                     <MessageSquarePlus className="size-3.5" />

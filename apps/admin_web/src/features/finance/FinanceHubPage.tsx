@@ -58,7 +58,15 @@ export function FinanceHubPage() {
 
       <div className="pt-1">
         <Suspense fallback={<ListSkeleton rows={3} label="جارٍ التحميل…" />}>
-          {tab === 'fellowship-fund' ? <FellowshipFundPage /> : tab === 'dashboard' ? <PenaltyDashboardPage /> : tab === 'settings' ? <PenaltySettingsPage /> : <InstantPenaltiesPage />}
+          {tab === 'fellowship-fund' ? (
+            <FellowshipFundPage />
+          ) : tab === 'dashboard' ? (
+            <PenaltyDashboardPage />
+          ) : tab === 'settings' ? (
+            <PenaltySettingsPage />
+          ) : (
+            <InstantPenaltiesPage />
+          )}
         </Suspense>
       </div>
     </div>

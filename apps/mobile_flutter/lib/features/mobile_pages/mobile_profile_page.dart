@@ -1485,7 +1485,7 @@ class _AppVersionCardState extends State<_AppVersionCard> {
   }
 }
 
-/// بطاقة مشاركة الموقع استباقياً مع المدير التنفيذي (الشيخ محمد).
+/// بطاقة مشاركة الموقع استباقياً مع المدير.
 class _ShareLocationCard extends ConsumerStatefulWidget {
   @override
   ConsumerState<_ShareLocationCard> createState() => _ShareLocationCardState();
@@ -1543,7 +1543,7 @@ class _ShareLocationCardState extends ConsumerState<_ShareLocationCard> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'مشاركة موقعي مع الشيخ محمد',
+                    'مشاركة موقعي مع المدير',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
@@ -1551,7 +1551,7 @@ class _ShareLocationCardState extends ConsumerState<_ShareLocationCard> {
             ),
             const SizedBox(height: 8),
             Text(
-              'إرسل موقعك الحالي مباشرة للشيخ محمد دون انتظار طلب منه.',
+              'إرسل موقعك الحالي مباشرة لمديرك دون انتظار طلب منه.',
               style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
             ),
             if (_result != null) ...[

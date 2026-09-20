@@ -38,7 +38,7 @@ export function useCronHealthSummary(enabled = true) {
   const auth = useAuth();
   return useQuery({
     queryKey: ['cron-health-summary'],
-    enabled: enabled && !auth.isMock,
+    enabled: enabled && auth.status === 'authenticated' && !auth.isMock,
     queryFn: () => rpc<CronHealthSummary>('get_cron_health_summary'),
     refetchInterval: 60_000,
     staleTime: 45_000,
@@ -53,7 +53,7 @@ export function useCronJobHealth(enabled = true) {
   const auth = useAuth();
   return useQuery({
     queryKey: ['cron-job-health'],
-    enabled: enabled && !auth.isMock,
+    enabled: enabled && auth.status === 'authenticated' && !auth.isMock,
     queryFn: () => rpc<CronJobHealth[]>('get_cron_job_health'),
     refetchInterval: 60_000,
     staleTime: 45_000,
@@ -82,7 +82,7 @@ export function useObservabilityEvents(enabled = true, limit = 50) {
   const auth = useAuth();
   return useQuery({
     queryKey: ['observability-events', limit],
-    enabled: enabled && !auth.isMock,
+    enabled: enabled && auth.status === 'authenticated' && !auth.isMock,
     queryFn: async (): Promise<ObservabilityEvent[]> => {
       const supabase = await getSupabase();
       const { data, error } = await supabase.from('observability_events').select('*').order('created_at', { ascending: false }).limit(limit);

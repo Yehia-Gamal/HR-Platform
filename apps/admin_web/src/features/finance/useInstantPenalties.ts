@@ -358,7 +358,7 @@ export function useBulkConfirmPenaltyPayments() {
       });
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['instantPenalties'] });
+      void qc.invalidateQueries({ queryKey: ['instant-penalties'] });
     },
   });
 }
@@ -373,7 +373,7 @@ export function useBulkCancelPenalties() {
       });
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['instantPenalties'] });
+      void qc.invalidateQueries({ queryKey: ['instant-penalties'] });
     },
   });
 }

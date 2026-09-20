@@ -444,7 +444,7 @@ class _BroadcastAlertCard extends ConsumerWidget {
                   })
                   .catchError((e) {
                     messenger.showSnackBar(
-                      SnackBar(content: Text('فشل الإرسال: $e')),
+                      SnackBar(content: Text('فشل الإرسال: ${humanizeError(e)}')),
                     );
                   });
             },

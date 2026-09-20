@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
+import { useAuth } from '../auth/AuthProvider';
 
 export interface PenaltySetting {
   setting_key: string;
@@ -9,8 +10,10 @@ export interface PenaltySetting {
 }
 
 export function usePenaltySettings() {
+  const auth = useAuth();
   return useQuery<PenaltySetting[]>({
     queryKey: ['penaltySettings'],
+    enabled: auth.status === 'authenticated',
     queryFn: async () => {
       return await rpc<PenaltySetting[]>('get_penalty_settings');
     },

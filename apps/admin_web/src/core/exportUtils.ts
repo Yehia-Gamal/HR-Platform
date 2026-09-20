@@ -74,9 +74,10 @@ export function printReport(sections: PrintableSection[], documentTitle: string,
       </tbody>
     </table>`;
 
-  const summaryHtml = summary && summary.length > 0
-    ? `<div class="summary-grid">${summary.map((s) => `<div class="summary-card"><span class="summary-value">${esc(s.value)}</span><span class="summary-label">${esc(s.label)}</span></div>`).join('')}</div>`
-    : '';
+  const summaryHtml =
+    summary && summary.length > 0
+      ? `<div class="summary-grid">${summary.map((s) => `<div class="summary-card"><span class="summary-value">${esc(s.value)}</span><span class="summary-label">${esc(s.label)}</span></div>`).join('')}</div>`
+      : '';
 
   const body = sections
     .map(

@@ -785,6 +785,10 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
         ],
       ),
     );
+    final reportText = reportController.text.trim();
+    final outcomeText = outcomeController.text.trim();
+    reportController.dispose();
+    outcomeController.dispose();
     if (confirmed != true || !mounted) return;
     if (_working) return;
     setState(() => _working = true);
@@ -793,10 +797,8 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           .read(mobileCommandsProvider)
           .endMission(
             requestId: mission.requestId,
-            report: reportController.text.trim(),
-            outcome: outcomeController.text.trim().isEmpty
-                ? null
-                : outcomeController.text.trim(),
+            report: reportText,
+            outcome: outcomeText.isEmpty ? null : outcomeText,
           );
       ref.invalidate(attendanceStateProvider);
       if (mounted) {
