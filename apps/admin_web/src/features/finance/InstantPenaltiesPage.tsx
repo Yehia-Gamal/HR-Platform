@@ -514,7 +514,7 @@ export function InstantPenaltiesPage() {
       <PageHeader
         eyebrow="الموارد البشرية"
         title="الغرامات الفورية للتأخير"
-        description="الحضور يبدأ 10:00 ص — أول 15 دقيقة سماح بدون خصم، بعدها: 20 ج.م (حتى 10:30) | 50 ج.م (حتى 11:00) | 150 ج.م (حتى 12:00). عدم السداد يُضاعف لـ 500 ج.م ثم يُعلَّق الحساب تلقائياً."
+        description="الحضور يبدأ 10:00 ص — أول 15 دقيقة سماح. الشرائح: 20/50/150 ج.م. عدم السداد → 500 ج.م ثم تعليق الحساب."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -533,7 +533,7 @@ export function InstantPenaltiesPage() {
               title="فحص فوري وتطبيق الخصومات على من لم يبصم حتى الآن وتحديث الشرائح"
             >
               <RefreshCw className={`size-4 ${triggerCheck.isPending ? 'animate-spin text-primary' : ''}`} aria-hidden="true" />
-              <span>{triggerCheck.isPending ? 'جارٍ الفحص والتطبيق...' : 'فحص وتطبيق الخصومات التلقائية الآن'}</span>
+              <span>{triggerCheck.isPending ? 'جارٍ الفحص...' : 'فحص وتطبيق الآن'}</span>
             </button>
             <button type="button" className="btn-primary" onClick={() => setFormOpen((v) => !v)} disabled={generatePenalty.isPending}>
               <Zap className="size-4" aria-hidden="true" />
