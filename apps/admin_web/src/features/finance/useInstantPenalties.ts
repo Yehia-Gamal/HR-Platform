@@ -347,3 +347,33 @@ export function usePunctualityChampions(month?: string) {
     },
   });
 }
+
+export function useBulkConfirmPenaltyPayments() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ penaltyIds, notes }: { penaltyIds: string[]; notes?: string }) => {
+      return await rpc<number>('bulk_confirm_penalty_payments', {
+        p_penalty_ids: penaltyIds,
+        p_notes: notes || null,
+      });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['instantPenalties'] });
+    },
+  });
+}
+
+export function useBulkCancelPenalties() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ penaltyIds, reason }: { penaltyIds: string[]; reason: string }) => {
+      return await rpc<number>('bulk_cancel_penalties', {
+        p_penalty_ids: penaltyIds,
+        p_reason: reason,
+      });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['instantPenalties'] });
+    },
+  });
+}

@@ -3042,6 +3042,13 @@ class MobileInstantPenalty {
     this.suspensionLiftedAt,
     this.notes,
     required this.createdAt,
+    this.excuseStatus = 'none',
+    this.excuseText,
+    this.excuseAttachmentUrl,
+    this.excuseNotes,
+    this.paymentMethod,
+    this.receiptAttachmentUrl,
+    this.receiptReferenceNumber,
   });
 
   factory MobileInstantPenalty.fromJson(Map<String, dynamic> j) =>
@@ -3067,6 +3074,13 @@ class MobileInstantPenalty {
             _optDate(j['suspension_lifted_at'] ?? j['suspensionLiftedAt']),
         notes: j['notes'] as String?,
         createdAt: _reqDate(j['created_at'] ?? j['createdAt']),
+        excuseStatus: j['excuse_status'] as String? ?? j['excuseStatus'] as String? ?? 'none',
+        excuseText: j['excuse_text'] as String? ?? j['excuseText'] as String?,
+        excuseAttachmentUrl: j['excuse_attachment_url'] as String? ?? j['excuseAttachmentUrl'] as String?,
+        excuseNotes: j['excuse_notes'] as String? ?? j['excuseNotes'] as String?,
+        paymentMethod: j['payment_method'] as String? ?? j['paymentMethod'] as String?,
+        receiptAttachmentUrl: j['receipt_attachment_url'] as String? ?? j['receiptAttachmentUrl'] as String?,
+        receiptReferenceNumber: j['receipt_reference_number'] as String? ?? j['receiptReferenceNumber'] as String?,
       );
 
   final String id;
@@ -3082,4 +3096,12 @@ class MobileInstantPenalty {
   final DateTime? suspensionLiftedAt;
   final String? notes;
   final DateTime createdAt;
+  final String excuseStatus;
+  final String? excuseText;
+  final String? excuseAttachmentUrl;
+  final String? excuseNotes;
+  final String? paymentMethod;
+  final String? receiptAttachmentUrl;
+  final String? receiptReferenceNumber;
 }
+

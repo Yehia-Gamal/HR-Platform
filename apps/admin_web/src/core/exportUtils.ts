@@ -57,10 +57,10 @@ export interface PrintableSection {
 }
 
 /**
- * طباعة تقرير PDF عبر نافذة طباعة المتصفح.
- * تُفتح نافذة جديدة بها HTML بسيط ثم تُستدعى الطباعة تلقائياً.
+ * طباعة تقرير PDF احترافي عبر نافذة طباعة المتصفح.
+ * يدعم: عنوان فرعي، إجماليات، ألوان الصفوف، ترويسة branded.
  */
-export function printReport(sections: PrintableSection[], documentTitle: string): void {
+export function printReport(sections: PrintableSection[], documentTitle: string, summary?: { label: string; value: string }[]): void {
   const win = window.open('', '_blank', 'width=900,height=700');
   if (!win) return;
 
@@ -70,9 +70,13 @@ export function printReport(sections: PrintableSection[], documentTitle: string)
     <table>
       <thead><tr>${t.headers.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead>
       <tbody>
-        ${t.rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('\n')}
+        ${t.rows.map((r, i) => `<tr class="${i % 2 === 0 ? 'even' : 'odd'}">${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('\n')}
       </tbody>
     </table>`;
+
+  const summaryHtml = summary && summary.length > 0
+    ? `<div class="summary-grid">${summary.map((s) => `<div class="summary-card"><span class="summary-value">${esc(s.value)}</span><span class="summary-label">${esc(s.label)}</span></div>`).join('')}</div>`
+    : '';
 
   const body = sections
     .map(
@@ -84,28 +88,70 @@ export function printReport(sections: PrintableSection[], documentTitle: string)
     )
     .join('\n');
 
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+
   win.document.write(`<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8" />
 <title>${esc(documentTitle)}</title>
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; padding: 24px; color: #1f2937; }
-  h1 { font-size: 20px; margin-bottom: 4px; }
-  h2 { font-size: 15px; margin: 22px 0 8px; color: #374151; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
-  p.sub { color: #6b7280; font-size: 12px; margin: 0 0 8px; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th, td { border: 1px solid #d1d5db; padding: 6px 8px; text-align: right; }
-  th { background: #f3f4f6; font-weight: 700; }
-  tr:nth-child(even) td { background: #fafafa; }
-  .meta { color: #6b7280; font-size: 12px; margin-top: 20px; }
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; padding: 32px; color: #1f2937; line-height: 1.6; }
+
+  .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #f59e0b; padding-bottom: 16px; margin-bottom: 24px; }
+  .header-right h1 { font-size: 22px; font-weight: 900; color: #111827; }
+  .header-right .org { font-size: 13px; color: #6b7280; margin-top: 2px; }
+  .header-left { text-align: left; font-size: 12px; color: #9ca3af; }
+  .header-left .date { font-weight: 700; color: #374151; }
+
+  .summary-grid { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .summary-card { flex: 1; min-width: 120px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; text-align: center; }
+  .summary-value { display: block; font-size: 20px; font-weight: 900; color: #111827; }
+  .summary-label { display: block; font-size: 11px; color: #6b7280; margin-top: 2px; }
+
+  h2 { font-size: 16px; font-weight: 700; margin: 28px 0 10px; color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; }
+  p.sub { color: #6b7280; font-size: 12px; margin: 0 0 10px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 8px; }
+  th, td { border: 1px solid #d1d5db; padding: 8px 10px; text-align: right; }
+  th { background: #f59e0b; color: #fff; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  tr.even td { background: #fff; }
+  tr.odd td { background: #fefce8; }
+
+  .footer { margin-top: 32px; border-top: 1px solid #e5e7eb; padding-top: 12px; display: flex; justify-content: space-between; font-size: 11px; color: #9ca3af; }
+  .footer .brand { font-weight: 700; color: #f59e0b; }
+
+  @media print {
+    body { padding: 20px; }
+    .summary-card { break-inside: avoid; }
+    table { break-inside: auto; }
+    tr { break-inside: avoid; }
+  }
 </style>
 </head>
 <body>
-<h1>${esc(documentTitle)}</h1>
+<div class="header">
+  <div class="header-right">
+    <h1>${esc(documentTitle)}</h1>
+    <div class="org">جمعية أحلى شباب — إدارة الموارد البشرية</div>
+  </div>
+  <div class="header-left">
+    <div class="date">${esc(dateStr)}</div>
+    <div>${esc(timeStr)}</div>
+  </div>
+</div>
+
+${summaryHtml}
 ${body}
-<p class="meta">نظام إدارة الموارد البشرية — أحلى شباب · ${esc(new Date().toLocaleDateString('ar-EG'))}</p>
+
+<div class="footer">
+  <span>نظام إدارة الموارد البشرية — <span class="brand">أحلى شباب</span></span>
+  <span>تم الإنشاء: ${esc(dateStr)} · ${esc(timeStr)}</span>
+</div>
 <script>window.onload = function(){ window.focus(); window.print(); };</script>
 </body>
 </html>`);

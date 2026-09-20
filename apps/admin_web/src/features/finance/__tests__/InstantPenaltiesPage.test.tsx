@@ -55,10 +55,26 @@ vi.mock('../useInstantPenalties', () => ({
     error: null,
     mutateAsync: vi.fn(),
   }),
+  useBulkConfirmPenaltyPayments: () => ({
+    isPending: false,
+    isError: false,
+    error: null,
+    mutateAsync: vi.fn(),
+  }),
+  useBulkCancelPenalties: () => ({
+    isPending: false,
+    isError: false,
+    error: null,
+    mutateAsync: vi.fn(),
+  }),
 }));
 
 vi.mock('../../employees/useEmployees', () => ({
   useEmployees: () => employeesData,
+}));
+
+vi.mock('../../../ui/Toast', () => ({
+  useToast: () => ({ toast: vi.fn() }),
 }));
 
 vi.mock('../useFellowshipFund', () => ({
@@ -67,6 +83,17 @@ vi.mock('../useFellowshipFund', () => ({
     isLoading: false,
     isError: false,
     error: null,
+  }),
+}));
+
+vi.mock('../usePenaltyDisputes', () => ({
+  usePenaltyDisputes: () => ({ data: [], isLoading: false, isError: false, error: null }),
+  useReviewPenaltyDispute: () => ({
+    isPending: false,
+    isError: false,
+    error: null,
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
   }),
 }));
 

@@ -11,6 +11,7 @@ import {
   Coins,
   FileSpreadsheet,
   Flame,
+  MessageSquare,
   Printer,
   RefreshCw,
   ShieldAlert,
@@ -31,8 +32,10 @@ import { InputDialog } from '../../ui/InputDialog';
 import { PageHeader } from '../../ui/PageHeader';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
+import { useToast } from '../../ui/Toast';
 import { useEmployees } from '../employees/useEmployees';
 import { useFellowshipFundSummary } from './useFellowshipFund';
+import { usePenaltyDisputes, useReviewPenaltyDispute } from './usePenaltyDisputes';
 import {
   INSTANT_PENALTY_ESCALATION_LABELS,
   INSTANT_PENALTY_STATUS_LABELS,
@@ -43,6 +46,8 @@ import {
   useLiftInstantPenaltySuspension,
   usePendingPenaltyEmployees,
   useTriggerCheckPenaltiesNow,
+  useBulkConfirmPenaltyPayments,
+  useBulkCancelPenalties,
   type PendingPenaltyEmployee,
 } from './useInstantPenalties';
 
@@ -73,6 +78,7 @@ function StatusIcon({ status }: { status: string }) {
 }
 
 export function InstantPenaltiesPage() {
+  const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedTier, setSelectedTier] = useState<'all' | 'pending' | 'tier-20' | 'tier-50' | 'tier-150' | 'tier-500' | 'suspended'>('all');
@@ -107,6 +113,17 @@ export function InstantPenaltiesPage() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<{ id: string; name: string } | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+
+  const disputes = usePenaltyDisputes('pending');
+  const reviewDispute = useReviewPenaltyDispute();
+  const [reviewTarget, setReviewTarget] = useState<{ id: string; employeeName: string; reason: string } | null>(null);
+  const [reviewNote, setReviewNote] = useState('');
+
+  const bulkConfirm = useBulkConfirmPenaltyPayments();
+  const bulkCancel = useBulkCancelPenalties();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkCancelOpen, setBulkCancelOpen] = useState(false);
+  const [bulkCancelReason, setBulkCancelReason] = useState('');
 
   // ─── تفنيط وإحصائيات شرائح الغرامات ──────────────────────────────────
 
@@ -483,11 +500,14 @@ export function InstantPenaltiesPage() {
   };
 
   const handlePdfExport = () => {
+    const totalAmount = rows.reduce((s, p) => s + (p.currentAmount ?? 0), 0);
+    const pendingRows = rows.filter((r) => r.status === 'pending_payment' || r.status === 'doubled' || r.status === 'suspended');
+    const paidRows = rows.filter((r) => r.status === 'paid');
     printReport(
       [
         {
           title: 'الغرامات الفورية للتأخير',
-          subtitle: `${rows.length} غرامة`,
+          subtitle: `${rows.length} غرامة — إجمالي المبالغ المطلوبة: ${formatCurrency(totalAmount)}`,
           table: {
             headers: ['الموظف', 'الإدارة', 'التاريخ', 'التأخير', 'الغرامة الأصلية', 'المطلوب', 'التصعيد', 'الحالة'],
             rows: rows.map((p) => [
@@ -504,6 +524,12 @@ export function InstantPenaltiesPage() {
         },
       ],
       'الغرامات الفورية',
+      [
+        { label: 'إجمالي الغرامات', value: rows.length.toString() },
+        { label: 'بانتظار السداد', value: pendingRows.length.toString() },
+        { label: 'مدفوعة', value: paidRows.length.toString() },
+        { label: 'إجمالي المبالغ', value: formatCurrency(totalAmount) },
+      ],
     );
   };
 
@@ -815,18 +841,64 @@ export function InstantPenaltiesPage() {
       ) : rows.length === 0 ? (
         <EmptyState title="لا توجد غرامات فورية" description="لم تُسجل أي غرامات فورية للتأخير بعد." />
       ) : (
-        <DataTable
-          ariaLabel="جدول الغرامات الفورية للتأخير"
-          rowKey={(p) => p.id}
-          focusedKey={focusedId}
-          data={rows}
-          minWidth="920px"
-          maxHeight="75vh"
-          columns={columns}
-          emptyTitle="لا توجد نتائج"
-          emptyDescription="جرّب تعديل البحث أو الحالة."
-          rowClassName={(p) => (p.status === 'paid' || p.status === 'cancelled' ? 'row-dimmed' : undefined)}
-        />
+        <>
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-3 rounded-xl border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/20 p-3">
+              <span className="text-xs font-bold text-blue-700 dark:text-blue-400">
+                تم تحديد {selectedIds.size} غرامة
+              </span>
+              <div className="flex-1" />
+              <button
+                type="button"
+                onClick={async () => {
+                  const ids = [...selectedIds];
+                  const count = await bulkConfirm.mutateAsync({ penaltyIds: ids });
+                  toast({ message: `تم تأكيد ${count} غرامة`, tone: 'success' });
+                  setSelectedIds(new Set());
+                }}
+                disabled={bulkConfirm.isPending}
+                className="btn-primary text-xs !py-1.5 !px-3"
+              >
+                {bulkConfirm.isPending ? 'جارٍ…' : `تأكيد دفع (${selectedIds.size})`}
+              </button>
+              <button
+                type="button"
+                onClick={() => setBulkCancelOpen(true)}
+                className="px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+              >
+                إلغاء جماعي ({selectedIds.size})
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedIds(new Set())}
+                className="px-2 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              >
+                إلغاء التحديد
+              </button>
+            </div>
+          )}
+
+          <DataTable
+            ariaLabel="جدول الغرامات الفورية للتأخير"
+            rowKey={(p) => p.id}
+            focusedKey={focusedId}
+            data={rows}
+            minWidth="920px"
+            maxHeight="75vh"
+            columns={columns}
+            selectable
+            selectedKeys={selectedIds}
+            onSelectionChange={setSelectedIds}
+            emptyTitle="لا توجد نتائج"
+            emptyDescription="جرّب تعديل البحث أو الحالة."
+            rowClassName={(p) => {
+              const classes: string[] = [];
+              if (p.status === 'paid' || p.status === 'cancelled') classes.push('row-dimmed');
+              if (selectedIds.has(p.id)) classes.push('bg-blue-50/50 dark:bg-blue-950/10');
+              return classes.length > 0 ? classes.join(' ') : undefined;
+            }}
+          />
+        </>
       )}
 
       {/* ─── نافذة التفاصيل الشاملة للفئة / الصندوق ───────────────────────── */}
@@ -1388,6 +1460,52 @@ export function InstantPenaltiesPage() {
         </DialogOverlay>
       )}
 
+      {/* ─── الطعون المعلقة ────────────────────────────────────────── */}
+      {disputes.data && disputes.data.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="size-4 text-blue-500" />
+            <h2 className="text-sm font-black text-[var(--text-primary)]">
+              طعون معلقة — تحتاج مراجعة
+            </h2>
+            <span className="rounded-full bg-blue-100 dark:bg-blue-950/50 px-2 py-0.5 text-[10px] font-black text-blue-700 dark:text-blue-400">
+              {disputes.data.length}
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {disputes.data.map((d) => (
+              <div
+                key={d.id}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-blue-200 dark:border-blue-800/40 bg-blue-50/50 dark:bg-blue-950/15 p-4"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-black text-[var(--text-primary)]">{d.employee_name}</span>
+                    {d.department && <span className="text-[11px] text-[var(--text-muted)]">— {d.department}</span>}
+                  </div>
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                    غرامة يوم {dateFormatter.format(new Date(d.penalty_date + 'T00:00:00'))} — {formatCurrency(d.penalty_amount)}
+                  </p>
+                  <p className="text-xs text-[var(--text-secondary)] mt-1 bg-[var(--surface-muted)]/50 rounded-lg px-2.5 py-1.5 inline-block">
+                    "{d.reason}"
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => { setReviewTarget({ id: d.id, employeeName: d.employee_name, reason: d.reason }); setReviewNote(''); }}
+                    className="btn-primary text-xs !py-1.5 !px-3"
+                  >
+                    مراجعة
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <InputDialog
         open={paymentDialogOpen}
         title="استلام الغرامة وإيداعها في صندوق الزمالة والتكافل"
@@ -1484,6 +1602,103 @@ export function InstantPenaltiesPage() {
           setCancelReason('');
         }}
       />
+
+      {/* ─── نافذة الإلغاء الجماعي ────────────────────────────────── */}
+      <InputDialog
+        open={bulkCancelOpen}
+        title="إلغاء جماعي للغرامات"
+        message={`إلغاء ${selectedIds.size} غرامة محددة — اذكر السبب:`}
+        inputLabel="سبب الإلغاء الجماعي"
+        inputPlaceholder="سبب الإلغاء…"
+        inputValue={bulkCancelReason}
+        onInputChange={setBulkCancelReason}
+        confirmLabel={`إلغاء ${selectedIds.size} غرامة`}
+        tone="danger"
+        loading={bulkCancel.isPending}
+        error={bulkCancel.isError ? safeErrorMessage(bulkCancel.error) : null}
+        onConfirm={async () => {
+          if (bulkCancelReason.trim()) {
+            try {
+              const ids = [...selectedIds];
+              const count = await bulkCancel.mutateAsync({ penaltyIds: ids, reason: bulkCancelReason.trim() });
+              toast({ message: `تم إلغاء ${count} غرامة`, tone: 'success' });
+              setBulkCancelOpen(false);
+              setSelectedIds(new Set());
+              setBulkCancelReason('');
+            } catch {
+              // Error is displayed inside InputDialog
+            }
+          }
+        }}
+        onCancel={() => {
+          bulkCancel.reset();
+          setBulkCancelOpen(false);
+          setBulkCancelReason('');
+        }}
+      />
+
+      {/* ─── نافذة مراجعة الطعن ──────────────────────────────────────── */}
+      {reviewTarget && (
+        <DialogOverlay onClose={() => setReviewTarget(null)} title={`مراجعة طعن — ${reviewTarget.employeeName}`}>
+          <div className="space-y-4">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/30 p-4">
+              <p className="text-xs text-[var(--text-muted)]">سبب الطعن:</p>
+              <p className="text-sm font-bold text-[var(--text-primary)] mt-1">{reviewTarget.reason}</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[var(--text-primary)] mb-1.5">ملاحظات المراجعة (اختياري)</label>
+              <textarea
+                value={reviewNote}
+                onChange={(e) => setReviewNote(e.target.value)}
+                placeholder="أي ملاحظات على قرار المراجعة…"
+                rows={3}
+                className="input-field w-full text-sm resize-none"
+              />
+            </div>
+
+            {reviewDispute.isError && (
+              <p className="text-xs text-[var(--danger)]">{safeErrorMessage(reviewDispute.error)}</p>
+            )}
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setReviewTarget(null)}
+                className="px-4 py-2 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  reviewDispute.mutate(
+                    { disputeId: reviewTarget.id, status: 'rejected', note: reviewNote.trim() || undefined },
+                    { onSuccess: () => setReviewTarget(null) },
+                  );
+                }}
+                disabled={reviewDispute.isPending}
+                className="px-4 py-2 text-xs font-black text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+              >
+                رفض الطعن
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  reviewDispute.mutate(
+                    { disputeId: reviewTarget.id, status: 'approved', note: reviewNote.trim() || 'قُبل الطعن' },
+                    { onSuccess: () => setReviewTarget(null) },
+                  );
+                }}
+                disabled={reviewDispute.isPending}
+                className="btn-primary text-xs !py-2 !px-4"
+              >
+                {reviewDispute.isPending ? 'جارٍ…' : 'قبول الطعن'}
+              </button>
+            </div>
+          </div>
+        </DialogOverlay>
+      )}
     </div>
   );
 }

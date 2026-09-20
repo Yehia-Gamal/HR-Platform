@@ -1,15 +1,17 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { AlertTriangle, Ban, CheckCircle2, Clock, Coins, ShieldAlert, XCircle } from 'lucide-react';
+import { AlertTriangle, Ban, CheckCircle2, Clock, Coins, MessageSquarePlus, ShieldAlert, XCircle } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { PageHeader } from '../../ui/PageHeader';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
+import { DialogOverlay } from '../../ui/DialogOverlay';
 import { useAuth } from '../auth/AuthProvider';
-import { useInstantPenalties, INSTANT_PENALTY_STATUS_LABELS } from './useInstantPenalties';
+import { useInstantPenalties, INSTANT_PENALTY_STATUS_LABELS, type InstantPenalty } from './useInstantPenalties';
 import { useFellowshipFundSummary } from './useFellowshipFund';
+import { useSubmitPenaltyDispute, usePenaltyDisputes } from './usePenaltyDisputes';
 
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
 const currencyFmt = new Intl.NumberFormat('ar-EG', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 });
@@ -41,8 +43,14 @@ export function MyInstantPenaltiesPage() {
   const employeeId = auth.access?.employeeId;
   const penalties = useInstantPenalties(employeeId ? { employeeId } : {});
   const fundSummary = useFellowshipFundSummary();
+  const disputes = usePenaltyDisputes();
+  const submitDispute = useSubmitPenaltyDispute();
+
+  const [disputeModal, setDisputeModal] = useState<{ open: boolean; penalty: InstantPenalty | null }>({ open: false, penalty: null });
+  const [disputeReason, setDisputeReason] = useState('');
 
   const rows = useMemo(() => penalties.data ?? [], [penalties.data]);
+  const pendingDisputeIds = useMemo(() => new Set((disputes.data ?? []).filter((d) => d.status === 'pending').map((d) => d.penalty_id)), [disputes.data]);
 
   const stats = useMemo(() => {
     const pending = rows.filter((p) => p.status === 'pending_payment');
@@ -226,9 +234,80 @@ export function MyInstantPenaltiesPage() {
               </div>
 
               {p.notes && <p className="mt-2 text-[11px] text-[var(--text-muted)] border-t border-[var(--border)] pt-2">ملاحظات: {p.notes}</p>}
+
+              {['pending_payment', 'doubled', 'suspended'].includes(p.status) && !pendingDisputeIds.has(p.id) && (
+                <div className="mt-3 border-t border-[var(--border)] pt-3">
+                  <button
+                    type="button"
+                    onClick={() => { setDisputeModal({ open: true, penalty: p }); setDisputeReason(''); }}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/30 px-3 py-1.5 text-xs font-bold text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                  >
+                    <MessageSquarePlus className="size-3.5" />
+                    الطعن على هذه الغرامة
+                  </button>
+                </div>
+              )}
+              {pendingDisputeIds.has(p.id) && (
+                <div className="mt-3 border-t border-[var(--border)] pt-3">
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-blue-100 dark:bg-blue-950/40 px-3 py-1.5 text-[11px] font-bold text-blue-700 dark:text-blue-400">
+                    <Clock className="size-3" />
+                    طعن مُرسل — بانتظار المراجعة
+                  </span>
+                </div>
+              )}
             </article>
           ))}
         </div>
+      )}
+
+      {/* ─── نافذة الطعن ──────────────────────────────────────────── */}
+      {disputeModal.open && disputeModal.penalty && (
+        <DialogOverlay onClose={() => setDisputeModal({ open: false, penalty: null })} title="إرسال طعن">
+          <div className="space-y-4">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/30 p-4">
+              <p className="text-xs text-[var(--text-muted)]">
+                الطعن على غرامة يوم <strong>{dateFormatter.format(new Date(disputeModal.penalty.workDate + 'T00:00:00'))}</strong> بمبلغ{' '}
+                <strong className="font-mono text-[var(--danger)]">{formatCurrency(disputeModal.penalty.currentAmount)}</strong>
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[var(--text-primary)] mb-1.5">سبب الطعن *</label>
+              <textarea
+                value={disputeReason}
+                onChange={(e) => setDisputeReason(e.target.value)}
+                placeholder="اكتب سبب الطعن — مثلاً: كنت في مهمة رسمية / تم تسجيل الحضور مبكراً…"
+                rows={4}
+                className="input-field w-full text-sm resize-none"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDisputeModal({ open: false, penalty: null })}
+                className="px-4 py-2 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!disputeReason.trim()) return;
+                  submitDispute.mutate(
+                    { penaltyId: disputeModal.penalty!.id, reason: disputeReason.trim() },
+                    { onSuccess: () => setDisputeModal({ open: false, penalty: null }) },
+                  );
+                }}
+                disabled={!disputeReason.trim() || submitDispute.isPending}
+                className="btn-primary text-xs !py-2 !px-4"
+              >
+                {submitDispute.isPending ? 'جارٍ الإرسال…' : 'إرسال الطعن'}
+              </button>
+            </div>
+          </div>
+        </DialogOverlay>
       )}
     </div>
   );
