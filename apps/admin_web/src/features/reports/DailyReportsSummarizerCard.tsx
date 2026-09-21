@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Sparkles, AlertCircle, RefreshCw } from 'lucide-react';
 import type { DailyReportFeedItem } from '@ahla/shared-contracts';
 
@@ -9,6 +9,13 @@ interface DailyReportsSummarizerCardProps {
 export function DailyReportsSummarizerCard({ reports }: DailyReportsSummarizerCardProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [customSummary, setCustomSummary] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   // تحليل فوري للمعوقات والإنجازات بدون أي خوادم خارجية
   const analytics = useMemo(() => {
@@ -31,7 +38,7 @@ export function DailyReportsSummarizerCard({ reports }: DailyReportsSummarizerCa
 
   const generateSmartSummary = () => {
     setIsGenerating(true);
-    setTimeout(() => {
+    timerRef.current = setTimeout(() => {
       let text = `تم استلام ${analytics.totalReports} تقريراً يومياً من ${analytics.uniqueEmployees} موظفاً. `;
       if (analytics.blockersCount > 0) {
         text += `رُصدت (${analytics.blockersCount}) معوقات تشغيلية ميدانية تستوجب انتباه الإدارة، أبرزها: "${analytics.blockersList[0] || 'مشاكل توريد أو شبكة'}". `;

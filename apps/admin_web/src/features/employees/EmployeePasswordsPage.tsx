@@ -17,7 +17,7 @@ import {
   Sparkles,
   Users,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import type { EmployeeSummary } from '@ahla/shared-contracts';
 import { safeErrorMessage } from '../../core/errorMapper';
@@ -261,6 +261,13 @@ export function EmployeePasswordsPage() {
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
   // حالة الموظف المنسوخ مؤخراً
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
 
   // حوار إعادة التعيين
   const [selectedEmployeeForReset, setSelectedEmployeeForReset] = useState<EmployeeSummary | null>(null);
@@ -314,7 +321,8 @@ export function EmployeePasswordsPage() {
       await navigator.clipboard.writeText(pwdText);
       setCopiedId(employeeId);
       toast({ message: 'تم نسخ كلمة المرور إلى الحافظة بنجاح', tone: 'success' });
-      setTimeout(() => setCopiedId(null), 2500);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopiedId(null), 2500);
     } catch {
       toast({ message: 'تعذر النسخ التلقائي. يرجى النسخ يدوياً.', tone: 'error' });
     }

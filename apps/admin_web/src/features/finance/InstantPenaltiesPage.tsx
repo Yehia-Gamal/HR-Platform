@@ -1,5 +1,5 @@
 import { cairoTodayIso } from '../../core/cairoTime';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import {
   AlertTriangle,
@@ -97,6 +97,13 @@ export function InstantPenaltiesPage() {
   const { data: employees } = useEmployees();
 
   const [checkFeedback, setCheckFeedback] = useState<string | null>(null);
+  const checkFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (checkFeedbackTimer.current) clearTimeout(checkFeedbackTimer.current);
+    };
+  }, []);
 
   const [formOpen, setFormOpen] = useState(false);
   const [employeeId, setEmployeeId] = useState('');
@@ -170,7 +177,7 @@ export function InstantPenaltiesPage() {
     }
 
     const name = p.employeeName ?? emp?.fullNameAr ?? 'الزميل العزيز';
-    let text = '';
+    let text: string;
     if (p.status === 'suspended') {
       text = `*إشعار هام من إدارة الموارد البشرية (جمعية أحلى شباب)* ⚠️\n\nالسلام عليكم ورحمة الله، أستاذ/ة ${name} 🌸\n\nنود إحاطتكم بأنه قد تم تعليق حسابكم مؤقتاً على السيستم بسبب تجاوز مهلة سداد غرامة الحضور المضاعفة (500 ج.م) ليوم ${p.workDate}.\n\n🤝 *تنويه هام:* جميع الغرامات المحصلة تُودع بالكامل في *صندوق الزمالة والتكافل* لدعم الزملاء والمساعدات الاجتماعية.\n\nيرجى مراجعة إدارة الموارد البشرية لإنهاء السداد ورفع التعليق فوراً.\n\nمع خالص التقدير والاحترام 🌺`;
     } else if (p.status === 'doubled') {
@@ -301,7 +308,8 @@ export function InstantPenaltiesPage() {
   // الوصول من إشعار غرامة → إبراز صف الغرامة نفسه في الجدول.
   const focusedId = useEntityFocus(rows.length > 0, 'focus', () => {
     setCheckFeedback('الغرامة المطلوبة غير ظاهرة ضمن الفلتر الحالي — امسح الفلاتر لعرضها.');
-    setTimeout(() => setCheckFeedback(null), 8000);
+    if (checkFeedbackTimer.current) clearTimeout(checkFeedbackTimer.current);
+    checkFeedbackTimer.current = setTimeout(() => setCheckFeedback(null), 8000);
   });
 
   const columns: DataTableColumn<(typeof rows)[number]>[] = [
@@ -621,6 +629,57 @@ export function InstantPenaltiesPage() {
     );
   };
 
+  // ─── ملخص أسبوعي عبر واتساب للمدير (مجاني 100%) ─────────────────────
+
+  const sendWeeklyWhatsAppSummary = () => {
+    const items = penalties.data ?? [];
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const weekAgoIso = weekAgo.toISOString().slice(0, 10);
+
+    const thisWeek = items.filter((p) => p.workDate >= weekAgoIso);
+    const pendingThisWeek = thisWeek.filter((p) => p.status === 'pending_payment');
+    const paidThisWeek = thisWeek.filter((p) => p.status === 'paid');
+    const doubledThisWeek = thisWeek.filter((p) => p.status === 'doubled');
+    const suspendedThisWeek = thisWeek.filter((p) => p.status === 'suspended');
+    const cancelledThisWeek = thisWeek.filter((p) => p.status === 'cancelled');
+
+    const totalAmount = thisWeek.reduce((s, p) => s + p.currentAmount, 0);
+    const paidAmount = paidThisWeek.reduce((s, p) => s + p.currentAmount, 0);
+    const pendingAmount = pendingThisWeek.reduce((s, p) => s + p.currentAmount, 0);
+
+    const collectionRate = thisWeek.length > 0 ? Math.round((paidThisWeek.length / Math.max(1, thisWeek.length - cancelledThisWeek.length)) * 100) : 0;
+
+    // أكثر 3 موظفين تأخراً
+    const empCounts = new Map<string, { name: string; count: number }>();
+    for (const p of thisWeek) {
+      if (p.status === 'cancelled') continue;
+      const existing = empCounts.get(p.employeeId) ?? { name: p.employeeName ?? 'موظف', count: 0 };
+      existing.count++;
+      empCounts.set(p.employeeId, existing);
+    }
+    const topLate = [...empCounts.values()].sort((a, b) => b.count - a.count).slice(0, 3);
+
+    const fundBalance = fundSummary.data?.currentBalance ?? 0;
+
+    const text = `*📊 التقرير الأسبوعي لغرامات الحضور — أحلى شباب*\n*الفترة:* ${weekAgoIso} → ${cairoTodayIso()}\n\n📌 *الملخص:*\n• إجمالي الغرامات: ${thisWeek.length} غرامة\n• إجمالي المبالغ: ${formatCurrency(totalAmount)}\n• المدفوع: ${paidThisWeek.length} (${formatCurrency(paidAmount)})\n• بانتظار السداد: ${pendingThisWeek.length} (${formatCurrency(pendingAmount)})\n• المضاعفة: ${doubledThisWeek.length}\n• المعلّقة: ${suspendedThisWeek.length}\n• الملغاة (أعذار مقبولة): ${cancelledThisWeek.length}\n\n📈 *نسبة التحصيل:* ${collectionRate}%\n💰 *رصيد صندوق الزمالة:* ${formatCurrency(fundBalance)}\n\n${topLate.length > 0 ? `⚠️ *الأكثر تأخراً هذا الأسبوع:*\n${topLate.map((e, i) => `${i + 1}. ${e.name} — ${e.count} مرات`).join('\n')}\n` : '✅ لا يوجد تكرار تأخير ملحوظ هذا الأسبوع.\n'}\n🤝 *تذكير:* جميع حصيلة الغرامات تذهب كاملة لصندوق الزمالة والتكافل لدعم الزملاء.\n\n_تقرير آلي من منظومة أحلى شباب — مجاني بدون رسوم_ ✨`;
+
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  // ─── إحصائيات نسبة التحصيل ────────────────────────────────────────
+
+  const collectionStats = useMemo(() => {
+    const items = penalties.data ?? [];
+    const nonCancelled = items.filter((p) => p.status !== 'cancelled');
+    const paid = nonCancelled.filter((p) => p.status === 'paid');
+    const totalCount = nonCancelled.length;
+    const paidCount = paid.length;
+    const rate = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0;
+    const totalCollected = paid.reduce((s, p) => s + p.currentAmount, 0);
+    return { rate, totalCollected, paidCount, totalCount };
+  }, [penalties.data]);
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -636,7 +695,8 @@ export function InstantPenaltiesPage() {
                 try {
                   const res = await triggerCheck.mutateAsync();
                   setCheckFeedback(res.message);
-                  setTimeout(() => setCheckFeedback(null), 8000);
+                  if (checkFeedbackTimer.current) clearTimeout(checkFeedbackTimer.current);
+                  checkFeedbackTimer.current = setTimeout(() => setCheckFeedback(null), 8000);
                 } catch (err) {
                   setCheckFeedback('حدث خطأ أثناء الفحص: ' + safeErrorMessage(err));
                 }
@@ -699,6 +759,31 @@ export function InstantPenaltiesPage() {
             <Coins className="size-3.5" />
             <span>رصيد صندوق الزمالة والتكافل: {formatCurrency(fundSummary.data?.currentBalance ?? 0)}</span>
           </span>
+          {collectionStats.totalCount > 0 && (
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-bold ${
+                collectionStats.rate >= 80
+                  ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300'
+                  : collectionStats.rate >= 50
+                    ? 'border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-300'
+                    : 'border-red-500/30 bg-red-500/5 text-red-700 dark:text-red-300'
+              }`}
+            >
+              <CheckCircle2 className="size-3.5" />
+              <span>
+                نسبة التحصيل: {collectionStats.rate}% ({collectionStats.paidCount}/{collectionStats.totalCount})
+              </span>
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={sendWeeklyWhatsAppSummary}
+            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 font-bold text-white shadow-xs transition-all cursor-pointer"
+            title="إرسال ملخص أسبوعي بالغرامات عبر واتساب للإدارة (مجاناً 100%)"
+          >
+            <MessageCircle className="size-3.5" />
+            <span>ملخص أسبوعي واتساب</span>
+          </button>
         </div>
 
         {/* ─── رادار الإنذار المبكر للتأخير المتكرر ─────────────────────── */}

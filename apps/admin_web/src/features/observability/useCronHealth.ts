@@ -1,33 +1,13 @@
+import { cronHealthSummarySchema, cronJobHealthSchema, type CronHealthSummary, type CronJobHealth, type ObservabilityEvent } from '@ahla/shared-contracts';
 import { useQuery } from '@tanstack/react-query';
+import { z } from 'zod';
 import { rpc } from '../../core/rpc';
 import { getSupabase } from '../../core/supabase';
 import { useAuth } from '../auth/AuthProvider';
 
-export interface CronJobHealth {
-  jobid: number;
-  jobname: string;
-  schedule: string;
-  active: boolean;
-  last_status: string | null;
-  last_message: string | null;
-  last_start: string | null;
-  last_end: string | null;
-  duration_seconds: number | null;
-  failures_24h: number;
-  health_status: 'disabled' | 'never_run' | 'failing' | 'unstable' | 'healthy';
-}
+export type { CronHealthSummary, CronJobHealth, ObservabilityEvent };
 
-export interface CronHealthSummary {
-  total_jobs: number;
-  active: number;
-  failing: number;
-  unstable: number;
-  healthy: number;
-  never_run: number;
-  disabled: number;
-  checked_at: string;
-  failures_24h_total: number;
-}
+const cronJobHealthArraySchema = z.array(cronJobHealthSchema);
 
 /**
  * ملخص صحة pg_cron من get_cron_health_summary() RPC (متاح لـ authenticated
@@ -39,7 +19,7 @@ export function useCronHealthSummary(enabled = true) {
   return useQuery({
     queryKey: ['cron-health-summary'],
     enabled: enabled && auth.status === 'authenticated' && !auth.isMock,
-    queryFn: () => rpc<CronHealthSummary>('get_cron_health_summary'),
+    queryFn: () => rpc('get_cron_health_summary', undefined, cronHealthSummarySchema),
     refetchInterval: 60_000,
     staleTime: 45_000,
     retry: 1,
@@ -54,24 +34,11 @@ export function useCronJobHealth(enabled = true) {
   return useQuery({
     queryKey: ['cron-job-health'],
     enabled: enabled && auth.status === 'authenticated' && !auth.isMock,
-    queryFn: () => rpc<CronJobHealth[]>('get_cron_job_health'),
+    queryFn: () => rpc('get_cron_job_health', undefined, cronJobHealthArraySchema),
     refetchInterval: 60_000,
     staleTime: 45_000,
     retry: 1,
   });
-}
-
-export interface ObservabilityEvent {
-  id: string;
-  created_at: string;
-  level: 'debug' | 'info' | 'warning' | 'error' | 'critical';
-  source: string;
-  event_type: string;
-  request_id: string | null;
-  message: string;
-  error_name: string | null;
-  duration_ms: number | null;
-  metadata: Record<string, unknown>;
 }
 
 /**

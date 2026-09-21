@@ -15,7 +15,7 @@ import {
   UserCheck,
   Users,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { csvSafeCell as csvSafe } from '../../core/exportUtils';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -147,6 +147,14 @@ export function MonthlyAttendanceReportPage() {
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
   const [exportToast, setExportToast] = useState<string | null>(null);
+  const exportTimerRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    const timers = exportTimerRef.current;
+    return () => {
+      for (const t of timers) clearTimeout(t);
+    };
+  }, []);
 
   // تحميل كل الموظفين النشطين مرة واحدة
   const employeesQuery = useEmployees(undefined, 'active');
@@ -174,15 +182,18 @@ export function MonthlyAttendanceReportPage() {
         setExportProgress(p);
         if (p.done === p.total) {
           // مهلة صغيرة حتى تكتمل آخر تنزيلات الملفات قبل رسالة النجاح
-          setTimeout(() => setExporting(false), 1500);
+          const t = setTimeout(() => setExporting(false), 1500);
+          exportTimerRef.current.push(t);
         }
       });
       setExportToast(`تم إنشاء ${exported} ملف (ملف منفصل لكل موظف + ملف شامل).${skipped > 0 ? ` تعذّر ${skipped} موظف (بدون بيانات).` : ''}`);
-      setTimeout(() => setExportToast(null), 6000);
+      const t1 = setTimeout(() => setExportToast(null), 6000);
+      exportTimerRef.current.push(t1);
     } catch {
       setExportToast('تعذّر إنشاء الكشوف. أعد المحاولة أو تحقق من اتصالك.');
       setExporting(false);
-      setTimeout(() => setExportToast(null), 6000);
+      const t2 = setTimeout(() => setExportToast(null), 6000);
+      exportTimerRef.current.push(t2);
     }
   };
 

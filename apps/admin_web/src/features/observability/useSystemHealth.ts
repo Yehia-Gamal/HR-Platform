@@ -1,6 +1,9 @@
+import { z } from 'zod';
 import { useQuery } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
+
+const systemHealthSchema = z.record(z.string(), z.unknown()).nullable();
 
 /**
  * لقطة صحة النظام من get_system_health() RPC.
@@ -12,7 +15,7 @@ export function useSystemHealth() {
   return useQuery({
     queryKey: ['system-health'],
     enabled: auth.status === 'authenticated' && !auth.isMock,
-    queryFn: () => rpc<Record<string, unknown>>('get_system_health'),
+    queryFn: () => rpc('get_system_health', undefined, systemHealthSchema),
     refetchInterval: 30_000,
     staleTime: 20_000,
     retry: 1,
