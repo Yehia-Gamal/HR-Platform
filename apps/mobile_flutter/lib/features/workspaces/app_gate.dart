@@ -9,13 +9,15 @@ import 'package:ahla_shabab_management_os/features/auth/login_page.dart';
 import 'package:ahla_shabab_management_os/features/auth/set_password_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/release_governance.dart';
-
 import 'package:ahla_shabab_management_os/features/workspaces/employee_workspace.dart';
 import 'package:ahla_shabab_management_os/features/workspaces/executive_workspace.dart';
 import 'package:ahla_shabab_management_os/features/workspaces/manager_workspace.dart';
 import 'package:ahla_shabab_management_os/features/workspaces/operations_workspace.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -51,11 +53,78 @@ class AppGate extends ConsumerWidget {
   }
 }
 
-class _AuthenticatedGate extends ConsumerWidget {
+class _AuthenticatedGate extends ConsumerStatefulWidget {
   const _AuthenticatedGate();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AuthenticatedGate> createState() => _AuthenticatedGateState();
+}
+
+class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _handleAppResumed();
+    }
+  }
+
+  Future<void> _handleAppResumed() async {
+    try {
+      final supabase = ref.read(supabaseProvider);
+      final session = supabase.auth.currentSession;
+      if (session != null) {
+        final expiresAt = session.expiresAt;
+        final isExpiredOrExpiringSoon = session.isExpired ||
+            (expiresAt != null &&
+                DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000)
+                    .isBefore(DateTime.now().add(const Duration(minutes: 10))));
+
+        if (isExpiredOrExpiringSoon) {
+          try {
+            await supabase.auth.refreshSession();
+            if (mounted) {
+              ref.invalidate(authSessionProvider);
+              ref.invalidate(accessContextProvider);
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint('[AppGate] Proactive resume token refresh failed: $e');
+            }
+          }
+        }
+
+        // Re-affirm FCM token registration in background
+        try {
+          final token = await FirebaseMessaging.instance.getToken();
+          if (token != null && token.isNotEmpty) {
+            final platform = defaultTargetPlatform == TargetPlatform.iOS
+                ? 'ios'
+                : 'android';
+            await supabase.rpc<dynamic>(
+              'upsert_my_push_token',
+              params: {'p_fcm_token': token, 'p_platform': platform},
+            );
+          }
+        } catch (_) {}
+      }
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final supabase = ref.read(supabaseProvider);
 
     void signOut() {
@@ -145,6 +214,13 @@ class _AuthenticatedGate extends ConsumerWidget {
           ),
           data: (contextData) {
             if (contextData == null) return const LoginPage();
+            if (contextData.isSuspended) {
+              return _SuspendedAccountPage(
+                access: contextData,
+                onRetry: () => ref.invalidate(accessContextProvider),
+                onSignOut: signOut,
+              );
+            }
             return switch (_mobileWorkspace(contextData)) {
               WorkspaceId.executive => ExecutiveWorkspace(access: contextData),
               WorkspaceId.manager => ManagerWorkspace(access: contextData),
@@ -534,3 +610,319 @@ class _WebOnlyPage extends ConsumerWidget {
     );
   }
 }
+
+class _SuspendedAccountPage extends StatelessWidget {
+  const _SuspendedAccountPage({
+    required this.access,
+    required this.onRetry,
+    required this.onSignOut,
+  });
+
+  final AccessContext access;
+  final VoidCallback onRetry;
+  final VoidCallback onSignOut;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final message = access.suspensionMessage?.trim().isNotEmpty == true
+        ? access.suspensionMessage!
+        : 'تم وقفك عن العمل لعدم سداد قيمة الخصم 500جنيه توجه الي قسم ال HR لسداد المبلغ';
+    final amount = access.suspensionAmount ?? 500.0;
+
+    final errorBase = theme.colorScheme.error;
+    final errorContainer = theme.colorScheme.errorContainer;
+
+    final bannerBg = isDark
+        ? errorContainer.withValues(alpha: 0.35)
+        : const Color(0xFFFDE8E8);
+    final bannerBorder = isDark
+        ? errorBase.withValues(alpha: 0.45)
+        : const Color(0xFFF8B4B4);
+    final bannerTextColor = isDark
+        ? const Color(0xFFFFDAD6)
+        : const Color(0xFF991B1B);
+
+    final iconCircleBg = isDark
+        ? errorContainer.withValues(alpha: 0.4)
+        : const Color(0xFFFEE2E2);
+    final iconColor = isDark
+        ? const Color(0xFFFFB4AB)
+        : const Color(0xFFDC2626);
+
+    final headerTextColor = isDark
+        ? const Color(0xFFFFB4AB)
+        : const Color(0xFF991B1B);
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Card(
+                elevation: isDark ? 2 : 4,
+                color: theme.colorScheme.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  side: BorderSide(
+                    color: isDark
+                        ? errorBase.withValues(alpha: 0.35)
+                        : const Color(0xFFFCA5A5).withValues(alpha: 0.6),
+                    width: 1.5,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: iconCircleBg,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.lock_person_rounded,
+                          size: 56,
+                          color: iconColor,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'تم إيقاف الحساب عن العمل',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: headerTextColor,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: bannerBg,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: bannerBorder,
+                          ),
+                        ),
+                        child: Text(
+                          message,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            height: 1.65,
+                            color: bannerTextColor,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: isDark ? 0.35 : 0.5),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          children: [
+                            _buildInfoRow(
+                              context,
+                              'الموظف:',
+                              access.displayName,
+                            ),
+                            if (access.employeeCode != null) ...[
+                              const Divider(height: 16),
+                              _buildCodeRow(context, access.employeeCode!),
+                            ],
+                            const Divider(height: 16),
+                            _buildInfoRow(
+                              context,
+                              'قيمة الخصم المستحق:',
+                              '${amount.toStringAsFixed(0)} ج.م',
+                              isBold: true,
+                              valueColor: isDark
+                                  ? const Color(0xFFFFB4AB)
+                                  : const Color(0xFFDC2626),
+                            ),
+                            const Divider(height: 16),
+                            _buildInfoRow(
+                              context,
+                              'حالة التطبيق:',
+                              'موقوف حتى سداد المبلغ',
+                              valueColor: isDark
+                                  ? const Color(0xFFFFB74D)
+                                  : const Color(0xFFC2410C),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: onRetry,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('إعادة التحقق من حالة الحساب'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.tonalIcon(
+                          onPressed: () {
+                            final code = access.employeeCode ?? '';
+                            final name = access.displayName;
+                            final owed = amount.toStringAsFixed(0);
+                            final text =
+                                'السلام عليكم، أنا الموظف $name${code.isNotEmpty ? ' (كود: $code)' : ''}. تم إيقاف حسابي بالمنظومة لعدم سداد الغرامة المستحقة بقيمة $owed ج.م. برجاء المساعدة في تسوية المبلغ لإعادة تفعيل الحساب.';
+                            launchUrl(
+                              Uri.parse(
+                                'https://api.whatsapp.com/send?text=${Uri.encodeComponent(text)}',
+                              ),
+                              mode: LaunchMode.externalApplication,
+                            );
+                          },
+                          icon: const Icon(Icons.chat_outlined),
+                          label: const Text('تواصل مع الـ HR لتسوية المبلغ'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: onSignOut,
+                          icon: const Icon(Icons.logout_rounded),
+                          label: const Text('تسجيل الخروج'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCodeRow(BuildContext context, String code) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          'الكود الوظيفي:',
+          style: TextStyle(
+            fontSize: 13,
+            color: theme.colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              code,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Tooltip(
+              message: 'نسخ الكود',
+              child: InkWell(
+                borderRadius: BorderRadius.circular(6),
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: code));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text(
+                        'تم نسخ الكود الوظيفي لمراجعته مع قسم الموارد البشرية',
+                        textAlign: TextAlign.center,
+                      ),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.copy_rounded,
+                    size: 16,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(
+    BuildContext context,
+    String label,
+    String value, {
+    bool isBold = false,
+    Color? valueColor,
+  }) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: theme.colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
+            color: valueColor ?? theme.colorScheme.onSurface,
+          ),
+        ),
+      ],
+    );
+  }
+}
+

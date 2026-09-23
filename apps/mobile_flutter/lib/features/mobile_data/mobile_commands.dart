@@ -1272,6 +1272,30 @@ extension MobileSelfServiceCommands on MobileCommands {
     ref.invalidate(myAttendanceHistoryProvider);
   }
 
+  /// قرار على طلب تصحيح بصمة (اعتماد أو رفض) بواسطة المدير أو المراجع
+  Future<void> decideAttendanceCorrection({
+    required String correctionId,
+    required String decision,
+    String? note,
+  }) async {
+    await _withTimeout(
+      ref.read(supabaseProvider).rpc<dynamic>(
+        'decide_attendance_correction',
+        params: {
+          'p_id': correctionId,
+          'p_decision': decision,
+          'p_note': note?.trim(),
+        },
+      ),
+    );
+    ref.invalidate(myAttendanceServicesProvider);
+    ref.invalidate(myAttendanceHistoryProvider);
+    ref.invalidate(teamAttendanceCorrectionsProvider);
+    ref.invalidate(attendanceCorrectionDetailProvider(correctionId));
+    ref.invalidate(myNotificationsProvider);
+    ref.invalidate(employeeHomeProvider);
+  }
+
   /// تعديل يوم إدارياً (حالة اليوم أو ساعات العمل)
   Future<void> setAttendanceDayAdmin({
     required String employeeId,

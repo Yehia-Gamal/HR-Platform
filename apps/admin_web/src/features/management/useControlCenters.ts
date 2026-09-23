@@ -166,8 +166,7 @@ export function useOperationsCenter() {
         const data = await rpc<OperationsCenterData>('get_operations_center_data');
         if (data) return data;
       } catch (e) {
-        // في حالة فشل الـ RPC (مثلاً صلاحيات غير كافية)، نعود للاستعلام المباشر كحل بديل
-        console.warn('get_operations_center_data RPC failed, falling back to direct queries:', e);
+        if (import.meta.env.DEV) console.warn('get_operations_center_data RPC failed, falling back to direct queries:', e);
       }
       const [employeeRows, taskRows, missionRows, convoyRows, requestRows] = await Promise.all([
         tableRows('employees', 'id,full_name_ar', 'full_name_ar', 500),

@@ -138,5 +138,33 @@ void main() {
       );
       expect(context.hasAnyPermission(['performance.kpi.decide']), isFalse);
     });
+
+    test('defaults isSuspended to false when missing', () {
+      final context = AccessContext.fromJson(_contextJson());
+
+      expect(context.isSuspended, isFalse);
+      expect(context.suspensionReason, isNull);
+      expect(context.suspensionMessage, isNull);
+      expect(context.suspensionAmount, isNull);
+    });
+
+    test('parses suspended employee context with fine and message', () {
+      final json = _contextJson()
+        ..['isSuspended'] = true
+        ..['suspensionReason'] = 'penalty_unpaid'
+        ..['suspensionAmount'] = 500
+        ..['suspensionMessage'] =
+            'تم وقفك عن العمل لعدم سداد قيمة الخصم 500جنيه توجه الي قسم ال HR لسداد المبلغ';
+
+      final context = AccessContext.fromJson(json);
+
+      expect(context.isSuspended, isTrue);
+      expect(context.suspensionReason, 'penalty_unpaid');
+      expect(context.suspensionAmount, 500.0);
+      expect(
+        context.suspensionMessage,
+        'تم وقفك عن العمل لعدم سداد قيمة الخصم 500جنيه توجه الي قسم ال HR لسداد المبلغ',
+      );
+    });
   });
 }

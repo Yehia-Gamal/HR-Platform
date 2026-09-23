@@ -215,13 +215,13 @@ export function EmployeesPage() {
         description={tab === 'org-chart' ? 'شجرة هرمية كاملة: اضغط على أي موظف لفتح ملفه الشامل.' : 'ابحث في ملفات الموظفين وافتح الملف الشخصي لأي منهم.'}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" className="btn-secondary" onClick={handlePdfExport} disabled={filtered.length === 0} title="طباعة PDF">
-              <Printer className="size-4" aria-hidden="true" />
-              PDF
-            </button>
             <button type="button" className="btn-secondary" onClick={handleCsvExport} disabled={filtered.length === 0} title="تصدير Excel">
               <FileSpreadsheet className="size-4" aria-hidden="true" />
-              تصدير
+              <span>Excel</span>
+            </button>
+            <button type="button" className="btn-secondary font-medium" onClick={handlePdfExport} disabled={filtered.length === 0} title="طباعة PDF">
+              <Printer className="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+              <span>تصدير PDF</span>
             </button>
             <Link
               to={location.pathname.startsWith('/admin') ? '/admin/hr/passwords' : '/hr/passwords'}

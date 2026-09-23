@@ -1,4 +1,5 @@
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_correction_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/kpi_evaluation_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_services_page.dart';
 
@@ -27,6 +28,10 @@ Widget mobilePageForActionTarget(
     requestId: target.recordId,
   ),
   'task_detail' => MobileTasksPage(highlightId: target.recordId),
+  'attendance_correction' ||
+  'attendance_correction_detail' => AttendanceCorrectionDetailPage(
+    correctionId: target.recordId,
+  ),
   'attendance_detail' => MobileAttendanceServicesPage(
     highlightId: target.recordId,
   ),

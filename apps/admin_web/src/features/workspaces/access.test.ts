@@ -19,6 +19,10 @@ function makeContext(overrides: Partial<AccessContext> = {}): AccessContext {
       selfPunchEnabled: false,
       liveLocationResponseEnabled: false,
     },
+    isSuspended: false,
+    suspensionReason: null,
+    suspensionMessage: null,
+    suspensionAmount: null,
     ...overrides,
   };
 }

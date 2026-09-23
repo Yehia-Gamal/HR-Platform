@@ -152,11 +152,7 @@ final releasePolicyProvider = FutureProvider<MobileReleasePolicy>((ref) async {
   } on PostgrestException catch (e) {
     if (e.code == 'PGRST303') {
       try {
-        await client.auth.signOut();
-      } catch (_) {
-        // Best-effort sign-out.
-      }
-      try {
+        await client.auth.refreshSession();
         final retryResponse = await client.rpc<dynamic>(
           'get_public_release_policy',
           params: params,
@@ -165,7 +161,7 @@ final releasePolicyProvider = FutureProvider<MobileReleasePolicy>((ref) async {
           Map<String, dynamic>.from(retryResponse as Map<dynamic, dynamic>),
         );
       } catch (_) {
-        // Retry also failed — fall through to default policy.
+        // Refresh or retry failed — fall through safely without signing out.
       }
     }
     // أي خطأ Postgrest آخر (RPC غير موجود، خطأ في الجدول…) → لا نحجب التطبيق.

@@ -52,6 +52,10 @@ class AccessContext {
     required this.workspaces,
     required this.defaultWorkspace,
     required this.attendancePolicy,
+    this.isSuspended = false,
+    this.suspensionReason,
+    this.suspensionMessage,
+    this.suspensionAmount,
   });
 
   factory AccessContext.fromJson(Map<String, dynamic> json) {
@@ -79,6 +83,10 @@ class AccessContext {
           json['attendancePolicy'] as Map<dynamic, dynamic>? ?? const {},
         ),
       ),
+      isSuspended: json['isSuspended'] as bool? ?? false,
+      suspensionReason: json['suspensionReason'] as String?,
+      suspensionMessage: json['suspensionMessage'] as String?,
+      suspensionAmount: (json['suspensionAmount'] as num?)?.toDouble(),
     );
   }
 
@@ -92,6 +100,10 @@ class AccessContext {
   final List<WorkspaceId> workspaces;
   final WorkspaceId defaultWorkspace;
   final AttendancePolicy attendancePolicy;
+  final bool isSuspended;
+  final String? suspensionReason;
+  final String? suspensionMessage;
+  final double? suspensionAmount;
 
   bool hasPermission(String code) =>
       permissions.contains('*') || permissions.contains(code);

@@ -17,7 +17,7 @@ function registerSW() {
     navigator.serviceWorker
       .register('/sw.js')
       .then((reg) => {
-        console.warn('[SW] Registered:', reg.scope);
+        if (import.meta.env.DEV) console.warn('[SW] Registered:', reg.scope);
         // تحديث فوري عند وجود إصدار جديد
         reg.addEventListener('updatefound', () => {
           const newWorker = reg.installing;
@@ -39,7 +39,9 @@ function registerSW() {
           }
         });
       })
-      .catch((err) => console.error('[SW] Registration failed:', err));
+      .catch((err) => {
+        if (import.meta.env.DEV) console.error('[SW] Registration failed:', err);
+      });
   }
 }
 
@@ -48,7 +50,7 @@ initializeTheme();
 
 // معالجة خطأ تحميل الحزم بعد نشر إصدار جديد
 window.addEventListener('vite:preloadError', (event) => {
-  console.warn('[Vite] Preload error detected, reloading page...', event);
+  if (import.meta.env.DEV) console.warn('[Vite] Preload error detected, reloading page...', event);
   window.location.reload();
 });
 

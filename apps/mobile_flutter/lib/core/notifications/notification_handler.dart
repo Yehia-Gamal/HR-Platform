@@ -30,9 +30,10 @@ String? canonicalNotificationEntityType(String? raw) => switch (raw) {
   'requests' => 'request',
   'request_decision' => 'request',
   'dispute_case' => 'dispute',
+  'attendance_corrections' ||
+  'attendance_correction' => 'attendance_correction',
   'attendance_daily' ||
   'attendance_event' ||
-  'attendance_corrections' ||
   'overtime_records' ||
   'work_rosters' ||
   'attendance_alert' ||
@@ -116,6 +117,8 @@ bool _isKnownActionKind(String kind) {
     'kpi_evaluation' ||
     'attendance' ||
     'attendance_alert' ||
+    'attendance_correction' ||
+    'attendance_corrections' ||
     'punch_reminder' ||
     'location' ||
     'location_request' ||
@@ -153,6 +156,7 @@ String resolveNotificationRoute({
   return switch (canonical) {
     'request' => '/action/request/$entityId',
     'kpi' => '/action/kpi/$entityId',
+    'attendance_correction' => '/action/attendance_correction/$entityId',
     'attendance' => '/action/attendance/$entityId',
     'location' ||
     'location_request' ||

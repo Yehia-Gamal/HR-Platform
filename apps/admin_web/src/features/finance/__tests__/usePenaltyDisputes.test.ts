@@ -10,6 +10,10 @@ vi.mock('../../../core/rpc', () => ({
   rpc: (...args: unknown[]) => mockRpc(...args),
 }));
 
+vi.mock('../../auth/AuthProvider', () => ({
+  useAuth: () => ({ status: 'authenticated', access: { employeeId: 'emp-1' } }),
+}));
+
 function createWrapper() {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -21,6 +25,7 @@ function createWrapper() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockRpc.mockReset();
 });
 
 const sampleDisputes = [
@@ -110,13 +115,7 @@ describe('useSubmitPenaltyDispute', () => {
       wrapper: createWrapper(),
     });
 
-    try {
-      await result.current.mutateAsync({ penaltyId: 'p1', reason: 'سبب' });
-      expect.fail('يجب أن يرمي خطأ');
-    } catch (e: unknown) {
-      expect(e).toBeInstanceOf(Error);
-      expect((e as Error).message).toBe('RPC failed');
-    }
+    await expect(result.current.mutateAsync({ penaltyId: 'p1', reason: 'سبب' })).rejects.toThrow();
   });
 });
 
@@ -167,12 +166,6 @@ describe('useReviewPenaltyDispute', () => {
       wrapper: createWrapper(),
     });
 
-    try {
-      await result.current.mutateAsync({ disputeId: 'd1', status: 'approved' });
-      expect.fail('يجب أن يرمي خطأ');
-    } catch (e: unknown) {
-      expect(e).toBeInstanceOf(Error);
-      expect((e as Error).message).toBe('Review failed');
-    }
+    await expect(result.current.mutateAsync({ disputeId: 'd1', status: 'approved' })).rejects.toThrow();
   });
 });

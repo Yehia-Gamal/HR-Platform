@@ -16,6 +16,12 @@ object UrgentNotificationManager {
     private const val CHANNEL_NAME = "طلبات الموقع العاجلة"
     private const val CHANNEL_DESCRIPTION =
         "إشعارات طلب الموقع الفوري — صوت عالي متكرر واهتزاز وشاشة كاملة"
+
+    const val GENERAL_CHANNEL_ID = "general_notifications_v2"
+    private const val GENERAL_CHANNEL_NAME = "الإشعارات والتنبيهات العامة"
+    private const val GENERAL_CHANNEL_DESCRIPTION =
+        "إشعارات القرارات، طلبات الموافقة، الغرامات الفورية، والإعلانات الإدارية"
+
     private val LEGACY_CHANNEL_IDS = listOf(
         "urgent_location_v5",
         "urgent_location_v4",
@@ -26,41 +32,63 @@ object UrgentNotificationManager {
 
     fun createChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val manager = context.getSystemService(NotificationManager::class.java)
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
 
         // حذف القنوات القديمة — Android لا يرفع أهمية قناة موجودة.
         for (legacyId in LEGACY_CHANNEL_IDS) {
             manager.deleteNotificationChannel(legacyId)
         }
 
-        // إذا القناة الحالية موجودة بأهمية أقل من MAX، احذفها وأعد إنشاءها.
-        val existing = manager.getNotificationChannel(CHANNEL_ID)
-        if (existing != null) {
-            if (existing.importance >= NotificationManager.IMPORTANCE_MAX) return
-            manager.deleteNotificationChannel(CHANNEL_ID)
+        // 1. إنشاء قناة طلبات الموقع العاجلة (شاشة كاملة + إنذار)
+        val existingUrgent = manager.getNotificationChannel(CHANNEL_ID)
+        if (existingUrgent == null || existingUrgent.importance < NotificationManager.IMPORTANCE_MAX) {
+            if (existingUrgent != null) manager.deleteNotificationChannel(CHANNEL_ID)
+            val sound = Uri.parse(
+                "android.resource://${context.packageName}/${R.raw.urgent_notification}",
+            )
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+            val urgentChannel = NotificationChannel(
+                CHANNEL_ID,
+                CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_MAX,
+            ).apply {
+                description = CHANNEL_DESCRIPTION
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 800, 300, 800, 300, 800, 300, 800)
+                setSound(sound, audioAttributes)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                setBypassDnd(true)
+                setShowBadge(true)
+            }
+            manager.createNotificationChannel(urgentChannel)
         }
 
-        val sound = Uri.parse(
-            "android.resource://${context.packageName}/${R.raw.urgent_notification}",
-        )
-        val audioAttributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_ALARM)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            CHANNEL_NAME,
-            NotificationManager.IMPORTANCE_MAX,
-        ).apply {
-            description = CHANNEL_DESCRIPTION
-            enableVibration(true)
-            vibrationPattern = longArrayOf(0, 800, 300, 800, 300, 800, 300, 800)
-            setSound(sound, audioAttributes)
-            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-            setBypassDnd(true)
-            setShowBadge(true)
+        // 2. إنشاء قناة الإشعارات والتنبيهات العامة (صوت النظام القياسي)
+        val existingGeneral = manager.getNotificationChannel(GENERAL_CHANNEL_ID)
+        if (existingGeneral == null) {
+            val generalSound = android.media.RingtoneManager.getDefaultUri(
+                android.media.RingtoneManager.TYPE_NOTIFICATION,
+            )
+            val generalAudioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+            val generalChannel = NotificationChannel(
+                GENERAL_CHANNEL_ID,
+                GENERAL_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                description = GENERAL_CHANNEL_DESCRIPTION
+                enableVibration(true)
+                setSound(generalSound, generalAudioAttributes)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                setShowBadge(true)
+            }
+            manager.createNotificationChannel(generalChannel)
         }
-        manager.createNotificationChannel(channel)
     }
 
     fun notificationId(requestId: String): Int =

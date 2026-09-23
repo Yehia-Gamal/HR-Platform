@@ -186,8 +186,12 @@ Deno.serve(createHandler({ functionName: 'identifier-sign-in', version: '1.0.0' 
   try {
     if (normalized.kind === 'email') {
       resolvedEmail = normalized.value;
-    } else {
-      let employeeQuery = admin.from('employees').select('id').eq('is_deleted', false).eq('is_active', true).limit(1);
+      let employeeQuery = admin
+        .from('employees')
+        .select('id')
+        .eq('is_deleted', false)
+        .in('status', ['active', 'suspended'])
+        .limit(1);
       if (normalized.kind === 'phone') {
         // P0-FIX: البحث المتساهل عن الهاتف. بعض السجلات (من update_employee_admin
         // قبل التصحيح) خُزّنت بصيغة محلية '01XXXXXXXXX' بدل E.164. نطوّع قائمة

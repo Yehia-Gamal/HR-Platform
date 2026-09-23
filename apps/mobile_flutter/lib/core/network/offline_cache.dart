@@ -14,7 +14,11 @@ class OfflineCache {
   OfflineCache._();
   static final OfflineCache instance = OfflineCache._();
 
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final FlutterSecureStorage _storage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      resetOnError: true,
+    ),
+  );
 
   static const _prefix = 'offline_cache_';
   static const _tsPrefix = 'offline_ts_';
@@ -109,4 +113,5 @@ class OfflineCache {
   static const managerDashboard = 'manager_dashboard';
   static const kpiList = 'kpi_list';
   static const myRequests = 'my_requests';
+  static const accessContext = 'access_context';
 }

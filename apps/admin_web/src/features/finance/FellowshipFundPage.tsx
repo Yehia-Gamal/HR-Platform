@@ -1,6 +1,26 @@
 import { useState } from 'react';
-import { Coins, ArrowDownLeft, ArrowUpRight, ShieldCheck, History, Search, AlertTriangle, Clock, Sparkles, UserCheck } from 'lucide-react';
-import { useFellowshipFundSummary, useFellowshipFundTransactions, useWithdrawFromFellowshipFund, FELLOWSHIP_CATEGORIES } from './useFellowshipFund';
+import {
+  Coins,
+  ArrowDownLeft,
+  ArrowUpRight,
+  ShieldCheck,
+  History,
+  Search,
+  AlertTriangle,
+  Clock,
+  Sparkles,
+  UserCheck,
+  FileSpreadsheet,
+  Printer,
+  MessageCircle,
+} from 'lucide-react';
+import {
+  useFellowshipFundSummary,
+  useFellowshipFundTransactions,
+  useWithdrawFromFellowshipFund,
+  FELLOWSHIP_CATEGORIES,
+  type FellowshipFundTransaction,
+} from './useFellowshipFund';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { useEmployees } from '../employees/useEmployees';
@@ -8,6 +28,8 @@ import { PageHeader } from '../../ui/PageHeader';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { useEntityFocus } from '../../core/useEntityFocus';
+import { downloadCsv, printReport, toCsv, type ExportColumn } from '../../core/exportUtils';
+import { cairoTodayIso } from '../../core/cairoTime';
 
 export function FellowshipFundPage() {
   const auth = useAuth();
@@ -80,20 +102,125 @@ export function FellowshipFundPage() {
     }
   }
 
+  // ─── تصدير كشف حركات الصندوق إلى Excel / CSV ─────────────────────
+  const exportFundLedgerToCsv = () => {
+    const list = transactions ?? [];
+    const cols: ExportColumn<FellowshipFundTransaction>[] = [
+      { key: 'createdAt', header: 'التاريخ والتوقيت', get: (t) => t.createdAt.replace('T', ' ').slice(0, 19) },
+      { key: 'transactionType', header: 'النوع', get: (t) => (t.transactionType === 'inflow' ? 'إيداع (وارد)' : 'سحب (منصرف)') },
+      { key: 'category', header: 'الفئة', get: (t) => t.category },
+      { key: 'amount', header: 'المبلغ (ج.م)', get: (t) => t.amount },
+      { key: 'balanceAfter', header: 'الرصيد بعد الحركة (ج.م)', get: (t) => t.balanceAfter },
+      { key: 'employeeName', header: 'المعني / المستفيد', get: (t) => t.employeeName || '—' },
+      { key: 'reason', header: 'البيان / السبب', get: (t) => t.reason },
+      { key: 'performerName', header: 'المسؤول', get: (t) => t.performerName || '—' },
+      { key: 'notes', header: 'ملاحظات', get: (t) => t.notes || '—' },
+    ];
+    downloadCsv(`fellowship-fund-ledger-${cairoTodayIso()}.csv`, toCsv(cols, list));
+  };
+
+  // ─── طباعة كشف حركات الصندوق ──────────────────────────────────────
+  const printFundReport = () => {
+    const list = transactions ?? [];
+    printReport(
+      [
+        {
+          title: 'كشف حركات صندوق الزمالة والتكافل الاجتماعي',
+          subtitle: `الرصيد المتاح: ${currentBalance.toLocaleString('ar-EG')} ج.م — عدد الحركات: ${list.length}`,
+          table: {
+            headers: ['التاريخ', 'النوع', 'الفئة', 'المبلغ', 'الرصيد بعد', 'البيان / السبب', 'المعني', 'المسؤول'],
+            rows: list.map((t) => [
+              t.createdAt.replace('T', ' ').slice(0, 16),
+              t.transactionType === 'inflow' ? 'وارد (+)' : 'منصرف (-)',
+              t.category,
+              `${t.amount.toLocaleString('ar-EG')} ج.م`,
+              `${t.balanceAfter.toLocaleString('ar-EG')} ج.م`,
+              t.reason,
+              t.employeeName || '—',
+              t.performerName || '—',
+            ]),
+          },
+        },
+      ],
+      'تقرير صندوق الزمالة والتكافل',
+      [
+        { label: 'الرصيد المتاح', value: `${currentBalance.toLocaleString('ar-EG')} ج.م` },
+        { label: 'إجمالي الوارد', value: `${(summary?.totalInflows ?? 0).toLocaleString('ar-EG')} ج.م` },
+        { label: 'إجمالي المنصرف', value: `${(summary?.totalOutflows ?? 0).toLocaleString('ar-EG')} ج.م` },
+        { label: 'عدد الإيداعات', value: `${summary?.inflowsCount ?? 0}` },
+        { label: 'عدد السحوبات', value: `${summary?.outflowsCount ?? 0}` },
+      ],
+    );
+  };
+
+  // ─── مشاركة ملخص الصندوق عبر واتساب (مجاني 100%) ────────────────
+  const shareFundWhatsApp = () => {
+    const balance = currentBalance.toLocaleString('ar-EG');
+    const inflows = (summary?.totalInflows ?? 0).toLocaleString('ar-EG');
+    const outflows = (summary?.totalOutflows ?? 0).toLocaleString('ar-EG');
+    const inflowsCount = summary?.inflowsCount ?? 0;
+    const outflowsCount = summary?.outflowsCount ?? 0;
+
+    const breakdownText = (summary?.categoryBreakdown ?? [])
+      .map((c) => `• ${c.category} (${c.type === 'inflow' ? 'وارد' : 'منصرف'}): ${c.totalAmount.toLocaleString('ar-EG')} ج.م (${c.count} حركة)`)
+      .join('\n');
+
+    const msg =
+      `*🤝 تقرير صندوق الزمالة والتكافل الاجتماعي — أحلى شباب*\n` +
+      `*التاريخ:* ${cairoTodayIso()}\n\n` +
+      `💰 *الرصيد المتاح بالخزنة:* ${balance} ج.م\n` +
+      `📥 *إجمالي الوارد:* ${inflows} ج.م (${inflowsCount} إيداع)\n` +
+      `📤 *إجمالي المنصرف:* ${outflows} ج.م (${outflowsCount} سحب مساعدة)\n\n` +
+      (breakdownText ? `📊 *تفصيل الأبواب:*\n${breakdownText}\n\n` : '') +
+      `✨ *تأكيد هام:* الصندوق تشاركي مستقل تماماً عن الراتب الشهري، وجميع موارده مخصصة 100% لدعم الزملاء والتكافل في الأوقات الصعبة.\n\n` +
+      `_تقرير صادر من لوحة إدارة أحلى شباب — شفاف ومجاني 100%_ ✨`;
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="صندوق الزمالة والتكافل"
         description="صندوق مالي تشاركي — إيداعات غرامات الحضور والمساهمات، وسحوبات المساعدات. كل حركة معلنة للجميع."
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={shareFundWhatsApp}
+              className="btn-secondary flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/10 cursor-pointer"
+              title="مشاركة تقرير الصندوق ورصيده عبر واتساب للإدارة أو الفريق (مجاناً)"
+            >
+              <MessageCircle className="w-4 h-4 text-emerald-600" />
+              <span>مشاركة واتساب</span>
+            </button>
+            <button
+              type="button"
+              onClick={exportFundLedgerToCsv}
+              disabled={!transactions || transactions.length === 0}
+              className="btn-secondary flex items-center gap-1.5 text-xs cursor-pointer"
+              title="تصدير كشف الحركات الكامل إلى ملف Excel / CSV"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <span>تصدير Excel</span>
+            </button>
+            <button
+              type="button"
+              onClick={printFundReport}
+              disabled={!transactions || transactions.length === 0}
+              className="btn-secondary flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              title="تصدير وطباعة كشف الصندوق الشامل"
+            >
+              <Printer className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>تصدير PDF</span>
+            </button>
             {canWithdraw && (
               <button
                 onClick={() => {
                   setActionError(null);
                   setWithdrawOpen(true);
                 }}
-                className="btn-primary flex items-center gap-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white shadow-lg shadow-amber-600/20"
+                className="btn-primary flex items-center gap-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white shadow-lg shadow-amber-600/20 cursor-pointer"
               >
                 <ArrowUpRight className="w-4 h-4" /> سحب من الصندوق
               </button>

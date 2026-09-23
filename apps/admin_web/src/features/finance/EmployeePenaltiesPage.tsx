@@ -278,11 +278,11 @@ export function EmployeePenaltiesPage() {
         </select>
         <button type="button" className="btn-secondary" onClick={handleCsvExport} disabled={rows.length === 0} title="تصدير Excel (CSV)">
           <FileSpreadsheet className="size-4" aria-hidden="true" />
-          تصدير
+          <span>Excel</span>
         </button>
-        <button type="button" className="btn-secondary" onClick={handlePdfExport} disabled={rows.length === 0} title="طباعة PDF">
-          <Printer className="size-4" aria-hidden="true" />
-          PDF
+        <button type="button" className="btn-secondary font-medium" onClick={handlePdfExport} disabled={rows.length === 0} title="طباعة PDF">
+          <Printer className="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+          <span>تصدير PDF</span>
         </button>
       </FilterBar>
 

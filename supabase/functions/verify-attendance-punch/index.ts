@@ -93,9 +93,15 @@ Deno.serve(createHandler({ functionName: "verify-attendance-punch", version: "1.
   if (userError || !userData.user) return json(req, { error: "invalid_session" }, 401);
 
   const { data: profile, error: profileError } = await admin
-    .from("profiles").select("employee_id").eq("id", userData.user.id).maybeSingle();
+    .from("profiles").select("employee_id, status").eq("id", userData.user.id).maybeSingle();
   if (profileError) return json(req, { error: "profile_lookup_failed" }, 500);
   if (!profile?.employee_id) return json(req, { error: "no_employee_linked" }, 403);
+  if (profile.status === "suspended") {
+    return json(req, {
+      error: "employee_suspended",
+      message: "تم وقفك عن العمل لعدم سداد قيمة الخصم 500جنيه توجه الي قسم ال HR لسداد المبلغ",
+    }, 403);
+  }
 
   // Rate limit: 6 distinct punch operations per 60s per employee. Normal usage
   // is 2/day (check-in + check-out); the headroom covers legitimate transport

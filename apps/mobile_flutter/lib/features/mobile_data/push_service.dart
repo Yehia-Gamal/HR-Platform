@@ -45,6 +45,11 @@ class PushService {
   static const String urgentChannelDesc =
       'إشعارات طلب الموقع الفوري — صوت عالي متكرر واهتزاز وشاشة كاملة';
 
+  static const String generalChannelId = 'general_notifications_v2';
+  static const String generalChannelName = 'الإشعارات والتنبيهات العامة';
+  static const String generalChannelDesc =
+      'إشعارات القرارات، طلبات الموافقة، الغرامات الفورية، والإعلانات الإدارية';
+
   static final AndroidNotificationChannel _urgentChannel =
       AndroidNotificationChannel(
         urgentChannelId,
@@ -53,7 +58,7 @@ class PushService {
         importance: Importance.max,
         playSound: true,
         enableVibration: true,
-        sound: RawResourceAndroidNotificationSound('urgent_notification'),
+        sound: const RawResourceAndroidNotificationSound('urgent_notification'),
         vibrationPattern: Int64List.fromList([
           0,
           800,
@@ -64,6 +69,16 @@ class PushService {
           300,
           800,
         ]),
+      );
+
+  static const AndroidNotificationChannel _generalChannel =
+      AndroidNotificationChannel(
+        generalChannelId,
+        generalChannelName,
+        description: generalChannelDesc,
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
       );
 
   static const _platform = MethodChannel('com.ahlashabab/urgent_notification');
@@ -104,11 +119,12 @@ class PushService {
         _processLocalNotificationTap(response.payload);
       },
     );
-    await _local
+    final androidPlugin = _local
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(_urgentChannel);
+        >();
+    await androidPlugin?.createNotificationChannel(_urgentChannel);
+    await androidPlugin?.createNotificationChannel(_generalChannel);
 
     // Android 14+ requires the user to allow full-screen intents explicitly.
     await _local
@@ -265,12 +281,14 @@ class PushService {
             title.contains('محوّل إليك') ||
             title.contains('موافقتك'));
 
+    final targetChannel = isUrgent ? _urgentChannel : _generalChannel;
+
     final androidDetails = AndroidNotificationDetails(
-      _urgentChannel.id,
-      _urgentChannel.name,
-      channelDescription: _urgentChannel.description,
-      importance: Importance.max,
-      priority: Priority.max,
+      targetChannel.id,
+      targetChannel.name,
+      channelDescription: targetChannel.description,
+      importance: isUrgent ? Importance.max : Importance.high,
+      priority: isUrgent ? Priority.max : Priority.high,
       fullScreenIntent: isUrgent,
       category: isUrgent
           ? AndroidNotificationCategory.alarm
@@ -545,24 +563,38 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
     // it works without booting Flutter. Avoid a duplicate Dart notification.
     if (isUrgent && defaultTargetPlatform == TargetPlatform.android) return;
 
+    final channelId = isUrgent
+        ? PushService.urgentChannelId
+        : PushService.generalChannelId;
+    final channelName = isUrgent
+        ? PushService.urgentChannelName
+        : PushService.generalChannelName;
+    final channelDesc = isUrgent
+        ? PushService.urgentChannelDesc
+        : PushService.generalChannelDesc;
+
     final channel = AndroidNotificationChannel(
-      PushService.urgentChannelId,
-      PushService.urgentChannelName,
-      description: PushService.urgentChannelDesc,
-      importance: Importance.max,
+      channelId,
+      channelName,
+      description: channelDesc,
+      importance: isUrgent ? Importance.max : Importance.high,
       playSound: true,
       enableVibration: true,
-      sound: RawResourceAndroidNotificationSound('urgent_notification'),
-      vibrationPattern: Int64List.fromList([
-        0,
-        800,
-        300,
-        800,
-        300,
-        800,
-        300,
-        800,
-      ]),
+      sound: isUrgent
+          ? const RawResourceAndroidNotificationSound('urgent_notification')
+          : null,
+      vibrationPattern: isUrgent
+          ? Int64List.fromList([
+              0,
+              800,
+              300,
+              800,
+              300,
+              800,
+              300,
+              800,
+            ])
+          : null,
     );
 
     final plugin = FlutterLocalNotificationsPlugin();
@@ -613,8 +645,8 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
           channel.id,
           channel.name,
           channelDescription: channel.description,
-          importance: Importance.max,
-          priority: Priority.max,
+          importance: isUrgent ? Importance.max : Importance.high,
+          priority: isUrgent ? Priority.max : Priority.high,
           fullScreenIntent: isUrgent,
           category: isUrgent
               ? AndroidNotificationCategory.alarm

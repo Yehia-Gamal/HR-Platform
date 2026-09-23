@@ -468,7 +468,8 @@ void main() {
         'dispute_case': 'dispute',
         'attendance_daily': 'attendance',
         'attendance_event': 'attendance',
-        'attendance_corrections': 'attendance',
+        'attendance_corrections': 'attendance_correction',
+        'attendance_correction': 'attendance_correction',
         'overtime_records': 'attendance',
         'work_rosters': 'attendance',
         'attendance_alert': 'attendance',
@@ -495,6 +496,7 @@ void main() {
         'attendance_daily',
         'attendance_event',
         'attendance_corrections',
+        'attendance_correction',
         'overtime_records',
         'work_rosters',
         'punch_reminder',
@@ -509,7 +511,7 @@ void main() {
       }
     });
 
-    // 0523: أنواع لها صفحة موبايل مباشرة (غرامات/تقارير/أجهزة) — كانت
+    // 0523: أنواع لها صفحة موبايل مباشرة (غرامات/تقارير/أجهزة/تصحيحات بصمة) — كانت
     // مُصنَّفة «معلوماتية» فكان النقر عليها لا يفتح شيئاً رغم وجود الصفحة.
     test('hasLocalRoute يفتح الأنواع ذات الصفحات المحلية', () {
       for (final raw in [
@@ -522,6 +524,8 @@ void main() {
         'daily_reports',
         'employee_device',
         'device',
+        'attendance_correction',
+        'attendance_corrections',
       ]) {
         final notif = MobileNotificationItem.fromJson(<String, dynamic>{
           'id': 'n-$raw',
@@ -600,7 +604,7 @@ void main() {
           type: 'attendance_corrections',
           entityId: '00000000-0000-0000-0000-000000000003',
         ),
-        '/action/attendance/00000000-0000-0000-0000-000000000003',
+        '/action/attendance_correction/00000000-0000-0000-0000-000000000003',
       );
       expect(
         resolveNotificationRoute(

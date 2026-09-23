@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/network/offline_cache.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -35,17 +38,27 @@ final accessContextProvider = FutureProvider<AccessContext?>((ref) async {
   final session = ref.watch(authSessionProvider).value;
   if (session == null) return null;
   final client = ref.watch(supabaseProvider);
-  // 0471-UX: انقطات الشبكة اللحظية كانت تُسقط الواجهة إلى صفحة
-  // «تسجيل الخروج» فورًا. نعيد المحاولة بتراجع متزايد قبل الاستسلام —
-  // أغلب الحالات تُحل تلقائيًا خلال ثوانٍ دون إزعاج المستخدم.
-  final response = await retryWithBackoff(
-    () => rpcWithTimeout(
-      client.rpc<dynamic>('get_my_access_context'),
-    ),
-    maxRetries: 3,
-  );
-  return AccessContext.fromJson(
-    Map<String, dynamic>.from(response as Map<dynamic, dynamic>),
-  );
+
+  try {
+    // 0471-UX: انقطاعات الشبكة اللحظية كانت تُسقط الواجهة إلى صفحة
+    // «تسجيل الخروج» فورًا. نعيد المحاولة بتراجع متزايد قبل الاستسلام —
+    // أغلب الحالات تُحل تلقائيًا خلال ثوانٍ دون إزعاج المستخدم.
+    final response = await retryWithBackoff(
+      () => rpcWithTimeout(
+        client.rpc<dynamic>('get_my_access_context'),
+      ),
+      maxRetries: 2,
+    );
+    final json = Map<String, dynamic>.from(response as Map<dynamic, dynamic>);
+    unawaited(OfflineCache.instance.put(OfflineCache.accessContext, json));
+    return AccessContext.fromJson(json);
+  } catch (error) {
+    // استرجاع الصلاحيات من الكاش المحلي حتى لا يُسقط الموظف إلى شاشة الخطأ أو الخروج
+    final cached = await OfflineCache.instance.get(OfflineCache.accessContext);
+    if (cached != null && cached is Map) {
+      return AccessContext.fromJson(Map<String, dynamic>.from(cached));
+    }
+    rethrow;
+  }
 });
 

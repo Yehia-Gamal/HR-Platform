@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// صفحة غرامات الحضور الفورية للموظف — تعرض غراماته وحالتها.
 class MyInstantPenaltiesPage extends ConsumerWidget {
@@ -65,6 +66,8 @@ class MyInstantPenaltiesPage extends ConsumerWidget {
               _SummaryCard(items: items),
               const SizedBox(height: 8),
               const _FellowshipFundNoticeCard(),
+              const SizedBox(height: 8),
+              _ComplianceHonorCard(items: items),
               const SizedBox(height: 8),
               if (items.isEmpty) ...[
                 const SizedBox(height: 48),
@@ -380,6 +383,259 @@ class _FellowshipFundNoticeCard extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// بطاقة وسام الانضباط أو التكافل الإيجابي للموظف
+class _ComplianceHonorCard extends StatelessWidget {
+  const _ComplianceHonorCard({required this.items});
+  final List<MobileInstantPenalty> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final pending = items.where((p) => p.status == 'pending_payment').toList();
+    final doubled = items.where((p) => p.status == 'doubled').toList();
+    final suspended = items.where((p) => p.status == 'suspended').toList();
+    final paid = items.where((p) => p.status == 'paid').toList();
+
+    final hasUnpaid = pending.isNotEmpty || doubled.isNotEmpty || suspended.isNotEmpty;
+
+    if (items.isEmpty) {
+      // سجل ناصع بدون أي غرامات
+      return Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(
+            color: Colors.amber.shade300.withValues(alpha: 0.7),
+            width: 1.2,
+          ),
+        ),
+        color: Colors.amber.shade50.withValues(alpha: 0.35),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade100,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.military_tech,
+                  size: 24,
+                  color: Colors.amber.shade800,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'وسام الانضباط الشرفي 🌟',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                            color: Colors.amber.shade900,
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade700,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            '100% التزام',
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'سجلك نظيف ومثالي تماماً بدون أي تأخيرات أو غرامات! حضورك اليومي في تمام العاشرة صباحاً قدوة مشرفة لفريقك.',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        height: 1.45,
+                        color: Colors.amber.shade900.withValues(alpha: 0.85),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (!hasUnpaid && paid.isNotEmpty) {
+      // سدد كل الغرامات — مساهمة تكافلية
+      return Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(
+            color: Colors.green.shade300.withValues(alpha: 0.7),
+            width: 1.2,
+          ),
+        ),
+        color: Colors.green.shade50.withValues(alpha: 0.35),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade100,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.verified,
+                  size: 22,
+                  color: Colors.green.shade800,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'التزام تام بالسداد والتكافل 🤝',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13.5,
+                            color: Colors.green.shade900,
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade700,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'مسدد بالكامل',
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'تم سداد جميع الغرامات السابقة وإيداعها بالكامل في صندوق الزمالة لدعم الزملاء. حسابك نشط وسليم تماماً.',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        height: 1.45,
+                        color: Colors.green.shade900.withValues(alpha: 0.85),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // هناك مبالغ معلقة — بطاقة تذكير مع زر واتساب مباشر للاستفسار أو إرسال إيصال السداد
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: Colors.orange.shade300.withValues(alpha: 0.7),
+          width: 1.2,
+        ),
+      ),
+      color: Colors.orange.shade50.withValues(alpha: 0.35),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.access_time_filled,
+                    size: 22,
+                    color: Colors.orange.shade800,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'سارع بالسداد لتفادي التعليق أو المضاعفة',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13.5,
+                          color: Colors.orange.shade900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'سداد الغرامة خلال 24 ساعة يضمن استمرار فتح حسابك، والمبلغ يذهب كاملاً لصندوق الزمالة لدعم زملائك.',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          height: 1.45,
+                          color: Colors.orange.shade900.withValues(alpha: 0.85),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  const text = 'السلام عليكم، أود الاستفسار بخصوص سداد غرامة الحضور لصندوق الزمالة والتكافل.';
+                  final uri = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(text)}');
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+                icon: const Icon(Icons.chat_bubble_outline, size: 16, color: Colors.green),
+                label: const Text(
+                  'استفسار أو إرسال إيصال السداد عبر واتساب',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Colors.green.shade400),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
               ),
             ),
           ],

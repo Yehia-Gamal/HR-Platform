@@ -22,6 +22,10 @@ void main() {
     test('مفتاح طلباتي', () {
       expect(OfflineCache.myRequests, 'my_requests');
     });
+
+    test('مفتاح سياق الصلاحيات', () {
+      expect(OfflineCache.accessContext, 'access_context');
+    });
   });
 
   group('OfflineCache — نمط Singleton', () {
@@ -44,6 +48,7 @@ void main() {
         OfflineCache.managerDashboard,
         OfflineCache.kpiList,
         OfflineCache.myRequests,
+        OfflineCache.accessContext,
       ];
       // تحقق من عدم تكرار المفاتيح
       expect(keys.toSet().length, keys.length);
@@ -55,6 +60,7 @@ void main() {
       expect(OfflineCache.managerDashboard.isNotEmpty, isTrue);
       expect(OfflineCache.kpiList.isNotEmpty, isTrue);
       expect(OfflineCache.myRequests.isNotEmpty, isTrue);
+      expect(OfflineCache.accessContext.isNotEmpty, isTrue);
     });
   });
 }

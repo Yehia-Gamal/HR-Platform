@@ -127,11 +127,41 @@ final myNotificationsProvider = FutureProvider<List<MobileNotificationItem>>((
   final data = await rpcWithTimeout(
     ref
         .watch(supabaseProvider)
-        .rpc<dynamic>('get_my_notifications', params: {'p_limit': 100}),
+        .rpc<dynamic>('get_my_notifications', params: {'p_limit': 200}),
   );
   return _asList(
     data,
   ).map(MobileNotificationItem.fromJson).toList(growable: false);
+});
+
+final attendanceCorrectionDetailProvider = FutureProvider.family<MobileAttendanceCorrectionDetail, String>((
+  ref,
+  correctionId,
+) async {
+  final data = await rpcWithTimeout(
+    ref
+        .watch(supabaseProvider)
+        .rpc<dynamic>('get_attendance_correction_detail', params: {'p_correction_id': correctionId}),
+  );
+  return MobileAttendanceCorrectionDetail.fromJson(_asMap(data));
+});
+
+final teamAttendanceCorrectionsProvider = FutureProvider.family<List<MobileTeamAttendanceCorrection>, String?>((
+  ref,
+  status,
+) async {
+  final params = <String, dynamic>{'p_limit': 100};
+  if (status != null && status != 'all') {
+    params['p_status'] = status;
+  }
+  final data = await rpcWithTimeout(
+    ref
+        .watch(supabaseProvider)
+        .rpc<dynamic>('get_team_attendance_corrections', params: params),
+  );
+  return _asList(
+    data,
+  ).map(MobileTeamAttendanceCorrection.fromJson).toList(growable: false);
 });
 
 final markNotificationOpenedProvider = FutureProvider.family<void, String>((

@@ -29,6 +29,10 @@ export const accessContextSchema = z.object({
   workspaces: z.array(workspaceIdSchema),
   defaultWorkspace: workspaceIdSchema,
   attendancePolicy: attendancePolicySchema,
+  isSuspended: z.boolean().optional().default(false),
+  suspensionReason: z.string().nullable().optional().default(null),
+  suspensionMessage: z.string().nullable().optional().default(null),
+  suspensionAmount: z.number().nullable().optional().default(null),
 });
 
 export type AccessContext = z.infer<typeof accessContextSchema>;

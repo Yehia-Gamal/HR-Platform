@@ -57,3 +57,37 @@ describe('toCsv', () => {
     expect(csvSafeCell(42)).toBe('42');
   });
 });
+
+describe('generateReportHtml', () => {
+  it('يولّد كود HTML يتضمن شريط الأدوات العلوي والبيانات والجدول وتنسيقات الطباعة', async () => {
+    const { generateReportHtml } = await import('./exportUtils');
+    const html = generateReportHtml(
+      [
+        {
+          title: 'الغرامات الفورية للتأخير',
+          subtitle: 'تقرير تجريبي',
+          table: {
+            headers: ['الموظف', 'المبلغ'],
+            rows: [['طارق سيد', '500 ج.م']],
+          },
+        },
+      ],
+      'الغرامات الفورية',
+      [{ label: 'إجمالي الغرامات', value: '1' }],
+    );
+
+    expect(html).toContain('<!doctype html>');
+    expect(html).toContain('dir="rtl"');
+    expect(html).toContain('الغرامات الفورية');
+    expect(html).toContain('action-bar');
+    expect(html).toContain('تحميل وحفظ كملف PDF');
+    expect(html).toContain('تنزيل ملف تقرير (HTML)');
+    expect(html).toContain('saveAsPdf()');
+    expect(html).toContain('downloadHtml()');
+    expect(html).toContain('طارق سيد');
+    expect(html).toContain('500 ج.م');
+    expect(html).toContain('@media print');
+    expect(html).toContain('.no-print, .action-bar { display: none !important; }');
+  });
+});
+

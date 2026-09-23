@@ -1,5 +1,6 @@
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_correction_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_history_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_router.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_daily_reports_page.dart';
@@ -11,23 +12,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-/// مجموعة إشعارات مجمّعة — نفس النوع/العنوان مع عدة كيانات.
-class _GroupedNotifications {
-  const _GroupedNotifications({
-    required this.representative,
-    required this.items,
-    required this.label,
-  });
-
-  final MobileNotificationItem representative;
-  final List<MobileNotificationItem> items;
-  final String label;
-
-  bool get isGrouped => items.length > 1;
-  int get unreadCount => items.where((x) => !x.isRead).length;
-}
-
 enum _NotifFilter { all, unread }
+
+/// تحويل الأكواد التقنية في نص الإشعار إلى نصوص عربية مفهومة
+String _humanizeNotificationBody(String? body) {
+  if (body == null || body.trim().isEmpty) return '';
+  var text = body;
+  text = text.replaceAll('missing_check_in', 'نسيان بصمة دخول');
+  text = text.replaceAll('missing_check_out', 'نسيان بصمة خروج');
+  text = text.replaceAll('wrong_time', 'تعديل توقيت البصمة');
+  text = text.replaceAll('wrong_status', 'تعديل حالة الدوام');
+  text = text.replaceAll('full_day_missing', 'غياب يوم كامل');
+  text = text.replaceAll('( )', '').replaceAll('()', '');
+  return text.trim();
+}
 
 class MobileNotificationsPage extends ConsumerStatefulWidget {
   const MobileNotificationsPage({super.key});
@@ -70,28 +68,6 @@ class _MobileNotificationsPageState
         _selectedIds.remove(item.id);
       }
     });
-  }
-
-  /// تجميع الإشعارات حسب النوع + العنوان — الإشعارات المتشابهة
-  /// تُعرض كبطاقة واحدة بعدد، والنقر يفتح كرت التفاصيل.
-  List<_GroupedNotifications> _groupNotifications(
-    List<MobileNotificationItem> items,
-  ) {
-    final map = <String, List<MobileNotificationItem>>{};
-    for (final item in items) {
-      final key = '${item.canonicalType ?? item.category}::${item.title}';
-      map.putIfAbsent(key, () => []).add(item);
-    }
-    return map.entries.map((e) {
-      final list = e.value;
-      final rep = list.first;
-      final count = list.length;
-      return _GroupedNotifications(
-        representative: rep,
-        items: list,
-        label: count > 1 ? '($count)' : '',
-      );
-    }).toList();
   }
 
   Future<void> _confirmDeleteSelected() async {
@@ -140,23 +116,19 @@ class _MobileNotificationsPageState
     }
   }
 
-  /// بناء القائمة المجمّعة مع دعم السحب للحذف.
-  Widget _buildGroupedList(List<MobileNotificationItem> visible) {
-    final groups = _groupNotifications(visible);
+  /// بناء القائمة الفردية الكاملة — كل إشعار يظهر بشكل مستقل ومضغوط
+  Widget _buildNotificationList(List<MobileNotificationItem> visible) {
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 110),
-      itemCount: groups.length,
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 100),
+      itemCount: visible.length,
       itemBuilder: (context, index) {
-        final group = groups[index];
-        final item = group.representative;
+        final item = visible[index];
         final card = _NotificationCard(
           item: item,
-          groupLabel: group.label,
-          unreadCount: group.unreadCount,
           selecting: _selecting,
           selected: _selectedIds.contains(item.id),
           onToggleSelect: () => _toggleSelect(item.id),
-          onTap: () => _openGroup(group),
+          onTap: () => _open(item),
           onLongPress: () {
             if (!_selecting) _enterSelection();
             _toggleSelect(item.id);
@@ -174,11 +146,7 @@ class _MobileNotificationsPageState
               context: context,
               builder: (ctx) => AlertDialog(
                 title: const Text('حذف الإشعار'),
-                content: Text(
-                  group.isGrouped
-                      ? 'سيتم حذف ${group.items.length} إشعار مرتبط.'
-                      : 'سيتم حذف هذا الإشعار نهائيًا.',
-                ),
+                content: const Text('سيتم حذف هذا الإشعار نهائيًا.'),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(ctx, false),
@@ -196,10 +164,9 @@ class _MobileNotificationsPageState
             );
             if (confirmed != true || !mounted) return false;
             try {
-              final ids = group.items.map((x) => x.id).toList();
               await ref
                   .read(mobileCommandsProvider)
-                  .deleteNotifications(ids);
+                  .deleteNotifications([item.id]);
               if (!mounted) return false;
               messenger.showSnackBar(
                 const SnackBar(content: Text('تم حذف الإشعار')),
@@ -217,11 +184,11 @@ class _MobileNotificationsPageState
           },
           background: Container(
             alignment: AlignmentDirectional.centerEnd,
-            padding: const EdgeInsetsDirectional.only(end: 24),
-            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsetsDirectional.only(end: 20),
+            margin: const EdgeInsets.symmetric(vertical: 3.5),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.errorContainer,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               Icons.delete_outline_rounded,
@@ -287,9 +254,9 @@ class _MobileNotificationsPageState
           onRefresh: () async => ref.invalidate(myNotificationsProvider),
           child: notifications.when(
             loading: () => ListView(
-              children: [
-                const SizedBox(height: 260),
-                const Center(child: CircularProgressIndicator()),
+              children: const [
+                SizedBox(height: 260),
+                Center(child: CircularProgressIndicator()),
               ],
             ),
             error: (error, _) => ListView(
@@ -321,7 +288,7 @@ class _MobileNotificationsPageState
               return Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
                     child: Row(
                       children: [
                         _FilterChip(
@@ -375,7 +342,7 @@ class _MobileNotificationsPageState
                               ),
                             ],
                           )
-                        : _buildGroupedList(visible),
+                        : _buildNotificationList(visible),
                   ),
                 ],
               );
@@ -430,42 +397,15 @@ class _MobileNotificationsPageState
       'instant_penalty' => MyInstantPenaltiesPage(highlightId: item.entityId),
       'daily_report' => const MobileDailyReportsPage(),
       'device' => const PasskeyDevicesPage(),
+      'attendance_correction' => item.entityId != null
+          ? AttendanceCorrectionDetailPage(correctionId: item.entityId!)
+          : null,
       _ => null,
     };
   }
 
-  /// فتح مجموعة إشعارات: إذا كان لها صفحة نفتح أول عنصر، وإلا نعلّم الكل مقروءة.
-  Future<void> _openGroup(_GroupedNotifications group) async {
-    if (group.isGrouped) {
-      // تعليم الكل كمقروء في المجموعة.
-      final unreadIds = group.items
-          .where((x) => !x.isRead)
-          .map((x) => x.id)
-          .toList();
-      if (unreadIds.isNotEmpty) {
-        try {
-          await ref
-              .read(mobileCommandsProvider)
-              .markNotificationsRead(unreadIds);
-        } catch (_) {
-          // فشل صامت.
-        }
-      }
-      if (!mounted) return;
-      // فتح أول عنصر له صفحة.
-      final withAction = group.items.firstWhere(
-        (x) => x.hasSupportedAction,
-        orElse: () => group.items.first,
-      );
-      await _open(withAction);
-      return;
-    }
-    await _open(group.representative);
-  }
-
   Future<void> _open(MobileNotificationItem item) async {
-    // التعليم كمقروء فوراً عند النقر — حتى للإشعارات المعلوماتية التي لا
-    // تملك صفحة موبايل (كان النقر عليها لا يفعل شيئاً إطلاقاً).
+    // التعليم كمقروء فوراً عند النقر
     if (!item.isRead) {
       try {
         await ref.read(mobileCommandsProvider).markNotificationsRead([item.id]);
@@ -474,8 +414,26 @@ class _MobileNotificationsPageState
       }
     }
     if (!mounted) return;
+
+    // توجيه طلبات تصحيح البصمة فوراً إلى شاشة مراجعة تصحيح البصمة
+    if (item.canonicalType == 'attendance_correction' ||
+        item.entityType == 'attendance_corrections' ||
+        item.entityType == 'attendance_correction' ||
+        (item.entityId != null && item.title.contains('تصحيح حضور'))) {
+      if (item.entityId != null) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AttendanceCorrectionDetailPage(
+              correctionId: item.entityId!,
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
     if (!item.hasSupportedAction) {
-      // معلوماتي: نُصرّح بذلك بدل صمت يبدو للمستخدم وكأن النقر لا يفعل شيئاً.
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('إشعار للعلم فقط — لا توجد صفحة مرتبطة به.')),
       );
@@ -496,16 +454,14 @@ class _MobileNotificationsPageState
         return;
       }
 
-      // أنواع لها صفحة موبايل مباشرة — لا يعرفها resolve_mobile_action_target
-      // فكان النقر عليها بلا أثر رغم وجود الصفحة في التطبيق.
+      // أنواع لها صفحة موبايل مباشرة
       final localPage = _localPageFor(item);
       if (localPage != null) {
         await Navigator.push(context, MaterialPageRoute(builder: (_) => localPage));
         return;
       }
 
-      // حضور الموظف نفسه (بصمة/تذكير): سجلّه الشخصي على يوم الحدث —
-      // أدق من صفحة خدمات الحضور العامة التي يعيدها الـ RPC.
+      // حضور الموظف نفسه (بصمة/تذكير): سجلّه الشخصي على يوم الحدث
       final workDate = item.meta('workDate');
       final rawType = (item.entityType ?? '').toLowerCase();
       if (workDate != null && (rawType == 'attendance_daily' || rawType == 'punch_reminder')) {
@@ -568,11 +524,11 @@ class _FilterChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(99),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: FontWeight.w800,
               color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
             ),
@@ -583,12 +539,11 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
+/// بطاقة إشعار نحيفة ورشيقة وعصرية
 class _NotificationCard extends StatelessWidget {
   const _NotificationCard({
     required this.item,
     required this.onTap,
-    this.groupLabel = '',
-    this.unreadCount = 0,
     this.selecting = false,
     this.selected = false,
     this.onToggleSelect,
@@ -597,8 +552,6 @@ class _NotificationCard extends StatelessWidget {
 
   final MobileNotificationItem item;
   final VoidCallback onTap;
-  final String groupLabel;
-  final int unreadCount;
   final bool selecting;
   final bool selected;
   final VoidCallback? onToggleSelect;
@@ -609,141 +562,169 @@ class _NotificationCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final urgent = item.priority == 'urgent' || item.priority == 'high';
     final unread = !item.isRead;
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: unread
-            ? BorderSide(
-                color: scheme.primary.withValues(alpha: 0.5),
-                width: 1.5,
-              )
-            : BorderSide.none,
+    final humanizedBody = _humanizeNotificationBody(item.body);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 3.5),
+      decoration: BoxDecoration(
+        color: unread
+            ? scheme.primary.withValues(alpha: 0.05)
+            : scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: unread
+              ? scheme.primary.withValues(alpha: 0.35)
+              : scheme.outlineVariant.withValues(alpha: 0.25),
+          width: unread ? 1.0 : 0.6,
+        ),
       ),
-      child: Semantics(
-        label: unread ? 'إشعار غير مقروء' : null,
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          leading: selecting
-              ? Checkbox(
-                  value: selected,
-                  onChanged: (_) => onToggleSelect?.call(),
-                  activeColor: scheme.error,
-                )
-              : CircleAvatar(
-                  backgroundColor: urgent
-                      ? scheme.errorContainer
-                      : unread
-                          ? scheme.primaryContainer
-                          : scheme.surfaceContainerHighest,
-                  child: Icon(
-                    _icon(item.category),
-                    size: 20,
-                    color: urgent
-                        ? scheme.onErrorContainer
-                        : unread
-                            ? scheme.onPrimaryContainer
-                            : scheme.onSurfaceVariant,
-                  ),
-                ),
-          title: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  item.title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: unread ? scheme.onSurface : scheme.onSurfaceVariant,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (groupLabel.isNotEmpty)
-                Container(
-                  margin: const EdgeInsetsDirectional.only(start: 6),
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    groupLabel,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  _CategoryChip(category: item.category),
-                  if (item.priority != 'normal') ...[
-                    const SizedBox(width: 6),
-                    _PriorityBadge(priority: item.priority),
-                  ],
-                  if (unread) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: scheme.primary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        'جديد',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              if (item.body != null && item.body!.trim().isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  item.body!,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: unread ? null : scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 4),
-              Text(
-                _relativeTime(item.createdAt.toLocal()),
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-          trailing: selecting
-              ? null
-              : item.hasSupportedAction
-                  ? Icon(
-                      Icons.chevron_left_rounded,
-                      color: unread
-                          ? scheme.primary
-                          : scheme.onSurfaceVariant,
-                    )
-                  : null,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
           onTap: selecting ? onToggleSelect : onTap,
           onLongPress: selecting ? null : onLongPress,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // الصندوق الأيمن: أيقونة أو صندوق تحديد
+                if (selecting)
+                  SizedBox(
+                    width: 32,
+                    height: 32,
+                    child: Checkbox(
+                      value: selected,
+                      onChanged: (_) => onToggleSelect?.call(),
+                      activeColor: scheme.error,
+                    ),
+                  )
+                else
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: urgent
+                          ? scheme.errorContainer
+                          : unread
+                              ? scheme.primaryContainer
+                              : scheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      _icon(item.category),
+                      size: 17,
+                      color: urgent
+                          ? scheme.onErrorContainer
+                          : unread
+                              ? scheme.primary
+                              : scheme.onSurfaceVariant,
+                    ),
+                  ),
+                const SizedBox(width: 10),
+
+                // المحتوى الأوسط: العنوان والوقت في الأعلى، والتفاصيل في الأسفل
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // السطر الأول: العنوان + الوقت النسبي + نقطة غير المقروء
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              item.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: unread
+                                    ? FontWeight.w800
+                                    : FontWeight.w600,
+                                color: unread
+                                    ? scheme.onSurface
+                                    : scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _relativeTime(item.createdAt.toLocal()),
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              color: scheme.onSurfaceVariant
+                                  .withValues(alpha: 0.8),
+                            ),
+                          ),
+                          if (unread) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: scheme.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+
+                      // السطر الثاني: الفئة + نص الإشعار النظيف
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          _SlimBadge(
+                            text: _categoryLabel(item.category),
+                            color: urgent ? scheme.error : scheme.primary,
+                          ),
+                          if (urgent) ...[
+                            const SizedBox(width: 4),
+                            _SlimBadge(
+                              text: item.priority == 'urgent' ? 'عاجل' : 'مهم',
+                              color: scheme.error,
+                            ),
+                          ],
+                          if (humanizedBody.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                humanizedBody,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: unread
+                                      ? scheme.onSurface
+                                          .withValues(alpha: 0.85)
+                                      : scheme.onSurfaceVariant
+                                          .withValues(alpha: 0.7),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // السهم الأيسر (إن كان مدعوماً)
+                if (!selecting && item.hasSupportedAction) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.chevron_left_rounded,
+                    size: 18,
+                    color: unread
+                        ? scheme.primary
+                        : scheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -774,103 +755,62 @@ class _NotificationCard extends StatelessWidget {
     _ => Icons.notifications_outlined,
   };
 
+  String _categoryLabel(String category) => switch (category) {
+    'request' => 'طلب',
+    'decision' => 'قرار',
+    'announcement' => 'إعلان',
+    'survey' => 'استبيان',
+    'dispute' => 'قضية',
+    'system' => 'نظام',
+    'recognition' => 'تقدير',
+    'kpi' => 'أداء',
+    'device' => 'بصمة',
+    'attendance' => 'حضور',
+    'location' => 'موقع',
+    'security' => 'أمان',
+    'privacy' => 'خصوصية',
+    'documents' => 'وثائق',
+    'service' => 'خدمة',
+    'wellbeing' => 'رفاهية',
+    'offboarding' => 'إنهاء',
+    'daily_report' => 'تقرير',
+    'daily_report_like' => 'إعجاب',
+    'daily_report_comment' => 'تعليق',
+    'attendance_manager_notify' => 'حضور',
+    _ => 'عام',
+  };
+
   String _relativeTime(DateTime time) {
     final now = DateTime.now();
     final diff = now.difference(time);
     if (diff.inMinutes < 1) return 'الآن';
     if (diff.inMinutes < 60) return 'قبل ${diff.inMinutes} د';
     if (diff.inHours < 24) return 'قبل ${diff.inHours} س';
-    if (diff.inDays < 30) return 'قبل ${diff.inDays} يوم';
-    return DateFormat('d MMM y', 'ar').format(time);
+    if (diff.inDays < 30) return 'قبل ${diff.inDays} ي';
+    return DateFormat('d MMM', 'ar').format(time);
   }
 }
 
-/// شريحة فئة الإشعار — تصغير معلومات الفئة في سطر واحد.
-class _CategoryChip extends StatelessWidget {
-  const _CategoryChip({required this.category});
+/// شارة صغيرة ونحيفة مناسبة للبطاقات المدمجة
+class _SlimBadge extends StatelessWidget {
+  const _SlimBadge({required this.text, required this.color});
 
-  final String category;
+  final String text;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        _label(category),
+        text,
         style: TextStyle(
-          fontSize: 10,
+          fontSize: 9.5,
           fontWeight: FontWeight.w700,
-          color: scheme.onSurfaceVariant,
-        ),
-      ),
-    );
-  }
-
-  String _label(String category) => switch (category) {
-    'request' => 'طلب',
-    'decision' => 'قرار رسمي',
-    'announcement' => 'إعلان',
-    'survey' => 'استبيان',
-    'dispute' => 'قضية',
-    'system' => 'نظام',
-    'recognition' => 'تقدير',
-    'kpi' => 'الأداء',
-    'device' => 'جهاز بصمة',
-    'attendance' => 'حضور',
-    'location' => 'موقع',
-    'security' => 'أمان',
-    'privacy' => 'خصوصية',
-    'documents' => 'مستندات',
-    'service' => 'خدمة',
-    'wellbeing' => 'رفاهية',
-    'offboarding' => 'إنهاء خدمة',
-    'daily_report' => 'تقرير يومي',
-    'daily_report_like' => 'إعجاب بتقرير',
-    'daily_report_comment' => 'تعليق على تقرير',
-    'attendance_manager_notify' => 'حضور',
-    _ => 'عام',
-  };
-}
-
-/// شارة الأولوية — أوضح من MobileStatusPill مع ألوان مميزة لكل مستوى.
-class _PriorityBadge extends StatelessWidget {
-  const _PriorityBadge({required this.priority});
-
-  final String priority;
-
-  @override
-  Widget build(BuildContext context) {
-    final (color, label) = switch (priority) {
-      'urgent' => (
-        Theme.of(context).colorScheme.error,
-        'عاجل',
-      ),
-      'high' => (
-        const Color(0xFFF57C00),
-        'مهم',
-      ),
-      _ => (
-        Theme.of(context).colorScheme.onSurfaceVariant,
-        priority,
-      ),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.4), width: 0.5),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
           color: color,
         ),
       ),

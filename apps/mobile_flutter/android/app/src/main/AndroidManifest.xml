@@ -108,7 +108,7 @@
         <!-- Default channel for FCM notification payloads (fallback when Dart can't handle it) -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="urgent_location_v6" />
+            android:value="general_notifications_v2" />
         <!-- Default notification icon for FCM notification payloads -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"

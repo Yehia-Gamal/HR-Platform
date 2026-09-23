@@ -629,6 +629,115 @@ export function InstantPenaltiesPage() {
     );
   };
 
+  const handleExportModalTierPdf = (tier: string) => {
+    const all = penalties.data ?? [];
+    if (tier === 'pending') {
+      const items = pendingEmployees.data ?? [];
+      printReport(
+        [
+          {
+            title: 'كشف الموظفين المطالبين بسداد غرامات التأخير',
+            subtitle: `${items.length} موظف مطالب بالسداد — إجمالي المطلوب: ${formatCurrency(stats.totalOwed)}`,
+            table: {
+              headers: ['الموظف', 'الكود', 'الإدارة', 'عدد الغرامات', 'المبلغ المطلوب', 'حالة الحساب'],
+              rows: items.map((e) => [
+                e.employeeName ?? '—',
+                e.employeeCode ?? '—',
+                e.departmentName ?? '—',
+                String(e.pendingCount),
+                formatCurrency(e.totalAmount),
+                e.isSuspended ? 'معلق عن العمل' : 'نشط',
+              ]),
+            },
+          },
+        ],
+        'كشف المطالبين بالسداد',
+        [
+          { label: 'إجمالي المطالبين', value: String(items.length) },
+          { label: 'المعلقون عن العمل', value: String(stats.suspendedCount) },
+          { label: 'المبالغ المطلوبة', value: formatCurrency(stats.totalOwed) },
+        ],
+      );
+      return;
+    }
+
+    if (tier === 'suspended') {
+      const items = all.filter((p) => p.status === 'suspended');
+      const totalAmount = items.reduce((s, p) => s + (p.currentAmount ?? 0), 0);
+      printReport(
+        [
+          {
+            title: 'كشف الموظفين الموقوفين عن العمل (اليوم الثالث)',
+            subtitle: `${items.length} موظف موقوف لعدم سداد الغرامة — إجمالي المطلوب: ${formatCurrency(totalAmount)}`,
+            table: {
+              headers: ['الموظف', 'الكود', 'الإدارة', 'التاريخ', 'التأخير', 'الغرامة الأصلية', 'المطلوب (500 ج.م)', 'الحالة'],
+              rows: items.map((p) => [
+                p.employeeName ?? '—',
+                p.employeeCode ?? '—',
+                p.departmentName ?? '—',
+                p.workDate,
+                `${p.lateMinutes} دقيقة`,
+                formatCurrency(p.originalAmount),
+                formatCurrency(p.currentAmount),
+                'معلق عن العمل',
+              ]),
+            },
+          },
+        ],
+        'كشف الموقوفين عن العمل',
+        [
+          { label: 'الموظفون الموقوفون', value: String(items.length) },
+          { label: 'إجمالي المبالغ المستحقة', value: formatCurrency(totalAmount) },
+        ],
+      );
+      return;
+    }
+
+    let filtered = all;
+    let tierTitle = 'البيان الشامل وتفنيط الغرامات الفورية';
+    if (tier === 'tier-20') {
+      filtered = all.filter((p) => p.lateMinutes > 15 && p.lateMinutes <= 30);
+      tierTitle = 'كشف غرامات 20 ج.م (تأخير 16-30 دقيقة)';
+    } else if (tier === 'tier-50') {
+      filtered = all.filter((p) => p.lateMinutes > 30 && p.lateMinutes <= 60);
+      tierTitle = 'كشف غرامات 50 ج.م (تأخير 31-60 دقيقة)';
+    } else if (tier === 'tier-150') {
+      filtered = all.filter((p) => p.lateMinutes > 60);
+      tierTitle = 'كشف غرامات 150 ج.م (تأخير بعد 11:00 ص)';
+    } else if (tier === 'doubled') {
+      filtered = all.filter((p) => p.status === 'doubled');
+      tierTitle = 'كشف الغرامات المضاعفة 500 ج.م (اليوم الثاني)';
+    }
+
+    const total = filtered.reduce((s, p) => s + (p.currentAmount ?? 0), 0);
+    printReport(
+      [
+        {
+          title: tierTitle,
+          subtitle: `${filtered.length} غرامة — إجمالي المبالغ: ${formatCurrency(total)}`,
+          table: {
+            headers: ['الموظف', 'الإدارة', 'التاريخ', 'التأخير', 'الغرامة الأصلية', 'المطلوب', 'التصعيد', 'الحالة'],
+            rows: filtered.map((p) => [
+              p.employeeName ?? '—',
+              p.departmentName ?? '—',
+              p.workDate,
+              `${p.lateMinutes} دقيقة`,
+              formatCurrency(p.originalAmount),
+              formatCurrency(p.currentAmount),
+              INSTANT_PENALTY_ESCALATION_LABELS[p.escalationLevel] ?? p.escalationLevel,
+              INSTANT_PENALTY_STATUS_LABELS[p.status] ?? p.status,
+            ]),
+          },
+        },
+      ],
+      tierTitle,
+      [
+        { label: 'عدد الغرامات', value: String(filtered.length) },
+        { label: 'إجمالي المبالغ', value: formatCurrency(total) },
+      ],
+    );
+  };
+
   // ─── ملخص أسبوعي عبر واتساب للمدير (مجاني 100%) ─────────────────────
 
   const sendWeeklyWhatsAppSummary = () => {
@@ -1025,11 +1134,11 @@ export function InstantPenaltiesPage() {
         </select>
         <button type="button" className="btn-secondary" onClick={handleCsvExport} disabled={rows.length === 0} title="تصدير Excel (CSV)">
           <FileSpreadsheet className="size-4" aria-hidden="true" />
-          تصدير
+          <span>Excel</span>
         </button>
-        <button type="button" className="btn-secondary" onClick={handlePdfExport} disabled={rows.length === 0} title="طباعة PDF">
-          <Printer className="size-4" aria-hidden="true" />
-          PDF
+        <button type="button" className="btn-secondary font-medium" onClick={handlePdfExport} disabled={rows.length === 0} title="طباعة PDF">
+          <Printer className="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+          <span>تصدير PDF</span>
         </button>
       </FilterBar>
 
@@ -1121,6 +1230,23 @@ export function InstantPenaltiesPage() {
           maxWidth="max-w-4xl"
         >
           <div className="space-y-4 max-h-[75vh] overflow-y-auto px-1">
+            {/* ─── شريط التصدير السريع للكشف ─── */}
+            <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)]/60">
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet className="size-4 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-xs font-bold text-[var(--text-secondary)]">كشف معتمد جاهز للتصدير والطباعة</span>
+              </div>
+              <button
+                type="button"
+                className="btn-secondary text-xs font-bold flex items-center gap-1.5 !py-1.5 !px-3 shadow-xs hover:border-emerald-500/50"
+                onClick={() => handleExportModalTierPdf(activeModalTier)}
+                title="تصدير هذا الكشف كملف PDF"
+              >
+                <Printer className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>تصدير هذا الكشف PDF</span>
+              </button>
+            </div>
+
             {/* 1. كشف المطالبين بالدفع */}
             {activeModalTier === 'pending' && (
               <div className="space-y-4">

@@ -1632,13 +1632,21 @@ class MobileNotificationItem {
     'dispute',
     'task',
     'attendance',
+    'attendance_correction',
+    'attendance_corrections',
     'recognition',
     'live_location_request',
   };
 
   /// أنواع لها صفحة موبايل مباشرة — لا يعرفها الـ RPC، وكان النقر عليها
   /// لا يفتح شيئاً رغم وجود الصفحة في التطبيق.
-  static const _localRouteTypes = {'instant_penalty', 'daily_report', 'device'};
+  static const _localRouteTypes = {
+    'instant_penalty',
+    'daily_report',
+    'device',
+    'attendance_correction',
+    'attendance_corrections',
+  };
 
   bool get hasSupportedAction =>
       entityId != null &&
@@ -3103,5 +3111,141 @@ class MobileInstantPenalty {
   final String? paymentMethod;
   final String? receiptAttachmentUrl;
   final String? receiptReferenceNumber;
+}
+
+class MobileAttendanceCorrectionDetail {
+  const MobileAttendanceCorrectionDetail({
+    required this.id,
+    required this.employeeId,
+    required this.employeeName,
+    required this.employeeCode,
+    this.jobTitle,
+    this.branchId,
+    required this.workDate,
+    required this.type,
+    this.requestedCheckIn,
+    this.requestedCheckOut,
+    this.requestedStatus,
+    required this.reason,
+    this.attachmentPath,
+    required this.status,
+    this.reviewedBy,
+    this.reviewerName,
+    this.reviewedAt,
+    this.reviewNote,
+    required this.createdAt,
+    this.canDecide = false,
+  });
+
+  final String id;
+  final String employeeId;
+  final String employeeName;
+  final String employeeCode;
+  final String? jobTitle;
+  final String? branchId;
+  final DateTime workDate;
+  final String type;
+  final DateTime? requestedCheckIn;
+  final DateTime? requestedCheckOut;
+  final String? requestedStatus;
+  final String reason;
+  final String? attachmentPath;
+  final String status;
+  final String? reviewedBy;
+  final String? reviewerName;
+  final DateTime? reviewedAt;
+  final String? reviewNote;
+  final DateTime createdAt;
+  final bool canDecide;
+
+  factory MobileAttendanceCorrectionDetail.fromJson(Map<String, dynamic> json) {
+    return MobileAttendanceCorrectionDetail(
+      id: json['id'] as String? ?? '',
+      employeeId: json['employeeId'] as String? ?? '',
+      employeeName: json['employeeName'] as String? ?? 'موظف',
+      employeeCode: json['employeeCode'] as String? ?? '',
+      jobTitle: json['jobTitle'] as String?,
+      branchId: json['branchId'] as String?,
+      workDate: DateTime.tryParse(json['workDate'] as String? ?? '') ?? DateTime.now(),
+      type: json['type'] as String? ?? 'missing_check_in',
+      requestedCheckIn: json['requestedCheckIn'] != null ? DateTime.tryParse(json['requestedCheckIn'] as String) : null,
+      requestedCheckOut: json['requestedCheckOut'] != null ? DateTime.tryParse(json['requestedCheckOut'] as String) : null,
+      requestedStatus: json['requestedStatus'] as String?,
+      reason: json['reason'] as String? ?? '',
+      attachmentPath: json['attachmentPath'] as String?,
+      status: json['status'] as String? ?? 'pending',
+      reviewedBy: json['reviewedBy'] as String?,
+      reviewerName: json['reviewerName'] as String?,
+      reviewedAt: json['reviewedAt'] != null ? DateTime.tryParse(json['reviewedAt'] as String) : null,
+      reviewNote: json['reviewNote'] as String?,
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+      canDecide: json['canDecide'] as bool? ?? false,
+    );
+  }
+}
+
+class MobileTeamAttendanceCorrection {
+  const MobileTeamAttendanceCorrection({
+    required this.id,
+    required this.employeeId,
+    required this.employeeName,
+    required this.employeeCode,
+    this.jobTitle,
+    required this.workDate,
+    required this.type,
+    this.requestedCheckIn,
+    this.requestedCheckOut,
+    this.requestedStatus,
+    required this.reason,
+    this.attachmentPath,
+    required this.status,
+    this.reviewedBy,
+    this.reviewedAt,
+    this.reviewNote,
+    required this.createdAt,
+    this.canDecide = false,
+  });
+
+  final String id;
+  final String employeeId;
+  final String employeeName;
+  final String employeeCode;
+  final String? jobTitle;
+  final DateTime workDate;
+  final String type;
+  final DateTime? requestedCheckIn;
+  final DateTime? requestedCheckOut;
+  final String? requestedStatus;
+  final String reason;
+  final String? attachmentPath;
+  final String status;
+  final String? reviewedBy;
+  final DateTime? reviewedAt;
+  final String? reviewNote;
+  final DateTime createdAt;
+  final bool canDecide;
+
+  factory MobileTeamAttendanceCorrection.fromJson(Map<String, dynamic> json) {
+    return MobileTeamAttendanceCorrection(
+      id: json['id'] as String? ?? '',
+      employeeId: json['employeeId'] as String? ?? '',
+      employeeName: json['employeeName'] as String? ?? 'موظف',
+      employeeCode: json['employeeCode'] as String? ?? '',
+      jobTitle: json['jobTitle'] as String?,
+      workDate: DateTime.tryParse(json['workDate'] as String? ?? '') ?? DateTime.now(),
+      type: json['type'] as String? ?? 'missing_check_in',
+      requestedCheckIn: json['requestedCheckIn'] != null ? DateTime.tryParse(json['requestedCheckIn'] as String) : null,
+      requestedCheckOut: json['requestedCheckOut'] != null ? DateTime.tryParse(json['requestedCheckOut'] as String) : null,
+      requestedStatus: json['requestedStatus'] as String?,
+      reason: json['reason'] as String? ?? '',
+      attachmentPath: json['attachmentPath'] as String?,
+      status: json['status'] as String? ?? 'pending',
+      reviewedBy: json['reviewedBy'] as String?,
+      reviewedAt: json['reviewedAt'] != null ? DateTime.tryParse(json['reviewedAt'] as String) : null,
+      reviewNote: json['reviewNote'] as String?,
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+      canDecide: json['canDecide'] as bool? ?? false,
+    );
+  }
 }
 

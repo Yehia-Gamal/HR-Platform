@@ -12,6 +12,10 @@ const base = {
     selfPunchEnabled: true,
     liveLocationResponseEnabled: true,
   },
+  isSuspended: false,
+  suspensionReason: null,
+  suspensionMessage: null,
+  suspensionAmount: null,
 } as const;
 
 export const mockContexts: Record<MockPersona, AccessContext> = {
