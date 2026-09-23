@@ -72,31 +72,38 @@ class CrashReporter {
       final session = _client!.auth.currentSession;
       if (session == null) return; // لا نُرسل بدون جلسة مصادقة
 
-      await _client!.functions.invoke(
-        'log-client-error',
-        body: {
-          'level': 'error',
-          'source': report.source,
-          'eventType': 'error',
-          'message': report.message,
-          'errorName': report.errorName,
-          'errorStack': report.errorStack,
-          'metadata': {
-            ...report.metadata ?? {},
-            if (report.context != null) 'context': report.context,
-            'environment': AppConfig.environment,
-          },
-        },
-      );
+      await _client!.functions
+          .invoke(
+            'log-client-error',
+            body: {
+              'level': 'error',
+              'source': report.source,
+              'eventType': 'error',
+              'message': report.message,
+              'errorName': report.errorName,
+              'errorStack': report.errorStack,
+              'metadata': {
+                ...report.metadata ?? {},
+                if (report.context != null) 'context': report.context,
+                'environment': AppConfig.environment,
+              },
+            },
+          )
+          .timeout(const Duration(seconds: 10));
     } catch (_) {
       // الرصد فشل صامتاً — لا نريد حلقة أخطاء
     }
   }
 
   Future<void> _flushQueue() async {
-    while (_queue.isNotEmpty) {
+    // حد أقصى للإرسال في الدفعة الواحدة + timeout لكل إرسال
+    // حتى لا تعلّق الحلقة إذا استمر بطء الشبكة
+    const maxBatch = 10;
+    var sent = 0;
+    while (_queue.isNotEmpty && sent < maxBatch) {
       final report = _queue.removeAt(0);
       await _send(report);
+      sent++;
     }
   }
 }

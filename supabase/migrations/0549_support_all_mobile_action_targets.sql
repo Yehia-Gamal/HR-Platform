@@ -1,4 +1,5 @@
--- 0547: دعم توجيه كافة إجراءات وإشعارات الموبايل وإلغاء الاستثناءات المسببة لتعليق الشاشة
+-- 0549 (كان 0547 — أُعيد ترقيمه لتصادمه مع 0547_admin_account_permanent_immunity؛
+--       دالتان CREATE OR REPLACE فقط، فإعادة تطبيقه برقم جديد بلا أثر): دعم توجيه كافة إجراءات وإشعارات الموبايل وإلغاء الاستثناءات المسببة لتعليق الشاشة
 -- الهدف:
 -- 1) إضافة دعم instant_penalty, daily_report, device, fellowship_fund إلى get_mobile_action_target و resolve_mobile_action_target
 -- 2) استبدال رمي الأخطاء الحادة (22023) بكائن jsonb آمن mobileRoute='unsupported' يمنع تجميد الموبايل على شاشة «جاري فتح الإشعار...»

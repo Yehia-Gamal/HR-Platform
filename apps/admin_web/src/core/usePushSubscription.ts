@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../features/auth/AuthProvider';
+import { getSupabase } from './supabase';
 import { emitToast } from '../ui/Toast';
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
@@ -15,34 +16,25 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
-async function sendSubscriptionToBackend(subscription: PushSubscription, accessToken: string) {
-  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/push-subscribe`, {
+async function sendSubscriptionToBackend(subscription: PushSubscription) {
+  const supabase = await getSupabase();
+  const { error } = await supabase.functions.invoke('push-subscribe', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify(subscription.toJSON()),
+    body: subscription.toJSON(),
   });
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Push subscribe failed: ${response.status} ${err}`);
+  if (error) {
+    throw new Error(`Push subscribe failed: ${error.message}`);
   }
-  return response.json();
 }
 
-async function deleteSubscriptionFromBackend(endpoint: string, accessToken: string) {
-  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/push-subscribe`, {
+async function deleteSubscriptionFromBackend(endpoint: string) {
+  const supabase = await getSupabase();
+  const { error } = await supabase.functions.invoke('push-subscribe', {
     method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({ endpoint }),
+    body: { endpoint },
   });
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Push unsubscribe failed: ${response.status} ${err}`);
+  if (error) {
+    throw new Error(`Push unsubscribe failed: ${error.message}`);
   }
 }
 
@@ -92,7 +84,7 @@ export function usePushSubscription() {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
       });
 
-      await sendSubscriptionToBackend(sub, session.access_token);
+      await sendSubscriptionToBackend(sub);
       setSubscription(sub);
       setIsSubscribed(true);
       emitToast({ message: 'تم تفعيل الإشعارات', tone: 'success' });
@@ -110,7 +102,7 @@ export function usePushSubscription() {
     setIsLoading(true);
     try {
       await subscription.unsubscribe();
-      await deleteSubscriptionFromBackend(subscription.endpoint, session.access_token);
+      await deleteSubscriptionFromBackend(subscription.endpoint);
       setSubscription(null);
       setIsSubscribed(false);
       emitToast({ message: 'تم إلغاء الإشعارات', tone: 'success' });
