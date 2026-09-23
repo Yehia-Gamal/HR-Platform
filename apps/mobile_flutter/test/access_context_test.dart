@@ -143,9 +143,29 @@ void main() {
       final context = AccessContext.fromJson(_contextJson());
 
       expect(context.isSuspended, isFalse);
+      expect(context.isSuspendedAccount, isFalse);
       expect(context.suspensionReason, isNull);
       expect(context.suspensionMessage, isNull);
       expect(context.suspensionAmount, isNull);
+    });
+
+    test('isSuspendedAccount is true when status is suspended', () {
+      final json = _contextJson()
+        ..['status'] = 'suspended'
+        ..['isSuspended'] = false;
+      final context = AccessContext.fromJson(json);
+
+      expect(context.isSuspended, isTrue);
+      expect(context.isSuspendedAccount, isTrue);
+    });
+
+    test('isSuspendedAccount is true when suspensionReason is set', () {
+      final json = _contextJson()
+        ..['suspensionReason'] = 'penalty_unpaid';
+      final context = AccessContext.fromJson(json);
+
+      expect(context.isSuspended, isTrue);
+      expect(context.isSuspendedAccount, isTrue);
     });
 
     test('parses suspended employee context with fine and message', () {

@@ -214,21 +214,33 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
           ),
           data: (contextData) {
             if (contextData == null) return const LoginPage();
-            if (contextData.isSuspended) {
+            if (contextData.isSuspendedAccount) {
               return _SuspendedAccountPage(
                 access: contextData,
                 onRetry: () => ref.invalidate(accessContextProvider),
                 onSignOut: signOut,
               );
             }
-            return switch (_mobileWorkspace(contextData)) {
-              WorkspaceId.executive => ExecutiveWorkspace(access: contextData),
-              WorkspaceId.manager => ManagerWorkspace(access: contextData),
-              WorkspaceId.fieldOperations =>
-                OperationsWorkspace(access: contextData),
-              WorkspaceId.employee => EmployeeWorkspace(access: contextData),
-              _ => _WebOnlyPage(access: contextData),
-            };
+            final workspace = _mobileWorkspace(contextData);
+            if (workspace != null) {
+              return switch (workspace) {
+                WorkspaceId.executive => ExecutiveWorkspace(access: contextData),
+                WorkspaceId.manager => ManagerWorkspace(access: contextData),
+                WorkspaceId.fieldOperations =>
+                  OperationsWorkspace(access: contextData),
+                WorkspaceId.employee => EmployeeWorkspace(access: contextData),
+                _ => _buildAdminOrUnassignedPage(
+                    contextData,
+                    signOut,
+                    () => ref.invalidate(accessContextProvider),
+                  ),
+              };
+            }
+            return _buildAdminOrUnassignedPage(
+              contextData,
+              signOut,
+              () => ref.invalidate(accessContextProvider),
+            );
           },
         );
       },
@@ -266,6 +278,38 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
       return WorkspaceId.employee;
     }
     return null;
+  }
+
+  Widget _buildAdminOrUnassignedPage(
+    AccessContext context,
+    VoidCallback onSignOut,
+    VoidCallback onRetry,
+  ) {
+    const adminOrExecutiveSlugs = {
+      'admin',
+      'super-admin',
+      'super_admin',
+      'system-admin',
+      'executive',
+      'executive-director',
+    };
+    final isAdminOrExecutive = context.roles.any(adminOrExecutiveSlugs.contains) ||
+        context.workspaces.contains(WorkspaceId.mainAdmin) ||
+        context.workspaces.contains(WorkspaceId.executive);
+
+    if (isAdminOrExecutive) {
+      return _WebOnlyPage(
+        access: context,
+        onSignOut: onSignOut,
+        onRetry: onRetry,
+      );
+    }
+
+    return _UnassignedWorkspacePage(
+      access: context,
+      onSignOut: onSignOut,
+      onRetry: onRetry,
+    );
   }
 }
 
@@ -555,54 +599,330 @@ class _TimedLoadingPageState extends State<_TimedLoadingPage> {
   }
 }
 
-class _WebOnlyPage extends ConsumerWidget {
-  const _WebOnlyPage({required this.access});
+class _WebOnlyPage extends StatelessWidget {
+  const _WebOnlyPage({
+    required this.access,
+    required this.onSignOut,
+    required this.onRetry,
+  });
+
   final AccessContext access;
+  final VoidCallback onSignOut;
+  final VoidCallback onRetry;
+
+  static const String webUrl = 'https://ahla-shabab-management-os.vercel.app';
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    void signOut() {
-      final supabase = ref.read(supabaseProvider);
-      cleanupOnSignOut(userId: supabase.auth.currentUser?.id);
-      supabase.auth.signOut();
-      ref.invalidate(authSessionProvider);
-      ref.invalidate(accessContextProvider);
-    }
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final badgeColor =
+        isDark ? const Color(0xFF818CF8) : const Color(0xFF4338CA);
+    final badgeBg = isDark
+        ? const Color(0xFF312E81).withValues(alpha: 0.5)
+        : const Color(0xFFEEF2FF);
+    final cardBorder = isDark
+        ? const Color(0xFF4F46E5).withValues(alpha: 0.3)
+        : const Color(0xFFC7D2FE);
 
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.desktop_windows_outlined, size: 56),
-                const SizedBox(height: 16),
-                const Text(
-                  'مساحة العمل على الويب فقط',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-                  textAlign: TextAlign.center,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Card(
+                elevation: isDark ? 2 : 4,
+                color: theme.colorScheme.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  side: BorderSide(color: cardBorder, width: 1.5),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  'مرحبًا ${access.displayName}',
-                  style: Theme.of(context).textTheme.titleMedium,
-                  textAlign: TextAlign.center,
+                child: Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: badgeBg,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.admin_panel_settings_rounded,
+                          size: 52,
+                          color: badgeColor,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: badgeBg,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: cardBorder),
+                        ),
+                        child: Text(
+                          'منصة الويب للإدارة والتحكم',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: badgeColor,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        'مرحبًا ${access.displayName}',
+                        style: const TextStyle(
+                          fontSize: 21,
+                          fontWeight: FontWeight.w900,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'هذا الحساب مخصص للإدارة والقيادة التنفيذية عبر منصة الويب بالمتصفح، لإدارة شؤون المنظومة والتقارير المتقدمة والعمليات المالية.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.65,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () {
+                            launchUrl(
+                              Uri.parse(webUrl),
+                              mode: LaunchMode.externalApplication,
+                            );
+                          },
+                          icon: const Icon(Icons.open_in_browser_rounded),
+                          label: const Text('فتح لوحة التحكم على الويب'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.tonalIcon(
+                          onPressed: () {
+                            Clipboard.setData(
+                              const ClipboardData(text: webUrl),
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'تم نسخ رابط لوحة الويب إلى الحافظة',
+                                ),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.copy_rounded),
+                          label: const Text('نسخ رابط المنصة'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: onRetry,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('إعادة التحقق من الصلاحيات'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: TextButton.icon(
+                          onPressed: onSignOut,
+                          icon: const Icon(Icons.logout_rounded),
+                          label: const Text('تسجيل الخروج'),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'صلاحياتك الحالية متاحة فقط على لوحة الويب.\nاستخدم المتصفح للوصول إلى النظام.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(height: 1.7),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UnassignedWorkspacePage extends StatelessWidget {
+  const _UnassignedWorkspacePage({
+    required this.access,
+    required this.onSignOut,
+    required this.onRetry,
+  });
+
+  final AccessContext access;
+  final VoidCallback onSignOut;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final amberColor =
+        isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309);
+    final amberBg = isDark
+        ? const Color(0xFF78350F).withValues(alpha: 0.35)
+        : const Color(0xFFFEF3C7);
+    final cardBorder = isDark
+        ? const Color(0xFFD97706).withValues(alpha: 0.3)
+        : const Color(0xFFFDE68A);
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Card(
+                elevation: isDark ? 2 : 4,
+                color: theme.colorScheme.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  side: BorderSide(color: cardBorder, width: 1.5),
                 ),
-                const SizedBox(height: 24),
-                OutlinedButton.icon(
-                  onPressed: signOut,
-                  icon: const Icon(Icons.logout),
-                  label: const Text('تسجيل الخروج'),
+                child: Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: amberBg,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.hourglass_top_rounded,
+                          size: 52,
+                          color: amberColor,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Text(
+                        'الحساب قيد المراجعة والإعداد',
+                        style: TextStyle(
+                          fontSize: 21,
+                          fontWeight: FontWeight.w900,
+                          color: amberColor,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'مرحبًا ${access.displayName}',
+                        style: Theme.of(context).textTheme.titleMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'حسابك قيد الإعداد أو بانتظار تعيين مساحة العمل من قبل إدارة الموارد البشرية (HR).',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.65,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: onRetry,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('إعادة التحقق من حالة الحساب'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.tonalIcon(
+                          onPressed: () {
+                            final code = access.employeeCode ?? '';
+                            final name = access.displayName;
+                            final text =
+                                'السلام عليكم، أنا الموظف $name${code.isNotEmpty ? ' (كود: $code)' : ''}. قمت بتسجيل الدخول في التطبيق وبانتظار تفعيل مساحة العمل الخاصة بي.';
+                            launchUrl(
+                              Uri.parse(
+                                'https://api.whatsapp.com/send?text=${Uri.encodeComponent(text)}',
+                              ),
+                              mode: LaunchMode.externalApplication,
+                            );
+                          },
+                          icon: const Icon(Icons.chat_outlined),
+                          label: const Text('تواصل مع الـ HR (WhatsApp)'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: onSignOut,
+                          icon: const Icon(Icons.logout_rounded),
+                          label: const Text('تسجيل الخروج'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ),
           ),
         ),

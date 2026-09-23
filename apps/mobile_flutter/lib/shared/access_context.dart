@@ -52,6 +52,7 @@ class AccessContext {
     required this.workspaces,
     required this.defaultWorkspace,
     required this.attendancePolicy,
+    this.status = 'active',
     this.isSuspended = false,
     this.suspensionReason,
     this.suspensionMessage,
@@ -60,6 +61,11 @@ class AccessContext {
 
   factory AccessContext.fromJson(Map<String, dynamic> json) {
     final defaultWorkspaceRaw = json['defaultWorkspace'];
+    final isSuspendedVal = (json['isSuspended'] as bool? ?? false) ||
+        json['status'] == 'suspended' ||
+        (json['suspensionReason'] != null &&
+            json['suspensionReason'].toString().trim().isNotEmpty);
+
     return AccessContext(
       userId: json['userId'] as String? ?? '',
       employeeId: json['employeeId'] as String?,
@@ -83,7 +89,8 @@ class AccessContext {
           json['attendancePolicy'] as Map<dynamic, dynamic>? ?? const {},
         ),
       ),
-      isSuspended: json['isSuspended'] as bool? ?? false,
+      status: json['status'] as String? ?? (isSuspendedVal ? 'suspended' : 'active'),
+      isSuspended: isSuspendedVal,
       suspensionReason: json['suspensionReason'] as String?,
       suspensionMessage: json['suspensionMessage'] as String?,
       suspensionAmount: (json['suspensionAmount'] as num?)?.toDouble(),
@@ -100,10 +107,16 @@ class AccessContext {
   final List<WorkspaceId> workspaces;
   final WorkspaceId defaultWorkspace;
   final AttendancePolicy attendancePolicy;
+  final String status;
   final bool isSuspended;
   final String? suspensionReason;
   final String? suspensionMessage;
   final double? suspensionAmount;
+
+  bool get isSuspendedAccount =>
+      isSuspended ||
+      status == 'suspended' ||
+      (suspensionReason != null && suspensionReason!.trim().isNotEmpty);
 
   bool hasPermission(String code) =>
       permissions.contains('*') || permissions.contains(code);
