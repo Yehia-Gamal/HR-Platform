@@ -90,4 +90,3 @@ describe('generateReportHtml', () => {
     expect(html).toContain('.no-print, .action-bar { display: none !important; }');
   });
 });
-

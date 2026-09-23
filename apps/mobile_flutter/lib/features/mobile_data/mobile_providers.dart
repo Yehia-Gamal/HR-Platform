@@ -59,6 +59,7 @@ final mobileActionTargetProvider =
               'resolve_mobile_action_target',
               params: {'p_action_id': item.id, 'p_kind': item.kind},
             ),
+        const Duration(seconds: 7),
       );
       return MobileActionTarget.fromJson(_asMap(data));
     });

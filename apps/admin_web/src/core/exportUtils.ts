@@ -60,11 +60,7 @@ export interface PrintableSection {
  * توليد كود HTML الكامل للتقرير مع شريط أدوات تفاعلي للتحميل كـ PDF أو HTML،
  * مع تنسيقات طباعة معتمدة تخفي أزرار التحكم تماماً عند التصدير والطباعة.
  */
-export function generateReportHtml(
-  sections: PrintableSection[],
-  documentTitle: string,
-  summary?: { label: string; value: string }[],
-): string {
+export function generateReportHtml(sections: PrintableSection[], documentTitle: string, summary?: { label: string; value: string }[]): string {
   const esc = (s: string): string =>
     String(s ?? '')
       .replace(/&/g, '&amp;')
@@ -426,11 +422,7 @@ export function generateReportHtml(
  * طباعة وحفظ تقرير PDF احترافي عبر نافذة المتصفح مع شريط أدوات متكامل.
  * يدعم: عنوان فرعي، إجماليات، ألوان الصفوف، ترويسة معتمدة، وتنزيل فوري كـ PDF أو HTML.
  */
-export function printReport(
-  sections: PrintableSection[],
-  documentTitle: string,
-  summary?: { label: string; value: string }[],
-): void {
+export function printReport(sections: PrintableSection[], documentTitle: string, summary?: { label: string; value: string }[]): void {
   const win = window.open('', '_blank');
   if (!win) return;
 
@@ -456,11 +448,7 @@ export function printReport(
 /**
  * تنزيل تقرير HTML مستقل مباشرة إلى جهاز المستخدم دون الحاجة لفتح نافذة منبثقة.
  */
-export function downloadReportHtml(
-  sections: PrintableSection[],
-  documentTitle: string,
-  summary?: { label: string; value: string }[],
-): void {
+export function downloadReportHtml(sections: PrintableSection[], documentTitle: string, summary?: { label: string; value: string }[]): void {
   const html = generateReportHtml(sections, documentTitle, summary);
   const now = new Date();
   const dateIso = now.toISOString().slice(0, 10);
@@ -475,4 +463,3 @@ export function downloadReportHtml(
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-

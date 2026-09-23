@@ -1,5 +1,12 @@
 import 'package:ahla_shabab_management_os/core/notifications/notification_handler.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_correction_detail_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/kpi_evaluation_detail_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_router.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_daily_reports_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/my_instant_penalties_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -618,8 +625,78 @@ void main() {
           type: 'daily_reports',
           entityId: '00000000-0000-0000-0000-000000000005',
         ),
-        '/',
+        '/action/daily_report/00000000-0000-0000-0000-000000000005',
       );
+      expect(
+        resolveNotificationRoute(
+          type: 'instant_penalty',
+          entityId: '00000000-0000-0000-0000-000000000006',
+        ),
+        '/action/instant_penalty/00000000-0000-0000-0000-000000000006',
+      );
+    });
+
+    test('resolveRouteFromDeepLink يحلل روابط الإجراءات المباشرة وروابط المالية القديمة', () {
+      expect(
+        resolveRouteFromDeepLink('ahlashabab://action/finance?tab=instant-penalties'),
+        '/action/instant_penalty/default?tab=instant-penalties',
+      );
+      expect(
+        resolveRouteFromDeepLink('ahlashabab://action/fellowship-fund'),
+        '/action/fellowship_fund/default',
+      );
+      expect(
+        resolveRouteFromDeepLink('https://ahla-shabab.app/action/request/00000000-0000-0000-0000-000000000001'),
+        '/action/request/00000000-0000-0000-0000-000000000001',
+      );
+      expect(
+        resolveRouteFromDeepLink('https://ahla-shabab.app/action/instant_penalty/00000000-0000-0000-0000-000000000002'),
+        '/action/instant_penalty/00000000-0000-0000-0000-000000000002',
+      );
+    });
+
+    test('getDirectActionPage يفتح الصفحات فوراً بدون استدعاءات RPC إضافية', () {
+      final reqPage = getDirectActionPage(
+        kind: 'request',
+        actionId: 'req-123',
+      );
+      expect(reqPage, isA<MobileRequestDetailPage>());
+
+      final penaltyPage = getDirectActionPage(
+        kind: 'instant_penalty',
+        actionId: 'pen-123',
+      );
+      expect(penaltyPage, isA<MyInstantPenaltiesPage>());
+
+      final correctionPage = getDirectActionPage(
+        kind: 'attendance_correction',
+        actionId: 'corr-123',
+      );
+      expect(correctionPage, isA<AttendanceCorrectionDetailPage>());
+
+      final kpiPage = getDirectActionPage(
+        kind: 'kpi',
+        actionId: 'kpi-123',
+      );
+      expect(kpiPage, isA<KpiEvaluationDetailPage>());
+
+      final reportPage = getDirectActionPage(
+        kind: 'daily_report',
+        actionId: 'rep-123',
+      );
+      expect(reportPage, isA<MobileDailyReportsPage>());
+
+      final devicePage = getDirectActionPage(
+        kind: 'device',
+        actionId: 'dev-123',
+      );
+      expect(devicePage, isA<PasskeyDevicesPage>());
+
+      final unknownPage = getDirectActionPage(
+        kind: 'unknown_kind_xyz',
+        actionId: 'xyz-123',
+      );
+      expect(unknownPage, isNull);
     });
 
     test('يستخدم القيم الافتراضية للحقول الناقصة', () {

@@ -6,7 +6,6 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_ro
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_daily_reports_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_instant_penalties_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_feed_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/notification_settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -415,22 +414,30 @@ class _MobileNotificationsPageState
     }
     if (!mounted) return;
 
-    // توجيه طلبات تصحيح البصمة فوراً إلى شاشة مراجعة تصحيح البصمة
-    if (item.canonicalType == 'attendance_correction' ||
-        item.entityType == 'attendance_corrections' ||
-        item.entityType == 'attendance_correction' ||
-        (item.entityId != null && item.title.contains('تصحيح حضور'))) {
-      if (item.entityId != null) {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AttendanceCorrectionDetailPage(
-              correctionId: item.entityId!,
-            ),
-          ),
-        );
-        return;
-      }
+    // حضور الموظف نفسه (بصمة/تذكير): سجلّه الشخصي على يوم الحدث
+    final workDate = item.meta('workDate');
+    final rawType = (item.entityType ?? '').toLowerCase();
+    if (workDate != null && (rawType == 'attendance_daily' || rawType == 'punch_reminder')) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AttendanceHistoryPage(highlightDate: workDate),
+        ),
+      );
+      return;
+    }
+
+    // مسار مباشر وفوري لجميع أنواع الإشعارات المعروفة بدون انتظار RPC
+    final directPage = getDirectActionPage(
+      kind: item.canonicalType ?? item.entityType ?? '',
+      actionId: item.entityId ?? '',
+    );
+    if (directPage != null) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => directPage),
+      );
+      return;
     }
 
     if (!item.hasSupportedAction) {
@@ -441,36 +448,10 @@ class _MobileNotificationsPageState
     }
 
     try {
-      if (item.canonicalType == 'announcement') {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => MobileFeedDetailPage(
-              kind: 'announcement',
-              itemId: item.entityId!,
-            ),
-          ),
-        );
-        return;
-      }
-
       // أنواع لها صفحة موبايل مباشرة
       final localPage = _localPageFor(item);
       if (localPage != null) {
         await Navigator.push(context, MaterialPageRoute(builder: (_) => localPage));
-        return;
-      }
-
-      // حضور الموظف نفسه (بصمة/تذكير): سجلّه الشخصي على يوم الحدث
-      final workDate = item.meta('workDate');
-      final rawType = (item.entityType ?? '').toLowerCase();
-      if (workDate != null && (rawType == 'attendance_daily' || rawType == 'punch_reminder')) {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AttendanceHistoryPage(highlightDate: workDate),
-          ),
-        );
         return;
       }
 

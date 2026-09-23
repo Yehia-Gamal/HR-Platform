@@ -8,21 +8,8 @@ import 'package:ahla_shabab_management_os/features/auth/login_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_router.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_location_request_deep_link_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-/// هل نوع الإجراء من طلبات الموقع (location / location_request / live_location
-/// / live_location_request)؟ هذه الأنواع تُوجَّه مباشرة لشاشة الإرسال بدل المرور
-/// عبر RPC تحليل إضافي — لأن شاشة الموقع تجلب الطلب بالمعرّف في استدعاء واحد
-/// بنفس سياسة الوصول، فالخطوة الوسيطة كانت تزيد زمن الفتح وتتسبب بشاشة المهلة.
-bool _isLocationKind(String kind) => switch (kind) {
-  'location' ||
-  'location_request' ||
-  'live_location' ||
-  'live_location_request' => true,
-  _ => false,
-};
 
 /// شاشة انتظار موحّدة لفتح الإشعار — بدل spinner أبيض عاري كان يبدو صفحة
 /// معطوبة، نعرض علامة التطبيق + نص الحالة.
@@ -40,7 +27,7 @@ class _ActionLoader extends StatefulWidget {
 }
 
 class _ActionLoaderState extends State<_ActionLoader> {
-  static const Duration _timeout = Duration(seconds: 25);
+  static const Duration _timeout = Duration(seconds: 6);
   bool _showFallback = false;
   Timer? _timer;
 
@@ -192,14 +179,17 @@ class MobileActionDeepLinkPage extends ConsumerWidget {
           );
         }
 
-        // مسار سريع لطلبات الموقع: تُفتح شاشة الإرسال مباشرة بمعرّف الطلب
-        // (استدعاء واحد يجلب الطلب بنفس التخويل). يمنع الشاشة البيضاء الناتجة
-        // عن استدعاءَي RPC متتاليين أثناء إقلاع التطبيق البطيء.
-        if (_isLocationKind(canonicalKind)) {
-          return MobileLocationRequestDeepLinkPage(
-            requestId: actionId,
-            action: action,
-          );
+        // مسار فوري مباشر لجميع أنواع الإجراءات المعروفة: تُفتح الشاشة فوراً
+        // بمعرّف الكيان بدون انتظار RPC إضافي (استدعاء واحد داخل الشاشة نفسها
+        // يجلب البيانات بالتخويل المناسب) — يقضي تماماً على الشاشة السوداء
+        // وشاشة «جاري فتح الإشعار...» المعلقة.
+        final directPage = getDirectActionPage(
+          kind: canonicalKind,
+          actionId: actionId,
+          action: action,
+        );
+        if (directPage != null) {
+          return directPage;
         }
 
         final item = MobileActionItem(

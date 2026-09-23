@@ -549,4 +549,3 @@ export function exportExecutiveDailyReport(data: ExecutiveDailyReportDetail, org
     // Ignore in tests
   }
 }
-

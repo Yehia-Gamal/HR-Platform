@@ -51,6 +51,7 @@ String? canonicalNotificationEntityType(String? raw) => switch (raw) {
   'instant_penalty_lifted' ||
   'instant_penalty_paid' ||
   'instant_penalty_cancelled' => 'instant_penalty',
+  'fellowship' || 'fellowship_fund' => 'fellowship_fund',
   _ => raw,
 };
 
@@ -76,6 +77,17 @@ String resolveRouteFromDeepLink(String deepLink) {
       // معرّف غير UUID (مثل تاريخ attendance) → اقبل فقط للأنواع المعروفة.
       if (id.isNotEmpty && _isKnownActionKind(kind)) {
         return _withQuery('/action/$kind/$id', uri);
+      }
+    }
+
+    // روابط خاصة دون معرّف صريح (مثل /action/finance أو /action/fellowship-fund)
+    if (idx >= 0 && parts.length >= idx + 2) {
+      final target = parts[idx + 1];
+      if (target == 'finance' || target == 'instant-penalties') {
+        return _withQuery('/action/instant_penalty/default', uri);
+      }
+      if (target == 'fellowship-fund' || target == 'fellowship') {
+        return _withQuery('/action/fellowship_fund/default', uri);
       }
     }
 
@@ -127,7 +139,11 @@ bool _isKnownActionKind(String kind) {
     'task' ||
     'decision' ||
     'announcement' ||
-    'recognition' => true,
+    'recognition' ||
+    'instant_penalty' ||
+    'daily_report' ||
+    'device' ||
+    'fellowship_fund' => true,
     _ => false,
   };
 }
@@ -166,16 +182,14 @@ String resolveNotificationRoute({
     'decision' => '/action/decision/$entityId',
     'announcement' => '/action/announcement/$entityId',
     'recognition' => '/action/recognition/$entityId',
+    'instant_penalty' => '/action/instant_penalty/$entityId',
+    'daily_report' => '/action/daily_report/$entityId',
+    'device' => '/action/device/$entityId',
+    'fellowship_fund' => '/action/fellowship_fund/$entityId',
     // ─── أنواع معلوماتية (migrations 0316-0328) ───
-    // لا تفتح صفحة محددة بل تُعلَّم مقروءة عند النقر فقط:
-    // 'daily_report' / 'daily_report_like' / 'daily_report_comment' → تقارير الجميع
-    // 'attendance_manager_notify' / 'work_assignments' / 'kpi_appeals' ...
-    // نُرجع '/' لأنها إشعارات معلوماتية بدون deep link محدد.
-    'daily_report' ||
     'daily_report_like' ||
     'daily_report_comment' ||
-    'attendance_manager_notify' ||
-    'instant_penalty' => '/',
+    'attendance_manager_notify' => '/',
     _ => '/',
   };
 }
@@ -241,6 +255,9 @@ String? _kindFromLegacyPath(String actionUrl) {
     '/decisions' => 'decision',
     '/announcements' => 'announcement',
     '/recognitions' => 'recognition',
+    '/finance' || '/instant-penalties' => 'instant_penalty',
+    '/daily-reports' => 'daily_report',
+    '/fellowship-fund' => 'fellowship_fund',
     _ => null,
   };
 }
