@@ -7,6 +7,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_daily_rep
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_feed_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_location_request_deep_link_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_tasks_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_instant_penalties_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
@@ -25,10 +26,12 @@ Widget? getDirectActionPage({
 }) {
   final canonical = canonicalNotificationEntityType(kind) ?? kind;
   return switch (canonical) {
-    'request' || 'request_decision' => MobileRequestDetailPage(
-        requestId: actionId,
-        initialAction: action,
-      ),
+    'request' || 'request_decision' => actionId.isEmpty || actionId == 'default'
+        ? const MobileRequestsPage()
+        : MobileRequestDetailPage(
+            requestId: actionId,
+            initialAction: action,
+          ),
     'kpi' || 'kpi_evaluation' => KpiEvaluationDetailPage(
         evaluationId: actionId,
       ),

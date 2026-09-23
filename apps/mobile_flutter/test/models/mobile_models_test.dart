@@ -5,6 +5,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/kpi_evaluation_d
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_router.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_daily_reports_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_instant_penalties_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -661,6 +662,18 @@ void main() {
         actionId: 'req-123',
       );
       expect(reqPage, isA<MobileRequestDetailPage>());
+
+      final reqDefaultPage = getDirectActionPage(
+        kind: 'request',
+        actionId: 'default',
+      );
+      expect(reqDefaultPage, isA<MobileRequestsPage>());
+
+      final reqEmptyPage = getDirectActionPage(
+        kind: 'request',
+        actionId: '',
+      );
+      expect(reqEmptyPage, isA<MobileRequestsPage>());
 
       final penaltyPage = getDirectActionPage(
         kind: 'instant_penalty',
