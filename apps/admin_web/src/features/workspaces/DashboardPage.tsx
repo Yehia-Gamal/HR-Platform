@@ -51,7 +51,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
             trend: data.employees ? `${Math.round((data.activeEmployees / data.employees) * 100)}% نشط` : undefined,
             to: '/hr/employees',
           },
-          { label: 'طلبات معلقة', value: data.pendingRequests, icon: BadgeCheck, hint: 'وفق نطاق وصلاحيات المستخدم', to: '/hr/requests' },
+          { label: 'طلبات معلقة', value: data.pendingRequests, icon: BadgeCheck, hint: 'وفق نطاق وصلاحيات المستخدم', to: '/hr/requests?status=pending' },
           { label: 'حضور يحتاج مراجعة', value: data.attendancePendingReview, icon: Clock3, hint: 'تصحيحات واستثناءات اليوم', to: '/hr/attendance' },
           { label: 'تقييمات قيد الدورة', value: data.pendingKpi, icon: Activity, hint: 'لم تصل للاعتماد النهائي', to: '/hr/performance' },
           { label: 'طلبات توظيف مفتوحة', value: data.openRequisitions, icon: BriefcaseBusiness, hint: 'طلبات معتمدة أو قيد النشر', to: '/hr/recruitment' },
@@ -66,7 +66,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
             to: '/admin/enterprise',
           },
           { label: 'إجراءات عاجلة', value: data.urgentActions, icon: ShieldAlert, hint: 'مهلتها خلال أربع ساعات', to: '/admin/actions' },
-          { label: 'طلبات معلقة', value: data.pendingRequests, icon: BadgeCheck, hint: 'عبر المسارات المصرح بها', to: '/admin/actions' },
+          { label: 'طلبات معلقة', value: data.pendingRequests, icon: BadgeCheck, hint: 'عبر المسارات المصرح بها', to: '/admin/hr/requests?status=pending' },
           { label: 'قرارات منشورة', value: data.publishedDecisions, icon: Activity, hint: 'داخل القناة الرسمية', to: '/admin/official-feed' },
           { label: 'أخطاء غير محلولة', value: data.unresolvedErrors, icon: FileWarning, hint: 'من مركز المراقبة التقنية', to: '/admin/audit-security' },
         ]
@@ -103,12 +103,12 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
     ? type === 'hr'
       ? [
           { title: `${data.attendancePendingReview} حالة حضور تحتاج مراجعة`, description: 'ابدأ بالتصحيحات الأقدم والأعلى تأثيرًا.', to: '/hr/attendance' },
-          { title: `${data.pendingRequests} طلبًا داخل مسارات الاعتماد`, description: 'تابع الطلبات التي اقتربت من تجاوز SLA.', to: '/hr/requests' },
+          { title: `${data.pendingRequests} طلبًا داخل مسارات الاعتماد`, description: 'تابع الطلبات التي اقتربت من تجاوز SLA.', to: '/hr/requests?status=pending' },
           { title: `${data.openRequisitions} احتياج توظيف مفتوح`, description: 'راجع الموافقات وخطة المقابلات.', to: '/hr/recruitment' },
         ]
       : [
           { title: `${data.urgentActions} إجراء عاجل`, description: 'عناصر ذات أولوية زمنية أو أثر مؤسسي مرتفع.', to: '/admin/actions' },
-          { title: `${data.pendingRequests} طلبًا ينتظر القرار`, description: 'رتبها حسب الأثر والموعد النهائي.', to: '/admin/actions' },
+          { title: `${data.pendingRequests} طلبًا ينتظر القرار`, description: 'رتبها حسب الأثر والموعد النهائي.', to: '/admin/hr/requests?status=pending' },
           { title: `${data.unresolvedErrors} خطأ تشغيلي غير مغلق`, description: 'راجع الحالة الفنية قبل أي إصدار جديد.', to: '/admin/settings' },
         ]
     : [];

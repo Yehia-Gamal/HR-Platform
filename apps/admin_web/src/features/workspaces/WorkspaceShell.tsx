@@ -84,7 +84,7 @@ const hrSections: NavSection[] = [
     title: 'الوقت والخدمات',
     items: [
       { label: 'الحضور', to: '/hr/attendance', icon: Activity, permission: 'attendance.record.read' },
-      { label: 'طلب إجازة', to: '/hr/requests', icon: ClipboardList, permission: 'requests.request.read' },
+      { label: 'طلبات الموظفين', to: '/hr/requests', icon: ClipboardList, permission: 'requests.request.read' },
       { label: 'إدارة الإجازات', to: '/hr/leaves', icon: CalendarDays, permission: 'requests.request.read' },
       { label: 'أدوات الإجازات والتكليفات', to: '/hr/leave-tools', icon: TimerReset, permission: 'requests.leave.balance.adjust' },
       { label: 'العطل الرسمية', to: '/hr/holidays', icon: CalendarClock, permission: 'holidays.manage' },

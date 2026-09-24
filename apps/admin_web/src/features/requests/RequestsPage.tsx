@@ -107,7 +107,7 @@ export function RequestsPage() {
   const balances = useMyLeaveBalances();
   const [showPersonalBalances, setShowPersonalBalances] = useState(false);
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('all');
+  const [status, setStatus] = useUrlState('status', 'all');
   // تبويب التصنيف مرتبط بالعنوان — يبقى بعد التحديث والمشاركة.
   const [typeTab, setTypeTab] = useUrlState('type', 'all');
   const [selected, setSelected] = useState<RequestSummary | null>(null);

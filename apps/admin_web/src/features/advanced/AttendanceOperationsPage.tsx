@@ -52,7 +52,7 @@ export function AttendanceOperationsPage() {
     <div className="space-y-6">
       <PageHeader
         title="الورديات وإغلاق الحضور"
-        description="إدارة تعريفات الورديات، جداول العمل، العمل الإضافي، وإغلاق الشهر بسجل تدقيق. تصحيحات الحضور انتقلت إلى صفحة طلب إجازة."
+        description="إدارة تعريفات الورديات، جداول العمل، العمل الإضافي، وإغلاق الشهر بسجل تدقيق. تصحيحات الحضور انتقلت إلى صفحة طلبات الموظفين."
         actions={
           <label className="text-sm font-bold">
             <span className="block">الشهر</span>
