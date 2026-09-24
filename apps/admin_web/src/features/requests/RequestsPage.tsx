@@ -5,7 +5,7 @@ import {
   type WorkAssignment,
   type AttendanceOperationsCatalog,
 } from '@ahla/shared-contracts';
-import { CalendarDays, Check, Clock, MapPin, RotateCcw, Truck, X } from 'lucide-react';
+import { CalendarDays, Check, CheckCircle2, Clock, Clock3, FileX, Inbox, MapPin, RefreshCw, RotateCcw, Truck, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useUrlState } from '../../core/useUrlState';
@@ -105,6 +105,7 @@ export function RequestsPage() {
   const query = useRequests();
   const decision = useRequestDecision();
   const balances = useMyLeaveBalances();
+  const [showPersonalBalances, setShowPersonalBalances] = useState(false);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   // تبويب التصنيف مرتبط بالعنوان — يبقى بعد التحديث والمشاركة.
@@ -156,6 +157,39 @@ export function RequestsPage() {
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const corrections: AttendanceOperationsCatalog['corrections'] = correctionsQuery.data?.corrections ?? [];
 
+  const allRequests = query.data ?? [];
+  const metrics = useMemo(() => {
+    const total = allRequests.length;
+    const pendingRequests = allRequests.filter((r) => r.status === 'pending').length;
+    const pendingCorrections = corrections.filter((c) => c.status === 'pending').length;
+    const totalPending = pendingRequests + pendingCorrections;
+    const approved = allRequests.filter((r) => r.status === 'approved').length;
+    const rejected = allRequests.filter((r) => r.status === 'rejected').length;
+    const cancelled = allRequests.filter((r) => r.status === 'cancelled').length;
+
+    const leaves = allRequests.filter((r) => r.requestType === 'leave').length;
+    const missions = allRequests.filter((r) => r.requestType === 'mission').length;
+    const convoys = allRequests.filter((r) => r.requestType === 'convoy').length;
+    const fundraising = allRequests.filter((r) => r.requestType === 'fundraising').length;
+    const permits = allRequests.filter((r) => r.requestType === 'late_permit' || r.requestType === 'early_permit').length;
+
+    return {
+      total,
+      totalPending,
+      pendingRequests,
+      pendingCorrections,
+      approved,
+      rejected,
+      cancelled,
+      leaves,
+      missions,
+      convoys,
+      fundraising,
+      permits,
+      approvalRate: total > 0 ? Math.round((approved / total) * 100) : 0,
+    };
+  }, [allRequests, corrections]);
+
   const filtered = useMemo(
     () =>
       (query.data ?? []).filter((item) => {
@@ -184,33 +218,116 @@ export function RequestsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="طلب إجازة" description="صندوق موحد للإجازات وتصحيحات الحضور والتكليفات (مأمورية، قافلة) والأذونات، مع مسار اعتماد واضح." />
-      {balances.isLoading && !balances.data ? (
+      <PageHeader
+        eyebrow="المنصة الموحدة"
+        title="طلبات الموظفين"
+        description="لوحة مركزية شاملة لمتابعة واعتماد طلبات الموظفين (إجازات، مأموريات، قوافل، فاندي، أذونات، وتصحيحات الحضور) عبر المنظومة."
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowPersonalBalances(true)}
+              className="flex h-9 items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 text-xs font-bold transition-colors hover:bg-[var(--surface-raised)]"
+              title="عرض رصيد إجازاتي الشخصي كـ موظف"
+            >
+              <CalendarDays className="size-4 text-brand" />
+              <span>رصيدي الشخصي</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                void query.refetch();
+                void correctionsQuery.refetch();
+              }}
+              className="flex h-9 items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 text-xs font-bold transition-colors hover:bg-[var(--surface-raised)]"
+              title="تحديث البيانات"
+            >
+              <RefreshCw className="size-3.5" />
+              <span className="hidden sm:inline">تحديث</span>
+            </button>
+          </div>
+        }
+      />
+      {query.isLoading && !query.data ? (
         <MetricSkeletonRow />
       ) : (
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {(balances.data ?? []).map((balance) => (
-            <MetricCard
-              key={balance.leaveTypeId}
-              label={`رصيد ${balance.nameAr}`}
-              value={balance.availableUnits}
-              hint={`محجوز ${balance.reservedUnits} · مستهلك ${balance.consumedUnits}`}
-              icon={CalendarDays}
-              onClick={() => setTypeTab('leave')}
-            />
-          ))}
+          <MetricCard
+            label="إجمالي الطلبات بالمنظومة"
+            value={metrics.total}
+            hint={`${metrics.leaves} إجازة · ${metrics.missions} مأمورية · ${metrics.permits} إذن`}
+            icon={Inbox}
+            onClick={() => {
+              setStatus('all');
+              setTypeTab('all');
+            }}
+          />
+          <MetricCard
+            label="بانتظار الاعتماد"
+            value={metrics.totalPending}
+            hint={
+              metrics.pendingCorrections > 0
+                ? `${metrics.pendingRequests} طلبات + ${metrics.pendingCorrections} تصحيح معلق`
+                : 'طلبات معلقة تتطلب اتخاذ قرار'
+            }
+            icon={Clock3}
+            onClick={() => {
+              setStatus('pending');
+            }}
+          />
+          <MetricCard
+            label="طلبات معتمدة"
+            value={metrics.approved}
+            hint={metrics.total > 0 ? `نسبة الاعتماد ${metrics.approvalRate}% من إجمالي الطلبات` : 'تمت الموافقة عليها'}
+            icon={CheckCircle2}
+            onClick={() => {
+              setStatus('approved');
+            }}
+          />
+          <MetricCard
+            label="مرفوضة أو ملغية"
+            value={metrics.rejected + metrics.cancelled}
+            hint={`${metrics.rejected} مرفوضة · ${metrics.cancelled} ملغية`}
+            icon={FileX}
+            onClick={() => {
+              setStatus('rejected');
+            }}
+          />
         </section>
       )}
       <nav className="flex flex-wrap gap-2" aria-label="تصنيف الطلبات">
-        {typeTabs.map((tab) => (
+        {[
+          { key: 'all' as const, label: 'الكل', count: metrics.total },
+          { key: 'leave' as const, label: 'الإجازات', count: metrics.leaves },
+          { key: 'mission' as const, label: 'المأموريات', count: metrics.missions },
+          { key: 'convoy' as const, label: 'القوافل', count: metrics.convoys },
+          { key: 'fundraising' as const, label: 'الفاندي', count: metrics.fundraising },
+          { key: 'attendance_permit' as const, label: 'أذونات الحضور', count: metrics.permits },
+          { key: 'corrections' as const, label: 'تصحيحات الحضور', count: corrections.length },
+        ].map((tab) => (
           <button
             key={tab.key}
             type="button"
             aria-pressed={typeTab === tab.key}
-            className={`rounded-xl px-4 py-2 text-sm font-black ${typeTab === tab.key ? 'bg-brand text-white' : 'bg-[var(--surface-muted)]'}`}
+            className={`rounded-xl px-4 py-2 text-sm font-black transition-colors flex items-center gap-2 ${
+              typeTab === tab.key
+                ? 'bg-brand text-white shadow-sm'
+                : 'bg-[var(--surface-muted)] text-[var(--text-secondary)] hover:bg-[var(--surface-raised)]'
+            }`}
             onClick={() => setTypeTab(tab.key)}
           >
-            {tab.label}
+            <span>{tab.label}</span>
+            {typeof tab.count === 'number' && tab.count > 0 ? (
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                  typeTab === tab.key
+                    ? 'bg-white/20 text-white'
+                    : 'bg-[var(--surface-raised)] text-[var(--text-muted)]'
+                }`}
+              >
+                {tab.count}
+              </span>
+            ) : null}
           </button>
         ))}
       </nav>
@@ -548,6 +665,45 @@ export function RequestsPage() {
               حالة الطلب: {REQUEST_STATUS_LABELS[selected.status] ?? selected.status}
             </div>
           )}
+        </DialogOverlay>
+      ) : null}
+
+      {showPersonalBalances ? (
+        <DialogOverlay onClose={() => setShowPersonalBalances(false)} title="أرصدة إجازاتي الشخصية">
+          <div className="space-y-4">
+            <p className="muted text-sm">
+              أرصدة الإجازات السنوية والعارضة وبدل الراحة الخاصة بحساب الموظف:{' '}
+              <strong className="text-[var(--text-primary)]">{auth.access?.displayName}</strong>
+            </p>
+            {balances.isLoading && !balances.data ? (
+              <ListSkeleton rows={3} />
+            ) : (balances.data ?? []).length === 0 ? (
+              <EmptyState title="لا توجد أرصدة مسجلة" description="لم يتم العثور على سجل رصيد إجازات لهذا الحساب." />
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(balances.data ?? []).map((balance) => (
+                  <div
+                    key={balance.leaveTypeId}
+                    className="rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 shadow-sm"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-bold">{balance.nameAr}</span>
+                      <span className="text-2xl font-black text-brand">{balance.availableUnits}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between border-t border-[var(--border)] pt-2 text-xs text-[var(--text-muted)]">
+                      <span>المحجوز: {balance.reservedUnits}</span>
+                      <span>المستهلك: {balance.consumedUnits}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex justify-end pt-2">
+              <button type="button" className="btn-secondary" onClick={() => setShowPersonalBalances(false)}>
+                إغلاق
+              </button>
+            </div>
+          </div>
         </DialogOverlay>
       ) : null}
     </div>

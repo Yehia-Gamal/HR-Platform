@@ -74,14 +74,17 @@ describe('RequestsPage', () => {
     expect(container.firstChild).toBeTruthy();
   });
 
-  it('يعرض عنوان الصفحة', () => {
+  it('يعرض عنوان الصفحة ولوحة مؤشرات النظام', () => {
     requestsOverrideFn = () => dataQuery;
     render(
       <Wrapper>
         <RequestsPage />
       </Wrapper>,
     );
-    expect(screen.getByText('طلب إجازة')).toBeDefined();
+    expect(screen.getByText('طلبات الموظفين')).toBeDefined();
+    expect(screen.getByText('إجمالي الطلبات بالمنظومة')).toBeDefined();
+    expect(screen.getByText('بانتظار الاعتماد')).toBeDefined();
+    expect(screen.getByText('طلبات معتمدة')).toBeDefined();
   });
 
   it('يعرض تبويبات تصنيف الطلبات', () => {
