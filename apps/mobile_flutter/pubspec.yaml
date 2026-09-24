@@ -1,5 +1,5 @@
 name: ahla_shabab_management_os
-version: 0.13.7+24
+version: 0.13.8+25
 publish_to: none
 description: Unified Flutter application for employee, manager and executive workspaces.
 
