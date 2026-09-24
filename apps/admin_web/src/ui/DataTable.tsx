@@ -155,7 +155,7 @@ export function DataTable<T>({
           <thead className="sticky top-0 z-10 bg-[var(--surface-muted)] backdrop-blur-md shadow-xs text-xs font-bold text-[var(--text-secondary)] border-b border-[var(--border)]">
             <tr>
               {selectable ? (
-                <th scope="col" className="w-12 px-4 py-3.5">
+                <th scope="col" className="w-12 px-3.5 py-2.5">
                   <input
                     type="checkbox"
                     checked={allSelected}
@@ -171,7 +171,7 @@ export function DataTable<T>({
               {columns.map((col) => {
                 const ariaSortValue = col.sortable && sortKey === col.key ? sortDir : undefined;
                 return (
-                  <th key={col.key} scope="col" className="px-4 py-3.5" aria-sort={ariaSortValue}>
+                  <th key={col.key} scope="col" className="px-3.5 py-2.5 whitespace-nowrap" aria-sort={ariaSortValue}>
                     {col.sortable ? (
                       <button
                         type="button"
@@ -210,7 +210,7 @@ export function DataTable<T>({
                   aria-selected={selectable ? isSelected : undefined}
                 >
                   {selectable ? (
-                    <td className="px-4 py-3.5">
+                    <td className="px-3.5 py-2.5">
                       <input
                         type="checkbox"
                         checked={isSelected}
@@ -221,7 +221,7 @@ export function DataTable<T>({
                     </td>
                   ) : null}
                   {columns.map((col) => (
-                    <td key={col.key} className="px-4 py-3.5">
+                    <td key={col.key} className="px-3.5 py-2.5">
                       {col.render ? col.render(row, rowIndex) : String((row as Record<string, unknown>)[col.key] ?? '—')}
                     </td>
                   ))}
