@@ -10,6 +10,7 @@ export function MetricCard({
   to,
   onClick,
   ariaLabel,
+  compact = false,
 }: {
   label: string;
   value: number | string;
@@ -19,16 +20,17 @@ export function MetricCard({
   to?: string;
   onClick?: () => void;
   ariaLabel?: string;
+  compact?: boolean;
 }) {
   const clickable = Boolean(to) || Boolean(onClick);
   const a11yLabel = ariaLabel ?? `عرض تفاصيل ${label}`;
   const card = (
-    <article className={`metric-card${clickable ? ' metric-card--linked' : ''}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+    <article className={`metric-card${compact ? ' !p-3 sm:!p-3.5' : ''}${clickable ? ' metric-card--linked' : ''}`}>
+      <div className="flex items-start justify-between gap-2.5">
+        <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-extrabold text-[var(--text-muted)]">{label}</p>
-          <div className="mt-2 flex flex-wrap items-end gap-2">
-            <p className="text-3xl font-black tracking-tight text-[var(--text-primary)]">{value}</p>
+          <div className={`${compact ? 'mt-1' : 'mt-2'} flex flex-wrap items-end gap-2`}>
+            <p className={`${compact ? 'text-2xl' : 'text-3xl'} font-black tracking-tight text-[var(--text-primary)]`}>{value}</p>
             {trend ? (
               <span className="metric-trend">
                 <ArrowUpLeft className="size-3" aria-hidden="true" />
@@ -37,13 +39,13 @@ export function MetricCard({
             ) : null}
           </div>
         </div>
-        <span className="metric-icon">
-          <Icon className="size-5" aria-hidden="true" />
+        <span className={`metric-icon ${compact ? '!size-9 shrink-0 !rounded-lg' : ''}`}>
+          <Icon className={compact ? 'size-4' : 'size-5'} aria-hidden="true" />
         </span>
       </div>
-      {hint ? <p className="mt-3 text-xs leading-5 text-[var(--text-muted)]">{hint}</p> : null}
+      {hint ? <p className={`${compact ? 'mt-2 text-[11px] leading-4' : 'mt-3 text-xs leading-5'} text-[var(--text-muted)] truncate`}>{hint}</p> : null}
       {clickable ? (
-        <span className="mt-2 flex items-center gap-1 text-xs font-bold text-[var(--brand-primary)]">
+        <span className={`${compact ? 'mt-1.5 text-[11px]' : 'mt-2 text-xs'} flex items-center gap-1 font-bold text-[var(--brand-primary)]`}>
           <ArrowRight className="size-3" aria-hidden="true" />
           عرض التفاصيل
         </span>
