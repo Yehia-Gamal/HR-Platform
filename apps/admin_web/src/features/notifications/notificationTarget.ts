@@ -132,7 +132,8 @@ type PageKey =
   | 'employees'
   | 'documents'
   | 'access'
-  | 'settings';
+  | 'settings'
+  | 'projects';
 
 const PAGES: Record<NotificationWorkspace, Partial<Record<PageKey, string>>> = {
   admin: {
@@ -150,6 +151,7 @@ const PAGES: Record<NotificationWorkspace, Partial<Record<PageKey, string>>> = {
     documents: '/admin/hr/documents',
     access: '/admin/access',
     settings: '/admin/settings',
+    projects: '/admin/association-projects',
   },
   hr: {
     requests: '/hr/requests',
@@ -161,6 +163,7 @@ const PAGES: Record<NotificationWorkspace, Partial<Record<PageKey, string>>> = {
     devices: '/hr/devices',
     employees: '/hr/employees',
     documents: '/hr/documents',
+    projects: '/hr/association-projects',
   },
   committee: {
     disputes: '/committee/disputes',
@@ -245,6 +248,9 @@ function buildTarget(type: string, item: NotificationItem, workspace: Notificati
     case 'break_glass_requests':
     case 'access_review_items':
       return pages.access ?? null;
+
+    case 'association_project':
+      return pages.projects ? withParams(pages.projects, { project: id }) : null;
 
     case 'privacy_requests':
       return pages.settings ?? pages.employees ?? null;

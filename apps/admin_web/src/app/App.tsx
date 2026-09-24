@@ -308,14 +308,8 @@ function AuthenticatedApp() {
                 </RequirePermission>
               }
             />
-            <Route
-              path="association-projects"
-              element={
-                <RequirePermission perm="governance.data.manage">
-                  <AssociationProjectsPage />
-                </RequirePermission>
-              }
-            />
+            {/* بلا حارس صلاحية: الخادم يحصر النطاق (المدير التنفيذي = الكل، غيره = مشاريع إدارته). */}
+            <Route path="association-projects" element={<AssociationProjectsPage />} />
             <Route
               path="operations"
               element={
@@ -637,6 +631,7 @@ function HrWorkspaceRoutes() {
           </RequirePermission>
         }
       />
+      <Route path="association-projects" element={<AssociationProjectsPage />} />
       <Route path="notifications" element={<NotificationsPage />} />
       <Route path="*" element={<HrCatchAll />} />
     </Routes>

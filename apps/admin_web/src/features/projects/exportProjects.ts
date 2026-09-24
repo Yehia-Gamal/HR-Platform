@@ -1,10 +1,8 @@
 import type { AssociationProjectListItem } from '@ahla/shared-contracts';
 import { printReport, downloadCsv, toCsv, type ExportColumn } from '../../core/exportUtils';
+import { APPROVAL_LABELS, LED_META, PRIORITY_LABELS, STATUS_LABELS, activityDays, daysAgoLabel } from './projectLedStatus';
 
-const LED_LABELS: Record<string, string> = { active: 'نشط', halted: 'متوقف', stale: 'مطفأ', pending: 'بانتظار', rejected: 'مرفوض', draft: 'مسودة' };
-const STATUS_LABELS: Record<string, string> = { planned: 'مخطط', active: 'نشط', on_hold: 'متوقف', completed: 'مكتمل', cancelled: 'ملغى' };
-const PRIORITY_LABELS: Record<string, string> = { low: 'منخفضة', medium: 'متوسطة', high: 'عالية', critical: 'حرجة' };
-const APPROVAL_LABELS: Record<string, string> = { draft: 'مسودة', pending_approval: 'بانتظار الموافقة', approved: 'معتمد', rejected: 'مرفوض' };
+const LED_LABELS: Record<string, string> = Object.fromEntries(Object.entries(LED_META).map(([k, v]) => [k, v.label]));
 
 export function exportProjectsCsv(projects: AssociationProjectListItem[]): void {
   const columns: ExportColumn<AssociationProjectListItem>[] = [
@@ -15,11 +13,12 @@ export function exportProjectsCsv(projects: AssociationProjectListItem[]): void 
     { key: 'status', header: 'الحالة', get: (r) => STATUS_LABELS[r.status] ?? r.status },
     { key: 'approvalStatus', header: 'الموافقة', get: (r) => APPROVAL_LABELS[r.approvalStatus] ?? r.approvalStatus },
     { key: 'priority', header: 'الأولوية', get: (r) => PRIORITY_LABELS[r.priority] ?? r.priority },
-    { key: 'ledStatus', header: 'LED', get: (r) => LED_LABELS[r.ledStatus] ?? r.ledStatus },
+    { key: 'ledStatus', header: 'اللمبة', get: (r) => LED_LABELS[r.ledStatus] ?? r.ledStatus },
     { key: 'progress', header: 'نسبة الإنجاز %', get: (r) => r.progress },
     { key: 'completedSteps', header: 'الخطوات المكتملة', get: (r) => r.completedSteps },
     { key: 'remainingSteps', header: 'الخطوات المتبقية', get: (r) => r.remainingSteps },
-    { key: 'lastUpdateAt', header: 'آخر تحديث', get: (r) => (r.lastUpdateAt ? new Date(r.lastUpdateAt).toLocaleDateString('ar-EG') : '—') },
+    { key: 'currentStepTitle', header: 'المرحلة الحالية', get: (r) => r.currentStepTitle ?? '—' },
+    { key: 'lastActivityAt', header: 'آخر نشاط', get: (r) => daysAgoLabel(activityDays(r)) },
   ];
   const csv = toCsv(columns, projects);
   downloadCsv(`مشاريع_الجمعية_${new Date().toLocaleDateString('ar-EG')}.csv`, csv);
@@ -30,7 +29,7 @@ export function exportProjectsPdf(projects: AssociationProjectListItem[]): void 
     total: projects.length,
     active: projects.filter((p) => p.ledStatus === 'active').length,
     halted: projects.filter((p) => p.ledStatus === 'halted').length,
-    stale: projects.filter((p) => p.ledStatus === 'stale').length,
+    critical: projects.filter((p) => p.ledStatus === 'critical').length,
   };
 
   const statsHtml = `
@@ -41,15 +40,15 @@ export function exportProjectsPdf(projects: AssociationProjectListItem[]): void 
       </div>
       <div style="flex:1;min-width:120px;padding:12px;background:#ecfdf5;border-radius:8px;text-align:center;border:1px solid #a7f3d0;">
         <div style="font-size:24px;font-weight:900;color:#059669;">${stats.active}</div>
-        <div style="font-size:11px;color:#059669;">نشطة</div>
+        <div style="font-size:11px;color:#059669;">تعمل بانتظام</div>
       </div>
       <div style="flex:1;min-width:120px;padding:12px;background:#fef2f2;border-radius:8px;text-align:center;border:1px solid #fecaca;">
         <div style="font-size:24px;font-weight:900;color:#dc2626;">${stats.halted}</div>
         <div style="font-size:11px;color:#dc2626;">متوقفة</div>
       </div>
-      <div style="flex:1;min-width:120px;padding:12px;background:#f3f4f6;border-radius:8px;text-align:center;border:1px solid #d1d5db;">
-        <div style="font-size:24px;font-weight:900;color:#6b7280;">${stats.stale}</div>
-        <div style="font-size:11px;color:#6b7280;">مطفأة</div>
+      <div style="flex:1;min-width:120px;padding:12px;background:#fee2e2;border-radius:8px;text-align:center;border:1px solid #fca5a5;">
+        <div style="font-size:24px;font-weight:900;color:#b91c1c;">${stats.critical}</div>
+        <div style="font-size:11px;color:#b91c1c;">تحتاج تدخل</div>
       </div>
     </div>`;
 
@@ -63,8 +62,8 @@ export function exportProjectsPdf(projects: AssociationProjectListItem[]): void 
     PRIORITY_LABELS[p.priority] ?? p.priority,
     LED_LABELS[p.ledStatus] ?? p.ledStatus,
     `${p.progress}%`,
-    `${p.completedSteps}/${p.completedSteps + p.remainingSteps}`,
-    p.lastUpdateAt ? new Date(p.lastUpdateAt).toLocaleDateString('ar-EG') : '—',
+    `${p.completedSteps}/${p.totalSteps}`,
+    daysAgoLabel(activityDays(p)),
   ]);
 
   printReport(
@@ -73,7 +72,7 @@ export function exportProjectsPdf(projects: AssociationProjectListItem[]): void 
         title: 'مشاريع الجمعية',
         subtitle: `تاريخ التصدير: ${new Date().toLocaleDateString('ar-EG')}`,
         table: {
-          headers: ['الكود', 'المشروع', 'الإدارة', 'المسؤول', 'الحالة', 'الموافقة', 'الأولوية', 'LED', 'التقدم', 'الخطوات', 'آخر تحديث'],
+          headers: ['الكود', 'المشروع', 'الإدارة', 'المسؤول', 'الحالة', 'الموافقة', 'الأولوية', 'اللمبة', 'التقدم', 'الخطوات', 'آخر نشاط'],
           rows,
         },
       },

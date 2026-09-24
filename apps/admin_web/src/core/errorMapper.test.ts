@@ -133,6 +133,17 @@ describe('safeErrorMessage', () => {
     spy.mockRestore();
   });
 
+  it('يعرض رسالة الخادم العربية كما هي بدل الرسالة العامة', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(safeErrorMessage(new Error('كود المشروع مستخدم من قبل'))).toContain('كود المشروع مستخدم من قبل');
+    // PostgrestError قد يصل ككائن عادي لا Error
+    expect(safeErrorMessage({ message: 'لا يمكنك إنشاء مشروع إلا لإدارتك', code: '42501' })).toContain('إلا لإدارتك');
+    expect(safeErrorMessage({ message: 'FORBIDDEN' })).toContain('ليس لديك صلاحية');
+    // رسالة إنجليزية مجهولة تبقى عامة
+    expect(safeErrorMessage(new Error('some internal failure xyz'))).toContain('حدث خطأ غير متوقع');
+    spy.mockRestore();
+  });
+
   it('يترجم أخطاء أرشفة/حذف الموظف المخزّنة إلى العربية', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(safeErrorMessage(new Error('delete_confirmation_mismatch'))).toContain('رمز التأكيد');

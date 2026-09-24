@@ -242,3 +242,17 @@ describe('notificationTargetPath', () => {
     }
   });
 });
+
+describe('إشعارات مشاريع الجمعية', () => {
+  const projectId = '57000000-0000-4000-8000-0000000000aa';
+  it('تفتح لوحة المشروع نفسه في مساحة الأدمن', () => {
+    expect(notificationTargetPath(item({ entityType: 'association_project', entityId: projectId }), 'admin')).toBe(
+      `/admin/association-projects?project=${projectId}`,
+    );
+  });
+  it('تفتح لوحة المشروع في مساحة HR', () => {
+    expect(notificationTargetPath(item({ entityType: 'association_project', entityId: projectId }), 'hr')).toBe(
+      `/hr/association-projects?project=${projectId}`,
+    );
+  });
+});

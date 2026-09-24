@@ -1,570 +1,627 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { AssociationProjectDetail, AssociationProjectStep } from '@ahla/shared-contracts';
-import { LED_COLORS, APPROVAL_LABELS, APPROVAL_COLORS } from './projectLedStatus';
 import {
-  useAddProjectUpdate,
-  useUpsertProjectStep,
-  useDeleteProjectStep,
-  useUpdateAssociationProject,
-  useSubmitProjectForApproval,
-  useApproveProject,
-  useRejectProject,
-} from './useAssociationProjects';
-import { useOrganizationLookups } from '../employees/useOrganizationLookups';
-import { useEmployees } from '../employees/useEmployees';
-import { StatusBadge } from '../../ui/StatusBadge';
-import { DialogOverlay } from '../../ui/DialogOverlay';
+  AlertTriangle,
+  Ban,
+  CalendarClock,
+  Check,
+  CheckCircle2,
+  Circle,
+  Loader2,
+  MessageSquarePlus,
+  Pencil,
+  Plus,
+  Send,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
-import { X, Plus, CheckCircle2, Clock, FileText, Ban, Edit3, Trash2, Pencil } from 'lucide-react';
+import { DialogOverlay } from '../../ui/DialogOverlay';
+import { ErrorState } from '../../ui/ErrorState';
+import { safeErrorMessage } from '../../core/errorMapper';
+import { useOrganizationLookups } from '../employees/useOrganizationLookups';
+import {
+  useAssociationProjectDetail,
+  useApproveProject,
+  useDeleteAssociationProject,
+  useDeleteProjectStep,
+  useRejectProject,
+  useSetProjectStepStatus,
+  useSubmitProjectForApproval,
+  useUpsertProjectStep,
+} from './useAssociationProjects';
+import { ProjectLed } from './ProjectLed';
+import { ProjectFormDialog } from './ProjectFormDialog';
+import { QuickUpdateDialog } from './QuickUpdateDialog';
+import {
+  APPROVAL_LABELS,
+  LED_META,
+  PRIORITY_LABELS,
+  STATUS_LABELS,
+  STEP_STATUS_LABELS,
+  activityDays,
+  daysAgoLabel,
+  formatDate,
+} from './projectLedStatus';
 
 interface Props {
-  detail: AssociationProjectDetail;
+  projectId: string;
+  isFullAccess: boolean;
+  myDepartmentId: string | null;
   onClose: () => void;
-  onRefresh: () => void;
 }
 
-const STEP_STATUS_ICON: Record<string, typeof CheckCircle2> = {
-  done: CheckCircle2,
-  in_progress: Clock,
-  pending: FileText,
-  blocked: Ban,
-};
+const todayIso = () => new Date().toISOString().slice(0, 10);
 
-export function ProjectDetailPanel({ detail, onClose, onRefresh }: Props) {
-  const { project, steps, updates } = detail;
-  const led = project.ledStatus;
-  const colors = LED_COLORS[led];
+export function ProjectDetailPanel({ projectId, isFullAccess, myDepartmentId, onClose }: Props) {
+  const { data, isLoading, error, refetch } = useAssociationProjectDetail(projectId);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      // الحوارات الداخلية تعالج Escape بنفسها — لا نغلق اللوحة من تحتها.
+      if (e.key === 'Escape' && !document.querySelector('[role="dialog"][aria-modal="true"]')) onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[90] flex justify-end" onClick={onClose}>
+      <div className="absolute inset-0 bg-[rgb(3_10_23/50%)] backdrop-blur-[2px]" />
+      <aside
+        className="relative flex h-full w-full max-w-2xl flex-col overflow-y-auto bg-[var(--app-bg)] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+        aria-label="تفاصيل المشروع"
+      >
+        {isLoading ? (
+          <div className="grid flex-1 place-items-center">
+            <Loader2 className="size-8 animate-spin text-[var(--brand-primary)]" aria-label="جارٍ التحميل" />
+          </div>
+        ) : error || !data ? (
+          <div className="p-6">
+            <ErrorState description={safeErrorMessage(error)} onRetry={() => void refetch()} />
+            <button className="btn-secondary mt-4 w-full" onClick={onClose}>
+              إغلاق
+            </button>
+          </div>
+        ) : (
+          <DetailContent detail={data} isFullAccess={isFullAccess} myDepartmentId={myDepartmentId} onClose={onClose} />
+        )}
+      </aside>
+    </div>,
+    document.body,
+  );
+}
+
+function DetailContent({
+  detail,
+  isFullAccess,
+  myDepartmentId,
+  onClose,
+}: {
+  detail: AssociationProjectDetail;
+  isFullAccess: boolean;
+  myDepartmentId: string | null;
+  onClose: () => void;
+}) {
+  const { project: p, steps, updates } = detail;
+  // قبل نشر 0553 لا تصل الصلاحيات — نشتقها بنفس قاعدة الخادم.
+  const perms = detail.permissions ?? {
+    canManage: isFullAccess || p.canManage,
+    canApprove: isFullAccess && p.approvalStatus === 'pending_approval',
+    canEdit: isFullAccess || p.approvalStatus === 'draft' || p.approvalStatus === 'rejected',
+    canSubmit: p.approvalStatus === 'draft' || p.approvalStatus === 'rejected',
+    canUpdate: p.approvalStatus === 'approved',
+    canDelete: isFullAccess || p.approvalStatus === 'draft' || p.approvalStatus === 'rejected',
+  };
+  const led = p.ledStatus;
+  const meta = LED_META[led];
+  const days = activityDays(p);
+
+  const approve = useApproveProject();
+  const reject = useRejectProject();
+  const submit = useSubmitProjectForApproval();
+  const deleteProject = useDeleteAssociationProject();
+  const setStepStatus = useSetProjectStepStatus();
+  const deleteStep = useDeleteProjectStep();
 
   const [editOpen, setEditOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
-  const [updateNote, setUpdateNote] = useState('');
-  const [updateProgress, setUpdateProgress] = useState(project.progress);
-  const [stepOpen, setStepOpen] = useState(false);
-  const [editingStep, setEditingStep] = useState<AssociationProjectStep | null>(null);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [stepDialog, setStepDialog] = useState<{ step: AssociationProjectStep | null } | null>(null);
   const [deleteStepId, setDeleteStepId] = useState<string | null>(null);
-  const [stepTitle, setStepTitle] = useState('');
-  const [stepDesc, setStepDesc] = useState('');
-  const [stepDue, setStepDue] = useState('');
-  const [stepStatus, setStepStatus] = useState('pending');
 
-  const addUpdate = useAddProjectUpdate();
-  const upsertStep = useUpsertProjectStep();
-  const deleteStep = useDeleteProjectStep();
-  const updateProject = useUpdateAssociationProject();
-  const submitForApproval = useSubmitProjectForApproval();
-  const approveProject = useApproveProject();
-  const rejectProject = useRejectProject();
-  const { data: org } = useOrganizationLookups();
-  const { data: employeesData } = useEmployees();
-  const employees = employeesData ?? [];
-
-  // edit project state
-  const [editName, setEditName] = useState(project.name);
-  const [editDesc, setEditDesc] = useState(project.description || '');
-  const [editDeptId, setEditDeptId] = useState(project.departmentId);
-  const [editOwnerId, setEditOwnerId] = useState(project.ownerId);
-  const [editStatus, setEditStatus] = useState(project.status);
-  const [editPriority, setEditPriority] = useState(project.priority);
-  const [editProgress, setEditProgress] = useState(project.progress);
-  const [editStart, setEditStart] = useState(project.startDate || '');
-  const [editEnd, setEditEnd] = useState(project.targetEndDate || '');
-
-  async function submitUpdate() {
-    await addUpdate.mutateAsync({ projectId: project.id, note: updateNote, progress: updateProgress });
-    setUpdateOpen(false);
-    setUpdateNote('');
-    onRefresh();
-  }
-
-  function openEditStep(s: AssociationProjectStep) {
-    setEditingStep(s);
-    setStepTitle(s.title);
-    setStepDesc(s.description || '');
-    setStepDue(s.dueDate || '');
-    setStepStatus(s.status);
-    setStepOpen(true);
-  }
-
-  async function submitStep() {
-    await upsertStep.mutateAsync({
-      projectId: project.id,
-      stepId: editingStep?.id,
-      title: stepTitle,
-      description: stepDesc,
-      sortOrder: editingStep?.sortOrder ?? steps.length,
-      status: stepStatus,
-      dueDate: stepDue,
-    });
-    setStepOpen(false);
-    setEditingStep(null);
-    onRefresh();
-  }
-
-  async function handleDeleteStep(stepId: string) {
-    await deleteStep.mutateAsync(stepId);
-    setDeleteStepId(null);
-    onRefresh();
-  }
-
-  async function submitEdit() {
-    await updateProject.mutateAsync({
-      projectId: project.id,
-      name: editName,
-      description: editDesc,
-      departmentId: editDeptId,
-      ownerEmployeeId: editOwnerId,
-      status: editStatus,
-      priority: editPriority,
-      progress: editProgress,
-      startDate: editStart,
-      targetEndDate: editEnd,
-    });
-    setEditOpen(false);
-    onRefresh();
-  }
-
-  const doneCount = steps.filter((s) => s.status === 'done').length;
+  const doneSteps = steps.filter((s) => s.status === 'done').length;
+  const remainingSteps = steps.length - doneSteps;
+  const currentStep = steps.find((s) => s.status !== 'done');
 
   return (
     <>
-      <div className="fixed inset-0 z-40 flex justify-end" onClick={onClose}>
-        <div className="absolute inset-0 bg-black/40" />
-        <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-          {/* Header */}
-          <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="relative">
-                    <div className={`w-5 h-5 rounded-full ${colors.bg} ${colors.glow} ${led === 'active' ? 'animate-pulse' : ''}`} />
-                    {led === 'active' && <div className="absolute inset-0 w-5 h-5 rounded-full bg-emerald-400 animate-ping opacity-30" />}
-                  </div>
-                  <span className="text-sm font-bold">{colors.label}</span>
-                </div>
-                <h2 className="text-2xl font-extrabold">{project.name}</h2>
-                <p className="text-sm text-gray-500 font-mono">
-                  {project.code} — {project.departmentName}
-                </p>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${APPROVAL_COLORS[project.approvalStatus]}`}>
-                    {APPROVAL_LABELS[project.approvalStatus]}
-                  </span>
-                  {project.rejectionReason && <span className="text-xs text-rose-500">سبب الرفض: {project.rejectionReason}</span>}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => setEditOpen(true)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600" title="تعديل">
-                  <Pencil className="w-5 h-5" />
-                </button>
-                <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
-                  <X />
-                </button>
-              </div>
+      {/* الرأس */}
+      <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface)] p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <ProjectLed status={led} large />
+              <span className="text-sm font-black" style={{ color: meta.tone }}>
+                {meta.label}
+              </span>
+              <span className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-xs font-bold">{APPROVAL_LABELS[p.approvalStatus]}</span>
             </div>
+            <h2 className="text-2xl leading-tight font-black">{p.name}</h2>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">
+              <span dir="ltr" className="font-mono">
+                {p.code}
+              </span>{' '}
+              • {p.departmentName} • المسؤول: {p.ownerName}
+            </p>
           </div>
-
-          <div className="p-6 space-y-6">
-            {/* معلومات المشروع */}
-            <section>
-              <h3 className="font-bold mb-3">معلومات المشروع</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-500">الحالة: </span>
-                  <StatusBadge status={project.status} />
-                </div>
-                <div>
-                  <span className="text-gray-500">الأولوية: </span>
-                  <StatusBadge status={project.priority} />
-                </div>
-                <div>
-                  <span className="text-gray-500">المسؤول: </span>
-                  {project.ownerName}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-500">نسبة الإنجاز: </span>
-                  <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${led === 'active' ? 'bg-emerald-500' : led === 'halted' ? 'bg-red-500' : 'bg-gray-400'}`}
-                      style={{ width: `${project.progress}%` }}
-                    />
-                  </div>
-                  <span className="font-bold">{project.progress}%</span>
-                </div>
-                {project.startDate && (
-                  <div>
-                    <span className="text-gray-500">تاريخ البدء: </span>
-                    {project.startDate}
-                  </div>
-                )}
-                {project.targetEndDate && (
-                  <div>
-                    <span className="text-gray-500">الموعد النهائي: </span>
-                    {project.targetEndDate}
-                  </div>
-                )}
-              </div>
-              {project.description && <p className="mt-3 text-gray-600 dark:text-gray-400 text-sm">{project.description}</p>}
-
-              {/* أزرار الموافقة */}
-              {project.approvalStatus === 'pending_approval' && (
-                <div className="flex gap-2 mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                  <button
-                    onClick={async () => {
-                      await approveProject.mutateAsync(project.id);
-                      onRefresh();
-                    }}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors text-sm font-medium"
-                  >
-                    ✅ موافقة
-                  </button>
-                  <button
-                    onClick={async () => {
-                      await rejectProject.mutateAsync({ projectId: project.id });
-                      onRefresh();
-                    }}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors text-sm font-medium"
-                  >
-                    ❌ رفض
-                  </button>
-                </div>
-              )}
-              {(project.approvalStatus === 'draft' || project.approvalStatus === 'rejected') && (
-                <button
-                  onClick={async () => {
-                    await submitForApproval.mutateAsync(project.id);
-                    onRefresh();
-                  }}
-                  className="mt-4 w-full flex items-center justify-center gap-1.5 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-sm font-medium"
-                >
-                  📤 إرسال للموافقة
-                </button>
-              )}
-            </section>
-
-            {/* Timeline بصرية */}
-            {steps.length > 0 && (
-              <section>
-                <h3 className="font-bold mb-3">الجدول الزمني</h3>
-                <div className="relative">
-                  {/* الخط الرأسي */}
-                  <div className="absolute right-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" />
-                  <div className="space-y-4">
-                    {steps.map((s, i) => {
-                      const isDone = s.status === 'done';
-                      const isBlocked = s.status === 'blocked';
-                      const isActive = s.status === 'in_progress';
-                      return (
-                        <div key={s.id} className="flex items-start gap-4 relative">
-                          {/* نقطة على الخط */}
-                          <div
-                            className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
-                              isDone
-                                ? 'bg-emerald-500 text-white'
-                                : isBlocked
-                                  ? 'bg-red-500 text-white'
-                                  : isActive
-                                    ? 'bg-blue-500 text-white animate-pulse'
-                                    : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-                            }`}
-                          >
-                            {isDone ? '✓' : i + 1}
-                          </div>
-                          {/* المحتوى */}
-                          <div className={`flex-1 pb-4 ${isDone ? 'opacity-60' : ''}`}>
-                            <p className={`text-sm font-medium ${isDone ? 'line-through text-gray-400' : ''}`}>{s.title}</p>
-                            {s.description && <p className="text-xs text-gray-500 mt-0.5">{s.description}</p>}
-                            <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                              {s.assigneeName && <span>المسؤول: {s.assigneeName}</span>}
-                              {s.dueDate && <span>الموعد: {s.dueDate}</span>}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </section>
+          <div className="flex shrink-0 gap-1">
+            {perms.canEdit && (
+              <button className="icon-button" onClick={() => setEditOpen(true)} aria-label="تعديل بيانات المشروع" title="تعديل">
+                <Pencil className="size-4" />
+              </button>
             )}
-
-            {/* الخطوات */}
-            <section>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold">
-                  الخطوات ({doneCount}/{steps.length})
-                </h3>
-                <button
-                  onClick={() => {
-                    setEditingStep(null);
-                    setStepTitle('');
-                    setStepDesc('');
-                    setStepDue('');
-                    setStepStatus('pending');
-                    setStepOpen(true);
-                  }}
-                  className="text-sm flex items-center gap-1 text-emerald-600 hover:underline"
-                >
-                  <Plus className="w-4 h-4" /> إضافة خطوة
-                </button>
-              </div>
-
-              {steps.length === 0 ? (
-                <p className="text-gray-400 text-sm">لا توجد خطوات بعد</p>
-              ) : (
-                <div className="space-y-2">
-                  {steps.map((s) => {
-                    const Icon = STEP_STATUS_ICON[s.status] || FileText;
-                    return (
-                      <div
-                        key={s.id}
-                        className={`flex items-center gap-3 p-3 rounded-lg border ${s.status === 'done' ? 'bg-emerald-50/50 dark:bg-emerald-950/10' : s.status === 'blocked' ? 'bg-red-50/50 dark:bg-red-950/10' : 'bg-gray-50 dark:bg-gray-800/50'}`}
-                      >
-                        <Icon className={`w-5 h-5 ${s.status === 'done' ? 'text-emerald-500' : s.status === 'blocked' ? 'text-red-500' : 'text-gray-400'}`} />
-                        <div className="flex-1">
-                          <p className={`text-sm font-medium ${s.status === 'done' ? 'line-through text-gray-400' : ''}`}>{s.title}</p>
-                          {s.description && <p className="text-xs text-gray-500">{s.description}</p>}
-                          {s.assigneeName && <p className="text-xs text-gray-400 mt-0.5">المسؤول: {s.assigneeName}</p>}
-                        </div>
-                        <StatusBadge status={s.status} />
-                        <div className="flex gap-1">
-                          <button onClick={() => openEditStep(s)} className="p-1 hover:bg-gray-200 rounded">
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
-                          <button onClick={() => setDeleteStepId(s.id)} className="p-1 hover:bg-red-100 rounded text-red-500">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-
-            {/* تحديثات */}
-            <section>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold">آخر التحديثات</h3>
-                <button onClick={() => setUpdateOpen(true)} className="text-sm flex items-center gap-1 text-emerald-600 hover:underline">
-                  <Plus className="w-4 h-4" /> إضافة تحديث
-                </button>
-              </div>
-
-              {updates.length === 0 ? (
-                <p className="text-gray-400 text-sm">لا توجد تحديثات بعد</p>
-              ) : (
-                <div className="space-y-3">
-                  {updates.map((u) => (
-                    <div key={u.id} className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium">{u.authorName}</span>
-                        <span className="text-xs text-gray-400">
-                          {new Date(u.createdAt).toLocaleDateString('ar-EG', {
-                            year: 'numeric',
-                            month: 'numeric',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{u.note}</p>
-                      {u.progress != null && <p className="text-xs text-gray-500 mt-1">نسبة الإنجاز: {u.progress}%</p>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
+            {perms.canDelete && (
+              <button className="icon-button text-[var(--danger)]" onClick={() => setDeleteOpen(true)} aria-label="حذف المشروع" title="حذف">
+                <Trash2 className="size-4" />
+              </button>
+            )}
+            <button className="icon-button" onClick={onClose} aria-label="إغلاق">
+              <X className="size-5" />
+            </button>
           </div>
         </div>
+      </header>
+
+      <div className="space-y-5 p-5">
+        {/* شريط الحالة: ماذا يحدث ومن يجب أن يتحرك */}
+        <StatusBanner
+          led={led}
+          days={days}
+          isFullAccess={isFullAccess}
+          rejectionReason={p.rejectionReason}
+          actions={
+            <>
+              {perms.canApprove && (
+                <>
+                  <button className="btn-primary btn-sm" disabled={approve.isPending} onClick={() => approve.mutate(p.id)}>
+                    <Check className="size-4" aria-hidden="true" /> اعتماد المشروع
+                  </button>
+                  <button className="btn-danger btn-sm" onClick={() => setRejectOpen(true)}>
+                    <X className="size-4" aria-hidden="true" /> إعادة للإدارة
+                  </button>
+                </>
+              )}
+              {perms.canSubmit && perms.canManage && (
+                <button className="btn-primary btn-sm" disabled={submit.isPending} onClick={() => submit.mutate(p.id)}>
+                  <Send className="size-4" aria-hidden="true" /> إرسال للاعتماد
+                </button>
+              )}
+              {perms.canUpdate && perms.canManage && (led === 'critical' || led === 'halted') && (
+                <button className="btn-primary btn-sm" onClick={() => setUpdateOpen(true)}>
+                  <MessageSquarePlus className="size-4" aria-hidden="true" /> تسجيل تحديث
+                </button>
+              )}
+            </>
+          }
+        />
+
+        {/* الملخص */}
+        <section className="card p-5">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold text-[var(--text-muted)]">نسبة الإنجاز</p>
+              <p className="tabular text-4xl font-black">{Math.round(p.progress)}%</p>
+            </div>
+            <div className="text-end text-sm">
+              <p className="font-bold">{STATUS_LABELS[p.status]}</p>
+              <p className="text-xs text-[var(--text-muted)]">آخر نشاط: {daysAgoLabel(days)}</p>
+            </div>
+          </div>
+          <div className="mt-3 h-3 overflow-hidden rounded-full bg-[var(--surface-muted)]">
+            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${p.progress}%`, background: meta.tone }} />
+          </div>
+          {steps.length > 0 && <p className="mt-2 text-xs text-[var(--text-muted)]">تُحسب تلقائياً من الخطوات المكتملة.</p>}
+
+          <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+            <Stat label="تم إنجازه" value={`${doneSteps} خطوة`} tone="var(--success)" />
+            <Stat label="متبقي" value={`${remainingSteps} خطوة`} />
+            <Stat label="الأولوية" value={PRIORITY_LABELS[p.priority]} />
+            <Stat
+              label="الموعد المستهدف"
+              value={formatDate(p.targetEndDate)}
+              tone={p.isOverdue ? 'var(--danger)' : undefined}
+              note={p.isOverdue ? 'تجاوز الموعد' : undefined}
+            />
+          </dl>
+
+          {currentStep && p.status !== 'completed' && (
+            <div className="mt-4 rounded-xl bg-[var(--surface-subtle)] p-3 text-sm">
+              <span className="text-[var(--text-muted)]">المرحلة الحالية: </span>
+              <span className="font-black">{currentStep.title}</span>
+            </div>
+          )}
+          {steps.length > 0 && remainingSteps === 0 && p.status !== 'completed' && perms.canUpdate && perms.canManage && (
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-[var(--success-soft)] p-3 text-sm">
+              <span className="font-bold text-[var(--success)]">كل الخطوات تمت — أعلن اكتمال المشروع.</span>
+              <button className="btn-primary btn-sm" onClick={() => setUpdateOpen(true)}>
+                تسجيل الاكتمال
+              </button>
+            </div>
+          )}
+          {p.description && <p className="mt-4 text-sm leading-7 text-[var(--text-secondary)]">{p.description}</p>}
+        </section>
+
+        {/* خطوات التنفيذ والمهام */}
+        <section className="card p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-black">خطوات التنفيذ والمهام</h3>
+              <p className="text-xs text-[var(--text-muted)]">
+                تم {doneSteps} • متبقي {remainingSteps}
+                {perms.canManage ? ' — علّم الخطوة عند إنجازها ليتحدّث المشروع تلقائياً' : ''}
+              </p>
+            </div>
+            {perms.canManage && (
+              <button className="btn-secondary btn-sm" onClick={() => setStepDialog({ step: null })}>
+                <Plus className="size-4" aria-hidden="true" /> خطوة
+              </button>
+            )}
+          </div>
+
+          {steps.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-[var(--border-strong)] p-6 text-center text-sm text-[var(--text-muted)]">
+              لم تُضف خطوات بعد. قسّم المشروع إلى خطوات واضحة (مثل: دراسة، تعاقد، تنفيذ، تسليم) ليظهر تقدمه تلقائياً.
+            </p>
+          ) : (
+            <ol className="space-y-2">
+              {steps.map((s, i) => {
+                const overdue = s.status !== 'done' && s.dueDate && s.dueDate < todayIso();
+                const isCurrent = s.id === currentStep?.id;
+                return (
+                  <li
+                    key={s.id}
+                    className={`flex items-start gap-3 rounded-xl border p-3 ${
+                      isCurrent ? 'border-[var(--brand-primary)] bg-[var(--brand-primary-soft)]' : 'border-[var(--border)] bg-[var(--surface)]'
+                    }`}
+                  >
+                    <StepToggle
+                      step={s}
+                      index={i}
+                      disabled={!perms.canManage || setStepStatus.isPending}
+                      onToggle={() => setStepStatus.mutate({ stepId: s.id, status: s.status === 'done' ? 'pending' : 'done' })}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className={`font-bold ${s.status === 'done' ? 'text-[var(--text-muted)] line-through' : ''}`}>{s.title}</p>
+                      {s.description && <p className="mt-0.5 text-xs text-[var(--text-muted)]">{s.description}</p>}
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--text-muted)]">
+                        {s.assigneeName && <span>المكلَّف: {s.assigneeName}</span>}
+                        {s.dueDate && (
+                          <span className={overdue ? 'font-bold text-[var(--danger)]' : ''}>
+                            <CalendarClock className="inline size-3" aria-hidden="true" /> {formatDate(s.dueDate)}
+                            {overdue ? ' — متأخرة' : ''}
+                          </span>
+                        )}
+                        {s.status === 'done' && s.completedAt && <span className="text-[var(--success)]">تمت {formatDate(s.completedAt)}</span>}
+                      </div>
+                    </div>
+                    {perms.canManage ? (
+                      <div className="flex shrink-0 items-center gap-1">
+                        <select
+                          className="input !w-auto !px-2 !py-1 text-xs"
+                          value={s.status}
+                          onChange={(e) => setStepStatus.mutate({ stepId: s.id, status: e.target.value })}
+                          aria-label={`حالة الخطوة ${s.title}`}
+                        >
+                          {Object.entries(STEP_STATUS_LABELS).map(([k, v]) => (
+                            <option key={k} value={k}>
+                              {v}
+                            </option>
+                          ))}
+                        </select>
+                        <button className="icon-button !size-8" onClick={() => setStepDialog({ step: s })} aria-label={`تعديل الخطوة ${s.title}`}>
+                          <Pencil className="size-3.5" />
+                        </button>
+                        <button className="icon-button !size-8 text-[var(--danger)]" onClick={() => setDeleteStepId(s.id)} aria-label={`حذف الخطوة ${s.title}`}>
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="shrink-0 rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-xs font-bold">{STEP_STATUS_LABELS[s.status]}</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </section>
+
+        {/* سجل التحديثات */}
+        <section className="card p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h3 className="text-lg font-black">سجل التحديثات</h3>
+            {perms.canUpdate && perms.canManage && (
+              <button className="btn-secondary btn-sm" onClick={() => setUpdateOpen(true)}>
+                <MessageSquarePlus className="size-4" aria-hidden="true" /> تحديث
+              </button>
+            )}
+          </div>
+          {updates.length === 0 ? (
+            <p className="text-sm text-[var(--text-muted)]">
+              {p.approvalStatus === 'approved' ? 'لا توجد تحديثات بعد.' : 'تبدأ التحديثات بعد اعتماد المشروع.'}
+            </p>
+          ) : (
+            <ol className="relative space-y-4 border-s-2 border-[var(--border)] ps-4">
+              {updates.map((u) => (
+                <li key={u.id} className="relative">
+                  <span className="absolute -start-[1.4rem] top-1.5 size-2.5 rounded-full bg-[var(--brand-primary)]" aria-hidden="true" />
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="text-sm font-bold">{u.authorName}</span>
+                    <time className="text-xs text-[var(--text-muted)]" dateTime={u.createdAt}>
+                      {new Date(u.createdAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
+                    </time>
+                  </div>
+                  <p className="mt-1 text-sm leading-7 whitespace-pre-line">{u.note}</p>
+                  {u.statusChange && (
+                    <span className="mt-1 inline-block rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-xs font-bold">
+                      الحالة ← {STATUS_LABELS[u.statusChange as keyof typeof STATUS_LABELS] ?? u.statusChange}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+
+        <p className="text-center text-xs text-[var(--text-muted)]">
+          {p.approvedAt ? `اعتُمد ${formatDate(p.approvedAt)}` : 'لم يُعتمد بعد'}
+          {p.startDate ? ` • البدء ${formatDate(p.startDate)}` : ''}
+        </p>
       </div>
 
-      {/* حوار تعديل المشروع */}
-      {editOpen && (
-        <DialogOverlay title="تعديل المشروع" onClose={() => setEditOpen(false)}>
-          <div className="space-y-4 p-4">
-            <label className="block">
-              <span className="text-sm font-medium">اسم المشروع</span>
-              <input className="input mt-1 w-full" value={editName} onChange={(e) => setEditName(e.target.value)} />
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium">الوصف</span>
-              <textarea className="input mt-1 w-full" rows={2} value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
-            </label>
-            <div className="grid grid-cols-2 gap-4">
-              <label className="block">
-                <span className="text-sm font-medium">الإدارة</span>
-                <select className="input mt-1 w-full" value={editDeptId} onChange={(e) => setEditDeptId(e.target.value)}>
-                  {org?.departments.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium">المسؤول</span>
-                <select className="input mt-1 w-full" value={editOwnerId} onChange={(e) => setEditOwnerId(e.target.value)}>
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.fullNameAr}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <label className="block">
-                <span className="text-sm font-medium">الحالة</span>
-                <select
-                  className="input mt-1 w-full"
-                  value={editStatus}
-                  onChange={(e) => setEditStatus(e.target.value as AssociationProjectDetail['project']['status'])}
-                >
-                  <option value="planned">مخطط</option>
-                  <option value="active">نشط</option>
-                  <option value="on_hold">متوقف</option>
-                  <option value="completed">مكتمل</option>
-                  <option value="cancelled">ملغى</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium">الأولوية</span>
-                <select
-                  className="input mt-1 w-full"
-                  value={editPriority}
-                  onChange={(e) => setEditPriority(e.target.value as AssociationProjectDetail['project']['priority'])}
-                >
-                  <option value="low">منخفضة</option>
-                  <option value="medium">متوسطة</option>
-                  <option value="high">عالية</option>
-                  <option value="critical">حرجة</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium">نسبة الإنجاز</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  className="input mt-1 w-full"
-                  value={editProgress}
-                  onChange={(e) => setEditProgress(Number(e.target.value))}
-                />
-              </label>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <label className="block">
-                <span className="text-sm font-medium">تاريخ البدء</span>
-                <input type="date" className="input mt-1 w-full" value={editStart} onChange={(e) => setEditStart(e.target.value)} />
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium">الموعد النهائي</span>
-                <input type="date" className="input mt-1 w-full" value={editEnd} onChange={(e) => setEditEnd(e.target.value)} />
-              </label>
-            </div>
-            <button onClick={submitEdit} disabled={!editName.trim() || updateProject.isPending} className="btn-primary w-full">
-              {updateProject.isPending ? 'جاري الحفظ...' : 'حفظ التعديلات'}
-            </button>
-          </div>
-        </DialogOverlay>
-      )}
-
-      {/* حوار إضافة تحديث */}
-      {updateOpen && (
-        <DialogOverlay title="إضافة تحديث" onClose={() => setUpdateOpen(false)}>
-          <div className="space-y-4 p-4">
-            <label className="block">
-              <span className="text-sm font-medium">ملاحظة التحديث</span>
-              <textarea
-                className="input mt-1 w-full"
-                rows={3}
-                value={updateNote}
-                onChange={(e) => setUpdateNote(e.target.value)}
-                placeholder="اكتب ملاحظة عن التحديث الذي تم..."
-              />
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium">نسبة الإنجاز الحالية</span>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                className="input mt-1 w-full"
-                value={updateProgress}
-                onChange={(e) => setUpdateProgress(Number(e.target.value))}
-              />
-            </label>
-            <button onClick={submitUpdate} disabled={!updateNote.trim() || addUpdate.isPending} className="btn-primary w-full">
-              {addUpdate.isPending ? 'جاري الحفظ...' : 'حفظ التحديث'}
-            </button>
-          </div>
-        </DialogOverlay>
-      )}
-
-      {/* حوار إضافة/تعديل خطوة */}
-      {stepOpen && (
-        <DialogOverlay
-          title={editingStep ? 'تعديل خطوة' : 'إضافة خطوة جديدة'}
-          onClose={() => {
-            setStepOpen(false);
-            setEditingStep(null);
+      {/* الحوارات */}
+      {editOpen && <ProjectFormDialog project={p} isFullAccess={isFullAccess} myDepartmentId={myDepartmentId} onClose={() => setEditOpen(false)} />}
+      {updateOpen && <QuickUpdateDialog project={p} onClose={() => setUpdateOpen(false)} />}
+      {stepDialog && <StepDialog projectId={p.id} step={stepDialog.step} onClose={() => setStepDialog(null)} />}
+      {rejectOpen && (
+        <RejectDialog
+          projectName={p.name}
+          pending={reject.isPending}
+          onCancel={() => setRejectOpen(false)}
+          onConfirm={async (reason) => {
+            await reject.mutateAsync({ projectId: p.id, reason });
+            setRejectOpen(false);
           }}
-        >
-          <div className="space-y-4 p-4">
-            <label className="block">
-              <span className="text-sm font-medium">عنوان الخطوة</span>
-              <input className="input mt-1 w-full" value={stepTitle} onChange={(e) => setStepTitle(e.target.value)} />
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium">الوصف</span>
-              <textarea className="input mt-1 w-full" rows={2} value={stepDesc} onChange={(e) => setStepDesc(e.target.value)} />
-            </label>
-            <div className="grid grid-cols-2 gap-4">
-              <label className="block">
-                <span className="text-sm font-medium">الحالة</span>
-                <select className="input mt-1 w-full" value={stepStatus} onChange={(e) => setStepStatus(e.target.value)}>
-                  <option value="pending">قيد الانتظار</option>
-                  <option value="in_progress">قيد التنفيذ</option>
-                  <option value="done">مكتمل</option>
-                  <option value="blocked">متوقف</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium">موعد التسليم</span>
-                <input type="date" className="input mt-1 w-full" value={stepDue} onChange={(e) => setStepDue(e.target.value)} />
-              </label>
-            </div>
-            <button onClick={submitStep} disabled={!stepTitle.trim() || upsertStep.isPending} className="btn-primary w-full">
-              {upsertStep.isPending ? 'جاري الحفظ...' : 'حفظ الخطوة'}
-            </button>
-          </div>
-        </DialogOverlay>
-      )}
-
-      {deleteStepId && (
-        <ConfirmDialog
-          open={Boolean(deleteStepId)}
-          title="حذف الخطوة"
-          message="هل أنت متأكد من حذف هذه الخطوة من المشروع؟"
-          confirmLabel="حذف"
-          cancelLabel="إلغاء"
-          tone="danger"
-          loading={deleteStep.isPending}
-          onConfirm={() => handleDeleteStep(deleteStepId)}
-          onCancel={() => setDeleteStepId(null)}
         />
       )}
-
       <ConfirmDialog
-        open={!!deleteStepId}
+        open={Boolean(deleteStepId)}
         title="حذف الخطوة"
-        message="هل أنت متأكد من حذف هذه الخطوة؟ لا يمكن التراجع عن هذا الإجراء."
+        message="ستُحذف الخطوة نهائياً ويُعاد حساب نسبة الإنجاز."
         confirmLabel="حذف"
         tone="danger"
         loading={deleteStep.isPending}
-        onConfirm={() => deleteStepId && handleDeleteStep(deleteStepId)}
+        onConfirm={async () => {
+          if (deleteStepId) await deleteStep.mutateAsync(deleteStepId);
+          setDeleteStepId(null);
+        }}
         onCancel={() => setDeleteStepId(null)}
       />
+      <ConfirmDialog
+        open={deleteOpen}
+        title="حذف المشروع"
+        message={`سيُحذف مشروع «${p.name}» بكل خطواته وتحديثاته نهائياً.`}
+        confirmLabel="حذف المشروع"
+        tone="danger"
+        loading={deleteProject.isPending}
+        onConfirm={async () => {
+          await deleteProject.mutateAsync(p.id);
+          setDeleteOpen(false);
+          onClose();
+        }}
+        onCancel={() => setDeleteOpen(false)}
+      />
     </>
+  );
+}
+
+function Stat({ label, value, tone, note }: { label: string; value: string; tone?: string; note?: string }) {
+  return (
+    <div className="rounded-xl bg-[var(--surface-subtle)] p-3">
+      <dt className="text-xs text-[var(--text-muted)]">{label}</dt>
+      <dd className="mt-0.5 font-black" style={tone ? { color: tone } : undefined}>
+        {value}
+      </dd>
+      {note && <dd className="text-xs font-bold" style={{ color: tone }}>{note}</dd>}
+    </div>
+  );
+}
+
+function StepToggle({ step, index, disabled, onToggle }: { step: AssociationProjectStep; index: number; disabled: boolean; onToggle: () => void }) {
+  const done = step.status === 'done';
+  const Icon = done ? CheckCircle2 : step.status === 'blocked' ? Ban : Circle;
+  const color = done ? 'var(--success)' : step.status === 'blocked' ? 'var(--danger)' : step.status === 'in_progress' ? 'var(--brand-primary)' : 'var(--text-disabled)';
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={disabled}
+      className="relative mt-0.5 grid size-7 shrink-0 place-items-center rounded-full disabled:cursor-default"
+      aria-label={done ? `إلغاء إنجاز الخطوة ${index + 1}` : `تعليم الخطوة ${index + 1} كمنجزة`}
+      aria-pressed={done}
+      title={disabled ? STEP_STATUS_LABELS[step.status] : done ? 'إلغاء الإنجاز' : 'تعليم كمنجزة'}
+    >
+      <Icon className="size-6" style={{ color }} aria-hidden="true" />
+      {!done && step.status !== 'blocked' && <span className="absolute text-[0.6rem] font-black" style={{ color }}>{index + 1}</span>}
+    </button>
+  );
+}
+
+function StatusBanner({
+  led,
+  days,
+  isFullAccess,
+  rejectionReason,
+  actions,
+}: {
+  led: AssociationProjectDetail['project']['ledStatus'];
+  days: number | null;
+  isFullAccess: boolean;
+  rejectionReason: string | null;
+  actions: React.ReactNode;
+}) {
+  const since = daysAgoLabel(days);
+  const content: Record<typeof led, { text: string; bg: string; fg: string } | null> = {
+    active: null,
+    completed: null,
+    stale: null,
+    critical: {
+      text: isFullAccess
+        ? `لا يوجد أي تحديث على المشروع (آخر نشاط ${since}). يحتاج تدخلك لمعرفة سبب التوقف.`
+        : `المشروع بلا أي تحديث (آخر نشاط ${since}) وتم تنبيه المدير التنفيذي. سجّل تحديثاً أو حدّث الخطوات.`,
+      bg: 'var(--danger-soft)',
+      fg: 'var(--danger)',
+    },
+    halted: {
+      text: `المشروع متوقف أو لم يُحدَّث منذ فترة (آخر نشاط ${since}).`,
+      bg: 'var(--danger-soft)',
+      fg: 'var(--danger)',
+    },
+    pending: {
+      text: isFullAccess ? 'أرسلت الإدارة هذا المشروع وينتظر قرارك.' : 'بانتظار اعتماد المدير التنفيذي. يمكنك إضافة الخطوات من الآن.',
+      bg: 'var(--warning-soft)',
+      fg: 'var(--warning)',
+    },
+    rejected: {
+      text: `أُعيد المشروع للتعديل${rejectionReason ? `: «${rejectionReason}»` : '.'} عدّل البيانات ثم أعد الإرسال.`,
+      bg: 'var(--danger-soft)',
+      fg: 'var(--danger)',
+    },
+    draft: {
+      text: 'مسودة لم تُرسل بعد. أرسلها للمدير التنفيذي ليعتمدها وتظهر على اللوحة.',
+      bg: 'var(--surface-muted)',
+      fg: 'var(--text-secondary)',
+    },
+  };
+  const c = content[led];
+  if (!c) return null;
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl p-4 sm:flex-row sm:items-center sm:justify-between" style={{ background: c.bg }} role="status">
+      <p className="flex items-start gap-2 text-sm leading-7 font-bold" style={{ color: c.fg }}>
+        <AlertTriangle className="mt-1 size-4 shrink-0" aria-hidden="true" />
+        {c.text}
+      </p>
+      <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>
+    </div>
+  );
+}
+
+function StepDialog({ projectId, step, onClose }: { projectId: string; step: AssociationProjectStep | null; onClose: () => void }) {
+  const upsert = useUpsertProjectStep();
+  const { data: org } = useOrganizationLookups();
+  const [title, setTitle] = useState(step?.title ?? '');
+  const [description, setDescription] = useState(step?.description ?? '');
+  const [status, setStatus] = useState<string>(step?.status ?? 'pending');
+  const [dueDate, setDueDate] = useState(step?.dueDate ?? '');
+  const [assigneeId, setAssigneeId] = useState(step?.assigneeId ?? '');
+
+  async function save() {
+    if (!title.trim()) return;
+    try {
+      await upsert.mutateAsync({
+        projectId,
+        stepId: step?.id,
+        title: title.trim(),
+        description: description.trim(),
+        sortOrder: step?.sortOrder ?? null,
+        status,
+        dueDate,
+        assigneeId: assigneeId || null,
+      });
+      onClose();
+    } catch {
+      // الخطأ يظهر كتنبيه عام
+    }
+  }
+
+  return (
+    <DialogOverlay title={step ? 'تعديل الخطوة' : 'خطوة / مهمة جديدة'} onClose={onClose} maxWidth="max-w-lg">
+      <div className="space-y-4">
+        <label className="block">
+          <span className="text-sm font-bold">عنوان الخطوة *</span>
+          <input className="input mt-1" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثال: التعاقد مع المورد" />
+        </label>
+        <label className="block">
+          <span className="text-sm font-bold">تفاصيل (اختياري)</span>
+          <textarea className="input mt-1" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
+        </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="text-sm font-bold">الحالة</span>
+            <select className="input mt-1" value={status} onChange={(e) => setStatus(e.target.value)}>
+              {Object.entries(STEP_STATUS_LABELS).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-sm font-bold">موعد الإنجاز</span>
+            <input type="date" className="input mt-1" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          </label>
+        </div>
+        <label className="block">
+          <span className="text-sm font-bold">المكلَّف بالتنفيذ</span>
+          <select className="input mt-1" value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}>
+            <option value="">— بدون —</option>
+            {org?.managers.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button className="btn-primary w-full" disabled={!title.trim() || upsert.isPending} onClick={save}>
+          {upsert.isPending && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+          حفظ الخطوة
+        </button>
+      </div>
+    </DialogOverlay>
+  );
+}
+
+export function RejectDialog({
+  projectName,
+  pending,
+  onCancel,
+  onConfirm,
+}: {
+  projectName: string;
+  pending: boolean;
+  onCancel: () => void;
+  onConfirm: (reason: string) => void | Promise<void>;
+}) {
+  const [reason, setReason] = useState('');
+  return (
+    <DialogOverlay title="إعادة المشروع للإدارة" onClose={onCancel} maxWidth="max-w-md">
+      <div className="space-y-4">
+        <p className="text-sm leading-7">
+          سيُعاد مشروع <strong>«{projectName}»</strong> للإدارة لتعديله وإعادة إرساله. اكتب لهم ما المطلوب تعديله:
+        </p>
+        <textarea className="input" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="مثال: حدّدوا الميزانية المطلوبة والجدول الزمني" />
+        <div className="flex justify-end gap-2">
+          <button className="btn-secondary" onClick={onCancel}>
+            إلغاء
+          </button>
+          <button className="btn-danger" disabled={pending || !reason.trim()} onClick={() => void onConfirm(reason.trim())}>
+            {pending ? 'جارٍ الإرسال…' : 'إعادة للإدارة'}
+          </button>
+        </div>
+      </div>
+    </DialogOverlay>
   );
 }

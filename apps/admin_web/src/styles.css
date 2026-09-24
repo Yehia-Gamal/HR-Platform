@@ -2277,3 +2277,95 @@ a.no-underline:hover .metric-card--linked {
     animation: none;
   }
 }
+
+/* ─── مشاريع الجمعية: لمبة الحالة ─────────────────────────────────────
+   أخضر = يعمل، أحمر ثابت = متوقف، أحمر يومض = يحتاج تدخل المدير التنفيذي.
+   الوميض هو الإشارة نفسها، لذا يُبطَّأ فقط مع reduced-motion ولا يُلغى. */
+.project-led {
+  --led: var(--text-disabled);
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 999px;
+  background: var(--led);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--led) 18%, transparent);
+}
+.project-led.is-lg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+.project-led--active {
+  --led: #10b981;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--led) 20%, transparent),
+    0 0 12px 2px color-mix(in srgb, var(--led) 60%, transparent);
+}
+.project-led--halted {
+  --led: #ef4444;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--led) 20%, transparent),
+    0 0 10px 2px color-mix(in srgb, var(--led) 50%, transparent);
+}
+.project-led--critical {
+  --led: #ef4444;
+  animation: project-led-blink 1s steps(1, end) infinite;
+}
+.project-led--completed {
+  --led: #3b82f6;
+}
+.project-led--pending {
+  --led: #f59e0b;
+}
+.project-led--rejected {
+  --led: #e11d48;
+}
+.project-led--draft {
+  --led: #94a3b8;
+}
+@keyframes project-led-blink {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow:
+      0 0 0 4px color-mix(in srgb, var(--led) 25%, transparent),
+      0 0 18px 5px color-mix(in srgb, var(--led) 75%, transparent);
+  }
+  50% {
+    opacity: 0.18;
+    box-shadow: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .project-led--critical {
+    animation-duration: 2.4s;
+  }
+}
+
+.project-card {
+  display: flex;
+  flex-direction: column;
+  border-top-width: 4px;
+  border-top-color: var(--border);
+  text-align: start;
+}
+.project-card--active {
+  border-top-color: #10b981;
+}
+.project-card--halted {
+  border-top-color: #ef4444;
+}
+.project-card--critical {
+  border-top-color: #ef4444;
+  border-color: color-mix(in srgb, #ef4444 55%, var(--border));
+  box-shadow:
+    var(--shadow-card),
+    0 0 0 1px color-mix(in srgb, #ef4444 25%, transparent);
+}
+.project-card--completed {
+  border-top-color: #3b82f6;
+}
+.project-card--stale {
+  opacity: 0.7;
+}

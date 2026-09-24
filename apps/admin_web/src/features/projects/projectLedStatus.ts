@@ -1,88 +1,85 @@
-import type { LedStatus } from './types';
+import type { AssociationProjectListItem, ProjectLedStatus } from '@ahla/shared-contracts';
 
-export const LED_COLORS: Record<LedStatus, { bg: string; glow: string; ring: string; label: string; borderDot: string }> = {
-  active: {
-    bg: 'bg-emerald-500',
-    glow: 'shadow-[0_0_12px_4px_rgba(16,185,129,0.5)]',
-    ring: 'ring-emerald-400',
-    label: 'نشط',
-    borderDot: 'border-emerald-400',
-  },
-  halted: {
-    bg: 'bg-red-500',
-    glow: 'shadow-[0_0_12px_4px_rgba(239,68,68,0.5)]',
-    ring: 'ring-red-400',
-    label: 'متوقف',
-    borderDot: 'border-red-400',
-  },
-  stale: {
-    bg: 'bg-gray-500 dark:bg-gray-600',
-    glow: '',
-    ring: 'ring-gray-400',
-    label: 'مطفأ',
-    borderDot: 'border-gray-400',
-  },
-  pending: {
-    bg: 'bg-amber-500',
-    glow: 'shadow-[0_0_12px_4px_rgba(245,158,11,0.5)]',
-    ring: 'ring-amber-400',
-    label: 'بانتظار الموافقة',
-    borderDot: 'border-amber-400',
-  },
-  rejected: {
-    bg: 'bg-rose-600',
-    glow: 'shadow-[0_0_12px_4px_rgba(225,29,72,0.5)]',
-    ring: 'ring-rose-500',
-    label: 'مرفوض',
-    borderDot: 'border-rose-500',
-  },
-  draft: {
-    bg: 'bg-slate-400 dark:bg-slate-500',
-    glow: '',
-    ring: 'ring-slate-400',
-    label: 'مسودة',
-    borderDot: 'border-slate-400',
-  },
+/** وصف كل حالة للمبة: العنوان القصير + شرح ما تعنيه للمدير التنفيذي. */
+export const LED_META: Record<ProjectLedStatus, { label: string; hint: string; tone: string }> = {
+  active: { label: 'يعمل بانتظام', hint: 'نشاط حديث على المشروع', tone: 'var(--success)' },
+  halted: { label: 'متوقف', hint: 'متوقف أو بلا تحديث منذ فترة', tone: 'var(--danger)' },
+  critical: { label: 'يحتاج تدخلك', hint: 'بلا أي تحديث لفترة طويلة — يحتاج تدخل المدير التنفيذي', tone: 'var(--danger)' },
+  completed: { label: 'مكتمل', hint: 'تم تنفيذ المشروع', tone: '#3b82f6' },
+  stale: { label: 'ملغى', hint: 'تم إلغاء المشروع', tone: 'var(--text-disabled)' },
+  pending: { label: 'بانتظار الاعتماد', hint: 'أرسلته الإدارة وينتظر قرار المدير التنفيذي', tone: 'var(--warning)' },
+  rejected: { label: 'أُعيد للتعديل', hint: 'رُفض ويحتاج تعديلاً من الإدارة', tone: 'var(--danger)' },
+  draft: { label: 'مسودة', hint: 'لم يُرسل للاعتماد بعد', tone: 'var(--text-muted)' },
 };
 
-export function ledCardClass(led: LedStatus): string {
-  const base = 'relative rounded-xl border-2 transition-all duration-300 hover:scale-[1.02] cursor-pointer';
-  switch (led) {
-    case 'active':
-      return `${base} border-emerald-400 bg-gradient-to-br from-emerald-50/80 to-white dark:from-emerald-950/30 dark:to-gray-900 hover:shadow-[0_0_20px_6px_rgba(16,185,129,0.3)]`;
-    case 'halted':
-      return `${base} border-red-400 bg-gradient-to-br from-red-50/80 to-white dark:from-red-950/30 dark:to-gray-900 hover:shadow-[0_0_20px_6px_rgba(239,68,68,0.3)]`;
-    case 'stale':
-      return `${base} border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30 opacity-60 hover:opacity-80`;
-    case 'pending':
-      return `${base} border-amber-400 bg-gradient-to-br from-amber-50/80 to-white dark:from-amber-950/30 dark:to-gray-900 hover:shadow-[0_0_20px_6px_rgba(245,158,11,0.3)]`;
-    case 'rejected':
-      return `${base} border-rose-400 bg-gradient-to-br from-rose-50/80 to-white dark:from-rose-950/30 dark:to-gray-900 hover:shadow-[0_0_20px_6px_rgba(225,29,72,0.3)]`;
-    case 'draft':
-      return `${base} border-slate-300 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 opacity-70 hover:opacity-90`;
-  }
-}
+/** ترتيب «الأحوج للتدخل» على اللوحة الرئيسية. */
+export const LED_URGENCY: Record<ProjectLedStatus, number> = {
+  critical: 0,
+  halted: 1,
+  active: 2,
+  pending: 3,
+  rejected: 4,
+  draft: 5,
+  completed: 6,
+  stale: 7,
+};
 
-export function daysSince(dateStr: string | null): string {
-  if (!dateStr) return '';
-  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
-  if (days === 0) return 'اليوم';
-  if (days === 1) return 'أمس';
-  if (days < 7) return `منذ ${days} أيام`;
-  if (days < 30) return `منذ ${Math.floor(days / 7)} أسابيع`;
-  return `منذ ${Math.floor(days / 30)} أشهر`;
-}
+export const STATUS_LABELS: Record<AssociationProjectListItem['status'], string> = {
+  planned: 'لم يبدأ',
+  active: 'قيد التنفيذ',
+  on_hold: 'متوقف',
+  completed: 'مكتمل',
+  cancelled: 'ملغى',
+};
 
-export const APPROVAL_LABELS: Record<string, string> = {
+export const PRIORITY_LABELS: Record<AssociationProjectListItem['priority'], string> = {
+  low: 'منخفضة',
+  medium: 'متوسطة',
+  high: 'عالية',
+  critical: 'حرجة',
+};
+
+export const PRIORITY_ORDER: Record<AssociationProjectListItem['priority'], number> = { critical: 0, high: 1, medium: 2, low: 3 };
+
+export const APPROVAL_LABELS: Record<AssociationProjectListItem['approvalStatus'], string> = {
   draft: 'مسودة',
-  pending_approval: 'بانتظار الموافقة',
+  pending_approval: 'بانتظار الاعتماد',
   approved: 'معتمد',
-  rejected: 'مرفوض',
+  rejected: 'أُعيد للتعديل',
 };
 
-export const APPROVAL_COLORS: Record<string, string> = {
-  draft: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
-  pending_approval: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  approved: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  rejected: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+export const STEP_STATUS_LABELS: Record<string, string> = {
+  pending: 'لم تبدأ',
+  in_progress: 'جارية',
+  done: 'تمت',
+  blocked: 'متعثرة',
 };
+
+/** «منذ 3 أيام» — لآخر نشاط. */
+export function daysAgoLabel(days: number | null | undefined): string {
+  if (days == null) return 'لا يوجد نشاط بعد';
+  if (days <= 0) return 'اليوم';
+  if (days === 1) return 'أمس';
+  if (days === 2) return 'منذ يومين';
+  if (days <= 10) return `منذ ${days} أيام`;
+  return `منذ ${days} يوماً`;
+}
+
+/** أيام منذ تاريخ ISO — احتياط عند غياب daysSinceActivity من الخادم. */
+export function daysSince(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000));
+}
+
+export function activityDays(p: Pick<AssociationProjectListItem, 'daysSinceActivity' | 'lastActivityAt' | 'lastUpdateAt'>): number | null {
+  return p.daysSinceActivity ?? daysSince(p.lastActivityAt ?? p.lastUpdateAt);
+}
+
+export function formatDate(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+export function isOnBoard(p: AssociationProjectListItem): boolean {
+  return p.approvalStatus === 'approved';
+}

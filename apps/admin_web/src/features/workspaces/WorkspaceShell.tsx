@@ -115,6 +115,7 @@ const hrSections: NavSection[] = [
       { label: 'التقارير والتحليلات', to: '/hr/reports', icon: FileClock, permission: 'reports.people.read' },
       { label: 'الأخبار والقرارات', to: '/hr/official-feed', icon: Megaphone, permission: ['comms.announcement.read', 'comms.decision.read'] },
       { label: 'التقارير اليومية', to: '/hr/daily-reports', icon: ClipboardList },
+      { label: 'مشاريع الجمعية', to: '/hr/association-projects', icon: FolderKanban },
       { label: 'التدريب والمعرفة', to: '/hr/knowledge', icon: BookOpen },
       { label: 'الإشعارات', to: '/hr/notifications', icon: Bell },
     ],
@@ -171,6 +172,7 @@ const adminSections: NavSection[] = [
   {
     title: 'القيادة والرقابة',
     items: [
+      { label: 'مشاريع الجمعية', to: '/admin/association-projects', icon: FolderKanban },
       { label: 'لجنة الخلافات', to: '/admin/disputes', icon: Gavel, permission: ['disputes.case.manage', 'disputes.portal.access'] },
       { label: 'مكتب الخدمات', to: '/admin/helpdesk', icon: Headphones, featureFlag: 'helpdesk' },
       { label: 'غرامات الحضور والانصراف', to: '/admin/finance?tab=instant-penalties', icon: AlertOctagon },
@@ -189,7 +191,6 @@ const adminSections: NavSection[] = [
     title: 'النظام والتكامل',
     items: [
       { label: 'الأدوار والصلاحيات', to: '/admin/access', icon: ShieldCheck, permission: 'access.role.read' },
-      { label: 'مشاريع الجمعية', to: '/admin/association-projects', icon: FolderKanban, permission: 'governance.data.manage' },
       { label: 'الإدارة المؤسسية', to: '/admin/enterprise', icon: Building2, permission: 'organization.entity.read' },
       { label: 'الإعدادات', to: '/admin/settings', icon: Settings, permission: 'system.settings.read' },
       { label: 'التكاملات والمهام الخلفية', to: '/admin/integrations', icon: Cable, permission: 'system.integration.view' },

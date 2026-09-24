@@ -292,6 +292,7 @@
 | 0546 | `0546_suspended_employee_app_gate_and_penalty_message.sql` | إيقاف التطبيق للموظف الموقوف لعدم سداد غرامة التأخير (500 ج.م) وحجب مساحات العمل وعرض رسالة الـ HR الدقيقة مع إتاحة إعادة التحقق عند السداد. |
 | 0547 | `0547_admin_account_permanent_immunity.sql` | الحصانة الدائمة والاستثناء المطلق للحساب الرئيسي والمسؤول العام للنظام (يحيى جمال السبع - 01154869616): إعفاء دائم من الحضور والغرامات، وتريجرات ذاتية الحماية تمنع تعليق الحساب أو تسجيل أي غرامة عليه نهائياً. |
 | 0551 | `0551_revoke_public_execute_from_secdef.sql` | سحب EXECUTE من PUBLIC/anon على كل دوال public (نمط 0209) — أغلق تسريب get_attendance_day_roster(date,uuid,uuid,uuid) و generate_executive_daily_digest و get_penalty_settings وغيرها التي أعادها create/replace بمنحة PUBLIC الافتراضية؛ authenticated/service_role ممنوحان صراحةً؛ get_public_* و activate_employee_after_first_login و handle_new_user مستثناة. |
+| 0553 | `0553_association_projects_department_workflow.sql` | مشاريع الجمعية: نطاق الإدارة (عضو الإدارة/مديرها/المالك يدير الخطوات والتحديثات) + لمبة ثلاثية active/halted/critical بحدود أيام قابلة للضبط (association_project_settings 7/14) + last_activity_at يتحدث مع الخطوات + تقدم مشتق من الخطوات + إشعارات الاعتماد والتعثر (كرون يومي association_projects_stalled_alert) + delete/set_step_status/settings RPCs. |
 >
 > **سكربت نشر الدفعة 0443–0445 على الإنتاج:** `python scripts/deploy_audit_batch_0443_0445.py` (idempotent: يفحص المتتبَّع، يطبّق المفقود بالترتيب، ثم يشغّل فحوص التحقق القياسية).
 >

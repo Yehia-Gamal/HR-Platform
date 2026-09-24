@@ -105,6 +105,9 @@ const ERROR_PATTERNS: Array<[RegExp, string]> = [
   [/unsupported.*media/i, 'نوع الملف غير مدعوم.'],
 ];
 
+/** يبدأ بحرف عربي — رسالة موجهة للمستخدم من دوال قاعدة البيانات. */
+const SERVER_ARABIC_MESSAGE = /^[؀-ۿ]/;
+
 const FALLBACK_MESSAGE = 'حدث خطأ غير متوقع. أعد المحاولة أو تواصل مع الدعم.';
 
 /** رمز تتبع قصير (8 أحرف) — مطابق لنمط AppErrorBoundary */
@@ -123,7 +126,14 @@ function correlationId(): string {
  */
 export function safeErrorMessage(error: unknown): string {
   const cid = correlationId();
-  const raw = error instanceof Error ? error.message : typeof error === 'string' ? error : String(error ?? '');
+  const raw =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+        ? error
+        : error && typeof error === 'object' && typeof (error as { message?: unknown }).message === 'string'
+          ? (error as { message: string }).message
+          : String(error ?? '');
 
   // تسجيل الخطأ الأصلي مع رمز التتبع — لا يظهر للمستخدم
   if (import.meta.env.DEV) console.error(`[خطأ ${cid}]`, error);
@@ -132,6 +142,12 @@ export function safeErrorMessage(error: unknown): string {
     if (pattern.test(raw)) {
       return `${arabicMessage} (${cid})`;
     }
+  }
+
+  // رسائل الخادم العربية (raise exception '…' داخل RPC) مكتوبة للمستخدم أصلاً —
+  // تُعرض كما هي بدل الرسالة العامة، ما دامت قصيرة وبلا تفاصيل تقنية.
+  if (SERVER_ARABIC_MESSAGE.test(raw) && raw.length <= 200 && !/\n|stack|at\s+\w+\s*\(/i.test(raw)) {
+    return `${raw} (${cid})`;
   }
 
   return `${FALLBACK_MESSAGE} (${cid})`;
