@@ -331,45 +331,6 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
           </button>
         </div>
 
-        <div className="workspace-switcher-wrap">
-          {/* الأدمن الرئيسي لديه قائمة موحّدة تجمع كل شيء — لا حاجة لتبديل مساحة العمل */}
-          {unifiedAdmin ? (
-            !collapsed ? (
-              <div className="workspace-switcher-static">
-                <ShieldCheck className="size-4 text-[var(--brand-primary)]" aria-hidden="true" />
-                <span>المنصة الموحّدة — كل الصفحات</span>
-              </div>
-            ) : null
-          ) : (
-            <>
-              {!collapsed ? (
-                <label className="sidebar-caption" htmlFor="workspace-switcher">
-                  مساحة العمل الحالية
-                </label>
-              ) : null}
-              <div className="relative">
-                <select
-                  id="workspace-switcher"
-                  aria-label="تبديل مساحة العمل"
-                  value={workspace}
-                  onChange={(event) => {
-                    const option = workspaceOptions.find((item) => item.id === event.target.value);
-                    if (option) navigate(option.path);
-                  }}
-                  className="workspace-switcher"
-                >
-                  {workspaceOptions.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                {!collapsed ? <ChevronDown className="pointer-events-none absolute start-3 top-3 size-4 text-[var(--text-muted)]" /> : null}
-              </div>
-            </>
-          )}
-        </div>
-
         <nav className="sidebar-nav" aria-label={currentWorkspaceLabel}>
           {allowedSections.map((section) => {
             // القسم الذي يحوي الصفحة النشطة يُوسَّع تلقائياً ما لم يطوِه المستخدم.
@@ -418,24 +379,6 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
             );
           })}
         </nav>
-
-        <div className="sidebar-footer">
-          <div className="sidebar-user">
-            <UserAvatar displayName={access.displayName} photoUrl={profilePhotoUrl} eager />
-            {!collapsed ? (
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-black" title={access.displayName}>
-                  {getShortName(access.displayName)}
-                </p>
-                <p className="truncate text-xs text-[var(--text-muted)]">{currentWorkspaceLabel}</p>
-              </div>
-            ) : null}
-          </div>
-          <button type="button" className="sidebar-logout" title="تسجيل الخروج" onClick={() => void auth.signOut()}>
-            <LogOut className="size-4.5" aria-hidden="true" />
-            {!collapsed ? <span>تسجيل الخروج</span> : null}
-          </button>
-        </div>
       </aside>
 
       <div className="app-content">

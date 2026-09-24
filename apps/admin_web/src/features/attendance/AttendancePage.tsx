@@ -10,11 +10,18 @@ import { useAttendanceDashboard } from './useAttendanceDashboard';
 import { useOrganizationLookups } from '../employees/useOrganizationLookups';
 import type { AttendanceRosterCategory } from '@ahla/shared-contracts';
 
+function getBasePath() {
+  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
+    return '/admin/hr';
+  }
+  return '/hr';
+}
+
 function detailsUrl(category: AttendanceRosterCategory, dateIso: string, departmentId?: string | null, branchId?: string | null) {
   const params = new URLSearchParams({ category, date: dateIso });
   if (departmentId) params.set('dept', departmentId);
   if (branchId) params.set('branch', branchId);
-  return `/hr/attendance/details?${params.toString()}`;
+  return `${getBasePath()}/attendance/details?${params.toString()}`;
 }
 
 export function AttendancePage() {

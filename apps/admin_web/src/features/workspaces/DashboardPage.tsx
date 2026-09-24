@@ -250,13 +250,22 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                     </p>
                   </div>
                 </div>
-                <Link
-                  to={type === 'admin' ? '/admin/hr/attendance' : '/hr/attendance'}
-                  className="flex items-center gap-1 text-xs font-bold text-brand transition-colors hover:underline"
-                >
-                  <span>شاشة الحضور والتتبع الحي</span>
-                  <ArrowUpRight className="size-3.5" />
-                </Link>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    to={type === 'admin' ? '/admin/hr/attendance?tab=executive' : '/hr/attendance?tab=executive'}
+                    className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-2.5 py-1 text-xs font-bold transition-colors hover:bg-[var(--surface-raised)]"
+                  >
+                    <span>التقرير التنفيذي</span>
+                    <ArrowUpRight className="size-3" />
+                  </Link>
+                  <Link
+                    to={type === 'admin' ? '/admin/hr/attendance' : '/hr/attendance'}
+                    className="flex items-center gap-1 text-xs font-bold text-brand transition-colors hover:underline"
+                  >
+                    <span>شاشة الحضور والتتبع الحي</span>
+                    <ArrowUpRight className="size-3.5" />
+                  </Link>
+                </div>
               </div>
 
               {/* شريط التوزيع البصري */}
