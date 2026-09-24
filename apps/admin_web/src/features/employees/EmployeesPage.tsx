@@ -19,20 +19,12 @@ import { hasPermission } from '../workspaces/access';
 import { useEmployees } from './useEmployees';
 import { usePendingPenaltyEmployees } from '../finance/useInstantPenalties';
 import { EmployeeSearchSuggestions } from './EmployeeSearchSuggestions';
-import { renderSafeIntlPhoneText } from '../../ui/phoneDisplay';
+import { isPhoneLikeCode, renderSafeIntlPhoneText } from '../../ui/phoneDisplay';
 import { OrgChartPage } from '../management/OrgChartPage';
 import { hierarchyCompare } from '@ahla/shared-contracts';
 
 type SortMode = 'newest' | 'name' | 'code' | 'hierarchy';
 type EmployeesTab = 'directory' | 'org-chart';
-
-function isPhoneLikeCode(code: string | null | undefined, phone: string | null | undefined): boolean {
-  if (!code) return true;
-  const cleanCode = code.replace(/[\s+-]/g, '');
-  if (phone && cleanCode === phone.replace(/[\s+-]/g, '')) return true;
-  if (/^(?:\+?20|0)?1[0125]\d{8}$/.test(cleanCode)) return true;
-  return false;
-}
 
 export function EmployeesPage() {
   const auth = useAuth();

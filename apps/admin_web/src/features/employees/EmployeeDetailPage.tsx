@@ -47,7 +47,7 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { getSupabase } from '../../core/supabase';
 import { prepareAvatarFile } from '../../ui/avatarImage';
-import { fixIntlPhoneOrder, renderSafeIntlPhoneText } from '../../ui/phoneDisplay';
+import { fixIntlPhoneOrder, isPhoneLikeCode, renderSafeIntlPhoneText } from '../../ui/phoneDisplay';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { MonthlyStatementSection } from '../attendance/MonthlyStatementSection';
@@ -1186,8 +1186,19 @@ export function EmployeeDetailPage() {
                   <h2 className="text-2xl font-black">{item.fullNameAr}</h2>
                   <StatusBadge status={item.status} />
                 </div>
-                <p className="muted mt-1">
-                  {item.jobTitle ?? 'بدون مسمى وظيفي'} • {item.employeeCode}
+                <p className="muted mt-1 flex items-center gap-2">
+                  <span>{item.jobTitle ?? 'بدون مسمى وظيفي'}</span>
+                  {!isPhoneLikeCode(item.employeeCode, item.phoneE164) && (
+                    <>
+                      <span>•</span>
+                      <bdi
+                        dir="ltr"
+                        className="font-mono text-xs px-2 py-0.5 rounded bg-[var(--surface-muted)] text-[var(--text-secondary)] border border-[var(--border)] font-bold"
+                      >
+                        {item.employeeCode}
+                      </bdi>
+                    </>
+                  )}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
                   <Info icon={Network} label={item.department ?? 'بدون إدارة'} />

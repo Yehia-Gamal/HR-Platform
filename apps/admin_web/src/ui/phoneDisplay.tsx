@@ -52,3 +52,14 @@ export function sanitizePhoneInput(value: string, maxLength = 20): string {
     .trim();
   return cleaned.slice(0, maxLength);
 }
+
+/**
+ * يتحقق مما إذا كانت القيمة تبدو كرقم هاتف أو تطابق هاتف الموظف (لحالات الكود الوظيفي التلقائي).
+ */
+export function isPhoneLikeCode(code: string | null | undefined, phone?: string | null | undefined): boolean {
+  if (!code) return true;
+  const cleanCode = code.replace(/[\s+-]/g, '');
+  if (phone && cleanCode === phone.replace(/[\s+-]/g, '')) return true;
+  if (/^(?:\+?20|0)?1[0125]\d{8}$/.test(cleanCode)) return true;
+  return false;
+}

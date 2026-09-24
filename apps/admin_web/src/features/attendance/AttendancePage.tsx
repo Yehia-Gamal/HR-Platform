@@ -102,7 +102,7 @@ export function AttendancePage() {
           <div className="card flex flex-wrap items-center justify-between gap-4 p-4">
             <div className="flex items-center gap-2 text-sm">
               <CalendarClock className="size-5 text-brand" aria-hidden="true" />
-              <strong>{new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`))}</strong>
+              <strong>{new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`))}</strong>
             </div>
             {data.scheduled > 0 ? (
               <div className="flex items-center gap-3">
