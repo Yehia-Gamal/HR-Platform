@@ -115,12 +115,13 @@ export function AttendancePage() {
           </div>
 
           {/* ─── المقاييس الأساسية ─── */}
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <MetricCard
               label="المجدولون اليوم"
               value={data.scheduled}
               icon={Users}
               hint="وفق الورديات وتقويم العمل"
+              compact={true}
               to={detailsUrl('scheduled', dateIso, departmentId, branchId)}
             />
             <MetricCard
@@ -128,25 +129,28 @@ export function AttendancePage() {
               value={data.present}
               icon={CheckCircle2}
               hint={`${presentPct}% من المجدولين`}
+              compact={true}
               to={detailsUrl('present', dateIso, departmentId, branchId)}
             />
-            <MetricCard label="متأخرون" value={data.late} icon={Clock3} hint="حسب سياسة الوردية" to={detailsUrl('late', dateIso, departmentId, branchId)} />
+            <MetricCard label="متأخرون" value={data.late} icon={Clock3} hint="حسب سياسة الوردية" compact={true} to={detailsUrl('late', dateIso, departmentId, branchId)} />
             <MetricCard
               label="غياب"
               value={data.absent}
               icon={UserMinus}
               hint={`بدون إذن: ${data.unexcusedAbsent ?? 0}`}
+              compact={true}
               to={detailsUrl('absent', dateIso, departmentId, branchId)}
             />
           </section>
 
           {/* ─── حالات تحتاج اهتمام ─── */}
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <MetricCard
               label="غياب بدون إذن"
               value={data.unexcusedAbsent ?? 0}
               icon={UserMinus}
               hint="بلا إجازة أو مأمورية"
+              compact={true}
               to={detailsUrl('unexcused_absent', dateIso, departmentId, branchId)}
             />
             <MetricCard
@@ -154,6 +158,7 @@ export function AttendancePage() {
               value={data.incomplete ?? 0}
               icon={AlertTriangle}
               hint="سجلات جزئية أو معلقة"
+              compact={true}
               to={detailsUrl('incomplete', dateIso, departmentId, branchId)}
             />
             <MetricCard
@@ -161,6 +166,7 @@ export function AttendancePage() {
               value={data.pendingReview ?? 0}
               icon={Users}
               hint="تنبيهات تحتاج تدخل بشري"
+              compact={true}
               to={detailsUrl('pending_review', dateIso, departmentId, branchId)}
             />
             <MetricCard
@@ -168,17 +174,19 @@ export function AttendancePage() {
               value={data.locationRequestsToday ?? 0}
               icon={MapPin}
               hint={`استُجيب: ${data.locationRequestsResponded ?? data.locationRespondedToday ?? 0}`}
+              compact={true}
               to={detailsUrl('location_requests', dateIso, departmentId, branchId)}
             />
           </section>
 
           {/* ─── الاستثناءات: إجازات ومأموريات وبصمات ناقصة ─── */}
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <MetricCard
               label="في إجازة"
               value={data.onLeave ?? 0}
               icon={CalendarDays}
               hint="طلبات إجازة معتمدة تغطي اليوم"
+              compact={true}
               to={detailsUrl('on_leave', dateIso, departmentId, branchId)}
             />
             <MetricCard
@@ -186,6 +194,7 @@ export function AttendancePage() {
               value={data.onMission ?? 0}
               icon={Plane}
               hint="تكليفات نشطة بلا سجل حضور"
+              compact={true}
               to={detailsUrl('on_mission', dateIso, departmentId, branchId)}
             />
             <MetricCard
@@ -193,6 +202,7 @@ export function AttendancePage() {
               value={data.missingCheckout ?? 0}
               icon={Clock3}
               hint="بصمة واحدة — تحتاج إكمال"
+              compact={true}
               to={detailsUrl('missing_checkout', dateIso, departmentId, branchId)}
             />
           </section>
@@ -209,7 +219,7 @@ export function AttendancePage() {
             </span>
             <span className="flex items-center gap-1.5">
               <Clock3 className="size-3.5 shrink-0 text-brand" aria-hidden="true" />
-              آخر تحديث: {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(data.lastUpdatedAt ?? Date.now()))}
+              آخر تحديث: {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(data.lastUpdatedAt ?? Date.now()))}
             </span>
           </div>
         </>

@@ -251,12 +251,13 @@ export function RequestsPage() {
       {query.isLoading && !query.data ? (
         <MetricSkeletonRow />
       ) : (
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard
             label="إجمالي الطلبات بالمنظومة"
             value={metrics.total}
             hint={`${metrics.leaves} إجازة · ${metrics.missions} مأمورية · ${metrics.permits} إذن`}
             icon={Inbox}
+            compact={true}
             onClick={() => {
               setStatus('all');
               setTypeTab('all');
@@ -271,6 +272,7 @@ export function RequestsPage() {
                 : 'طلبات معلقة تتطلب اتخاذ قرار'
             }
             icon={Clock3}
+            compact={true}
             onClick={() => {
               setStatus('pending');
             }}
@@ -280,6 +282,7 @@ export function RequestsPage() {
             value={metrics.approved}
             hint={metrics.total > 0 ? `نسبة الاعتماد ${metrics.approvalRate}% من إجمالي الطلبات` : 'تمت الموافقة عليها'}
             icon={CheckCircle2}
+            compact={true}
             onClick={() => {
               setStatus('approved');
             }}
@@ -289,6 +292,7 @@ export function RequestsPage() {
             value={metrics.rejected + metrics.cancelled}
             hint={`${metrics.rejected} مرفوضة · ${metrics.cancelled} ملغية`}
             icon={FileX}
+            compact={true}
             onClick={() => {
               setStatus('rejected');
             }}
@@ -509,7 +513,7 @@ export function RequestsPage() {
                     )}
                     {item.status === 'pending' && item.decisionDueAt ? <EscalationCountdown dueAt={item.decisionDueAt} /> : null}
                     <span className="muted">
-                      {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.createdAt))}
+                      {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.createdAt))}
                     </span>
                     {canDecide && item.status === 'pending' ? (
                       <button className="btn-primary ms-auto text-xs" onClick={() => setSelected(item)}>

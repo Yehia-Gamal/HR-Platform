@@ -76,7 +76,7 @@ export function FellowshipFundPage() {
       return;
     }
     if (amount > currentBalance) {
-      setActionError(`الرصيد المتاح (${currentBalance.toLocaleString('ar-EG')} ج.م) لا يكفي لسحب هذا المبلغ`);
+      setActionError(`الرصيد المتاح (${currentBalance.toLocaleString('ar-EG-u-nu-latn')} ج.م) لا يكفي لسحب هذا المبلغ`);
       return;
     }
     if (!withdrawReason.trim() || withdrawReason.trim().length < 3) {
@@ -155,14 +155,14 @@ export function FellowshipFundPage() {
 
   // ─── مشاركة ملخص الصندوق عبر واتساب (مجاني 100%) ────────────────
   const shareFundWhatsApp = () => {
-    const balance = currentBalance.toLocaleString('ar-EG');
-    const inflows = (summary?.totalInflows ?? 0).toLocaleString('ar-EG');
-    const outflows = (summary?.totalOutflows ?? 0).toLocaleString('ar-EG');
+    const balance = currentBalance.toLocaleString('ar-EG-u-nu-latn');
+    const inflows = (summary?.totalInflows ?? 0).toLocaleString('ar-EG-u-nu-latn');
+    const outflows = (summary?.totalOutflows ?? 0).toLocaleString('ar-EG-u-nu-latn');
     const inflowsCount = summary?.inflowsCount ?? 0;
     const outflowsCount = summary?.outflowsCount ?? 0;
 
     const breakdownText = (summary?.categoryBreakdown ?? [])
-      .map((c) => `• ${c.category} (${c.type === 'inflow' ? 'وارد' : 'منصرف'}): ${c.totalAmount.toLocaleString('ar-EG')} ج.م (${c.count} حركة)`)
+      .map((c) => `• ${c.category} (${c.type === 'inflow' ? 'وارد' : 'منصرف'}): ${c.totalAmount.toLocaleString('ar-EG-u-nu-latn')} ج.م (${c.count} حركة)`)
       .join('\n');
 
     const msg =
@@ -250,7 +250,7 @@ export function FellowshipFundPage() {
               <p className="text-xs text-white/60 font-medium">الرصيد المتاح حالياً بالصندوق</p>
               <div className="flex items-baseline gap-2 mt-1">
                 <h2 className="text-4xl md:text-5xl font-black tracking-tight text-white font-mono">
-                  {currentBalance.toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {currentBalance.toLocaleString('ar-EG-u-nu-latn', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </h2>
                 <span className="text-lg md:text-xl font-bold text-emerald-400">جنيه مصري</span>
               </div>
@@ -269,7 +269,7 @@ export function FellowshipFundPage() {
                 <ArrowDownLeft className="w-4 h-4 text-emerald-400" />
                 <span>إجمالي الوارد</span>
               </div>
-              <p className="text-xl font-black font-mono text-emerald-300">{(summary?.totalInflows ?? 0).toLocaleString('ar-EG')} ج.م</p>
+              <p className="text-xl font-black font-mono text-emerald-300">{(summary?.totalInflows ?? 0).toLocaleString('ar-EG-u-nu-latn')} ج.م</p>
               <p className="text-[11px] text-white/50 mt-1">{summary?.inflowsCount ?? 0} عملية إيداع</p>
             </div>
 
@@ -278,7 +278,7 @@ export function FellowshipFundPage() {
                 <ArrowUpRight className="w-4 h-4 text-red-400" />
                 <span>إجمالي المنصرف</span>
               </div>
-              <p className="text-xl font-black font-mono text-red-300">{(summary?.totalOutflows ?? 0).toLocaleString('ar-EG')} ج.م</p>
+              <p className="text-xl font-black font-mono text-red-300">{(summary?.totalOutflows ?? 0).toLocaleString('ar-EG-u-nu-latn')} ج.م</p>
               <p className="text-[11px] text-white/50 mt-1">{summary?.outflowsCount ?? 0} عملية سحب</p>
             </div>
           </div>
@@ -320,7 +320,7 @@ export function FellowshipFundPage() {
                   </div>
                   <div className="flex items-baseline justify-between mt-2">
                     <span className="text-xl font-black font-mono">
-                      {cat.totalAmount.toLocaleString('ar-EG')} <span className="text-xs font-medium text-[var(--text-muted)]">ج.م</span>
+                      {cat.totalAmount.toLocaleString('ar-EG-u-nu-latn')} <span className="text-xs font-medium text-[var(--text-muted)]">ج.م</span>
                     </span>
                     <span className="text-xs text-[var(--text-muted)]">{cat.count} حركة</span>
                   </div>
@@ -397,17 +397,17 @@ export function FellowshipFundPage() {
             description={search ? 'لا توجد حركات تطابق معايير البحث الحالية' : 'لم يتم تسجيل أي إيداعات أو سحوبات في صندوق الزمالة حتى الآن'}
           />
         ) : (
-          <div className="overflow-x-auto -mx-5 px-5">
-            <table className="w-full text-end text-[13px]">
-              <thead>
+          <div className="overflow-x-auto -mx-5 px-5 max-h-[min(60vh,520px)] overflow-y-auto">
+            <table className="w-full text-end text-[13px] min-w-[780px]">
+              <thead className="sticky top-0 bg-[var(--surface-base)] shadow-xs z-10">
                 <tr className="border-b-2 border-[var(--border)] text-[var(--text-muted)]">
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">الحركة</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">المبلغ</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">الموظف / المستفيد</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">السبب والتفاصيل</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">الفئة</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">الرصيد المتبقي</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">التاريخ والقائم بالعملية</th>
+                  <th className="px-4 py-3 font-bold whitespace-nowrap bg-[var(--surface-base)]">الحركة</th>
+                  <th className="px-4 py-3 font-bold whitespace-nowrap bg-[var(--surface-base)]">المبلغ</th>
+                  <th className="px-4 py-3 font-bold whitespace-nowrap bg-[var(--surface-base)]">الموظف / المستفيد</th>
+                  <th className="px-4 py-3 font-bold whitespace-nowrap bg-[var(--surface-base)]">السبب والتفاصيل</th>
+                  <th className="px-4 py-3 font-bold whitespace-nowrap bg-[var(--surface-base)]">الفئة</th>
+                  <th className="px-4 py-3 font-bold whitespace-nowrap bg-[var(--surface-base)]">الرصيد المتبقي</th>
+                  <th className="px-4 py-3 font-bold whitespace-nowrap bg-[var(--surface-base)]">التاريخ والقائم بالعملية</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]/60">
@@ -444,7 +444,7 @@ export function FellowshipFundPage() {
                       <td className="px-4 py-3 font-mono font-black text-sm whitespace-nowrap">
                         <span className={isInflow ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>
                           {isInflow ? '+' : '-'}
-                          {tx.amount.toLocaleString('ar-EG')} <span className="text-xs font-medium">ج.م</span>
+                          {tx.amount.toLocaleString('ar-EG-u-nu-latn')} <span className="text-xs font-medium">ج.م</span>
                         </span>
                       </td>
 
@@ -467,13 +467,13 @@ export function FellowshipFundPage() {
                       </td>
 
                       <td className="px-4 py-3 font-mono font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                        {tx.balanceAfter.toLocaleString('ar-EG')} <span className="text-xs font-medium">ج.م</span>
+                        {tx.balanceAfter.toLocaleString('ar-EG-u-nu-latn')} <span className="text-xs font-medium">ج.م</span>
                       </td>
 
                       <td className="px-4 py-3 text-[var(--text-muted)] whitespace-nowrap">
                         <p className="flex items-center gap-1">
                           <Clock className="w-3 h-3 text-[var(--text-muted)]" />
-                          {new Date(tx.createdAt).toLocaleDateString('ar-EG', {
+                          {new Date(tx.createdAt).toLocaleDateString('ar-EG-u-nu-latn', {
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric',
@@ -504,7 +504,7 @@ export function FellowshipFundPage() {
               </div>
               <p className="leading-relaxed">سيتم إرسال إشعار فوري لكافة أعضاء الفريق بمبلغ السحب والسبب والرصيد المتبقي بمجرد التنفيذ لضمان علم الجميع.</p>
               <div className="pt-1 text-[11px] font-mono">
-                الرصيد المتاح حالياً: <span className="font-bold">{currentBalance.toLocaleString('ar-EG')} ج.م</span>
+                الرصيد المتاح حالياً: <span className="font-bold">{currentBalance.toLocaleString('ar-EG-u-nu-latn')} ج.م</span>
               </div>
             </div>
 

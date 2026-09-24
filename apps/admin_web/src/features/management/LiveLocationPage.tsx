@@ -13,6 +13,7 @@ import { ExecutiveMonitoringPage } from './ExecutiveMonitoringPage';
 import { useLiveLocationCommands, useLocationDirectory, type LocationDirectoryItem } from './useControlCenters';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { relativeTime } from '../../core/formatTime';
+import { isPhoneLikeCode } from '../../ui/phoneDisplay';
 
 type LocationState = 'fresh' | 'stale' | 'no_signal';
 type RequestDraft = { employee: LocationDirectoryItem; reason: string };
@@ -111,11 +112,11 @@ export function LiveLocationPage() {
         <ExecutiveMonitoringPage embedded />
       ) : (
         <>
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="ضمن نطاق الوصول" value={data.length} icon={Users} onClick={() => setFilter('all')} />
-            <MetricCard label="متصلون خلال 15 دقيقة" value={fresh} icon={Signal} onClick={() => setFilter('fresh')} />
-            <MetricCard label="طلبات نشطة" value={active} icon={Activity} onClick={() => setFilter('active')} />
-            <MetricCard label="دون موقع مسجل" value={missing} icon={SignalLow} onClick={() => setFilter('no_signal')} />
+          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <MetricCard label="ضمن نطاق الوصول" value={data.length} icon={Users} compact={true} onClick={() => setFilter('all')} />
+            <MetricCard label="متصلون خلال 15 دقيقة" value={fresh} icon={Signal} compact={true} onClick={() => setFilter('fresh')} />
+            <MetricCard label="طلبات نشطة" value={active} icon={Activity} compact={true} onClick={() => setFilter('active')} />
+            <MetricCard label="دون موقع مسجل" value={missing} icon={SignalLow} compact={true} onClick={() => setFilter('no_signal')} />
           </section>
 
           <FilterBar
@@ -182,9 +183,10 @@ export function LiveLocationPage() {
                   </div>
                 ) : null}
                 {!query.isLoading && !visible.length ? <EmptyState title="لا توجد نتائج مطابقة" description="غيّر البحث أو مرشح حالة الإشارة." /> : null}
-                <div className="max-h-[650px] divide-y divide-[var(--border)] overflow-y-auto">
+                <div className="max-h-[min(55vh,520px)] divide-y divide-[var(--border)] overflow-y-auto">
                   {visible.map((item) => {
                     const state = locationState(item);
+                    const cleanCode = isPhoneLikeCode(item.employeeCode) ? null : item.employeeCode;
                     return (
                       <article key={item.id} className="p-5 transition-colors hover:bg-[var(--surface-muted)]">
                         <div className="flex items-start justify-between gap-3">
@@ -195,7 +197,7 @@ export function LiveLocationPage() {
                               <StatusBadge value={state} label={stateLabel(state)} />
                             </div>
                             <p className="muted mt-1 text-xs">
-                              {item.employeeCode} · {item.jobTitle ?? 'دون مسمى'} · {item.department ?? 'دون إدارة'}
+                              {cleanCode ? `${cleanCode} · ` : ''}{item.jobTitle ?? 'دون مسمى'} · {item.department ?? 'دون إدارة'}
                             </p>
                           </div>
                           {item.activeRequestStatus ? <StatusBadge value={item.activeRequestStatus} /> : null}

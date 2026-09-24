@@ -33,6 +33,7 @@ import { InputDialog } from '../../ui/InputDialog';
 import { PageHeader } from '../../ui/PageHeader';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
+import { isPhoneLikeCode } from '../../ui/phoneDisplay';
 import { useToast } from '../../ui/Toast';
 import { useEmployees } from '../employees/useEmployees';
 import { useFellowshipFundSummary } from './useFellowshipFund';
@@ -335,8 +336,10 @@ export function InstantPenaltiesPage() {
             <div className="flex flex-col min-w-0">
               <span className="font-bold text-sm text-[var(--text-primary)] leading-snug truncate">{p.employeeName ?? '—'}</span>
               <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] mt-0.5">
-                {p.employeeCode && (
-                  <span className="font-mono bg-[var(--surface-muted)] px-1.5 py-0.5 rounded text-[10px] text-[var(--text-secondary)]">{p.employeeCode}</span>
+                {p.employeeCode && !isPhoneLikeCode(p.employeeCode) && (
+                  <span className="font-mono bg-[var(--surface-muted)] px-1.5 py-0.5 rounded text-[10px] text-[var(--text-secondary)]">
+                    <bdi dir="ltr">{p.employeeCode}</bdi>
+                  </span>
                 )}
                 <span className="truncate">{p.departmentName ?? '—'}</span>
               </div>
@@ -1195,7 +1198,7 @@ export function InstantPenaltiesPage() {
             focusedKey={focusedId}
             data={rows}
             minWidth="920px"
-            maxHeight="75vh"
+            maxHeight="min(60vh, 520px)"
             columns={columns}
             selectable
             selectedKeys={selectedIds}
@@ -1299,7 +1302,7 @@ export function InstantPenaltiesPage() {
                             <tr key={e.employeeId} className="hover:bg-[var(--surface-hover)] transition-colors">
                               <td className="p-3">
                                 <p className="font-bold text-[var(--text-primary)]">{e.employeeName ?? '—'}</p>
-                                <p className="text-[10px] text-[var(--text-muted)] font-mono">{e.employeeCode ?? '—'}</p>
+                                <p className="text-[10px] text-[var(--text-muted)] font-mono">{isPhoneLikeCode(e.employeeCode) ? '—' : e.employeeCode}</p>
                               </td>
                               <td className="p-3 text-[var(--text-secondary)]">{e.departmentName ?? '—'}</td>
                               <td className="p-3 text-center font-bold font-mono text-amber-600">{e.pendingCount}</td>
@@ -1441,7 +1444,7 @@ export function InstantPenaltiesPage() {
                               <tr key={e.employeeId} className="hover:bg-[var(--surface-hover)] transition-colors">
                                 <td className="p-3">
                                   <p className="font-bold text-red-700 dark:text-red-400">{e.employeeName ?? '—'}</p>
-                                  <p className="text-[10px] text-[var(--text-muted)] font-mono">{e.employeeCode ?? '—'}</p>
+                                  <p className="text-[10px] text-[var(--text-muted)] font-mono">{isPhoneLikeCode(e.employeeCode) ? '—' : e.employeeCode}</p>
                                 </td>
                                 <td className="p-3 text-[var(--text-secondary)]">{e.departmentName ?? '—'}</td>
                                 <td className="p-3 text-center font-bold font-mono text-red-600">{e.pendingCount}</td>
@@ -1698,7 +1701,11 @@ export function InstantPenaltiesPage() {
                                 <tr key={p.id} className="hover:bg-[var(--surface-hover)] transition-colors">
                                   <td className="p-3 font-bold text-[var(--text-primary)]">
                                     {p.employeeName ?? '—'}
-                                    {p.employeeCode && <span className="block text-[10px] text-[var(--text-muted)] font-mono">{p.employeeCode}</span>}
+                                    {p.employeeCode && !isPhoneLikeCode(p.employeeCode) && (
+                                      <span className="block text-[10px] text-[var(--text-muted)] font-mono">
+                                        <bdi dir="ltr">{p.employeeCode}</bdi>
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="p-3 text-[var(--text-secondary)]">{p.departmentName ?? '—'}</td>
                                   <td className="p-3 whitespace-nowrap text-[var(--text-muted)]">{dateFormatter.format(new Date(p.workDate + 'T00:00:00'))}</td>

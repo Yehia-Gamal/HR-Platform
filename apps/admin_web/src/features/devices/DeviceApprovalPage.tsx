@@ -12,6 +12,7 @@ import { ListSkeleton, MetricSkeletonRow } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { isPhoneLikeCode } from '../../ui/phoneDisplay';
 import { useEntityFocus } from '../../core/useEntityFocus';
 import type { AdminDevice, PendingDevice } from './useDevices';
 import { useAllDevices, useApproveDevice, useDeleteDevice, useDeviceApprovals, useReinstateDevice, useRevokeDevice } from './useDevices';
@@ -95,10 +96,11 @@ function PendingDevicesPanel() {
           value={allDevices.length}
           icon={MonitorSmartphone}
           hint="أجهزة تنتظر المراجعة أو محظورة"
+          compact={true}
           onClick={() => setStatusFilter('all')}
         />
-        <MetricCard label="بانتظار الموافقة" value={pendingCount} icon={Clock3} hint="أجهزة جديدة لم تُراجع بعد" onClick={() => setStatusFilter('pending')} />
-        <MetricCard label="محظورة" value={blockedCount} icon={ShieldAlert} hint="أجهزة تم رفضها وتحتاج مراجعة" onClick={() => setStatusFilter('blocked')} />
+        <MetricCard label="بانتظار الموافقة" value={pendingCount} icon={Clock3} hint="أجهزة جديدة لم تُراجع بعد" compact={true} onClick={() => setStatusFilter('pending')} />
+        <MetricCard label="محظورة" value={blockedCount} icon={ShieldAlert} hint="أجهزة تم رفضها وتحتاج مراجعة" compact={true} onClick={() => setStatusFilter('blocked')} />
       </section>
       <FilterBar
         searchValue={search}
@@ -260,9 +262,9 @@ function AllDevicesPanel() {
   return (
     <div className="space-y-5">
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <MetricCard label="إجمالي الأجهزة" value={allDevices.length} icon={MonitorSmartphone} hint={showTerminated ? 'بما فيها المنتهية' : 'بدون المنتهية'} />
-        <MetricCard label="أجهزة نشطة" value={activeCount} icon={Shield} hint="أجهزة معتمدة ونشطة حالياً" />
-        <MetricCard label="منتهية" value={terminatedCount} icon={ShieldOff} hint="ملغاة أو مستبدلة" />
+        <MetricCard label="إجمالي الأجهزة" value={allDevices.length} icon={MonitorSmartphone} hint={showTerminated ? 'بما فيها المنتهية' : 'بدون المنتهية'} compact={true} />
+        <MetricCard label="أجهزة نشطة" value={activeCount} icon={Shield} hint="أجهزة معتمدة ونشطة حالياً" compact={true} />
+        <MetricCard label="منتهية" value={terminatedCount} icon={ShieldOff} hint="ملغاة أو مستبدلة" compact={true} />
       </section>
       <FilterBar
         searchValue={search}
@@ -391,13 +393,13 @@ function DeviceActionDialog({
 function safeFormatDate(val?: string | null): string {
   if (!val) return '';
   const d = new Date(val);
-  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
 function safeFormatTime(val?: string | null): string {
   if (!val) return '';
   const d = new Date(val);
-  return isNaN(d.getTime()) ? '' : d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+  return isNaN(d.getTime()) ? '' : d.toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' });
 }
 
 function PendingDeviceCard({
@@ -428,7 +430,9 @@ function PendingDeviceCard({
           <UserAvatar displayName={device.employeeName} photoUrl={device.employeePhotoUrl} size="md" />
           <div className="min-w-0">
             <p className="font-black truncate">{device.employeeName}</p>
-            <p className="text-sm text-[var(--text-muted)]">{device.employeeCode ?? 'بدون كود'}</p>
+            <p className="text-sm text-[var(--text-muted)] font-mono">
+              {device.employeeCode && !isPhoneLikeCode(device.employeeCode) ? <bdi dir="ltr">{device.employeeCode}</bdi> : 'بدون كود'}
+            </p>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[var(--text-muted)]">
               <span className="flex items-center gap-1">
                 <Smartphone className="size-3.5" aria-hidden="true" />
@@ -517,7 +521,9 @@ function AdminDeviceCard({
           </div>
           <div className="min-w-0">
             <p className="font-black truncate">{device.employeeName}</p>
-            <p className="text-sm text-[var(--text-muted)]">{device.employeeCode ?? 'بدون كود'}</p>
+            <p className="text-sm text-[var(--text-muted)] font-mono">
+              {device.employeeCode && !isPhoneLikeCode(device.employeeCode) ? <bdi dir="ltr">{device.employeeCode}</bdi> : 'بدون كود'}
+            </p>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[var(--text-muted)]">
               <span>{device.deviceName ?? platformLabel}</span>
               <span className="text-xs">•</span>

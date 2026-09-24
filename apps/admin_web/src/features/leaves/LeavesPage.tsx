@@ -10,6 +10,7 @@ import { ListSkeleton, MetricSkeletonRow } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { isPhoneLikeCode } from '../../ui/phoneDisplay';
 import { useAdminLeaveDecision, useAdminLeaves } from './useLeaves';
 
 // ─── ثوابت ───────────────────────────────────────────────────────────────────
@@ -52,7 +53,7 @@ const YEAR_OPTIONS = Array.from({ length: 3 }, (_, i) => CURRENT_YEAR - i);
 // ─── مساعدات ─────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('ar-EG', {
+  return new Date(iso).toLocaleDateString('ar-EG-u-nu-latn', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -302,7 +303,11 @@ function LeaveRow({ row, onSelect }: { row: LeaveAdminRow; onSelect: (r: LeaveAd
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-bold">{row.employeeName}</span>
-            {row.employeeCode && !row.employeeCode.match(/^\+?\d{9,}$/) && <span className="text-xs text-[var(--text-muted)]">{row.employeeCode}</span>}
+            {row.employeeCode && !isPhoneLikeCode(row.employeeCode) && (
+              <span className="text-xs text-[var(--text-muted)] font-mono">
+                <bdi dir="ltr">{row.employeeCode}</bdi>
+              </span>
+            )}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
             <CalendarDays className="size-3.5 shrink-0" aria-hidden="true" />
@@ -384,10 +389,10 @@ export function LeavesPage() {
         <MetricSkeletonRow />
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <MetricCard label="إجمالي الطلبات" value={metrics.total} icon={CalendarDays} onClick={() => setStatus('')} />
-          <MetricCard label="بانتظار الموافقة" value={metrics.pending} icon={Clock3} onClick={() => setStatus('pending')} />
-          <MetricCard label="معتمد" value={metrics.approved} icon={Check} onClick={() => setStatus('approved')} />
-          <MetricCard label="مرفوض" value={metrics.rejected} icon={FileX} onClick={() => setStatus('rejected')} />
+          <MetricCard label="إجمالي الطلبات" value={metrics.total} icon={CalendarDays} compact={true} onClick={() => setStatus('')} />
+          <MetricCard label="بانتظار الموافقة" value={metrics.pending} icon={Clock3} compact={true} onClick={() => setStatus('pending')} />
+          <MetricCard label="معتمد" value={metrics.approved} icon={Check} compact={true} onClick={() => setStatus('approved')} />
+          <MetricCard label="مرفوض" value={metrics.rejected} icon={FileX} compact={true} onClick={() => setStatus('rejected')} />
         </div>
       )}
 

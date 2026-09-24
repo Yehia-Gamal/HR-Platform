@@ -13,6 +13,7 @@ import { LiveLocationMap, type MapPoint } from './LiveLocationMap';
 import { LiveLocationResultCard } from './LiveLocationResultCard';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { relativeTime as relative } from '../../core/formatTime';
+import { isPhoneLikeCode } from '../../ui/phoneDisplay';
 import { ATTENDANCE_STATUS_LABELS } from './statusLabels';
 import { useExecutiveAttendanceOverview, useLiveLocationCommands } from './useControlCenters';
 import type { EmployeeOverviewRow, ExecutiveOverviewData } from './controlCenterTypes';
@@ -114,11 +115,11 @@ export function ExecutiveMonitoringPage({ embedded: _embedded = false }: { embed
         />
       )}
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="إجمالي الموظفين" value={summary.total ?? 0} icon={Users} onClick={() => setFilter('all')} />
-        <MetricCard label="حاضر" value={summary.present ?? 0} icon={Activity} onClick={() => setFilter('present')} />
-        <MetricCard label="متأخر / لم يحضر" value={(summary.late ?? 0) + (summary.notYet ?? 0)} icon={CalendarClock} onClick={() => setFilter('late')} />
-        <MetricCard label="طلبات موقع نشطة" value={summary.activeLocationRequests ?? 0} icon={MapPin} onClick={() => setFilter('no_response')} />
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="إجمالي الموظفين" value={summary.total ?? 0} icon={Users} compact={true} onClick={() => setFilter('all')} />
+        <MetricCard label="حاضر" value={summary.present ?? 0} icon={Activity} compact={true} onClick={() => setFilter('present')} />
+        <MetricCard label="متأخر / لم يحضر" value={(summary.late ?? 0) + (summary.notYet ?? 0)} icon={CalendarClock} compact={true} onClick={() => setFilter('late')} />
+        <MetricCard label="طلبات موقع نشطة" value={summary.activeLocationRequests ?? 0} icon={MapPin} compact={true} onClick={() => setFilter('no_response')} />
       </section>
 
       <section className="grid gap-4 sm:grid-cols-3 xl:grid-cols-6 text-center">
@@ -160,7 +161,7 @@ export function ExecutiveMonitoringPage({ embedded: _embedded = false }: { embed
               <p className="muted mt-1 text-sm">آخر موقع مصرّح بعرضه لكل موظف</p>
             </div>
             <div className="p-4">
-              <LiveLocationMap points={mapPoints} height={460} />
+              <LiveLocationMap points={mapPoints} height={420} />
             </div>
           </article>
 
@@ -175,24 +176,26 @@ export function ExecutiveMonitoringPage({ embedded: _embedded = false }: { embed
               </div>
             ) : null}
             {!overview.isLoading && !visible.length ? <EmptyState title="لا نتائج" description="غيّر البحث أو المرشّح." /> : null}
-            <div className="max-h-[620px] divide-y divide-[var(--border)] overflow-y-auto">
-              {visible.map((e) => (
-                <article key={e.id} className="p-4 transition-colors hover:bg-[var(--surface-muted)]">
-                  <div className="flex items-start justify-between gap-3">
-                    <UserAvatar displayName={e.name ?? ''} photoUrl={e.avatarUrl} size="sm" />
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <strong className="truncate">{e.name}</strong>
-                        <StatusBadge value={e.status} label={STATUS_LABELS[e.status] ?? e.status} />
+            <div className="max-h-[min(55vh,500px)] divide-y divide-[var(--border)] overflow-y-auto">
+              {visible.map((e) => {
+                const cleanCode = isPhoneLikeCode(e.employeeCode) ? null : e.employeeCode;
+                return (
+                  <article key={e.id} className="p-4 transition-colors hover:bg-[var(--surface-muted)]">
+                    <div className="flex items-start justify-between gap-3">
+                      <UserAvatar displayName={e.name ?? ''} photoUrl={e.avatarUrl} size="sm" />
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <strong className="truncate">{e.name}</strong>
+                          <StatusBadge value={e.status} label={STATUS_LABELS[e.status] ?? e.status} />
+                        </div>
+                        <p className="muted mt-1 text-xs">
+                          {cleanCode ? `${cleanCode} · ` : ''}{e.department ?? 'دون إدارة'} · مدير: {e.managerName ?? '—'}
+                        </p>
+                        <p className="muted mt-1 text-xs">
+                          آخر موقع: {relative(e.lastLocationAt)}
+                          {e.lastAddressAr ? ` · ${e.lastAddressAr}` : ''}
+                        </p>
                       </div>
-                      <p className="muted mt-1 text-xs">
-                        {e.employeeCode ?? '—'} · {e.department ?? 'دون إدارة'} · مدير: {e.managerName ?? '—'}
-                      </p>
-                      <p className="muted mt-1 text-xs">
-                        آخر موقع: {relative(e.lastLocationAt)}
-                        {e.lastAddressAr ? ` · ${e.lastAddressAr}` : ''}
-                      </p>
-                    </div>
                     {e.activeRequestStatus ? <StatusBadge value={e.activeRequestStatus} /> : null}
                   </div>
                   {e.id !== auth.access?.employeeId ? (
@@ -214,7 +217,8 @@ export function ExecutiveMonitoringPage({ embedded: _embedded = false }: { embed
                     </div>
                   ) : null}
                 </article>
-              ))}
+              );
+            })}
             </div>
           </article>
         </section>
