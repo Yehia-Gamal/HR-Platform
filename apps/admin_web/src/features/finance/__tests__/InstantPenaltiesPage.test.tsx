@@ -86,6 +86,9 @@ vi.mock('../useFellowshipFund', () => ({
   }),
 }));
 
+// لوحة قرار التعليق (0554) تستخدم useAuth و react-query — تُختبر في ملفها الخاص.
+vi.mock('../PendingSuspensionsCard', () => ({ PendingSuspensionsCard: () => null }));
+
 vi.mock('../usePenaltyDisputes', () => ({
   usePenaltyDisputes: () => ({ data: [], isLoading: false, isError: false, error: null }),
   useReviewPenaltyDispute: () => ({

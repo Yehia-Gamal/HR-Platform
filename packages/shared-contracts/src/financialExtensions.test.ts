@@ -274,3 +274,46 @@ describe('financialExtensions contracts', () => {
     expect(penalty.status).toBe('cancelled');
   });
 });
+
+describe('pending suspensions (0554)', () => {
+  it('parses a pending suspension row', async () => {
+    const { pendingSuspensionSchema } = await import('./financialExtensions');
+    const row = pendingSuspensionSchema.parse({
+      penaltyId: '11111111-1111-4111-8111-111111111111',
+      employeeId: '22222222-2222-4222-8222-222222222222',
+      employeeName: 'موظف',
+      employeeCode: 'E-1',
+      departmentName: null,
+      workDate: '2026-09-18',
+      amount: 500,
+      daysOverdue: 6,
+    });
+    expect(row.daysOverdue).toBe(6);
+  });
+
+  it('rejects unknown keys and a non-date workDate', async () => {
+    const { pendingSuspensionSchema } = await import('./financialExtensions');
+    const base = {
+      penaltyId: '11111111-1111-4111-8111-111111111111',
+      employeeId: '22222222-2222-4222-8222-222222222222',
+      employeeName: null,
+      employeeCode: null,
+      departmentName: null,
+      workDate: '2026-09-18',
+      amount: 500,
+      daysOverdue: 6,
+    };
+    expect(() => pendingSuspensionSchema.parse({ ...base, extra: 1 })).toThrow();
+    expect(() => pendingSuspensionSchema.parse({ ...base, workDate: '18/09/2026' })).toThrow();
+  });
+
+  it('parses the suspension decision result', async () => {
+    const { suspendEmployeeForPenaltyResultSchema } = await import('./financialExtensions');
+    const res = suspendEmployeeForPenaltyResultSchema.parse({
+      success: true,
+      penaltyId: '11111111-1111-4111-8111-111111111111',
+      employeeId: '22222222-2222-4222-8222-222222222222',
+    });
+    expect(res.success).toBe(true);
+  });
+});

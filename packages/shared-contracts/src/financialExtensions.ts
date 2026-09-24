@@ -417,3 +417,28 @@ export const penaltyDisputeSchema = z
   })
   .strict();
 export type PenaltyDispute = z.infer<typeof penaltyDisputeSchema>;
+
+/** مستحق للتعليق — بانتظار قرار بشري (get_pending_suspensions، 0554) */
+export const pendingSuspensionSchema = z
+  .object({
+    penaltyId: uuid,
+    employeeId: uuid,
+    employeeName: z.string().nullable(),
+    employeeCode: z.string().nullable(),
+    departmentName: z.string().nullable(),
+    workDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    amount: z.number(),
+    daysOverdue: z.number().int(),
+  })
+  .strict();
+export type PendingSuspension = z.infer<typeof pendingSuspensionSchema>;
+
+/** نتيجة قرار التعليق (suspend_employee_for_penalty، 0554) */
+export const suspendEmployeeForPenaltyResultSchema = z
+  .object({
+    success: z.literal(true),
+    penaltyId: uuid,
+    employeeId: uuid,
+  })
+  .strict();
+export type SuspendEmployeeForPenaltyResult = z.infer<typeof suspendEmployeeForPenaltyResultSchema>;
