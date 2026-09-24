@@ -74,21 +74,14 @@ export function fmtMinutesLong(totalMinutes: number | null | undefined): string 
 
 export type TagVariant = 'info' | 'warn' | 'success' | 'purple';
 
-/** يبني قائمة العلامات (tags) لصف يوم واحد في جدول الحضور. */
+/** يبني قائمة العلامات والملاحظات الإضافية (tags) لصف يوم واحد مع تجنب التكرار مع عمود الحالة الأساسية. */
 export function buildDayTags(d: AttendanceStatementDay): { label: string; variant: TagVariant }[] {
   const tags: { label: string; variant: TagVariant }[] = [];
-  if (d.isAbsent) tags.push({ label: 'غائب', variant: 'warn' });
-  if (d.isOfficialHoliday) tags.push({ label: 'عطلة رسمية', variant: 'info' });
-  if (d.hasLeave) tags.push({ label: 'إجازة', variant: 'purple' });
-  if (d.hasMission) tags.push({ label: 'مأمورية', variant: 'info' });
   if (d.hasLatePermit) tags.push({ label: 'إذن حضور', variant: 'warn' });
   if (d.hasEarlyPermit) tags.push({ label: 'إذن انصراف', variant: 'warn' });
   if (!d.hasLatePermit && !d.hasEarlyPermit && d.hasPermit) tags.push({ label: 'إذن', variant: 'warn' });
-  if (d.hasConvoyFundi) tags.push({ label: 'قافلة/فاندي', variant: 'purple' });
   if (d.missingCheckIn) tags.push({ label: 'نقص حضور', variant: 'warn' });
   if (d.missingCheckOut) tags.push({ label: 'نقص انصراف', variant: 'warn' });
-  if (d.isOpenShift) tags.push({ label: 'بانتظار الانصراف', variant: 'info' });
-  if (d.isFuture) tags.push({ label: 'قادم', variant: 'info' });
   if (d.hasCorrection) tags.push({ label: 'تصحيح', variant: 'info' });
   if (d.adminOverride) tags.push({ label: 'تعديل إداري', variant: 'purple' });
   if (d.penalties > 0) tags.push({ label: `جزاء: ${d.penalties}`, variant: 'warn' });

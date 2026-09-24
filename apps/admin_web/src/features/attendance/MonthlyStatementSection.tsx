@@ -280,12 +280,20 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
                     <StatusPill d={d} />
                   </td>
                   <td>
-                    <div className="flex flex-wrap gap-1">
-                      {tags.map((t) => (
-                        <DayTag key={t.label} label={t.label} variant={t.variant} />
-                      ))}
-                      {d.correctionNote && !tags.length && <span className="text-xs text-[var(--text-muted)]">{d.correctionNote}</span>}
-                    </div>
+                    {tags.length > 0 || d.correctionNote ? (
+                      <div className="flex flex-wrap items-center gap-1">
+                        {tags.map((t) => (
+                          <DayTag key={t.label} label={t.label} variant={t.variant} />
+                        ))}
+                        {d.correctionNote && (
+                          <span className="text-xs text-[var(--text-muted)] truncate max-w-[160px]" title={d.correctionNote}>
+                            {d.correctionNote}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="dash">—</span>
+                    )}
                   </td>
                   {data.capabilities.canEditDays ? (
                     <td className="cell-actions">

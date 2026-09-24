@@ -2182,7 +2182,8 @@ a.no-underline:hover .metric-card--linked {
 }
 .stmt-table .cell-shift {
   color: var(--text-secondary);
-  max-width: 200px;
+  white-space: nowrap;
+  font-size: 0.82rem;
 }
 .stmt-table .cell-actions {
   text-align: end;

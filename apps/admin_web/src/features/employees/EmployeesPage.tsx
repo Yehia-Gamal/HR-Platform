@@ -26,6 +26,14 @@ import { hierarchyCompare } from '@ahla/shared-contracts';
 type SortMode = 'newest' | 'name' | 'code' | 'hierarchy';
 type EmployeesTab = 'directory' | 'org-chart';
 
+function isPhoneLikeCode(code: string | null | undefined, phone: string | null | undefined): boolean {
+  if (!code) return true;
+  const cleanCode = code.replace(/[\s+-]/g, '');
+  if (phone && cleanCode === phone.replace(/[\s+-]/g, '')) return true;
+  if (/^(?:\+?20|0)?1[0125]\d{8}$/.test(cleanCode)) return true;
+  return false;
+}
+
 export function EmployeesPage() {
   const auth = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -94,10 +102,10 @@ export function EmployeesPage() {
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
+  const dateFormatter = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { year: 'numeric', month: 'short', day: 'numeric' });
 
   const exportColumns: ExportColumn<(typeof filtered)[number]>[] = [
-    { key: 'code', header: 'كود الموظف', get: (e) => e.employeeCode },
+    { key: 'code', header: 'كود الموظف', get: (e) => (isPhoneLikeCode(e.employeeCode, e.phoneE164) ? '' : e.employeeCode) },
     { key: 'name', header: 'الاسم', get: (e) => e.fullNameAr },
     { key: 'dept', header: 'الإدارة', get: (e) => e.department ?? '' },
     { key: 'title', header: 'المسمى الوظيفي', get: (e) => e.jobTitle ?? '' },
@@ -164,23 +172,35 @@ export function EmployeesPage() {
       },
       {
         key: 'employeeCode',
-        header: 'الكود',
-        render: (emp) => <span className="font-mono text-xs">{emp.employeeCode}</span>,
+        header: 'كود الموظف',
+        render: (emp) => {
+          if (isPhoneLikeCode(emp.employeeCode, emp.phoneE164)) {
+            return <span className="text-[var(--text-disabled)]">—</span>;
+          }
+          return (
+            <bdi
+              dir="ltr"
+              className="inline-block font-mono text-xs font-bold px-2 py-0.5 rounded bg-[var(--surface-muted)] text-[var(--text-secondary)] border border-[var(--border)]"
+            >
+              {emp.employeeCode}
+            </bdi>
+          );
+        },
       },
       {
         key: 'department',
         header: 'الإدارة',
-        render: (emp) => <span className="text-sm">{emp.department ?? '—'}</span>,
+        render: (emp) => <span className="text-sm font-medium">{emp.department ?? '—'}</span>,
       },
       {
         key: 'jobTitle',
         header: 'المسمى الوظيفي',
-        render: (emp) => <span className="text-sm">{emp.jobTitle ?? '—'}</span>,
+        render: (emp) => <span className="text-sm text-[var(--text-secondary)]">{emp.jobTitle ?? '—'}</span>,
       },
       {
         key: 'phoneE164',
         header: 'الهاتف',
-        render: (emp) => (emp.phoneE164 ? renderSafeIntlPhoneText(emp.phoneE164) : <span>—</span>),
+        render: (emp) => (emp.phoneE164 ? renderSafeIntlPhoneText(emp.phoneE164) : <span className="text-[var(--text-disabled)]">—</span>),
       },
       {
         key: 'status',
@@ -189,16 +209,18 @@ export function EmployeesPage() {
       },
       {
         key: 'createdAt',
-        header: 'تاريخ الإضافة',
+        header: 'تاريخ الانضمام',
         render: (emp) => (
-          <span className="text-[var(--text-muted)]">{new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' }).format(new Date(emp.createdAt))}</span>
+          <span className="text-xs text-[var(--text-muted)] font-medium whitespace-nowrap">
+            {dateFormatter.format(new Date(emp.createdAt))}
+          </span>
         ),
       },
       {
         key: 'actions',
         header: '',
         render: (emp) => (
-          <Link to={`/hr/employees/${emp.id}`} className="btn-secondary !px-3 !py-2 text-xs">
+          <Link to={`/hr/employees/${emp.id}`} className="btn-secondary !px-3 !py-1.5 text-xs font-bold whitespace-nowrap">
             فتح الملف
           </Link>
         ),

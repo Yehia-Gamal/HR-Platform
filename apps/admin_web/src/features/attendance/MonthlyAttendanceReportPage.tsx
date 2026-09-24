@@ -632,12 +632,20 @@ function DayRow({ d, employeeId, canEdit }: { d: AttendanceStatementDay; employe
       </td>
       <td className={`p-2.5 font-bold print:p-1 ${WARN_STATUSES.has(d.status) ? 'text-[var(--danger)]' : ''}`}>{d.status}</td>
       <td className="p-2.5 print:p-1">
-        <div className="flex flex-wrap gap-1">
-          {tags.map((t) => (
-            <DayTag key={t.label} label={t.label} variant={t.variant} />
-          ))}
-          {d.correctionNote && !tags.length && <span className="text-xs text-[var(--text-muted)]">{d.correctionNote}</span>}
-        </div>
+        {tags.length > 0 || d.correctionNote ? (
+          <div className="flex flex-wrap items-center gap-1">
+            {tags.map((t) => (
+              <DayTag key={t.label} label={t.label} variant={t.variant} />
+            ))}
+            {d.correctionNote && (
+              <span className="text-xs text-[var(--text-muted)] truncate max-w-[160px]" title={d.correctionNote}>
+                {d.correctionNote}
+              </span>
+            )}
+          </div>
+        ) : (
+          <span className="text-[var(--text-disabled)]">—</span>
+        )}
       </td>
       {canEdit ? (
         <td className="p-2.5 print:hidden">
