@@ -1,6 +1,6 @@
 import { AlertCircle, ArrowLeft, ClipboardList, Clock3, FileCheck2, Gavel, Inbox, Landmark, Megaphone, PenLine } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { safeErrorMessage } from '../../core/errorMapper';
@@ -22,8 +22,25 @@ const KIND_META: Record<ActionCenterItem['kind'], { label: string; icon: typeof 
   policy: { label: 'سياسة', icon: Landmark },
 };
 
+/**
+ * وجهة النقر على بطاقة الإجراء.
+ * الطلبات (kind=request): id بصيغة `request-{uuid}` — نفتح طلبات الموظفين
+ * مباشرة على التفاصيل عبر ?request={uuid} (نفس نمط الإشعارات /action/request)
+ * بدل القائمة العامة التي تتطلب خطوة إضافية.
+ */
+export function resolveActionHref(item: ActionCenterItem): string {
+  if (item.kind === 'request' && item.id.startsWith('request-')) {
+    const requestId = item.id.slice('request-'.length);
+    if (requestId) {
+      return `/admin/hr/requests?request=${encodeURIComponent(requestId)}`;
+    }
+  }
+  return item.actionUrl;
+}
+
 export function ActionCenterPage() {
   const query = useActionCenter();
+  const navigate = useNavigate();
   const items = useMemo(() => query.data ?? [], [query.data]);
   const isInitialLoading = query.isLoading && items.length === 0;
   // النقر على بطاقات الملخص يصفّي القائمة حسب الأولوية.
@@ -62,10 +79,20 @@ export function ActionCenterPage() {
           {visible.map((item) => {
             const meta = KIND_META[item.kind] ?? KIND_META.task;
             const Icon = meta.icon;
+            const href = resolveActionHref(item);
             return (
               <article
                 key={item.id}
-                className="card flex flex-col gap-4 p-5 transition-colors hover:border-[var(--brand-primary)]/50 md:flex-row md:items-center"
+                className="card flex cursor-pointer flex-col gap-4 p-5 transition-colors hover:border-[var(--brand-primary)]/50 md:flex-row md:items-center"
+                onClick={() => navigate(href)}
+                role="link"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate(href);
+                  }
+                }}
               >
                 <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-xl bg-[var(--surface-muted)] text-[var(--brand-primary)]">
                   <Icon className="size-5" />
@@ -100,7 +127,11 @@ export function ActionCenterPage() {
                   </div>
                 </div>
 
-                <Link className="btn-primary shrink-0" to={item.actionUrl}>
+                <Link
+                  className="btn-primary shrink-0"
+                  to={href}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   فتح الإجراء
                   <ArrowLeft className="size-4" aria-hidden="true" />
                 </Link>

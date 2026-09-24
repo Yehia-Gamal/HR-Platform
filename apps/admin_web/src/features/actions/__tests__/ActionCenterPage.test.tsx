@@ -1,28 +1,31 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
-import { ActionCenterPage } from '../ActionCenterPage';
+import { ActionCenterPage, resolveActionHref } from '../ActionCenterPage';
+import type { ActionCenterItem } from '@ahla/shared-contracts';
 
-const mockItem = {
-  id: 'action-1',
-  kind: 'leave_request',
+const mockItem: ActionCenterItem = {
+  id: 'request-f47ac10b-58cc-4372-a567-0e02b2c3d479',
+  kind: 'request',
   priority: 'urgent',
   status: 'pending',
   title: 'طلب إجازة يحتاج موافقتك',
   subtitle: 'تقدّم أحمد محمد بطلب إجازة سنوية',
   dueAt: '2026-08-15T12:00:00Z',
-  actionUrl: '/hr/requests/req-1',
+  actionUrl: '/hr/requests',
+  sourceUpdatedAt: '2026-08-14T10:00:00Z',
 };
 
-const normalItem = {
+const normalItem: ActionCenterItem = {
   id: 'action-2',
-  kind: 'document_review',
+  kind: 'task',
   priority: 'high',
   status: 'pending',
   title: 'مستند ينتظر التوثيق',
   subtitle: null,
   dueAt: null,
   actionUrl: '/hr/documents',
+  sourceUpdatedAt: null,
 };
 
 let actionReturn: Record<string, unknown> = {};
@@ -116,6 +119,28 @@ describe('ActionCenterPage', () => {
       </Wrapper>,
     );
     expect(screen.getAllByText('فتح الإجراء').length).toBeGreaterThan(0);
+  });
+
+  it('رابط الطلب يفتح التفاصيل مباشرة عبر ?request=', () => {
+    actionReturn = dataQuery;
+    render(
+      <Wrapper>
+        <ActionCenterPage />
+      </Wrapper>,
+    );
+    const anchors = screen.getAllByRole('link', { name: /فتح الإجراء/ });
+    const requestAnchor = anchors.find((a) => a.getAttribute('href')?.includes('/admin/hr/requests?request='));
+    expect(requestAnchor).toBeTruthy();
+    expect(requestAnchor?.getAttribute('href')).toContain(
+      '/admin/hr/requests?request=f47ac10b-58cc-4372-a567-0e02b2c3d479',
+    );
+  });
+
+  it('resolveActionHref يبني رابط التفاصيل للطلب', () => {
+    expect(resolveActionHref(mockItem)).toBe(
+      '/admin/hr/requests?request=f47ac10b-58cc-4372-a567-0e02b2c3d479',
+    );
+    expect(resolveActionHref(normalItem)).toBe('/hr/documents');
   });
 
   it('يعرض حالة التحميل', () => {

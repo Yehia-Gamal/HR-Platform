@@ -516,7 +516,7 @@ export const mockOfficialFeed: OfficialFeedItem[] = [
 
 export const mockActionCenter: ActionCenterItem[] = [
   {
-    id: 'action-request-1',
+    id: 'request-f47ac10b-58cc-4372-a567-0e02b2c3d479',
     kind: 'request',
     title: 'إذن حضور يحتاج اعتماد المدير',
     subtitle: 'سارة حسن · EMP-132',
