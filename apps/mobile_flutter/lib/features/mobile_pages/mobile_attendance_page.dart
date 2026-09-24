@@ -11,6 +11,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_services_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_self_service_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -198,7 +199,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
             body: 'سياسة الحساب الحالية لا تتطلب حضورًا أو انصرافًا شخصيًا.',
           ),
           const SizedBox(height: 16),
-          _QuickLinksRow(working: _working),
+          _QuickLinksRow(working: _working, onMissionTap: _openMissionSheet),
         ],
       );
     }
@@ -331,7 +332,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
         const SizedBox(height: 14),
 
         // ── روابط سريعة ──
-        _QuickLinksRow(working: _working),
+        _QuickLinksRow(working: _working, onMissionTap: _openMissionSheet),
         const SizedBox(height: 14),
 
         // ── ملاحظة أمان مختصرة ──
@@ -342,6 +343,41 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
         AttendanceCorrectionsSection(),
       ],
     );
+  }
+
+  Future<void> _openMissionSheet() async {
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => const NewRequestSheet(type: 'mission'),
+    );
+    if (result == null || !mounted) return;
+
+    try {
+      await ref.read(mobileCommandsProvider).submitRequest(
+            'mission',
+            result['title'] as String,
+            result['reason'] as String,
+            result['payload'] as Map<String, dynamic>,
+          );
+      ref.invalidate(attendanceStateProvider);
+      ref.invalidate(mobileRequestsProvider);
+      ref.invalidate(employeeHomeProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم إرسال طلب المأمورية بنجاح إلى مسار الاعتماد.'),
+            backgroundColor: AppColors.statusSuccess,
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(error))),
+        );
+      }
+    }
   }
 
   Future<void> _register({bool skipDialog = false}) async {
@@ -1351,12 +1387,13 @@ class _StatusRow extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// روابط سريعة — شبكة 3 أزرار مدمجة
+// روابط سريعة — شبكة 4 أزرار مدمجة
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class _QuickLinksRow extends StatelessWidget {
-  const _QuickLinksRow({required this.working});
+  const _QuickLinksRow({required this.working, this.onMissionTap});
   final bool working;
+  final VoidCallback? onMissionTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1386,6 +1423,12 @@ class _QuickLinksRow extends StatelessWidget {
                     builder: (_) => const MonthlyAttendanceStatementPage(),
                   ),
                 ),
+        ),
+        const SizedBox(width: 8),
+        _QuickLink(
+          icon: Icons.work_outline_rounded,
+          label: 'طلب مأمورية',
+          onTap: working ? null : onMissionTap,
         ),
         const SizedBox(width: 8),
         _QuickLink(

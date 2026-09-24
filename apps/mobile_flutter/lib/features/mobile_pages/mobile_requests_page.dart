@@ -259,7 +259,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                   decoration: const InputDecoration(labelText: 'نوع الطلب'),
                   items: const [
                     DropdownMenuItem(value: 'leave', child: Text('إجازة')),
-                    DropdownMenuItem(value: 'mission', child: Text('مأمورية')),
+                    DropdownMenuItem(value: 'mission', child: Text('مأمورية عمل')),
                     DropdownMenuItem(value: 'permit', child: Text('طلب إذن')),
                     DropdownMenuItem(
                       value: 'attendance_correction',
@@ -280,6 +280,10 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                     endDate = null;
                     permitDate = null;
                     startTime = null;
+                    if (type == 'mission') {
+                      if (title.text.trim().isEmpty) title.text = 'مأمورية عمل خارجية';
+                      if (reason.text.trim().isEmpty) reason.text = 'مأمورية عمل رسمية بتكليف من الإدارة';
+                    }
                   }),
                 ),
                 const SizedBox(height: 12),
@@ -676,6 +680,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
       );
       ref.invalidate(mobileRequestsProvider);
       ref.invalidate(myLeaveBalancesProvider);
+      ref.invalidate(attendanceStateProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم إرسال الطلب إلى مسار الاعتماد.')),

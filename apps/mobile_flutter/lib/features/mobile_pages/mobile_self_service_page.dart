@@ -61,8 +61,8 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                 Expanded(
                   child: _ServiceCard(
                     icon: Icons.work_outline_rounded,
-                    title: 'مهمة عمل',
-                    subtitle: 'مأمورية خارجية',
+                    title: 'طلب مأمورية',
+                    subtitle: 'مأمورية عمل خارجية',
                     color: scheme.tertiary,
                     onTap: () => _submitRequest(context, ref, 'mission'),
                   ),
@@ -447,6 +447,7 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
       ref.invalidate(mobileRequestsProvider);
       ref.invalidate(myLeaveBalancesProvider);
       ref.invalidate(employeeHomeProvider);
+      ref.invalidate(attendanceStateProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
@@ -692,6 +693,10 @@ class NewRequestSheetState extends State<NewRequestSheet> {
   void initState() {
     super.initState();
     _permitKind = widget.permitKind ?? 'late_arrival';
+    if (widget.type == 'mission' && widget.initial == null) {
+      _titleController.text = 'مأمورية عمل خارجية';
+      _reasonController.text = 'مأمورية عمل رسمية بتكليف من الإدارة';
+    }
     // 0451: تعبئة القيم الحالية عند تعديل طلب مرفوض
     final init = widget.initial;
     if (init != null) {
@@ -728,7 +733,7 @@ class NewRequestSheetState extends State<NewRequestSheet> {
 
   String get _typeLabel => switch (widget.type) {
     'leave' => 'طلب إجازة',
-    'mission' => 'طلب مهمة عمل',
+    'mission' => 'طلب مأمورية عمل',
     'convoy' => 'طلب قافلة',
     'fundraising' => 'طلب فاندي',
     'permit' => 'طلب إذن',
