@@ -287,16 +287,6 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
   );
   const allItems = useMemo(() => allowedSections.flatMap((section) => section.items.map((item) => ({ ...item, group: section.title }))), [allowedSections]);
 
-  const workspaceOptions = useMemo(
-    () =>
-      [
-        access.workspaces.includes('hr') ? { id: 'hr' as const, label: 'مساحة الموارد البشرية', path: '/hr' } : null,
-        access.workspaces.includes('main_admin') ? { id: 'main_admin' as const, label: 'مساحة الإدارة الرئيسية', path: '/admin' } : null,
-        access.workspaces.includes('committee') ? { id: 'committee' as const, label: 'لجنة الخلافات', path: '/committee' } : null,
-      ].filter(Boolean) as Array<{ id: WorkspaceId; label: string; path: string }>,
-    [access.workspaces],
-  );
-
   const currentWorkspaceLabel =
     workspace === 'hr' ? 'الموارد البشرية' : workspace === 'committee' ? 'لجنة الخلافات' : unifiedAdmin ? 'المنصة الموحّدة' : 'الإدارة الرئيسية';
   const currentItem = [...allItems]
