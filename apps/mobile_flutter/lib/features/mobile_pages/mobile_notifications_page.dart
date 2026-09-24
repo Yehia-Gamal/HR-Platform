@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:ahla_shabab_management_os/core/notifications/notification_handler.dart';
+import 'package:ahla_shabab_management_os/features/association_projects/association_project_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_correction_detail_page.dart';
@@ -412,6 +413,9 @@ class _MobileNotificationsPageState
       'device' => const PasskeyDevicesPage(),
       'attendance_correction' => item.entityId != null
           ? AttendanceCorrectionDetailPage(correctionId: item.entityId!)
+          : null,
+      'association_project' => item.entityId != null
+          ? AssociationProjectDetailPage(projectId: item.entityId!)
           : null,
       _ => null,
     };

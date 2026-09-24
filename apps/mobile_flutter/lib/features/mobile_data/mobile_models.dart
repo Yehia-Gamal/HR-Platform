@@ -1646,6 +1646,7 @@ class MobileNotificationItem {
     'device',
     'attendance_correction',
     'attendance_corrections',
+    'association_project',
   };
 
   bool get hasSupportedAction =>

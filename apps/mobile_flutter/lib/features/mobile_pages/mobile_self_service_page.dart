@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/features/association_projects/association_projects_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
@@ -200,6 +201,21 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const KnowledgePage()),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _ServiceCard(
+                    icon: Icons.folder_special_rounded,
+                    title: 'مشاريع الجمعية',
+                    subtitle: 'مشاريع إدارتك وخطواتها',
+                    color: const Color(0xFF0F766E),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AssociationProjectsPage(),
+                      ),
                     ),
                   ),
                 ),

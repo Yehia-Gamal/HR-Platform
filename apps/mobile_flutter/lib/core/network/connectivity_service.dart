@@ -222,6 +222,11 @@ String _humanizePostgrest(PostgrestException error) {
   if (m.contains('NO_EMPLOYEE_LINKED')) {
     return 'حسابك غير مرتبط بملف موظف. تواصل مع إدارة الموارد البشرية.';
   }
+  // رسالة عربية صريحة من دالة الخادم (raise exception '…') أدق من الرسالة
+  // العامة لرمز الخطأ — مثل «لا يمكنك إنشاء مشروع إلا لإدارتك» (42501).
+  if (_isArabic(m) && m.length <= 200 && !m.contains('\n')) {
+    return m;
+  }
   switch (code) {
     case '42703':
       return 'تعذر تحميل البيانات. تواصل مع مسؤول النظام.';
