@@ -39,7 +39,7 @@ const labels: Record<RequestSummary['requestType'], string> = {
 /// تنسيق فترة الطلب من startDate/endDate (YYYY-MM-DD) بالعربية — يعرض
 /// التاريخ الواحد إذا لم تُحدد نهاية.
 function formatPeriodLabel(startDate: unknown, endDate: unknown): string {
-  const fmt = new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short', year: 'numeric' });
+  const fmt = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { day: 'numeric', month: 'short', year: 'numeric' });
   const parse = (value: unknown): Date | null => {
     if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(value)) return null;
     const parsed = new Date(`${value.slice(0, 10)}T00:00:00`);

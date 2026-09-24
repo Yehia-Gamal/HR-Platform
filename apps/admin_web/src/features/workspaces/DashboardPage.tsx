@@ -55,7 +55,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
   const attendance = useAttendanceTodayOverview();
   const att = attendance.data;
   const data = query.data;
-  const today = new Intl.DateTimeFormat('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+  const today = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 
   // ─── كروت مؤشرات الأداء المتناسقة (4 أعمدة على شاشات 15 بوصة وما فوق) ─────────
   const cards = data

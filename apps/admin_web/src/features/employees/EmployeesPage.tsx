@@ -288,36 +288,37 @@ export function EmployeesPage() {
         <OrgChartPage embedded />
       ) : (
         <>
-          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="إجمالي الملفات" value={all.length} icon={UsersRound} hint="جميع الحالات داخل نطاقك" onClick={() => setStatus('all')} />
+          <section className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            <MetricCard label="إجمالي الملفات" value={all.length} icon={UsersRound} hint="جميع الحالات داخل نطاقك" onClick={() => setStatus('all')} compact />
             <MetricCard
               label="موظفون نشطون"
               value={active}
               icon={UserRound}
               hint={all.length ? `${Math.round((active / all.length) * 100)}% من الملفات` : 'لا توجد بيانات'}
               onClick={() => setStatus('active')}
+              compact
             />
-            <MetricCard label="تهيئة ودعوات" value={onboarding} icon={RefreshCw} hint="لم تكتمل رحلة التفعيل" onClick={() => setStatus('onboarding')} />
-            <MetricCard label="موقوف أو منتهي" value={inactive} icon={ArrowUpDown} hint="سجلات محفوظة للتاريخ والتدقيق" onClick={() => setStatus('inactive')} />
+            <MetricCard label="تهيئة ودعوات" value={onboarding} icon={RefreshCw} hint="لم تكتمل رحلة التفعيل" onClick={() => setStatus('onboarding')} compact />
+            <MetricCard label="موقوف أو منتهي" value={inactive} icon={ArrowUpDown} hint="سجلات محفوظة للتاريخ والتدقيق" onClick={() => setStatus('inactive')} compact />
           </section>
 
           {pendingPenalties.length > 0 && (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/60 rounded-2xl">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl" aria-hidden="true">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2.5 sm:px-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/60 rounded-xl">
+              <div className="flex items-center gap-2">
+                <span className="text-lg shrink-0" aria-hidden="true">
                   ⚠️
                 </span>
-                <div>
-                  <h4 className="text-sm font-bold text-amber-900 dark:text-amber-200">
-                    يوجد {pendingPenalties.length} موظف مطالبين بغرامات فورية للتأخير (إجمالي {totalPendingAmount.toLocaleString('ar-EG')} ج.م)
+                <div className="min-w-0">
+                  <h4 className="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-200">
+                    يوجد {pendingPenalties.length} موظف مطالبين بغرامات فورية للتأخير (إجمالي {totalPendingAmount.toLocaleString('ar-EG-u-nu-latn')} ج.م)
                   </h4>
-                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                    الموظفون موضح بجوار أسمائهم علامة حمراء/برتقالية بالقيمة المستحقة. يتم إزالة العلامة فور تأكيد الـ HR للاستلام.
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                    الموظفون موضح بجوار أسمائهم علامة حمراء/برتقالية بالقيمة المستحقة.
                   </p>
                 </div>
               </div>
-              <Link to="/admin/finance?tab=instant-penalties" className="btn-primary !text-xs !py-2 !px-4 font-bold shrink-0">
-                تحصيل الجزاءات وإزالة العلامة
+              <Link to="/admin/finance?tab=instant-penalties" className="btn-primary !text-xs !py-1.5 !px-3 font-bold shrink-0">
+                تحصيل الجزاءات
               </Link>
             </div>
           )}
@@ -384,7 +385,8 @@ export function EmployeesPage() {
                 emptyTitle="لا توجد نتائج مطابقة"
                 emptyDescription="جرّب تعديل البحث أو مسح عوامل التصفية لعرض المزيد من الملفات."
                 ariaLabel="جدول الموظفين"
-                minWidth="1020px"
+                minWidth="920px"
+                maxHeight="min(60vh, 520px)"
               />
               {totalPages > 1 && (
                 <Pagination currentPage={page} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} />
