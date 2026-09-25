@@ -24,7 +24,24 @@ final RegExp _uuidRegExp = RegExp(
 /// live_location_requests (الجمع)، kpi_evaluation، attendance_corrections،
 /// work_rosters، attendance_daily، attendance_event، requests، dispute_case —
 /// فكان النقر على الإشعار لا يستجيب (لا فتح مسار ولا تعليم مقروء).
-String? canonicalNotificationEntityType(String? raw) => switch (raw) {
+String? canonicalNotificationEntityType(String? raw) {
+  if (raw == null) return null;
+  // كل متغيرات الغرامة الفورية (doubled/suspended/excuse_approved/…) صفحتها واحدة.
+  if (raw.startsWith('instant_penalty')) return 'instant_penalty';
+  // أنواع فرعية تُرسل في حقل kind (من metadata.kind) بدل نوع الكيان — كان
+  // النقر عليها في الهاتف لا يفتح شيئاً (لا تطابق أي مسار).
+  if (raw.startsWith('device_')) return 'device';
+  return _canonicalEntityTypeExact(raw);
+}
+
+String? _canonicalEntityTypeExact(String raw) => switch (raw) {
+  'before_in' ||
+  'late_in' ||
+  'before_out' ||
+  'late_out' ||
+  'missed_in' ||
+  'missed_out' => 'attendance',
+  'casual_leave_auto_approved' || 'request_approval_needed' => 'request',
   'live_location_requests' => 'live_location_request',
   'kpi_evaluation' => 'kpi',
   'requests' => 'request',
@@ -44,13 +61,6 @@ String? canonicalNotificationEntityType(String? raw) => switch (raw) {
   'announcements' => 'announcement',
   'decisions' => 'decision',
   'employee_device' || 'employee_devices' || 'devices' => 'device',
-  'instant_penalty' ||
-  'instant_penalty_doubled' ||
-  'instant_penalty_suspended' ||
-  'instant_penalty_reinstated' ||
-  'instant_penalty_lifted' ||
-  'instant_penalty_paid' ||
-  'instant_penalty_cancelled' => 'instant_penalty',
   'fellowship' || 'fellowship_fund' => 'fellowship_fund',
   _ => raw,
 };

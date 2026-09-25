@@ -6,6 +6,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendanc
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_daily_reports_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_feed_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_location_request_deep_link_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notifications_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_tasks_page.dart';
@@ -87,6 +88,9 @@ Widget? getDirectActionPage({
       ),
     'device' || 'employee_device' || 'devices' =>
       const PasskeyDevicesPage(),
+    // إشعار بلا صفحة مخصصة (تنبيه شامل، ملخص أسبوعي، …): قائمة الإشعارات
+    // حيث يظهر نصه كاملاً — بدل نقرة لا تفعل شيئاً.
+    'notification' || 'notifications' => const MobileNotificationsPage(),
     _ => null,
   };
 }

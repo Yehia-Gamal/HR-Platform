@@ -361,8 +361,9 @@ class PushService {
     }
 
     // أولوية 2: استنتج المسار من الحقول المنفصلة (entityType/entityId/requestId).
-    final route = resolveNotificationRouteFromData(data);
-    if (route == '/') return; // لا يوجد شيء نستطيع عرضه بأمان.
+    var route = resolveNotificationRouteFromData(data);
+    // لا صفحة مخصصة لهذا النوع: افتح قائمة الإشعارات بدل نقرة بلا أثر.
+    if (route == '/') route = _notificationsFallbackRoute(data['notificationId'] as String?);
     final idLike =
         (data['entityId'] as String?) ?? (data['requestId'] as String?) ?? '';
     if (idLike.isNotEmpty) {
@@ -448,8 +449,16 @@ class PushService {
         return;
       }
     }
-    // لا يوجد مسار قابل للحل — ابقَ على الرئيسية.
+    // لا صفحة مخصصة لهذا النوع: افتح قائمة الإشعارات بدل نقرة بلا أثر.
+    final fallback = _notificationsFallbackRoute(notificationId);
+    coldStart
+        ? unawaited(_navigateWhenReady(fallback, deepLink))
+        : _navigate(fallback, deepLink);
   }
+
+  /// مسار قائمة الإشعارات عبر صفحة الإجراء (تتولى انتظار الجلسة وتسجيل الدخول).
+  String _notificationsFallbackRoute(String? notificationId) =>
+      '/action/notification/${(notificationId ?? '').isEmpty ? 'default' : notificationId}';
 
   /// يلحق إجراء القرار (approve/reject) كاستعلام لمسار الطلب فقط —
   /// صفحة الطلب تفتح ورقة القرار جاهزة بدل التنفيذ الصامت.

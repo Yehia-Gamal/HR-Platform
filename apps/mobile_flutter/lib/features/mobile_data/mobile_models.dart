@@ -679,6 +679,16 @@ class MobileActionItem {
   final String priority;
   final String status;
   final DateTime? dueAt;
+
+  // مفتاح mobileActionTargetProvider (family): بدون مساواة قيمية يُنشأ مزوّد
+  // جديد في كل إعادة بناء (مثل كل حدث من onAuthStateChange عند الإقلاع)
+  // فيعود إلى «جاري فتح الإشعار...» ويُطلق RPC جديداً دون أن يستقر أبداً.
+  @override
+  bool operator ==(Object other) =>
+      other is MobileActionItem && other.id == id && other.kind == kind;
+
+  @override
+  int get hashCode => Object.hash(id, kind);
 }
 
 class LocationDirectoryEmployee {

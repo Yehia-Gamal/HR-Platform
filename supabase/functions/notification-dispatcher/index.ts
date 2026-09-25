@@ -258,6 +258,11 @@ function buildFcmMessage(token: string, n: NotificationRow | null): Record<strin
   const deepLink = (meta.deepLink as string) ?? n?.action_url ?? '';
   const data: Record<string, string> = {
     kind: String(meta.kind ?? n?.entity_type ?? 'notification'),
+    // النوع الحقيقي للكيان: `kind` أعلاه يُؤخذ من metadata.kind وهو نوع فرعي
+    // حرّ (late_in، device_pending_approval، casual_leave_auto_approved…) لا
+    // يطابق أي مسار — فكان النقر على هذه الإشعارات في الهاتف لا يفتح شيئاً.
+    // التطبيق يقرأ entityType أولاً في resolveNotificationRouteFromData.
+    entityType: String(n?.entity_type ?? ''),
     notificationId: String(n?.id ?? ''),
     entityId: String(meta.entityId ?? n?.entity_id ?? ''),
     deepLink: String(deepLink),
