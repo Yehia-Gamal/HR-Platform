@@ -785,6 +785,7 @@ class NewRequestSheetState extends State<NewRequestSheet> {
       locale: const Locale('ar'),
     );
     if (picked == null) return;
+    if (!mounted) return;
     setState(() {
       if (isStart) {
         _startDate = picked;
@@ -802,6 +803,7 @@ class NewRequestSheetState extends State<NewRequestSheet> {
       initialTime: initial ?? const TimeOfDay(hour: 9, minute: 0),
     );
     if (picked == null) return;
+    if (!mounted) return;
     setState(() {
       if (isStart) {
         _startTime = picked;
@@ -1155,7 +1157,7 @@ class NewRequestSheetState extends State<NewRequestSheet> {
                   lastDate: DateTime.now().add(const Duration(days: 30)),
                   locale: const Locale('ar'),
                 );
-                if (picked != null) setState(() => _permitDate = picked);
+                if (picked != null && mounted) setState(() => _permitDate = picked);
               },
               icon: const Icon(Icons.calendar_today, size: 18),
               label: Text(
@@ -1283,7 +1285,7 @@ class _ForgotPunchSheetState extends State<_ForgotPunchSheet> {
                 lastDate: DateTime.now(),
                 locale: const Locale('ar'),
               );
-              if (picked != null) setState(() => _workDate = picked);
+              if (picked != null && mounted) setState(() => _workDate = picked);
             },
             icon: const Icon(Icons.calendar_today, size: 18),
             label: Text('التاريخ: ${DateFormat('d/M/y').format(_workDate)}'),
@@ -1295,7 +1297,7 @@ class _ForgotPunchSheetState extends State<_ForgotPunchSheet> {
                 context: context,
                 initialTime: _time ?? const TimeOfDay(hour: 8, minute: 0),
               );
-              if (picked != null) setState(() => _time = picked);
+              if (picked != null && mounted) setState(() => _time = picked);
             },
             icon: const Icon(Icons.access_time, size: 18),
             label: Text(

@@ -577,7 +577,7 @@ class _CreateProjectSheetState extends ConsumerState<_CreateProjectSheet> {
                   firstDate: now,
                   lastDate: DateTime(now.year + 5),
                 );
-                if (picked != null) setState(() => _targetEnd = picked);
+                if (picked != null && mounted) setState(() => _targetEnd = picked);
               },
             ),
             if (_error != null) ...[

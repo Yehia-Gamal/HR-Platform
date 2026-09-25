@@ -87,11 +87,20 @@ class PushService {
       FlutterLocalNotificationsPlugin();
   bool _ready = false;
 
+  /// يكتمل بعد محاولة Firebase.initializeApp: true إن نجحت، false إن تعذّرت
+  /// (جهاز بلا Google Play Services مثلاً). أي وصول لـ FirebaseMessaging.instance
+  /// قبل اكتماله يرمي `[core/no-app]` — سُجّل 442 مرة لدى 11 مستخدماً لأن مستمع
+  /// onAuthStateChange في main.dart كان يُطلق قبل انتهاء التهيئة.
+  final Completer<bool> _firebaseReady = Completer<bool>();
+  Future<bool> get firebaseReady => _firebaseReady.future;
+
   Future<void> initialize() async {
     if (_ready) return;
     try {
       await Firebase.initializeApp();
+      if (!_firebaseReady.isCompleted) _firebaseReady.complete(true);
     } catch (error) {
+      if (!_firebaseReady.isCompleted) _firebaseReady.complete(false);
       if (kDebugMode) {
         debugPrint('Push disabled (Firebase not configured): $error');
       }

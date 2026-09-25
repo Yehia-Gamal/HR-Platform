@@ -603,6 +603,7 @@ class _KpiEvaluationDetailPageState
               )
               .toList(growable: false)
         : null;
+    if (!mounted) return;
     setState(() => _saving = true);
     try {
       await ref
@@ -1021,6 +1022,7 @@ class _AcknowledgementCardState extends State<_AcknowledgementCard> {
       if (confirmed != true) return;
       note = controller.text.trim().isEmpty ? null : controller.text.trim();
     }
+    if (!mounted) return;
     setState(() => _busy = true);
     try {
       await widget.onAcknowledge(ack, note);

@@ -87,8 +87,13 @@ Future<void> main() async {
         Supabase.instance.client.auth.onAuthStateChange.listen((event) {
           if (event.session == null) return;
           unawaited(
-            FirebaseMessaging.instance
-                .getToken()
+            // انتظار Firebase أولاً: الحدث الأول (initialSession) يصل قبل انتهاء
+            // initializeApp فكان FirebaseMessaging.instance يرمي [core/no-app]
+            // ويضيع تسجيل رمز الجهاز. على جهاز بلا Firebase نتخطى بصمت.
+            pushService.firebaseReady
+                .then((ready) => ready
+                    ? FirebaseMessaging.instance.getToken()
+                    : Future<String?>.value())
                 .then((token) async {
                   if (token == null) return;
                   final platform = defaultTargetPlatform == TargetPlatform.iOS

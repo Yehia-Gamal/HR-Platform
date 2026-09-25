@@ -178,6 +178,7 @@ class _PasskeyDevicesPageState extends ConsumerState<PasskeyDevicesPage> {
       return;
     }
 
+    if (!mounted) return;
     setState(() => _workingId = device.id);
     try {
       await ref

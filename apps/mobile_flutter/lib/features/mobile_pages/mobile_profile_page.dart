@@ -186,6 +186,7 @@ class _HeaderState extends ConsumerState<_Header> {
     );
     if (picked == null) return;
 
+    if (!mounted) return;
     setState(() => _isUploading = true);
     try {
       final originalBytes = await picked.readAsBytes();
@@ -894,6 +895,7 @@ class _DeviceSecuritySectionState
       return;
     }
 
+    if (!mounted) return;
     setState(() => _revokingId = device.id);
     try {
       await ref

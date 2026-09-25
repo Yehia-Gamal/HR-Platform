@@ -347,6 +347,7 @@ class _ExecutiveAnnouncementPageState
       if (confirmed != true) return;
     }
 
+    if (!mounted) return;
     setState(() => _submitting = true);
     try {
       // ─── رفع الصورة إن وُجدت ───

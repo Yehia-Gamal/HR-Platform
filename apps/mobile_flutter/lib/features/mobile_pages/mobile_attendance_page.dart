@@ -420,6 +420,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           _pendingRetry = _PendingRetry.register;
           await Geolocator.openLocationSettings();
         } else {
+          if (!mounted) return;
           setState(() {
             _issueKind = null;
             _pendingRetry = null;
@@ -453,6 +454,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
             _pendingRetry = _PendingRetry.register;
             await Geolocator.openAppSettings();
           } else {
+            if (!mounted) return;
             setState(() {
               _issueKind = null;
               _pendingRetry = null;
@@ -516,6 +518,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       if (confirmed != true) return;
     }
 
+    if (!mounted) return;
     setState(() => _working = true);
     try {
       final result = await ref
@@ -579,6 +582,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           _pendingRetry = _PendingRetry.punch(action);
           await Geolocator.openLocationSettings();
         } else {
+          if (!mounted) return;
           setState(() {
             _issueKind = null;
             _pendingRetry = null;
@@ -612,6 +616,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
             _pendingRetry = _PendingRetry.punch(action);
             await Geolocator.openAppSettings();
           } else {
+            if (!mounted) return;
             setState(() {
               _issueKind = null;
               _pendingRetry = null;
