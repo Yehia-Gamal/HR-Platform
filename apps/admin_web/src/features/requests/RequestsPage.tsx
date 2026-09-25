@@ -52,17 +52,6 @@ function formatPeriodLabel(startDate: unknown, endDate: unknown): string {
   return `${fmt.format(start)} — ${fmt.format(end)}`;
 }
 const assignmentLabels: Record<WorkAssignment['assignmentType'], string> = { MISSION: 'مأمورية', CONVOY: 'قافلة', FUNDRAISING: 'فاندي' };
-type TypeTab = 'all' | 'leave' | 'mission' | 'convoy' | 'fundraising' | 'attendance_permit' | 'corrections';
-const typeTabs: { key: TypeTab; label: string }[] = [
-  { key: 'all', label: 'الكل' },
-  { key: 'leave', label: 'الإجازات' },
-  { key: 'mission', label: 'المأموريات' },
-  { key: 'convoy', label: 'القوافل' },
-  { key: 'fundraising', label: 'الفاندي' },
-  { key: 'attendance_permit', label: 'أذونات الحضور' },
-  { key: 'corrections', label: 'تصحيحات الحضور' },
-];
-
 /// كشف ما إذا كان النص المخزن في حقل الكود هو في الحقيقة رقم هاتف أو قيمة بلا فائدة —
 /// يحدث هذا لدى بعض السجلات القديمة حيث حُفظ الهاتف في خانة الكود.
 function isPhoneLikeCode(code: string | null | undefined): boolean {
@@ -155,9 +144,13 @@ export function RequestsPage() {
   const correctionsQuery = useAttendanceOperations(currentMonth);
   const correctionsCommands = useAttendanceOperationsCommands();
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
-  const corrections: AttendanceOperationsCatalog['corrections'] = correctionsQuery.data?.corrections ?? [];
+  // مراجع ثابتة: `?? []` ينشئ مصفوفة جديدة في كل رسم فيُعاد حساب المقاييس كل مرة.
+  const corrections = useMemo<AttendanceOperationsCatalog['corrections']>(
+    () => correctionsQuery.data?.corrections ?? [],
+    [correctionsQuery.data],
+  );
 
-  const allRequests = query.data ?? [];
+  const allRequests = useMemo(() => query.data ?? [], [query.data]);
   const metrics = useMemo(() => {
     const total = allRequests.length;
     const pendingRequests = allRequests.filter((r) => r.status === 'pending').length;
@@ -197,7 +190,13 @@ export function RequestsPage() {
         return (
           haystack.includes(search.toLowerCase()) &&
           (status === 'all' || item.status === status) &&
-          (typeTab === 'all' || typeTab === 'corrections' || item.requestType === typeTab)
+          (typeTab === 'all' ||
+            typeTab === 'corrections' ||
+            // تبويب «أذونات الحضور» يجمع نوعين (يطابق عدّاده metrics.permits) —
+            // كانت المقارنة الحرفية بـ 'attendance_permit' تُفرغ القائمة رغم العدّاد.
+            (typeTab === 'attendance_permit'
+              ? item.requestType === 'late_permit' || item.requestType === 'early_permit'
+              : item.requestType === typeTab))
         );
       }),
     [query.data, search, status, typeTab],

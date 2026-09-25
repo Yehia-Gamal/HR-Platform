@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
@@ -100,6 +100,28 @@ describe('RequestsPage', () => {
     expect(screen.getByText('القوافل')).toBeDefined();
     expect(screen.getByText('أذونات الحضور')).toBeDefined();
     expect(screen.getByText('تصحيحات الحضور')).toBeDefined();
+  });
+
+  // تبويب «أذونات الحضور» يجمع late_permit و early_permit — كان يعرض عدّاداً
+  // (9 في الإنتاج) وقائمة فارغة لأن الفلتر قارن requestType بـ 'attendance_permit'.
+  it('تبويب أذونات الحضور يعرض طلبات الإذن الفعلية لا قائمة فارغة', () => {
+    requestsOverrideFn = () => ({
+      ...dataQuery,
+      data: [
+        mockRequests[0],
+        { ...mockRequests[0], id: '00000000-0000-0000-0000-000000000021', requestNumber: 1002, requestType: 'late_permit', title: 'إذن تأخير صباحي', employeeName: 'سامي علي' },
+        { ...mockRequests[0], id: '00000000-0000-0000-0000-000000000022', requestNumber: 1003, requestType: 'early_permit', title: 'إذن انصراف مبكر', employeeName: 'منى حسن' },
+      ],
+    });
+    render(
+      <Wrapper>
+        <RequestsPage />
+      </Wrapper>,
+    );
+    fireEvent.click(screen.getByText('أذونات الحضور'));
+    expect(screen.getAllByText('سامي علي').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('منى حسن').length).toBeGreaterThan(0);
+    expect(screen.queryByText('أحمد محمد')).toBeNull();
   });
 
   it('يعرض قسم التنقل بين التصنيفات مع aria-label', () => {

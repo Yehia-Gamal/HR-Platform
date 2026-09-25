@@ -5,30 +5,18 @@ import {
   ArrowUpRight,
   BadgeCheck,
   BriefcaseBusiness,
-  Building2,
   CalendarDays,
   CheckCircle2,
   Clock3,
   FileWarning,
   FolderKanban,
-  Gavel,
   Gauge,
-  HeartHandshake,
-  Inbox,
-  KeyRound,
-  MapPin,
-  Megaphone,
   Plus,
-  ScrollText,
   Settings,
   ShieldAlert,
   ShieldCheck,
-  Smartphone,
   Sparkles,
-  TimerReset,
   UserCheck,
-  UserMinus,
-  UserX,
   Users,
 } from 'lucide-react';
 import { Link } from 'react-router';
@@ -38,8 +26,6 @@ import { MetricCard } from '../../ui/MetricCard';
 import { MetricSkeletonRow } from '../../ui/Skeletons';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { relativeTime } from '../../core/formatTime';
-import { AppBarChart } from '../../ui/charts/AppBarChart';
-import { ChartCard } from '../../ui/charts/ChartCard';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { useAuth } from '../auth/AuthProvider';
 import { useDashboardOverview } from '../management/useManagementOverviews';

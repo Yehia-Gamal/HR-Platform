@@ -26,6 +26,8 @@ import { hierarchyCompare } from '@ahla/shared-contracts';
 type SortMode = 'newest' | 'name' | 'code' | 'hierarchy';
 type EmployeesTab = 'directory' | 'org-chart';
 
+const dateFormatter = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { year: 'numeric', month: 'short', day: 'numeric' });
+
 export function EmployeesPage() {
   const auth = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -94,7 +96,6 @@ export function EmployeesPage() {
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const dateFormatter = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { year: 'numeric', month: 'short', day: 'numeric' });
 
   const exportColumns: ExportColumn<(typeof filtered)[number]>[] = [
     { key: 'code', header: 'كود الموظف', get: (e) => (isPhoneLikeCode(e.employeeCode, e.phoneE164) ? '' : e.employeeCode) },
