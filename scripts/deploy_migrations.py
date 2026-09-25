@@ -147,6 +147,13 @@ def main():
     checks = []
     corrupted = scalar(q(r"select count(*)::int as c from pg_proc where prosrc ~ '\?\?\?'"), -1)
     checks.append(("UTF-8 corruption (must be 0)", corrupted == 0, corrupted))
+    # الشكل الثاني للتلف: عربي فُسِّر كـ cp1252 (Ø¬.Ù… بدل ج.م) — لا ينتج ??? فكان
+    # يمرّ هذا الفحص ويصل للمستخدمين في عناوين الإشعارات ورسائل الأخطاء (0556).
+    mojibake = scalar(q(
+        "select count(*)::int as c from pg_proc p join pg_namespace n on n.oid = p.pronamespace "
+        "where n.nspname = 'public' and p.prosrc ~ '(Ø|Ù|ðŸ|â€)'"
+    ), -1)
+    checks.append(("cp1252 mojibake in functions (must be 0)", mojibake == 0, mojibake))
 
     last_applied = todo[-1] if todo else None
     if last_applied:

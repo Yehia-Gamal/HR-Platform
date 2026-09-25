@@ -105,6 +105,8 @@ npx vercel --prod                  # يتطلب VERCEL_TOKEN
     -ContentType 'application/json; charset=utf-8' -Body $bytes -Uri $URL
   ```
   تحقق بعد أي نشر عبر API: `select proname from pg_proc where prosrc ~ '\?\?\?'` (يجب أن يكون فارغاً).
+  **وللشكل الثاني من التلف** (عربي فُسِّر كـ cp1252 فيظهر `Ø¬.Ù…` بدل `ج.م` — لا ينتج `???` فيمرّ الفحص السابق):
+  `select proname from pg_proc where prosrc ~ '(Ø|Ù|ðŸ|â€)'` (يجب أن يكون فارغاً). أفسد هذا 12 دالة وعناوين الإشعارات (أُصلح في 0556)؛ `deploy_migrations.py` يفحصه الآن تلقائياً.
 
 ## ملاحظات مهمة
 
