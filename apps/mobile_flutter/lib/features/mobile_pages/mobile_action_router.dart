@@ -1,4 +1,5 @@
 import 'package:ahla_shabab_management_os/core/notifications/notification_handler.dart';
+import 'package:ahla_shabab_management_os/features/association_projects/association_project_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_correction_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/kpi_evaluation_detail_page.dart';
@@ -88,6 +89,11 @@ Widget? getDirectActionPage({
       ),
     'device' || 'employee_device' || 'devices' =>
       const PasskeyDevicesPage(),
+    // المشروع نفسه — الخادم يرفض (FORBIDDEN) من ليس من إدارة المشروع.
+    'association_project' || 'association_projects' =>
+      actionId.isEmpty || actionId == 'default'
+          ? null
+          : AssociationProjectDetailPage(projectId: actionId),
     // إشعار بلا صفحة مخصصة (تنبيه شامل، ملخص أسبوعي، …): قائمة الإشعارات
     // حيث يظهر نصه كاملاً — بدل نقرة لا تفعل شيئاً.
     'notification' || 'notifications' => const MobileNotificationsPage(),

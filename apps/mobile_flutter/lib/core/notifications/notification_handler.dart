@@ -196,6 +196,8 @@ String resolveNotificationRoute({
     'daily_report' => '/action/daily_report/$entityId',
     'device' => '/action/device/$entityId',
     'fellowship_fund' => '/action/fellowship_fund/$entityId',
+    // إشعارات المشاريع (إرسال للاعتماد، اعتماد/رفض، تحديث تقدّم) → المشروع نفسه.
+    'association_project' => '/action/association_project/$entityId',
     // ─── أنواع معلوماتية (migrations 0316-0328) ───
     'daily_report_like' ||
     'daily_report_comment' ||

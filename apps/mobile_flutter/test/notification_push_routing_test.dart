@@ -24,6 +24,7 @@ const _payloads = [
   ['request', 'casual_leave_auto_approved', ''],
   ['instant_penalty_excuse_approved', 'instant_penalty_excuse_approved', ''],
   ['device', 'device_pending_approval', ''],
+  ['association_project', 'project_submitted', ''],
 ];
 
 /// نفس ترتيب القرار في PushNotificationService._routeFromMessage.
