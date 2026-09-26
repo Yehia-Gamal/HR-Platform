@@ -16,6 +16,7 @@ import { BroadcastAlertBanner } from '../features/notifications/BroadcastAlert';
 import { ForbiddenState } from '../ui/ForbiddenState';
 import { CommandPalette } from '../ui/CommandPalette';
 import { ActionRedirect } from '../features/notifications/ActionRedirect';
+import { NotificationOpenRedirect } from '../features/notifications/NotificationOpenRedirect';
 import { FeatureGate } from '../ui/FeatureGate';
 
 // ---------------------------------------------------------------------------
@@ -175,6 +176,8 @@ function AuthenticatedApp() {
           على المتصفح ويُحوَّل لأفضل صفحة ويب مكافئة. */}
       <Routes>
         <Route path="/action/:kind/:actionId" element={<ActionRedirect />} />
+        {/* نقرة إشعار المتصفح (Web Push) → وجهة الحدث نفسه بمنطق صفحة الإشعارات */}
+        <Route path="/notification/:notificationId" element={<NotificationOpenRedirect />} />
         <Route path="/me/penalties" element={<MyInstantPenaltiesPage />} />
         <Route path="/me/*" element={<Navigate to="/me/penalties" replace />} />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />

@@ -58,9 +58,12 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const { action, data = {} } = event;
-  // الـ payload من الـ edge function يستخدم actionUrl وليس url
-  const targetUrl = data.actionUrl || data.url || '/';
+  const { action } = event;
+  const data = event.notification.data || {};
+  // الوجهة يحسبها التطبيق من الإشعار نفسه (/notification/{id}) بنفس منطق صفحة
+  // الإشعارات: كان actionUrl الخام فارغاً في إشعارات الطلبات أو مساراً للموبايل
+  // (/attendance) أو ahlashabab:// — فيهبط المستخدم على الرئيسية لا على الحدث.
+  const targetUrl = data.notificationId ? '/notification/' + encodeURIComponent(data.notificationId) : '/';
 
   // إذا كان هناك action محدد، قد نريد توجيه مختلف
   if (action === 'dismiss') return;
@@ -70,7 +73,7 @@ self.addEventListener('notificationclick', (event) => {
       // إذا التطبيق مفتوح، ركّز عليه
       for (const client of clients) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
-          client.postMessage({ type: 'NOTIFICATION_CLICK', data, action });
+          client.postMessage({ type: 'NOTIFICATION_CLICK', targetUrl, action });
           return client.focus();
         }
       }
@@ -78,12 +81,6 @@ self.addEventListener('notificationclick', (event) => {
       return self.clients.openWindow(targetUrl);
     })
   );
-});
-
-self.addEventListener('notificationclose', (event) => {
-  const { data = {} } = event.notification;
-  // يمكن إرسال analytics هنا
-  console.log('[SW] Notification closed:', data);
 });
 
 // معالجة رسائل من العميل (للتركيز عند النقر على الإشعار)

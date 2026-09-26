@@ -32,9 +32,8 @@ function registerSW() {
         // استقبال NOTIFICATION_CLICK من Service Worker عند فتح التطبيق
         navigator.serviceWorker.addEventListener('message', (event) => {
           if (event.data?.type === 'NOTIFICATION_CLICK') {
-            const { data = {} } = event.data;
-            const targetUrl = data.actionUrl || data.url || '/';
-            // توجيه عبر window.location لتفعيل router
+            // الوجهة محسوبة في sw.js: /notification/{id} (أو / لإشعار بلا معرّف)
+            const targetUrl = typeof event.data.targetUrl === 'string' && event.data.targetUrl.startsWith('/') ? event.data.targetUrl : '/';
             window.location.href = targetUrl;
           }
         });
@@ -49,7 +48,24 @@ initSentry();
 initializeTheme();
 
 // معالجة خطأ تحميل الحزم بعد نشر إصدار جديد
+// إعادة التحميل مرة واحدة كل 30 ثانية كحد أقصى: بلا حارس، إن بقي الملف مفقوداً
+// بعد التحديث (نشر جارٍ/ذاكرة CDN) تدخل الصفحة حلقة إعادة تحميل — رُصدت 5 أخطاء
+// متطابقة في ثانية واحدة. بعد المحاولة الأولى تظهر شاشة الخطأ بزر إعادة المحاولة.
 window.addEventListener('vite:preloadError', (event) => {
+  const KEY = 'ahla:chunk-reload-at';
+  let last = 0;
+  try {
+    last = Number(sessionStorage.getItem(KEY) ?? 0);
+  } catch {
+    // التخزين محجوب — نكتفي بالمحاولة الواحدة الآن
+  }
+  if (Date.now() - last < 30_000) return;
+  try {
+    sessionStorage.setItem(KEY, String(Date.now()));
+  } catch {
+    // تجاهل
+  }
+  event.preventDefault();
   if (import.meta.env.DEV) console.warn('[Vite] Preload error detected, reloading page...', event);
   window.location.reload();
 });
