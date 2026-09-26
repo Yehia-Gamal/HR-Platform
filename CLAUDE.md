@@ -74,6 +74,7 @@ npx vercel --prod                  # يتطلب VERCEL_TOKEN
 - `provision_employee_record` يتجاوز `rpc_assign_role` — **أدوار full-access لا تُعطى عند الإنشاء.**
 - `current_is_full_access()` تحمي العمليات الحساسة.
 - `using(true)` مقبول فقط على جداول القراءة المرجعية (roles, permissions, kpi_criteria...).
+- **العروض المادية (materialized views) والعروض بلا `security_invoker` تتجاوز RLS**، وSupabase يمنح `anon`/`authenticated` حق `SELECT` تلقائياً على كل ما يُنشأ في `public`. عند إنشاء أيٍّ منها: `revoke select ... from public, anon, authenticated` في نفس الـ migration، والقراءة عبر دالة SECURITY DEFINER تفرض الصلاحية. هكذا انكشفت مواقع GPS لكل الموظفين (أُغلق في 0558)؛ `deploy_migrations.py` يرفض الآن أي عرض مكشوف.
 
 ### اختبارات
 - Web: `vitest run` — 25 ملف اختبار.

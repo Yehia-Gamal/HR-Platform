@@ -154,6 +154,18 @@ def main():
         "where n.nspname = 'public' and p.prosrc ~ '(Ø|Ù|ðŸ|â€)'"
     ), -1)
     checks.append(("cp1252 mojibake in functions (must be 0)", mojibake == 0, mojibake))
+    # عروض تتجاوز RLS ومفتوحة للقراءة عبر REST: العروض المادية (لا تدعم RLS أصلاً)
+    # والعروض العادية بلا security_invoker (تقرأ بصلاحيات مالكها). Supabase يمنح
+    # anon/authenticated حق SELECT تلقائياً على كل ما يُنشأ في public — هكذا
+    # انكشفت مواقع GPS لكل الموظفين عبر mv_executive_attendance_* (أُغلق في 0558).
+    exposed = scalar(q(
+        "select count(*)::int as c from pg_class c join pg_namespace n on n.oid = c.relnamespace "
+        "where n.nspname = 'public' and c.relkind in ('v','m') "
+        "and (has_table_privilege('anon', c.oid, 'SELECT') or has_table_privilege('authenticated', c.oid, 'SELECT')) "
+        "and (c.relkind = 'm' or coalesce((select option_value from pg_options_to_table(c.reloptions) "
+        "where option_name = 'security_invoker'), 'false') not in ('true','on'))"
+    ), -1)
+    checks.append(("RLS-bypassing views readable by anon/authenticated (must be 0)", exposed == 0, exposed))
 
     last_applied = todo[-1] if todo else None
     if last_applied:
