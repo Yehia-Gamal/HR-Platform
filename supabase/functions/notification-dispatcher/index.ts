@@ -278,7 +278,11 @@ function buildFcmMessage(token: string, n: NotificationRow | null): Record<strin
     // the background isolate so it can create the full-screen notification.
     data,
     android: {
-      priority: high ? 'HIGH' : 'NORMAL',
+      // HIGH لكل الإشعارات: الرسالة data-only فالتطبيق هو من يعرضها — بأولوية
+      // NORMAL يؤجّل Android (Doze، وخاصة Samsung/Xiaomi) تسليمها حتى يستيقظ
+      // الجهاز، فلا يظهر الإشعار في وقته والتطبيق مغلق. كل رسالة هنا تُعرض
+      // للمستخدم، وهو شرط FCM لاستخدام HIGH دون خفض أولويتها.
+      priority: 'HIGH',
       ttl: high ? '300s' : '3600s',
     },
     apns: {

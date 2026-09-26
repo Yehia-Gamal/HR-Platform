@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:ahla_shabab_management_os/app.dart';
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
@@ -700,65 +702,86 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
 Future<void> _markPushDelivery(RemoteMessage message, String status) async {
   final notificationId = message.data['notificationId'] as String?;
   if (notificationId == null || notificationId.isEmpty) return;
-  try {
-    SupabaseClient client;
-    try {
-      client = Supabase.instance.client;
-    } catch (_) {
-      final projectRef = Uri.parse(AppConfig.supabaseUrl).host.split('.').first;
-      await Supabase.initialize(
-        url: AppConfig.supabaseUrl,
-        publishableKey: AppConfig.supabasePublishableKey,
-        authOptions: FlutterAuthClientOptions(
-          localStorage: SecureSessionStorage(
-            persistSessionKey: 'sb-$projectRef-auth-token',
-          ),
-          pkceAsyncStorage: SecurePkceStorage(),
-        ),
-      );
-      client = Supabase.instance.client;
-    }
-    if (client.auth.currentSession == null) return;
-    await client.rpc<void>(
-      'mark_my_notification_delivery',
-      params: {'p_notification_id': notificationId, 'p_status': status},
-    );
-  } catch (error) {
-    if (kDebugMode) debugPrint('Push delivery acknowledgement failed: $error');
-  }
+  await _rpcWithoutTokenRefresh('mark_my_notification_delivery', {
+    'p_notification_id': notificationId,
+    'p_status': status,
+  });
 }
 
 /// §10 — يوسّم الإشعار الداخلي (جدول notifications) كمقروء عند فتحه من
 /// إشعار النظام، حتى لا يظهر كمعلّق غير مقروء بعد أن تفاعل معه المستخدم.
 Future<void> _markInAppNotificationRead(String? notificationId) async {
   if (notificationId == null || notificationId.isEmpty) return;
+  await _rpcWithoutTokenRefresh('mark_my_notifications_read', {
+    'p_ids': [notificationId],
+  });
+}
+
+/// استدعاء RPC من أي isolate **دون أن يجدّد جلسة الدخول أبداً**.
+///
+/// سبب «التطبيق يسجّل خروج الموظفين كل شوية»: معالج إشعارات الخلفية يعمل في
+/// isolate منفصل لا يرى عميل Supabase الرئيسي، فكان ينشئ عميلاً ثانياً على
+/// نفس الجلسة المخزّنة بتجديد تلقائي. إن كان رمز الوصول منتهياً (أكثر من ساعة
+/// في الخلفية) جدّده هذا العميل فحصل على refresh token جديد، بينما التطبيق
+/// الرئيسي ما زال يحمل القديم في الذاكرة. عند تجديده التالي يرى الخادم إعادة
+/// استخدام لرمز مُلغى (بعد مهلة 10 ثوانٍ) فيُلغي الجلسة كلها احتياطياً أمنياً
+/// → شاشة الدخول. ولأن تذكيرات البصمة تصل كثيراً، تكرر ذلك يومياً.
+///
+/// الآن التجديد مسؤولية العميل الرئيسي وحده:
+///  • في isolate التطبيق: نستخدم العميل الرئيسي كما هو.
+///  • في isolate الخلفية: لا Supabase.initialize إطلاقاً — نقرأ رمز الوصول
+///    المخزّن ونستخدمه فقط إن كان صالحاً؛ إن انتهى نتخطى الإقرار (غير حرج)
+///    بدل تجديد يكسر جلسة التطبيق.
+Future<void> _rpcWithoutTokenRefresh(
+  String function,
+  Map<String, dynamic> params,
+) async {
   try {
-    SupabaseClient client;
+    SupabaseClient? mainClient;
     try {
-      client = Supabase.instance.client;
+      mainClient = Supabase.instance.client;
     } catch (_) {
-      final projectRef = Uri.parse(AppConfig.supabaseUrl).host.split('.').first;
-      await Supabase.initialize(
-        url: AppConfig.supabaseUrl,
-        publishableKey: AppConfig.supabasePublishableKey,
-        authOptions: FlutterAuthClientOptions(
-          localStorage: SecureSessionStorage(
-            persistSessionKey: 'sb-$projectRef-auth-token',
-          ),
-          pkceAsyncStorage: SecurePkceStorage(),
-        ),
-      );
-      client = Supabase.instance.client;
+      mainClient = null; // isolate الخلفية: لا عميل رئيسي هنا.
     }
-    if (client.auth.currentSession == null) return;
-    await client.rpc<void>(
-      'mark_my_notifications_read',
-      params: {
-        'p_ids': [notificationId],
-      },
+    if (mainClient != null) {
+      if (mainClient.auth.currentSession == null) return;
+      await mainClient.rpc<dynamic>(function, params: params);
+      return;
+    }
+
+    final projectRef = Uri.parse(AppConfig.supabaseUrl).host.split('.').first;
+    final storage = SecureSessionStorage(
+      persistSessionKey: 'sb-$projectRef-auth-token',
     );
+    await storage.initialize();
+    final raw = await storage.accessToken();
+    if (raw == null || raw.isEmpty) return;
+    final session = jsonDecode(raw) as Map<String, dynamic>;
+    final token = session['access_token'] as String?;
+    final expiresAt = (session['expires_at'] as num?)?.toInt();
+    if (token == null || expiresAt == null) return;
+    final nowSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    if (nowSeconds >= expiresAt - 30) return; // منتهٍ: لا تجديد من الخلفية.
+
+    final http = HttpClient()..connectionTimeout = const Duration(seconds: 8);
+    try {
+      final request = await http.postUrl(
+        Uri.parse('${AppConfig.supabaseUrl}/rest/v1/rpc/$function'),
+      );
+      request.headers
+        ..set('apikey', AppConfig.supabasePublishableKey)
+        ..set('Authorization', 'Bearer $token')
+        ..contentType = ContentType.json;
+      request.write(jsonEncode(params));
+      final response = await request.close().timeout(
+        const Duration(seconds: 10),
+      );
+      await response.drain<void>();
+    } finally {
+      http.close(force: true);
+    }
   } catch (error) {
-    if (kDebugMode) debugPrint('Mark in-app notification read failed: $error');
+    if (kDebugMode) debugPrint('Background RPC $function skipped: $error');
   }
 }
 
