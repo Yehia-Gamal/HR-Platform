@@ -197,7 +197,8 @@ export function LiveLocationPage() {
                               <StatusBadge value={state} label={stateLabel(state)} />
                             </div>
                             <p className="muted mt-1 text-xs">
-                              {cleanCode ? `${cleanCode} · ` : ''}{item.jobTitle ?? 'دون مسمى'} · {item.department ?? 'دون إدارة'}
+                              {cleanCode ? `${cleanCode} · ` : ''}
+                              {item.jobTitle ?? 'دون مسمى'} · {item.department ?? 'دون إدارة'}
                             </p>
                           </div>
                           {item.activeRequestStatus ? <StatusBadge value={item.activeRequestStatus} /> : null}

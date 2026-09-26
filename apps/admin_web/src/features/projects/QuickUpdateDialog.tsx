@@ -50,7 +50,13 @@ export function QuickUpdateDialog({ project, onClose }: Props) {
           <legend className="text-sm font-bold">حالة المشروع</legend>
           <div className="mt-2 flex flex-wrap gap-2">
             {STATUS_CHOICES.map((s) => (
-              <button key={s} type="button" onClick={() => setStatus(s)} className={`filter-chip${status === s ? ' is-active' : ''}`} aria-pressed={status === s}>
+              <button
+                key={s}
+                type="button"
+                onClick={() => setStatus(s)}
+                className={`filter-chip${status === s ? ' is-active' : ''}`}
+                aria-pressed={status === s}
+              >
                 {STATUS_LABELS[s]}
               </button>
             ))}
@@ -61,7 +67,15 @@ export function QuickUpdateDialog({ project, onClose }: Props) {
           <label className="block">
             <span className="text-sm font-bold">نسبة الإنجاز</span>
             <div className="mt-1 flex items-center gap-3">
-              <input type="range" min={0} max={100} step={5} className="flex-1 accent-[var(--brand-primary)]" value={progress} onChange={(e) => setProgress(Number(e.target.value))} />
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={5}
+                className="flex-1 accent-[var(--brand-primary)]"
+                value={progress}
+                onChange={(e) => setProgress(Number(e.target.value))}
+              />
               <span className="tabular w-12 text-center text-lg font-black">{progress}%</span>
             </div>
           </label>

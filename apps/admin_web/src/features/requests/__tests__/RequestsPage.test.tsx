@@ -109,8 +109,22 @@ describe('RequestsPage', () => {
       ...dataQuery,
       data: [
         mockRequests[0],
-        { ...mockRequests[0], id: '00000000-0000-0000-0000-000000000021', requestNumber: 1002, requestType: 'late_permit', title: 'إذن تأخير صباحي', employeeName: 'سامي علي' },
-        { ...mockRequests[0], id: '00000000-0000-0000-0000-000000000022', requestNumber: 1003, requestType: 'early_permit', title: 'إذن انصراف مبكر', employeeName: 'منى حسن' },
+        {
+          ...mockRequests[0],
+          id: '00000000-0000-0000-0000-000000000021',
+          requestNumber: 1002,
+          requestType: 'late_permit',
+          title: 'إذن تأخير صباحي',
+          employeeName: 'سامي علي',
+        },
+        {
+          ...mockRequests[0],
+          id: '00000000-0000-0000-0000-000000000022',
+          requestNumber: 1003,
+          requestType: 'early_permit',
+          title: 'إذن انصراف مبكر',
+          employeeName: 'منى حسن',
+        },
       ],
     });
     render(

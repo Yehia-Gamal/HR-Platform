@@ -155,7 +155,11 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
     ? type === 'hr'
       ? [
           { title: `${data.attendancePendingReview} حالة حضور تحتاج مراجعة`, description: 'ابدأ بالتصحيحات الأقدم والأعلى تأثيرًا.', to: '/hr/attendance' },
-          { title: `${data.pendingRequests} طلبًا داخل مسارات الاعتماد`, description: 'تابع الطلبات التي اقتربت من تجاوز SLA.', to: '/hr/requests?status=pending' },
+          {
+            title: `${data.pendingRequests} طلبًا داخل مسارات الاعتماد`,
+            description: 'تابع الطلبات التي اقتربت من تجاوز SLA.',
+            to: '/hr/requests?status=pending',
+          },
           { title: `${data.openRequisitions} احتياج توظيف مفتوح`, description: 'راجع الموافقات وخطة المقابلات.', to: '/hr/recruitment' },
         ]
       : [
@@ -209,10 +213,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
       ) : (
         <>
           {/* ─── شبكة المؤشرات التنفيذية المتناسقة (متوازنة تماماً بنظام 4×2) ────── */}
-          <section
-            className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4"
-            aria-label="المؤشرات الرئيسية"
-          >
+          <section className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4" aria-label="المؤشرات الرئيسية">
             {cards.map((card) => (
               <MetricCard key={card.label} {...card} compact={true} />
             ))}
@@ -258,16 +259,8 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
               {att.expected > 0 && (
                 <div className="mt-3.5 space-y-1.5">
                   <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-[var(--surface-muted)]">
-                    <div
-                      title={`حاضر: ${att.present}`}
-                      className="bg-emerald-500 transition-all"
-                      style={{ width: `${(att.present / att.expected) * 100}%` }}
-                    />
-                    <div
-                      title={`متأخر: ${att.late}`}
-                      className="bg-amber-500 transition-all"
-                      style={{ width: `${(att.late / att.expected) * 100}%` }}
-                    />
+                    <div title={`حاضر: ${att.present}`} className="bg-emerald-500 transition-all" style={{ width: `${(att.present / att.expected) * 100}%` }} />
+                    <div title={`متأخر: ${att.late}`} className="bg-amber-500 transition-all" style={{ width: `${(att.late / att.expected) * 100}%` }} />
                     <div
                       title={`مأمورية / تكليف: ${att.onAssignment}`}
                       className="bg-sky-500 transition-all"
@@ -278,11 +271,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                       className="bg-purple-500 transition-all"
                       style={{ width: `${(att.onLeave / att.expected) * 100}%` }}
                     />
-                    <div
-                      title={`غياب: ${att.absent}`}
-                      className="bg-rose-500 transition-all"
-                      style={{ width: `${(att.absent / att.expected) * 100}%` }}
-                    />
+                    <div title={`غياب: ${att.absent}`} className="bg-rose-500 transition-all" style={{ width: `${(att.absent / att.expected) * 100}%` }} />
                   </div>
                 </div>
               )}
@@ -365,7 +354,10 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                       <Link to="/admin/hr/employees" className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]">
                         دليل الموظفين
                       </Link>
-                      <Link to="/admin/hr/employees/new" className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]">
+                      <Link
+                        to="/admin/hr/employees/new"
+                        className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]"
+                      >
                         + إضافة موظف
                       </Link>
                       <Link to="/admin/enterprise" className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]">
@@ -397,7 +389,10 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                       <Link to="/admin/live-location" className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]">
                         الموقع الحي للموظفين
                       </Link>
-                      <Link to="/admin/executive-monitoring" className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]">
+                      <Link
+                        to="/admin/executive-monitoring"
+                        className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]"
+                      >
                         المراقبة التنفيذية
                       </Link>
                     </div>
@@ -420,7 +415,10 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                       <Link to="/admin/hr/requests" className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]">
                         طلبات الموظفين
                       </Link>
-                      <Link to="/admin/hr/requests?status=pending" className="rounded-lg bg-amber-500/10 text-amber-500 px-2.5 py-1 font-bold hover:bg-amber-500/20">
+                      <Link
+                        to="/admin/hr/requests?status=pending"
+                        className="rounded-lg bg-amber-500/10 text-amber-500 px-2.5 py-1 font-bold hover:bg-amber-500/20"
+                      >
                         بانتظار الاعتماد ({data?.pendingRequests ?? 0})
                       </Link>
                       <Link to="/admin/hr/leaves" className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]">
@@ -446,7 +444,10 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1.5 text-xs">
-                      <Link to="/admin/finance?tab=instant-penalties" className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]">
+                      <Link
+                        to="/admin/finance?tab=instant-penalties"
+                        className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]"
+                      >
                         غرامات الحضور والانصراف
                       </Link>
                       <Link to="/admin/fellowship-fund" className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]">
@@ -469,13 +470,19 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1.5 text-xs">
-                      <Link to="/admin/association-projects" className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]">
+                      <Link
+                        to="/admin/association-projects"
+                        className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]"
+                      >
                         مشاريع الجمعية
                       </Link>
                       <Link to="/admin/hr/performance" className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]">
                         الأداء والتقييمات
                       </Link>
-                      <Link to="/admin/performance/cycles" className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]">
+                      <Link
+                        to="/admin/performance/cycles"
+                        className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]"
+                      >
                         دورات KPI والاعتراضات
                       </Link>
                       <Link to="/admin/knowledge" className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]">
@@ -549,9 +556,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                         <div className="progress-bar" style={{ width: `${item.value}%` }} />
                       </div>
                     </div>
-                    <span className="grid size-8 place-items-center rounded-full bg-[var(--surface-muted)] text-xs font-black sm:size-9">
-                      {item.value}
-                    </span>
+                    <span className="grid size-8 place-items-center rounded-full bg-[var(--surface-muted)] text-xs font-black sm:size-9">{item.value}</span>
                   </div>
                 ))}
 
@@ -625,10 +630,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                 </span>
               </div>
               <div className="text-[var(--text-muted)]">
-                آخر مزامنة:{' '}
-                {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(
-                  new Date(data.lastUpdatedAt ?? Date.now()),
-                )}
+                آخر مزامنة: {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(data.lastUpdatedAt ?? Date.now()))}
               </div>
             </section>
           ) : null}

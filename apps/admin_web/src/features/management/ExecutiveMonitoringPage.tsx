@@ -118,7 +118,13 @@ export function ExecutiveMonitoringPage({ embedded: _embedded = false }: { embed
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="إجمالي الموظفين" value={summary.total ?? 0} icon={Users} compact={true} onClick={() => setFilter('all')} />
         <MetricCard label="حاضر" value={summary.present ?? 0} icon={Activity} compact={true} onClick={() => setFilter('present')} />
-        <MetricCard label="متأخر / لم يحضر" value={(summary.late ?? 0) + (summary.notYet ?? 0)} icon={CalendarClock} compact={true} onClick={() => setFilter('late')} />
+        <MetricCard
+          label="متأخر / لم يحضر"
+          value={(summary.late ?? 0) + (summary.notYet ?? 0)}
+          icon={CalendarClock}
+          compact={true}
+          onClick={() => setFilter('late')}
+        />
         <MetricCard label="طلبات موقع نشطة" value={summary.activeLocationRequests ?? 0} icon={MapPin} compact={true} onClick={() => setFilter('no_response')} />
       </section>
 
@@ -189,36 +195,37 @@ export function ExecutiveMonitoringPage({ embedded: _embedded = false }: { embed
                           <StatusBadge value={e.status} label={STATUS_LABELS[e.status] ?? e.status} />
                         </div>
                         <p className="muted mt-1 text-xs">
-                          {cleanCode ? `${cleanCode} · ` : ''}{e.department ?? 'دون إدارة'} · مدير: {e.managerName ?? '—'}
+                          {cleanCode ? `${cleanCode} · ` : ''}
+                          {e.department ?? 'دون إدارة'} · مدير: {e.managerName ?? '—'}
                         </p>
                         <p className="muted mt-1 text-xs">
                           آخر موقع: {relative(e.lastLocationAt)}
                           {e.lastAddressAr ? ` · ${e.lastAddressAr}` : ''}
                         </p>
                       </div>
-                    {e.activeRequestStatus ? <StatusBadge value={e.activeRequestStatus} /> : null}
-                  </div>
-                  {e.id !== auth.access?.employeeId ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        className="btn-secondary flex-1"
-                        disabled={Boolean(e.activeRequestId)}
-                        onClick={() => setDraft({ row: e, reason: '' })}
-                      >
-                        <Send className="size-4" aria-hidden="true" />
-                        {e.activeRequestId ? 'يوجد طلب نشط' : 'طلب موقع حي'}
-                      </button>
-                      {e.activeRequestId ? (
-                        <button type="button" className="btn-secondary" onClick={() => setSelectedRequestId(e.activeRequestId)}>
-                          عرض النتيجة
-                        </button>
-                      ) : null}
+                      {e.activeRequestStatus ? <StatusBadge value={e.activeRequestStatus} /> : null}
                     </div>
-                  ) : null}
-                </article>
-              );
-            })}
+                    {e.id !== auth.access?.employeeId ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="btn-secondary flex-1"
+                          disabled={Boolean(e.activeRequestId)}
+                          onClick={() => setDraft({ row: e, reason: '' })}
+                        >
+                          <Send className="size-4" aria-hidden="true" />
+                          {e.activeRequestId ? 'يوجد طلب نشط' : 'طلب موقع حي'}
+                        </button>
+                        {e.activeRequestId ? (
+                          <button type="button" className="btn-secondary" onClick={() => setSelectedRequestId(e.activeRequestId)}>
+                            عرض النتيجة
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })}
             </div>
           </article>
         </section>

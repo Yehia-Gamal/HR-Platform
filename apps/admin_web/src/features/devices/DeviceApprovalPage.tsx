@@ -99,8 +99,22 @@ function PendingDevicesPanel() {
           compact={true}
           onClick={() => setStatusFilter('all')}
         />
-        <MetricCard label="بانتظار الموافقة" value={pendingCount} icon={Clock3} hint="أجهزة جديدة لم تُراجع بعد" compact={true} onClick={() => setStatusFilter('pending')} />
-        <MetricCard label="محظورة" value={blockedCount} icon={ShieldAlert} hint="أجهزة تم رفضها وتحتاج مراجعة" compact={true} onClick={() => setStatusFilter('blocked')} />
+        <MetricCard
+          label="بانتظار الموافقة"
+          value={pendingCount}
+          icon={Clock3}
+          hint="أجهزة جديدة لم تُراجع بعد"
+          compact={true}
+          onClick={() => setStatusFilter('pending')}
+        />
+        <MetricCard
+          label="محظورة"
+          value={blockedCount}
+          icon={ShieldAlert}
+          hint="أجهزة تم رفضها وتحتاج مراجعة"
+          compact={true}
+          onClick={() => setStatusFilter('blocked')}
+        />
       </section>
       <FilterBar
         searchValue={search}
@@ -262,7 +276,13 @@ function AllDevicesPanel() {
   return (
     <div className="space-y-5">
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <MetricCard label="إجمالي الأجهزة" value={allDevices.length} icon={MonitorSmartphone} hint={showTerminated ? 'بما فيها المنتهية' : 'بدون المنتهية'} compact={true} />
+        <MetricCard
+          label="إجمالي الأجهزة"
+          value={allDevices.length}
+          icon={MonitorSmartphone}
+          hint={showTerminated ? 'بما فيها المنتهية' : 'بدون المنتهية'}
+          compact={true}
+        />
         <MetricCard label="أجهزة نشطة" value={activeCount} icon={Shield} hint="أجهزة معتمدة ونشطة حالياً" compact={true} />
         <MetricCard label="منتهية" value={terminatedCount} icon={ShieldOff} hint="ملغاة أو مستبدلة" compact={true} />
       </section>

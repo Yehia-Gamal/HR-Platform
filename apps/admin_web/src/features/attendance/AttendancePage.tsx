@@ -132,7 +132,14 @@ export function AttendancePage() {
               compact={true}
               to={detailsUrl('present', dateIso, departmentId, branchId)}
             />
-            <MetricCard label="متأخرون" value={data.late} icon={Clock3} hint="حسب سياسة الوردية" compact={true} to={detailsUrl('late', dateIso, departmentId, branchId)} />
+            <MetricCard
+              label="متأخرون"
+              value={data.late}
+              icon={Clock3}
+              hint="حسب سياسة الوردية"
+              compact={true}
+              to={detailsUrl('late', dateIso, departmentId, branchId)}
+            />
             <MetricCard
               label="غياب"
               value={data.absent}
@@ -219,7 +226,8 @@ export function AttendancePage() {
             </span>
             <span className="flex items-center gap-1.5">
               <Clock3 className="size-3.5 shrink-0 text-brand" aria-hidden="true" />
-              آخر تحديث: {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(data.lastUpdatedAt ?? Date.now()))}
+              آخر تحديث:{' '}
+              {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(data.lastUpdatedAt ?? Date.now()))}
             </span>
           </div>
         </>

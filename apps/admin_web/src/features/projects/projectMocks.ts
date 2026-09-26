@@ -189,7 +189,8 @@ const STEP_TITLES = [
 export function mockDetail(projectId: string): AssociationProjectDetail {
   const p = MOCK_PROJECTS.find((x) => x.id === projectId) ?? (MOCK_PROJECTS[0] as AssociationProjectListItem);
   const steps = STEP_TITLES.slice(0, p.totalSteps).map((title, i) => {
-    const status = i < p.completedSteps ? 'done' : i === p.completedSteps && p.blockedSteps > 0 ? 'blocked' : i === p.completedSteps ? 'in_progress' : 'pending';
+    const status =
+      i < p.completedSteps ? 'done' : i === p.completedSteps && p.blockedSteps > 0 ? 'blocked' : i === p.completedSteps ? 'in_progress' : 'pending';
     return {
       id: id(700 + i),
       title,

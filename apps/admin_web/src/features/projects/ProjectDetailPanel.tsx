@@ -1,21 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { AssociationProjectDetail, AssociationProjectStep } from '@ahla/shared-contracts';
-import {
-  AlertTriangle,
-  Ban,
-  CalendarClock,
-  Check,
-  CheckCircle2,
-  Circle,
-  Loader2,
-  MessageSquarePlus,
-  Pencil,
-  Plus,
-  Send,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { AlertTriangle, Ban, CalendarClock, Check, CheckCircle2, Circle, Loader2, MessageSquarePlus, Pencil, Plus, Send, Trash2, X } from 'lucide-react';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { ErrorState } from '../../ui/ErrorState';
@@ -34,16 +20,7 @@ import {
 import { ProjectLed } from './ProjectLed';
 import { ProjectFormDialog } from './ProjectFormDialog';
 import { QuickUpdateDialog } from './QuickUpdateDialog';
-import {
-  APPROVAL_LABELS,
-  LED_META,
-  PRIORITY_LABELS,
-  STATUS_LABELS,
-  STEP_STATUS_LABELS,
-  activityDays,
-  daysAgoLabel,
-  formatDate,
-} from './projectLedStatus';
+import { APPROVAL_LABELS, LED_META, PRIORITY_LABELS, STATUS_LABELS, STEP_STATUS_LABELS, activityDays, daysAgoLabel, formatDate } from './projectLedStatus';
 
 interface Props {
   projectId: string;
@@ -435,7 +412,11 @@ function Stat({ label, value, tone, note }: { label: string; value: string; tone
       <dd className="mt-0.5 font-black" style={tone ? { color: tone } : undefined}>
         {value}
       </dd>
-      {note && <dd className="text-xs font-bold" style={{ color: tone }}>{note}</dd>}
+      {note && (
+        <dd className="text-xs font-bold" style={{ color: tone }}>
+          {note}
+        </dd>
+      )}
     </div>
   );
 }
@@ -443,7 +424,13 @@ function Stat({ label, value, tone, note }: { label: string; value: string; tone
 function StepToggle({ step, index, disabled, onToggle }: { step: AssociationProjectStep; index: number; disabled: boolean; onToggle: () => void }) {
   const done = step.status === 'done';
   const Icon = done ? CheckCircle2 : step.status === 'blocked' ? Ban : Circle;
-  const color = done ? 'var(--success)' : step.status === 'blocked' ? 'var(--danger)' : step.status === 'in_progress' ? 'var(--brand-primary)' : 'var(--text-disabled)';
+  const color = done
+    ? 'var(--success)'
+    : step.status === 'blocked'
+      ? 'var(--danger)'
+      : step.status === 'in_progress'
+        ? 'var(--brand-primary)'
+        : 'var(--text-disabled)';
   return (
     <button
       type="button"
@@ -455,7 +442,11 @@ function StepToggle({ step, index, disabled, onToggle }: { step: AssociationProj
       title={disabled ? STEP_STATUS_LABELS[step.status] : done ? 'إلغاء الإنجاز' : 'تعليم كمنجزة'}
     >
       <Icon className="size-6" style={{ color }} aria-hidden="true" />
-      {!done && step.status !== 'blocked' && <span className="absolute text-[0.6rem] font-black" style={{ color }}>{index + 1}</span>}
+      {!done && step.status !== 'blocked' && (
+        <span className="absolute text-[0.6rem] font-black" style={{ color }}>
+          {index + 1}
+        </span>
+      )}
     </button>
   );
 }
@@ -612,7 +603,13 @@ export function RejectDialog({
         <p className="text-sm leading-7">
           سيُعاد مشروع <strong>«{projectName}»</strong> للإدارة لتعديله وإعادة إرساله. اكتب لهم ما المطلوب تعديله:
         </p>
-        <textarea className="input" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="مثال: حدّدوا الميزانية المطلوبة والجدول الزمني" />
+        <textarea
+          className="input"
+          rows={3}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="مثال: حدّدوا الميزانية المطلوبة والجدول الزمني"
+        />
         <div className="flex justify-end gap-2">
           <button className="btn-secondary" onClick={onCancel}>
             إلغاء

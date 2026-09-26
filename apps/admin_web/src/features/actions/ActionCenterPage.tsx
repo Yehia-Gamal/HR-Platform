@@ -127,11 +127,7 @@ export function ActionCenterPage() {
                   </div>
                 </div>
 
-                <Link
-                  className="btn-primary shrink-0"
-                  to={href}
-                  onClick={(e) => e.stopPropagation()}
-                >
+                <Link className="btn-primary shrink-0" to={href} onClick={(e) => e.stopPropagation()}>
                   فتح الإجراء
                   <ArrowLeft className="size-4" aria-hidden="true" />
                 </Link>

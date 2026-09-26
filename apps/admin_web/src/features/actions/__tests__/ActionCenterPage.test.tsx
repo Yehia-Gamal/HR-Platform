@@ -131,15 +131,11 @@ describe('ActionCenterPage', () => {
     const anchors = screen.getAllByRole('link', { name: /فتح الإجراء/ });
     const requestAnchor = anchors.find((a) => a.getAttribute('href')?.includes('/admin/hr/requests?request='));
     expect(requestAnchor).toBeTruthy();
-    expect(requestAnchor?.getAttribute('href')).toContain(
-      '/admin/hr/requests?request=f47ac10b-58cc-4372-a567-0e02b2c3d479',
-    );
+    expect(requestAnchor?.getAttribute('href')).toContain('/admin/hr/requests?request=f47ac10b-58cc-4372-a567-0e02b2c3d479');
   });
 
   it('resolveActionHref يبني رابط التفاصيل للطلب', () => {
-    expect(resolveActionHref(mockItem)).toBe(
-      '/admin/hr/requests?request=f47ac10b-58cc-4372-a567-0e02b2c3d479',
-    );
+    expect(resolveActionHref(mockItem)).toBe('/admin/hr/requests?request=f47ac10b-58cc-4372-a567-0e02b2c3d479');
     expect(resolveActionHref(normalItem)).toBe('/hr/documents');
   });
 

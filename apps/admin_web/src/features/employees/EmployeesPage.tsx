@@ -96,7 +96,6 @@ export function EmployeesPage() {
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-
   const exportColumns: ExportColumn<(typeof filtered)[number]>[] = [
     { key: 'code', header: 'كود الموظف', get: (e) => (isPhoneLikeCode(e.employeeCode, e.phoneE164) ? '' : e.employeeCode) },
     { key: 'name', header: 'الاسم', get: (e) => e.fullNameAr },
@@ -204,9 +203,7 @@ export function EmployeesPage() {
         key: 'createdAt',
         header: 'تاريخ الانضمام',
         render: (emp) => (
-          <span className="text-xs text-[var(--text-muted)] font-medium whitespace-nowrap">
-            {dateFormatter.format(new Date(emp.createdAt))}
-          </span>
+          <span className="text-xs text-[var(--text-muted)] font-medium whitespace-nowrap">{dateFormatter.format(new Date(emp.createdAt))}</span>
         ),
       },
       {
@@ -300,7 +297,14 @@ export function EmployeesPage() {
               compact
             />
             <MetricCard label="تهيئة ودعوات" value={onboarding} icon={RefreshCw} hint="لم تكتمل رحلة التفعيل" onClick={() => setStatus('onboarding')} compact />
-            <MetricCard label="موقوف أو منتهي" value={inactive} icon={ArrowUpDown} hint="سجلات محفوظة للتاريخ والتدقيق" onClick={() => setStatus('inactive')} compact />
+            <MetricCard
+              label="موقوف أو منتهي"
+              value={inactive}
+              icon={ArrowUpDown}
+              hint="سجلات محفوظة للتاريخ والتدقيق"
+              onClick={() => setStatus('inactive')}
+              compact
+            />
           </section>
 
           {pendingPenalties.length > 0 && (
@@ -313,9 +317,7 @@ export function EmployeesPage() {
                   <h4 className="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-200">
                     يوجد {pendingPenalties.length} موظف مطالبين بغرامات فورية للتأخير (إجمالي {totalPendingAmount.toLocaleString('ar-EG-u-nu-latn')} ج.م)
                   </h4>
-                  <p className="text-[11px] text-amber-700 dark:text-amber-400">
-                    الموظفون موضح بجوار أسمائهم علامة حمراء/برتقالية بالقيمة المستحقة.
-                  </p>
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400">الموظفون موضح بجوار أسمائهم علامة حمراء/برتقالية بالقيمة المستحقة.</p>
                 </div>
               </div>
               <Link to="/admin/finance?tab=instant-penalties" className="btn-primary !text-xs !py-1.5 !px-3 font-bold shrink-0">

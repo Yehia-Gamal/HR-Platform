@@ -90,12 +90,7 @@ export function ProjectCard({ project: p, onOpen, onQuickUpdate }: Props) {
       </div>
 
       {onQuickUpdate && (
-        <button
-          type="button"
-          onClick={onQuickUpdate}
-          className="btn-secondary btn-sm relative z-10 mt-4 w-full"
-          title="سجّل ما تم إنجازه ليبقى المشروع أخضر"
-        >
+        <button type="button" onClick={onQuickUpdate} className="btn-secondary btn-sm relative z-10 mt-4 w-full" title="سجّل ما تم إنجازه ليبقى المشروع أخضر">
           <Zap className="size-4" aria-hidden="true" /> تحديث سريع
         </button>
       )}

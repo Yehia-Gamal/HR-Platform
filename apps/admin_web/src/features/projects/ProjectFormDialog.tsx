@@ -81,7 +81,13 @@ export function ProjectFormDialog({ project, isFullAccess, myDepartmentId, onClo
 
         <label className="block">
           <span className="text-sm font-bold">وصف مختصر وهدف المشروع</span>
-          <textarea className="input mt-1" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="ما الذي سيحققه المشروع؟" />
+          <textarea
+            className="input mt-1"
+            rows={3}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="ما الذي سيحققه المشروع؟"
+          />
         </label>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -172,7 +178,15 @@ export function ProjectFormDialog({ project, isFullAccess, myDepartmentId, onClo
 
         <button onClick={submit} disabled={!canSubmit} className="btn-primary w-full">
           {mutation.isPending && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
-          {mutation.isPending ? 'جارٍ الحفظ…' : isEdit ? 'حفظ التعديلات' : isFullAccess ? 'إنشاء واعتماد المشروع' : submitNow ? 'إنشاء وإرسال للاعتماد' : 'حفظ كمسودة'}
+          {mutation.isPending
+            ? 'جارٍ الحفظ…'
+            : isEdit
+              ? 'حفظ التعديلات'
+              : isFullAccess
+                ? 'إنشاء واعتماد المشروع'
+                : submitNow
+                  ? 'إنشاء وإرسال للاعتماد'
+                  : 'حفظ كمسودة'}
         </button>
       </div>
     </DialogOverlay>

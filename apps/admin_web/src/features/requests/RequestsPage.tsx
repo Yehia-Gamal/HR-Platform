@@ -145,10 +145,7 @@ export function RequestsPage() {
   const correctionsCommands = useAttendanceOperationsCommands();
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   // مراجع ثابتة: `?? []` ينشئ مصفوفة جديدة في كل رسم فيُعاد حساب المقاييس كل مرة.
-  const corrections = useMemo<AttendanceOperationsCatalog['corrections']>(
-    () => correctionsQuery.data?.corrections ?? [],
-    [correctionsQuery.data],
-  );
+  const corrections = useMemo<AttendanceOperationsCatalog['corrections']>(() => correctionsQuery.data?.corrections ?? [], [correctionsQuery.data]);
 
   const allRequests = useMemo(() => query.data ?? [], [query.data]);
   const metrics = useMemo(() => {
@@ -194,9 +191,7 @@ export function RequestsPage() {
             typeTab === 'corrections' ||
             // تبويب «أذونات الحضور» يجمع نوعين (يطابق عدّاده metrics.permits) —
             // كانت المقارنة الحرفية بـ 'attendance_permit' تُفرغ القائمة رغم العدّاد.
-            (typeTab === 'attendance_permit'
-              ? item.requestType === 'late_permit' || item.requestType === 'early_permit'
-              : item.requestType === typeTab))
+            (typeTab === 'attendance_permit' ? item.requestType === 'late_permit' || item.requestType === 'early_permit' : item.requestType === typeTab))
         );
       }),
     [query.data, search, status, typeTab],
@@ -266,9 +261,7 @@ export function RequestsPage() {
             label="بانتظار الاعتماد"
             value={metrics.totalPending}
             hint={
-              metrics.pendingCorrections > 0
-                ? `${metrics.pendingRequests} طلبات + ${metrics.pendingCorrections} تصحيح معلق`
-                : 'طلبات معلقة تتطلب اتخاذ قرار'
+              metrics.pendingCorrections > 0 ? `${metrics.pendingRequests} طلبات + ${metrics.pendingCorrections} تصحيح معلق` : 'طلبات معلقة تتطلب اتخاذ قرار'
             }
             icon={Clock3}
             compact={true}
@@ -313,9 +306,7 @@ export function RequestsPage() {
             type="button"
             aria-pressed={typeTab === tab.key}
             className={`rounded-xl px-4 py-2 text-sm font-black transition-colors flex items-center gap-2 ${
-              typeTab === tab.key
-                ? 'bg-brand text-white shadow-sm'
-                : 'bg-[var(--surface-muted)] text-[var(--text-secondary)] hover:bg-[var(--surface-raised)]'
+              typeTab === tab.key ? 'bg-brand text-white shadow-sm' : 'bg-[var(--surface-muted)] text-[var(--text-secondary)] hover:bg-[var(--surface-raised)]'
             }`}
             onClick={() => setTypeTab(tab.key)}
           >
@@ -323,9 +314,7 @@ export function RequestsPage() {
             {typeof tab.count === 'number' && tab.count > 0 ? (
               <span
                 className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-                  typeTab === tab.key
-                    ? 'bg-white/20 text-white'
-                    : 'bg-[var(--surface-raised)] text-[var(--text-muted)]'
+                  typeTab === tab.key ? 'bg-white/20 text-white' : 'bg-[var(--surface-raised)] text-[var(--text-muted)]'
                 }`}
               >
                 {tab.count}
@@ -685,10 +674,7 @@ export function RequestsPage() {
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
                 {(balances.data ?? []).map((balance) => (
-                  <div
-                    key={balance.leaveTypeId}
-                    className="rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 shadow-sm"
-                  >
+                  <div key={balance.leaveTypeId} className="rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 shadow-sm">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-bold">{balance.nameAr}</span>
                       <span className="text-2xl font-black text-brand">{balance.availableUnits}</span>

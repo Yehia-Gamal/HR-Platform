@@ -254,11 +254,7 @@ export function AssociationProjectsPage() {
           {visible.length === 0 ? (
             <EmptyState
               title={board.length === 0 ? 'لا توجد مشاريع معتمدة بعد' : 'لا توجد نتائج'}
-              description={
-                board.length === 0
-                  ? 'عندما تُرسل الإدارات مشاريعها ويعتمدها المدير التنفيذي تظهر هنا بلمبة حالتها.'
-                  : 'جرّب تغيير الفلتر أو البحث.'
-              }
+              description={board.length === 0 ? 'عندما تُرسل الإدارات مشاريعها ويعتمدها المدير التنفيذي تظهر هنا بلمبة حالتها.' : 'جرّب تغيير الفلتر أو البحث.'}
               action={
                 board.length === 0 && (data?.canCreate ?? true) ? (
                   <button className="btn-primary" onClick={() => setCreateOpen(true)}>
@@ -274,9 +270,7 @@ export function AssociationProjectsPage() {
                   key={p.id}
                   project={p}
                   onOpen={() => openProject(p.id)}
-                  onQuickUpdate={
-                    (isFullAccess || p.canManage) && p.status !== 'completed' && p.status !== 'cancelled' ? () => setQuickUpdate(p) : undefined
-                  }
+                  onQuickUpdate={(isFullAccess || p.canManage) && p.status !== 'completed' && p.status !== 'cancelled' ? () => setQuickUpdate(p) : undefined}
                 />
               ))}
             </div>
