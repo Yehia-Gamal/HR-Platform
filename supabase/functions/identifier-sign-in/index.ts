@@ -186,6 +186,10 @@ Deno.serve(createHandler({ functionName: 'identifier-sign-in', version: '1.0.0' 
   try {
     if (normalized.kind === 'email') {
       resolvedEmail = normalized.value;
+    } else {
+      // الهاتف / كود الموظف → البريد. (commit ba0b87f حذف سطر `} else {` خطأً
+      // فصار هذا البحث داخل فرع البريد ولا يُنفَّذ أبداً — كان أي نشر للدالة
+      // سيعطّل الدخول بالهاتف وكود الموظف. deno check في CI التقطه.)
       let employeeQuery = admin
         .from('employees')
         .select('id')
