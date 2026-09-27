@@ -159,7 +159,7 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
 
     return session.when(
       loading: () => _TimedLoadingPage(
-        label: 'جارٍ استعادة الجلسة…',
+        label: 'أستغفر الله العظيم وأتوب إليه',
         timeout: const Duration(seconds: 15),
         onRetry: () {
           ref.invalidate(authSessionProvider);
@@ -200,15 +200,15 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
         final access = ref.watch(accessContextProvider);
         return access.when(
           loading: () => _TimedLoadingPage(
-            label: 'جارٍ تحميل الصلاحيات…',
+            label: 'اللهم صلِّ وسلِّم وبارك على نبينا محمد ﷺ',
             timeout: const Duration(seconds: 20),
             onRetry: () => ref.invalidate(accessContextProvider),
             onSignOut: offlineLike ? null : signOut,
           ),
           error: (_, _) => _ErrorPage(
             message: offlineLike
-                ? 'انقطع الاتصال أثناء تحميل الصلاحيات. سيتم إعادة المحاولة تلقائيًا — أو اضغط إعادة المحاولة بعد عودة الإنترنت.'
-                : 'تعذر تحميل صلاحيات الحساب. تحقق من الاتصال وأعد المحاولة.',
+                ? 'انقطع الاتصال أثناء تجهيز البيانات. سيتم إعادة المحاولة تلقائيًا — أو اضغط إعادة المحاولة بعد عودة الإنترنت.'
+                : 'تعذر الاتصال بالخادم بأمان. تحقق من الاتصال وأعد المحاولة.',
             onRetry: () => ref.invalidate(accessContextProvider),
             onSignOut: offlineLike ? null : signOut,
           ),
@@ -474,16 +474,16 @@ class _ErrorPage extends StatelessWidget {
   }
 }
 
-/// صفحة تحميل تُظهر أزرار إعادة المحاولة وتسجيل الخروج بعد مهلة زمنية
-/// لمنع تعليق المستخدم على سبينر بلا نهاية.
+/// صفحة تحميل تُظهر أذكار واستغفار وصلاة على النبي ﷺ لكسب الحسنات
+/// مع أزرار إعادة المحاولة وتسجيل الخروج بعد مهلة زمنية.
 class _TimedLoadingPage extends StatefulWidget {
   const _TimedLoadingPage({
-    required this.label,
+    this.label,
     required this.timeout,
     this.onRetry,
     this.onSignOut,
   });
-  final String label;
+  final String? label;
   final Duration timeout;
   final VoidCallback? onRetry;
   final VoidCallback? onSignOut;
@@ -495,6 +495,21 @@ class _TimedLoadingPage extends StatefulWidget {
 class _TimedLoadingPageState extends State<_TimedLoadingPage> {
   bool _showFallback = false;
   Timer? _timer;
+  Timer? _rotationTimer;
+  int _dhikrIndex = 0;
+
+  static const List<String> _dhikrItems = [
+    'اللهم صلِّ وسلِّم وبارك على سيدنا محمد ﷺ',
+    'أستغفر الله العظيم وأتوب إليه',
+    'سبحان الله وبحمده، سبحان الله العظيم',
+    'لا حول ولا قوة إلا بالله العلي العظيم',
+    'لا إله إلا أنت سبحانك إني كنت من الظالمين',
+    'سبحان الله، والحمد لله، ولا إله إلا الله، والله أكبر',
+    'اللهم صلِّ على محمد وعلى آل محمد كما صليت على إبراهيم وعلى آل إبراهيم',
+    'يا حي يا قيوم برحمتك أستغيث، أصلح لي شأني كله',
+    'رضيت بالله رباً، وبالإسلام ديناً، وبمحمد ﷺ نبياً ورسولاً',
+    'اللهم إنا نسألك التوفيق والبركة والقبول في أعمالنا',
+  ];
 
   @override
   void initState() {
@@ -502,76 +517,165 @@ class _TimedLoadingPageState extends State<_TimedLoadingPage> {
     _timer = Timer(widget.timeout, () {
       if (mounted) setState(() => _showFallback = true);
     });
+    // تدوير الأذكار بسلاسة كل 3 ثوانٍ
+    _rotationTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (mounted) {
+        setState(() {
+          _dhikrIndex = (_dhikrIndex + 1) % _dhikrItems.length;
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _rotationTimer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final currentDhikr = _dhikrItems[_dhikrIndex];
+
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(28),
+            padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
               child: Card(
+                elevation: 3,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  side: BorderSide(
+                    color: const Color(0xFF10B981).withValues(alpha: .2),
+                  ),
+                ),
                 child: Padding(
-                  padding: const EdgeInsets.all(28),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // المؤشر والرمز الروحاني
                       Container(
-                        padding: const EdgeInsets.all(18),
+                        width: 64,
+                        height: 64,
                         decoration: BoxDecoration(
-                          color: colorScheme.primaryContainer.withValues(alpha: .35),
+                          color: const Color(0xFF10B981).withValues(alpha: .12),
                           shape: BoxShape.circle,
                         ),
-                        child: SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 3,
-                            color: colorScheme.primary,
-                          ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            SizedBox(
+                              width: 50,
+                              height: 50,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                color: const Color(0xFF10B981),
+                                backgroundColor: const Color(0xFF10B981).withValues(alpha: .15),
+                              ),
+                            ),
+                            const Icon(
+                              Icons.volunteer_activism_rounded,
+                              size: 22,
+                              color: Color(0xFF10B981),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 18),
-                      Text(
-                        widget.label,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
+                      // شارة كسب الحسنات
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: .12),
+                          borderRadius: BorderRadius.circular(99),
+                          border: Border.all(
+                            color: const Color(0xFF10B981).withValues(alpha: .28),
+                          ),
                         ),
-                        textAlign: TextAlign.center,
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 13,
+                              color: Color(0xFF10B981),
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'ذكر واستغفار لكسب الحسنات',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF10B981),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // الذكر والصلاة على النبي المتجدد بسلاسة
+                      SizedBox(
+                        height: 68,
+                        child: Center(
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 400),
+                            transitionBuilder: (child, animation) => FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0.0, 0.15),
+                                  end: Offset.zero,
+                                ).animate(CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeOutCubic,
+                                )),
+                                child: child,
+                              ),
+                            ),
+                            child: Text(
+                              currentDhikr,
+                              key: ValueKey<int>(_dhikrIndex),
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w900,
+                                height: 1.5,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
                       ),
                       if (!_showFallback) ...[
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 10),
                         Text(
-                          'يرجى الانتظار…',
+                          'عطّر لسانك بذكر الله والصلاة على الحبيب ﷺ…',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            height: 1.7,
+                            fontSize: 12,
+                            height: 1.6,
                             color: colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                       if (_showFallback) ...[
                         const SizedBox(height: 12),
                         Text(
-                          'يبدو أن العملية تأخرت.\nتحقق من اتصالك بالإنترنت وجرّب الخيارات التالية:',
+                          'استمر في الذكر المبارك… يبدو أن الاستجابة تأخرت قليلاً.\nيمكنك الانتظار أو تجربة الخيارات التالية:',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            height: 1.7,
+                            height: 1.6,
+                            fontSize: 12,
                             color: colorScheme.onSurfaceVariant,
                           ),
                         ),
-                        const SizedBox(height: 22),
+                        const SizedBox(height: 20),
                         if (widget.onRetry != null)
                           FilledButton.icon(
                             onPressed: widget.onRetry,
