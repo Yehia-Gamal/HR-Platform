@@ -42,4 +42,6 @@ playwright-report/
 test-results/
 COMBINED_PUSH_*.sql
 debug-artifacts/
+__pycache__/
+*.pyc
 

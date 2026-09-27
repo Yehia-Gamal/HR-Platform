@@ -58,9 +58,10 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     try {
       final localAuth = LocalAuthentication();
       final supported = await localAuth.isDeviceSupported();
-      if (mounted) setState(() => _deviceLockConfigured = supported);
+      final canBiometrics = await localAuth.canCheckBiometrics;
+      if (mounted) setState(() => _deviceLockConfigured = supported || canBiometrics);
     } catch (_) {
-      if (mounted) setState(() => _deviceLockConfigured = false);
+      if (mounted) setState(() => _deviceLockConfigured = true);
     }
   }
 
@@ -126,7 +127,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       _pendingRetry = null;
     });
     if (retry == _PendingRetry.register) {
-      _register(skipDialog: true);
+      _register();
     } else if (retry != null) {
       _punch(retry.action!, skipDialog: true);
     }
@@ -179,16 +180,6 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
   }
 
   Widget _body(AttendanceState value) {
-    // V20: تسجيل تلقائي للجهاز — لا حاجة لخطوة يدوية.
-    if (value.attendanceRequired &&
-        value.selfPunchEnabled &&
-        !value.hasActiveLocalDevice &&
-        value.localDeviceStatus != 'pending' &&
-        !_working) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _register(skipDialog: true);
-      });
-    }
     if (!value.attendanceRequired || !value.selfPunchEnabled) {
       return ListView(
         padding: const EdgeInsets.all(20),
@@ -249,8 +240,8 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           const SizedBox(height: 14),
         ],
 
-        // ── تنبيه قفل الشاشة عند عدم ضبطه ──
-        if (_deviceLockConfigured == false) ...[
+        // ── إرشاد قفل الشاشة عند عدم ضبطه والجهاز غير مسجل بعد ──
+        if (!value.hasActiveLocalDevice && _deviceLockConfigured == false) ...[
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -265,7 +256,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Icon(
-                  Icons.lock_reset_rounded,
+                  Icons.info_outline_rounded,
                   color: AppColors.statusWarning,
                   size: 24,
                 ),
@@ -275,7 +266,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'إعداد قفل الشاشة مطلوب',
+                        'تأمين الجهاز موصى به',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
@@ -284,7 +275,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'لم يتم ضبط قفل شاشة (نقش أو PIN) أو بصمة على هذا الهاتف. يُرجى ضبط قفل الشاشة من إعدادات الهاتف لتتمكن من تسجيل الحضور.',
+                        'يُفضّل تفعيل بصمة أو قفل شاشة (نقش أو PIN) لتعزيز حماية حضورك، ويمكنك أيضاً تفعيل الحضور بربط هذا الهاتف مباشرة.',
                         style: TextStyle(
                           fontSize: 13,
                           height: 1.4,
@@ -380,7 +371,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     }
   }
 
-  Future<void> _register({bool skipDialog = false}) async {
+  Future<void> _register() async {
     if (_working) return;
     setState(() => _working = true);
     try {
@@ -393,92 +384,6 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
             backgroundColor: AppColors.statusSuccess,
           ),
         );
-      }
-    } on GpsDisabledException {
-      if (mounted) {
-        setState(() => _issueKind = _LocationIssueKind.gpsOff);
-        final opened = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('الموقع مغلق'),
-            content: const Text(
-              'يرجى تفعيل خدمة الموقع (GPS) لتتمكن من تسجيل الجهاز.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('إلغاء'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('تفعيل الموقع'),
-              ),
-            ],
-          ),
-        );
-        if (opened == true) {
-          _pendingRetry = _PendingRetry.register;
-          await Geolocator.openLocationSettings();
-        } else {
-          if (!mounted) return;
-          setState(() {
-            _issueKind = null;
-            _pendingRetry = null;
-          });
-        }
-      }
-    } on GpsPermissionDeniedException catch (e) {
-      if (mounted) {
-        if (e.isDeniedForever) {
-          setState(() => _issueKind = _LocationIssueKind.deniedForever);
-          final opened = await showDialog<bool>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('صلاحية الموقع مرفوضة'),
-              content: const Text(
-                'صلاحية الموقع مرفوضة نهائيًا. افتح إعدادات التطبيق لتفعيلها.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('إلغاء'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('فتح الإعدادات'),
-                ),
-              ],
-            ),
-          );
-          if (opened == true) {
-            _pendingRetry = _PendingRetry.register;
-            await Geolocator.openAppSettings();
-          } else {
-            if (!mounted) return;
-            setState(() {
-              _issueKind = null;
-              _pendingRetry = null;
-            });
-          }
-        } else {
-          // صلاحية مرفوضة (ليست نهائية) — نطلبها مباشرة
-          final perm = await Geolocator.requestPermission();
-          if (!mounted) return;
-          if (perm == LocationPermission.always ||
-              perm == LocationPermission.whileInUse) {
-            _register(skipDialog: true);
-            return;
-          }
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('يرجى منح صلاحية الموقع للمتابعة.')),
-          );
-        }
-      }
-    } on GpsAccuracyException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } catch (error, stack) {
       _showErrorFeedback(error, stack, contextTag: '_register');

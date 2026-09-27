@@ -57,19 +57,19 @@ const DAY_TYPE_CONFIGS: DayTypeConfig[] = [
   },
   {
     key: 'convoy',
-    label: 'قافلة خيرية',
-    desc: 'مشاركة في قوافل الإغاثة والتوعية',
+    label: 'قافلة خيرية (معسكر مساعدات)',
+    desc: 'سفر ومساعدات للأسر المستحقة (أسقف، مياه، كفالات) — يوم عمل خارجي',
     icon: HeartHandshake,
     color: 'text-purple-700 dark:text-purple-300',
     bgColor: 'bg-purple-50 dark:bg-purple-950/40 border-purple-300 dark:border-purple-800',
   },
   {
     key: 'fundraising',
-    label: 'فاندي (جمع تبرعات)',
-    desc: 'يوم مشاركة في حملات جمع التبرعات',
+    label: 'يوم ترفيهي (فاندي / Fun Day)',
+    desc: 'يوم ترفيهي للموظفين بتنظيم الإدارة (فيلا/سفر ترفيهي) — يُحسب يوم عمل كامل',
     icon: Sparkles,
-    color: 'text-violet-700 dark:text-violet-300',
-    bgColor: 'bg-violet-50 dark:bg-violet-950/40 border-violet-300 dark:border-violet-800',
+    color: 'text-pink-700 dark:text-pink-300',
+    bgColor: 'bg-pink-50 dark:bg-pink-950/40 border-pink-300 dark:border-pink-800',
   },
   {
     key: 'rest',
@@ -121,8 +121,8 @@ const PRESET_REASONS: Record<string, string[]> = {
   work: ['تعديل ساعات العمل المعتمدة', 'تصحيح وقت الحضور والانصراف', 'إضافة بصمة منسية', 'دوام كامل معتمد'],
   leave: ['إجازة اعتيادية معتمدة', 'إجازة مرضية بتقرير طبي', 'إجازة طارئة بموافقة الإدارة', 'إجازة معتمدة بأثر رجعي'],
   mission: ['مأمورية عمل ميدانية', 'مأمورية إدارية رسمية', 'انتداب رسمي خارج المقر'],
-  convoy: ['مشاركة في قافلة خيرية', 'حملة توعية ميدانية'],
-  fundraising: ['مشاركة في فاندي جمع تبرعات'],
+  convoy: ['مشاركة في قافلة خيرية/معسكر عمل', 'حفر وصلات مياه ومساعدات أسر مستحقة', 'بناء أسقف وتسليم كفالات للأسر المستحقة', 'مهمة إغاثية وسفر ميداني'],
+  fundraising: ['مشاركة في يوم ترفيهي للموظفين (فاندي / Fun Day)', 'رحلة ترفيهية للموظفين معتمدة من الإدارة', 'نشاط ترفيهي جماعي للموظفين'],
   holiday: ['عطلة رسمية بالدولة', 'إجازة رسمية معتمدة'],
   rest: ['راحة أسبوعية معتمدة', 'تبديل يوم راحة'],
   absent: ['تأكيد غياب بدون إذن', 'غياب غير مبرر'],
@@ -461,8 +461,8 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
               <span>نوع اليوم المطلوب</span>
               <select className="input w-full" value={markType} onChange={(e) => setMarkType(e.target.value)}>
                 <option value="mission">مأمورية</option>
-                <option value="convoy">قافلة</option>
-                <option value="fundraising">فاندي</option>
+                <option value="convoy">قافلة خيرية (معسكر مساعدات للأسر)</option>
+                <option value="fundraising">يوم ترفيهي للموظفين (فاندي / Fun Day)</option>
                 <option value="annual">إجازة سنوية</option>
                 <option value="casual">إجازة عارضة</option>
                 <option value="unpaid">إجازة بدون راتب</option>

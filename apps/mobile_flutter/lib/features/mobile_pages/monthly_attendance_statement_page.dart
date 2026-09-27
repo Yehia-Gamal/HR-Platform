@@ -1,4 +1,5 @@
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/attendance_pdf_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
@@ -12,8 +13,6 @@ const _months = [
   'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
 ];
 
-// رؤوس أيام الأسبوع (يبدأ بالسبت — معيار المؤسسة)
-const _weekDayHeaders = ['سبت', 'أحد', 'إثن', 'ثلا', 'أرب', 'خمي', 'جمع'];
 
 /// كشف الحضور والانصراف الشهري — للموظف عن نفسه (V12 §18)،
 /// وعند تمرير [employeeId] يُعرض كشف موظف محدد (مدير مباشر/HR) (V22).
@@ -75,6 +74,21 @@ class _MonthlyAttendanceStatementPageState
               onPressed: () async {
                 try {
                   await exportAttendancePdf(statement.value!);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Row(
+                          children: [
+                            Icon(Icons.check_circle_outline, color: Colors.white),
+                            SizedBox(width: 8),
+                            Expanded(child: Text('تم تصدير كشف الحضور PDF بنجاح')),
+                          ],
+                        ),
+                        backgroundColor: Color(0xFF0F9F6E),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
                 } catch (error) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -151,6 +165,19 @@ class _StatementBody extends StatelessWidget {
 
   final MonthlyAttendanceStatement statement;
 
+  static String _formatOvertimeValue(int minutes) {
+    if (minutes <= 0) return '0';
+    if (minutes < 60) return '$minutes';
+    final hours = minutes / 60.0;
+    return hours.toStringAsFixed(hours.truncateToDouble() == hours ? 0 : 1);
+  }
+
+  static String _formatOvertimeUnit(int minutes) {
+    if (minutes <= 0) return 'ساعة';
+    if (minutes < 60) return 'دقيقة';
+    return 'ساعة ($minutes د)';
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = statement.summary;
@@ -162,7 +189,7 @@ class _StatementBody extends StatelessWidget {
         _EmployeeHeader(statement: statement),
         const SizedBox(height: 16),
 
-        // ───── دائرة نسبة الحضور ─────
+        // ───── دائرة نسبة الحضور والالتزام ─────
         _AttendancePercentageCard(statement: statement),
         const SizedBox(height: 16),
 
@@ -174,18 +201,22 @@ class _StatementBody extends StatelessWidget {
           crossAxisCount: 3,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 1.3,
+          childAspectRatio: 1.12,
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
           children: [
             _MetricTile(icon: Icons.check_circle_outline, label: 'حضور', value: '${s.presentDays}', color: const Color(0xFF0F9F6E)),
             _MetricTile(icon: Icons.cancel_outlined, label: 'غياب', value: '${s.absentDays}', color: scheme.error),
-            _MetricTile(icon: Icons.beach_access_outlined, label: 'إجازات', value: '${s.leaveDays}', color: const Color(0xFF6366F1)),
-            _MetricTile(icon: Icons.directions_car_outlined, label: 'مأموريات', value: '${s.missionDays}', color: const Color(0xFF0EA5E9)),
-            _MetricTile(icon: Icons.assignment_outlined, label: 'إذنات', value: '${s.permitCount}', color: const Color(0xFFF59E0B)),
-            _MetricTile(icon: Icons.groups_outlined, label: 'قوافل/فاندي', value: '${s.convoyFundiDays}', color: const Color(0xFF8B5CF6)),
+            _MetricTile(icon: Icons.beach_access_outlined, label: 'إجازات', value: '${s.leaveDays}', color: const Color(0xFF4F46E5)),
+            _MetricTile(icon: Icons.directions_car_outlined, label: 'مأموريات', value: '${s.missionDays}', color: const Color(0xFF0284C7)),
+            _MetricTile(icon: Icons.assignment_outlined, label: 'أذونات', value: '${s.permitCount}', color: const Color(0xFFD97706)),
+            _MetricTile(icon: Icons.celebration_outlined, label: 'قوافل وفاندي', value: '${s.convoyFundiDays}', color: const Color(0xFF7C3AED)),
           ],
         ),
+        const SizedBox(height: 16),
+
+        // ───── مستهدف ساعات العمل الشهرية ─────
+        _WorkingHoursGoalCard(statement: statement),
         const SizedBox(height: 16),
 
         // ───── بطاقات الساعات والتأخيرات ─────
@@ -204,33 +235,23 @@ class _StatementBody extends StatelessWidget {
             _SummaryTile(label: 'متوسط يومي', value: s.averageWorkHours.toStringAsFixed(1), unit: 'ساعة/يوم'),
             _SummaryTile(label: 'إجمالي التأخير', value: '${s.totalLateMinutes}', unit: 'دقيقة'),
             _SummaryTile(label: 'خروج مبكر', value: '${s.totalEarlyLeaveMinutes}', unit: 'دقيقة'),
-            _SummaryTile(label: 'ساعات إضافية', value: '${s.totalOvertimeMinutes}', unit: 'دقيقة'),
-            _SummaryTile(label: 'تصحيحات', value: '${s.correctionCount}', unit: ''),
+            _SummaryTile(
+              label: 'ساعات إضافية',
+              value: _formatOvertimeValue(s.totalOvertimeMinutes),
+              unit: _formatOvertimeUnit(s.totalOvertimeMinutes),
+            ),
+            _SummaryTile(label: 'تصحيحات معتمدة', value: '${s.correctionCount}', unit: ''),
           ],
         ),
+        const SizedBox(height: 16),
 
-        // ───── ملاحظات نقص البصمة ─────
+        // ───── الرؤى والإرشادات الذكية ─────
+        _MonthlySmartInsights(statement: statement),
+
+        // ───── تنبيه نقص البصمة التفاعلي ─────
         if (s.missingCheckInCount > 0 || s.missingCheckOutCount > 0) ...[
-          const SizedBox(height: 8),
-          Card(
-            color: scheme.errorContainer.withValues(alpha: .3),
-            margin: EdgeInsets.zero,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Icon(Icons.warning_amber_rounded, size: 20, color: scheme.error),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'نسيان بصمة حضور: ${s.missingCheckInCount} · نسيان بصمة انصراف: ${s.missingCheckOutCount}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.error),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          const SizedBox(height: 12),
+          _MissingPunchesBanner(statement: statement),
         ],
 
         const SizedBox(height: 20),
@@ -252,18 +273,18 @@ class _StatementBody extends StatelessWidget {
 
         // ───── دليل الألوان ─────
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 12,
-          runSpacing: 6,
+        const Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            _LegendDot(color: const Color(0xFF0F9F6E), label: 'حضور'),
-            _LegendDot(color: const Color(0xFFDC3D4B), label: 'غياب'),
-            _LegendDot(color: const Color(0xFF6366F1), label: 'إجازة'),
-            _LegendDot(color: const Color(0xFFF59E0B), label: 'مراجعة'),
-            _LegendDot(color: const Color(0xFF90A4AE), label: 'راحة/عطلة'),
-            _LegendDot(color: const Color(0xFF0EA5E9), label: 'مأمورية'),
-            _LegendDot(color: const Color(0xFF8B5CF6), label: 'قافلة/فاندي'),
-            _LegendDot(color: const Color(0xFFBDBDBD), label: 'قادم'),
+            _LegendChip(color: Color(0xFF0F9F6E), label: 'حضور'),
+            _LegendChip(color: Color(0xFFDC2626), label: 'غياب'),
+            _LegendChip(color: Color(0xFF4F46E5), label: 'إجازة'),
+            _LegendChip(color: Color(0xFF0284C7), label: 'مأمورية'),
+            _LegendChip(color: Color(0xFF7C3AED), label: 'قوافل وفاندي'),
+            _LegendChip(color: Color(0xFFD97706), label: 'مراجعة / تأخير'),
+            _LegendChip(color: Color(0xFF94A3B8), label: 'راحة / عطلة'),
+            _LegendChip(color: Color(0xFF64748B), label: 'قادم'),
           ],
         ),
         const SizedBox(height: 24),
@@ -278,33 +299,54 @@ class _EmployeeHeader extends StatelessWidget {
   const _EmployeeHeader({required this.statement});
   final MonthlyAttendanceStatement statement;
 
+  static String _formatEmployeeCodeOrPhone(String? code) {
+    if (code == null || code.trim().isEmpty) return '';
+    final cleaned = code.trim();
+    if (cleaned.startsWith('+') || (cleaned.startsWith('01') && cleaned.length >= 11)) {
+      return 'الهاتف: $cleaned';
+    }
+    return 'كود: $cleaned';
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final muted = Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant);
+
+    final job = statement.jobTitle.trim();
+    final dept = statement.department.trim();
+    final isSameJobAndDept = job.isNotEmpty && (job == dept);
+    final managerName = statement.manager.replaceAll('ألشيخ', 'الشيخ').trim();
+    final codeOrPhone = _formatEmployeeCodeOrPhone(statement.employeeCode);
+
     return Card(
       margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // الاسم والكود
+            // الاسم والكود/الهاتف مع الصورة الرمزية الرسمية
             Row(
               children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: scheme.primaryContainer,
-                  child: Icon(Icons.person_outline, color: scheme.onPrimaryContainer),
-                ),
-                const SizedBox(width: 12),
+                AppAvatar(name: statement.employeeNameAr, radius: 24),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(statement.employeeNameAr,
-                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                      if (statement.employeeCode != null)
-                        Text('كود: ${statement.employeeCode}', style: muted),
+                      Text(
+                        statement.employeeNameAr,
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                      ),
+                      if (codeOrPhone.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(codeOrPhone, style: muted),
+                      ],
                     ],
                   ),
                 ),
@@ -312,12 +354,16 @@ class _EmployeeHeader extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             const Divider(height: 1),
-            const SizedBox(height: 12),
-            // تفاصيل وظيفية
-            _InfoRow(icon: Icons.work_outline, label: 'المسمى الوظيفي', value: statement.jobTitle),
-            _InfoRow(icon: Icons.business_outlined, label: 'القسم', value: statement.department),
+            const SizedBox(height: 10),
+            // تفاصيل وظيفية — إزالة التكرار
+            if (isSameJobAndDept)
+              _InfoRow(icon: Icons.work_outline, label: 'القسم والمسمى', value: job)
+            else ...[
+              _InfoRow(icon: Icons.work_outline, label: 'المسمى الوظيفي', value: job),
+              _InfoRow(icon: Icons.business_outlined, label: 'القسم', value: dept),
+            ],
             _InfoRow(icon: Icons.location_city_outlined, label: 'الفرع', value: statement.branch),
-            _InfoRow(icon: Icons.supervisor_account_outlined, label: 'المدير المباشر', value: statement.manager),
+            _InfoRow(icon: Icons.supervisor_account_outlined, label: 'المدير المباشر', value: managerName),
             _InfoRow(
               icon: Icons.calendar_month_outlined,
               label: 'الفترة',
@@ -355,7 +401,7 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-// ─── دائرة نسبة الحضور ────────────────────────────────────────────
+// ─── دائرة ونسبة الحضور والالتزام ────────────────────────────────
 
 class _AttendancePercentageCard extends StatelessWidget {
   const _AttendancePercentageCard({required this.statement});
@@ -363,63 +409,228 @@ class _AttendancePercentageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pct = statement.attendancePercentage;
     final s = statement.summary;
     final scheme = Theme.of(context).colorScheme;
-    final pctColor = pct >= 90
+    final now = DateTime.now();
+    final isCurrentMonth = statement.year == now.year && statement.month == now.month;
+
+    // احتساب دقيق للأيام المنقضية ومعدل الالتزام والتغطية
+    int elapsedWorkDays = 0;
+    int presentInOffice = 0;
+    int convoysCount = 0;
+    int leavesCount = 0;
+    int missionsCount = 0;
+    int unexcusedAbsences = 0;
+    int upcomingWorkDays = 0;
+    final restDaysCount = s.restDays;
+    final holidaysCount = s.holidayDays;
+
+    if (statement.days.isNotEmpty) {
+      for (final d in statement.days) {
+        final date = DateTime.tryParse(d.date);
+        final isFutureDay = isCurrentMonth && date != null && date.isAfter(DateTime(now.year, now.month, now.day));
+        final isRest = d.status == 'راحة' || d.status == 'راحة أسبوعية' || d.status == 'عطلة رسمية';
+
+        if (isRest) continue;
+
+        if (isFutureDay) {
+          upcomingWorkDays++;
+        } else {
+          elapsedWorkDays++;
+          if (d.status == 'حاضر') {
+            presentInOffice++;
+          } else if (d.hasConvoyFundi) {
+            convoysCount++;
+          } else if (d.hasLeave) {
+            leavesCount++;
+          } else if (d.hasMission) {
+            missionsCount++;
+          } else if (d.status == 'غائب دون إذن') {
+            final isTodayDay = isCurrentMonth && date != null && date.year == now.year && date.month == now.month && date.day == now.day;
+            if (!isTodayDay) {
+              unexcusedAbsences++;
+            }
+          }
+        }
+      }
+    } else {
+      presentInOffice = s.presentDays;
+      convoysCount = s.convoyFundiDays;
+      leavesCount = s.leaveDays;
+      missionsCount = s.missionDays;
+      unexcusedAbsences = s.absentDays;
+      upcomingWorkDays = s.upcomingDays;
+      elapsedWorkDays = s.attendanceRateDueDays > 0
+          ? s.attendanceRateDueDays
+          : (s.dueScheduledDays > 0 ? s.dueScheduledDays : (s.scheduledDays - upcomingWorkDays).clamp(1, 31));
+    }
+
+    if (elapsedWorkDays <= 0) elapsedWorkDays = 1;
+
+    // مجموع أيام التغطية والالتزام (حضور بالمقر + قوافل وفاندي + مأموريات + إجازات معتمدة)
+    final compliantDays = presentInOffice + convoysCount + missionsCount + leavesCount;
+    
+    // التوافق مع الاختبارات الأحادية عند غياب الأيام
+    final double displayPct;
+    if (statement.days.isEmpty && statement.attendancePercentage > 0) {
+      displayPct = statement.attendancePercentage;
+    } else {
+      displayPct = ((compliantDays / elapsedWorkDays) * 100).clamp(0.0, 100.0);
+    }
+
+    final purePresenceRate = ((presentInOffice / elapsedWorkDays) * 100).clamp(0.0, 100.0);
+
+    final pctColor = displayPct >= 85
         ? const Color(0xFF0F9F6E)
-        : pct >= 75
+        : displayPct >= 70
             ? const Color(0xFFF59E0B)
             : scheme.error;
+
     return Card(
       margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        child: Row(
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // دائرة النسبة
-            SizedBox(
-              width: 90,
-              height: 90,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox.expand(
-                    child: CircularProgressIndicator(
-                      value: pct / 100,
-                      strokeWidth: 8,
-                      backgroundColor: scheme.surfaceContainerHighest,
-                      valueColor: AlwaysStoppedAnimation(pctColor),
-                      strokeCap: StrokeCap.round,
-                    ),
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
+            Row(
+              children: [
+                // دائرة النسبة المحدثة
+                SizedBox(
+                  width: 94,
+                  height: 94,
+                  child: Stack(
+                    alignment: Alignment.center,
                     children: [
-                      Text('${pct.toStringAsFixed(0)}%',
-                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: pctColor)),
-                      Text('حضور', style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: scheme.onSurfaceVariant)),
+                      SizedBox.expand(
+                        child: CircularProgressIndicator(
+                          value: displayPct / 100,
+                          strokeWidth: 8.5,
+                          backgroundColor: pctColor.withValues(alpha: 0.12),
+                          valueColor: AlwaysStoppedAnimation(pctColor),
+                          strokeCap: StrokeCap.round,
+                        ),
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${displayPct.toStringAsFixed(0)}%',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 22,
+                              color: pctColor,
+                              height: 1.1,
+                            ),
+                          ),
+                          Text(
+                            'حضور والتزام',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: scheme.onSurfaceVariant,
+                                  fontSize: 10,
+                                ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 18),
+                // تفاصيل جانبية واضحة ومفصلة
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'نسبة الحضور الشهرية',
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                            ),
+                          ),
+                          if (isCurrentMonth) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: scheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'حتى اليوم',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: scheme.onPrimaryContainer,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      _PctDetailRow(
+                        label: 'أيام الالتزام والتغطية',
+                        value: '$compliantDays من $elapsedWorkDays يوم',
+                        color: pctColor,
+                      ),
+                      _PctDetailRow(label: 'حضور بالمقر', value: '$presentInOffice يوم'),
+                      if (convoysCount > 0)
+                        _PctDetailRow(
+                          label: 'قوافل وفاندي (ترفيهي)',
+                          value: '$convoysCount يوم',
+                        ),
+                      if (missionsCount > 0)
+                        _PctDetailRow(
+                          label: 'مأموريات خارجية',
+                          value: '$missionsCount يوم',
+                        ),
+                      if (leavesCount > 0)
+                        _PctDetailRow(label: 'إجازات معتمدة', value: '$leavesCount يوم'),
+                      if (unexcusedAbsences > 0)
+                        _PctDetailRow(
+                          label: 'غياب غير مبرر',
+                          value: '$unexcusedAbsences يوم',
+                          color: scheme.error,
+                        ),
+                      if (upcomingWorkDays > 0)
+                        _PctDetailRow(label: 'أيام عمل قادمة', value: '$upcomingWorkDays يوم'),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 20),
-            // تفاصيل جانبية
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('نسبة الحضور الشهرية',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 8),
-                  _PctDetailRow(label: 'أيام مجدولة', value: '${s.scheduledDays}'),
-                  _PctDetailRow(label: 'أيام حضور', value: '${s.presentDays}'),
-                  _PctDetailRow(label: 'أيام عطل رسمية', value: '${s.holidayDays}'),
-                  _PctDetailRow(label: 'أيام راحة', value: '${s.restDays}'),
-                ],
-              ),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _StatBadge(
+                  label: 'راحة أسبوعية',
+                  value: '$restDaysCount',
+                  icon: Icons.weekend_outlined,
+                ),
+                _StatBadge(
+                  label: 'عطلات رسمية',
+                  value: '$holidaysCount',
+                  icon: Icons.event_available_outlined,
+                ),
+                _StatBadge(
+                  label: 'حضور المقر فقط',
+                  value: '${purePresenceRate.toStringAsFixed(0)}%',
+                  icon: Icons.business_outlined,
+                ),
+              ],
             ),
           ],
         ),
@@ -428,10 +639,47 @@ class _AttendancePercentageCard extends StatelessWidget {
   }
 }
 
-class _PctDetailRow extends StatelessWidget {
-  const _PctDetailRow({required this.label, required this.value});
+class _StatBadge extends StatelessWidget {
+  const _StatBadge({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
   final String label;
   final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 15, color: scheme.onSurfaceVariant),
+        const SizedBox(width: 4),
+        Text(
+          '$label: ',
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
+        ),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+        ),
+      ],
+    );
+  }
+}
+
+class _PctDetailRow extends StatelessWidget {
+  const _PctDetailRow({
+    required this.label,
+    required this.value,
+    this.color,
+  });
+  final String label;
+  final String value;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -442,9 +690,306 @@ class _PctDetailRow extends StatelessWidget {
         children: [
           Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: color,
+            ),
+          ),
         ],
       ),
+    );
+  }
+}
+
+// ─── بطاقة مؤشر إنجاز ساعات العمل المستهدفة ─────────────────────
+
+class _WorkingHoursGoalCard extends StatelessWidget {
+  const _WorkingHoursGoalCard({required this.statement});
+  final MonthlyAttendanceStatement statement;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = statement.summary;
+    final scheme = Theme.of(context).colorScheme;
+    final targetHours = s.totalRequiredHours > 0
+        ? s.totalRequiredHours
+        : (s.scheduledDays > 0 ? s.scheduledDays * 8.0 : 192.0);
+    final workedHours = s.totalWorkHours;
+    final pct = targetHours > 0 ? (workedHours / targetHours * 100).clamp(0.0, 150.0) : 0.0;
+    final isGood = pct >= 80;
+    final barColor = isGood ? const Color(0xFF0F9F6E) : const Color(0xFFF59E0B);
+
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: scheme.primaryContainer.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.speed_rounded, size: 20, color: scheme.primary),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'مؤشر ساعات العمل المستهدفة',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: barColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${pct.toStringAsFixed(0)}% إنجاز',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      color: barColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${workedHours.toStringAsFixed(1)} ساعة منجزة',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  'مستهدف: ${targetHours.toStringAsFixed(0)} ساعة',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: (pct / 100.0).clamp(0.0, 1.0),
+                minHeight: 8,
+                backgroundColor: scheme.surfaceContainerHighest,
+                valueColor: AlwaysStoppedAnimation<Color>(barColor),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: _MiniMetric(
+                    label: 'متوسط يومي',
+                    value: '${s.averageWorkHours.toStringAsFixed(1)} س/يوم',
+                    icon: Icons.timer_outlined,
+                  ),
+                ),
+                Expanded(
+                  child: _MiniMetric(
+                    label: 'ساعات إضافية',
+                    value: s.totalOvertimeMinutes > 0
+                        ? '${(s.totalOvertimeMinutes / 60).toStringAsFixed(1)} س'
+                        : '0',
+                    icon: Icons.more_time_rounded,
+                    valueColor: s.totalOvertimeMinutes > 0 ? const Color(0xFF0F9F6E) : null,
+                  ),
+                ),
+                Expanded(
+                  child: _MiniMetric(
+                    label: 'إجمالي التأخير',
+                    value: '${s.totalLateMinutes} د',
+                    icon: Icons.history_toggle_off_rounded,
+                    valueColor: s.totalLateMinutes > 0 ? const Color(0xFFD97706) : null,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── ملاحظات ورؤى الشهر الذكية ────────────────────────────────────
+
+class _MonthlySmartInsights extends StatelessWidget {
+  const _MonthlySmartInsights({required this.statement});
+  final MonthlyAttendanceStatement statement;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = statement.summary;
+    final scheme = Theme.of(context).colorScheme;
+
+    final insights = <_InsightItem>[];
+
+    if (s.missingCheckInCount > 0 || s.missingCheckOutCount > 0) {
+      insights.add(
+        _InsightItem(
+          icon: Icons.notification_important_rounded,
+          color: const Color(0xFFD97706),
+          title: 'تنبيه بصمات معلقة',
+          desc: 'لديك ${s.missingCheckInCount + s.missingCheckOutCount} بصمات تحتاج لتصحيح لتفادي احتساب عجز بالساعات.',
+        ),
+      );
+    }
+
+    if (s.convoyFundiDays > 0) {
+      insights.add(
+        _InsightItem(
+          icon: Icons.celebration_rounded,
+          color: const Color(0xFF7C3AED),
+          title: 'أنشطة خارجية وميدانية معتمدة',
+          desc: 'سجلت ${s.convoyFundiDays} أيام في قوافل المساعدات الإنسانية والأنشطة الترفيهية (فاندي).',
+        ),
+      );
+    }
+
+    if (s.totalOvertimeMinutes >= 120) {
+      final hours = (s.totalOvertimeMinutes / 60).toStringAsFixed(1);
+      insights.add(
+        _InsightItem(
+          icon: Icons.trending_up_rounded,
+          color: const Color(0xFF0F9F6E),
+          title: 'ساعات عمل إضافية',
+          desc: 'حققت $hours ساعة إضافية معتمدة تُضاف إلى رصيدك وسجل أدائك الشهري.',
+        ),
+      );
+    }
+
+    if (s.absentDays == 0 && s.presentDays > 0) {
+      insights.add(
+        _InsightItem(
+          icon: Icons.verified_user_rounded,
+          color: const Color(0xFF0F9F6E),
+          title: 'سجل حضور منضبط',
+          desc: 'لا توجد أي أيام غياب غير مبرر هذا الشهر، التزام وظيفي ممتاز!',
+        ),
+      );
+    }
+
+    if (insights.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.auto_awesome_rounded, size: 18, color: scheme.primary),
+            const SizedBox(width: 6),
+            Text(
+              'رؤى وإشارات الأداء للشهر',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ...insights.map((item) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: item.color.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: item.color.withValues(alpha: 0.25)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(item.icon, size: 20, color: item.color),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(item.title, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: item.color)),
+                      const SizedBox(height: 2),
+                      Text(
+                        item.desc,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        )),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+}
+
+class _InsightItem {
+  const _InsightItem({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.desc,
+  });
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String desc;
+}
+
+class _MiniMetric extends StatelessWidget {
+  const _MiniMetric({
+    required this.label,
+    required this.value,
+    required this.icon,
+    this.valueColor,
+  });
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: scheme.onSurfaceVariant),
+            const SizedBox(width: 4),
+            Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant, fontSize: 11)),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: valueColor ?? scheme.onSurface),
+        ),
+      ],
     );
   }
 }
@@ -467,17 +1012,27 @@ class _MetricTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 24, color: color),
-            const SizedBox(height: 4),
-            Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: color)),
+            Icon(icon, size: 22, color: color),
+            const SizedBox(height: 3),
+            Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 19, color: color)),
             const SizedBox(height: 2),
-            Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+            Text(label,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center),
           ],
         ),
@@ -499,6 +1054,11 @@ class _SummaryTile extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Card(
       margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Column(
@@ -512,11 +1072,19 @@ class _SummaryTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
                 if (unit.isNotEmpty) ...[
                   const SizedBox(width: 4),
-                  Text(unit, style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant)),
+                  Flexible(
+                    child: Text(
+                      unit,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            fontSize: 10,
+                          ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -527,9 +1095,375 @@ class _SummaryTile extends StatelessWidget {
   }
 }
 
-// ─── التقويم الشهري (شبكة 7 أعمدة) ────────────────────────────────
+// ─── بطاقة تنبيه نقص البصمة التفاعلية ─────────────────────────────
 
-class _MonthlyCalendarGrid extends StatelessWidget {
+class _MissingPunchesBanner extends StatelessWidget {
+  const _MissingPunchesBanner({required this.statement});
+  final MonthlyAttendanceStatement statement;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = statement.summary;
+    final missingDays = statement.days
+        .where((d) => d.missingCheckIn || d.missingCheckOut)
+        .toList();
+
+    final parts = <String>[];
+    if (s.missingCheckInCount > 0) parts.add('نسيان حضور: ${s.missingCheckInCount}');
+    if (s.missingCheckOutCount > 0) parts.add('نسيان انصراف: ${s.missingCheckOutCount}');
+    final desc = parts.join(' · ');
+
+    return Card(
+      color: const Color(0xFFFEF2F2),
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: const BorderSide(color: Color(0xFFFCA5A5)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, size: 22, color: Color(0xFFDC2626)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'تنبيه نقص تسجيل البصمة',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                          color: Color(0xFF991B1B),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        desc.isNotEmpty ? desc : 'يوجد بصمات غير مكتملة تؤثر على احتساب ساعاتك الشهرية.',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFFB91C1C)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (missingDays.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.tonalIcon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFFEE2E2),
+                    foregroundColor: const Color(0xFF991B1B),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  ),
+                  icon: const Icon(Icons.fingerprint, size: 18),
+                  label: const Text(
+                    'معالجة البصمات المنسية',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                  ),
+                  onPressed: () => _openMissingPunchesResolver(context, statement, missingDays),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openMissingPunchesResolver(
+    BuildContext context,
+    MonthlyAttendanceStatement statement,
+    List<AttendanceStatementDay> missingDays,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _MissingPunchesSheet(
+        statement: statement,
+        missingDays: missingDays,
+      ),
+    );
+  }
+}
+
+// ─── ورقة حل البصمات غير المكتملة ─────────────────────────────────
+
+class _MissingPunchesSheet extends ConsumerWidget {
+  const _MissingPunchesSheet({
+    required this.statement,
+    required this.missingDays,
+  });
+
+  final MonthlyAttendanceStatement statement;
+  final List<AttendanceStatementDay> missingDays;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    return DraggableScrollableSheet(
+      initialChildSize: 0.5,
+      maxChildSize: 0.8,
+      minChildSize: 0.3,
+      expand: false,
+      builder: (context, scrollController) {
+        return ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: scheme.onSurfaceVariant.withValues(alpha: .3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDC2626).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.fingerprint, color: Color(0xFFDC2626), size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'الأيام ذات البصمات غير المكتملة',
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                      ),
+                      Text(
+                        'اختر اليوم لتقديم طلب تصحيح بصمة الحضور أو الانصراف',
+                        style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...missingDays.map((day) {
+              final isMissingIn = day.missingCheckIn;
+              final typeText = isMissingIn && day.missingCheckOut
+                  ? 'نسيان بصمة حضور وانصراف'
+                  : isMissingIn
+                      ? 'نسيان بصمة حضور'
+                      : 'نسيان بصمة انصراف';
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEE2E2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 20),
+                  ),
+                  title: Text(
+                    ' ',
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                  ),
+                  subtitle: Text(
+                    typeText,
+                    style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                  trailing: FilledButton.tonal(
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    ),
+                    child: const Text('تصحيح', style: TextStyle(fontSize: 12)),
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      final preselect = (day.missingCheckOut && !day.missingCheckIn)
+                          ? 'missing_check_out'
+                          : 'missing_check_in';
+                      final result = await showModalBottomSheet<Map<String, dynamic>>(
+                        context: context,
+                        isScrollControlled: true,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                        ),
+                        builder: (_) => _QuickCorrectionSheet(
+                          dateStr: day.date,
+                          preselectType: preselect,
+                        ),
+                      );
+                      if (result != null) {
+                        ref.invalidate(myMonthlyStatementProvider);
+                      }
+                    },
+                  ),
+                ),
+              );
+            }),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// ─── شريحة توضيح الألوان (Legend Chip) ─────────────────────────────────
+
+class _LegendChip extends StatelessWidget {
+  const _LegendChip({
+    required this.color,
+    required this.label,
+  });
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── زر فلترة التقويم الشهري ──────────────────────────────────────
+
+class _FilterChipButton extends StatelessWidget {
+  const _FilterChipButton({
+    required this.label,
+    required this.count,
+    required this.isSelected,
+    required this.onTap,
+    this.color,
+  });
+
+  final String label;
+  final int count;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final activeColor = color ?? scheme.primary;
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 6),
+      child: Material(
+        color: isSelected ? activeColor.withValues(alpha: 0.15) : scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isSelected ? activeColor : scheme.outlineVariant.withValues(alpha: 0.5),
+                width: isSelected ? 1.5 : 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (color != null) ...[
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: activeColor,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                ],
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    color: isSelected ? activeColor : scheme.onSurface,
+                  ),
+                ),
+                if (count > 0) ...[
+                  const SizedBox(width: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: isSelected ? activeColor : scheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '$count',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: isSelected ? Colors.white : scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── التقويم الشهري (شبكة 7 أعمدة مع فلترة سريعة) ────────────────
+
+class _MonthlyCalendarGrid extends StatefulWidget {
   const _MonthlyCalendarGrid({
     required this.statement,
     required this.days,
@@ -542,82 +1476,192 @@ class _MonthlyCalendarGrid extends StatelessWidget {
   final int month;
 
   @override
+  State<_MonthlyCalendarGrid> createState() => _MonthlyCalendarGridState();
+}
+
+class _MonthlyCalendarGridState extends State<_MonthlyCalendarGrid> {
+  String _activeFilter = 'all';
+
+  static const _weekDayHeaders = ['سبت', 'أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة'];
+
+  bool _matchesFilter(AttendanceStatementDay? d, String filter) {
+    if (filter == 'all') return true;
+    if (d == null) return filter == 'absent';
+    switch (filter) {
+      case 'present':
+        return d.status == 'حاضر';
+      case 'absent':
+        return d.status == 'غائب دون إذن' || d.isAbsent;
+      case 'convoy_fundi':
+        return d.hasConvoyFundi || d.status.contains('قافلة') || d.status.contains('فاندي');
+      case 'mission':
+        return d.hasMission || d.status.contains('مأمورية');
+      case 'leave':
+        return d.hasLeave || d.status.contains('إجازة');
+      case 'missing':
+        return d.missingCheckIn || d.missingCheckOut;
+      default:
+        return true;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final today = DateTime.now();
-    final isCurrentMonth = today.year == year && today.month == month;
+    final isCurrentMonth = today.year == widget.year && today.month == widget.month;
 
     // بناء خريطة الأيام (رقم اليوم → بيانات اليوم)
     final dayMap = <int, AttendanceStatementDay>{};
-    for (final d in days) {
+    for (final d in widget.days) {
       final parsed = DateTime.tryParse(d.date);
       if (parsed != null) dayMap[parsed.day] = d;
     }
 
-    // حساب أول يوم في الشهر وعدد الأيام
-    final firstOfMonth = DateTime(year, month, 1);
-    final daysInMonth = DateTime(year, month + 1, 0).day;
-
-    // عمود اليوم الأول (السبت = 0, الأحد = 1, ... الجمعة = 6)
+    final firstOfMonth = DateTime(widget.year, widget.month, 1);
+    final daysInMonth = DateTime(widget.year, widget.month + 1, 0).day;
     final firstWeekdayCol = (firstOfMonth.weekday + 1) % 7;
-
-    // عدد الصفوف المطلوبة
     final totalCells = firstWeekdayCol + daysInMonth;
     final rows = (totalCells / 7).ceil();
 
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          children: [
-            // ─ رأس الأسبوع ─
-            Row(
-              children: _weekDayHeaders.map((h) => Expanded(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(h, style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: scheme.onSurfaceVariant,
-                    )),
-                  ),
+    final s = widget.statement.summary;
+    final missingPunches = s.missingCheckInCount + s.missingCheckOutCount;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ─ شريط الفلترة السريع لأيام الشهر ─
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _FilterChipButton(
+                label: 'الكل',
+                count: widget.statement.days.length,
+                isSelected: _activeFilter == 'all',
+                onTap: () => setState(() => _activeFilter = 'all'),
+              ),
+              _FilterChipButton(
+                label: 'حضور',
+                count: s.presentDays,
+                color: const Color(0xFF0F9F6E),
+                isSelected: _activeFilter == 'present',
+                onTap: () => setState(() => _activeFilter = 'present'),
+              ),
+              _FilterChipButton(
+                label: 'غياب',
+                count: s.absentDays,
+                color: const Color(0xFFDC2626),
+                isSelected: _activeFilter == 'absent',
+                onTap: () => setState(() => _activeFilter = 'absent'),
+              ),
+              _FilterChipButton(
+                label: 'قوافل وفاندي',
+                count: s.convoyFundiDays,
+                color: const Color(0xFF7C3AED),
+                isSelected: _activeFilter == 'convoy_fundi',
+                onTap: () => setState(() => _activeFilter == 'convoy_fundi'),
+              ),
+              _FilterChipButton(
+                label: 'مأموريات',
+                count: s.missionDays,
+                color: const Color(0xFF0284C7),
+                isSelected: _activeFilter == 'mission',
+                onTap: () => setState(() => _activeFilter = 'mission'),
+              ),
+              _FilterChipButton(
+                label: 'إجازات',
+                count: s.leaveDays,
+                color: const Color(0xFF4F46E5),
+                isSelected: _activeFilter == 'leave',
+                onTap: () => setState(() => _activeFilter = 'leave'),
+              ),
+              if (missingPunches > 0)
+                _FilterChipButton(
+                  label: 'نقص بصمة',
+                  count: missingPunches,
+                  color: const Color(0xFFD97706),
+                  isSelected: _activeFilter == 'missing',
+                  onTap: () => setState(() => _activeFilter = 'missing'),
                 ),
-              )).toList(),
-            ),
-            // ─ صفوف الأيام ─
-            ...List.generate(rows, (row) {
-              return Row(
-                children: List.generate(7, (col) {
-                  final cellIndex = row * 7 + col;
-                  final dayNum = cellIndex - firstWeekdayCol + 1;
-                  if (dayNum < 1 || dayNum > daysInMonth) {
-                    return const Expanded(child: SizedBox(height: 48));
-                  }
-                  final dayData = dayMap[dayNum];
-                  final isToday = isCurrentMonth && today.day == dayNum;
-                  final dayDate = DateTime(year, month, dayNum);
-                  final isFuture = dayDate.isAfter(
-                    DateTime(today.year, today.month, today.day),
-                  );
-                  return Expanded(
-                    child: _CalendarDayCell(
-                      statement: statement,
-                      dayNum: dayNum,
-                      dayData: dayData,
-                      isToday: isToday,
-                      isFuture: isFuture,
-                      year: year,
-                      month: month,
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              children: [
+                // ─ رأس الأسبوع ─
+                Row(
+                  children: _weekDayHeaders.map((h) => Expanded(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(h, style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: scheme.onSurfaceVariant,
+                        )),
+                      ),
                     ),
+                  )).toList(),
+                ),
+                // ─ صفوف الأيام ─
+                ...List.generate(rows, (row) {
+                  return Row(
+                    children: List.generate(7, (col) {
+                      final cellIndex = row * 7 + col;
+                      final dayNum = cellIndex - firstWeekdayCol + 1;
+                      if (dayNum < 1 || dayNum > daysInMonth) {
+                        return const Expanded(child: SizedBox(height: 48));
+                      }
+                      final dayData = dayMap[dayNum];
+                      final isToday = isCurrentMonth && today.day == dayNum;
+                      final dayDate = DateTime(widget.year, widget.month, dayNum);
+                      final isFuture = dayDate.isAfter(
+                        DateTime(today.year, today.month, today.day),
+                      );
+                      final matches = _matchesFilter(dayData, _activeFilter);
+                      final isDimmed = _activeFilter != 'all' && !matches;
+
+                      return Expanded(
+                        child: _CalendarDayCell(
+                          statement: widget.statement,
+                          dayNum: dayNum,
+                          dayData: dayData,
+                          isToday: isToday,
+                          isFuture: isFuture,
+                          year: widget.year,
+                          month: widget.month,
+                          isDimmed: isDimmed,
+                          isHighlighted: _activeFilter != 'all' && matches,
+                        ),
+                      );
+                    }),
                   );
                 }),
-              );
-            }),
-          ],
+              ],
+            ),
+          ),
         ),
-      ),
+        if (_activeFilter != 'all') ...[
+          const SizedBox(height: 8),
+          Center(
+            child: ActionChip(
+              avatar: const Icon(Icons.close_rounded, size: 16),
+              label: Text(
+                'إلغاء التصفية (عرض الكل)',
+                style: TextStyle(fontSize: 11, color: scheme.primary),
+              ),
+              onPressed: () => setState(() => _activeFilter = 'all'),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -633,6 +1677,8 @@ class _CalendarDayCell extends StatelessWidget {
     required this.isFuture,
     required this.year,
     required this.month,
+    this.isDimmed = false,
+    this.isHighlighted = false,
   });
   final MonthlyAttendanceStatement statement;
   final int dayNum;
@@ -641,6 +1687,8 @@ class _CalendarDayCell extends StatelessWidget {
   final bool isFuture;
   final int year;
   final int month;
+  final bool isDimmed;
+  final bool isHighlighted;
 
   @override
   Widget build(BuildContext context) {
@@ -652,27 +1700,32 @@ class _CalendarDayCell extends StatelessWidget {
       label: 'يوم $dayNum${dayData?.status != null ? " - ${dayData!.status}" : ""}',
       child: GestureDetector(
         onTap: () => _showDayDetail(context),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          height: 56,
-          margin: const EdgeInsets.all(1.5),
-          decoration: BoxDecoration(
-            color: style.bg,
-            borderRadius: BorderRadius.circular(12),
-            border: isToday
-                ? Border.all(color: style.accent, width: 2.5)
-                : Border.all(color: style.accent.withValues(alpha: .25)),
-            boxShadow: isToday
-                ? [
-                    BoxShadow(
-                      color: style.accent.withValues(alpha: .3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Column(
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 180),
+          opacity: isDimmed ? 0.22 : 1.0,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            height: 56,
+            margin: const EdgeInsets.all(1.5),
+            decoration: BoxDecoration(
+              color: style.bg,
+              borderRadius: BorderRadius.circular(12),
+              border: isToday
+                  ? Border.all(color: style.accent, width: 2.5)
+                  : isHighlighted
+                      ? Border.all(color: style.accent, width: 2.2)
+                      : Border.all(color: style.accent.withValues(alpha: .25)),
+              boxShadow: isToday || isHighlighted
+                  ? [
+                      BoxShadow(
+                        color: style.accent.withValues(alpha: .35),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // رقم اليوم — داخل دائرة ممتلئة لليوم الحالي
@@ -722,7 +1775,8 @@ class _CalendarDayCell extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   /// هوية لونية موحّدة لكل حالة: خلفية فاتحة + نص داكن + لون مميّز (حدود/دائرة اليوم) + نقطة صغيرة
@@ -737,6 +1791,67 @@ class _CalendarDayCell extends StatelessWidget {
         dot: null,
       );
     }
+
+    // اليوم الحالي — معالجة خاصة تمنع وسم اليوم قيد العمل كغياب غير مبرر
+    if (isToday) {
+      if (dayData?.status == 'حاضر') {
+        final late = (dayData?.lateMinutes ?? 0) > 0;
+        return (
+          bg: late ? const Color(0xFFFFF9E9) : const Color(0xFFE9F7F0),
+          fg: late ? const Color(0xFF9A5B00) : const Color(0xFF15734F),
+          accent: late ? const Color(0xFFF59E0B) : const Color(0xFF0F9F6E),
+          dot: late ? const Color(0xFFF59E0B) : const Color(0xFF0F9F6E),
+        );
+      }
+      if (dayData?.hasLeave == true) {
+        return (
+          bg: const Color(0xFFEEF0FB),
+          fg: const Color(0xFF3D4FA8),
+          accent: const Color(0xFF4F46E5),
+          dot: const Color(0xFF4F46E5),
+        );
+      }
+      if (dayData?.hasMission == true) {
+        return (
+          bg: const Color(0xFFE5F6FB),
+          fg: const Color(0xFF0B6B80),
+          accent: const Color(0xFF0284C7),
+          dot: const Color(0xFF0284C7),
+        );
+      }
+      if (dayData?.hasConvoyFundi == true) {
+        final isFundi = dayData!.status.contains('فاندي');
+        return isFundi
+            ? (
+                bg: const Color(0xFFFDF2F8),
+                fg: const Color(0xFF9D174D),
+                accent: const Color(0xFFDB2777),
+                dot: const Color(0xFFDB2777),
+              )
+            : (
+                bg: const Color(0xFFF4ECF8),
+                fg: const Color(0xFF6D3FA0),
+                accent: const Color(0xFF7C3AED),
+                dot: const Color(0xFF7C3AED),
+              );
+      }
+      if (dayData?.status == 'راحة' || dayData?.status == 'راحة أسبوعية') {
+        return (
+          bg: const Color(0xFFF4F6F7),
+          fg: const Color(0xFF90A0A8),
+          accent: scheme.primary,
+          dot: null,
+        );
+      }
+      // اليوم لا يزال جارياً — تمييزه بلون المنظومة الأساسي الحيوي وليس بالأحمر التحذيري
+      return (
+        bg: scheme.primaryContainer.withValues(alpha: 0.25),
+        fg: scheme.primary,
+        accent: scheme.primary,
+        dot: scheme.primary,
+      );
+    }
+
     if (dayData == null) {
       return (
         bg: scheme.surfaceContainerLow,
@@ -747,7 +1862,7 @@ class _CalendarDayCell extends StatelessWidget {
     }
     final d = dayData!;
     final status = d.status;
-    // غائب دون إذن — أحمر
+    // غائب دون إذن — أحمر (للأيام السابقة المكتملة فقط)
     if (status == 'غائب دون إذن') {
       return (
         bg: const Color(0xFFFDECEA),
@@ -770,8 +1885,8 @@ class _CalendarDayCell extends StatelessWidget {
       return (
         bg: const Color(0xFFEEF0FB),
         fg: const Color(0xFF3D4FA8),
-        accent: const Color(0xFF6366F1),
-        dot: const Color(0xFF6366F1),
+        accent: const Color(0xFF4F46E5),
+        dot: const Color(0xFF4F46E5),
       );
     }
     // مأمورية — سماوي
@@ -779,17 +1894,26 @@ class _CalendarDayCell extends StatelessWidget {
       return (
         bg: const Color(0xFFE5F6FB),
         fg: const Color(0xFF0B6B80),
-        accent: const Color(0xFF0EA5E9),
-        dot: const Color(0xFF0EA5E9),
+        accent: const Color(0xFF0284C7),
+        dot: const Color(0xFF0284C7),
       );
     }
-    // قافلة/فاندي — بنفسجي
+    // قوافل مساعدات خارجية وفاندي ترفيهي
     if (d.hasConvoyFundi) {
+      final isFundi = d.status.contains('فاندي');
+      if (isFundi) {
+        return (
+          bg: const Color(0xFFFDF2F8),
+          fg: const Color(0xFF9D174D),
+          accent: const Color(0xFFDB2777),
+          dot: const Color(0xFFDB2777),
+        );
+      }
       return (
         bg: const Color(0xFFF4ECF8),
         fg: const Color(0xFF6D3FA0),
-        accent: const Color(0xFF8B5CF6),
-        dot: const Color(0xFF8B5CF6),
+        accent: const Color(0xFF7C3AED),
+        dot: const Color(0xFF7C3AED),
       );
     }
     // عطلة رسمية — بنفسجي باهت بدون نقطة
@@ -1061,7 +2185,11 @@ class _DayDetailSheet extends ConsumerWidget {
                   if (day!.hasMission)
                     _DetailChip(icon: Icons.directions_car, label: 'مأمورية', color: const Color(0xFF0EA5E9)),
                   if (day!.hasConvoyFundi)
-                    _DetailChip(icon: Icons.groups, label: 'قافلة/فاندي', color: const Color(0xFF8B5CF6)),
+                    _DetailChip(
+                      icon: day!.status.contains('فاندي') ? Icons.celebration : Icons.volunteer_activism,
+                      label: day!.status.contains('فاندي') ? 'فاندي (يوم ترفيهي)' : 'قافلة مساعدات (كامب)',
+                      color: day!.status.contains('فاندي') ? const Color(0xFFDB2777) : const Color(0xFF7C3AED),
+                    ),
                   if (day!.missingCheckIn)
                     _DetailChip(icon: Icons.warning_amber, label: 'لم يسجل حضور', color: scheme.error),
                   if (day!.missingCheckOut)
@@ -1093,6 +2221,16 @@ class _DayDetailSheet extends ConsumerWidget {
   }
 
   String get _statusPillKey {
+    if (isToday) {
+      if (day?.status == 'حاضر') return 'present';
+      if (day?.hasLeave == true) return 'on_leave';
+      if (day?.hasMission == true) return 'mission';
+      if (day?.hasConvoyFundi == true) {
+        return day!.status.contains('فاندي') ? 'fundi' : 'convoy';
+      }
+      if (day?.status == 'راحة' || day?.status == 'راحة أسبوعية') return 'rest';
+      return 'in_progress';
+    }
     if (day == null) return 'absent';
     final s = day!.status;
     if (s == 'حاضر') return 'present';
@@ -1102,7 +2240,9 @@ class _DayDetailSheet extends ConsumerWidget {
     if (s == 'يحتاج مراجعة') return 'flagged';
     if (day!.hasLeave) return 'on_leave';
     if (day!.hasMission) return 'mission';
-    if (day!.hasConvoyFundi) return 'convoy_fundi';
+    if (day!.hasConvoyFundi) {
+      return s.contains('فاندي') ? 'fundi' : 'convoy';
+    }
     return 'unregistered';
   }
 
@@ -1129,19 +2269,30 @@ class _DayDetailSheet extends ConsumerWidget {
     final isSameMonth = year == now.year && month == now.month;
     final canModifyDay = !isFuture && isSameMonth;
 
-    // ── تعديل حالة اليوم بأثر رجعي في نفس الشهر (إجازة/مأمورية/قافلة/فاندي) ──
+    // ── تعديل حالة اليوم بأثر رجعي في نفس الشهر (إجازة/مأمورية/قافلة مساعدات/فاندي) ──
     if (canModifyDay) {
       actions.add(_ActionTile(
         icon: Icons.published_with_changes_rounded,
         label: 'تعديل حالة هذا اليوم',
-        subtitle: 'طلب تحويل اليوم إلى إجازة، مأمورية خارجية، قافلة، أو فاندي.',
+        subtitle: 'طلب تحويل اليوم إلى إجازة، مأمورية عمل، قافلة مساعدات، أو يوم ترفيهي (فاندي).',
         color: const Color(0xFF4F46E5),
         onTap: () => _openRetroactiveDayChange(context, ref),
       ));
     }
 
+    // ── اليوم الحالي الجاري الذي لم تُسجل بصمته بعد ──
+    if (isToday && (day == null || day!.status == 'غائب دون إذن')) {
+      actions.add(_ActionTile(
+        icon: Icons.fingerprint,
+        label: 'تسجيل بصمة اليوم',
+        subtitle: 'تسجيل بصمة الحضور أو إثبات التواجد لليوم الحالي.',
+        color: scheme.primary,
+        onTap: () => _openCorrectionRequest(context, ref),
+      ));
+    }
+
     // ── يوم ماضٍ غائب → طلب إجازة أو نسيان بصمة ──
-    if (!isFuture && day != null && day!.status == 'غائب دون إذن') {
+    if (!isFuture && !isToday && day != null && day!.status == 'غائب دون إذن') {
       actions.add(_ActionTile(
         icon: Icons.beach_access_outlined,
         label: 'طلب إجازة لتغطية هذا اليوم',
@@ -1307,7 +2458,7 @@ class _DayDetailSheet extends ConsumerWidget {
     }
   }
 
-  // ── فتح نموذج تعديل حالة اليوم بأثر رجعي (إجازة / مأمورية / قافلة / فاندي) ──
+  // ── فتح نموذج تعديل حالة اليوم بأثر رجعي (إجازة / مأمورية / قافلة / حملة تبرعات) ──
   Future<void> _openRetroactiveDayChange(BuildContext context, WidgetRef ref) async {
     Navigator.pop(context); // إغلاق ورقة التفاصيل
     final result = await showModalBottomSheet<Map<String, dynamic>>(
@@ -1633,7 +2784,7 @@ class _QuickLeaveSheetState extends State<_QuickLeaveSheet> {
   }
 }
 
-// ─── ورقة تعديل حالة اليوم بأثر رجعي (إجازة / مأمورية / قافلة / فاندي) ───
+// ─── ورقة تعديل حالة اليوم بأثر رجعي (إجازة / مأمورية / قافلة / حملة تبرعات) ───
 
 class _RetroactiveDayChangeSheet extends StatefulWidget {
   const _RetroactiveDayChangeSheet({
@@ -1663,10 +2814,10 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
   }
 
   static const _categories = [
-    (id: 'leave', label: 'أجازة', icon: Icons.beach_access_rounded, color: Color(0xFF6366F1)),
-    (id: 'mission', label: 'مأمورية خارجية', icon: Icons.directions_car_rounded, color: Color(0xFF0EA5E9)),
-    (id: 'convoy', label: 'قافلة', icon: Icons.airport_shuttle_rounded, color: Color(0xFF8B5CF6)),
-    (id: 'fundraising', label: 'فاندي', icon: Icons.campaign_rounded, color: Color(0xFFEC4899)),
+    (id: 'leave', label: 'إجازة معتمدة', icon: Icons.beach_access_rounded, color: Color(0xFF4F46E5)),
+    (id: 'mission', label: 'مأمورية عمل', icon: Icons.directions_car_rounded, color: Color(0xFF0EA5E9)),
+    (id: 'convoy', label: 'قافلة مساعدات (كامب)', icon: Icons.volunteer_activism_rounded, color: Color(0xFF8B5CF6)),
+    (id: 'fundraising', label: 'يوم ترفيهي (فاندي / Fun Day)', icon: Icons.celebration_rounded, color: Color(0xFFEC4899)),
   ];
 
   static const _leaveOptions = [
@@ -1921,28 +3072,28 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
             }),
           ],
 
-          // 3. إذا كانت مأمورية أو قافلة أو فاندي: إدخال الوجهة / الموقع
+          // 3. إذا كانت مأمورية أو قافلة أو فاندي ترفيهي: إدخال الوجهة / الموقع
           if (_category != 'leave') ...[
             TextFormField(
               controller: _locationCtrl,
               decoration: InputDecoration(
                 labelText: switch (_category) {
                   'mission' => 'وجهة / موضوع المأمورية الخارجية',
-                  'convoy' => 'اسم / وجهة القافلة',
-                  'fundraising' => 'اسم ومكان الفعالية (فاندي)',
+                  'convoy' => 'مقر القافلة / القرية المستهدفة للمساعدات (كامب)',
+                  'fundraising' => 'مكان اليوم الترفيهي (اسم الفيلا / المنتجع / المكان)',
                   _ => 'الموقع / الوجهة',
                 },
                 hintText: switch (_category) {
                   'mission' => 'مثال: زيارة فرع، مأمورية عمل خارجية...',
-                  'convoy' => 'مثال: قافلة إغاثة قرى الصعيد...',
-                  'fundraising' => 'مثال: فعالية جمع تبرعات مول العرب...',
+                  'convoy' => 'مثال: قافلة مساعدات أسقف ومياه - قرى الفيوم...',
+                  'fundraising' => 'مثال: فيلا سقارة / منتجع وادي النخيل...',
                   _ => 'اكتب المكان أو الوجهة...',
                 },
                 prefixIcon: Icon(
                   switch (_category) {
                     'mission' => Icons.directions_car_rounded,
-                    'convoy' => Icons.airport_shuttle_rounded,
-                    'fundraising' => Icons.campaign_rounded,
+                    'convoy' => Icons.volunteer_activism_rounded,
+                    'fundraising' => Icons.celebration_rounded,
                     _ => Icons.place_rounded,
                   },
                   size: 20,
@@ -2018,16 +3169,16 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
       if (loc.isEmpty) {
         loc = switch (_category) {
           'mission' => 'مأمورية عمل خارجية',
-          'convoy' => 'قافلة ميدانية',
-          'fundraising' => 'فعالية فاندي',
+          'convoy' => 'قافلة مساعدات خارجية (كامب)',
+          'fundraising' => 'يوم ترفيهي للموظفين (فاندي / Fun Day)',
           _ => 'نشاط عمل',
         };
       }
       payload['location'] = loc;
       title = switch (_category) {
-        'mission' => 'مأمورية خارجية — ${widget.dateStr}',
-        'convoy' => 'قافلة — ${widget.dateStr}',
-        'fundraising' => 'فاندي — ${widget.dateStr}',
+        'mission' => 'مأمورية عمل خارجية — ${widget.dateStr}',
+        'convoy' => 'قافلة مساعدات — ${widget.dateStr}',
+        'fundraising' => 'يوم ترفيهي (فاندي) — ${widget.dateStr}',
         _ => 'تكليف عمل — ${widget.dateStr}',
       };
     }
@@ -2223,29 +3374,7 @@ class _QuickPermitSheetState extends State<_QuickPermitSheet> {
   }
 }
 
-// ─── نقطة دليل الألوان ──────────────────────────────────────────────
 
-class _LegendDot extends StatelessWidget {
-  const _LegendDot({required this.color, required this.label});
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 10, height: 10,
-          decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-        ),
-        const SizedBox(width: 4),
-        Text(label, style: TextStyle(
-          fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-      ],
-    );
-  }
-}
 
 // ─── شريحة تفاصيل صغيرة (chip) ────────────────────────────────────
 
@@ -2314,8 +3443,8 @@ class _AdminEditDaySheetState extends ConsumerState<_AdminEditDaySheet> {
     ('work', 'يوم عمل (حاضر)', Icons.work_outline),
     ('leave', 'إجازة معتمدة', Icons.beach_access_outlined),
     ('mission', 'مأمورية عمل', Icons.directions_car_outlined),
-    ('convoy', 'قافلة خيرية', Icons.volunteer_activism_outlined),
-    ('fundraising', 'فاندي تبرعات', Icons.stars_outlined),
+    ('convoy', 'قافلة مساعدات (كامب)', Icons.volunteer_activism_outlined),
+    ('fundraising', 'يوم ترفيهي (فاندي / Fun Day)', Icons.celebration_outlined),
     ('rest', 'راحة أسبوعية', Icons.wb_sunny_outlined),
     ('holiday', 'عطلة رسمية', Icons.calendar_today_outlined),
     ('absent', 'تأكيد غياب', Icons.cancel_outlined),

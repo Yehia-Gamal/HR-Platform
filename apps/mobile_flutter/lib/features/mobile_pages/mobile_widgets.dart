@@ -155,7 +155,9 @@ class MobileStatusPill extends StatelessWidget {
       'rest' => ('راحة', scheme.onSurfaceVariant),
       'holiday' => ('عطلة', AppColors.statusInfo),
       'mission' => ('مهمة', AppColors.statusViolet),
-      'convoy_fundi' => ('قافلة/فاندي', AppColors.statusViolet),
+      'convoy' => ('قافلة مساعدات', AppColors.statusViolet),
+      'fundi' => ('فاندي (ترفيهي)', const Color(0xFFDB2777)),
+      'convoy_fundi' => ('قوافل / فاندي', AppColors.statusViolet),
       'overtime' => ('عمل إضافي', AppColors.statusWarning),
       // Progress / lifecycle of tasks, courses, requests, cases
       'in_progress' => ('قيد التنفيذ', AppColors.statusInfo),

@@ -12,7 +12,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_tasks_pag
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notifications_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/my_payslips_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/honor_board_sheet.dart';
 import 'package:ahla_shabab_management_os/core/network/offline_sync_queue.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
@@ -139,7 +139,7 @@ class EmployeeHomePage extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           const _ConnectivitySyncBanner(),
-          const _RecognitionSummaryCard(),
+          const HonorBoardSummaryCard(),
           _ProactiveSmartAlertBanner(summary: summary.value, access: access),
           const MobileSectionHeader(
             title: 'اختصارات اليوم',
@@ -161,18 +161,6 @@ class EmployeeHomePage extends ConsumerWidget {
               context,
               MaterialPageRoute(
                 builder: (_) => LocationRequestsPage(access: access),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          _QuickAction(
-            icon: Icons.receipt_long_rounded,
-            title: 'قسائم الرواتب والمستحقات',
-            subtitle: 'استعراض قسائم الراتب والمكافآت والبدلات',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const MyPayslipsPage(),
               ),
             ),
           ),
@@ -711,7 +699,11 @@ class _SparkDot extends StatelessWidget {
     }
     if (day.hasLeave) return (Colors.blue.shade400, 'إجازة');
     if (day.hasMission) return (const Color(0xFF0EA5E9), 'مأمورية');
-    if (day.hasConvoyFundi) return (const Color(0xFF8B5CF6), 'قافلة/فاندي');
+    if (day.hasConvoyFundi) {
+      return day.status.contains('فاندي')
+          ? (const Color(0xFFDB2777), 'فاندي (ترفيهي)')
+          : (const Color(0xFF8B5CF6), 'قافلة مساعدات');
+    }
     if (day.isAbsent) return (Colors.red.shade400, 'غياب');
     if (day.lateMinutes > 0) return (Colors.orange.shade400, 'تأخر ${day.lateMinutes} د');
     if (day.isCompleted) return (Colors.green.shade500, 'حضور كامل');
@@ -1001,362 +993,6 @@ class _SyncDetailsSheetState extends ConsumerState<_SyncDetailsSheet> {
                   )
                 : const Icon(Icons.sync_rounded),
             label: Text(_isSyncing ? 'جاري المزامنة...' : 'مزامنة يدوية فورية الآن'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RecognitionSummaryCard extends StatelessWidget {
-  const _RecognitionSummaryCard();
-
-  void _showDetails(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const _RecognitionDetailsSheet(),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFF59E0B).withValues(alpha: .28),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFF59E0B).withValues(alpha: .06),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => _showDetails(context),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF59E0B).withValues(alpha: .12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.emoji_events_rounded,
-                    color: Color(0xFFF59E0B),
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Text(
-                            'أوسمة التميز والتحفيز',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 13,
-                            ),
-                          ),
-                          Spacer(),
-                          Text(
-                            '⭐ 150 نقطة',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 12,
-                              color: Color(0xFFF59E0B),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'درع الالتزام التام · وسام دقة المواعيد',
-                              style: TextStyle(
-                                color: scheme.onSurfaceVariant,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          Icon(
-                            Icons.chevron_left_rounded,
-                            size: 16,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RecognitionDetailsSheet extends StatelessWidget {
-  const _RecognitionDetailsSheet();
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-      child: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: scheme.outlineVariant.withValues(alpha: .5),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF59E0B).withValues(alpha: .12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.emoji_events_rounded,
-                      color: Color(0xFFF59E0B),
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'أوسمة التميز والتقدير الوظيفي',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-                      ),
-                      Text(
-                        'سجل نقاط التحفيز والإنجاز المؤسسي',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // بطاقة الرتبة الحالية
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFFF59E0B).withValues(alpha: .15),
-                      const Color(0xFFD97706).withValues(alpha: .05),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: .3)),
-                ),
-                child: Column(
-                  children: [
-                    const Row(
-                      children: [
-                        Text(
-                          '🥈 الرتبة الحالية: الفضي (Silver)',
-                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
-                        ),
-                        Spacer(),
-                        Text(
-                          '150 / 250 نقطة',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFFD97706),
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(99),
-                      child: LinearProgressIndicator(
-                        value: 150 / 250,
-                        minHeight: 8,
-                        backgroundColor: scheme.outlineVariant.withValues(alpha: .3),
-                        valueColor: const AlwaysStoppedAnimation(Color(0xFFF59E0B)),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'المستوى التالي: الذهبي 🥇',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
-                        ),
-                        Text(
-                          'متبقي 100 نقطة للترقية',
-                          style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                'الأوسمة المستحقة الممنوحة لك:',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
-              ),
-              const SizedBox(height: 8),
-              _buildBadgeItem(
-                context,
-                icon: '🏆',
-                title: 'درع الالتزام والانضباط التام',
-                description: 'حضور كامل خلال الشهر بدون أي تأخيرات أو انقطاع غير مبرر.',
-                points: '+50 نقطة',
-              ),
-              _buildBadgeItem(
-                context,
-                icon: '⚡',
-                title: 'وسام سرعة الاستجابة الميدانية',
-                description: 'إنجاز كافة المهام والمأموريات الموكلة في الموعد المحدد وبدقة.',
-                points: '+40 نقطة',
-              ),
-              _buildBadgeItem(
-                context,
-                icon: '🤝',
-                title: 'وسام روح الفريق والمبادرة',
-                description: 'مشاركة فعالة ومتميزة في إسناد زملاء العمل بالمقر والمواقع.',
-                points: '+35 نقطة',
-              ),
-              _buildBadgeItem(
-                context,
-                icon: '🛡️',
-                title: 'وسام الاستقرار والانتماء المؤسسي',
-                description: 'إتمام أكثر من عام من العطاء والخدمة المستمرة بتفانٍ وإخلاص.',
-                points: '+25 نقطة',
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: scheme.surfaceContainerHighest.withValues(alpha: .35),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: scheme.outlineVariant.withValues(alpha: .4)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.tips_and_updates_outlined, size: 20, color: Color(0xFF3B82F6)),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'نصيحة: حافظ على تسجيل البصمة في موعدها وأكمل مهامك اليومية لكسب نقاط إضافية والترقية للرتبة الذهبية.',
-                        style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  static Widget _buildBadgeItem(
-    BuildContext context, {
-    required String icon,
-    required String title,
-    required String description,
-    required String points,
-  }) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: .4)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(icon, style: const TextStyle(fontSize: 24)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
-                      ),
-                    ),
-                    Text(
-                      points,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 11,
-                        color: Color(0xFF10B981),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  description,
-                  style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
-                ),
-              ],
-            ),
           ),
         ],
       ),

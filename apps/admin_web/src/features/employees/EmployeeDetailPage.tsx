@@ -32,6 +32,7 @@ import {
   ShieldCheck,
   Star,
   Trash2,
+  Trophy,
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -1048,7 +1049,7 @@ const EMPLOYEE_TABS: { id: EmployeeTabId; label: string; icon: LucideIcon }[] = 
   { id: 'tasks', label: 'المهام', icon: CheckSquare },
   { id: 'kpi', label: 'الأداء', icon: Gauge },
   { id: 'reports', label: 'التقارير', icon: FileText },
-  { id: 'recognition', label: 'التقدير والأوسمة', icon: Award },
+  { id: 'recognition', label: 'لوحة الشرف والتميز', icon: Trophy },
 ];
 
 export function EmployeeDetailPage() {

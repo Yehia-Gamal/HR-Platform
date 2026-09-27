@@ -264,8 +264,8 @@ Future<Uint8List> _buildAttendancePdf(MonthlyAttendanceStatement stmt) async {
                 hint: 'لا تُحسب غيابًا'),
             _metric('أيام الإجازات', '${s.leaveDays}'),
             _metric('أيام المأموريات', '${s.missionDays}'),
-            _metric('إذنات', '${s.permitCount}'),
-            _metric('قوافل/فاندي', '${s.convoyFundiDays}'),
+            _metric('أذونات', '${s.permitCount}'),
+            _metric('قوافل وفاندي', '${s.convoyFundiDays}'),
             _metric('ساعات العمل',
                 (s.hoursRateWorkedMinutes / 60).toStringAsFixed(1),
                 hint:
@@ -442,7 +442,9 @@ String _dayNotes(AttendanceStatementDay d) {
   if (d.hasLeave) tags.add('إجازة');
   if (d.hasMission) tags.add('مأمورية');
   if (d.hasPermit) tags.add('إذن');
-  if (d.hasConvoyFundi) tags.add('قافلة/فاندي');
+  if (d.hasConvoyFundi) {
+    tags.add(d.status.contains('فاندي') ? 'فاندي (ترفيهي)' : 'قافلة مساعدات');
+  }
   if (d.missingCheckIn) tags.add('نقص حضور');
   if (d.missingCheckOut) tags.add('نقص انصراف');
   if (d.isOpenShift) tags.add('بانتظار الانصراف');

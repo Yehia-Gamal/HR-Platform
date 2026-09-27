@@ -15,7 +15,10 @@ export function dayStatusMeta(d: AttendanceStatementDay): { label: string; tone:
   if (d.isOfficialHoliday) return { label: 'عطلة رسمية', tone: 'info' };
   if (d.hasLeave) return { label: 'إجازة', tone: 'info' };
   if (d.hasMission) return { label: 'مأمورية', tone: 'info' };
-  if (d.hasConvoyFundi) return { label: 'قافلة/فاندي', tone: 'info' };
+  if (d.hasConvoyFundi) {
+    if (d.status?.includes('فاندي')) return { label: 'فاندي (ترفيهي)', tone: 'info' };
+    return { label: 'قافلة مساعدات', tone: 'info' };
+  }
   if (d.isOpenShift) return { label: 'وردية مفتوحة', tone: 'warn' };
   if (d.isCompleted) return { label: 'حاضر', tone: 'ok' };
   if (d.status) return { label: d.status, tone: 'neutral' };

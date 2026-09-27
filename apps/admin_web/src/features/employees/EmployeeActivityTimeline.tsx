@@ -19,12 +19,12 @@ export function EmployeeActivityTimeline({ employee }: EmployeeActivityTimelineP
   // تجميع وتوليد أحداث الخط الزمني استناداً إلى بيانات الموظف الموثقة
   const events: TimelineEvent[] = [];
 
-  // 1. حدث الأوسمة والتقدير الوظيفي
+  // 1. حدث لوحة الشرف والتميز الوظيفي
   events.push({
     id: 'recognition',
-    title: 'منح رتبة التميز الوظيفي الفضية',
+    title: 'تكريم في لوحة الشرف والتميز',
     date: 'الشهر الحالي',
-    description: 'تم ترقية الموظف إلى الرتبة الفضية مع 150 نقطة تميز إجمالية تقديراً للانضباط والالتزام المؤسسي.',
+    description: 'تم إدراج الموظف ضمن قائمة الشرف تقديراً للالتزام والانضباط وإنجاز المأموريات الميدانية.',
     category: 'recognition',
     icon: Award,
     tone: 'purple',

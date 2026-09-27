@@ -50,7 +50,7 @@ describe('EmployeeActivityTimeline', () => {
 
     expect(screen.getByText('سجل النشاط والمحطات الإدارية')).toBeInTheDocument();
     expect(screen.getByText(/بدء الخدمة والتعيين الرسمي/i)).toBeInTheDocument();
-    expect(screen.getByText(/منح رتبة التميز الوظيفي الفضية/i)).toBeInTheDocument();
+    expect(screen.getByText(/تكريم في لوحة الشرف والتميز/i)).toBeInTheDocument();
     expect(screen.getByText(/إغلاق ومراجعة كشف الحضور الدوري/i)).toBeInTheDocument();
     expect(screen.getByText(/اعتماد دورة تقييم الأداء/i)).toBeInTheDocument();
     expect(screen.getByText(/تسليم واستلام العهد والأجهزة المؤسسية/i)).toBeInTheDocument();
@@ -70,6 +70,6 @@ describe('EmployeeActivityTimeline', () => {
 
     expect(screen.getByText('سجل النشاط والمحطات الإدارية')).toBeInTheDocument();
     expect(screen.getByText(/بدء الخدمة والتعيين الرسمي/i)).toBeInTheDocument();
-    expect(screen.getByText(/منح رتبة التميز الوظيفي الفضية/i)).toBeInTheDocument();
+    expect(screen.getByText(/تكريم في لوحة الشرف والتميز/i)).toBeInTheDocument();
   });
 });

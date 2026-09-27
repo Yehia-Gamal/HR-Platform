@@ -54,7 +54,7 @@ export function buildStatementBodyHtml(data: AttendanceStatement, orgName = 'ج�
       if (d.hasLatePermit) tags.push('إذن حضور');
       if (d.hasEarlyPermit) tags.push('إذن انصراف');
       if (!d.hasLatePermit && !d.hasEarlyPermit && d.hasPermit) tags.push('إذن');
-      if (d.hasConvoyFundi) tags.push('قافلة/فاندي');
+      if (d.hasConvoyFundi) tags.push(d.status.includes('فاندي') ? 'فاندي (ترفيهي)' : 'قافلة مساعدات');
       if (d.missingCheckIn) tags.push('نقص حضور');
       if (d.missingCheckOut) tags.push('نقص انصراف');
       if (d.isOpenShift) tags.push('بانتظار الانصراف');
@@ -130,8 +130,8 @@ export function buildStatementBodyHtml(data: AttendanceStatement, orgName = 'ج�
     <div class="metric"><div class="label">أيام قادمة</div><div class="value">${s.upcomingDays}</div><div class="hint">لا تُحسب غيابًا</div></div>
     <div class="metric"><div class="label">أيام الإجازات</div><div class="value">${s.leaveDays}</div></div>
     <div class="metric"><div class="label">أيام المأموريات</div><div class="value">${s.missionDays}</div></div>
-    <div class="metric"><div class="label">إذنات</div><div class="value">${s.permitCount}</div></div>
-    <div class="metric"><div class="label">قوافل/فاندي</div><div class="value">${s.convoyFundiDays}</div></div>
+    <div class="metric"><div class="label">أذونات</div><div class="value">${s.permitCount}</div></div>
+    <div class="metric"><div class="label">قوافل وفاندي</div><div class="value">${s.convoyFundiDays}</div></div>
     <div class="metric"><div class="label">ساعات العمل</div><div class="value">${s.totalWorkHours.toFixed(1)}</div><div class="hint">${complianceAvailable ? `مطلوب ${(s.totalRequiredHours ?? 0).toFixed(1)}` : 'الساعات المطلوبة غير متاحة'}</div></div>
     <div class="metric good"><div class="label">ساعات إضافية</div><div class="value">${s.totalOvertimeMinutes} د</div></div>
   </div>

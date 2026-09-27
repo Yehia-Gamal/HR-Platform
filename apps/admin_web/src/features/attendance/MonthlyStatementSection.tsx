@@ -135,8 +135,8 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
           <StatBox label="أيام قادمة" value={s.upcomingDays} hint={`من ${s.scheduledDays} مجدولة شهريًا`} icon={CalendarDays} />
           <StatBox label="أيام الإجازات" value={s.leaveDays} icon={CalendarDays} />
           <StatBox label="أيام المأموريات" value={s.missionDays} icon={TrendingUp} />
-          <StatBox label="إذنات" value={s.permitCount} icon={Clock} />
-          <StatBox label="قوافل/فاندي" value={s.convoyFundiDays} icon={CalendarDays} />
+          <StatBox label="أذونات" value={s.permitCount} icon={Clock} />
+          <StatBox label="قوافل وفاندي" value={s.convoyFundiDays} icon={CalendarDays} />
           <StatBox
             label="ساعات العمل"
             value={workedHours.toFixed(1)}

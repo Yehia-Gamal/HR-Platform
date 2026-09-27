@@ -107,8 +107,8 @@ function exportCSV(data: AttendanceStatement) {
     `ورديات مفتوحة,${s.openShiftDays}`,
     `أيام الإجازات,${s.leaveDays}`,
     `أيام المأموريات,${s.missionDays}`,
-    `قوافل/فاندي,${s.convoyFundiDays}`,
-    `إذنات,${s.permitCount}`,
+    `قوافل وفاندي,${s.convoyFundiDays}`,
+    `أذونات,${s.permitCount}`,
     `عطل رسمية,${s.holidayDays}`,
     `أيام الراحة,${s.restDays}`,
     `إجمالي ساعات العمل,${s.totalWorkHours.toFixed(1)}`,
@@ -476,9 +476,9 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
               scrollToDays();
             }}
           />
-          <MetricCard label="إذنات" value={s.permitCount} icon={Clock} onClick={scrollToDays} />
+          <MetricCard label="أذونات" value={s.permitCount} icon={Clock} onClick={scrollToDays} />
           <MetricCard
-            label="قوافل/فاندي"
+            label="قوافل وفاندي"
             value={s.convoyFundiDays}
             icon={CalendarDays}
             onClick={() => {

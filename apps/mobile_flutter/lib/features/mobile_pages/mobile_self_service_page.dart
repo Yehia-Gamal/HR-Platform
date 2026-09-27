@@ -4,7 +4,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/knowledge_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/my_payslips_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_instant_penalties_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_learning_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/service_portal_page.dart';
@@ -123,20 +123,22 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
             const SizedBox(height: 20),
             const MobileSectionHeader(
               title: 'خدماتي الإضافية',
-              subtitle: 'الرواتب والتعلم والدعم الفني — من هاتفك مباشرة.',
+              subtitle: 'الخدمات والتعلم والدعم الفني — من هاتفك مباشرة.',
             ),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: _ServiceCard(
-                    icon: Icons.receipt_long_rounded,
-                    title: 'قسائم الرواتب',
-                    subtitle: 'صافي وبنود الشهر',
+                    icon: Icons.calendar_month_rounded,
+                    title: 'كشف الحضور',
+                    subtitle: 'سجل الدوام والالتزام',
                     color: const Color(0xFF0F9F6E),
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const MyPayslipsPage()),
+                      MaterialPageRoute(
+                        builder: (_) => const MonthlyAttendanceStatementPage(),
+                      ),
                     ),
                   ),
                 ),

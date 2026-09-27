@@ -222,7 +222,7 @@ export function ExecutiveDailyReportPage() {
         <MetricCard label="إجازات معتمدة" value={approvedLeave} icon={CalendarDays} />
         <MetricCard label="مأموريات" value={missions} icon={CalendarDays} />
         <MetricCard label="قوافل" value={convoys} icon={CalendarDays} />
-        <MetricCard label="جمع/فاندي" value={fundraising} icon={CalendarDays} />
+        <MetricCard label="يوم ترفيهي (فاندي)" value={fundraising} icon={CalendarDays} />
       </section>
 
       {/* طلبات معلقة */}

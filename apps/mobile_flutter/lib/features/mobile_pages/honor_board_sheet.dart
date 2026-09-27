@@ -1,0 +1,1191 @@
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// فترة التكريم: موظف الشهر أو موظف الأسبوع
+enum HonorPeriod {
+  month,
+  week,
+}
+
+/// محور التميز: الانضباط والحضور، المأموريات الميدانية، المهام والتقارير
+enum HonorCategory {
+  attendance,
+  missions,
+  reports,
+}
+
+/// نموذج بيانات الموظف في لوحة الشرف
+class HonoreeItem {
+  const HonoreeItem({
+    required this.rank,
+    required this.name,
+    required this.department,
+    required this.achievement,
+    required this.metric,
+    this.photoUrl,
+  });
+
+  final int rank;
+  final String name;
+  final String department;
+  final String achievement;
+  final String metric;
+  final String? photoUrl;
+}
+
+/// بطاقة ملخص لوحة الشرف في الصفحة الرئيسية للموظف
+class HonorBoardSummaryCard extends StatelessWidget {
+  const HonorBoardSummaryCard({super.key});
+
+  void _showHonorBoard(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const HonorBoardSheet(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFF59E0B).withValues(alpha: .32),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withValues(alpha: .08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _showHonorBoard(context),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFF59E0B).withValues(alpha: .35),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.workspace_premium_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Text(
+                                'لوحة الشرف والتميز الوظيفي',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const Spacer(),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981).withValues(alpha: .12),
+                                  borderRadius: BorderRadius.circular(99),
+                                  border: Border.all(
+                                    color: const Color(0xFF10B981).withValues(alpha: .3),
+                                  ),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.emoji_events_rounded,
+                                      size: 11,
+                                      color: Color(0xFF10B981),
+                                    ),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'لوحة الشرف',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF10B981),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'تكريم نجوم الانضباط والمأموريات والتقارير اليومية',
+                            style: TextStyle(
+                              color: scheme.onSurfaceVariant,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B).withValues(alpha: .08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: const Color(0xFFF59E0B).withValues(alpha: .2),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          '🥇 موظف الشهر: أحمد محمود (100% انضباط) · موظف الأسبوع: سارة خالد',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFFB45309),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(
+                        Icons.chevron_left_rounded,
+                        size: 18,
+                        color: const Color(0xFFB45309).withValues(alpha: .9),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// نافذة لوحة الشرف ومنصة التتويج الشرفية
+class HonorBoardSheet extends ConsumerStatefulWidget {
+  const HonorBoardSheet({super.key});
+
+  @override
+  ConsumerState<HonorBoardSheet> createState() => _HonorBoardSheetState();
+}
+
+class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
+  HonorPeriod _period = HonorPeriod.month;
+  HonorCategory _category = HonorCategory.attendance;
+
+  static const Map<HonorPeriod, Map<HonorCategory, List<HonoreeItem>>> _honoreesData = {
+    HonorPeriod.month: {
+      HonorCategory.attendance: [
+        HonoreeItem(
+          rank: 1,
+          name: 'أحمد محمود رضوان',
+          department: 'العمليات الميدانية',
+          achievement: 'حضور كامل 26/26 يوماً بالموعد المحدد',
+          metric: '100% انضباط',
+        ),
+        HonoreeItem(
+          rank: 2,
+          name: 'سارة خالد المنشاوي',
+          department: 'خدمة العملاء والدعم',
+          achievement: 'التزام تام بدون أي تأخير أو انصراف مبكر',
+          metric: '99.5% انضباط',
+        ),
+        HonoreeItem(
+          rank: 3,
+          name: 'كريم عادل الشريف',
+          department: 'الشؤون الإدارية',
+          achievement: 'دقة عالية في تسجيل الحضور والانصراف',
+          metric: '98.5% انضباط',
+        ),
+        HonoreeItem(
+          rank: 4,
+          name: 'مي عبد الرحمن طه',
+          department: 'إدارة المشروعات',
+          achievement: 'حضور مبكر ومستمر طوال الشهر',
+          metric: '97.5% انضباط',
+        ),
+        HonoreeItem(
+          rank: 5,
+          name: 'حسام الدين علي',
+          department: 'المكتب الفني',
+          achievement: 'التزام متواصل بالدوام الرسمي',
+          metric: '96.5% انضباط',
+        ),
+      ],
+      HonorCategory.missions: [
+        HonoreeItem(
+          rank: 1,
+          name: 'محمود إبراهيم عطية',
+          department: 'قسم المسح الميداني',
+          achievement: 'إنجاز كافة المأموريات في الموعد وبدقة',
+          metric: '18 مأمورية',
+        ),
+        HonoreeItem(
+          rank: 2,
+          name: 'طارق مصطفى سالم',
+          department: 'فريق القوافل الخارجية',
+          achievement: 'تنفيذ زيارات ميدانية عالية التوثيق',
+          metric: '15 مأمورية',
+        ),
+        HonoreeItem(
+          rank: 3,
+          name: 'يوسف عثمان بدر',
+          department: 'المتابعة والعمليات',
+          achievement: 'تغطية واسعة لكافة المواقع المحددة',
+          metric: '13 مأمورية',
+        ),
+        HonoreeItem(
+          rank: 4,
+          name: 'هاني كمال الدسوقي',
+          department: 'الدعم الميداني',
+          achievement: 'سرعة الاستجابة الميدانية للمهام',
+          metric: '11 مأمورية',
+        ),
+        HonoreeItem(
+          rank: 5,
+          name: 'سامح رفعت فؤاد',
+          department: 'التوزيع واللوجستيات',
+          achievement: 'إنجاز مهام التوزيع الميداني بنجاح',
+          metric: '10 مأموريات',
+        ),
+      ],
+      HonorCategory.reports: [
+        HonoreeItem(
+          rank: 1,
+          name: 'نور الهدى سليمان',
+          department: 'قسم التوثيق والجودة',
+          achievement: 'تسليم جميع التقارير اليومية في الموعد',
+          metric: '28 تقريراً',
+        ),
+        HonoreeItem(
+          rank: 2,
+          name: 'عمرو حسني زايد',
+          department: 'إدارة المشروعات',
+          achievement: 'توثيق شامل ودقيق لمهام العمل اليومية',
+          metric: '26 تقريراً',
+        ),
+        HonoreeItem(
+          rank: 3,
+          name: 'فاطمة الزهراء حسن',
+          department: 'تنسيق العمليات',
+          achievement: 'جودة متميزة وسرعة في رفع البيانات',
+          metric: '25 تقريراً',
+        ),
+        HonoreeItem(
+          rank: 4,
+          name: 'إسلام وجدي مرعي',
+          department: 'الدعم التشغيلي',
+          achievement: 'التزام دائم بتحديث سجلات المهام',
+          metric: '23 تقريراً',
+        ),
+        HonoreeItem(
+          rank: 5,
+          name: 'رحاب نبيل فهمي',
+          department: 'إدارة البيانات',
+          achievement: 'تقارير دورية متكاملة ومعتمدة',
+          metric: '22 تقريراً',
+        ),
+      ],
+    },
+    HonorPeriod.week: {
+      HonorCategory.attendance: [
+        HonoreeItem(
+          rank: 1,
+          name: 'سارة خالد المنشاوي',
+          department: 'خدمة العملاء والدعم',
+          achievement: 'حضور أسبوعي مثالي بالدقيقة طوال الدوام',
+          metric: '100% انضباط',
+        ),
+        HonoreeItem(
+          rank: 2,
+          name: 'كريم عادل الشريف',
+          department: 'الشؤون الإدارية',
+          achievement: 'التزام كامل بدون دقيقة تأخير واحدة',
+          metric: '100% انضباط',
+        ),
+        HonoreeItem(
+          rank: 3,
+          name: 'أحمد محمود رضوان',
+          department: 'العمليات الميدانية',
+          achievement: 'انضباط ممتاز طوال أيام الأسبوع الحالي',
+          metric: '99% انضباط',
+        ),
+        HonoreeItem(
+          rank: 4,
+          name: 'مروان عماد الدين',
+          department: 'تقنية المعلومات',
+          achievement: 'بصمة في الموعد المحدد يومياً',
+          metric: '98% انضباط',
+        ),
+        HonoreeItem(
+          rank: 5,
+          name: 'آية سمير شكري',
+          department: 'الموارد البشرية',
+          achievement: 'التزام بالدوام الرسمي بالكامل',
+          metric: '97% انضباط',
+        ),
+      ],
+      HonorCategory.missions: [
+        HonoreeItem(
+          rank: 1,
+          name: 'طارق مصطفى سالم',
+          department: 'فريق القوافل الخارجية',
+          achievement: 'الأعلى إنجازاً للمأموريات هذا الأسبوع',
+          metric: '6 مأموريات',
+        ),
+        HonoreeItem(
+          rank: 2,
+          name: 'محمود إبراهيم عطية',
+          department: 'قسم المسح الميداني',
+          achievement: 'تنفيذ سريع وموثق لكافة الزيارات',
+          metric: '5 مأموريات',
+        ),
+        HonoreeItem(
+          rank: 3,
+          name: 'سامح رفعت فؤاد',
+          department: 'التوزيع واللوجستيات',
+          achievement: 'تغطية ميدانية متميزة بالمواقع',
+          metric: '4 مأموريات',
+        ),
+        HonoreeItem(
+          rank: 4,
+          name: 'يوسف عثمان بدر',
+          department: 'المتابعة والعمليات',
+          achievement: 'إنجاز المهام الخارجية بدقة',
+          metric: '4 مأموريات',
+        ),
+        HonoreeItem(
+          rank: 5,
+          name: 'وائل كمال صبحي',
+          department: 'الدعم الميداني',
+          achievement: 'استجابة ميدانية فورية',
+          metric: '3 مأموريات',
+        ),
+      ],
+      HonorCategory.reports: [
+        HonoreeItem(
+          rank: 1,
+          name: 'عمرو حسني زايد',
+          department: 'إدارة المشروعات',
+          achievement: 'إنجاز يومي كامل لتقارير العمل الميداني',
+          metric: '6 تقارير',
+        ),
+        HonoreeItem(
+          rank: 2,
+          name: 'نور الهدى سليمان',
+          department: 'قسم التوثيق والجودة',
+          achievement: 'تسليم في الموعد بدون أي تأخير',
+          metric: '6 تقارير',
+        ),
+        HonoreeItem(
+          rank: 3,
+          name: 'إسلام وجدي مرعي',
+          department: 'الدعم التشغيلي',
+          achievement: 'تقارير مفصلة للمهام المنجزة',
+          metric: '5 تقارير',
+        ),
+        HonoreeItem(
+          rank: 4,
+          name: 'رحاب نبيل فهمي',
+          department: 'إدارة البيانات',
+          achievement: 'دقة عالية في توثيق الأنشطة',
+          metric: '5 تقارير',
+        ),
+        HonoreeItem(
+          rank: 5,
+          name: 'زياد علاء حماد',
+          department: 'التنسيق والمتابعة',
+          achievement: 'رفع التقارير المعتمدة يومياً',
+          metric: '5 تقارير',
+        ),
+      ],
+    },
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final currentProfile = ref.watch(mobileProfileProvider).value;
+    final currentName = currentProfile?.fullNameAr ?? '';
+    final honorees = _honoreesData[_period]?[_category] ?? const [];
+
+    final first = honorees.isNotEmpty ? honorees[0] : null;
+    final second = honorees.length > 1 ? honorees[1] : null;
+    final third = honorees.length > 2 ? honorees[2] : null;
+
+    final periodLabel = _period == HonorPeriod.month ? 'شهر سبتمبر' : 'الأسبوع الحالي';
+    final categoryLabel = switch (_category) {
+      HonorCategory.attendance => 'الانضباط والحضور',
+      HonorCategory.missions => 'المأموريات الميدانية',
+      HonorCategory.reports => 'المهام والتقارير اليومية',
+    };
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.90,
+      ),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            // شريط السحب والإغلاق
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: scheme.outlineVariant.withValues(alpha: .5),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFF59E0B).withValues(alpha: .3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.emoji_events_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'لوحة الشرف والتميز',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          Text(
+                            'تكريم نخبة الموظفين الأكثر انضباطاً وعطاءً',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+
+            // المحتوى القابل للتمرير
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                children: [
+                  // محدد الفترة: موظف الشهر وموظف الأسبوع
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest.withValues(alpha: .45),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _PeriodSelectButton(
+                            title: 'موظف الشهر 🌟',
+                            subtitle: 'شهر سبتمبر',
+                            isSelected: _period == HonorPeriod.month,
+                            onTap: () => setState(() => _period = HonorPeriod.month),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: _PeriodSelectButton(
+                            title: 'موظف الأسبوع ⚡',
+                            subtitle: 'الأسبوع الحالي',
+                            isSelected: _period == HonorPeriod.week,
+                            onTap: () => setState(() => _period = HonorPeriod.week),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // محدد فئة التميز
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _CategorySelectChip(
+                          icon: Icons.access_time_filled_rounded,
+                          label: 'الانضباط والحضور',
+                          isSelected: _category == HonorCategory.attendance,
+                          onTap: () => setState(() => _category = HonorCategory.attendance),
+                        ),
+                        const SizedBox(width: 8),
+                        _CategorySelectChip(
+                          icon: Icons.directions_car_rounded,
+                          label: 'المأموريات الميدانية',
+                          isSelected: _category == HonorCategory.missions,
+                          onTap: () => setState(() => _category = HonorCategory.missions),
+                        ),
+                        const SizedBox(width: 8),
+                        _CategorySelectChip(
+                          icon: Icons.assignment_turned_in_rounded,
+                          label: 'المهام والتقارير',
+                          isSelected: _category == HonorCategory.reports,
+                          onTap: () => setState(() => _category = HonorCategory.reports),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // منصة التتويج الشرفية (Podium) للمراكز الثلاثة الأولى
+                  if (first != null && second != null && third != null) ...[
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(12, 16, 12, 0),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFFF59E0B).withValues(alpha: .12),
+                            scheme.surface,
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: const Color(0xFFF59E0B).withValues(alpha: .25),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.stars_rounded,
+                                size: 18,
+                                color: Color(0xFFD97706),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'منصة التتويج الشرفية — $periodLabel',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 13,
+                                  color: Color(0xFFB45309),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              // المركز الثاني 🥈 (فضة)
+                              Expanded(
+                                child: _PodiumStepWidget(
+                                  item: second,
+                                  pedestalHeight: 82,
+                                  ringColor: const Color(0xFF94A3B8),
+                                  gradientColors: const [
+                                    Color(0xFFCBD5E1),
+                                    Color(0xFF94A3B8),
+                                  ],
+                                  medalBadge: '🥈 المركز الثاني',
+                                  badgeColor: const Color(0xFF475569),
+                                  avatarRadius: 26,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              // المركز الأول 🥇 (ذهب) - في المنتصف وأكثر ارتفاعاً
+                              Expanded(
+                                child: _PodiumStepWidget(
+                                  item: first,
+                                  pedestalHeight: 110,
+                                  ringColor: const Color(0xFFF59E0B),
+                                  gradientColors: const [
+                                    Color(0xFFFBBF24),
+                                    Color(0xFFD97706),
+                                  ],
+                                  medalBadge: '🥇 المركز الأول',
+                                  badgeColor: const Color(0xFF78350F),
+                                  avatarRadius: 32,
+                                  isFirst: true,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              // المركز الثالث 🥉 (برونز)
+                              Expanded(
+                                child: _PodiumStepWidget(
+                                  item: third,
+                                  pedestalHeight: 64,
+                                  ringColor: const Color(0xFFB45309),
+                                  gradientColors: const [
+                                    Color(0xFFD97706),
+                                    Color(0xFFB45309),
+                                  ],
+                                  medalBadge: '🥉 المركز الثالث',
+                                  badgeColor: const Color(0xFF78350F),
+                                  avatarRadius: 24,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // قائمة الشرف والترتيب العام
+                  MobileSectionHeader(
+                    title: 'ترتيب قائمة الشرف',
+                    subtitle: 'نخبة المتميزين في $categoryLabel ($periodLabel).',
+                  ),
+                  const SizedBox(height: 10),
+
+                  // كروت الموظفين في قائمة الشرف
+                  for (final honoree in honorees) ...[
+                    _HonoreeListCard(
+                      item: honoree,
+                      isCurrentUser: currentName.isNotEmpty &&
+                          honoree.name.trim() == currentName.trim(),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+
+                  const SizedBox(height: 12),
+
+                  // بطاقة معايير التقييم والتحفيز
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest.withValues(alpha: .4),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: scheme.outlineVariant.withValues(alpha: .5),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.lightbulb_outline_rounded,
+                          size: 22,
+                          color: Color(0xFF3B82F6),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'معايير اختيار موظف الأسبوع والشهر',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'يتم تصنيف لوحة الشرف تلقائياً من واقع بيانات المنظومة: دقة تسجيل بصمة الحضور والانصراف، وعدد المأموريات الميدانية المعتمدة والمنجزة، وسرعة رفع التقارير اليومية.',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: scheme.onSurfaceVariant,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// ودجة خطوة المنصة الشرفية (Podium Step)
+class _PodiumStepWidget extends StatelessWidget {
+  const _PodiumStepWidget({
+    required this.item,
+    required this.pedestalHeight,
+    required this.ringColor,
+    required this.gradientColors,
+    required this.medalBadge,
+    required this.badgeColor,
+    required this.avatarRadius,
+    this.isFirst = false,
+  });
+
+  final HonoreeItem item;
+  final double pedestalHeight;
+  final Color ringColor;
+  final List<Color> gradientColors;
+  final String medalBadge;
+  final Color badgeColor;
+  final double avatarRadius;
+  final bool isFirst;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (isFirst) ...[
+          const Text('👑', style: TextStyle(fontSize: 18)),
+          const SizedBox(height: 2),
+        ],
+        // الصورة مع إطار ذهبي أو فضي أو برونزي
+        Container(
+          padding: const EdgeInsets.all(2.5),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: ringColor, width: 2.5),
+            boxShadow: [
+              BoxShadow(
+                color: ringColor.withValues(alpha: isFirst ? .4 : .2),
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          child: AppAvatar(
+            name: item.name,
+            photoUrl: item.photoUrl,
+            radius: avatarRadius,
+          ),
+        ),
+        const SizedBox(height: 6),
+        // اسم الموظف
+        Text(
+          item.name,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: isFirst ? 12 : 11,
+          ),
+        ),
+        const SizedBox(height: 2),
+        // القسم
+        Text(
+          item.department,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 9.5,
+            color: scheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 4),
+        // الشارة الرقمية
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: ringColor.withValues(alpha: .15),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            item.metric,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w900,
+              color: ringColor,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // قاعدة المنصة
+        Container(
+          height: pedestalHeight,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: gradientColors,
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            boxShadow: [
+              BoxShadow(
+                color: gradientColors.first.withValues(alpha: .25),
+                blurRadius: 6,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '${item.rank}',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  medalBadge,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white.withValues(alpha: .9),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// بطاقة الموظف في القائمة الشرفية التفصيلية
+class _HonoreeListCard extends StatelessWidget {
+  const _HonoreeListCard({
+    required this.item,
+    required this.isCurrentUser,
+  });
+
+  final HonoreeItem item;
+  final bool isCurrentUser;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final (rankIcon, rankColor, rankText) = switch (item.rank) {
+      1 => ('🥇', const Color(0xFFF59E0B), 'المركز الأول'),
+      2 => ('🥈', const Color(0xFF94A3B8), 'المركز الثاني'),
+      3 => ('🥉', const Color(0xFFB45309), 'المركز الثالث'),
+      4 => ('4️⃣', scheme.primary, 'المركز الرابع'),
+      _ => ('5️⃣', scheme.secondary, 'المركز الخامس'),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: isCurrentUser
+            ? const Color(0xFF10B981).withValues(alpha: .08)
+            : scheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isCurrentUser
+              ? const Color(0xFF10B981).withValues(alpha: .4)
+              : scheme.outlineVariant.withValues(alpha: .4),
+        ),
+      ),
+      child: Row(
+        children: [
+          // شارة الترتيب
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: rankColor.withValues(alpha: .12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              rankIcon,
+              style: const TextStyle(fontSize: 18),
+            ),
+          ),
+          const SizedBox(width: 10),
+          // صورة الموظف
+          AppAvatar(
+            name: item.name,
+            photoUrl: item.photoUrl,
+            radius: 20,
+          ),
+          const SizedBox(width: 10),
+          // الاسم والقسم والإنجاز
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    if (isCurrentUser) ...[
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981),
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                        child: const Text(
+                          'أنت 👏',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${item.department} · $rankText',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  item.achievement,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: scheme.onSurfaceVariant.withValues(alpha: .8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // الرقم المميز
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: rankColor.withValues(alpha: .12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              item.metric,
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 11,
+                color: rankColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// زر اختيار فترة التكريم
+class _PeriodSelectButton extends StatelessWidget {
+  const _PeriodSelectButton({
+    required this.title,
+    required this.subtitle,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: isSelected ? scheme.surface : Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
+      elevation: isSelected ? 1.5 : 0,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+          child: Column(
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                  color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// رقاقة اختيار فئة التميز
+class _CategorySelectChip extends StatelessWidget {
+  const _CategorySelectChip({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: isSelected
+          ? const Color(0xFFF59E0B).withValues(alpha: .15)
+          : scheme.surfaceContainerHighest.withValues(alpha: .35),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFFF59E0B)
+                  : scheme.outlineVariant.withValues(alpha: .4),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 15,
+                color: isSelected ? const Color(0xFFD97706) : scheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                  color: isSelected ? const Color(0xFFB45309) : scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

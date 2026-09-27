@@ -1,126 +1,133 @@
-import { Medal, Plus, ShieldCheck, Sparkles, Star, Trophy } from 'lucide-react';
-import type { Award } from 'lucide-react';
+import { Award, Calendar, CheckCircle2, Medal, Plus, Sparkles, Star, Trophy } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { useToast } from '../../ui/Toast';
 
-interface RecognitionBadge {
+export interface HonorRecord {
   id: string;
+  type: 'month' | 'week';
+  rank: 1 | 2 | 3;
+  category: 'attendance' | 'missions' | 'reports';
   title: string;
-  description: string;
-  icon: typeof Award;
+  achievement: string;
+  periodLabel: string;
   earnedDate: string;
-  level: 'gold' | 'silver' | 'bronze' | 'diamond';
-  points: number;
 }
 
-const DEFAULT_BADGES: RecognitionBadge[] = [
+const DEFAULT_HONOR_RECORDS: HonorRecord[] = [
   {
-    id: 'b1',
-    title: 'درع الالتزام والانضباط',
-    description: 'تم تحقيقه لنسبة حضور كاملة 100% خلال آخر دورة عمل دون غياب.',
-    icon: ShieldCheck,
-    earnedDate: '2026-08-01',
-    level: 'gold',
-    points: 100,
+    id: 'h1',
+    type: 'month',
+    rank: 1,
+    category: 'attendance',
+    title: 'موظف الشهر — الانضباط والحضور التام',
+    achievement: 'حضور كامل بنسبة 100% بدون أي تأخيرات أو انصراف مبكر طوال الشهر.',
+    periodLabel: 'شهر سبتمبر 2026',
+    earnedDate: '2026-09-26',
   },
   {
-    id: 'b2',
-    title: 'وسام دقة المواعيد',
-    description: 'سُجلت صفر دقائق تأخير عن مواعيد بدء الورديات خلال الشهر.',
-    icon: Medal,
-    earnedDate: '2026-07-15',
-    level: 'silver',
-    points: 50,
+    id: 'h2',
+    type: 'week',
+    rank: 1,
+    category: 'missions',
+    title: 'موظف الأسبوع — إنجاز المأموريات الميدانية',
+    achievement: 'إنجاز 6 مأموريات وزيارات ميدانية موثقة بنجاح ودقة عالية في الموعد.',
+    periodLabel: 'الأسبوع 38 (سبتمبر)',
+    earnedDate: '2026-09-20',
   },
   {
-    id: 'b3',
-    title: 'نجم الأداء المتميز (Top KPI)',
-    description: 'تحقيق تقييم سنوي/دوري فاق التوقعات في محاور الأداء الأساسية.',
-    icon: Star,
-    earnedDate: '2026-06-30',
-    level: 'diamond',
-    points: 150,
-  },
-  {
-    id: 'b4',
-    title: 'المبادر الميداني الأول',
-    description: 'سرعة استجابة عالية وتفانٍ في إتمام المأموريات والقوافل.',
-    icon: Sparkles,
-    earnedDate: '2026-05-20',
-    level: 'gold',
-    points: 80,
+    id: 'h3',
+    type: 'month',
+    rank: 2,
+    category: 'reports',
+    title: 'المركز الثاني — تسليم التقارير اليومية',
+    achievement: 'تسليم 26 تقريراً يومياً معتمداً في الموعد المحدد بنسبة إنجاز 100%.',
+    periodLabel: 'شهر أغسطس 2026',
+    earnedDate: '2026-08-31',
   },
 ];
 
-const LEVEL_CLASSES: Record<RecognitionBadge['level'], { bg: string; border: string; text: string; badgeText: string }> = {
-  diamond: {
-    bg: 'bg-cyan-500/10 dark:bg-cyan-500/20',
-    border: 'border-cyan-500/40',
-    text: 'text-cyan-600 dark:text-cyan-400',
-    badgeText: 'وسام ألماسي',
-  },
-  gold: {
+const RANK_BADGES = {
+  1: {
+    icon: '🥇',
+    label: 'المركز الأول',
     bg: 'bg-amber-500/10 dark:bg-amber-500/20',
     border: 'border-amber-500/40',
     text: 'text-amber-600 dark:text-amber-400',
-    badgeText: 'وسام ذهبي',
+    badgeBg: 'bg-amber-500 text-white',
   },
-  silver: {
+  2: {
+    icon: '🥈',
+    label: 'المركز الثاني',
     bg: 'bg-slate-400/10 dark:bg-slate-400/20',
     border: 'border-slate-400/40',
     text: 'text-slate-600 dark:text-slate-300',
-    badgeText: 'وسام فضي',
+    badgeBg: 'bg-slate-400 text-white',
   },
-  bronze: {
+  3: {
+    icon: '🥉',
+    label: 'المركز الثالث',
     bg: 'bg-orange-500/10 dark:bg-orange-500/20',
     border: 'border-orange-500/40',
     text: 'text-orange-600 dark:text-orange-400',
-    badgeText: 'وسام برونزي',
+    badgeBg: 'bg-orange-500 text-white',
   },
+};
+
+const CATEGORY_LABELS = {
+  attendance: 'الانضباط ودقة الحضور',
+  missions: 'المأموريات الميدانية',
+  reports: 'المهام والتقارير اليومية',
 };
 
 export function EmployeeRecognitionTab({ employeeId: _employeeId }: { employeeId: string }) {
   const auth = useAuth();
   const { toast } = useToast();
-  const [badges, setBadges] = useState<RecognitionBadge[]>(DEFAULT_BADGES);
+  const [records, setRecords] = useState<HonorRecord[]>(DEFAULT_HONOR_RECORDS);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
-  const [newDesc, setNewDesc] = useState('');
-  const [newPoints, setNewPoints] = useState(50);
-  const [newLevel, setNewLevel] = useState<RecognitionBadge['level']>('gold');
 
-  const canGrantRecognition = Boolean(
+  const [newType, setNewType] = useState<'month' | 'week'>('month');
+  const [newRank, setNewRank] = useState<1 | 2 | 3>(1);
+  const [newCategory, setNewCategory] = useState<'attendance' | 'missions' | 'reports'>('attendance');
+  const [newPeriod, setNewPeriod] = useState('شهر سبتمبر 2026');
+  const [newAchievement, setNewAchievement] = useState('');
+
+  const canGrant = Boolean(
     auth.access && (hasPermission(auth.access, 'people.employee.update_sensitive') || auth.access.workspaces?.includes('main_admin')),
   );
 
-  const totalPoints = badges.reduce((sum, b) => sum + b.points, 0);
+  const monthCount = records.filter((r) => r.type === 'month' && r.rank === 1).length;
+  const weekCount = records.filter((r) => r.type === 'week' && r.rank === 1).length;
+  const totalPodiums = records.length;
 
-  const handleGrantBadge = (e: React.FormEvent) => {
+  const handleAddHonor = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim()) return;
 
-    const newBadge: RecognitionBadge = {
-      id: `b-${Date.now()}`,
-      title: newTitle.trim(),
-      description: newDesc.trim() || 'تكريم خاص من الإدارة للتميز في الأداء والالتزام.',
-      icon: Trophy,
+    const titlePrefix = newType === 'month' ? 'موظف الشهر' : 'موظف الأسبوع';
+    const rankPrefix = newRank === 1 ? titlePrefix : `المركز ${newRank === 2 ? 'الثاني' : 'الثالث'}`;
+    const generatedTitle = `${rankPrefix} — ${CATEGORY_LABELS[newCategory]}`;
+
+    const newRecord: HonorRecord = {
+      id: `honor-${Date.now()}`,
+      type: newType,
+      rank: newRank,
+      category: newCategory,
+      title: generatedTitle,
+      achievement: newAchievement.trim() || 'تكريم رسمي للتميز الاستثنائي في الأداء والانضباط.',
+      periodLabel: newPeriod.trim() || 'الدورة الحالية',
       earnedDate: new Date().toISOString().split('T')[0],
-      level: newLevel,
-      points: newPoints,
     };
 
-    setBadges([newBadge, ...badges]);
+    setRecords([newRecord, ...records]);
     setShowAddModal(false);
-    setNewTitle('');
-    setNewDesc('');
-    toast({ message: `تم منح ${newBadge.title} للموظف بنجاح!`, tone: 'success' });
+    setNewAchievement('');
+    toast({ message: `تم إدراج الموظف في لوحة الشرف (${generatedTitle}) بنجاح!`, tone: 'success' });
   };
 
   return (
     <div className="space-y-6">
-      {/* بطاقة رصيد التميز والنقاط */}
+      {/* بطاقة ملخص لوحة الشرف */}
       <section className="card p-6 border border-[var(--border)] bg-gradient-to-r from-[var(--surface)] via-[var(--surface-muted)] to-[var(--surface)]">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -128,55 +135,58 @@ export function EmployeeRecognitionTab({ employeeId: _employeeId }: { employeeId
               <Trophy className="size-7" aria-hidden="true" />
             </div>
             <div>
-              <h3 className="text-xl font-black">منظومة التقدير والتحفيز الوظيفي</h3>
-              <p className="text-xs text-[var(--text-muted)] mt-1">سجل الأوسمة وشارات الاستحقاق الممنوحة تقديراً للإنجاز والانضباط الميداني</p>
+              <h3 className="text-xl font-black">لوحة الشرف وسجل التميز الوظيفي</h3>
+              <p className="text-xs text-[var(--text-muted)] mt-1">سجل تكريمات موظف الأسبوع وموظف الشهر، والانضباط الميداني والأداء</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-center">
-              <span className="text-xs font-bold text-[var(--text-muted)] block">رصيد نقاط التميز</span>
-              <span className="text-2xl font-black text-amber-500 tabular">{totalPoints}</span>
+              <span className="text-xs font-bold text-[var(--text-muted)] block">موظف الشهر 🌟</span>
+              <span className="text-2xl font-black text-amber-500 tabular">{monthCount}</span>
             </div>
             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-center">
-              <span className="text-xs font-bold text-[var(--text-muted)] block">الأوسمة المحققة</span>
-              <span className="text-2xl font-black text-[var(--brand-primary)] tabular">{badges.length}</span>
+              <span className="text-xs font-bold text-[var(--text-muted)] block">موظف الأسبوع ⚡</span>
+              <span className="text-2xl font-black text-teal-600 dark:text-teal-400 tabular">{weekCount}</span>
             </div>
-            {canGrantRecognition && (
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-center">
+              <span className="text-xs font-bold text-[var(--text-muted)] block">منصة الشرف 🏆</span>
+              <span className="text-2xl font-black text-[var(--brand-primary)] tabular">{totalPodiums}</span>
+            </div>
+            {canGrant && (
               <button type="button" onClick={() => setShowAddModal(true)} className="btn-primary flex items-center gap-2">
                 <Plus className="size-4" aria-hidden="true" />
-                منح وسام تقدير
+                إدراج في لوحة الشرف
               </button>
             )}
           </div>
         </div>
       </section>
 
-      {/* شبكة الأوسمة والشارات */}
+      {/* قائمة التكريمات والشرف المحققة */}
       <section className="space-y-3">
-        <h4 className="text-sm font-black text-[var(--text)]">الأوسمة والشارات المكتسبة ({badges.length})</h4>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {badges.map((badge) => {
-            const Icon = badge.icon;
-            const levelStyle = LEVEL_CLASSES[badge.level];
+        <h4 className="text-sm font-black text-[var(--text)]">سجل التكريمات في لوحة الشرف ({records.length})</h4>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {records.map((rec) => {
+            const rankStyle = RANK_BADGES[rec.rank];
             return (
               <div
-                key={badge.id}
-                className={`card relative flex flex-col justify-between p-5 border ${levelStyle.border} ${levelStyle.bg} transition-all hover:shadow-md`}
+                key={rec.id}
+                className={`card relative flex flex-col justify-between p-5 border ${rankStyle.border} ${rankStyle.bg} transition-all hover:shadow-md`}
               >
                 <div>
                   <div className="flex items-start justify-between gap-2">
-                    <span className={`flex size-11 items-center justify-center rounded-xl bg-[var(--surface)] shadow-xs ${levelStyle.text}`}>
-                      <Icon className="size-6" aria-hidden="true" />
+                    <span className="text-2xl">{rankStyle.icon}</span>
+                    <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-black shadow-xs ${rankStyle.badgeBg}`}>
+                      {rec.type === 'month' ? 'موظف الشهر 🌟' : 'موظف الأسبوع ⚡'}
                     </span>
-                    <span className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[11px] font-black shadow-xs">+{badge.points} نقطة</span>
                   </div>
-                  <h5 className="mt-3 text-base font-black text-[var(--text)]">{badge.title}</h5>
-                  <p className="mt-1 text-xs text-[var(--text-muted)] leading-relaxed">{badge.description}</p>
+                  <h5 className="mt-3 text-base font-black text-[var(--text)]">{rec.title}</h5>
+                  <p className="mt-1 text-xs text-[var(--text-muted)] leading-relaxed">{rec.achievement}</p>
                 </div>
                 <div className="mt-4 flex items-center justify-between border-t border-[var(--border)] pt-3 text-[11px] text-[var(--text-muted)]">
-                  <span className={`font-bold ${levelStyle.text}`}>{levelStyle.badgeText}</span>
-                  <span className="tabular">{badge.earnedDate}</span>
+                  <span className={`font-black ${rankStyle.text}`}>{rankStyle.label}</span>
+                  <span className="font-semibold tabular">{rec.periodLabel}</span>
                 </div>
               </div>
             );
@@ -184,58 +194,70 @@ export function EmployeeRecognitionTab({ employeeId: _employeeId }: { employeeId
         </div>
       </section>
 
-      {/* نموذج منح وسام جديد */}
+      {/* نافذة إدراج موظف في لوحة الشرف */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="card w-full max-w-md p-6 border border-[var(--border)] shadow-xl animate-in fade-in">
-            <h3 className="text-lg font-black mb-1">منح وسام تقدير للموظف</h3>
-            <p className="text-xs text-[var(--text-muted)] mb-4">إضافة وسام استحقاق وتكريم لسجل الموظف مع مكافأة نقاط تميز</p>
-            <form onSubmit={handleGrantBadge} className="space-y-4">
-              <div>
-                <label className="text-xs font-bold block mb-1">عنوان الوسام / التكريم</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="مثال: نجم الشهر في خدمة العملاء"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  className="input w-full"
-                />
+            <div className="flex items-center gap-3 mb-2">
+              <div className="size-9 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center">
+                <Trophy className="size-5" />
               </div>
-
               <div>
-                <label className="text-xs font-bold block mb-1">سبب التكريم والوصف</label>
-                <textarea
-                  rows={2}
-                  placeholder="وصف الإنجاز أو الموقف المميز..."
-                  value={newDesc}
-                  onChange={(e) => setNewDesc(e.target.value)}
-                  className="input w-full"
-                />
+                <h3 className="text-lg font-black">إدراج الموظف في لوحة الشرف</h3>
+                <p className="text-xs text-[var(--text-muted)]">تكريم الموظف كـ موظف الأسبوع أو موظف الشهر وتوثيق إنجازه</p>
               </div>
+            </div>
 
+            <form onSubmit={handleAddHonor} className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold block mb-1">مستوى الوسام</label>
-                  <select value={newLevel} onChange={(e) => setNewLevel(e.target.value as RecognitionBadge['level'])} className="input w-full">
-                    <option value="diamond">ألماسي (Diamond)</option>
-                    <option value="gold">ذهبي (Gold)</option>
-                    <option value="silver">فضي (Silver)</option>
-                    <option value="bronze">برونزي (Bronze)</option>
+                  <label className="text-xs font-bold block mb-1">نوع التكريم</label>
+                  <select value={newType} onChange={(e) => setNewType(e.target.value as 'month' | 'week')} className="input w-full">
+                    <option value="month">موظف الشهر 🌟</option>
+                    <option value="week">موظف الأسبوع ⚡</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-bold block mb-1">نقاط التميز الممنوحة</label>
-                  <input
-                    type="number"
-                    min={10}
-                    max={500}
-                    step={10}
-                    value={newPoints}
-                    onChange={(e) => setNewPoints(Number(e.target.value))}
-                    className="input w-full"
-                  />
+                  <label className="text-xs font-bold block mb-1">المركز / الترتيب</label>
+                  <select value={newRank} onChange={(e) => setNewRank(Number(e.target.value) as 1 | 2 | 3)} className="input w-full">
+                    <option value={1}>المركز الأول 🥇</option>
+                    <option value={2}>المركز الثاني 🥈</option>
+                    <option value={3}>المركز الثالث 🥉</option>
+                  </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold block mb-1">محور التميز</label>
+                <select value={newCategory} onChange={(e) => setNewCategory(e.target.value as 'attendance' | 'missions' | 'reports')} className="input w-full">
+                  <option value="attendance">الانضباط ودقة الحضور (Attendance)</option>
+                  <option value="missions">المأموريات الميدانية (Field Missions)</option>
+                  <option value="reports">المهام والتقارير اليومية (Daily Reports)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold block mb-1">فترة التكريم / الدورة</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="مثال: شهر سبتمبر 2026 أو الأسبوع 39"
+                  value={newPeriod}
+                  onChange={(e) => setNewPeriod(e.target.value)}
+                  className="input w-full"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold block mb-1">الإنجاز المحقق والتفاصيل</label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="مثال: حضور كامل بدون أي تأخير بنسبة 100% طوال الشهر، أو إنجاز 15 مأمورية ميدانية بدقة..."
+                  value={newAchievement}
+                  onChange={(e) => setNewAchievement(e.target.value)}
+                  className="input w-full"
+                />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
@@ -243,7 +265,7 @@ export function EmployeeRecognitionTab({ employeeId: _employeeId }: { employeeId
                   إلغاء
                 </button>
                 <button type="submit" className="btn-primary">
-                  تأكيد ومنح الوسام
+                  تأكيد الإدراج في لوحة الشرف
                 </button>
               </div>
             </form>

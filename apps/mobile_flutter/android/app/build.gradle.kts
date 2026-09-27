@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -24,11 +27,17 @@ android {
     }
 
     signingConfigs {
-        val keystorePath = System.getenv("RELEASE_KEYSTORE_PATH")
+        val keystorePropsFile = rootProject.file("keystore.properties")
+        val keystoreProps = Properties().apply {
+            if (keystorePropsFile.exists()) {
+                FileInputStream(keystorePropsFile).use { load(it) }
+            }
+        }
+        val keystorePath = System.getenv("RELEASE_KEYSTORE_PATH") ?: keystoreProps.getProperty("RELEASE_KEYSTORE_PATH")
         val keystoreFile = keystorePath?.let { file(it) } ?: file("release-keystore.jks")
-        val storePasswordValue = System.getenv("RELEASE_STORE_PASSWORD")
-        val keyPasswordValue = System.getenv("RELEASE_KEY_PASSWORD")
-        val keyAliasValue = System.getenv("RELEASE_KEY_ALIAS") ?: "ahla-shabab"
+        val storePasswordValue = System.getenv("RELEASE_STORE_PASSWORD") ?: keystoreProps.getProperty("RELEASE_STORE_PASSWORD")
+        val keyPasswordValue = System.getenv("RELEASE_KEY_PASSWORD") ?: keystoreProps.getProperty("RELEASE_KEY_PASSWORD")
+        val keyAliasValue = System.getenv("RELEASE_KEY_ALIAS") ?: keystoreProps.getProperty("RELEASE_KEY_ALIAS") ?: "ahla-shabab"
         if (keystoreFile.exists() && storePasswordValue != null && keyPasswordValue != null) {
             create("release") {
                 storeFile = keystoreFile

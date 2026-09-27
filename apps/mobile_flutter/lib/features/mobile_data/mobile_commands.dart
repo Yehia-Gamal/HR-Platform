@@ -678,86 +678,87 @@ class MobileCommands {
 
   Future<void> registerLocalBiometricDevice() async {
     final localAuth = LocalAuthentication();
-    // 1. فحص دعم الجهاز لقفل الشاشة أو البصمة
+
+    // 1. فحص دعم الجهاز للبصمة أو قفل الشاشة
     bool isSupported = false;
+    bool canCheckBiometrics = false;
+    bool hasBiometrics = false;
     try {
       isSupported = await localAuth.isDeviceSupported();
     } catch (_) {
       isSupported = false;
     }
-    if (!isSupported) {
-      throw StateError(
-        'هاتفك لا يحتوي على قفل شاشة (نقش أو رمز PIN) أو بصمة مفعّلة. يُرجى ضبط قفل الشاشة من إعدادات الهاتف أولاً لتتمكن من تسجيل الجهاز.',
-      );
-    }
-
-    // تحقق من توفر بصمة فعلية — إذا لم تتوفر يُسمح بقفل الشاشة (نقش/PIN) كبديل.
-    bool hasBiometrics = false;
     try {
-      if (await localAuth.canCheckBiometrics) {
+      canCheckBiometrics = await localAuth.canCheckBiometrics;
+      if (canCheckBiometrics) {
         final available = await localAuth.getAvailableBiometrics();
         hasBiometrics = available.isNotEmpty;
       }
     } catch (_) {
-      // بعض الأجهزة ترمي استثناءً — نتجاهله ونكمل بقفل الشاشة.
+      hasBiometrics = false;
     }
 
+    // 2. التحقق من أمان الجهاز إذا كان متاحاً
     bool didAuthenticate = false;
-    try {
-      // biometricOnly: false → يسمح بالنقش أو PIN عند عدم توفر بصمة.
-      didAuthenticate = await localAuth.authenticate(
-        localizedReason: hasBiometrics
-            ? 'تأكيد تسجيل البصمة لنظام الحضور'
-            : 'تأكيد تسجيل الجهاز بالنقش أو PIN لنظام الحضور',
-        options: const AuthenticationOptions(
-          stickyAuth: true,
-          biometricOnly: false,
-          useErrorDialogs: true,
-        ),
-      );
-    } on PlatformException catch (e) {
-      if (e.code == auth_error.passcodeNotSet ||
-          e.code == 'PasscodeNotSet' ||
-          e.message?.contains('passcode') == true) {
-        throw StateError(
-          'لم يتم ضبط قفل للشاشة (نقش أو PIN) على هاتفك. يُرجى تعيين قفل الشاشة من إعدادات الهاتف أولاً.',
+    final canAttemptAuth = isSupported || canCheckBiometrics || hasBiometrics;
+
+    if (canAttemptAuth) {
+      try {
+        didAuthenticate = await localAuth.authenticate(
+          localizedReason: hasBiometrics
+              ? 'تأكيد تسجيل البصمة لنظام الحضور'
+              : 'تأكيد تسجيل الجهاز بقفل الشاشة (نقش أو PIN)',
+          options: const AuthenticationOptions(
+            stickyAuth: true,
+            biometricOnly: false,
+            useErrorDialogs: false,
+          ),
         );
+      } on PlatformException catch (e) {
+        if (e.code.toLowerCase().contains('cancel')) {
+          throw StateError('تم إلغاء التحقق. لم يتم التسجيل.');
+        }
+        if (e.code == auth_error.lockedOut || e.code == 'LockedOut') {
+          throw StateError(
+            'تم إيقاف التحقق مؤقتًا لكثرة المحاولات الخاطئة. انتظر دقيقة ثم حاول مجددًا.',
+          );
+        }
+        if (e.code == auth_error.permanentlyLockedOut ||
+            e.code == 'PermanentlyLockedOut') {
+          throw StateError(
+            'تم إيقاف البصمة نهائيًا. افتح قفل الهاتف برمز PIN أولاً لإعادة تفعيلها.',
+          );
+        }
+        // في حال عدم تعيين قفل شاشة (PasscodeNotSet / NotEnrolled / NotAvailable):
+        // لا نحظر الموظف من تسجيل جهازه، بل نعتمد على هوية الهاتف والموقع الجغرافي.
+        didAuthenticate = false;
+      } catch (_) {
+        didAuthenticate = false;
       }
-      if (e.code == auth_error.notEnrolled || e.code == 'NotEnrolled') {
-        throw StateError(
-          'لم يتم تسجيل أي بصمة أو قفل شاشة على هاتفك. يُرجى ضبط قفل الشاشة أو البصمة من إعدادات الهاتف.',
-        );
+
+      // إذا كان الجهاز يحتوي على بصمة مفعلة وألغى المستخدم التحقق
+      if (hasBiometrics && !didAuthenticate) {
+        throw StateError('تم إلغاء التحقق بالبصمة. لم يتم التسجيل.');
       }
-      if (e.code == auth_error.notAvailable || e.code == 'NotAvailable') {
-        throw StateError(
-          'التحقق البيومتري أو قفل الشاشة غير متاح على هذا الجهاز. تأكد من تفعيل قفل الشاشة من إعدادات الهاتف.',
-        );
-      }
-      if (e.code == auth_error.lockedOut || e.code == 'LockedOut') {
-        throw StateError(
-          'تم إيقاف التحقق مؤقتًا لكثرة المحاولات الخاطئة. انتظر دقيقة ثم حاول مجددًا.',
-        );
-      }
-      if (e.code == auth_error.permanentlyLockedOut ||
-          e.code == 'PermanentlyLockedOut') {
-        throw StateError(
-          'تم إيقاف البصمة نهائيًا. افتح قفل الهاتف برمز PIN أولاً لإعادة تفعيلها.',
-        );
-      }
-      if (e.code.toLowerCase().contains('cancel')) {
-        throw StateError('تم إلغاء التحقق. لم يتم التسجيل.');
-      }
-      throw StateError(
-        'تعذر التحقق من أمان الجهاز (${e.code}). يرجى التأكد من ضبط قفل الشاشة أو البصمة.',
-      );
     }
 
-    if (!didAuthenticate) {
-      throw StateError('تم إلغاء التحقق. لم يتم التسجيل.');
+    try {
+      await registerMyDeviceExplicitly(
+        ref,
+        biometricHint: didAuthenticate && hasBiometrics,
+      );
+    } catch (e) {
+      throw StateError('فشل تسجيل الجهاز على الخادم: ${humanizeError(e)}');
     }
-    ref.invalidate(deviceRegistrationProvider);
-    await ref.read(deviceRegistrationProvider.future);
+
     ref.invalidate(attendanceStateProvider);
+    final newState = await ref.read(attendanceStateProvider.future);
+    if (!newState.hasActiveLocalDevice) {
+      if (newState.localDeviceStatus == 'pending') {
+        throw StateError('تم إرسال بيانات الجهاز بنجاح وهو بانتظار موافقة المسؤول.');
+      }
+      throw StateError('تم إرسال بيانات الجهاز ولكن لم يتم تفعيله بعد. يرجى مراجعة المسؤول.');
+    }
   }
 
   Future<Map<String, dynamic>> punchAttendance({
@@ -773,88 +774,74 @@ class MobileCommands {
   }
 
   /// حضور انفرادي: بصمة محلية أو قفل شاشة + موقع → RPC مبسط (بدون WebAuthn/Samsung Pass).
-  /// أجهزة بدون بصمة تستخدم PIN/نمط كبديل (biometricOnly: false).
+  /// أجهزة بدون بصمة تستخدم PIN/نمط كبديل أو الاعتماد على الجهاز الموثق والموقع الجغرافي.
   Future<Map<String, dynamic>> punchAttendanceLocal({
     required String eventType,
   }) async {
     final localAuth = LocalAuthentication();
 
-    // 1. فحص دعم الجهاز لقفل الشاشة أو البصمة
+    // 1. فحص دعم الجهاز للبصمة أو قفل الشاشة
     bool isSupported = false;
+    bool canCheckBiometrics = false;
+    bool hasBiometrics = false;
     try {
       isSupported = await localAuth.isDeviceSupported();
     } catch (_) {
       isSupported = false;
     }
-    if (!isSupported) {
-      throw StateError(
-        'هاتفك لا يحتوي على قفل شاشة (نقش أو رمز PIN) أو بصمة مفعّلة. يُرجى ضبط قفل الشاشة من إعدادات الهاتف أولاً لتتمكن من تسجيل الحضور.',
-      );
-    }
-
-    // تحديد ما إذا كان الجهاز يملك بصمة فعلية (إصبع/وجه)
-    bool hasBiometrics = false;
     try {
-      if (await localAuth.canCheckBiometrics) {
+      canCheckBiometrics = await localAuth.canCheckBiometrics;
+      if (canCheckBiometrics) {
         final available = await localAuth.getAvailableBiometrics();
         hasBiometrics = available.isNotEmpty;
       }
     } catch (_) {
-      // بعض الأجهزة ترمي استثناءً — نتابع بقفل الشاشة.
+      hasBiometrics = false;
     }
 
-    bool didAuthenticate = false;
-    try {
-      // biometricOnly: false → يسمح بالنقش أو PIN عند عدم توفر بصمة.
-      didAuthenticate = await localAuth.authenticate(
-        localizedReason: hasBiometrics
-            ? 'تأكيد تسجيل الحضور بالبصمة'
-            : 'تأكيد تسجيل الحضور بالنقش أو PIN',
-        options: const AuthenticationOptions(
-          stickyAuth: true,
-          biometricOnly: false,
-          useErrorDialogs: true,
-        ),
-      );
-    } on PlatformException catch (e) {
-      if (e.code == auth_error.passcodeNotSet ||
-          e.code == 'PasscodeNotSet' ||
-          e.message?.contains('passcode') == true) {
-        throw StateError(
-          'لم يتم ضبط قفل للشاشة (نقش أو PIN) على هاتفك. يُرجى تعيين قفل الشاشة من إعدادات الهاتف أولاً لتسجيل الحضور.',
+    final canAttemptAuth = isSupported || canCheckBiometrics || hasBiometrics;
+    if (canAttemptAuth) {
+      bool didAuthenticate = false;
+      try {
+        didAuthenticate = await localAuth.authenticate(
+          localizedReason: hasBiometrics
+              ? (eventType == 'CHECK_IN'
+                  ? 'تأكيد تسجيل الحضور بالبصمة'
+                  : 'تأكيد تسجيل الانصراف بالبصمة')
+              : (eventType == 'CHECK_IN'
+                  ? 'تأكيد تسجيل الحضور بقفل الهاتف'
+                  : 'تأكيد تسجيل الانصراف بقفل الهاتف'),
+          options: const AuthenticationOptions(
+            stickyAuth: true,
+            biometricOnly: false,
+            useErrorDialogs: false,
+          ),
         );
+      } on PlatformException catch (e) {
+        if (e.code.toLowerCase().contains('cancel')) {
+          throw StateError('تم إلغاء التحقق.');
+        }
+        if (e.code == auth_error.lockedOut || e.code == 'LockedOut') {
+          throw StateError(
+            'تم إيقاف التحقق مؤقتًا لكثرة المحاولات الخاطئة. انتظر دقيقة ثم حاول مجددًا.',
+          );
+        }
+        if (e.code == auth_error.permanentlyLockedOut ||
+            e.code == 'PermanentlyLockedOut') {
+          throw StateError(
+            'تم إيقاف البصمة نهائيًا. افتح قفل الهاتف برمز PIN أولاً لإعادة تفعيلها.',
+          );
+        }
+        // في حال كان الجهاز بدون رمز مرور (PasscodeNotSet / NotEnrolled / NotAvailable):
+        // نستمر بالتسجيل استناداً إلى معرّف الجهاز الموثق والموقع الجغرافي داخل النطاق.
+        didAuthenticate = false;
+      } catch (_) {
+        didAuthenticate = false;
       }
-      if (e.code == auth_error.notEnrolled || e.code == 'NotEnrolled') {
-        throw StateError(
-          'لم يتم تسجيل أي بصمة أو قفل شاشة على هاتفك. يُرجى ضبط قفل الشاشة أو البصمة من إعدادات الهاتف.',
-        );
-      }
-      if (e.code == auth_error.notAvailable || e.code == 'NotAvailable') {
-        throw StateError(
-          'التحقق البيومتري أو قفل الشاشة غير متاح على هذا الجهاز. تأكد من تفعيل قفل الشاشة من إعدادات الهاتف.',
-        );
-      }
-      if (e.code == auth_error.lockedOut || e.code == 'LockedOut') {
-        throw StateError(
-          'تم إيقاف التحقق مؤقتًا لكثرة المحاولات الخاطئة. انتظر دقيقة ثم حاول مجددًا.',
-        );
-      }
-      if (e.code == auth_error.permanentlyLockedOut ||
-          e.code == 'PermanentlyLockedOut') {
-        throw StateError(
-          'تم إيقاف البصمة نهائيًا. افتح قفل الهاتف برمز PIN أولاً لإعادة تفعيلها.',
-        );
-      }
-      if (e.code.toLowerCase().contains('cancel')) {
+
+      if (hasBiometrics && !didAuthenticate) {
         throw StateError('تم إلغاء التحقق.');
       }
-      throw StateError(
-        'تعذر التحقق من أمان الجهاز (${e.code}). يرجى التأكد من ضبط قفل الشاشة أو البصمة.',
-      );
-    }
-
-    if (!didAuthenticate) {
-      throw StateError('تم إلغاء التحقق.');
     }
 
     final position = await LocationService.current();
