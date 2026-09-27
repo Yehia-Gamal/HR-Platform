@@ -167,6 +167,17 @@ def main():
     ), -1)
     checks.append(("RLS-bypassing views readable by anon/authenticated (must be 0)", exposed == 0, exposed))
 
+    # migrations مطبّقة يدوياً دون تسجيل: رقم محلي أقل من أعلى رقم مسجّل وغير مسجّل.
+    # نشرٌ لاحق بـ --from يعيد تطبيقها بالترتيب — هكذا كادت 0565 (لوحة الشرف القديمة
+    # + منحة anon) تُطبَّق فوق إصلاحها 0566. سُجّلت 0561–0565 يدوياً في 2026-09-27.
+    all_tracked = {r.get("version") for r in q("select version from supabase_migrations.schema_migrations")
+                   if isinstance(r, dict)}
+    max_tracked = max((v for v in all_tracked if v and v.isdigit()), default="0000")
+    local = {n[:4] for n in os.listdir(MIGRATIONS_DIR) if n.endswith(".sql") and n[:4].isdigit()}
+    untracked_gap = sorted(v for v in local if v < max_tracked and v not in all_tracked)
+    checks.append(("untracked local migrations below remote max (must be none)",
+                   not untracked_gap, ",".join(untracked_gap[:10]) or "none"))
+
     last_applied = todo[-1] if todo else None
     if last_applied:
         ok = scalar(q(

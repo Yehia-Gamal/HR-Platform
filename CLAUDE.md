@@ -97,6 +97,7 @@ npx vercel --prod                  # يتطلب VERCEL_TOKEN
 - **Web:** Vercel (`vercel.json` في الجذر). مشروع: `prj_ZLbewe64wIFujXhWruZQNdLgmGep`.
 - **Mobile:** Flutter APK/AAB عبر CI أو يدوي. Keystore مطلوب.
 - **Supabase:** `npx supabase db push` للـ migrations. `npx supabase functions deploy` للـ Edge Functions.
+- **لا تطبّق migration يدوياً دون تسجيلها** في `supabase_migrations.schema_migrations`: أي نشر لاحق بـ `--from` سيعيد تطبيقها بالترتيب فوق ما أصلحها (كادت 0565 تُرجع لوحة الشرف الخاطئة وتعيد منحة anon فوق 0566). `deploy_migrations.py` يرفض الآن وجود رقم محلي غير مسجّل أقل من أعلى رقم مسجّل.
 - **النشر المعمّم لأي نطاق migrations (idempotent):** `python scripts/deploy_migrations.py --from 0460 [--to NNNN] [--force]` — يفحص التتبع البعيد ويطبّق المفقود بالترتيب ثم يشغّل فحوص التحقق. الـ token من `SUPABASE_ACCESS_TOKEN`.
 - **نشر migration عبر Management API (PowerShell 5.1):** يجب إرسال النص **bytes** مع `-ContentType 'application/json; charset=utf-8'` وإلا حوّل PS كل حرف عربي إلى `?` (أفسد هذا دوال 0434/0436 في prod). النمط الآمن:
   ```powershell
