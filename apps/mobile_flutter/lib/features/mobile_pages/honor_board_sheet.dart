@@ -41,7 +41,7 @@ class HonorBoardSummaryCard extends ConsumerWidget {
     final weekHero = weekData?.isNotEmpty == true ? weekData![0] : null;
 
     final monthName = monthHero?.name.isNotEmpty == true ? monthHero!.name : 'عمار محمد عبد الباسط';
-    final monthMetric = monthHero?.metric.isNotEmpty == true ? monthHero!.metric : '100% انضباط';
+    final monthMetric = monthHero?.metric.isNotEmpty == true ? monthHero!.metric : '95% انضباط';
     final weekName = weekHero?.name.isNotEmpty == true ? weekHero!.name : 'حامد محمود العمدة';
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -221,40 +221,40 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
           rank: 1,
           name: 'عمار محمد عبد الباسط',
           department: 'إدارة الميديا',
-          achievement: 'حضور كامل 21 يوماً بدون أي تأخير',
-          metric: '100% انضباط',
+          achievement: 'التزام تام 21 يوماً بالدوام الرسمي',
+          metric: '95% انضباط',
           photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/72ab35cd-6a41-4c65-ae07-5a65ad7ff081.webp',
         ),
         HonoreeItem(
           rank: 2,
           name: 'حامد محمود العمدة',
           department: 'لجنة أسرة كريمة',
-          achievement: 'حضور كامل 20 يوماً بدون أي تأخير',
-          metric: '100% انضباط',
+          achievement: 'التزام تام 20 يوماً بالدوام الرسمي',
+          metric: '91% انضباط',
           photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/15b92a99-0c55-477c-b847-251c010dd7ab.webp',
         ),
         HonoreeItem(
           rank: 3,
           name: 'محمد سيد محمد',
           department: 'إدارة اللوجستيك',
-          achievement: 'التزام تام 19 يوماً بدقة عالية',
-          metric: '100% انضباط',
+          achievement: 'التزام تام 19 يوماً بالدوام الرسمي',
+          metric: '86% انضباط',
           photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/public/employee-avatars/c86776ce-f5e5-4c09-920c-db5b923c0b90/avatar_1786434752876.png',
         ),
         HonoreeItem(
           rank: 4,
           name: 'مصطفي أحمد',
           department: 'إدارة العيادات الطبية',
-          achievement: 'التزام تام 17 يوماً بدقة عالية',
-          metric: '100% انضباط',
+          achievement: 'التزام تام 17 يوماً بالدوام الرسمي',
+          metric: '77% انضباط',
           photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/3e950d11-b5b4-4652-9ecf-919c434222fc/avatar_1785929477053.png',
         ),
         HonoreeItem(
           rank: 5,
           name: 'عبد القادر جمال عبد القادر',
           department: 'إدارة الشؤون الإدارية والقانونية',
-          achievement: 'التزام تام 16 يوماً بدقة عالية',
-          metric: '100% انضباط',
+          achievement: 'التزام تام 16 يوماً بالدوام الرسمي',
+          metric: '73% انضباط',
           photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/37181f8a-3966-48c2-985b-0b807cb04230.webp',
         ),
       ],
@@ -350,7 +350,7 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
           name: 'حامد محمود العمدة',
           department: 'لجنة أسرة كريمة',
           achievement: 'التزام تام طوال الأسبوع بالدوام الرسمي',
-          metric: '100% انضباط',
+          metric: '95% انضباط',
           photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/15b92a99-0c55-477c-b847-251c010dd7ab.webp',
         ),
         HonoreeItem(
@@ -358,7 +358,7 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
           name: 'محمد سيد محمد',
           department: 'إدارة اللوجستيك',
           achievement: 'التزام تام طوال الأسبوع بالدوام الرسمي',
-          metric: '100% انضباط',
+          metric: '91% انضباط',
           photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/public/employee-avatars/c86776ce-f5e5-4c09-920c-db5b923c0b90/avatar_1786434752876.png',
         ),
         HonoreeItem(
@@ -366,7 +366,7 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
           name: 'عمار محمد عبد الباسط',
           department: 'إدارة الميديا',
           achievement: 'التزام تام طوال الأسبوع بالدوام الرسمي',
-          metric: '100% انضباط',
+          metric: '86% انضباط',
           photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/72ab35cd-6a41-4c65-ae07-5a65ad7ff081.webp',
         ),
         HonoreeItem(
@@ -374,7 +374,7 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
           name: 'محمد عبده رجب مزار',
           department: 'ادارة المطابخ',
           achievement: 'حضور يومي بدون أي تأخير',
-          metric: '100% انضباط',
+          metric: '82% انضباط',
           photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/e4471a93-33ed-484f-9ce6-283acae73470.jpeg',
         ),
         HonoreeItem(
@@ -382,7 +382,7 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
           name: 'يوسف رسمي شعبان',
           department: 'مدير مجمع منيل شيحة',
           achievement: 'التزام تام بالدوام الرسمي للمجمع',
-          metric: '100% انضباط',
+          metric: '77% انضباط',
           photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/d0653222-9777-464f-a14c-02a11bcfb84c/avatar_1785924358551.png',
         ),
       ],
