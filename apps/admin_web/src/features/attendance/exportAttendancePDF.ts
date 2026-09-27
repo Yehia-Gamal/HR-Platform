@@ -43,6 +43,10 @@ export function buildStatementBodyHtml(data: AttendanceStatement, orgName = 'ج�
   const compliancePct = s.hoursComplianceRate ?? 0;
   const complianceAvailable = s.hoursComplianceAvailable || s.totalRequiredHours > 0;
   const monthName = MONTHS[period.month - 1] ?? '';
+  const convoyDays = days.filter((d) => (d.status?.includes('قافلة') || d.hasConvoyFundi) && !d.status?.includes('فاندي')).length;
+  const fundiDays = days.filter((d) => d.status?.includes('فاندي')).length;
+  const cDays = days.length > 0 ? convoyDays : s.convoyFundiDays;
+  const fDays = days.length > 0 ? fundiDays : 0;
 
   const dayRows = days
     .map((d) => {
@@ -131,7 +135,8 @@ export function buildStatementBodyHtml(data: AttendanceStatement, orgName = 'ج�
     <div class="metric"><div class="label">أيام الإجازات</div><div class="value">${s.leaveDays}</div></div>
     <div class="metric"><div class="label">أيام المأموريات</div><div class="value">${s.missionDays}</div></div>
     <div class="metric"><div class="label">أذونات</div><div class="value">${s.permitCount}</div></div>
-    <div class="metric"><div class="label">قوافل وفاندي</div><div class="value">${s.convoyFundiDays}</div></div>
+    <div class="metric"><div class="label">أيام القوافل</div><div class="value">${cDays}</div></div>
+    <div class="metric"><div class="label">أيام الفاندي</div><div class="value">${fDays}</div></div>
     <div class="metric"><div class="label">ساعات العمل</div><div class="value">${s.totalWorkHours.toFixed(1)}</div><div class="hint">${complianceAvailable ? `مطلوب ${(s.totalRequiredHours ?? 0).toFixed(1)}` : 'الساعات المطلوبة غير متاحة'}</div></div>
     <div class="metric good"><div class="label">ساعات إضافية</div><div class="value">${s.totalOvertimeMinutes} د</div></div>
   </div>

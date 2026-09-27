@@ -182,6 +182,11 @@ class _StatementBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = statement.summary;
     final scheme = Theme.of(context).colorScheme;
+    final convoyDays = statement.days.where((d) => (d.status.contains('قافلة') || d.hasConvoyFundi) && !d.status.contains('فاندي')).length;
+    final fundiDays = statement.days.where((d) => d.status.contains('فاندي')).length;
+    final cDays = statement.days.isNotEmpty ? convoyDays : s.convoyFundiDays;
+    final fDays = statement.days.isNotEmpty ? fundiDays : 0;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -198,19 +203,21 @@ class _StatementBody extends StatelessWidget {
             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
         GridView.count(
-          crossAxisCount: 3,
+          crossAxisCount: 4,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 1.12,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
+          childAspectRatio: 0.88,
+          crossAxisSpacing: 6,
+          mainAxisSpacing: 6,
           children: [
             _MetricTile(icon: Icons.check_circle_outline, label: 'حضور', value: '${s.presentDays}', color: const Color(0xFF0F9F6E)),
             _MetricTile(icon: Icons.cancel_outlined, label: 'غياب', value: '${s.absentDays}', color: scheme.error),
             _MetricTile(icon: Icons.beach_access_outlined, label: 'إجازات', value: '${s.leaveDays}', color: const Color(0xFF4F46E5)),
             _MetricTile(icon: Icons.directions_car_outlined, label: 'مأموريات', value: '${s.missionDays}', color: const Color(0xFF0284C7)),
             _MetricTile(icon: Icons.assignment_outlined, label: 'أذونات', value: '${s.permitCount}', color: const Color(0xFFD97706)),
-            _MetricTile(icon: Icons.celebration_outlined, label: 'قوافل وفاندي', value: '${s.convoyFundiDays}', color: const Color(0xFF7C3AED)),
+            _MetricTile(icon: Icons.volunteer_activism_outlined, label: 'قوافل', value: '$cDays', color: const Color(0xFF7C3AED)),
+            _MetricTile(icon: Icons.celebration_outlined, label: 'فاندي', value: '$fDays', color: const Color(0xFFDB2777)),
+            _MetricTile(icon: Icons.bed_outlined, label: 'عطلات', value: '${s.restDays + s.holidayDays}', color: const Color(0xFF64748B)),
           ],
         ),
         const SizedBox(height: 16),
@@ -281,7 +288,8 @@ class _StatementBody extends StatelessWidget {
             _LegendChip(color: Color(0xFFDC2626), label: 'غياب'),
             _LegendChip(color: Color(0xFF4F46E5), label: 'إجازة'),
             _LegendChip(color: Color(0xFF0284C7), label: 'مأمورية'),
-            _LegendChip(color: Color(0xFF7C3AED), label: 'قوافل وفاندي'),
+            _LegendChip(color: Color(0xFF7C3AED), label: 'قافلة'),
+            _LegendChip(color: Color(0xFFDB2777), label: 'فاندي'),
             _LegendChip(color: Color(0xFFD97706), label: 'مراجعة / تأخير'),
             _LegendChip(color: Color(0xFF94A3B8), label: 'راحة / عطلة'),
             _LegendChip(color: Color(0xFF64748B), label: 'قادم'),
@@ -418,6 +426,7 @@ class _AttendancePercentageCard extends StatelessWidget {
     int elapsedWorkDays = 0;
     int presentInOffice = 0;
     int convoysCount = 0;
+    int fundiCount = 0;
     int leavesCount = 0;
     int missionsCount = 0;
     int unexcusedAbsences = 0;
@@ -439,7 +448,9 @@ class _AttendancePercentageCard extends StatelessWidget {
           elapsedWorkDays++;
           if (d.status == 'حاضر') {
             presentInOffice++;
-          } else if (d.hasConvoyFundi) {
+          } else if (d.status.contains('فاندي')) {
+            fundiCount++;
+          } else if (d.status.contains('قافلة') || d.hasConvoyFundi) {
             convoysCount++;
           } else if (d.hasLeave) {
             leavesCount++;
@@ -456,6 +467,7 @@ class _AttendancePercentageCard extends StatelessWidget {
     } else {
       presentInOffice = s.presentDays;
       convoysCount = s.convoyFundiDays;
+      fundiCount = 0;
       leavesCount = s.leaveDays;
       missionsCount = s.missionDays;
       unexcusedAbsences = s.absentDays;
@@ -467,8 +479,8 @@ class _AttendancePercentageCard extends StatelessWidget {
 
     if (elapsedWorkDays <= 0) elapsedWorkDays = 1;
 
-    // مجموع أيام التغطية والالتزام (حضور بالمقر + قوافل وفاندي + مأموريات + إجازات معتمدة)
-    final compliantDays = presentInOffice + convoysCount + missionsCount + leavesCount;
+    // مجموع أيام التغطية والالتزام (حضور بالمقر + قوافل + فاندي + مأموريات + إجازات معتمدة)
+    final compliantDays = presentInOffice + convoysCount + fundiCount + missionsCount + leavesCount;
     
     // التوافق مع الاختبارات الأحادية عند غياب الأيام
     final double displayPct;
@@ -586,8 +598,13 @@ class _AttendancePercentageCard extends StatelessWidget {
                       _PctDetailRow(label: 'حضور بالمقر', value: '$presentInOffice يوم'),
                       if (convoysCount > 0)
                         _PctDetailRow(
-                          label: 'قوافل وفاندي (ترفيهي)',
+                          label: 'قوافل خارجية',
                           value: '$convoysCount يوم',
+                        ),
+                      if (fundiCount > 0)
+                        _PctDetailRow(
+                          label: 'فاندي (ترفيهي)',
+                          value: '$fundiCount يوم',
                         ),
                       if (missionsCount > 0)
                         _PctDetailRow(
@@ -1513,8 +1530,10 @@ class _MonthlyCalendarGridState extends State<_MonthlyCalendarGrid> {
         return d.status == 'حاضر';
       case 'absent':
         return d.status == 'غائب دون إذن' || d.isAbsent;
-      case 'convoy_fundi':
-        return d.hasConvoyFundi || d.status.contains('قافلة') || d.status.contains('فاندي');
+      case 'convoy':
+        return (d.status.contains('قافلة') || d.hasConvoyFundi) && !d.status.contains('فاندي');
+      case 'fundi':
+        return d.status.contains('فاندي');
       case 'mission':
         return d.hasMission || d.status.contains('مأمورية');
       case 'leave':
@@ -1547,6 +1566,10 @@ class _MonthlyCalendarGridState extends State<_MonthlyCalendarGrid> {
 
     final s = widget.statement.summary;
     final missingPunches = s.missingCheckInCount + s.missingCheckOutCount;
+    final convoyCount = widget.days.where((d) => (d.status.contains('قافلة') || d.hasConvoyFundi) && !d.status.contains('فاندي')).length;
+    final fundiCount = widget.days.where((d) => d.status.contains('فاندي')).length;
+    final cCount = widget.days.isNotEmpty ? convoyCount : s.convoyFundiDays;
+    final fCount = widget.days.isNotEmpty ? fundiCount : 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1577,11 +1600,18 @@ class _MonthlyCalendarGridState extends State<_MonthlyCalendarGrid> {
                 onTap: () => setState(() => _activeFilter = 'absent'),
               ),
               _FilterChipButton(
-                label: 'قوافل وفاندي',
-                count: s.convoyFundiDays,
+                label: 'قوافل',
+                count: cCount,
                 color: const Color(0xFF7C3AED),
-                isSelected: _activeFilter == 'convoy_fundi',
-                onTap: () => setState(() => _activeFilter == 'convoy_fundi'),
+                isSelected: _activeFilter == 'convoy',
+                onTap: () => setState(() => _activeFilter = 'convoy'),
+              ),
+              _FilterChipButton(
+                label: 'فاندي',
+                count: fCount,
+                color: const Color(0xFFDB2777),
+                isSelected: _activeFilter == 'fundi',
+                onTap: () => setState(() => _activeFilter == 'fundi'),
               ),
               _FilterChipButton(
                 label: 'مأموريات',

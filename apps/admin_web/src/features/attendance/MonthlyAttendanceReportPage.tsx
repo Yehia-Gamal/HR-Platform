@@ -61,8 +61,11 @@ function exportCSV(data: AttendanceStatement) {
     `الكود: ${csvSafe(emp.employeeCode ?? '—')} | الإدارة: ${csvSafe(emp.department)} | المسمى: ${csvSafe(emp.jobTitle)}`,
     `الفترة: ${MONTHS[period.month - 1]} ${period.year} (${period.startDate} — ${period.endDate})`,
     '',
-    'التاريخ,اليوم,الحضور,الانصراف,الوردية,ساعات فعلية,ساعات مطلوبة,التأخير (د),خروج مبكر (د),إضافي (د),الحالة,غائب,عطلة رسمية,إجازة,إذن حضور,إذن انصراف,مأمورية,قافلة/فاندي,نقص حضور,نقص انصراف,تصحيح,جزاءات,ملاحظة',
+    'التاريخ,اليوم,الحضور,الانصراف,الوردية,ساعات فعلية,ساعات مطلوبة,التأخير (د),خروج مبكر (د),إضافي (د),الحالة,غائب,عطلة رسمية,إجازة,إذن حضور,إذن انصراف,مأمورية,قافلة,فاندي,نقص حضور,نقص انصراف,تصحيح,جزاءات,ملاحظة',
   ].join('\n');
+
+  const convoyDays = days.filter((d) => (d.status?.includes('قافلة') || d.hasConvoyFundi) && !d.status?.includes('فاندي')).length;
+  const fundiDays = days.filter((d) => d.status?.includes('فاندي')).length;
 
   const rows = days
     .map((d) =>
@@ -84,7 +87,8 @@ function exportCSV(data: AttendanceStatement) {
         d.hasLatePermit ? 'نعم' : '',
         d.hasEarlyPermit ? 'نعم' : '',
         d.hasMission ? 'نعم' : '',
-        d.hasConvoyFundi ? 'نعم' : '',
+        ((d.status?.includes('قافلة') || d.hasConvoyFundi) && !d.status?.includes('فاندي')) ? 'نعم' : '',
+        d.status?.includes('فاندي') ? 'نعم' : '',
         d.missingCheckIn ? 'نعم' : '',
         d.missingCheckOut ? 'نعم' : '',
         d.hasCorrection ? 'نعم' : '',
@@ -107,7 +111,8 @@ function exportCSV(data: AttendanceStatement) {
     `ورديات مفتوحة,${s.openShiftDays}`,
     `أيام الإجازات,${s.leaveDays}`,
     `أيام المأموريات,${s.missionDays}`,
-    `قوافل وفاندي,${s.convoyFundiDays}`,
+    `أيام القوافل,${days.length > 0 ? convoyDays : s.convoyFundiDays}`,
+    `أيام الفاندي,${days.length > 0 ? fundiDays : 0}`,
     `أذونات,${s.permitCount}`,
     `عطل رسمية,${s.holidayDays}`,
     `أيام الراحة,${s.restDays}`,
@@ -365,6 +370,10 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
   const attendancePct = s.attendanceRate ?? (dueDays > 0 ? (presentInDue / dueDays) * 100 : 0);
   const compliancePct = s.hoursComplianceRate ?? 0;
   const complianceAvailable = s.hoursComplianceAvailable || s.totalRequiredHours > 0;
+  const convoyDays = data.days.filter((d) => (d.status?.includes('قافلة') || d.hasConvoyFundi) && !d.status?.includes('فاندي')).length;
+  const fundiDays = data.days.filter((d) => d.status?.includes('فاندي')).length;
+  const cDays = data.days.length > 0 ? convoyDays : s.convoyFundiDays;
+  const fDays = data.days.length > 0 ? fundiDays : 0;
 
   // ── فلترة وترتيب الأيام ──
   const [dayFilter, setDayFilter] = useState<DayFilter>('all');
@@ -478,11 +487,20 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
           />
           <MetricCard label="أذونات" value={s.permitCount} icon={Clock} onClick={scrollToDays} />
           <MetricCard
-            label="قوافل وفاندي"
-            value={s.convoyFundiDays}
+            label="أيام القوافل"
+            value={cDays}
             icon={CalendarDays}
             onClick={() => {
               setDayFilter('convoy');
+              scrollToDays();
+            }}
+          />
+          <MetricCard
+            label="أيام الفاندي"
+            value={fDays}
+            icon={CalendarDays}
+            onClick={() => {
+              setDayFilter('fundi');
               scrollToDays();
             }}
           />

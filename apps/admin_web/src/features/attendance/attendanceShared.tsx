@@ -210,7 +210,7 @@ export function StatusPill({ d }: { d: AttendanceStatement['days'][number] }) {
 
 // ─── فلترة وترتيب الأيام ─────────────────────────────────────────
 
-export type DayFilter = 'all' | 'present' | 'absent' | 'leave' | 'mission' | 'convoy' | 'open' | 'upcoming' | 'rest';
+export type DayFilter = 'all' | 'present' | 'absent' | 'leave' | 'mission' | 'convoy' | 'fundi' | 'open' | 'upcoming' | 'rest';
 export type DaySort = 'date-asc' | 'date-desc' | 'status';
 
 export const DAY_FILTERS: { key: DayFilter; label: string }[] = [
@@ -219,7 +219,8 @@ export const DAY_FILTERS: { key: DayFilter; label: string }[] = [
   { key: 'absent', label: 'غائب' },
   { key: 'leave', label: 'إجازة' },
   { key: 'mission', label: 'مأمورية' },
-  { key: 'convoy', label: 'قافلة/فاندي' },
+  { key: 'convoy', label: 'قافلة' },
+  { key: 'fundi', label: 'فاندي' },
   { key: 'open', label: 'وردية مفتوحة' },
   { key: 'upcoming', label: 'قادمة' },
   { key: 'rest', label: 'راحة/عطلة' },
@@ -250,7 +251,10 @@ export function filterDays(days: AttendanceStatementDay[], filter: DayFilter, se
           if (!d.hasMission) return false;
           break;
         case 'convoy':
-          if (!d.hasConvoyFundi) return false;
+          if (!((d.status?.includes('قافلة') || d.hasConvoyFundi) && !d.status?.includes('فاندي'))) return false;
+          break;
+        case 'fundi':
+          if (!d.status?.includes('فاندي')) return false;
           break;
         case 'open':
           if (!d.isOpenShift) return false;

@@ -112,6 +112,10 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
   const attendancePct = s.attendanceRate ?? (dueDays > 0 ? (presentInDue / dueDays) * 100 : 0);
   const compliancePct = s.hoursComplianceRate ?? 0;
   const complianceAvailable = s.hoursComplianceAvailable || s.totalRequiredHours > 0;
+  const convoyDays = data.days.filter((d) => (d.status?.includes('قافلة') || d.hasConvoyFundi) && !d.status?.includes('فاندي')).length;
+  const fundiDays = data.days.filter((d) => d.status?.includes('فاندي')).length;
+  const cDays = data.days.length > 0 ? convoyDays : s.convoyFundiDays;
+  const fDays = data.days.length > 0 ? fundiDays : 0;
 
   // ── فلترة وترتيب الأيام ──
   const [dayFilter, setDayFilter] = useState<DayFilter>('all');
@@ -136,7 +140,8 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
           <StatBox label="أيام الإجازات" value={s.leaveDays} icon={CalendarDays} />
           <StatBox label="أيام المأموريات" value={s.missionDays} icon={TrendingUp} />
           <StatBox label="أذونات" value={s.permitCount} icon={Clock} />
-          <StatBox label="قوافل وفاندي" value={s.convoyFundiDays} icon={CalendarDays} />
+          <StatBox label="أيام القوافل" value={cDays} icon={CalendarDays} />
+          <StatBox label="أيام الفاندي" value={fDays} icon={CalendarDays} />
           <StatBox
             label="ساعات العمل"
             value={workedHours.toFixed(1)}

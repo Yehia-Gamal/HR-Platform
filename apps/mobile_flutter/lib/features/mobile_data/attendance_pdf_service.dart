@@ -125,6 +125,10 @@ Future<Uint8List> _buildAttendancePdf(MonthlyAttendanceStatement stmt) async {
   final attendancePct = stmt.attendancePercentage;
   final compliancePct = s.hoursComplianceRate;
   final complianceAvailable = s.hoursComplianceAvailable;
+  final convoyDays = stmt.days.where((d) => (d.status.contains('قافلة') || d.hasConvoyFundi) && !d.status.contains('فاندي')).length;
+  final fundiDays = stmt.days.where((d) => d.status.contains('فاندي')).length;
+  final cDays = stmt.days.isNotEmpty ? convoyDays : s.convoyFundiDays;
+  final fDays = stmt.days.isNotEmpty ? fundiDays : 0;
 
   final now = DateTime.now();
   final printDate = '${now.day} ${_months[now.month - 1]} ${now.year}';
@@ -265,7 +269,8 @@ Future<Uint8List> _buildAttendancePdf(MonthlyAttendanceStatement stmt) async {
             _metric('أيام الإجازات', '${s.leaveDays}'),
             _metric('أيام المأموريات', '${s.missionDays}'),
             _metric('أذونات', '${s.permitCount}'),
-            _metric('قوافل وفاندي', '${s.convoyFundiDays}'),
+            _metric('أيام القوافل', '$cDays'),
+            _metric('أيام الفاندي', '$fDays'),
             _metric('ساعات العمل',
                 (s.hoursRateWorkedMinutes / 60).toStringAsFixed(1),
                 hint:
