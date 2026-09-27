@@ -3260,3 +3260,30 @@ class MobileTeamAttendanceCorrection {
   }
 }
 
+/// نموذج بيانات الموظف في لوحة الشرف ومنصة التتويج الشرفية
+class HonoreeItem {
+  const HonoreeItem({
+    required this.rank,
+    required this.name,
+    required this.department,
+    required this.achievement,
+    required this.metric,
+    this.photoUrl,
+  });
+
+  factory HonoreeItem.fromJson(Map<String, dynamic> json) => HonoreeItem(
+        rank: (json['rank'] as num?)?.toInt() ?? 1,
+        name: json['name'] as String? ?? '',
+        department: json['department'] as String? ?? '',
+        achievement: json['achievement'] as String? ?? '',
+        metric: json['metric'] as String? ?? '',
+        photoUrl: json['photo_url'] as String?,
+      );
+
+  final int rank;
+  final String name;
+  final String department;
+  final String achievement;
+  final String metric;
+  final String? photoUrl;
+}

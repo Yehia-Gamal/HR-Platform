@@ -1,8 +1,9 @@
 import { Award, Calendar, CheckCircle2, Medal, Plus, Sparkles, Star, Trophy } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
 import { useToast } from '../../ui/Toast';
+import { getSupabase } from '../../core/supabase';
 
 export interface HonorRecord {
   id: string;
@@ -14,39 +15,6 @@ export interface HonorRecord {
   periodLabel: string;
   earnedDate: string;
 }
-
-const DEFAULT_HONOR_RECORDS: HonorRecord[] = [
-  {
-    id: 'h1',
-    type: 'month',
-    rank: 1,
-    category: 'attendance',
-    title: 'موظف الشهر — الانضباط والحضور التام',
-    achievement: 'حضور كامل بنسبة 100% بدون أي تأخيرات أو انصراف مبكر طوال الشهر.',
-    periodLabel: 'شهر سبتمبر 2026',
-    earnedDate: '2026-09-26',
-  },
-  {
-    id: 'h2',
-    type: 'week',
-    rank: 1,
-    category: 'missions',
-    title: 'موظف الأسبوع — إنجاز المأموريات الميدانية',
-    achievement: 'إنجاز 6 مأموريات وزيارات ميدانية موثقة بنجاح ودقة عالية في الموعد.',
-    periodLabel: 'الأسبوع 38 (سبتمبر)',
-    earnedDate: '2026-09-20',
-  },
-  {
-    id: 'h3',
-    type: 'month',
-    rank: 2,
-    category: 'reports',
-    title: 'المركز الثاني — تسليم التقارير اليومية',
-    achievement: 'تسليم 26 تقريراً يومياً معتمداً في الموعد المحدد بنسبة إنجاز 100%.',
-    periodLabel: 'شهر أغسطس 2026',
-    earnedDate: '2026-08-31',
-  },
-];
 
 const RANK_BADGES = {
   1: {
@@ -81,10 +49,10 @@ const CATEGORY_LABELS = {
   reports: 'المهام والتقارير اليومية',
 };
 
-export function EmployeeRecognitionTab({ employeeId: _employeeId }: { employeeId: string }) {
+export function EmployeeRecognitionTab({ employeeId }: { employeeId: string }) {
   const auth = useAuth();
   const { toast } = useToast();
-  const [records, setRecords] = useState<HonorRecord[]>(DEFAULT_HONOR_RECORDS);
+  const [records, setRecords] = useState<HonorRecord[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
 
   const [newType, setNewType] = useState<'month' | 'week'>('month');
@@ -92,6 +60,35 @@ export function EmployeeRecognitionTab({ employeeId: _employeeId }: { employeeId
   const [newCategory, setNewCategory] = useState<'attendance' | 'missions' | 'reports'>('attendance');
   const [newPeriod, setNewPeriod] = useState('شهر سبتمبر 2026');
   const [newAchievement, setNewAchievement] = useState('');
+
+  // استرجاع سجلات التكريم الحقيقية للموظف من قاعدة البيانات
+  useEffect(() => {
+    if (!employeeId) return;
+    let isCancelled = false;
+    getSupabase().then((sb) => {
+      sb.from('recognitions')
+        .select('*')
+        .eq('recipient_employee_id', employeeId)
+        .order('awarded_at', { ascending: false })
+        .then(({ data }) => {
+          if (isCancelled || !data) return;
+          const mapped: HonorRecord[] = data.map((r: any) => ({
+            id: r.id,
+            type: (r.recognition_type === 'week' ? 'week' : 'month') as 'month' | 'week',
+            rank: ((r.metadata?.rank as number) ?? 1) as 1 | 2 | 3,
+            category: ((r.metadata?.category as string) ?? 'attendance') as 'attendance' | 'missions' | 'reports',
+            title: r.title || 'تكريم في لوحة الشرف',
+            achievement: r.message || '',
+            periodLabel: r.metadata?.periodLabel || 'الدورة الحالية',
+            earnedDate: r.awarded_at ? r.awarded_at.split('T')[0] : '',
+          }));
+          setRecords(mapped);
+        });
+    });
+    return () => {
+      isCancelled = true;
+    };
+  }, [employeeId]);
 
   const canGrant = Boolean(
     auth.access && (hasPermission(auth.access, 'people.employee.update_sensitive') || auth.access.workspaces?.includes('main_admin')),
@@ -101,7 +98,7 @@ export function EmployeeRecognitionTab({ employeeId: _employeeId }: { employeeId
   const weekCount = records.filter((r) => r.type === 'week' && r.rank === 1).length;
   const totalPodiums = records.length;
 
-  const handleAddHonor = (e: React.FormEvent) => {
+  const handleAddHonor = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const titlePrefix = newType === 'month' ? 'موظف الشهر' : 'موظف الأسبوع';
@@ -119,10 +116,28 @@ export function EmployeeRecognitionTab({ employeeId: _employeeId }: { employeeId
       earnedDate: new Date().toISOString().split('T')[0],
     };
 
-    setRecords([newRecord, ...records]);
+    setRecords((prev) => [newRecord, ...prev]);
     setShowAddModal(false);
     setNewAchievement('');
-    toast({ message: `تم إدراج الموظف في لوحة الشرف (${generatedTitle}) بنجاح!`, tone: 'success' });
+
+    try {
+      const sb = await getSupabase();
+      await sb.from('recognitions').insert({
+        recipient_employee_id: employeeId,
+        recognition_type: newType,
+        title: generatedTitle,
+        message: newRecord.achievement,
+        metadata: {
+          rank: newRank,
+          category: newCategory,
+          periodLabel: newRecord.periodLabel,
+        },
+        awarded_at: new Date().toISOString(),
+      });
+      toast({ message: `تم إدراج الموظف في لوحة الشرف (${generatedTitle}) بنجاح!`, tone: 'success' });
+    } catch {
+      toast({ message: `تم تسجيل التكريم محلياً (${generatedTitle})`, tone: 'info' });
+    }
   };
 
   return (

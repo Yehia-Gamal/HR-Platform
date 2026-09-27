@@ -659,3 +659,26 @@ final myInstantPenaltiesProvider =
       .map(MobileInstantPenalty.fromJson)
       .toList(growable: false);
 });
+
+// ─── لوحة الشرف ومنصة التتويج الشرفية ─────────────────────────────────────
+/// استدعاء بيانات لوحة الشرف الديناميكية من السيستم وقاعدة البيانات
+final honorBoardProvider =
+    FutureProvider.family<List<HonoreeItem>, (String, String)>((
+      ref,
+      params,
+    ) async {
+      final (period, category) = params;
+      final data = await rpcWithTimeout(
+        ref
+            .watch(supabaseProvider)
+            .rpc<dynamic>(
+              'get_honor_board',
+              params: {'p_period': period, 'p_category': category},
+            ),
+      );
+      final list = (data as List<dynamic>? ?? const [])
+          .whereType<Map<dynamic, dynamic>>()
+          .map((m) => Map<String, dynamic>.from(m))
+          .toList(growable: false);
+      return list.map(HonoreeItem.fromJson).toList(growable: false);
+    });

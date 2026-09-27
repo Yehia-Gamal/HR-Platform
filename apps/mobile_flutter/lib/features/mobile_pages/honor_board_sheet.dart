@@ -1,4 +1,5 @@
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
@@ -17,27 +18,8 @@ enum HonorCategory {
   reports,
 }
 
-/// نموذج بيانات الموظف في لوحة الشرف
-class HonoreeItem {
-  const HonoreeItem({
-    required this.rank,
-    required this.name,
-    required this.department,
-    required this.achievement,
-    required this.metric,
-    this.photoUrl,
-  });
-
-  final int rank;
-  final String name;
-  final String department;
-  final String achievement;
-  final String metric;
-  final String? photoUrl;
-}
-
 /// بطاقة ملخص لوحة الشرف في الصفحة الرئيسية للموظف
-class HonorBoardSummaryCard extends StatelessWidget {
+class HonorBoardSummaryCard extends ConsumerWidget {
   const HonorBoardSummaryCard({super.key});
 
   void _showHonorBoard(BuildContext context) {
@@ -50,8 +32,17 @@ class HonorBoardSummaryCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final monthData = ref.watch(honorBoardProvider(('month', 'attendance'))).value;
+    final weekData = ref.watch(honorBoardProvider(('week', 'attendance'))).value;
+
+    final monthHero = monthData?.isNotEmpty == true ? monthData![0] : null;
+    final weekHero = weekData?.isNotEmpty == true ? weekData![0] : null;
+
+    final monthName = monthHero?.name.isNotEmpty == true ? monthHero!.name : 'عمار محمد عبد الباسط';
+    final monthMetric = monthHero?.metric.isNotEmpty == true ? monthHero!.metric : '100% انضباط';
+    final weekName = weekHero?.name.isNotEmpty == true ? weekHero!.name : 'حامد محمود العمدة';
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
@@ -180,10 +171,10 @@ class HonorBoardSummaryCard extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          '🥇 موظف الشهر: أحمد محمود (100% انضباط) · موظف الأسبوع: سارة خالد',
-                          style: TextStyle(
+                          '🥇 موظف الشهر: $monthName ($monthMetric) · موظف الأسبوع: $weekName',
+                          style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                             color: Color(0xFFB45309),
@@ -222,117 +213,133 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
   HonorPeriod _period = HonorPeriod.month;
   HonorCategory _category = HonorCategory.attendance;
 
-  static const Map<HonorPeriod, Map<HonorCategory, List<HonoreeItem>>> _honoreesData = {
+  /// قائمة احتياطية ببيانات الموظفين الفعليين المسجلين في الجمعية في حال عدم توفر اتصال لحظي
+  static const Map<HonorPeriod, Map<HonorCategory, List<HonoreeItem>>> _fallbackHonorees = {
     HonorPeriod.month: {
       HonorCategory.attendance: [
         HonoreeItem(
           rank: 1,
-          name: 'أحمد محمود رضوان',
-          department: 'العمليات الميدانية',
-          achievement: 'حضور كامل 26/26 يوماً بالموعد المحدد',
+          name: 'عمار محمد عبد الباسط',
+          department: 'إدارة الميديا',
+          achievement: 'حضور كامل 21 يوماً بدون أي تأخير',
           metric: '100% انضباط',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/72ab35cd-6a41-4c65-ae07-5a65ad7ff081.webp',
         ),
         HonoreeItem(
           rank: 2,
-          name: 'سارة خالد المنشاوي',
-          department: 'خدمة العملاء والدعم',
-          achievement: 'التزام تام بدون أي تأخير أو انصراف مبكر',
-          metric: '99.5% انضباط',
+          name: 'حامد محمود العمدة',
+          department: 'لجنة أسرة كريمة',
+          achievement: 'حضور كامل 20 يوماً بدون أي تأخير',
+          metric: '100% انضباط',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/15b92a99-0c55-477c-b847-251c010dd7ab.webp',
         ),
         HonoreeItem(
           rank: 3,
-          name: 'كريم عادل الشريف',
-          department: 'الشؤون الإدارية',
-          achievement: 'دقة عالية في تسجيل الحضور والانصراف',
-          metric: '98.5% انضباط',
+          name: 'محمد سيد محمد',
+          department: 'إدارة اللوجستيك',
+          achievement: 'التزام تام 19 يوماً بدقة عالية',
+          metric: '100% انضباط',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/public/employee-avatars/c86776ce-f5e5-4c09-920c-db5b923c0b90/avatar_1786434752876.png',
         ),
         HonoreeItem(
           rank: 4,
-          name: 'مي عبد الرحمن طه',
-          department: 'إدارة المشروعات',
-          achievement: 'حضور مبكر ومستمر طوال الشهر',
-          metric: '97.5% انضباط',
+          name: 'مصطفي أحمد',
+          department: 'إدارة العيادات الطبية',
+          achievement: 'التزام تام 17 يوماً بدقة عالية',
+          metric: '100% انضباط',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/3e950d11-b5b4-4652-9ecf-919c434222fc/avatar_1785929477053.png',
         ),
         HonoreeItem(
           rank: 5,
-          name: 'حسام الدين علي',
-          department: 'المكتب الفني',
-          achievement: 'التزام متواصل بالدوام الرسمي',
-          metric: '96.5% انضباط',
+          name: 'عبد القادر جمال عبد القادر',
+          department: 'إدارة الشؤون الإدارية والقانونية',
+          achievement: 'التزام تام 16 يوماً بدقة عالية',
+          metric: '100% انضباط',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/37181f8a-3966-48c2-985b-0b807cb04230.webp',
         ),
       ],
       HonorCategory.missions: [
         HonoreeItem(
           rank: 1,
-          name: 'محمود إبراهيم عطية',
-          department: 'قسم المسح الميداني',
-          achievement: 'إنجاز كافة المأموريات في الموعد وبدقة',
-          metric: '18 مأمورية',
+          name: 'حاتم محمد سالم',
+          department: 'إدارة الحركة',
+          achievement: 'تنفيذ زيارات ومأموريات ميدانية واسعة التغطية',
+          metric: '8 مأموريات',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/70a63425-4285-414b-b980-376f3601d155.webp',
         ),
         HonoreeItem(
           rank: 2,
-          name: 'طارق مصطفى سالم',
-          department: 'فريق القوافل الخارجية',
-          achievement: 'تنفيذ زيارات ميدانية عالية التوثيق',
-          metric: '15 مأمورية',
+          name: 'عبد القادر جمال عبد القادر',
+          department: 'إدارة الشؤون الإدارية والقانونية',
+          achievement: 'تنفيذ زيارات ومأموريات ميدانية واسعة التغطية',
+          metric: '7 مأموريات',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/37181f8a-3966-48c2-985b-0b807cb04230.webp',
         ),
         HonoreeItem(
           rank: 3,
-          name: 'يوسف عثمان بدر',
-          department: 'المتابعة والعمليات',
-          achievement: 'تغطية واسعة لكافة المواقع المحددة',
-          metric: '13 مأمورية',
+          name: 'محمد سيد محمد',
+          department: 'إدارة اللوجستيك',
+          achievement: 'تنفيذ زيارات ومأموريات ميدانية واسعة التغطية',
+          metric: '5 مأموريات',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/public/employee-avatars/c86776ce-f5e5-4c09-920c-db5b923c0b90/avatar_1786434752876.png',
         ),
         HonoreeItem(
           rank: 4,
-          name: 'هاني كمال الدسوقي',
-          department: 'الدعم الميداني',
-          achievement: 'سرعة الاستجابة الميدانية للمهام',
-          metric: '11 مأمورية',
+          name: 'محمد عبدالعظيم محمد',
+          department: 'اللجنة الطبية',
+          achievement: 'تنفيذ زيارات ومأموريات ميدانية واسعة التغطية',
+          metric: '5 مأموريات',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/9e7f11b8-7b9d-4fe7-8a2b-21f61fe99a21.webp',
         ),
         HonoreeItem(
           rank: 5,
-          name: 'سامح رفعت فؤاد',
-          department: 'التوزيع واللوجستيات',
-          achievement: 'إنجاز مهام التوزيع الميداني بنجاح',
-          metric: '10 مأموريات',
+          name: 'ربيع محمد أبو زيد',
+          department: 'إدارة الحركة',
+          achievement: 'تنفيذ زيارات ومأموريات ميدانية واسعة التغطية',
+          metric: '5 مأموريات',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/public/employee-avatars/admin/6a4a62a5-23d3-41c7-bf1e-9fd90aa886c8.webp',
         ),
       ],
       HonorCategory.reports: [
         HonoreeItem(
           rank: 1,
-          name: 'نور الهدى سليمان',
-          department: 'قسم التوثيق والجودة',
-          achievement: 'تسليم جميع التقارير اليومية في الموعد',
-          metric: '28 تقريراً',
+          name: 'محمد عبدالعظيم محمد',
+          department: 'اللجنة الطبية',
+          achievement: 'تسليم جميع التقارير اليومية في الموعد المحدد',
+          metric: '10 تقارير',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/9e7f11b8-7b9d-4fe7-8a2b-21f61fe99a21.webp',
         ),
         HonoreeItem(
           rank: 2,
-          name: 'عمرو حسني زايد',
-          department: 'إدارة المشروعات',
-          achievement: 'توثيق شامل ودقيق لمهام العمل اليومية',
-          metric: '26 تقريراً',
+          name: 'محمد سيد محمد',
+          department: 'إدارة اللوجستيك',
+          achievement: 'توثيق شامل ومعتمد للأنشطة والمهام',
+          metric: '9 تقارير',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/public/employee-avatars/c86776ce-f5e5-4c09-920c-db5b923c0b90/avatar_1786434752876.png',
         ),
         HonoreeItem(
           rank: 3,
-          name: 'فاطمة الزهراء حسن',
-          department: 'تنسيق العمليات',
-          achievement: 'جودة متميزة وسرعة في رفع البيانات',
-          metric: '25 تقريراً',
+          name: 'محمد عبده رجب مزار',
+          department: 'ادارة المطابخ',
+          achievement: 'توثيق شامل ومعتمد للأنشطة والمهام',
+          metric: '3 تقارير',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/e4471a93-33ed-484f-9ce6-283acae73470.jpeg',
         ),
         HonoreeItem(
           rank: 4,
-          name: 'إسلام وجدي مرعي',
-          department: 'الدعم التشغيلي',
-          achievement: 'التزام دائم بتحديث سجلات المهام',
-          metric: '23 تقريراً',
+          name: 'إبراهيم سلامة عبد الجواد',
+          department: 'إدارة الشؤون الإدارية والقانونية',
+          achievement: 'توثيق شامل ومعتمد للأنشطة والمهام',
+          metric: '1 تقرير',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/2689e62a-ec4c-4c4c-8f35-61029616fab2.webp',
         ),
         HonoreeItem(
           rank: 5,
-          name: 'رحاب نبيل فهمي',
-          department: 'إدارة البيانات',
-          achievement: 'تقارير دورية متكاملة ومعتمدة',
-          metric: '22 تقريراً',
+          name: 'عمار محمد عبد الباسط',
+          department: 'إدارة الميديا',
+          achievement: 'متابعة دورية وتوثيق مستمر لمهام العمل',
+          metric: 'توثيق منتظم',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/72ab35cd-6a41-4c65-ae07-5a65ad7ff081.webp',
         ),
       ],
     },
@@ -340,112 +347,127 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
       HonorCategory.attendance: [
         HonoreeItem(
           rank: 1,
-          name: 'سارة خالد المنشاوي',
-          department: 'خدمة العملاء والدعم',
-          achievement: 'حضور أسبوعي مثالي بالدقيقة طوال الدوام',
+          name: 'حامد محمود العمدة',
+          department: 'لجنة أسرة كريمة',
+          achievement: 'التزام تام طوال الأسبوع بالدوام الرسمي',
           metric: '100% انضباط',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/15b92a99-0c55-477c-b847-251c010dd7ab.webp',
         ),
         HonoreeItem(
           rank: 2,
-          name: 'كريم عادل الشريف',
-          department: 'الشؤون الإدارية',
-          achievement: 'التزام كامل بدون دقيقة تأخير واحدة',
+          name: 'محمد سيد محمد',
+          department: 'إدارة اللوجستيك',
+          achievement: 'التزام تام طوال الأسبوع بالدوام الرسمي',
           metric: '100% انضباط',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/public/employee-avatars/c86776ce-f5e5-4c09-920c-db5b923c0b90/avatar_1786434752876.png',
         ),
         HonoreeItem(
           rank: 3,
-          name: 'أحمد محمود رضوان',
-          department: 'العمليات الميدانية',
-          achievement: 'انضباط ممتاز طوال أيام الأسبوع الحالي',
-          metric: '99% انضباط',
+          name: 'عمار محمد عبد الباسط',
+          department: 'إدارة الميديا',
+          achievement: 'التزام تام طوال الأسبوع بالدوام الرسمي',
+          metric: '100% انضباط',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/72ab35cd-6a41-4c65-ae07-5a65ad7ff081.webp',
         ),
         HonoreeItem(
           rank: 4,
-          name: 'مروان عماد الدين',
-          department: 'تقنية المعلومات',
-          achievement: 'بصمة في الموعد المحدد يومياً',
-          metric: '98% انضباط',
+          name: 'محمد عبده رجب مزار',
+          department: 'ادارة المطابخ',
+          achievement: 'حضور يومي بدون أي تأخير',
+          metric: '100% انضباط',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/e4471a93-33ed-484f-9ce6-283acae73470.jpeg',
         ),
         HonoreeItem(
           rank: 5,
-          name: 'آية سمير شكري',
-          department: 'الموارد البشرية',
-          achievement: 'التزام بالدوام الرسمي بالكامل',
-          metric: '97% انضباط',
+          name: 'يوسف رسمي شعبان',
+          department: 'مدير مجمع منيل شيحة',
+          achievement: 'التزام تام بالدوام الرسمي للمجمع',
+          metric: '100% انضباط',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/d0653222-9777-464f-a14c-02a11bcfb84c/avatar_1785924358551.png',
         ),
       ],
       HonorCategory.missions: [
         HonoreeItem(
           rank: 1,
-          name: 'طارق مصطفى سالم',
-          department: 'فريق القوافل الخارجية',
+          name: 'حاتم محمد سالم',
+          department: 'إدارة الحركة',
           achievement: 'الأعلى إنجازاً للمأموريات هذا الأسبوع',
-          metric: '6 مأموريات',
+          metric: '4 مأموريات',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/70a63425-4285-414b-b980-376f3601d155.webp',
         ),
         HonoreeItem(
           rank: 2,
-          name: 'محمود إبراهيم عطية',
-          department: 'قسم المسح الميداني',
+          name: 'عبد القادر جمال عبد القادر',
+          department: 'إدارة الشؤون الإدارية والقانونية',
           achievement: 'تنفيذ سريع وموثق لكافة الزيارات',
-          metric: '5 مأموريات',
+          metric: '3 مأموريات',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/37181f8a-3966-48c2-985b-0b807cb04230.webp',
         ),
         HonoreeItem(
           rank: 3,
-          name: 'سامح رفعت فؤاد',
-          department: 'التوزيع واللوجستيات',
+          name: 'ربيع محمد أبو زيد',
+          department: 'إدارة الحركة',
           achievement: 'تغطية ميدانية متميزة بالمواقع',
-          metric: '4 مأموريات',
+          metric: '2 مأموريات',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/public/employee-avatars/admin/6a4a62a5-23d3-41c7-bf1e-9fd90aa886c8.webp',
         ),
         HonoreeItem(
           rank: 4,
-          name: 'يوسف عثمان بدر',
-          department: 'المتابعة والعمليات',
+          name: 'محمد سيد محمد',
+          department: 'إدارة اللوجستيك',
           achievement: 'إنجاز المهام الخارجية بدقة',
-          metric: '4 مأموريات',
+          metric: '2 مأموريات',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/public/employee-avatars/c86776ce-f5e5-4c09-920c-db5b923c0b90/avatar_1786434752876.png',
         ),
         HonoreeItem(
           rank: 5,
-          name: 'وائل كمال صبحي',
-          department: 'الدعم الميداني',
-          achievement: 'استجابة ميدانية فورية',
-          metric: '3 مأموريات',
+          name: 'محمد عبدالعظيم محمد',
+          department: 'اللجنة الطبية',
+          achievement: 'استجابة ميدانية فورية وتوثيق شامل',
+          metric: '2 مأموريات',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/9e7f11b8-7b9d-4fe7-8a2b-21f61fe99a21.webp',
         ),
       ],
       HonorCategory.reports: [
         HonoreeItem(
           rank: 1,
-          name: 'عمرو حسني زايد',
-          department: 'إدارة المشروعات',
+          name: 'محمد عبدالعظيم محمد',
+          department: 'اللجنة الطبية',
           achievement: 'إنجاز يومي كامل لتقارير العمل الميداني',
-          metric: '6 تقارير',
+          metric: '4 تقارير',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/9e7f11b8-7b9d-4fe7-8a2b-21f61fe99a21.webp',
         ),
         HonoreeItem(
           rank: 2,
-          name: 'نور الهدى سليمان',
-          department: 'قسم التوثيق والجودة',
+          name: 'محمد سيد محمد',
+          department: 'إدارة اللوجستيك',
           achievement: 'تسليم في الموعد بدون أي تأخير',
-          metric: '6 تقارير',
+          metric: '9 تقارير سابقة',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/public/employee-avatars/c86776ce-f5e5-4c09-920c-db5b923c0b90/avatar_1786434752876.png',
         ),
         HonoreeItem(
           rank: 3,
-          name: 'إسلام وجدي مرعي',
-          department: 'الدعم التشغيلي',
+          name: 'محمد عبده رجب مزار',
+          department: 'ادارة المطابخ',
           achievement: 'تقارير مفصلة للمهام المنجزة',
-          metric: '5 تقارير',
+          metric: '3 تقارير سابقة',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/e4471a93-33ed-484f-9ce6-283acae73470.jpeg',
         ),
         HonoreeItem(
           rank: 4,
-          name: 'رحاب نبيل فهمي',
-          department: 'إدارة البيانات',
+          name: 'إبراهيم سلامة عبد الجواد',
+          department: 'إدارة الشؤون الإدارية والقانونية',
           achievement: 'دقة عالية في توثيق الأنشطة',
-          metric: '5 تقارير',
+          metric: '1 تقرير سابق',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/2689e62a-ec4c-4c4c-8f35-61029616fab2.webp',
         ),
         HonoreeItem(
           rank: 5,
-          name: 'زياد علاء حماد',
-          department: 'التنسيق والمتابعة',
-          achievement: 'رفع التقارير المعتمدة يومياً',
-          metric: '5 تقارير',
+          name: 'عمار محمد عبد الباسط',
+          department: 'إدارة الميديا',
+          achievement: 'رفع التقارير والتوثيق الميداني بانتظام',
+          metric: 'توثيق منتظم',
+          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/72ab35cd-6a41-4c65-ae07-5a65ad7ff081.webp',
         ),
       ],
     },
@@ -456,7 +478,18 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
     final scheme = Theme.of(context).colorScheme;
     final currentProfile = ref.watch(mobileProfileProvider).value;
     final currentName = currentProfile?.fullNameAr ?? '';
-    final honorees = _honoreesData[_period]?[_category] ?? const [];
+
+    final periodStr = _period == HonorPeriod.month ? 'month' : 'week';
+    final categoryStr = switch (_category) {
+      HonorCategory.attendance => 'attendance',
+      HonorCategory.missions => 'missions',
+      HonorCategory.reports => 'reports',
+    };
+
+    final asyncData = ref.watch(honorBoardProvider((periodStr, categoryStr)));
+    final honorees = (asyncData.value != null && asyncData.value!.isNotEmpty)
+        ? asyncData.value!
+        : (_fallbackHonorees[_period]?[_category] ?? const <HonoreeItem>[]);
 
     final first = honorees.isNotEmpty ? honorees[0] : null;
     final second = honorees.length > 1 ? honorees[1] : null;
@@ -953,7 +986,13 @@ class _HonoreeListCard extends StatelessWidget {
       2 => ('🥈', const Color(0xFF94A3B8), 'المركز الثاني'),
       3 => ('🥉', const Color(0xFFB45309), 'المركز الثالث'),
       4 => ('4️⃣', scheme.primary, 'المركز الرابع'),
-      _ => ('5️⃣', scheme.secondary, 'المركز الخامس'),
+      5 => ('5️⃣', scheme.secondary, 'المركز الخامس'),
+      6 => ('6️⃣', scheme.secondary, 'المركز السادس'),
+      7 => ('7️⃣', scheme.secondary, 'المركز السابع'),
+      8 => ('8️⃣', scheme.secondary, 'المركز الثامن'),
+      9 => ('9️⃣', scheme.secondary, 'المركز التاسع'),
+      10 => ('🔟', scheme.secondary, 'المركز العاشر'),
+      _ => ('🎖️', scheme.secondary, 'المركز ${item.rank}'),
     };
 
     return Container(
