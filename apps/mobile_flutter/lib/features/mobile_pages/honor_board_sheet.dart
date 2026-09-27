@@ -40,9 +40,10 @@ class HonorBoardSummaryCard extends ConsumerWidget {
     final monthHero = monthData?.isNotEmpty == true ? monthData![0] : null;
     final weekHero = weekData?.isNotEmpty == true ? weekData![0] : null;
 
-    final monthName = monthHero?.name.isNotEmpty == true ? monthHero!.name : 'عمار محمد عبد الباسط';
-    final monthMetric = monthHero?.metric.isNotEmpty == true ? monthHero!.metric : '100% انضباط';
-    final weekName = weekHero?.name.isNotEmpty == true ? weekHero!.name : 'احمد محمد عبدالفتاح محجوب';
+    // بلا بيانات بعد: نص محايد — كانت هنا أسماء ونسبة ثابتة تُعرض كأنها نتيجة.
+    final monthName = monthHero?.name.isNotEmpty == true ? monthHero!.name : 'يُحتسب قريباً';
+    final monthMetric = monthHero?.metric.isNotEmpty == true ? monthHero!.metric : '—';
+    final weekName = weekHero?.name.isNotEmpty == true ? weekHero!.name : 'يُحتسب قريباً';
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
@@ -213,266 +214,6 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
   HonorPeriod _period = HonorPeriod.month;
   HonorCategory _category = HonorCategory.attendance;
 
-  /// قائمة احتياطية ببيانات الموظفين الفعليين المسجلين في الجمعية في حال عدم توفر اتصال لحظي
-  static const Map<HonorPeriod, Map<HonorCategory, List<HonoreeItem>>> _fallbackHonorees = {
-    HonorPeriod.month: {
-      HonorCategory.attendance: [
-        HonoreeItem(
-          rank: 1,
-          name: 'عمار محمد عبد الباسط',
-          department: 'إدارة الميديا',
-          achievement: 'حضور كامل 22 يوماً بدون أي تأخير',
-          metric: '100% انضباط',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/72ab35cd-6a41-4c65-ae07-5a65ad7ff081.webp',
-        ),
-        HonoreeItem(
-          rank: 2,
-          name: 'يحيى جمال السبع',
-          department: 'السكرتير التنفيذي',
-          achievement: 'حضور كامل 18 يوماً بدون أي تأخير',
-          metric: '100% انضباط',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/6f347a78-bb30-4ae5-8b07-2ecfc623f960/avatar_1786031825849.png',
-        ),
-        HonoreeItem(
-          rank: 3,
-          name: 'حامد محمود العمدة',
-          department: 'لجنة أسرة كريمة',
-          achievement: 'التزام تام 22 يوماً بالدوام الرسمي',
-          metric: '96% انضباط',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/15b92a99-0c55-477c-b847-251c010dd7ab.webp',
-        ),
-        HonoreeItem(
-          rank: 4,
-          name: 'محمد سيد محمد',
-          department: 'إدارة اللوجستيك',
-          achievement: 'التزام تام 22 يوماً بالدوام الرسمي',
-          metric: '96% انضباط',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/public/employee-avatars/c86776ce-f5e5-4c09-920c-db5b923c0b90/avatar_1786434752876.png',
-        ),
-        HonoreeItem(
-          rank: 5,
-          name: 'عبد القادر جمال عبد القادر',
-          department: 'إدارة الشؤون الإدارية والقانونية',
-          achievement: 'التزام تام 19 يوماً بالدوام الرسمي',
-          metric: '83% انضباط',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/37181f8a-3966-48c2-985b-0b807cb04230.webp',
-        ),
-      ],
-      HonorCategory.missions: [
-        HonoreeItem(
-          rank: 1,
-          name: 'حاتم محمد سالم',
-          department: 'إدارة الحركة',
-          achievement: 'تنفيذ زيارات ومأموريات ميدانية واسعة التغطية',
-          metric: '8 مأموريات',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/70a63425-4285-414b-b980-376f3601d155.webp',
-        ),
-        HonoreeItem(
-          rank: 2,
-          name: 'عبد القادر جمال عبد القادر',
-          department: 'إدارة الشؤون الإدارية والقانونية',
-          achievement: 'تنفيذ زيارات ومأموريات ميدانية واسعة التغطية',
-          metric: '7 مأموريات',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/37181f8a-3966-48c2-985b-0b807cb04230.webp',
-        ),
-        HonoreeItem(
-          rank: 3,
-          name: 'محمد سيد محمد',
-          department: 'إدارة اللوجستيك',
-          achievement: 'تنفيذ زيارات ومأموريات ميدانية واسعة التغطية',
-          metric: '5 مأموريات',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/public/employee-avatars/c86776ce-f5e5-4c09-920c-db5b923c0b90/avatar_1786434752876.png',
-        ),
-        HonoreeItem(
-          rank: 4,
-          name: 'محمد عبدالعظيم محمد',
-          department: 'اللجنة الطبية',
-          achievement: 'تنفيذ زيارات ومأموريات ميدانية واسعة التغطية',
-          metric: '5 مأموريات',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/9e7f11b8-7b9d-4fe7-8a2b-21f61fe99a21.webp',
-        ),
-        HonoreeItem(
-          rank: 5,
-          name: 'ربيع محمد أبو زيد',
-          department: 'إدارة الحركة',
-          achievement: 'تنفيذ زيارات ومأموريات ميدانية واسعة التغطية',
-          metric: '5 مأموريات',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/public/employee-avatars/admin/6a4a62a5-23d3-41c7-bf1e-9fd90aa886c8.webp',
-        ),
-      ],
-      HonorCategory.reports: [
-        HonoreeItem(
-          rank: 1,
-          name: 'محمد عبدالعظيم محمد',
-          department: 'اللجنة الطبية',
-          achievement: 'تسليم جميع التقارير اليومية في الموعد المحدد',
-          metric: '10 تقارير',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/9e7f11b8-7b9d-4fe7-8a2b-21f61fe99a21.webp',
-        ),
-        HonoreeItem(
-          rank: 2,
-          name: 'محمد سيد محمد',
-          department: 'إدارة اللوجستيك',
-          achievement: 'توثيق شامل ومعتمد للأنشطة والمهام',
-          metric: '9 تقارير',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/public/employee-avatars/c86776ce-f5e5-4c09-920c-db5b923c0b90/avatar_1786434752876.png',
-        ),
-        HonoreeItem(
-          rank: 3,
-          name: 'محمد عبده رجب مزار',
-          department: 'ادارة المطابخ',
-          achievement: 'توثيق شامل ومعتمد للأنشطة والمهام',
-          metric: '3 تقارير',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/e4471a93-33ed-484f-9ce6-283acae73470.jpeg',
-        ),
-        HonoreeItem(
-          rank: 4,
-          name: 'إبراهيم سلامة عبد الجواد',
-          department: 'إدارة الشؤون الإدارية والقانونية',
-          achievement: 'توثيق شامل ومعتمد للأنشطة والمهام',
-          metric: '1 تقرير',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/2689e62a-ec4c-4c4c-8f35-61029616fab2.webp',
-        ),
-        HonoreeItem(
-          rank: 5,
-          name: 'عمار محمد عبد الباسط',
-          department: 'إدارة الميديا',
-          achievement: 'متابعة دورية وتوثيق مستمر لمهام العمل',
-          metric: 'توثيق منتظم',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/72ab35cd-6a41-4c65-ae07-5a65ad7ff081.webp',
-        ),
-      ],
-    },
-    HonorPeriod.week: {
-      HonorCategory.attendance: [
-        HonoreeItem(
-          rank: 1,
-          name: 'احمد محمد عبدالفتاح محجوب',
-          department: 'إدارة الشؤون الإدارية والقانونية',
-          achievement: 'حضور كامل 2 يوماً بدون أي تأخير',
-          metric: '100% انضباط',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/9f8afff9-81a9-4d35-ba9a-5a0517b9cff0.webp',
-        ),
-        HonoreeItem(
-          rank: 2,
-          name: 'حاتم محمد سالم',
-          department: 'إدارة الحركة',
-          achievement: 'حضور كامل 7 يوماً بدون أي تأخير',
-          metric: '100% انضباط',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/70a63425-4285-414b-b980-376f3601d155.webp',
-        ),
-        HonoreeItem(
-          rank: 3,
-          name: 'عمار محمد عبد الباسط',
-          department: 'إدارة الميديا',
-          achievement: 'حضور كامل 7 يوماً بدون أي تأخير',
-          metric: '100% انضباط',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/72ab35cd-6a41-4c65-ae07-5a65ad7ff081.webp',
-        ),
-        HonoreeItem(
-          rank: 4,
-          name: 'يوسف رسمي شعبان',
-          department: 'مدير مجمع منيل شيحة',
-          achievement: 'حضور كامل 7 يوماً بدون أي تأخير',
-          metric: '100% انضباط',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/d0653222-9777-464f-a14c-02a11bcfb84c/avatar_1785924358551.png',
-        ),
-        HonoreeItem(
-          rank: 5,
-          name: 'محمد عبده رجب مزار',
-          department: 'ادارة المطابخ',
-          achievement: 'حضور كامل 8 يوماً بدون أي تأخير',
-          metric: '100% انضباط',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/e4471a93-33ed-484f-9ce6-283acae73470.jpeg',
-        ),
-      ],
-      HonorCategory.missions: [
-        HonoreeItem(
-          rank: 1,
-          name: 'حاتم محمد سالم',
-          department: 'إدارة الحركة',
-          achievement: 'الأعلى إنجازاً للمأموريات هذا الأسبوع',
-          metric: '4 مأموريات',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/70a63425-4285-414b-b980-376f3601d155.webp',
-        ),
-        HonoreeItem(
-          rank: 2,
-          name: 'عبد القادر جمال عبد القادر',
-          department: 'إدارة الشؤون الإدارية والقانونية',
-          achievement: 'تنفيذ سريع وموثق لكافة الزيارات',
-          metric: '3 مأموريات',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/37181f8a-3966-48c2-985b-0b807cb04230.webp',
-        ),
-        HonoreeItem(
-          rank: 3,
-          name: 'ربيع محمد أبو زيد',
-          department: 'إدارة الحركة',
-          achievement: 'تغطية ميدانية متميزة بالمواقع',
-          metric: '2 مأموريات',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/public/employee-avatars/admin/6a4a62a5-23d3-41c7-bf1e-9fd90aa886c8.webp',
-        ),
-        HonoreeItem(
-          rank: 4,
-          name: 'محمد سيد محمد',
-          department: 'إدارة اللوجستيك',
-          achievement: 'إنجاز المهام الخارجية بدقة',
-          metric: '2 مأموريات',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/public/employee-avatars/c86776ce-f5e5-4c09-920c-db5b923c0b90/avatar_1786434752876.png',
-        ),
-        HonoreeItem(
-          rank: 5,
-          name: 'محمد عبدالعظيم محمد',
-          department: 'اللجنة الطبية',
-          achievement: 'استجابة ميدانية فورية وتوثيق شامل',
-          metric: '2 مأموريات',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/9e7f11b8-7b9d-4fe7-8a2b-21f61fe99a21.webp',
-        ),
-      ],
-      HonorCategory.reports: [
-        HonoreeItem(
-          rank: 1,
-          name: 'محمد عبدالعظيم محمد',
-          department: 'اللجنة الطبية',
-          achievement: 'إنجاز يومي كامل لتقارير العمل الميداني',
-          metric: '4 تقارير',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/9e7f11b8-7b9d-4fe7-8a2b-21f61fe99a21.webp',
-        ),
-        HonoreeItem(
-          rank: 2,
-          name: 'محمد سيد محمد',
-          department: 'إدارة اللوجستيك',
-          achievement: 'تسليم في الموعد بدون أي تأخير',
-          metric: '9 تقارير سابقة',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/public/employee-avatars/c86776ce-f5e5-4c09-920c-db5b923c0b90/avatar_1786434752876.png',
-        ),
-        HonoreeItem(
-          rank: 3,
-          name: 'محمد عبده رجب مزار',
-          department: 'ادارة المطابخ',
-          achievement: 'تقارير مفصلة للمهام المنجزة',
-          metric: '3 تقارير سابقة',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/e4471a93-33ed-484f-9ce6-283acae73470.jpeg',
-        ),
-        HonoreeItem(
-          rank: 4,
-          name: 'إبراهيم سلامة عبد الجواد',
-          department: 'إدارة الشؤون الإدارية والقانونية',
-          achievement: 'دقة عالية في توثيق الأنشطة',
-          metric: '1 تقرير سابق',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/2689e62a-ec4c-4c4c-8f35-61029616fab2.webp',
-        ),
-        HonoreeItem(
-          rank: 5,
-          name: 'عمار محمد عبد الباسط',
-          department: 'إدارة الميديا',
-          achievement: 'رفع التقارير والتوثيق الميداني بانتظام',
-          metric: 'توثيق منتظم',
-          photoUrl: 'https://ujzzvqsodyhnnnpkoaml.supabase.co/storage/v1/object/authenticated/employee-avatars/admin/72ab35cd-6a41-4c65-ae07-5a65ad7ff081.webp',
-        ),
-      ],
-    },
-  };
-
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -487,9 +228,15 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
     };
 
     final asyncData = ref.watch(honorBoardProvider((periodStr, categoryStr)));
-    final honorees = (asyncData.value != null && asyncData.value!.isNotEmpty)
-        ? asyncData.value!
-        : (_fallbackHonorees[_period]?[_category] ?? const <HonoreeItem>[]);
+    // بيانات الخادم وحدها: كانت هنا قائمة أسماء ونِسب ثابتة مكتوبة في الكود
+    // تُعرض أثناء التحميل أو عند الفراغ أو فشل الاتصال — فيرى المستخدم نتائج
+    // قديمة غير محسوبة وكأنها حقيقية.
+    final honorees = asyncData.value ?? const <HonoreeItem>[];
+    final emptyText = switch (_category) {
+      HonorCategory.attendance => 'لم تُسجَّل أيام حضور في هذه الفترة بعد.',
+      HonorCategory.missions => 'لا توجد مأموريات ميدانية معتمدة في هذه الفترة.',
+      HonorCategory.reports => 'لم يرفع أحد تقارير يومية في هذه الفترة.',
+    };
 
     final first = honorees.isNotEmpty ? honorees[0] : null;
     final second = honorees.length > 1 ? honorees[1] : null;
@@ -649,6 +396,26 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
                     ),
                   ),
                   const SizedBox(height: 18),
+
+                  if (asyncData.isLoading && !asyncData.hasValue)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 48),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (asyncData.hasError && !asyncData.hasValue)
+                    _HonorStatusMessage(
+                      icon: Icons.cloud_off_rounded,
+                      text: 'تعذر تحميل لوحة الشرف. تحقق من الاتصال وأعد المحاولة.',
+                      actionLabel: 'إعادة المحاولة',
+                      onAction: () => ref.invalidate(
+                        honorBoardProvider((periodStr, categoryStr)),
+                      ),
+                    )
+                  else if (honorees.isEmpty)
+                    _HonorStatusMessage(
+                      icon: Icons.hourglass_empty_rounded,
+                      text: emptyText,
+                    ),
 
                   // منصة التتويج الشرفية (Podium) للمراكز الثلاثة الأولى
                   if (first != null && second != null && third != null) ...[
@@ -1224,6 +991,48 @@ class _CategorySelectChip extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// رسالة حالة للوحة الشرف (فراغ/خطأ) بدل عرض نتائج غير محسوبة.
+class _HonorStatusMessage extends StatelessWidget {
+  const _HonorStatusMessage({
+    required this.icon,
+    required this.text,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final IconData icon;
+  final String text;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
+      child: Column(
+        children: [
+          Icon(icon, size: 44, color: scheme.onSurfaceVariant),
+          const SizedBox(height: 12),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: scheme.onSurfaceVariant, height: 1.6),
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              onPressed: onAction,
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(actionLabel!),
+            ),
+          ],
+        ],
       ),
     );
   }
