@@ -552,9 +552,9 @@ function BulkAssignmentSection() {
               onChange={(e) => setAssignmentType(e.target.value as 'MISSION' | 'CONVOY' | 'FUNDRAISING')}
               className="input-field w-full appearance-none text-sm"
             >
-              <option value="MISSION">مأمورية</option>
-              <option value="CONVOY">قافلة</option>
-              <option value="FUNDRAISING">فاندي (جمع تبرعات)</option>
+              <option value="MISSION">مأمورية عمل خارجية</option>
+              <option value="CONVOY">قافلة مساعدات إنسانية (كامب)</option>
+              <option value="FUNDRAISING">يوم ترفيهي للموظفين (فاندي / Fun Day)</option>
             </select>
             <ChevronDown className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
           </div>
@@ -566,7 +566,13 @@ function BulkAssignmentSection() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             minLength={3}
-            placeholder="مثال: قافلة رمضان — حي الأمل"
+            placeholder={
+              assignmentType === 'CONVOY'
+                ? 'مثال: قافلة مساعدات أسوان — بناء أسقف وتوصيل مياه'
+                : assignmentType === 'FUNDRAISING'
+                ? 'مثال: يوم ترفيهي للموظفين (حجز فيلا / رحلة ترفيهية)'
+                : 'مثال: مأمورية خارجية لمتابعة المشروعات'
+            }
             required
             disabled={create.isPending}
           />
@@ -599,6 +605,16 @@ function BulkAssignmentSection() {
         ) : (
           <div className="col-span-2 rounded-xl bg-[var(--brand-accent-soft)] p-3 text-xs text-[var(--brand-primary)]">
             تبدأ المأمورية تلقائياً الآن من وقت الإنشاء وتستمر حتى انتهاء المهمة دون الحاجة لتحديد توقيتات مسبقة.
+          </div>
+        )}
+        {assignmentType === 'CONVOY' && (
+          <div className="col-span-2 rounded-xl bg-purple-500/10 border border-purple-500/20 p-3 text-xs text-purple-700 dark:text-purple-300">
+            <strong>قافلة مساعدات إنسانية (كامب):</strong> يوم عمل ميداني خارجي فيه سفر لمساعدة الأسر المستحقة (مثل بناء الأسقف وتوصيل المياه والكفالات)، ويُحسب يوم عمل كامل للموظفين المشاركين.
+          </div>
+        )}
+        {assignmentType === 'FUNDRAISING' && (
+          <div className="col-span-2 rounded-xl bg-pink-500/10 border border-pink-500/20 p-3 text-xs text-pink-700 dark:text-pink-300">
+            <strong>يوم ترفيهي للموظفين (فاندي / Fun Day):</strong> يوم ترفيهي تنظمه الإدارة لترفيه الموظفين (حجز فيلا، رحلة وسفر ترفيهي)، ويُحسب كـ يوم عمل رسمي كامل للموظفين بدون أي خصم ولا يتطلب بصمة بالمقر.
           </div>
         )}
         <label className="block">
