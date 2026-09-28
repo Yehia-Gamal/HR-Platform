@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:ahla_shabab_management_os/app.dart';
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
+import 'package:ahla_shabab_management_os/core/network/expired_jwt_retry_client.dart';
 import 'package:ahla_shabab_management_os/core/observability/crash_reporter.dart';
 import 'package:ahla_shabab_management_os/core/security/secure_session_storage.dart';
 import 'package:ahla_shabab_management_os/core/theme/theme_mode_controller.dart';
@@ -41,6 +42,16 @@ Future<void> main() async {
           persistSessionKey: 'sb-$projectRef-auth-token',
         ),
         pkceAsyncStorage: SecurePkceStorage(),
+      ),
+      // تجديد الجلسة وإعادة الطلب عند «JWT expired» — ساعة جهاز متأخرة تجعل
+      // المكتبة ترسل رمزاً منتهياً للأبد (انظر ExpiredJwtRetryClient).
+      httpClient: ExpiredJwtRetryClient(
+        currentAccessToken: () =>
+            Supabase.instance.client.auth.currentSession?.accessToken,
+        refreshAccessToken: () async =>
+            (await Supabase.instance.client.auth.refreshSession())
+                .session
+                ?.accessToken,
       ),
     );
 
@@ -91,9 +102,11 @@ Future<void> main() async {
             // initializeApp فكان FirebaseMessaging.instance يرمي [core/no-app]
             // ويضيع تسجيل رمز الجهاز. على جهاز بلا Firebase نتخطى بصمت.
             pushService.firebaseReady
-                .then((ready) => ready
-                    ? FirebaseMessaging.instance.getToken()
-                    : Future<String?>.value())
+                .then(
+                  (ready) => ready
+                      ? FirebaseMessaging.instance.getToken()
+                      : Future<String?>.value(),
+                )
                 .then((token) async {
                   if (token == null) return;
                   final platform = defaultTargetPlatform == TargetPlatform.iOS
@@ -109,7 +122,11 @@ Future<void> main() async {
                     debugPrint('Post-login FCM registration failed: $error');
                   }
                   unawaited(
-                    CrashReporter.instance.captureError(error, null, context: 'fcm_token_registration'),
+                    CrashReporter.instance.captureError(
+                      error,
+                      null,
+                      context: 'fcm_token_registration',
+                    ),
                   );
                 }),
           );

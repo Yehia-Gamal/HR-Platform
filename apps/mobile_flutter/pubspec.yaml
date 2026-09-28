@@ -1,5 +1,5 @@
 name: ahla_shabab_management_os
-version: 0.13.22+39
+version: 0.13.23+40
 publish_to: none
 description: Unified Flutter application for employee, manager and executive workspaces.
 
@@ -28,6 +28,7 @@ dependencies:
   package_info_plus: ">=9.0.1 <10.0.0"
   device_info_plus: ^11.5.0
   uuid: ^4.5.1
+  http: ^1.6.0
   url_launcher: ^6.3.2
   # الإشعارات العاجلة (طلب الموقع): FCM + إشعار محلي بشاشة كاملة.
   # مثبّتة على إصدارات متوافقة مع أرضية Dart 3.8.
