@@ -143,3 +143,15 @@ export const onboardingAdminCatalogSchema = z.object({
   lastUpdatedAt: z.string(),
 });
 export type OnboardingAdminCatalog = z.infer<typeof onboardingAdminCatalogSchema>;
+
+export const jobTitleOverviewRowSchema = z.object({
+  id: uuid,
+  code: z.string(),
+  name: z.string(),
+  nameEn: z.string().nullable(),
+  active: z.boolean(),
+  employeeCount: z.number(),
+  positionCount: z.number(),
+});
+export const jobTitlesOverviewSchema = z.array(jobTitleOverviewRowSchema);
+export type JobTitleOverviewRow = z.infer<typeof jobTitleOverviewRowSchema>;

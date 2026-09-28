@@ -78,8 +78,12 @@ function locationStatusLabel(status: string | null | undefined): string {
 }
 
 function formatMinutes(minutes: number | null | undefined): string {
-  if (minutes == null || minutes === 0) return '—';
-  return `${minutes} د`;
+  if (minutes == null || minutes <= 0) return '—';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} د`;
+  if (m === 0) return `${h} س`;
+  return `${h} س و ${m} د`;
 }
 
 function formatTime(iso: string | null | undefined): string {

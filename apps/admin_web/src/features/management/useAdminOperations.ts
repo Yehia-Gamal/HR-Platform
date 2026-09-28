@@ -1,4 +1,4 @@
-import { accessAdminCatalogSchema, onboardingAdminCatalogSchema, organizationAdminCatalogSchema } from '@ahla/shared-contracts';
+import { accessAdminCatalogSchema, jobTitlesOverviewSchema, onboardingAdminCatalogSchema, organizationAdminCatalogSchema } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
@@ -22,6 +22,7 @@ export function useOrganizationCommands() {
       client.invalidateQueries({ queryKey: ['organization-admin-catalog'] }),
       client.invalidateQueries({ queryKey: ['organization-overview'] }),
       client.invalidateQueries({ queryKey: ['organization-lookups'] }),
+      client.invalidateQueries({ queryKey: ['job-titles-overview'] }),
     ]);
   };
   const department = useMutation({
@@ -60,6 +61,34 @@ export function useOrganizationCommands() {
     meta: { successMessage: 'تم حذف الإدارة نهائياً' },
     onSuccess: refresh,
   });
+  const jobTitle = useMutation({
+    mutationFn: async (input: {
+      id?: string | null;
+      code: string;
+      name: string;
+      nameEn?: string | null;
+      active: boolean;
+    }) => {
+      if (auth.isMock) return '10000000-0000-4000-8000-000000000005';
+      return rpc('upsert_job_title', {
+        p_id: input.id ?? null,
+        p_code: input.code,
+        p_name: input.name,
+        p_name_en: input.nameEn ?? null,
+        p_is_active: input.active,
+      });
+    },
+    meta: { successMessage: 'تم حفظ المسمى الوظيفي' },
+    onSuccess: refresh,
+  });
+  const jobTitleDelete = useMutation({
+    mutationFn: async (id: string) => {
+      if (auth.isMock) return undefined;
+      return rpc('delete_job_title', { p_id: id });
+    },
+    meta: { successMessage: 'تم حذف المسمى الوظيفي' },
+    onSuccess: refresh,
+  });
   const position = useMutation({
     mutationFn: async (input: {
       id?: string | null;
@@ -92,7 +121,19 @@ export function useOrganizationCommands() {
     meta: { successMessage: 'تم حفظ المنصب بنجاح' },
     onSuccess: refresh,
   });
-  return { department, position, departmentDelete };
+  return { department, position, departmentDelete, jobTitle, jobTitleDelete };
+}
+
+export function useJobTitlesOverview() {
+  const auth = useAuth();
+  return useQuery({
+    queryKey: ['job-titles-overview', auth.isMock],
+    enabled: auth.status === 'authenticated',
+    queryFn: async () => {
+      if (auth.isMock) return [];
+      return jobTitlesOverviewSchema.parse(await rpc('get_job_titles_overview'));
+    },
+  });
 }
 
 export function useAccessAdminCatalog() {

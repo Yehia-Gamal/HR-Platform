@@ -1,5 +1,22 @@
-import { AlertTriangle, CalendarClock, CalendarDays, CheckCircle2, Clock3, MapPin, Plane, RefreshCcw, UserMinus, Users } from 'lucide-react';
-import { useState } from 'react';
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  CalendarClock,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  Coins,
+  FileSpreadsheet,
+  MapPin,
+  Plane,
+  RefreshCcw,
+  Sparkles,
+  TrendingUp,
+  UserMinus,
+  Users,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router';
 import { ErrorState } from '../../ui/ErrorState';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { MetricCard } from '../../ui/MetricCard';
@@ -9,6 +26,7 @@ import { cairoTodayIso } from '../../core/cairoTime';
 import { useAttendanceDashboard } from './useAttendanceDashboard';
 import { useOrganizationLookups } from '../employees/useOrganizationLookups';
 import type { AttendanceRosterCategory } from '@ahla/shared-contracts';
+import { AppPieChart, ChartCard } from '../../ui/charts';
 
 function getBasePath() {
   if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
@@ -33,6 +51,25 @@ export function AttendancePage() {
   const data = query.data;
   const presentPct = data && data.scheduled ? Math.round((data.present / data.scheduled) * 100) : 0;
   const hasFilters = Boolean(departmentId || branchId);
+  const onTimeCount = data ? Math.max(0, data.present - data.late) : 0;
+  const onTimeRate = data && data.scheduled > 0 ? Math.round((onTimeCount / data.scheduled) * 100) : 0;
+  const respondedGps = data?.locationRequestsResponded ?? data?.locationRespondedToday ?? 0;
+  const totalGps = data?.locationRequestsToday ?? 0;
+  const gpsRate = totalGps > 0 ? Math.round((respondedGps / totalGps) * 100) : 100;
+  const criticalCount = data ? (data.unexcusedAbsent ?? 0) + (data.missingCheckout ?? 0) + (data.pendingReview ?? 0) : 0;
+
+  const pieData = useMemo(() => {
+    if (!data) return [];
+    const items = [
+      { name: 'حضور منتظم', value: Math.max(0, data.present - data.late), color: 'var(--success, #10b981)' },
+      { name: 'متأخرون', value: data.late, color: 'var(--warning, #f59e0b)' },
+      { name: 'غياب بدون إذن', value: data.unexcusedAbsent ?? 0, color: 'var(--danger, #ef4444)' },
+      { name: 'في إجازة / مأمورية', value: (data.onLeave ?? 0) + (data.onMission ?? 0), color: '#3b82f6' },
+      { name: 'بصمة غير مكتملة', value: (data.incomplete ?? 0) + (data.missingCheckout ?? 0), color: '#8b5cf6' },
+    ];
+    return items.filter((i) => i.value > 0);
+  }, [data]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -86,6 +123,7 @@ export function AttendancePage() {
           </button>
         ) : null}
       </div>
+
       {query.isError ? (
         <ErrorState title="تعذر تحميل الحضور" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
       ) : !data && query.isLoading ? (
@@ -112,6 +150,73 @@ export function AttendancePage() {
                 <span className="text-sm font-bold text-[var(--success)]">{presentPct}%</span>
               </div>
             ) : null}
+          </div>
+
+          {/* ─── بوابات تنفيذية سريعة ─── */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Link
+              to={`${getBasePath()}/attendance?tab=executive&date=${dateIso}`}
+              className="card p-3 flex items-center justify-between gap-2 hover:border-[var(--brand-primary)] hover:shadow-xs transition-all group"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="size-8 rounded-lg bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center shrink-0">
+                  <Sparkles className="size-4" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <div className="text-xs font-black truncate group-hover:text-[var(--brand-primary)]">التقرير التنفيذي</div>
+                  <div className="text-[10px] text-[var(--text-muted)] truncate">ملخص يومي شامل</div>
+                </div>
+              </div>
+              <ArrowUpRight className="size-3.5 text-[var(--text-muted)] group-hover:text-[var(--brand-primary)] shrink-0 rtl:rotate-[-90deg]" aria-hidden="true" />
+            </Link>
+
+            <Link
+              to={`${getBasePath()}/attendance?tab=report`}
+              className="card p-3 flex items-center justify-between gap-2 hover:border-[var(--brand-primary)] hover:shadow-xs transition-all group"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <FileSpreadsheet className="size-4" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <div className="text-xs font-black truncate group-hover:text-[var(--brand-primary)]">الكشف الشهري</div>
+                  <div className="text-[10px] text-[var(--text-muted)] truncate">تقفيل واعتماد الحضور</div>
+                </div>
+              </div>
+              <ArrowUpRight className="size-3.5 text-[var(--text-muted)] group-hover:text-[var(--brand-primary)] shrink-0 rtl:rotate-[-90deg]" aria-hidden="true" />
+            </Link>
+
+            <Link
+              to="/admin/finance?tab=instant-penalties"
+              className="card p-3 flex items-center justify-between gap-2 hover:border-[var(--brand-primary)] hover:shadow-xs transition-all group"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="size-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <Coins className="size-4" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <div className="text-xs font-black truncate group-hover:text-[var(--brand-primary)]">غرامات الحضور</div>
+                  <div className="text-[10px] text-[var(--text-muted)] truncate">صندوق الزمالة الفوري</div>
+                </div>
+              </div>
+              <ArrowUpRight className="size-3.5 text-[var(--text-muted)] group-hover:text-[var(--brand-primary)] shrink-0 rtl:rotate-[-90deg]" aria-hidden="true" />
+            </Link>
+
+            <Link
+              to="/admin/live-locations"
+              className="card p-3 flex items-center justify-between gap-2 hover:border-[var(--brand-primary)] hover:shadow-xs transition-all group"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="size-8 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+                  <MapPin className="size-4" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <div className="text-xs font-black truncate group-hover:text-[var(--brand-primary)]">التتبع اللحظي</div>
+                  <div className="text-[10px] text-[var(--text-muted)] truncate">تحقق الموقع والـ GPS</div>
+                </div>
+              </div>
+              <ArrowUpRight className="size-3.5 text-[var(--text-muted)] group-hover:text-[var(--brand-primary)] shrink-0 rtl:rotate-[-90deg]" aria-hidden="true" />
+            </Link>
           </div>
 
           {/* ─── المقاييس الأساسية ─── */}
@@ -212,6 +317,74 @@ export function AttendancePage() {
               compact={true}
               to={detailsUrl('missing_checkout', dateIso, departmentId, branchId)}
             />
+          </section>
+
+          {/* ─── التحليل البصري ونبض الانضباط التشغيلي ─── */}
+          <section className="grid gap-4 lg:grid-cols-2">
+            <ChartCard
+              title="توزيع قوى العمل اليوم"
+              subtitle="نظرة بصرية شاملة على توزيع الحالات والانضباط الميداني"
+              empty={pieData.length === 0}
+              height={260}
+            >
+              <AppPieChart data={pieData} donut height={240} />
+            </ChartCard>
+
+            <div className="card p-5 flex flex-col justify-between space-y-4">
+              <div>
+                <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+                  <div className="flex items-center gap-2">
+                    <span className="size-7 rounded-lg bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center">
+                      <TrendingUp className="size-4" aria-hidden="true" />
+                    </span>
+                    <h3 className="text-sm font-black">نبض الانضباط والجاهزية التشغيلية</h3>
+                  </div>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[var(--surface-muted)] text-[var(--text-muted)]">
+                    مؤشرات لحظية
+                  </span>
+                </div>
+
+                <div className="grid gap-3.5 sm:grid-cols-3 mt-4">
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-3 space-y-1">
+                    <span className="text-[11px] font-bold text-[var(--text-muted)] block">نسبة الحضور بالموعد</span>
+                    <div className="text-xl font-black text-[var(--success)]">{onTimeRate}%</div>
+                    <p className="text-[10px] text-[var(--text-muted)] leading-tight">
+                      {onTimeCount} موظف بدون أي تأخير
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-3 space-y-1">
+                    <span className="text-[11px] font-bold text-[var(--text-muted)] block">استجابة الـ GPS</span>
+                    <div className="text-xl font-black text-sky-600 dark:text-sky-400">{gpsRate}%</div>
+                    <p className="text-[10px] text-[var(--text-muted)] leading-tight">
+                      {respondedGps} من {totalGps} طلب موقع
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-3 space-y-1">
+                    <span className="text-[11px] font-bold text-[var(--text-muted)] block">حالات تحتاج تدخلاً</span>
+                    <div className={`text-xl font-black ${criticalCount > 0 ? 'text-[var(--danger)]' : 'text-[var(--success)]'}`}>
+                      {criticalCount}
+                    </div>
+                    <p className="text-[10px] text-[var(--text-muted)] leading-tight">
+                      غياب أو بصمات معلقة أو مراجعات
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs flex items-center justify-between gap-3">
+                <span className="text-[var(--text-muted)]">
+                  هل تحتاج إلى تفريغ مفصل لبيانات اليوم أو إرسال تقرير موجز للإدارة؟
+                </span>
+                <Link
+                  to={`${getBasePath()}/attendance?tab=executive&date=${dateIso}`}
+                  className="btn-primary !text-xs !py-1 !px-2.5 font-bold shrink-0"
+                >
+                  فتح التقرير التنفيذي
+                </Link>
+              </div>
+            </div>
           </section>
 
           {/* ─── ملاحظات التشغيل ─── */}

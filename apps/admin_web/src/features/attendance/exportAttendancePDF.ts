@@ -1,5 +1,5 @@
 import type { AttendanceStatement } from '@ahla/shared-contracts';
-import { attendanceRateParts } from './attendanceShared';
+import { attendanceRateParts, fmtMinutesCompact, fmtMinutesLong } from './attendanceShared';
 
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
@@ -79,9 +79,9 @@ export function buildStatementBodyHtml(data: AttendanceStatement, orgName = 'ج�
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${esc(fmtTime(d.checkOut))}</td>
       <td style="padding:6px 8px;text-align:center">${esc(d.shiftName) || '—'}</td>
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums">${d.workHours ? d.workHours.toFixed(1) : '—'}</td>
-      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;${d.lateMinutes > 0 ? 'color:#d97706;font-weight:700;' : ''}">${d.lateMinutes ? `${d.lateMinutes} د` : '—'}</td>
-      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;${d.earlyLeaveMinutes > 0 ? 'color:#d97706;font-weight:700;' : ''}">${d.earlyLeaveMinutes ? `${d.earlyLeaveMinutes} د` : '—'}</td>
-      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;${d.overtimeMinutes > 0 ? 'color:#059669;font-weight:700;' : ''}">${d.overtimeMinutes ? `${d.overtimeMinutes} د` : '—'}</td>
+      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;${d.lateMinutes > 0 ? 'color:#d97706;font-weight:700;' : ''}">${d.lateMinutes ? fmtMinutesCompact(d.lateMinutes) : '—'}</td>
+      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;${d.earlyLeaveMinutes > 0 ? 'color:#d97706;font-weight:700;' : ''}">${d.earlyLeaveMinutes ? fmtMinutesCompact(d.earlyLeaveMinutes) : '—'}</td>
+      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums;${d.overtimeMinutes > 0 ? 'color:#059669;font-weight:700;' : ''}">${d.overtimeMinutes ? fmtMinutesCompact(d.overtimeMinutes) : '—'}</td>
       <td style="padding:6px 8px;text-align:center;font-weight:700;color:${statusColor}">${esc(d.status)}</td>
       <td style="padding:6px 8px;text-align:center;font-size:9px">${tags.join('، ') || esc(d.correctionNote ?? '')}</td>
     </tr>`;
@@ -138,13 +138,13 @@ export function buildStatementBodyHtml(data: AttendanceStatement, orgName = 'ج�
     <div class="metric"><div class="label">أيام القوافل</div><div class="value">${cDays}</div></div>
     <div class="metric"><div class="label">أيام الفاندي</div><div class="value">${fDays}</div></div>
     <div class="metric"><div class="label">ساعات العمل</div><div class="value">${s.totalWorkHours.toFixed(1)}</div><div class="hint">${complianceAvailable ? `مطلوب ${(s.totalRequiredHours ?? 0).toFixed(1)}` : 'الساعات المطلوبة غير متاحة'}</div></div>
-    <div class="metric good"><div class="label">ساعات إضافية</div><div class="value">${s.totalOvertimeMinutes} د</div></div>
+    <div class="metric good"><div class="label">ساعات إضافية</div><div class="value">${fmtMinutesLong(s.totalOvertimeMinutes)}</div></div>
   </div>
 
   <!-- شريط الإحصائيات السريعة -->
   <div class="stats-bar">
-    <div class="stat-item"><span class="s-label">تأخير كلي:</span><span class="s-value">${s.totalLateMinutes} د</span></div>
-    <div class="stat-item"><span class="s-label">خروج مبكر:</span><span class="s-value">${s.totalEarlyLeaveMinutes} د</span></div>
+    <div class="stat-item"><span class="s-label">تأخير كلي:</span><span class="s-value">${fmtMinutesLong(s.totalLateMinutes)}</span></div>
+    <div class="stat-item"><span class="s-label">خروج مبكر:</span><span class="s-value">${fmtMinutesLong(s.totalEarlyLeaveMinutes)}</span></div>
     <div class="stat-item"><span class="s-label">نسيان حضور:</span><span class="s-value">${s.missingCheckInCount}</span></div>
     <div class="stat-item"><span class="s-label">نسيان انصراف:</span><span class="s-value">${s.missingCheckOutCount}</span></div>
     <div class="stat-item"><span class="s-label">عطل رسمية:</span><span class="s-value">${s.holidayDays}</span></div>

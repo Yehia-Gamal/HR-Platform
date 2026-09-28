@@ -25,6 +25,8 @@ import {
   DAY_FILTERS,
   DAY_SORTS,
   filterDays,
+  fmtMinutesCompact,
+  fmtMinutesLong,
   fmtTime,
   hoursRateParts,
   MONTHS,
@@ -149,19 +151,19 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
             icon={Timer}
             tone={deficitHours > 0 ? 'warn' : 'success'}
           />
-          <StatBox label="ساعات إضافية" value={`${s.totalOvertimeMinutes} د`} icon={ArrowUpRight} tone={s.totalOvertimeMinutes > 0 ? 'success' : undefined} />
+          <StatBox label="ساعات إضافية" value={fmtMinutesLong(s.totalOvertimeMinutes)} icon={ArrowUpRight} tone={s.totalOvertimeMinutes > 0 ? 'success' : undefined} />
         </div>
       </div>
 
       <div className="quick-stats">
         <QuickStat
           label="تأخير كلي"
-          value={`${s.totalLateMinutes} د`}
+          value={fmtMinutesLong(s.totalLateMinutes)}
           icon={<ArrowDownRight className="size-3.5 text-[var(--warning)]" aria-hidden="true" />}
         />
         <QuickStat
           label="خروج مبكر"
-          value={`${s.totalEarlyLeaveMinutes} د`}
+          value={fmtMinutesLong(s.totalEarlyLeaveMinutes)}
           icon={<ArrowUpRight className="size-3.5 text-[var(--warning)]" aria-hidden="true" />}
         />
         <QuickStat
@@ -273,13 +275,13 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
                   <td className="cell-shift">{d.shiftName || <span className="dash">—</span>}</td>
                   <td className="cell-num">{d.workHours ? d.workHours.toFixed(1) : <span className="dash">—</span>}</td>
                   <td className={`cell-num${d.lateMinutes > 0 ? ' text-[var(--warning)] font-bold' : ''}`}>
-                    {d.lateMinutes ? `${d.lateMinutes} د` : <span className="dash">—</span>}
+                    {d.lateMinutes ? fmtMinutesCompact(d.lateMinutes) : <span className="dash">—</span>}
                   </td>
                   <td className={`cell-num${d.earlyLeaveMinutes > 0 ? ' text-[var(--warning)] font-bold' : ''}`}>
-                    {d.earlyLeaveMinutes ? `${d.earlyLeaveMinutes} د` : <span className="dash">—</span>}
+                    {d.earlyLeaveMinutes ? fmtMinutesCompact(d.earlyLeaveMinutes) : <span className="dash">—</span>}
                   </td>
                   <td className={`cell-num${d.overtimeMinutes > 0 ? ' text-[var(--success)] font-bold' : ''}`}>
-                    {d.overtimeMinutes ? `${d.overtimeMinutes} د` : <span className="dash">—</span>}
+                    {d.overtimeMinutes ? fmtMinutesCompact(d.overtimeMinutes) : <span className="dash">—</span>}
                   </td>
                   <td>
                     <StatusPill d={d} />

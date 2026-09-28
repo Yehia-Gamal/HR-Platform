@@ -6,10 +6,45 @@ import { OrganizationPage } from '../OrganizationPage';
 const noopMutation = { mutateAsync: vi.fn(), mutate: vi.fn(), isPending: false, isError: false, error: null };
 
 let catalogOverrideFn: () => Record<string, unknown>;
+let jobTitlesOverrideFn: () => Record<string, unknown> = () => ({
+  data: [],
+  isLoading: false,
+  isError: false,
+  error: null,
+  refetch: vi.fn(),
+});
+
+vi.mock('../../auth/AuthProvider', () => ({
+  useAuth: () => ({
+    status: 'authenticated',
+    session: null,
+    access: {
+      userId: '00000000-0000-0000-0000-000000000001',
+      employeeId: '00000000-0000-0000-0000-000000000002',
+      displayName: 'مختبر',
+      employeeCode: 'EMP-001',
+      photoUrl: null,
+      roles: ['hr'],
+      permissions: ['*'],
+      workspaces: ['hr'],
+      defaultWorkspace: 'hr',
+      attendancePolicy: { attendanceRequired: false, selfPunchEnabled: false, liveLocationResponseEnabled: false },
+    },
+    error: null,
+    isMock: true,
+  }),
+}));
 
 vi.mock('../useAdminOperations', () => ({
   useOrganizationAdminCatalog: () => catalogOverrideFn(),
-  useOrganizationCommands: () => ({ department: noopMutation, position: noopMutation, departmentDelete: noopMutation }),
+  useOrganizationCommands: () => ({
+    department: noopMutation,
+    position: noopMutation,
+    departmentDelete: noopMutation,
+    jobTitle: noopMutation,
+    jobTitleDelete: noopMutation,
+  }),
+  useJobTitlesOverview: () => jobTitlesOverrideFn(),
   useOnboardingAdminCatalog: () => ({ data: undefined, isLoading: false, isError: false, error: null, refetch: vi.fn() }),
   useOnboardingCommands: () => ({ createJourney: noopMutation, transitionTask: noopMutation }),
 }));
@@ -56,6 +91,23 @@ const mockData = {
 
 const loadingQuery = { data: undefined, isLoading: true, isError: false, error: null, refetch: vi.fn() };
 const dataQuery = { data: mockData, isLoading: false, isError: false, error: null, refetch: vi.fn() };
+const jobTitlesQuery = {
+  data: [
+    {
+      id: 'jt1',
+      code: 'JT-0001',
+      name: 'ضابط العمليات',
+      nameEn: null,
+      active: true,
+      employeeCount: 0,
+      positionCount: 0,
+    },
+  ],
+  isLoading: false,
+  isError: false,
+  error: null,
+  refetch: vi.fn(),
+};
 const emptyDepsQuery = {
   data: { ...mockData, departments: [], positions: [] },
   isLoading: false,
@@ -147,5 +199,26 @@ describe('OrganizationPage', () => {
 
     fireEvent.click(dialog.getByRole('button', { name: 'حذف نهائي' }));
     await vi.waitFor(() => expect(noopMutation.mutateAsync).toHaveBeenCalledWith('d1'));
+  });
+
+  it('يعرض المسميات الوظيفية ويفتح حوار حذف مسمى غير مستخدم', async () => {
+    catalogOverrideFn = () => dataQuery;
+    jobTitlesOverrideFn = () => jobTitlesQuery;
+    noopMutation.mutateAsync.mockClear();
+    render(
+      <MemoryRouter>
+        <OrganizationPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('المسميات الوظيفية')).toBeDefined();
+    expect(screen.getByText('ضابط العمليات')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'حذف المسمى الوظيفي' }));
+    const dialog = within(await screen.findByRole('dialog'));
+    expect(dialog.getByText('حذف مسمى وظيفي نهائياً')).toBeDefined();
+
+    fireEvent.click(dialog.getByRole('button', { name: 'حذف نهائي' }));
+    await vi.waitFor(() => expect(noopMutation.mutateAsync).toHaveBeenCalledWith('jt1'));
   });
 });

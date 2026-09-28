@@ -1,5 +1,6 @@
 import { attendanceRosterPageSchema, type AttendanceRosterItem } from '@ahla/shared-contracts';
 import { rpc } from '../../core/rpc';
+import { fmtMinutesCompact } from './attendanceShared';
 
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
@@ -111,7 +112,7 @@ function renderTable(gate: RosterGate, dates: string[]): { rows: string; cols: s
           if (!status) return '<td style="padding:4px 6px;text-align:center;background:#f9fafb">—</td>';
           const label = STATUS_LABELS[status] ?? status;
           const late = gate.dayLateMinutes.get(key);
-          const lateHint = late ? `<div style="font-size:6px;color:#dc2626">تأخير ${Math.round(late)}د</div>` : '';
+          const lateHint = late ? `<div style="font-size:6px;color:#dc2626">تأخير ${fmtMinutesCompact(late)}</div>` : '';
           return `<td style="padding:4px 6px;text-align:center">${escapeHtml(label)}${lateHint}</td>`;
         })
         .join('');

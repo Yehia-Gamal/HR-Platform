@@ -1,4 +1,5 @@
 import type { ExecutiveDailyReportDetail } from '@ahla/shared-contracts';
+import { fmtMinutesCompact } from './attendanceShared';
 
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
@@ -84,7 +85,7 @@ export function exportExecutiveDailyReport(data: ExecutiveDailyReportDetail, org
       <td style="padding:6px 8px;text-align:center">${esc(emp.departmentName ?? '—')}</td>
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums">${esc(fmtTime12(emp.firstCheckIn))}</td>
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums">${esc(fmtTime12(emp.lastCheckOut))}</td>
-      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums">${emp.lateMinutes ? `${emp.lateMinutes} د` : '—'}</td>
+      <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums">${emp.lateMinutes ? fmtMinutesCompact(emp.lateMinutes) : '—'}</td>
       <td style="padding:6px 8px;text-align:center">${esc(emp.shiftName ?? '—')}</td>
       <td style="padding:6px 8px;text-align:center">${esc(emp.locationRequestStatus ?? '—')}</td>
       <td style="padding:6px 8px;text-align:center">${emp.hasApprovedLeave ? '✓ إجازة' : emp.hasMission ? '✈ مأمورية' : '—'}</td>

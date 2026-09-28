@@ -1,4 +1,16 @@
-import { ArrowLeft, CalendarDays, Copy, Download, Printer, ShieldCheck, Sparkles, TrendingUp, Users } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  CalendarDays,
+  Copy,
+  Download,
+  ExternalLink,
+  Printer,
+  ShieldCheck,
+  Sparkles,
+  TrendingUp,
+  Users,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { cairoTodayIso } from '../../core/cairoTime';
@@ -13,6 +25,8 @@ import { hasPermission } from '../workspaces/access';
 import { useExecutiveDailyReport, useExecutiveDailyReportDetail, exportExecutiveDailyReportPdf } from './useAttendanceDashboard';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useToast } from '../../ui/Toast';
+import { fmtMinutesCompact } from './attendanceShared';
+import { AppBarChart, AppPieChart, ChartCard } from '../../ui/charts';
 
 function fmtTime12(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -88,6 +102,64 @@ export function ExecutiveDailyReportPage() {
     ];
     return lines.join('\n');
   }, [s, dayName, dateDay, monthName]);
+
+  // توزيع الحضور عبر الإدارات الرئيسية للرسم البياني العمودي
+  const deptBarData = useMemo(() => {
+    if (!d?.employees || d.employees.length === 0) return [];
+    const deptMap = new Map<string, { label: string; حاضر: number; متأخر: number; غائب: number; total: number }>();
+    for (const emp of d.employees) {
+      const deptName = emp.departmentName || 'إدارة غير محددة';
+      if (!deptMap.has(deptName)) {
+        deptMap.set(deptName, { label: deptName, حاضر: 0, متأخر: 0, غائب: 0, total: 0 });
+      }
+      const item = deptMap.get(deptName)!;
+      item.total += 1;
+      if (emp.status === 'present') {
+        item.حاضر += 1;
+      } else if (emp.status === 'late') {
+        item.متأخر += 1;
+      } else if (emp.status === 'absent') {
+        item.غائب += 1;
+      }
+    }
+    return Array.from(deptMap.values())
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 8);
+  }, [d?.employees]);
+
+  // توزيع الحالات الشامل للرسم البياني الدائري
+  const workStatusPieData = useMemo(() => {
+    if (!s) return [];
+    const p = s.attendance?.present ?? 0;
+    const l = s.attendance?.late ?? 0;
+    const ab = s.attendance?.absent ?? 0;
+    const onTime = Math.max(0, p - l);
+    const lv = s.workStatus?.approvedLeave ?? 0;
+    const m = (s.workStatus?.missions ?? 0) + (s.workStatus?.convoys ?? 0);
+    const mc = s.attendance?.missingCheckout ?? 0;
+    const items = [
+      { name: 'حاضر بالموعد', value: onTime, color: 'var(--success, #10b981)' },
+      { name: 'متأخر', value: l, color: 'var(--warning, #f59e0b)' },
+      { name: 'غائب', value: ab, color: 'var(--danger, #ef4444)' },
+      { name: 'في إجازة', value: lv, color: '#3b82f6' },
+      { name: 'مأموريات وقوافل', value: m, color: '#8b5cf6' },
+      { name: 'بصمة بلا انصراف', value: mc, color: '#ec4899' },
+    ];
+    return items.filter((i) => i.value > 0);
+  }, [s]);
+
+  // مصفوفة الحالات ذات الأولوية للتدخل التنفيذي العاجل
+  const urgentActions = useMemo(() => {
+    if (!d?.employees) return [];
+    return d.employees
+      .filter((emp) => {
+        const isVeryLate = (emp.lateMinutes ?? 0) >= 60;
+        const isUnexcusedAbsent = emp.status === 'absent' && !emp.hasApprovedLeave && !emp.hasMission;
+        const isMissingCheckout = !emp.lastCheckOut && Boolean(emp.firstCheckIn);
+        return isVeryLate || isUnexcusedAbsent || isMissingCheckout;
+      })
+      .slice(0, 6);
+  }, [d?.employees]);
 
   if (!canViewExecutive) {
     return <ErrorState title="غير مصرح" description="هذا التقرير متاح للتنفيذيين والسكرتارية التنفيذية فقط." />;
@@ -322,6 +394,117 @@ export function ExecutiveDailyReportPage() {
         </div>
       </section>
 
+      {/* ─── الرسوم البيانية والتحليل البصري المقارن ─── */}
+      <section className="grid gap-5 lg:grid-cols-2">
+        <ChartCard
+          title="مقارنة الحضور والانضباط عبر الإدارات"
+          subtitle="توزيع الحضور الفعلي والمتأخر والغياب لأعلى الإدارات كثافة"
+          empty={deptBarData.length === 0}
+          height={300}
+        >
+          <AppBarChart
+            data={deptBarData}
+            bars={[
+              { key: 'حاضر', label: 'حاضر', color: 'var(--success)' },
+              { key: 'متأخر', label: 'متأخر', color: 'var(--warning)' },
+              { key: 'غائب', label: 'غائب', color: 'var(--danger)' },
+            ]}
+            height={280}
+          />
+        </ChartCard>
+
+        <ChartCard
+          title="توزيع قوى العمل الكلي اليوم"
+          subtitle="الحصيلة الإجمالية لحالات الموظفين المجدولين اليوم"
+          empty={workStatusPieData.length === 0}
+          height={300}
+        >
+          <AppPieChart data={workStatusPieData} donut height={270} />
+        </ChartCard>
+      </section>
+
+      {/* ─── مصفوفة التدخل والمتابعة التنفيذية العاجلة ─── */}
+      {urgentActions.length > 0 && (
+        <section className="card p-5 border-r-4 border-r-[var(--danger)] bg-gradient-to-l from-[var(--surface)] to-[var(--surface-muted)]">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[var(--border)]">
+            <div className="flex items-center gap-2">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-[var(--danger)]/10 text-[var(--danger)]">
+                <AlertTriangle className="size-4" aria-hidden="true" />
+              </span>
+              <div>
+                <h3 className="text-base font-black">مصفوفة التدخل والمتابعة التنفيذية العاجلة</h3>
+                <p className="text-xs text-[var(--text-muted)]">
+                  حالات تستوجب المتابعة الفورية مع الإدارات (تأخير جسيم ≥ ساعة · غياب غير مبرر · بصمة انصراف مفقودة)
+                </p>
+              </div>
+            </div>
+            <span className="rounded-full bg-[var(--danger)]/10 px-2.5 py-1 text-xs font-bold text-[var(--danger)]">
+              {urgentActions.length} حالات أولوية
+            </span>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mt-4">
+            {urgentActions.map((emp) => {
+              const isVeryLate = (emp.lateMinutes ?? 0) >= 60;
+              const isUnexcusedAbsent = emp.status === 'absent' && !emp.hasApprovedLeave && !emp.hasMission;
+              const isMissingCheckout = !emp.lastCheckOut && Boolean(emp.firstCheckIn);
+
+              let badgeText = 'متابعة';
+              let badgeTone = 'warning';
+              let issueText = '';
+
+              if (isVeryLate) {
+                badgeText = `تأخير ${fmtMinutesCompact(emp.lateMinutes ?? 0)}`;
+                badgeTone = 'warning';
+                issueText = `حضور ${fmtTime12(emp.firstCheckIn)} · الوردية ${emp.shiftName ?? 'الافتراضية'}`;
+              } else if (isUnexcusedAbsent) {
+                badgeText = 'غياب بدون إذن';
+                badgeTone = 'danger';
+                issueText = 'لم يُسجل حضور ولا يوجد طلب إجازة أو مأمورية';
+              } else if (isMissingCheckout) {
+                badgeText = 'بصمة انصراف مفقودة';
+                badgeTone = 'warning';
+                issueText = `دخول ${fmtTime12(emp.firstCheckIn)} · لم يتم تسجيل الخروج`;
+              }
+
+              return (
+                <div
+                  key={emp.employeeId}
+                  className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3.5 space-y-2 hover:border-[var(--brand-primary)] transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <Link
+                        to={`/hr/employees/${emp.employeeId}`}
+                        className="font-black text-xs hover:text-[var(--brand-primary)] flex items-center gap-1 group"
+                      >
+                        <span className="truncate">{emp.employeeName}</span>
+                        <ExternalLink className="size-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" aria-hidden="true" />
+                      </Link>
+                      <span className="text-[10px] text-[var(--text-muted)] block truncate">
+                        {emp.employeeCode ? `#${emp.employeeCode} · ` : ''}{emp.departmentName || 'إدارة غير محددة'}
+                      </span>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                        badgeTone === 'danger'
+                          ? 'bg-[var(--danger)]/10 text-[var(--danger)]'
+                          : 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                      }`}
+                    >
+                      {badgeText}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                    {issueText}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {/* تفاصيل الموظفين - إذا متاح */}
       {d?.employees && d.employees.length > 0 && (
         <section className="card p-4">
@@ -361,7 +544,7 @@ export function ExecutiveDailyReportPage() {
                       <td>{emp.departmentName ?? '—'}</td>
                       <td>{fmtTime12(emp.firstCheckIn)}</td>
                       <td>{fmtTime12(emp.lastCheckOut)}</td>
-                      <td>{emp.lateMinutes ? `${emp.lateMinutes} د` : '—'}</td>
+                      <td>{emp.lateMinutes ? fmtMinutesCompact(emp.lateMinutes) : '—'}</td>
                       <td>{emp.shiftName ?? '—'}</td>
                       <td>{emp.locationRequestStatus ?? '—'}</td>
                       <td>{emp.hasApprovedLeave ? '✓ إجازة' : emp.hasMission ? '✈ مأمورية' : '—'}</td>

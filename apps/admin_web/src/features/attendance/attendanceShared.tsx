@@ -75,6 +75,16 @@ export function fmtMinutesLong(totalMinutes: number | null | undefined): string 
   return `${h} ساعة و ${m} دقيقة`;
 }
 
+/** تنسيق عدد الدقائق بصيغة موجزة للجداول والبطاقات: 125 → "2 س و 5 د" */
+export function fmtMinutesCompact(totalMinutes: number | null | undefined): string {
+  if (totalMinutes == null || totalMinutes <= 0) return '—';
+  const h = Math.floor(totalMinutes / 60);
+  const m = Math.round(totalMinutes % 60);
+  if (h === 0) return `${m} د`;
+  if (m === 0) return `${h} س`;
+  return `${h} س و ${m} د`;
+}
+
 export type TagVariant = 'info' | 'warn' | 'success' | 'purple';
 
 /** يبني قائمة العلامات والملاحظات الإضافية (tags) لصف يوم واحد مع تجنب التكرار مع عمود الحالة الأساسية. */

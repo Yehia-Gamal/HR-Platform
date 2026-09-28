@@ -18,6 +18,7 @@ import { exportAttendancePdf, exportExecutiveDailyReportPdf } from './useAttenda
 import { exportWeeklyAttendancePdf, exportMonthlyAttendancePdf } from './exportRangeReports';
 import { useEmployeeMonthlyStatement } from './useMonthlyStatement';
 import { AttendanceDayEditor } from './AttendanceDayEditor';
+import { fmtMinutesCompact } from './attendanceShared';
 
 export type ReportPeriod = 'day' | 'week' | 'month';
 export type ReportScope = 'individual' | 'team' | 'all';
@@ -282,9 +283,9 @@ export function AttendanceReportsPage() {
                             <td>{fmtTime12(d.checkOut)}</td>
                             <td>{d.shiftName || '—'}</td>
                             <td>{d.workHours ? d.workHours.toFixed(1) : '—'}</td>
-                            <td>{d.lateMinutes ? `${d.lateMinutes} د` : '—'}</td>
-                            <td>{d.earlyLeaveMinutes ? `${d.earlyLeaveMinutes} د` : '—'}</td>
-                            <td>{d.overtimeMinutes ? `${d.overtimeMinutes} د` : '—'}</td>
+                            <td>{d.lateMinutes ? fmtMinutesCompact(d.lateMinutes) : '—'}</td>
+                            <td>{d.earlyLeaveMinutes ? fmtMinutesCompact(d.earlyLeaveMinutes) : '—'}</td>
+                            <td>{d.overtimeMinutes ? fmtMinutesCompact(d.overtimeMinutes) : '—'}</td>
                             <td>
                               <StatusBadge value={d.status} />
                             </td>

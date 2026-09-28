@@ -11,6 +11,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useOrganizationAdminCatalog, useOrganizationCommands } from './useAdminOperations';
+import { JobTitlesSection } from './JobTitlesSection';
 
 type DepartmentDraft = {
   id?: string | null;
@@ -396,6 +397,8 @@ export function OrganizationPage() {
           )}
         </>
       ) : null}
+
+      <JobTitlesSection />
 
       {departmentDraft && data ? (
         <DialogOverlay title={departmentDraft.id ? 'تعديل الإدارة' : 'إنشاء إدارة'} onClose={() => setDepartmentDraft(null)}>
