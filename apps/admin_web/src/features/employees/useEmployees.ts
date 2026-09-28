@@ -351,6 +351,29 @@ export function useRemoveDepartment() {
   });
 }
 
+export function useSyncEmployeeDepartments() {
+  const auth = useAuth();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { employeeId: string; departmentIds: string[]; primaryDepartmentId?: string }): Promise<void> => {
+      if (auth.isMock) return;
+      await rpc('sync_employee_departments', {
+        p_employee_id: params.employeeId,
+        p_department_ids: params.departmentIds,
+        p_primary_department_id: params.primaryDepartmentId ?? null,
+      });
+    },
+    meta: { successMessage: 'تم تحديث إدارات الموظف بنجاح' },
+    onSuccess: async () => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['employee-departments'] }),
+        client.invalidateQueries({ queryKey: ['employee-360'] }),
+        client.invalidateQueries({ queryKey: ['employees'] }),
+      ]);
+    },
+  });
+}
+
 // ---------------------------------------------------------------------------
 // V17: حذف الموظف نهائياً
 // ---------------------------------------------------------------------------

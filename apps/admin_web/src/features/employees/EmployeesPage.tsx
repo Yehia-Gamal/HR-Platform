@@ -163,31 +163,33 @@ export function EmployeesPage() {
         },
       },
       {
-        key: 'employeeCode',
-        header: 'كود الموظف',
+        key: 'department',
+        header: 'الإدارة',
         render: (emp) => {
-          if (isPhoneLikeCode(emp.employeeCode, emp.phoneE164)) {
-            return <span className="text-[var(--text-disabled)]">—</span>;
-          }
+          if (!emp.department) return <span className="text-[var(--text-disabled)]">—</span>;
+          const parts = emp.department.split(' / ');
           return (
-            <bdi
-              dir="ltr"
-              className="inline-block font-mono text-xs font-bold px-2 py-0.5 rounded bg-[var(--surface-muted)] text-[var(--text-secondary)] border border-[var(--border)]"
-            >
-              {emp.employeeCode}
-            </bdi>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {parts.map((deptName, idx) => (
+                <span
+                  key={idx}
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                    idx === 0
+                      ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20'
+                      : 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20'
+                  }`}
+                >
+                  {deptName}
+                </span>
+              ))}
+            </div>
           );
         },
       },
       {
-        key: 'department',
-        header: 'الإدارة',
-        render: (emp) => <span className="text-sm font-medium">{emp.department ?? '—'}</span>,
-      },
-      {
         key: 'jobTitle',
         header: 'المسمى الوظيفي',
-        render: (emp) => <span className="text-sm text-[var(--text-secondary)]">{emp.jobTitle ?? '—'}</span>,
+        render: (emp) => <span className="text-sm text-[var(--text-secondary)] font-medium">{emp.jobTitle ?? '—'}</span>,
       },
       {
         key: 'phoneE164',
@@ -195,22 +197,10 @@ export function EmployeesPage() {
         render: (emp) => (emp.phoneE164 ? renderSafeIntlPhoneText(emp.phoneE164) : <span className="text-[var(--text-disabled)]">—</span>),
       },
       {
-        key: 'status',
-        header: 'الحالة',
-        render: (emp) => <StatusBadge status={emp.status} />,
-      },
-      {
-        key: 'createdAt',
-        header: 'تاريخ الانضمام',
-        render: (emp) => (
-          <span className="text-xs text-[var(--text-muted)] font-medium whitespace-nowrap">{dateFormatter.format(new Date(emp.createdAt))}</span>
-        ),
-      },
-      {
         key: 'actions',
         header: '',
         render: (emp) => (
-          <Link to={`/hr/employees/${emp.id}`} className="btn-secondary !px-3 !py-1.5 text-xs font-bold whitespace-nowrap">
+          <Link to={`/hr/employees/${emp.id}`} className="btn-secondary !px-3.5 !py-1.5 text-xs font-bold whitespace-nowrap">
             فتح الملف
           </Link>
         ),

@@ -62,6 +62,7 @@ import {
   useEmployeeDepartments,
   useAssignDepartment,
   useRemoveDepartment,
+  useSyncEmployeeDepartments,
   useDeleteEmployee,
   useSetEmployeePassword,
   useUpdateEmployeeEmail,
@@ -259,7 +260,11 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
       setPhoneE164(item.phoneE164 ? fixIntlPhoneOrder(item.phoneE164) : '');
       setEmail(item.email ?? '');
       setPhotoUrl(item.photoUrl ?? '');
-      setDepartmentId(item.departmentId ?? '');
+      const nextInitial = Array.from(
+        new Set([...(item.departmentId ? [item.departmentId] : []), ...(item.departments?.map((d) => d.departmentId) ?? [])]),
+      );
+      setSelectedDeptIds(nextInitial);
+      setPrimaryDeptId(item.departmentId ?? (nextInitial[0] ?? ''));
       setBranchId(item.branchId ?? '');
       setWorkSiteId(item.workSiteId ?? '');
       setJobTitleId(item.jobTitleId ?? '');
@@ -280,7 +285,21 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
   }, []);
 
   // --- Sensitive fields ---
-  const [departmentId, setDepartmentId] = useState(item.departmentId ?? '');
+  const initialDeptIds = useMemo(() => {
+    const set = new Set<string>();
+    if (item.departmentId) set.add(item.departmentId);
+    if (item.departments) {
+      for (const d of item.departments) {
+        if (d.departmentId) set.add(d.departmentId);
+      }
+    }
+    return Array.from(set);
+  }, [item.departmentId, item.departments]);
+
+  const [selectedDeptIds, setSelectedDeptIds] = useState<string[]>(initialDeptIds);
+  const [primaryDeptId, setPrimaryDeptId] = useState<string>(item.departmentId ?? (initialDeptIds[0] ?? ''));
+  const syncDepartments = useSyncEmployeeDepartments();
+
   const [branchId, setBranchId] = useState(item.branchId ?? '');
   const [workSiteId, setWorkSiteId] = useState(item.workSiteId ?? '');
   const [jobTitleId, setJobTitleId] = useState(item.jobTitleId ?? '');
@@ -385,7 +404,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
     if (phoneNext !== (item.phoneE164 ?? '')) changes.phoneE164 = phoneNext || null;
     // Sensitive
     if (canSensitive) {
-      if ((departmentId || null) !== (item.departmentId ?? null)) changes.departmentId = departmentId || null;
+      if ((primaryDeptId || null) !== (item.departmentId ?? null)) changes.departmentId = primaryDeptId || null;
       if ((branchId || null) !== (item.branchId ?? null)) changes.branchId = branchId || null;
       if ((workSiteId || null) !== (item.workSiteId ?? null)) changes.workSiteId = workSiteId || null;
       if ((jobTitleId || null) !== (item.jobTitleId ?? null)) changes.jobTitleId = jobTitleId || null;
@@ -393,8 +412,12 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
     }
 
     const emailChanged = email.trim().toLowerCase() !== (item.email ?? '').toLowerCase();
+    const deptsChanged =
+      selectedDeptIds.length !== initialDeptIds.length ||
+      selectedDeptIds.some((id) => !initialDeptIds.includes(id)) ||
+      primaryDeptId !== (item.departmentId ?? '');
 
-    if (Object.keys(changes).length === 0 && !emailChanged) {
+    if (Object.keys(changes).length === 0 && !emailChanged && !deptsChanged) {
       setError('لم يتم تغيير أي حقل.');
       return;
     }
@@ -413,6 +436,13 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
       }
       if (Object.keys(changes).length > 0) {
         await update.mutateAsync({ employeeId: item.id, changes });
+      }
+      if (deptsChanged && canSensitive) {
+        await syncDepartments.mutateAsync({
+          employeeId: item.id,
+          departmentIds: selectedDeptIds,
+          primaryDepartmentId: primaryDeptId || undefined,
+        });
       }
       didSaveRef.current = true;
       onSuccess();
@@ -508,13 +538,76 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
           <fieldset>
             <legend className="mb-3 font-black">البيانات الوظيفية</legend>
             <div className="grid gap-4 sm:grid-cols-2">
-              <LookupSelect
-                label="الإدارة"
-                value={departmentId}
-                options={lookups.data?.departments ?? []}
-                onChange={setDepartmentId}
-                disabled={update.isPending}
-              />
+              {/* الإدارات المسندة (متعددة) */}
+              <div className="sm:col-span-2 space-y-2.5 p-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)]/40">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <div>
+                    <span className="block text-sm font-black text-[var(--text-primary)]">
+                      الإدارات التابع لها الموظف ({selectedDeptIds.length})
+                    </span>
+                    <span className="block text-xs text-[var(--text-muted)] mt-0.5">
+                      يمكنك تحديد أكثر من إدارة للموظف (مثل: الميديا + الموارد البشرية)، وتحديد الإدارة الأساسية.
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 pt-1 max-h-48 overflow-y-auto pr-1">
+                  {(lookups.data?.departments ?? []).map((dept) => {
+                    const isSelected = selectedDeptIds.includes(dept.id);
+                    const isPrimary = primaryDeptId === dept.id;
+
+                    return (
+                      <button
+                        key={dept.id}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            const next = selectedDeptIds.filter((id) => id !== dept.id);
+                            setSelectedDeptIds(next);
+                            if (isPrimary) {
+                              setPrimaryDeptId(next[0] ?? '');
+                            }
+                          } else {
+                            const next = [...selectedDeptIds, dept.id];
+                            setSelectedDeptIds(next);
+                            if (!primaryDeptId || selectedDeptIds.length === 0) {
+                              setPrimaryDeptId(dept.id);
+                            }
+                          }
+                        }}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                          isSelected
+                            ? isPrimary
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                              : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30'
+                            : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--surface-hover)]'
+                        }`}
+                      >
+                        <span>{dept.label}</span>
+                        {isSelected && isPrimary && (
+                          <span className="inline-flex items-center text-[10px] bg-white/25 px-1.5 py-0.2 rounded-full font-black">
+                            أساسية ★
+                          </span>
+                        )}
+                        {isSelected && !isPrimary && (
+                          <span
+                            role="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPrimaryDeptId(dept.id);
+                            }}
+                            className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline px-1"
+                            title="تعيين كإدارة أساسية"
+                          >
+                            (اجعلها أساسية)
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <LookupSelect label="الفرع" value={branchId} options={lookups.data?.branches ?? []} onChange={onBranchChange} disabled={update.isPending} />
               <LookupSelect label="موقع العمل" value={workSiteId} options={workSites} onChange={setWorkSiteId} disabled={update.isPending} />
               <LookupSelect
