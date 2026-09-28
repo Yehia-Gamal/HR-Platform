@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { EmployeeDetailPage } from '../EmployeeDetailPage';
@@ -85,6 +85,7 @@ vi.mock('../useEmployees', () => ({
   useUpdateEmployeeEmail: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useGrantWeeklyRestCredit: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useEmployeeAuditTrail: () => ({ data: [], isLoading: false, isError: false }),
+  useSyncEmployeeDepartments: () => ({ isPending: false, mutateAsync: vi.fn() }),
 }));
 
 const mockEmployee360 = {
@@ -197,5 +198,19 @@ describe('EmployeeDetailPage', () => {
     renderPage();
     expect(screen.getByText('أيام الحضور — 30 يومًا')).toBeDefined();
     expect(screen.getByText('الطلبات المعلقة')).toBeDefined();
+  });
+
+  it('يسمح بكتابة مسمى وظيفي جديد في حوار التعديل (إدخال حر لا قائمة مغلقة)', () => {
+    employee360Fn = () => dataQuery;
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /تعديل البيانات/ }));
+
+    const input = screen.getByLabelText('المسمى الوظيفي') as HTMLInputElement;
+    expect(input.tagName).toBe('INPUT');
+    expect(input.value).toBe('مطور برمجيات');
+    expect(input.getAttribute('list')).toBe('edit-job-titles-list');
+
+    fireEvent.change(input, { target: { value: 'مدير مشروع أول' } });
+    expect(input.value).toBe('مدير مشروع أول');
   });
 });

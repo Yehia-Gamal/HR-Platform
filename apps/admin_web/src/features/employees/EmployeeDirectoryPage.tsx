@@ -158,26 +158,20 @@ export function EmployeeDirectoryPage() {
       ) : viewMode === 'table' ? (
         <section className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] text-start text-sm">
+            <table className="w-full min-w-[700px] text-start text-sm">
               <thead className="bg-[var(--surface-muted)]">
                 <tr>
                   <th scope="col" className="p-3">
                     الموظف
                   </th>
                   <th scope="col" className="p-3 hidden md:table-cell">
-                    الكود
+                    الفرع
                   </th>
-                  <th scope="col" className="p-3 hidden lg:table-cell">
+                  <th scope="col" className="p-3">
                     الإدارة
                   </th>
                   <th scope="col" className="p-3 hidden lg:table-cell">
-                    القسم
-                  </th>
-                  <th scope="col" className="p-3 hidden lg:table-cell">
                     المسمى الوظيفي
-                  </th>
-                  <th scope="col" className="p-3">
-                    الحالة
                   </th>
                   <th scope="col" className="p-3 hidden lg:table-cell">
                     المرؤوسون
@@ -198,13 +192,17 @@ export function EmployeeDirectoryPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="p-3 hidden md:table-cell text-[var(--text-muted)]">{emp.employeeCode}</td>
-                    <td className="p-3 hidden lg:table-cell">{emp.branchName ?? '—'}</td>
-                    <td className="p-3 hidden lg:table-cell">{emp.departmentName ?? '—'}</td>
-                    <td className="p-3 hidden lg:table-cell text-[var(--text-muted)]">{emp.jobTitle ?? '—'}</td>
+                    <td className="p-3 hidden md:table-cell text-[var(--text-muted)]">{emp.branchName ?? '—'}</td>
                     <td className="p-3">
-                      <StatusBadge status={emp.status} />
+                      {emp.departmentName ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
+                          {emp.departmentName}
+                        </span>
+                      ) : (
+                        <span className="text-[var(--text-muted)]">—</span>
+                      )}
                     </td>
+                    <td className="p-3 hidden lg:table-cell text-[var(--text-muted)]">{emp.jobTitle ?? '—'}</td>
                     <td className="p-3 hidden lg:table-cell">
                       {emp.subordinatesCount > 0 ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-soft)] px-2 py-0.5 text-xs font-bold text-[var(--brand)]">

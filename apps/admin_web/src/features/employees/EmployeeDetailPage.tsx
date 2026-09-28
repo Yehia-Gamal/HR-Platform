@@ -4,7 +4,6 @@ import type { LucideIcon } from 'lucide-react';
 import {
   AlertTriangle,
   ArrowRight,
-  Award,
   BadgeCheck,
   BriefcaseBusiness,
   Building2,
@@ -148,6 +147,43 @@ function LookupSelect({
   );
 }
 
+// المسمى الوظيفي: إدخال حر مع اقتراحات — يسمح بكتابة مسمى جديد غير موجود في القائمة
+// (يُنشأ تلقائياً عبر update_employee_admin عند الحفظ بنوع jobTitleName).
+function JobTitleInput({
+  label,
+  value,
+  options,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: string;
+  options: Array<{ id: string; label: string }>;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-sm font-semibold">{label}</span>
+      <input
+        className="input w-full"
+        list="edit-job-titles-list"
+        aria-label={label}
+        value={value}
+        maxLength={160}
+        placeholder="اكتب مسمى جديد أو اختر من الموجود"
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+      />
+      <datalist id="edit-job-titles-list">
+        {options.map((opt) => (
+          <option key={opt.id} value={opt.label} />
+        ))}
+      </datalist>
+    </label>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // DepartmentsSection — V17 تعدد الإدارات
 // ---------------------------------------------------------------------------
@@ -267,7 +303,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
       setPrimaryDeptId(item.departmentId ?? (nextInitial[0] ?? ''));
       setBranchId(item.branchId ?? '');
       setWorkSiteId(item.workSiteId ?? '');
-      setJobTitleId(item.jobTitleId ?? '');
+      setJobTitleText(item.jobTitle ?? '');
       setHireDate(item.hireDate ?? '');
     }
   }, [item]);
@@ -302,8 +338,18 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
 
   const [branchId, setBranchId] = useState(item.branchId ?? '');
   const [workSiteId, setWorkSiteId] = useState(item.workSiteId ?? '');
-  const [jobTitleId, setJobTitleId] = useState(item.jobTitleId ?? '');
+  // المسمى الوظيفي يُحرَّر كنص حر (مع اقتراحات datalist)؛ المطابقة/الإنشاء يتمان عند الحفظ.
+  const [jobTitleText, setJobTitleText] = useState(item.jobTitle ?? '');
   const [hireDate, setHireDate] = useState(item.hireDate ?? '');
+
+  const jobTitleOptions = useMemo(() => {
+    const opts = lookups.data?.jobTitles ?? [];
+    const current = item.jobTitle;
+    if (current && !opts.some((o) => o.label === current)) {
+      return [...opts, { id: item.jobTitleId ?? 'current-job-title', label: current }];
+    }
+    return opts;
+  }, [lookups.data?.jobTitles, item.jobTitle, item.jobTitleId]);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -407,7 +453,21 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
       if ((primaryDeptId || null) !== (item.departmentId ?? null)) changes.departmentId = primaryDeptId || null;
       if ((branchId || null) !== (item.branchId ?? null)) changes.branchId = branchId || null;
       if ((workSiteId || null) !== (item.workSiteId ?? null)) changes.workSiteId = workSiteId || null;
-      if ((jobTitleId || null) !== (item.jobTitleId ?? null)) changes.jobTitleId = jobTitleId || null;
+      // المسمى الوظيفي: نص حر — مطابقة مع موجود → jobTitleId؛ وإلا نص جديد → jobTitleName
+      // (update_employee_admin ينشئ المسمى الجديد ويربطه تلقائياً).
+      const jtText = jobTitleText.trim();
+      const matchedTitle = jtText
+        ? jobTitleOptions.find((o) => o.label.toLowerCase() === jtText.toLowerCase())
+        : undefined;
+      if (jtText === '') {
+        if (item.jobTitleId) changes.jobTitleId = null;
+      } else if (matchedTitle) {
+        if (matchedTitle.id !== item.jobTitleId && matchedTitle.id !== 'current-job-title') {
+          changes.jobTitleId = matchedTitle.id;
+        }
+      } else if (jtText !== (item.jobTitle ?? '')) {
+        changes.jobTitleName = jtText;
+      }
       if ((hireDate || null) !== (item.hireDate ?? null)) changes.hireDate = hireDate || null;
     }
 
@@ -610,11 +670,11 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
 
               <LookupSelect label="الفرع" value={branchId} options={lookups.data?.branches ?? []} onChange={onBranchChange} disabled={update.isPending} />
               <LookupSelect label="موقع العمل" value={workSiteId} options={workSites} onChange={setWorkSiteId} disabled={update.isPending} />
-              <LookupSelect
+              <JobTitleInput
                 label="المسمى الوظيفي"
-                value={jobTitleId}
-                options={lookups.data?.jobTitles ?? []}
-                onChange={setJobTitleId}
+                value={jobTitleText}
+                options={jobTitleOptions}
+                onChange={setJobTitleText}
                 disabled={update.isPending}
               />
               <label className="block">
@@ -1093,7 +1153,11 @@ function PrintableIdBadgeDialog({ employee, onClose }: { employee: Employee360; 
               <h3 className="text-base font-black text-white">{employee.fullNameAr}</h3>
               {employee.fullNameEn ? <p className="text-xs text-white/70">{employee.fullNameEn}</p> : null}
               <p className="mt-1 text-xs font-bold text-amber-300">{employee.jobTitle ?? 'موظف'}</p>
-              <p className="text-[11px] text-white/60">{employee.department ?? 'الإدارة العامة'}</p>
+              <p className="text-[11px] text-white/60">
+                {employee.departments && employee.departments.length > 0
+                  ? employee.departments.map((d) => d.departmentName).join(' / ')
+                  : (employee.department ?? 'الإدارة العامة')}
+              </p>
             </div>
           </div>
 
@@ -1200,6 +1264,13 @@ export function EmployeeDetailPage() {
     }
   };
 
+  const displayDepartments = useMemo(() => {
+    if (item.departments && item.departments.length > 0) {
+      return item.departments.map((d) => d.departmentName).join(' / ');
+    }
+    return item.department ?? 'بدون إدارة';
+  }, [item.departments, item.department]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -1295,7 +1366,7 @@ export function EmployeeDetailPage() {
                   )}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-                  <Info icon={Network} label={item.department ?? 'بدون إدارة'} />
+                  <Info icon={Network} label={displayDepartments} />
                   <Info icon={Phone} label={item.phoneE164 ? renderSafeIntlPhoneText(item.phoneE164) : 'بدون هاتف'} />
                   <Info icon={Mail} label={item.email ?? 'بدون بريد'} />
                   <Info
@@ -1362,7 +1433,7 @@ export function EmployeeDetailPage() {
               <article className="card p-5">
                 <h3 className="font-black">البيانات الوظيفية</h3>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <Data label="الإدارة" value={item.department} />
+                  <Data label="الإدارة" value={displayDepartments} />
                   <Data label="الفرع" value={item.branch} />
                   <Data label="موقع العمل" value={item.workSite} />
                   <Data label="تاريخ التعيين" value={item.hireDate ? dateFormatter.format(new Date(item.hireDate)) : null} />
