@@ -13,6 +13,7 @@ import 'dart:async';
 
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
 import 'package:flutter/foundation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// يسجّل الأخطاء في observability_events عبر edge function.
@@ -26,11 +27,20 @@ class CrashReporter {
   static const _maxQueueSize = 20;
   static const _minInterval = Duration(seconds: 2);
   DateTime? _lastSent;
+  // رقم النسخة في كل تقرير: يميّز أخطاء النسخ القديمة غير المحدّثة عن أخطاء
+  // النسخة الحالية (أخطاء Firebase no-app ظلّت تصل من نسخ سبقت إصلاحها).
+  String? _appVersion;
 
   /// يُستدعى بعد Supabase.initialize — يربط بالعميل ويصرفّ التقارير المعلّقة.
   void initialize(SupabaseClient client) {
     _client = client;
     _initialized = true;
+    unawaited(
+      PackageInfo.fromPlatform().then<void>(
+        (info) => _appVersion = '${info.version}+${info.buildNumber}',
+        onError: (Object _) {},
+      ),
+    );
     _flushQueue();
   }
 
@@ -42,9 +52,15 @@ class CrashReporter {
     Map<String, dynamic>? metadata,
   }) async {
     final report = _PendingReport(
-      message: error.toString().substring(0, error.toString().length.clamp(0, 2000)),
+      message: error.toString().substring(
+        0,
+        error.toString().length.clamp(0, 2000),
+      ),
       errorName: error.runtimeType.toString(),
-      errorStack: stackTrace?.toString().substring(0, stackTrace.toString().length.clamp(0, 5000)),
+      errorStack: stackTrace?.toString().substring(
+        0,
+        stackTrace.toString().length.clamp(0, 5000),
+      ),
       source: 'mobile:flutter',
       context: context,
       metadata: metadata,
@@ -86,6 +102,7 @@ class CrashReporter {
                 ...report.metadata ?? {},
                 if (report.context != null) 'context': report.context,
                 'environment': AppConfig.environment,
+                if (_appVersion != null) 'appVersion': _appVersion,
               },
             },
           )
