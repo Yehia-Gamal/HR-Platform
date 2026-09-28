@@ -587,4 +587,3 @@ describe('InstantPenaltiesPage', () => {
     expect(screen.getByText('تأكيد التصفير الآن')).toBeDefined();
   });
 });
-

@@ -570,8 +570,8 @@ function BulkAssignmentSection() {
               assignmentType === 'CONVOY'
                 ? 'مثال: قافلة مساعدات أسوان — بناء أسقف وتوصيل مياه'
                 : assignmentType === 'FUNDRAISING'
-                ? 'مثال: يوم ترفيهي للموظفين (حجز فيلا / رحلة ترفيهية)'
-                : 'مثال: مأمورية خارجية لمتابعة المشروعات'
+                  ? 'مثال: يوم ترفيهي للموظفين (حجز فيلا / رحلة ترفيهية)'
+                  : 'مثال: مأمورية خارجية لمتابعة المشروعات'
             }
             required
             disabled={create.isPending}
@@ -609,12 +609,14 @@ function BulkAssignmentSection() {
         )}
         {assignmentType === 'CONVOY' && (
           <div className="col-span-2 rounded-xl bg-purple-500/10 border border-purple-500/20 p-3 text-xs text-purple-700 dark:text-purple-300">
-            <strong>قافلة مساعدات إنسانية (كامب):</strong> يوم عمل ميداني خارجي فيه سفر لمساعدة الأسر المستحقة (مثل بناء الأسقف وتوصيل المياه والكفالات)، ويُحسب يوم عمل كامل للموظفين المشاركين.
+            <strong>قافلة مساعدات إنسانية (كامب):</strong> يوم عمل ميداني خارجي فيه سفر لمساعدة الأسر المستحقة (مثل بناء الأسقف وتوصيل المياه والكفالات)، ويُحسب
+            يوم عمل كامل للموظفين المشاركين.
           </div>
         )}
         {assignmentType === 'FUNDRAISING' && (
           <div className="col-span-2 rounded-xl bg-pink-500/10 border border-pink-500/20 p-3 text-xs text-pink-700 dark:text-pink-300">
-            <strong>يوم ترفيهي للموظفين (فاندي / Fun Day):</strong> يوم ترفيهي تنظمه الإدارة لترفيه الموظفين (حجز فيلا، رحلة وسفر ترفيهي)، ويُحسب كـ يوم عمل رسمي كامل للموظفين بدون أي خصم ولا يتطلب بصمة بالمقر.
+            <strong>يوم ترفيهي للموظفين (فاندي / Fun Day):</strong> يوم ترفيهي تنظمه الإدارة لترفيه الموظفين (حجز فيلا، رحلة وسفر ترفيهي)، ويُحسب كـ يوم عمل
+            رسمي كامل للموظفين بدون أي خصم ولا يتطلب بصمة بالمقر.
           </div>
         )}
         <label className="block">

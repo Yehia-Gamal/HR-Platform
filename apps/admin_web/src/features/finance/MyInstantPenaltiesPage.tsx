@@ -21,6 +21,27 @@ function formatCurrency(amount: number | null | undefined): string {
   return currencyFmt.format(amount);
 }
 
+/** تنسيق دقائق التأخير → "6 ساعات" أو "ساعة و 30 دقيقة" أو "50 دقيقة" */
+function fmtLateDisplay(totalMinutes: number | null | undefined): string {
+  if (totalMinutes == null || totalMinutes <= 0) return '0 دقيقة';
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h === 0) return `${m} دقيقة`;
+  if (m === 0) return `${h} ساعة`;
+  return `${h} ساعة و ${m} دقيقة`;
+}
+
+const ARABIC_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+
+/** تنسيق التاريخ مع اسم اليوم: "2026-09-28" → "الإثنين 2026-09-28" */
+function fmtDateWithDay(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr + 'T00:00:00');
+  if (Number.isNaN(d.getTime())) return dateStr;
+  const dayName = ARABIC_DAYS[d.getDay()];
+  return `${dayName} ${dateStr}`;
+}
+
 function StatusIcon({ status }: { status: string }) {
   switch (status) {
     case 'pending_payment':
@@ -92,7 +113,7 @@ export function MyInstantPenaltiesPage() {
               <span>ملخص الغرامات الفورية</span>
             </div>
             <p className="text-xs text-white/60 max-w-lg leading-relaxed">
-              الحضور يبدأ 10:00 ص — أول 15 دقيقة سماح بدون خصم. بعد ذلك: 20 ج.م (حتى 10:30) | 50 ج.م (حتى 11:00) | 150 ج.م (حتى 12:00). عدم السداد يُضاعف
+              الحضور يبدأ 10:00 ص — أول 15 دقيقة سماح بدون خصم. بعد ذلك: 20 ج.م (حتى 10:30) | 50 ج.م (31 دقيقة إلى أقل من ساعتين حتى 12:00 ظهراً) | 150 ج.م (ساعتين فأكثر). عدم السداد يُضاعف
               الغرامة لـ 500 ج.م ثم يُعلّق حسابك.
             </p>
           </div>
@@ -198,7 +219,7 @@ export function MyInstantPenaltiesPage() {
                   <StatusIcon status={p.status} />
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-black text-sm">{dateFormatter.format(new Date(p.workDate + 'T00:00:00'))}</h3>
+                      <h3 className="font-black text-sm">{fmtDateWithDay(p.workDate)}</h3>
                       {p.status === 'suspended' && (
                         <span className="rounded-full bg-red-100 dark:bg-red-950/50 px-2 py-0.5 text-[10px] font-black text-red-700 dark:text-red-300">
                           معلّق
@@ -211,7 +232,7 @@ export function MyInstantPenaltiesPage() {
                           لم يسجل بصمة — غرامة أصلية {formatCurrency(p.originalAmount)}
                         </span>
                       ) : (
-                        `تأخير ${p.lateMinutes} دقيقة — غرامة أصلية ${formatCurrency(p.originalAmount)}`
+                        `تأخير ${fmtLateDisplay(p.lateMinutes)} — غرامة أصلية ${formatCurrency(p.originalAmount)}`
                       )}
                     </p>
                   </div>
@@ -269,7 +290,7 @@ export function MyInstantPenaltiesPage() {
           <div className="space-y-4">
             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/30 p-4">
               <p className="text-xs text-[var(--text-muted)]">
-                الطعن على غرامة يوم <strong>{dateFormatter.format(new Date(disputeModal.penalty.workDate + 'T00:00:00'))}</strong> بمبلغ{' '}
+                الطعن على غرامة يوم <strong>{fmtDateWithDay(disputeModal.penalty.workDate)}</strong> بمبلغ{' '}
                 <strong className="font-mono text-[var(--danger)]">{formatCurrency(disputeModal.penalty.currentAmount)}</strong>
               </p>
             </div>

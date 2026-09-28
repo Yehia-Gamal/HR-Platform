@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { EmployeeDetailPage } from '../EmployeeDetailPage';
@@ -86,6 +86,35 @@ vi.mock('../useEmployees', () => ({
   useGrantWeeklyRestCredit: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useEmployeeAuditTrail: () => ({ data: [], isLoading: false, isError: false }),
   useSyncEmployeeDepartments: () => ({ isPending: false, mutateAsync: vi.fn() }),
+}));
+
+const departmentCreateMock = vi.hoisted(() => vi.fn(async () => '00000000-0000-4000-8000-0000000000d9'));
+vi.mock('../../management/useAdminOperations', () => ({
+  useOrganizationAdminCatalog: () => ({
+    data: {
+      entities: [{ id: '00000000-0000-4000-8000-0000000000e1', code: 'ENT-1', name: 'كيان تجريبي', active: true }],
+      branches: [],
+      departments: [],
+      teams: [],
+      positions: [],
+      employees: [],
+      jobTitles: [],
+      grades: [],
+      lastUpdatedAt: '2026-01-01T00:00:00Z',
+    },
+    isLoading: false,
+    isError: false,
+    error: null,
+  }),
+  useOrganizationCommands: () => ({
+    department: { isPending: false, mutateAsync: departmentCreateMock },
+    position: { isPending: false, mutateAsync: vi.fn() },
+  }),
+  useAccessAdminCatalog: () => ({ data: undefined, isLoading: false }),
+  useAccessCommands: () => ({ role: { isPending: false, mutateAsync: vi.fn() }, permission: { isPending: false, mutateAsync: vi.fn() } }),
+  useOnboardingAdminCatalog: () => ({ data: undefined, isLoading: false }),
+  useOnboardingCommands: () => ({ step: { isPending: false, mutateAsync: vi.fn() } }),
+  useRecruitmentCommands: () => ({ posting: { isPending: false, mutateAsync: vi.fn() } }),
 }));
 
 const mockEmployee360 = {
@@ -212,5 +241,29 @@ describe('EmployeeDetailPage', () => {
 
     fireEvent.change(input, { target: { value: 'مدير مشروع أول' } });
     expect(input.value).toBe('مدير مشروع أول');
+  });
+
+  it('يسمح بكتابة إدارة جديدة في حوار التعديل وإسنادها للموظف', async () => {
+    employee360Fn = () => dataQuery;
+    departmentCreateMock.mockClear();
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /تعديل البيانات/ }));
+
+    const dialog = within(screen.getByRole('dialog'));
+    const input = dialog.getByLabelText('اسم إدارة جديدة') as HTMLInputElement;
+    const createBtn = dialog.getByRole('button', { name: 'إضافة إدارة' }) as HTMLButtonElement;
+    expect(createBtn.disabled).toBe(true);
+
+    fireEvent.change(input, { target: { value: 'الإدارة التجريبية' } });
+    expect(createBtn.disabled).toBe(false);
+
+    fireEvent.click(createBtn);
+    await dialog.findByText('الإدارة التجريبية');
+    expect(departmentCreateMock).toHaveBeenCalledTimes(1);
+    expect(departmentCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ entityId: '00000000-0000-4000-8000-0000000000e1', name: 'الإدارة التجريبية' }),
+    );
+    expect(input.value).toBe('');
+    expect(dialog.getByText('الإدارات التابع لها الموظف (1)')).toBeDefined();
   });
 });

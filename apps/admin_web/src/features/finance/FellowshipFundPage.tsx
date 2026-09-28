@@ -626,9 +626,7 @@ export function FellowshipFundPage() {
                 <AlertTriangle className="size-4 shrink-0" />
                 <span>إجراء تصفير البيانات التجريبية</span>
               </div>
-              <p className="leading-relaxed">
-                هذا الإجراء مخصص لمسح أي قيود تجريبية تمت أثناء اختبار النظام:
-              </p>
+              <p className="leading-relaxed">هذا الإجراء مخصص لمسح أي قيود تجريبية تمت أثناء اختبار النظام:</p>
               <ul className="list-disc list-inside space-y-1 text-[11px] font-medium">
                 <li>حذف كافة الإيداعات والسحوبات التجريبية في كشف الصندوق وإعادة الرصيد إلى 0.00 ج.م.</li>
                 <li>إلغاء وتصفير السدادات التجريبية السابقة للموظفين وإخلاء طرفهم في سجل الغرامات.</li>

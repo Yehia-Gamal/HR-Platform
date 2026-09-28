@@ -71,6 +71,7 @@ import { normalizePhoneForSubmit, EmployeeEditHistory } from './employeeDetailSh
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useToast } from '../../ui/Toast';
 import { useOrganizationLookups } from './useOrganizationLookups';
+import { useOrganizationAdminCatalog, useOrganizationCommands } from '../management/useAdminOperations';
 import { Tabs } from '../../ui/Tabs';
 import { EmployeeLeaveTab } from './EmployeeLeaveTab';
 import { EmployeeLocationTab } from './EmployeeLocationTab';
@@ -296,11 +297,9 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
       setPhoneE164(item.phoneE164 ? fixIntlPhoneOrder(item.phoneE164) : '');
       setEmail(item.email ?? '');
       setPhotoUrl(item.photoUrl ?? '');
-      const nextInitial = Array.from(
-        new Set([...(item.departmentId ? [item.departmentId] : []), ...(item.departments?.map((d) => d.departmentId) ?? [])]),
-      );
+      const nextInitial = Array.from(new Set([...(item.departmentId ? [item.departmentId] : []), ...(item.departments?.map((d) => d.departmentId) ?? [])]));
       setSelectedDeptIds(nextInitial);
-      setPrimaryDeptId(item.departmentId ?? (nextInitial[0] ?? ''));
+      setPrimaryDeptId(item.departmentId ?? nextInitial[0] ?? '');
       setBranchId(item.branchId ?? '');
       setWorkSiteId(item.workSiteId ?? '');
       setJobTitleText(item.jobTitle ?? '');
@@ -333,8 +332,54 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
   }, [item.departmentId, item.departments]);
 
   const [selectedDeptIds, setSelectedDeptIds] = useState<string[]>(initialDeptIds);
-  const [primaryDeptId, setPrimaryDeptId] = useState<string>(item.departmentId ?? (initialDeptIds[0] ?? ''));
+  const [primaryDeptId, setPrimaryDeptId] = useState<string>(item.departmentId ?? initialDeptIds[0] ?? '');
   const syncDepartments = useSyncEmployeeDepartments();
+
+  // إنشاء إدارة جديدة من داخل الحوار ثم إسنادها فوراً للموظف.
+  const [newDeptName, setNewDeptName] = useState('');
+  const [creatingDept, setCreatingDept] = useState(false);
+  const [deptCreateError, setDeptCreateError] = useState<string | null>(null);
+  const [locallyCreatedDepts, setLocallyCreatedDepts] = useState<{ id: string; label: string }[]>([]);
+  const orgCatalog = useOrganizationAdminCatalog();
+  const orgCommands = useOrganizationCommands();
+
+  const deptChipOptions = useMemo(() => {
+    const base = lookups.data?.departments ?? [];
+    const seen = new Set(base.map((d) => d.id));
+    return [...base, ...locallyCreatedDepts.filter((d) => !seen.has(d.id))];
+  }, [lookups.data?.departments, locallyCreatedDepts]);
+
+  const createAndSelectDept = async () => {
+    const name = newDeptName.trim();
+    if (!name || creatingDept) return;
+    setDeptCreateError(null);
+    const existing = (lookups.data?.departments ?? []).find((d) => d.label.trim() === name);
+    if (existing) {
+      setSelectedDeptIds((prev) => (prev.includes(existing.id) ? prev : [...prev, existing.id]));
+      if (!primaryDeptId) setPrimaryDeptId(existing.id);
+      setNewDeptName('');
+      return;
+    }
+    const entities = orgCatalog.data?.entities ?? [];
+    const entityId = entities.find((e) => e.active)?.id ?? entities[0]?.id;
+    if (!entityId) {
+      setDeptCreateError('تعذّر إنشاء الإدارة: لا يوجد كيان قانوني متاح أو صلاحيتك لا تسمح بإدارة الهيكل التنظيمي.');
+      return;
+    }
+    setCreatingDept(true);
+    try {
+      const code = `D${crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+      const createdId = String(await orgCommands.department.mutateAsync({ entityId, code, name, active: true }));
+      setLocallyCreatedDepts((prev) => [...prev, { id: createdId, label: name }]);
+      setSelectedDeptIds((prev) => (prev.includes(createdId) ? prev : [...prev, createdId]));
+      if (!primaryDeptId) setPrimaryDeptId(createdId);
+      setNewDeptName('');
+    } catch (err) {
+      setDeptCreateError(safeErrorMessage(err));
+    } finally {
+      setCreatingDept(false);
+    }
+  };
 
   const [branchId, setBranchId] = useState(item.branchId ?? '');
   const [workSiteId, setWorkSiteId] = useState(item.workSiteId ?? '');
@@ -456,9 +501,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
       // المسمى الوظيفي: نص حر — مطابقة مع موجود → jobTitleId؛ وإلا نص جديد → jobTitleName
       // (update_employee_admin ينشئ المسمى الجديد ويربطه تلقائياً).
       const jtText = jobTitleText.trim();
-      const matchedTitle = jtText
-        ? jobTitleOptions.find((o) => o.label.toLowerCase() === jtText.toLowerCase())
-        : undefined;
+      const matchedTitle = jtText ? jobTitleOptions.find((o) => o.label.toLowerCase() === jtText.toLowerCase()) : undefined;
       if (jtText === '') {
         if (item.jobTitleId) changes.jobTitleId = null;
       } else if (matchedTitle) {
@@ -602,9 +645,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
               <div className="sm:col-span-2 space-y-2.5 p-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)]/40">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                   <div>
-                    <span className="block text-sm font-black text-[var(--text-primary)]">
-                      الإدارات التابع لها الموظف ({selectedDeptIds.length})
-                    </span>
+                    <span className="block text-sm font-black text-[var(--text-primary)]">الإدارات التابع لها الموظف ({selectedDeptIds.length})</span>
                     <span className="block text-xs text-[var(--text-muted)] mt-0.5">
                       يمكنك تحديد أكثر من إدارة للموظف (مثل: الميديا + الموارد البشرية)، وتحديد الإدارة الأساسية.
                     </span>
@@ -612,7 +653,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-1 max-h-48 overflow-y-auto pr-1">
-                  {(lookups.data?.departments ?? []).map((dept) => {
+                  {deptChipOptions.map((dept) => {
                     const isSelected = selectedDeptIds.includes(dept.id);
                     const isPrimary = primaryDeptId === dept.id;
 
@@ -645,9 +686,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
                       >
                         <span>{dept.label}</span>
                         {isSelected && isPrimary && (
-                          <span className="inline-flex items-center text-[10px] bg-white/25 px-1.5 py-0.2 rounded-full font-black">
-                            أساسية ★
-                          </span>
+                          <span className="inline-flex items-center text-[10px] bg-white/25 px-1.5 py-0.2 rounded-full font-black">أساسية ★</span>
                         )}
                         {isSelected && !isPrimary && (
                           <span
@@ -666,17 +705,44 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
                     );
                   })}
                 </div>
+
+                <div className="flex gap-2 pt-1">
+                  <input
+                    className="input flex-1 min-w-0"
+                    placeholder="اكتب اسم إدارة جديدة ثم اضغط «إضافة إدارة»…"
+                    aria-label="اسم إدارة جديدة"
+                    value={newDeptName}
+                    maxLength={160}
+                    disabled={creatingDept}
+                    onChange={(e) => {
+                      setNewDeptName(e.target.value);
+                      setDeptCreateError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        void createAndSelectDept();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn-secondary inline-flex items-center gap-1.5 shrink-0"
+                    disabled={creatingDept || !newDeptName.trim()}
+                    onClick={() => void createAndSelectDept()}
+                  >
+                    <Plus className="size-3.5" />
+                    {creatingDept ? 'جارٍ الإنشاء…' : 'إضافة إدارة'}
+                  </button>
+                </div>
+                {deptCreateError ? (
+                  <p className="text-xs font-bold text-red-600 dark:text-red-400">{deptCreateError}</p>
+                ) : null}
               </div>
 
               <LookupSelect label="الفرع" value={branchId} options={lookups.data?.branches ?? []} onChange={onBranchChange} disabled={update.isPending} />
               <LookupSelect label="موقع العمل" value={workSiteId} options={workSites} onChange={setWorkSiteId} disabled={update.isPending} />
-              <JobTitleInput
-                label="المسمى الوظيفي"
-                value={jobTitleText}
-                options={jobTitleOptions}
-                onChange={setJobTitleText}
-                disabled={update.isPending}
-              />
+              <JobTitleInput label="المسمى الوظيفي" value={jobTitleText} options={jobTitleOptions} onChange={setJobTitleText} disabled={update.isPending} />
               <label className="block">
                 <span className="mb-1.5 block text-sm font-semibold">تاريخ التعيين</span>
                 <input type="date" className="input w-full" value={hireDate} onChange={(e) => setHireDate(e.target.value)} disabled={update.isPending} />
@@ -1229,6 +1295,13 @@ export function EmployeeDetailPage() {
   const location = useLocation();
   const item = query.data;
 
+  const displayDepartments = useMemo(() => {
+    if (item?.departments && item.departments.length > 0) {
+      return item.departments.map((d) => d.departmentName).join(' / ');
+    }
+    return item?.department ?? 'بدون إدارة';
+  }, [item?.departments, item?.department]);
+
   if (query.isError) {
     return <ErrorState title="تعذر فتح ملف الموظف" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />;
   }
@@ -1263,13 +1336,6 @@ export function EmployeeDetailPage() {
       toast({ message: 'فشل إرسال الدعوة: ' + msg, tone: 'error' });
     }
   };
-
-  const displayDepartments = useMemo(() => {
-    if (item.departments && item.departments.length > 0) {
-      return item.departments.map((d) => d.departmentName).join(' / ');
-    }
-    return item.department ?? 'بدون إدارة';
-  }, [item.departments, item.department]);
 
   return (
     <div className="space-y-6">

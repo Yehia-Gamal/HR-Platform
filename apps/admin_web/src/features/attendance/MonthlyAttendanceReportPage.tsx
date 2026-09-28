@@ -87,7 +87,7 @@ function exportCSV(data: AttendanceStatement) {
         d.hasLatePermit ? 'نعم' : '',
         d.hasEarlyPermit ? 'نعم' : '',
         d.hasMission ? 'نعم' : '',
-        ((d.status?.includes('قافلة') || d.hasConvoyFundi) && !d.status?.includes('فاندي')) ? 'نعم' : '',
+        (d.status?.includes('قافلة') || d.hasConvoyFundi) && !d.status?.includes('فاندي') ? 'نعم' : '',
         d.status?.includes('فاندي') ? 'نعم' : '',
         d.missingCheckIn ? 'نعم' : '',
         d.missingCheckOut ? 'نعم' : '',

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { OrganizationPage } from '../OrganizationPage';
@@ -9,7 +9,7 @@ let catalogOverrideFn: () => Record<string, unknown>;
 
 vi.mock('../useAdminOperations', () => ({
   useOrganizationAdminCatalog: () => catalogOverrideFn(),
-  useOrganizationCommands: () => ({ department: noopMutation, position: noopMutation }),
+  useOrganizationCommands: () => ({ department: noopMutation, position: noopMutation, departmentDelete: noopMutation }),
   useOnboardingAdminCatalog: () => ({ data: undefined, isLoading: false, isError: false, error: null, refetch: vi.fn() }),
   useOnboardingCommands: () => ({ createJourney: noopMutation, transitionTask: noopMutation }),
 }));
@@ -129,5 +129,23 @@ describe('OrganizationPage', () => {
       </MemoryRouter>,
     );
     expect(screen.getByText('لا توجد إدارات')).toBeDefined();
+  });
+
+  it('يفتح حوار تأكيد الحذف وينادي حذف الإدارة نهائيًا', async () => {
+    catalogOverrideFn = () => dataQuery;
+    noopMutation.mutateAsync.mockClear();
+    render(
+      <MemoryRouter>
+        <OrganizationPage />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'حذف الإدارة' }));
+    const dialog = within(await screen.findByRole('dialog'));
+    expect(dialog.getByText('حذف إدارة نهائياً')).toBeDefined();
+    expect(dialog.getByText(/الموارد البشرية/)).toBeDefined();
+
+    fireEvent.click(dialog.getByRole('button', { name: 'حذف نهائي' }));
+    await vi.waitFor(() => expect(noopMutation.mutateAsync).toHaveBeenCalledWith('d1'));
   });
 });

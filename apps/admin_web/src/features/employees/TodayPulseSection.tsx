@@ -20,6 +20,7 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { useAttendanceTrend } from './useAttendanceTrend';
 import { AttendanceTrendSparkline } from './AttendanceTrendSparkline';
 import { exportPulseListPDF } from './exportPulseListPDF';
+import { fmtMinutesLong } from '../attendance/attendanceShared';
 
 // قسم "نبض اليوم" في دليل الموظفين: من حضر ومن تغيّب ومن تأخّر
 // ومن أُرسل له طلب موقع — كل بطاقة قابلة للنقر وتفتح قائمة الموظفين المعنيين.
@@ -132,7 +133,7 @@ export function TodayPulseSection() {
       label: 'تأخّروا اليوم',
       value: late.length,
       icon: Clock3,
-      hint: lateMinutes > 0 ? `إجمالي ${lateMinutes} دقيقة تأخير` : 'تُحسب من سياسة الوردية',
+      hint: lateMinutes > 0 ? `إجمالي ${fmtMinutesLong(lateMinutes)} تأخير` : 'تُحسب من سياسة الوردية',
     },
     {
       kind: 'location' as const,
@@ -247,7 +248,7 @@ function PulseDialogBody({
                   <StatusBadge value={e.status} label={ATTENDANCE_STATUS_LABELS[e.status] ?? e.status} />
                   {/* شارة التأخير — تظهر للمتأخر بغضون عن left_early */}
                   {e.status === 'late' && typeof e.lateMinutes === 'number' && e.lateMinutes > 0 ? (
-                    <span className="status-badge status-warning">متأخر {e.lateMinutes} د</span>
+                    <span className="status-badge status-warning">متأخر {fmtMinutesLong(e.lateMinutes)}</span>
                   ) : null}
                   {/* شارة الانصراف المبكر — مستقلة عن دقائق التأخير */}
                   {e.status === 'left_early' ? <span className="status-badge status-warning">انصرف مبكرًا</span> : null}

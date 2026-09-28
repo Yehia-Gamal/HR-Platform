@@ -1,4 +1,4 @@
-import { Building2, BriefcaseBusiness, ChevronDown, ChevronLeft, Edit3, List, Network, Plus, Save, UsersRound } from 'lucide-react';
+import { Building2, BriefcaseBusiness, ChevronDown, ChevronLeft, Edit3, List, Network, Plus, Save, Trash2, UsersRound } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { SelectField, TextInput } from '../../ui/FormField';
@@ -71,6 +71,8 @@ export function OrganizationPage() {
   const commands = useOrganizationCommands();
   const [departmentDraft, setDepartmentDraft] = useState<DepartmentDraft | null>(null);
   const [positionDraft, setPositionDraft] = useState<PositionDraft | null>(null);
+  const [departmentToDelete, setDepartmentToDelete] = useState<DepartmentRow | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const data = query.data;
@@ -135,6 +137,17 @@ export function OrganizationPage() {
       nameEn: department.nameEn ?? '',
       active: department.active,
     });
+  }
+
+  async function confirmDeleteDepartment() {
+    if (!departmentToDelete) return;
+    setDeleteError(null);
+    try {
+      await commands.departmentDelete.mutateAsync(departmentToDelete.id);
+      setDepartmentToDelete(null);
+    } catch (err) {
+      setDeleteError(safeErrorMessage(err));
+    }
   }
 
   return (
@@ -278,9 +291,21 @@ export function OrganizationPage() {
                               <StatusBadge value={department.active ? 'active' : 'inactive'} />
                             </td>
                             <td className="p-4">
-                              <button className="icon-button" aria-label={'تعديل الإدارة'} onClick={() => openDepartmentEdit(department)}>
-                                <Edit3 className="size-4" aria-hidden="true" />
-                              </button>
+                              <div className="flex items-center gap-1">
+                                <button className="icon-button" aria-label={'تعديل الإدارة'} onClick={() => openDepartmentEdit(department)}>
+                                  <Edit3 className="size-4" aria-hidden="true" />
+                                </button>
+                                <button
+                                  className="icon-button text-[var(--danger)]"
+                                  aria-label={'حذف الإدارة'}
+                                  onClick={() => {
+                                    setDeleteError(null);
+                                    setDepartmentToDelete(department);
+                                  }}
+                                >
+                                  <Trash2 className="size-4" aria-hidden="true" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -417,6 +442,32 @@ export function OrganizationPage() {
             {commands.department.isError && <ErrorBanner message={safeErrorMessage(commands.department.error)} />}
             <Submit pending={commands.department.isPending} />
           </form>
+        </DialogOverlay>
+      ) : null}
+
+      {departmentToDelete ? (
+        <DialogOverlay title={'حذف إدارة نهائياً'} onClose={() => setDepartmentToDelete(null)} maxWidth="max-w-md">
+          <div className="space-y-4">
+            <p className="text-sm leading-7">
+              سيتم حذف «<span className="font-black">{departmentToDelete.name}</span>» ({departmentToDelete.code}) نهائياً من الهيكل التنظيمي.
+            </p>
+            <ul className="space-y-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-3 text-xs font-bold">
+              <li>الموظفون المسندون: {departmentToDelete.employeeCount}</li>
+              <li>المناصب المرتبطة: {departmentToDelete.positionCount}</li>
+            </ul>
+            <p className="muted text-xs leading-6">
+              إن كانت الإدارة مرتبطة بأي موظف أو منصب أو فرع فرعي، سيمنع الخادم الحذف وتظهر رسالة توضح السبب — يُعاد تعيينهم أولاً.
+            </p>
+            {deleteError ? <ErrorBanner message={deleteError} /> : null}
+            <div className="flex justify-end gap-3 border-t border-[var(--border)] pt-4">
+              <button className="btn-secondary" onClick={() => setDepartmentToDelete(null)}>
+                إلغاء
+              </button>
+              <button className="btn-danger" disabled={commands.departmentDelete.isPending} onClick={() => void confirmDeleteDepartment()}>
+                {commands.departmentDelete.isPending ? 'جارٍ الحذف…' : 'حذف نهائي'}
+              </button>
+            </div>
+          </div>
         </DialogOverlay>
       ) : null}
 

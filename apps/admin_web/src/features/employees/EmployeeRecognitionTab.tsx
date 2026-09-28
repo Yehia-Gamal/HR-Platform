@@ -1,4 +1,4 @@
-import { Award, Calendar, CheckCircle2, Medal, Plus, Sparkles, Star, Trophy } from 'lucide-react';
+import { Plus, Trophy } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
@@ -72,16 +72,19 @@ export function EmployeeRecognitionTab({ employeeId }: { employeeId: string }) {
         .order('awarded_at', { ascending: false })
         .then(({ data }) => {
           if (isCancelled || !data) return;
-          const mapped: HonorRecord[] = data.map((r: any) => ({
-            id: r.id,
-            type: (r.recognition_type === 'week' ? 'week' : 'month') as 'month' | 'week',
-            rank: ((r.metadata?.rank as number) ?? 1) as 1 | 2 | 3,
-            category: ((r.metadata?.category as string) ?? 'attendance') as 'attendance' | 'missions' | 'reports',
-            title: r.title || 'تكريم في لوحة الشرف',
-            achievement: r.message || '',
-            periodLabel: r.metadata?.periodLabel || 'الدورة الحالية',
-            earnedDate: r.awarded_at ? r.awarded_at.split('T')[0] : '',
-          }));
+          const mapped: HonorRecord[] = (data as Record<string, unknown>[]).map((r) => {
+            const meta = (r.metadata as Record<string, unknown> | null) ?? null;
+            return {
+              id: String(r.id),
+              type: (r.recognition_type === 'week' ? 'week' : 'month') as 'month' | 'week',
+              rank: ((meta?.rank as number) ?? 1) as 1 | 2 | 3,
+              category: ((meta?.category as string) ?? 'attendance') as 'attendance' | 'missions' | 'reports',
+              title: String(r.title || 'تكريم في لوحة الشرف'),
+              achievement: String(r.message || ''),
+              periodLabel: String(meta?.periodLabel || 'الدورة الحالية'),
+              earnedDate: r.awarded_at ? String(r.awarded_at).split('T')[0] : '',
+            };
+          });
           setRecords(mapped);
         });
     });
@@ -90,9 +93,7 @@ export function EmployeeRecognitionTab({ employeeId }: { employeeId: string }) {
     };
   }, [employeeId]);
 
-  const canGrant = Boolean(
-    auth.access && (hasPermission(auth.access, 'people.employee.update_sensitive') || auth.access.workspaces?.includes('main_admin')),
-  );
+  const canGrant = Boolean(auth.access && (hasPermission(auth.access, 'people.employee.update_sensitive') || auth.access.workspaces?.includes('main_admin')));
 
   const monthCount = records.filter((r) => r.type === 'month' && r.rank === 1).length;
   const weekCount = records.filter((r) => r.type === 'week' && r.rank === 1).length;

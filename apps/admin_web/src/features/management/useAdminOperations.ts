@@ -52,6 +52,14 @@ export function useOrganizationCommands() {
     meta: { successMessage: 'تم حفظ الإدارة بنجاح' },
     onSuccess: refresh,
   });
+  const departmentDelete = useMutation({
+    mutationFn: async (id: string) => {
+      if (auth.isMock) return undefined;
+      return rpc('delete_department_admin', { p_id: id });
+    },
+    meta: { successMessage: 'تم حذف الإدارة نهائياً' },
+    onSuccess: refresh,
+  });
   const position = useMutation({
     mutationFn: async (input: {
       id?: string | null;
@@ -84,7 +92,7 @@ export function useOrganizationCommands() {
     meta: { successMessage: 'تم حفظ المنصب بنجاح' },
     onSuccess: refresh,
   });
-  return { department, position };
+  return { department, position, departmentDelete };
 }
 
 export function useAccessAdminCatalog() {

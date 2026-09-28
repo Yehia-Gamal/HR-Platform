@@ -67,6 +67,27 @@ function formatCurrency(amount: number | null | undefined): string {
   return currencyFmt.format(amount);
 }
 
+/** تنسيق دقائق التأخير → "6 ساعات" أو "ساعة و 30 دقيقة" أو "50 دقيقة" */
+function fmtLateDisplay(totalMinutes: number | null | undefined): string {
+  if (totalMinutes == null || totalMinutes <= 0) return '0 دقيقة';
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h === 0) return `${m} دقيقة`;
+  if (m === 0) return `${h} ساعة`;
+  return `${h} ساعة و ${m} دقيقة`;
+}
+
+const ARABIC_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+
+/** تنسيق التاريخ مع اسم اليوم: "2026-09-28" → "الإثنين 2026-09-28" */
+function fmtDateWithDay(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr + 'T00:00:00');
+  if (Number.isNaN(d.getTime())) return dateStr;
+  const dayName = ARABIC_DAYS[d.getDay()];
+  return `${dayName} ${dateStr}`;
+}
+
 function getYesterdayIso(): string {
   const d = new Date();
   d.setDate(d.getDate() - 1);
@@ -210,7 +231,7 @@ export function InstantPenaltiesPage() {
     } else if (p.status === 'doubled') {
       text = `*تنبيه عاجل: غرامة حضور مضاعفة (500 ج.م)* ⚠️\n\nالسلام عليكم ورحمة الله، أستاذ/ة ${name} 🌸\n\nنود تذكيركم بأنه نظراً لانقضاء مهلة الـ 24 ساعة، تضاعفت غرامة الحضور ليوم ${p.workDate} لتصبح *500 ج.م*.\n\n⏰ يرجى سرعة السداد نقداً أو عبر إنستاباي لتفادي تعليق الحساب على السيستم.\n\n🤝 *نحيطكم علماً بأن 100% من حصيلة الغرامات تذهب لصندوق الزمالة والتكافل لدعم الزملاء.*\n\nمع تمنياتنا لكم بالتوفيق 🌺`;
     } else {
-      text = `*إشعار تسجيل غرامة حضور فورية* ⏰\n\nالسلام عليكم ورحمة الله، أستاذ/ة ${name} 🌸\n\nتم تسجيل غرامة حضور وتأخير ليوم ${p.workDate} بمبلغ *${p.currentAmount} ج.م* (${p.lateMinutes} دقيقة تأخير).\n\n⏳ *المهلة النظامية:* متبقي على مهلة الـ 24 ساعة قبل مضاعفة الغرامة إلى 500 ج.م.\n\n💳 يمكنكم السداد نقداً أو عبر إنستاباي، أو تقديم عذر رسمي عبر تطبيق المنظومة في حال وجود ظرف طارئ.\n\n🤝 *جميع المبالغ المحصلة تذهب لصالح صندوق الزمالة والتكافل ولا تمثل أي ربح للإدارة.*\n\nشكراً لتعاونكم وحرصكم على الانضباط 🌺`;
+      text = `*إشعار تسجيل غرامة حضور فورية* ⏰\n\nالسلام عليكم ورحمة الله، أستاذ/ة ${name} 🌸\n\nتم تسجيل غرامة حضور وتأخير ليوم ${fmtDateWithDay(p.workDate)} بمبلغ *${p.currentAmount} ج.م* (${fmtLateDisplay(p.lateMinutes)} تأخير).\n\n⏳ *المهلة النظامية:* متبقي على مهلة الـ 24 ساعة قبل مضاعفة الغرامة إلى 500 ج.م.\n\n💳 يمكنكم السداد نقداً أو عبر إنستاباي، أو تقديم عذر رسمي عبر تطبيق المنظومة في حال وجود ظرف طارئ.\n\n🤝 *جميع المبالغ المحصلة تذهب لصالح صندوق الزمالة والتكافل ولا تمثل أي ربح للإدارة.*\n\nشكراً لتعاونكم وحرصكم على الانضباط 🌺`;
     }
 
     if (cleanPhone) {
@@ -404,7 +425,7 @@ export function InstantPenaltiesPage() {
       render: (p) => (
         <div className="flex items-center gap-1.5 text-xs whitespace-nowrap font-mono text-[var(--text-secondary)]">
           <Calendar className="size-3.5 text-[var(--text-muted)] shrink-0" aria-hidden="true" />
-          <span>{p.workDate}</span>
+          <span>{fmtDateWithDay(p.workDate)}</span>
         </div>
       ),
     },
@@ -424,11 +445,11 @@ export function InstantPenaltiesPage() {
               </span>
             ) : (
               <span className="font-bold font-mono text-sm text-amber-600 dark:text-amber-400 whitespace-nowrap">
-                {p.lateMinutes} <span className="text-xs font-normal">دقيقة</span>
+                {fmtLateDisplay(p.lateMinutes)}
               </span>
             )}
             {isActualLate && <span className="text-[10px] text-amber-700/80 dark:text-amber-300/80 font-medium">تأخير حضور فعلي</span>}
-            {isUnpunched && <span className="text-[10px] text-[var(--text-muted)] font-mono">تجاوز 11:00 ص</span>}
+            {isUnpunched && <span className="text-[10px] text-[var(--text-muted)] font-mono">تجاوز 12:00 ظ</span>}
           </div>
         );
       },
@@ -596,12 +617,7 @@ export function InstantPenaltiesPage() {
 
   // ─── فلاتر ─────────────────────────────────────────────────────────
 
-  const dirty = Boolean(
-    search.trim() ||
-    dateFilterMode !== 'today' ||
-    statusFilter !== 'unpaid' ||
-    selectedTier !== 'all',
-  );
+  const dirty = Boolean(search.trim() || dateFilterMode !== 'today' || statusFilter !== 'unpaid' || selectedTier !== 'all');
   const clearFilters = () => {
     setSearch('');
     setDateFilterMode('today');
@@ -641,7 +657,7 @@ export function InstantPenaltiesPage() {
       { key: 'code', header: 'الكود', get: (p) => p.employeeCode },
       { key: 'department', header: 'الإدارة', get: (p) => p.departmentName },
       { key: 'date', header: 'التاريخ', get: (p) => p.workDate },
-      { key: 'lateMinutes', header: 'التأخير (دقيقة)', get: (p) => p.lateMinutes },
+      { key: 'lateMinutes', header: 'التأخير', get: (p) => fmtLateDisplay(p.lateMinutes) },
       { key: 'originalAmount', header: 'الغرامة الأصلية', get: (p) => p.originalAmount },
       { key: 'currentAmount', header: 'المبلغ المطلوب', get: (p) => p.currentAmount },
       { key: 'escalation', header: 'التصعيد', get: (p) => INSTANT_PENALTY_ESCALATION_LABELS[p.escalationLevel] ?? p.escalationLevel },
@@ -671,7 +687,7 @@ export function InstantPenaltiesPage() {
         ? 'المطالبون بالسداد فقط (غير مدفوعة)'
         : statusFilter === 'all'
           ? 'كافة الحالات'
-          : INSTANT_PENALTY_STATUS_LABELS[statusFilter] ?? statusFilter;
+          : (INSTANT_PENALTY_STATUS_LABELS[statusFilter] ?? statusFilter);
 
     const sections = [
       {
@@ -682,8 +698,8 @@ export function InstantPenaltiesPage() {
           rows: rows.map((p) => [
             p.employeeName ?? '—',
             p.departmentName ?? '—',
-            p.workDate,
-            p.lateMinutes + ' دقيقة',
+            fmtDateWithDay(p.workDate),
+            fmtLateDisplay(p.lateMinutes),
             formatCurrency(p.originalAmount),
             formatCurrency(p.currentAmount),
             INSTANT_PENALTY_ESCALATION_LABELS[p.escalationLevel] ?? p.escalationLevel,
@@ -764,8 +780,8 @@ export function InstantPenaltiesPage() {
                 p.employeeName ?? '—',
                 p.employeeCode ?? '—',
                 p.departmentName ?? '—',
-                p.workDate,
-                `${p.lateMinutes} دقيقة`,
+                fmtDateWithDay(p.workDate),
+                fmtLateDisplay(p.lateMinutes),
                 formatCurrency(p.originalAmount),
                 formatCurrency(p.currentAmount),
                 'معلق عن العمل',
@@ -788,11 +804,11 @@ export function InstantPenaltiesPage() {
       filtered = all.filter((p) => p.lateMinutes > 15 && p.lateMinutes <= 30);
       tierTitle = 'كشف غرامات 20 ج.م (تأخير 16-30 دقيقة)';
     } else if (tier === 'tier-50') {
-      filtered = all.filter((p) => p.lateMinutes > 30 && p.lateMinutes <= 60);
-      tierTitle = 'كشف غرامات 50 ج.م (تأخير 31-60 دقيقة)';
+      filtered = all.filter((p) => p.lateMinutes > 30 && p.lateMinutes < 120);
+      tierTitle = 'كشف غرامات 50 ج.م (تأخير 31 دقيقة - أقل من ساعتين)';
     } else if (tier === 'tier-150') {
-      filtered = all.filter((p) => p.lateMinutes > 60);
-      tierTitle = 'كشف غرامات 150 ج.م (تأخير بعد 11:00 ص)';
+      filtered = all.filter((p) => p.lateMinutes >= 120);
+      tierTitle = 'كشف غرامات 150 ج.م (تأخير ساعتين فأكثر)';
     } else if (tier === 'doubled') {
       filtered = all.filter((p) => p.status === 'doubled');
       tierTitle = 'كشف الغرامات المضاعفة 500 ج.م (اليوم الثاني)';
@@ -809,8 +825,8 @@ export function InstantPenaltiesPage() {
             rows: filtered.map((p) => [
               p.employeeName ?? '—',
               p.departmentName ?? '—',
-              p.workDate,
-              `${p.lateMinutes} دقيقة`,
+              fmtDateWithDay(p.workDate),
+              fmtLateDisplay(p.lateMinutes),
               formatCurrency(p.originalAmount),
               formatCurrency(p.currentAmount),
               INSTANT_PENALTY_ESCALATION_LABELS[p.escalationLevel] ?? p.escalationLevel,
@@ -1033,7 +1049,7 @@ export function InstantPenaltiesPage() {
             {
               key: 'tier-20' as const,
               label: '20 ج.م',
-              badge: '16-30 دقيقة',
+              badge: '16-30 د',
               count: tierStats.tier20.count,
               total: tierStats.tier20.total,
               pending: tierStats.tier20.pendingCount,
@@ -1047,7 +1063,7 @@ export function InstantPenaltiesPage() {
             {
               key: 'tier-50' as const,
               label: '50 ج.م',
-              badge: '31-60 دقيقة',
+              badge: '½ ساعة - ساعتين',
               count: tierStats.tier50.count,
               total: tierStats.tier50.total,
               pending: tierStats.tier50.pendingCount,
@@ -1061,7 +1077,7 @@ export function InstantPenaltiesPage() {
             {
               key: 'tier-150' as const,
               label: '150 ج.م',
-              badge: '> 11:00 ص / عدم بصمة',
+              badge: 'ساعتين+ / عدم بصمة',
               count: tierStats.tier150.count,
               total: tierStats.tier150.total,
               pending: tierStats.tier150.pendingCount,
@@ -1159,8 +1175,8 @@ export function InstantPenaltiesPage() {
         <section className="card p-5">
           <h2 className="font-black">إنشاء غرامة فورية للتأخير</h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            الحضور يبدأ 10:00 ص: من 1-15 دقيقة = سماح بدون خصم (0 ج.م) | حتى 10:30 (16-30 دقيقة) = 20 ج.م | حتى 11:00 (31-60 دقيقة) = 50 ج.م | حتى 12:00 (61-120
-            دقيقة) = 150 ج.م.
+            الحضور يبدأ 10:00 ص: من 1-15 دقيقة = سماح بدون خصم (0 ج.م) | حتى 10:30 (16-30 دقيقة) = 20 ج.م | حتى 12:00 (31 دقيقة - أقل من ساعتين) = 50 ج.م | ساعتين
+            فأكثر = 150 ج.م.
           </p>
           <form className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" onSubmit={(ev) => void submitPenalty(ev)}>
             <label className="block">
@@ -1197,9 +1213,9 @@ export function InstantPenaltiesPage() {
                     ? '✓ فترة سماح (10:00 - 10:15) — بدون أي خصم (0 ج.م)'
                     : Number(lateMinutes) <= 30
                       ? 'خصم 20 ج.م (حضور حتى 10:30)'
-                      : Number(lateMinutes) <= 60
-                        ? 'خصم 50 ج.م (حضور حتى 11:00)'
-                        : 'خصم 150 ج.م (حضور حتى 12:00)'}
+                      : Number(lateMinutes) < 120
+                        ? 'خصم 50 ج.م (تأخير 31 دقيقة - أقل من ساعتين)'
+                        : 'خصم 150 ج.م (تأخير ساعتين فأكثر)'}
                 </span>
               )}
             </label>
@@ -1278,7 +1294,13 @@ export function InstantPenaltiesPage() {
           <Printer className="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
           <span>تصدير PDF</span>
         </button>
-        <button type="button" className="btn-secondary font-medium" onClick={handleHtmlExport} disabled={rows.length === 0} title="تنزيل تقرير HTML مستقل مباشرة">
+        <button
+          type="button"
+          className="btn-secondary font-medium"
+          onClick={handleHtmlExport}
+          disabled={rows.length === 0}
+          title="تنزيل تقرير HTML مستقل مباشرة"
+        >
           <Download className="size-4 text-sky-600 dark:text-sky-400" aria-hidden="true" />
           <span>تنزيل HTML</span>
         </button>
@@ -1363,9 +1385,9 @@ export function InstantPenaltiesPage() {
                   : activeModalTier === 'tier-20'
                     ? 'صندوق غرامات 20 ج.م (تأخير 16-30 دقيقة)'
                     : activeModalTier === 'tier-50'
-                      ? 'صندوق غرامات 50 ج.م (تأخير 31-60 دقيقة)'
+                      ? 'صندوق غرامات 50 ج.م (تأخير 31 دقيقة - أقل من ساعتين)'
                       : activeModalTier === 'tier-150'
-                        ? 'صندوق غرامات 150 ج.م (تأخير بعد 11:00 ص أو عدم البصمة)'
+                        ? 'صندوق غرامات 150 ج.م (تأخير ساعتين فأكثر أو عدم البصمة)'
                         : 'صندوق الغرامات المضاعفة 500 ج.م (اليوم الثاني)'
           }
           onClose={() => setActiveModalTier(null)}
@@ -1707,7 +1729,7 @@ export function InstantPenaltiesPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-orange-700 dark:text-orange-300">شريحة 150 ج.م</span>
                       <span className="text-[10px] bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 px-1.5 py-0.5 rounded font-mono">
-                        &gt;11:00ص
+                        ساعتين+
                       </span>
                     </div>
                     <p className="mt-2 text-xl font-black text-orange-600 dark:text-orange-400 font-mono">{formatCurrency(tierStats.tier150.total)}</p>
@@ -1770,14 +1792,14 @@ export function InstantPenaltiesPage() {
                     : activeModalTier === 'tier-50'
                       ? {
                           label: 'غرامات 50 ج.م',
-                          desc: 'الحضور من 10:31 ص إلى 11:00 ص (تأخير 31-60 دقيقة)',
+                          desc: 'الحضور من 10:31 ص إلى قبل 12:00 ظهراً (تأخير 31 دقيقة - أقل من ساعتين)',
                           stats: tierStats.tier50,
                           color: 'text-amber-600 dark:text-amber-400',
                         }
                       : activeModalTier === 'tier-150'
                         ? {
                             label: 'غرامات 150 ج.م',
-                            desc: 'الحضور بعد 11:00 ص أو عدم تسجيل البصمة',
+                            desc: 'الحضور بعد 12:00 ظهراً (تأخير ساعتين فأكثر) أو عدم تسجيل البصمة',
                             stats: tierStats.tier150,
                             color: 'text-orange-600 dark:text-orange-400',
                           }
@@ -1895,7 +1917,7 @@ export function InstantPenaltiesPage() {
                             { key: 'code', header: 'الكود', get: (p) => p.employeeCode },
                             { key: 'department', header: 'الإدارة', get: (p) => p.departmentName },
                             { key: 'date', header: 'التاريخ', get: (p) => p.workDate },
-                            { key: 'lateMinutes', header: 'التأخير (دقيقة)', get: (p) => p.lateMinutes },
+                            { key: 'lateMinutes', header: 'التأخير', get: (p) => fmtLateDisplay(p.lateMinutes) },
                             { key: 'amount', header: 'المبلغ', get: (p) => p.currentAmount },
                             { key: 'status', header: 'الحالة', get: (p) => INSTANT_PENALTY_STATUS_LABELS[p.status] ?? p.status },
                           ];
@@ -2241,9 +2263,7 @@ export function InstantPenaltiesPage() {
                 <AlertTriangle className="size-4 shrink-0" />
                 <span>إجراء تصفير البيانات التجريبية</span>
               </div>
-              <p className="leading-relaxed">
-                هذا الإجراء يقوم بما يلي:
-              </p>
+              <p className="leading-relaxed">هذا الإجراء يقوم بما يلي:</p>
               <ul className="list-disc list-inside space-y-1 text-[11px] font-medium">
                 <li>مسح وتصفير كافة حركات صندوق الزمالة والتكافل السابقة وإعادة الرصيد إلى 0.00 ج.م.</li>
                 <li>إلغاء وتصفير السداد عن جميع الموظفين الذين قاموا بالدفع التجريبي سابقاً وإعادتها لحالة ملغاة تجريبياً مع إخلاء طرفهم.</li>

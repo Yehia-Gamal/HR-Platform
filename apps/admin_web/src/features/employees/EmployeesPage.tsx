@@ -6,7 +6,6 @@ import { downloadCsv, printReport, toCsv, type ExportColumn } from '../../core/e
 import { MetricCard } from '../../ui/MetricCard';
 import { FilterBar } from '../../ui/FilterBar';
 import { PageHeader } from '../../ui/PageHeader';
-import { StatusBadge } from '../../ui/StatusBadge';
 import { DataTable, type DataTableColumn } from '../../ui/DataTable';
 import { Pagination } from '../../ui/Pagination';
 import { EmptyState } from '../../ui/EmptyState';
