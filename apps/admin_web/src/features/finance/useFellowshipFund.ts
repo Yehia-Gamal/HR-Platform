@@ -95,3 +95,21 @@ export function useWithdrawFromFellowshipFund() {
     },
   });
 }
+
+// ─── تصفير وإلغاء المدفوعات وحركات صندوق الزمالة التجريبية ─────────────
+export function useResetExperimentalPayments() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (): Promise<{ success: boolean; message: string; clearedTransactions: number; clearedPenalties: number }> => {
+      const res = await rpc('reset_experimental_fellowship_and_penalty_payments');
+      return res as { success: boolean; message: string; clearedTransactions: number; clearedPenalties: number };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [FELLOWSHIP_FUND_SUMMARY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [FELLOWSHIP_FUND_TX_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['instant-penalties'] });
+      queryClient.invalidateQueries({ queryKey: ['instant-penalties-pending-employees'] });
+    },
+  });
+}
+

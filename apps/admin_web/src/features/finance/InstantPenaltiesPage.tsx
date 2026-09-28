@@ -16,6 +16,7 @@ import {
   MessageCircle,
   Printer,
   RefreshCw,
+  RotateCcw,
   ShieldAlert,
   Sparkles,
   SunMedium,
@@ -36,8 +37,10 @@ import { ListSkeleton } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { isPhoneLikeCode } from '../../ui/phoneDisplay';
 import { useToast } from '../../ui/Toast';
+import { useAuth } from '../auth/AuthProvider';
+import { hasPermission } from '../workspaces/access';
 import { useEmployees } from '../employees/useEmployees';
-import { useFellowshipFundSummary } from './useFellowshipFund';
+import { useFellowshipFundSummary, useResetExperimentalPayments } from './useFellowshipFund';
 import { usePenaltyDisputes, useReviewPenaltyDispute } from './usePenaltyDisputes';
 import { PendingSuspensionsCard } from './PendingSuspensionsCard';
 import {
@@ -100,6 +103,19 @@ export function InstantPenaltiesPage() {
   const penalties = useInstantPenalties();
   const pendingEmployees = usePendingPenaltyEmployees();
   const fundSummary = useFellowshipFundSummary();
+  const resetExperimentalPayments = useResetExperimentalPayments();
+  const auth = useAuth();
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+
+  const canResetExperimental = Boolean(
+    auth.access &&
+    (hasPermission(auth.access, 'payroll.run.manage') ||
+      hasPermission(auth.access, 'finance.manage') ||
+      auth.access.workspaces?.includes('main_admin') ||
+      auth.access.permissions?.includes('*')),
+  );
+
   const confirmPayment = useConfirmInstantPenaltyPayment();
   const generatePenalty = useGenerateInstantPenalty();
   const cancelPenalty = useCancelInstantPenalty();
@@ -944,6 +960,20 @@ export function InstantPenaltiesPage() {
             <Coins className="size-3.5" />
             <span>رصيد صندوق الزمالة والتكافل: {formatCurrency(fundSummary.data?.currentBalance ?? 0)}</span>
           </span>
+          {canResetExperimental && (
+            <button
+              type="button"
+              onClick={() => {
+                setResetError(null);
+                setResetDialogOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1.5 text-xs font-bold text-rose-700 dark:text-rose-300 transition-all cursor-pointer shadow-xs"
+              title="تصفير ومسح السدادات وحركات صندوق الزمالة التجريبية السابقة"
+            >
+              <RotateCcw className="size-3.5 text-rose-600 dark:text-rose-400" />
+              <span>تصفير الدفع التجريبي</span>
+            </button>
+          )}
           {collectionStats.totalCount > 0 && (
             <span
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-bold ${
@@ -2192,6 +2222,76 @@ export function InstantPenaltiesPage() {
               <span>💡 جميع رسائل الواتساب مجانية بالكامل ومفتوحة عبر الويب والتطبيق مباشرة بدون أي اشتراكات.</span>
               <button type="button" onClick={() => setEarlyWarningModalOpen(false)} className="btn-secondary text-xs !py-1.5 !px-3">
                 إغلاق
+              </button>
+            </div>
+          </div>
+        </DialogOverlay>
+      )}
+
+      {/* ─── نافذة تأكيد تصفير الدفعات التجريبية وصندوق الزمالة ─────────── */}
+      {resetDialogOpen && (
+        <DialogOverlay
+          title="تصفير الدفع التجريبي وصندوق الزمالة"
+          onClose={() => !resetExperimentalPayments.isPending && setResetDialogOpen(false)}
+          maxWidth="max-w-md"
+        >
+          <div className="space-y-4 text-start">
+            <div className="rounded-xl border border-rose-500/30 bg-rose-50/50 dark:bg-rose-950/20 p-3.5 text-xs text-rose-800 dark:text-rose-300 space-y-2">
+              <div className="flex items-center gap-2 font-bold text-sm text-rose-700 dark:text-rose-400">
+                <AlertTriangle className="size-4 shrink-0" />
+                <span>إجراء تصفير البيانات التجريبية</span>
+              </div>
+              <p className="leading-relaxed">
+                هذا الإجراء يقوم بما يلي:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-[11px] font-medium">
+                <li>مسح وتصفير كافة حركات صندوق الزمالة والتكافل السابقة وإعادة الرصيد إلى 0.00 ج.م.</li>
+                <li>إلغاء وتصفير السداد عن جميع الموظفين الذين قاموا بالدفع التجريبي سابقاً وإعادتها لحالة ملغاة تجريبياً مع إخلاء طرفهم.</li>
+                <li>تسجيل حركة تدقيق إداري (Audit Log) بالعملية.</li>
+              </ul>
+            </div>
+
+            {resetError && (
+              <div className="rounded-lg bg-red-50 dark:bg-red-950/30 p-2.5 text-xs text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/30">
+                {resetError}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border)]">
+              <button
+                type="button"
+                onClick={() => setResetDialogOpen(false)}
+                disabled={resetExperimentalPayments.isPending}
+                className="btn-secondary text-xs !py-2 !px-4 cursor-pointer"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setResetError(null);
+                  try {
+                    const result = await resetExperimentalPayments.mutateAsync();
+                    toast({ message: result.message || 'تم تصفير البيانات التجريبية بنجاح', tone: 'success' });
+                    setResetDialogOpen(false);
+                  } catch (err) {
+                    setResetError(safeErrorMessage(err));
+                  }
+                }}
+                disabled={resetExperimentalPayments.isPending}
+                className="btn-primary !bg-rose-600 hover:!bg-rose-700 text-white text-xs !py-2 !px-4 inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                {resetExperimentalPayments.isPending ? (
+                  <>
+                    <RefreshCw className="size-3.5 animate-spin" />
+                    <span>جارٍ التصفير...</span>
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="size-3.5" />
+                    <span>تأكيد التصفير الآن</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

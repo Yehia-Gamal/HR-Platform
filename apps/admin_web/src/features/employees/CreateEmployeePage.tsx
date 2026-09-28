@@ -347,7 +347,7 @@ export function CreateEmployeePage() {
           ) : null}
           {step === 1 ? (
             <div>
-              <SectionTitle title="الهيكل والوظيفة" description="تحديد الفرع وموقع العمل والمدير المباشر والمسمى الوظيفي." />
+              <SectionTitle title="الهيكل والوظيفة" description="تحديد الفرع وموقع العمل والقسم والمدير المباشر والمسمى الوظيفي." />
               {lookups.isError ? (
                 <div className="mb-4">
                   <ErrorBanner message={`تعذر تحميل بيانات الهيكل: ${safeErrorMessage(lookups.error)}`} />
@@ -371,6 +371,13 @@ export function CreateEmployeePage() {
                   </datalist>
                 </label>
                 <SelectField label="موقع العمل" options={workSites} register={form.register('workSiteId', uuidValue)} placeholder="اختر موقع العمل" />
+                <SelectField
+                  label="القسم / الإدارة"
+                  options={options?.departments ?? []}
+                  register={form.register('departmentId', uuidValue)}
+                  placeholder="اختر القسم (اختياري)"
+                  hint="مثل: العيادات — يُستخدم للفلترة والتقارير."
+                />
                 <SelectField
                   label="المدير المباشر"
                   options={options?.managers ?? []}
@@ -402,6 +409,7 @@ export function CreateEmployeePage() {
                 <Review label="البريد" value={values.email} />
                 <Review label="الفرع" value={branchText || undefined} />
                 <Review label="موقع العمل" value={options?.workSites.find((x) => x.id === values.workSiteId)?.label} />
+                <Review label="القسم / الإدارة" value={options?.departments.find((x) => x.id === values.departmentId)?.label} />
                 <Review label="المدير" value={options?.managers.find((x) => x.id === values.managerEmployeeId)?.label} />
                 <Review label="المسمى الوظيفي" value={values.jobTitleName} />
                 <Review label="الدور" value={options?.roles.find((r) => r.slug === values.roleSlug)?.label} />

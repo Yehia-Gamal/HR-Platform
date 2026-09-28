@@ -30,6 +30,8 @@ const STANDARD_EMPLOYEE_ROLES = new Set([
   "operations-manager",
   "operations-manager-1",
   "operations-manager-2",
+  "clinic-staff",
+  "clinics-manager",
 ]);
 
 const ELEVATED_EMPLOYEE_ROLES = new Set([

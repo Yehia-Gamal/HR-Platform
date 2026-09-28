@@ -78,12 +78,33 @@ vi.mock('../../../ui/Toast', () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
+vi.mock('../../auth/AuthProvider', () => ({
+  useAuth: () => ({
+    status: 'authenticated',
+    session: null,
+    access: { permissions: ['payroll.run.manage', 'finance.manage'], workspaces: ['main_admin'] },
+    error: null,
+    isMock: true,
+  }),
+}));
+
 vi.mock('../useFellowshipFund', () => ({
   useFellowshipFundSummary: () => ({
     data: { currentBalance: 300, totalDeposits: 500, totalDisbursements: 200, depositCount: 2, disbursementCount: 1 },
     isLoading: false,
     isError: false,
     error: null,
+  }),
+  useResetExperimentalPayments: () => ({
+    isPending: false,
+    isError: false,
+    error: null,
+    mutateAsync: vi.fn().mockResolvedValue({
+      success: true,
+      clearedTransactions: 4,
+      clearedPenalties: 3,
+      message: 'تم بنجاح تصفير رصيد صندوق الزمالة',
+    }),
   }),
 }));
 
@@ -549,4 +570,21 @@ describe('InstantPenaltiesPage', () => {
     expect(screen.getByText('Excel')).toBeDefined();
     expect(screen.getByText('تنزيل HTML')).toBeDefined();
   });
+
+  it('يعرض زر تصفير الدفع التجريبي ويفتح نافذة التأكيد مع تفاصيل التصفير للمسؤول', () => {
+    penaltiesData = samplePenalties;
+    pendingData = emptyPending;
+    employeesData = emptyEmployees;
+    renderPage();
+
+    const resetBtn = screen.getByText('تصفير الدفع التجريبي');
+    expect(resetBtn).toBeDefined();
+
+    fireEvent.click(resetBtn);
+
+    expect(screen.getByText('تصفير الدفع التجريبي وصندوق الزمالة')).toBeDefined();
+    expect(screen.getByText('إجراء تصفير البيانات التجريبية')).toBeDefined();
+    expect(screen.getByText('تأكيد التصفير الآن')).toBeDefined();
+  });
 });
+

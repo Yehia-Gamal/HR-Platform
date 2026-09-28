@@ -13,11 +13,14 @@ import {
   FileSpreadsheet,
   Printer,
   MessageCircle,
+  RefreshCw,
+  RotateCcw,
 } from 'lucide-react';
 import {
   useFellowshipFundSummary,
   useFellowshipFundTransactions,
   useWithdrawFromFellowshipFund,
+  useResetExperimentalPayments,
   FELLOWSHIP_CATEGORIES,
   type FellowshipFundTransaction,
 } from './useFellowshipFund';
@@ -30,6 +33,8 @@ import { EmptyState } from '../../ui/EmptyState';
 import { useEntityFocus } from '../../core/useEntityFocus';
 import { downloadCsv, printReport, toCsv, type ExportColumn } from '../../core/exportUtils';
 import { cairoTodayIso } from '../../core/cairoTime';
+import { useToast } from '../../ui/Toast';
+import { safeErrorMessage } from '../../core/errorMapper';
 
 export function FellowshipFundPage() {
   const auth = useAuth();
@@ -51,6 +56,11 @@ export function FellowshipFundPage() {
   const [beneficiaryId, setBeneficiaryId] = useState('');
   const [withdrawNotes, setWithdrawNotes] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
+
+  const { toast } = useToast();
+  const resetExperimentalMutation = useResetExperimentalPayments();
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
 
   const withdrawMutation = useWithdrawFromFellowshipFund();
   const { data: employeesData } = useEmployees();
@@ -214,6 +224,20 @@ export function FellowshipFundPage() {
               <Printer className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>تصدير PDF</span>
             </button>
+            {canWithdraw && (
+              <button
+                type="button"
+                onClick={() => {
+                  setResetError(null);
+                  setResetDialogOpen(true);
+                }}
+                className="btn-secondary flex items-center gap-1.5 text-xs text-rose-700 dark:text-rose-300 border-rose-500/30 hover:bg-rose-500/10 cursor-pointer"
+                title="تصفير ومسح الحركات التجريبية السابقة وإعادة الرصيد إلى 0.00 ج.م"
+              >
+                <RotateCcw className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                <span>تصفير الحركات التجريبية</span>
+              </button>
+            )}
             {canWithdraw && (
               <button
                 onClick={() => {
@@ -586,6 +610,76 @@ export function FellowshipFundPage() {
               </button>
             </div>
           </form>
+        </DialogOverlay>
+      )}
+
+      {/* ═══ حوار تصفير حركات الصندوق التجريبية (خاص بالإدارة) ═══ */}
+      {resetDialogOpen && (
+        <DialogOverlay
+          title="تصفير الحركات التجريبية وصندوق الزمالة"
+          onClose={() => !resetExperimentalMutation.isPending && setResetDialogOpen(false)}
+          maxWidth="max-w-md"
+        >
+          <div className="space-y-4 p-4 text-start">
+            <div className="rounded-xl border border-rose-500/30 bg-rose-50/50 dark:bg-rose-950/20 p-3.5 text-xs text-rose-800 dark:text-rose-300 space-y-2">
+              <div className="flex items-center gap-2 font-bold text-sm text-rose-700 dark:text-rose-400">
+                <AlertTriangle className="size-4 shrink-0" />
+                <span>إجراء تصفير البيانات التجريبية</span>
+              </div>
+              <p className="leading-relaxed">
+                هذا الإجراء مخصص لمسح أي قيود تجريبية تمت أثناء اختبار النظام:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-[11px] font-medium">
+                <li>حذف كافة الإيداعات والسحوبات التجريبية في كشف الصندوق وإعادة الرصيد إلى 0.00 ج.م.</li>
+                <li>إلغاء وتصفير السدادات التجريبية السابقة للموظفين وإخلاء طرفهم في سجل الغرامات.</li>
+                <li>توثيق العملية في سجل التدقيق الأمني (Audit Log).</li>
+              </ul>
+            </div>
+
+            {resetError && (
+              <div className="rounded-lg bg-red-50 dark:bg-red-950/30 p-2.5 text-xs text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/30">
+                {resetError}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border)]">
+              <button
+                type="button"
+                onClick={() => setResetDialogOpen(false)}
+                disabled={resetExperimentalMutation.isPending}
+                className="btn-secondary text-xs !py-2 !px-4 cursor-pointer"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setResetError(null);
+                  try {
+                    const result = await resetExperimentalMutation.mutateAsync();
+                    toast({ message: result.message || 'تم تصفير الحركات التجريبية بنجاح', tone: 'success' });
+                    setResetDialogOpen(false);
+                  } catch (err) {
+                    setResetError(safeErrorMessage(err));
+                  }
+                }}
+                disabled={resetExperimentalMutation.isPending}
+                className="btn-primary !bg-rose-600 hover:!bg-rose-700 text-white text-xs !py-2 !px-4 inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                {resetExperimentalMutation.isPending ? (
+                  <>
+                    <RefreshCw className="size-3.5 animate-spin" />
+                    <span>جارٍ التصفير...</span>
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="size-3.5" />
+                    <span>تأكيد التصفير الآن</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </DialogOverlay>
       )}
     </div>
