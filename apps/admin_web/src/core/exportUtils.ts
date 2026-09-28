@@ -123,10 +123,26 @@ export function generateReportHtml(sections: PrintableSection[], documentTitle: 
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>${esc(safeFilename)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; padding: 24px; color: #1f2937; line-height: 1.6; background: #f8fafc; }
+  html, body {
+    direction: rtl !important;
+    text-align: right !important;
+    unicode-bidi: embed !important;
+    font-family: 'Cairo', system-ui, -apple-system, 'Segoe UI', Tahoma, Arial, sans-serif;
+    padding: 24px;
+    color: #1f2937;
+    line-height: 1.6;
+    background: #f8fafc;
+    -webkit-font-smoothing: antialiased;
+  }
+  table, th, td, div, span, p, h1, h2 {
+    direction: rtl;
+    unicode-bidi: embed;
+  }
 
   /* ─── شريط الإجراءات العلوي (يظهر للمستخدم على الشاشة ويختفي تماماً عند الطباعة والحفظ كـ PDF) ─── */
   .action-bar {
@@ -301,14 +317,22 @@ export function generateReportHtml(sections: PrintableSection[], documentTitle: 
   .footer .brand { font-weight: 700; color: #f59e0b; }
 
   @media print {
-    body { padding: 0 !important; background: #ffffff !important; }
+    html, body {
+      padding: 0 !important;
+      background: #ffffff !important;
+      font-family: 'Cairo', system-ui, -apple-system, 'Segoe UI', Tahoma, Arial, sans-serif !important;
+      direction: rtl !important;
+      text-align: right !important;
+    }
     .no-print, .action-bar { display: none !important; }
     .report-paper { border: none !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; }
-    .summary-card { break-inside: avoid; }
-    table { break-inside: auto; }
-    tr { break-inside: avoid; }
+    .summary-card { break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    table { break-inside: auto; width: 100% !important; }
+    tr { break-inside: avoid; page-break-inside: avoid; }
+    th { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: #f59e0b !important; color: #ffffff !important; }
+    .badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .signatures { break-inside: avoid; }
-    @page { size: A4; margin: 12mm 10mm; }
+    @page { size: A4 portrait; margin: 10mm 8mm; }
   }
 </style>
 </head>
@@ -393,7 +417,9 @@ export function generateReportHtml(sections: PrintableSection[], documentTitle: 
     try {
       var clone = document.documentElement.cloneNode(true);
       var noPrintEls = clone.querySelectorAll('.no-print');
-      noPrintEls.forEach(function(el) { el.remove(); });
+      for (var i = 0; i < noPrintEls.length; i++) {
+        noPrintEls[i].remove();
+      }
       var htmlContent = "<!doctype html>\\n" + clone.outerHTML;
       var blob = new Blob([htmlContent], { type: "text/html;charset=utf-8;" });
       var url = URL.createObjectURL(blob);
@@ -402,17 +428,35 @@ export function generateReportHtml(sections: PrintableSection[], documentTitle: 
       a.download = "${esc(safeFilename)}.html";
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error(e);
+      setTimeout(function() {
+        if (a.parentNode) a.parentNode.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 1500);
+    } catch (err) {
+      try {
+        var dataUri = 'data:text/html;charset=utf-8,' + encodeURIComponent("<!doctype html>\\n" + clone.outerHTML);
+        var fallbackA = document.createElement("a");
+        fallbackA.href = dataUri;
+        fallbackA.download = "${esc(safeFilename)}.html";
+        document.body.appendChild(fallbackA);
+        fallbackA.click();
+        setTimeout(function() { if (fallbackA.parentNode) fallbackA.parentNode.removeChild(fallbackA); }, 1000);
+      } catch (e2) {
+        alert("تعذر تنزيل الملف تلقائياً: " + (err && err.message ? err.message : err));
+      }
     }
   }
 
-  // تشغيل حوار الطباعة / الحفظ تلقائياً بمجرد اكتمال تجهيز الصفحة
-  setTimeout(function() {
-    saveAsPdf();
-  }, 400);
+  // انتظر تحميل الخطوط العربية تماماً قبل فتح حوار الطباعة التلقائي لمنع تشويه الحروف أو انعكاسها
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() {
+      setTimeout(function() { saveAsPdf(); }, 400);
+    }).catch(function() {
+      setTimeout(function() { saveAsPdf(); }, 800);
+    });
+  } else {
+    setTimeout(function() { saveAsPdf(); }, 800);
+  }
 </script>
 </body>
 </html>`;
@@ -423,26 +467,24 @@ export function generateReportHtml(sections: PrintableSection[], documentTitle: 
  * يدعم: عنوان فرعي، إجماليات، ألوان الصفوف، ترويسة معتمدة، وتنزيل فوري كـ PDF أو HTML.
  */
 export function printReport(sections: PrintableSection[], documentTitle: string, summary?: { label: string; value: string }[]): void {
-  const win = window.open('', '_blank');
-  if (!win) return;
-
   const html = generateReportHtml(sections, documentTitle, summary);
-  win.document.write(html);
-  win.document.close();
-
-  try {
-    win.focus();
-    setTimeout(() => {
-      try {
-        win.focus();
-        win.print();
-      } catch {
-        // يتم التعامل معه داخل سكربت النافذة تلقائياً
-      }
-    }, 450);
-  } catch {
-    // تجاهل في بيئات الاختبار
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+  const blobUrl = URL.createObjectURL(blob);
+  const win = window.open(blobUrl, '_blank');
+  if (!win) {
+    // إذا حجب المتصفح النوافذ المنبثقة، ننزّل الملف كبديل مباشر
+    downloadReportHtml(sections, documentTitle, summary);
+    return;
   }
+
+  // تحرير الرابط بعد مدة كافية
+  setTimeout(() => {
+    try {
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      // noop
+    }
+  }, 120_000);
 }
 
 /**

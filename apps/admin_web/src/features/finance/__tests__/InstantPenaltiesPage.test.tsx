@@ -1,3 +1,4 @@
+import { cairoTodayIso } from '../../../core/cairoTime';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
@@ -136,7 +137,7 @@ const samplePenalties = {
       employeeName: 'أحمد محمد',
       employeeCode: 'E-001',
       departmentName: 'الإدارة العامة',
-      workDate: '2026-09-19',
+      workDate: cairoTodayIso(),
       lateMinutes: 25,
       originalAmount: 20,
       currentAmount: 20,
@@ -261,6 +262,7 @@ describe('InstantPenaltiesPage', () => {
     pendingData = emptyPending;
     employeesData = emptyEmployees;
     renderPage();
+    fireEvent.change(screen.getByLabelText('تصفية حسب الحالة'), { target: { value: 'all' } });
     expect(screen.getByText('✓ مدفوعة ومُزيلَة')).toBeDefined();
   });
 
@@ -272,6 +274,7 @@ describe('InstantPenaltiesPage', () => {
     pendingData = emptyPending;
     employeesData = emptyEmployees;
     renderPage();
+    fireEvent.change(screen.getByLabelText('تصفية حسب الحالة'), { target: { value: 'all' } });
     const matches = screen.getAllByText('ملغاة');
     expect(matches.length).toBeGreaterThanOrEqual(2);
   });
@@ -476,5 +479,74 @@ describe('InstantPenaltiesPage', () => {
     expect(screen.getByText('صندوق الغرامات المضاعفة 500 ج.م (اليوم الثاني)')).toBeDefined();
     // يجب أن تكون 1 بانتظار التحصيل (لأنها معلقة) و0 موردة بالصندوق
     expect(screen.getByText('بانتظار التحصيل')).toBeDefined();
+  });
+
+  it('يتيح تصفية المطالبين بالسداد واستثناء المدفوعة والملغاة واختيار تاريخ محدد', () => {
+    penaltiesData = {
+      data: [
+        {
+          ...samplePenalties.data[0],
+          id: 'p-today-unpaid',
+          employeeName: 'محمد الدائن',
+          workDate: cairoTodayIso(),
+          status: 'pending_payment',
+        },
+        {
+          ...samplePenalties.data[0],
+          id: 'p-today-paid',
+          employeeName: 'سعيد المدفوع',
+          workDate: cairoTodayIso(),
+          status: 'paid',
+        },
+        {
+          ...samplePenalties.data[0],
+          id: 'p-today-cancelled',
+          employeeName: 'علي المعفى',
+          workDate: cairoTodayIso(),
+          status: 'cancelled',
+        },
+        {
+          ...samplePenalties.data[0],
+          id: 'p-old-unpaid',
+          employeeName: 'خالد القديم',
+          workDate: '2026-09-20',
+          status: 'pending_payment',
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    };
+    pendingData = emptyPending;
+    employeesData = emptyEmployees;
+    renderPage();
+
+    // بالوضع الافتراضي (اليوم + المطالبون بالسداد فقط):
+    // يظهر فقط محمد الدائن (اليوم وغير مدفوعة)، ولا يظهر سعيد المدفوع ولا علي المعفى ولا خالد القديم
+    expect(screen.getByText('محمد الدائن')).toBeDefined();
+    expect(screen.queryByText('سعيد المدفوع')).toBeNull();
+    expect(screen.queryByText('علي المعفى')).toBeNull();
+    expect(screen.queryByText('خالد القديم')).toBeNull();
+
+    // عند تغيير الفلتر إلى "كل الحالات":
+    fireEvent.change(screen.getByLabelText('تصفية حسب الحالة'), { target: { value: 'all' } });
+    expect(screen.getByText('سعيد المدفوع')).toBeDefined();
+    expect(screen.getByText('علي المعفى')).toBeDefined();
+
+    // عند تغيير فلتر التاريخ إلى "كل التواريخ":
+    fireEvent.change(screen.getByLabelText('تصفية حسب التاريخ'), { target: { value: 'all' } });
+    expect(screen.getByText('خالد القديم')).toBeDefined();
+  });
+
+  it('يعرض أزرار تصدير PDF و Excel وتنزيل HTML في شريط الفلاتر', () => {
+    penaltiesData = samplePenalties;
+    pendingData = emptyPending;
+    employeesData = emptyEmployees;
+    renderPage();
+
+    expect(screen.getByText('تصدير PDF')).toBeDefined();
+    expect(screen.getByText('Excel')).toBeDefined();
+    expect(screen.getByText('تنزيل HTML')).toBeDefined();
   });
 });

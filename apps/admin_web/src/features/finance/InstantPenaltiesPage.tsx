@@ -9,6 +9,7 @@ import {
   Clock,
   Clock3,
   Coins,
+  Download,
   FileSpreadsheet,
   Flame,
   MessageSquare,
@@ -23,7 +24,7 @@ import {
 } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useEntityFocus } from '../../core/useEntityFocus';
-import { downloadCsv, printReport, toCsv, type ExportColumn } from '../../core/exportUtils';
+import { downloadCsv, downloadReportHtml, printReport, toCsv, type ExportColumn } from '../../core/exportUtils';
 import { DataTable, type DataTableColumn } from '../../ui/DataTable';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
@@ -63,6 +64,12 @@ function formatCurrency(amount: number | null | undefined): string {
   return currencyFmt.format(amount);
 }
 
+function getYesterdayIso(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
 /** أيقونة + لون حسب الحالة */
 function StatusIcon({ status }: { status: string }) {
   switch (status) {
@@ -84,11 +91,13 @@ function StatusIcon({ status }: { status: string }) {
 export function InstantPenaltiesPage() {
   const { toast } = useToast();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFilterMode, setDateFilterMode] = useState<'today' | 'yesterday' | 'specific' | 'all'>('today');
+  const [specificDate, setSpecificDate] = useState<string>(cairoTodayIso());
+  const [statusFilter, setStatusFilter] = useState<'unpaid' | 'all' | 'pending_payment' | 'doubled' | 'suspended' | 'paid' | 'cancelled'>('unpaid');
   const [selectedTier, setSelectedTier] = useState<'all' | 'pending' | 'tier-20' | 'tier-50' | 'tier-150' | 'tier-500' | 'suspended'>('all');
   const [activeModalTier, setActiveModalTier] = useState<'pending' | 'tier-20' | 'tier-50' | 'tier-150' | 'tier-500' | 'suspended' | 'total' | null>(null);
 
-  const penalties = useInstantPenalties(statusFilter === 'all' ? {} : { status: statusFilter });
+  const penalties = useInstantPenalties();
   const pendingEmployees = usePendingPenaltyEmployees();
   const fundSummary = useFellowshipFundSummary();
   const confirmPayment = useConfirmInstantPenaltyPayment();
@@ -271,6 +280,25 @@ export function InstantPenaltiesPage() {
     const q = search.trim().toLowerCase();
     let items = penalties.data ?? [];
 
+    // 1. فلتر التاريخ (اليوم / أمس / تاريخ محدد / كل التواريخ)
+    if (dateFilterMode === 'today') {
+      const today = cairoTodayIso();
+      items = items.filter((p) => p.workDate === today);
+    } else if (dateFilterMode === 'yesterday') {
+      const yest = getYesterdayIso();
+      items = items.filter((p) => p.workDate === yest);
+    } else if (dateFilterMode === 'specific' && specificDate) {
+      items = items.filter((p) => p.workDate === specificDate);
+    }
+
+    // 2. فلتر الحالة (الافتراضي: المطالبون بالسداد فقط — استثناء من دفعوا أو أُلغيت لهم)
+    if (statusFilter === 'unpaid') {
+      items = items.filter((p) => p.status === 'pending_payment' || p.status === 'doubled' || p.status === 'suspended');
+    } else if (statusFilter !== 'all') {
+      items = items.filter((p) => p.status === statusFilter);
+    }
+
+    // 3. فلتر الشريحة المحددة من البطاقات العلوية
     if (selectedTier === 'pending') {
       items = items.filter((p) => p.status === 'pending_payment' || p.status === 'doubled' || p.status === 'suspended');
     } else if (selectedTier === 'tier-20') {
@@ -293,7 +321,7 @@ export function InstantPenaltiesPage() {
             (p.departmentName ?? '').toLowerCase().includes(q),
         )
       : items;
-  }, [penalties.data, search, selectedTier]);
+  }, [penalties.data, search, dateFilterMode, specificDate, statusFilter, selectedTier]);
 
   // ─── إحصائيات سريعة ───────────────────────────────────────────────
 
@@ -552,10 +580,17 @@ export function InstantPenaltiesPage() {
 
   // ─── فلاتر ─────────────────────────────────────────────────────────
 
-  const dirty = Boolean(search.trim() || statusFilter !== 'all' || selectedTier !== 'all');
+  const dirty = Boolean(
+    search.trim() ||
+    dateFilterMode !== 'today' ||
+    statusFilter !== 'unpaid' ||
+    selectedTier !== 'all',
+  );
   const clearFilters = () => {
     setSearch('');
-    setStatusFilter('all');
+    setDateFilterMode('today');
+    setSpecificDate(cairoTodayIso());
+    setStatusFilter('unpaid');
     setSelectedTier('all');
   };
 
@@ -599,38 +634,72 @@ export function InstantPenaltiesPage() {
     downloadCsv(`instant-penalties-${cairoTodayIso()}.csv`, toCsv(cols, rows));
   };
 
-  const handlePdfExport = () => {
-    const totalAmount = rows.reduce((s, p) => s + (p.currentAmount ?? 0), 0);
+  const getExportData = () => {
     const pendingRows = rows.filter((r) => r.status === 'pending_payment' || r.status === 'doubled' || r.status === 'suspended');
+    const owedAmount = pendingRows.reduce((s, p) => s + (p.currentAmount ?? 0), 0);
     const paidRows = rows.filter((r) => r.status === 'paid');
-    printReport(
-      [
-        {
-          title: 'الغرامات الفورية للتأخير',
-          subtitle: `${rows.length} غرامة — إجمالي المبالغ المطلوبة: ${formatCurrency(totalAmount)}`,
-          table: {
-            headers: ['الموظف', 'الإدارة', 'التاريخ', 'التأخير', 'الغرامة الأصلية', 'المطلوب', 'التصعيد', 'الحالة'],
-            rows: rows.map((p) => [
-              p.employeeName ?? '—',
-              p.departmentName ?? '—',
-              p.workDate,
-              p.lateMinutes + ' دقيقة',
-              formatCurrency(p.originalAmount),
-              formatCurrency(p.currentAmount),
-              INSTANT_PENALTY_ESCALATION_LABELS[p.escalationLevel] ?? p.escalationLevel,
-              INSTANT_PENALTY_STATUS_LABELS[p.status] ?? p.status,
-            ]),
-          },
+    const paidAmount = paidRows.reduce((s, p) => s + (p.currentAmount ?? 0), 0);
+    const cancelledRows = rows.filter((r) => r.status === 'cancelled');
+
+    const dateLabel =
+      dateFilterMode === 'today'
+        ? `اليوم (${cairoTodayIso()})`
+        : dateFilterMode === 'yesterday'
+          ? `أمس (${getYesterdayIso()})`
+          : dateFilterMode === 'specific'
+            ? `تاريخ ${specificDate}`
+            : 'كافة التواريخ';
+
+    const statusLabel =
+      statusFilter === 'unpaid'
+        ? 'المطالبون بالسداد فقط (غير مدفوعة)'
+        : statusFilter === 'all'
+          ? 'كافة الحالات'
+          : INSTANT_PENALTY_STATUS_LABELS[statusFilter] ?? statusFilter;
+
+    const sections = [
+      {
+        title: `كشف الغرامات الفورية للتأخير — ${dateLabel}`,
+        subtitle: `الحالة: ${statusLabel} | العدد: ${rows.length} غرامة | إجمالي المطلوب سداده: ${formatCurrency(owedAmount)}`,
+        table: {
+          headers: ['الموظف', 'الإدارة', 'التاريخ', 'التأخير', 'الغرامة الأصلية', 'المطلوب', 'التصعيد', 'الحالة'],
+          rows: rows.map((p) => [
+            p.employeeName ?? '—',
+            p.departmentName ?? '—',
+            p.workDate,
+            p.lateMinutes + ' دقيقة',
+            formatCurrency(p.originalAmount),
+            formatCurrency(p.currentAmount),
+            INSTANT_PENALTY_ESCALATION_LABELS[p.escalationLevel] ?? p.escalationLevel,
+            INSTANT_PENALTY_STATUS_LABELS[p.status] ?? p.status,
+          ]),
         },
-      ],
-      'الغرامات الفورية',
-      [
-        { label: 'إجمالي الغرامات', value: rows.length.toString() },
-        { label: 'بانتظار السداد', value: pendingRows.length.toString() },
-        { label: 'مدفوعة', value: paidRows.length.toString() },
-        { label: 'إجمالي المبالغ', value: formatCurrency(totalAmount) },
-      ],
-    );
+      },
+    ];
+
+    const summaryCards = [
+      { label: 'عدد الغرامات بالكشف', value: rows.length.toString() },
+      { label: 'المطالبون بالسداد', value: pendingRows.length.toString() },
+      { label: 'إجمالي المطلوب سداده', value: formatCurrency(owedAmount) },
+      ...(paidRows.length > 0 ? [{ label: 'تم سداده', value: `${paidRows.length} (${formatCurrency(paidAmount)})` }] : []),
+      ...(cancelledRows.length > 0 ? [{ label: 'ملغاة / معفى', value: cancelledRows.length.toString() }] : []),
+    ];
+
+    return {
+      sections,
+      docTitle: `كشف الغرامات الفورية — ${dateLabel}`,
+      summaryCards,
+    };
+  };
+
+  const handlePdfExport = () => {
+    const { sections, docTitle, summaryCards } = getExportData();
+    printReport(sections, docTitle, summaryCards);
+  };
+
+  const handleHtmlExport = () => {
+    const { sections, docTitle, summaryCards } = getExportData();
+    downloadReportHtml(sections, docTitle, summaryCards);
   };
 
   const handleExportModalTierPdf = (tier: string) => {
@@ -1131,21 +1200,57 @@ export function InstantPenaltiesPage() {
         isDirty={dirty}
         onClear={clearFilters}
       >
-        <select className="input" value={statusFilter} onChange={(ev) => setStatusFilter(ev.target.value)} aria-label="تصفية حسب الحالة">
-          <option value="all">كل الحالات</option>
-          {Object.entries(INSTANT_PENALTY_STATUS_LABELS).map(([key, label]) => (
-            <option key={key} value={key}>
-              {label}
-            </option>
-          ))}
+        {/* تحديد التاريخ */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <select
+            className="input text-xs font-semibold"
+            value={dateFilterMode}
+            onChange={(ev) => setDateFilterMode(ev.target.value as typeof dateFilterMode)}
+            aria-label="تصفية حسب التاريخ"
+          >
+            <option value="today">اليوم ({cairoTodayIso()})</option>
+            <option value="yesterday">أمس ({getYesterdayIso()})</option>
+            <option value="specific">تاريخ محدد…</option>
+            <option value="all">كل التواريخ (الأرشيف)</option>
+          </select>
+          {dateFilterMode === 'specific' && (
+            <input
+              type="date"
+              className="input text-xs font-mono py-1 px-2"
+              value={specificDate}
+              onChange={(ev) => setSpecificDate(ev.target.value)}
+              aria-label="اختر التاريخ المحدد"
+            />
+          )}
+        </div>
+
+        {/* تحديد الحالة */}
+        <select
+          className="input text-xs font-semibold"
+          value={statusFilter}
+          onChange={(ev) => setStatusFilter(ev.target.value as typeof statusFilter)}
+          aria-label="تصفية حسب الحالة"
+        >
+          <option value="unpaid">المطالبون بالسداد فقط (غير مدفوعة)</option>
+          <option value="all">كل الحالات (شامل المدفوعة والملغاة)</option>
+          <option value="pending_payment">بانتظار السداد (أولية)</option>
+          <option value="doubled">مضاعفة (500 ج.م)</option>
+          <option value="suspended">معلّق عن العمل</option>
+          <option value="paid">مدفوعة</option>
+          <option value="cancelled">ملغاة</option>
         </select>
+
         <button type="button" className="btn-secondary" onClick={handleCsvExport} disabled={rows.length === 0} title="تصدير Excel (CSV)">
           <FileSpreadsheet className="size-4" aria-hidden="true" />
           <span>Excel</span>
         </button>
-        <button type="button" className="btn-secondary font-medium" onClick={handlePdfExport} disabled={rows.length === 0} title="طباعة PDF">
+        <button type="button" className="btn-secondary font-medium" onClick={handlePdfExport} disabled={rows.length === 0} title="طباعة وحفظ كملف PDF">
           <Printer className="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
           <span>تصدير PDF</span>
+        </button>
+        <button type="button" className="btn-secondary font-medium" onClick={handleHtmlExport} disabled={rows.length === 0} title="تنزيل تقرير HTML مستقل مباشرة">
+          <Download className="size-4 text-sky-600 dark:text-sky-400" aria-hidden="true" />
+          <span>تنزيل HTML</span>
         </button>
       </FilterBar>
 
