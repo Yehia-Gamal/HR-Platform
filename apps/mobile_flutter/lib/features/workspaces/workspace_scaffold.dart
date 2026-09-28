@@ -405,10 +405,19 @@ class WorkspaceScaffold extends ConsumerWidget {
               const SizedBox(height: 10),
               OutlinedButton.icon(
                 onPressed: () async {
+                  // نلتقط كل ما نحتاجه قبل إغلاق القائمة: تسجيل الخروج ينقل
+                  // التطبيق لشاشة الدخول فيُزال هذا الـ widget، واستخدام ref
+                  // بعدها يرمي «Using ref when a widget ... unmounted».
+                  final container = ProviderScope.containerOf(
+                    context,
+                    listen: false,
+                  );
+                  final client = container.read(supabaseProvider);
+                  final userId = client.auth.currentUser?.id;
                   Navigator.pop(sheetContext);
-                  await cleanupOnSignOut();
-                  await ref.read(supabaseProvider).auth.signOut();
-                  ref.invalidate(accessContextProvider);
+                  await cleanupOnSignOut(userId: userId);
+                  await client.auth.signOut();
+                  container.invalidate(accessContextProvider);
                 },
                 icon: const Icon(Icons.logout_rounded),
                 label: const Text('تسجيل الخروج'),

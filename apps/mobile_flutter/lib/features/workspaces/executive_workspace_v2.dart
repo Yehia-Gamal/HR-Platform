@@ -1,4 +1,5 @@
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_executive_insights_providers.dart';
@@ -662,12 +663,9 @@ class _PeopleDirectoryTab extends ConsumerWidget {
           final p = list[i];
           return Card(
             child: ListTile(
-              leading: CircleAvatar(
-                backgroundImage: p.photoUrl != null
-                    ? NetworkImage(p.photoUrl!)
-                    : null,
-                child: p.photoUrl == null ? const Icon(Icons.person) : null,
-              ),
+              // AppAvatar يحمّل الصور الخاصة عبر Storage SDK بتوكن الجلسة؛
+              // NetworkImage على رابط object/authenticated يرجع 400.
+              leading: AppAvatar(name: p.name, photoUrl: p.photoUrl),
               title: Text(
                 p.name,
                 style: const TextStyle(fontWeight: FontWeight.w700),
