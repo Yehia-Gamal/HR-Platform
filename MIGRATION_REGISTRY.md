@@ -296,6 +296,7 @@
 | 0572 | `0572_clinic_staff_silent_isolation.sql` | صمت موظفي العيادات: مصيدة إشعارات BEFORE INSERT (منع كل إشعار لـ clinic-staff عدا نتيجة طلباته هو) + حظر طلبات الموقع مطلقاً (فردي/بث/دليل/النافذة النشطة) + عزل بالدور في is_employee_isolated مع استثناءات دور (HR/تنفيذي/مدير العيادات) في can_view/can_see + حارس العزل بعد أي scope في can_access_employee (RLS) + فلاتر صريحة في دوال ORG/catalog/roster/mobile/dispute + بوابة شجرة الموبايل + تنظيف سجل الإشعارات وإلغاء طلبات الموقع المعلقة + تفكيك مسار medical_leave_v1 عن العزل بالدور. |
 | 0573 | `0573_delete_department_admin.sql` | حذف إدارة نهائياً عبر delete_department_admin مع فحص التبعيات الحية قبل الحذف. |
 | 0574 | `0574_job_title_management.sql` | إدارة المسميات الوظيفية: عرض وإضافة وتعديل وحذف المسميات الوظيفية (get_job_titles_overview, upsert_job_title, delete_job_title). |
+| 0575 | `0575_action_center_request_deep_link.sql` | مركز الإجراءات: `action_url` للسلّة الطلبات يصبح عميقاً `/hr/requests?request={id}` (استبدال كانوني كامل للدالة 0483 بتعديل سطر واحد) لفتح تفاصيل الطلب مباشرة. |
 >
 > **سكربت نشر الدفعة 0443–0445 على الإنتاج:** `python scripts/deploy_audit_batch_0443_0445.py` (idempotent: يفحص المتتبَّع، يطبّق المفقود بالترتيب، ثم يشغّل فحوص التحقق القياسية).
 >
