@@ -51,15 +51,15 @@ export function AttendanceReportsPage() {
   const [isExporting, setIsExporting] = useState(false);
 
   const getDateRange = (baseDate: string, period: ReportPeriod): { start: string; end: string } => {
-    const d = new Date(baseDate);
     if (period === 'day') return { start: baseDate, end: baseDate };
-    if (period === 'week') return { start: startOfWeek(d), end: endOfWeek(d) };
-    return { start: startOfMonth(d), end: endOfMonth(d) };
+    if (period === 'week') return { start: startOfWeek(baseDate), end: endOfWeek(baseDate) };
+    return { start: startOfMonth(baseDate), end: endOfMonth(baseDate) };
   };
 
   const { start, end } = getDateRange(dateIso, period);
-  const year = new Date(dateIso).getFullYear();
-  const month = new Date(dateIso).getMonth() + 1;
+  const [yearNum, monthNum] = dateIso.split('-').map(Number);
+  const year = yearNum || new Date().getFullYear();
+  const month = monthNum || new Date().getMonth() + 1;
 
   const canViewAll = Boolean(auth.access && hasPermission(auth.access, 'reports.attendance.read'));
   const canViewIndividual = isIndividual || canViewAll;

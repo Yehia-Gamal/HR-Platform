@@ -30,8 +30,7 @@ export function JobTitlesSection() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const canView = Boolean(
-    auth.access &&
-      hasAnyPermission(auth.access, ['organization.job_title.manage', 'organization.department.manage', 'organization.position.manage']),
+    auth.access && hasAnyPermission(auth.access, ['organization.job_title.manage', 'organization.department.manage', 'organization.position.manage']),
   );
   const canManage = Boolean(auth.access && hasPermission(auth.access, 'organization.job_title.manage'));
 
@@ -95,7 +94,11 @@ export function JobTitlesSection() {
         />
       </div>
 
-      {overview.isError ? <div className="p-5"><ErrorBanner message={safeErrorMessage(overview.error)} /></div> : null}
+      {overview.isError ? (
+        <div className="p-5">
+          <ErrorBanner message={safeErrorMessage(overview.error)} />
+        </div>
+      ) : null}
 
       {overview.isLoading && !overview.data ? (
         <div className="p-5 text-sm muted">{'جارٍ تحميل المسميات الوظيفية…'}</div>
@@ -106,12 +109,26 @@ export function JobTitlesSection() {
           <table className="data-table w-full min-w-[720px] text-start text-sm">
             <thead className="bg-[var(--surface-muted)]">
               <tr>
-                <th scope="col" className="p-4">{'المسمى'}</th>
-                <th scope="col" className="p-4">{'الكود'}</th>
-                <th scope="col" className="p-4">{'الموظفون'}</th>
-                <th scope="col" className="p-4">{'المناصب'}</th>
-                <th scope="col" className="p-4">{'الحالة'}</th>
-                {canManage ? <th scope="col" className="p-4">{'إجراء'}</th> : null}
+                <th scope="col" className="p-4">
+                  {'المسمى'}
+                </th>
+                <th scope="col" className="p-4">
+                  {'الكود'}
+                </th>
+                <th scope="col" className="p-4">
+                  {'الموظفون'}
+                </th>
+                <th scope="col" className="p-4">
+                  {'المناصب'}
+                </th>
+                <th scope="col" className="p-4">
+                  {'الحالة'}
+                </th>
+                {canManage ? (
+                  <th scope="col" className="p-4">
+                    {'إجراء'}
+                  </th>
+                ) : null}
               </tr>
             </thead>
             <tbody>
@@ -193,9 +210,7 @@ export function JobTitlesSection() {
               <li>الموظفون الحاملون له: {toDelete.employeeCount}</li>
               <li>المناصب المرتبطة به: {toDelete.positionCount}</li>
             </ul>
-            <p className="muted text-xs leading-6">
-              إن كان المسمى مرتبطاً بأي موظف أو منصب، سيمنع الخادم الحذف وتظهر رسالة توضح السبب — أعد إسنادهم أولاً.
-            </p>
+            <p className="muted text-xs leading-6">إن كان المسمى مرتبطاً بأي موظف أو منصب، سيمنع الخادم الحذف وتظهر رسالة توضح السبب — أعد إسنادهم أولاً.</p>
             {deleteError ? <ErrorBanner message={deleteError} /> : null}
             <div className="flex justify-end gap-3 border-t border-[var(--border)] pt-4">
               <button className="btn-secondary" onClick={() => setToDelete(null)}>

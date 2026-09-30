@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarOff, CalendarX2, CheckCircle2, Clock3, Loader2, MapPin, Plane, Printer, Search, UserCheck, UserX, Users } from 'lucide-react';
+import { ArrowLeft, CalendarClock, CalendarX2, CheckCircle2, Clock3, Loader2, MapPin, Plane, Printer, Search, UserCheck, UserX, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import {
@@ -184,8 +184,8 @@ export function AttendanceDrilldownPage() {
           <div>
             <h1 className="text-lg font-black">قائمة «{currentCategory.label}»</h1>
             <p className="mt-0.5 flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
-              <CalendarOff className="size-3.5" aria-hidden="true" />
-              {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(new Date(dateIso))}
+              <CalendarClock className="size-3.5" aria-hidden="true" />
+              {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`))}
             </p>
           </div>
         </div>

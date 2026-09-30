@@ -131,7 +131,18 @@ export function exportPulseListPDF(employees: EmployeeOverviewRow[], kind: Pulse
 </html>`;
 
   const win = window.open('', '_blank', 'width=900,height=700');
-  if (!win) return;
+  if (!win) {
+    const blob = new Blob(['\uFEFF' + html], { type: 'text/html;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `نبض_اليوم_${kind}_${date}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return;
+  }
   win.document.write(html);
   win.document.close();
 }

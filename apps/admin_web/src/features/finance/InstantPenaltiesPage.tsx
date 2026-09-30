@@ -67,14 +67,16 @@ function formatCurrency(amount: number | null | undefined): string {
   return currencyFmt.format(amount);
 }
 
-/** تنسيق دقائق التأخير → "6 ساعات" أو "ساعة و 30 دقيقة" أو "50 دقيقة" */
+/** تنسيق دقائق التأخير → بحد أقصى ساعتان (120 دقيقة) */
 function fmtLateDisplay(totalMinutes: number | null | undefined): string {
   if (totalMinutes == null || totalMinutes <= 0) return '0 دقيقة';
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
+  const capped = Math.min(120, totalMinutes);
+  if (capped >= 120) return 'ساعتان';
+  const h = Math.floor(capped / 60);
+  const m = capped % 60;
   if (h === 0) return `${m} دقيقة`;
-  if (m === 0) return `${h} ساعة`;
-  return `${h} ساعة و ${m} دقيقة`;
+  if (m === 0) return h === 2 ? 'ساعتان' : 'ساعة واحدة';
+  return `${h === 1 ? 'ساعة' : `${h} ساعات`} و ${m} دقيقة`;
 }
 
 const ARABIC_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -438,18 +440,14 @@ export function InstantPenaltiesPage() {
         const isActualLate = Boolean(p.notes && p.notes.includes('تأخير حضور فعلي'));
         return (
           <div className="flex flex-col gap-1 min-w-[120px]">
-            {isUnpunched || p.lateMinutes >= 420 ? (
-              <span className="inline-flex items-center gap-1 w-fit rounded-md bg-rose-500/10 border border-rose-500/25 px-2 py-0.5 text-[11px] font-bold text-rose-600 dark:text-rose-400 whitespace-nowrap">
-                <Clock className="size-3 text-rose-500" aria-hidden="true" />
+            <span className="font-bold font-mono text-sm text-amber-600 dark:text-amber-400 whitespace-nowrap">{fmtLateDisplay(p.lateMinutes)}</span>
+            {isUnpunched && (
+              <span className="inline-flex items-center gap-1 w-fit rounded-md bg-rose-500/10 border border-rose-500/25 px-1.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400 whitespace-nowrap">
+                <Clock className="size-2.5 text-rose-500" aria-hidden="true" />
                 لم يسجل بصمة
-              </span>
-            ) : (
-              <span className="font-bold font-mono text-sm text-amber-600 dark:text-amber-400 whitespace-nowrap">
-                {fmtLateDisplay(p.lateMinutes)}
               </span>
             )}
             {isActualLate && <span className="text-[10px] text-amber-700/80 dark:text-amber-300/80 font-medium">تأخير حضور فعلي</span>}
-            {isUnpunched && <span className="text-[10px] text-[var(--text-muted)] font-mono">تجاوز 12:00 ظ</span>}
           </div>
         );
       },
@@ -631,7 +629,7 @@ export function InstantPenaltiesPage() {
   const submitPenalty = async (ev: FormEvent) => {
     ev.preventDefault();
     if (!employeeId) return;
-    const mins = Number(lateMinutes);
+    const mins = Math.min(120, Number(lateMinutes));
     if (!Number.isFinite(mins) || mins <= 0) return;
     setFormFeedback(null);
     const result = await generatePenalty.mutateAsync({
@@ -1175,8 +1173,8 @@ export function InstantPenaltiesPage() {
         <section className="card p-5">
           <h2 className="font-black">إنشاء غرامة فورية للتأخير</h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            الحضور يبدأ 10:00 ص: من 1-15 دقيقة = سماح بدون خصم (0 ج.م) | حتى 10:30 (16-30 دقيقة) = 20 ج.م | حتى 12:00 (31 دقيقة - أقل من ساعتين) = 50 ج.م | ساعتين
-            فأكثر = 150 ج.م.
+            الحضور يبدأ 10:00 ص: من 1-15 دقيقة = سماح بدون خصم (0 ج.م) | حتى 10:30 (16-30 دقيقة) = 20 ج.م | حتى 12:00 (31 دقيقة - أقل من ساعتين) = 50 ج.م |
+            ساعتين فأكثر = 150 ج.م.
           </p>
           <form className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" onSubmit={(ev) => void submitPenalty(ev)}>
             <label className="block">
@@ -1200,7 +1198,7 @@ export function InstantPenaltiesPage() {
                 className="input mt-1"
                 type="number"
                 min="1"
-                max="480"
+                max="120"
                 step="1"
                 value={lateMinutes}
                 onChange={(ev) => setLateMinutes(ev.target.value)}
@@ -1215,7 +1213,7 @@ export function InstantPenaltiesPage() {
                       ? 'خصم 20 ج.م (حضور حتى 10:30)'
                       : Number(lateMinutes) < 120
                         ? 'خصم 50 ج.م (تأخير 31 دقيقة - أقل من ساعتين)'
-                        : 'خصم 150 ج.م (تأخير ساعتين فأكثر)'}
+                        : 'خصم 150 ج.م (تأخير ساعتين — الحد الأقصى للنظام)'}
                 </span>
               )}
             </label>

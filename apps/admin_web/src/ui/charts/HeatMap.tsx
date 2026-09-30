@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useMemo, useState } from 'react';
 
-import { ARABIC_DAYS } from './chartTheme';
+import { WORK_WEEK_DAYS_AR } from './chartTheme';
 
 /**
  * خريطة حرارية (HeatMap) — شبكة CSS بحتة (بدون recharts).
@@ -103,7 +103,7 @@ export function HeatMap({ data, height = 18, colorScale = 'green' }: HeatMapProp
       >
         {/* ── صف رأس الأيام ── */}
         <div />
-        {ARABIC_DAYS.map((day) => (
+        {WORK_WEEK_DAYS_AR.map((day) => (
           <div key={day} className="grid place-items-center text-[0.65rem] font-extrabold text-[var(--text-muted)]">
             {day}
           </div>
@@ -118,7 +118,7 @@ export function HeatMap({ data, height = 18, colorScale = 'green' }: HeatMapProp
             </div>
 
             {/* خلايا الأيام */}
-            {ARABIC_DAYS.map((day) => {
+            {WORK_WEEK_DAYS_AR.map((day) => {
               const val = lookup.get(day)?.get(h);
               const opacity = getOpacity(val);
 

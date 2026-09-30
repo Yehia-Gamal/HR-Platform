@@ -37,7 +37,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
-import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
@@ -81,6 +81,7 @@ import { EmployeeReportsTab } from './EmployeeReportsTab';
 import { EmployeeRecognitionTab } from './EmployeeRecognitionTab';
 import { EmployeeRetentionScoreCard } from './EmployeeRetentionScoreCard';
 import { EmployeeActivityTimeline } from './EmployeeActivityTimeline';
+import { EmployeeOrgChartTab } from './EmployeeOrgChartTab';
 
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
 
@@ -735,9 +736,7 @@ function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employee360; o
                     {creatingDept ? 'جارٍ الإنشاء…' : 'إضافة إدارة'}
                   </button>
                 </div>
-                {deptCreateError ? (
-                  <p className="text-xs font-bold text-red-600 dark:text-red-400">{deptCreateError}</p>
-                ) : null}
+                {deptCreateError ? <p className="text-xs font-bold text-red-600 dark:text-red-400">{deptCreateError}</p> : null}
               </div>
 
               <LookupSelect label="الفرع" value={branchId} options={lookups.data?.branches ?? []} onChange={onBranchChange} disabled={update.isPending} />
@@ -1261,10 +1260,11 @@ function PrintableIdBadgeDialog({ employee, onClose }: { employee: Employee360; 
 // ---------------------------------------------------------------------------
 // EmployeeDetailPage — Main component
 // ---------------------------------------------------------------------------
-type EmployeeTabId = 'overview' | 'timeline' | 'leaves' | 'attendance' | 'locations' | 'tasks' | 'kpi' | 'reports' | 'recognition';
+type EmployeeTabId = 'overview' | 'org-hierarchy' | 'timeline' | 'leaves' | 'attendance' | 'locations' | 'tasks' | 'kpi' | 'reports' | 'recognition';
 
 const EMPLOYEE_TABS: { id: EmployeeTabId; label: string; icon: LucideIcon }[] = [
   { id: 'overview', label: 'النبذة', icon: Eye },
+  { id: 'org-hierarchy', label: 'الهيكل والتسلسل الإداري', icon: Network },
   { id: 'timeline', label: 'سجل النشاط', icon: History },
   { id: 'leaves', label: 'الإجازات', icon: CalendarDays },
   { id: 'attendance', label: 'الحضور والانصراف', icon: Clock3 },
@@ -1290,7 +1290,23 @@ export function EmployeeDetailPage() {
   const [showAddDeptDialog, setShowAddDeptDialog] = useState(false);
   const [showGrantRestDialog, setShowGrantRestDialog] = useState(false);
   const [showBadgeDialog, setShowBadgeDialog] = useState(false);
-  const [activeTab, setActiveTab] = useState<EmployeeTabId>('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab') as EmployeeTabId | null;
+  const [activeTab, setActiveTabState] = useState<EmployeeTabId>(() => {
+    if (urlTab && EMPLOYEE_TABS.some((t) => t.id === urlTab)) return urlTab;
+    return 'overview';
+  });
+
+  const setActiveTab = (tab: EmployeeTabId) => {
+    setActiveTabState(tab);
+    const next = new URLSearchParams(searchParams);
+    if (tab === 'overview') {
+      next.delete('tab');
+    } else {
+      next.set('tab', tab);
+    }
+    setSearchParams(next, { replace: true });
+  };
   const navigate = useNavigate();
   const location = useLocation();
   const item = query.data;
@@ -1442,7 +1458,17 @@ export function EmployeeDetailPage() {
                 </div>
               </div>
               <div className="rounded-2xl bg-[var(--surface-muted)] p-4 text-sm lg:min-w-64">
-                <p className="font-black">العلاقة الإدارية</p>
+                <div className="flex items-center justify-between">
+                  <p className="font-black">العلاقة الإدارية</p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('org-hierarchy')}
+                    className="text-xs font-bold text-[var(--brand-primary)] hover:underline flex items-center gap-1"
+                  >
+                    <Network className="size-3.5" />
+                    عرض الهيكل
+                  </button>
+                </div>
                 <div className="mt-2 flex items-center justify-between gap-2">
                   <p className="muted">
                     المدير المباشر: <span className="font-bold text-[var(--text)]">{item.managerName ?? 'غير معين'}</span>
@@ -1462,6 +1488,14 @@ export function EmployeeDetailPage() {
                     </Link>
                   ) : null}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('org-hierarchy')}
+                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[var(--brand-primary)]/30 bg-[var(--brand-primary-soft)]/20 px-3 py-1.5 text-xs font-bold text-[var(--brand-primary)] hover:bg-[var(--brand-primary)] hover:text-white transition"
+                >
+                  <Network className="size-3.5" />
+                  الهيكل الإداري والمرؤوسون
+                </button>
               </div>
             </section>
 
@@ -1618,6 +1652,9 @@ export function EmployeeDetailPage() {
           </div>
         ) : null}
 
+        {activeTab === 'org-hierarchy' && employeeId ? (
+          <EmployeeOrgChartTab employeeId={employeeId} employee={item} onChangeManagerClick={canEdit ? () => setShowManagerDialog(true) : undefined} />
+        ) : null}
         {activeTab === 'timeline' ? <EmployeeActivityTimeline employee={item} /> : null}
         {activeTab === 'leaves' && employeeId ? <EmployeeLeaveTab employeeId={employeeId} /> : null}
         {activeTab === 'attendance' && employeeId ? <MonthlyStatementSection employeeId={employeeId} /> : null}

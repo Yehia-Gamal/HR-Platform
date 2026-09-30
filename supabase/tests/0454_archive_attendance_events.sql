@@ -1,4 +1,4 @@
-﻿-- pgTAP test for migration 0454: attendance events archival policy
+-- pgTAP test for migration 0454: attendance events archival policy
 -- Validates:
 --   ① archive table exists, RLS enabled, locked for authenticated
 --   ② archive function signature, guard, and grants

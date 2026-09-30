@@ -586,4 +586,36 @@ describe('InstantPenaltiesPage', () => {
     expect(screen.getByText('إجراء تصفير البيانات التجريبية')).toBeDefined();
     expect(screen.getByText('تأكيد التصفير الآن')).toBeDefined();
   });
+
+  it('يحصر دقائق التأخير عند ساعتين كحد أقصى (120 دقيقة) ولا يعرض 9 ساعات إطلاقاً', () => {
+    penaltiesData = {
+      data: [
+        {
+          ...samplePenalties.data[0],
+          id: 'p-large-delay',
+          employeeName: 'عبد الرحمن حسين مرعي',
+          workDate: '2026-09-29',
+          lateMinutes: 590, // 9 hours 50 mins from unpunched cron
+          notes: 'تأخير حضور فعلي',
+          status: 'doubled',
+          currentAmount: 500,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    };
+    pendingData = emptyPending;
+    employeesData = emptyEmployees;
+    renderPage();
+
+    // اختيار كل التواريخ لرؤية غرامة أمس
+    fireEvent.change(screen.getByLabelText('تصفية حسب التاريخ'), { target: { value: 'all' } });
+
+    // التأكد من ظهور "ساعتان" وعدم ظهور "9 ساعة و 50 دقيقة" نهائياً
+    expect(screen.getByText('ساعتان')).toBeDefined();
+    expect(screen.queryByText(/9 ساعة/)).toBeNull();
+    expect(screen.queryByText(/590 دقيقة/)).toBeNull();
+  });
 });

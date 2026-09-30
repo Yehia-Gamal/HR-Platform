@@ -1,6 +1,7 @@
 // حراس ضد BOM: PowerShell 5.1 يكتب UTF-8 مع BOM عبر Set-Content -Encoding UTF8
 // فيكسر Deno وnode/vitest على Linux ("expected value at line 1 column 1").
-// يفحص كل ملفات JSON وlock في المستودع (باستثناء المجلدات المولّدة).
+// كما يكسر supabase db reset على SQL (syntax error at or near BOM — انظر 0497).
+// يفحص كل ملفات JSON وlock وSQL في المستودع (باستثناء المجلدات المولّدة).
 import { readdir, readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,7 +11,7 @@ const excludedDirs = new Set([
   '.git', 'node_modules', 'dist', 'build', '.dart_tool', '.idea', '.vscode',
   '.claude', 'android', 'ios',
 ]);
-const checkedExtensions = new Set(['.json', '.lock']);
+const checkedExtensions = new Set(['.json', '.lock', '.sql']);
 
 const offenders = [];
 
@@ -41,4 +42,4 @@ if (offenders.length) {
   console.error('Fix: [System.IO.File]::WriteAllText(path, raw) — لا تستخدم Set-Content -Encoding UTF8');
   process.exit(1);
 }
-console.log('BOM check passed: no UTF-8 BOM in json/lock files.');
+console.log('BOM check passed: no UTF-8 BOM in json/lock/sql files.');

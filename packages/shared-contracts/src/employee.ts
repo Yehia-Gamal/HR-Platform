@@ -36,26 +36,33 @@ export const employeeSummarySchema = z.object({
 
 export type EmployeeSummary = z.infer<typeof employeeSummarySchema>;
 
+// رسائل عربية صريحة لكل فحص: الرسائل الافتراضية للـ zod4 إنجليزية
+// ("Invalid input: expected string, received undefined" / "Invalid email address")
+// وكانت تظهر تحت حقول النموذج بإنجليزية في واجهة عربية بالكامل.
 export const createEmployeeInputSchema = z.object({
-  fullNameAr: z.string().trim().min(3).max(160),
-  fullNameEn: z.string().trim().max(160).optional(),
-  employeeCode: z.string().trim().min(2).max(50).optional(),
-  email: z.string().email(),
+  fullNameAr: z.string({ error: 'الاسم الكامل مطلوب.' }).trim().min(3, 'الاسم الكامل يجب ألا يقل عن ٣ أحرف.').max(160, 'الاسم الكامل أطول من ١٦٠ حرفاً.'),
+  fullNameEn: z.string().trim().max(160, 'الاسم بالإنجليزية أطول من ١٦٠ حرفاً.').optional(),
+  employeeCode: z.string().trim().min(2, 'كود الموظف قصير جداً.').max(50, 'كود الموظف أطول من ٥٠ حرفاً.').optional(),
+  email: z
+    .string({ error: 'البريد الإلكتروني مطلوب.' })
+    .min(1, 'البريد الإلكتروني مطلوب.')
+    .max(254, 'البريد الإلكتروني أطول من ٢٥٤ حرفاً.')
+    .email('صيغة البريد الإلكتروني غير صالحة'),
   // رقم هاتف مصري محلي بصيغة عادية مثل 01154869616 (11 رقماً يبدأ بـ 01)،
   // أو صيغة دولية E.164 (‎+20…) للتوافق مع البيانات القديمة.
   phoneE164: z
-    .string()
+    .string({ error: 'رقم الهاتف مطلوب.' })
     .trim()
     // إزالة أي أحرف غير مرئية (RTL/LTR marks, zero-width spaces) قبل التحقق
     .transform((v) => v.replace(/[^\d+]/g, ''))
     .pipe(z.string().regex(/^(01\d{9}|\+[1-9]\d{7,14})$/, 'رقم هاتف غير صالح')),
-  roleSlug: z.string().trim().min(2),
-  jobTitleName: z.string().trim().max(160).optional(),
+  roleSlug: z.string().trim().min(2, 'الدور المطلوب غير صالح.'),
+  jobTitleName: z.string().trim().max(160, 'المسمى الوظيفي أطول من ١٦٠ حرفاً.').optional(),
   // كلمة المرور الأولية (اختيارية): إن أدخلها مسؤول HR تُفحص قوّتها فورياً
   // (سياسة مبسّطة بطلب الإدارة: 6–72 حرفاً بلا شروط تعقيد)
   // وإن تُركت فارغة تولّد Edge Function كلمة مرور مؤقتة (6 أرقام) تلقائياً.
   initialPassword: z.string().trim().min(6, 'كلمة المرور يجب ألا تقل عن 6 أحرف').max(72, 'كلمة المرور يجب ألا تزيد عن 72 حرفاً').optional(),
-  photoUrl: z.string().url().max(1000).optional(),
+  photoUrl: z.string().url('رابط الصورة غير صالح.').max(1000, 'رابط الصورة أطول من ١٠٠٠ حرف.').optional(),
   managerEmployeeId: optionalUuid,
   departmentId: optionalUuid,
   teamId: optionalUuid,
@@ -65,7 +72,7 @@ export const createEmployeeInputSchema = z.object({
   positionId: optionalUuid,
   gradeId: optionalUuid,
   employmentTypeId: optionalUuid,
-  hireDate: z.preprocess((v) => (v === '' ? undefined : v), z.string().date().optional()),
+  hireDate: z.preprocess((v) => (v === '' ? undefined : v), z.string().date('تاريخ التعيين غير صالح.').optional()),
   sendInvite: z.boolean().default(false),
 }).superRefine((data, ctx) => {
   // مرآة قواعد validateHrIssuedPassword (edge function) — تعليق فوري في المتصفح

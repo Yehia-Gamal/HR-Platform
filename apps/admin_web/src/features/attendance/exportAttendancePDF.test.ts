@@ -91,3 +91,28 @@ describe('esc', () => {
     expect(esc('<script>"alert(1)"</script>')).toBe('&lt;script&gt;&quot;alert(1)&quot;&lt;/script&gt;');
   });
 });
+
+describe('attendanceDocumentShell', () => {
+  it('includes interactive action bar with PDF and HTML buttons', async () => {
+    const { attendanceDocumentShell } = await import('./exportAttendancePDF');
+    const html = attendanceDocumentShell('كشف حضور تجريبي', '<div>محتوى تجريبي</div>', true);
+
+    expect(html).toContain('<!DOCTYPE html>');
+    expect(html).toContain('dir="rtl"');
+    expect(html).toContain('action-bar no-print');
+    expect(html).toContain('تحميل وحفظ كملف PDF');
+    expect(html).toContain('طباعة');
+    expect(html).toContain('تنزيل ملف (HTML)');
+    expect(html).toContain('saveAsPdf()');
+    expect(html).toContain('downloadHtml()');
+    expect(html).toContain('كشف حضور تجريبي');
+    expect(html).toContain('محتوى تجريبي');
+  });
+
+  it('hides action bar in print media stylesheet', async () => {
+    const { attendanceDocumentShell } = await import('./exportAttendancePDF');
+    const html = attendanceDocumentShell('كشف حضور', '<div>محتوى</div>', false);
+
+    expect(html).toContain('.no-print, .action-bar { display: none !important; }');
+  });
+});

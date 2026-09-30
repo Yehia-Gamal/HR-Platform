@@ -167,7 +167,10 @@ export function AttendancePage() {
                   <div className="text-[10px] text-[var(--text-muted)] truncate">ملخص يومي شامل</div>
                 </div>
               </div>
-              <ArrowUpRight className="size-3.5 text-[var(--text-muted)] group-hover:text-[var(--brand-primary)] shrink-0 rtl:rotate-[-90deg]" aria-hidden="true" />
+              <ArrowUpRight
+                className="size-3.5 text-[var(--text-muted)] group-hover:text-[var(--brand-primary)] shrink-0 rtl:rotate-[-90deg]"
+                aria-hidden="true"
+              />
             </Link>
 
             <Link
@@ -183,7 +186,10 @@ export function AttendancePage() {
                   <div className="text-[10px] text-[var(--text-muted)] truncate">تقفيل واعتماد الحضور</div>
                 </div>
               </div>
-              <ArrowUpRight className="size-3.5 text-[var(--text-muted)] group-hover:text-[var(--brand-primary)] shrink-0 rtl:rotate-[-90deg]" aria-hidden="true" />
+              <ArrowUpRight
+                className="size-3.5 text-[var(--text-muted)] group-hover:text-[var(--brand-primary)] shrink-0 rtl:rotate-[-90deg]"
+                aria-hidden="true"
+              />
             </Link>
 
             <Link
@@ -199,7 +205,10 @@ export function AttendancePage() {
                   <div className="text-[10px] text-[var(--text-muted)] truncate">صندوق الزمالة الفوري</div>
                 </div>
               </div>
-              <ArrowUpRight className="size-3.5 text-[var(--text-muted)] group-hover:text-[var(--brand-primary)] shrink-0 rtl:rotate-[-90deg]" aria-hidden="true" />
+              <ArrowUpRight
+                className="size-3.5 text-[var(--text-muted)] group-hover:text-[var(--brand-primary)] shrink-0 rtl:rotate-[-90deg]"
+                aria-hidden="true"
+              />
             </Link>
 
             <Link
@@ -215,7 +224,10 @@ export function AttendancePage() {
                   <div className="text-[10px] text-[var(--text-muted)] truncate">تحقق الموقع والـ GPS</div>
                 </div>
               </div>
-              <ArrowUpRight className="size-3.5 text-[var(--text-muted)] group-hover:text-[var(--brand-primary)] shrink-0 rtl:rotate-[-90deg]" aria-hidden="true" />
+              <ArrowUpRight
+                className="size-3.5 text-[var(--text-muted)] group-hover:text-[var(--brand-primary)] shrink-0 rtl:rotate-[-90deg]"
+                aria-hidden="true"
+              />
             </Link>
           </div>
 
@@ -321,12 +333,7 @@ export function AttendancePage() {
 
           {/* ─── التحليل البصري ونبض الانضباط التشغيلي ─── */}
           <section className="grid gap-4 lg:grid-cols-2">
-            <ChartCard
-              title="توزيع قوى العمل اليوم"
-              subtitle="نظرة بصرية شاملة على توزيع الحالات والانضباط الميداني"
-              empty={pieData.length === 0}
-              height={260}
-            >
+            <ChartCard title="توزيع قوى العمل اليوم" subtitle="نظرة بصرية شاملة على توزيع الحالات والانضباط الميداني" empty={pieData.length === 0} height={260}>
               <AppPieChart data={pieData} donut height={240} />
             </ChartCard>
 
@@ -339,18 +346,14 @@ export function AttendancePage() {
                     </span>
                     <h3 className="text-sm font-black">نبض الانضباط والجاهزية التشغيلية</h3>
                   </div>
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[var(--surface-muted)] text-[var(--text-muted)]">
-                    مؤشرات لحظية
-                  </span>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[var(--surface-muted)] text-[var(--text-muted)]">مؤشرات لحظية</span>
                 </div>
 
                 <div className="grid gap-3.5 sm:grid-cols-3 mt-4">
                   <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-3 space-y-1">
                     <span className="text-[11px] font-bold text-[var(--text-muted)] block">نسبة الحضور بالموعد</span>
                     <div className="text-xl font-black text-[var(--success)]">{onTimeRate}%</div>
-                    <p className="text-[10px] text-[var(--text-muted)] leading-tight">
-                      {onTimeCount} موظف بدون أي تأخير
-                    </p>
+                    <p className="text-[10px] text-[var(--text-muted)] leading-tight">{onTimeCount} موظف بدون أي تأخير</p>
                   </div>
 
                   <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-3 space-y-1">
@@ -363,24 +366,15 @@ export function AttendancePage() {
 
                   <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-3 space-y-1">
                     <span className="text-[11px] font-bold text-[var(--text-muted)] block">حالات تحتاج تدخلاً</span>
-                    <div className={`text-xl font-black ${criticalCount > 0 ? 'text-[var(--danger)]' : 'text-[var(--success)]'}`}>
-                      {criticalCount}
-                    </div>
-                    <p className="text-[10px] text-[var(--text-muted)] leading-tight">
-                      غياب أو بصمات معلقة أو مراجعات
-                    </p>
+                    <div className={`text-xl font-black ${criticalCount > 0 ? 'text-[var(--danger)]' : 'text-[var(--success)]'}`}>{criticalCount}</div>
+                    <p className="text-[10px] text-[var(--text-muted)] leading-tight">غياب أو بصمات معلقة أو مراجعات</p>
                   </div>
                 </div>
               </div>
 
               <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs flex items-center justify-between gap-3">
-                <span className="text-[var(--text-muted)]">
-                  هل تحتاج إلى تفريغ مفصل لبيانات اليوم أو إرسال تقرير موجز للإدارة؟
-                </span>
-                <Link
-                  to={`${getBasePath()}/attendance?tab=executive&date=${dateIso}`}
-                  className="btn-primary !text-xs !py-1 !px-2.5 font-bold shrink-0"
-                >
+                <span className="text-[var(--text-muted)]">هل تحتاج إلى تفريغ مفصل لبيانات اليوم أو إرسال تقرير موجز للإدارة؟</span>
+                <Link to={`${getBasePath()}/attendance?tab=executive&date=${dateIso}`} className="btn-primary !text-xs !py-1 !px-2.5 font-bold shrink-0">
                   فتح التقرير التنفيذي
                 </Link>
               </div>

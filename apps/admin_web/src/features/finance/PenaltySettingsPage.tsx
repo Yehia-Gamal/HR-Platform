@@ -29,7 +29,7 @@ export function PenaltySettingsPage() {
   const [maxDays, setMaxDays] = useState(2);
   const [autoCheckout, setAutoCheckout] = useState(true);
   const [autoCheckoutTime, setAutoCheckoutTime] = useState('18:00');
-  const [weekends, setWeekends] = useState<string[]>(['Friday', 'Saturday']);
+  const [weekends, setWeekends] = useState<string[]>(['Friday']);
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [dirty, setDirty] = useState(false);
 
@@ -41,7 +41,7 @@ export function PenaltySettingsPage() {
       setMaxDays(getValue(settings.data, 'max_days_before_escalation', 2));
       setAutoCheckout(getValue(settings.data, 'auto_checkout_enabled', true));
       setAutoCheckoutTime(getValue(settings.data, 'auto_checkout_time', '18:00'));
-      setWeekends(getValue(settings.data, 'weekends', ['Friday', 'Saturday']));
+      setWeekends(getValue(settings.data, 'weekends', ['Friday']));
       setTiers(getValue(settings.data, 'tiers', []));
     }
   }, [settings.data]);

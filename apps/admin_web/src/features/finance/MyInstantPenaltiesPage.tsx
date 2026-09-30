@@ -13,7 +13,6 @@ import { useInstantPenalties, INSTANT_PENALTY_STATUS_LABELS, type InstantPenalty
 import { useFellowshipFundSummary } from './useFellowshipFund';
 import { useSubmitPenaltyDispute, usePenaltyDisputes } from './usePenaltyDisputes';
 
-const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
 const currencyFmt = new Intl.NumberFormat('ar-EG', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 });
 
 function formatCurrency(amount: number | null | undefined): string {
@@ -21,14 +20,16 @@ function formatCurrency(amount: number | null | undefined): string {
   return currencyFmt.format(amount);
 }
 
-/** تنسيق دقائق التأخير → "6 ساعات" أو "ساعة و 30 دقيقة" أو "50 دقيقة" */
+/** تنسيق دقائق التأخير → بحد أقصى ساعتان (120 دقيقة) */
 function fmtLateDisplay(totalMinutes: number | null | undefined): string {
   if (totalMinutes == null || totalMinutes <= 0) return '0 دقيقة';
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
+  const capped = Math.min(120, totalMinutes);
+  if (capped >= 120) return 'ساعتان';
+  const h = Math.floor(capped / 60);
+  const m = capped % 60;
   if (h === 0) return `${m} دقيقة`;
-  if (m === 0) return `${h} ساعة`;
-  return `${h} ساعة و ${m} دقيقة`;
+  if (m === 0) return h === 2 ? 'ساعتان' : 'ساعة واحدة';
+  return `${h === 1 ? 'ساعة' : `${h} ساعات`} و ${m} دقيقة`;
 }
 
 const ARABIC_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -113,8 +114,8 @@ export function MyInstantPenaltiesPage() {
               <span>ملخص الغرامات الفورية</span>
             </div>
             <p className="text-xs text-white/60 max-w-lg leading-relaxed">
-              الحضور يبدأ 10:00 ص — أول 15 دقيقة سماح بدون خصم. بعد ذلك: 20 ج.م (حتى 10:30) | 50 ج.م (31 دقيقة إلى أقل من ساعتين حتى 12:00 ظهراً) | 150 ج.م (ساعتين فأكثر). عدم السداد يُضاعف
-              الغرامة لـ 500 ج.م ثم يُعلّق حسابك.
+              الحضور يبدأ 10:00 ص — أول 15 دقيقة سماح بدون خصم. بعد ذلك: 20 ج.م (حتى 10:30) | 50 ج.م (31 دقيقة إلى أقل من ساعتين حتى 12:00 ظهراً) | 150 ج.م
+              (ساعتين فأكثر). عدم السداد يُضاعف الغرامة لـ 500 ج.م ثم يُعلّق حسابك.
             </p>
           </div>
 

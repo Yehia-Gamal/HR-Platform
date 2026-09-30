@@ -62,13 +62,7 @@ export function useOrganizationCommands() {
     onSuccess: refresh,
   });
   const jobTitle = useMutation({
-    mutationFn: async (input: {
-      id?: string | null;
-      code: string;
-      name: string;
-      nameEn?: string | null;
-      active: boolean;
-    }) => {
+    mutationFn: async (input: { id?: string | null; code: string; name: string; nameEn?: string | null; active: boolean }) => {
       if (auth.isMock) return '10000000-0000-4000-8000-000000000005';
       return rpc('upsert_job_title', {
         p_id: input.id ?? null,

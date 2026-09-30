@@ -1,16 +1,4 @@
-import {
-  AlertTriangle,
-  ArrowLeft,
-  CalendarDays,
-  Copy,
-  Download,
-  ExternalLink,
-  Printer,
-  ShieldCheck,
-  Sparkles,
-  TrendingUp,
-  Users,
-} from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CalendarDays, Copy, Download, ExternalLink, Printer, ShieldCheck, Sparkles, TrendingUp, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { cairoTodayIso } from '../../core/cairoTime';
@@ -438,9 +426,7 @@ export function ExecutiveDailyReportPage() {
                 </p>
               </div>
             </div>
-            <span className="rounded-full bg-[var(--danger)]/10 px-2.5 py-1 text-xs font-bold text-[var(--danger)]">
-              {urgentActions.length} حالات أولوية
-            </span>
+            <span className="rounded-full bg-[var(--danger)]/10 px-2.5 py-1 text-xs font-bold text-[var(--danger)]">{urgentActions.length} حالات أولوية</span>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mt-4">
@@ -482,22 +468,19 @@ export function ExecutiveDailyReportPage() {
                         <ExternalLink className="size-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" aria-hidden="true" />
                       </Link>
                       <span className="text-[10px] text-[var(--text-muted)] block truncate">
-                        {emp.employeeCode ? `#${emp.employeeCode} · ` : ''}{emp.departmentName || 'إدارة غير محددة'}
+                        {emp.employeeCode ? `#${emp.employeeCode} · ` : ''}
+                        {emp.departmentName || 'إدارة غير محددة'}
                       </span>
                     </div>
                     <span
                       className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold ${
-                        badgeTone === 'danger'
-                          ? 'bg-[var(--danger)]/10 text-[var(--danger)]'
-                          : 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                        badgeTone === 'danger' ? 'bg-[var(--danger)]/10 text-[var(--danger)]' : 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
                       }`}
                     >
                       {badgeText}
                     </span>
                   </div>
-                  <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-                    {issueText}
-                  </p>
+                  <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">{issueText}</p>
                 </div>
               );
             })}

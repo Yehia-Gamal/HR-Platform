@@ -151,7 +151,12 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
             icon={Timer}
             tone={deficitHours > 0 ? 'warn' : 'success'}
           />
-          <StatBox label="ساعات إضافية" value={fmtMinutesLong(s.totalOvertimeMinutes)} icon={ArrowUpRight} tone={s.totalOvertimeMinutes > 0 ? 'success' : undefined} />
+          <StatBox
+            label="ساعات إضافية"
+            value={fmtMinutesLong(s.totalOvertimeMinutes)}
+            icon={ArrowUpRight}
+            tone={s.totalOvertimeMinutes > 0 ? 'success' : undefined}
+          />
         </div>
       </div>
 

@@ -54,15 +54,25 @@ begin
   alter function public.is_safe_url_or_path(text) set search_path = public, extensions, pg_temp;
   alter function public.normalize_phone_e164(text) set search_path = public, extensions, pg_temp;
   alter function public.request_type_label(text) set search_path = public, extensions, pg_temp;
-  alter function public.reverse_exact_mojibake(text) set search_path = public, extensions, pg_temp;
+  -- reverse_exact_mojibake و reverse_win1252_segments غير مُنشأَتين في المستودع
+  -- (وجدتاهن في الإنتاج يدوياً فقط) — حراسة to_regprocedure تجعل db reset
+  -- يعمل على قاعدة جديدة؛ لا أثر على الإنتاج المُطبَّق أصلاً.
+  if to_regprocedure('public.reverse_exact_mojibake(text)') is not null then
+    alter function public.reverse_exact_mojibake(text) set search_path = public, extensions, pg_temp;
+  end if;
   alter function public.reverse_latin1_segments(text) set search_path = public, extensions, pg_temp;
-  alter function public.reverse_win1252_segments(text) set search_path = public, extensions, pg_temp;
+  if to_regprocedure('public.reverse_win1252_segments(text)') is not null then
+    alter function public.reverse_win1252_segments(text) set search_path = public, extensions, pg_temp;
+  end if;
   alter function public.tg_announcements_validate_banner_url() set search_path = public, extensions, pg_temp;
   alter function public.tg_attendance_validate_selfie_path() set search_path = public, extensions, pg_temp;
   alter function public.tg_employees_validate_photo_url() set search_path = public, extensions, pg_temp;
   alter function public.tg_kpi_evidence_validate_urls() set search_path = public, extensions, pg_temp;
   alter function public.update_public_holiday(uuid,text,date,date,text,uuid,uuid,uuid[],text,boolean,boolean) set search_path = public, extensions, pg_temp;
-  alter function public.word_count(text) set search_path = public, extensions, pg_temp;
+  -- word_count تُنشأ في _v23_staging فقط — حراسة للقاعدة الجديدة.
+  if to_regprocedure('public.word_count(text)') is not null then
+    alter function public.word_count(text) set search_path = public, extensions, pg_temp;
+  end if;
 end $pin$;
 
 notify pgrst, 'reload schema';

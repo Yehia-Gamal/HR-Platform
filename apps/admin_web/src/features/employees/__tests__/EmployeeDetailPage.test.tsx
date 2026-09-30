@@ -69,6 +69,10 @@ vi.mock('../employeeDetailShared', () => ({
   EmployeeEditHistory: () => null,
 }));
 
+vi.mock('../EmployeeOrgChartTab', () => ({
+  EmployeeOrgChartTab: () => <div>الهيكل والتسلسل الإداري للموظف</div>,
+}));
+
 let employee360Fn: () => Record<string, unknown>;
 vi.mock('../useEmployees', () => ({
   useEmployee360: () => employee360Fn(),
@@ -260,10 +264,17 @@ describe('EmployeeDetailPage', () => {
     fireEvent.click(createBtn);
     await dialog.findByText('الإدارة التجريبية');
     expect(departmentCreateMock).toHaveBeenCalledTimes(1);
-    expect(departmentCreateMock).toHaveBeenCalledWith(
-      expect.objectContaining({ entityId: '00000000-0000-4000-8000-0000000000e1', name: 'الإدارة التجريبية' }),
-    );
+    expect(departmentCreateMock).toHaveBeenCalledWith(expect.objectContaining({ entityId: '00000000-0000-4000-8000-0000000000e1', name: 'الإدارة التجريبية' }));
     expect(input.value).toBe('');
     expect(dialog.getByText('الإدارات التابع لها الموظف (1)')).toBeDefined();
+  });
+
+  it('يعرض زر الهيكل والتسلسل الإداري ويسمح بفتح التبويب', () => {
+    employee360Fn = () => dataQuery;
+    renderPage();
+    const orgTabBtn = screen.getByRole('tab', { name: /الهيكل والتسلسل الإداري/ });
+    expect(orgTabBtn).toBeDefined();
+    fireEvent.click(orgTabBtn);
+    expect(screen.getByText('الهيكل والتسلسل الإداري للموظف')).toBeDefined();
   });
 });

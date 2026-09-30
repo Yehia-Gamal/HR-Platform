@@ -2,6 +2,7 @@ import type { ExecutiveDailyReportDetail } from '@ahla/shared-contracts';
 import { fmtMinutesCompact } from './attendanceShared';
 
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+const WEEKDAYS = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
 export function fmtTime12(t: string | null | undefined): string {
   if (!t) return '—';
@@ -54,13 +55,18 @@ function statusClass(status: string | null): string {
   return 'status-neutral';
 }
 
-export function exportExecutiveDailyReport(data: ExecutiveDailyReportDetail, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية') {
+export function buildExecutiveDailyReportHtml(
+  data: ExecutiveDailyReportDetail,
+  orgName = 'جمعية خواطر أحلى شباب',
+  systemName = 'منظومة أحلى شباب الإدارية',
+): string {
   const { dateIso, summary, employees, missions, convoys, leaves, locationRequests, disputes } = data;
   const missionsArr = missions ?? [];
   const convoysArr = convoys ?? [];
-  const date = new Date(dateIso);
-  const dayName = date.toLocaleDateString('ar-EG', { weekday: 'long' });
-  const monthName = MONTHS[date.getMonth()];
+  const [y, m, d] = dateIso.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const dayName = WEEKDAYS[dt.getUTCDay()] ?? '';
+  const monthName = MONTHS[m - 1] ?? '';
 
   // ========== ملخص تنفيذي ==========
   const totalEmployees = summary.employees?.active ?? employees.length;
@@ -355,7 +361,7 @@ export function exportExecutiveDailyReport(data: ExecutiveDailyReportDetail, org
   <div class="header">
     <div class="header-right">
       <h1>📊 التقرير التنفيذي اليومي الشامل</h1>
-      <p>${dayName}، ${date.getDate()} ${monthName} ${date.getFullYear()} — ${esc(dateIso)}</p>
+      <p>${dayName}، ${d} ${monthName} ${y} — ${esc(dateIso)}</p>
     </div>
     <div class="header-left">
       <div class="org">${esc(orgName)}</div>
@@ -514,7 +520,7 @@ export function exportExecutiveDailyReport(data: ExecutiveDailyReportDetail, org
       var noPrintEls = clone.querySelectorAll('.no-print');
       noPrintEls.forEach(function(el) { el.remove(); });
       var htmlContent = "<!doctype html>\n" + clone.outerHTML;
-      var blob = new Blob([htmlContent], { type: "text/html;charset=utf-8;" });
+      var blob = new Blob(["\uFEFF" + htmlContent], { type: "text/html;charset=utf-8;" });
       var url = URL.createObjectURL(blob);
       var a = document.createElement("a");
       a.href = url;
@@ -531,9 +537,33 @@ export function exportExecutiveDailyReport(data: ExecutiveDailyReportDetail, org
 </script>
 </body>
 </html>`;
+  return html;
+}
 
+export function downloadExecutiveDailyReportHtml(
+  data: ExecutiveDailyReportDetail,
+  orgName = 'جمعية خواطر أحلى شباب',
+  systemName = 'منظومة أحلى شباب الإدارية',
+): void {
+  const html = buildExecutiveDailyReportHtml(data, orgName, systemName);
+  const blob = new Blob(['\uFEFF' + html], { type: 'text/html;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `التقرير_التنفيذي_اليومي_${data.dateIso}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export function exportExecutiveDailyReport(data: ExecutiveDailyReportDetail, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية') {
+  const html = buildExecutiveDailyReportHtml(data, orgName, systemName);
   const win = window.open('', '_blank');
-  if (!win) return;
+  if (!win) {
+    downloadExecutiveDailyReportHtml(data, orgName, systemName);
+    return;
+  }
   win.document.write(html);
   win.document.close();
   try {

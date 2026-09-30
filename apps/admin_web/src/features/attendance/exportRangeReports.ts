@@ -28,9 +28,11 @@ function escapeHtml(s: string): string {
 }
 
 function fmtDay(dateIso: string): string {
-  const d = new Date(`${dateIso}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return dateIso;
-  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${WEEKDAYS[d.getDay()]}`;
+  const [y, m, d] = dateIso.split('-').map(Number);
+  if (!y || !m || !d) return dateIso;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const weekday = WEEKDAYS[dt.getUTCDay()] ?? '';
+  return `${d} ${MONTHS[m - 1]} (${weekday})`;
 }
 
 async function fetchRosterDay(dateIso: string, filters?: RangeFilters): Promise<AttendanceRosterItem[]> {
@@ -54,16 +56,22 @@ async function fetchRosterDay(dateIso: string, filters?: RangeFilters): Promise<
   }
 }
 
+export function downloadRangeReportHtml(title: string, html: string): void {
+  const blob = new Blob(['\uFEFF' + html], { type: 'text/html;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = title.endsWith('.html') ? title : `${title}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function openPrintWindow(title: string, html: string): void {
-  const win = window.open('', '_blank', 'width=1000,height=800');
+  const win = window.open('', '_blank', 'width=1120,height=800');
   if (!win) {
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${title}.html`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadRangeReportHtml(title, html);
     return;
   }
   win.document.open();
@@ -87,7 +95,7 @@ async function buildRosterGate(dates: string[], filters?: RangeFilters): Promise
   perDay.forEach((dayItems, idx) => {
     const date = dates[idx];
     for (const item of dayItems) {
-      const key = Date.parse(item.firstCheckIn ?? '') ? item.employeeId : item.employeeId;
+      const key = item.employeeId;
       if (!employeeMap.has(key)) employeeMap.set(key, item);
       dayStatus.set(`${key}|${date}`, item.status);
       dayLateMinutes.set(`${key}|${date}`, item.lateMinutes);
@@ -118,7 +126,7 @@ function renderTable(gate: RosterGate, dates: string[]): { rows: string; cols: s
         .join('');
       return `<tr>
         <td style="padding:4px 6px;text-align:center">${escapeHtml(e.employeeCode ?? '—')}</td>
-        <td style="padding:4px 6px">${escapeHtml(e.employeeName)}</td>
+        <td style="padding:4px 6px;font-weight:700">${escapeHtml(e.employeeName)}</td>
         <td style="padding:4px 6px;text-align:center">${escapeHtml(e.departmentName ?? '—')}</td>
         ${cells}
       </tr>`;
@@ -134,57 +142,160 @@ function shell(title: string, subtitle: string, employeeCount: number, rows: str
 <meta charset="utf-8">
 <title>${escapeHtml(title)}</title>
 <style>
-  @page { size: A4 landscape; margin: 10mm 8mm; }
+  @page { size: A4 landscape; margin: 8mm 6mm; }
   * { box-sizing: border-box; }
-  body { font-family: 'Cairo', 'Segoe UI', sans-serif; direction: rtl; color: #111827; font-size: 9px; line-height: 1.4; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .page { max-width: 1120px; margin: 0 auto; }
+  body { font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; direction: rtl; color: #111827; font-size: 9px; line-height: 1.4; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 16px; background: #f8fafc; }
+  .page { max-width: 1120px; margin: 0 auto; background: #fff; padding: 24px; border-radius: 8px; border: 1px solid #e5e7eb; }
   .header { border-bottom: 3px solid #1e40af; padding-bottom: 10px; margin-bottom: 14px; }
   .header h1 { font-size: 16px; font-weight: 900; color: #1e40af; margin: 0; }
-  .header p { margin: 4px 0 0; font-size: 11px; color: #6b7280; }
+  .header p { margin: 4px 0 0; font-size: 11px; color: #4b5563; font-weight: 600; }
   table { width: 100%; border-collapse: collapse; ${cssTable} }
-  thead th { background: #1e3a5f; color: white; padding: 4px 4px; text-align: center; font-weight: 800; font-size: 6px; }
-  tbody td { border-bottom: 1px solid #e5e7eb; }
+  thead th { background: #1e3a5f; color: white; padding: 6px 4px; text-align: center; font-weight: 800; font-size: 8px; border: 1px solid #1e3a5f; }
+  tbody td { border: 1px solid #e5e7eb; }
   tbody tr:nth-child(even) { background: #fafafa; }
   .sign { margin-top: 30px; display: flex; justify-content: space-between; }
-  .sign div { width: 30%; }
-  .sign .line { border-bottom: 1px solid #111827; height: 20px; }
+  .sign div { width: 30%; text-align: center; font-size: 10px; font-weight: 700; color: #374151; }
+  .sign .line { border-bottom: 1px solid #111827; height: 24px; margin-bottom: 6px; }
+
+  /* ─── شريط الإجراءات العلوي التفاعلي (مخفي عند الطباعة وحفظ PDF) ─── */
+  .action-bar {
+    max-width: 1120px;
+    margin: 0 auto 16px;
+    background: #0f172a;
+    color: #f8fafc;
+    border-radius: 10px;
+    padding: 12px 18px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+    border: 1px solid #334155;
+  }
+  .action-bar-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .action-title { font-size: 13px; font-weight: 800; color: #ffffff; }
+  .action-buttons { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .btn-act {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; font-size: 11px; font-weight: 700;
+    font-family: inherit; border-radius: 6px; cursor: pointer; border: none;
+    transition: all 0.2s;
+  }
+  .btn-act-pdf { background: #10b981; color: white; }
+  .btn-act-pdf:hover { background: #059669; }
+  .btn-act-print { background: #2563eb; color: white; }
+  .btn-act-print:hover { background: #1d4ed8; }
+  .btn-act-html { background: #334155; color: #f1f5f9; border: 1px solid #475569; }
+  .btn-act-html:hover { background: #475569; color: white; }
+  .btn-act-close { background: transparent; color: #94a3b8; border: 1px solid #334155; }
+  .btn-act-close:hover { color: #f87171; border-color: #ef4444; }
+  .action-tip {
+    margin-top: 8px; padding-top: 6px; border-top: 1px solid #1e293b;
+    font-size: 10px; color: #cbd5e1;
+  }
+
+  @media print {
+    body { margin: 0; background: #fff; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .no-print, .action-bar { display: none !important; }
+    .page { border: none; padding: 0; }
+  }
 </style>
 </head>
 <body>
+<div class="action-bar no-print">
+  <div class="action-bar-content">
+    <div class="action-title">📄 ${escapeHtml(title)}</div>
+    <div class="action-buttons">
+      <button type="button" class="btn-act btn-act-pdf" onclick="saveAsPdf()" title="حفظ كملف PDF على جهازك">
+        📥 تحميل وحفظ كملف PDF
+      </button>
+      <button type="button" class="btn-act btn-act-print" onclick="saveAsPdf()" title="طباعة فورية">
+        🖨️ طباعة
+      </button>
+      <button type="button" class="btn-act btn-act-html" onclick="downloadHtml()" title="تنزيل نسخة مستقلة">
+        💾 تنزيل ملف (HTML)
+      </button>
+      <button type="button" class="btn-act btn-act-close" onclick="window.close()" title="إغلاق النافذة">
+        إغلاق
+      </button>
+    </div>
+  </div>
+  <div class="action-tip">
+    💡 لحفظ المستند كملف PDF: اضغط على زر «تحميل وحفظ كملف PDF» واختر الوجهة (Save as PDF) ثم اضغط حفظ.
+  </div>
+</div>
+
 <div class="page">
   <div class="header">
     <h1>${escapeHtml(title)}</h1>
     <p>${escapeHtml(subtitle)} — عدد الموظفين: ${employeeCount}</p>
   </div>
   <table>
-    <thead><tr><th>الكود</th><th>الاسم</th><th>الإدارة</th>${cols}</tr></thead>
+    <thead><tr><th style="width:70px">الكود</th><th style="width:160px">الاسم</th><th style="width:110px">الإدارة</th>${cols}</tr></thead>
     <tbody>${rows}</tbody>
   </table>
   <div class="sign">
     <div><div class="line"></div>إعداد: قسم الموارد البشرية</div>
     <div><div class="line"></div>اعتماد المدير التنفيذي</div>
-    <div><div class="line"></div>التاريخ</div>
+    <div><div class="line"></div>التاريخ والختم</div>
   </div>
 </div>
+
+<script>
+  function saveAsPdf() {
+    window.focus();
+    try { window.print(); } catch(e) { console.error(e); }
+  }
+  function downloadHtml() {
+    try {
+      var clone = document.documentElement.cloneNode(true);
+      var noPrintEls = clone.querySelectorAll('.no-print');
+      noPrintEls.forEach(function(el) { el.remove(); });
+      var htmlContent = "<!DOCTYPE html>\\n" + clone.outerHTML;
+      var blob = new Blob(["\\uFEFF" + htmlContent], { type: "text/html;charset=utf-8;" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "${escapeHtml(title)}.html";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch(e) { console.error(e); }
+  }
+  setTimeout(function() {
+    saveAsPdf();
+  }, 400);
+</script>
 </body>
 </html>`;
 }
 
-function dateRange(start: string, end: string): string[] {
+export function dateRange(start: string, end: string): string[] {
+  const [sy, sm, sd] = start.split('-').map(Number);
+  const [ey, em, ed] = end.split('-').map(Number);
+  if (!sy || !sm || !sd || !ey || !em || !ed) return [];
+
+  const cursor = new Date(Date.UTC(sy, sm - 1, sd));
+  const last = new Date(Date.UTC(ey, em - 1, ed));
   const dates: string[] = [];
-  const cursor = new Date(`${start}T00:00:00`);
-  const last = new Date(`${end}T00:00:00`);
+
   while (cursor <= last) {
-    dates.push(cursor.toISOString().slice(0, 10));
-    cursor.setDate(cursor.getDate() + 1);
+    const y = cursor.getUTCFullYear();
+    const m = cursor.getUTCMonth() + 1;
+    const d = cursor.getUTCDate();
+    dates.push(`${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
   return dates;
 }
 
-function monthDates(month: string): string[] {
+export function monthDates(month: string): string[] {
   const [y, m] = month.split('-').map(Number);
   if (!y || !m) return [];
-  const daysInMonth = new Date(y, m, 0).getDate();
+  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
   const dates: string[] = [];
   for (let d = 1; d <= daysInMonth; d += 1) {
     dates.push(`${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
@@ -203,9 +314,9 @@ export async function exportWeeklyAttendancePdf(employeeIdOrScope: string, start
     gate.employees = gate.employees.filter((e) => e.employeeId === employeeIdOrScope);
   }
   const { rows, cols } = renderTable(gate, dates);
-  const weekLabel = `${fmtDay(start)} — ${fmtDay(end)}`;
+  const weekLabel = `الفترة من ${fmtDay(start)} إلى ${fmtDay(end)}`;
   const title = employeeIdOrScope === 'all' ? 'كشف حضور الشركة الأسبوعي' : 'كشف حضور الموظف الأسبوعي';
-  openPrintWindow('كشف-أسبوعي', shell(title, weekLabel, gate.employees.length, rows, cols, 'font-size:7px;'));
+  openPrintWindow('كشف-حضور-أسبوعي', shell(title, weekLabel, gate.employees.length, rows, cols, 'font-size:7px;'));
 }
 
 /**
@@ -217,7 +328,8 @@ export async function exportMonthlyAttendancePdf(month: string, filters?: RangeF
   const gate = await buildRosterGate(dates, filters);
   const { rows, cols } = renderTable(gate, dates);
   const [y, m] = month.split('-').map(Number);
-  const label = `${MONTHS[Number(m) - 1] ?? m} ${y}`;
-  const title = `كشف حضور الموظفين الشهري — ${label}`;
-  openPrintWindow('كشف-شهري', shell(title, label, gate.employees.length, rows, cols, 'font-size:6px;'));
+  const monthName = MONTHS[Number(m) - 1] ?? m;
+  const label = `شهر ${monthName} ${y} (من 1 إلى ${dates.length} ${monthName})`;
+  const title = `كشف حضور الموظفين الشهري — ${monthName} ${y}`;
+  openPrintWindow('كشف-حضور-شهري', shell(title, label, gate.employees.length, rows, cols, 'font-size:6px;'));
 }

@@ -93,7 +93,7 @@ export function buildStatementBodyHtml(data: AttendanceStatement, orgName = 'ج�
   <div class="header">
     <div class="header-right">
       <h1>📋 كشف الحضور والانصراف الشهري</h1>
-      <p>${monthName} ${period.year} — من ${esc(period.startDate)} إلى ${esc(period.endDate)}</p>
+      <p>${monthName} ${period.year} — من ${esc(period.startDate)} إلى ${esc(period.endDate)} (${s.totalDays} يومًا)</p>
     </div>
     <div class="header-left">
       <div class="org">${esc(orgName)}</div>
@@ -110,7 +110,7 @@ export function buildStatementBodyHtml(data: AttendanceStatement, orgName = 'ج�
     <div class="emp-field"><label>الفرع</label><span>${esc(emp.branch)}</span></div>
     <div class="emp-field"><label>المدير المباشر</label><span>${esc(emp.manager)}</span></div>
     <div class="emp-field"><label>تاريخ التعيين</label><span style="direction:ltr;text-align:right">${esc(emp.hireDate ?? '—')}</span></div>
-    <div class="emp-field"><label>الفترة</label><span>${monthName} ${period.year}</span></div>
+    <div class="emp-field"><label>الفترة</label><span>${monthName} ${period.year} (${s.totalDays} يومًا)</span></div>
   </div>
 
   <!-- نسب الحضور والالتزام -->
@@ -186,14 +186,6 @@ export function buildStatementBodyHtml(data: AttendanceStatement, orgName = 'ج�
  * عند تمرير autoPrint: يضيف سكربت يفتح نافذة الطباعة تلقائيًا بعد التحميل.
  */
 export function attendanceDocumentShell(title: string, bodyHtml: string, autoPrint = false): string {
-  const script = autoPrint
-    ? `
-<script>
-  window.onload = function() {
-    setTimeout(function() { window.print(); }, 400);
-  };
-</script>`
-    : '';
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -202,7 +194,7 @@ export function attendanceDocumentShell(title: string, bodyHtml: string, autoPri
   <style>
     @page {
       size: A4 landscape;
-      margin: 12mm 10mm;
+      margin: 10mm 8mm;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -213,9 +205,50 @@ export function attendanceDocumentShell(title: string, bodyHtml: string, autoPri
       line-height: 1.5;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
+      margin: 16px;
+      background: #f8fafc;
     }
-    .page { max-width: 1100px; margin: 0 auto; }
+    .page { max-width: 1100px; margin: 0 auto; background: #fff; padding: 24px; border-radius: 8px; border: 1px solid #e5e7eb; }
     .page-break { page-break-after: always; break-after: page; }
+
+    /* ─── شريط الإجراءات العلوي التفاعلي (مخفي عند الطباعة وحفظ PDF) ─── */
+    .action-bar {
+      max-width: 1100px;
+      margin: 0 auto 16px;
+      background: #0f172a;
+      color: #f8fafc;
+      border-radius: 10px;
+      padding: 12px 18px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+      border: 1px solid #334155;
+    }
+    .action-bar-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .action-title { font-size: 13px; font-weight: 800; color: #ffffff; }
+    .action-buttons { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .btn-act {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; font-size: 11px; font-weight: 700;
+      font-family: inherit; border-radius: 6px; cursor: pointer; border: none;
+      transition: all 0.2s;
+    }
+    .btn-act-pdf { background: #10b981; color: white; }
+    .btn-act-pdf:hover { background: #059669; }
+    .btn-act-print { background: #2563eb; color: white; }
+    .btn-act-print:hover { background: #1d4ed8; }
+    .btn-act-html { background: #334155; color: #f1f5f9; border: 1px solid #475569; }
+    .btn-act-html:hover { background: #475569; color: white; }
+    .btn-act-close { background: transparent; color: #94a3b8; border: 1px solid #334155; }
+    .btn-act-close:hover { color: #f87171; border-color: #ef4444; }
+    .action-tip {
+      margin-top: 8px; padding-top: 6px; border-top: 1px solid #1e293b;
+      font-size: 10px; color: #cbd5e1;
+    }
 
     /* ─── الرأس ─── */
     .header {
@@ -227,7 +260,7 @@ export function attendanceDocumentShell(title: string, bodyHtml: string, autoPri
       margin-bottom: 16px;
     }
     .header-right h1 { font-size: 18px; font-weight: 900; color: #1e40af; }
-    .header-right p { font-size: 10px; color: #6b7280; margin-top: 2px; }
+    .header-right p { font-size: 11px; color: #4b5563; font-weight: 600; margin-top: 3px; }
     .header-left { text-align: left; direction: ltr; }
     .header-left .org { font-size: 13px; font-weight: 900; color: #1e40af; }
     .header-left .sub { font-size: 9px; color: #6b7280; }
@@ -336,29 +369,105 @@ export function attendanceDocumentShell(title: string, bodyHtml: string, autoPri
     }
 
     @media print {
-      body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      body { margin: 0; background: #fff; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .no-print, .action-bar { display: none !important; }
+      .page { border: none; padding: 0; }
     }
   </style>
 </head>
 <body>
+<div class="action-bar no-print">
+  <div class="action-bar-content">
+    <div class="action-title">📋 ${esc(title)}</div>
+    <div class="action-buttons">
+      <button type="button" class="btn-act btn-act-pdf" onclick="saveAsPdf()" title="حفظ كملف PDF على جهازك">
+        📥 تحميل وحفظ كملف PDF
+      </button>
+      <button type="button" class="btn-act btn-act-print" onclick="saveAsPdf()" title="طباعة فورية">
+        🖨️ طباعة
+      </button>
+      <button type="button" class="btn-act btn-act-html" onclick="downloadHtml()" title="تنزيل نسخة مستقلة">
+        💾 تنزيل ملف (HTML)
+      </button>
+      <button type="button" class="btn-act btn-act-close" onclick="window.close()" title="إغلاق النافذة">
+        إغلاق
+      </button>
+    </div>
+  </div>
+  <div class="action-tip">
+    💡 لحفظ كشف الحضور بصيغة PDF: اضغط على زر «تحميل وحفظ كملف PDF» واختر الوجهة (Save as PDF) ثم اضغط حفظ.
+  </div>
+</div>
+
 ${bodyHtml}
-${script}
+
+<script>
+  function saveAsPdf() {
+    window.focus();
+    try { window.print(); } catch(e) { console.error(e); }
+  }
+  function downloadHtml() {
+    try {
+      var clone = document.documentElement.cloneNode(true);
+      var noPrintEls = clone.querySelectorAll('.no-print');
+      noPrintEls.forEach(function(el) { el.remove(); });
+      var htmlContent = "<!DOCTYPE html>\\n" + clone.outerHTML;
+      var blob = new Blob(["\\uFEFF" + htmlContent], { type: "text/html;charset=utf-8" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "${esc(title)}.html";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch(e) { console.error(e); }
+  }
+  ${autoPrint ? `setTimeout(function() { saveAsPdf(); }, 400);` : ''}
+</script>
 </body>
 </html>`;
 }
 
 /**
+ * تنزيل كشف الحضور كملف HTML مستقل قابل للفتح والمطالعة أو الحفظ كـ PDF مباشرة.
+ */
+export function downloadAttendanceStatement(data: AttendanceStatement, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية'): void {
+  const { employee: emp, period } = data;
+  const monthName = MONTHS[period.month - 1] ?? '';
+  const body = buildStatementBodyHtml(data, orgName, systemName);
+  const title = `كشف حضور — ${emp.fullNameAr} — ${monthName} ${period.year}`;
+  const html = attendanceDocumentShell(title, body, false);
+  const safeName = (emp.employeeCode ? `${emp.employeeCode}-${emp.fullNameAr}` : emp.fullNameAr).replace(/[\\/:*?"<>|]/g, '').trim();
+  const filename = `كشف-حضور-${safeName}-${monthName}-${period.year}.html`;
+
+  const blob = new Blob(['\uFEFF' + html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
  * يُنشئ مستند HTML منسّق لكشف الحضور ويفتحه في نافذة جديدة مع تشغيل طباعة تلقائي.
- * المستخدم يمكنه حفظه كـ PDF مباشرة من حوار الطباعة (نفس السلوك لكل من زر «تصدير PDF» و«طباعة»).
+ * مع بديل تنزيل فوري في حال حظر النوافذ المنبثقة من قبل المتصفح.
  */
 export function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية') {
   const { employee: emp, period } = data;
   const monthName = MONTHS[period.month - 1] ?? '';
   const body = buildStatementBodyHtml(data, orgName, systemName);
-  const html = attendanceDocumentShell(`كشف حضور — ${emp.fullNameAr} — ${monthName} ${period.year}`, body, true);
+  const title = `كشف حضور — ${emp.fullNameAr} — ${monthName} ${period.year}`;
+  const html = attendanceDocumentShell(title, body, true);
 
   const win = window.open('', '_blank');
-  if (!win) return;
+  if (!win) {
+    downloadAttendanceStatement(data, orgName, systemName);
+    return;
+  }
   win.document.write(html);
   win.document.close();
 }

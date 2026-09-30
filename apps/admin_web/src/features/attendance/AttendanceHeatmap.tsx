@@ -45,7 +45,7 @@ export function generateMockHeatmapData(days = 30): AttendanceHeatmapDay[] {
     const dow = d.getDay(); // 0=أحد ... 6=سبت
     const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`;
     let status: string;
-    if (dow === 5 || dow === 6) {
+    if (dow === 5) {
       status = 'راحة أسبوعية';
     } else {
       const r = Math.random();
