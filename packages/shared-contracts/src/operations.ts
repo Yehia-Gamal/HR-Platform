@@ -476,8 +476,18 @@ export const attendanceStatementDaySchema = z.object({
 });
 export type AttendanceStatementDay = z.infer<typeof attendanceStatementDaySchema>;
 
-export const attendanceStatementSchema = z.object({
-  employee: z.object({
+// _build_attendance_statement (منذ 0487) يُرجع الموظف بمفاتيح name/code وبلا
+// period.generatedAt، بينما الواجهة تعتمد fullNameAr/employeeCode. كان كل تحليل
+// يفشل: صفحة الموظف الواحد تتجاوز الفشل بالبيانات الخام (فيظهر الاسم فارغاً)،
+// و«طباعة كشوف الجميع» تعدّ كل موظف «بدون بيانات» (0 ملف من 28). نقبل الشكلين
+// هنا مرة واحدة بدل تغيير مفاتيح دالة يستهلكها الهاتف أيضاً.
+const attendanceStatementEmployeeSchema = z.preprocess(
+  (val) => {
+    if (!val || typeof val !== 'object') return val;
+    const e = val as Record<string, unknown>;
+    return { ...e, fullNameAr: e.fullNameAr ?? e.name, employeeCode: e.employeeCode ?? e.code ?? null };
+  },
+  z.object({
     id: z.string().uuid(),
     employeeCode: z.string().nullable(),
     fullNameAr: z.string(),
@@ -487,12 +497,16 @@ export const attendanceStatementSchema = z.object({
     branch: z.string(),
     hireDate: z.string().nullable(),
   }),
+);
+
+export const attendanceStatementSchema = z.object({
+  employee: attendanceStatementEmployeeSchema,
   period: z.object({
     year: z.number(),
     month: z.number(),
     startDate: z.string(),
     endDate: z.string(),
-    generatedAt: z.string(),
+    generatedAt: z.string().default(() => new Date().toISOString()),
   }),
   days: z.preprocess(
     (val) => (Array.isArray(val) ? val.filter(Boolean) : val),

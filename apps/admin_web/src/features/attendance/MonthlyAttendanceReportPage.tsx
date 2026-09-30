@@ -153,7 +153,7 @@ export function MonthlyAttendanceReportPage() {
   const [filterText, setFilterText] = useState('');
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
-  const [exportToast, setExportToast] = useState<string | null>(null);
+  const [exportToast, setExportToast] = useState<{ text: string; tone: 'success' | 'warning' | 'danger' } | null>(null);
   const exportTimerRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
@@ -193,11 +193,18 @@ export function MonthlyAttendanceReportPage() {
           exportTimerRef.current.push(t);
         }
       });
-      setExportToast(`تم إنشاء ${exported} ملف (ملف منفصل لكل موظف + ملف شامل).${skipped > 0 ? ` تعذّر ${skipped} موظف (بدون بيانات).` : ''}`);
+      setExportToast(
+        exported === 0
+          ? { text: 'تعذّر تجهيز أي كشف. أعد المحاولة أو تحقق من اتصالك.', tone: 'danger' }
+          : {
+              text: `تم تجهيز كشوف ${exported} موظف (ملف لكل موظف + ملف شامل).${skipped > 0 ? ` تعذّر تجهيز كشف ${skipped} موظف.` : ''}`,
+              tone: skipped > 0 ? 'warning' : 'success',
+            },
+      );
       const t1 = setTimeout(() => setExportToast(null), 6000);
       exportTimerRef.current.push(t1);
     } catch {
-      setExportToast('تعذّر إنشاء الكشوف. أعد المحاولة أو تحقق من اتصالك.');
+      setExportToast({ text: 'تعذّر إنشاء الكشوف. أعد المحاولة أو تحقق من اتصالك.', tone: 'danger' });
       setExporting(false);
       const t2 = setTimeout(() => setExportToast(null), 6000);
       exportTimerRef.current.push(t2);
@@ -241,8 +248,17 @@ export function MonthlyAttendanceReportPage() {
       />
 
       {exportToast ? (
-        <div className="rounded-xl border border-[var(--success)] bg-[var(--success)]/10 px-4 py-3 text-sm font-bold text-[var(--success)]" role="status">
-          {exportToast}
+        <div
+          className={`rounded-xl border px-4 py-3 text-sm font-bold ${
+            exportToast.tone === 'success'
+              ? 'border-[var(--success)] bg-[var(--success)]/10 text-[var(--success)]'
+              : exportToast.tone === 'warning'
+                ? 'border-[var(--warning)] bg-[var(--warning)]/10 text-[var(--warning)]'
+                : 'border-[var(--danger)] bg-[var(--danger)]/10 text-[var(--danger)]'
+          }`}
+          role={exportToast.tone === 'danger' ? 'alert' : 'status'}
+        >
+          {exportToast.text}
         </div>
       ) : null}
 

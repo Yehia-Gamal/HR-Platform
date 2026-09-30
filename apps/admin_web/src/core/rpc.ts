@@ -46,7 +46,13 @@ function scrubValue(value: unknown): unknown {
 export async function rpc<T = unknown>(name: string, args?: Record<string, unknown>, schema?: ZodType<T>): Promise<T> {
   const supabase = await getSupabase();
   const sanitized = sanitizeArgs(args);
-  const { data, error } = await supabase.rpc(name, args);
+  let { data, error } = await supabase.rpc(name, args);
+  // «JWT expired» (PGRST303): تبويب عاد من الخمول فأُرسل الطلب قبل أن يُكمل
+  // supabase-js تجديد الرمز (رُصد على get_my_access_context). نجدّد ونعيد مرة واحدة.
+  if (error?.code === 'PGRST303') {
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (!refreshError) ({ data, error } = await supabase.rpc(name, args));
+  }
   if (error) {
     addBreadcrumb('rpc', name, { args: sanitized, error: error.message });
     throw error;

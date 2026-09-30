@@ -198,6 +198,31 @@ describe('attendance statement contracts — V23 §14', () => {
     expect(stmt.summary.attendanceRate).toBe(95.45);
     expect(stmt.summary.hoursComplianceRate).toBe(95.45);
   });
+
+  it('accepts the live _build_attendance_statement shape (name/code, no generatedAt)', () => {
+    // الشكل الفعلي لـ get_employee_monthly_attendance_statement في الإنتاج: كان
+    // يفشل تحليله فتُسقط «طباعة كشوف الجميع» كل الموظفين (0 ملف من 28).
+    const stmt = attendanceStatementSchema.parse({
+      employee: {
+        id: '30000000-0000-4000-8000-000000000001',
+        code: 'E001', name: 'موظف', nameEn: 'Employee', jobTitle: 'مسؤول',
+        department: 'الإدارة', manager: 'مدير', branch: 'الرئيسية', hireDate: null,
+      },
+      period: { year: 2026, month: 9, startDate: '2026-09-01', endDate: '2026-09-30' },
+      days: [],
+      summary: {
+        totalDays: 30, scheduledDays: 22, presentDays: 20, absentDays: 2,
+        leaveDays: 0, permitCount: 0, missionDays: 0, convoyFundiDays: 0,
+        holidayDays: 1, restDays: 4, totalWorkHours: 160, totalRequiredHours: 176,
+        averageWorkHours: 8, totalLateMinutes: 0, totalEarlyLeaveMinutes: 0,
+        totalOvertimeMinutes: 0, missingCheckInCount: 0, missingCheckOutCount: 0,
+        correctionCount: 0,
+      },
+    });
+    expect(stmt.employee.fullNameAr).toBe('موظف');
+    expect(stmt.employee.employeeCode).toBe('E001');
+    expect(stmt.period.generatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
 });
 
 describe('attendance statement contracts — V23 §14', () => {
