@@ -135,7 +135,7 @@ set local role authenticated;
 
 select throws_ok(
   $rt$ select public.get_instant_penalties(null, null, null, null, 200, 0) $rt$,
-  '42501',
+  '42501', null,
   'P0: استدعاء بلا auth.uid() من دور غير نظامي يُرفض (كان يمرّ ويُرجع كل الصفوف)');
 
 reset role;

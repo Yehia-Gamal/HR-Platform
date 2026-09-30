@@ -11,7 +11,7 @@ select col_is_pk('public','requests','id','requests has PK');
 select col_is_pk('public','kpi_evaluations','id','KPI evaluation has PK');
 select col_is_pk('public','administrative_decisions','id','decisions has PK');
 select ok((select pg_get_constraintdef(oid) like '%hr%' and pg_get_constraintdef(oid) like '%acknowledgement%' from pg_constraint where conname='kpi_evaluations_current_stage_check'), 'KPI stage constraint includes official HR and employee acknowledgement gates');
-select isnt_empty($$ select 1 from pg_proc where proname='get_request_inbox' and prosecdef=false $$,'read model uses invoker security');
+select isnt_empty($$ select 1 from pg_proc where proname='get_request_inbox' and (prosecdef=false or (prosrc like '%current_employee_id%' and prosrc like '%can_access_employee%')) $$,'read model uses invoker security, or 0505 security definer with an explicit authorization filter');
 select isnt_empty($$ select 1 from pg_proc where proname='publish_official_announcement' and prosecdef=true $$,'publish command is security definer');
 select * from finish();
 rollback;

@@ -111,7 +111,7 @@ select is(
        where d.objid = p.oid and d.deptype = 'e'
       )
       and has_function_privilege('public', p.oid, 'EXECUTE')),
-  0,
+  0::bigint,
   'P0: لا دالّة في public متاحة لـ PUBLIC عدا الاستثناءات');
 
 -- =====================================================================

@@ -3,7 +3,7 @@
 -- ---------------------------------------------------------------------
 -- يثبت: بنية الجدول، اشتراط الاعتماد قبل البدء، بدء/إنهاء للمالك فقط،
 -- التقرير الإلزامي (≥3 أحرف)، المدة الفعلية غير ملزمة (≥1 دقيقة)،
--- الرفض المزدوج، قبول startTime بصيغة HH:MM (رفض "9:00")،
+-- الرفض المزدوج (للإنهاء) واستئناف البدء المكرر، قبول startTime بصيغة HH:MM (رفض "9:00")،
 -- وصول missionExecution في inbox/detail، وإغلاق الوصول عن anon.
 -- كل شيء ضمن معاملة تُلغى (rollback).
 begin;
@@ -79,20 +79,30 @@ select has_function('public','end_my_mission',array['uuid','text','text'],'end_m
 -- =====================================================================
 -- التقديم: startTime اختياري بصيغة HH:MM — يرفض "9:00".
 -- =====================================================================
+-- تواريخ ديناميكية (بتوقيت القاهرة) حتى لا يصير الاختبار قنبلة زمنية:
 select lives_ok($$
   insert into pg_temp.me_req_ids(request_id, rtype)
   select (public.submit_my_request('mission','مأمورية إدارية','تسليم مستندات رسمية للجهة',
-    '{"startDate":"2026-09-01","endDate":"2026-09-02","location":"مقر الجهة","startTime":"10:00","endTime":"14:30"}'::jsonb)).id, 'mission'
+    jsonb_build_object(
+      'startDate', to_char((now() at time zone 'Africa/Cairo')::date, 'YYYY-MM-DD'),
+      'endDate',   to_char((now() at time zone 'Africa/Cairo')::date + 1, 'YYYY-MM-DD'),
+      'location', 'مقر الجهة', 'startTime', '10:00', 'endTime', '14:30'))).id, 'mission'
 $$, 'تقديم مأمورية بوقت مخطط صحيح ينجح');
 
 select throws_ok($$
   select public.submit_my_request('mission','مأمورية خاطئة','سبب مقبول للتقديم',
-    '{"startDate":"2026-09-03","endDate":"2026-09-03","location":"جهة","startTime":"9:00"}'::jsonb)
+    jsonb_build_object(
+      'startDate', to_char((now() at time zone 'Africa/Cairo')::date + 3, 'YYYY-MM-DD'),
+      'endDate',   to_char((now() at time zone 'Africa/Cairo')::date + 3, 'YYYY-MM-DD'),
+      'location', 'جهة', 'startTime', '9:00'))
 $$, '22023', null, 'startTime "9:00" مرفوض — يجب HH:MM');
 
 select throws_ok($$
   select public.submit_my_request('mission','مأمورية خاطئة','سبب مقبول للتقديم',
-    '{"startDate":"2026-09-03","endDate":"2026-09-03","location":"جهة","endTime":"14:5"}'::jsonb)
+    jsonb_build_object(
+      'startDate', to_char((now() at time zone 'Africa/Cairo')::date + 3, 'YYYY-MM-DD'),
+      'endDate',   to_char((now() at time zone 'Africa/Cairo')::date + 3, 'YYYY-MM-DD'),
+      'location', 'جهة', 'endTime', '14:5'))
 $$, '22023', null, 'endTime غير صالح (ليس HH:MM) مرفوض');
 
 select is(
@@ -135,9 +145,13 @@ select is(
    join pg_temp.me_req_ids t on t.request_id=me.request_id where t.rtype='mission'),
   'in_progress', 'حالة التنفيذ in_progress بعد البدء');
 
-select throws_ok($$
-  select public.start_my_mission((select request_id from pg_temp.me_req_ids where rtype='mission'))
-$$, '22023', null, 'البدء المزدوج مرفوض (حرس 0453: تم بدء هذه المأمورية مسبقاً)');
+-- 0503: البدء المزدوج لا ينشئ تنفيذاً ثانياً بل يعيد تنفيذ المأمورية نفسه (إعادة المعرف بسلاسة).
+select is(
+  (select public.start_my_mission((select request_id from pg_temp.me_req_ids where rtype='mission'))),
+  (select me.id from public.mission_executions me
+   join pg_temp.me_req_ids t on t.request_id = me.request_id where t.rtype='mission'),
+  'البدء المزدوج يعيد نفس تنفيذ المأمورية بلا تنفيذ مكرر (0503)'
+);
 
 -- =====================================================================
 -- الإنهاء: التقرير إلزامي ≥3 أحرف، والمدة الفعلية ≥1 دقيقة.
@@ -242,7 +256,10 @@ begin
   perform set_config('request.jwt.claim.sub','a1080000-0000-4000-8000-000000000005', true);
   insert into pg_temp.me_req_ids(request_id, rtype)
   select (public.submit_my_request('convoy','قافلة طبية','توزيع مساعدات إنسانية للقرية',
-    '{"startDate":"2026-09-05","endDate":"2026-09-05","location":"قرية النور","startTime":"08:00"}'::jsonb)).id, 'convoy';
+    jsonb_build_object(
+      'startDate', to_char((now() at time zone 'Africa/Cairo')::date, 'YYYY-MM-DD'),
+      'endDate',   to_char((now() at time zone 'Africa/Cairo')::date, 'YYYY-MM-DD'),
+      'location', 'قرية النور', 'startTime', '08:00'))).id, 'convoy';
 end $set_emp3$;
 
 do $convoy_approve$

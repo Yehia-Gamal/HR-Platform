@@ -204,13 +204,13 @@ select throws_ok($$
     code, name, department_id, owner_employee_id, status, approval_status, priority, progress)
   values ('PRJ-0524-X', 'مشروع مُهرَّب', 'f5240000-0000-4000-8000-000000000002',
           'f5240000-0000-4000-8000-000000000012', 'planned', 'approved', 'medium', 0)
-$$, '42501',
+$$, '42501', null,
   'P0: إدراج مباشر لمشروع approved مرفوض بـ RLS');
 
 -- approve_project لغير full-access مرفوضة
 select throws_ok($$
   select public.approve_project('f5240000-0000-4000-8000-000000000031')
-$$, '42501',
+$$, '42501', null,
   'approve_project لغير full-access مرفوضة');
 
 -- create_association_project_admin: إسناد لموظف آخر مرفوض
@@ -220,7 +220,7 @@ select throws_ok($$
     'f5240000-0000-4000-8000-000000000002',
     'f5240000-0000-4000-8000-000000000011',
     'medium', null, null)
-$$, '42501',
+$$, '42501', null,
   'create_association_project_admin: لا يملك الإسناد لموظف آخر');
 
 -- create_association_project_admin: لنفسه ينجح ويبدأ draft

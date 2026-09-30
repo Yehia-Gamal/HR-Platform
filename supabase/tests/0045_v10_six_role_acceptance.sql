@@ -172,7 +172,7 @@ select ok((public.get_mobile_request_detail((select id from acceptance_runtime w
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"91000000-0000-4000-8000-000000000004","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','91000000-0000-4000-8000-000000000004',true);
-select ok(not (public.get_my_access_context()->'workspaces') ? 'employee' and (public.get_my_access_context()->'workspaces') ? 'executive' and not (public.get_my_access_context()#>>'{attendancePolicy,selfPunchEnabled}')::boolean,'executive has no attendance or employee workspace');
+select ok(not (public.get_my_access_context()->'workspaces') ? 'employee' and (public.get_my_access_context()->'workspaces') ? 'executive' and not (public.get_my_access_context()#>>'{attendancePolicy,attendanceRequired}')::boolean,'executive has no attendance or employee workspace');
 select lives_ok($$select public.get_v10_executive_daily_report(current_date)$$,'executive reads the V10 daily report');
 select ok((public.get_v10_executive_daily_report(current_date)#>>'{employees,active}')::integer>=5,'daily report starts from all active non-executive employees');
 select lives_ok($$select public.request_live_location('92000000-0000-4000-8000-000000000001','snapshot','طلب موقع قبول V10')$$,'executive requests any employee location');

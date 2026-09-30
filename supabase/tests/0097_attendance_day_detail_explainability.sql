@@ -174,10 +174,15 @@ begin
     v_req, v_emp, v_lt, v_day, v_day, 1
   );
 
-  insert into public.attendance_permits(
-    employee_id, kind, permit_date, grace_minutes, reason, status
+  -- 0569: الكشف يقرأ الأذونات من جدول requests الموحّد (attendance_permits لم يعد مصدراً).
+  insert into public.requests(
+    id, request_type, employee_id, title, reason, status, workflow_status, payload
   ) values(
-    v_emp, 'arrival', v_day, 15, 'إذن تأخر اختباري', 'approved'
+    '97000000-0000-4000-8000-000000000050', 'late_permit', v_emp,
+    'إذن حضور متأخر', 'إذن تأخر اختباري', 'approved', 'completed',
+    jsonb_build_object(
+      'permitDate', v_day, 'permitKind', 'late_arrival', 'minutes', 15
+    )
   );
 
   insert into public.attendance_corrections(
