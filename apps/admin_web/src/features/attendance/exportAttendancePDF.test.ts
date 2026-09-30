@@ -116,3 +116,64 @@ describe('attendanceDocumentShell', () => {
     expect(html).toContain('.no-print, .action-bar { display: none !important; }');
   });
 });
+
+describe('buildStatementBodyHtml — نسب وبيانات الكشف (0582)', () => {
+  const load = async () => {
+    const { mockAttendanceStatement } = await import('../mock/domainMocks');
+    const { buildStatementBodyHtml } = await import('./exportAttendancePDF');
+    return { base: structuredClone(mockAttendanceStatement), buildStatementBodyHtml };
+  };
+
+  it('يعرض النسبة وأساسها واستبعاد الإجازات بصيغة عربية سليمة', async () => {
+    const { base, buildStatementBodyHtml } = await load();
+    base.summary.attendanceRate = 100;
+    base.summary.attendanceRateBasis = {
+      presentInDue: 23,
+      dueDays: 23,
+      presentDays: 20,
+      absentDays: 0,
+      openShiftDays: 0,
+      upcomingDays: 0,
+      excludedLeaveDays: 3,
+    };
+    const html = buildStatementBodyHtml(base);
+    expect(html).toContain('100%');
+    expect(html).toContain('23 من 23 يوم عمل مستحق');
+    expect(html).toContain('بعد استبعاد 3 أيام إجازة معتمدة');
+  });
+
+  it('المعفى من البصمة: «معفى» بدل 0% ولا لون أحمر', async () => {
+    const { base, buildStatementBodyHtml } = await load();
+    base.summary.isAttendanceExempt = true;
+    base.summary.attendanceRate = 0;
+    const html = buildStatementBodyHtml(base);
+    expect(html).toContain('معفى من البصمة — لا تُحتسب له نسبة');
+    expect(html).not.toMatch(/color:#dc2626">0%/);
+  });
+
+  it('يعرض دقائق التأخير في الجدول وعدد أيامه في الملخص', async () => {
+    const { base, buildStatementBodyHtml } = await load();
+    base.days[0] = { ...base.days[0], lateMinutes: 42 };
+    base.summary.lateDays = 1;
+    base.summary.totalLateMinutes = 42;
+    const html = buildStatementBodyHtml(base);
+    expect(html).toContain('<td class="num late">42 د</td>');
+    expect(html).toContain('42 دقيقة');
+  });
+
+  it('وردية واحدة طوال الشهر: تُعرض في بيانات الموظف لا كعمود مكرر', async () => {
+    const { base, buildStatementBodyHtml } = await load();
+    base.days = base.days.map((d) => ({ ...d, shiftName: 'الدوام الرسمي (10 ص – 6 م)' }));
+    const html = buildStatementBodyHtml(base);
+    expect(html).toContain('<label>الوردية</label>');
+    expect(html).not.toContain('<th>الوردية</th>');
+  });
+
+  it('يوم ماضٍ بلا انصراف لا يكرّر «نقص انصراف» بجوار حالته', async () => {
+    const { base, buildStatementBodyHtml } = await load();
+    base.days[0] = { ...base.days[0], checkOut: null, missingCheckOut: true, status: 'حضور ناقص — لم يسجل الانصراف' };
+    const html = buildStatementBodyHtml(base);
+    expect(html).toContain('<tr class="warn">');
+    expect(html).not.toContain('نقص انصراف');
+  });
+});

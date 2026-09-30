@@ -19,7 +19,8 @@ import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonCard } from '../../ui/Skeletons';
 import {
   AttendancePercentageRing,
-  attendanceRateParts,
+  rateText,
+  statementRates,
   buildDayTags,
   DayTag,
   DAY_FILTERS,
@@ -109,11 +110,14 @@ export function MonthlyStatementSection({ employeeId }: { employeeId: string }) 
 
 function StatementBody({ data }: { data: AttendanceStatement }) {
   const s = data.summary;
-  const { dueDays, presentInDue } = attendanceRateParts(s);
+  // مصدر واحد للنسب مع ملف الطباعة (statementRates): المعفى «معفى» لا 0%
+  const rates = statementRates(s);
+  const { due: dueDays, present: presentInDue } = rates.attendance;
   const { workedHours, requiredHours, deficitHours } = hoursRateParts(s);
-  const attendancePct = s.attendanceRate ?? (dueDays > 0 ? (presentInDue / dueDays) * 100 : 0);
-  const compliancePct = s.hoursComplianceRate ?? 0;
-  const complianceAvailable = s.hoursComplianceAvailable || s.totalRequiredHours > 0;
+  const attendancePct = rates.attendance.pct;
+  const compliancePct = rates.hours.pct;
+  const complianceAvailable = rates.hours.available;
+  const exemptText = rates.exempt ? 'معفى' : undefined;
   const convoyDays = data.days.filter((d) => (d.status?.includes('قافلة') || d.hasConvoyFundi) && !d.status?.includes('فاندي')).length;
   const fundiDays = data.days.filter((d) => d.status?.includes('فاندي')).length;
   const cDays = data.days.length > 0 ? convoyDays : s.convoyFundiDays;
@@ -129,13 +133,19 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
     <div className="space-y-5">
       <div className="stmt-hero">
         <div className="stmt-rings">
-          <AttendancePercentageRing percentage={attendancePct} label="حضور الشهر" />
-          <AttendancePercentageRing percentage={compliancePct} label="ساعات الشهر" available={complianceAvailable} />
-          <AttendancePercentageRing percentage={s.coverageRate} label="تغطية الأيام" />
+          <AttendancePercentageRing percentage={attendancePct} label="حضور الشهر" available={rates.attendance.available} unavailableText={exemptText} />
+          <AttendancePercentageRing percentage={compliancePct} label="ساعات الشهر" available={complianceAvailable} unavailableText={exemptText} />
+          <AttendancePercentageRing percentage={s.coverageRate} label="تغطية الأيام" available={!rates.exempt} unavailableText={exemptText} />
         </div>
 
         <div className="stmt-stats">
-          <StatBox label="أيام الحضور" value={presentInDue} hint={`من ${dueDays} يوم عمل في الشهر`} icon={UserCheck} tone="success" />
+          <StatBox
+            label="أيام الحضور"
+            value={presentInDue}
+            hint={rates.exempt ? 'معفى من البصمة' : `من ${dueDays} يوم عمل مستحق`}
+            icon={UserCheck}
+            tone="success"
+          />
           <StatBox label="أيام الغياب" value={s.absentDays} icon={AlertTriangle} tone={s.absentDays > 0 ? 'danger' : undefined} />
           <StatBox label="وردية مفتوحة" value={s.openShiftDays} hint="حاضر — بانتظار الانصراف" icon={Clock} tone={s.openShiftDays > 0 ? 'warn' : undefined} />
           <StatBox label="أيام قادمة" value={s.upcomingDays} hint={`من ${s.scheduledDays} مجدولة شهريًا`} icon={CalendarDays} />
@@ -147,7 +157,7 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
           <StatBox
             label="ساعات العمل"
             value={workedHours.toFixed(1)}
-            hint={complianceAvailable ? `من ${requiredHours.toFixed(1)} س شهريًا · عجز ${deficitHours.toFixed(1)} س` : 'الساعات المطلوبة غير متاحة'}
+            hint={complianceAvailable ? `من ${requiredHours.toFixed(1)} س مطلوبة حتى الآن · عجز ${deficitHours.toFixed(1)} س` : 'الساعات المطلوبة غير متاحة'}
             icon={Timer}
             tone={deficitHours > 0 ? 'warn' : 'success'}
           />
@@ -173,7 +183,7 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
         />
         <QuickStat
           label="نسبة الحضور"
-          value={`${attendancePct.toFixed(0)}%`}
+          value={rateText(rates.attendance, rates.exempt)}
           icon={<UserCheck className="size-3.5 text-[var(--success)]" aria-hidden="true" />}
         />
         <QuickStat

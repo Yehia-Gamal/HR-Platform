@@ -28,6 +28,8 @@ import { useEmployees } from '../employees/useEmployees';
 import {
   AttendancePercentageRing,
   attendanceRateParts,
+  rateText,
+  statementRates,
   buildDayTags,
   DayTag,
   DAY_FILTERS,
@@ -58,6 +60,7 @@ import { useAuth } from '../auth/AuthProvider';
 function exportCSV(data: AttendanceStatement) {
   const { employee: emp, period, days, summary: s } = data;
   const { presentInDue } = attendanceRateParts(s);
+  const rates = statementRates(s);
   const header = [
     `كشف الحضور والانصراف الشهري — ${csvSafe(emp.fullNameAr)}`,
     `الكود: ${csvSafe(emp.employeeCode ?? '—')} | الإدارة: ${csvSafe(emp.department)} | المسمى: ${csvSafe(emp.jobTitle)}`,
@@ -127,8 +130,10 @@ function exportCSV(data: AttendanceStatement) {
     `نقص حضور,${s.missingCheckInCount}`,
     `نقص انصراف,${s.missingCheckOutCount}`,
     `تصحيحات,${s.correctionCount}`,
-    `نسبة الحضور %,${(s.attendanceRate ?? 0).toFixed(1)}`,
-    `التزام الساعات %,${s.hoursComplianceAvailable || s.totalRequiredHours > 0 ? (s.hoursComplianceRate ?? 0).toFixed(1) : 'غير متاح'}`,
+    `نسبة الحضور %,${rates.exempt ? 'معفى' : rates.attendance.available ? rates.attendance.pct.toFixed(1) : 'غير متاح'}`,
+    `التزام الساعات %,${rates.exempt ? 'معفى' : rates.hours.available ? rates.hours.pct.toFixed(1) : 'غير متاح'}`,
+    `أيام التأخير,${s.lateDays}`,
+    `أيام الخروج المبكر,${s.earlyLeaveDays}`,
   ].join('\n');
 
   const csv = header + '\n' + rows + summaryBlock;
@@ -382,12 +387,14 @@ export function MonthlyAttendanceReportPage() {
 function StatementReport({ data }: { data: AttendanceStatement }) {
   const auth = useAuth();
   const { employee: emp, period, summary: s } = data;
-  const { dueDays, presentInDue } = attendanceRateParts(s);
+  // مصدر واحد للنسب مع ملف الطباعة (statementRates): المعفى «معفى» لا 0%
+  const rates = statementRates(s);
+  const { due: dueDays, present: presentInDue } = rates.attendance;
   const { workedHours, requiredHours, deficitHours } = hoursRateParts(s);
-  // V23: استخدام النسب من الخادم بدلاً من الحساب المحلي
-  const attendancePct = s.attendanceRate ?? (dueDays > 0 ? (presentInDue / dueDays) * 100 : 0);
-  const compliancePct = s.hoursComplianceRate ?? 0;
-  const complianceAvailable = s.hoursComplianceAvailable || s.totalRequiredHours > 0;
+  const attendancePct = rates.attendance.pct;
+  const compliancePct = rates.hours.pct;
+  const complianceAvailable = rates.hours.available;
+  const exemptText = rates.exempt ? 'معفى' : undefined;
   const convoyDays = data.days.filter((d) => (d.status?.includes('قافلة') || d.hasConvoyFundi) && !d.status?.includes('فاندي')).length;
   const fundiDays = data.days.filter((d) => d.status?.includes('فاندي')).length;
   const cDays = data.days.length > 0 ? convoyDays : s.convoyFundiDays;
@@ -441,15 +448,15 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
       {/* V23: نسب الحضور والالتزام + ملخص رئيسي */}
       <div className="grid gap-4 lg:grid-cols-[auto_1fr]">
         <div className="flex flex-wrap items-center justify-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-6 print:p-3">
-          <AttendancePercentageRing percentage={attendancePct} label="حضور الشهر" />
-          <AttendancePercentageRing percentage={compliancePct} label="ساعات الشهر" available={complianceAvailable} />
-          <AttendancePercentageRing percentage={s.coverageRate} label="تغطية الأيام" />
+          <AttendancePercentageRing percentage={attendancePct} label="حضور الشهر" available={rates.attendance.available} unavailableText={exemptText} />
+          <AttendancePercentageRing percentage={compliancePct} label="ساعات الشهر" available={complianceAvailable} unavailableText={exemptText} />
+          <AttendancePercentageRing percentage={s.coverageRate} label="تغطية الأيام" available={!rates.exempt} unavailableText={exemptText} />
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 print:grid-cols-4">
           <MetricCard
             label="أيام الحضور"
             value={presentInDue}
-            hint={`من ${dueDays} يوم عمل في الشهر`}
+            hint={rates.exempt ? 'معفى من البصمة' : `من ${dueDays} يوم عمل مستحق`}
             icon={UserCheck}
             onClick={() => {
               setDayFilter('present');
@@ -525,7 +532,7 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
           <MetricCard
             label="ساعات العمل"
             value={workedHours.toFixed(1)}
-            hint={complianceAvailable ? `من ${requiredHours.toFixed(1)} س شهريًا | عجز ${deficitHours.toFixed(1)} س` : 'الساعات المطلوبة غير متاحة'}
+            hint={complianceAvailable ? `من ${requiredHours.toFixed(1)} س مطلوبة حتى الآن | عجز ${deficitHours.toFixed(1)} س` : 'الساعات المطلوبة غير متاحة'}
             icon={Timer}
             onClick={scrollToDays}
           />
@@ -537,7 +544,7 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
       <div className="flex flex-wrap gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)]/40 px-4 py-3 text-xs print:py-2 print:text-[10px]">
         <StatItem label="تأخير كلي" value={fmtMinutesLong(s.totalLateMinutes)} icon={<ArrowDownRight className="size-3.5 text-[var(--warning)]" />} />
         <StatItem label="خروج مبكر" value={fmtMinutesLong(s.totalEarlyLeaveMinutes)} icon={<ArrowUpRight className="size-3.5 text-[var(--warning)]" />} />
-        <StatItem label="نسبة الحضور" value={`${attendancePct.toFixed(0)}%`} icon={<UserCheck className="size-3.5 text-[var(--success)]" />} />
+        <StatItem label="نسبة الحضور" value={rateText(rates.attendance, rates.exempt)} icon={<UserCheck className="size-3.5 text-[var(--success)]" />} />
         <StatItem label="نسيان حضور" value={`${s.missingCheckInCount}`} icon={<AlertTriangle className="size-3.5 text-[var(--danger)]" />} />
         <StatItem label="نسيان انصراف" value={`${s.missingCheckOutCount}`} icon={<AlertTriangle className="size-3.5 text-[var(--danger)]" />} />
         <StatItem label="تصحيحات" value={`${s.correctionCount}`} icon={<Clock className="size-3.5 text-[var(--text-muted)]" />} />

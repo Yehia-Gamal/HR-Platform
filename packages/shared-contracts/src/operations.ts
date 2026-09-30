@@ -542,13 +542,19 @@ export const attendanceStatementSchema = z.object({
     averageWorkHours: z.number(),
     totalLateMinutes: z.number(),
     totalEarlyLeaveMinutes: z.number(),
+    /** أيام التأخير بعد فترة السماح / أيام الخروج المبكر (0582). */
+    lateDays: z.number().nonnegative().default(0),
+    earlyLeaveDays: z.number().nonnegative().default(0),
     totalOvertimeMinutes: z.number(),
     missingCheckInCount: z.number(),
     missingCheckOutCount: z.number(),
     correctionCount: z.number(),
-    /** نسبة الحضور الفعلي من كامل أيام العمل الشهرية. */
+    /** نسبة الحضور: (البصمة + المأمورية/القافلة) ÷ أيام العمل المستحقة بعد استبعاد الإجازات المعتمدة (0582). */
     attendanceRate: z.number().min(0).max(100).default(0),
-    /** مكونات نسبة الحضور الشهرية الكاملة. */
+    /** المعفى من البصمة: تُعرض «معفى» بدل النسب (0582). */
+    isAttendanceExempt: z.boolean().default(false),
+    attendanceRateAvailable: z.boolean().optional(),
+    /** مكونات نسبة الحضور. */
     attendanceRateBasis: z
       .object({
         presentInDue: z.number().nonnegative(),
@@ -557,6 +563,10 @@ export const attendanceStatementSchema = z.object({
         absentDays: z.number().nonnegative(),
         openShiftDays: z.number().nonnegative(),
         upcomingDays: z.number().nonnegative(),
+        offsiteDays: z.number().nonnegative().optional(),
+        excludedLeaveDays: z.number().nonnegative().optional(),
+        excludedPendingDays: z.number().nonnegative().optional(),
+        excludedExemptDays: z.number().nonnegative().optional(),
       })
       .optional(),
     /** نسبة تغطية أيام العمل (حضور/إجازة/مأمورية/قافلة/فاندي). */

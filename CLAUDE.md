@@ -29,7 +29,7 @@ npm run check:all
 npm run dev:web                    # Vite dev server
 npm run build                      # بناء الإنتاج
 npm run test                       # Vitest (web + contracts)
-npx tsc --noEmit -p apps/admin_web/tsconfig.json   # type-check فقط
+npm run typecheck                  # type-check فقط (tsc -b). تحذير: `tsc --noEmit -p apps/admin_web/tsconfig.json` لا يفحص شيئاً (files: [] + references) فيمرّ دائماً
 
 # Flutter
 cd apps/mobile_flutter

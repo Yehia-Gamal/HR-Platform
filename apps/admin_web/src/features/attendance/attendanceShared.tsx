@@ -20,6 +20,7 @@ export function dayStatusMeta(d: AttendanceStatementDay): { label: string; tone:
     return { label: 'قافلة مساعدات', tone: 'info' };
   }
   if (d.isOpenShift) return { label: 'وردية مفتوحة', tone: 'warn' };
+  if (d.missingCheckOut) return { label: 'لم يسجل الانصراف', tone: 'warn' };
   if (d.isCompleted) return { label: 'حاضر', tone: 'ok' };
   if (d.status) return { label: d.status, tone: 'neutral' };
   return { label: '—', tone: 'neutral' };
@@ -29,6 +30,49 @@ export function attendanceRateParts(summary: AttendanceStatement['summary']) {
   const dueDays = summary.attendanceRateBasis?.dueDays ?? summary.scheduledDays;
   const presentInDue = summary.attendanceRateBasis?.presentInDue ?? summary.presentDays;
   return { dueDays, presentInDue };
+}
+
+/**
+ * نسب الكشف كما تُعرض في الصفحة والملفات (مصدر واحد للثلاثة):
+ * المعفى من البصمة لا تُعرض له نسبة، وغياب المقام يعني «غير متاح» لا 0% بالأحمر.
+ */
+export function statementRates(summary: AttendanceStatement['summary']) {
+  const { dueDays, presentInDue } = attendanceRateParts(summary);
+  const exempt = summary.isAttendanceExempt ?? false;
+  return {
+    exempt,
+    attendance: {
+      available: !exempt && dueDays > 0,
+      pct: summary.attendanceRate ?? (dueDays > 0 ? (presentInDue / dueDays) * 100 : 0),
+      present: presentInDue,
+      due: dueDays,
+      excludedLeave: summary.attendanceRateBasis?.excludedLeaveDays ?? 0,
+      offsite: summary.attendanceRateBasis?.offsiteDays ?? 0,
+    },
+    hours: {
+      available: !exempt && (summary.hoursComplianceAvailable || summary.totalRequiredHours > 0),
+      pct: summary.hoursComplianceRate ?? 0,
+    },
+  };
+}
+
+/** عدد الأيام بصيغة عربية سليمة: يوم واحد، يومين، 3 أيام، 11 يومًا. */
+export function arDays(n: number): string {
+  if (n === 1) return 'يوم واحد';
+  if (n === 2) return 'يومين';
+  const mod = n % 100;
+  return mod >= 3 && mod <= 10 ? `${n} أيام` : `${n} يومًا`;
+}
+
+/** نص النسبة: لا تُقرَّب 99.6% إلى 100% (توحي بحضور كامل لم يحدث). */
+export function fmtPct(pct: number): string {
+  return `${pct >= 99.5 && pct < 100 ? 99 : Math.round(pct)}%`;
+}
+
+/** نص خانة النسبة: «معفى» للمعفى من البصمة، «غير متاح» إن لم يوجد مقام. */
+export function rateText(rate: { available: boolean; pct: number }, exempt: boolean): string {
+  if (exempt) return 'معفى';
+  return rate.available ? fmtPct(rate.pct) : 'غير متاح';
 }
 
 export function hoursRateParts(summary: AttendanceStatement['summary']) {
@@ -104,7 +148,18 @@ export function buildDayTags(d: AttendanceStatementDay): { label: string; varian
 // ─── مكونات مشتركة ────────────────────────────────────────────────
 
 /** دائرة نسبة مئوية (حضور / التزام). */
-export function AttendancePercentageRing({ percentage, label = 'حضور', available = true }: { percentage: number; label?: string; available?: boolean }) {
+export function AttendancePercentageRing({
+  percentage,
+  label = 'حضور',
+  available = true,
+  unavailableText = 'غير متاح',
+}: {
+  percentage: number;
+  label?: string;
+  available?: boolean;
+  /** «معفى» للمعفى من البصمة بدل «غير متاح». */
+  unavailableText?: string;
+}) {
   const pct = Math.min(100, Math.max(0, percentage));
   if (!available) {
     return (
@@ -113,7 +168,7 @@ export function AttendancePercentageRing({ percentage, label = 'حضور', avail
           <circle cx="50" cy="50" r="40" fill="none" strokeWidth="8" className="stroke-slate-200" />
         </svg>
         <div className="stmt-ring-center">
-          <span className="text-sm font-black text-[var(--text-disabled)]">غير متاح</span>
+          <span className="text-sm font-black text-[var(--text-disabled)]">{unavailableText}</span>
           <span className="stmt-ring-label">{label}</span>
         </div>
       </div>
@@ -127,7 +182,7 @@ export function AttendancePercentageRing({ percentage, label = 'حضور', avail
   const offset = circ - (pct / 100) * circ;
 
   return (
-    <div className="stmt-ring" role="img" aria-label={`${label}: ${pct.toFixed(0)}%`}>
+    <div className="stmt-ring" role="img" aria-label={`${label}: ${fmtPct(pct)}`}>
       <svg width="100" height="100" viewBox="0 0 100 100" className="-rotate-90" aria-hidden="true">
         <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className={bgColor} />
         <circle
@@ -144,7 +199,7 @@ export function AttendancePercentageRing({ percentage, label = 'حضور', avail
         />
       </svg>
       <div className="stmt-ring-center">
-        <span className={`stmt-ring-value ${color}`}>{pct.toFixed(0)}%</span>
+        <span className={`stmt-ring-value ${color}`}>{fmtPct(pct)}</span>
         <span className="stmt-ring-label">{label}</span>
       </div>
     </div>
