@@ -17,3 +17,21 @@ docs/runtime-evidence/*.log
 BUILD_MANIFEST.json
 staging_generated_secrets.local.txt
 *.local.txt
+
+# ملفات محلية خارج git لا يحتاجها البناء. نشر CLI (npx vercel --prod) يرفع
+# المجلد المحلي ولا يقرأ .gitignore بوجود هذا الملف؛ فكانت عمليات النشر ترفع
+# إلى Vercel ملفات فيها رموز وصول (.vercel_token، scratch/) ونسخاً كاملة من
+# المستودع (.claude/worktrees) و61MB من old/. لا تُرفع إلا ملفات المستودع.
+.claude
+.temp
+.vercel_token
+.env*.local
+scratch
+old
+backup-drill
+COMBINED_PUSH_*.sql
+scripts/test_auth_flow.py
+**/coverage
+**/playwright-report
+**/test-results
+**/*.tsbuildinfo
