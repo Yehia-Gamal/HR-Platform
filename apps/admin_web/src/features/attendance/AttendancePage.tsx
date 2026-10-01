@@ -49,10 +49,13 @@ export function AttendancePage() {
   const lookups = useOrganizationLookups();
   const query = useAttendanceDashboard({ dateIso, departmentId, branchId });
   const data = query.data;
-  const presentPct = data && data.scheduled ? Math.round((data.present / data.scheduled) * 100) : 0;
+  // المقام: المطلوب حضورهم فعلاً لا كل المجدولين — من في إجازة أو مأمورية لا يُخفض النسبة
+  const expected = data ? (data.expected ?? data.scheduled) : 0;
+  const pctOfExpected = (n: number) => (expected > 0 ? Math.min(100, Math.round((n / expected) * 100)) : 0);
+  const presentPct = data ? pctOfExpected(data.present) : 0;
   const hasFilters = Boolean(departmentId || branchId);
   const onTimeCount = data ? Math.max(0, data.present - data.late) : 0;
-  const onTimeRate = data && data.scheduled > 0 ? Math.round((onTimeCount / data.scheduled) * 100) : 0;
+  const onTimeRate = pctOfExpected(onTimeCount);
   const respondedGps = data?.locationRequestsResponded ?? data?.locationRespondedToday ?? 0;
   const totalGps = data?.locationRequestsToday ?? 0;
   const gpsRate = totalGps > 0 ? Math.round((respondedGps / totalGps) * 100) : 100;
@@ -142,7 +145,7 @@ export function AttendancePage() {
               <CalendarClock className="size-5 text-brand" aria-hidden="true" />
               <strong>{new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`))}</strong>
             </div>
-            {data.scheduled > 0 ? (
+            {expected > 0 ? (
               <div className="flex items-center gap-3">
                 <div className="h-2 w-32 overflow-hidden rounded-full bg-[var(--surface-muted)]">
                   <div className="h-full rounded-full bg-[var(--success)] transition-all duration-500" style={{ width: `${presentPct}%` }} />
@@ -245,7 +248,7 @@ export function AttendancePage() {
               label="حاضرون"
               value={data.present}
               icon={CheckCircle2}
-              hint={`${presentPct}% من المجدولين`}
+              hint={expected > 0 ? `${presentPct}% من ${expected} مطلوب حضورهم` : 'لا دوام مطلوب اليوم'}
               compact={true}
               to={detailsUrl('present', dateIso, departmentId, branchId)}
             />

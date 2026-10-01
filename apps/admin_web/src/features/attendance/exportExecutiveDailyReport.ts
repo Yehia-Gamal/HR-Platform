@@ -344,9 +344,6 @@ export function buildExecutiveDailyReportHtml(
       <button type="button" class="btn-act btn-act-print" onclick="saveAsPdf()" title="طباعة فورية">
         🖨️ طباعة
       </button>
-      <button type="button" class="btn-act btn-act-html" onclick="downloadHtml()" title="تنزيل نسخة مستقلة">
-        💾 تنزيل ملف (HTML)
-      </button>
       <button type="button" class="btn-act btn-act-close" onclick="window.close()" title="إغلاق النافذة">
         إغلاق
       </button>
@@ -514,23 +511,6 @@ export function buildExecutiveDailyReportHtml(
     window.focus();
     try { window.print(); } catch(e) { console.error(e); }
   }
-  function downloadHtml() {
-    try {
-      var clone = document.documentElement.cloneNode(true);
-      var noPrintEls = clone.querySelectorAll('.no-print');
-      noPrintEls.forEach(function(el) { el.remove(); });
-      var htmlContent = "<!doctype html>\n" + clone.outerHTML;
-      var blob = new Blob(["\uFEFF" + htmlContent], { type: "text/html;charset=utf-8;" });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement("a");
-      a.href = url;
-      a.download = "التقرير_التنفيذي_اليومي_${esc(dateIso)}.html";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch(e) { console.error(e); }
-  }
   setTimeout(function() {
     saveAsPdf();
   }, 400);
@@ -540,43 +520,27 @@ export function buildExecutiveDailyReportHtml(
   return html;
 }
 
+/** تنزيل التقرير التنفيذي اليومي كملف PDF (كان ملف HTML). */
 export function downloadExecutiveDailyReportHtml(
   data: ExecutiveDailyReportDetail,
   orgName = 'جمعية خواطر أحلى شباب',
   systemName = 'منظومة أحلى شباب الإدارية',
 ): void {
-  const html = buildExecutiveDailyReportHtml(data, orgName, systemName);
-  const blob = new Blob(['\uFEFF' + html], { type: 'text/html;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `التقرير_التنفيذي_اليومي_${data.dateIso}.html`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  exportExecutiveDailyReport(data, orgName, systemName);
 }
 
+/**
+ * تصدير التقرير التنفيذي اليومي كملف PDF حقيقي. عند تعذّر التوليد في المتصفح
+ * نرجع لنافذة الطباعة كي لا يُحرم المستخدم من التقرير.
+ */
 export function exportExecutiveDailyReport(data: ExecutiveDailyReportDetail, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية') {
   const html = buildExecutiveDailyReportHtml(data, orgName, systemName);
-  const win = window.open('', '_blank');
-  if (!win) {
-    downloadExecutiveDailyReportHtml(data, orgName, systemName);
-    return;
-  }
-  win.document.write(html);
-  win.document.close();
-  try {
-    win.focus();
-    setTimeout(() => {
-      try {
-        win.focus();
-        win.print();
-      } catch {
-        // Handled inside window script
-      }
-    }, 500);
-  } catch {
-    // Ignore in tests
-  }
+  void import('../../core/pdfExport')
+    .then(({ downloadHtmlAsPdf }) => downloadHtmlAsPdf(html, `التقرير التنفيذي اليومي ${data.dateIso}`, `التقرير_التنفيذي_اليومي_${data.dateIso}.pdf`))
+    .catch(() => {
+      const win = window.open('', '_blank');
+      if (!win) return;
+      win.document.write(html);
+      win.document.close();
+    });
 }

@@ -236,9 +236,6 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
       <button type="button" class="btn-act btn-act-print" onclick="saveAsPdf()" title="طباعة فورية">
         🖨️ طباعة
       </button>
-      <button type="button" class="btn-act btn-act-html" onclick="downloadHtml()" title="تنزيل نسخة مستقلة">
-        💾 تنزيل ملف (HTML)
-      </button>
       <button type="button" class="btn-act btn-act-close" onclick="window.close()" title="إغلاق النافذة">
         إغلاق
       </button>
@@ -285,23 +282,6 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
     window.focus();
     try { window.print(); } catch(e) { console.error(e); }
   }
-  function downloadHtml() {
-    try {
-      var clone = document.documentElement.cloneNode(true);
-      var noPrintEls = clone.querySelectorAll('.no-print');
-      noPrintEls.forEach(function(el) { el.remove(); });
-      var htmlContent = "<!DOCTYPE html>\\n" + clone.outerHTML;
-      var blob = new Blob(["\\uFEFF" + htmlContent], { type: "text/html;charset=utf-8;" });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement("a");
-      a.href = url;
-      a.download = "قائمة_${category}_${dateIso}.html";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch(e) { console.error(e); }
-  }
   setTimeout(function() {
     saveAsPdf();
   }, 400);
@@ -327,21 +307,16 @@ export async function exportAttendancePdf(filters: Omit<AttendanceRosterFilters,
   const parsed = attendanceRosterPageSchema.parse(data);
   const items = parsed.items.map((i) => attendanceRosterItemSchema.parse(i));
   const html = _buildPrintHtml(items, cat, filters.dateIso);
-  const win = window.open('', '_blank', 'width=900,height=700');
-  if (!win) {
-    const blob = new Blob(['\uFEFF' + html], { type: 'text/html;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `قائمة_الحضور_${cat}_${filters.dateIso}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    return;
+  // ملف PDF حقيقي (كان نافذة طباعة HTML)؛ النافذة بديل فقط عند تعذّر التوليد.
+  try {
+    const { downloadHtmlAsPdf } = await import('../../core/pdfExport');
+    await downloadHtmlAsPdf(html, `قائمة الحضور ${filters.dateIso}`, `قائمة_الحضور_${cat}_${filters.dateIso}.pdf`);
+  } catch {
+    const win = window.open('', '_blank', 'width=900,height=700');
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
   }
-  win.document.write(html);
-  win.document.close();
 }
 
 /**

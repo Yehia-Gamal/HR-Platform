@@ -31,8 +31,17 @@
     },
     "size-limit": [
         {
-            "path": "apps/admin_web/dist/assets/*.js",
+            "name": "web js (excluding on-demand PDF export)",
+            "path": [
+                "apps/admin_web/dist/assets/*.js",
+                "!apps/admin_web/dist/assets/pdf-vendor-*.js"
+            ],
             "limit": "640 KB"
+        },
+        {
+            "name": "on-demand PDF export (loaded only when exporting)",
+            "path": "apps/admin_web/dist/assets/pdf-vendor-*.js",
+            "limit": "260 KB"
         },
         {
             "path": "apps/admin_web/dist/assets/*.css",

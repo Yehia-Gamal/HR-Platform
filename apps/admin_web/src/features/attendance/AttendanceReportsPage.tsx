@@ -76,7 +76,7 @@ export function AttendanceReportsPage() {
       if (isIndividual && employeeId) {
         if (period === 'month') {
           if (!statement.data) throw new Error('لا توجد بيانات للكشف الشهري');
-          exportAttendancePDF(statement.data);
+          await exportAttendancePDF(statement.data);
         } else if (period === 'week') {
           await exportWeeklyAttendancePdf(employeeId, start, end);
         } else {

@@ -56,29 +56,23 @@ async function fetchRosterDay(dateIso: string, filters?: RangeFilters): Promise<
   }
 }
 
+/** تنزيل التقرير كملف PDF (كان ملف HTML). */
 export function downloadRangeReportHtml(title: string, html: string): void {
-  const blob = new Blob(['\uFEFF' + html], { type: 'text/html;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = title.endsWith('.html') ? title : `${title}.html`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  openPrintWindow(title.replace(/\.html$/i, ''), html);
 }
 
+/** تصدير التقرير كملف PDF حقيقي؛ نافذة الطباعة بديل فقط عند تعذّر التوليد. */
 function openPrintWindow(title: string, html: string): void {
-  const win = window.open('', '_blank', 'width=1120,height=800');
-  if (!win) {
-    downloadRangeReportHtml(title, html);
-    return;
-  }
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
+  void import('../../core/pdfExport')
+    .then(({ downloadHtmlAsPdf }) => downloadHtmlAsPdf(html, title))
+    .catch(() => {
+      const win = window.open('', '_blank', 'width=1120,height=800');
+      if (!win) return;
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+    });
 }
-
 interface RosterGate {
   employees: AttendanceRosterItem[];
   // مفتاح: `${employeeId}|${date}`
@@ -214,9 +208,6 @@ function shell(title: string, subtitle: string, employeeCount: number, rows: str
       <button type="button" class="btn-act btn-act-print" onclick="saveAsPdf()" title="طباعة فورية">
         🖨️ طباعة
       </button>
-      <button type="button" class="btn-act btn-act-html" onclick="downloadHtml()" title="تنزيل نسخة مستقلة">
-        💾 تنزيل ملف (HTML)
-      </button>
       <button type="button" class="btn-act btn-act-close" onclick="window.close()" title="إغلاق النافذة">
         إغلاق
       </button>
@@ -247,23 +238,6 @@ function shell(title: string, subtitle: string, employeeCount: number, rows: str
   function saveAsPdf() {
     window.focus();
     try { window.print(); } catch(e) { console.error(e); }
-  }
-  function downloadHtml() {
-    try {
-      var clone = document.documentElement.cloneNode(true);
-      var noPrintEls = clone.querySelectorAll('.no-print');
-      noPrintEls.forEach(function(el) { el.remove(); });
-      var htmlContent = "<!DOCTYPE html>\\n" + clone.outerHTML;
-      var blob = new Blob(["\\uFEFF" + htmlContent], { type: "text/html;charset=utf-8;" });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement("a");
-      a.href = url;
-      a.download = "${escapeHtml(title)}.html";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch(e) { console.error(e); }
   }
   setTimeout(function() {
     saveAsPdf();

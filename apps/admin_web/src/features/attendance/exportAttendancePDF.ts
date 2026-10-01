@@ -1,5 +1,5 @@
 import type { AttendanceStatement } from '@ahla/shared-contracts';
-import { arDays, fmtMinutesCompact, fmtMinutesLong, hoursRateParts, rateText, statementRates } from './attendanceShared';
+import { arDays, fmtMinutesCompact, fmtMinutesLong, getDisplayNote, hoursRateParts, rateText, statementRates } from './attendanceShared';
 
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
@@ -49,7 +49,12 @@ export function buildStatementBodyHtml(data: AttendanceStatement, orgName = 'ج�
 
   const attColor = rates.attendance.available ? pctColor(rates.attendance.pct) : '#64748b';
   const hrsColor = rates.hours.available ? pctColor(rates.hours.pct) : '#64748b';
-  const leaveNote = rates.attendance.excludedLeave > 0 ? ` (بعد استبعاد ${arDays(rates.attendance.excludedLeave)} إجازة معتمدة)` : '';
+  // أيام الإجازة (المعتمدة وقيد الاعتماد) والطلبات المعلّقة لا تدخل المقام
+  const excludedParts = [
+    rates.attendance.excludedLeave > 0 ? `${arDays(rates.attendance.excludedLeave)} إجازة` : '',
+    rates.attendance.excludedPending > 0 ? `${arDays(rates.attendance.excludedPending)} بطلبات قيد الاعتماد` : '',
+  ].filter(Boolean);
+  const leaveNote = excludedParts.length > 0 ? ` (بعد استبعاد ${excludedParts.join(' و')})` : '';
   // وردية واحدة طوال الشهر (الحالة المعتادة) تُعرض مرة في بيانات الموظف بدل تكرارها في كل صف
   const shiftNames = [...new Set(days.map((d) => d.shiftName).filter(Boolean))];
   const uniformShift = shiftNames.length <= 1 ? (shiftNames[0] ?? '—') : null;
@@ -70,28 +75,37 @@ export function buildStatementBodyHtml(data: AttendanceStatement, orgName = 'ج�
 
   const dayRows = days
     .map((d) => {
-      // الحالة نفسها تقول «لم يسجل الانصراف» فلا نكرّرها في الملاحظات
-      const missingOutStatus = d.status?.includes('لم يسجل الانصراف') ?? false;
+      // ما تقوله خانة الحالة لا يُكرَّر في الملاحظات («غائب دون إذن» ثم «غائب»…)
+      const status = d.status ?? '';
+      const missingOutStatus = status.includes('لم يسجل الانصراف');
       const tags: string[] = [];
-      if (d.isAbsent) tags.push('غائب');
-      if (d.isOfficialHoliday) tags.push('عطلة رسمية');
-      if (d.hasLeave) tags.push('إجازة');
-      if (d.hasMission) tags.push('مأمورية');
+      const tag = (label: string, shownBy = label) => {
+        if (!status.includes(shownBy)) tags.push(label);
+      };
+      if (d.isAbsent) tag('غائب');
+      if (d.isOfficialHoliday) tag('عطلة رسمية');
+      if (d.hasLeave) tag('إجازة');
+      if (d.hasMission) tag('مأمورية');
       if (d.hasLatePermit) tags.push('إذن حضور');
       if (d.hasEarlyPermit) tags.push('إذن انصراف');
       if (!d.hasLatePermit && !d.hasEarlyPermit && d.hasPermit) tags.push('إذن');
-      if (d.hasConvoyFundi) tags.push(d.status.includes('فاندي') ? 'فاندي (ترفيهي)' : 'قافلة مساعدات');
+      if (d.hasConvoyFundi) {
+        if (status.includes('فاندي')) tag('فاندي (ترفيهي)', 'فاندي');
+        else tag('قافلة مساعدات', 'قافلة');
+      }
       if (d.missingCheckIn) tags.push('نقص حضور');
       if (d.missingCheckOut && !missingOutStatus) tags.push('نقص انصراف');
       if (d.isOpenShift) tags.push('بانتظار الانصراف');
       if (d.isFuture) tags.push('قادم');
-      if (d.hasCorrection) tags.push('تصحيح');
-      if (d.adminOverride) tags.push('تعديل إداري');
       if (d.penalties > 0) tags.push(`جزاء: ${d.penalties}`);
 
       const isRest = d.status === 'راحة أسبوعية' || d.status === 'عطلة رسمية';
       const isWarn = WARN_STATUSES.has(d.status) || missingOutStatus;
       const rowClass = d.isFuture ? 'future' : isRest ? 'rest' : isWarn ? 'warn' : d.isOpenShift ? 'open' : '';
+
+      const displayNote = getDisplayNote(d.correctionNote);
+      const noteParts = [...tags];
+      if (displayNote) noteParts.push(displayNote);
 
       return `<tr${rowClass ? ` class="${rowClass}"` : ''}>
       <td class="num ltr">${esc(d.date)}</td>
@@ -104,7 +118,7 @@ export function buildStatementBodyHtml(data: AttendanceStatement, orgName = 'ج�
       <td class="num${d.earlyLeaveMinutes > 0 ? ' late' : ''}">${d.earlyLeaveMinutes ? fmtMinutesCompact(d.earlyLeaveMinutes) : '—'}</td>
       <td class="num${d.overtimeMinutes > 0 ? ' good' : ''}">${d.overtimeMinutes ? fmtMinutesCompact(d.overtimeMinutes) : '—'}</td>
       <td class="status">${esc(d.status)}</td>
-      <td class="note">${tags.join('، ') || esc(d.correctionNote ?? '')}</td>
+      <td class="note">${noteParts.length > 0 ? esc(noteParts.join('، ')) : '—'}</td>
     </tr>`;
     })
     .join('\n');
@@ -171,7 +185,6 @@ export function buildStatementBodyHtml(data: AttendanceStatement, orgName = 'ج�
     <div class="stat-item"><span class="s-label">ساعات العمل الفعلية:</span><span class="s-value">${s.totalWorkHours.toFixed(1)} ساعة</span></div>
     <div class="stat-item"><span class="s-label">عطل رسمية:</span><span class="s-value">${s.holidayDays}</span></div>
     <div class="stat-item"><span class="s-label">أيام راحة:</span><span class="s-value">${s.restDays}</span></div>
-    <div class="stat-item"><span class="s-label">تصحيحات:</span><span class="s-value">${s.correctionCount}</span></div>
     ${extras}
   </div>
 
@@ -202,17 +215,8 @@ export function buildStatementBodyHtml(data: AttendanceStatement, orgName = 'ج�
 </div>`;
 }
 
-/**
- * هيكل مستند HTML كامل يُغلّف واحدًا أو أكثر من «أجسام الكشوف».
- * عند تمرير autoPrint: يضيف سكربت يفتح نافذة الطباعة تلقائيًا بعد التحميل.
- */
-export function attendanceDocumentShell(title: string, bodyHtml: string, autoPrint = false): string {
-  return `<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="utf-8">
-  <title>${esc(title)}</title>
-  <style>
+/** أنماط مستند الكشف — مشتركة بين ملف الطباعة وتوليد ملفات PDF (statementPdf). */
+export const STATEMENT_DOCUMENT_CSS = `
     @page {
       size: A4 landscape;
       margin: 8mm 8mm;
@@ -412,6 +416,20 @@ export function attendanceDocumentShell(title: string, bodyHtml: string, autoPri
       .page { border: none; padding: 0; border-radius: 0; max-width: none; }
       .page-break:last-child { page-break-after: auto; break-after: auto; }
     }
+`;
+
+/**
+ * هيكل مستند HTML كامل يُغلّف واحدًا أو أكثر من «أجسام الكشوف».
+ * عند تمرير autoPrint: يضيف سكربت يفتح نافذة الطباعة تلقائيًا بعد التحميل.
+ */
+export function attendanceDocumentShell(title: string, bodyHtml: string, autoPrint = false): string {
+  return `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <title>${esc(title)}</title>
+  <style>
+${STATEMENT_DOCUMENT_CSS}
   </style>
 </head>
 <body>
@@ -424,9 +442,6 @@ export function attendanceDocumentShell(title: string, bodyHtml: string, autoPri
       </button>
       <button type="button" class="btn-act btn-act-print" onclick="saveAsPdf()" title="طباعة فورية">
         🖨️ طباعة
-      </button>
-      <button type="button" class="btn-act btn-act-html" onclick="downloadHtml()" title="تنزيل نسخة مستقلة">
-        💾 تنزيل ملف (HTML)
       </button>
       <button type="button" class="btn-act btn-act-close" onclick="window.close()" title="إغلاق النافذة">
         إغلاق
@@ -445,23 +460,6 @@ ${bodyHtml}
     window.focus();
     try { window.print(); } catch(e) { console.error(e); }
   }
-  function downloadHtml() {
-    try {
-      var clone = document.documentElement.cloneNode(true);
-      var noPrintEls = clone.querySelectorAll('.no-print');
-      noPrintEls.forEach(function(el) { el.remove(); });
-      var htmlContent = "<!DOCTYPE html>\\n" + clone.outerHTML;
-      var blob = new Blob(["\\uFEFF" + htmlContent], { type: "text/html;charset=utf-8" });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement("a");
-      a.href = url;
-      a.download = "${esc(title)}.html";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch(e) { console.error(e); }
-  }
   ${autoPrint ? `setTimeout(function() { saveAsPdf(); }, 400);` : ''}
 </script>
 </body>
@@ -469,33 +467,24 @@ ${bodyHtml}
 }
 
 /**
- * تنزيل كشف الحضور كملف HTML مستقل قابل للفتح والمطالعة أو الحفظ كـ PDF مباشرة.
+ * تصدير كشف الحضور كملف PDF حقيقي مباشرة.
  */
 export function downloadAttendanceStatement(data: AttendanceStatement, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية'): void {
+  void exportAttendancePDF(data, orgName, systemName);
+}
+
+/** اسم ملف PDF لكشف موظف (عربي آمن لأنظمة الملفات). */
+export function statementPdfFileName(data: AttendanceStatement): string {
   const { employee: emp, period } = data;
   const monthName = MONTHS[period.month - 1] ?? '';
-  const body = buildStatementBodyHtml(data, orgName, systemName);
-  const title = `كشف حضور — ${emp.fullNameAr} — ${monthName} ${period.year}`;
-  const html = attendanceDocumentShell(title, body, false);
   const safeName = (emp.employeeCode ? `${emp.employeeCode}-${emp.fullNameAr}` : emp.fullNameAr).replace(/[\\/:*?"<>|]/g, '').trim();
-  const filename = `كشف-حضور-${safeName}-${monthName}-${period.year}.html`;
-
-  const blob = new Blob(['\uFEFF' + html], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  return `كشف-حضور-${safeName}-${monthName}-${period.year}.pdf`;
 }
 
 /**
- * يُنشئ مستند HTML منسّق لكشف الحضور ويفتحه في نافذة جديدة مع تشغيل طباعة تلقائي.
- * مع بديل تنزيل فوري في حال حظر النوافذ المنبثقة من قبل المتصفح.
+ * نافذة طباعة HTML للكشف — تُستخدم بديلاً فقط إن تعذّر توليد PDF في المتصفح.
  */
-export function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية') {
+function openAttendancePrintWindow(data: AttendanceStatement, orgName: string, systemName: string) {
   const { employee: emp, period } = data;
   const monthName = MONTHS[period.month - 1] ?? '';
   const body = buildStatementBodyHtml(data, orgName, systemName);
@@ -509,4 +498,21 @@ export function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمع
   }
   win.document.write(html);
   win.document.close();
+}
+
+/**
+ * تصدير كشف موظف كملف PDF حقيقي (لا ملف HTML ولا نافذة طباعة). عند تعذّر
+ * التوليد في المتصفح نرجع لنافذة الطباعة كي لا يُحرم المستخدم من الكشف.
+ */
+export async function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية'): Promise<void> {
+  const { employee: emp, period } = data;
+  const monthName = MONTHS[period.month - 1] ?? '';
+  const title = `كشف حضور — ${emp.fullNameAr} — ${monthName} ${period.year}`;
+  try {
+    const { statementsToPdfs, downloadBlob } = await import('./statementPdf');
+    const { files } = await statementsToPdfs([{ statement: data, title }], title, orgName, systemName);
+    downloadBlob(files[0].blob, statementPdfFileName(data));
+  } catch {
+    openAttendancePrintWindow(data, orgName, systemName);
+  }
 }

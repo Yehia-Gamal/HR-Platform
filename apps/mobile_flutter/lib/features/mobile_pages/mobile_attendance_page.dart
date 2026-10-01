@@ -198,14 +198,24 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     final action = value.suggestedAction == 'CHECK_OUT'
         ? 'CHECK_OUT'
         : 'CHECK_IN';
+    final isSecondSessionCheckIn = value.isSplitShift &&
+        action == 'CHECK_IN' &&
+        value.todayCheckOutAt != null;
+    final isSecondSessionCheckOut = value.isSplitShift &&
+        action == 'CHECK_OUT' &&
+        value.checkInCount >= 2;
+
     final actionLabel = action == 'CHECK_IN'
-        ? 'تسجيل الحضور'
-        : 'تسجيل الانصراف';
+        ? (isSecondSessionCheckIn ? 'تسجيل حضور (الفترة الثانية)' : 'تسجيل الحضور')
+        : (isSecondSessionCheckOut
+            ? 'تسجيل انصراف (الفترة الثانية)'
+            : (value.isSplitShift ? 'تسجيل انصراف (استراحة)' : 'تسجيل الانصراف'));
     final actionIcon = action == 'CHECK_IN' ? Icons.login : Icons.logout;
 
-    // 0439: اكتمل اليوم (حضور + انصراف) → نخفي زر البصمة ونعرض التوقيتين.
-    // بعد منتصف الليل يمرّر الخادم اليوم الجديد فتعود القيم فارغة ويظهر الزر.
-    final dayCompleted = value.todayCheckOutAt != null;
+    // 0439 / 0588: اكتمل اليوم (حضور + انصراف).
+    // بالنسبة للوردية المجزأة (Split Shift): لا يُقفل اليوم عند انصراف الاستراحة، بل يستمر حتى اكتمال الفترتين.
+    final dayCompleted = value.suggestedAction == 'DAY_COMPLETED' ||
+        (value.todayCheckOutAt != null && (!value.isSplitShift || value.checkInCount >= 2));
 
     // 0450 (مُعدّل بطلب الإدارة): زر البصمة يبقى ظاهراً دائماً (حضور/انصراف)
     // وبطاقات المأمورية إضافية فوقه لا بديلة عنه:

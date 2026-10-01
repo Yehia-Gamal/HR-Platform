@@ -1,6 +1,6 @@
 import type { AttendanceStatement } from '@ahla/shared-contracts';
 import { describe, expect, it } from 'vitest';
-import { arDays, fmtPct, rateText, statementRates } from './attendanceShared';
+import { arDays, fmtPct, getDisplayNote, rateText, statementRates } from './attendanceShared';
 
 const summary = (over: Partial<AttendanceStatement['summary']>) =>
   ({
@@ -54,5 +54,31 @@ describe('fmtPct / arDays', () => {
     expect(arDays(3)).toBe('3 أيام');
     expect(arDays(10)).toBe('10 أيام');
     expect(arDays(11)).toBe('11 يومًا');
+  });
+});
+
+describe('getDisplayNote (إخفاء كلمة تعديل إداري مع إظهار التعديل الفعلي)', () => {
+  it('العبارات العامة تلغى تماماً ولا تظهر', () => {
+    expect(getDisplayNote('تعديل إداري معتمد')).toBeNull();
+    expect(getDisplayNote('تعديل اداري معتمد')).toBeNull();
+    expect(getDisplayNote('تعديل إداري')).toBeNull();
+    expect(getDisplayNote('تعديل اداري')).toBeNull();
+    expect(getDisplayNote('تصحيح إداري')).toBeNull();
+    expect(getDisplayNote('استثناء إداري')).toBeNull();
+    expect(getDisplayNote('تعديل معتمد')).toBeNull();
+    expect(getDisplayNote('دوام كامل معتمد')).toBeNull();
+  });
+
+  it('يزيل كلمة تعديل إداري ويُبقي سبب التعديل بوضوح', () => {
+    expect(getDisplayNote('تعديل إداري: سبب التأخير عطل كهربائي')).toBe('سبب التأخير عطل كهربائي');
+    expect(getDisplayNote('[تعديل إداري] عطل في المترو')).toBe('عطل في المترو');
+    expect(getDisplayNote('تصحيح إداري - إذن شفهي من المشرف')).toBe('إذن شفهي من المشرف');
+    expect(getDisplayNote('تعديل اداري: حضور مؤتمر الإغاثة')).toBe('حضور مؤتمر الإغاثة');
+    expect(getDisplayNote('إذن مسبق بتعديل إداري')).toBe('إذن مسبق');
+  });
+
+  it('الملاحظات العادية تبقى كما هي', () => {
+    expect(getDisplayNote('عطل في جهاز البصمة')).toBe('عطل في جهاز البصمة');
+    expect(getDisplayNote('حضور دورة تدريبية')).toBe('حضور دورة تدريبية');
   });
 });

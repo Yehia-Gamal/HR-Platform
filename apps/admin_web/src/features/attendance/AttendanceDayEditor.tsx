@@ -20,6 +20,7 @@ import { useEffect, useId, useState } from 'react';
 import { rpc } from '../../core/rpc';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { DialogOverlay } from '../../ui/DialogOverlay';
+import { getDisplayNote } from './attendanceShared';
 
 interface DayTypeConfig {
   key: string;
@@ -89,7 +90,7 @@ const DAY_TYPE_CONFIGS: DayTypeConfig[] = [
   },
   {
     key: 'absent',
-    label: 'غياب إداري',
+    label: 'غائب دون إذن',
     desc: 'تسجيل أو تأكيد غياب غير مبرر مع الخصم',
     icon: XCircle,
     color: 'text-rose-700 dark:text-rose-300',
@@ -267,10 +268,10 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
                 <div className="flex items-start gap-2 text-amber-900 dark:text-amber-200">
                   <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
                   <div>
-                    <span className="font-bold">يوجد تعديل إداري مسجل لهذا اليوم: </span>
+                    <span className="font-bold">بيانات هذا اليوم معدّلة ومحفوظة: </span>
                     <span>
-                      الحالة: <b>{day.adminOverride.dayType}</b>
-                      {day.adminOverride.reason ? ` · السبب: ${day.adminOverride.reason}` : ''}
+                      الحالة: <b>{DAY_TYPE_CONFIGS.find((c) => c.key === day.adminOverride?.dayType)?.label ?? day.adminOverride.dayType}</b>
+                      {getDisplayNote(day.adminOverride.reason) ? ` · السبب: ${getDisplayNote(day.adminOverride.reason)}` : ''}
                     </span>
                   </div>
                 </div>
@@ -279,11 +280,11 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
                   className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-bold text-rose-700 transition hover:bg-rose-100 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300 dark:hover:bg-rose-900/50"
                   disabled={clearMutation.isPending}
                   onClick={() => {
-                    if (window.confirm('هل أنت متأكد من رغبتك في إلغاء التعديل الإداري والعودة لاحتساب النظام الأصلي؟')) {
+                    if (window.confirm('هل تريد إلغاء تعديل هذا اليوم والعودة لاحتساب النظام الأصلي؟')) {
                       clearMutation.mutate();
                     }
                   }}
-                  title="حذف الاستثناء الإداري والعودة التلقائية لحسابات النظام"
+                  title="حذف التعديل والعودة التلقائية لحسابات النظام"
                 >
                   <RotateCcw className="size-3.5" />
                   <span>{clearMutation.isPending ? 'جارٍ الإلغاء…' : 'إلغاء التعديل والعودة للنظام'}</span>

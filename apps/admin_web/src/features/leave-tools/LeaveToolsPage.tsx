@@ -228,7 +228,7 @@ function AdjustBalanceSection() {
         </span>
         <div>
           <h2 className="text-sm font-black">ضبط رصيد إجازة</h2>
-          <p className="text-xs text-[var(--text-muted)]">زيادة أو خصم من رصيد الإجازات السنوية لموظف (تعديل إداري مسجّل في السجل).</p>
+          <p className="text-xs text-[var(--text-muted)]">زيادة أو خصم من رصيد الإجازات السنوية لموظف (يُسجَّل في سجل التدقيق).</p>
         </div>
       </div>
 

@@ -135,6 +135,8 @@ export type AnnouncementEngagementDetail = z.infer<typeof announcementEngagement
 
 export const attendanceDashboardSchema = z.object({
   scheduled: z.number(),
+  /** المطلوب حضورهم فعلاً (يوم عمل، بلا إجازة/مأمورية/إعفاء) — مقام نسبة الحضور (0589) */
+  expected: z.number().optional(),
   present: z.number(),
   late: z.number(),
   absent: z.number(),

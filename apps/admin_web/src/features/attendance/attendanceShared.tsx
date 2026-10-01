@@ -47,6 +47,7 @@ export function statementRates(summary: AttendanceStatement['summary']) {
       present: presentInDue,
       due: dueDays,
       excludedLeave: summary.attendanceRateBasis?.excludedLeaveDays ?? 0,
+      excludedPending: summary.attendanceRateBasis?.excludedPendingDays ?? 0,
       offsite: summary.attendanceRateBasis?.offsiteDays ?? 0,
     },
     hours: {
@@ -97,26 +98,36 @@ export function fmtTime(t: string | null) {
   return `${String(h).padStart(2, '0')}:${min} ${period}`;
 }
 
-/** تنسيق عدد الساعات بصيغة عربية طويلة: 8.5 → "8 ساعة و 30 دقيقة" */
+/** تمييز العدد بالعربية: 1 ساعة واحدة، 2 ساعتان، 3–10 ساعات، 11+ ساعة. */
+function arCount(n: number, one: string, two: string, few: string, many: string): string {
+  if (n === 1) return one;
+  if (n === 2) return two;
+  const mod = n % 100;
+  return mod >= 3 && mod <= 10 ? `${n} ${few}` : `${n} ${many}`;
+}
+
+const arHours = (n: number) => arCount(n, 'ساعة واحدة', 'ساعتان', 'ساعات', 'ساعة');
+const arMinutes = (n: number) => arCount(n, 'دقيقة واحدة', 'دقيقتان', 'دقائق', 'دقيقة');
+
+function arDuration(h: number, m: number): string {
+  if (h === 0 && m === 0) return '0 دقيقة';
+  if (h === 0) return arMinutes(m);
+  if (m === 0) return arHours(h);
+  return `${arHours(h)} و ${arMinutes(m)}`;
+}
+
+/** تنسيق عدد الساعات بصيغة عربية طويلة: 8.5 → "8 ساعات و 30 دقيقة" */
 export function fmtHoursLong(hours: number | null | undefined): string {
   if (hours == null) return '—';
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
-  if (h === 0 && m === 0) return '0 دقيقة';
-  if (h === 0) return `${m} دقيقة`;
-  if (m === 0) return `${h} ساعة`;
-  return `${h} ساعة و ${m} دقيقة`;
+  const total = Math.round(hours * 60);
+  return arDuration(Math.floor(total / 60), total % 60);
 }
 
 /** تنسيق عدد الدقائق بصيغة عربية طويلة: 125 → "ساعتان و 5 دقائق" */
 export function fmtMinutesLong(totalMinutes: number | null | undefined): string {
   if (totalMinutes == null) return '—';
-  const h = Math.floor(totalMinutes / 60);
-  const m = Math.round(totalMinutes % 60);
-  if (h === 0 && m === 0) return '0 دقيقة';
-  if (h === 0) return `${m} دقيقة`;
-  if (m === 0) return `${h} ساعة`;
-  return `${h} ساعة و ${m} دقيقة`;
+  const total = Math.round(totalMinutes);
+  return arDuration(Math.floor(total / 60), total % 60);
 }
 
 /** تنسيق عدد الدقائق بصيغة موجزة للجداول والبطاقات: 125 → "2 س و 5 د" */
@@ -131,7 +142,6 @@ export function fmtMinutesCompact(totalMinutes: number | null | undefined): stri
 
 export type TagVariant = 'info' | 'warn' | 'success' | 'purple';
 
-/** يبني قائمة العلامات والملاحظات الإضافية (tags) لصف يوم واحد مع تجنب التكرار مع عمود الحالة الأساسية. */
 export function buildDayTags(d: AttendanceStatementDay): { label: string; variant: TagVariant }[] {
   const tags: { label: string; variant: TagVariant }[] = [];
   if (d.hasLatePermit) tags.push({ label: 'إذن حضور', variant: 'warn' });
@@ -139,10 +149,77 @@ export function buildDayTags(d: AttendanceStatementDay): { label: string; varian
   if (!d.hasLatePermit && !d.hasEarlyPermit && d.hasPermit) tags.push({ label: 'إذن', variant: 'warn' });
   if (d.missingCheckIn) tags.push({ label: 'نقص حضور', variant: 'warn' });
   if (d.missingCheckOut) tags.push({ label: 'نقص انصراف', variant: 'warn' });
-  if (d.hasCorrection) tags.push({ label: 'تصحيح', variant: 'info' });
-  if (d.adminOverride) tags.push({ label: 'تعديل إداري', variant: 'purple' });
   if (d.penalties > 0) tags.push({ label: `جزاء: ${d.penalties}`, variant: 'warn' });
   return tags;
+}
+
+const SUPPRESSED_GENERIC_NOTES = new Set([
+  'تعديل ساعات وحضور معتمد',
+  'تعديل إداري معتمد',
+  'تعديل اداري معتمد',
+  'تعديل إداري',
+  'تعديل اداري',
+  'تصحيح إداري',
+  'تصحيح اداري',
+  'استثناء إداري',
+  'استثناء اداري',
+  'تعديل معتمد',
+  'تصحيح معتمد',
+  'معتمد',
+  'إجازة معتمدة إدارياً',
+  'إجازة معتمدة اداريا',
+  'مأمورية عمل معتمدة',
+  'قافلة عمل معتمدة',
+  'فاندي معتمد',
+  'عطلة رسمية معتمدة',
+  'راحة أسبوعية معتمدة',
+  'تأكيد غياب إداري',
+  'تأكيد غياب اداري',
+  // أسباب جاهزة في محرر اليوم (ويب وموبايل) تصف عملية التعديل نفسها لا اليوم
+  'تعديل ساعات العمل المعتمدة',
+  'تصحيح وقت الحضور والانصراف',
+  'إضافة بصمة منسية',
+  'دوام كامل معتمد',
+  'تأكيد غياب بدون إذن',
+  'غياب غير مبرر',
+  'طلب تحديد يوم معتمد',
+  // كلمة عامة بلا مضمون يكتبها البعض سبباً لطلب التصحيح
+  'تصحيح',
+  'تعديل',
+]);
+
+/**
+ * فلترة الملاحظات: إخفاء كلمة «تعديل إداري» تماماً وعرض نص التعديل الفعلي فقط إن وُجد.
+ * إن كان النص مجرد عبارة روتينية عامة (مثل "تعديل إداري معتمد") يُلغى، وإن كان يحتوي
+ * سبباً حقيقياً (مثل "تعديل إداري: عطل بالمترو") يُعرض ("عطل بالمترو") بدون كلمة تعديل إداري.
+ */
+export function getDisplayNote(note: string | null | undefined): string | null {
+  if (!note) return null;
+  let text = note.trim();
+  if (!text) return null;
+
+  // 1. إزالة الأقواس والوسوم مثل [تعديل إداري] أو [تصحيح] أو [استثناء إداري]
+  text = text.replace(/\[\s*(?:[بوِل]?\s*)?(تعديل|تصحيح|استثناء)\s*(إداري|اداري)?\s*\]/giu, '').trim();
+
+  // 2. إزالة بادئة «تعديل إداري:» أو «تصحيح إداري - » أو «تعديل إداري» مع أي حرف جر سابق
+  text = text.replace(/^(?:[بوِل]|عبر|وفق|بناءً على|بناء على)?\s*(تعديل|تصحيح|استثناء)\s*(إداري|اداري)?\s*[:：\-–—]\s*/iu, '').trim();
+
+  // 3. إزالة أي ظهور لكلمة «تعديل إداري» أو «تعديل اداري» أو «تصحيح إداري» أو «بتعديل إداري»
+  text = text.replace(/(?:[بوِل]|عبر|وفق|بناءً على|بناء على)?\s*(تعديل|تصحيح|استثناء)\s*(إداري|اداري)/giu, '').trim();
+
+  // 4. إزالة الفواصل والنقاط الزائدة وحروف الجر المعلقة من البداية والنهاية
+  text = text.replace(/^[:：\-–—,.،\s]+/u, '').replace(/[:：\-–—,.،\s]+$/u, '').trim();
+  text = text.replace(/\s+[بوِل]\s*$/u, '').trim();
+  text = text.replace(/\s{2,}/g, ' ');
+
+  if (!text) return null;
+
+  // 5. التحقق مما إذا كان النص المتبقي مجرد عبارة عامة لا تفيد شيئاً
+  if (SUPPRESSED_GENERIC_NOTES.has(text)) {
+    return null;
+  }
+
+  return text;
 }
 
 // ─── مكونات مشتركة ────────────────────────────────────────────────

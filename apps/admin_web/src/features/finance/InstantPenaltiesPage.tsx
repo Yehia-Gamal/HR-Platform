@@ -802,11 +802,11 @@ export function InstantPenaltiesPage() {
       filtered = all.filter((p) => p.lateMinutes > 15 && p.lateMinutes <= 30);
       tierTitle = 'كشف غرامات 20 ج.م (تأخير 16-30 دقيقة)';
     } else if (tier === 'tier-50') {
-      filtered = all.filter((p) => p.lateMinutes > 30 && p.lateMinutes < 120);
-      tierTitle = 'كشف غرامات 50 ج.م (تأخير 31 دقيقة - أقل من ساعتين)';
+      filtered = all.filter((p) => p.lateMinutes > 30 && p.lateMinutes <= 60);
+      tierTitle = 'كشف غرامات 50 ج.م (تأخير 31-60 دقيقة / حتى 11:00 ص)';
     } else if (tier === 'tier-150') {
-      filtered = all.filter((p) => p.lateMinutes >= 120);
-      tierTitle = 'كشف غرامات 150 ج.م (تأخير ساعتين فأكثر)';
+      filtered = all.filter((p) => p.lateMinutes > 60);
+      tierTitle = 'كشف غرامات 150 ج.م (تأخير 61-120 دقيقة / من 11:01 وحتى 12:00)';
     } else if (tier === 'doubled') {
       filtered = all.filter((p) => p.status === 'doubled');
       tierTitle = 'كشف الغرامات المضاعفة 500 ج.م (اليوم الثاني)';
@@ -1173,8 +1173,7 @@ export function InstantPenaltiesPage() {
         <section className="card p-5">
           <h2 className="font-black">إنشاء غرامة فورية للتأخير</h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            الحضور يبدأ 10:00 ص: من 1-15 دقيقة = سماح بدون خصم (0 ج.م) | حتى 10:30 (16-30 دقيقة) = 20 ج.م | حتى 12:00 (31 دقيقة - أقل من ساعتين) = 50 ج.م |
-            ساعتين فأكثر = 150 ج.م.
+            الحضور يبدأ 10:00 ص: من 1-15 دقيقة = سماح بدون خصم (0 ج.م) | حتى 10:30 (16-30 دقيقة) = 20 ج.م | حتى 11:00 (31-60 دقيقة) = 50 ج.م | من 11:01 وحتى 12:00 (61-120 دقيقة) = 150 ج.م.
           </p>
           <form className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" onSubmit={(ev) => void submitPenalty(ev)}>
             <label className="block">
@@ -1211,9 +1210,9 @@ export function InstantPenaltiesPage() {
                     ? '✓ فترة سماح (10:00 - 10:15) — بدون أي خصم (0 ج.م)'
                     : Number(lateMinutes) <= 30
                       ? 'خصم 20 ج.م (حضور حتى 10:30)'
-                      : Number(lateMinutes) < 120
-                        ? 'خصم 50 ج.م (تأخير 31 دقيقة - أقل من ساعتين)'
-                        : 'خصم 150 ج.م (تأخير ساعتين — الحد الأقصى للنظام)'}
+                      : Number(lateMinutes) <= 60
+                        ? 'خصم 50 ج.م (تأخير من 10:31 وحتى 11:00)'
+                        : 'خصم 150 ج.م (تأخير من 11:01 وحتى 12:00 — بحد أقصى ساعتين)'}
                 </span>
               )}
             </label>

@@ -31,6 +31,7 @@ import {
   rateText,
   statementRates,
   buildDayTags,
+  getDisplayNote,
   DayTag,
   DAY_FILTERS,
   DAY_SORTS,
@@ -66,7 +67,7 @@ function exportCSV(data: AttendanceStatement) {
     `الكود: ${csvSafe(emp.employeeCode ?? '—')} | الإدارة: ${csvSafe(emp.department)} | المسمى: ${csvSafe(emp.jobTitle)}`,
     `الفترة: ${MONTHS[period.month - 1]} ${period.year} (${period.startDate} — ${period.endDate})`,
     '',
-    'التاريخ,اليوم,الحضور,الانصراف,الوردية,ساعات فعلية,ساعات مطلوبة,التأخير (د),خروج مبكر (د),إضافي (د),الحالة,غائب,عطلة رسمية,إجازة,إذن حضور,إذن انصراف,مأمورية,قافلة,فاندي,نقص حضور,نقص انصراف,تصحيح,جزاءات,ملاحظة',
+    'التاريخ,اليوم,الحضور,الانصراف,الوردية,ساعات فعلية,ساعات مطلوبة,التأخير (د),خروج مبكر (د),إضافي (د),الحالة,غائب,عطلة رسمية,إجازة,إذن حضور,إذن انصراف,مأمورية,قافلة,فاندي,نقص حضور,نقص انصراف,جزاءات,ملاحظة',
   ].join('\n');
 
   const convoyDays = days.filter((d) => (d.status?.includes('قافلة') || d.hasConvoyFundi) && !d.status?.includes('فاندي')).length;
@@ -96,9 +97,8 @@ function exportCSV(data: AttendanceStatement) {
         d.status?.includes('فاندي') ? 'نعم' : '',
         d.missingCheckIn ? 'نعم' : '',
         d.missingCheckOut ? 'نعم' : '',
-        d.hasCorrection ? 'نعم' : '',
         d.penalties > 0 ? d.penalties : '',
-        csvSafe(d.correctionNote ?? ''),
+        csvSafe(getDisplayNote(d.correctionNote) ?? ''),
       ].join(','),
     )
     .join('\n');
@@ -183,38 +183,37 @@ export function MonthlyAttendanceReportPage() {
     );
   }, [employeesQuery.data, filterText]);
 
-  // طباعة كشوف كافة الموظفين: ملف منفصل لكل موظف + ملف شامل.
+  // طباعة كشوف كافة الموظفين كملفات PDF: ملف منفصل لكل موظف + ملف شامل.
   const handleExportAll = async () => {
     const all = employeesQuery.data ?? [];
     if (all.length === 0 || exporting) return;
     setExporting(true);
-    setExportProgress({ done: 0, total: all.length });
+    setExportProgress({ done: 0, total: all.length, phase: 'fetch' });
     try {
-      const { exported, skipped } = await exportAllAttendancePdfs(all, year, month, (p) => {
-        setExportProgress(p);
-        if (p.done === p.total) {
-          // مهلة صغيرة حتى تكتمل آخر تنزيلات الملفات قبل رسالة النجاح
-          const t = setTimeout(() => setExporting(false), 1500);
-          exportTimerRef.current.push(t);
-        }
-      });
+      const { exported, skipped } = await exportAllAttendancePdfs(all, year, month, setExportProgress);
       setExportToast(
         exported === 0
           ? { text: 'تعذّر تجهيز أي كشف. أعد المحاولة أو تحقق من اتصالك.', tone: 'danger' }
           : {
-              text: `تم تجهيز كشوف ${exported} موظف (ملف لكل موظف + ملف شامل).${skipped > 0 ? ` تعذّر تجهيز كشف ${skipped} موظف.` : ''}`,
+              text: `تم تجهيز كشوف ${exported} موظف كملفات PDF (ملف لكل موظف + ملف شامل).${skipped > 0 ? ` تعذّر تجهيز كشف ${skipped} موظف.` : ''}`,
               tone: skipped > 0 ? 'warning' : 'success',
             },
       );
-      const t1 = setTimeout(() => setExportToast(null), 6000);
-      exportTimerRef.current.push(t1);
     } catch {
-      setExportToast({ text: 'تعذّر إنشاء الكشوف. أعد المحاولة أو تحقق من اتصالك.', tone: 'danger' });
+      setExportToast({ text: 'تعذّر إنشاء ملفات PDF. أعد المحاولة أو تحقق من اتصالك.', tone: 'danger' });
+    } finally {
       setExporting(false);
-      const t2 = setTimeout(() => setExportToast(null), 6000);
-      exportTimerRef.current.push(t2);
+      setExportProgress(null);
+      const t = setTimeout(() => setExportToast(null), 6000);
+      exportTimerRef.current.push(t);
     }
   };
+
+  const exportLabel = !exporting
+    ? 'طباعة كشوف الجميع (PDF)'
+    : exportProgress?.phase === 'pdf'
+      ? `جارٍ إنشاء ملفات PDF… ${exportProgress.done}/${exportProgress.total}`
+      : `جارٍ تحميل الكشوف… ${exportProgress ? `${exportProgress.done}/${exportProgress.total}` : ''}`;
 
   return (
     <div className="space-y-6 print:space-y-3">
@@ -230,7 +229,7 @@ export function MonthlyAttendanceReportPage() {
               aria-label="طباعة كشوف كافة الموظفين للشهر المحدد"
             >
               <Users className="size-4" aria-hidden="true" />
-              {exporting ? `جارٍ التجهيز… ${exportProgress ? `${exportProgress.done}/${exportProgress.total}` : ''}` : 'طباعة كشوف الجميع'}
+              {exportLabel}
             </button>
             {statementData ? (
               <>
@@ -238,7 +237,7 @@ export function MonthlyAttendanceReportPage() {
                   <Printer className="size-4" aria-hidden="true" />
                   طباعة
                 </button>
-                <button className="btn-secondary" onClick={() => exportAttendancePDF(statementData)}>
+                <button className="btn-secondary" onClick={() => void exportAttendancePDF(statementData)}>
                   <FileDown className="size-4" aria-hidden="true" />
                   تصدير PDF
                 </button>
@@ -675,20 +674,24 @@ function DayRow({ d, employeeId, canEdit }: { d: AttendanceStatementDay; employe
       </td>
       <td className={`p-2.5 font-bold print:p-1 ${WARN_STATUSES.has(d.status) ? 'text-[var(--danger)]' : ''}`}>{d.status}</td>
       <td className="p-2.5 print:p-1">
-        {tags.length > 0 || d.correctionNote ? (
-          <div className="flex flex-wrap items-center gap-1">
-            {tags.map((t) => (
-              <DayTag key={t.label} label={t.label} variant={t.variant} />
-            ))}
-            {d.correctionNote && (
-              <span className="text-xs text-[var(--text-muted)] truncate max-w-[160px]" title={d.correctionNote}>
-                {d.correctionNote}
-              </span>
-            )}
-          </div>
-        ) : (
-          <span className="text-[var(--text-disabled)]">—</span>
-        )}
+        {(() => {
+          const displayNote = getDisplayNote(d.correctionNote);
+          if (tags.length === 0 && !displayNote) {
+            return <span className="text-[var(--text-disabled)]">—</span>;
+          }
+          return (
+            <div className="flex flex-wrap items-center gap-1">
+              {tags.map((t) => (
+                <DayTag key={t.label} label={t.label} variant={t.variant} />
+              ))}
+              {displayNote && (
+                <span className="text-xs text-[var(--text-muted)] truncate max-w-[160px]" title={displayNote}>
+                  {displayNote}
+                </span>
+              )}
+            </div>
+          );
+        })()}
       </td>
       {canEdit ? (
         <td className="p-2.5 print:hidden">

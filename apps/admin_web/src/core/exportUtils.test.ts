@@ -81,9 +81,9 @@ describe('generateReportHtml', () => {
     expect(html).toContain('الغرامات الفورية');
     expect(html).toContain('action-bar');
     expect(html).toContain('تحميل وحفظ كملف PDF');
-    expect(html).toContain('تنزيل ملف تقرير (HTML)');
+    expect(html).not.toContain('تنزيل ملف تقرير (HTML)');
     expect(html).toContain('saveAsPdf()');
-    expect(html).toContain('downloadHtml()');
+    expect(html).not.toContain('downloadHtml()');
     expect(html).toContain('طارق سيد');
     expect(html).toContain('500 ج.م');
     expect(html).toContain('@media print');

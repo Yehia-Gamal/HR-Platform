@@ -220,16 +220,6 @@ export function generateReportHtml(sections: PrintableSection[], documentTitle: 
   .btn-print:hover {
     background: #1d4ed8;
     transform: translateY(-1px);
-  }
-  .btn-html {
-    background: #334155;
-    color: #f1f5f9;
-    border: 1px solid #475569;
-  }
-  .btn-html:hover {
-    background: #475569;
-    color: #ffffff;
-  }
   .btn-close {
     background: transparent;
     color: #94a3b8;
@@ -353,10 +343,6 @@ export function generateReportHtml(sections: PrintableSection[], documentTitle: 
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         <span>طباعة</span>
       </button>
-      <button type="button" class="btn-action btn-html" onclick="downloadHtml()" title="تنزيل نسخة مستقلة تفتح بدون إنترنت">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        <span>تنزيل ملف تقرير (HTML)</span>
-      </button>
       <button type="button" class="btn-action btn-close" onclick="window.close()" title="إغلاق هذه النافذة">
         <span>إغلاق</span>
       </button>
@@ -413,40 +399,6 @@ export function generateReportHtml(sections: PrintableSection[], documentTitle: 
     }
   }
 
-  function downloadHtml() {
-    try {
-      var clone = document.documentElement.cloneNode(true);
-      var noPrintEls = clone.querySelectorAll('.no-print');
-      for (var i = 0; i < noPrintEls.length; i++) {
-        noPrintEls[i].remove();
-      }
-      var htmlContent = "<!doctype html>\\n" + clone.outerHTML;
-      var blob = new Blob([htmlContent], { type: "text/html;charset=utf-8;" });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement("a");
-      a.href = url;
-      a.download = "${esc(safeFilename)}.html";
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(function() {
-        if (a.parentNode) a.parentNode.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 1500);
-    } catch (err) {
-      try {
-        var dataUri = 'data:text/html;charset=utf-8,' + encodeURIComponent("<!doctype html>\\n" + clone.outerHTML);
-        var fallbackA = document.createElement("a");
-        fallbackA.href = dataUri;
-        fallbackA.download = "${esc(safeFilename)}.html";
-        document.body.appendChild(fallbackA);
-        fallbackA.click();
-        setTimeout(function() { if (fallbackA.parentNode) fallbackA.parentNode.removeChild(fallbackA); }, 1000);
-      } catch (e2) {
-        alert("تعذر تنزيل الملف تلقائياً: " + (err && err.message ? err.message : err));
-      }
-    }
-  }
-
   // انتظر تحميل الخطوط العربية تماماً قبل فتح حوار الطباعة التلقائي لمنع تشويه الحروف أو انعكاسها
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(function() {
@@ -463,21 +415,23 @@ export function generateReportHtml(sections: PrintableSection[], documentTitle: 
 }
 
 /**
- * طباعة وحفظ تقرير PDF احترافي عبر نافذة المتصفح مع شريط أدوات متكامل.
- * يدعم: عنوان فرعي، إجماليات، ألوان الصفوف، ترويسة معتمدة، وتنزيل فوري كـ PDF أو HTML.
+ * تصدير تقرير كملف PDF حقيقي (لا نافذة HTML). عند تعذّر التوليد في المتصفح نرجع
+ * لنافذة الطباعة كي لا يُحرم المستخدم من التقرير.
  */
 export function printReport(sections: PrintableSection[], documentTitle: string, summary?: { label: string; value: string }[]): void {
   const html = generateReportHtml(sections, documentTitle, summary);
+  void import('./pdfExport')
+    .then(({ downloadHtmlAsPdf, pdfFileName }) =>
+      downloadHtmlAsPdf(html, documentTitle, pdfFileName(`${documentTitle}_${new Date().toISOString().slice(0, 10)}`)),
+    )
+    .catch(() => openReportWindow(html));
+}
+
+/** نافذة الطباعة — بديل فقط إن تعذّر توليد PDF. */
+function openReportWindow(html: string): void {
   const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
   const blobUrl = URL.createObjectURL(blob);
-  const win = window.open(blobUrl, '_blank');
-  if (!win) {
-    // إذا حجب المتصفح النوافذ المنبثقة، ننزّل الملف كبديل مباشر
-    downloadReportHtml(sections, documentTitle, summary);
-    return;
-  }
-
-  // تحرير الرابط بعد مدة كافية
+  window.open(blobUrl, '_blank');
   setTimeout(() => {
     try {
       URL.revokeObjectURL(blobUrl);
@@ -487,21 +441,7 @@ export function printReport(sections: PrintableSection[], documentTitle: string,
   }, 120_000);
 }
 
-/**
- * تنزيل تقرير HTML مستقل مباشرة إلى جهاز المستخدم دون الحاجة لفتح نافذة منبثقة.
- */
+/** تنزيل التقرير كملف PDF (كان ملف HTML). */
 export function downloadReportHtml(sections: PrintableSection[], documentTitle: string, summary?: { label: string; value: string }[]): void {
-  const html = generateReportHtml(sections, documentTitle, summary);
-  const now = new Date();
-  const dateIso = now.toISOString().slice(0, 10);
-  const safeFilename = `${documentTitle.replace(/\s+/g, '_')}_${dateIso}.html`;
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = safeFilename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  printReport(sections, documentTitle, summary);
 }

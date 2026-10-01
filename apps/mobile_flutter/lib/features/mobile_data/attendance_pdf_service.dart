@@ -439,6 +439,64 @@ PdfColor _statusColor(AttendanceStatementDay d) {
   return _dark;
 }
 
+const _suppressedGenericNotes = {
+  'تعديل ساعات وحضور معتمد',
+  'تعديل إداري معتمد',
+  'تعديل اداري معتمد',
+  'تعديل إداري',
+  'تعديل اداري',
+  'تصحيح إداري',
+  'تصحيح اداري',
+  'استثناء إداري',
+  'استثناء اداري',
+  'تعديل معتمد',
+  'تصحيح معتمد',
+  'معتمد',
+  'إجازة معتمدة إدارياً',
+  'إجازة معتمدة اداريا',
+  'مأمورية عمل معتمدة',
+  'قافلة عمل معتمدة',
+  'فاندي معتمد',
+  'عطلة رسمية معتمدة',
+  'راحة أسبوعية معتمدة',
+  'تأكيد غياب إداري',
+  'تأكيد غياب اداري',
+  'تعديل ساعات العمل المعتمدة',
+  'تصحيح وقت الحضور والانصراف',
+  'إضافة بصمة منسية',
+  'دوام كامل معتمد',
+  'تأكيد غياب بدون إذن',
+  'غياب غير مبرر',
+  'طلب تحديد يوم معتمد',
+  'تصحيح',
+  'تعديل',
+};
+
+String? cleanAttendanceNote(String? raw) {
+  if (raw == null) return null;
+  var text = raw.trim();
+  if (text.isEmpty) return null;
+
+  // 1. إزالة الأقواس والوسوم مثل [تعديل إداري] أو [تصحيح] أو [استثناء إداري]
+  text = text.replaceAll(RegExp(r'\[\s*(?:[بوِل]?\s*)?(تعديل|تصحيح|استثناء)\s*(إداري|اداري)?\s*\]', caseSensitive: false, unicode: true), '').trim();
+
+  // 2. إزالة بادئة «تعديل إداري:» أو «تصحيح إداري - » أو «تعديل إداري» مع أي حرف جر سابق
+  text = text.replaceFirst(RegExp(r'^(?:[بوِل]|عبر|وفق|بناءً على|بناء على)?\s*(تعديل|تصحيح|استثناء)\s*(إداري|اداري)?\s*[:：\-–—]\s*', caseSensitive: false, unicode: true), '').trim();
+
+  // 3. إزالة أي ظهور لكلمة «تعديل إداري» أو «تعديل اداري» أو «تصحيح إداري» أو «بتعديل إداري»
+  text = text.replaceAll(RegExp(r'(?:[بوِل]|عبر|وفق|بناءً على|بناء على)?\s*(تعديل|تصحيح|استثناء)\s*(إداري|اداري)', caseSensitive: false, unicode: true), '').trim();
+
+  // 4. إزالة الفواصل والنقاط الزائدة وحروف الجر المعلقة من البداية والنهاية
+  text = text.replaceAll(RegExp(r'^[:：\-–—,.،\s]+', unicode: true), '').replaceAll(RegExp(r'[:：\-–—,.،\s]+$', unicode: true), '').trim();
+  text = text.replaceAll(RegExp(r'\s+[بوِل]\s*$', unicode: true), '').trim();
+  text = text.replaceAll(RegExp(r'\s{2,}'), ' ');
+
+  if (text.isEmpty || _suppressedGenericNotes.contains(text)) {
+    return null;
+  }
+  return text;
+}
+
 /// ملاحظات اليوم: مجموعة وسوم + نص التصحيح إن وُجد.
 String _dayNotes(AttendanceStatementDay d) {
   final tags = <String>[];
@@ -454,8 +512,9 @@ String _dayNotes(AttendanceStatementDay d) {
   if (d.missingCheckOut) tags.add('نقص انصراف');
   if (d.isOpenShift) tags.add('بانتظار الانصراف');
   if (d.isFuture) tags.add('قادم');
-  if (d.hasCorrection) tags.add('تصحيح');
-  return tags.isNotEmpty ? tags.join('، ') : (d.correctionNote ?? '');
+  final note = cleanAttendanceNote(d.correctionNote);
+  if (note != null) tags.add(note);
+  return tags.isNotEmpty ? tags.join('، ') : '';
 }
 
 /// يحوّل كشف الحضور إلى PDF ويحفظه على الجهاز، ثم يعيد مسار الملف.

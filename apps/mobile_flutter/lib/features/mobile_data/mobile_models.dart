@@ -518,6 +518,8 @@ class AttendanceState {
     required this.todayCheckInAt,
     required this.todayCheckOutAt,
     this.missionToday,
+    this.isSplitShift = false,
+    this.checkInCount = 0,
   });
   factory AttendanceState.fromJson(Map<String, dynamic> json) =>
       AttendanceState(
@@ -551,6 +553,8 @@ class AttendanceState {
             : MissionToday.fromJson(
                 Map<String, dynamic>.from(json['missionToday'] as Map),
               ),
+        isSplitShift: json['isSplitShift'] as bool? ?? false,
+        checkInCount: (json['checkInCount'] as num?)?.toInt() ?? 0,
       );
   final bool attendanceRequired;
   final bool selfPunchEnabled;
@@ -574,6 +578,12 @@ class AttendanceState {
 
   /// 0450: يوم مأمورية/تكليف معتمد لليوم — يقود تحول زر البصمة.
   final MissionToday? missionToday;
+
+  /// 0588: الموظف لديه وردية مجزأة (فترتان عمل في اليوم مع استراحة).
+  final bool isSplitShift;
+
+  /// 0588: عدد بصمات الحضور المسجلة اليوم.
+  final int checkInCount;
 }
 
 class MobileFeedItem {

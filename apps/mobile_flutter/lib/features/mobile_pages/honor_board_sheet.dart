@@ -11,11 +11,12 @@ enum HonorPeriod {
   week,
 }
 
-/// محور التميز: الانضباط والحضور، المأموريات الميدانية، المهام والتقارير
+/// محور التميز: الانضباط والحضور، المأموريات الميدانية، المهام والتقارير، استجابات الموقع
 enum HonorCategory {
   attendance,
   missions,
   reports,
+  locations,
 }
 
 /// بطاقة ملخص لوحة الشرف في الصفحة الرئيسية للموظف
@@ -225,6 +226,7 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
       HonorCategory.attendance => 'attendance',
       HonorCategory.missions => 'missions',
       HonorCategory.reports => 'reports',
+      HonorCategory.locations => 'locations',
     };
 
     final asyncData = ref.watch(honorBoardProvider((periodStr, categoryStr)));
@@ -236,6 +238,7 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
       HonorCategory.attendance => 'لم تُسجَّل أيام حضور في هذه الفترة بعد.',
       HonorCategory.missions => 'لا توجد مأموريات ميدانية معتمدة في هذه الفترة.',
       HonorCategory.reports => 'لم يرفع أحد تقارير يومية في هذه الفترة.',
+      HonorCategory.locations => 'لا توجد استجابات لطلبات الموقع في هذه الفترة.',
     };
 
     final first = honorees.isNotEmpty ? honorees[0] : null;
@@ -247,6 +250,7 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
       HonorCategory.attendance => 'الانضباط والحضور',
       HonorCategory.missions => 'المأموريات الميدانية',
       HonorCategory.reports => 'المهام والتقارير اليومية',
+      HonorCategory.locations => 'استجابات الموقع المباشر',
     };
 
     return Container(
@@ -391,6 +395,13 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
                           label: 'المهام والتقارير',
                           isSelected: _category == HonorCategory.reports,
                           onTap: () => setState(() => _category = HonorCategory.reports),
+                        ),
+                        const SizedBox(width: 8),
+                        _CategorySelectChip(
+                          icon: Icons.my_location_rounded,
+                          label: 'استجابات الموقع',
+                          isSelected: _category == HonorCategory.locations,
+                          onTap: () => setState(() => _category = HonorCategory.locations),
                         ),
                       ],
                     ),

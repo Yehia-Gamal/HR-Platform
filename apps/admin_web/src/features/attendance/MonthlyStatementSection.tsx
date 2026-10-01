@@ -22,6 +22,7 @@ import {
   rateText,
   statementRates,
   buildDayTags,
+  getDisplayNote,
   DayTag,
   DAY_FILTERS,
   DAY_SORTS,
@@ -77,14 +78,14 @@ export function MonthlyStatementSection({ employeeId }: { employeeId: string }) 
           </div>
           {statementData && (
             <>
-              <button type="button" className="stmt-btn" onClick={() => exportAttendancePDF(statementData)} title="تنزيل نسخة PDF من كشف الحضور والانصراف">
+              <button type="button" className="stmt-btn" onClick={() => void exportAttendancePDF(statementData)} title="تنزيل نسخة PDF من كشف الحضور والانصراف">
                 <FileDown className="size-4" aria-hidden="true" />
                 تصدير PDF
               </button>
               <button
                 type="button"
                 className="stmt-btn stmt-btn--primary"
-                onClick={() => exportAttendancePDF(statementData)}
+                onClick={() => void exportAttendancePDF(statementData)}
                 title="فتح نسخة قابلة للطباعة فوراً"
               >
                 <Printer className="size-4" aria-hidden="true" />
@@ -302,20 +303,24 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
                     <StatusPill d={d} />
                   </td>
                   <td>
-                    {tags.length > 0 || d.correctionNote ? (
-                      <div className="flex flex-wrap items-center gap-1">
-                        {tags.map((t) => (
-                          <DayTag key={t.label} label={t.label} variant={t.variant} />
-                        ))}
-                        {d.correctionNote && (
-                          <span className="text-xs text-[var(--text-muted)] truncate max-w-[160px]" title={d.correctionNote}>
-                            {d.correctionNote}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="dash">—</span>
-                    )}
+                    {(() => {
+                      const displayNote = getDisplayNote(d.correctionNote);
+                      if (tags.length === 0 && !displayNote) {
+                        return <span className="dash">—</span>;
+                      }
+                      return (
+                        <div className="flex flex-wrap items-center gap-1">
+                          {tags.map((t) => (
+                            <DayTag key={t.label} label={t.label} variant={t.variant} />
+                          ))}
+                          {displayNote && (
+                            <span className="text-xs text-[var(--text-muted)] truncate max-w-[160px]" title={displayNote}>
+                              {displayNote}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </td>
                   {data.capabilities.canEditDays ? (
                     <td className="cell-actions">

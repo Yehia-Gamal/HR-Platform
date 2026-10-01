@@ -2129,12 +2129,12 @@ class _DayDetailSheet extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'تعديل إداري مسجل: ${day?.adminOverride?['dayType'] ?? ''}',
+                            'الحالة المعتمدة: ${day?.adminOverride?['dayType'] ?? ''}',
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF3D4FA8)),
                           ),
-                          if (day?.adminOverride?['reason'] != null)
+                          if (cleanAttendanceNote(day?.adminOverride?['reason'] as String?) != null)
                             Text(
-                              'السبب: ${day!.adminOverride!['reason']}',
+                              'السبب: ${cleanAttendanceNote(day!.adminOverride!['reason'] as String?)}',
                               style: const TextStyle(fontSize: 11, color: Color(0xFF475569)),
                             ),
                         ],
@@ -2245,16 +2245,14 @@ class _DayDetailSheet extends ConsumerWidget {
                     _DetailChip(icon: Icons.warning_amber, label: 'لم يسجل حضور', color: scheme.error),
                   if (day!.missingCheckOut)
                     _DetailChip(icon: Icons.warning_amber, label: 'لم يسجل انصراف', color: scheme.error),
-                  if (day!.hasCorrection)
-                    _DetailChip(icon: Icons.edit_note, label: 'تصحيح', color: const Color(0xFF64748B)),
                 ],
               ),
               const SizedBox(height: 8),
             ],
 
             // ─ ملاحظة التصحيح ─
-            if (day?.correctionNote != null && day!.correctionNote!.isNotEmpty) ...[
-              Text('📝 ${day!.correctionNote}',
+            if (cleanAttendanceNote(day?.correctionNote) != null) ...[
+              Text('📝 ${cleanAttendanceNote(day!.correctionNote)!}',
                   style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant)),
               const SizedBox(height: 8),
             ],
@@ -2311,7 +2309,7 @@ class _DayDetailSheet extends ConsumerWidget {
   bool get _hasDetails => day != null && (
       day!.lateMinutes > 0 || day!.earlyLeaveMinutes > 0 || day!.overtimeMinutes > 0 ||
       day!.hasLeave || day!.hasPermit || day!.hasMission || day!.hasConvoyFundi ||
-      day!.missingCheckIn || day!.missingCheckOut || day!.hasCorrection);
+      day!.missingCheckIn || day!.missingCheckOut);
 
   List<Widget> _buildActions(BuildContext context, WidgetRef ref, ColorScheme scheme) {
     final actions = <Widget>[];

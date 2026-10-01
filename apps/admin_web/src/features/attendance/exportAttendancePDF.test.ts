@@ -93,7 +93,7 @@ describe('esc', () => {
 });
 
 describe('attendanceDocumentShell', () => {
-  it('includes interactive action bar with PDF and HTML buttons', async () => {
+  it('includes interactive action bar with PDF button and without HTML button', async () => {
     const { attendanceDocumentShell } = await import('./exportAttendancePDF');
     const html = attendanceDocumentShell('كشف حضور تجريبي', '<div>محتوى تجريبي</div>', true);
 
@@ -102,9 +102,9 @@ describe('attendanceDocumentShell', () => {
     expect(html).toContain('action-bar no-print');
     expect(html).toContain('تحميل وحفظ كملف PDF');
     expect(html).toContain('طباعة');
-    expect(html).toContain('تنزيل ملف (HTML)');
+    expect(html).not.toContain('تنزيل ملف (HTML)');
     expect(html).toContain('saveAsPdf()');
-    expect(html).toContain('downloadHtml()');
+    expect(html).not.toContain('downloadHtml()');
     expect(html).toContain('كشف حضور تجريبي');
     expect(html).toContain('محتوى تجريبي');
   });
@@ -139,7 +139,7 @@ describe('buildStatementBodyHtml — نسب وبيانات الكشف (0582)', (
     const html = buildStatementBodyHtml(base);
     expect(html).toContain('100%');
     expect(html).toContain('23 من 23 يوم عمل مستحق');
-    expect(html).toContain('بعد استبعاد 3 أيام إجازة معتمدة');
+    expect(html).toContain('بعد استبعاد 3 أيام إجازة');
   });
 
   it('المعفى من البصمة: «معفى» بدل 0% ولا لون أحمر', async () => {

@@ -21,6 +21,14 @@ export default defineConfig({
           if (id.includes('lucide-react')) return 'icons';
           if (id.includes('leaflet') || id.includes('react-leaflet')) return 'maps';
           if (id.includes('@sentry')) return 'sentry';
+          // مكتبات تصدير PDF تُحمَّل عند الضغط على «تصدير» فقط (dynamic import)؛
+          // بدون هذا القيد تبتلعها قاعدة vendor فتُحمَّل مع كل صفحة.
+          if (
+            /node_modules[\\/](?:jspdf|html2canvas|fflate|fast-png|iobuffer|pako|canvg|core-js|raf|rgbcolor|stackblur-canvas|svg-pathdata|dompurify|css-line-break|text-segmentation|utrie|base64-arraybuffer|performance-now)[\\/]/.test(
+              id,
+            )
+          )
+            return 'pdf-vendor';
           if (id.includes('node_modules')) return 'vendor';
           return undefined;
         },
