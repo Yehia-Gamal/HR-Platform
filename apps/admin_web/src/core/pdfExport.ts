@@ -23,8 +23,8 @@ export interface PdfPageImage {
 
 const MARGIN_MM = 8;
 const PX_PER_MM = 96 / 25.4;
-const SCALE = 2;
-const JPEG_QUALITY = 0.9;
+const SCALE = 2.5;
+const JPEG_QUALITY = 0.98;
 
 type Html2Canvas = (element: HTMLElement, options?: Record<string, unknown>) => Promise<HTMLCanvasElement>;
 type JsPdfModule = typeof import('jspdf');
@@ -39,6 +39,7 @@ function pageDims(orientation: PdfOrientation) {
     wMm,
     hMm,
     contentWmm,
+    contentHmm,
     widthPx: Math.round(contentWmm * PX_PER_MM),
     pageHeightPx: Math.floor(contentHmm * PX_PER_MM),
   };
@@ -74,14 +75,14 @@ async function loadLibs(): Promise<{ jspdf: any; html2canvas: Html2Canvas }> {
 
 /**
  * يزيل السكربتات ويطبّق قواعد الطباعة على الشاشة ويخفي أزرار الإجراءات.
- * حشوة صغيرة حول المحتوى: ذيول الحروف العربية تتجاوز صندوق السطر الأخير قليلاً،
- * والتصوير يقطع عند حدود الجسم.
+ * يضمن تضمين خط Cairo الأصلي وتصفير الحشو الخارجي لضمان دقة القياس.
  */
 function preparePrintableHtml(html: string, widthPx: number): string {
   const extra = `<style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap');
     .no-print, .action-bar { display: none !important; }
     html { margin: 0 !important; padding: 0 !important; background: #fff !important; }
-    body { margin: 0 !important; padding: 4px 4px 12px !important; box-sizing: border-box !important; background: #fff !important; width: ${widthPx}px !important; }
+    body { margin: 0 !important; padding: 0 !important; box-sizing: border-box !important; background: #fff !important; width: ${widthPx}px !important; font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif !important; }
   </style>`;
   const stripped = html
     .replace(/<script[\s\S]*?<\/script>/gi, '')
@@ -127,7 +128,7 @@ export async function createPdfRenderer(orientation: PdfOrientation) {
   const iframe = document.createElement('iframe');
   iframe.setAttribute('aria-hidden', 'true');
   iframe.tabIndex = -1;
-  iframe.style.cssText = `position:fixed;left:0;top:0;width:${dims.widthPx}px;height:2000px;opacity:0;pointer-events:none;z-index:-9999;border:0;`;
+  iframe.style.cssText = `position:fixed;left:0;top:0;width:${dims.widthPx}px;height:2500px;opacity:0;pointer-events:none;z-index:-9999;border:0;`;
   document.body.appendChild(iframe);
 
   async function render(html: string): Promise<PdfPageImage[]> {
@@ -137,10 +138,44 @@ export async function createPdfRenderer(orientation: PdfOrientation) {
     doc.write(preparePrintableHtml(html, dims.widthPx));
     doc.close();
     if (doc.fonts?.ready) {
-      await Promise.race([doc.fonts.ready, new Promise((r) => setTimeout(r, 600))]);
+      await Promise.race([doc.fonts.ready, new Promise((r) => setTimeout(r, 1000))]);
     }
     const root = doc.body;
-    iframe.style.height = `${root.scrollHeight + 40}px`;
+    iframe.style.height = `${Math.max(root.scrollHeight, 2500)}px`;
+
+    // ─── التقاط عالي الدقة لكل صفحة مستقلة عند وجود حاويات .pdf-page ───
+    const pageEls = Array.from(root.querySelectorAll<HTMLElement>('.pdf-page'));
+    if (pageEls.length > 0) {
+      const pages: PdfPageImage[] = [];
+      for (let i = 0; i < pageEls.length; i += 1) {
+        // عزل كل صفحة أعلى الإطار لضمان دقة الإحداثيات وتفادي أي إزاحة رأسية
+        pageEls.forEach((el, idx) => {
+          el.style.display = idx === i ? 'flex' : 'none';
+        });
+        const pageCanvas = await html2canvas(pageEls[i], {
+          scale: SCALE,
+          backgroundColor: '#ffffff',
+          logging: false,
+          useCORS: true,
+          windowWidth: dims.widthPx,
+          width: dims.widthPx,
+          height: dims.pageHeightPx,
+          x: 0,
+          y: 0,
+          scrollX: 0,
+          scrollY: 0,
+        });
+        pages.push({
+          dataUrl: pageCanvas.toDataURL('image/jpeg', JPEG_QUALITY),
+          heightMm: dims.contentHmm,
+          orientation,
+        });
+      }
+      pageEls.forEach((el) => {
+        el.style.display = '';
+      });
+      return pages;
+    }
 
     const originTop = root.getBoundingClientRect().top;
     const total = Math.ceil(root.scrollHeight);
