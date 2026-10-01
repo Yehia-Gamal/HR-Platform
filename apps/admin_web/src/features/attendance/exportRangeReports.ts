@@ -61,16 +61,12 @@ export function downloadRangeReportHtml(title: string, html: string): void {
   openPrintWindow(title.replace(/\.html$/i, ''), html);
 }
 
-/** تصدير التقرير كملف PDF حقيقي؛ نافذة الطباعة بديل فقط عند تعذّر التوليد. */
+/** تصدير التقرير كملف PDF حقيقي دون فتح أي نوافذ HTML. */
 function openPrintWindow(title: string, html: string): void {
   void import('../../core/pdfExport')
     .then(({ downloadHtmlAsPdf }) => downloadHtmlAsPdf(html, title))
-    .catch(() => {
-      const win = window.open('', '_blank', 'width=1120,height=800');
-      if (!win) return;
-      win.document.open();
-      win.document.write(html);
-      win.document.close();
+    .catch((err) => {
+      console.error('Failed to export range report PDF:', err);
     });
 }
 interface RosterGate {

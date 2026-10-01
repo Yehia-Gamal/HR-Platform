@@ -130,13 +130,10 @@ export function exportPulseListPDF(employees: EmployeeOverviewRow[], kind: Pulse
 </body>
 </html>`;
 
-  // ملف PDF حقيقي (كان نافذة طباعة HTML)؛ النافذة بديل فقط عند تعذّر التوليد.
+  // تصدير PDF حقيقي مباشرة دون فتح نوافذ HTML.
   void import('../../core/pdfExport')
     .then(({ downloadHtmlAsPdf }) => downloadHtmlAsPdf(html, `نبض اليوم ${date}`, `نبض_اليوم_${kind}_${date}.pdf`))
-    .catch(() => {
-      const win = window.open('', '_blank', 'width=900,height=700');
-      if (!win) return;
-      win.document.write(html);
-      win.document.close();
+    .catch((err) => {
+      console.error('Failed to export pulse list PDF:', err);
     });
 }

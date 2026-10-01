@@ -307,16 +307,9 @@ export async function exportAttendancePdf(filters: Omit<AttendanceRosterFilters,
   const parsed = attendanceRosterPageSchema.parse(data);
   const items = parsed.items.map((i) => attendanceRosterItemSchema.parse(i));
   const html = _buildPrintHtml(items, cat, filters.dateIso);
-  // ملف PDF حقيقي (كان نافذة طباعة HTML)؛ النافذة بديل فقط عند تعذّر التوليد.
-  try {
-    const { downloadHtmlAsPdf } = await import('../../core/pdfExport');
-    await downloadHtmlAsPdf(html, `قائمة الحضور ${filters.dateIso}`, `قائمة_الحضور_${cat}_${filters.dateIso}.pdf`);
-  } catch {
-    const win = window.open('', '_blank', 'width=900,height=700');
-    if (!win) return;
-    win.document.write(html);
-    win.document.close();
-  }
+  // تصدير PDF حقيقي مباشرة دون فتح نوافذ HTML.
+  const { downloadHtmlAsPdf } = await import('../../core/pdfExport');
+  await downloadHtmlAsPdf(html, `قائمة الحضور ${filters.dateIso}`, `قائمة_الحضور_${cat}_${filters.dateIso}.pdf`);
 }
 
 /**

@@ -60,12 +60,12 @@ export async function exportAllAttendancePdfs(
     (p) => onProgress?.({ ...p, phase: 'pdf' }),
   );
 
-  if (combined) downloadBlob(combined, `كشف-الحضور-الشامل-${monthLabel}-${year}.pdf`);
-  for (let i = 0; i < statements.length; i += 1) {
-    const emp = statements[i].employee;
+  if (combined) {
+    downloadBlob(combined, `كشف-الحضور-الشامل-${monthLabel}-${year}.pdf`);
+  } else if (files.length > 0) {
+    const emp = statements[0].employee;
     const name = safeFileNameSegment(`${emp.employeeCode ?? ''}-${emp.fullNameAr}`);
-    downloadBlob(files[i].blob, `كشف-حضور-${name}-${monthLabel}-${year}.pdf`);
-    await new Promise((r) => setTimeout(r, 300));
+    downloadBlob(files[0].blob, `كشف-حضور-${name}-${monthLabel}-${year}.pdf`);
   }
   return { exported: statements.length, skipped };
 }

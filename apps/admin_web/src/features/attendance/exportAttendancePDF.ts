@@ -482,37 +482,15 @@ export function statementPdfFileName(data: AttendanceStatement): string {
 }
 
 /**
- * نافذة طباعة HTML للكشف — تُستخدم بديلاً فقط إن تعذّر توليد PDF في المتصفح.
- */
-function openAttendancePrintWindow(data: AttendanceStatement, orgName: string, systemName: string) {
-  const { employee: emp, period } = data;
-  const monthName = MONTHS[period.month - 1] ?? '';
-  const body = buildStatementBodyHtml(data, orgName, systemName);
-  const title = `كشف حضور — ${emp.fullNameAr} — ${monthName} ${period.year}`;
-  const html = attendanceDocumentShell(title, body, true);
-
-  const win = window.open('', '_blank');
-  if (!win) {
-    downloadAttendanceStatement(data, orgName, systemName);
-    return;
-  }
-  win.document.write(html);
-  win.document.close();
-}
-
-/**
- * تصدير كشف موظف كملف PDF حقيقي (لا ملف HTML ولا نافذة طباعة). عند تعذّر
- * التوليد في المتصفح نرجع لنافذة الطباعة كي لا يُحرم المستخدم من الكشف.
+ * تصدير كشف موظف كملف PDF حقيقي مباشرة (ملف .pdf دون فتح نافذة HTML أو تنزيل ملفات HTML).
  */
 export async function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية'): Promise<void> {
   const { employee: emp, period } = data;
   const monthName = MONTHS[period.month - 1] ?? '';
   const title = `كشف حضور — ${emp.fullNameAr} — ${monthName} ${period.year}`;
-  try {
-    const { statementsToPdfs, downloadBlob } = await import('./statementPdf');
-    const { files } = await statementsToPdfs([{ statement: data, title }], title, orgName, systemName);
+  const { statementsToPdfs, downloadBlob } = await import('./statementPdf');
+  const { files } = await statementsToPdfs([{ statement: data, title }], title, orgName, systemName);
+  if (files.length > 0) {
     downloadBlob(files[0].blob, statementPdfFileName(data));
-  } catch {
-    openAttendancePrintWindow(data, orgName, systemName);
   }
 }

@@ -415,8 +415,7 @@ export function generateReportHtml(sections: PrintableSection[], documentTitle: 
 }
 
 /**
- * تصدير تقرير كملف PDF حقيقي (لا نافذة HTML). عند تعذّر التوليد في المتصفح نرجع
- * لنافذة الطباعة كي لا يُحرم المستخدم من التقرير.
+ * تصدير تقرير كملف PDF حقيقي دون فتح نوافذ HTML.
  */
 export function printReport(sections: PrintableSection[], documentTitle: string, summary?: { label: string; value: string }[]): void {
   const html = generateReportHtml(sections, documentTitle, summary);
@@ -424,24 +423,12 @@ export function printReport(sections: PrintableSection[], documentTitle: string,
     .then(({ downloadHtmlAsPdf, pdfFileName }) =>
       downloadHtmlAsPdf(html, documentTitle, pdfFileName(`${documentTitle}_${new Date().toISOString().slice(0, 10)}`)),
     )
-    .catch(() => openReportWindow(html));
+    .catch((err) => {
+      console.error('Failed to export report PDF:', err);
+    });
 }
 
-/** نافذة الطباعة — بديل فقط إن تعذّر توليد PDF. */
-function openReportWindow(html: string): void {
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
-  const blobUrl = URL.createObjectURL(blob);
-  window.open(blobUrl, '_blank');
-  setTimeout(() => {
-    try {
-      URL.revokeObjectURL(blobUrl);
-    } catch {
-      // noop
-    }
-  }, 120_000);
-}
-
-/** تنزيل التقرير كملف PDF (كان ملف HTML). */
+/** تنزيل التقرير كملف PDF. */
 export function downloadReportHtml(sections: PrintableSection[], documentTitle: string, summary?: { label: string; value: string }[]): void {
   printReport(sections, documentTitle, summary);
 }

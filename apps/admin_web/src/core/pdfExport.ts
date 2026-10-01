@@ -50,9 +50,26 @@ export function detectOrientation(html: string): PdfOrientation {
   return m && /landscape/i.test(m[1]) ? 'landscape' : 'portrait';
 }
 
-async function loadLibs(): Promise<{ jspdf: JsPdfModule; html2canvas: Html2Canvas }> {
-  const [jspdf, h2c] = await Promise.all([import('jspdf'), import('html2canvas')]);
-  return { jspdf, html2canvas: h2c.default as unknown as Html2Canvas };
+function resolveJsPdf(mod: any): any {
+  if (typeof mod?.jsPDF === 'function') return mod.jsPDF;
+  if (typeof mod?.default?.jsPDF === 'function') return mod.default.jsPDF;
+  if (typeof mod?.default === 'function') return mod.default;
+  if (typeof mod === 'function') return mod;
+  return mod?.jsPDF || mod?.default?.jsPDF || mod?.default || mod;
+}
+
+function resolveHtml2Canvas(mod: any): Html2Canvas {
+  if (typeof mod === 'function') return mod;
+  if (typeof mod?.default === 'function') return mod.default;
+  if (typeof mod?.default?.default === 'function') return mod.default.default;
+  return (mod?.default || mod) as Html2Canvas;
+}
+
+async function loadLibs(): Promise<{ jspdf: any; html2canvas: Html2Canvas }> {
+  const [jspdfModule, h2cModule] = await Promise.all([import('jspdf'), import('html2canvas')]);
+  const html2canvas = resolveHtml2Canvas(h2cModule);
+  const jsPdfClass = resolveJsPdf(jspdfModule);
+  return { jspdf: { jsPDF: jsPdfClass }, html2canvas };
 }
 
 /**
@@ -66,10 +83,12 @@ function preparePrintableHtml(html: string, widthPx: number): string {
     html { margin: 0 !important; padding: 0 !important; background: #fff !important; }
     body { margin: 0 !important; padding: 4px 4px 12px !important; box-sizing: border-box !important; background: #fff !important; width: ${widthPx}px !important; }
   </style>`;
-  return html
+  const stripped = html
     .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/@media\s+print\s*{/gi, '@media all {')
-    .replace(/<\/head>/i, `${extra}</head>`);
+    .replace(/@media\s+print\s*{/gi, '@media all {');
+  return stripped.includes('</head>')
+    ? stripped.replace(/<\/head>/i, `${extra}</head>`)
+    : `${extra}${stripped}`;
 }
 
 /**
@@ -108,7 +127,7 @@ export async function createPdfRenderer(orientation: PdfOrientation) {
   const iframe = document.createElement('iframe');
   iframe.setAttribute('aria-hidden', 'true');
   iframe.tabIndex = -1;
-  iframe.style.cssText = `position:fixed;left:-30000px;top:0;width:${dims.widthPx}px;height:2000px;border:0;`;
+  iframe.style.cssText = `position:fixed;left:0;top:0;width:${dims.widthPx}px;height:2000px;opacity:0;pointer-events:none;z-index:-9999;border:0;`;
   document.body.appendChild(iframe);
 
   async function render(html: string): Promise<PdfPageImage[]> {
@@ -117,7 +136,9 @@ export async function createPdfRenderer(orientation: PdfOrientation) {
     doc.open();
     doc.write(preparePrintableHtml(html, dims.widthPx));
     doc.close();
-    if (doc.fonts?.ready) await doc.fonts.ready;
+    if (doc.fonts?.ready) {
+      await Promise.race([doc.fonts.ready, new Promise((r) => setTimeout(r, 600))]);
+    }
     const root = doc.body;
     iframe.style.height = `${root.scrollHeight + 40}px`;
 
@@ -199,7 +220,8 @@ export async function createPdfRenderer(orientation: PdfOrientation) {
   }
 
   function newDocument(title: string, author = 'منظومة أحلى شباب الإدارية'): JsPdfDoc {
-    const pdf = new jspdf.jsPDF({ orientation, unit: 'mm', format: 'a4', compress: true });
+    const JsPdfClass = resolveJsPdf(jspdf);
+    const pdf = new JsPdfClass({ orientation, unit: 'mm', format: 'a4', compress: true });
     pdf.setProperties({ title, subject: title, creator: author, author });
     return pdf;
   }

@@ -183,7 +183,7 @@ export function MonthlyAttendanceReportPage() {
     );
   }, [employeesQuery.data, filterText]);
 
-  // طباعة كشوف كافة الموظفين كملفات PDF: ملف منفصل لكل موظف + ملف شامل.
+  // تحميل كشوف كافة الموظفين كملفات PDF: ملف شامل لجميع الموظفين.
   const handleExportAll = async () => {
     const all = employeesQuery.data ?? [];
     if (all.length === 0 || exporting) return;
@@ -195,7 +195,7 @@ export function MonthlyAttendanceReportPage() {
         exported === 0
           ? { text: 'تعذّر تجهيز أي كشف. أعد المحاولة أو تحقق من اتصالك.', tone: 'danger' }
           : {
-              text: `تم تجهيز كشوف ${exported} موظف كملفات PDF (ملف لكل موظف + ملف شامل).${skipped > 0 ? ` تعذّر تجهيز كشف ${skipped} موظف.` : ''}`,
+              text: `تم تحميل كشوفات الموظفين (${exported} موظف) كملف PDF بنجاح.${skipped > 0 ? ` تعذّر تجهيز كشف ${skipped} موظف.` : ''}`,
               tone: skipped > 0 ? 'warning' : 'success',
             },
       );
@@ -210,10 +210,10 @@ export function MonthlyAttendanceReportPage() {
   };
 
   const exportLabel = !exporting
-    ? 'طباعة كشوف الجميع (PDF)'
+    ? 'تحميل كشوفات الموظفين (PDF)'
     : exportProgress?.phase === 'pdf'
       ? `جارٍ إنشاء ملفات PDF… ${exportProgress.done}/${exportProgress.total}`
-      : `جارٍ تحميل الكشوف… ${exportProgress ? `${exportProgress.done}/${exportProgress.total}` : ''}`;
+      : `جارٍ تجهيز الكشوف… ${exportProgress ? `${exportProgress.done}/${exportProgress.total}` : ''}`;
 
   return (
     <div className="space-y-6 print:space-y-3">
@@ -226,7 +226,7 @@ export function MonthlyAttendanceReportPage() {
               className="btn-primary"
               onClick={() => void handleExportAll()}
               disabled={exporting || (employeesQuery.data?.length ?? 0) === 0}
-              aria-label="طباعة كشوف كافة الموظفين للشهر المحدد"
+              aria-label="تحميل كشوفات كافة الموظفين للشهر المحدد كملفات PDF"
             >
               <Users className="size-4" aria-hidden="true" />
               {exportLabel}
@@ -237,9 +237,19 @@ export function MonthlyAttendanceReportPage() {
                   <Printer className="size-4" aria-hidden="true" />
                   طباعة
                 </button>
-                <button className="btn-secondary" onClick={() => void exportAttendancePDF(statementData)}>
+                <button
+                  className="btn-secondary"
+                  onClick={async () => {
+                    try {
+                      await exportAttendancePDF(statementData);
+                      setExportToast({ text: `تم تحميل كشف ${statementData.employee.fullNameAr} بصيغة PDF بنجاح`, tone: 'success' });
+                    } catch {
+                      setExportToast({ text: 'تعذّر إنشاء ملف PDF للكشف. أعد المحاولة.', tone: 'danger' });
+                    }
+                  }}
+                >
                   <FileDown className="size-4" aria-hidden="true" />
-                  تصدير PDF
+                  تحميل الكشف (PDF)
                 </button>
                 <button className="btn-secondary" onClick={() => exportCSV(statementData)}>
                   <Download className="size-4" aria-hidden="true" />

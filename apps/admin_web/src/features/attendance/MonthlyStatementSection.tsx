@@ -80,7 +80,7 @@ export function MonthlyStatementSection({ employeeId }: { employeeId: string }) 
             <>
               <button type="button" className="stmt-btn" onClick={() => void exportAttendancePDF(statementData)} title="تنزيل نسخة PDF من كشف الحضور والانصراف">
                 <FileDown className="size-4" aria-hidden="true" />
-                تصدير PDF
+                تحميل الكشف (PDF)
               </button>
               <button
                 type="button"

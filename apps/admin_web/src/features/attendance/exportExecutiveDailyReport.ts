@@ -530,17 +530,13 @@ export function downloadExecutiveDailyReportHtml(
 }
 
 /**
- * تصدير التقرير التنفيذي اليومي كملف PDF حقيقي. عند تعذّر التوليد في المتصفح
- * نرجع لنافذة الطباعة كي لا يُحرم المستخدم من التقرير.
+ * تصدير التقرير التنفيذي اليومي كملف PDF حقيقي دون فتح أي نوافذ HTML.
  */
 export function exportExecutiveDailyReport(data: ExecutiveDailyReportDetail, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية') {
   const html = buildExecutiveDailyReportHtml(data, orgName, systemName);
   void import('../../core/pdfExport')
     .then(({ downloadHtmlAsPdf }) => downloadHtmlAsPdf(html, `التقرير التنفيذي اليومي ${data.dateIso}`, `التقرير_التنفيذي_اليومي_${data.dateIso}.pdf`))
-    .catch(() => {
-      const win = window.open('', '_blank');
-      if (!win) return;
-      win.document.write(html);
-      win.document.close();
+    .catch((err) => {
+      console.error('Failed to export executive daily report PDF:', err);
     });
 }
