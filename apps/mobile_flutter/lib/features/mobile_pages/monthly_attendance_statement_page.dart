@@ -3742,14 +3742,14 @@ class _AdminEditDaySheetState extends ConsumerState<_AdminEditDaySheet> {
             clearCheckOut: _dayType != 'work' || _clearCheckOut,
             reason: _reasonController.text.trim().isNotEmpty
                 ? _reasonController.text.trim()
-                : 'تعديل إداري معتمد',
+                : 'اعتماد الحالة',
             notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
             leaveType: _dayType == 'leave' || _dayType == 'absent' ? _leaveType : null,
           );
       if (mounted) {
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم حفظ التعديل الإداري بنجاح.')),
+          const SnackBar(content: Text('تم حفظ التعديل بنجاح.')),
         );
       }
     } catch (error) {
@@ -3787,7 +3787,7 @@ class _AdminEditDaySheetState extends ConsumerState<_AdminEditDaySheet> {
               ),
             ),
             Text(
-              'تعديل إداري ليوم ${widget.dateStr}',
+              'تعديل يوم ${widget.dateStr}',
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 4),

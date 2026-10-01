@@ -1307,7 +1307,7 @@ extension MobileSelfServiceCommands on MobileCommands {
           'p_check_out': checkOut,
           'p_clear_check_in': clearCheckIn,
           'p_clear_check_out': clearCheckOut,
-          'p_reason': reason ?? 'تعديل إداري معتمد',
+          'p_reason': reason ?? 'اعتماد الحالة',
           'p_notes': notes,
           'p_leave_type': leaveType,
         },

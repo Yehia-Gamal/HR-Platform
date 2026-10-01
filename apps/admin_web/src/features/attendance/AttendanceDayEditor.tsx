@@ -175,7 +175,7 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
         p_check_out: dayType === 'work' && !clearCheckOut ? checkOut : null,
         p_clear_check_in: dayType !== 'work' || clearCheckIn,
         p_clear_check_out: dayType !== 'work' || clearCheckOut,
-        p_reason: reason.trim() || 'تعديل إداري معتمد',
+        p_reason: reason.trim() || 'اعتماد الحالة',
         p_notes: notes.trim() || null,
         p_leave_type: dayType === 'leave' || dayType === 'absent' ? leaveType || DEFAULT_LEAVE_TYPE[dayType] : null,
       }),
