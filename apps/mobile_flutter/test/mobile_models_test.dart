@@ -317,4 +317,41 @@ void main() {
     expect(employee.team, 'فريق الشحن');
     expect(employee.jobTitle, 'مشرف لوجستي');
   });
+
+  test('instant penalty row from PostgREST parses (escalation_level is text)', () {
+    // صف حقيقي الشكل من instant_attendance_penalties عبر select=*
+    final p = MobileInstantPenalty.fromJson({
+      'id': '0b1c2d3e-0000-4000-8000-000000000001',
+      'employee_id': '0b1c2d3e-0000-4000-8000-000000000002',
+      'work_date': '2026-10-03',
+      'late_minutes': 27,
+      'original_amount': 20,
+      'current_amount': 20.0,
+      'currency': 'EGP',
+      'status': 'pending_payment',
+      'escalation_level': 'initial',
+      'paid_at': null,
+      'suspended_at': null,
+      'created_at': '2026-10-03T07:30:00.318079+00:00',
+      'notes': 'تأخير حضور فعلي (27 دقيقة)',
+      'excuse_status': 'none',
+    });
+    expect(p.escalationLevel, 'initial');
+    expect(p.lateMinutes, 27);
+    expect(p.currentAmount, 20.0);
+    expect(p.status, 'pending_payment');
+
+    final doubled = MobileInstantPenalty.fromJson({
+      'id': 'x',
+      'work_date': '2026-10-02',
+      'late_minutes': 120,
+      'original_amount': 150,
+      'current_amount': 500,
+      'status': 'doubled',
+      'escalation_level': 'doubled',
+      'created_at': '2026-10-02T08:00:00+00:00',
+    });
+    expect(doubled.escalationLevel, 'doubled');
+    expect(doubled.currentAmount, 500.0);
+  });
 }

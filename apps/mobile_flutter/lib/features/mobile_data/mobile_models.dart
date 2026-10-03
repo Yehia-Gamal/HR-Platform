@@ -3076,7 +3076,7 @@ class MobileInstantPenalty {
     required this.currentAmount,
     required this.currency,
     required this.status,
-    this.escalationLevel,
+    this.escalationLevel = 'initial',
     this.paidAt,
     this.suspendedAt,
     this.suspensionLiftedAt,
@@ -3106,8 +3106,11 @@ class MobileInstantPenalty {
             0,
         currency: j['currency'] as String? ?? 'EGP',
         status: j['status'] as String? ?? 'pending_payment',
-        escalationLevel: (j['escalation_level'] as num?)?.toInt() ??
-            (j['escalationLevel'] as num?)?.toInt(),
+        // نصّي في قاعدة البيانات (initial / doubled / suspended — 0511). كان يُقرأ كرقم
+        // فيرمي TypeError مع أول غرامة فتظهر الصفحة «حدث خطأ غير متوقع».
+        escalationLevel:
+            (j['escalation_level'] ?? j['escalationLevel'])?.toString() ??
+                'initial',
         paidAt: _optDate(j['paid_at'] ?? j['paidAt']),
         suspendedAt: _optDate(j['suspended_at'] ?? j['suspendedAt']),
         suspensionLiftedAt:
@@ -3130,7 +3133,9 @@ class MobileInstantPenalty {
   final double currentAmount;
   final String currency;
   final String status;
-  final int? escalationLevel;
+
+  /// مرحلة التصعيد: initial / doubled / suspended.
+  final String escalationLevel;
   final DateTime? paidAt;
   final DateTime? suspendedAt;
   final DateTime? suspensionLiftedAt;
