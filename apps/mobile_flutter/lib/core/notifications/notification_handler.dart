@@ -40,13 +40,25 @@ String? _canonicalEntityTypeExact(String raw) => switch (raw) {
   'before_out' ||
   'late_out' ||
   'missed_in' ||
-  'missed_out' => 'attendance',
-  'casual_leave_auto_approved' || 'request_approval_needed' => 'request',
+  'missed_out' ||
+  'weekly_executive_summary' ||
+  'attendance_manager_notify' => 'attendance',
+  'casual_leave_auto_approved' ||
+  'request_approval_needed' ||
+  'mission' ||
+  'missions' ||
+  'leave' ||
+  'leaves' ||
+  'permission' ||
+  'permissions' ||
+  'team_requests' ||
+  'my_requests' ||
+  'urgent_exec' => 'request',
   'live_location_requests' => 'live_location_request',
   'kpi_evaluation' => 'kpi',
   'requests' => 'request',
   'request_decision' => 'request',
-  'dispute_case' => 'dispute',
+  'dispute_case' || 'disputes' => 'dispute',
   'attendance_corrections' ||
   'attendance_correction' => 'attendance_correction',
   'attendance_daily' ||
@@ -62,12 +74,21 @@ String? _canonicalEntityTypeExact(String raw) => switch (raw) {
   'decisions' => 'decision',
   'employee_device' || 'employee_devices' || 'devices' => 'device',
   'fellowship' || 'fellowship_fund' => 'fellowship_fund',
+  'association_projects' ||
+  'association_project' ||
+  'projects' ||
+  'project' ||
+  'project_submitted' ||
+  'project_approved' ||
+  'project_rejected' => 'association_project',
+  'tasks' => 'task',
+  'notifications' => 'notification',
   _ => raw,
 };
 
 /// محلل موحّد للروابط العميقة: يستخرج مسار GoRouter من رابط عميق
 /// (كامل مثل https://host/action/location/{id} أو نسبي مثل /action/request/{id})
-/// مع تحقق أمني من أن المعرّف UUID صالح — يمنع حقن مسارات عشوائية.
+/// مع تحقق أمني من أن المعرّف UUID صالح أو من مسار معروف — يمنع حقن مسارات عشوائية.
 ///
 /// يعود `/` للروابط غير الصالحة.
 String resolveRouteFromDeepLink(String deepLink) {
@@ -84,30 +105,63 @@ String resolveRouteFromDeepLink(String deepLink) {
       final id = parts[idx + 2];
       // UUID صالح → اقبل أي kind.
       if (_uuidRegExp.hasMatch(id)) return _withQuery('/action/$kind/$id', uri);
-      // معرّف غير UUID (مثل تاريخ attendance) → اقبل فقط للأنواع المعروفة.
+      // معرّف غير UUID (مثل تاريخ attendance أو default) → اقبل فقط للأنواع المعروفة.
       if (id.isNotEmpty && _isKnownActionKind(kind)) {
         return _withQuery('/action/$kind/$id', uri);
       }
     }
 
-    // روابط خاصة دون معرّف صريح (مثل /action/finance أو /action/fellowship-fund)
+    // روابط خاصة دون معرّف صريح (مثل /action/finance أو /action/attendance)
     if (idx >= 0 && parts.length >= idx + 2) {
       final target = parts[idx + 1];
-      if (target == 'finance' || target == 'instant-penalties') {
+      if (target == 'finance' ||
+          target == 'instant-penalties' ||
+          target == 'instant_penalty') {
         return _withQuery('/action/instant_penalty/default', uri);
       }
-      if (target == 'fellowship-fund' || target == 'fellowship') {
+      if (target == 'fellowship-fund' ||
+          target == 'fellowship' ||
+          target == 'fellowship_fund') {
         return _withQuery('/action/fellowship_fund/default', uri);
+      }
+      if (target == 'attendance' || target == 'attendance_services') {
+        final date = uri.queryParameters['date'];
+        final id = (date != null && date.isNotEmpty) ? date : 'default';
+        return _withQuery('/action/attendance/$id', uri);
+      }
+      if (target == 'reports' ||
+          target == 'reports/attendance' ||
+          target == 'daily_report' ||
+          target == 'daily-reports') {
+        return _withQuery('/action/daily_report/default', uri);
+      }
+      if (target == 'requests' || target == 'request') {
+        return _withQuery('/action/request/default', uri);
+      }
+      if (target == 'notifications' || target == 'notification') {
+        return _withQuery('/action/notification/default', uri);
+      }
+      if (target == 'tasks' || target == 'task') {
+        return _withQuery('/action/task/default', uri);
+      }
+      if (target == 'device' || target == 'devices') {
+        return _withQuery('/action/device/default', uri);
+      }
+      if (target == 'association_project' ||
+          target == 'association_projects' ||
+          target == 'projects' ||
+          target == 'project') {
+        return _withQuery('/action/association_project/default', uri);
       }
     }
 
-    // أولوية 2: مسارات قديمة مثل /requests/{uuid} أو /hr/requests/{uuid}
-    // نبحث عن UUID في آخر جزء ونحوّل بادئة المسار إلى kind.
-    if (parts.isNotEmpty) {
-      final lastPart = parts.last;
+    // أولوية 2: مسارات قديمة مثل /requests/{uuid} أو https://host/requests/{uuid}
+    // نبحث عن UUID في آخر جزء ونحوّل بادئة المسار (من segments وليس parts لتجنب الـ host) إلى kind.
+    if (segments.isNotEmpty) {
+      final lastPart = segments.last;
       if (_uuidRegExp.hasMatch(lastPart)) {
-        final prefix = parts.length > 1
-            ? parts.sublist(0, parts.length - 1).join('/')
+        final prefix = segments.length > 1
+            ? segments.sublist(0, segments.length - 1).join('/')
             : '';
         final legacyKind = _kindFromLegacyPath('/$prefix');
         if (legacyKind != null) {
@@ -153,6 +207,8 @@ bool _isKnownActionKind(String kind) {
     'instant_penalty' ||
     'daily_report' ||
     'device' ||
+    'association_project' ||
+    'notification' ||
     'fellowship_fund' => true,
     _ => false,
   };
@@ -162,47 +218,42 @@ bool _isKnownActionKind(String kind) {
 ///
 /// يُستخدم من [NotificationService] ومن صفحة الإشعارات
 /// لتحويل الضغط على الإشعار إلى تنقل داخل التطبيق.
-///
-/// **مهم: يطابق القيم المرسلة من الـ Backend** (entity_type في جدول notifications
-/// وkind في FCM payload)، ويطابق أيضاً قائمة resolve_mobile_action_target في
-/// migration 0087 (request, kpi, decision, live_location_request) مع fallback
-/// للأنواع الأخرى التي تعمل عبر RPC get_mobile_action_target العام.
-///
-/// إذا كان النوع غير معروف أو المعرّف فارغ أو غير صالح يعود إلى `/`.
 String resolveNotificationRoute({
   required String? type,
   required String? entityId,
 }) {
-  if (entityId == null || entityId.isEmpty) return '/';
-  if (!_uuidRegExp.hasMatch(entityId)) return '/';
+  final cleanId = (entityId == null || entityId.isEmpty) ? 'default' : entityId;
+  final isValidId = cleanId == 'default' ||
+      _uuidRegExp.hasMatch(cleanId) ||
+      cleanId.length >= 8;
+  if (!isValidId) return '/action/notification/default';
 
   // تطبيع اسم النوع أولاً — الخلفية تخزّن صيغاً متعددة لنفس الكيان (0435).
   final canonical = canonicalNotificationEntityType(type);
 
   return switch (canonical) {
-    'request' => '/action/request/$entityId',
-    'kpi' => '/action/kpi/$entityId',
-    'attendance_correction' => '/action/attendance_correction/$entityId',
-    'attendance' => '/action/attendance/$entityId',
+    'request' => '/action/request/$cleanId',
+    'kpi' => '/action/kpi/$cleanId',
+    'attendance_correction' => '/action/attendance_correction/$cleanId',
+    'attendance' => '/action/attendance/$cleanId',
     'location' ||
     'location_request' ||
-    'live_location_request' => '/action/live_location_request/$entityId',
-    'dispute' => '/action/dispute/$entityId',
-    'task' => '/action/task/$entityId',
-    'decision' => '/action/decision/$entityId',
-    'announcement' => '/action/announcement/$entityId',
-    'recognition' => '/action/recognition/$entityId',
-    'instant_penalty' => '/action/instant_penalty/$entityId',
-    'daily_report' => '/action/daily_report/$entityId',
-    'device' => '/action/device/$entityId',
-    'fellowship_fund' => '/action/fellowship_fund/$entityId',
-    // إشعارات المشاريع (إرسال للاعتماد، اعتماد/رفض، تحديث تقدّم) → المشروع نفسه.
-    'association_project' => '/action/association_project/$entityId',
-    // ─── أنواع معلوماتية (migrations 0316-0328) ───
+    'live_location_request' => '/action/live_location_request/$cleanId',
+    'dispute' => '/action/dispute/$cleanId',
+    'task' => '/action/task/$cleanId',
+    'decision' => '/action/decision/$cleanId',
+    'announcement' => '/action/announcement/$cleanId',
+    'recognition' => '/action/recognition/$cleanId',
+    'instant_penalty' => '/action/instant_penalty/$cleanId',
+    'daily_report' => '/action/daily_report/$cleanId',
+    'device' => '/action/device/$cleanId',
+    'fellowship_fund' => '/action/fellowship_fund/$cleanId',
+    'association_project' => '/action/association_project/$cleanId',
+    'notification' ||
     'daily_report_like' ||
     'daily_report_comment' ||
-    'attendance_manager_notify' => '/',
-    _ => '/',
+    'attendance_manager_notify' => '/action/notification/$cleanId',
+    _ => '/action/notification/$cleanId',
   };
 }
 

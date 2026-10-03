@@ -131,7 +131,7 @@ class MobileActionDeepLinkPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // تطبيع اسم النوع — الخلفية ترسل صيغاً مختلفة (live_location_requests،
     // attendance_corrections...) فتُوحَّد هنا قبل أي قرار توجيه (0435).
-    final canonicalKind = canonicalNotificationEntityType(kind) ?? '';
+    final canonicalKind = canonicalNotificationEntityType(kind) ?? kind;
     final session = ref.watch(authSessionProvider);
     return session.when(
       loading: () => _ActionLoader(

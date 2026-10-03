@@ -315,3 +315,7 @@
 
 > ✅ **الحالة:** سلسلة متصلة — 0001 → 0408 (405 ملف) — بلا تكرار أو فجوات. (تم التحقّق عبر `node scripts/check-migrations-integrity.mjs` في 2026-08-13.)
 
+| 0581 |  581_clinics_manager_and_department_head_access.sql | تصحيح وصول مدير العيادات (مصطفى أحمد): إضافة clinics-manager إلى get_my_access_context، وتوسيع نطاق department في can_access_employee ليشمل مدير قسم الهدف، ومنح الدور له idempotent لتمكين مساحة المدير ورؤية فريق العيادات.
+| 0600 | `0600_arabic_leave_balance_error.sql` | تعريب رسائل أخطاء رصيد الإجازات وتعيين كود الخطأ 22023 عند عدم وجود رصيد كافٍ. |
+| 0601 | `0601_attendance_state_pending_missions.sql` | دعم عرض بطاقة مأمورية العمل المعلقة أثناء انتظار موافقة المدير المباشر في لوحة الحضور. |
+| 0602 | `0602_fix_mobile_action_targets_and_defaults.sql` | إصلاح شامل لتحليل مسارات الإجراءات والإشعارات في الموبايل ودعم المعرف الافتراضي default لمسارات الغرامات والمالية والحضور والإشعارات والمشاريع. |

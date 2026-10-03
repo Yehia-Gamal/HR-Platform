@@ -72,8 +72,43 @@ void main() {
     expect(canonicalNotificationEntityType('late_in'), 'attendance');
     expect(canonicalNotificationEntityType('before_out'), 'attendance');
     expect(canonicalNotificationEntityType('casual_leave_auto_approved'), 'request');
+    expect(canonicalNotificationEntityType('mission'), 'request');
+    expect(canonicalNotificationEntityType('leave'), 'request');
+    expect(canonicalNotificationEntityType('urgent_exec'), 'request');
     expect(canonicalNotificationEntityType('instant_penalty_excuse_approved'), 'instant_penalty');
     expect(canonicalNotificationEntityType('device_pending_approval'), 'device');
+    expect(canonicalNotificationEntityType('project_submitted'), 'association_project');
+    expect(canonicalNotificationEntityType('disputes'), 'dispute');
+    expect(canonicalNotificationEntityType('tasks'), 'task');
+  });
+
+  test('روابط الحضور والتقارير بدون معرف UUID تُحل بنجاح', () {
+    expect(
+      resolveRouteFromDeepLink('ahlashabab://action/attendance?date=2026-10-03'),
+      '/action/attendance/2026-10-03?date=2026-10-03',
+    );
+    expect(
+      resolveRouteFromDeepLink('ahlashabab://action/reports/attendance?start=2026-09-13'),
+      '/action/daily_report/default?start=2026-09-13',
+    );
+  });
+
+  test('mobilePageForActionTarget ينقذ الإجراءات غير المدعومة بالـ fallback الذكي', () {
+    const targetWithUnsupportedRoute = MobileActionTarget(
+      kind: 'request',
+      recordId: _id,
+      mobileRoute: 'unsupported',
+    );
+    final page = mobilePageForActionTarget(targetWithUnsupportedRoute);
+    expect(page.runtimeType.toString(), 'MobileRequestDetailPage');
+
+    const disputeTarget = MobileActionTarget(
+      kind: 'dispute',
+      recordId: _id,
+      mobileRoute: 'dispute_detail',
+    );
+    final disputePage = mobilePageForActionTarget(disputeTarget);
+    expect(disputePage.runtimeType.toString(), 'MobileFeedDetailPage');
   });
 
   test('الإشعار الذي يحمل entityType يفتح صفحة كيانه لا القائمة العامة', () {
