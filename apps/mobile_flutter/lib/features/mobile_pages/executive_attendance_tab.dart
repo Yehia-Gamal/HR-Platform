@@ -52,6 +52,8 @@ class _ExecutiveAttendanceTabState
       'on_leave' => _FilterCategory.onLeave,
       'partial' => _FilterCategory.partial,
       'weekend' => _FilterCategory.weekend,
+      // العطلة الرسمية يوم لا دوام فيه — كالراحة، لا غياب
+      'holiday' => _FilterCategory.weekend,
       _ => _FilterCategory.absent,
     };
   }
@@ -140,11 +142,18 @@ class _ExecutiveAttendanceTabState
               counts[cat] = (counts[cat] ?? 0) + 1;
             }
 
-            // نسبة الحضور
+            // نسبة الحضور من المطلوب حضورهم فقط — كاللوحات والتقرير التنفيذي:
+            // من في مأمورية أو إجازة أو راحة ليس مطلوبًا في المقر اليوم.
             final presentCount = counts[_FilterCategory.present] ?? 0;
             final lateCount = counts[_FilterCategory.late] ?? 0;
-            final attendancePct = employees.isNotEmpty
-                ? ((presentCount + lateCount) / employees.length * 100).round()
+            final expectedCount = employees.length -
+                (counts[_FilterCategory.mission] ?? 0) -
+                (counts[_FilterCategory.onLeave] ?? 0) -
+                (counts[_FilterCategory.weekend] ?? 0);
+            final attendancePct = expectedCount > 0
+                ? ((presentCount + lateCount) / expectedCount * 100)
+                    .round()
+                    .clamp(0, 100)
                 : 0;
 
             // تطبيق الفلترة
@@ -179,6 +188,7 @@ class _ExecutiveAttendanceTabState
                 onLeave: counts[_FilterCategory.onLeave] ?? 0,
                 weekend: counts[_FilterCategory.weekend] ?? 0,
                 total: employees.length,
+                expected: expectedCount,
                 pct: attendancePct,
                 onSegmentTap: (cat) => setState(() => _selectedFilter = cat),
               ),
@@ -378,6 +388,7 @@ class _AttendanceProgress extends StatelessWidget {
     required this.onLeave,
     required this.weekend,
     required this.total,
+    required this.expected,
     required this.pct,
     required this.onSegmentTap,
   });
@@ -388,6 +399,7 @@ class _AttendanceProgress extends StatelessWidget {
   final int onLeave;
   final int weekend;
   final int total;
+  final int expected;
   final int pct;
   final ValueChanged<_FilterCategory> onSegmentTap;
 
@@ -422,7 +434,9 @@ class _AttendanceProgress extends StatelessWidget {
                 ),
               ),
               Text(
-                '$pct%  ($present + $late من $total)',
+                expected > 0
+                    ? '$pct%  (${present + late} من $expected مطلوب حضورهم)'
+                    : 'لا دوام مطلوب اليوم',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   fontWeight: FontWeight.w900,
                   color: scheme.primary,

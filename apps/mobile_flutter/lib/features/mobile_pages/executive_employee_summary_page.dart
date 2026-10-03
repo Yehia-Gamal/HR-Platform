@@ -123,11 +123,10 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
               'طلبات معلقة',
               item.pendingRequests.toString(),
               Icons.approval_rounded,
-              () => Navigator.push(
+              () => pushMobileSubpage(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const MobileActionInboxPage(),
-                ),
+                'الاعتمادات والإجراءات',
+                const MobileActionInboxPage(),
               ),
             ),
             (
@@ -145,11 +144,10 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
               Icons.analytics_outlined,
               access == null
                   ? null
-                  : () => Navigator.push(
+                  : () => pushMobileSubpage(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => MobileKpiPage(access: access),
-                      ),
+                      'مؤشرات الأداء KPI',
+                      MobileKpiPage(access: access),
                     ),
             ),
             (
@@ -498,22 +496,33 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
     'absent' => 'غائب',
     'holiday' => 'عطلة',
     'weekend' => 'راحة',
+    // كانت تظهر بالإنجليزية كما هي («missing_checkout»)
+    'missing_checkout' => 'لم يسجل الانصراف',
+    'checked_out' => 'انصرف',
+    'mission' || 'on_mission' => 'مأمورية',
+    'convoy' => 'قافلة',
+    'fundraising' || 'fundi' => 'فاندي',
+    'excused' => 'بعذر',
+    'pending' => 'قيد المراجعة',
     _ => value,
   };
 
   static IconData _attendanceIcon(String value) => switch (value) {
-    'present' => Icons.check_rounded,
+    'present' || 'checked_out' => Icons.check_rounded,
     'late' => Icons.schedule_rounded,
+    'missing_checkout' => Icons.logout_rounded,
     'on_leave' => Icons.event_busy_outlined,
     'absent' => Icons.person_off_outlined,
+    'mission' || 'on_mission' || 'convoy' || 'fundraising' || 'fundi' =>
+      Icons.directions_car_outlined,
     _ => Icons.event_outlined,
   };
 
   Color _attendanceColor(BuildContext context, String value) {
     final scheme = Theme.of(context).colorScheme;
     return switch (value) {
-      'present' => const Color(0xFF0F9F6E),
-      'late' => const Color(0xFFD98508),
+      'present' || 'checked_out' => const Color(0xFF0F9F6E),
+      'late' || 'missing_checkout' => const Color(0xFFD98508),
       'absent' => const Color(0xFFDC3D4B),
       'on_leave' => scheme.primary,
       _ => scheme.onSurfaceVariant,

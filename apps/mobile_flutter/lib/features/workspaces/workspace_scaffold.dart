@@ -4,19 +4,14 @@ import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/location_incoming_overlay.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_announcement_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_attendance_tab.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_brief_page.dart';
 
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/people_hub_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_feed_page.dart';
 
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notifications_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_official_feed_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_profile_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_team_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/team_operations_summary_page.dart';
@@ -34,6 +29,7 @@ class WorkspaceScaffold extends ConsumerWidget {
     required this.destinations,
     required this.currentIndex,
     required this.onDestinationSelected,
+    this.showServicesButton = true,
     super.key,
   });
 
@@ -44,6 +40,10 @@ class WorkspaceScaffold extends ConsumerWidget {
   final List<NavigationDestination> destinations;
   final int currentIndex;
   final ValueChanged<int> onDestinationSelected;
+
+  /// زر «الخدمات والمزيد» في الشريط العلوي — تخفيه المساحة التنفيذية لأن
+  /// «المزيد» عندها وجهة في الشريط السفلي.
+  final bool showServicesButton;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -130,11 +130,12 @@ class WorkspaceScaffold extends ConsumerWidget {
                 onPressed: () => _showProfile(context),
                 icon: AppAvatar(name: contextData.displayName, photoUrl: contextData.photoUrl, radius: 17),
               ),
-              IconButton(
-                tooltip: 'الخدمات والمزيد',
-                onPressed: () => _showMore(context, ref),
-                icon: const Icon(Icons.grid_view_rounded),
-              ),
+              if (showServicesButton)
+                IconButton(
+                  tooltip: 'الخدمات والمزيد',
+                  onPressed: () => _showMore(context, ref),
+                  icon: const Icon(Icons.grid_view_rounded),
+                ),
               const SizedBox(width: 8),
             ],
           ),
@@ -213,45 +214,6 @@ class WorkspaceScaffold extends ConsumerWidget {
     final isManagerOrOps = workspace == WorkspaceId.manager ||
         workspace == WorkspaceId.fieldOperations;
     final items = <_MoreItem>[
-      if (isExecutive) ...[
-        // §1 — صفحات تنفيذية فقط، دون تكرار اختصارات الصفحة الرئيسية
-        // ودون صفحات الموظفين الشخصية (البصمة/تصحيحاتي/تقاريري) فلا تخص
-        // المدير التنفيذي هنا.
-        _MoreItem(
-          icon: Icons.auto_awesome_outlined,
-          label: 'الملخص التنفيذي اليومي',
-          page: const ExecutiveBriefPage(),
-        ),
-        _MoreItem(
-          icon: Icons.groups_rounded,
-          label: 'الموظفون والهيكل التنظيمي',
-          page: const PeopleHubPage(),
-        ),
-        _MoreItem(
-          icon: Icons.people_alt_outlined,
-          label: 'حضور الموظفين اليوم',
-          page: Scaffold(
-            appBar: AppBar(title: const Text('حضور الموظفين اليوم')),
-            body: const ExecutiveAttendanceTab(),
-          ),
-        ),
-        _MoreItem(
-          icon: Icons.fact_check_outlined,
-          label: 'التقييمات النهائية KPI',
-          page: MobileKpiPage(access: contextData),
-        ),
-        _MoreItem(
-          icon: Icons.campaign_outlined,
-          label: 'نشر قرار أو تعميم',
-          page: const ExecutiveAnnouncementPage(),
-        ),
-
-        _MoreItem(
-          icon: Icons.approval_outlined,
-          label: 'الطلبات والاعتمادات',
-          page: const MobileRequestsPage(),
-        ),
-      ],
       // §9.1 — صندوق الإجراءات متاح لجميع الأدوار الإدارية
       if (isManagerOrOps) ...[
         _MoreItem(

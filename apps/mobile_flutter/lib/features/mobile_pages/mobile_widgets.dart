@@ -332,6 +332,10 @@ class MetricGrid extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final columns = constraints.maxWidth >= 680 ? 3 : 2;
+      // ارتفاع ثابت يناسب المحتوى (أيقونة + رقم + عنوان) ويكبر مع حجم الخط —
+      // نسبة العرض للارتفاع كانت تجعل البطاقة مربعة بفراغ كبير وسطها.
+      final textGrowth =
+          (MediaQuery.textScalerOf(context).scale(14) / 14 - 1).clamp(0.0, 1.5);
       return GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -340,7 +344,7 @@ class MetricGrid extends StatelessWidget {
           crossAxisCount: columns,
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
-          childAspectRatio: columns == 3 ? 1.25 : 1.05,
+          mainAxisExtent: 136 + 64 * textGrowth,
         ),
         itemBuilder: (context, index) {
           final (label, value, icon, onTap) = cards[index];
@@ -356,3 +360,34 @@ class MetricGrid extends StatelessWidget {
     },
   );
 }
+
+/// صفحة فرعية بشريط علوي وزر رجوع — لفتح محتوى مصمَّم كتبويب (بلا Scaffold)
+/// منفردًا، كي لا يظهر بلا عنوان ولا رجوع فوق الشاشة السابقة.
+class MobileSubpage extends StatelessWidget {
+  const MobileSubpage({
+    required this.title,
+    required this.child,
+    this.actions,
+    super.key,
+  });
+
+  final String title;
+  final Widget child;
+  final List<Widget>? actions;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(title), actions: actions),
+    body: SafeArea(top: false, child: child),
+  );
+}
+
+/// يفتح [child] في [MobileSubpage] بعنوان [title].
+Future<T?> pushMobileSubpage<T>(
+  BuildContext context,
+  String title,
+  Widget child,
+) => Navigator.push<T>(
+  context,
+  MaterialPageRoute(builder: (_) => MobileSubpage(title: title, child: child)),
+);

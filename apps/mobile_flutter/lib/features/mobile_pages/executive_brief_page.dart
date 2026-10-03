@@ -87,7 +87,11 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
         : () => _openPage(MobileOperationsCenterPage(access: access));
     final kpiTap = access == null
         ? null
-        : () => _openPage(MobileKpiPage(access: access));
+        : () => pushMobileSubpage(
+            context,
+            'مؤشرات الأداء KPI',
+            MobileKpiPage(access: access),
+          );
     final locationRequestsTap = access == null
         ? null
         : () => _openPage(LocationRequestsPage(access: access));
@@ -164,7 +168,7 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
                 previous: item.attendance.presentYesterday,
                 icon: Icons.groups_rounded,
                 positiveWhenHigher: true,
-                onTap: () => _openPage(const ExecutiveAttendanceTab()),
+                onTap: () => pushMobileSubpage(context, 'حضور الموظفين اليوم', const ExecutiveAttendanceTab()),
               ),
             ),
             const SizedBox(width: 10),
@@ -175,7 +179,7 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
                 previous: item.attendance.lateYesterday,
                 icon: Icons.schedule_rounded,
                 positiveWhenHigher: false,
-                onTap: () => _openPage(const ExecutiveAttendanceTab()),
+                onTap: () => pushMobileSubpage(context, 'حضور الموظفين اليوم', const ExecutiveAttendanceTab()),
               ),
             ),
           ],
@@ -189,25 +193,25 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
               'غياب اليوم',
               item.attendance.absentToday.toString(),
               Icons.person_off_outlined,
-              () => _openPage(const ExecutiveAttendanceTab()),
+              () => pushMobileSubpage(context, 'حضور الموظفين اليوم', const ExecutiveAttendanceTab()),
             ),
             (
               'إجازات اليوم',
               item.attendance.onLeaveToday.toString(),
               Icons.event_busy_outlined,
-              () => _openPage(const ExecutiveAttendanceTab()),
+              () => pushMobileSubpage(context, 'حضور الموظفين اليوم', const ExecutiveAttendanceTab()),
             ),
             (
               'اعتمادات معلقة',
               item.decisions.pendingApprovals.toString(),
               Icons.approval_outlined,
-              () => _openPage(const MobileActionInboxPage()),
+              () => pushMobileSubpage(context, 'الاعتمادات والإجراءات', const MobileActionInboxPage()),
             ),
             (
               'تقارير جاهزة',
               item.decisions.reportsReadyToday.toString(),
               Icons.analytics_outlined,
-              () => _openPage(const ExecutiveReportsPage()),
+              () => pushMobileSubpage(context, 'التقارير التنفيذية', const ExecutiveReportsPage()),
             ),
           ],
         ),
@@ -229,19 +233,19 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
               'المطلوب حضورهم',
               _daily(item, 'employees', 'requiredToday').toString(),
               Icons.badge_outlined,
-              () => _openPage(const ExecutiveAttendanceTab()),
+              () => pushMobileSubpage(context, 'حضور الموظفين اليوم', const ExecutiveAttendanceTab()),
             ),
             (
               'لم يسجلوا بعد',
               _daily(item, 'attendance', 'notYet').toString(),
               Icons.hourglass_top_rounded,
-              () => _openPage(const ExecutiveAttendanceTab()),
+              () => pushMobileSubpage(context, 'حضور الموظفين اليوم', const ExecutiveAttendanceTab()),
             ),
             (
               'لم يسجلوا الانصراف',
               _daily(item, 'attendance', 'missingCheckout').toString(),
               Icons.logout_rounded,
-              () => _openPage(const ExecutiveAttendanceTab()),
+              () => pushMobileSubpage(context, 'حضور الموظفين اليوم', const ExecutiveAttendanceTab()),
             ),
             (
               'مأموريات',
@@ -283,7 +287,7 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
               'تقارير KPI جاهزة',
               _daily(item, 'kpi', 'ready').toString(),
               Icons.analytics_outlined,
-              () => _openPage(const ExecutiveReportsPage()),
+              () => pushMobileSubpage(context, 'التقارير التنفيذية', const ExecutiveReportsPage()),
             ),
             (
               'طلبات موقع بلا رد',
@@ -423,9 +427,10 @@ class _AttendanceTrendChart extends ConsumerWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => Navigator.push(
+        onTap: () => pushMobileSubpage(
           context,
-          MaterialPageRoute(builder: (_) => const ExecutiveAttendanceTab()),
+          'حضور الموظفين اليوم',
+          const ExecutiveAttendanceTab(),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),

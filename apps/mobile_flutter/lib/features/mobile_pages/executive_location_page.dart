@@ -1,10 +1,8 @@
 import 'dart:async';
 
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
-import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_attendance_tab.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_employee_file_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
@@ -12,92 +10,45 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class ExecutiveLocationPage extends ConsumerStatefulWidget {
+/// طلب الموقع من الموظفين — صفحة مستقلة بشريطها (تُفتح من ملف الموظف).
+/// كانت تضم تبويب «حضور اليوم» نسخةً مكررة من تبويب الحضور، بعنوان ثالث فوقه.
+class ExecutiveLocationPage extends StatelessWidget {
   const ExecutiveLocationPage({super.key});
 
   @override
-  ConsumerState<ExecutiveLocationPage> createState() =>
-      _ExecutiveLocationPageState();
+  Widget build(BuildContext context) => const MobileSubpage(
+    title: 'طلب الموقع',
+    child: ExecutiveLocationRequestsView(),
+  );
 }
 
-class _ExecutiveLocationPageState extends ConsumerState<ExecutiveLocationPage>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabs;
+/// محتوى طلب الموقع (بلا Scaffold): بحث + طلب من الجميع + دليل الموظفين.
+/// يُستخدم في تبويب «الموظفون» بالمساحة التنفيذية وفي [ExecutiveLocationPage].
+class ExecutiveLocationRequestsView extends ConsumerStatefulWidget {
+  const ExecutiveLocationRequestsView({super.key});
+
+  @override
+  ConsumerState<ExecutiveLocationRequestsView> createState() =>
+      _ExecutiveLocationRequestsViewState();
+}
+
+class _ExecutiveLocationRequestsViewState
+    extends ConsumerState<ExecutiveLocationRequestsView> {
   final TextEditingController search = TextEditingController();
   Timer? debounce;
 
   @override
-  void initState() {
-    super.initState();
-    _tabs = TabController(length: 2, vsync: this);
-  }
-
-  @override
   void dispose() {
-    _tabs.dispose();
     search.dispose();
     debounce?.cancel();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    // Material wrapper يضمن وراثة الثيم الصحيحة داخل IndexedStack
-    return Material(
-      color: Theme.of(context).colorScheme.surface,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const BrandLogoMark(size: 36),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'المتابعة الميدانية',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                TabBar(
-                  controller: _tabs,
-                  tabs: const [
-                    Tab(
-                      icon: Icon(Icons.people_alt_rounded),
-                      text: 'حضور اليوم',
-                    ),
-                    Tab(
-                      icon: Icon(Icons.location_searching_rounded),
-                      text: 'طلب الموقع',
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabs,
-              children: [
-                const ExecutiveAttendanceTab(),
-                _LocationDirectoryTab(
-                  search: search,
-                  onDebounce: _scheduleDebounce,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Material(
+    color: Theme.of(context).colorScheme.surface,
+    child: _LocationDirectoryTab(search: search, onDebounce: _scheduleDebounce),
+  );
 
   void _scheduleDebounce() {
     debounce?.cancel();

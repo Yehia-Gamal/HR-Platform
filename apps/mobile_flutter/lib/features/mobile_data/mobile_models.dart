@@ -62,13 +62,27 @@ class ExecutiveDashboardSummary {
     required this.activeLocationRequests,
     required this.attendancePresent,
     required this.attendanceRequired,
+    this.attendanceLate = 0,
+    this.attendanceAbsent = 0,
+    this.attendanceNotYet = 0,
+    this.onLeave = 0,
+    this.fieldWork = 0,
+    this.activeEmployees = 0,
   });
   factory ExecutiveDashboardSummary.fromJson(Map<String, dynamic> json) {
-    // استخراج بيانات الحضور من dailyReport
+    // استخراج بيانات الحضور من dailyReport (get_v10_executive_daily_report — 0597)
+    int n(Map<String, dynamic> m, String k) => (m[k] as num?)?.toInt() ?? 0;
     final report = json['dailyReport'] as Map<String, dynamic>? ?? {};
     final att = report['attendance'] as Map<String, dynamic>? ?? {};
     final emp = report['employees'] as Map<String, dynamic>? ?? {};
+    final work = report['workStatus'] as Map<String, dynamic>? ?? {};
     return ExecutiveDashboardSummary(
+      attendanceLate: n(att, 'late'),
+      attendanceAbsent: n(att, 'absent'),
+      attendanceNotYet: n(att, 'notYet'),
+      onLeave: n(work, 'approvedLeave'),
+      fieldWork: n(work, 'missions') + n(work, 'convoys') + n(work, 'fundraising'),
+      activeEmployees: n(emp, 'active'),
       urgentActions: (json['urgentActions'] as num?)?.toInt() ?? 0,
       pendingApprovals: (json['pendingApprovals'] as num?)?.toInt() ?? 0,
       pendingFinalKpi: (json['pendingFinalKpi'] as num?)?.toInt() ?? 0,
@@ -93,9 +107,21 @@ class ExecutiveDashboardSummary {
   /// العدد المطلوب اليوم (من dailyReport.employees.requiredToday)
   final int attendanceRequired;
 
-  /// نسبة الحضور المحسوبة (0-100)
+  /// متأخرون (ضمن الحاضرين)، وغائبون بعد موعد الحضور، ومن لم يحن موعدهم بعد.
+  final int attendanceLate;
+  final int attendanceAbsent;
+  final int attendanceNotYet;
+
+  /// في إجازة معتمدة، وفي عمل ميداني (مأمورية/قافلة/فاندي) — خارج المطلوب حضورهم.
+  final int onLeave;
+  final int fieldWork;
+
+  /// الموظفون الخاضعون للحضور (بلا المعفين من البصمة).
+  final int activeEmployees;
+
+  /// نسبة الحضور من المطلوب حضورهم (0-100) — نفس رقم لوحة الموارد البشرية.
   int get attendanceRate => attendanceRequired > 0
-      ? (attendancePresent * 100 ~/ attendanceRequired)
+      ? (attendancePresent * 100 / attendanceRequired).round().clamp(0, 100)
       : 0;
 }
 

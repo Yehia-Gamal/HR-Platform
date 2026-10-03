@@ -218,11 +218,10 @@ class EmployeeHomePage extends ConsumerWidget {
                   'مرحلة التقييم', 
                   _stage(data.kpiStage), 
                   Icons.speed_rounded,
-                  () => Navigator.push(
+                  () => pushMobileSubpage(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => MobileKpiPage(access: access, employeeOnly: true),
-                    ),
+                    'مؤشرات الأداء',
+                    MobileKpiPage(access: access, employeeOnly: true),
                   ),
                 ),
                 (
