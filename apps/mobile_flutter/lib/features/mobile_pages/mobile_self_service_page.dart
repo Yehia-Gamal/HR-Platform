@@ -706,6 +706,7 @@ class NewRequestSheetState extends State<NewRequestSheet> {
   TimeOfDay? _endTime;
   String _leaveType = 'annual';
   late String _permitKind;
+  String? _inlineError;
 
   @override
   void initState() {
@@ -714,6 +715,7 @@ class NewRequestSheetState extends State<NewRequestSheet> {
     if (widget.type == 'mission' && widget.initial == null) {
       _titleController.text = 'مأمورية عمل خارجية';
       _reasonController.text = 'مأمورية عمل رسمية بتكليف من الإدارة';
+      _locationController.text = 'مأمورية عمل خارجية';
     }
     // 0451: تعبئة القيم الحالية عند تعديل طلب مرفوض
     final init = widget.initial;
@@ -821,28 +823,19 @@ class NewRequestSheetState extends State<NewRequestSheet> {
       '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
 
   void _submit() {
+    setState(() => _inlineError = null);
     final title = _titleController.text.trim();
     final reason = _reasonController.text.trim();
     if (title.length < 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى كتابة عنوان واضح (3 أحرف على الأقل)'),
-        ),
-      );
+      setState(() => _inlineError = 'يرجى كتابة عنوان واضح (3 أحرف على الأقل)');
       return;
     }
     if (reason.length < 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى كتابة سبب الطلب (3 أحرف على الأقل)'),
-        ),
-      );
+      setState(() => _inlineError = 'يرجى كتابة سبب الطلب (3 أحرف على الأقل)');
       return;
     }
     if (reason.length > 300) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('السبب طويل جدًا (300 حرف كحد أقصى)')),
-      );
+      setState(() => _inlineError = 'السبب طويل جدًا (300 حرف كحد أقصى)');
       return;
     }
 
@@ -850,17 +843,11 @@ class NewRequestSheetState extends State<NewRequestSheet> {
     switch (widget.type) {
       case 'leave':
         if (_startDate == null || _endDate == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('يرجى تحديد تاريخ البداية والنهاية')),
-          );
+          setState(() => _inlineError = 'يرجى تحديد تاريخ البداية والنهاية');
           return;
         }
         if (_endDate!.isBefore(_startDate!)) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('تاريخ النهاية يجب أن يكون بعد تاريخ البداية'),
-            ),
-          );
+          setState(() => _inlineError = 'تاريخ النهاية يجب أن يكون بعد تاريخ البداية');
           return;
         }
         final now = DateTime.now();
@@ -874,13 +861,9 @@ class NewRequestSheetState extends State<NewRequestSheet> {
           if (isSingleDay && isPastOrToday && isCurrentMonth) 'dayMark': true,
         };
       case 'mission':
-        final loc = _locationController.text.trim();
-        if (loc.length < 2) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('يرجى إدخال موقع المأمورية')),
-          );
-          return;
-        }
+        final loc = _locationController.text.trim().isEmpty
+            ? 'مأمورية عمل خارجية'
+            : _locationController.text.trim();
         final now = DateTime.now();
         payload = {
           'startDate': now.toIso8601String().substring(0, 10),
@@ -892,26 +875,16 @@ class NewRequestSheetState extends State<NewRequestSheet> {
       case 'convoy':
       case 'fundraising':
         if (_startDate == null || _endDate == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('يرجى تحديد تاريخ البداية والنهاية')),
-          );
+          setState(() => _inlineError = 'يرجى تحديد تاريخ البداية والنهاية');
           return;
         }
         if (_endDate!.isBefore(_startDate!)) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('تاريخ النهاية يجب أن يكون بعد تاريخ البداية'),
-            ),
-          );
+          setState(() => _inlineError = 'تاريخ النهاية يجب أن يكون بعد تاريخ البداية');
           return;
         }
-        final loc = _locationController.text.trim();
-        if (loc.length < 2) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('يرجى إدخال موقع المأمورية')),
-          );
-          return;
-        }
+        final loc = _locationController.text.trim().isEmpty
+            ? (widget.type == 'convoy' ? 'قافلة ميدانية' : 'فعالية فاندي')
+            : _locationController.text.trim();
         final nowC = DateTime.now();
         final isSingleDayC = _startDate == _endDate;
         final isPastOrTodayC = !_startDate!.isAfter(DateTime(nowC.year, nowC.month, nowC.day));
@@ -928,9 +901,7 @@ class NewRequestSheetState extends State<NewRequestSheet> {
       case 'late_permit':
       case 'early_permit':
         if (_permitDate == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('يرجى تحديد تاريخ الإذن')),
-          );
+          setState(() => _inlineError = 'يرجى تحديد تاريخ الإذن');
           return;
         }
         payload = {
@@ -1058,7 +1029,8 @@ class NewRequestSheetState extends State<NewRequestSheet> {
             TextFormField(
               controller: _locationController,
               decoration: const InputDecoration(
-                labelText: 'الموقع / الوجهة',
+                labelText: 'الموقع / الوجهة (اختياري)',
+                hintText: 'مأمورية عمل خارجية',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -1211,6 +1183,39 @@ class NewRequestSheetState extends State<NewRequestSheet> {
               alignLabelWithHint: true,
             ),
           ),
+          if (_inlineError != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.error.withValues(alpha: 0.5),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _inlineError!,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           FilledButton(onPressed: _submit, child: const Text('إرسال الطلب')),
         ],

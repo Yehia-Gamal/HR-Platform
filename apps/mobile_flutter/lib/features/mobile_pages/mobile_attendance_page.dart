@@ -355,6 +355,27 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     if (result == null || !mounted) return;
 
     try {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(width: 12),
+                Text('جاري إرسال طلب المأمورية...'),
+              ],
+            ),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
       await ref.read(mobileCommandsProvider).submitRequest(
             'mission',
             result['title'] as String,
@@ -365,6 +386,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       ref.invalidate(mobileRequestsProvider);
       ref.invalidate(employeeHomeProvider);
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('تم إرسال طلب المأمورية بنجاح إلى مسار الاعتماد.'),
@@ -374,6 +396,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       }
     } catch (error) {
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(humanizeError(error))),
         );

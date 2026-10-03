@@ -283,6 +283,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                     if (type == 'mission') {
                       if (title.text.trim().isEmpty) title.text = 'مأمورية عمل خارجية';
                       if (reason.text.trim().isEmpty) reason.text = 'مأمورية عمل رسمية بتكليف من الإدارة';
+                      if (location.text.trim().isEmpty) location.text = 'مأمورية عمل خارجية';
                     }
                   }),
                 ),
@@ -623,11 +624,13 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
           '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       final timeStr =
           '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+      final effectiveLocation =
+          requestLocation.isEmpty ? 'مأمورية عمل خارجية' : requestLocation;
       payload.addAll({
         'startDate': todayStr,
         'endDate': todayStr,
         'startTime': timeStr,
-        'location': requestLocation,
+        'location': effectiveLocation,
         'startedAtCreation': true,
       });
     } else if (type == 'convoy' || type == 'fundraising') {
@@ -727,7 +730,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
         return 'تاريخ النهاية يجب ألا يسبق البداية.';
       }
     }
-    if ((type == 'mission' || type == 'convoy' || type == 'fundraising') &&
+    if ((type == 'convoy' || type == 'fundraising') &&
         location.trim().length < 2) {
       return 'حدد مكان أو جهة التكليف.';
     }
