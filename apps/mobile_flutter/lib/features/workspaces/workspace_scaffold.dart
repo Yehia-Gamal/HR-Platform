@@ -2,6 +2,7 @@ import 'package:ahla_shabab_management_os/core/network/session_cleanup.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
+import 'package:ahla_shabab_management_os/core/widgets/host_app_bar_scope.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/location_incoming_overlay.dart';
 
@@ -58,6 +59,9 @@ class WorkspaceScaffold extends ConsumerWidget {
         ? '${nameTokens[0]} ${nameTokens[1]}'
         : contextData.displayName.trim();
     final greeting = _greetingForNow();
+    // صفحات التبويبات (الحضور، طلباتي، حسابي…) لها شريط عنوان حين تُفتح
+    // منفردة؛ هنا رأس المساحة يكفي فتُسقطه بدل شريطين متراكبين.
+    final hostedBody = HostAppBarScope(child: body);
 
     return LocationIncomingListener(
       employeeId: contextData.employeeId,
@@ -172,13 +176,13 @@ class WorkspaceScaffold extends ConsumerWidget {
                           alignment: Alignment.topCenter,
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 1440),
-                            child: body,
+                            child: hostedBody,
                           ),
                         ),
                       ),
                     ],
                   )
-                : body,
+                : hostedBody,
           ),
           bottomNavigationBar: useNavigationRail || destinations.isEmpty
               ? null
@@ -266,12 +270,6 @@ class WorkspaceScaffold extends ConsumerWidget {
                 'comms.decision.manage',
               ]),
         ),
-      ),
-
-      _MoreItem(
-        icon: Icons.account_circle_rounded,
-        label: 'حسابي وملفي',
-        page: const MobileProfilePage(),
       ),
     ];
 
@@ -374,9 +372,29 @@ class WorkspaceScaffold extends ConsumerWidget {
                     context,
                     listen: false,
                   );
+                  // تأكيد قبل الخروج كما في المساحة التنفيذية — زر بجوار الخدمات
+                  // يسهل لمسه خطأً.
+                  final confirmed = await showDialog<bool>(
+                    context: sheetContext,
+                    builder: (dialogContext) => AlertDialog(
+                      title: const Text('تسجيل الخروج'),
+                      content: const Text('هل تريد تسجيل الخروج من هذا الجهاز؟'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, false),
+                          child: const Text('إلغاء'),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.pop(dialogContext, true),
+                          child: const Text('خروج'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed != true) return;
                   final client = container.read(supabaseProvider);
                   final userId = client.auth.currentUser?.id;
-                  Navigator.pop(sheetContext);
+                  if (sheetContext.mounted) Navigator.pop(sheetContext);
                   await cleanupOnSignOut(userId: userId);
                   await client.auth.signOut();
                   container.invalidate(accessContextProvider);
@@ -417,20 +435,14 @@ class WorkspaceScaffold extends ConsumerWidget {
             ),
             const SizedBox(height: 18),
             Card(
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.badge_outlined),
-                    title: const Text('الأدوار'),
-                    subtitle: Text(contextData.roles.join('، ')),
-                  ),
-                  const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.security_outlined),
-                    title: const Text('الصلاحيات الفعالة'),
-                    subtitle: Text('${contextData.permissions.length} صلاحية'),
-                  ),
-                ],
+              child: ListTile(
+                leading: const Icon(Icons.badge_outlined),
+                title: const Text('الدور الوظيفي'),
+                subtitle: Text(
+                  contextData.roleLabels.isEmpty
+                      ? 'موظف'
+                      : contextData.roleLabels.join('، '),
+                ),
               ),
             ),
             const SizedBox(height: 14),

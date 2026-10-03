@@ -123,4 +123,37 @@ class AccessContext {
 
   bool hasAnyPermission(Iterable<String> codes) =>
       permissions.contains('*') || codes.any(permissions.contains);
+
+  /// أسماء الأدوار بالعربية للعرض، بلا تكرار ومرتبة من الأعلى — [roles]
+  /// تحمل المعرّفات اللاتينية (executive-director…) التي لا تُعرض للمستخدم.
+  List<String> get roleLabels {
+    final labels = <String>{};
+    for (final entry in _roleLabelsAr.entries) {
+      if (roles.contains(entry.key)) labels.add(entry.value);
+    }
+    return labels.toList(growable: false);
+  }
 }
+
+/// مطابقة لـ roles.name_ar في قاعدة البيانات، بترتيب الأولوية في العرض.
+const _roleLabelsAr = <String, String>{
+  'executive-director': 'المدير التنفيذي',
+  'executive': 'المدير التنفيذي',
+  'executive-secretary': 'السكرتير التنفيذي',
+  'admin': 'مدير النظام',
+  'system-admin': 'مسؤول تقني',
+  'hr-manager': 'مدير الموارد البشرية',
+  'operations-manager': 'مدير العمليات',
+  'operations-manager-1': 'مدير التشغيل 1',
+  'operations-manager-2': 'مدير التشغيل 2',
+  'department-manager': 'مدير إدارة',
+  'clinics-manager': 'مسؤول العيادات',
+  'direct-manager': 'مدير مباشر',
+  'hr-specialist': 'أخصائي موارد بشرية',
+  'operations-officer': 'ضابط عمليات',
+  'clinic-staff': 'موظف عيادات',
+  'employee': 'موظف',
+  'committee-chair': 'رئيس لجنة',
+  'committee-secretary': 'مقرر لجنة حل المشكلات',
+  'committee-member': 'عضو لجنة',
+};

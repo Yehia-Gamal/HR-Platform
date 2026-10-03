@@ -4,10 +4,7 @@ import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_executive_insights_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/employee_profile_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_tasks_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_employee_file_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
@@ -115,56 +112,41 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 14),
+        // كل بطاقة تفتح ملف هذا الموظف (فيه طلباته ومهامه وتقييمه ومستنداته)
+        // — كانت «المهام» تفتح مهام المدير التنفيذي نفسه و«KPI» صندوقه كله.
         MetricGrid(
           cards: [
-            // كل بطاقة تفتح وجهتها — الصفحات التي تحتاج سياق وصول تعطل
-            // النقر فقط إذا لم يُحمَّل بعد.
             (
               'طلبات معلقة',
               item.pendingRequests.toString(),
               Icons.approval_rounded,
-              () => pushMobileSubpage(
-                context,
-                'الاعتمادات والإجراءات',
-                const MobileActionInboxPage(),
-              ),
+              () => _openEmployeeFile(context, item),
             ),
             (
               'مهام مفتوحة',
               item.openTasks.toString(),
               Icons.task_outlined,
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const MobileTasksPage()),
-              ),
+              () => _openEmployeeFile(context, item),
             ),
             (
               'KPI الأخير',
               item.latestKpi?.score?.toStringAsFixed(1) ?? '—',
               Icons.analytics_outlined,
-              access == null
-                  ? null
-                  : () => pushMobileSubpage(
-                      context,
-                      'مؤشرات الأداء KPI',
-                      MobileKpiPage(access: access),
-                    ),
+              () => _openEmployeeFile(context, item),
             ),
             (
               'وثائق قريبة',
               item.expiringDocuments.toString(),
               Icons.warning_amber_rounded,
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => EmployeeProfilePage(
-                    employeeId: item.id,
-                    employeeName: item.name,
-                  ),
-                ),
-              ),
+              () => _openEmployeeFile(context, item),
             ),
           ],
+        ),
+        const SizedBox(height: 10),
+        FilledButton.tonalIcon(
+          onPressed: () => _openEmployeeFile(context, item),
+          icon: const Icon(Icons.folder_shared_outlined),
+          label: const Text('الملف الكامل للموظف'),
         ),
         const SizedBox(height: 16),
         Card(
@@ -299,13 +281,20 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
             ),
           ),
         const SizedBox(height: 14),
+        // يفتح ملف موقع هذا الموظف مباشرة بدل الدليل العام والبحث عنه مجددًا
         OutlinedButton.icon(
           onPressed: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const ExecutiveLocationPage()),
+            MaterialPageRoute<void>(
+              builder: (_) => ExecutiveLocationEmployeeFilePage(
+                employeeId: item.id,
+                employeeName: item.name,
+                photoUrl: item.photoUrl,
+              ),
+            ),
           ),
           icon: const Icon(Icons.location_searching_rounded),
-          label: const Text('فتح دليل الموقع وطلب تحقق مصرح'),
+          label: const Text('طلب موقع الموظف'),
         ),
         const SizedBox(height: 12),
         Text(
@@ -316,6 +305,15 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
       ],
     );
   }
+
+  void _openEmployeeFile(BuildContext context, ExecutiveEmployeeSummary item) =>
+      Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              EmployeeProfilePage(employeeId: item.id, employeeName: item.name),
+        ),
+      );
 
   Future<void> _showGrantSheet(
     BuildContext context,

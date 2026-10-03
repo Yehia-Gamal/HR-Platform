@@ -1,5 +1,6 @@
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/widgets/host_app_bar_scope.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
@@ -10,8 +11,17 @@ class MobileTasksPage extends ConsumerWidget {
   const MobileTasksPage({this.highlightId, super.key});
   final String? highlightId;
 
+  // تُفتح منفردة (من الرئيسية والإشعارات) — كانت بلا Scaffold فتظهر بلا
+  // عنوان ولا زر رجوع وبلا خلفية مرسومة.
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) => Scaffold(
+    appBar: HostAppBarScope.isActive(context)
+        ? null
+        : AppBar(title: const Text('مهامي')),
+    body: _content(context, ref),
+  );
+
+  Widget _content(BuildContext context, WidgetRef ref) {
     final tasks = ref.watch(mobileTasksProvider);
     return RefreshIndicator(
       onRefresh: () async => ref.invalidate(mobileTasksProvider),

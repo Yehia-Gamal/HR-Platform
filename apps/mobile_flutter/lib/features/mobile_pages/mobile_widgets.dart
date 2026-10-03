@@ -1,4 +1,5 @@
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
+import 'package:ahla_shabab_management_os/core/widgets/host_app_bar_scope.dart';
 import 'package:flutter/material.dart';
 
 class MobileFilterOption {
@@ -378,7 +379,7 @@ class MobileSubpage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(title), actions: actions),
-    body: SafeArea(top: false, child: child),
+    body: SafeArea(top: false, child: HostAppBarScope(child: child)),
   );
 }
 

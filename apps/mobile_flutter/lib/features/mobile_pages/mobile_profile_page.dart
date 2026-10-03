@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'dart:ui' as ui;
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
+import 'package:ahla_shabab_management_os/core/widgets/host_app_bar_scope.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/phone_display.dart';
 import 'package:ahla_shabab_management_os/core/theme/theme_mode_controller.dart';
@@ -27,15 +28,18 @@ class MobileProfilePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(mobileProfileProvider);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('حسابي وملفي الوظيفي'),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12),
-            child: Center(child: BrandLogoMark(size: 34)),
-          ),
-        ],
-      ),
+      // تبويب «حسابي» تحت رأس المساحة (فيه الشعار) — لا شريط ثانٍ
+      appBar: HostAppBarScope.isActive(context)
+          ? null
+          : AppBar(
+              title: const Text('حسابي وملفي الوظيفي'),
+              actions: const [
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Center(child: BrandLogoMark(size: 34)),
+                ),
+              ],
+            ),
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(mobileProfileProvider),
         child: profile.when(

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/gps_preflight_banner.dart';
+import 'package:ahla_shabab_management_os/core/widgets/host_app_bar_scope.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_corrections_section.dart';
@@ -139,7 +140,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     ref.watch(attendanceRealtimeProvider);
     final state = ref.watch(attendanceStateProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('الحضور والانصراف')),
+      appBar: HostAppBarScope.isActive(context)
+          ? null
+          : AppBar(title: const Text('الحضور والانصراف')),
       body: SafeArea(
         child: Column(
           children: [

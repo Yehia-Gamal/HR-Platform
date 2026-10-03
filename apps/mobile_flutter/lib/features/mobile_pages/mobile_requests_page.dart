@@ -1,5 +1,6 @@
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/widgets/host_app_bar_scope.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_self_service_page.dart';
@@ -39,6 +40,10 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
     final balances = ref.watch(myLeaveBalancesProvider);
     // تبويبات بلا إعادة تحميل: الإجازات/الطلبات + تكليفات العمل (البند 12).
     return Scaffold(
+      // تُفتح منفردة من الرئيسية والإشعارات — كانت بلا عنوان ولا زر رجوع
+      appBar: HostAppBarScope.isActive(context)
+          ? null
+          : AppBar(title: const Text('الطلبات')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _createRequest(context, ref),
         icon: const Icon(Icons.add),

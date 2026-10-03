@@ -604,70 +604,122 @@ class _ErrorCard extends StatelessWidget {
   );
 }
 
-/// شريط اتجاه الحضور لآخر 7 أيام — نقاط ملوّنة تعكس الحضور/التأخر/الغياب.
+/// شريط الحضور لآخر 7 أيام — نقطة لكل يوم بلون حالته في الكشف الرسمي.
+/// أول أيام الشهر تُكمَل من كشف الشهر السابق (كان يعرض يومين أو ثلاثة تحت
+/// عنوان «آخر 7 أيام»)، والألوان من أعلام الخادم لا من أسماء الأيام (كان السبت
+/// يُلوَّن راحةً وهو يوم عمل، وكل الأيام تُكتب «ا» لأنها تبدأ بـ«ال»).
 class _AttendanceSparkline extends ConsumerWidget {
   const _AttendanceSparkline();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = DateTime.now();
-    final statement = ref.watch(myMonthlyStatementProvider((now.year, now.month)));
-    return statement.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-      data: (data) {
-        final today = DateTime(now.year, now.month, now.day);
-        final last7 = data.days
-            .where((d) {
-              if (d.isFuture || d.date.isEmpty) return false;
-              final dt = DateTime.tryParse(d.date);
-              return dt != null && !dt.isAfter(today);
-            })
-            .toList()
-          ..sort((a, b) => a.date.compareTo(b.date));
-        final visible = last7.length > 7 ? last7.sublist(last7.length - 7) : last7;
-        if (visible.isEmpty) return const SizedBox.shrink();
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    final today = DateTime(now.year, now.month, now.day);
+    final current = ref.watch(
+      myMonthlyStatementProvider((now.year, now.month)),
+    );
+    final prevMonth = DateTime(now.year, now.month - 1);
+    final previous = now.day < 7
+        ? ref.watch(myMonthlyStatementProvider((prevMonth.year, prevMonth.month)))
+        : null;
+    final byDate = <String, AttendanceStatementDay>{};
+    for (final d in [
+      ...?previous?.asData?.value.days,
+      ...?current.asData?.value.days,
+    ]) {
+      final dt = DateTime.tryParse(d.date);
+      if (d.isFuture || dt == null || dt.isAfter(today)) continue;
+      byDate[d.date] = d;
+    }
+    final days = byDate.values.toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+    final visible = days.length > 7 ? days.sublist(days.length - 7) : days;
+    if (visible.isEmpty) return const SizedBox.shrink();
+    final textTheme = Theme.of(context).textTheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.show_chart_rounded, size: 18),
-                    const SizedBox(width: 6),
-                    Text(
-                      'اتجاه الحضور — آخر 7 أيام',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: visible.map((d) => _SparkDot(day: d)).toList(),
+                const Icon(Icons.show_chart_rounded, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  'الحضور — ${_lastDaysLabel(visible.length)}',
+                  style: textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ],
             ),
-          ),
-        );
-      },
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: visible.map((d) => _SparkDot(day: d)).toList(),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 6,
+              children: [
+                for (final (color, label) in _SparkDot.legend)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: color,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(label, style: textTheme.labelSmall),
+                    ],
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
+
+  static String _lastDaysLabel(int n) => switch (n) {
+    1 => 'آخر يوم',
+    2 => 'آخر يومين',
+    _ => 'آخر $n أيام',
+  };
 }
 
 class _SparkDot extends StatelessWidget {
   const _SparkDot({required this.day});
   final AttendanceStatementDay day;
 
+  static final _present = Colors.green.shade500;
+  static final _late = Colors.orange.shade400;
+  static final _absent = Colors.red.shade400;
+  static final _leave = Colors.blue.shade400;
+  static final _rest = Colors.grey.shade400;
+
+  static final legend = <(Color, String)>[
+    (_present, 'حضور'),
+    (_late, 'تأخير'),
+    (_absent, 'غياب'),
+    (_leave, 'إجازة أو مأمورية'),
+    (_rest, 'راحة أو عطلة'),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final (color, label) = _dotColor(context, day);
+    final color = _dotColor(day);
+    final date = DateTime.tryParse(day.date);
+    final status = day.status.isNotEmpty ? day.status : 'غير مسجل';
     return Tooltip(
-      message: '${day.dayNameAr}: $label',
+      message: '${day.dayNameAr} ${date?.day ?? ''}: $status',
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -677,14 +729,21 @@ class _SparkDot extends StatelessWidget {
             decoration: BoxDecoration(shape: BoxShape.circle, color: color),
             child: Center(
               child: Text(
-                (DateTime.tryParse(day.date)?.day ?? '?').toString(),
-                style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w700),
+                '${date?.day ?? '?'}',
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            day.dayNameAr.isNotEmpty ? day.dayNameAr[0] : '',
+            // «الخميس» ← «خميس»: الحرف الأول من كل الأيام «ا»
+            day.dayNameAr.startsWith('ال')
+                ? day.dayNameAr.substring(2)
+                : day.dayNameAr,
             style: Theme.of(context).textTheme.labelSmall,
           ),
         ],
@@ -692,21 +751,23 @@ class _SparkDot extends StatelessWidget {
     );
   }
 
-  static (Color, String) _dotColor(BuildContext context, AttendanceStatementDay day) {
-    if (day.isOfficialHoliday || day.dayNameAr == 'الجمعة' || day.dayNameAr == 'السبت') {
-      return (Colors.grey.shade400, 'إجازة');
-    }
-    if (day.hasLeave) return (Colors.blue.shade400, 'إجازة');
-    if (day.hasMission) return (const Color(0xFF0EA5E9), 'مأمورية');
+  static Color _dotColor(AttendanceStatementDay day) {
+    if (day.isOfficialHoliday) return _rest;
+    if (day.hasLeave) return _leave;
+    if (day.hasMission) return const Color(0xFF0EA5E9);
     if (day.hasConvoyFundi) {
       return day.status.contains('فاندي')
-          ? (const Color(0xFFDB2777), 'فاندي (ترفيهي)')
-          : (const Color(0xFF8B5CF6), 'قافلة مساعدات');
+          ? const Color(0xFFDB2777)
+          : const Color(0xFF8B5CF6);
     }
-    if (day.isAbsent) return (Colors.red.shade400, 'غياب');
-    if (day.lateMinutes > 0) return (Colors.orange.shade400, 'تأخر ${day.lateMinutes} د');
-    if (day.isCompleted) return (Colors.green.shade500, 'حضور كامل');
-    return (Colors.grey.shade300, 'غير مسجل');
+    if (day.isAbsent) return _absent;
+    if (day.lateMinutes > 0) return _late;
+    if (day.isCompleted || day.isOpenShift || day.checkIn != null) {
+      return _present;
+    }
+    // راحة أسبوعية أو يوم غير مطلوب (قبل التعيين، معفى…) حسب الخادم
+    if (!day.isDue) return _rest;
+    return Colors.grey.shade300;
   }
 }
 
@@ -725,14 +786,17 @@ class _ConnectivitySyncBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final connectivity = ref.watch(connectivityProvider);
+    final pending = ref.watch(syncQueueCountProvider).value ?? 0;
     final isOffline = connectivity == ConnectivityState.offline ||
         connectivity == ConnectivityState.reconnecting;
+    // متصل ولا عمليات معلقة: لا داعي لشريط دائم «متصل بالخادم» في كل فتح
+    if (!isOffline && pending == 0) return const SizedBox.shrink();
 
     final primaryColor = isOffline ? const Color(0xFFF59E0B) : const Color(0xFF10B981);
     final icon = isOffline ? Icons.cloud_off_rounded : Icons.cloud_done_rounded;
     final text = isOffline
         ? 'وضع عدم الاتصال نشط · البصمات تحفظ محلياً وسترفع فور عودة الشبكة (اضغط للتفاصيل)'
-        : 'متصل بالخادم · البصمات والمزامنة آمنة ومحدثة (اضغط للتفاصيل)';
+        : 'عمليات بانتظار المزامنة: $pending (اضغط للتفاصيل)';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),

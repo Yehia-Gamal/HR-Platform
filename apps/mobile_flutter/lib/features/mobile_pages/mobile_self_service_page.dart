@@ -9,6 +9,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/my_instant_penal
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_learning_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/service_portal_page.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/widgets/host_app_bar_scope.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -32,7 +33,9 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
     final requests = ref.watch(mobileRequestsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('طلباتي')),
+      appBar: HostAppBarScope.isActive(context)
+          ? null
+          : AppBar(title: const Text('طلباتي')),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(myLeaveBalancesProvider);
