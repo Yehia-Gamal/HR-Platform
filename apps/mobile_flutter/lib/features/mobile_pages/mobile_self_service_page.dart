@@ -950,23 +950,88 @@ class NewRequestSheetState extends State<NewRequestSheet> {
 
           // ── حقول حسب النوع ──
           if (widget.type == 'leave') ...[
-            DropdownButtonFormField<String>(
-              value: _leaveType,
-              decoration: const InputDecoration(
-                labelText: 'نوع الإجازة',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'annual', child: Text('سنوية')),
-                DropdownMenuItem(value: 'casual', child: Text('طارئة')),
-                DropdownMenuItem(value: 'sick', child: Text('مرضية')),
-                DropdownMenuItem(value: 'unpaid', child: Text('بدون راتب')),
-                DropdownMenuItem(
-                  value: 'weekly_rest_comp',
-                  child: Text('بدل راحة أسبوعية'),
-                ),
-              ],
-              onChanged: (v) => setState(() => _leaveType = v!),
+            Consumer(
+              builder: (context, ref, _) {
+                final balancesAsync = ref.watch(myLeaveBalancesProvider);
+                final balances = balancesAsync.asData?.value ?? const <MobileLeaveBalance>[];
+                MobileLeaveBalance? bal;
+                for (final b in balances) {
+                  if (b.code == _leaveType) {
+                    bal = b;
+                    break;
+                  }
+                }
+                final avail = bal?.availableUnits ?? 0;
+                final isZero = avail <= 0 && _leaveType != 'unpaid';
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      value: _leaveType,
+                      decoration: const InputDecoration(
+                        labelText: 'نوع الإجازة',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'annual', child: Text('سنوية (اعتيادية)')),
+                        DropdownMenuItem(value: 'casual', child: Text('عارضة (طارئة)')),
+                        DropdownMenuItem(value: 'sick', child: Text('مرضية')),
+                        DropdownMenuItem(value: 'weekly_rest_comp', child: Text('بدل راحة أسبوعية')),
+                        DropdownMenuItem(value: 'unpaid', child: Text('بدون راتب')),
+                      ],
+                      onChanged: (v) => setState(() {
+                        _leaveType = v!;
+                        _inlineError = null;
+                      }),
+                    ),
+                    if (_leaveType != 'unpaid') ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isZero
+                              ? Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.4)
+                              : Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isZero ? Icons.warning_amber_rounded : Icons.check_circle_outline,
+                              size: 16,
+                              color: isZero
+                                  ? Theme.of(context).colorScheme.error
+                                  : Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'الرصيد المتاح: ${avail.toStringAsFixed(1)} يوم',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: isZero
+                                    ? Theme.of(context).colorScheme.onErrorContainer
+                                    : Theme.of(context).colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                            if (isZero) ...[
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Text(
+                                  '(الرصيد صفر، اختر عارضة أو بدل راحة)',
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 12),
             Row(

@@ -141,7 +141,8 @@ Future<void> showAttendanceCorrectionSheet(
   final schedule =
       ref.read(myAttendanceServicesProvider).asData?.value.schedule ??
       const <MobileScheduleDay>[];
-  final accepted = await showModalBottomSheet<bool>(
+  String? inlineError;
+  final accepted = await showModalBottomSheet<Map<String, dynamic>>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
@@ -211,7 +212,10 @@ Future<void> showAttendanceCorrectionSheet(
                   DropdownMenuItem(value: 'leave', child: Text('إجازة')),
                   DropdownMenuItem(value: 'other', child: Text('أخرى')),
                 ],
-                onChanged: (value) => setState(() => type = value ?? 'other'),
+                onChanged: (value) => setState(() {
+                  type = value ?? 'other';
+                  inlineError = null;
+                }),
               ),
               // 0439: تحديد الوقت الفعلي لتسجيل البصمة (حضور/انصراف) — مثل «طلباتي».
               if (_editableTimeType(type)) ...[
@@ -248,14 +252,67 @@ Future<void> showAttendanceCorrectionSheet(
                 controller: reason,
                 minLines: 3,
                 maxLines: 5,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'سبب التصحيح',
-                  hintText: 'اشرح ما حدث بوضوح',
+                  hintText: type == 'mission'
+                      ? 'مأمورية عمل رسمية بتكليف من الإدارة'
+                      : 'اشرح ما حدث بوضوح (اختياري)',
                 ),
+                onChanged: (_) {
+                  if (inlineError != null) setState(() => inlineError = null);
+                },
               ),
+              if (inlineError != null) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Theme.of(sheetContext).colorScheme.errorContainer.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, size: 18, color: Theme.of(sheetContext).colorScheme.error),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          inlineError!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(sheetContext).colorScheme.onErrorContainer,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: () => Navigator.pop(sheetContext, true),
+                onPressed: () {
+                  String effectiveReason = reason.text.trim();
+                  if (effectiveReason.isEmpty) {
+                    effectiveReason = switch (type) {
+                      'mission' => 'مأمورية عمل رسمية بتكليف من الإدارة',
+                      'missing_check_in' => 'نسيان تسجيل بصمة الحضور',
+                      'missing_check_out' => 'نسيان تسجيل بصمة الانصراف',
+                      'wrong_time' => 'تصحيح وقت البصمة المسجل',
+                      'wrong_status' => 'تصحيح حالة يوم العمل',
+                      'leave' => 'طلب إجازة رسمية',
+                      _ => 'طلب تصحيح حضور رسمي',
+                    };
+                  } else if (effectiveReason.length < 3) {
+                    setState(() => inlineError = 'يرجى كتابة سبب واضح (3 أحرف على الأقل)');
+                    return;
+                  }
+                  Navigator.pop(sheetContext, {
+                    'workDate': workDate,
+                    'type': type,
+                    'actualTime': actualTime,
+                    'reason': effectiveReason,
+                  });
+                },
                 child: const Text('إرسال للمراجعة'),
               ),
             ],
@@ -264,58 +321,77 @@ Future<void> showAttendanceCorrectionSheet(
       },
     ),
   );
-  if (accepted != true) {
+  if (accepted == null) {
     reason.dispose();
     return;
   }
-  if (reason.text.trim().length < 5) {
+  final effectiveWorkDate = accepted['workDate'] as DateTime;
+  final effectiveType = accepted['type'] as String;
+  final effectiveActualTime = accepted['actualTime'] as TimeOfDay?;
+  final effectiveReason = accepted['reason'] as String;
+
+  try {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('يرجى إدخال 5 أحرف على الأقل لسبب التصحيح'),
+          content: Row(
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(width: 12),
+              Text('جاري إرسال طلب التصحيح...'),
+            ],
+          ),
+          duration: Duration(seconds: 4),
         ),
       );
     }
-    reason.dispose();
-    return;
-  }
-  try {
     // 0439: نبني وقت البصمة الفعلي (حضور/انصراف) من الوقت المختار إن وُجد.
     DateTime? checkIn;
     DateTime? checkOut;
-    if (actualTime != null) {
+    if (effectiveActualTime != null) {
       final base = DateTime(
-        workDate.year,
-        workDate.month,
-        workDate.day,
-        actualTime!.hour,
-        actualTime!.minute,
+        effectiveWorkDate.year,
+        effectiveWorkDate.month,
+        effectiveWorkDate.day,
+        effectiveActualTime.hour,
+        effectiveActualTime.minute,
       );
-      if (type == 'missing_check_in') {
+      if (effectiveType == 'missing_check_in') {
         checkIn = base;
-      } else if (type == 'missing_check_out') {
+      } else if (effectiveType == 'missing_check_out') {
         checkOut = base;
       }
     }
     await ref
         .read(mobileCommandsProvider)
         .requestAttendanceCorrection(
-          workDate: workDate,
-          type: type,
-          reason: reason.text,
+          workDate: effectiveWorkDate,
+          type: effectiveType,
+          reason: effectiveReason,
           checkIn: checkIn,
           checkOut: checkOut,
         );
     if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('تم إرسال طلب التصحيح.')));
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم إرسال طلب التصحيح بنجاح للمراجعة والاعتماد.'),
+        ),
+      );
     }
   } catch (error) {
     if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(humanizeError(error))),
+      );
     }
   } finally {
     reason.dispose();

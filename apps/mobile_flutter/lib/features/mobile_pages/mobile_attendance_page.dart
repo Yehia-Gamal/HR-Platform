@@ -238,6 +238,10 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           working: _working,
           onEnd: () => _endMissionFlow(mission),
         );
+      } else if (mission.execStatus == 'pending') {
+        missionCard = _MissionPendingCard(
+          type: mission.type,
+        );
       }
     }
 
@@ -1019,6 +1023,78 @@ class _MissionStartCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MissionPendingCard extends StatelessWidget {
+  const _MissionPendingCard({required this.type});
+
+  final String type;
+
+  String get _typeLabel => switch (type) {
+    'convoy' => 'تكليف قافلة',
+    'fundraising' => 'مهمة فاندي',
+    _ => 'مأمورية عمل خارجية',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppColors.statusWarning.withValues(alpha: 0.4)),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.statusWarning.withValues(alpha: 0.08),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.statusWarning.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.hourglass_top_rounded,
+                color: AppColors.statusWarning,
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'طلب $_typeLabel قيد المراجعة',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'تم إرسال الطلب بنجاح إلى الإدارة وبانتظار الاعتماد. ستظهر بطاقة بدء المأمورية فور الموافقة.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.4,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
