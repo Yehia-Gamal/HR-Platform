@@ -116,8 +116,9 @@ export interface EmployeeOverviewRow {
   lastAccuracy: number | null;
   lastAddressAr: string | null;
   lastLocationAt: string | null;
-  checkInAt: string | null;
-  checkOutAt: string | null;
+  /** أول بصمة حضور وآخر انصراف (timestamptz) — بأسماء حقول get_executive_attendance_overview */
+  firstCheckIn: string | null;
+  lastCheckOut: string | null;
 }
 
 export interface ExecutiveOverviewData {

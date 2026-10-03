@@ -34,7 +34,7 @@ export function exportPulseListPDF(employees: EmployeeOverviewRow[], kind: Pulse
         <td style="font-weight:700">${esc(e.name)}</td>
         <td style="text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${esc(e.employeeCode ?? '—')}</td>
         <td>${esc(e.department ?? '—')}</td>
-        <td style="text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${e.checkInAt ? esc(formatClock(e.checkInAt)) : '—'}</td>
+        <td style="text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${e.firstCheckIn ? esc(formatClock(e.firstCheckIn)) : '—'}</td>
         <td style="text-align:center">${esc(statusLabel)}</td>
       </tr>`;
     })

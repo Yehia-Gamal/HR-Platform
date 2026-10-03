@@ -422,8 +422,7 @@ class _AttendancePercentageCard extends StatelessWidget {
     final now = DateTime.now();
     final isCurrentMonth = statement.year == now.year && statement.month == now.month;
 
-    // احتساب دقيق للأيام المنقضية ومعدل الالتزام والتغطية
-    int elapsedWorkDays = 0;
+    // تفصيل أيام الشهر للعرض فقط — النسبة نفسها من الخادم
     int presentInOffice = 0;
     int convoysCount = 0;
     int fundiCount = 0;
@@ -445,7 +444,6 @@ class _AttendancePercentageCard extends StatelessWidget {
         if (isFutureDay) {
           upcomingWorkDays++;
         } else {
-          elapsedWorkDays++;
           if (d.status == 'حاضر') {
             presentInOffice++;
           } else if (d.status.contains('فاندي')) {
@@ -472,31 +470,31 @@ class _AttendancePercentageCard extends StatelessWidget {
       missionsCount = s.missionDays;
       unexcusedAbsences = s.absentDays;
       upcomingWorkDays = s.upcomingDays;
-      elapsedWorkDays = s.attendanceRateDueDays > 0
-          ? s.attendanceRateDueDays
-          : (s.dueScheduledDays > 0 ? s.dueScheduledDays : (s.scheduledDays - upcomingWorkDays).clamp(1, 31));
     }
 
-    if (elapsedWorkDays <= 0) elapsedWorkDays = 1;
+    // النسبة من الخادم — نفس رقم الويب وملف PDF: الأيام المحتسبة حضورًا (بالمقر أو
+    // مأمورية/قافلة/فاندي) ÷ أيام العمل المستحقة بعد استبعاد الإجازات والطلبات المعلّقة.
+    // (كانت تُحسب هنا بصيغة مختلفة تعدّ الإجازة حضورًا فيختلف الرقم عن الكشف المطبوع.)
+    final isExempt = s.isAttendanceExempt;
+    final dueDays = s.attendanceRateDueDays;
+    final rateAvailable = !isExempt && dueDays > 0;
+    final double displayPct = rateAvailable ? statement.attendancePercentage.clamp(0.0, 100.0) : 0;
+    final pctText = isExempt
+        ? 'معفى'
+        : rateAvailable
+            ? '${(displayPct >= 99.5 && displayPct < 100 ? 99 : displayPct.round())}%'
+            : '—';
+    final excludedLeave = s.attendanceRateExcludedLeaveDays;
 
-    // مجموع أيام التغطية والالتزام (حضور بالمقر + قوافل + فاندي + مأموريات + إجازات معتمدة)
-    final compliantDays = presentInOffice + convoysCount + fundiCount + missionsCount + leavesCount;
-    
-    // التوافق مع الاختبارات الأحادية عند غياب الأيام
-    final double displayPct;
-    if (statement.days.isEmpty && statement.attendancePercentage > 0) {
-      displayPct = statement.attendancePercentage;
-    } else {
-      displayPct = ((compliantDays / elapsedWorkDays) * 100).clamp(0.0, 100.0);
-    }
+    final purePresenceRate = rateAvailable ? ((presentInOffice / dueDays) * 100).clamp(0.0, 100.0) : 0.0;
 
-    final purePresenceRate = ((presentInOffice / elapsedWorkDays) * 100).clamp(0.0, 100.0);
-
-    final pctColor = displayPct >= 85
-        ? const Color(0xFF0F9F6E)
-        : displayPct >= 70
-            ? const Color(0xFFF59E0B)
-            : scheme.error;
+    final pctColor = !rateAvailable
+        ? scheme.onSurfaceVariant
+        : displayPct >= 85
+            ? const Color(0xFF0F9F6E)
+            : displayPct >= 70
+                ? const Color(0xFFF59E0B)
+                : scheme.error;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -532,16 +530,16 @@ class _AttendancePercentageCard extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            '${displayPct.toStringAsFixed(0)}%',
+                            pctText,
                             style: TextStyle(
                               fontWeight: FontWeight.w900,
-                              fontSize: 22,
+                              fontSize: isExempt ? 18 : 22,
                               color: pctColor,
                               height: 1.1,
                             ),
                           ),
                           Text(
-                            'حضور والتزام',
+                            'نسبة الحضور',
                             style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                   fontWeight: FontWeight.w700,
                                   color: scheme.onSurfaceVariant,
@@ -591,10 +589,19 @@ class _AttendancePercentageCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       _PctDetailRow(
-                        label: 'أيام الالتزام والتغطية',
-                        value: '$compliantDays من $elapsedWorkDays يوم',
+                        label: 'أيام محتسبة حضورًا',
+                        value: isExempt
+                            ? 'معفى من البصمة بقرار الإدارة'
+                            : rateAvailable
+                                ? '${s.attendanceRatePresentDays} من $dueDays يوم مستحق'
+                                : 'لا توجد أيام عمل مستحقة بعد',
                         color: pctColor,
                       ),
+                      if (excludedLeave > 0 && rateAvailable)
+                        _PctDetailRow(
+                          label: 'مستبعد من النسبة',
+                          value: '$excludedLeave يوم إجازة',
+                        ),
                       _PctDetailRow(label: 'حضور بالمقر', value: '$presentInOffice يوم'),
                       if (convoysCount > 0)
                         _PctDetailRow(
@@ -612,7 +619,7 @@ class _AttendancePercentageCard extends StatelessWidget {
                           value: '$missionsCount يوم',
                         ),
                       if (leavesCount > 0)
-                        _PctDetailRow(label: 'إجازات معتمدة', value: '$leavesCount يوم'),
+                        _PctDetailRow(label: 'إجازات', value: '$leavesCount يوم'),
                       if (unexcusedAbsences > 0)
                         _PctDetailRow(
                           label: 'غياب غير مبرر',
@@ -644,7 +651,7 @@ class _AttendancePercentageCard extends StatelessWidget {
                 ),
                 _StatBadge(
                   label: 'حضور المقر فقط',
-                  value: '${purePresenceRate.toStringAsFixed(0)}%',
+                  value: rateAvailable ? '${purePresenceRate.toStringAsFixed(0)}%' : '—',
                   icon: Icons.business_outlined,
                 ),
               ],

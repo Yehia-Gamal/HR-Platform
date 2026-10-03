@@ -29,14 +29,14 @@ function makeEmployee(overrides: Partial<EmployeeOverviewRow>): EmployeeOverview
     lastAccuracy: null,
     lastAddressAr: null,
     lastLocationAt: null,
-    checkInAt: null,
-    checkOutAt: null,
+    firstCheckIn: null,
+    lastCheckOut: null,
     ...overrides,
   };
 }
 
 const employees: EmployeeOverviewRow[] = [
-  makeEmployee({ id: '1-present', status: 'present', checkInAt: '2026-08-05T06:30:00Z' }),
+  makeEmployee({ id: '1-present', status: 'present', firstCheckIn: '2026-08-05T06:30:00Z' }),
   makeEmployee({ id: '2-late', status: 'late', lateMinutes: 25 }),
   makeEmployee({ id: '3-left-early', status: 'left_early', lateMinutes: 0 }),
   makeEmployee({ id: '4-checked-out', status: 'checked_out' }),
@@ -66,11 +66,13 @@ describe('TodayPulseSection classification', () => {
     expect(ids).toEqual(['5-absent']);
   });
 
-  it('late = متأخر + انصرف مبكرًا', () => {
+  it('late = من سُجّل له تأخير فقط — الانصراف المبكر وحده ليس تأخيرًا', () => {
     const ids = lateEmployees(employees).map((e) => e.id);
     expect(ids).toContain('2-late');
-    expect(ids).toContain('3-left-early');
+    expect(ids).not.toContain('3-left-early');
     expect(ids).not.toContain('1-present');
+    // تأخر ثم انصرف مبكرًا: يبقى في قائمة المتأخرين
+    expect(lateEmployees([makeEmployee({ id: 'x', status: 'left_early', lateMinutes: 20 })]).map((e) => e.id)).toEqual(['x']);
   });
 
   it('location requests = من لديهم طلب نشط فقط', () => {
@@ -89,10 +91,12 @@ describe('TodayPulseSection classification', () => {
     ).toBe(15);
   });
 
-  it('presentPercent = نسبة من حضروا إلى الإجمالي، و0 للقائمة الفارغة', () => {
-    // 6 من 10 حضروا (present, late, left_early, checked_out, with-request, responded)
-    expect(presentPercent(employees)).toBe(60);
+  it('presentPercent = من حضروا ÷ المطلوب حضورهم (بلا إجازة/مأمورية/راحة/معفى)، و0 للقائمة الفارغة', () => {
+    // 6 حضروا من 8 مطلوبين (العشرة ناقص الإجازة والمأمورية)
+    expect(presentPercent(employees)).toBe(75);
+    expect(presentPercent([...employees, makeEmployee({ id: '11-exempt', status: 'exempt' })])).toBe(75);
     expect(presentPercent([])).toBe(0);
+    expect(presentPercent([makeEmployee({ id: 'w', status: 'weekend' })])).toBe(0);
   });
 
   it('respondedCount يعدّ accepted/active/completed فقط من أصحاب الطلبات', () => {

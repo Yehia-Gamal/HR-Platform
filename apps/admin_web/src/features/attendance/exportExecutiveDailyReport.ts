@@ -4,8 +4,16 @@ import { fmtMinutesCompact } from './attendanceShared';
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 const WEEKDAYS = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
-export function fmtTime12(t: string | null | undefined): string {
-  if (!t) return '—';
+const CAIRO_HM = new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+
+/** وقت بصيغة 12 ساعة: يقبل «HH:MM» أو تاريخًا كاملًا (timestamptz) فيعرضه بتوقيت القاهرة. */
+export function fmtTime12(value: string | null | undefined): string {
+  if (!value) return '—';
+  let t = value;
+  if (/^\d{4}-\d{2}-\d{2}T/.test(t)) {
+    const d = new Date(t);
+    if (!Number.isNaN(d.getTime())) t = CAIRO_HM.format(d);
+  }
   const m = /^(\d{1,2}):(\d{2})/.exec(t);
   if (!m) return t;
   let h = parseInt(m[1], 10);
@@ -40,18 +48,23 @@ function statusLabel(status: string | null): string {
     pending: 'قيد الانتظار',
     on_mission: 'مأمورية',
     missing_checkout: 'بصمة بلا انصراف',
+    not_yet: 'لم يحضر بعد',
+    assignment: 'مأمورية / قافلة',
+    checked_out: 'انصرف',
+    left_early: 'انصرف مبكرًا',
+    exempt: 'معفى من البصمة',
   };
   if (!status) return '—';
   return map[status] ?? status;
 }
 
 function statusClass(status: string | null): string {
-  if (status === 'present') return 'status-present';
-  if (status === 'late') return 'status-late';
+  if (status === 'present' || status === 'checked_out') return 'status-present';
+  if (status === 'late' || status === 'left_early') return 'status-late';
   if (status === 'absent') return 'status-absent';
   if (status === 'missing_checkout') return 'status-missing';
   if (status === 'on_leave') return 'status-leave';
-  if (status === 'on_mission') return 'status-mission';
+  if (status === 'on_mission' || status === 'assignment') return 'status-mission';
   return 'status-neutral';
 }
 
@@ -69,33 +82,55 @@ export function buildExecutiveDailyReportHtml(
   const monthName = MONTHS[m - 1] ?? '';
 
   // ========== ملخص تنفيذي ==========
-  const totalEmployees = summary.employees?.active ?? employees.length;
-  const presentCount = employees.filter((e) => e.status === 'present' || e.status === 'late').length;
-  const lateCount = employees.filter((e) => e.status === 'late').length;
-  const absentCount = employees.filter((e) => e.status === 'absent').length;
-  const leaveCount = employees.filter((e) => e.status === 'on_leave').length;
-  const missionCount = employees.filter((e) => e.status === 'on_mission').length;
-  const onTimeCount = employees.filter((e) => e.status === 'present').length;
+  // من أرقام الخادم (get_v10_executive_daily_report — نفس مصدر لوحة الموارد البشرية)،
+  // لا من عدّ قائمة الموظفين: كانت القائمة تصل فارغة فيُطبع الحضور 0 والنسبة 0%.
+  const totalEmployees = summary.employees.active;
+  const requiredToday = summary.employees.requiredToday;
+  const presentCount = summary.attendance.present;
+  const lateCount = summary.attendance.late;
+  const absentCount = summary.attendance.absent;
+  const notYetCount = summary.attendance.notYet;
+  const leaveCount = summary.workStatus.approvedLeave;
+  const fieldCount = summary.workStatus.missions + summary.workStatus.convoys + summary.workStatus.fundraising;
+  const onTimeCount = Math.max(0, presentCount - lateCount);
 
-  const attendancePct = totalEmployees > 0 ? ((presentCount / totalEmployees) * 100).toFixed(1) : '0.0';
-  const latePct = totalEmployees > 0 ? ((lateCount / totalEmployees) * 100).toFixed(1) : '0.0';
+  const attendancePct = requiredToday > 0 ? Math.min(100, (presentCount / requiredToday) * 100) : null;
+  const punctualityPct = presentCount > 0 ? (onTimeCount / presentCount) * 100 : null;
+  const pctText = (v: number | null) => (v === null ? '—' : `${v.toFixed(1)}%`);
+  const pctTone = (v: number | null) => (v === null ? '#64748b' : pctColor(v));
 
   // ========== جداول تفصيلية ==========
-  const employeeRows = employees
+  // الغياب والتأخير أولًا ليراهم المدير التنفيذي مباشرة، ثم بقية الحالات
+  const STATUS_ORDER = [
+    'absent',
+    'late',
+    'left_early',
+    'not_yet',
+    'present',
+    'checked_out',
+    'assignment',
+    'on_mission',
+    'on_leave',
+    'weekend',
+    'holiday',
+    'exempt',
+  ];
+  const rank = (st: string | null) => {
+    const i = STATUS_ORDER.indexOf(st ?? '');
+    return i === -1 ? STATUS_ORDER.length : i;
+  };
+  const employeeRows = [...employees]
+    .sort((a, b) => rank(a.status) - rank(b.status) || a.employeeName.localeCompare(b.employeeName, 'ar'))
     .map(
       (emp) => `
     <tr class="${statusClass(emp.status)}">
-      <td style="padding:6px 8px;text-align:center">${esc(emp.employeeCode ?? '—')}</td>
+      <td style="padding:6px 8px;text-align:center;direction:ltr">${esc(emp.employeeCode ?? '—')}</td>
       <td style="padding:6px 8px">${esc(emp.employeeName)}</td>
-      <td style="padding:6px 8px;text-align:center"><span class="status-badge ${statusClass(emp.status)}">${esc(statusLabel(emp.status))}</span></td>
       <td style="padding:6px 8px;text-align:center">${esc(emp.departmentName ?? '—')}</td>
+      <td style="padding:6px 8px;text-align:center"><span class="status-badge ${statusClass(emp.status)}">${esc(statusLabel(emp.status))}</span></td>
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums">${esc(fmtTime12(emp.firstCheckIn))}</td>
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums">${esc(fmtTime12(emp.lastCheckOut))}</td>
       <td style="padding:6px 8px;text-align:center;font-variant-numeric:tabular-nums">${emp.lateMinutes ? fmtMinutesCompact(emp.lateMinutes) : '—'}</td>
-      <td style="padding:6px 8px;text-align:center">${esc(emp.shiftName ?? '—')}</td>
-      <td style="padding:6px 8px;text-align:center">${esc(emp.locationRequestStatus ?? '—')}</td>
-      <td style="padding:6px 8px;text-align:center">${emp.hasApprovedLeave ? '✓ إجازة' : emp.hasMission ? '✈ مأمورية' : '—'}</td>
-      <td style="padding:6px 8px;text-align:center">${esc(emp.workHours?.toFixed(1) ?? '—')}</td>
     </tr>
   `,
     )
@@ -210,7 +245,9 @@ export function buildExecutiveDailyReportHtml(
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
-    .page { max-width: 1120px; margin: 0 auto; }
+    /* حشوة أمان: محرك PDF يصوّر الصفحة بلا حشوة، فيُقصّ الحرف الملاصق للحافة
+       (كانت «السبت» تظهر «لسبت») وذيول حروف التوقيعات في آخر الصفحة */
+    .page { max-width: 1120px; margin: 0 auto; padding: 2px 8px 12px; }
 
     /* ─── الرأس ─── */
     .header {
@@ -233,9 +270,10 @@ export function buildExecutiveDailyReportHtml(
     .card.primary { background: #eff6ff; border-color: #bfdbfe; }
     .card.warn { background: #fef2f2; border-color: #fecaca; }
     .card.good { background: #f0fdf4; border-color: #bbf7d0; }
-    .card .label { font-size: 7px; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+    /* بلا letter-spacing: يفصل الحروف العربية عن بعضها في ملفات PDF */
+    .card .label { font-size: 8px; color: #6b7280; font-weight: 700; }
     .card .value { font-size: 17px; font-weight: 900; color: #111827; margin-top: 1px; }
-    .card .hint { font-size: 7px; color: #9ca3af; margin-top: 1px; }
+    .card .hint { font-size: 7.5px; color: #6b7280; margin-top: 1px; }
 
     /* ─── معدل الحضور ─── */
     .rates-bar {
@@ -244,7 +282,7 @@ export function buildExecutiveDailyReportHtml(
     }
     .rate-item { text-align: center; }
     .rate-item .pct { font-size: 18px; font-weight: 900; }
-    .rate-item .lbl { font-size: 7px; color: #6b7280; }
+    .rate-item .lbl { font-size: 8px; color: #6b7280; }
 
     /* ─── الجداول ─── */
     .section { margin-bottom: 14px; page-break-inside: avoid; }
@@ -358,7 +396,7 @@ export function buildExecutiveDailyReportHtml(
   <div class="header">
     <div class="header-right">
       <h1>📊 التقرير التنفيذي اليومي الشامل</h1>
-      <p>${dayName}، ${d} ${monthName} ${y} — ${esc(dateIso)}</p>
+      <p>${dayName}، ${d} ${monthName} ${y} — <span dir="ltr" style="unicode-bidi:isolate">${esc(dateIso)}</span></p>
     </div>
     <div class="header-left">
       <div class="org">${esc(orgName)}</div>
@@ -369,13 +407,14 @@ export function buildExecutiveDailyReportHtml(
   <!-- بطاقات الملخص التنفيذي -->
   <div class="summary-cards">
     <div class="card primary">
-      <div class="label">إجمالي الموظفين</div>
-      <div class="value">${totalEmployees}</div>
+      <div class="label">مطلوب حضورهم</div>
+      <div class="value">${requiredToday}</div>
+      <div class="hint">من ${totalEmployees} موظفًا</div>
     </div>
     <div class="card good">
       <div class="label">الحضور الفعلي</div>
       <div class="value">${presentCount}</div>
-      <div class="hint">${attendancePct}%</div>
+      <div class="hint">${pctText(attendancePct)}</div>
     </div>
     <div class="card primary">
       <div class="label">الحضور في الموعد</div>
@@ -384,48 +423,55 @@ export function buildExecutiveDailyReportHtml(
     <div class="card warn">
       <div class="label">متأخرون</div>
       <div class="value">${lateCount}</div>
-      <div class="hint">${latePct}%</div>
+      <div class="hint">${presentCount > 0 ? `${((lateCount / presentCount) * 100).toFixed(1)}% من الحاضرين` : '—'}</div>
     </div>
     <div class="card warn">
       <div class="label">غياب</div>
       <div class="value">${absentCount}</div>
+      <div class="hint">${notYetCount > 0 ? `${notYetCount} لم يحضروا بعد` : 'بعد موعد الحضور وفترة السماح'}</div>
     </div>
     <div class="card good">
-      <div class="label">إجازات / مأموريات</div>
-      <div class="value">${leaveCount + missionCount}</div>
+      <div class="label">إجازات / عمل ميداني</div>
+      <div class="value">${leaveCount + fieldCount}</div>
+      <div class="hint">إجازات ${leaveCount} · ميداني ${fieldCount}</div>
     </div>
   </div>
 
   <!-- معدل الحضور والالتزام -->
   <div class="rates-bar">
     <div class="rate-item">
-      <div class="pct" style="color:${pctColor(parseFloat(attendancePct))}">${attendancePct}%</div>
-      <div class="lbl">نسبة الحضور</div>
+      <div class="pct" style="color:${pctTone(attendancePct)}">${pctText(attendancePct)}</div>
+      <div class="lbl">نسبة الحضور (من المطلوب حضورهم)</div>
     </div>
     <div style="width:1px;height:30px;background:#bfdbfe"></div>
     <div class="rate-item">
-      <div class="pct" style="color:${pctColor(100 - parseFloat(latePct))}">${(100 - parseFloat(latePct)).toFixed(1)}%</div>
-      <div class="lbl">انتظام الحضور</div>
+      <div class="pct" style="color:${pctTone(punctualityPct)}">${pctText(punctualityPct)}</div>
+      <div class="lbl">الحضور في الموعد (من الحاضرين)</div>
     </div>
   </div>
 
   <!-- قسم الموظفين -->
-  <div class="section">
+  ${
+    employees.length
+      ? `  <div class="section">
     <div class="section-title">📋 تفصيل حضور الموظفين (${employees.length})</div>
     <table>
       <thead>
         <tr>
-          <th>الكود</th><th>الاسم</th><th>الحالة</th><th>الإدارة</th>
+          <th>الكود</th><th>الاسم</th><th>الإدارة</th><th>الحالة</th>
           <th>الحضور</th><th>الانصراف</th><th>التأخير</th>
-          <th>الوردية</th><th>الموقع</th><th>العذر</th><th>ساعات العمل</th>
         </tr>
       </thead>
       <tbody>${employeeRows}</tbody>
     </table>
-  </div>
+  </div>`
+      : ''
+  }
 
   <!-- قسم المأموريات -->
-  <div class="section">
+  ${
+    missionsArr.length
+      ? `  <div class="section">
     <div class="section-title">✈ المأموريات (${missionsArr.length})</div>
     <table>
       <thead>
@@ -436,10 +482,14 @@ export function buildExecutiveDailyReportHtml(
       </thead>
       <tbody>${missionRows}</tbody>
     </table>
-  </div>
+  </div>`
+      : ''
+  }
 
   <!-- قسم القوافل -->
-  <div class="section">
+  ${
+    convoysArr.length
+      ? `  <div class="section">
     <div class="section-title">🚌 القوافل (${convoys?.length ?? 0})</div>
     <table>
       <thead>
@@ -450,10 +500,14 @@ export function buildExecutiveDailyReportHtml(
       </thead>
       <tbody>${convoyRows}</tbody>
     </table>
-  </div>
+  </div>`
+      : ''
+  }
 
   <!-- قسم الإجازات -->
-  <div class="section">
+  ${
+    leaves?.length
+      ? `  <div class="section">
     <div class="section-title">📅 الإجازات (${leaves?.length ?? 0})</div>
     <table>
       <thead>
@@ -464,10 +518,14 @@ export function buildExecutiveDailyReportHtml(
       </thead>
       <tbody>${leaveRows}</tbody>
     </table>
-  </div>
+  </div>`
+      : ''
+  }
 
   <!-- قسم طلبات الموقع -->
-  <div class="section">
+  ${
+    locationRequests?.length
+      ? `  <div class="section">
     <div class="section-title">📍 طلبات الموقع (${locationRequests?.length ?? 0})</div>
     <table>
       <thead>
@@ -478,10 +536,14 @@ export function buildExecutiveDailyReportHtml(
       </thead>
       <tbody>${locationRows}</tbody>
     </table>
-  </div>
+  </div>`
+      : ''
+  }
 
   <!-- قسم الخلافات -->
-  <div class="section">
+  ${
+    disputes?.length
+      ? `  <div class="section">
     <div class="section-title">⚖ الخلافات والطلبات (${disputes?.length ?? 0})</div>
     <table>
       <thead>
@@ -491,7 +553,9 @@ export function buildExecutiveDailyReportHtml(
       </thead>
       <tbody>${disputeRows}</tbody>
     </table>
-  </div>
+  </div>`
+      : ''
+  }
 
   <!-- التذييل -->
   <div class="footer">

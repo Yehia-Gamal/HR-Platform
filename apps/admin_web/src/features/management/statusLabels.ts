@@ -10,6 +10,8 @@ export const ATTENDANCE_STATUS_LABELS: Record<string, string> = {
   on_leave: 'إجازة',
   assignment: 'مأمورية/قافلة/فاندي',
   weekend: 'راحة أسبوعية',
+  // المعفى من البصمة بقرار الإدارة — يظهر في القائمة ولا يدخل أرقام الحضور (0597)
+  exempt: 'معفى من البصمة',
 };
 
 export function attendanceStatusLabel(status: string): string {

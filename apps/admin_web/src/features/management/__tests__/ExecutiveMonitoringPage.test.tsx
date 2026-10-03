@@ -71,8 +71,8 @@ const mockEmployees = [
     lastAccuracy: null,
     lastAddressAr: null,
     lastLocationAt: null,
-    checkInAt: '2026-08-11T08:00:00Z',
-    checkOutAt: null,
+    firstCheckIn: '2026-08-11T08:00:00Z',
+    lastCheckOut: null,
   },
 ];
 

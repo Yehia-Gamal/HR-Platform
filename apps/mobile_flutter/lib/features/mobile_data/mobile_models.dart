@@ -1935,6 +1935,8 @@ class AttendanceStatementSummary {
     required this.totalDeficitMinutes,
     required this.hoursRateWorkedMinutes,
     required this.hoursRateRequiredMinutes,
+    this.isAttendanceExempt = false,
+    this.attendanceRateExcludedLeaveDays = 0,
   });
 
   factory AttendanceStatementSummary.fromJson(
@@ -1999,6 +2001,9 @@ class AttendanceStatementSummary {
       hoursRateRequiredMinutes:
           (hoursBasis?['requiredMinutes'] as num?)?.toInt() ??
           (((json['totalRequiredHours'] as num?)?.toDouble() ?? 0) * 60).round(),
+      isAttendanceExempt: json['isAttendanceExempt'] as bool? ?? false,
+      attendanceRateExcludedLeaveDays:
+          (rateBasis?['excludedLeaveDays'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -2035,6 +2040,12 @@ class AttendanceStatementSummary {
   final int totalDeficitMinutes;
   final int hoursRateWorkedMinutes;
   final int hoursRateRequiredMinutes;
+
+  /// معفى من البصمة بقرار الإدارة — لا تُحسب له نسبة («معفى» لا 0%).
+  final bool isAttendanceExempt;
+
+  /// أيام إجازة استُبعدت من مقام نسبة الحضور (معتمدة أو قيد الاعتماد).
+  final int attendanceRateExcludedLeaveDays;
 }
 
 /// كشف الحضور والانصراف الشهري الكامل (V12 §18).

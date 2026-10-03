@@ -269,7 +269,8 @@ export function generateReportHtml(sections: PrintableSection[], documentTitle: 
   thead { display: table-header-group; }
   tr { page-break-inside: avoid; break-inside: avoid; }
   th, td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: right; }
-  th { background: #f59e0b; color: #ffffff; font-weight: 800; font-size: 11px; letter-spacing: 0.3px; }
+  /* بلا letter-spacing: يفصل الحروف العربية عن بعضها في ملفات PDF */
+  th { background: #f59e0b; color: #ffffff; font-weight: 800; font-size: 11px; }
   tr.even td { background: #ffffff; }
   tr.odd td { background: #fffbeb; }
 
@@ -315,7 +316,8 @@ export function generateReportHtml(sections: PrintableSection[], documentTitle: 
       text-align: right !important;
     }
     .no-print, .action-bar { display: none !important; }
-    .report-paper { border: none !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; }
+    /* حشوة أمان صغيرة: محرك PDF يصوّر بلا حشوة، فيُقصّ الحرف الملاصق لحافة الصفحة */
+    .report-paper { border: none !important; box-shadow: none !important; padding: 2px 8px 12px !important; border-radius: 0 !important; }
     .summary-card { break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     table { break-inside: auto; width: 100% !important; }
     tr { break-inside: avoid; page-break-inside: avoid; }

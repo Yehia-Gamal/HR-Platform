@@ -37,8 +37,9 @@ export function absentEmployees(employees: EmployeeOverviewRow[]): EmployeeOverv
   return employees.filter((e) => e.status === 'absent');
 }
 
+// المتأخر من سُجّل له تأخير — ولو انصرف بعدها؛ الانصراف المبكر وحده ليس تأخيرًا
 export function lateEmployees(employees: EmployeeOverviewRow[]): EmployeeOverviewRow[] {
-  return employees.filter((e) => e.status === 'late' || e.status === 'left_early');
+  return employees.filter((e) => e.status === 'late' || (e.lateMinutes ?? 0) > 0);
 }
 
 export function locationRequestEmployees(employees: EmployeeOverviewRow[]): EmployeeOverviewRow[] {
@@ -49,9 +50,17 @@ export function totalLateMinutes(employees: EmployeeOverviewRow[]): number {
   return lateEmployees(employees).reduce((sum, e) => sum + Math.max(0, e.lateMinutes ?? 0), 0);
 }
 
+// خارج مقام النسبة: الإجازة والمأمورية/القافلة والراحة والمعفى من البصمة
+const NOT_EXPECTED_STATUSES = ['on_leave', 'assignment', 'weekend', 'exempt'];
+
+export function expectedEmployees(employees: EmployeeOverviewRow[]): EmployeeOverviewRow[] {
+  return employees.filter((e) => !NOT_EXPECTED_STATUSES.includes(e.status));
+}
+
 export function presentPercent(employees: EmployeeOverviewRow[]): number {
-  if (!employees.length) return 0;
-  return Math.round((presentEmployees(employees).length / employees.length) * 100);
+  const expected = expectedEmployees(employees).length;
+  if (!expected) return 0;
+  return Math.min(100, Math.round((presentEmployees(employees).length / expected) * 100));
 }
 
 // الطلبات النشطة في الـ RPC لا تشمل 'completed' — فنعدّ 'accepted'/'active' كاستجابة.
@@ -113,6 +122,7 @@ export function TodayPulseSection() {
   const responded = useMemo(() => respondedCount(employees), [employees]);
   const lateMinutes = useMemo(() => totalLateMinutes(employees), [employees]);
   const pct = useMemo(() => presentPercent(employees), [employees]);
+  const expectedCount = useMemo(() => expectedEmployees(employees).length, [employees]);
 
   if (!allowed) return null;
   if (query.isLoading) return <MetricSkeletonRow />;
@@ -126,7 +136,13 @@ export function TodayPulseSection() {
   if (!employees.length) return null;
 
   const cards = [
-    { kind: 'present' as const, label: 'حضروا اليوم', value: present.length, icon: CheckCircle2, hint: `${pct}% من إجمالي ${employees.length} موظفًا` },
+    {
+      kind: 'present' as const,
+      label: 'حضروا اليوم',
+      value: present.length,
+      icon: CheckCircle2,
+      hint: expectedCount ? `${pct}% من ${expectedCount} مطلوب حضورهم` : 'لا دوام مطلوب اليوم',
+    },
     { kind: 'absent' as const, label: 'تغيّبوا اليوم', value: absent.length, icon: UserMinus, hint: 'بعد استبعاد الإجازات والمأموريات' },
     {
       kind: 'late' as const,
@@ -270,8 +286,8 @@ function PulseDialogBody({
                   {e.managerName ? ` · مدير: ${e.managerName}` : ''}
                 </p>
                 <p className="muted mt-1 text-xs">
-                  {e.checkInAt ? `حضر ${formatClock(e.checkInAt)}` : 'لم يسجّل حضورًا بعد'}
-                  {e.checkOutAt ? ` · انصرف ${formatClock(e.checkOutAt)}` : ''}
+                  {e.firstCheckIn ? `حضر ${formatClock(e.firstCheckIn)}` : 'لم يسجّل حضورًا بعد'}
+                  {e.lastCheckOut ? ` · انصرف ${formatClock(e.lastCheckOut)}` : ''}
                   {e.lastLocationAt ? ` · آخر موقع: ${relativeTime(e.lastLocationAt)}` : ''}
                   {e.lastAddressAr ? ` — ${e.lastAddressAr}` : ''}
                 </p>

@@ -124,7 +124,15 @@ Future<Uint8List> _buildAttendancePdf(MonthlyAttendanceStatement stmt) async {
       : '';
   final attendancePct = stmt.attendancePercentage;
   final compliancePct = s.hoursComplianceRate;
-  final complianceAvailable = s.hoursComplianceAvailable;
+  // المعفى من البصمة لا تُحسب له نسبة («معفى» لا 0%)، وبلا أيام مستحقة «غير متاح» — كالويب
+  final isExempt = s.isAttendanceExempt;
+  final attendanceAvailable = !isExempt && s.attendanceRateDueDays > 0;
+  final complianceAvailable = !isExempt && s.hoursComplianceAvailable;
+  final attendanceText = isExempt
+      ? 'معفى'
+      : attendanceAvailable
+          ? '${(attendancePct >= 99.5 && attendancePct < 100 ? 99 : attendancePct.round())}%'
+          : 'غير متاح';
   final convoyDays = stmt.days.where((d) => (d.status.contains('قافلة') || d.hasConvoyFundi) && !d.status.contains('فاندي')).length;
   final fundiDays = stmt.days.where((d) => d.status.contains('فاندي')).length;
   final cDays = stmt.days.isNotEmpty ? convoyDays : s.convoyFundiDays;
@@ -226,9 +234,9 @@ Future<Uint8List> _buildAttendancePdf(MonthlyAttendanceStatement stmt) async {
           child: pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.center,
             children: [
-              _t('${attendancePct.toStringAsFixed(0)}%',
+              _t(attendanceText,
                   size: 20,
-                  color: _pctColor(attendancePct),
+                  color: attendanceAvailable ? _pctColor(attendancePct) : _grayHint,
                   weight: pw.FontWeight.bold),
               pw.SizedBox(width: 6),
               _t('نسبة الحضور', size: 9, color: _grayText),
@@ -239,9 +247,11 @@ Future<Uint8List> _buildAttendancePdf(MonthlyAttendanceStatement stmt) async {
                   decoration: pw.BoxDecoration(color: _skyLine)),
               pw.SizedBox(width: 16),
               _t(
-                  complianceAvailable
-                      ? '${compliancePct.toStringAsFixed(0)}%'
-                      : 'غير متاح',
+                  isExempt
+                      ? 'معفى'
+                      : complianceAvailable
+                          ? '${compliancePct.toStringAsFixed(0)}%'
+                          : 'غير متاح',
                   size: 20,
                   color: complianceAvailable
                       ? _pctColor(compliancePct)

@@ -385,14 +385,12 @@ export function useExecutiveDailyReportDetail(dateIso?: string) {
           reports: [],
         };
       }
-      // ملاحظة: يحتاج RPC جديد get_executive_daily_report_detail مع التفاصيل
-      // حالياً يعيد الملخص الأساسي كبديل
-      const data = await rpc('get_v10_executive_daily_report', { p_date: targetDate });
+      const [data, employees] = await Promise.all([rpc('get_v10_executive_daily_report', { p_date: targetDate }), fetchExecutiveEmployees(targetDate)]);
       const summary = executiveDailyReportSchema.parse(data);
       return {
         dateIso: targetDate,
         summary,
-        employees: [],
+        employees,
         missions: [],
         convoys: [],
         leaves: [],
@@ -404,15 +402,60 @@ export function useExecutiveDailyReportDetail(dateIso?: string) {
   });
 }
 
+/** صف لوحة المتابعة (get_executive_attendance_overview) — الحقول التي يحتاجها التقرير. */
+interface ExecutiveOverviewRow {
+  id: string;
+  name: string;
+  employeeCode: string | null;
+  department: string | null;
+  jobTitle: string | null;
+  managerName: string | null;
+  status: string | null;
+  lateMinutes: number | null;
+  firstCheckIn: string | null;
+  lastCheckOut: string | null;
+  onLeave?: boolean;
+  assignmentType?: string | null;
+  activeRequestStatus?: string | null;
+}
+
+/**
+ * قائمة موظفي التقرير التنفيذي من لوحة المتابعة — نفس مصدر الملخص (0597).
+ * كانت القائمة تُرسل فارغة فيُطبع التقرير بحضور 0 ونسبة 0% وجداول فارغة.
+ * من لا يملك صلاحية لوحة المتابعة يحصل على الملخص وحده.
+ */
+async function fetchExecutiveEmployees(dateIso: string): Promise<ExecutiveDailyReportDetail['employees']> {
+  try {
+    const data = await rpc<{ employees?: ExecutiveOverviewRow[] } | null>('get_executive_attendance_overview', { p_date: dateIso });
+    return (data?.employees ?? []).map((r) => ({
+      employeeId: r.id,
+      employeeName: r.name,
+      employeeCode: r.employeeCode ?? null,
+      departmentName: r.department ?? null,
+      jobTitle: r.jobTitle ?? null,
+      managerName: r.managerName ?? null,
+      status: r.status ?? null,
+      lateMinutes: r.lateMinutes ?? null,
+      firstCheckIn: r.firstCheckIn ?? null,
+      lastCheckOut: r.lastCheckOut ?? null,
+      hasApprovedLeave: Boolean(r.onLeave),
+      hasMission: Boolean(r.assignmentType),
+      locationRequestStatus: r.activeRequestStatus ?? null,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function exportExecutiveDailyReportPdf(dateIso?: string): Promise<void> {
   const targetDate = dateIso ?? cairoTodayIso();
   const { exportExecutiveDailyReport } = await import('./exportExecutiveDailyReport');
-  const data = await rpc('get_v10_executive_daily_report', { p_date: targetDate });
+  const [data, employees] = await Promise.all([rpc('get_v10_executive_daily_report', { p_date: targetDate }), fetchExecutiveEmployees(targetDate)]);
   const summary = executiveDailyReportSchema.parse(data);
   const detail: ExecutiveDailyReportDetail = {
     dateIso: targetDate,
     summary,
-    employees: [],
+    employees,
     missions: [],
     convoys: [],
     leaves: [],
