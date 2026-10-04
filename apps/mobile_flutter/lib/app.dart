@@ -57,6 +57,9 @@ class _AhlaShababAppState extends ConsumerState<AhlaShababApp> {
   }
 
   void _listenToNativeDeepLinks() {
+    // القناة أصلية (MainActivity) فقط؛ على الويب يتولى GoRouter عنوان المتصفح،
+    // والاستماع كان يرمي MissingPluginException في الكونسول عند كل إقلاع.
+    if (kIsWeb) return;
     _deepLinkSub = _deepLinkEvents.receiveBroadcastStream().listen(
       (dynamic raw) {
         if (raw is! String || raw.isEmpty) return;

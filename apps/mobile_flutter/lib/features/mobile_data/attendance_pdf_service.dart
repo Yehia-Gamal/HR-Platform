@@ -2,10 +2,12 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 const _months = [
   'يناير',
@@ -147,7 +149,14 @@ Future<Uint8List> _buildAttendancePdf(MonthlyAttendanceStatement stmt) async {
     pw.MultiPage(
       pageFormat: PdfPageFormat.a4.landscape,
       margin: const pw.EdgeInsets.fromLTRB(28, 34, 28, 34),
-      theme: pw.ThemeData.withFont(base: font),
+      // كل الأوزان بخط Cairo: بدونها يأخذ النص العريض Helvetica-Bold بلا حروف
+      // عربية فتخرج العناوين والقيم فارغة في الملف.
+      theme: pw.ThemeData.withFont(
+        base: font,
+        bold: font,
+        italic: font,
+        boldItalic: font,
+      ),
       build: (context) => [
         // ---------- Header ----------
         pw.Container(
@@ -162,7 +171,7 @@ Future<Uint8List> _buildAttendancePdf(MonthlyAttendanceStatement stmt) async {
               pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.end,
                 children: [
-                  _t('📋 كشف الحضور والانصراف الشهري',
+                  _t('كشف الحضور والانصراف الشهري',
                       size: 16, color: _blue, weight: pw.FontWeight.bold),
                   _t('$monthName ${stmt.year} — من ${stmt.startDate} إلى ${stmt.endDate}',
                       size: 9, color: _grayText),
@@ -535,6 +544,13 @@ Future<String> exportAttendancePdf(MonthlyAttendanceStatement statement) async {
       : '${statement.month}';
   final fileName =
       'كشف-حضور-${statement.employeeCode ?? statement.employeeNameAr}-${statement.year}-$monthName.pdf';
+
+  // المتصفح بلا نظام ملفات (dart:io/path_provider ترمي Platform._operatingSystem):
+  // تنزيل مباشر للملف.
+  if (kIsWeb) {
+    await Printing.sharePdf(bytes: pdfBytes, filename: fileName);
+    return fileName;
+  }
 
   final dir = await getDownloadsDirectory();
   final target = dir != null

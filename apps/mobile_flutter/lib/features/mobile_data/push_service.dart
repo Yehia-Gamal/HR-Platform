@@ -98,6 +98,12 @@ class PushService {
 
   Future<void> initialize() async {
     if (_ready) return;
+    // الويب بلا إعداد Firebase ولا إشعارات دفع — تخطٍّ صامت بدل خطأ
+    // «FirebaseOptions cannot be null» في الكونسول عند كل تشغيل.
+    if (kIsWeb) {
+      if (!_firebaseReady.isCompleted) _firebaseReady.complete(false);
+      return;
+    }
     try {
       await Firebase.initializeApp();
       if (!_firebaseReady.isCompleted) _firebaseReady.complete(true);
