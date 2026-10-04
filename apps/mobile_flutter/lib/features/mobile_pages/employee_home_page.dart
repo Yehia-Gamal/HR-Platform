@@ -8,8 +8,6 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendanc
 import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_home_box.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_tasks_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notifications_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/honor_board_sheet.dart';
@@ -193,7 +191,7 @@ class EmployeeHomePage extends ConsumerWidget {
             data: (data) => MetricGrid(
               cards: [
                 (
-                  'طلبات معلقة',
+                  'طلباتي المعلقة',
                   data.pendingRequests.toString(),
                   Icons.description_outlined,
                   () => Navigator.push(
@@ -204,27 +202,6 @@ class EmployeeHomePage extends ConsumerWidget {
                   ),
                 ),
                 (
-                  'مهام نشطة',
-                  data.activeTasks.toString(),
-                  Icons.task_alt_rounded,
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const MobileTasksPage(),
-                    ),
-                  ),
-                ),
-                (
-                  'مرحلة التقييم', 
-                  _stage(data.kpiStage), 
-                  Icons.speed_rounded,
-                  () => pushMobileSubpage(
-                    context,
-                    'مؤشرات الأداء',
-                    MobileKpiPage(access: access, employeeOnly: true),
-                  ),
-                ),
-                (
                   'غير مقروء',
                   (data.unreadOfficial + data.unreadNotifications).toString(),
                   Icons.notifications_active_outlined,
@@ -232,17 +209,6 @@ class EmployeeHomePage extends ConsumerWidget {
                     context,
                     MaterialPageRoute(
                       builder: (_) => const MobileNotificationsPage(),
-                    ),
-                  ),
-                ),
-                (
-                  'طلبات موقع',
-                  data.pendingLocationRequests.toString(),
-                  Icons.location_searching_rounded,
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => LocationRequestsPage(access: access),
                     ),
                   ),
                 ),
@@ -296,19 +262,6 @@ class EmployeeHomePage extends ConsumerWidget {
       ),
     );
   }
-
-  String _stage(String? value) => switch (value) {
-    'self' => 'ذاتي',
-    'hr_review' => 'مراجعة HR',
-    'manager_review' => 'مراجعة المدير',
-    'parallel_review' => 'متوازية',
-    'secretary_review' => 'السكرتير',
-    'executive_review' => 'التنفيذي',
-    'finalized' => 'في التقرير',
-    'closed' => 'مغلق',
-    'archived' => 'مؤرشف',
-    _ => '—',
-  };
 }
 
 /// 0455: بطاقة "تنبيه شامل" بارزة — تُعرض على الشاشة الرئيسية لمن يملك
