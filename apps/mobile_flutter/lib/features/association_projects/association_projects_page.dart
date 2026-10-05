@@ -105,6 +105,8 @@ class _AssociationProjectsPageState extends ConsumerState<AssociationProjectsPag
   Widget build(BuildContext context) {
     final async = ref.watch(associationProjectsProvider);
     final catalog = async.value;
+    final myTasks = ref.watch(myProjectTasksProvider).value ?? const <MyProjectTask>[];
+    final urgentTasks = myTasks.where((t) => t.needsAttention).length;
     final requestsCount = catalog == null
         ? 0
         : (catalog.isFullAccess
@@ -112,13 +114,25 @@ class _AssociationProjectsPageState extends ConsumerState<AssociationProjectsPag
             : catalog.requests.length);
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('مشاريع الجمعية'),
           bottom: TabBar(
             tabs: [
               const Tab(text: 'لوحة المشاريع'),
+              Tab(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('مهامي'),
+                    if (urgentTasks > 0) ...[
+                      const SizedBox(width: 6),
+                      Badge(label: Text('$urgentTasks'), backgroundColor: AppColors.statusDanger),
+                    ],
+                  ],
+                ),
+              ),
               Tab(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -156,6 +170,7 @@ class _AssociationProjectsPageState extends ConsumerState<AssociationProjectsPag
                 mineOnly: _mineOnly,
                 onMineOnly: (v) => setState(() => _mineOnly = v),
               ),
+              const _MyTasksTab(),
               _RequestsTab(catalog: c),
             ],
           ),
@@ -260,6 +275,159 @@ class _BoardTab extends ConsumerWidget {
           else
             for (final p in visible) _ProjectTile(project: p),
         ],
+      ),
+    );
+  }
+}
+
+/// «مهامي»: كل ما كُلّفت به عبر المشاريع — المتأخر أولاً.
+class _MyTasksTab extends ConsumerWidget {
+  const _MyTasksTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(myProjectTasksProvider);
+    return RefreshIndicator(
+      onRefresh: () async => ref.invalidate(myProjectTasksProvider),
+      child: async.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => _ErrorView(message: humanizeError(e), onRetry: () => ref.invalidate(myProjectTasksProvider)),
+        data: (tasks) {
+          if (tasks.isEmpty) {
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [
+                _EmptyView(
+                  icon: Icons.task_alt,
+                  title: 'لا توجد مهام مكلَّف بها',
+                  subtitle: 'عندما يكلّفك قائد مشروع بخطوة تظهر هنا مع موعدها، وتصلك تذكرة قبل الموعد بيوم.',
+                ),
+              ],
+            );
+          }
+          final groups = <(String, Color, List<MyProjectTask>)>[
+            ('متأخرة عن موعدها', AppColors.statusDanger, tasks.where((t) => t.isOverdue).toList()),
+            ('موعدها خلال يومين', AppColors.statusWarning, tasks.where((t) => !t.isOverdue && t.isDueSoon).toList()),
+            ('لاحقاً / بلا موعد', AppColors.statusInfo, tasks.where((t) => !t.needsAttention).toList()),
+          ];
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+            children: [
+              for (final (title, color, items) in groups)
+                if (items.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8, bottom: 6),
+                    child: Text('$title (${items.length})', style: TextStyle(color: color, fontWeight: FontWeight.w900)),
+                  ),
+                  for (final t in items) _MyTaskTile(task: t, color: color),
+                ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _MyTaskTile extends ConsumerStatefulWidget {
+  const _MyTaskTile({required this.task, required this.color});
+
+  final MyProjectTask task;
+  final Color color;
+
+  @override
+  ConsumerState<_MyTaskTile> createState() => _MyTaskTileState();
+}
+
+class _MyTaskTileState extends ConsumerState<_MyTaskTile> {
+  bool _busy = false;
+
+  Future<void> _set(String status) async {
+    setState(() => _busy = true);
+    try {
+      await ref.read(associationProjectCommandsProvider).setStepStatus(widget.task.projectId, widget.task.stepId, status);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(status == 'done' ? 'أحسنت! تم إنجاز المهمة' : 'تم تحديث حالة المهمة')),
+        );
+      }
+    } catch (e, st) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(e, st)), backgroundColor: AppColors.statusDanger),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.task;
+    final muted = TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12);
+    final due = t.dueDate;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: widget.color.withValues(alpha: 0.5)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(t.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 2),
+            InkWell(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => AssociationProjectDetailPage(projectId: t.projectId, title: t.projectName)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.folder_open, size: 15, color: AppColors.brandPrimary),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      t.projectName,
+                      style: const TextStyle(color: AppColors.brandPrimary, fontWeight: FontWeight.w700),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              [
+                stepStatusLabels[t.status] ?? t.status,
+                if (due != null) 'الموعد ${due.day}/${due.month}/${due.year}',
+                if (t.leaderName != null) 'القائد: ${t.leaderName}',
+              ].join(' • '),
+              style: muted.copyWith(color: t.isOverdue ? AppColors.statusDanger : null),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                if (t.status == 'pending')
+                  OutlinedButton(
+                    onPressed: _busy ? null : () => _set('in_progress'),
+                    child: const Text('بدأت التنفيذ'),
+                  ),
+                const Spacer(),
+                FilledButton.icon(
+                  onPressed: _busy ? null : () => _set('done'),
+                  icon: _busy
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.check_circle, size: 18),
+                  label: const Text('تمت'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

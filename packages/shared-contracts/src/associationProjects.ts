@@ -171,3 +171,21 @@ export const associationProjectPickersSchema = z.object({
 });
 export type AssociationProjectPickers = z.infer<typeof associationProjectPickersSchema>;
 export type AssociationProjectPickerEmployee = AssociationProjectPickers['employees'][number];
+
+/** مهمة مكلَّف بها المستخدم في أحد المشاريع (0647 — get_my_project_tasks). */
+export const myProjectTaskSchema = z.object({
+  stepId: uuid,
+  title: z.string(),
+  description: z.string().nullable().default(null),
+  status: z.enum(['pending', 'in_progress', 'done', 'blocked']),
+  dueDate: z.string().nullable(),
+  isOverdue: z.boolean().default(false),
+  isDueSoon: z.boolean().default(false),
+  projectId: uuid,
+  projectName: z.string(),
+  projectStatus: z.string(),
+  approvalStatus: z.string(),
+  leaderName: z.string().nullable().default(null),
+});
+export type MyProjectTask = z.infer<typeof myProjectTaskSchema>;
+export const myProjectTasksSchema = z.array(myProjectTaskSchema);

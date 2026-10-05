@@ -7,7 +7,8 @@ import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { safeErrorMessage } from '../../core/errorMapper';
-import { useAssociationProjects, useApproveProject, useRejectProject, useSubmitProjectForApproval } from './useAssociationProjects';
+import { useAssociationProjects, useApproveProject, useMyProjectTasks, useRejectProject, useSubmitProjectForApproval } from './useAssociationProjects';
+import { MyTasksTab } from './MyTasksTab';
 import { ProjectCard } from './ProjectCard';
 import { ProjectLed } from './ProjectLed';
 import { ProjectDetailPanel, RejectDialog } from './ProjectDetailPanel';
@@ -18,7 +19,7 @@ import { ActivityFeed } from './ActivityFeed';
 import { exportProjectsCsv, exportProjectsPdf } from './exportProjects';
 import { APPROVAL_LABELS, LED_META, LED_URGENCY, PRIORITY_ORDER, activityDays, isOnBoard } from './projectLedStatus';
 
-type Tab = 'board' | 'requests' | 'activity';
+type Tab = 'board' | 'tasks' | 'requests' | 'activity';
 type SortKey = 'urgency' | 'priority' | 'progress' | 'name';
 type LedFilter = 'all' | 'active' | 'halted' | 'critical' | 'completed';
 type ScopeFilter = 'all' | 'mine' | 'leading';
@@ -54,6 +55,7 @@ function sortProjects(list: AssociationProjectListItem[], sort: SortKey): Associ
 
 export function AssociationProjectsPage() {
   const { data, isLoading, error, refetch } = useAssociationProjects();
+  const { data: myTasks } = useMyProjectTasks();
   const [params, setParams] = useSearchParams();
   const approve = useApproveProject();
   const reject = useRejectProject();
@@ -129,6 +131,8 @@ export function AssociationProjectsPage() {
 
   const tabs: { key: Tab; label: string; badge?: number }[] = [
     { key: 'board', label: 'لوحة المشاريع' },
+    // الشارة = ما يحتاج انتباهي الآن (متأخر أو موعده خلال يومين)
+    { key: 'tasks', label: `مهامي${myTasks?.length ? ` (${myTasks.length})` : ''}`, badge: myTasks?.filter((t) => t.isOverdue || t.isDueSoon).length },
     { key: 'requests', label: isFullAccess ? 'طلبات الاعتماد' : 'قيد الإعداد والاعتماد', badge: actionableRequests.length },
     { key: 'activity', label: 'آخر التحديثات' },
   ];
@@ -345,6 +349,8 @@ export function AssociationProjectsPage() {
           )}
         </section>
       )}
+
+      {tab === 'tasks' && <MyTasksTab onOpenProject={openProject} />}
 
       {tab === 'activity' && <ActivityFeed activities={data?.recentUpdates ?? []} onOpenProject={openProject} />}
 

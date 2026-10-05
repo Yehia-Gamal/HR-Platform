@@ -435,6 +435,48 @@ class AssociationProjectsCatalog {
   }
 }
 
+/// مهمة مكلَّف بها المستخدم في أحد المشاريع (0647 — get_my_project_tasks).
+class MyProjectTask {
+  const MyProjectTask({
+    required this.stepId,
+    required this.title,
+    required this.status,
+    required this.dueDate,
+    required this.isOverdue,
+    required this.isDueSoon,
+    required this.projectId,
+    required this.projectName,
+    required this.leaderName,
+  });
+
+  factory MyProjectTask.fromJson(Map<String, dynamic> j) => MyProjectTask(
+        stepId: _str(j['stepId']),
+        title: _str(j['title']),
+        status: _str(j['status'], 'pending'),
+        dueDate: _date(j['dueDate']),
+        isOverdue: _bool(j['isOverdue']),
+        isDueSoon: _bool(j['isDueSoon']),
+        projectId: _str(j['projectId']),
+        projectName: _str(j['projectName']),
+        leaderName: _strOrNull(j['leaderName']),
+      );
+
+  static List<MyProjectTask> listFrom(Object? raw) =>
+      _list(raw).map(MyProjectTask.fromJson).toList(growable: false);
+
+  final String stepId;
+  final String title;
+  final String status;
+  final DateTime? dueDate;
+  final bool isOverdue;
+  final bool isDueSoon;
+  final String projectId;
+  final String projectName;
+  final String? leaderName;
+
+  bool get needsAttention => isOverdue || isDueSoon;
+}
+
 /// موظف في قائمة اختيار الفريق (get_association_project_pickers).
 class PickerEmployee {
   const PickerEmployee({

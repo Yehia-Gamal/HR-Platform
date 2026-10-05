@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { associationProjectDetailSchema, associationProjectPickersSchema, associationProjectsCatalogSchema } from './associationProjects';
+import { associationProjectDetailSchema, associationProjectPickersSchema, associationProjectsCatalogSchema, myProjectTasksSchema } from './associationProjects';
 
 const legacyProject = {
   id: '55300000-0000-4000-8000-000000000001',
@@ -98,5 +98,23 @@ describe('associationProjects contract (0553)', () => {
       departments: [],
     });
     expect(parsed.employees[0]?.name).toBe('زميل');
+  });
+
+  it('0647: مهامي عبر المشاريع', () => {
+    const parsed = myProjectTasksSchema.parse([
+      {
+        stepId: '55300000-0000-4000-8000-000000000011',
+        title: 'تجهيز',
+        status: 'in_progress',
+        dueDate: '2026-10-01',
+        isOverdue: true,
+        projectId: legacyProject.id,
+        projectName: 'مشروع',
+        projectStatus: 'active',
+        approvalStatus: 'approved',
+      },
+    ]);
+    expect(parsed[0]?.isDueSoon).toBe(false);
+    expect(parsed[0]?.leaderName).toBeNull();
   });
 });

@@ -433,12 +433,16 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
                     _confirmDeleteStep(d.project.id, s);
                   } else if (v == 'edit') {
                     _editStep(d, s);
+                  } else if (v == 'up' || v == 'down') {
+                    _run(() => _cmd.moveStep(d.project.id, s.id, up: v == 'up'));
                   } else {
                     _run(() => _cmd.setStepStatus(d.project.id, s.id, v));
                   }
                 },
                 itemBuilder: (_) => [
                   const PopupMenuItem(value: 'edit', child: Text('تعديل / تكليف')),
+                  if (index > 0) const PopupMenuItem(value: 'up', child: Text('تحريك لأعلى')),
+                  if (index < d.steps.length - 1) const PopupMenuItem(value: 'down', child: Text('تحريك لأسفل')),
                   for (final e in stepStatusLabels.entries)
                     if (e.key != s.status) PopupMenuItem(value: e.key, child: Text('تعليم: ${e.value}')),
                   const PopupMenuDivider(),

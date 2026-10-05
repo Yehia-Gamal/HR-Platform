@@ -36,6 +36,14 @@ final associationProjectPickersProvider = FutureProvider.autoDispose<ProjectPick
   return ProjectPickers.fromJson(data);
 });
 
+/// مهامي المفتوحة عبر كل المشاريع (0647).
+final myProjectTasksProvider = FutureProvider.autoDispose<List<MyProjectTask>>((ref) async {
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_my_project_tasks'),
+  );
+  return MyProjectTask.listFrom(data);
+});
+
 final associationProjectCommandsProvider = Provider<AssociationProjectCommands>(
   (ref) => AssociationProjectCommands(ref),
 );
@@ -48,6 +56,7 @@ class AssociationProjectCommands {
   Future<dynamic> _call(String fn, Map<String, dynamic> params, {String? projectId}) async {
     final result = await rpcWithTimeout(ref.read(supabaseProvider).rpc<dynamic>(fn, params: params));
     ref.invalidate(associationProjectsProvider);
+    ref.invalidate(myProjectTasksProvider);
     if (projectId != null) ref.invalidate(associationProjectDetailProvider(projectId));
     return result;
   }
@@ -125,6 +134,10 @@ class AssociationProjectCommands {
         'p_due_date': dueDate == null ? null : _isoDate(dueDate),
         'p_assignee_employee_id': assigneeId,
       }, projectId: projectId);
+
+  /// تحريك خطوة لأعلى/لأسفل (0647).
+  Future<void> moveStep(String projectId, String stepId, {required bool up}) =>
+      _call('move_project_step', {'p_step_id': stepId, 'p_direction': up ? 'up' : 'down'}, projectId: projectId);
 
   Future<void> deleteStep(String projectId, String stepId) =>
       _call('delete_project_step_admin', {'p_step_id': stepId}, projectId: projectId);

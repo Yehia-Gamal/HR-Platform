@@ -1,4 +1,4 @@
-import type { AssociationProjectDetail, AssociationProjectListItem, AssociationProjectPickers, AssociationProjectsCatalog } from '@ahla/shared-contracts';
+import type { AssociationProjectDetail, AssociationProjectListItem, AssociationProjectPickers, AssociationProjectsCatalog, MyProjectTask } from '@ahla/shared-contracts';
 
 // بيانات المعاينة المحلية (VITE_ENABLE_DEV_MOCKS) — تغطي كل حالات اللمبة.
 const DEPT_IT = '00000000-0000-4000-8000-0000000000d1';
@@ -260,4 +260,27 @@ export function mockPickers(): AssociationProjectPickers {
     employees: [...people.values()].sort((a, b) => a.name.localeCompare(b.name, 'ar')),
     departments: [...departments.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name, 'ar')),
   };
+}
+
+export function mockMyTasks(): MyProjectTask[] {
+  const [a, b] = MOCK_PROJECTS;
+  const task = (n: number, p: AssociationProjectListItem | undefined, title: string, due: number, status: MyProjectTask['status']): MyProjectTask => ({
+    stepId: id(600 + n),
+    title,
+    description: null,
+    status,
+    dueDate: dateIn(due),
+    isOverdue: due < 0,
+    isDueSoon: due >= 0 && due <= 2,
+    projectId: p?.id ?? id(1),
+    projectName: p?.name ?? '',
+    projectStatus: 'active',
+    approvalStatus: 'approved',
+    leaderName: p?.leaderName ?? null,
+  });
+  return [
+    task(1, a, 'اختبار النسخة التجريبية مع الإدارات', -2, 'in_progress'),
+    task(2, b, 'تصوير الفيديوهات الترويجية', 1, 'pending'),
+    task(3, a, 'التدريب والتسليم', 12, 'pending'),
+  ];
 }

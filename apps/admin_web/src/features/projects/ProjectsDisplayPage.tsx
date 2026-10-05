@@ -15,6 +15,7 @@ import { LED_META, LED_URGENCY, activityDays, daysAgoLabel } from './projectLedS
 const REFRESH_MS = 60_000;
 const ROTATE_MS = 15_000;
 const IDLE_MS = 3_000;
+const TICKER_MS = 8_000;
 
 const TILES: { key: ProjectLedStatus; label: string; color: string }[] = [
   { key: 'active', label: 'تعمل بانتظام', color: '#10b981' },
@@ -158,7 +159,9 @@ function formatAgo(ms: number): string {
   if (minutes === 2) return 'منذ دقيقتين';
   if (minutes <= 10) return `منذ ${minutes} دقائق`;
   if (minutes < 60) return `منذ ${minutes} دقيقة`;
-  return `منذ ${Math.floor(minutes / 60)} ساعة`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours === 1 ? 'منذ ساعة' : hours === 2 ? 'منذ ساعتين' : `منذ ${hours} ساعات`;
+  return daysAgoLabel(Math.floor(hours / 24));
 }
 
 export function ProjectsDisplayPage() {
@@ -192,6 +195,16 @@ export function ProjectsDisplayPage() {
   }, [pages]);
 
   const visible = board.slice(current * perPage, current * perPage + perPage);
+
+  // شريط آخر التحديثات: تحديث واحد كل 8 ثوانٍ.
+  const updates = data?.recentUpdates ?? [];
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (updates.length <= 1) return;
+    const id = window.setInterval(() => setTick((t) => t + 1), TICKER_MS);
+    return () => window.clearInterval(id);
+  }, [updates.length]);
+  const latest = updates.length ? updates[tick % updates.length] : undefined;
   // بيانات قديمة: انقطاع، أو فشل التحديث مع بقاء آخر نسخة ناجحة.
   const stale = !online || (Boolean(error) && Boolean(data));
   const updatedAgo = dataUpdatedAt ? formatAgo(now.getTime() - dataUpdatedAt) : null;
@@ -293,8 +306,19 @@ export function ProjectsDisplayPage() {
       )}
 
       {/* التذييل: الصفحات + آخر تحديث */}
-      <footer className="flex items-center justify-between text-[clamp(0.75rem,0.85vw,1.8rem)] text-slate-500">
-        <span>{updatedAgo ? `آخر تحديث ${updatedAgo}` : ''}</span>
+      <footer className="flex items-center justify-between gap-[2vw] text-[clamp(0.75rem,0.85vw,1.8rem)] text-slate-500">
+        <span className="shrink-0">{updatedAgo ? `آخر تحديث ${updatedAgo} • يتحدّث كل دقيقة` : ''}</span>
+        {latest && (
+          <p key={latest.id} className="projects-display__ticker min-w-0 flex-1 truncate text-center text-[clamp(0.85rem,1vw,2.2rem)] text-slate-300" aria-live="polite">
+            <span className="font-black text-sky-300">{latest.projectName}</span>
+            <span className="mx-2 text-slate-500">•</span>
+            {latest.note}
+            <span className="mx-2 text-slate-500">—</span>
+            <span className="text-slate-400">
+              {latest.authorName}، {formatAgo(now.getTime() - new Date(latest.createdAt).getTime())}
+            </span>
+          </p>
+        )}
         {pages > 1 && (
           <span className="flex items-center gap-2" aria-hidden="true">
             {Array.from({ length: pages }, (_, i) => (
@@ -302,7 +326,6 @@ export function ProjectsDisplayPage() {
             ))}
           </span>
         )}
-        <span>تتحدّث كل دقيقة</span>
       </footer>
     </main>
   );

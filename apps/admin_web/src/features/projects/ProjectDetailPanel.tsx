@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { AssociationProjectDetail, AssociationProjectListItem, AssociationProjectStep, ProjectRole } from '@ahla/shared-contracts';
-import { AlertTriangle, Ban, Building2, CalendarClock, Check, CheckCircle2, Circle, Crown, Loader2, MessageSquarePlus, Pencil, Plus, Send, Trash2, UserCheck, Users, X } from 'lucide-react';
+import { AlertTriangle, Ban, Building2, CalendarClock, Check, CheckCircle2, ChevronDown, ChevronUp, Circle, Crown, Loader2, MessageSquarePlus, Pencil, Plus, Send, Trash2, UserCheck, Users, X } from 'lucide-react';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { ErrorState } from '../../ui/ErrorState';
@@ -11,6 +11,7 @@ import {
   useApproveProject,
   useDeleteAssociationProject,
   useDeleteProjectStep,
+  useMoveProjectStep,
   useProjectPickers,
   useRejectProject,
   useSetProjectStepStatus,
@@ -116,6 +117,7 @@ function DetailContent({
   const deleteProject = useDeleteAssociationProject();
   const setStepStatus = useSetProjectStepStatus();
   const deleteStep = useDeleteProjectStep();
+  const moveStep = useMoveProjectStep();
 
   const [editOpen, setEditOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
@@ -313,6 +315,26 @@ function DetailContent({
                     </div>
                     {perms.canManage ? (
                       <div className="flex shrink-0 items-center gap-1">
+                        <span className="flex flex-col">
+                          <button
+                            className="icon-button !size-6"
+                            disabled={i === 0 || moveStep.isPending}
+                            onClick={() => moveStep.mutate({ stepId: s.id, direction: 'up' })}
+                            aria-label={`تحريك الخطوة ${s.title} لأعلى`}
+                            title="لأعلى"
+                          >
+                            <ChevronUp className="size-3.5" />
+                          </button>
+                          <button
+                            className="icon-button !size-6"
+                            disabled={i === steps.length - 1 || moveStep.isPending}
+                            onClick={() => moveStep.mutate({ stepId: s.id, direction: 'down' })}
+                            aria-label={`تحريك الخطوة ${s.title} لأسفل`}
+                            title="لأسفل"
+                          >
+                            <ChevronDown className="size-3.5" />
+                          </button>
+                        </span>
                         <select
                           className="input !w-auto !px-2 !py-1 text-xs"
                           value={s.status}

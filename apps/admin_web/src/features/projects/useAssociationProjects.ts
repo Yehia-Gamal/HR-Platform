@@ -2,14 +2,16 @@ import {
   associationProjectsCatalogSchema,
   associationProjectDetailSchema,
   associationProjectPickersSchema,
+  myProjectTasksSchema,
   type AssociationProjectsCatalog,
+  type MyProjectTask,
   type AssociationProjectDetail,
   type AssociationProjectPickers,
 } from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
-import { mockCatalog, mockDetail, mockPickers } from './projectMocks';
+import { mockCatalog, mockDetail, mockMyTasks, mockPickers } from './projectMocks';
 
 const KEY = 'association-projects';
 
@@ -112,6 +114,29 @@ export function useSaveAssociationProject() {
     meta: { successMessage: 'تم حفظ المشروع' },
     onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
   });
+}
+
+/** مهامي المفتوحة عبر كل المشاريع (0647). */
+export function useMyProjectTasks() {
+  const a = useAuth();
+  return useQuery({
+    queryKey: [KEY, 'my-tasks', a.isMock],
+    enabled: a.status === 'authenticated',
+    refetchInterval: 5 * 60_000,
+    queryFn: async (): Promise<MyProjectTask[]> => {
+      if (a.isMock) return mockMyTasks();
+      return myProjectTasksSchema.parse(await rpc('get_my_project_tasks'));
+    },
+  });
+}
+
+/** تحريك خطوة لأعلى/لأسفل (0647). */
+export function useMoveProjectStep() {
+  return useProjectMutation(
+    (input: { stepId: string; direction: 'up' | 'down' }) =>
+      rpc('move_project_step', { p_step_id: input.stepId, p_direction: input.direction }),
+    'تم تغيير ترتيب الخطوة',
+  );
 }
 
 export function useAddProjectUpdate() {

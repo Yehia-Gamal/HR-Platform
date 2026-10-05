@@ -142,6 +142,19 @@ void main() {
     });
   });
 
+  test('مهامي (0647): المتأخرة والقريبة تحتاج انتباهاً', () {
+    final tasks = MyProjectTask.listFrom([
+      {'stepId': 's1', 'title': 'تجهيز', 'status': 'in_progress', 'dueDate': '2026-10-01', 'isOverdue': true,
+       'projectId': 'p1', 'projectName': 'مشروع', 'leaderName': 'أحمد'},
+      {'stepId': 's2', 'title': 'تسليم', 'status': 'pending', 'dueDate': null, 'projectId': 'p1', 'projectName': 'مشروع'},
+    ]);
+    expect(tasks, hasLength(2));
+    expect(tasks.first.needsAttention, isTrue);
+    expect(tasks.last.needsAttention, isFalse);
+    expect(tasks.last.leaderName, isNull);
+    expect(MyProjectTask.listFrom(null), isEmpty);
+  });
+
   test('رسالة الخادم العربية تظهر كما هي حتى مع رمز 42501', () {
     final msg = humanizeError(
       PostgrestException(message: 'لا يمكنك إنشاء مشروع إلا لإدارتك', code: '42501'),

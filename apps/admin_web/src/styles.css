@@ -2371,6 +2371,9 @@ a.no-underline:hover .metric-card--linked {
 .projects-display__page {
   animation: projects-display-page 0.6s ease-out;
 }
+.projects-display__ticker {
+  animation: projects-display-page 0.5s ease-out;
+}
 @keyframes projects-display-page {
   from {
     opacity: 0;
@@ -2385,7 +2388,8 @@ a.no-underline:hover .metric-card--linked {
   .projects-display__alert {
     animation-duration: 4s;
   }
-  .projects-display__page {
+  .projects-display__page,
+  .projects-display__ticker {
     animation: none;
   }
 }
