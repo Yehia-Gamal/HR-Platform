@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import type { AssociationProjectListItem, ProjectLedStatus } from '@ahla/shared-contracts';
-import { AlertTriangle, Check, Download, FileText, Plus, Search, Send, Settings2, X } from 'lucide-react';
+import { AlertTriangle, Check, Download, FileText, MonitorPlay, Plus, Search, Send, Settings2, X } from 'lucide-react';
 import { PageHeader } from '../../ui/PageHeader';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -149,6 +149,9 @@ export function AssociationProjectsPage() {
                 <Settings2 className="size-4" />
               </button>
             )}
+            <Link to="/projects/display" className="btn-secondary" title="عرض المشاريع على شاشة كبيرة (تلفزيون)">
+              <MonitorPlay className="size-4" aria-hidden="true" /> وضع العرض
+            </Link>
             <div className="relative">
               <button className="icon-button" onClick={() => setExportOpen((o) => !o)} aria-label="تصدير" aria-expanded={exportOpen} title="تصدير">
                 <Download className="size-4" />

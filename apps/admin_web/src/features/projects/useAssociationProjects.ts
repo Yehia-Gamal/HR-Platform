@@ -27,13 +27,15 @@ function useProjectMutation<TInput>(rpcCall: (input: TInput) => Promise<unknown>
   });
 }
 
-export function useAssociationProjects() {
+/** [refetchMs]: وضع العرض على الشاشة الكبيرة يحدّث كل دقيقة. */
+export function useAssociationProjects(refetchMs = 5 * 60_000) {
   const a = useAuth();
   return useQuery({
     queryKey: [KEY, a.isMock],
     enabled: a.status === 'authenticated',
     // اللمبة تعتمد على الزمن — نُحدّث اللوحة دورياً ما دامت مفتوحة.
-    refetchInterval: 5 * 60_000,
+    refetchInterval: refetchMs,
+    refetchIntervalInBackground: true,
     queryFn: async (): Promise<AssociationProjectsCatalog> => {
       if (a.isMock) return mockCatalog();
       return associationProjectsCatalogSchema.parse(await rpc('get_association_projects'));

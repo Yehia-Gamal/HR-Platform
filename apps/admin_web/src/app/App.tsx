@@ -54,6 +54,7 @@ const DocumentsHubPage = lazy(() => import('../features/documents/DocumentsHubPa
 const AccessPage = lazy(() => import('../features/management/AccessPage').then((m) => ({ default: m.AccessPage })));
 const EnterpriseManagementPage = lazy(() => import('../features/management/EnterpriseManagementPage').then((m) => ({ default: m.EnterpriseManagementPage })));
 const AssociationProjectsPage = lazy(() => import('../features/projects/AssociationProjectsPage').then((m) => ({ default: m.AssociationProjectsPage })));
+const ProjectsDisplayPage = lazy(() => import('../features/projects/ProjectsDisplayPage').then((m) => ({ default: m.ProjectsDisplayPage })));
 const AuditSecurityPage = lazy(() => import('../features/management/AuditSecurityPage').then((m) => ({ default: m.AuditSecurityPage })));
 const ObservabilityDashboardPage = lazy(() =>
   import('../features/observability/ObservabilityDashboardPage').then((m) => ({ default: m.ObservabilityDashboardPage })),
@@ -182,6 +183,8 @@ function AuthenticatedApp() {
         <Route path="/me/*" element={<Navigate to="/me/penalties" replace />} />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        {/* وضع العرض على شاشة كبيرة — بلا قوائم، والخادم يحصر المشاريع حسب المستخدم */}
+        <Route path="/projects/display" element={<ProjectsDisplayPage />} />
         <Route path="/" element={<Navigate to={workspacePath(defaultWorkspace)} replace />} />
 
         {/* مساحة الموارد البشرية المستقلة — تبقى كما هي لحسابات HR التي لا تملك main_admin */}
