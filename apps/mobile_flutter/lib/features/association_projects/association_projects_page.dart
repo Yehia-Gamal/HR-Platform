@@ -1,6 +1,7 @@
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/association_projects/association_project_detail_page.dart';
+import 'package:ahla_shabab_management_os/features/association_projects/association_project_form_page.dart';
 import 'package:ahla_shabab_management_os/features/association_projects/association_projects_models.dart';
 import 'package:ahla_shabab_management_os/features/association_projects/association_projects_providers.dart';
 import 'package:flutter/material.dart';
@@ -98,6 +99,7 @@ class AssociationProjectsPage extends ConsumerStatefulWidget {
 
 class _AssociationProjectsPageState extends ConsumerState<AssociationProjectsPage> {
   ProjectLed? _filter;
+  bool _mineOnly = false;
 
   @override
   Widget build(BuildContext context) {
@@ -151,6 +153,8 @@ class _AssociationProjectsPageState extends ConsumerState<AssociationProjectsPag
                 catalog: c,
                 filter: _filter,
                 onFilter: (f) => setState(() => _filter = f),
+                mineOnly: _mineOnly,
+                onMineOnly: (v) => setState(() => _mineOnly = v),
               ),
               _RequestsTab(catalog: c),
             ],
@@ -161,40 +165,40 @@ class _AssociationProjectsPageState extends ConsumerState<AssociationProjectsPag
   }
 
   Future<void> _openCreate(BuildContext context, AssociationProjectsCatalog catalog) async {
-    final departmentId = catalog.myDepartmentId;
-    if (departmentId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('حسابك غير مرتبط بإدارة — لا يمكن إنشاء مشروع من التطبيق.')),
-      );
-      return;
-    }
-    final created = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => _CreateProjectSheet(departmentId: departmentId, isFullAccess: catalog.isFullAccess),
-    );
-    if (created == true && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(catalog.isFullAccess ? 'تم إنشاء المشروع واعتماده' : 'تم إرسال المشروع للمدير التنفيذي لاعتماده'),
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => AssociationProjectFormPage(
+          isFullAccess: catalog.isFullAccess,
+          myEmployeeId: catalog.myEmployeeId,
+          myDepartmentId: catalog.myDepartmentId,
         ),
-      );
-    }
+      ),
+    );
   }
 }
 
 class _BoardTab extends ConsumerWidget {
-  const _BoardTab({required this.catalog, required this.filter, required this.onFilter});
+  const _BoardTab({
+    required this.catalog,
+    required this.filter,
+    required this.onFilter,
+    required this.mineOnly,
+    required this.onMineOnly,
+  });
 
   final AssociationProjectsCatalog catalog;
   final ProjectLed? filter;
   final ValueChanged<ProjectLed?> onFilter;
+  final bool mineOnly;
+  final ValueChanged<bool> onMineOnly;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final board = catalog.board;
-    final visible = filter == null ? board : board.where((p) => p.led == filter).toList();
+    final mineCount = board.where((p) => p.isMine).length;
+    final visible = board
+        .where((p) => (filter == null || p.led == filter) && (!mineOnly || p.isMine))
+        .toList();
     int count(ProjectLed l) => board.where((p) => p.led == l).length;
     final critical = count(ProjectLed.critical);
 
@@ -222,6 +226,16 @@ class _BoardTab extends ConsumerWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
+                if (mineCount > 0)
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(end: 8),
+                    child: FilterChip(
+                      selected: mineOnly,
+                      onSelected: onMineOnly,
+                      avatar: const Icon(Icons.groups_2_outlined, size: 18),
+                      label: Text('مشاريعي ($mineCount)'),
+                    ),
+                  ),
                 _FilterChip(label: 'الكل', count: board.length, selected: filter == null, onTap: () => onFilter(null)),
                 for (final l in const [ProjectLed.active, ProjectLed.halted, ProjectLed.critical, ProjectLed.completed])
                   _FilterChip(
@@ -240,7 +254,7 @@ class _BoardTab extends ConsumerWidget {
               icon: Icons.folder_open_outlined,
               title: board.isEmpty ? 'لا توجد مشاريع معتمدة بعد' : 'لا توجد مشاريع بهذه الحالة',
               subtitle: board.isEmpty
-                  ? 'عندما ترسل إدارتك مشروعاً ويعتمده المدير التنفيذي يظهر هنا بلمبة حالته.'
+                  ? 'عندما يُرسل مشروع أنت في فريقه أو يخص إدارتك ويعتمده المدير التنفيذي يظهر هنا بلمبة حالته.'
                   : 'اختر فلتراً آخر.',
             )
           else
@@ -270,8 +284,8 @@ class _RequestsTab extends ConsumerWidget {
               icon: Icons.inbox_outlined,
               title: catalog.isFullAccess ? 'لا توجد طلبات اعتماد' : 'لا توجد مشاريع قيد الإعداد',
               subtitle: catalog.isFullAccess
-                  ? 'عندما ترسل إدارة مشروعاً جديداً يظهر هنا لتعتمده.'
-                  : 'اضغط «مشروع جديد» لإنشاء مشروع لإدارتك وإرساله للاعتماد.',
+                  ? 'عندما يُرسل مشروع جديد يظهر هنا لتعتمده.'
+                  : 'اضغط «مشروع جديد» لإنشاء مشروع بفريقه وإرساله للاعتماد.',
             )
           else
             for (final p in requests) _ProjectTile(project: p),
@@ -350,7 +364,35 @@ class _ProjectTile extends StatelessWidget {
               const SizedBox(height: 8),
               Text(p.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
               const SizedBox(height: 2),
-              Text('${p.departmentName} • ${p.ownerName}', style: muted),
+              Row(
+                children: [
+                  const Icon(Icons.workspace_premium, size: 14, color: AppColors.statusWarning),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      '${p.leaderName} • ${p.scopeLabel}',
+                      style: muted,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              // «فريق من N» يظهر في السطر أعلاه لمشروع بلا إدارة — لا نكرره.
+              if (p.isMine || (p.team.length > 1 && p.departmentName.isNotEmpty)) ...[
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    if (p.team.length > 1 && p.departmentName.isNotEmpty) _Tag('فريق من ${p.team.length}', AppColors.statusInfo),
+                    if (p.myRole == 'leader')
+                      const _Tag('تقوده', AppColors.brandPrimary)
+                    else if (p.myRole == 'member')
+                      const _Tag('أنت في الفريق', AppColors.brandPrimary),
+                  ],
+                ),
+              ],
               if (p.isApproved) ...[
                 const SizedBox(height: 10),
                 Row(
@@ -468,132 +510,4 @@ class _ErrorView extends StatelessWidget {
           ),
         ),
       );
-}
-
-/// إنشاء مشروع لإدارة المستخدم — يُرسل للاعتماد مباشرة.
-class _CreateProjectSheet extends ConsumerStatefulWidget {
-  const _CreateProjectSheet({required this.departmentId, required this.isFullAccess});
-
-  final String departmentId;
-  final bool isFullAccess;
-
-  @override
-  ConsumerState<_CreateProjectSheet> createState() => _CreateProjectSheetState();
-}
-
-class _CreateProjectSheetState extends ConsumerState<_CreateProjectSheet> {
-  final _name = TextEditingController();
-  final _description = TextEditingController();
-  String _priority = 'medium';
-  DateTime? _targetEnd;
-  bool _saving = false;
-  String? _error;
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _description.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    if (_name.text.trim().isEmpty) {
-      setState(() => _error = 'اكتب اسم المشروع');
-      return;
-    }
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-    try {
-      await ref.read(associationProjectCommandsProvider).create(
-            name: _name.text.trim(),
-            description: _description.text.trim(),
-            departmentId: widget.departmentId,
-            priority: _priority,
-            targetEndDate: _targetEnd,
-            submit: !widget.isFullAccess,
-          );
-      if (mounted) Navigator.of(context).pop(true);
-    } catch (e, st) {
-      setState(() {
-        _saving = false;
-        _error = humanizeError(e, st);
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 0, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text('مشروع جديد لإدارتك', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 4),
-            Text(
-              widget.isFullAccess
-                  ? 'المشاريع التي ينشئها المدير التنفيذي تُعتمد مباشرة.'
-                  : 'سيُرسل للمدير التنفيذي لاعتماده، ثم يظهر على لوحة المشاريع.',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _name,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(labelText: 'اسم المشروع *', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _description,
-              maxLines: 3,
-              decoration: const InputDecoration(labelText: 'الهدف والوصف المختصر', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _priority,
-              decoration: const InputDecoration(labelText: 'الأولوية', border: OutlineInputBorder()),
-              items: [
-                for (final e in projectPriorityLabels.entries) DropdownMenuItem(value: e.key, child: Text(e.value)),
-              ],
-              onChanged: (v) => setState(() => _priority = v ?? 'medium'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.event_outlined),
-              label: Text(
-                _targetEnd == null
-                    ? 'الموعد المستهدف للانتهاء (اختياري)'
-                    : 'الموعد المستهدف: ${_targetEnd!.day}/${_targetEnd!.month}/${_targetEnd!.year}',
-              ),
-              onPressed: () async {
-                final now = DateTime.now();
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: _targetEnd ?? now.add(const Duration(days: 30)),
-                  firstDate: now,
-                  lastDate: DateTime(now.year + 5),
-                );
-                if (picked != null && mounted) setState(() => _targetEnd = picked);
-              },
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w700)),
-            ],
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _saving ? null : _save,
-              child: _saving
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Text(widget.isFullAccess ? 'إنشاء المشروع' : 'إنشاء وإرسال للاعتماد'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

@@ -21,6 +21,7 @@ import { APPROVAL_LABELS, LED_META, LED_URGENCY, PRIORITY_ORDER, activityDays, i
 type Tab = 'board' | 'requests' | 'activity';
 type SortKey = 'urgency' | 'priority' | 'progress' | 'name';
 type LedFilter = 'all' | 'active' | 'halted' | 'critical' | 'completed';
+type ScopeFilter = 'all' | 'mine' | 'leading';
 
 const LED_TILES: { key: LedFilter; label: string }[] = [
   { key: 'all', label: 'كل المشاريع' },
@@ -63,6 +64,7 @@ export function AssociationProjectsPage() {
   const [ledFilter, setLedFilter] = useState<LedFilter>('all');
   const [search, setSearch] = useState('');
   const [department, setDepartment] = useState('all');
+  const [scope, setScope] = useState<ScopeFilter>('all');
   const [sort, setSort] = useState<SortKey>('urgency');
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -85,20 +87,29 @@ export function AssociationProjectsPage() {
 
   const departments = useMemo(() => {
     const map = new Map<string, string>();
-    for (const p of board) map.set(p.departmentId, p.departmentName);
+    for (const p of board) for (const d of p.departments) map.set(d.id, d.name);
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1], 'ar'));
   }, [board]);
+  const hasTeamOnly = board.some((p) => p.departments.length === 0);
+  const myProjectsCount = board.filter((p) => p.myRole === 'leader' || p.myRole === 'member').length;
 
   const visible = useMemo(() => {
     const q = search.trim();
     const list = board.filter(
       (p) =>
         (ledFilter === 'all' || p.ledStatus === ledFilter) &&
-        (department === 'all' || p.departmentId === department) &&
-        (!q || p.name.includes(q) || p.code.includes(q) || p.departmentName.includes(q) || p.ownerName.includes(q)),
+        (department === 'all' ||
+          (department === 'none' ? p.departments.length === 0 : p.departments.some((d) => d.id === department))) &&
+        (scope === 'all' || (scope === 'leading' ? p.myRole === 'leader' : p.myRole === 'leader' || p.myRole === 'member')) &&
+        (!q ||
+          p.name.includes(q) ||
+          p.code.includes(q) ||
+          p.departmentName.includes(q) ||
+          p.ownerName.includes(q) ||
+          p.members.some((m) => m.name.includes(q))),
     );
     return sortProjects(list, sort);
-  }, [board, ledFilter, department, search, sort]);
+  }, [board, ledFilter, department, scope, search, sort]);
 
   function setParam(key: string, value: string | null) {
     setParams(
@@ -128,8 +139,8 @@ export function AssociationProjectsPage() {
         title="مشاريع الجمعية"
         description={
           isFullAccess
-            ? 'كل مشاريع الإدارات المعتمدة في مكان واحد — اللمبة تخبرك فوراً أي مشروع يعمل وأيها متوقف ويحتاج تدخلك.'
-            : 'مشاريع إدارتك: أنشئ مشروعاً وأرسله للاعتماد، ثم تابع خطواته وسجّل التحديثات ليبقى أخضر.'
+            ? 'كل مشاريع الجمعية المعتمدة — بإداراتها وفرقها — في مكان واحد. اللمبة تخبرك فوراً أي مشروع يعمل وأيها متوقف ويحتاج تدخلك.'
+            : 'المشاريع التي أنت في فريقها أو تخص إدارتك: أنشئ مشروعاً بفريقه وأرسله للاعتماد، ثم تابع خطواته وسجّل التحديثات ليبقى أخضر.'
         }
         actions={
           <>
@@ -232,8 +243,15 @@ export function AssociationProjectsPage() {
             <label className="relative flex-1">
               <span className="sr-only">بحث</span>
               <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
-              <input className="input !ps-9" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ابحث باسم المشروع أو الإدارة أو المسؤول" />
+              <input className="input !ps-9" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ابحث باسم المشروع أو الإدارة أو أحد أفراد الفريق" />
             </label>
+            {myProjectsCount > 0 && (
+              <select className="input md:!w-48" value={scope} onChange={(e) => setScope(e.target.value as ScopeFilter)} aria-label="مشاريعي">
+                <option value="all">كل المشاريع</option>
+                <option value="mine">مشاريع أنا في فريقها</option>
+                <option value="leading">مشاريع أقودها</option>
+              </select>
+            )}
             <select className="input md:!w-56" value={department} onChange={(e) => setDepartment(e.target.value)} aria-label="الإدارة">
               <option value="all">كل الإدارات</option>
               {departments.map(([id, name]) => (
@@ -241,6 +259,7 @@ export function AssociationProjectsPage() {
                   {name}
                 </option>
               ))}
+              {hasTeamOnly && <option value="none">مشاريع فرق بلا إدارة</option>}
             </select>
             <select className="input md:!w-56" value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="الترتيب">
               {SORTS.map((s) => (
@@ -254,7 +273,7 @@ export function AssociationProjectsPage() {
           {visible.length === 0 ? (
             <EmptyState
               title={board.length === 0 ? 'لا توجد مشاريع معتمدة بعد' : 'لا توجد نتائج'}
-              description={board.length === 0 ? 'عندما تُرسل الإدارات مشاريعها ويعتمدها المدير التنفيذي تظهر هنا بلمبة حالتها.' : 'جرّب تغيير الفلتر أو البحث.'}
+              description={board.length === 0 ? 'عندما تُرسل المشاريع ويعتمدها المدير التنفيذي تظهر هنا بلمبة حالتها.' : 'جرّب تغيير الفلتر أو البحث.'}
               action={
                 board.length === 0 && (data?.canCreate ?? true) ? (
                   <button className="btn-primary" onClick={() => setCreateOpen(true)}>
@@ -271,6 +290,7 @@ export function AssociationProjectsPage() {
                   project={p}
                   onOpen={() => openProject(p.id)}
                   onQuickUpdate={(isFullAccess || p.canManage) && p.status !== 'completed' && p.status !== 'cancelled' ? () => setQuickUpdate(p) : undefined}
+                  myEmployeeId={data?.myEmployeeId ?? null}
                 />
               ))}
             </div>
@@ -283,7 +303,7 @@ export function AssociationProjectsPage() {
           {requests.length === 0 ? (
             <EmptyState
               title={isFullAccess ? 'لا توجد طلبات اعتماد' : 'لا توجد مشاريع قيد الإعداد'}
-              description={isFullAccess ? 'عندما ترسل إدارة مشروعاً جديداً يظهر هنا لتعتمده أو تعيده لها.' : 'ابدأ بإنشاء مشروع جديد لإدارتك وأرسله للاعتماد.'}
+              description={isFullAccess ? 'عندما يُرسل مشروع جديد يظهر هنا لتعتمده أو تعيده لفريقه.' : 'ابدأ بإنشاء مشروع جديد بفريقه وأرسله للاعتماد.'}
             />
           ) : (
             sortProjects(requests, 'urgency').map((p) => (
@@ -292,7 +312,8 @@ export function AssociationProjectsPage() {
                 <button className="min-w-0 flex-1 text-start" onClick={() => openProject(p.id)}>
                   <span className="block font-black">{p.name}</span>
                   <span className="block text-xs text-[var(--text-muted)]">
-                    {p.departmentName} • {p.ownerName} • <span style={{ color: LED_META[p.ledStatus].tone }}>{APPROVAL_LABELS[p.approvalStatus]}</span>
+                    {p.departmentName || `فريق من ${Math.max(p.members.length, 1)}`} • القائد: {p.leaderName ?? p.ownerName} •{' '}
+                    <span style={{ color: LED_META[p.ledStatus].tone }}>{APPROVAL_LABELS[p.approvalStatus]}</span>
                   </span>
                   {p.rejectionReason && <span className="mt-1 block text-xs font-bold text-[var(--danger)]">ملاحظة المدير التنفيذي: {p.rejectionReason}</span>}
                 </button>
@@ -337,10 +358,18 @@ export function AssociationProjectsPage() {
           projectId={selectedId}
           isFullAccess={isFullAccess}
           myDepartmentId={data?.myDepartmentId ?? null}
+          myEmployeeId={data?.myEmployeeId ?? null}
           onClose={() => setParam('project', null)}
         />
       )}
-      {createOpen && <ProjectFormDialog isFullAccess={isFullAccess} myDepartmentId={data?.myDepartmentId ?? null} onClose={() => setCreateOpen(false)} />}
+      {createOpen && (
+        <ProjectFormDialog
+          isFullAccess={isFullAccess}
+          myDepartmentId={data?.myDepartmentId ?? null}
+          myEmployeeId={data?.myEmployeeId ?? null}
+          onClose={() => setCreateOpen(false)}
+        />
+      )}
       {settingsOpen && data && <ProjectSettingsDialog settings={data.settings} onClose={() => setSettingsOpen(false)} />}
       {quickUpdate && <QuickUpdateDialog project={quickUpdate} onClose={() => setQuickUpdate(null)} />}
       {rejecting && (

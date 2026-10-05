@@ -8,8 +8,9 @@ export function exportProjectsCsv(projects: AssociationProjectListItem[]): void 
   const columns: ExportColumn<AssociationProjectListItem>[] = [
     { key: 'code', header: 'الكود', get: (r) => r.code },
     { key: 'name', header: 'اسم المشروع', get: (r) => r.name },
-    { key: 'departmentName', header: 'الإدارة', get: (r) => r.departmentName },
-    { key: 'ownerName', header: 'المسؤول', get: (r) => r.ownerName },
+    { key: 'departmentName', header: 'الإدارات', get: (r) => r.departmentName || '—' },
+    { key: 'ownerName', header: 'القائد', get: (r) => r.leaderName ?? r.ownerName },
+    { key: 'members', header: 'الفريق', get: (r) => r.members.map((m) => m.name).join('، ') || '—' },
     { key: 'status', header: 'الحالة', get: (r) => STATUS_LABELS[r.status] ?? r.status },
     { key: 'approvalStatus', header: 'الموافقة', get: (r) => APPROVAL_LABELS[r.approvalStatus] ?? r.approvalStatus },
     { key: 'priority', header: 'الأولوية', get: (r) => PRIORITY_LABELS[r.priority] ?? r.priority },
@@ -55,8 +56,8 @@ export function exportProjectsPdf(projects: AssociationProjectListItem[]): void 
   const rows = projects.map((p) => [
     p.code,
     p.name,
-    p.departmentName,
-    p.ownerName,
+    p.departmentName || '—',
+    p.leaderName ?? p.ownerName,
     STATUS_LABELS[p.status] ?? p.status,
     APPROVAL_LABELS[p.approvalStatus] ?? p.approvalStatus,
     PRIORITY_LABELS[p.priority] ?? p.priority,
@@ -72,7 +73,7 @@ export function exportProjectsPdf(projects: AssociationProjectListItem[]): void 
         title: 'مشاريع الجمعية',
         subtitle: `تاريخ التصدير: ${new Date().toLocaleDateString('ar-EG')}`,
         table: {
-          headers: ['الكود', 'المشروع', 'الإدارة', 'المسؤول', 'الحالة', 'الموافقة', 'الأولوية', 'اللمبة', 'التقدم', 'الخطوات', 'آخر نشاط'],
+          headers: ['الكود', 'المشروع', 'الإدارات', 'القائد', 'الحالة', 'الموافقة', 'الأولوية', 'اللمبة', 'التقدم', 'الخطوات', 'آخر نشاط'],
           rows,
         },
       },

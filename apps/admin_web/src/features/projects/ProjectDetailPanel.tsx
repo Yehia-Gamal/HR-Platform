@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { AssociationProjectDetail, AssociationProjectStep } from '@ahla/shared-contracts';
-import { AlertTriangle, Ban, CalendarClock, Check, CheckCircle2, Circle, Loader2, MessageSquarePlus, Pencil, Plus, Send, Trash2, X } from 'lucide-react';
+import type { AssociationProjectDetail, AssociationProjectListItem, AssociationProjectStep, ProjectRole } from '@ahla/shared-contracts';
+import { AlertTriangle, Ban, Building2, CalendarClock, Check, CheckCircle2, Circle, Crown, Loader2, MessageSquarePlus, Pencil, Plus, Send, Trash2, UserCheck, Users, X } from 'lucide-react';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { ErrorState } from '../../ui/ErrorState';
 import { safeErrorMessage } from '../../core/errorMapper';
-import { useOrganizationLookups } from '../employees/useOrganizationLookups';
 import {
   useAssociationProjectDetail,
   useApproveProject,
   useDeleteAssociationProject,
   useDeleteProjectStep,
+  useProjectPickers,
   useRejectProject,
   useSetProjectStepStatus,
   useSubmitProjectForApproval,
@@ -26,12 +26,23 @@ interface Props {
   projectId: string;
   isFullAccess: boolean;
   myDepartmentId: string | null;
+  myEmployeeId: string | null;
   onClose: () => void;
 }
 
+/** وصف صفة المستخدم في المشروع. */
+const ROLE_LABELS: Record<ProjectRole, string> = {
+  leader: 'أنت قائد هذا المشروع',
+  member: 'أنت عضو في فريق المشروع',
+  dept_manager: 'إدارتك مسؤولة عن المشروع (بصفتك مديرها)',
+  dept_staff: 'إدارتك مسؤولة عن المشروع',
+  creator: 'أنشأت هذا المشروع',
+  admin: '',
+};
+
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
-export function ProjectDetailPanel({ projectId, isFullAccess, myDepartmentId, onClose }: Props) {
+export function ProjectDetailPanel({ projectId, isFullAccess, myDepartmentId, myEmployeeId, onClose }: Props) {
   const { data, isLoading, error, refetch } = useAssociationProjectDetail(projectId);
 
   useEffect(() => {
@@ -63,7 +74,7 @@ export function ProjectDetailPanel({ projectId, isFullAccess, myDepartmentId, on
             </button>
           </div>
         ) : (
-          <DetailContent detail={data} isFullAccess={isFullAccess} myDepartmentId={myDepartmentId} onClose={onClose} />
+          <DetailContent detail={data} isFullAccess={isFullAccess} myDepartmentId={myDepartmentId} myEmployeeId={myEmployeeId} onClose={onClose} />
         )}
       </aside>
     </div>,
@@ -75,11 +86,13 @@ function DetailContent({
   detail,
   isFullAccess,
   myDepartmentId,
+  myEmployeeId,
   onClose,
 }: {
   detail: AssociationProjectDetail;
   isFullAccess: boolean;
   myDepartmentId: string | null;
+  myEmployeeId: string | null;
   onClose: () => void;
 }) {
   const { project: p, steps, updates } = detail;
@@ -92,6 +105,7 @@ function DetailContent({
     canUpdate: p.approvalStatus === 'approved',
     canDelete: isFullAccess || p.approvalStatus === 'draft' || p.approvalStatus === 'rejected',
   };
+  const canEditTeam = perms.canEditTeam ?? perms.canEdit;
   const led = p.ledStatus;
   const meta = LED_META[led];
   const days = activityDays(p);
@@ -132,12 +146,17 @@ function DetailContent({
               <span dir="ltr" className="font-mono">
                 {p.code}
               </span>{' '}
-              • {p.departmentName} • المسؤول: {p.ownerName}
+              {p.departmentName ? ` • ${p.departmentName}` : ''} • القائد: {p.leaderName ?? p.ownerName}
             </p>
+            {p.myRole && ROLE_LABELS[p.myRole] && (
+              <p className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-primary)]">
+                <UserCheck className="size-3.5" aria-hidden="true" /> {ROLE_LABELS[p.myRole]}
+              </p>
+            )}
           </div>
           <div className="flex shrink-0 gap-1">
-            {perms.canEdit && (
-              <button className="icon-button" onClick={() => setEditOpen(true)} aria-label="تعديل بيانات المشروع" title="تعديل">
+            {(perms.canEdit || canEditTeam) && (
+              <button className="icon-button" onClick={() => setEditOpen(true)} aria-label="تعديل المشروع وفريقه" title="تعديل المشروع وفريقه">
                 <Pencil className="size-4" />
               </button>
             )}
@@ -168,7 +187,7 @@ function DetailContent({
                     <Check className="size-4" aria-hidden="true" /> اعتماد المشروع
                   </button>
                   <button className="btn-danger btn-sm" onClick={() => setRejectOpen(true)}>
-                    <X className="size-4" aria-hidden="true" /> إعادة للإدارة
+                    <X className="size-4" aria-hidden="true" /> إعادة للتعديل
                   </button>
                 </>
               )}
@@ -232,6 +251,9 @@ function DetailContent({
           {p.description && <p className="mt-4 text-sm leading-7 text-[var(--text-secondary)]">{p.description}</p>}
         </section>
 
+        {/* فريق المشروع */}
+        <TeamSection project={p} canEditTeam={canEditTeam} onEdit={() => setEditOpen(true)} myEmployeeId={myEmployeeId} />
+
         {/* خطوات التنفيذ والمهام */}
         <section className="card p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
@@ -258,6 +280,7 @@ function DetailContent({
               {steps.map((s, i) => {
                 const overdue = s.status !== 'done' && s.dueDate && s.dueDate < todayIso();
                 const isCurrent = s.id === currentStep?.id;
+                const isMine = Boolean(myEmployeeId && s.assigneeId === myEmployeeId);
                 return (
                   <li
                     key={s.id}
@@ -276,6 +299,9 @@ function DetailContent({
                       {s.description && <p className="mt-0.5 text-xs text-[var(--text-muted)]">{s.description}</p>}
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--text-muted)]">
                         {s.assigneeName && <span>المكلَّف: {s.assigneeName}</span>}
+                        {isMine && s.status !== 'done' && (
+                          <span className="rounded-full bg-[var(--brand-primary)] px-2 py-0.5 font-bold text-white">مهمتك</span>
+                        )}
                         {s.dueDate && (
                           <span className={overdue ? 'font-bold text-[var(--danger)]' : ''}>
                             <CalendarClock className="inline size-3" aria-hidden="true" /> {formatDate(s.dueDate)}
@@ -360,9 +386,18 @@ function DetailContent({
       </div>
 
       {/* الحوارات */}
-      {editOpen && <ProjectFormDialog project={p} isFullAccess={isFullAccess} myDepartmentId={myDepartmentId} onClose={() => setEditOpen(false)} />}
+      {editOpen && (
+        <ProjectFormDialog
+          project={p}
+          permissions={perms}
+          isFullAccess={isFullAccess}
+          myDepartmentId={myDepartmentId}
+          myEmployeeId={myEmployeeId}
+          onClose={() => setEditOpen(false)}
+        />
+      )}
       {updateOpen && <QuickUpdateDialog project={p} onClose={() => setUpdateOpen(false)} />}
-      {stepDialog && <StepDialog projectId={p.id} step={stepDialog.step} onClose={() => setStepDialog(null)} />}
+      {stepDialog && <StepDialog project={p} step={stepDialog.step} onClose={() => setStepDialog(null)} />}
       {rejectOpen && (
         <RejectDialog
           projectName={p.name}
@@ -402,6 +437,81 @@ function DetailContent({
         onCancel={() => setDeleteOpen(false)}
       />
     </>
+  );
+}
+
+function TeamSection({
+  project: p,
+  canEditTeam,
+  onEdit,
+  myEmployeeId,
+}: {
+  project: AssociationProjectListItem;
+  canEditTeam: boolean;
+  onEdit: () => void;
+  myEmployeeId: string | null;
+}) {
+  // استجابة ما قبل 0645 بلا فريق: القائد = المسؤول.
+  const members = p.members.length
+    ? p.members
+    : [{ employeeId: p.ownerId, name: p.leaderName ?? p.ownerName, jobTitle: null, departmentName: null, isLeader: true }];
+  return (
+    <section className="card p-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h3 className="flex items-center gap-2 text-lg font-black">
+            <Users className="size-5" aria-hidden="true" /> فريق المشروع
+          </h3>
+          <p className="text-xs text-[var(--text-muted)]">
+            {members.length} {members.length === 1 ? 'شخص' : 'أشخاص'}
+            {p.departments.length > 0 ? ` + ${p.departments.length === 1 ? 'إدارة' : `${p.departments.length} إدارات`}` : ''}
+          </p>
+        </div>
+        {canEditTeam && (
+          <button className="btn-secondary btn-sm" onClick={onEdit}>
+            <Pencil className="size-4" aria-hidden="true" /> تعديل الفريق
+          </button>
+        )}
+      </div>
+      <ul className="grid gap-2 sm:grid-cols-2">
+        {members.map((m) => (
+          <li
+            key={m.employeeId}
+            className={`flex items-center gap-3 rounded-xl border p-3 ${m.isLeader ? 'border-[var(--warning)] bg-[var(--warning-soft)]' : 'border-[var(--border)]'}`}
+          >
+            <span
+              className={`grid size-9 shrink-0 place-items-center rounded-full text-sm font-black ${m.isLeader ? 'bg-[var(--warning)] text-white' : 'bg-[var(--surface-muted)]'}`}
+              aria-hidden="true"
+            >
+              {m.isLeader ? <Crown className="size-4" /> : m.name.trim().charAt(0)}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate font-bold">
+                {m.name}
+                {m.employeeId === myEmployeeId ? ' (أنت)' : ''}
+              </span>
+              <span className="block truncate text-xs text-[var(--text-muted)]">
+                {m.isLeader ? 'قائد المشروع' : [m.jobTitle, m.departmentName].filter(Boolean).join(' • ') || 'عضو الفريق'}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      {p.departments.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)]">
+            <Building2 className="size-3.5" aria-hidden="true" /> الإدارات المسؤولة — موظفوها يتابعون المشروع ويديرون خطواته
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {p.departments.map((d) => (
+              <span key={d.id} className="rounded-full bg-[var(--surface-muted)] px-3 py-1 text-xs font-bold">
+                {d.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -482,7 +592,7 @@ function StatusBanner({
       fg: 'var(--danger)',
     },
     pending: {
-      text: isFullAccess ? 'أرسلت الإدارة هذا المشروع وينتظر قرارك.' : 'بانتظار اعتماد المدير التنفيذي. يمكنك إضافة الخطوات من الآن.',
+      text: isFullAccess ? 'أُرسل هذا المشروع وينتظر قرارك.' : 'بانتظار اعتماد المدير التنفيذي. يمكنك إضافة الخطوات من الآن.',
       bg: 'var(--warning-soft)',
       fg: 'var(--warning)',
     },
@@ -510,9 +620,14 @@ function StatusBanner({
   );
 }
 
-function StepDialog({ projectId, step, onClose }: { projectId: string; step: AssociationProjectStep | null; onClose: () => void }) {
+function StepDialog({ project, step, onClose }: { project: AssociationProjectListItem; step: AssociationProjectStep | null; onClose: () => void }) {
+  const projectId = project.id;
   const upsert = useUpsertProjectStep();
-  const { data: org } = useOrganizationLookups();
+  const { data: pickers } = useProjectPickers(project.departments.length > 0);
+  // المكلَّف من نطاق المشروع: الفريق + موظفو الإدارات المرتبطة.
+  const deptIds = new Set(project.departments.map((d) => d.id));
+  const teamIds = new Set(project.members.map((m) => m.employeeId));
+  const deptStaff = (pickers?.employees ?? []).filter((e) => e.departmentId && deptIds.has(e.departmentId) && !teamIds.has(e.id));
   const [title, setTitle] = useState(step?.title ?? '');
   const [description, setDescription] = useState(step?.description ?? '');
   const [status, setStatus] = useState<string>(step?.status ?? 'pending');
@@ -569,12 +684,30 @@ function StepDialog({ projectId, step, onClose }: { projectId: string; step: Ass
           <span className="text-sm font-bold">المكلَّف بالتنفيذ</span>
           <select className="input mt-1" value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}>
             <option value="">— بدون —</option>
-            {org?.managers.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.label}
-              </option>
-            ))}
+            <optgroup label="فريق المشروع">
+              {project.members.map((m) => (
+                <option key={m.employeeId} value={m.employeeId}>
+                  {m.name}
+                  {m.isLeader ? ' (القائد)' : ''}
+                </option>
+              ))}
+            </optgroup>
+            {deptStaff.length > 0 && (
+              <optgroup label="موظفو الإدارات المرتبطة">
+                {deptStaff.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name}
+                    {e.departmentName ? ` — ${e.departmentName}` : ''}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {/* مكلَّف سابق خرج من النطاق يبقى ظاهراً حتى يُغيَّر */}
+            {step?.assigneeId && !teamIds.has(step.assigneeId) && !deptStaff.some((e) => e.id === step.assigneeId) && (
+              <option value={step.assigneeId}>{step.assigneeName ?? 'المكلَّف الحالي'}</option>
+            )}
           </select>
+          <span className="mt-1 block text-xs text-[var(--text-muted)]">يُشعَر المكلَّف بمهمته. لإضافة شخص من خارج الفريق أضفه للفريق أولاً.</span>
         </label>
         <button className="btn-primary w-full" disabled={!title.trim() || upsert.isPending} onClick={save}>
           {upsert.isPending && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
@@ -598,10 +731,10 @@ export function RejectDialog({
 }) {
   const [reason, setReason] = useState('');
   return (
-    <DialogOverlay title="إعادة المشروع للإدارة" onClose={onCancel} maxWidth="max-w-md">
+    <DialogOverlay title="إعادة المشروع للتعديل" onClose={onCancel} maxWidth="max-w-md">
       <div className="space-y-4">
         <p className="text-sm leading-7">
-          سيُعاد مشروع <strong>«{projectName}»</strong> للإدارة لتعديله وإعادة إرساله. اكتب لهم ما المطلوب تعديله:
+          سيُعاد مشروع <strong>«{projectName}»</strong> لفريقه لتعديله وإعادة إرساله. اكتب لهم ما المطلوب تعديله:
         </p>
         <textarea
           className="input"
@@ -615,7 +748,7 @@ export function RejectDialog({
             إلغاء
           </button>
           <button className="btn-danger" disabled={pending || !reason.trim()} onClick={() => void onConfirm(reason.trim())}>
-            {pending ? 'جارٍ الإرسال…' : 'إعادة للإدارة'}
+            {pending ? 'جارٍ الإرسال…' : 'إعادة للتعديل'}
           </button>
         </div>
       </div>

@@ -79,6 +79,69 @@ void main() {
     });
   });
 
+  group('فريق المشروع (0645)', () {
+    test('مشروع فريق بلا إدارة: القائد والأعضاء والصفة', () {
+      final p = AssociationProject.fromJson({
+        ..._project('t', 'active'),
+        'departmentId': null,
+        'departmentName': null,
+        'departments': [],
+        'leaderId': 'e1',
+        'leaderName': 'أحمد',
+        'members': [
+          {'employeeId': 'e1', 'name': 'أحمد', 'isLeader': true},
+          {'employeeId': 'e2', 'name': 'بسمة', 'jobTitle': 'منسقة', 'departmentName': 'الإعلام', 'isLeader': false},
+        ],
+        'myRole': 'member',
+        'canEdit': false,
+      });
+      expect(p.departmentId, isNull);
+      expect(p.leaderName, 'أحمد');
+      expect(p.team.where((m) => m.isLeader).length, 1);
+      expect(p.scopeLabel, 'فريق من 2');
+      expect(p.isMine, isTrue);
+      expect(p.team[1].subtitle, 'منسقة • الإعلام');
+    });
+
+    test('استجابة ما قبل 0645: الفريق = القائد وحده والإدارة كما هي', () {
+      final p = AssociationProject.fromJson(_project('old', 'active'));
+      expect(p.team, hasLength(1));
+      expect(p.team.single.isLeader, isTrue);
+      expect(p.scopeLabel, 'إدارة');
+      expect(p.myRole, isNull);
+    });
+
+    test('صلاحيات تعديل الفريق تُشتق من canEdit عند غيابها', () {
+      final d = AssociationProjectDetail.fromJson({
+        'project': _project('a', 'active'),
+        'steps': [],
+        'updates': [],
+        'permissions': {'canManage': true, 'canApprove': false, 'canEdit': true, 'canSubmit': false, 'canUpdate': true, 'canDelete': false},
+      }, isFullAccess: false);
+      expect(d.permissions.canEditTeam, isTrue);
+      expect(d.permissions.canEditCore, isTrue);
+    });
+
+    test('قائمة الاختيار والبحث العربي', () {
+      final pickers = ProjectPickers.fromJson({
+        'employees': [
+          {'id': 'e1', 'name': 'أحمد علي', 'jobTitle': null, 'departmentId': 'd1', 'departmentName': 'الإعلام'},
+        ],
+        'departments': [
+          {'id': 'd1', 'name': 'الإعلام'},
+        ],
+      });
+      expect(pickers.byId('e1')?.subtitle, 'الإعلام');
+      expect(normalizeArabic('أحمد علي').contains(normalizeArabic('احمد')), isTrue);
+      expect(normalizeArabic('فاطمة'), 'فاطمه');
+    });
+
+    test('الكتالوج يحمل معرّف الموظف الحالي', () {
+      final c = AssociationProjectsCatalog.fromJson({'projects': [], 'myEmployeeId': 'e9'});
+      expect(c.myEmployeeId, 'e9');
+    });
+  });
+
   test('رسالة الخادم العربية تظهر كما هي حتى مع رمز 42501', () {
     final msg = humanizeError(
       PostgrestException(message: 'لا يمكنك إنشاء مشروع إلا لإدارتك', code: '42501'),

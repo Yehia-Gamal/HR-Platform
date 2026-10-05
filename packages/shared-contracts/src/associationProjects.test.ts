@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { associationProjectDetailSchema, associationProjectsCatalogSchema } from './associationProjects';
+import { associationProjectDetailSchema, associationProjectPickersSchema, associationProjectsCatalogSchema } from './associationProjects';
 
 const legacyProject = {
   id: '55300000-0000-4000-8000-000000000001',
@@ -56,5 +56,47 @@ describe('associationProjects contract (0553)', () => {
     });
     expect(parsed.permissions?.canUpdate).toBe(true);
     expect(parsed.project.daysSinceActivity).toBe(20);
+  });
+
+  it('0645: مشروع فريق بلا إدارة — القائد والأعضاء والصفة', () => {
+    const parsed = associationProjectsCatalogSchema.parse({
+      projects: [
+        {
+          ...legacyProject,
+          departmentId: null,
+          departmentName: null,
+          departments: [],
+          leaderId: legacyProject.ownerId,
+          leaderName: 'موظف',
+          members: [
+            { employeeId: legacyProject.ownerId, name: 'موظف', jobTitle: null, departmentName: 'إدارة', isLeader: true },
+            { employeeId: '55300000-0000-4000-8000-000000000009', name: 'زميل', jobTitle: 'منسق', departmentName: null, isLeader: false },
+          ],
+          myRole: 'member',
+          canEdit: false,
+        },
+      ],
+      lastUpdatedAt: 'x',
+      myEmployeeId: '55300000-0000-4000-8000-000000000009',
+    });
+    const p = parsed.projects[0]!;
+    expect(p.departmentName).toBe('');
+    expect(p.members.filter((m) => m.isLeader)).toHaveLength(1);
+    expect(p.myRole).toBe('member');
+  });
+
+  it('0645: الاستجابة القديمة تُملأ بفريق فارغ', () => {
+    const parsed = associationProjectsCatalogSchema.parse({ projects: [legacyProject], lastUpdatedAt: 'x' });
+    expect(parsed.projects[0]?.members).toEqual([]);
+    expect(parsed.projects[0]?.myRole).toBeNull();
+    expect(parsed.myEmployeeId).toBeNull();
+  });
+
+  it('0645: قائمة اختيار الفريق', () => {
+    const parsed = associationProjectPickersSchema.parse({
+      employees: [{ id: '55300000-0000-4000-8000-000000000009', name: 'زميل', jobTitle: null, departmentId: null, departmentName: null }],
+      departments: [],
+    });
+    expect(parsed.employees[0]?.name).toBe('زميل');
   });
 });

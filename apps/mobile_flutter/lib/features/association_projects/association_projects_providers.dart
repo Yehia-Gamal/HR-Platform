@@ -4,7 +4,7 @@ import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// قائمة المشاريع المرئية للمستخدم — الخادم يحصرها (المدير التنفيذي = الكل،
-/// غيره = مشاريع إدارته).
+/// غيره = المشاريع التي هو في فريقها أو تخص إدارته).
 final associationProjectsProvider = FutureProvider.autoDispose<AssociationProjectsCatalog>((ref) async {
   final data = await rpcWithTimeout(
     ref.watch(supabaseProvider).rpc<dynamic>('get_association_projects'),
@@ -28,6 +28,14 @@ final associationProjectDetailProvider =
   );
 });
 
+/// الموظفون والإدارات لاختيار فريق المشروع (متاحة لكل موظف).
+final associationProjectPickersProvider = FutureProvider.autoDispose<ProjectPickers>((ref) async {
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_association_project_pickers'),
+  );
+  return ProjectPickers.fromJson(data);
+});
+
 final associationProjectCommandsProvider = Provider<AssociationProjectCommands>(
   (ref) => AssociationProjectCommands(ref),
 );
@@ -44,29 +52,37 @@ class AssociationProjectCommands {
     return result;
   }
 
-  Future<String?> create({
+  /// إنشاء/تعديل كامل بالفريق والإدارات (0645 — save_association_project).
+  /// [projectId] = null → مشروع جديد؛ [submit] يرسله للاعتماد مباشرة.
+  Future<String?> save({
+    String? projectId,
     required String name,
     required String description,
-    required String departmentId,
     required String priority,
+    DateTime? startDate,
     DateTime? targetEndDate,
-    bool submit = true,
+    required String? leaderId,
+    required List<String> memberIds,
+    required List<String> departmentIds,
+    bool submit = false,
   }) async {
-    final id = await _call('create_association_project_admin', {
-      'p_code': null,
+    final id = await _call('save_association_project', {
+      'p_project_id': projectId,
       'p_name': name,
       'p_description': description.isEmpty ? null : description,
-      'p_department_id': departmentId,
-      'p_owner_employee_id': null,
       'p_priority': priority,
-      'p_start_date': null,
+      'p_start_date': startDate == null ? null : _isoDate(startDate),
       'p_target_end_date': targetEndDate == null ? null : _isoDate(targetEndDate),
-    });
-    final projectId = id?.toString();
-    if (submit && projectId != null) {
-      await _call('submit_project_for_approval', {'p_project_id': projectId});
+      'p_leader_id': leaderId,
+      'p_member_ids': memberIds,
+      'p_department_ids': departmentIds,
+      'p_code': null,
+    }, projectId: projectId);
+    final savedId = id?.toString();
+    if (submit && savedId != null) {
+      await _call('submit_project_for_approval', {'p_project_id': savedId}, projectId: savedId);
     }
-    return projectId;
+    return savedId;
   }
 
   Future<void> submit(String projectId) =>
@@ -97,6 +113,7 @@ class AssociationProjectCommands {
     int? sortOrder,
     String status = 'pending',
     DateTime? dueDate,
+    String? assigneeId,
   }) =>
       _call('upsert_project_step_admin', {
         'p_project_id': projectId,
@@ -106,7 +123,7 @@ class AssociationProjectCommands {
         'p_sort_order': sortOrder,
         'p_status': status,
         'p_due_date': dueDate == null ? null : _isoDate(dueDate),
-        'p_assignee_employee_id': null,
+        'p_assignee_employee_id': assigneeId,
       }, projectId: projectId);
 
   Future<void> deleteStep(String projectId, String stepId) =>

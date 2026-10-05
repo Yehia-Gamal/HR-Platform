@@ -1,5 +1,5 @@
 import type { AssociationProjectListItem } from '@ahla/shared-contracts';
-import { AlertTriangle, CalendarClock, CheckCircle2, Clock, Flag, Zap } from 'lucide-react';
+import { AlertTriangle, CalendarClock, CheckCircle2, Clock, Crown, Flag, Users, Zap } from 'lucide-react';
 import { ProjectLed } from './ProjectLed';
 import { LED_META, PRIORITY_LABELS, activityDays, daysAgoLabel, formatDate } from './projectLedStatus';
 
@@ -8,9 +8,11 @@ interface Props {
   onOpen: () => void;
   /** يظهر زر «تحديث سريع» فقط لمن يدير المشروع. */
   onQuickUpdate?: () => void;
+  /** لتمييز المشاريع التي يقودها المستخدم أو هو في فريقها. */
+  myEmployeeId?: string | null;
 }
 
-export function ProjectCard({ project: p, onOpen, onQuickUpdate }: Props) {
+export function ProjectCard({ project: p, onOpen, onQuickUpdate, myEmployeeId }: Props) {
   const led = p.ledStatus;
   const meta = LED_META[led];
   const days = activityDays(p);
@@ -36,8 +38,12 @@ export function ProjectCard({ project: p, onOpen, onQuickUpdate }: Props) {
       <button type="button" onClick={onOpen} className="text-start after:absolute after:inset-0 after:content-['']">
         <h3 className="line-clamp-2 text-lg leading-snug font-black">{p.name}</h3>
       </button>
-      <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
-        {p.departmentName} • {p.ownerName}
+      <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-[var(--text-muted)]">
+        <Crown className="size-3.5 shrink-0 text-[var(--warning)]" aria-label="القائد" />
+        <span className="truncate">
+          {p.leaderName ?? p.ownerName}
+          {p.departmentName ? ` • ${p.departmentName}` : ''}
+        </span>
       </p>
 
       {/* التقدم */}
@@ -72,6 +78,16 @@ export function ProjectCard({ project: p, onOpen, onQuickUpdate }: Props) {
         <span className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-muted)] px-2 py-0.5 font-bold">
           <Flag className="size-3" aria-hidden="true" /> {PRIORITY_LABELS[p.priority]}
         </span>
+        {p.members.length > 1 && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-muted)] px-2 py-0.5 font-bold" title={p.members.map((m) => m.name).join('، ')}>
+            <Users className="size-3" aria-hidden="true" /> فريق من {p.members.length}
+          </span>
+        )}
+        {myEmployeeId && p.members.some((m) => m.employeeId === myEmployeeId) && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-primary-soft)] px-2 py-0.5 font-bold text-[var(--brand-primary)]">
+            {p.myRole === 'leader' ? 'تقوده' : 'أنت في الفريق'}
+          </span>
+        )}
         {p.blockedSteps > 0 && (
           <span className="inline-flex items-center gap-1 rounded-full bg-[var(--danger-soft)] px-2 py-0.5 font-bold text-[var(--danger)]">
             <AlertTriangle className="size-3" aria-hidden="true" /> {p.blockedSteps} متعثرة

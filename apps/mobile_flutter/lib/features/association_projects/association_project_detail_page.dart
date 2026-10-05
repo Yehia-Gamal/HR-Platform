@@ -1,5 +1,6 @@
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/features/association_projects/association_project_form_page.dart';
 import 'package:ahla_shabab_management_os/features/association_projects/association_projects_models.dart';
 import 'package:ahla_shabab_management_os/features/association_projects/association_projects_page.dart';
 import 'package:ahla_shabab_management_os/features/association_projects/association_projects_providers.dart';
@@ -24,6 +25,23 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
   bool _busy = false;
 
   AssociationProjectCommands get _cmd => ref.read(associationProjectCommandsProvider);
+
+  String? get _myEmployeeId => ref.read(associationProjectsProvider).value?.myEmployeeId;
+
+  Future<void> _openEdit(AssociationProjectDetail d) async {
+    final catalog = ref.read(associationProjectsProvider).value;
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => AssociationProjectFormPage(
+          project: d.project,
+          permissions: d.permissions,
+          isFullAccess: catalog?.isFullAccess ?? false,
+          myEmployeeId: catalog?.myEmployeeId,
+          myDepartmentId: catalog?.myDepartmentId,
+        ),
+      ),
+    );
+  }
 
   /// ينفذ عملية ويعرض نتيجتها — رسالة الخادم العربية تظهر كما هي عند الخطأ.
   Future<bool> _run(Future<void> Function() action, {String? success}) async {
@@ -56,6 +74,12 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
       appBar: AppBar(
         title: Text(detail?.project.name ?? widget.title ?? 'تفاصيل المشروع'),
         actions: [
+          if (detail != null && (detail.permissions.canEdit || detail.permissions.canEditTeam))
+            IconButton(
+              tooltip: 'تعديل المشروع وفريقه',
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: _busy ? null : () => _openEdit(detail),
+            ),
           if (detail != null && detail.permissions.canDelete)
             IconButton(
               tooltip: 'حذف المشروع',
@@ -67,7 +91,7 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
       ),
       floatingActionButton: detail != null && detail.permissions.canManage
           ? FloatingActionButton.extended(
-              onPressed: _busy ? null : () => _addStep(detail),
+              onPressed: _busy ? null : () => _editStep(detail),
               icon: const Icon(Icons.playlist_add),
               label: const Text('خطوة'),
             )
@@ -101,6 +125,8 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
               _statusBanner(d),
               _summary(d),
               const SizedBox(height: 16),
+              _team(d),
+              const SizedBox(height: 16),
               _steps(d),
               const SizedBox(height: 16),
               _updates(d),
@@ -128,7 +154,21 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
         ),
         const SizedBox(height: 8),
         Text(p.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-        Text('${p.code} • ${p.departmentName} • المسؤول: ${p.ownerName}', style: muted),
+        Text('${p.code} • ${p.scopeLabel} • القائد: ${p.leaderName}', style: muted),
+        if (projectRoleLabels[p.myRole] != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              children: [
+                const Icon(Icons.verified_user_outlined, size: 14, color: AppColors.brandPrimary),
+                const SizedBox(width: 4),
+                Text(
+                  projectRoleLabels[p.myRole]!,
+                  style: const TextStyle(color: AppColors.brandPrimary, fontSize: 12, fontWeight: FontWeight.w800),
+                ),
+              ],
+            ),
+          ),
         if (p.description != null) ...[
           const SizedBox(height: 8),
           Text(p.description!),
@@ -153,11 +193,11 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
         ),
       ProjectLed.halted => ('المشروع متوقف أو لم يُحدَّث منذ فترة (آخر نشاط $since).', AppColors.statusDanger),
       ProjectLed.pending => (
-          isFull ? 'أرسلت الإدارة هذا المشروع وينتظر قرارك.' : 'بانتظار اعتماد المدير التنفيذي. يمكنك إضافة الخطوات من الآن.',
+          isFull ? 'أُرسل هذا المشروع وينتظر قرارك.' : 'بانتظار اعتماد المدير التنفيذي. يمكنك إضافة الخطوات من الآن.',
           AppColors.statusWarning,
         ),
       ProjectLed.rejected => (
-          'أُعيد المشروع للتعديل${p.rejectionReason != null ? ': «${p.rejectionReason}»' : '.'} عدّله من لوحة الويب أو أعد إرساله.',
+          'أُعيد المشروع للتعديل${p.rejectionReason != null ? ': «${p.rejectionReason}»' : '.'} عدّله ثم أعد إرساله.',
           AppColors.statusDanger,
         ),
       ProjectLed.draft => ('مسودة لم تُرسل بعد للاعتماد.', AppColors.statusInfo),
@@ -175,7 +215,7 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
           style: OutlinedButton.styleFrom(foregroundColor: AppColors.statusDanger),
           onPressed: _busy ? null : () => _reject(p),
           icon: const Icon(Icons.undo),
-          label: const Text('إعادة للإدارة'),
+          label: const Text('إعادة للتعديل'),
         ),
       ],
       if (perms.canSubmit && perms.canManage)
@@ -333,8 +373,10 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
       'blocked' => Icons.block,
       _ => Icons.radio_button_unchecked,
     };
+    final isMine = _myEmployeeId != null && s.assigneeId == _myEmployeeId && !s.isDone;
     final meta = <String>[
-      if (s.assigneeName != null) 'المكلَّف: ${s.assigneeName}',
+      if (isMine) 'مهمتك',
+      if (s.assigneeName != null && !isMine) 'المكلَّف: ${s.assigneeName}',
       if (s.dueDate != null) 'الموعد: ${_fmtDate(s.dueDate)}${s.isOverdue ? ' — متأخرة' : ''}',
       if (s.isDone && s.completedAt != null) 'تمت ${_fmtDate(s.completedAt)}',
     ];
@@ -343,9 +385,17 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: isCurrent ? AppColors.brandPrimary : scheme.outlineVariant, width: isCurrent ? 1.5 : 1),
+        side: BorderSide(
+          color: isMine
+              ? AppColors.statusWarning
+              : isCurrent
+                  ? AppColors.brandPrimary
+                  : scheme.outlineVariant,
+          width: isCurrent || isMine ? 1.5 : 1,
+        ),
       ),
       child: ListTile(
+        onTap: canManage && !_busy ? () => _editStep(d, s) : null,
         leading: IconButton(
           tooltip: s.isDone ? 'إلغاء الإنجاز' : 'تعليم كمنجزة',
           onPressed: !canManage || _busy
@@ -381,11 +431,14 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
                 onSelected: (v) {
                   if (v == 'delete') {
                     _confirmDeleteStep(d.project.id, s);
+                  } else if (v == 'edit') {
+                    _editStep(d, s);
                   } else {
                     _run(() => _cmd.setStepStatus(d.project.id, s.id, v));
                   }
                 },
                 itemBuilder: (_) => [
+                  const PopupMenuItem(value: 'edit', child: Text('تعديل / تكليف')),
                   for (final e in stepStatusLabels.entries)
                     if (e.key != s.status) PopupMenuItem(value: e.key, child: Text('تعليم: ${e.value}')),
                   const PopupMenuDivider(),
@@ -397,6 +450,73 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
               )
             : null,
       ),
+    );
+  }
+
+  Widget _team(AssociationProjectDetail d) {
+    final p = d.project;
+    final scheme = Theme.of(context).colorScheme;
+    final canEditTeam = d.permissions.canEditTeam;
+    final me = _myEmployeeId;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'فريق المشروع',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+              ),
+            ),
+            if (canEditTeam)
+              TextButton.icon(
+                onPressed: _busy ? null : () => _openEdit(d),
+                icon: const Icon(Icons.group_add_outlined, size: 18),
+                label: const Text('تعديل الفريق'),
+              ),
+          ],
+        ),
+        for (final m in p.team)
+          Card(
+            margin: const EdgeInsets.only(bottom: 6),
+            color: m.isLeader ? AppColors.statusWarning.withValues(alpha: 0.10) : null,
+            child: ListTile(
+              dense: true,
+              leading: CircleAvatar(
+                backgroundColor: m.isLeader ? AppColors.statusWarning : scheme.surfaceContainerHighest,
+                child: m.isLeader
+                    ? const Icon(Icons.workspace_premium, color: Colors.white, size: 20)
+                    : Text(m.name.trim().isEmpty ? '؟' : m.name.trim()[0], style: const TextStyle(fontWeight: FontWeight.w900)),
+              ),
+              title: Text(
+                '${m.name}${m.employeeId == me ? ' (أنت)' : ''}',
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: Text(m.subtitle.isEmpty ? 'عضو الفريق' : m.subtitle),
+            ),
+          ),
+        if (p.departments.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            'الإدارات المسؤولة — موظفوها يتابعون المشروع ويديرون خطواته',
+            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final dep in p.departments)
+                Chip(
+                  avatar: const Icon(Icons.apartment, size: 16),
+                  label: Text(dep.name),
+                  visualDensity: VisualDensity.compact,
+                ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 
@@ -447,9 +567,39 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
 
   // ── الحوارات ──────────────────────────────────────────────
 
-  Future<void> _addStep(AssociationProjectDetail d) async {
-    final title = TextEditingController();
-    DateTime? due;
+  /// إضافة خطوة أو تعديلها مع المكلَّف — المكلَّف من الفريق أو من موظفي
+  /// الإدارات المرتبطة (يتحقق الخادم من ذلك ويُشعره بمهمته).
+  Future<void> _editStep(AssociationProjectDetail d, [AssociationProjectStep? step]) async {
+    final title = TextEditingController(text: step?.title ?? '');
+    final description = TextEditingController(text: step?.description ?? '');
+    DateTime? due = step?.dueDate;
+    String? assigneeId = step?.assigneeId;
+
+    // موظفو الإدارات المرتبطة من خارج الفريق (إن وُجدت إدارات).
+    var deptStaff = <PickerEmployee>[];
+    if (d.project.departments.isNotEmpty) {
+      try {
+        final pickers = await ref.read(associationProjectPickersProvider.future);
+        final deptIds = d.project.departments.map((x) => x.id).toSet();
+        final teamIds = d.project.team.map((m) => m.employeeId).toSet();
+        deptStaff = pickers.employees
+            .where((e) => e.departmentId != null && deptIds.contains(e.departmentId) && !teamIds.contains(e.id))
+            .toList();
+      } catch (_) {
+        // القائمة اختيارية — الفريق وحده يكفي للتكليف.
+      }
+    }
+    if (!mounted) return;
+
+    final options = <(String, String)>[
+      for (final m in d.project.team) (m.employeeId, m.isLeader ? '${m.name} (القائد)' : m.name),
+      for (final e in deptStaff) (e.id, e.departmentName == null ? e.name : '${e.name} — ${e.departmentName}'),
+    ];
+    // مكلَّف سابق خرج من النطاق يبقى ظاهراً حتى يُغيَّر.
+    if (assigneeId != null && !options.any((o) => o.$1 == assigneeId)) {
+      options.add((assigneeId, step?.assigneeName ?? 'المكلَّف الحالي'));
+    }
+
     final ok = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -457,48 +607,91 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) => Padding(
           padding: EdgeInsets.fromLTRB(20, 0, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text('خطوة / مهمة جديدة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 12),
-              TextField(
-                controller: title,
-                autofocus: true,
-                decoration: const InputDecoration(labelText: 'عنوان الخطوة *', border: OutlineInputBorder()),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.event_outlined),
-                label: Text(due == null ? 'موعد الإنجاز (اختياري)' : 'الموعد: ${_fmtDate(due)}'),
-                onPressed: () async {
-                  final now = DateTime.now();
-                  final picked = await showDatePicker(
-                    context: ctx,
-                    initialDate: due ?? now.add(const Duration(days: 7)),
-                    firstDate: now.subtract(const Duration(days: 365)),
-                    lastDate: DateTime(now.year + 5),
-                  );
-                  if (picked != null) setSheet(() => due = picked);
-                },
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () {
-                  if (title.text.trim().isNotEmpty) Navigator.pop(ctx, true);
-                },
-                child: const Text('إضافة الخطوة'),
-              ),
-            ],
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  step == null ? 'خطوة / مهمة جديدة' : 'تعديل الخطوة',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: title,
+                  autofocus: step == null,
+                  decoration: const InputDecoration(labelText: 'عنوان الخطوة *', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: description,
+                  maxLines: 2,
+                  decoration: const InputDecoration(labelText: 'تفاصيل (اختياري)', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String?>(
+                  value: assigneeId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'المكلَّف بالتنفيذ',
+                    helperText: 'يُشعَر المكلَّف بمهمته',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    const DropdownMenuItem<String?>(value: null, child: Text('— بدون —')),
+                    for (final o in options)
+                      DropdownMenuItem<String?>(value: o.$1, child: Text(o.$2, overflow: TextOverflow.ellipsis)),
+                  ],
+                  onChanged: (v) => setSheet(() => assigneeId = v),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.event_outlined),
+                  label: Text(due == null ? 'موعد الإنجاز (اختياري)' : 'الموعد: ${_fmtDate(due)}'),
+                  onPressed: () async {
+                    final now = DateTime.now();
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: due ?? now.add(const Duration(days: 7)),
+                      firstDate: now.subtract(const Duration(days: 365)),
+                      lastDate: DateTime(now.year + 5),
+                    );
+                    if (picked != null && ctx.mounted) setSheet(() => due = picked);
+                  },
+                ),
+                if (due != null)
+                  TextButton(onPressed: () => setSheet(() => due = null), child: const Text('إزالة الموعد')),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: () {
+                    if (title.text.trim().isNotEmpty) Navigator.pop(ctx, true);
+                  },
+                  child: Text(step == null ? 'إضافة الخطوة' : 'حفظ الخطوة'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
     final text = title.text.trim();
+    final details = description.text.trim();
     title.dispose();
+    description.dispose();
     if (ok == true && text.isNotEmpty) {
-      await _run(() => _cmd.upsertStep(d.project.id, title: text, dueDate: due), success: 'تمت إضافة الخطوة');
+      await _run(
+        () => _cmd.upsertStep(
+          d.project.id,
+          stepId: step?.id,
+          title: text,
+          description: details.isEmpty ? null : details,
+          sortOrder: step?.sortOrder,
+          status: step?.status ?? 'pending',
+          dueDate: due,
+          assigneeId: assigneeId,
+        ),
+        success: step == null ? 'تمت إضافة الخطوة' : 'تم حفظ الخطوة',
+      );
     }
   }
 
@@ -572,7 +765,7 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('إعادة المشروع للإدارة'),
+        title: const Text('إعادة المشروع للتعديل'),
         content: TextField(
           controller: reason,
           autofocus: true,
@@ -594,7 +787,7 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
     final text = reason.text.trim();
     reason.dispose();
     if (ok == true) {
-      await _run(() => _cmd.reject(p.id, text), success: 'تمت إعادة المشروع للإدارة');
+      await _run(() => _cmd.reject(p.id, text), success: 'تمت إعادة المشروع لفريقه');
     }
   }
 

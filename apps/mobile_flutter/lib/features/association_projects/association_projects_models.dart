@@ -1,4 +1,4 @@
-// نماذج مشاريع الجمعية (0553) — مطابقة لعقد الويب في
+// نماذج مشاريع الجمعية (0553 + فريق المشروع 0645) — مطابقة لعقد الويب في
 // packages/shared-contracts/src/associationProjects.ts.
 
 String _str(Object? v, [String fallback = '']) => v == null ? fallback : v.toString();
@@ -70,6 +70,53 @@ const approvalLabels = {
   'rejected': 'أُعيد للتعديل',
 };
 
+/// صفة المستخدم في المشروع (0645).
+const projectRoleLabels = {
+  'leader': 'أنت قائد هذا المشروع',
+  'member': 'أنت عضو في فريق المشروع',
+  'dept_manager': 'إدارتك مسؤولة عن المشروع (بصفتك مديرها)',
+  'dept_staff': 'إدارتك مسؤولة عن المشروع',
+  'creator': 'أنشأت هذا المشروع',
+};
+
+/// عضو في فريق المشروع — واحد فقط قائد.
+class ProjectMember {
+  const ProjectMember({
+    required this.employeeId,
+    required this.name,
+    required this.jobTitle,
+    required this.departmentName,
+    required this.isLeader,
+  });
+
+  factory ProjectMember.fromJson(Map<String, dynamic> j) => ProjectMember(
+        employeeId: _str(j['employeeId']),
+        name: _str(j['name']),
+        jobTitle: _strOrNull(j['jobTitle']),
+        departmentName: _strOrNull(j['departmentName']),
+        isLeader: _bool(j['isLeader']),
+      );
+
+  final String employeeId;
+  final String name;
+  final String? jobTitle;
+  final String? departmentName;
+  final bool isLeader;
+
+  String get subtitle =>
+      isLeader ? 'قائد المشروع' : [jobTitle, departmentName].whereType<String>().join(' • ');
+}
+
+class ProjectDepartment {
+  const ProjectDepartment({required this.id, required this.name});
+
+  factory ProjectDepartment.fromJson(Map<String, dynamic> j) =>
+      ProjectDepartment(id: _str(j['id']), name: _str(j['name']));
+
+  final String id;
+  final String name;
+}
+
 class AssociationProject {
   const AssociationProject({
     required this.id,
@@ -78,11 +125,18 @@ class AssociationProject {
     required this.description,
     required this.departmentId,
     required this.departmentName,
+    required this.departments,
+    required this.ownerId,
     required this.ownerName,
+    required this.leaderName,
+    required this.members,
+    required this.myRole,
+    required this.canEdit,
     required this.status,
     required this.approvalStatus,
     required this.priority,
     required this.progress,
+    required this.startDate,
     required this.targetEndDate,
     required this.lastActivityAt,
     required this.daysSinceActivity,
@@ -102,13 +156,20 @@ class AssociationProject {
         code: _str(j['code']),
         name: _str(j['name']),
         description: _strOrNull(j['description']),
-        departmentId: _str(j['departmentId']),
+        departmentId: _strOrNull(j['departmentId']),
         departmentName: _str(j['departmentName']),
+        departments: _list(j['departments']).map(ProjectDepartment.fromJson).toList(growable: false),
+        ownerId: _str(j['leaderId'] ?? j['ownerId']),
         ownerName: _str(j['ownerName']),
+        leaderName: _str(j['leaderName'] ?? j['ownerName']),
+        members: _list(j['members']).map(ProjectMember.fromJson).toList(growable: false),
+        myRole: _strOrNull(j['myRole']),
+        canEdit: _bool(j['canEdit']),
         status: _str(j['status'], 'planned'),
         approvalStatus: _str(j['approvalStatus'], 'draft'),
         priority: _str(j['priority'], 'medium'),
         progress: _double(j['progress']),
+        startDate: _date(j['startDate']),
         targetEndDate: _date(j['targetEndDate']),
         lastActivityAt: _date(j['lastActivityAt'] ?? j['lastUpdateAt']),
         daysSinceActivity: _intOrNull(j['daysSinceActivity']),
@@ -127,13 +188,24 @@ class AssociationProject {
   final String code;
   final String name;
   final String? description;
-  final String departmentId;
+  final String? departmentId;
+
+  /// أسماء الإدارات المرتبطة مفصولة بـ«، » — فارغ لمشروع فريق بلا إدارة.
   final String departmentName;
+  final List<ProjectDepartment> departments;
+
+  /// القائد (owner = leader للتوافق مع ما قبل 0645).
+  final String ownerId;
   final String ownerName;
+  final String leaderName;
+  final List<ProjectMember> members;
+  final String? myRole;
+  final bool canEdit;
   final String status;
   final String approvalStatus;
   final String priority;
   final double progress;
+  final DateTime? startDate;
   final DateTime? targetEndDate;
   final DateTime? lastActivityAt;
   final int? daysSinceActivity;
@@ -150,6 +222,15 @@ class AssociationProject {
   bool get isApproved => approvalStatus == 'approved';
   bool get isEditableDraft => approvalStatus == 'draft' || approvalStatus == 'rejected';
   bool get isClosed => status == 'completed' || status == 'cancelled';
+  bool get isMine => myRole == 'leader' || myRole == 'member';
+
+  /// الفريق كما يُعرض — استجابة ما قبل 0645 بلا أعضاء: القائد وحده.
+  List<ProjectMember> get team => members.isNotEmpty
+      ? members
+      : [ProjectMember(employeeId: ownerId, name: leaderName, jobTitle: null, departmentName: null, isLeader: true)];
+
+  /// «إدارة الإعلام» أو «فريق من 4» لمشروع بلا إدارة.
+  String get scopeLabel => departmentName.isNotEmpty ? departmentName : 'فريق من ${team.length}';
 
   int? get activityDays =>
       daysSinceActivity ?? (lastActivityAt == null ? null : DateTime.now().difference(lastActivityAt!).inDays);
@@ -163,6 +244,7 @@ class AssociationProjectStep {
     required this.sortOrder,
     required this.status,
     required this.dueDate,
+    required this.assigneeId,
     required this.assigneeName,
     required this.completedAt,
   });
@@ -174,6 +256,7 @@ class AssociationProjectStep {
         sortOrder: _int(j['sortOrder']),
         status: _str(j['status'], 'pending'),
         dueDate: _date(j['dueDate']),
+        assigneeId: _strOrNull(j['assigneeId']),
         assigneeName: _strOrNull(j['assigneeName']),
         completedAt: _date(j['completedAt']),
       );
@@ -184,6 +267,7 @@ class AssociationProjectStep {
   final int sortOrder;
   final String status;
   final DateTime? dueDate;
+  final String? assigneeId;
   final String? assigneeName;
   final DateTime? completedAt;
 
@@ -224,25 +308,36 @@ class AssociationProjectPermissions {
   const AssociationProjectPermissions({
     required this.canManage,
     required this.canApprove,
+    required this.canEdit,
+    required this.canEditCore,
+    required this.canEditTeam,
     required this.canSubmit,
     required this.canUpdate,
     required this.canDelete,
   });
 
-  /// قبل نشر 0553 لا تصل الصلاحيات — تُشتق بنفس قاعدة الخادم.
+  /// قبل نشر 0553/0645 لا تصل الصلاحيات كاملة — تُشتق بنفس قاعدة الخادم.
   factory AssociationProjectPermissions.fromJson(Object? raw, AssociationProject p, bool isFullAccess) {
     if (raw is Map) {
+      final canEdit = _bool(raw['canEdit']);
       return AssociationProjectPermissions(
         canManage: _bool(raw['canManage']),
         canApprove: _bool(raw['canApprove']),
+        canEdit: canEdit,
+        canEditCore: raw.containsKey('canEditCore') ? _bool(raw['canEditCore']) : canEdit,
+        canEditTeam: raw.containsKey('canEditTeam') ? _bool(raw['canEditTeam']) : canEdit,
         canSubmit: _bool(raw['canSubmit']),
         canUpdate: _bool(raw['canUpdate']),
         canDelete: _bool(raw['canDelete']),
       );
     }
+    final canEdit = isFullAccess || (p.canEdit && p.isEditableDraft);
     return AssociationProjectPermissions(
       canManage: isFullAccess || p.canManage,
       canApprove: isFullAccess && p.approvalStatus == 'pending_approval',
+      canEdit: canEdit,
+      canEditCore: canEdit,
+      canEditTeam: canEdit,
       canSubmit: p.isEditableDraft,
       canUpdate: p.isApproved,
       canDelete: isFullAccess || p.isEditableDraft,
@@ -251,6 +346,13 @@ class AssociationProjectPermissions {
 
   final bool canManage;
   final bool canApprove;
+  final bool canEdit;
+
+  /// الاسم والوصف — يُقفلان بعد الإرسال للاعتماد لغير المدير التنفيذي.
+  final bool canEditCore;
+
+  /// القائد والأعضاء والإدارات والأولوية والمواعيد.
+  final bool canEditTeam;
   final bool canSubmit;
   final bool canUpdate;
   final bool canDelete;
@@ -293,6 +395,7 @@ class AssociationProjectsCatalog {
     required this.isFullAccess,
     required this.canCreate,
     required this.myDepartmentId,
+    required this.myEmployeeId,
     required this.warningDays,
     required this.criticalDays,
   });
@@ -305,6 +408,7 @@ class AssociationProjectsCatalog {
       isFullAccess: _bool(j['isFullAccess']),
       canCreate: j['canCreate'] != false,
       myDepartmentId: _strOrNull(j['myDepartmentId']),
+      myEmployeeId: _strOrNull(j['myEmployeeId']),
       warningDays: _intOrNull(settings['warningDays']) ?? 7,
       criticalDays: _intOrNull(settings['criticalDays']) ?? 14,
     );
@@ -314,6 +418,7 @@ class AssociationProjectsCatalog {
   final bool isFullAccess;
   final bool canCreate;
   final String? myDepartmentId;
+  final String? myEmployeeId;
   final int warningDays;
   final int criticalDays;
 
@@ -329,6 +434,64 @@ class AssociationProjectsCatalog {
     return (b.activityDays ?? 9999).compareTo(a.activityDays ?? 9999);
   }
 }
+
+/// موظف في قائمة اختيار الفريق (get_association_project_pickers).
+class PickerEmployee {
+  const PickerEmployee({
+    required this.id,
+    required this.name,
+    required this.jobTitle,
+    required this.departmentId,
+    required this.departmentName,
+  });
+
+  factory PickerEmployee.fromJson(Map<String, dynamic> j) => PickerEmployee(
+        id: _str(j['id']),
+        name: _str(j['name']),
+        jobTitle: _strOrNull(j['jobTitle']),
+        departmentId: _strOrNull(j['departmentId']),
+        departmentName: _strOrNull(j['departmentName']),
+      );
+
+  final String id;
+  final String name;
+  final String? jobTitle;
+  final String? departmentId;
+  final String? departmentName;
+
+  String get subtitle => [jobTitle, departmentName].whereType<String>().join(' • ');
+}
+
+class ProjectPickers {
+  const ProjectPickers({required this.employees, required this.departments});
+
+  factory ProjectPickers.fromJson(Object? raw) {
+    final j = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+    return ProjectPickers(
+      employees: _list(j['employees']).map(PickerEmployee.fromJson).toList(growable: false),
+      departments: _list(j['departments']).map(ProjectDepartment.fromJson).toList(growable: false),
+    );
+  }
+
+  final List<PickerEmployee> employees;
+  final List<ProjectDepartment> departments;
+
+  PickerEmployee? byId(String id) {
+    for (final e in employees) {
+      if (e.id == id) return e;
+    }
+    return null;
+  }
+}
+
+/// تطبيع بسيط للبحث بالعربية (همزات/تاء مربوطة/ياء/تشكيل).
+String normalizeArabic(String text) => text
+    .replaceAll(RegExp('[أإآ]'), 'ا')
+    .replaceAll('ة', 'ه')
+    .replaceAll('ى', 'ي')
+    .replaceAll(RegExp('[ً-ْ]'), '')
+    .toLowerCase()
+    .trim();
 
 /// «منذ 3 أيام» — لآخر نشاط.
 String daysAgoLabel(int? days) {

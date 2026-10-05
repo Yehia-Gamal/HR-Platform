@@ -1,4 +1,4 @@
-import type { AssociationProjectDetail, AssociationProjectListItem, AssociationProjectsCatalog } from '@ahla/shared-contracts';
+import type { AssociationProjectDetail, AssociationProjectListItem, AssociationProjectPickers, AssociationProjectsCatalog } from '@ahla/shared-contracts';
 
 // بيانات المعاينة المحلية (VITE_ENABLE_DEV_MOCKS) — تغطي كل حالات اللمبة.
 const DEPT_IT = '00000000-0000-4000-8000-0000000000d1';
@@ -43,7 +43,27 @@ function project(n: number, p: Partial<AssociationProjectListItem>): Association
     isOverdue: false,
     canManage: true,
     ledStatus: 'active',
+    departments: [],
+    leaderId: null,
+    leaderName: null,
+    members: [],
+    myRole: 'admin',
+    canEdit: true,
     ...p,
+  };
+}
+
+/** يكمل حقول الفريق (0645) من الإدارة والمسؤول في بيانات المعاينة. */
+function withTeam(p: AssociationProjectListItem): AssociationProjectListItem {
+  return {
+    ...p,
+    departments: p.departmentId ? [{ id: p.departmentId, name: p.departmentName }] : [],
+    leaderId: p.ownerId,
+    leaderName: p.ownerName,
+    members: [
+      { employeeId: p.ownerId, name: p.ownerName, jobTitle: 'منسق المشروع', departmentName: p.departmentName || null, isLeader: true },
+      { employeeId: id(950), name: 'خالد عمر', jobTitle: 'أخصائي', departmentName: p.departmentName || null, isLeader: false },
+    ],
   };
 }
 
@@ -51,7 +71,7 @@ function withActivity(days: number): Pick<AssociationProjectListItem, 'lastActiv
   return { lastActivityAt: daysAgo(days), daysSinceActivity: days, lastUpdateAt: daysAgo(days) };
 }
 
-export const MOCK_PROJECTS: AssociationProjectListItem[] = [
+const RAW_MOCK_PROJECTS: AssociationProjectListItem[] = [
   project(1, {
     name: 'تطبيق إدارة الحضور',
     description: 'تطبيق موبايل لتسجيل حضور الموظفين بالبصمة والموقع.',
@@ -153,6 +173,8 @@ export const MOCK_PROJECTS: AssociationProjectListItem[] = [
   }),
 ];
 
+export const MOCK_PROJECTS: AssociationProjectListItem[] = RAW_MOCK_PROJECTS.map(withTeam);
+
 export function mockCatalog(): AssociationProjectsCatalog {
   return {
     projects: MOCK_PROJECTS,
@@ -171,6 +193,7 @@ export function mockCatalog(): AssociationProjectsCatalog {
     isFullAccess: true,
     canCreate: true,
     myDepartmentId: DEPT_IT,
+    myEmployeeId: id(901),
     settings: { warningDays: 7, criticalDays: 14 },
   };
 }
@@ -223,5 +246,18 @@ export function mockDetail(projectId: string): AssociationProjectDetail {
       canUpdate: approved,
       canDelete: true,
     },
+  };
+}
+
+export function mockPickers(): AssociationProjectPickers {
+  const people = new Map<string, AssociationProjectPickers['employees'][number]>();
+  for (const p of MOCK_PROJECTS)
+    for (const m of p.members)
+      people.set(m.employeeId, { id: m.employeeId, name: m.name, jobTitle: m.jobTitle, departmentId: p.departmentId, departmentName: m.departmentName });
+  const departments = new Map<string, string>();
+  for (const p of MOCK_PROJECTS) for (const d of p.departments) departments.set(d.id, d.name);
+  return {
+    employees: [...people.values()].sort((a, b) => a.name.localeCompare(b.name, 'ar')),
+    departments: [...departments.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name, 'ar')),
   };
 }

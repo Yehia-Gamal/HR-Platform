@@ -13,17 +13,49 @@ const uuid = z.string().uuid();
 export const projectLedStatusSchema = z.enum(['active', 'halted', 'critical', 'completed', 'stale', 'pending', 'rejected', 'draft']);
 export type ProjectLedStatus = z.infer<typeof projectLedStatusSchema>;
 
-// الحقول المضافة في 0553 لها قيم افتراضية حتى يبقى العقد متوافقاً مع
+/** عضو في فريق المشروع (0645) — واحد فقط isLeader. */
+export const associationProjectMemberSchema = z.object({
+  employeeId: uuid,
+  name: z.string(),
+  jobTitle: z.string().nullable().default(null),
+  departmentName: z.string().nullable().default(null),
+  isLeader: z.boolean(),
+});
+export type AssociationProjectMember = z.infer<typeof associationProjectMemberSchema>;
+
+/**
+ * صفة المستخدم الحالي في المشروع (0645): القائد، عضو الفريق، مدير/موظف
+ * إدارة مرتبطة، المنشئ، أو المدير التنفيذي (admin).
+ */
+export const projectRoleSchema = z.enum(['leader', 'member', 'dept_manager', 'dept_staff', 'creator', 'admin']);
+export type ProjectRole = z.infer<typeof projectRoleSchema>;
+
+// الحقول المضافة في 0553/0645 لها قيم افتراضية حتى يبقى العقد متوافقاً مع
 // استجابة ما قبل الـ migration (نشر الويب قد يسبق نشر قاعدة البيانات).
 export const associationProjectListItemSchema = z.object({
   id: uuid,
   code: z.string(),
   name: z.string(),
   description: z.string().nullable(),
-  departmentId: uuid,
-  departmentName: z.string(),
+  /** 0645: الإدارة اختيارية — أول إدارة مرتبطة أو null. */
+  departmentId: uuid.nullable(),
+  /** أسماء كل الإدارات المرتبطة مفصولة بـ«، » — نص فارغ لمشروع أفراد. */
+  departmentName: z
+    .string()
+    .nullable()
+    .transform((v) => v ?? ''),
+  departments: z.array(z.object({ id: uuid, name: z.string() })).default([]),
+  /** القائد — ownerId/ownerName مرادفان له للتوافق. */
   ownerId: uuid,
-  ownerName: z.string(),
+  ownerName: z
+    .string()
+    .nullable()
+    .transform((v) => v ?? ''),
+  leaderId: uuid.nullable().default(null),
+  leaderName: z.string().nullable().default(null),
+  members: z.array(associationProjectMemberSchema).default([]),
+  myRole: projectRoleSchema.nullable().default(null),
+  canEdit: z.boolean().default(false),
   status: z.enum(['planned', 'active', 'on_hold', 'completed', 'cancelled']),
   approvalStatus: z.enum(['draft', 'pending_approval', 'approved', 'rejected']),
   priority: z.enum(['low', 'medium', 'high', 'critical']),
@@ -79,6 +111,10 @@ export const associationProjectPermissionsSchema = z.object({
   canManage: z.boolean(),
   canApprove: z.boolean(),
   canEdit: z.boolean(),
+  /** 0645: الاسم والوصف — يُقفلان بعد الإرسال للاعتماد لغير المدير التنفيذي. */
+  canEditCore: z.boolean().optional(),
+  /** 0645: القائد والأعضاء والإدارات والأولوية والمواعيد. */
+  canEditTeam: z.boolean().optional(),
   canSubmit: z.boolean(),
   canUpdate: z.boolean(),
   canDelete: z.boolean(),
@@ -113,6 +149,25 @@ export const associationProjectsCatalogSchema = z.object({
   isFullAccess: z.boolean().optional(),
   canCreate: z.boolean().default(true),
   myDepartmentId: uuid.nullable().default(null),
+  myEmployeeId: uuid.nullable().default(null),
   settings: associationProjectSettingsSchema.default({ warningDays: 7, criticalDays: 14 }),
 });
 export type AssociationProjectsCatalog = z.infer<typeof associationProjectsCatalogSchema>;
+
+/** قائمة اختيار فريق المشروع وإداراته (0645 — get_association_project_pickers). */
+export const associationProjectPickersSchema = z.object({
+  employees: z
+    .array(
+      z.object({
+        id: uuid,
+        name: z.string(),
+        jobTitle: z.string().nullable().default(null),
+        departmentId: uuid.nullable().default(null),
+        departmentName: z.string().nullable().default(null),
+      }),
+    )
+    .default([]),
+  departments: z.array(z.object({ id: uuid, name: z.string() })).default([]),
+});
+export type AssociationProjectPickers = z.infer<typeof associationProjectPickersSchema>;
+export type AssociationProjectPickerEmployee = AssociationProjectPickers['employees'][number];
