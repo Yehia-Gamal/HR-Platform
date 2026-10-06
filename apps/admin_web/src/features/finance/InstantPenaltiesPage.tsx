@@ -42,7 +42,6 @@ import { hasPermission } from '../workspaces/access';
 import { useEmployees } from '../employees/useEmployees';
 import { useFellowshipFundSummary, useResetExperimentalPayments } from './useFellowshipFund';
 import { usePenaltyDisputes, useReviewPenaltyDispute } from './usePenaltyDisputes';
-import { PendingSuspensionsCard } from './PendingSuspensionsCard';
 import {
   INSTANT_PENALTY_ESCALATION_LABELS,
   INSTANT_PENALTY_STATUS_LABELS,
@@ -934,9 +933,6 @@ export function InstantPenaltiesPage() {
           <span className="font-medium">{checkFeedback}</span>
         </div>
       )}
-
-      {/* ─── مستحقون للتعليق — بانتظار قرار بشري (0554) ───────────── */}
-      <PendingSuspensionsCard />
 
       {/* ─── ملخص + صناديق شرائح الغرامات ─────────────────────────── */}
       <div className="space-y-3">
