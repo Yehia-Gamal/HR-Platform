@@ -8,7 +8,7 @@
 --   2) ولا تعديل اسمه/هاتفه ذاتياً (كلاهما يدخل في مطابقة الإعفاء)
 --   3) المطابقة بالاسم اختفت: «محمد يوسف» و«يحيى … جمال» العاديان غير معفيين،
 --      ولمس سجلّ «يحيى … جمال» لا يمنحه الحصانة
---   4) المقصودون بالمعرّف ما زالوا معفيين (لا تغيير لأي شخص مقصود)
+--   4) (أُزيل: سياسة إعفاء الحساب الرئيسي تغيّرت في 0616 — يخضع للغرامات)
 --   5) المسارات الموثوقة تعمل: full-access، والاتصال الداخلي بلا JWT (cron/migrations)
 --   6) anon بلا EXECUTE (انحدار 0547)
 -- كل شيء ضمن معاملة تُلغى (rollback).
@@ -18,7 +18,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
 set local timezone = 'Africa/Cairo';
-select plan(18);
+select plan(16);
 
 -- =====================================================================
 -- Fixture
@@ -26,7 +26,6 @@ select plan(18);
 --   E  = موظف عادي (المهاجِم المحتمل)
 --   Y  = موظف عادي اسمه «يحيى … جمال» (كان يُحصَّن بالاسم)
 --   M  = موظف عادي اسمه «محمد يوسف» (كان يُعفى بالاسم)
---   ADM = صف بمعرّف الحساب الرئيسي (يجب أن يبقى معفياً)
 -- =====================================================================
 do $fixture$
 declare
@@ -37,7 +36,6 @@ declare
   v_e      uuid := 'f5480000-0000-4000-8000-000000000012';
   v_y      uuid := 'f5480000-0000-4000-8000-000000000013';
   v_m      uuid := 'f5480000-0000-4000-8000-000000000014';
-  v_adm    uuid := 'b452c987-ae08-4e12-8433-272cc66c85f9';
   v_user_a uuid := 'f5480000-0000-4000-8000-000000000021';
   v_user_e uuid := 'f5480000-0000-4000-8000-000000000022';
   v_role   uuid;
@@ -56,8 +54,7 @@ begin
     (v_a,   v_user_a, 'E-0548-A',   'مسؤول 0548',          v_dept, v_jt, 'active', true, current_date - 500, '+201000005480'),
     (v_e,   v_user_e, 'E-0548-E',   'موظف 0548',           v_dept, v_jt, 'active', true, current_date - 300, '+201000005481'),
     (v_y,   null,     'E-0548-Y',   'يحيى أحمد جمال 0548', v_dept, v_jt, 'active', true, current_date - 200, '+201000005482'),
-    (v_m,   null,     'E-0548-M',   'محمد يوسف 0548',      v_dept, v_jt, 'active', true, current_date - 100, '+201000005483'),
-    (v_adm, null,     'E-0548-ADM', 'حساب رئيسي 0548',     v_dept, v_jt, 'active', true, current_date - 900, '+201000005484');
+    (v_m,   null,     'E-0548-M',   'محمد يوسف 0548',      v_dept, v_jt, 'active', true, current_date - 100, '+201000005483');
 
   insert into public.profiles(id, employee_id, status) values
     (v_user_a, v_a, 'active'),
@@ -91,9 +88,10 @@ select ok(exists(
 select ok(
   (select string_agg(prosrc, ' ') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
-      and p.proname in ('is_employee_attendance_exempt','is_employee_penalty_exempt','tg_admin_immunity_employees_fn'))
+      and p.proname in ('is_employee_attendance_exempt','is_employee_penalty_exempt',
+                        'tg_admin_immunity_employees_fn','auto_escalate_instant_penalties'))
   !~* '\milike\M',
-  'لا مطابقة بالاسم (ilike) في دوال الإعفاء والحصانة');
+  'لا مطابقة بالاسم (ilike) في دوال الإعفاء والحصانة والتصعيد (أعادتها 0614–0616، أُزيلت في 0648)');
 
 -- =====================================================================
 -- 2) المطابقة بالاسم اختفت — والمقصودون بالمعرّف باقون
@@ -106,12 +104,6 @@ select is(public.is_employee_attendance_exempt('f5480000-0000-4000-8000-00000000
 
 select is(public.is_employee_penalty_exempt('f5480000-0000-4000-8000-000000000013'), false,
   'موظف عادي اسمه «يحيى … جمال» لم يعد معفياً من الغرامات');
-
-select is(public.is_employee_attendance_exempt('b452c987-ae08-4e12-8433-272cc66c85f9'), true,
-  'الحساب الرئيسي (بالمعرّف) ما زال معفياً من الحضور');
-
-select is(public.is_employee_penalty_exempt('b452c987-ae08-4e12-8433-272cc66c85f9'), true,
-  'الحساب الرئيسي (بالمعرّف) ما زال معفياً من الغرامات');
 
 -- لمس سجلّ «يحيى … جمال» لا يُعيد كتابته إلى محصّن (كان trigger الحصانة يفعل).
 -- updated_at عمود محايد: ليس في قائمة حظر 0004 (hire_date فيها وكان سيُرفض
@@ -138,25 +130,25 @@ set local role authenticated;
 select throws_ok(
   $rt$ update public.employees set is_penalty_exempt = true
         where id = 'f5480000-0000-4000-8000-000000000012' $rt$,
-  '42501',
+  '42501', null,
   'P0: الموظف لا يضبط is_penalty_exempt لنفسه');
 
 select throws_ok(
   $rt$ update public.employees set is_attendance_exempt = true
         where id = 'f5480000-0000-4000-8000-000000000012' $rt$,
-  '42501',
+  '42501', null,
   'P0: الموظف لا يضبط is_attendance_exempt لنفسه');
 
 select throws_ok(
   $rt$ update public.employees set full_name_ar = 'يحيى جمال'
         where id = 'f5480000-0000-4000-8000-000000000012' $rt$,
-  '42501',
+  '42501', null,
   'الموظف لا يعيد تسمية نفسه (كانت إعادة التسمية تمنح الحصانة)');
 
 select throws_ok(
   $rt$ update public.employees set phone_e164 = '+201000005489'
         where id = 'f5480000-0000-4000-8000-000000000012' $rt$,
-  '42501',
+  '42501', null,
   'الموظف لا يغيّر هاتفه ذاتياً');
 
 select lives_ok(

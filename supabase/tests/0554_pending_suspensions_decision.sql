@@ -84,11 +84,11 @@ do $$ begin
 end $$;
 set local role authenticated;
 
-select throws_ok($rt$ select public.get_pending_suspensions() $rt$, '42501',
+select throws_ok($rt$ select public.get_pending_suspensions() $rt$, '42501', null,
   'الموظف العادي لا يرى قائمة المستحقين');
 select throws_ok(
   $rt$ select public.suspend_employee_for_penalty('f5540000-0000-4000-8000-000000000031', 'محاولة غير مخوّلة') $rt$,
-  '42501',
+  '42501', null,
   'الموظف العادي لا يعلّق أحداً');
 
 reset role;
@@ -112,7 +112,7 @@ select is(
 
 select throws_ok(
   $rt$ select public.suspend_employee_for_penalty('f5540000-0000-4000-8000-000000000031', ' ') $rt$,
-  '22023',
+  '22023', null,
   'السبب إلزامي');
 
 select lives_ok(
@@ -155,7 +155,7 @@ select is(
 
 select throws_ok(
   $rt$ select public.suspend_employee_for_penalty('f5540000-0000-4000-8000-000000000031', 'تكرار القرار') $rt$,
-  '22023',
+  '22023', null,
   'لا يُعلَّق مرتين');
 
 reset role;
