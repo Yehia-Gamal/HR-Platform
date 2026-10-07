@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/gps_preflight_banner.dart';
@@ -140,57 +143,277 @@ class LocationRequestsPage extends ConsumerWidget {
                           ),
                         ],
                       )
-                    : Column(
-                        children: [
-                          // ── لافتة الخصوصية — 0451 ──
-                          Container(
-                            margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 9,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withValues(alpha: .06),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.verified_user_rounded,
-                                  size: 16,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'مشاركتك بموافقتك فقط، مؤقتة، ومسجلة في سجل التدقيق.',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Expanded(
-                            child: ListView.separated(
-                              padding: const EdgeInsets.all(16),
-                              itemCount: items.length,
-                              separatorBuilder: (_, _) =>
-                                  const SizedBox(height: 12),
-                              itemBuilder: (context, index) => _RequestCard(
-                                  request: items[index], access: access),
-                            ),
-                          ),
-                        ],
-                      ),
+                    : _RequestsList(items: items, access: access),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// طلب ما زال قابلًا للرد: معلّق ولم تنقضِ مدته (نفس شرط البطاقة).
+bool _isActionable(MobileLocationRequest r) =>
+    r.status == 'pending' && (r.expiresAt?.isAfter(DateTime.now()) ?? false);
+
+/// ما ينتظر ردّك أولًا ببطاقته الكاملة، ثم السجل السابق مضغوطًا — كانت
+/// الطلبات المنتهية من أسابيع تملأ الشاشة ببطاقات كاملة لا إجراء فيها.
+class _RequestsList extends StatelessWidget {
+  const _RequestsList({required this.items, required this.access});
+
+  final List<MobileLocationRequest> items;
+  final AccessContext access;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final actionable = items.where(_isActionable).toList(growable: false);
+    final past = items
+        .where((r) => !_isActionable(r))
+        .toList(growable: false);
+
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      children: [
+        // ── لافتة الخصوصية — 0451 ──
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          decoration: BoxDecoration(
+            color: scheme.primary.withValues(alpha: .06),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.verified_user_rounded,
+                size: 16,
+                color: scheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'مشاركتك بموافقتك فقط، مؤقتة، ومسجلة في سجل التدقيق.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (actionable.isNotEmpty) ...[
+          _SectionHeader(
+            title: 'بانتظار ردّك',
+            count: actionable.length,
+            color: scheme.primary,
+          ),
+          for (final r in actionable)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _RequestCard(request: r, access: access),
+            ),
+        ] else
+          Padding(
+            padding: const EdgeInsets.only(top: 14),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.task_alt_rounded,
+                  size: 18,
+                  color: AppColors.statusSuccess,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'لا يوجد طلب ينتظر ردّك الآن',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: scheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (past.isNotEmpty) ...[
+          _SectionHeader(
+            title: 'الطلبات السابقة',
+            count: past.length,
+            color: scheme.onSurfaceVariant,
+          ),
+          Card(
+            margin: EdgeInsets.zero,
+            elevation: 0,
+            clipBehavior: Clip.antiAlias,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: scheme.outlineVariant.withValues(alpha: .6),
+              ),
+            ),
+            child: Column(
+              children: [
+                for (var i = 0; i < past.length; i++) ...[
+                  if (i > 0)
+                    Divider(
+                      height: 1,
+                      indent: 62,
+                      color: scheme.outlineVariant.withValues(alpha: .45),
+                    ),
+                  _PastRequestTile(request: past[i]),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({
+    required this.title,
+    required this.count,
+    required this.color,
+  });
+
+  final String title;
+  final int count;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(2, 18, 2, 10),
+    child: Row(
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: .12),
+            borderRadius: BorderRadius.circular(99),
+          ),
+          child: Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// حالة طلب سابق بلغة من طُلب منه الموقع (لا «قيد المراجعة»).
+(String, Color) _pastStatus(MobileLocationRequest r, ColorScheme scheme) =>
+    switch (r.status) {
+      'accepted' || 'completed' => ('تمت المشاركة', AppColors.statusSuccess),
+      'active' => ('تتبع جارٍ', AppColors.statusInfo),
+      'rejected' => ('اعتذرت', AppColors.statusDanger),
+      'cancelled' => ('أُلغي', scheme.onSurfaceVariant),
+      // expired، أو معلّق انقضت مدته دون رد
+      _ => ('انتهت مدته', scheme.onSurfaceVariant),
+    };
+
+class _PastRequestTile extends StatelessWidget {
+  const _PastRequestTile({required this.request});
+
+  final MobileLocationRequest request;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final (label, color) = _pastStatus(request, scheme);
+    final when = DateFormat(
+      'd MMM · h:mm a',
+      'ar',
+    ).format(request.requestedAt.toLocal());
+    final reason = request.reason.trim();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: .1),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(
+              request.isTracking
+                  ? Icons.my_location_rounded
+                  : Icons.location_on_outlined,
+              size: 19,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  request.isTracking ? 'تتبع مباشر' : 'مشاركة موقع',
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'من ${request.requesterName} · $when',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                if (reason.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    reason,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: scheme.onSurfaceVariant.withValues(alpha: .8),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: .1),
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: color,
               ),
             ),
           ),
@@ -231,14 +454,23 @@ class _RequestCardState extends ConsumerState<_RequestCard>
     }
   }
 
+  /// يحدّث عدّاد «ينتهي خلال» وحالة الانتهاء دون انتظار تحديث القائمة.
+  Timer? _ticker;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (widget.request.status == 'pending') {
+      _ticker = Timer.periodic(const Duration(seconds: 15), (_) {
+        if (mounted) setState(() {});
+      });
+    }
   }
 
   @override
   void dispose() {
+    _ticker?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -444,7 +676,13 @@ class _RequestCardState extends ConsumerState<_RequestCard>
                     ],
                   ),
                 ),
-                MobileStatusPill(request.status),
+                if (pending && !expired && expiresIn != null)
+                  _CountdownChip(
+                    remaining: expiresIn,
+                    urgent: expiresSoon,
+                  )
+                else
+                  MobileStatusPill(request.status),
               ],
             ),
             const SizedBox(height: 12),
@@ -719,6 +957,43 @@ class _RequestCardState extends ConsumerState<_RequestCard>
         'track_30' => 'تتبع 30 دقيقة',
         _ => value,
       };
+}
+
+/// «ينتظر ردّك» مع الوقت المتبقي — بدل «قيد المراجعة» التي لا تناسب من
+/// طُلب منه الموقع.
+class _CountdownChip extends StatelessWidget {
+  const _CountdownChip({required this.remaining, required this.urgent});
+
+  final Duration remaining;
+  final bool urgent;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = urgent ? AppColors.statusDanger : AppColors.statusWarning;
+    final minutes = remaining.inMinutes + 1;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.hourglass_top_rounded, size: 13, color: color),
+          const SizedBox(width: 4),
+          Text(
+            remaining.inMinutes < 1 ? 'أقل من دقيقة' : 'متبقٍ $minutes د',
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// نوع مشكلة الموقع — يحدد زر الإعدادات المعروض.

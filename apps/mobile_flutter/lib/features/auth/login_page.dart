@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show TextInput;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -33,13 +35,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   // V12 §17 لم يعد سارياً: رابط إعادة تعيين كلمة السر ظاهر دائماً.
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    _log('[LOGIN] _submit called');
+    if (!_formKey.currentState!.validate()) {
+      _log('[LOGIN] form validation failed');
+      return;
+    }
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
       final client = ref.read(supabaseProvider);
+      _log('[LOGIN] invoking identifier-sign-in');
       final response = await client.functions
           .invoke(
             'identifier-sign-in',
@@ -49,6 +56,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             },
           )
           .timeout(const Duration(seconds: 20));
+      _log('[LOGIN] response status: ${response.status}');
       if (!mounted) return;
       // الرد قد لا يكون Map (مثلاً "Invalid API key" كنص عادي من بوابة Supabase).
       final Map<String, dynamic> payload;
@@ -58,7 +66,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       } else {
         // نص خطأ عادي — نمرره كرسالة خام لمعالجة الأخطاء.
         final rawStr = raw?.toString() ?? '';
-        throw StateError(rawStr.isNotEmpty ? rawStr : 'استجابة غير صالحة من الخادم.');
+        throw StateError(
+          rawStr.isNotEmpty ? rawStr : 'استجابة غير صالحة من الخادم.',
+        );
       }
       final refreshToken = payload['refresh_token'] as String?;
       if (response.status != 200 || refreshToken == null) {
@@ -66,15 +76,25 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         final message = payload['message'] as String?;
         throw AuthException(_humanizeAuthError(code, message));
       }
+      _log('[LOGIN] setting session with refreshToken');
       await client.auth.setSession(refreshToken);
+      _log('[LOGIN] setSession completed successfully');
+      // نجح الدخول: يعرض مدير كلمات المرور حفظ البيانات (AutofillGroup)
+      TextInput.finishAutofillContext();
       ref.invalidate(accessContextProvider);
-      if (mounted) context.go('/');
+      if (mounted) {
+        _log('[LOGIN] navigating to /');
+        context.go('/');
+      }
     } on AuthException catch (error) {
+      _log('[LOGIN] AuthException: ${error.message}');
       if (mounted) setState(() => _error = error.message);
     } catch (error, stack) {
+      _log('[LOGIN] catch: $error\n$stack');
       // أخطاء الشبكة/timeout/DNS تعرض رسالة واضحة.
       if (mounted) setState(() => _error = humanizeError(error, stack));
     } finally {
+      _log('[LOGIN] finished, mounted: $mounted');
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -201,159 +221,185 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           padding: const EdgeInsets.all(22),
                           child: Form(
                             key: _formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Text(
-                                  'تسجيل الدخول',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.headlineSmall,
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'استخدم حساب المؤسسة المصرح به.',
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        color: scheme.onSurfaceVariant,
-                                      ),
-                                ),
-                                const SizedBox(height: 22),
-                                if (_error != null) ...[
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: scheme.errorContainer,
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Icon(
-                                          Icons.error_outline_rounded,
-                                          color: scheme.onErrorContainer,
+                            child: AutofillGroup(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Text(
+                                    'تسجيل الدخول',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.headlineSmall,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'استخدم حساب المؤسسة المصرح به.',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: scheme.onSurfaceVariant,
                                         ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            _error!,
-                                            style: TextStyle(
-                                              color: scheme.onErrorContainer,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w700,
+                                  ),
+                                  const SizedBox(height: 22),
+                                  if (_error != null) ...[
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: scheme.errorContainer,
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Icon(
+                                            Icons.error_outline_rounded,
+                                            color: scheme.onErrorContainer,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              _error!,
+                                              style: TextStyle(
+                                                color: scheme.onErrorContainer,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700,
+                                              ),
                                             ),
                                           ),
+                                          IconButton(
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                            onPressed: () =>
+                                                setState(() => _error = null),
+                                            icon: const Icon(
+                                              Icons.close_rounded,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 14),
+                                  ],
+                                  TextFormField(
+                                    controller: _identifier,
+                                    keyboardType: TextInputType.text,
+                                    textDirection: TextDirection.ltr,
+                                    // النص LTR (هاتف/بريد) لكنه بجوار أيقونته
+                                    // وتسميته في الواجهة العربية، لا في الطرف الآخر
+                                    textAlign: TextAlign.right,
+                                    textInputAction: TextInputAction.next,
+                                    autofillHints: const [
+                                      AutofillHints.username,
+                                    ],
+                                    decoration: const InputDecoration(
+                                      labelText:
+                                          'البريد أو الهاتف أو كود الموظف',
+                                      prefixIcon: Icon(
+                                        Icons.alternate_email_rounded,
+                                      ),
+                                    ),
+                                    validator: (value) =>
+                                        value != null &&
+                                            value.trim().length >= 2
+                                        ? null
+                                        : 'أدخل البريد أو الهاتف أو كود الموظف.',
+                                  ),
+                                  const SizedBox(height: 14),
+                                  TextFormField(
+                                    controller: _password,
+                                    obscureText: _obscurePassword,
+                                    textDirection: TextDirection.ltr,
+                                    textAlign: TextAlign.right,
+                                    textInputAction: TextInputAction.done,
+                                    onFieldSubmitted: (_) {
+                                      if (!_loading) _submit();
+                                    },
+                                    autofillHints: const [
+                                      AutofillHints.password,
+                                    ],
+                                    decoration: InputDecoration(
+                                      labelText: 'كلمة المرور',
+                                      prefixIcon: const Icon(
+                                        Icons.lock_outline_rounded,
+                                      ),
+                                      suffixIcon: IconButton(
+                                        tooltip: _obscurePassword
+                                            ? 'إظهار كلمة المرور'
+                                            : 'إخفاء كلمة المرور',
+                                        onPressed: () => setState(
+                                          () => _obscurePassword =
+                                              !_obscurePassword,
                                         ),
-                                        IconButton(
-                                          visualDensity: VisualDensity.compact,
-                                          onPressed: () =>
-                                              setState(() => _error = null),
-                                          icon: const Icon(Icons.close_rounded),
+                                        icon: Icon(
+                                          _obscurePassword
+                                              ? Icons.visibility_outlined
+                                              : Icons.visibility_off_outlined,
                                         ),
-                                      ],
+                                      ),
+                                    ),
+                                    validator: (value) =>
+                                        value != null && value.length >= 8
+                                        ? null
+                                        : 'كلمة المرور لا تقل عن 8 أحرف.',
+                                  ),
+                                  // رابط إعادة تعيين كلمة السر ظاهر دائماً (V12 §17 لم يعد سارياً).
+                                  Align(
+                                    alignment: AlignmentDirectional.centerEnd,
+                                    child: TextButton.icon(
+                                      onPressed: _loading
+                                          ? null
+                                          : _openForgotPassword,
+                                      icon: const Icon(
+                                        Icons.help_outline_rounded,
+                                        size: 18,
+                                      ),
+                                      label: const Text(
+                                        'إعادة تعيين كلمة السر؟',
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  FilledButton.icon(
+                                    onPressed: _loading ? null : _submit,
+                                    icon: _loading
+                                        ? const SizedBox.square(
+                                            dimension: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Icon(Icons.login_rounded),
+                                    label: Text(
+                                      _loading
+                                          ? 'جارٍ التحقق…'
+                                          : 'تسجيل الدخول بأمان',
                                     ),
                                   ),
                                   const SizedBox(height: 14),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.shield_outlined,
+                                        size: 16,
+                                        color: scheme.onSurfaceVariant,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'جلسة مشفرة وصلاحيات من الخادم',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.copyWith(
+                                              color: scheme.onSurfaceVariant,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
                                 ],
-                                TextFormField(
-                                  controller: _identifier,
-                                  keyboardType: TextInputType.text,
-                                  textDirection: TextDirection.ltr,
-                                  autofillHints: const [AutofillHints.username],
-                                  decoration: const InputDecoration(
-                                    labelText: 'البريد أو الهاتف أو كود الموظف',
-                                    prefixIcon: Icon(
-                                      Icons.alternate_email_rounded,
-                                    ),
-                                  ),
-                                  validator: (value) =>
-                                      value != null && value.trim().length >= 2
-                                      ? null
-                                      : 'أدخل البريد أو الهاتف أو كود الموظف.',
-                                ),
-                                const SizedBox(height: 14),
-                                TextFormField(
-                                  controller: _password,
-                                  obscureText: _obscurePassword,
-                                  textDirection: TextDirection.ltr,
-                                  autofillHints: const [AutofillHints.password],
-                                  decoration: InputDecoration(
-                                    labelText: 'كلمة المرور',
-                                    prefixIcon: const Icon(
-                                      Icons.lock_outline_rounded,
-                                    ),
-                                    suffixIcon: IconButton(
-                                      tooltip: _obscurePassword
-                                          ? 'إظهار كلمة المرور'
-                                          : 'إخفاء كلمة المرور',
-                                      onPressed: () => setState(
-                                        () => _obscurePassword =
-                                            !_obscurePassword,
-                                      ),
-                                      icon: Icon(
-                                        _obscurePassword
-                                            ? Icons.visibility_outlined
-                                            : Icons.visibility_off_outlined,
-                                      ),
-                                    ),
-                                  ),
-                                  validator: (value) =>
-                                      value != null && value.length >= 8
-                                      ? null
-                                      : 'كلمة المرور لا تقل عن 8 أحرف.',
-                                ),
-                                // رابط إعادة تعيين كلمة السر ظاهر دائماً (V12 §17 لم يعد سارياً).
-                                Align(
-                                  alignment: AlignmentDirectional.centerEnd,
-                                  child: TextButton.icon(
-                                    onPressed: _loading ? null : _openForgotPassword,
-                                    icon: const Icon(
-                                      Icons.help_outline_rounded,
-                                      size: 18,
-                                    ),
-                                    label: const Text('إعادة تعيين كلمة السر؟'),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                FilledButton.icon(
-                                  onPressed: _loading ? null : _submit,
-                                  icon: _loading
-                                      ? const SizedBox.square(
-                                          dimension: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : const Icon(Icons.login_rounded),
-                                  label: Text(
-                                    _loading
-                                        ? 'جارٍ التحقق…'
-                                        : 'تسجيل الدخول بأمان',
-                                  ),
-                                ),
-                                const SizedBox(height: 14),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.shield_outlined,
-                                      size: 16,
-                                      color: scheme.onSurfaceVariant,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'جلسة مشفرة وصلاحيات من الخادم',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall
-                                          ?.copyWith(
-                                            color: scheme.onSurfaceVariant,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
@@ -388,6 +434,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       ),
     );
   }
+}
+
+/// تشخيص الدخول في النسخ التطويرية فقط — debugPrint يطبع في الإصدار أيضًا.
+void _log(String message) {
+  if (kDebugMode) debugPrint(message);
 }
 
 class _ForgotPasswordDialog extends ConsumerStatefulWidget {
