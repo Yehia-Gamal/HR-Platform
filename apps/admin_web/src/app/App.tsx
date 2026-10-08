@@ -49,6 +49,7 @@ const MyInstantPenaltiesPage = lazy(() => import('../features/finance/MyInstantP
 const DisputesPage = lazy(() => import('../features/advanced/DisputesPage').then((m) => ({ default: m.DisputesPage })));
 const SettingsHubPage = lazy(() => import('../features/management/SettingsHubPage').then((m) => ({ default: m.SettingsHubPage })));
 const ReportsHubPage = lazy(() => import('../features/management/ReportsHubPage').then((m) => ({ default: m.ReportsHubPage })));
+const ApprovalSpeedPage = lazy(() => import('../features/management/ApprovalSpeedPage').then((m) => ({ default: m.ApprovalSpeedPage })));
 const DocumentsHubPage = lazy(() => import('../features/documents/DocumentsHubPage').then((m) => ({ default: m.DocumentsHubPage })));
 const AccessPage = lazy(() => import('../features/management/AccessPage').then((m) => ({ default: m.AccessPage })));
 const EnterpriseManagementPage = lazy(() => import('../features/management/EnterpriseManagementPage').then((m) => ({ default: m.EnterpriseManagementPage })));
@@ -524,6 +525,14 @@ function HrWorkspaceRoutes() {
         element={
           <RequirePermission perm="requests.request.read">
             <RequestsPage />
+          </RequirePermission>
+        }
+      />
+      <Route
+        path="approval-speed"
+        element={
+          <RequirePermission perm="requests.request.read">
+            <ApprovalSpeedPage />
           </RequirePermission>
         }
       />

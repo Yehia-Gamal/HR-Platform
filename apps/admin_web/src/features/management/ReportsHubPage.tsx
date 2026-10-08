@@ -3,9 +3,10 @@ import { ReportsPage } from './ReportsPage';
 import { ReportSchedulerPage } from './ReportSchedulerPage';
 import { AnalyticsDashboardPage } from '../analytics/AnalyticsDashboardPage';
 import { CustomReportBuilder } from '../reports/CustomReportBuilder';
+import { ApprovalSpeedPage } from './ApprovalSpeedPage';
 
 /**
- * مركز التقارير الموحّد — التقارير والجدولة والتحليلات ومنشئ التقارير بتبويبات.
+ * مركز التقارير الموحّد — التقارير والجدولة والتحليلات ومنشئ التقارير وسرعة الاعتمادات بتبويبات.
  * المسارات القديمة (reports/scheduler، analytics) تُحوَّل هنا.
  */
 
@@ -14,6 +15,7 @@ const TABS = [
   { key: 'builder', label: 'منشئ التقارير المخصص' },
   { key: 'scheduler', label: 'الجدولة' },
   { key: 'analytics', label: 'التحليلات' },
+  { key: 'approval-speed', label: 'سرعة الاعتمادات' },
 ] as const;
 
 type TabKey = (typeof TABS)[number]['key'];
@@ -58,6 +60,8 @@ export function ReportsHubPage() {
         <ReportSchedulerPage />
       ) : tab === 'analytics' ? (
         <AnalyticsDashboardPage />
+      ) : tab === 'approval-speed' ? (
+        <ApprovalSpeedPage />
       ) : (
         <ReportsPage />
       )}
