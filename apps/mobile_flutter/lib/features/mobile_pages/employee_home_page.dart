@@ -134,6 +134,9 @@ class EmployeeHomePage extends ConsumerWidget {
           const _ConnectivitySyncBanner(),
           if (!access.isClinicStaff) const HonorBoardSummaryCard(),
           _ProactiveSmartAlertBanner(summary: summary.value, access: access),
+          const SizedBox(height: 12),
+          const MonthGlanceCard(),
+          const SizedBox(height: 12),
           const MobileSectionHeader(
             title: 'اختصارات اليوم',
             subtitle: 'أسرع الإجراءات التي تحتاجها أثناء العمل.',
