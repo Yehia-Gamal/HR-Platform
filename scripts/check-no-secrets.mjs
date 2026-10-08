@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const excludedDirectories = new Set([
-  '.git', 'node_modules', 'dist', 'build', '.dart_tool', '.idea', '.vscode', '.claude',
+  '.git', 'node_modules', 'dist', 'build', '.dart_tool', '.idea', '.vscode', '.claude', 'scratch',
 ]);
 const allowedExtensions = new Set([
   '.ts', '.tsx', '.js', '.mjs', '.dart', '.sql', '.json', '.yaml', '.yml',
@@ -49,6 +49,7 @@ async function walk(directory) {
       await walk(fullPath);
       continue;
     }
+    if (entry.name.startsWith('scratch_')) continue;
     if (!allowedExtensions.has(extname(entry.name)) && !allowedFiles.has(entry.name)) continue;
     let source;
     try {

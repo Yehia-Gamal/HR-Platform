@@ -13,11 +13,12 @@ export const requestTypeSchema = z.enum([
   'late_permit',
   'early_permit',
   'attendance_correction',
+  'shift_change',
 ]);
 export type RequestType = z.infer<typeof requestTypeSchema>;
 
-/** عدد أنواع الطلبات الرسمية — V17 §8 + 0325. */
-export const REQUEST_TYPE_COUNT = 7;
+/** عدد أنواع الطلبات الرسمية — V17 §8 + 0325 + 0632. */
+export const REQUEST_TYPE_COUNT = 8;
 
 /** تسميات الأنواع بالعربية. */
 export const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
@@ -28,6 +29,7 @@ export const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
   late_permit: 'إذن حضور',
   early_permit: 'إذن انصراف',
   attendance_correction: 'تصحيح حضور',
+  shift_change: 'تغيير فترة العمل',
 };
 
 // ─── حالات الطلب ─────────────────────────────────────────────────────────────

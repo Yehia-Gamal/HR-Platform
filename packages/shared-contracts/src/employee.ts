@@ -32,6 +32,9 @@ export const employeeSummarySchema = z.object({
   branch: z.string().nullable().optional(),
   jobTitle: z.string().nullable().optional(),
   createdAt: z.string(),
+  statusToday: z.string().nullable().optional(),
+  statusTodayLabel: z.string().nullable().optional(),
+  activityTitle: z.string().nullable().optional(),
 });
 
 export type EmployeeSummary = z.infer<typeof employeeSummarySchema>;
@@ -216,6 +219,15 @@ export const employee360Schema = z.object({
   })).optional().default([]),
   roles: z.array(z.object({ slug: z.string(), name: z.string() })).optional().default([]),
   directReports: z.number().optional().default(0),
+  todayStatus: z.object({
+    status: z.string().nullable().optional(),
+    statusLabel: z.string().nullable().optional(),
+    activityTitle: z.string().nullable().optional(),
+    lateMinutes: z.number().optional().default(0),
+    checkInAt: z.string().nullable().optional(),
+    checkOutAt: z.string().nullable().optional(),
+    workMinutes: z.number().optional().default(0),
+  }).nullable().optional(),
   attendance30: z.object({
     present: z.number(),
     lateDays: z.number(),

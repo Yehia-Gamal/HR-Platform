@@ -174,8 +174,9 @@ export const instantPenaltySchema = z
     receiptAttachmentUrl: z.string().nullable().optional(),
     receiptSubmittedAt: isoDate.optional(),
     receiptReferenceNumber: z.string().nullable().optional(),
+    cancelledReason: z.string().nullable().optional(),
   })
-  .strict();
+  .passthrough();
 export type InstantPenalty = z.infer<typeof instantPenaltySchema>;
 
 /** نتيجة تقديم عذر لغرامة فورية */

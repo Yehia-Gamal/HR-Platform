@@ -174,12 +174,17 @@ function extractAliases(body) {
   // أسماء استعارة الجمل الفرعية: ) alias يليه سطر جديد أو JOIN/WHERE...
   const virtualTables = new Map(); // alias -> Set(أعمدة) لجملة فرعية
   const subGuesses = new Map();    // alias -> تخمين جدول من داخل الجملة (يُستبدل بـ FROM/JOIN الصريح)
-  const subAliasRe = /\)\s+(?:as\s+)?([a-z_][a-z0-9_]*)(?=\s*(?:[\r\n]|\b(?:join|left|right|full|inner|cross|where|group|having|union|limit|on)\b))/gi;
+  const subAliasRe = /\)\s+(?:as\s+)?([a-z_][a-z0-9_]*)(?:\s*\(([^)]*)\))?(?=\s*(?:[\r\n]|\b(?:join|left|right|full|inner|cross|where|group|having|union|limit|on)\b))/gi;
   let sa;
   while ((sa = subAliasRe.exec(body)) !== null) {
     const alias = sa[1].toLowerCase();
     if (SQL_KEYWORDS.has(alias)) continue;
     if (aliases.has(alias) || virtualTables.has(alias) || virtualAliases.has(alias)) continue;
+    // قائمة أعمدة صريحة: ) as alias(col1, col2) — مثلاً values (...) as j(expected_jobname)
+    if (sa[2] !== undefined) {
+      const explicit = new Set(sa[2].split(',').map((s) => s.trim().toLowerCase()).filter(Boolean));
+      if (explicit.size > 0) { virtualTables.set(alias, explicit); continue; }
+    }
     const open = matchOpen(body, sa.index);
     const inner = open >= 0 ? body.slice(open + 1, sa.index) : null;
     const cols = inner ? subqueryColumns(inner) : null;
@@ -297,6 +302,11 @@ function checkRefs(content, func, tableCols) {
 
     // جدول افتراضي معروف (CTE / جملة فرعية)
     if (ctes.has(left) || virtualAliases.has(left)) continue;
+
+    // استعارة جملة فرعية بأعمدة معروفة: العمود موجود في نطاق الجملة الفرعية
+    // (يُفضَّل على تصادم النطاقات — مثلاً: ) r خارجياً و roles r داخلياً في نفس الدالة)
+    const av = virtualTables.get(left);
+    if (av && av.has(right)) continue;
 
     const table = aliases.get(left);
     if (!table || ambiguous.has(left)) {

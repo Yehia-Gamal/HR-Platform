@@ -22,6 +22,9 @@ const ACCEPTABLE_GAPS = new Set([
   // 0395 → كان admin_sensitive_ops_rate_limit لكن تعارض مع 0395_leave_approval_v3
   //         في جلسة متوازية؛ أُعيد ترقيم rate-limit إلى 0397 و leave_approval إلى 0396.
   395,
+  // 0657, 0658 → محجوزان لجلسة «إشعارات غير فعالة»
+  657,
+  658,
 ]);
 const BRIDGE_FILENAMES = new Set([
   '0119_bridge_placeholder.sql',
@@ -60,6 +63,8 @@ const BRIDGE_FILENAMES = new Set([
   //   جلسة موازية (0524→0526، و0527 تجاوزه 0528). البناء من الملفات يصل لنفس الحالة.
   '0524_bridge_placeholder.sql',
   '0527_bridge_placeholder.sql',
+  // 0599 → فجوة ترقيم بين 0598 و 0600.
+  '0599_bridge_placeholder.sql',
 ]);
 
 const FILE_RE = /^(\d{4})_([a-z0-9][a-z0-9_]*)\.sql$/i;

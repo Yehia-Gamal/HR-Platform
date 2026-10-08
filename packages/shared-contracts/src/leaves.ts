@@ -48,9 +48,9 @@ export const LEAVE_TYPE_LABELS: Record<string, string> = {
 };
 
 export const LEAVE_TYPE_COLORS: Record<string, string> = {
-  annual:           'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
-  casual:           'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300',
-  sick:             'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300',
-  unpaid:           'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-  weekly_rest_comp: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
+  annual:           'bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30',
+  casual:           'bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30',
+  sick:             'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30',
+  unpaid:           'bg-gray-500/15 text-gray-700 dark:text-gray-300 border border-gray-500/30',
+  weekly_rest_comp: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30',
 };

@@ -9,12 +9,12 @@ import {
   MISSION_EXECUTION_STATUS_LABELS,
 } from './requests.js';
 
-describe('request type contracts — V17 §8 + 0325', () => {
-  it('exactly 7 request types', () => {
+describe('request type contracts — V17 §8 + 0325 + 0632', () => {
+  it('exactly 8 request types', () => {
     expect(requestTypeSchema.options).toHaveLength(REQUEST_TYPE_COUNT);
   });
 
-  it('types are: leave, mission, convoy, fundraising, late_permit, early_permit, attendance_correction', () => {
+  it('types are: leave, mission, convoy, fundraising, late_permit, early_permit, attendance_correction, shift_change', () => {
     expect(requestTypeSchema.parse('leave')).toBe('leave');
     expect(requestTypeSchema.parse('mission')).toBe('mission');
     expect(requestTypeSchema.parse('convoy')).toBe('convoy');
@@ -22,6 +22,7 @@ describe('request type contracts — V17 §8 + 0325', () => {
     expect(requestTypeSchema.parse('late_permit')).toBe('late_permit');
     expect(requestTypeSchema.parse('early_permit')).toBe('early_permit');
     expect(requestTypeSchema.parse('attendance_correction')).toBe('attendance_correction');
+    expect(requestTypeSchema.parse('shift_change')).toBe('shift_change');
   });
 
   it('rejects legacy types: attendance_permit, generic', () => {
@@ -29,13 +30,14 @@ describe('request type contracts — V17 §8 + 0325', () => {
     expect(() => requestTypeSchema.parse('generic')).toThrow();
   });
 
-  it('all 7 types have Arabic labels', () => {
+  it('all 8 types have Arabic labels', () => {
     const keys = Object.keys(REQUEST_TYPE_LABELS);
-    expect(keys).toHaveLength(7);
+    expect(keys).toHaveLength(8);
     expect(REQUEST_TYPE_LABELS.leave).toBe('إجازة');
     expect(REQUEST_TYPE_LABELS.fundraising).toBe('فاندي');
     expect(REQUEST_TYPE_LABELS.late_permit).toBe('إذن حضور');
     expect(REQUEST_TYPE_LABELS.attendance_correction).toBe('تصحيح حضور');
+    expect(REQUEST_TYPE_LABELS.shift_change).toBe('تغيير فترة العمل');
   });
 
   it('request statuses include draft, pending, approved, rejected, returned, escalated', () => {

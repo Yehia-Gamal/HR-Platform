@@ -25,7 +25,7 @@ export type ActionCenterItem = z.infer<typeof actionCenterItemSchema>;
 export const requestSummarySchema = z.object({
   id: z.string().uuid(),
   requestNumber: z.number(),
-  requestType: z.enum(['leave', 'mission', 'convoy', 'fundraising', 'late_permit', 'early_permit', 'attendance_correction']),
+  requestType: z.enum(['leave', 'mission', 'convoy', 'fundraising', 'late_permit', 'early_permit', 'attendance_correction', 'shift_change']),
   employeeId: z.string().uuid(),
   employeeName: z.string(),
   employeeCode: z.string().nullable(),
@@ -40,8 +40,73 @@ export const requestSummarySchema = z.object({
   // 0318: بيانات الطلب التفصيلية + سجل تنفيذ المأمورية.
   payload: z.record(z.string(), z.unknown()).optional(),
   missionExecution: missionExecutionSchema.optional(),
+  // 0646: أعلام القرار من الخادم لكل طلب — هو وحده يعرف من يبتّ في أي مرحلة
+  // (لا يبتّ أحد في طلبه، ومدير التشغيل في مرحلته فقط).
+  isMine: z.boolean().optional(),
+  canDecide: z.boolean().optional(),
+  awaitingMe: z.boolean().optional(),
+  employeeDepartment: z.string().nullable().optional(),
+  employeeJobTitle: z.string().nullable().optional(),
+  employeePhotoUrl: z.string().nullable().optional(),
+  activeStepRole: z.string().nullable().optional(),
+  activeStepStatus: z.string().nullable().optional(),
+  activeStepDueAt: z.string().nullable().optional(),
+  decidedAt: z.string().nullable().optional(),
+  decidedByName: z.string().nullable().optional(),
+  updatedAt: z.string().nullable().optional(),
 });
 export type RequestSummary = z.infer<typeof requestSummarySchema>;
+
+// 0646/0651: تفاصيل الطلب — مسار الطلب (سجل الإجراءات لكل دورة تقديم) وسياق القرار للمعتمِد.
+export const requestHistoryEntrySchema = z.object({
+  action: z.string(),
+  at: z.string(),
+  actorName: z.string().nullable().optional(),
+  comment: z.string().nullable().optional(),
+  stepOrder: z.number().nullable().optional(),
+  stepName: z.string().nullable().optional(),
+  stepRole: z.string().nullable().optional(),
+  targetRole: z.string().nullable().optional(),
+  repeat: z.number().nullable().optional(),
+  isResubmit: z.boolean().optional(),
+});
+export type RequestHistoryEntry = z.infer<typeof requestHistoryEntrySchema>;
+
+export const requestInsightsSchema = z.object({
+  leaveBalance: z
+    .object({
+      name: z.string().nullable().optional(),
+      available: z.number().nullable().optional(),
+      reserved: z.number().nullable().optional(),
+      consumed: z.number().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
+  month: z
+    .object({
+      total: z.number(),
+      missions: z.number(),
+      leaves: z.number(),
+      permits: z.number(),
+      rejected: z.number(),
+      pending: z.number(),
+    })
+    .partial()
+    .optional(),
+  teamSize: z.number().optional(),
+  teamAway: z.array(z.object({ name: z.string().nullable().optional(), type: z.string().nullable().optional(), status: z.string().nullable().optional() })).optional(),
+});
+export type RequestInsights = z.infer<typeof requestInsightsSchema>;
+
+export const requestDetailSchema = z.object({
+  id: z.string(),
+  canDecide: z.boolean().optional(),
+  awaitingMe: z.boolean().optional(),
+  canResubmit: z.boolean().optional(),
+  history: z.array(requestHistoryEntrySchema).optional().default([]),
+  insights: requestInsightsSchema.nullable().optional(),
+});
+export type RequestDetail = z.infer<typeof requestDetailSchema>;
 
 export const kpiStageScoreSchema = z.object({ score: z.number().nullable(), note: z.string().nullable() });
 export const kpiCriterionFormSchema = z.object({
