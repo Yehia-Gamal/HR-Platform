@@ -918,28 +918,37 @@ class MobileCommands {
     final position = await LocationService.current();
     final operationId = const Uuid().v4();
     final installationId = await ref.read(installationIdProvider.future);
-    final rawData = await retryWithBackoff(
-      () => ref
-          .read(supabaseProvider)
-          .rpc<dynamic>(
-            'punch_attendance_local_biometric_v1',
-            params: {
-              'p_operation_id': operationId,
-              'p_event_type': eventType,
-              'p_installation_id': installationId,
-              'p_latitude': position.latitude,
-              'p_longitude': position.longitude,
-              'p_accuracy_meters': position.accuracy,
-              'p_is_mock': position.isMocked,
-            },
-          )
-          .timeout(const Duration(seconds: 20)),
-    );
-    final data = _asMap(rawData);
-    ref.invalidate(attendanceStateProvider);
-    ref.invalidate(myAttendanceHistoryProvider);
-    ref.invalidate(employeeHomeProvider);
-    return data;
+    final params = {
+      'p_operation_id': operationId,
+      'p_event_type': eventType,
+      'p_installation_id': installationId,
+      'p_latitude': position.latitude,
+      'p_longitude': position.longitude,
+      'p_accuracy_meters': position.accuracy,
+      'p_is_mock': position.isMocked,
+    };
+    try {
+      final rawData = await retryWithBackoff(
+        () => ref
+            .read(supabaseProvider)
+            .rpc<dynamic>(
+              'punch_attendance_local_biometric_v1',
+              params: params,
+            )
+            .timeout(const Duration(seconds: 20)),
+      );
+      final data = _asMap(rawData);
+      ref.invalidate(attendanceStateProvider);
+      ref.invalidate(myAttendanceHistoryProvider);
+      ref.invalidate(employeeHomeProvider);
+      return data;
+    } catch (error) {
+      if (_isConnectivityError(error)) {
+        await OfflineSyncQueue.instance.enqueue('punch_attendance', params);
+        throw OfflineQueuedException('punch_attendance');
+      }
+      rethrow;
+    }
   }
 
   Future<void> revokePasskey(String credentialId, String reason) async {

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/network/offline_sync_queue.dart';
 import 'package:ahla_shabab_management_os/core/widgets/gps_preflight_banner.dart';
 import 'package:ahla_shabab_management_os/core/widgets/host_app_bar_scope.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
@@ -521,6 +522,20 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
                   : 'تم تسجيل الانصراف بنجاح ✓',
             ),
             backgroundColor: AppColors.statusSuccess,
+          ),
+        );
+      }
+    } on OfflineQueuedException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              action == 'CHECK_IN'
+                  ? 'تم تسجيل الحضور محلياً بنجاح — ستتم المزامنة تلقائياً عند عودة الإنترنت ⏳'
+                  : 'تم تسجيل الانصراف محلياً بنجاح — ستتم المزامنة تلقائياً عند عودة الإنترنت ⏳',
+            ),
+            backgroundColor: AppColors.brandPrimaryStrong,
+            duration: const Duration(seconds: 4),
           ),
         );
       }

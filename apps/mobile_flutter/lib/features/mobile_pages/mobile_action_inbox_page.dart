@@ -8,6 +8,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/kpi_evaluation_d
     show kpiStageLabel;
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_router.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/request_decision_sheet.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/request_display.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -294,7 +295,7 @@ String _workflowLabel(String status) => switch (status) {
   _ => 'قيد المراجعة',
 };
 
-class _RequestActionCard extends StatelessWidget {
+class _RequestActionCard extends ConsumerWidget {
   const _RequestActionCard({
     required this.entry,
     required this.onOpen,
@@ -306,7 +307,7 @@ class _RequestActionCard extends StatelessWidget {
   final bool isMine;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final r = entry.request;
     final type = r?.type ?? '';
@@ -425,6 +426,94 @@ class _RequestActionCard extends StatelessWidget {
                           ),
                       ],
                     ),
+                    if (r?.awaitingMe == true && !isMine && entry.id != null) ...[
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: FilledButton.tonalIcon(
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                visualDensity: VisualDensity.compact,
+                                backgroundColor:
+                                    AppColors.statusSuccess.withValues(alpha: .14),
+                                foregroundColor: AppColors.statusSuccess,
+                              ),
+                              icon: const Icon(
+                                Icons.check_circle_outline_rounded,
+                                size: 18,
+                              ),
+                              label: const Text(
+                                'اعتماد سريع',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              onPressed: () async {
+                                final done = await showRequestDecisionSheet(
+                                  context,
+                                  ref,
+                                  requestId: entry.id!,
+                                  number: r?.number ?? 0,
+                                  type: r?.type ?? '',
+                                  employeeName: r?.employeeName ?? '',
+                                  decision: 'approve',
+                                );
+                                if (done) {
+                                  ref.invalidate(mobileActionCenterProvider);
+                                  ref.invalidate(mobileRequestsProvider);
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                visualDensity: VisualDensity.compact,
+                                side: BorderSide(
+                                  color: AppColors.statusDanger.withValues(
+                                    alpha: .5,
+                                  ),
+                                ),
+                                foregroundColor: AppColors.statusDanger,
+                              ),
+                              icon: const Icon(Icons.close_rounded, size: 18),
+                              label: const Text(
+                                'رفض / إعادة',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              onPressed: () async {
+                                final done = await showRequestDecisionSheet(
+                                  context,
+                                  ref,
+                                  requestId: entry.id!,
+                                  number: r?.number ?? 0,
+                                  type: r?.type ?? '',
+                                  employeeName: r?.employeeName ?? '',
+                                  decision: 'reject',
+                                );
+                                if (done) {
+                                  ref.invalidate(mobileActionCenterProvider);
+                                  ref.invalidate(mobileRequestsProvider);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
