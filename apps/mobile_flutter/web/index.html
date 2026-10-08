@@ -34,6 +34,16 @@
 
   <!-- Passkeys Web SDK (required by the `passkeys` Flutter plugin on web) -->
   <script src="passkeys_bundle.js"></script>
+  <script>
+    // Clean up any stale service workers from previous runs
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

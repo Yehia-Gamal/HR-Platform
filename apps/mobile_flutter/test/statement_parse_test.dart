@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/widgets/phone_display.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,6 +10,7 @@ void main() {
           'fullNameAr': 'يحيى جمال السبع',
           'employeeCode': '+201154869616',
           'jobTitle': 'السكرتير التنفيذي',
+          'photoUrl': 'https://example.com/avatar.jpg',
         },
         'period': <dynamic, dynamic>{
           'year': 2026,
@@ -60,6 +62,7 @@ void main() {
       );
 
       expect(statement.employeeNameAr, 'يحيى جمال السبع');
+      expect(statement.photoUrl, 'https://example.com/avatar.jpg');
       expect(statement.year, 2026);
       expect(statement.month, 8);
       // The null day is filtered out cleanly
@@ -88,6 +91,28 @@ void main() {
       expect(summary.attendanceRateDueDays, 22);
       expect(summary.hoursRateWorkedMinutes, 9600);
       expect(summary.hoursRateRequiredMinutes, 9600);
+    });
+  });
+
+  group('PhoneDisplay.stripCountryCode', () {
+    test('strips +20 and formats Egyptian mobile numbers as 01xxxxxxxxx', () {
+      expect(PhoneDisplay.stripCountryCode('+201099505229'), '01099505229');
+      expect(PhoneDisplay.stripCountryCode('00201099505229'), '01099505229');
+      expect(PhoneDisplay.stripCountryCode('201099505229+'), '01099505229');
+      expect(PhoneDisplay.stripCountryCode('201099505229'), '01099505229');
+      expect(PhoneDisplay.stripCountryCode('01099505229'), '01099505229');
+      expect(PhoneDisplay.stripCountryCode('+20 115 486 9616'), '01154869616');
+    });
+
+    test('preserves non-Egyptian international phone numbers', () {
+      expect(PhoneDisplay.stripCountryCode('+966501234567'), '+966501234567');
+    });
+
+    test('safePhoneText handles null and empty gracefully', () {
+      expect(PhoneDisplay.safePhoneText(null), '—');
+      expect(PhoneDisplay.safePhoneText(''), '—');
+      expect(PhoneDisplay.safePhoneText('   '), '—');
+      expect(PhoneDisplay.safePhoneText('+201099505229'), '01099505229');
     });
   });
 }

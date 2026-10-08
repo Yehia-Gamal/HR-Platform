@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
+import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -284,7 +285,7 @@ class _ExecutiveAttendanceTabState
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
-                    '${filtered.length} موظف'
+                    '${arEmployees(filtered.length)}'
                     '${_selectedFilter != _FilterCategory.all ? ' في فئة «${_filterLabel(_selectedFilter)}»' : ''}',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: scheme.onSurfaceVariant,
@@ -334,7 +335,7 @@ class _ExecutiveAttendanceTabState
                       Text(
                         summaryParts.isNotEmpty
                             ? '${deptEmployees.length} موظف — ${summaryParts.join(' · ')}'
-                            : '${deptEmployees.length} موظف',
+                            : arEmployees(deptEmployees.length),
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),

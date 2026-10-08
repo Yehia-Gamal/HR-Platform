@@ -1,19 +1,32 @@
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
+import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/host_app_bar_scope.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_self_service_page.dart';
+import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/request_display.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/request_list_widgets.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/team_requests_page.dart';
+import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 
 class MobileRequestsPage extends ConsumerStatefulWidget {
-  const MobileRequestsPage({this.focusRequestId, super.key});
+  const MobileRequestsPage({
+    this.focusRequestId,
+    this.showAllByDefault = false,
+    super.key,
+  });
 
   final String? focusRequestId;
+
+  /// «كل الطلبات» للإدارة التنفيذية؛ الافتراضي «طلباتي».
+  final bool showAllByDefault;
 
   @override
   ConsumerState<MobileRequestsPage> createState() => _MobileRequestsPageState();
@@ -23,6 +36,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
   final _searchController = TextEditingController();
   String _search = '';
   String _status = 'all';
+  late bool _showAll = widget.showAllByDefault;
 
   @override
   void dispose() {
@@ -84,75 +98,97 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
             ),
           ],
         ),
-        data: (items) => ListView(
+        data: (all) {
+          final access = ref.watch(accessContextProvider).value;
+          final isClinicStaff = access?.isClinicStaff == true;
+          final me = access?.employeeId;
+          final mineList = all.where((r) => r.isMineFor(me)).toList();
+          final others = isClinicStaff ? const <MobileRequest>[] : all.where((r) => !r.isMineFor(me)).toList();
+          final items = (!isClinicStaff && _showAll) ? others : mineList;
+          // طلبات الآخرين التي تنتظر قرار المستخدم — اختصار لصفحة الاعتماد
+          final awaitingMe = isClinicStaff
+              ? 0
+              : others
+                  .where(
+                    (r) =>
+                        r.status == 'pending' &&
+                        (r.awaitingMe ?? r.canDecide ?? false),
+                  )
+                  .length;
+          return ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
           children: [
-            ...[
+            if (!isClinicStaff && others.isNotEmpty) ...[
+              SegmentedButton<bool>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(
+                    value: false,
+                    icon: const Icon(Icons.person_rounded),
+                    label: Text('طلباتي (${mineList.length})'),
+                  ),
+                  ButtonSegment(
+                    value: true,
+                    icon: const Icon(Icons.groups_rounded),
+                    label: Text('طلبات الآخرين (${others.length})'),
+                  ),
+                ],
+                selected: {_showAll},
+                onSelectionChanged: (v) => setState(() => _showAll = v.first),
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (!isClinicStaff && awaitingMe > 0) ...[
+              Card(
+                elevation: 0,
+                color: AppColors.statusInfo.withValues(alpha: .08),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.notifications_active_rounded,
+                    color: AppColors.statusInfo,
+                  ),
+                  title: Text(
+                    '${arRequests(awaitingMe)} بانتظار قرارك',
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  subtitle: const Text('افتح «اعتماد طلبات الفريق» للبت فيها.'),
+                  trailing: const Icon(Icons.chevron_left_rounded),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const TeamRequestsPage()),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (!_showAll) ...[
               const MobileSectionHeader(title: 'أرصدة الإجازات'),
               const SizedBox(height: 10),
               balances.when(
                 loading: () => const LinearProgressIndicator(),
                 error: (_, _) => const Text('تعذر تحميل الأرصدة الآن.'),
-                data: (values) => SizedBox(
-                  height: 116,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: values.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 10),
-                    itemBuilder: (context, index) {
-                      final balance = values[index];
-                      return SizedBox(
-                        width: 190,
-                        child: Card(
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(
-                            // النقر على رصيد الإجازة يفتح الخدمة الذاتية
-                            // حيث يُقدَّم طلب الإجازة الجديد.
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const MobileSelfServicePage(),
-                              ),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(14),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    balance.name,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  Text(
-                                    '${balance.availableUnits.toStringAsFixed(balance.availableUnits % 1 == 0 ? 0 : 1)} متاح',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleLarge
-                                        ?.copyWith(fontWeight: FontWeight.w900),
-                                  ),
-                                  Text(
-                                    'محجوز ${balance.reservedUnits.toStringAsFixed(1)} · مستهلك ${balance.consumedUnits.toStringAsFixed(1)}',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodySmall,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
+                data: (values) => LeaveBalanceStrip(
+                  balances: values,
+                  // النقر على الرصيد يفتح الخدمة الذاتية حيث يُقدَّم طلب الإجازة
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const MobileSelfServicePage(),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 18),
             ],
-            const MobileSectionHeader(title: 'طلباتي'),
+            MobileSectionHeader(title: _showAll ? 'طلبات الآخرين' : 'طلباتي'),
             const SizedBox(height: 10),
+            if (!_showAll) ...[
+              RequestMonthSummary(requests: mineList),
+              const SizedBox(height: 10),
+            ],
             MobileFilterBar(
               searchHint: 'بحث بالاسم أو العنوان أو رقم الطلب',
               controller: _searchController,
@@ -162,13 +198,13 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                 MobileFilterOption('all', 'الكل'),
                 MobileFilterOption('pending', 'قيد المراجعة'),
                 MobileFilterOption('approved', 'معتمد'),
-                MobileFilterOption('rejected', 'مرفوض'),
-                MobileFilterOption('cancelled', 'ملغي'),
+                MobileFilterOption('rejected', 'مرفوض أو مُعاد'),
+                MobileFilterOption('cancelled', 'مسحوب'),
               ],
               selected: _status,
               onSelected: (value) => setState(() => _status = value),
               resultLabel:
-                  '${items.where(_matches).length} من ${items.length} طلب',
+                  '${items.where(_matches).length} من ${items.length}',
               onClear: _search.isEmpty && _status == 'all'
                   ? null
                   : () {
@@ -192,16 +228,17 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
               ),
               const Center(child: Text('لا توجد طلبات مطابقة للفلاتر')),
             ] else
-              ...items
-                  .where(_matches)
-                  .map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _RequestCard(item: item),
-                    ),
-                  ),
+              ...withRequestGroupHeaders<MobileRequest>(
+                items.where(_matches).toList(),
+                (item) => item.createdAt,
+                (item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: RequestListCard(item: item, showOwner: _showAll),
+                ),
+              ),
           ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -210,8 +247,12 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
     final haystack =
         '${item.employeeName} ${item.title ?? ''} ${item.reason ?? ''} ${item.number}'
             .toLowerCase();
-    return (_search.isEmpty || haystack.contains(_search)) &&
-        (_status == 'all' || item.status == _status);
+    final statusOk = switch (_status) {
+      'all' => true,
+      'rejected' => item.status == 'rejected' || item.status == 'returned',
+      _ => item.status == _status,
+    };
+    return (_search.isEmpty || haystack.contains(_search)) && statusOk;
   }
 
   Future<void> _createRequest(BuildContext context, WidgetRef ref) async {
@@ -222,6 +263,8 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
       // The request remains usable if the optional directory is unavailable.
     }
     if (!context.mounted) return;
+    final isClinicStaff =
+        ref.read(accessContextProvider).value?.isClinicStaff == true;
     var type = 'leave';
     var leaveType = 'annual';
     var permitKind = 'late_arrival';
@@ -262,22 +305,25 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                 DropdownButtonFormField<String>(
                   value: type,
                   decoration: const InputDecoration(labelText: 'نوع الطلب'),
-                  items: const [
-                    DropdownMenuItem(value: 'leave', child: Text('إجازة')),
-                    DropdownMenuItem(value: 'mission', child: Text('مأمورية عمل')),
-                    DropdownMenuItem(value: 'permit', child: Text('طلب إذن')),
-                    DropdownMenuItem(
+                  items: [
+                    const DropdownMenuItem(value: 'leave', child: Text('إجازة')),
+                    if (!isClinicStaff)
+                      const DropdownMenuItem(value: 'mission', child: Text('مأمورية عمل')),
+                    const DropdownMenuItem(value: 'permit', child: Text('طلب إذن')),
+                    const DropdownMenuItem(
                       value: 'attendance_correction',
                       child: Text('تصحيح حضور'),
                     ),
-                    DropdownMenuItem(
-                      value: 'convoy',
-                      child: Text('تكليف قافلة'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'fundraising',
-                      child: Text('فاندي'),
-                    ),
+                    if (!isClinicStaff) ...const [
+                      DropdownMenuItem(
+                        value: 'convoy',
+                        child: Text('تكليف قافلة'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'fundraising',
+                        child: Text('فاندي'),
+                      ),
+                    ],
                   ],
                   onChanged: (value) => setModalState(() {
                     type = value ?? 'leave';
@@ -308,10 +354,6 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                         child: Text('عارضة / طارئة (تنفيذ فوري)'),
                       ),
                       DropdownMenuItem(
-                        value: 'unpaid',
-                        child: Text('بدون راتب'),
-                      ),
-                      DropdownMenuItem(
                         value: 'weekly_rest_comp',
                         child: Text('بدل راحة أسبوعية (يُخصم من رصيد البدل)'),
                       ),
@@ -319,6 +361,35 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                     onChanged: (value) =>
                         setModalState(() => leaveType = value ?? 'annual'),
                   ),
+                  if (leaveType == 'sick') ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(sheetContext).colorScheme.tertiaryContainer.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: Theme.of(sheetContext).colorScheme.tertiary.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.health_and_safety_outlined,
+                            size: 16,
+                            color: Theme.of(sheetContext).colorScheme.tertiary,
+                          ),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'الإجازة المرضية تتطلب كشفاً أو تقريراً طبياً معتمداً.',
+                              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                 ],
                 if (type == 'mission') ...[
@@ -341,7 +412,8 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'تبدأ المأمورية تلقائياً من تاريخ ووقت الإنشاء الآن دون الحاجة لتحديد موعد بداية أو نهاية.',
+                            'تبدأ المأمورية فور إرسالها، ويُسجَّل وقتها وموقعك الحالي ليراهما مديرك. '
+                            'إن أرسلتها بعد موعد الدوام يُحسب التأخير حتى لحظة الإرسال.',
                             style: Theme.of(sheetContext).textTheme.bodySmall?.copyWith(
                               color: Theme.of(sheetContext).colorScheme.primary,
                               fontWeight: FontWeight.w600,
@@ -798,183 +870,4 @@ class _DateButton extends StatelessWidget {
       value == null ? label : DateFormat('d MMMM y', 'ar').format(value!),
     ),
   );
-}
-
-class _RequestCard extends StatelessWidget {
-  const _RequestCard({required this.item});
-
-  final MobileRequest item;
-
-  IconData get _typeIcon => switch (item.type) {
-    'mission' => Icons.work_history_rounded,
-    'convoy' => Icons.directions_bus_rounded,
-    'fundraising' => Icons.volunteer_activism_rounded,
-    'leave' => Icons.beach_access_rounded,
-    'late_permit' || 'early_permit' => Icons.schedule_rounded,
-    'attendance_correction' => Icons.fact_check_outlined,
-    _ => Icons.description_rounded,
-  };
-
-  bool get _isReturned =>
-      item.status == 'rejected' || item.status == 'returned';
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(
-          color: _isReturned
-              ? scheme.error.withValues(alpha: .35)
-              : scheme.outlineVariant.withValues(alpha: .6),
-        ),
-      ),
-      child: InkWell(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => MobileRequestDetailPage(requestId: item.id),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: scheme.primary.withValues(alpha: .1),
-                    child: Icon(
-                      _typeIcon,
-                      size: 22,
-                      color: scheme.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.title ?? _typeLabel(item.type),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 15,
-                            height: 1.3,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${_typeLabel(item.type)} · #${item.number}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  MobileStatusPill(item.status),
-                ],
-              ),
-              if (item.reason?.trim().isNotEmpty == true) ...[
-                const SizedBox(height: 10),
-                Text(
-                  item.reason!,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.5,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-              // 0451: دلالة الإرجاع — الطلب قابل للتعديل وإعادة الرفع
-              if (_isReturned) ...[
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: scheme.error.withValues(alpha: .07),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.edit_note_rounded,
-                        size: 16,
-                        color: scheme.error,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          'أُرجع إليك — افتحه لتعديل أي جزء وإعادة الرفع',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: scheme.error,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              const Divider(height: 20),
-              Row(
-                children: [
-                  Icon(
-                    Icons.route_outlined,
-                    size: 16,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      item.activeStepName ?? 'اكتمل المسار',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    DateFormat('d MMM', 'ar').format(item.createdAt),
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  static String _typeLabel(String type) => switch (type) {
-    'leave' => 'طلب إجازة',
-    'mission' => 'مأمورية',
-    'late_permit' => 'إذن حضور',
-    'early_permit' => 'إذن انصراف',
-    'attendance_correction' => 'تصحيح حضور',
-    'convoy' => 'قافلة',
-    'fundraising' => 'فاندي',
-    _ => 'طلب',
-  };
 }

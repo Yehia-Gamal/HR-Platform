@@ -249,7 +249,7 @@ class _MobileOperationsCenterPageState
     'cancelled' => 'ملغاة',
     'approved' => 'معتمدة',
     'rejected' => 'مرفوضة',
-    _ => status,
+    _ => 'غير محدد',
   };
 }
 

@@ -1,5 +1,6 @@
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,7 +8,7 @@ import 'package:intl/intl.dart';
 
 /// صفحة التقارير اليومية العامة — يراها كل المستخدمين.
 /// تعرض بطاقات/فقاعات لكل تقرير مع: الصورة، الاسم، المسمى، الإدارة،
-/// التاريخ، المحتوى (بارتفاع محدود + تمرير)، أزرار إعجاب وتعليق.
+/// التاريخ، المحتوى (مقتطع مع «عرض المزيد» للطويل فقط)، إعجاب وتعليق ومشاهدات.
 class DailyReportsFeedPage extends ConsumerStatefulWidget {
   const DailyReportsFeedPage({super.key});
 
@@ -18,6 +19,10 @@ class DailyReportsFeedPage extends ConsumerStatefulWidget {
 
 class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
   final Set<String> _expanded = {};
+
+  /// التعليقات مفتوحة بزر التعليق وحده — كان «عرض الكل» وزر التعليق يفتحان
+  /// الشيء نفسه.
+  final Set<String> _commentsOpen = {};
   final Map<String, TextEditingController> _commentControllers = {};
   bool _viewsRecorded = false;
   final _searchCtrl = TextEditingController();
@@ -43,6 +48,23 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
 
   @override
   Widget build(BuildContext context) {
+    final access = ref.watch(accessContextProvider).value;
+    if (access != null && access.isClinicStaff) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('التقارير اليومية')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Text(
+              'التقارير اليومية غير متاحة لطاقم العيادات.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      );
+    }
+
     final scheme = Theme.of(context).colorScheme;
     final feed = ref.watch(dailyReportsFeedProvider(null));
 
@@ -210,21 +232,25 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
                       ref.invalidate(dailyReportsFeedProvider(null)),
                   child: ListView.builder(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    // 96 أسفلًا: كان زر «تقرير اليوم» العائم يغطي ذيل آخر بطاقة
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 96),
                     itemCount: items.length,
                     itemBuilder: (context, index) {
                       final item = items[index];
+                      final id = item['id'] as String;
                       return _ReportCard(
                         item: item,
-                        isExpanded: _expanded.contains(item['id']),
+                        isExpanded: _expanded.contains(id),
                         onToggleExpand: () => setState(() {
-                          final id = item['id'] as String;
-                          if (_expanded.contains(id)) {
-                            _expanded.remove(id);
-                          } else {
-                            _expanded.add(id);
-                          }
+                          if (!_expanded.remove(id)) _expanded.add(id);
                         }),
+                        commentsOpen: _commentsOpen.contains(id),
+                        onToggleComments: () => setState(() {
+                          if (!_commentsOpen.remove(id)) _commentsOpen.add(id);
+                        }),
+                        myEmployeeId: access?.employeeId,
+                        canModerate:
+                            access?.permissions.contains('*') ?? false,
                         commentController: _commentCtrl(item['id'] as String),
                         onLike: () => _onLike(item['id'] as String),
                         onComment: () => _onComment(item['id'] as String),
@@ -300,98 +326,378 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
     );
   }
 
-  /// نموذج إنشاء/تعديل تقرير اليوم مباشرة داخل صفحة تقارير الجميع —
-  /// يبحث عن تقرير اليوم الموجود مسبقًا لتحريره بدل إنشاء تكرار.
+  /// يبحث عن تقرير اليوم الموجود مسبقًا لتحريره بدل البدء من فراغ: الحفظ
+  /// يستبدل تقرير التاريخ نفسه على الخادم (upsert_my_daily_report)، فكان فتح
+  /// نموذج فارغ ثم الحفظ يمحو ما كُتب سابقًا.
   Future<void> _composeReport(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
-    final achievements = TextEditingController();
-    final blockers = TextEditingController();
-    final tomorrow = TextEditingController();
+    final me = ref.read(accessContextProvider).value?.employeeId;
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final mine = me == null
+        ? null
+        : ref
+              .read(dailyReportsFeedProvider(null))
+              .asData
+              ?.value
+              .where((r) => r['employeeId'] == me && r['reportDate'] == today)
+              .firstOrNull;
 
-    final confirmed = await showModalBottomSheet<bool>(
+    final draft = await showModalBottomSheet<_ReportDraft>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          bottom: MediaQuery.viewInsetsOf(sheetContext).bottom + 20,
+      useSafeArea: true,
+      builder: (_) => _ReportComposerSheet(
+        initial: mine == null ? null : _ReportDraft.fromFeed(mine),
+      ),
+    );
+    if (draft == null) return;
+
+    try {
+      await ref
+          .read(mobileCommandsProvider)
+          .saveDailyReport(
+            reportDate: DateTime.now(),
+            achievements: draft.achievements,
+            blockers: draft.blockers,
+            tomorrowPlan: draft.tomorrowPlan,
+          );
+      ref.invalidate(dailyReportsFeedProvider(null));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            draft.isEdit ? 'تم تحديث تقرير اليوم.' : 'تم إرسال التقرير اليومي.',
+          ),
         ),
+      );
+    } catch (e, stack) {
+      messenger.showSnackBar(SnackBar(content: Text(humanizeError(e, stack))));
+    }
+  }
+}
+
+/// مسودة تقرير اليوم (ناتج النموذج، أو تقرير اليوم الموجود لملئه).
+class _ReportDraft {
+  const _ReportDraft({
+    required this.achievements,
+    this.blockers = '',
+    this.tomorrowPlan = '',
+    this.isEdit = false,
+    this.reviewed = false,
+  });
+
+  factory _ReportDraft.fromFeed(Map<String, dynamic> r) => _ReportDraft(
+    achievements: (r['achievements'] as String? ?? '').trim(),
+    blockers: (r['blockers'] as String? ?? '').trim(),
+    tomorrowPlan: (r['tomorrowPlan'] as String? ?? '').trim(),
+    isEdit: true,
+    reviewed: r['reviewedAt'] != null,
+  );
+
+  final String achievements;
+  final String blockers;
+  final String tomorrowPlan;
+  final bool isEdit;
+
+  /// راجعه المدير — الخادم يرفض تعديله («التقرير المُراجَع لا يُعدَّل»).
+  final bool reviewed;
+}
+
+/// نموذج تقرير اليوم. يملك متحكماته ويتخلص منها بعد إغلاقه بالكامل — كان
+/// التخلص منها فور انتهاء await يسبق حركة الإغلاق (متحكم مُتخلَّص منه).
+class _ReportComposerSheet extends ConsumerStatefulWidget {
+  const _ReportComposerSheet({this.initial});
+
+  final _ReportDraft? initial;
+
+  @override
+  ConsumerState<_ReportComposerSheet> createState() =>
+      _ReportComposerSheetState();
+}
+
+class _ReportComposerSheetState extends ConsumerState<_ReportComposerSheet> {
+  late final _achievements = TextEditingController(
+    text: widget.initial?.achievements,
+  );
+  late final _blockers = TextEditingController(text: widget.initial?.blockers);
+  late final _plan = TextEditingController(text: widget.initial?.tomorrowPlan);
+  late bool _isEdit = widget.initial?.isEdit ?? false;
+  late bool _reviewed = widget.initial?.reviewed ?? false;
+  bool _loadingExisting = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initial == null) _loadExisting();
+  }
+
+  @override
+  void dispose() {
+    _achievements.dispose();
+    _blockers.dispose();
+    _plan.dispose();
+    super.dispose();
+  }
+
+  /// تقرير اليوم قد لا يكون ضمن أول صفحة من تقارير الجميع — نسأل «تقاريري».
+  Future<void> _loadExisting() async {
+    setState(() => _loadingExisting = true);
+    try {
+      final mine = await ref.read(mobileDailyReportsProvider(null).future);
+      final now = DateTime.now();
+      final today = mine
+          .where(
+            (r) =>
+                r.reportDate.year == now.year &&
+                r.reportDate.month == now.month &&
+                r.reportDate.day == now.day,
+          )
+          .firstOrNull;
+      if (!mounted || today == null) return;
+      // لا نكتب فوق ما بدأ المستخدم كتابته أثناء التحميل
+      if (_achievements.text.isEmpty &&
+          _blockers.text.isEmpty &&
+          _plan.text.isEmpty) {
+        _achievements.text = today.achievements ?? '';
+        _blockers.text = today.blockers ?? '';
+        _plan.text = today.tomorrowPlan ?? '';
+      }
+      setState(() {
+        _isEdit = true;
+        _reviewed = today.reviewedAt != null;
+      });
+    } catch (_) {
+      // تعذّر جلب تقرير اليوم لا يمنع الكتابة
+    } finally {
+      if (mounted) setState(() => _loadingExisting = false);
+    }
+  }
+
+  void _submit() {
+    final done = _achievements.text.trim();
+    if (done.length < 3) {
+      setState(() => _error = 'اكتب إنجازاتك بوضوح (3 أحرف على الأقل).');
+      return;
+    }
+    Navigator.pop(
+      context,
+      _ReportDraft(
+        achievements: done,
+        blockers: _blockers.text.trim(),
+        tomorrowPlan: _plan.text.trim(),
+        isEdit: _isEdit,
+      ),
+    );
+  }
+
+  Widget _field({
+    required TextEditingController controller,
+    required IconData icon,
+    required Color color,
+    required String label,
+    required String hint,
+    required int minLines,
+    required int maxLines,
+    bool autofocus = false,
+    String? errorText,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return TextField(
+      controller: controller,
+      autofocus: autofocus,
+      readOnly: _reviewed,
+      minLines: minLines,
+      maxLines: maxLines,
+      textInputAction: TextInputAction.newline,
+      onChanged: errorText == null
+          ? null
+          : (_) => setState(() => _error = null),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        errorText: errorText,
+        alignLabelWithHint: true,
+        filled: true,
+        fillColor: scheme.surfaceContainerHighest.withValues(alpha: .35),
+        prefixIcon: Padding(
+          padding: const EdgeInsetsDirectional.only(start: 12, end: 8),
+          child: Icon(icon, color: color, size: 21),
+        ),
+        prefixIconConstraints: const BoxConstraints(minWidth: 0),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: .7),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: color, width: 1.6),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final dateLabel = DateFormat('EEEE d MMMM', 'ar').format(DateTime.now());
+    final (noticeIcon, noticeColor, noticeText) = _reviewed
+        ? (
+            Icons.lock_outline_rounded,
+            scheme.primary,
+            'راجع مديرك تقرير اليوم — لا يمكن تعديله بعد المراجعة.',
+          )
+        : (
+            Icons.history_edu_rounded,
+            const Color(0xFFE08A1E),
+            'أرسلت تقرير اليوم من قبل — عدّله ثم احفظ لتحديثه.',
+          );
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'تقرير اليوم',
-              style: Theme.of(sheetContext)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w900),
+            Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    Icons.edit_note_rounded,
+                    color: scheme.primary,
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isEdit ? 'تعديل تقرير اليوم' : 'تقرير اليوم',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      Text(
+                        dateLabel,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: achievements,
-              maxLines: 3,
-              autofocus: true,
-              decoration: const InputDecoration(labelText: 'ما تم إنجازه'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: blockers,
-              maxLines: 2,
-              decoration: const InputDecoration(labelText: 'المعوقات'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: tomorrow,
-              maxLines: 2,
-              decoration: const InputDecoration(labelText: 'خطة الغد'),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () {
-                if (achievements.text.trim().length < 3) {
-                  ScaffoldMessenger.of(sheetContext).showSnackBar(
-                    const SnackBar(
-                      content: Text('اكتب الإنجازات بصورة واضحة أولًا.'),
+            if (_loadingExisting)
+              const Padding(
+                padding: EdgeInsets.only(top: 12),
+                child: LinearProgressIndicator(minHeight: 2),
+              ),
+            if (_isEdit) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 9,
+                ),
+                decoration: BoxDecoration(
+                  color: noticeColor.withValues(alpha: .09),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(noticeIcon, size: 17, color: noticeColor),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        noticeText,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: noticeColor,
+                        ),
+                      ),
                     ),
-                  );
-                  return;
-                }
-                Navigator.pop(sheetContext, true);
-              },
-              child: const Text('حفظ التقرير'),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            _field(
+              controller: _achievements,
+              icon: Icons.task_alt_rounded,
+              color: scheme.primary,
+              label: 'الإنجازات',
+              hint: 'ما الذي أنجزته اليوم؟ سطر لكل إنجاز',
+              minLines: 3,
+              maxLines: 8,
+              autofocus: !_reviewed && !_isEdit,
+              errorText: _error,
+            ),
+            const SizedBox(height: 12),
+            _field(
+              controller: _blockers,
+              icon: Icons.report_problem_outlined,
+              color: const Color(0xFFE08A1E),
+              label: 'المعوقات',
+              hint: 'ما الذي أعاقك؟ (اختياري)',
+              minLines: 2,
+              maxLines: 5,
+            ),
+            const SizedBox(height: 12),
+            _field(
+              controller: _plan,
+              icon: Icons.event_note_rounded,
+              color: const Color(0xFF2FA36B),
+              label: 'خطة الغد',
+              hint: 'ماذا ستعمل غدًا؟ (اختياري)',
+              minLines: 2,
+              maxLines: 5,
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: _reviewed || _loadingExisting ? null : _submit,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              icon: Icon(
+                _reviewed
+                    ? Icons.lock_outline_rounded
+                    : _isEdit
+                    ? Icons.update_rounded
+                    : Icons.send_rounded,
+              ),
+              label: Text(
+                _reviewed
+                    ? 'تمت مراجعته'
+                    : _isEdit
+                    ? 'حفظ التعديل'
+                    : 'إرسال التقرير',
+              ),
             ),
           ],
         ),
       ),
     );
-
-    final done = achievements.text.trim();
-    final blocked = blockers.text.trim();
-    final next = tomorrow.text.trim();
-    achievements.dispose();
-    blockers.dispose();
-    tomorrow.dispose();
-    if (confirmed != true) return;
-
-    try {
-      await ref.read(mobileCommandsProvider).saveDailyReport(
-            reportDate: DateTime.now(),
-            achievements: done,
-            blockers: blocked,
-            tomorrowPlan: next,
-          );
-      ref.invalidate(dailyReportsFeedProvider(null));
-      messenger.showSnackBar(
-        const SnackBar(content: Text('تم حفظ التقرير اليومي.')),
-      );
-    } catch (e, stack) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(humanizeError(e, stack))),
-      );
-    }
   }
 }
 
@@ -401,68 +707,98 @@ class _ReportCard extends StatelessWidget {
     required this.item,
     required this.isExpanded,
     required this.onToggleExpand,
+    required this.commentsOpen,
+    required this.onToggleComments,
     required this.commentController,
     required this.onLike,
     required this.onComment,
     required this.onDeleteComment,
     required this.onShowEngagement,
+    required this.myEmployeeId,
+    required this.canModerate,
   });
 
   final Map<String, dynamic> item;
   final bool isExpanded;
   final VoidCallback onToggleExpand;
+  final bool commentsOpen;
+  final VoidCallback onToggleComments;
   final TextEditingController commentController;
   final VoidCallback onLike;
   final VoidCallback onComment;
   final void Function(String commentId) onDeleteComment;
   final VoidCallback onShowEngagement;
+  final String? myEmployeeId;
+
+  /// full-access يحذف أي تعليق (نفس شرط delete_daily_report_comment).
+  final bool canModerate;
+
+  /// نص طويل يستحق «عرض المزيد» — وإلا يُعرض كاملًا بلا زر لا يفعل شيئًا.
+  static bool _isLong(String text, {required int lines, required int chars}) =>
+      '\n'.allMatches(text.trim()).length + 1 > lines ||
+      text.trim().length > chars;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final employeeName = item['employeeName'] as String? ?? 'موظف';
     final photoUrl = item['photoUrl'] as String?;
-    final jobTitle = item['jobTitle'] as String?;
-    final department = item['department'] as String?;
+    final jobTitle = (item['jobTitle'] as String?)?.trim();
+    final department = (item['department'] as String?)?.trim();
     final reportDate = item['reportDate'] as String?;
-    final achievements = item['achievements'] as String? ?? '';
-    final blockers = item['blockers'] as String?;
-    final tomorrowPlan = item['tomorrowPlan'] as String?;
-    final managerComment = item['managerComment'] as String?;
+    final achievements = (item['achievements'] as String? ?? '').trim();
+    final blockers = (item['blockers'] as String? ?? '').trim();
+    final tomorrowPlan = (item['tomorrowPlan'] as String? ?? '').trim();
+    final managerComment = (item['managerComment'] as String? ?? '').trim();
+    final reviewer = (item['reviewedByName'] as String?)?.trim();
     final likesCount = item['likesCount'] as int? ?? 0;
     final isLikedByMe = item['isLikedByMe'] as bool? ?? false;
     final viewersCount = item['viewersCount'] as int? ?? 0;
-    final viewers = (item['viewers'] as List<dynamic>?)
+    final viewers =
+        (item['viewers'] as List<dynamic>?)
             ?.map((e) => Map<String, dynamic>.from(e as Map<dynamic, dynamic>))
             .toList() ??
         [];
     final comments =
-        (item['comments'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ??
-            [];
+        (item['comments'] as List<dynamic>?)
+            ?.map((e) => Map<String, dynamic>.from(e as Map<dynamic, dynamic>))
+            .toList() ??
+        [];
 
-    final dateLabel = reportDate != null
-        ? _formatDate(reportDate)
-        : '';
+    final subtitle = [
+      if (jobTitle != null && jobTitle.isNotEmpty) jobTitle,
+      if (department != null && department.isNotEmpty) department,
+    ].join(' · ');
+    final long =
+        _isLong(achievements, lines: 6, chars: 320) ||
+        _isLong(blockers, lines: 3, chars: 160) ||
+        _isLong(tomorrowPlan, lines: 3, chars: 160);
+    final collapsed = long && !isExpanded;
+    final viewerNames = viewers
+        .map((v) => (v['name'] as String? ?? '').trim())
+        .where((n) => n.isNotEmpty)
+        .toList();
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
+      clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: scheme.outlineVariant, width: 1),
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: .6)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ─── رأس البطاقة ───
+          // ─── الرأس: الصورة، الاسم، المسمى · الإدارة، التاريخ ───
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
             child: Row(
               children: [
                 AppAvatar(
                   name: employeeName,
                   photoUrl: photoUrl,
-                  radius: 24,
+                  radius: 22,
                   announceName: false,
                 ),
                 const SizedBox(width: 10),
@@ -472,222 +808,221 @@ class _ReportCard extends StatelessWidget {
                     children: [
                       Text(
                         employeeName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 2,
-                        children: [
-                          if (jobTitle != null)
-                            _chip(jobTitle, scheme.primaryContainer,
-                                scheme.onPrimaryContainer),
-                          if (department != null)
-                            _chip(department, scheme.surfaceContainerHighest,
-                                scheme.onSurface),
-                        ],
-                      ),
+                      if (subtitle.isNotEmpty) ...[
+                        const SizedBox(height: 1),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
-                if (dateLabel.isNotEmpty)
-                  Text(
-                    dateLabel,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: scheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
+                if (reportDate != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 3,
                     ),
-                  ),
-              ],
-            ),
-          ),
-
-          // ─── المحتوى (بارتفاع محدود + تمرير أو موسّع) ───
-          Container(
-            constraints: BoxConstraints(
-              maxHeight: isExpanded ? double.infinity : 180,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: SingleChildScrollView(
-              physics: isExpanded
-                  ? const NeverScrollableScrollPhysics()
-                  : const ClampingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _sectionLabel('✓ الإنجازات', scheme.primary),
-                  const SizedBox(height: 4),
-                  Text(achievements, style: const TextStyle(fontSize: 13, height: 1.7)),
-                  if (blockers != null && blockers.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    _sectionLabel('⚠ المعوقات', const Color(0xFFCC6600)),
-                    const SizedBox(height: 4),
-                    Text(blockers, style: const TextStyle(fontSize: 13, height: 1.7)),
-                  ],
-                  if (tomorrowPlan != null && tomorrowPlan.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    _sectionLabel('→ خطة الغد', const Color(0xFF2E7D32)),
-                    const SizedBox(height: 4),
-                    Text(tomorrowPlan, style: const TextStyle(fontSize: 13, height: 1.7)),
-                  ],
-                ],
-              ),
-            ),
-          ),
-
-          // زر توسيع/طي
-          InkWell(
-            onTap: onToggleExpand,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    isExpanded ? 'طي' : 'عرض الكل',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: scheme.onSurfaceVariant,
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest.withValues(
+                        alpha: .6,
+                      ),
+                      borderRadius: BorderRadius.circular(99),
                     ),
-                  ),
-                  Icon(
-                    isExpanded
-                        ? Icons.keyboard_arrow_up_rounded
-                        : Icons.keyboard_arrow_down_rounded,
-                    size: 18,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // تعليق المدير
-          if (managerComment != null && managerComment.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'تعليق المدير',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(managerComment, style: const TextStyle(fontSize: 13, height: 1.6)),
-                ],
-              ),
-            ),
-
-          // ─── سطر المشاهدين: العداد + أول الأسماء + فتح القائمة الكاملة ───
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 8, 2),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.visibility_outlined,
-                  size: 15,
-                  color: scheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '$viewersCount',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                if (viewers.isNotEmpty)
-                  Expanded(
                     child: Text(
-                      'شاهده: ${viewers.map((v) => v['name'] as String? ?? '').where((n) => n.isNotEmpty).join('، ')}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      _formatDate(reportDate),
                       style: TextStyle(
                         fontSize: 11,
+                        fontWeight: FontWeight.w800,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ),
-                TextButton(
-                  onPressed: onShowEngagement,
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    minimumSize: const Size(0, 34),
-                  ),
-                  child: Text(
-                    viewers.isEmpty ? 'من شاهد؟' : 'كل الأسماء',
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                ),
+                ],
               ],
             ),
           ),
 
-          // ─── شريط التفاعل ───
+          // ─── المحتوى: أقسام بأيقونات، بلا تمرير داخل التمرير ───
           Padding(
-            padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
-            child: Row(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // زر الإعجاب
-                FilledButton.tonalIcon(
-                  onPressed: onLike,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: isLikedByMe
-                        ? scheme.primary
-                        : scheme.surfaceContainerHighest,
-                    foregroundColor: isLikedByMe
-                        ? Colors.white
-                        : scheme.onSurface,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                  ),
-                  icon: Icon(
-                    isLikedByMe ? Icons.favorite : Icons.favorite_border,
-                    size: 18,
-                  ),
-                  label: Text(likesCount > 0 ? '$likesCount' : 'إعجاب'),
+                _ReportSection(
+                  icon: Icons.task_alt_rounded,
+                  label: 'الإنجازات',
+                  color: scheme.primary,
+                  text: achievements,
+                  maxLines: collapsed ? 6 : null,
                 ),
-                const SizedBox(width: 8),
-                // زر التعليقات
-                OutlinedButton.icon(
-                  onPressed: onToggleExpand,
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                if (blockers.isNotEmpty)
+                  _ReportSection(
+                    icon: Icons.report_problem_outlined,
+                    label: 'المعوقات',
+                    color: const Color(0xFFE08A1E),
+                    text: blockers,
+                    maxLines: collapsed ? 2 : null,
                   ),
-                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
-                  label: Text(comments.isNotEmpty ? '${comments.length}' : 'تعليق'),
-                ),
+                if (tomorrowPlan.isNotEmpty)
+                  _ReportSection(
+                    icon: Icons.event_note_rounded,
+                    label: 'خطة الغد',
+                    color: const Color(0xFF2FA36B),
+                    text: tomorrowPlan,
+                    maxLines: collapsed ? 2 : null,
+                  ),
               ],
             ),
           ),
+          if (long)
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton.icon(
+                onPressed: onToggleExpand,
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                ),
+                icon: Icon(
+                  isExpanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  size: 18,
+                ),
+                label: Text(
+                  isExpanded ? 'عرض أقل' : 'عرض المزيد',
+                  style: const TextStyle(fontSize: 12.5),
+                ),
+              ),
+            ),
 
-          // ─── قسم التعليقات (موسّع) ───
-          if (isExpanded)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+          // ─── تعليق المدير ───
+          if (managerComment.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.fromLTRB(14, 4, 14, 4),
+              padding: const EdgeInsets.all(11),
+              decoration: BoxDecoration(
+                color: scheme.primary.withValues(alpha: .06),
+                borderRadius: BorderRadius.circular(14),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.rate_review_outlined,
+                        size: 15,
+                        color: scheme.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          reviewer == null || reviewer.isEmpty
+                              ? 'تعليق المدير'
+                              : 'تعليق المدير · $reviewer',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                            color: scheme.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    managerComment,
+                    style: const TextStyle(fontSize: 13, height: 1.6),
+                  ),
+                ],
+              ),
+            ),
+
+          // ─── شريط التفاعل: إعجاب، تعليقات، مشاهدات ───
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 6, 8, 2),
+            child: Row(
+              children: [
+                _ActionPill(
+                  icon: isLikedByMe
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  label: likesCount > 0 ? '$likesCount' : 'إعجاب',
+                  color: isLikedByMe
+                      ? const Color(0xFFE5484D)
+                      : scheme.onSurfaceVariant,
+                  active: isLikedByMe,
+                  onTap: onLike,
+                ),
+                const SizedBox(width: 6),
+                _ActionPill(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  label: comments.isNotEmpty ? '${comments.length}' : 'تعليق',
+                  color: commentsOpen
+                      ? scheme.primary
+                      : scheme.onSurfaceVariant,
+                  active: commentsOpen,
+                  onTap: onToggleComments,
+                ),
+                const Spacer(),
+                _ActionPill(
+                  icon: Icons.visibility_outlined,
+                  label: '$viewersCount',
+                  color: scheme.onSurfaceVariant,
+                  onTap: onShowEngagement,
+                  tooltip: 'من شاهد ومن تفاعل؟',
+                ),
+              ],
+            ),
+          ),
+          if (viewerNames.isNotEmpty)
+            InkWell(
+              onTap: onShowEngagement,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Text(
+                  _viewersLine(viewerNames, viewersCount),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            )
+          else
+            const SizedBox(height: 10),
+
+          // ─── التعليقات (عند فتحها) ───
+          if (commentsOpen)
+            Container(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+              color: scheme.surfaceContainerHighest.withValues(alpha: .25),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                   if (comments.isEmpty)
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.only(bottom: 8),
                       child: Text(
                         'لا توجد تعليقات بعد — كن أول من يعلّق',
                         style: TextStyle(
@@ -698,23 +1033,32 @@ class _ReportCard extends StatelessWidget {
                       ),
                     )
                   else
-                    ...comments.map((c) => _CommentBubble(
-                          comment: c,
-                          onDelete: () =>
-                              onDeleteComment(c['id'] as String),
-                        )),
-                  // صندوق كتابة تعليق
-                  const SizedBox(height: 8),
+                    ...comments.map(
+                      (c) => _CommentBubble(
+                        comment: c,
+                        canDelete:
+                            canModerate ||
+                            (myEmployeeId != null &&
+                                c['employeeId'] == myEmployeeId),
+                        onDelete: () => onDeleteComment(c['id'] as String),
+                      ),
+                    ),
                   Row(
                     children: [
                       Expanded(
                         child: TextField(
                           controller: commentController,
+                          textInputAction: TextInputAction.send,
                           decoration: InputDecoration(
                             hintText: 'اكتب تعليقًا…',
                             isDense: true,
+                            filled: true,
+                            fillColor: scheme.surface,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide(
+                                color: scheme.outlineVariant,
+                              ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14,
@@ -726,6 +1070,7 @@ class _ReportCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       IconButton.filled(
+                        tooltip: 'إرسال',
                         onPressed: onComment,
                         icon: const Icon(Icons.send_rounded, size: 18),
                       ),
@@ -739,53 +1084,139 @@ class _ReportCard extends StatelessWidget {
     );
   }
 
-  Widget _chip(String label, Color bg, Color fg) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(99),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: fg),
-      ),
-    );
+  static String _viewersLine(List<String> names, int total) {
+    final shown = names.take(3).toList();
+    final rest = total - shown.length;
+    final head = 'شاهده ${shown.join('، ')}';
+    return rest > 0 ? '$head و$rest آخرون' : head;
   }
 
-  Widget _sectionLabel(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: .15),
+  /// «اليوم» و«أمس» بدل التاريخ الكامل للأيام القريبة.
+  static String _formatDate(String dateStr) {
+    final date = DateTime.tryParse(dateStr);
+    if (date == null) return dateStr;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final days = today
+        .difference(DateTime(date.year, date.month, date.day))
+        .inDays;
+    if (days == 0) return 'اليوم';
+    if (days == 1) return 'أمس';
+    return DateFormat('d MMMM', 'ar').format(date);
+  }
+}
+
+/// قسم من التقرير (الإنجازات / المعوقات / خطة الغد) بأيقونة ولون ثابتين.
+class _ReportSection extends StatelessWidget {
+  const _ReportSection({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.text,
+    this.maxLines,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final String text;
+  final int? maxLines;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 15, color: color),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          text,
+          maxLines: maxLines,
+          overflow: maxLines == null ? null : TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 13.5, height: 1.7),
+        ),
+      ],
+    ),
+  );
+}
+
+/// زر تفاعل مضغوط (أيقونة + عدد) في ذيل البطاقة.
+class _ActionPill extends StatelessWidget {
+  const _ActionPill({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+    this.active = false,
+    this.tooltip,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  final bool active;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final pill = Material(
+      color: active ? color.withValues(alpha: .12) : Colors.transparent,
+      borderRadius: BorderRadius.circular(99),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(99),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          color: color,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 19, color: color),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
-  }
-
-  String _formatDate(String dateStr) {
-    try {
-      final date = DateTime.parse('${dateStr}T00:00:00');
-      return DateFormat('d MMMM', 'ar').format(date);
-    } catch (_) {
-      return dateStr;
-    }
+    return tooltip == null ? pill : Tooltip(message: tooltip!, child: pill);
   }
 }
 
 /// فقاعة تعليق واحدة.
 class _CommentBubble extends StatelessWidget {
-  const _CommentBubble({required this.comment, required this.onDelete});
+  const _CommentBubble({
+    required this.comment,
+    required this.canDelete,
+    required this.onDelete,
+  });
 
   final Map<String, dynamic> comment;
+
+  /// الحذف لصاحب التعليق أو full-access فقط — كان الزر يظهر على تعليقات
+  /// الآخرين فيرفضه الخادم.
+  final bool canDelete;
   final VoidCallback onDelete;
 
   @override
@@ -793,64 +1224,76 @@ class _CommentBubble extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final name = comment['employeeName'] as String? ?? 'موظف';
     final text = comment['comment'] as String? ?? '';
-    final createdAt = comment['createdAt'] as String?;
-
-    String? timeLabel;
-    if (createdAt != null) {
-      try {
-        final dt = DateTime.parse(createdAt);
-        timeLabel = DateFormat('d MMM، h:mm a', 'ar').format(dt);
-      } catch (_) {
-        timeLabel = createdAt;
-      }
-    }
+    final created = DateTime.tryParse(comment['createdAt'] as String? ?? '');
+    // الطابع الزمني من الخادم UTC — يُعرض بتوقيت الجهاز (كان متأخرًا 3 ساعات)
+    final timeLabel = created == null
+        ? null
+        : DateFormat('d MMM، h:mm a', 'ar').format(created.toLocal());
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppAvatar(
+            name: name,
+            photoUrl: comment['photoUrl'] as String?,
+            radius: 15,
+            announceName: false,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(11, 8, 11, 8),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest.withValues(alpha: .7),
+                borderRadius: BorderRadius.circular(14),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      if (timeLabel != null)
+                        Text(
+                          timeLabel,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 2),
                   Text(text, style: const TextStyle(fontSize: 13, height: 1.5)),
-                  if (timeLabel != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      timeLabel,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
+          ),
+          if (canDelete)
             IconButton(
+              tooltip: 'حذف التعليق',
               onPressed: onDelete,
-              icon: Icon(Icons.delete_outline_rounded,
-                  size: 16, color: scheme.error.withValues(alpha: .7)),
+              icon: Icon(
+                Icons.delete_outline_rounded,
+                size: 17,
+                color: scheme.error.withValues(alpha: .75),
+              ),
               visualDensity: VisualDensity.compact,
-              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+              constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -998,7 +1441,7 @@ class _EngagementSheet extends ConsumerWidget {
   String _timeLabel(Object? value) {
     if (value == null) return '';
     try {
-      final dt = DateTime.parse(value as String);
+      final dt = DateTime.parse(value as String).toLocal();
       return DateFormat('d MMM، h:mm a', 'ar').format(dt);
     } catch (_) {
       return '';

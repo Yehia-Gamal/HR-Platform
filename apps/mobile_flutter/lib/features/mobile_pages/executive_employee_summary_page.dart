@@ -1,4 +1,5 @@
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_executive_insights_models.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/kpi_evaluation_detail_page.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_executive_insights_providers.dart';
@@ -106,11 +107,22 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
                     ],
                   ),
                 ),
-                MobileStatusPill(item.status),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (item.todayStatus?.status != null) ...[
+                      MobileStatusPill(item.todayStatus!.status!),
+                      const SizedBox(height: 6),
+                    ],
+                    MobileStatusPill(item.status),
+                  ],
+                ),
               ],
             ),
           ),
         ),
+        const SizedBox(height: 10),
+        TodayStatusSection(todayStatus: item.todayStatus),
         const SizedBox(height: 14),
         // كل بطاقة تفتح ملف هذا الموظف (فيه طلباته ومهامه وتقييمه ومستنداته)
         // — كانت «المهام» تفتح مهام المدير التنفيذي نفسه و«KPI» صندوقه كله.
@@ -476,14 +488,10 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
   );
 
   static String _kpiStage(String value) => switch (value) {
-    'self' => 'تقييم ذاتي',
-    'manager_review' => 'مراجعة المدير',
-    'hr_review' => 'مراجعة HR',
     'manager_final' => 'اعتماد المدير (قديم)',
     'finalized' => 'مدرج في التقرير',
-    'closed' => 'مغلق',
     'archived' => 'مؤرشف',
-    _ => value,
+    _ => kpiStageLabel(value),
   };
 
   static String _attendanceLabel(String value) => switch (value) {
@@ -499,10 +507,13 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
     'checked_out' => 'انصرف',
     'mission' || 'on_mission' => 'مأمورية',
     'convoy' => 'قافلة',
-    'fundraising' || 'fundi' => 'فاندي',
+    'fundraising' || 'fundi' => 'فاندي ترفيهي',
     'excused' => 'بعذر',
     'pending' => 'قيد المراجعة',
-    _ => value,
+    'left_early' => 'انصرف مبكرًا',
+    'exempt' => 'معفى من البصمة',
+    'not_recorded' => 'لم يسجل بعد',
+    _ => 'غير محدد',
   };
 
   static IconData _attendanceIcon(String value) => switch (value) {

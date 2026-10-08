@@ -260,9 +260,9 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
               operationsTap,
             ),
             (
-              'فاندي',
+              'فاندي ترفيهي',
               _daily(item, 'workStatus', 'fundraising').toString(),
-              Icons.volunteer_activism_outlined,
+              Icons.festival_outlined,
               operationsTap,
             ),
             (

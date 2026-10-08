@@ -156,7 +156,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   begin: Alignment.topRight,
                   end: Alignment.bottomLeft,
                   colors: [
-                    scheme.primary,
+                    AppColors.brandPrimary,
                     AppColors.brandPrimaryStrong,
                     AppColors.darkSurface,
                   ],

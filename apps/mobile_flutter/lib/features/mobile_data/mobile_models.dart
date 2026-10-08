@@ -139,6 +139,19 @@ class MobileRequest {
     required this.workflowStatus,
     required this.activeStepName,
     required this.createdAt,
+    this.employeeDepartment,
+    this.employeeJobTitle,
+    this.activeStepRole,
+    this.activeStepStatus,
+    this.activeStepDueAt,
+    this.decisionDueAt,
+    this.decidedAt,
+    this.decidedByName,
+    this.payload = const {},
+    this.isMine,
+    this.canDecide,
+    this.awaitingMe,
+    this.missionExecution,
   });
   factory MobileRequest.fromJson(Map<String, dynamic> json) => MobileRequest(
     id: json['id'] as String,
@@ -153,6 +166,25 @@ class MobileRequest {
     workflowStatus: json['workflowStatus'] as String? ?? 'submitted',
     activeStepName: json['activeStepName'] as String?,
     createdAt: _reqDate(json['createdAt']),
+    employeeDepartment: json['employeeDepartment'] as String?,
+    employeeJobTitle: json['employeeJobTitle'] as String?,
+    activeStepRole: json['activeStepRole'] as String?,
+    activeStepStatus: json['activeStepStatus'] as String?,
+    activeStepDueAt: _optDate(json['activeStepDueAt']),
+    decisionDueAt: _optDate(json['decisionDueAt']),
+    decidedAt: _optDate(json['decidedAt']),
+    decidedByName: json['decidedByName'] as String?,
+    payload: json['payload'] is Map
+        ? Map<String, dynamic>.from(json['payload'] as Map)
+        : const {},
+    isMine: json['isMine'] as bool?,
+    canDecide: json['canDecide'] as bool?,
+    awaitingMe: json['awaitingMe'] as bool?,
+    missionExecution: json['missionExecution'] is Map
+        ? MobileMissionExecution.fromJson(
+            Map<String, dynamic>.from(json['missionExecution'] as Map),
+          )
+        : null,
   );
   final String id;
   final int number;
@@ -166,6 +198,29 @@ class MobileRequest {
   final String workflowStatus;
   final String? activeStepName;
   final DateTime createdAt;
+
+  /// 0646: بيانات العرض والقرار — اختيارية حتى تعمل الواجهة مع الخادم الأقدم.
+  final String? employeeDepartment;
+  final String? employeeJobTitle;
+  final String? activeStepRole;
+  final String? activeStepStatus;
+  final DateTime? activeStepDueAt;
+  final DateTime? decisionDueAt;
+  final DateTime? decidedAt;
+  final String? decidedByName;
+  final Map<String, dynamic> payload;
+
+  /// null عند الخادم الأقدم — تُحسب الملكية حينها بمقارنة employeeId.
+  final bool? isMine;
+  final bool? canDecide;
+  final bool? awaitingMe;
+  final MobileMissionExecution? missionExecution;
+
+  bool isMineFor(String? myEmployeeId) =>
+      isMine ?? (myEmployeeId != null && employeeId == myEmployeeId);
+
+  /// مهلة القرار الفعلية: مهلة المرحلة الحالية ثم مهلة الطلب.
+  DateTime? get effectiveDueAt => activeStepDueAt ?? decisionDueAt;
 }
 
 class MobileKpiEvaluation {
@@ -1011,6 +1066,9 @@ class MobileRequestStep {
     required this.decidedAt,
     required this.dueAt,
     required this.actorName,
+    this.roleSlug,
+    this.escalatedAt,
+    this.isCurrent,
   });
   factory MobileRequestStep.fromJson(Map<String, dynamic> json) =>
       MobileRequestStep(
@@ -1027,6 +1085,9 @@ class MobileRequestStep {
             ? null
             : DateTime.parse(json['dueAt'] as String),
         actorName: json['actorName'] as String?,
+        roleSlug: json['roleSlug'] as String?,
+        escalatedAt: _optDate(json['escalatedAt']),
+        isCurrent: json['isCurrent'] as bool?,
       );
   final String id;
   final int order;
@@ -1037,6 +1098,116 @@ class MobileRequestStep {
   final DateTime? decidedAt;
   final DateTime? dueAt;
   final String? actorName;
+
+  /// 0646: دور المرحلة (مثل operations-manager-1) ووقت تصعيدها وكونها الحالية.
+  final String? roleSlug;
+  final DateTime? escalatedAt;
+  final bool? isCurrent;
+}
+
+/// 0646: سياق القرار للمعتمِد — رصيد الإجازة، طلبات الشهر، والزملاء خارج المقر.
+class MobileRequestInsights {
+  const MobileRequestInsights({
+    this.leaveName,
+    this.leaveAvailable,
+    this.leaveReserved,
+    this.leaveConsumed,
+    this.monthTotal = 0,
+    this.monthMissions = 0,
+    this.monthLeaves = 0,
+    this.monthPermits = 0,
+    this.monthRejected = 0,
+    this.monthPending = 0,
+    this.teamSize = 0,
+    this.teamAway = const [],
+  });
+
+  factory MobileRequestInsights.fromJson(Map<String, dynamic> json) {
+    final balance = json['leaveBalance'] is Map
+        ? Map<String, dynamic>.from(json['leaveBalance'] as Map)
+        : null;
+    final month = json['month'] is Map
+        ? Map<String, dynamic>.from(json['month'] as Map)
+        : const <String, dynamic>{};
+    int n(Object? v) => (v as num?)?.toInt() ?? 0;
+    return MobileRequestInsights(
+      leaveName: balance?['name'] as String?,
+      leaveAvailable: (balance?['available'] as num?)?.toDouble(),
+      leaveReserved: (balance?['reserved'] as num?)?.toDouble(),
+      leaveConsumed: (balance?['consumed'] as num?)?.toDouble(),
+      monthTotal: n(month['total']),
+      monthMissions: n(month['missions']),
+      monthLeaves: n(month['leaves']),
+      monthPermits: n(month['permits']),
+      monthRejected: n(month['rejected']),
+      monthPending: n(month['pending']),
+      teamSize: n(json['teamSize']),
+      teamAway: (json['teamAway'] as List<dynamic>? ?? const [])
+          .whereType<Map<dynamic, dynamic>>()
+          .map(
+            (m) => (
+              name: m['name'] as String? ?? 'موظف',
+              type: m['type'] as String? ?? '',
+              status: m['status'] as String? ?? '',
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  final String? leaveName;
+  final double? leaveAvailable;
+  final double? leaveReserved;
+  final double? leaveConsumed;
+  final int monthTotal;
+  final int monthMissions;
+  final int monthLeaves;
+  final int monthPermits;
+  final int monthRejected;
+  final int monthPending;
+  final int teamSize;
+  final List<({String name, String type, String status})> teamAway;
+}
+
+/// 0646: حدث في سجل الطلب (تقديم، تصعيد، قرار، سحب، إعادة رفع).
+class MobileRequestHistoryEntry {
+  const MobileRequestHistoryEntry({
+    required this.action,
+    required this.at,
+    this.actorName,
+    this.comment,
+    this.stepOrder,
+    this.stepName,
+    this.stepRole,
+    this.targetRole,
+    this.repeat,
+    this.isResubmit = false,
+  });
+
+  factory MobileRequestHistoryEntry.fromJson(Map<String, dynamic> json) =>
+      MobileRequestHistoryEntry(
+        action: json['action'] as String? ?? '',
+        at: _reqDate(json['at']),
+        actorName: json['actorName'] as String?,
+        comment: json['comment'] as String?,
+        stepOrder: (json['stepOrder'] as num?)?.toInt(),
+        stepName: json['stepName'] as String?,
+        stepRole: json['stepRole'] as String?,
+        targetRole: json['targetRole'] as String?,
+        repeat: (json['repeat'] as num?)?.toInt(),
+        isResubmit: json['isResubmit'] as bool? ?? false,
+      );
+
+  final String action;
+  final DateTime at;
+  final String? actorName;
+  final String? comment;
+  final int? stepOrder;
+  final String? stepName;
+  final String? stepRole;
+  final String? targetRole;
+  final int? repeat;
+  final bool isResubmit;
 }
 
 class MobileRequestAttachment {
@@ -1067,6 +1238,7 @@ class MobileMissionExecution {
     required this.actualMinutes,
     required this.report,
     required this.outcome,
+    this.autoClosedAt,
   });
 
   factory MobileMissionExecution.fromJson(Map<String, dynamic> json) =>
@@ -1082,7 +1254,15 @@ class MobileMissionExecution {
         actualMinutes: (json['actualMinutes'] as num?)?.toInt(),
         report: json['report'] as String?,
         outcome: json['outcome'] as String?,
+        autoClosedAt: DateTime.tryParse(json['autoClosedAt']?.toString() ?? ''),
       );
+
+  /// نص الخادم (0658) لمأمورية أغلقها النظام قبل أن يكتب صاحبها تقريرها.
+  static const autoClosedReport =
+      'أُغلقت تلقائيًا بعد انقضاء يومها دون تقرير من الموظف';
+
+  /// مهلة كتابة تقرير المأمورية المغلقة تلقائيًا (submit_my_mission_report).
+  static const reportWindow = Duration(days: 14);
 
   final String id;
   final String status;
@@ -1092,8 +1272,21 @@ class MobileMissionExecution {
   final String? report;
   final String? outcome;
 
+  /// أغلقها النظام لانقضاء يومها دون إنهاء (0658).
+  final DateTime? autoClosedAt;
+
   bool get isInProgress => status == 'in_progress';
   bool get isCompleted => status == 'completed';
+  bool get isAutoClosed => autoClosedAt != null;
+
+  /// أُغلقت تلقائيًا ولم يكتب صاحبها تقريرًا بعد.
+  bool get awaitsReport {
+    final text = report?.trim() ?? '';
+    return isAutoClosed && (text.isEmpty || text == autoClosedReport);
+  }
+
+  /// آخر موعد لكتابة التقرير.
+  DateTime? get reportDeadline => autoClosedAt?.add(reportWindow);
 }
 
 class MobileRequestDetail {
@@ -1101,8 +1294,10 @@ class MobileRequestDetail {
     required this.id,
     required this.number,
     required this.type,
+    this.employeeId,
     required this.employeeName,
     required this.employeeCode,
+    this.employeePhotoUrl,
     required this.title,
     required this.reason,
     required this.status,
@@ -1121,14 +1316,54 @@ class MobileRequestDetail {
     required this.decisionMode,
     required this.decisionOnBehalfOfExecutive,
     required this.missionExecution,
+    this.employeeDepartment,
+    this.employeeJobTitle,
+    this.decisionDueAt,
+    this.decidedAt,
+    this.decidedByName,
+    this.cancelledAt,
+    this.cancelReason,
+    this.cancelledByName,
+    this.isMine,
+    this.awaitingMe,
+    this.history,
+    this.insights,
   });
   factory MobileRequestDetail.fromJson(Map<String, dynamic> json) =>
       MobileRequestDetail(
+        insights: json['insights'] is Map
+            ? MobileRequestInsights.fromJson(
+                Map<String, dynamic>.from(json['insights'] as Map),
+              )
+            : null,
+        employeeDepartment: json['employeeDepartment'] as String?,
+        employeeJobTitle: json['employeeJobTitle'] as String?,
+        decisionDueAt: _optDate(json['decisionDueAt']),
+        decidedAt: _optDate(json['decidedAt']),
+        decidedByName: json['decidedByName'] as String?,
+        cancelledAt: _optDate(json['cancelledAt']),
+        cancelReason: json['cancelReason'] as String?,
+        cancelledByName: json['cancelledByName'] as String?,
+        isMine: json['isMine'] as bool?,
+        awaitingMe: json['awaitingMe'] as bool?,
+        // null عند الخادم الأقدم (قبل 0646) فيُبنى السجل من المراحل
+        history: json['history'] is List
+            ? (json['history'] as List<dynamic>)
+                  .whereType<Map<dynamic, dynamic>>()
+                  .map(
+                    (item) => MobileRequestHistoryEntry.fromJson(
+                      Map<String, dynamic>.from(item),
+                    ),
+                  )
+                  .toList(growable: false)
+            : null,
         id: json['id'] as String,
         number: (json['requestNumber'] as num?)?.toInt() ?? 0,
         type: json['requestType'] as String? ?? 'leave',
+        employeeId: json['employeeId'] as String?,
         employeeName: json['employeeName'] as String? ?? 'موظف',
         employeeCode: json['employeeCode'] as String?,
+        employeePhotoUrl: json['employeePhotoUrl'] as String?,
         title: json['title'] as String?,
         reason: json['reason'] as String?,
         status: json['status'] as String? ?? 'pending',
@@ -1189,6 +1424,7 @@ class MobileRequestDetail {
   final String type;
   final String employeeName;
   final String? employeeCode;
+  final String? employeePhotoUrl;
   final String? title;
   final String? reason;
   final String status;
@@ -1208,7 +1444,27 @@ class MobileRequestDetail {
   final String? decisionActorName;
   final String? decisionMode;
   final bool decisionOnBehalfOfExecutive;
+  final String? employeeId;
   final MobileMissionExecution? missionExecution;
+
+  /// 0646: الإدارة والوظيفة، القرار والسحب، وسجل الإجراءات.
+  final String? employeeDepartment;
+  final String? employeeJobTitle;
+  final DateTime? decisionDueAt;
+  final DateTime? decidedAt;
+  final String? decidedByName;
+  final DateTime? cancelledAt;
+  final String? cancelReason;
+  final String? cancelledByName;
+  final bool? isMine;
+  final bool? awaitingMe;
+  final List<MobileRequestHistoryEntry>? history;
+
+  /// للمعتمِد فقط (لا تُرسل لصاحب الطلب).
+  final MobileRequestInsights? insights;
+
+  bool isMineFor(String? myEmployeeId) =>
+      isMine ?? (myEmployeeId != null && employeeId == myEmployeeId);
 }
 
 class PasskeyDevice {
@@ -1489,6 +1745,8 @@ class MobileTeamMember {
     required this.department,
     required this.team,
     required this.attendanceStatus,
+    this.statusLabel,
+    this.activityTitle,
     required this.lateMinutes,
     required this.firstCheckIn,
     required this.pendingRequests,
@@ -1504,6 +1762,8 @@ class MobileTeamMember {
         department: json['department'] as String?,
         team: json['team'] as String?,
         attendanceStatus: json['attendanceStatus'] as String?,
+        statusLabel: json['statusLabel'] as String?,
+        activityTitle: json['activityTitle'] as String?,
         lateMinutes: (json['lateMinutes'] as num?)?.toInt() ?? 0,
         firstCheckIn: json['firstCheckIn'] == null
             ? null
@@ -1519,6 +1779,8 @@ class MobileTeamMember {
   final String? department;
   final String? team;
   final String? attendanceStatus;
+  final String? statusLabel;
+  final String? activityTitle;
   final int lateMinutes;
   final DateTime? firstCheckIn;
   final int pendingRequests;
@@ -1539,6 +1801,9 @@ class MobileEmployeeSummary {
     required this.team,
     required this.branch,
     required this.jobTitle,
+    this.statusToday = 'not_recorded',
+    this.statusTodayLabel,
+    this.activityTitle,
   });
 
   factory MobileEmployeeSummary.fromJson(Map<String, dynamic> json) =>
@@ -1554,6 +1819,9 @@ class MobileEmployeeSummary {
         team: json['team'] as String?,
         branch: json['branch'] as String?,
         jobTitle: json['jobTitle'] as String?,
+        statusToday: json['statusToday'] as String? ?? 'not_recorded',
+        statusTodayLabel: json['statusTodayLabel'] as String?,
+        activityTitle: json['activityTitle'] as String?,
       );
 
   final String id;
@@ -1567,6 +1835,9 @@ class MobileEmployeeSummary {
   final String? team;
   final String? branch;
   final String? jobTitle;
+  final String statusToday;
+  final String? statusTodayLabel;
+  final String? activityTitle;
 }
 
 class MobileDailyReport {
@@ -1803,7 +2074,7 @@ class MobileWorkAssignment {
 
   String get typeLabel => switch (assignmentType) {
     'CONVOY' => 'قافلة',
-    'FUNDRAISING' => 'فاندي',
+    'FUNDRAISING' => 'فاندي ترفيهي',
     _ => 'مأمورية',
   };
 }
@@ -2079,6 +2350,7 @@ class MonthlyAttendanceStatement {
   const MonthlyAttendanceStatement({
     this.employeeId = '',
     this.canEditDays = false,
+    this.photoUrl,
     required this.employeeNameAr,
     required this.employeeCode,
     required this.jobTitle,
@@ -2112,8 +2384,11 @@ class MonthlyAttendanceStatement {
     return MonthlyAttendanceStatement(
       employeeId: emp['id'] as String? ?? json['employeeId'] as String? ?? '',
       canEditDays: cap['canEditDays'] as bool? ?? false,
-      employeeNameAr: emp['fullNameAr'] as String? ?? '',
-      employeeCode: emp['employeeCode'] as String?,
+      photoUrl: emp['photoUrl'] as String?,
+      employeeNameAr: (emp['fullNameAr'] as String?)?.isNotEmpty == true
+          ? emp['fullNameAr'] as String
+          : (emp['name'] as String? ?? json['employeeNameAr'] as String? ?? ''),
+      employeeCode: emp['employeeCode'] as String? ?? emp['code'] as String?,
       jobTitle: emp['jobTitle'] as String? ?? '',
       department: emp['department'] as String? ?? '',
       branch: emp['branch'] as String? ?? '',
@@ -2138,6 +2413,7 @@ class MonthlyAttendanceStatement {
 
   final String employeeId;
   final bool canEditDays;
+  final String? photoUrl;
   final String employeeNameAr;
   final String? employeeCode;
   final String jobTitle;
@@ -2266,6 +2542,376 @@ class MobileAttendanceServices {
   final List<MobileAttendanceCorrection> corrections;
   final DateTime? lastUpdatedAt;
 }
+
+class MobileWorkShift {
+  const MobileWorkShift({
+    required this.id,
+    required this.code,
+    required this.name,
+    this.nameEn,
+    required this.startTime,
+    required this.endTime,
+    this.graceInMinutes = 15,
+    this.isDefault = false,
+    this.description,
+  });
+
+  factory MobileWorkShift.fromJson(Map<String, dynamic> json) => MobileWorkShift(
+        id: json['id'] as String,
+        code: json['code'] as String? ?? '',
+        name: json['name'] as String? ?? 'وردية عمل',
+        nameEn: json['nameEn'] as String?,
+        startTime: json['startTime'] as String? ?? '10:00:00',
+        endTime: json['endTime'] as String? ?? '18:00:00',
+        graceInMinutes: (json['graceInMinutes'] as num?)?.toInt() ?? 15,
+        isDefault: json['isDefault'] as bool? ?? false,
+        description: json['description'] as String?,
+      );
+
+  final String id;
+  final String code;
+  final String name;
+  final String? nameEn;
+  final String startTime;
+  final String endTime;
+  final int graceInMinutes;
+  final bool isDefault;
+  final String? description;
+
+  String get formattedRange {
+    String formatTime(String t) {
+      final parts = t.split(':');
+      if (parts.length < 2) return t;
+      final h = int.tryParse(parts[0]) ?? 0;
+      final m = int.tryParse(parts[1]) ?? 0;
+      final period = h < 12 ? 'ص' : 'م';
+      final h12 = h == 0 ? 12 : (h > 12 ? h - 12 : h);
+      final mStr = m > 0 ? ':${m.toString().padLeft(2, '0')}' : '';
+      return '$h12$mStr $period';
+    }
+    return '${formatTime(startTime)} – ${formatTime(endTime)}';
+  }
+
+  String get formattedStartTime {
+    final parts = startTime.split(':');
+    if (parts.length < 2) return startTime;
+    final h = int.tryParse(parts[0]) ?? 0;
+    final m = int.tryParse(parts[1]) ?? 0;
+    final period = h < 12 ? 'ص' : 'م';
+    final h12 = h == 0 ? 12 : (h > 12 ? h - 12 : h);
+    final mStr = m > 0 ? ':${m.toString().padLeft(2, '0')}' : ':00';
+    return '$h12$mStr $period';
+  }
+
+  String get formattedEndTime {
+    final parts = endTime.split(':');
+    if (parts.length < 2) return endTime;
+    final h = int.tryParse(parts[0]) ?? 0;
+    final m = int.tryParse(parts[1]) ?? 0;
+    final period = h < 12 ? 'ص' : 'م';
+    final h12 = h == 0 ? 12 : (h > 12 ? h - 12 : h);
+    final mStr = m > 0 ? ':${m.toString().padLeft(2, '0')}' : ':00';
+    return '$h12$mStr $period';
+  }
+
+  String get formattedGraceEndTime {
+    final parts = startTime.split(':');
+    if (parts.length < 2) return startTime;
+    final h = int.tryParse(parts[0]) ?? 0;
+    final m = int.tryParse(parts[1]) ?? 0;
+    final totalM = h * 60 + m + graceInMinutes;
+    final graceH = (totalM ~/ 60) % 24;
+    final graceM = totalM % 60;
+    final period = graceH < 12 ? 'ص' : 'م';
+    final h12 = graceH == 0 ? 12 : (graceH > 12 ? graceH - 12 : graceH);
+    final mStr = ':${graceM.toString().padLeft(2, '0')}';
+    return '$h12$mStr $period';
+  }
+}
+
+class ShiftTodayPermit {
+  const ShiftTodayPermit({
+    required this.id,
+    required this.requestType,
+    required this.title,
+    required this.permitMinutes,
+    this.permitKind = 'late_arrival',
+    this.status = 'approved',
+    required this.effectiveStartTime,
+    required this.effectiveGraceEndTime,
+    required this.effectiveEndTime,
+  });
+
+  factory ShiftTodayPermit.fromJson(Map<String, dynamic> json) => ShiftTodayPermit(
+        id: json['id'] as String? ?? '',
+        requestType: json['requestType'] as String? ?? 'late_permit',
+        title: json['title'] as String? ?? 'إذن معتمد',
+        permitMinutes: (json['permitMinutes'] as num?)?.toInt() ?? 120,
+        permitKind: json['permitKind'] as String? ?? 'late_arrival',
+        status: json['status'] as String? ?? 'approved',
+        effectiveStartTime: json['effectiveStartTime'] as String? ?? '10:00:00',
+        effectiveGraceEndTime: json['effectiveGraceEndTime'] as String? ?? '10:15:00',
+        effectiveEndTime: json['effectiveEndTime'] as String? ?? '18:00:00',
+      );
+
+  final String id;
+  final String requestType;
+  final String title;
+  final int permitMinutes;
+  final String permitKind;
+  final String status;
+  final String effectiveStartTime;
+  final String effectiveGraceEndTime;
+  final String effectiveEndTime;
+
+  bool get isLateArrival => permitKind != 'early_departure';
+  bool get isEarlyDeparture => permitKind == 'early_departure';
+
+  String get durationLabel {
+    final h = permitMinutes ~/ 60;
+    final m = permitMinutes % 60;
+    if (h > 0 && m > 0) return '$h ساعة و$m دقيقة';
+    if (h == 1) return 'ساعة واحدة';
+    if (h == 2) return 'ساعتان';
+    if (h > 2) return '$h ساعات';
+    return '$m دقيقة';
+  }
+}
+
+class CurrentWorkShift {
+  const CurrentWorkShift({
+    required this.id,
+    required this.code,
+    required this.name,
+    this.nameEn,
+    required this.startTime,
+    required this.endTime,
+    this.graceInMinutes = 15,
+    this.isAssigned = false,
+    this.assignmentId,
+    this.effectiveFrom,
+    this.status = 'default',
+    this.effectiveStartTime,
+    this.effectiveGraceEndTime,
+    this.effectiveEndTime,
+    this.hasPermitToday = false,
+    this.todayPermit,
+  });
+
+  factory CurrentWorkShift.fromJson(Map<String, dynamic> json) => CurrentWorkShift(
+        id: json['id'] as String,
+        code: json['code'] as String? ?? 'OFFICIAL',
+        name: json['name'] as String? ?? 'الدوام الأساسي (10 ص – 6 م)',
+        nameEn: json['nameEn'] as String?,
+        startTime: json['startTime'] as String? ?? '10:00:00',
+        endTime: json['endTime'] as String? ?? '18:00:00',
+        graceInMinutes: (json['graceInMinutes'] as num?)?.toInt() ?? 15,
+        isAssigned: json['isAssigned'] as bool? ?? false,
+        assignmentId: json['assignmentId'] as String?,
+        effectiveFrom: json['effectiveFrom'] == null
+            ? null
+            : DateTime.tryParse(json['effectiveFrom'].toString()),
+        status: json['status'] as String? ?? 'default',
+        effectiveStartTime: json['effectiveStartTime'] as String?,
+        effectiveGraceEndTime: json['effectiveGraceEndTime'] as String?,
+        effectiveEndTime: json['effectiveEndTime'] as String?,
+        hasPermitToday: json['hasPermitToday'] as bool? ?? false,
+        todayPermit: json['todayPermit'] != null
+            ? ShiftTodayPermit.fromJson(Map<String, dynamic>.from(json['todayPermit'] as Map))
+            : null,
+      );
+
+  final String id;
+  final String code;
+  final String name;
+  final String? nameEn;
+  final String startTime;
+  final String endTime;
+  final int graceInMinutes;
+  final bool isAssigned;
+  final String? assignmentId;
+  final DateTime? effectiveFrom;
+  final String status;
+  final String? effectiveStartTime;
+  final String? effectiveGraceEndTime;
+  final String? effectiveEndTime;
+  final bool hasPermitToday;
+  final ShiftTodayPermit? todayPermit;
+
+  bool get hasActivePermit => todayPermit != null || hasPermitToday;
+  bool get hasTodayPermit => hasActivePermit;
+  String get activeStartTime => effectiveStartTime ?? startTime;
+  String get activeEndTime => effectiveEndTime ?? endTime;
+
+  CurrentWorkShift copyWith({
+    String? id,
+    String? code,
+    String? name,
+    String? nameEn,
+    String? startTime,
+    String? endTime,
+    int? graceInMinutes,
+    bool? isAssigned,
+    String? assignmentId,
+    DateTime? effectiveFrom,
+    String? status,
+    String? effectiveStartTime,
+    String? effectiveGraceEndTime,
+    String? effectiveEndTime,
+    bool? hasPermitToday,
+    ShiftTodayPermit? todayPermit,
+  }) {
+    return CurrentWorkShift(
+      id: id ?? this.id,
+      code: code ?? this.code,
+      name: name ?? this.name,
+      nameEn: nameEn ?? this.nameEn,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+      graceInMinutes: graceInMinutes ?? this.graceInMinutes,
+      isAssigned: isAssigned ?? this.isAssigned,
+      assignmentId: assignmentId ?? this.assignmentId,
+      effectiveFrom: effectiveFrom ?? this.effectiveFrom,
+      status: status ?? this.status,
+      effectiveStartTime: effectiveStartTime ?? this.effectiveStartTime,
+      effectiveGraceEndTime: effectiveGraceEndTime ?? this.effectiveGraceEndTime,
+      effectiveEndTime: effectiveEndTime ?? this.effectiveEndTime,
+      hasPermitToday: hasPermitToday ?? this.hasPermitToday,
+      todayPermit: todayPermit ?? this.todayPermit,
+    );
+  }
+
+  static String _formatClock(String t) {
+    final parts = t.split(':');
+    if (parts.length < 2) return t;
+    final h = int.tryParse(parts[0]) ?? 0;
+    final m = int.tryParse(parts[1]) ?? 0;
+    final period = h < 12 ? 'ص' : 'م';
+    final h12 = h == 0 ? 12 : (h > 12 ? h - 12 : h);
+    final mStr = m > 0 ? ':${m.toString().padLeft(2, '0')}' : ':00';
+    return '$h12$mStr $period';
+  }
+
+  String get formattedRange {
+    return '${_formatClock(startTime)} – ${_formatClock(endTime)}';
+  }
+
+  String get formattedStartTime => _formatClock(startTime);
+  String get formattedEndTime => _formatClock(endTime);
+
+  String get formattedActiveStartTime => _formatClock(activeStartTime);
+  String get formattedActiveEndTime => _formatClock(activeEndTime);
+
+  String get formattedActiveGraceEndTime {
+    if (effectiveGraceEndTime != null) {
+      return _formatClock(effectiveGraceEndTime!);
+    }
+    final parts = activeStartTime.split(':');
+    if (parts.length < 2) return formattedGraceEndTime;
+    final h = int.tryParse(parts[0]) ?? 0;
+    final m = int.tryParse(parts[1]) ?? 0;
+    final totalM = h * 60 + m + graceInMinutes;
+    final graceH = (totalM ~/ 60) % 24;
+    final graceM = totalM % 60;
+    final period = graceH < 12 ? 'ص' : 'م';
+    final h12 = graceH == 0 ? 12 : (graceH > 12 ? graceH - 12 : graceH);
+    final mStr = ':${graceM.toString().padLeft(2, '0')}';
+    return '$h12$mStr $period';
+  }
+
+  String get formattedGraceEndTime {
+    final parts = startTime.split(':');
+    if (parts.length < 2) return startTime;
+    final h = int.tryParse(parts[0]) ?? 0;
+    final m = int.tryParse(parts[1]) ?? 0;
+    final totalM = h * 60 + m + graceInMinutes;
+    final graceH = (totalM ~/ 60) % 24;
+    final graceM = totalM % 60;
+    final period = graceH < 12 ? 'ص' : 'م';
+    final h12 = graceH == 0 ? 12 : (graceH > 12 ? graceH - 12 : graceH);
+    final mStr = ':${graceM.toString().padLeft(2, '0')}';
+    return '$h12$mStr $period';
+  }
+
+  String get badgeLabel => isAssigned ? 'معتمدة من الإدارة' : 'الدوام الافتراضي العام';
+}
+
+class PendingShiftChange {
+  const PendingShiftChange({
+    required this.requestId,
+    this.title,
+    this.reason,
+    this.requestedShiftId,
+    this.requestedShiftName,
+    this.createdAt,
+    this.status = 'pending',
+  });
+
+  factory PendingShiftChange.fromJson(Map<String, dynamic> json) => PendingShiftChange(
+        requestId: json['requestId'] as String,
+        title: json['title'] as String?,
+        reason: json['reason'] as String?,
+        requestedShiftId: json['requestedShiftId'] as String?,
+        requestedShiftName: json['requestedShiftName'] as String?,
+        createdAt: json['createdAt'] == null
+            ? null
+            : DateTime.tryParse(json['createdAt'].toString()),
+        status: json['status'] as String? ?? 'pending',
+      );
+
+  final String requestId;
+  final String? title;
+  final String? reason;
+  final String? requestedShiftId;
+  final String? requestedShiftName;
+  final DateTime? createdAt;
+  final String status;
+}
+
+class MobileWorkShiftInfo {
+  const MobileWorkShiftInfo({
+    required this.currentShift,
+    required this.availableShifts,
+    this.pendingRequest,
+    this.todayPermit,
+  });
+
+  factory MobileWorkShiftInfo.fromJson(Map<String, dynamic> json) {
+    final permitJson = json['todayPermit'] != null
+        ? ShiftTodayPermit.fromJson(Map<String, dynamic>.from(json['todayPermit'] as Map))
+        : null;
+    var current = CurrentWorkShift.fromJson(
+      Map<String, dynamic>.from(json['currentShift'] as Map? ?? {}),
+    );
+    if (permitJson != null && current.todayPermit == null) {
+      current = current.copyWith(
+        todayPermit: permitJson,
+        hasPermitToday: true,
+        effectiveStartTime: permitJson.effectiveStartTime,
+        effectiveGraceEndTime: permitJson.effectiveGraceEndTime,
+        effectiveEndTime: permitJson.effectiveEndTime,
+      );
+    }
+    return MobileWorkShiftInfo(
+      currentShift: current,
+      availableShifts: (json['availableShifts'] as List<dynamic>? ?? const [])
+          .map((e) => MobileWorkShift.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList(growable: false),
+      pendingRequest: json['pendingRequest'] == null
+          ? null
+          : PendingShiftChange.fromJson(
+              Map<String, dynamic>.from(json['pendingRequest'] as Map),
+            ),
+      todayPermit: permitJson,
+    );
+  }
+
+  final CurrentWorkShift currentShift;
+  final List<MobileWorkShift> availableShifts;
+  final PendingShiftChange? pendingRequest;
+  final ShiftTodayPermit? todayPermit;
+}
+
 
 class DisputeDirectoryEmployee {
   const DisputeDirectoryEmployee({
@@ -2709,7 +3355,9 @@ class DirectoryEmployee {
     this.photoUrl,
     this.jobTitle,
     this.department,
-    this.statusToday = 'absent',
+    this.statusToday = 'not_recorded',
+    this.statusTodayLabel,
+    this.activityTitle,
   });
 
   factory DirectoryEmployee.fromJson(Map<String, dynamic> j) =>
@@ -2720,7 +3368,9 @@ class DirectoryEmployee {
         photoUrl: j['photoUrl'] as String?,
         jobTitle: j['jobTitle'] as String?,
         department: j['department'] as String?,
-        statusToday: j['statusToday'] as String? ?? 'absent',
+        statusToday: j['statusToday'] as String? ?? 'not_recorded',
+        statusTodayLabel: j['statusTodayLabel'] as String?,
+        activityTitle: j['activityTitle'] as String?,
       );
 
   final String id;
@@ -2730,8 +3380,10 @@ class DirectoryEmployee {
   final String? jobTitle;
   final String? department;
 
-  /// الحالة العامة اليومية: present | on_leave | absent — ما يراه الجميع فقط.
+  /// الحالة العامة اليومية: present | late | absent | mission | convoy | fundraising | on_leave
   final String statusToday;
+  final String? statusTodayLabel;
+  final String? activityTitle;
 }
 
 /// الملف الشامل للموظف (V22 — get_employee_360) — مطابق لـ employee360Schema
@@ -2762,6 +3414,11 @@ class Employee360 {
     required this.departments,
     required this.roles,
     required this.directReports,
+    this.managerId,
+    this.manager,
+    this.teamMembers = const [],
+    this.viewerScope,
+    this.todayStatus,
     required this.attendance30,
     required this.requestCounts,
     required this.latestKpi,
@@ -2809,6 +3466,24 @@ class Employee360 {
         )
         .toList(growable: false),
     directReports: (json['directReports'] as num?)?.toInt() ?? 0,
+    managerId: json['managerId'] as String?,
+    manager: json['manager'] is Map
+        ? Employee360Person.fromJson(
+            Map<String, dynamic>.from(json['manager'] as Map<dynamic, dynamic>),
+          )
+        : null,
+    teamMembers: (json['teamMembers'] as List<dynamic>? ?? const [])
+        .whereType<Map<dynamic, dynamic>>()
+        .map((e) => Employee360Person.fromJson(Map<String, dynamic>.from(e)))
+        .toList(growable: false),
+    viewerScope: json['viewerScope'] as String?,
+    todayStatus: json['todayStatus'] == null
+        ? null
+        : Employee360TodayStatus.fromJson(
+            Map<String, dynamic>.from(
+              json['todayStatus'] as Map<dynamic, dynamic>,
+            ),
+          ),
     attendance30: Attendance30Summary.fromJson(
       Map<String, dynamic>.from(
         (json['attendance30'] as Map<dynamic, dynamic>?) ??
@@ -2883,6 +3558,18 @@ class Employee360 {
   final List<EmployeeDepartmentLink> departments;
   final List<EmployeeRoleLink> roles;
   final int directReports;
+  final String? managerId;
+
+  /// مديره المباشر (0631) — null لأعلى الهيكل أو مع خادم أقدم.
+  final Employee360Person? manager;
+
+  /// فريقه المباشر بأسمائهم وحالة كل منهم اليوم (0631).
+  final List<Employee360Person> teamMembers;
+
+  /// full = من يملك قراءة ملفه (هو/مديره/الإدارة/HR)؛ basic = بقية الزملاء.
+  /// null = خادم أقدم من 0631.
+  final String? viewerScope;
+  final Employee360TodayStatus? todayStatus;
   final Attendance30Summary attendance30;
   final RequestCounts requestCounts;
   final KpiLatest? latestKpi;
@@ -2925,6 +3612,40 @@ class EmployeeDepartmentLink {
   final DateTime assignedAt;
 }
 
+/// شخص في الهيكل الإداري لملف الموظف: مديره المباشر أو أحد أفراد فريقه.
+class Employee360Person {
+  const Employee360Person({
+    required this.id,
+    required this.fullNameAr,
+    this.jobTitle,
+    this.photoUrl,
+    this.status,
+    this.statusLabel,
+    this.activityTitle,
+  });
+
+  factory Employee360Person.fromJson(Map<String, dynamic> j) =>
+      Employee360Person(
+        id: j['id'] as String? ?? '',
+        fullNameAr: j['fullNameAr'] as String? ?? 'موظف',
+        jobTitle: j['jobTitle'] as String?,
+        photoUrl: j['photoUrl'] as String?,
+        status: j['status'] as String?,
+        statusLabel: j['statusLabel'] as String?,
+        activityTitle: j['activityTitle'] as String?,
+      );
+
+  final String id;
+  final String fullNameAr;
+  final String? jobTitle;
+  final String? photoUrl;
+
+  /// حالة اليوم (لأفراد الفريق فقط).
+  final String? status;
+  final String? statusLabel;
+  final String? activityTitle;
+}
+
 class EmployeeRoleLink {
   const EmployeeRoleLink({required this.slug, required this.name});
   factory EmployeeRoleLink.fromJson(Map<String, dynamic> j) => EmployeeRoleLink(
@@ -2935,12 +3656,55 @@ class EmployeeRoleLink {
   final String name;
 }
 
+class Employee360TodayStatus {
+  const Employee360TodayStatus({
+    this.status,
+    this.statusLabel,
+    this.activityTitle,
+    this.requestStatus,
+    this.lateMinutes = 0,
+    this.checkInAt,
+    this.checkOutAt,
+    this.workMinutes = 0,
+    this.dueTime,
+  });
+
+  factory Employee360TodayStatus.fromJson(Map<String, dynamic> j) =>
+      Employee360TodayStatus(
+        status: j['status'] as String?,
+        statusLabel: j['statusLabel'] as String?,
+        activityTitle: j['activityTitle'] as String?,
+        requestStatus: j['requestStatus'] as String?,
+        lateMinutes: (j['lateMinutes'] as num?)?.toInt() ?? 0,
+        checkInAt: _optDate(j['checkInAt']),
+        checkOutAt: _optDate(j['checkOutAt']),
+        workMinutes: (j['workMinutes'] as num?)?.toInt() ?? 0,
+        dueTime: j['dueTime'] as String?,
+      );
+
+  /// موعد الحضور المعتمد اليوم (HH:mm) — لمن يملك تفاصيل الملف (0631).
+  final String? dueTime;
+
+  final String? status;
+  final String? statusLabel;
+  final String? activityTitle;
+
+  /// حالة طلب نشاط/إجازة اليوم: approved | pending (null = مسجّل بالحضور).
+  final String? requestStatus;
+  final int lateMinutes;
+  final DateTime? checkInAt;
+  final DateTime? checkOutAt;
+  final int workMinutes;
+}
+
 class Attendance30Summary {
   const Attendance30Summary({
     required this.present,
     required this.lateDays,
     required this.absent,
     required this.workMinutes,
+    this.offsiteDays,
+    this.missingCheckout,
   });
   factory Attendance30Summary.fromJson(Map<String, dynamic> j) =>
       Attendance30Summary(
@@ -2948,11 +3712,21 @@ class Attendance30Summary {
         lateDays: (j['lateDays'] as num?)?.toInt() ?? 0,
         absent: (j['absent'] as num?)?.toInt() ?? 0,
         workMinutes: (j['workMinutes'] as num?)?.toInt() ?? 0,
+        offsiteDays: (j['offsiteDays'] as num?)?.toInt(),
+        missingCheckout: (j['missingCheckout'] as num?)?.toInt(),
       );
   final int present;
   final int lateDays;
   final int absent;
+
+  /// دقائق الأيام المكتملة فقط (حضور + انصراف).
   final int workMinutes;
+
+  /// أيام مأمورية/قافلة/فاندي ضمن الحضور (null = الخادم لا يرسلها بعد).
+  final int? offsiteDays;
+
+  /// أيام سابقة بحضور دون انصراف (null = الخادم لا يرسلها بعد).
+  final int? missingCheckout;
 }
 
 class RequestCounts {
@@ -3115,42 +3889,78 @@ class MobileInstantPenalty {
     this.paymentMethod,
     this.receiptAttachmentUrl,
     this.receiptReferenceNumber,
+    this.employeeId,
+    this.employeeName,
+    this.departmentName,
+    this.cancelledReason,
   });
 
-  factory MobileInstantPenalty.fromJson(Map<String, dynamic> j) =>
-      MobileInstantPenalty(
-        id: j['id'] as String? ?? '',
-        workDate: j['work_date'] as String? ?? j['workDate'] as String? ?? '',
-        lateMinutes: (j['late_minutes'] as num?)?.toInt() ??
-            (j['lateMinutes'] as num?)?.toInt() ??
-            0,
-        originalAmount: (j['original_amount'] as num?)?.toDouble() ??
-            (j['originalAmount'] as num?)?.toDouble() ??
-            0,
-        currentAmount: (j['current_amount'] as num?)?.toDouble() ??
-            (j['currentAmount'] as num?)?.toDouble() ??
-            0,
-        currency: j['currency'] as String? ?? 'EGP',
-        status: j['status'] as String? ?? 'pending_payment',
-        // نصّي في قاعدة البيانات (initial / doubled / suspended — 0511). كان يُقرأ كرقم
-        // فيرمي TypeError مع أول غرامة فتظهر الصفحة «حدث خطأ غير متوقع».
+  static double _toDouble(dynamic v) {
+    if (v == null) return 0.0;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString()) ?? 0.0;
+  }
+
+  static int _toInt(dynamic v) {
+    if (v == null) return 0;
+    if (v is num) return v.toInt();
+    return int.tryParse(v.toString()) ?? 0;
+  }
+
+  static String? _toStr(dynamic v) {
+    if (v == null) return null;
+    final s = v.toString().trim();
+    if (s.isEmpty || s == 'null') return null;
+    return s;
+  }
+
+  factory MobileInstantPenalty.fromJson(Map<String, dynamic> j) {
+    try {
+      return MobileInstantPenalty(
+        id: _toStr(j['id']) ?? '',
+        workDate: _toStr(j['work_date'] ?? j['workDate']) ?? '',
+        lateMinutes: _toInt(j['late_minutes'] ?? j['lateMinutes']),
+        originalAmount: _toDouble(j['original_amount'] ?? j['originalAmount']),
+        currentAmount: _toDouble(j['current_amount'] ?? j['currentAmount']),
+        currency: _toStr(j['currency']) ?? 'EGP',
+        status: _toStr(j['status']) ?? 'pending_payment',
         escalationLevel:
-            (j['escalation_level'] ?? j['escalationLevel'])?.toString() ??
-                'initial',
+            _toStr(j['escalation_level'] ?? j['escalationLevel']) ?? 'initial',
         paidAt: _optDate(j['paid_at'] ?? j['paidAt']),
         suspendedAt: _optDate(j['suspended_at'] ?? j['suspendedAt']),
         suspensionLiftedAt:
             _optDate(j['suspension_lifted_at'] ?? j['suspensionLiftedAt']),
-        notes: j['notes'] as String?,
+        notes: _toStr(j['notes']),
         createdAt: _reqDate(j['created_at'] ?? j['createdAt']),
-        excuseStatus: j['excuse_status'] as String? ?? j['excuseStatus'] as String? ?? 'none',
-        excuseText: j['excuse_text'] as String? ?? j['excuseText'] as String?,
-        excuseAttachmentUrl: j['excuse_attachment_url'] as String? ?? j['excuseAttachmentUrl'] as String?,
-        excuseNotes: j['excuse_notes'] as String? ?? j['excuseNotes'] as String?,
-        paymentMethod: j['payment_method'] as String? ?? j['paymentMethod'] as String?,
-        receiptAttachmentUrl: j['receipt_attachment_url'] as String? ?? j['receiptAttachmentUrl'] as String?,
-        receiptReferenceNumber: j['receipt_reference_number'] as String? ?? j['receiptReferenceNumber'] as String?,
+        excuseStatus:
+            _toStr(j['excuse_status'] ?? j['excuseStatus']) ?? 'none',
+        excuseText: _toStr(j['excuse_text'] ?? j['excuseText']),
+        excuseAttachmentUrl:
+            _toStr(j['excuse_attachment_url'] ?? j['excuseAttachmentUrl']),
+        excuseNotes: _toStr(j['excuse_notes'] ?? j['excuseNotes']),
+        paymentMethod: _toStr(j['payment_method'] ?? j['paymentMethod']),
+        receiptAttachmentUrl:
+            _toStr(j['receipt_attachment_url'] ?? j['receiptAttachmentUrl']),
+        receiptReferenceNumber:
+            _toStr(j['receipt_reference_number'] ?? j['receiptReferenceNumber']),
+        employeeId: _toStr(j['employee_id'] ?? j['employeeId']),
+        employeeName: _toStr(j['employee_name'] ?? j['employeeName']),
+        departmentName: _toStr(j['department_name'] ?? j['departmentName']),
+        cancelledReason: _toStr(j['cancelled_reason'] ?? j['cancelledReason']),
       );
+    } catch (_) {
+      return MobileInstantPenalty(
+        id: _toStr(j['id']) ?? '',
+        workDate: _toStr(j['work_date'] ?? j['workDate']) ?? '',
+        lateMinutes: _toInt(j['late_minutes'] ?? j['lateMinutes']),
+        originalAmount: _toDouble(j['original_amount'] ?? j['originalAmount']),
+        currentAmount: _toDouble(j['current_amount'] ?? j['currentAmount']),
+        currency: 'EGP',
+        status: 'pending_payment',
+        createdAt: DateTime.now(),
+      );
+    }
+  }
 
   final String id;
   final String workDate;
@@ -3174,6 +3984,14 @@ class MobileInstantPenalty {
   final String? paymentMethod;
   final String? receiptAttachmentUrl;
   final String? receiptReferenceNumber;
+
+  /// للعرض الإداري (get_instant_penalties): صاحب الغرامة وإدارته.
+  final String? employeeId;
+  final String? employeeName;
+  final String? departmentName;
+
+  /// سبب الإلغاء/الإعفاء — منفصل عن الملاحظات (0642).
+  final String? cancelledReason;
 }
 
 class MobileAttendanceCorrectionDetail {
@@ -3182,6 +4000,7 @@ class MobileAttendanceCorrectionDetail {
     required this.employeeId,
     required this.employeeName,
     required this.employeeCode,
+    this.employeePhotoUrl,
     this.jobTitle,
     this.branchId,
     required this.workDate,
@@ -3204,6 +4023,7 @@ class MobileAttendanceCorrectionDetail {
   final String employeeId;
   final String employeeName;
   final String employeeCode;
+  final String? employeePhotoUrl;
   final String? jobTitle;
   final String? branchId;
   final DateTime workDate;
@@ -3227,6 +4047,7 @@ class MobileAttendanceCorrectionDetail {
       employeeId: json['employeeId'] as String? ?? '',
       employeeName: json['employeeName'] as String? ?? 'موظف',
       employeeCode: json['employeeCode'] as String? ?? '',
+      employeePhotoUrl: json['employeePhotoUrl'] as String?,
       jobTitle: json['jobTitle'] as String?,
       branchId: json['branchId'] as String?,
       workDate: DateTime.tryParse(json['workDate'] as String? ?? '') ?? DateTime.now(),
@@ -3253,6 +4074,7 @@ class MobileTeamAttendanceCorrection {
     required this.employeeId,
     required this.employeeName,
     required this.employeeCode,
+    this.employeePhotoUrl,
     this.jobTitle,
     required this.workDate,
     required this.type,
@@ -3273,6 +4095,7 @@ class MobileTeamAttendanceCorrection {
   final String employeeId;
   final String employeeName;
   final String employeeCode;
+  final String? employeePhotoUrl;
   final String? jobTitle;
   final DateTime workDate;
   final String type;
@@ -3294,6 +4117,7 @@ class MobileTeamAttendanceCorrection {
       employeeId: json['employeeId'] as String? ?? '',
       employeeName: json['employeeName'] as String? ?? 'موظف',
       employeeCode: json['employeeCode'] as String? ?? '',
+      employeePhotoUrl: json['employeePhotoUrl'] as String?,
       jobTitle: json['jobTitle'] as String?,
       workDate: DateTime.tryParse(json['workDate'] as String? ?? '') ?? DateTime.now(),
       type: json['type'] as String? ?? 'missing_check_in',
@@ -3325,10 +4149,11 @@ class HonoreeItem {
 
   factory HonoreeItem.fromJson(Map<String, dynamic> json) => HonoreeItem(
         rank: (json['rank'] as num?)?.toInt() ?? 1,
-        name: json['name'] as String? ?? '',
+        name: json['name'] as String? ?? json['full_name_ar'] as String? ?? '',
         department: json['department'] as String? ?? '',
         achievement: json['achievement'] as String? ?? '',
-        metric: json['metric'] as String? ?? '',
+        metric: json['metric'] as String? ??
+            (json['score'] != null ? '${json['score']}% انضباط' : ''),
         photoUrl: json['photo_url'] as String?,
       );
 

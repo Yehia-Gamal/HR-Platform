@@ -1,19 +1,22 @@
 import 'dart:async';
 
+import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/notifications/notification_handler.dart';
 import 'package:ahla_shabab_management_os/features/association_projects/association_project_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_correction_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_history_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/employee_profile_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_router.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_services_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_daily_reports_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_tasks_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_instant_penalties_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/notification_settings_page.dart';
+import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -123,13 +126,100 @@ class _MobileNotificationsPageState
     }
   }
 
+  Future<void> _confirmDeleteAll() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('مسح جميع الإشعارات'),
+        content: const Text(
+          'سيتم مسح جميع الإشعارات نهائياً من حسابك وتفريغ الصندوق بالكامل. لا يمكن التراجع عن هذا الإجراء.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('مسح الكل'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref.read(mobileCommandsProvider).deleteNotifications();
+      if (!mounted) return;
+      setState(() {
+        _selecting = false;
+        _selectedIds.clear();
+      });
+      messenger.showSnackBar(
+        const SnackBar(content: Text('تم مسح جميع الإشعارات بنجاح')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('تعذر مسح الإشعارات. أعد المحاولة.')),
+      );
+    }
+  }
+
   /// بناء القائمة الفردية الكاملة — كل إشعار يظهر بشكل مستقل ومضغوط
-  Widget _buildNotificationList(List<MobileNotificationItem> visible) {
+  Widget _buildNotificationList(
+    List<MobileNotificationItem> visible, {
+    required bool hasMore,
+    required int totalLoaded,
+  }) {
+    // صفوف القائمة: عنوان اليوم ثم إشعاراته (القائمة مرتبة الأحدث أولًا)
+    final rows = <Object>[];
+    String? lastDay;
+    for (final item in visible) {
+      final day = _notificationDayLabel(item.createdAt);
+      if (day != lastDay) {
+        rows.add(day);
+        lastDay = day;
+      }
+      rows.add(item);
+    }
+    final count = rows.length + (hasMore ? 1 : 0);
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 6, 12, 100),
-      itemCount: visible.length,
+      itemCount: count,
       itemBuilder: (context, index) {
-        final item = visible[index];
+        if (index == rows.length && hasMore) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Center(
+              child: FilledButton.tonalIcon(
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () {
+                  ref.read(notificationsLimitProvider.notifier).loadMore(300);
+                },
+                icon: const Icon(Icons.history_rounded, size: 20),
+                label: Text(
+                  'تحميل المزيد من الإشعارات السابقة ($totalLoaded+)',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+          );
+        }
+        final row = rows[index];
+        if (row is String) return _DayHeader(label: row, first: index == 0);
+        final item = row as MobileNotificationItem;
         final card = _NotificationCard(
           item: item,
           selecting: _selecting,
@@ -193,10 +283,10 @@ class _MobileNotificationsPageState
           background: Container(
             alignment: AlignmentDirectional.centerEnd,
             padding: const EdgeInsetsDirectional.only(end: 20),
-            margin: const EdgeInsets.symmetric(vertical: 3.5),
+            margin: const EdgeInsets.symmetric(vertical: 4),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.errorContainer,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
               Icons.delete_outline_rounded,
@@ -212,6 +302,7 @@ class _MobileNotificationsPageState
   @override
   Widget build(BuildContext context) {
     final notifications = ref.watch(myNotificationsProvider);
+    final currentLimit = ref.watch(notificationsLimitProvider);
     final items = notifications.value ?? const <MobileNotificationItem>[];
     final unread = items
         .where((x) => !x.isRead && !_localReadIds.contains(x.id))
@@ -222,6 +313,7 @@ class _MobileNotificationsPageState
     final hasItems = items.isNotEmpty;
     final isInitialLoading = notifications.isLoading && !hasItems;
     final isHardError = notifications.hasError && !hasItems;
+    final hasMore = items.length >= currentLimit;
 
     return Scaffold(
       appBar: AppBar(
@@ -261,6 +353,32 @@ class _MobileNotificationsPageState
                 );
               },
               icon: const Icon(Icons.done_all_rounded),
+            ),
+            PopupMenuButton<String>(
+              tooltip: 'خيارات إضافية',
+              onSelected: (val) {
+                if (val == 'clear_all') {
+                  _confirmDeleteAll();
+                }
+              },
+              itemBuilder: (ctx) => [
+                const PopupMenuItem(
+                  value: 'clear_all',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_sweep_outlined, size: 20, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text(
+                        'مسح جميع الإشعارات',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ],
@@ -358,7 +476,11 @@ class _MobileNotificationsPageState
                                     ),
                                   ],
                                 )
-                              : _buildNotificationList(visible),
+                              : _buildNotificationList(
+                                  visible,
+                                  hasMore: hasMore,
+                                  totalLoaded: items.length,
+                                ),
                         ),
                       ],
                     ),
@@ -434,7 +556,53 @@ class _MobileNotificationsPageState
     }
     if (!mounted) return;
 
-    // 2. إذا كان للإشعار رابط عميق صريح (deepLink أو actionUrl)
+    // 2. فحص إشعارات الحضور والانصراف بدقة
+    final currentEmpId = ref.read(accessContextProvider).value?.employeeId;
+    final targetEmpId = item.meta('employeeId') ??
+        (item.entityType == 'late_attendance_alert' ? item.entityId : null);
+    final empName = item.meta('employeeName') ?? item.meta('employee_name');
+    final workDate = item.meta('workDate');
+    final rawType = (item.entityType ?? '').toLowerCase();
+    final canonical = item.canonicalType ?? rawType;
+    final isAttendanceEvent = canonical == 'attendance' ||
+        rawType.contains('attendance') ||
+        rawType == 'punch_reminder' ||
+        rawType == 'late_attendance_alert' ||
+        item.category == 'attendance' ||
+        item.category == 'attendance_manager_notify';
+
+    // أ) إذا كان الإشعار يخص موظفاً تابعاً (للمدير أو المسؤول) -> افتح بروفايل الموظف مباشرة لرؤية حالته اليوم وتفاصيل دوامه
+    if (isAttendanceEvent &&
+        targetEmpId != null &&
+        targetEmpId.isNotEmpty &&
+        targetEmpId != currentEmpId) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => EmployeeProfilePage(
+            employeeId: targetEmpId,
+            employeeName: empName,
+          ),
+        ),
+      );
+      return;
+    }
+
+    // ب) إذا كانت غرامة تخص موظفاً تابعاً للمدير: فتح ورقة التفاصيل الذكية لرؤية تفاصيل الغرامة ومبلغها وزر الانتقال لملف الموظف
+    if (canonical == 'instant_penalty' &&
+        targetEmpId != null &&
+        targetEmpId.isNotEmpty &&
+        targetEmpId != currentEmpId) {
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => NotificationDetailSheet(item: item),
+      );
+      return;
+    }
+
+    // ج) إذا كان للإشعار رابط عميق صريح (deepLink أو actionUrl)
     final rawLink = item.meta('deepLink') ?? item.actionUrl;
     if (rawLink != null && rawLink.trim().isNotEmpty) {
       final route = resolveRouteFromDeepLink(rawLink);
@@ -457,13 +625,8 @@ class _MobileNotificationsPageState
       }
     }
 
-    // 3. حضور الموظف نفسه (بصمة/تذكير): سجلّه الشخصي على يوم الحدث
-    final workDate = item.meta('workDate');
-    final rawType = (item.entityType ?? '').toLowerCase();
-    final isSelf = item.metadata['self'] == true;
-    if (isSelf &&
-        workDate != null &&
-        (rawType == 'attendance_daily' || rawType == 'punch_reminder')) {
+    // د) إذا كان الإشعار يخص المستخدم نفسه (تسجيل حضوره أو انصرافه أو تذكير بالبصمة) -> افتح سجله للحضور اليومي
+    if (isAttendanceEvent) {
       await Navigator.push(
         context,
         MaterialPageRoute(
@@ -543,7 +706,8 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-/// بطاقة إشعار نحيفة ورشيقة وعصرية
+/// بطاقة إشعار: أيقونة ملوّنة بالفئة، العنوان والساعة، ثم النص على سطرين —
+/// اليوم صار عنوان مجموعة فلا يتكرر «اليوم ·» في كل بطاقة.
 class _NotificationCard extends StatelessWidget {
   const _NotificationCard({
     required this.item,
@@ -566,40 +730,41 @@ class _NotificationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final urgent = item.priority == 'urgent' || item.priority == 'high';
     final unread = !item.isRead && !localRead;
     final humanizedBody = _humanizeNotificationBody(item.body);
+    final color = _notificationColor(item.category, scheme);
+    final muted = scheme.onSurfaceVariant;
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 3.5),
+      margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         color: unread
-            ? scheme.primary.withValues(alpha: 0.05)
+            ? scheme.primary.withValues(alpha: 0.06)
             : scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: unread
-              ? scheme.primary.withValues(alpha: 0.35)
-              : scheme.outlineVariant.withValues(alpha: 0.25),
-          width: unread ? 1.0 : 0.6,
+          color: selected
+              ? scheme.error.withValues(alpha: .6)
+              : unread
+              ? scheme.primary.withValues(alpha: 0.3)
+              : scheme.outlineVariant.withValues(alpha: 0.3),
         ),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(14),
           onTap: selecting ? onToggleSelect : onTap,
           onLongPress: selecting ? null : onLongPress,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // الصندوق الأيمن: أيقونة أو صندوق تحديد
                 if (selecting)
                   SizedBox(
-                    width: 32,
-                    height: 32,
+                    width: 40,
+                    height: 40,
                     child: Checkbox(
                       value: selected,
                       onChanged: (_) => onToggleSelect?.call(),
@@ -608,35 +773,24 @@ class _NotificationCard extends StatelessWidget {
                   )
                 else
                   Container(
-                    width: 34,
-                    height: 34,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
-                      color: urgent
-                          ? scheme.errorContainer
-                          : unread
-                              ? scheme.primaryContainer
-                              : scheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
+                      color: color.withValues(alpha: unread ? .16 : .09),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       _notificationIcon(item.category),
-                      size: 17,
-                      color: urgent
-                          ? scheme.onErrorContainer
-                          : unread
-                              ? scheme.primary
-                              : scheme.onSurfaceVariant,
+                      size: 20,
+                      color: unread ? color : color.withValues(alpha: .75),
                     ),
                   ),
-                const SizedBox(width: 10),
-
-                // المحتوى الأوسط: العنوان والوقت في الأعلى، والتفاصيل في الأسفل
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // السطر الأول: العنوان + الوقت النسبي + نقطة غير المقروء
                       Row(
                         children: [
                           Expanded(
@@ -645,30 +799,29 @@ class _NotificationCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 13.5,
                                 fontWeight: unread
                                     ? FontWeight.w800
                                     : FontWeight.w600,
-                                color: unread
-                                    ? scheme.onSurface
-                                    : scheme.onSurfaceVariant,
+                                color: unread ? scheme.onSurface : muted,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 8),
                           Text(
-                            _notificationRelativeTime(item.createdAt.toLocal()),
+                            '${_notificationCategoryLabel(item.category)} · '
+                            '${_notificationClock(item.createdAt)}',
                             style: TextStyle(
-                              fontSize: 10.5,
-                              color: scheme.onSurfaceVariant
-                                  .withValues(alpha: 0.8),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: muted.withValues(alpha: .85),
                             ),
                           ),
                           if (unread) ...[
                             const SizedBox(width: 6),
                             Container(
-                              width: 7,
-                              height: 7,
+                              width: 8,
+                              height: 8,
                               decoration: BoxDecoration(
                                 color: scheme.primary,
                                 shape: BoxShape.circle,
@@ -677,57 +830,24 @@ class _NotificationCard extends StatelessWidget {
                           ],
                         ],
                       ),
-
-                      // السطر الثاني: الفئة + نص الإشعار النظيف
-                      const SizedBox(height: 3),
-                      Row(
-                        children: [
-                          _SlimBadge(
-                            text: _notificationCategoryLabel(item.category),
-                            color: urgent ? scheme.error : scheme.primary,
+                      if (humanizedBody.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          humanizedBody,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            height: 1.45,
+                            color: unread
+                                ? scheme.onSurface.withValues(alpha: 0.85)
+                                : muted.withValues(alpha: 0.8),
                           ),
-                          if (urgent) ...[
-                            const SizedBox(width: 4),
-                            _SlimBadge(
-                              text: item.priority == 'urgent' ? 'عاجل' : 'مهم',
-                              color: scheme.error,
-                            ),
-                          ],
-                          if (humanizedBody.isNotEmpty) ...[
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                humanizedBody,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  color: unread
-                                      ? scheme.onSurface
-                                          .withValues(alpha: 0.85)
-                                      : scheme.onSurfaceVariant
-                                          .withValues(alpha: 0.7),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
-
-                // السهم الأيسر لكل الإشعارات القابلة للنقر
-                if (!selecting) ...[
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.chevron_left_rounded,
-                    size: 18,
-                    color: unread
-                        ? scheme.primary
-                        : scheme.onSurfaceVariant.withValues(alpha: 0.5),
-                  ),
-                ],
               ],
             ),
           ),
@@ -736,6 +856,58 @@ class _NotificationCard extends StatelessWidget {
     );
   }
 }
+
+/// عنوان مجموعة اليوم في قائمة الإشعارات.
+class _DayHeader extends StatelessWidget {
+  const _DayHeader({required this.label, this.first = false});
+
+  final String label;
+  final bool first;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(4, first ? 4 : 14, 4, 4),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w900,
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Divider(
+              height: 1,
+              color: scheme.outlineVariant.withValues(alpha: .4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// لون الفئة — يميّز الحضور عن الطلبات عن القرارات بنظرة.
+Color _notificationColor(String category, ColorScheme scheme) =>
+    switch (category) {
+      'request' => scheme.primary,
+      'decision' || 'survey' => AppColors.statusViolet,
+      'announcement' => AppColors.accent,
+      'dispute' || 'security' => AppColors.statusDanger,
+      'recognition' => const Color(0xFFD4A017),
+      'kpi' || 'documents' || 'service' || 'device' => AppColors.statusInfo,
+      'attendance' ||
+      'attendance_manager_notify' => AppColors.statusWarning,
+      'location' || 'daily_report' => AppColors.statusSuccess,
+      'wellbeing' || 'daily_report_like' => const Color(0xFFE5484D),
+      'daily_report_comment' => scheme.primary,
+      _ => scheme.onSurfaceVariant,
+    };
 
 IconData _notificationIcon(String category) => switch (category) {
   'request' => Icons.approval_outlined,
@@ -787,29 +959,44 @@ String _notificationCategoryLabel(String category) => switch (category) {
   _ => 'عام',
 };
 
-String _notificationRelativeTime(DateTime time) {
+/// الساعة وحدها داخل البطاقة — اليوم في عنوان المجموعة.
+String _notificationClock(DateTime time) =>
+    DateFormat('h:mm a', 'ar').format(time.toLocal());
+
+/// عنوان مجموعة: اليوم، أمس، اسم اليوم خلال الأسبوع، ثم التاريخ.
+String _notificationDayLabel(DateTime time) {
+  final local = time.toLocal();
   final now = DateTime.now();
-  final diff = now.difference(time);
-  if (diff.inMinutes < 1) return 'الآن';
-  if (diff.inMinutes < 60) return 'قبل ${diff.inMinutes} د';
-  if (diff.inHours < 24) return 'قبل ${diff.inHours} س';
-  if (diff.inDays < 30) return 'قبل ${diff.inDays} ي';
-  return DateFormat('d MMM', 'ar').format(time);
+  final today = DateTime(now.year, now.month, now.day);
+  final diff = today.difference(DateTime(local.year, local.month, local.day)).inDays;
+  if (diff == 0) return 'اليوم';
+  if (diff == 1) return 'أمس';
+  if (diff > 1 && diff < 7) return DateFormat('EEEE', 'ar').format(local);
+  if (local.year == now.year) {
+    return DateFormat('EEEE d MMMM', 'ar').format(local);
+  }
+  return DateFormat('d MMMM y', 'ar').format(local);
 }
 
 /// ورقة تفاصيل الإشعار الشاملة — تفتح فوراً عند النقر على أي إشعار للعلم أو إشعار عام
-class NotificationDetailSheet extends StatelessWidget {
+class NotificationDetailSheet extends ConsumerWidget {
   const NotificationDetailSheet({required this.item, super.key});
 
   final MobileNotificationItem item;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final urgent = item.priority == 'urgent' || item.priority == 'high';
     final humanBody = _humanizeNotificationBody(item.body);
     final meta = item.metadata;
+
+    final currentEmpId = ref.read(accessContextProvider).value?.employeeId;
+    final targetEmpId = item.meta('employeeId');
+    final isSubordinate = targetEmpId != null &&
+        targetEmpId.isNotEmpty &&
+        targetEmpId != currentEmpId;
 
     final amount = meta['amount'] ?? meta['newAmount'];
     final lateMinutes = meta['lateMinutes'];
@@ -820,7 +1007,9 @@ class NotificationDetailSheet extends StatelessWidget {
     final requestType = item.meta('requestType');
 
     final isAttendance = item.canonicalType == 'attendance' ||
-        (item.entityType ?? '').contains('attendance');
+        (item.entityType ?? '').contains('attendance') ||
+        item.category == 'attendance' ||
+        item.category == 'attendance_manager_notify';
     final isPenalty = (item.canonicalType ?? '').contains('penalty') ||
         (item.entityType ?? '').contains('penalty');
     final isRequest = item.canonicalType == 'request' ||
@@ -886,15 +1075,8 @@ class NotificationDetailSheet extends StatelessWidget {
                         children: [
                           _SlimBadge(
                             text: _notificationCategoryLabel(item.category),
-                            color: urgent ? scheme.error : scheme.primary,
+                            color: scheme.primary,
                           ),
-                          if (urgent) ...[
-                            const SizedBox(width: 6),
-                            _SlimBadge(
-                              text: item.priority == 'urgent' ? 'عاجل جداً' : 'أولوية عالية',
-                              color: scheme.error,
-                            ),
-                          ],
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -1015,15 +1197,33 @@ class NotificationDetailSheet extends StatelessWidget {
                     child: FilledButton.icon(
                       onPressed: () {
                         Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const MobileAttendanceServicesPage(),
-                          ),
-                        );
+                        if (isSubordinate) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EmployeeProfilePage(
+                                employeeId: targetEmpId,
+                                employeeName: employeeName,
+                              ),
+                            ),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AttendanceHistoryPage(
+                                highlightDate: workDate,
+                              ),
+                            ),
+                          );
+                        }
                       },
-                      icon: const Icon(Icons.co_present_outlined),
-                      label: const Text('سجل الحضور'),
+                      icon: Icon(isSubordinate
+                          ? Icons.person_search_outlined
+                          : Icons.co_present_outlined),
+                      label: Text(isSubordinate
+                          ? 'عرض حالة وملف الموظف'
+                          : 'سجل الحضور'),
                     ),
                   )
                 else if (isPenalty)
@@ -1031,15 +1231,33 @@ class NotificationDetailSheet extends StatelessWidget {
                     child: FilledButton.icon(
                       onPressed: () {
                         Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const MyInstantPenaltiesPage(),
-                          ),
-                        );
+                        if (isSubordinate) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EmployeeProfilePage(
+                                employeeId: targetEmpId,
+                                employeeName: employeeName,
+                              ),
+                            ),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => MyInstantPenaltiesPage(
+                                highlightId: item.entityId,
+                              ),
+                            ),
+                          );
+                        }
                       },
-                      icon: const Icon(Icons.account_balance_wallet_outlined),
-                      label: const Text('سجل الغرامات'),
+                      icon: Icon(isSubordinate
+                          ? Icons.person_search_outlined
+                          : Icons.account_balance_wallet_outlined),
+                      label: Text(isSubordinate
+                          ? 'عرض ملف الموظف وحالته'
+                          : 'سجل الغرامات'),
                     ),
                   )
                 else if (isRequest)
@@ -1047,15 +1265,26 @@ class NotificationDetailSheet extends StatelessWidget {
                     child: FilledButton.icon(
                       onPressed: () {
                         Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const MobileRequestsPage(),
-                          ),
-                        );
+                        if (item.entityId != null && item.entityId!.isNotEmpty) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => MobileRequestDetailPage(
+                                requestId: item.entityId!,
+                              ),
+                            ),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const MobileRequestsPage(),
+                            ),
+                          );
+                        }
                       },
                       icon: const Icon(Icons.assignment_outlined),
-                      label: const Text('عرض الطلبات'),
+                      label: const Text('عرض الطلب'),
                     ),
                   )
                 else if (isTask)

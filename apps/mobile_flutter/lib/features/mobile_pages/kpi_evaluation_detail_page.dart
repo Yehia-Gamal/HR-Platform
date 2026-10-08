@@ -1,5 +1,6 @@
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/widgets/phone_display.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
@@ -45,7 +46,23 @@ String kpiWorkflowLabel(String value) => switch (value) {
   'EXECUTIVE_REVIEW' => 'بانتظار إقرار المدير التنفيذي',
   'EXECUTIVE_ACKNOWLEDGED' => 'أقرّ المدير التنفيذي',
   'RETURNED_BY_EXECUTIVE' => 'أعاده المدير التنفيذي للمراجعة',
-  _ => value,
+  // حالة جديدة لم تُترجم بعد: لا يظهر رمزها الخام للمستخدم
+  _ => 'قيد المعالجة',
+};
+
+/// مرحلة دورة التقييم بالعربية — لا يظهر رمز المرحلة الخام («self») للمستخدم.
+String kpiStageLabel(String stage) => switch (stage) {
+  'self' || 'self_assessment' => 'تقييم ذاتي',
+  'manager' || 'manager_review' => 'مراجعة المدير',
+  'hr_review' => 'مراجعة الموارد البشرية',
+  'parallel_review' => 'مراجعة متوازية',
+  'secretary_review' => 'مراجعة السكرتير',
+  'executive_review' => 'المدير التنفيذي',
+  'goal_setting' => 'تحديد الأهداف',
+  'mid_year' => 'نصف سنوي',
+  'final_eval' => 'تقييم نهائي',
+  'finalized' || 'closed' || 'done' || 'completed' => 'مكتمل',
+  _ => 'قيد المعالجة',
 };
 
 class KpiEvaluationDetailPage extends ConsumerStatefulWidget {
@@ -158,7 +175,8 @@ class _KpiEvaluationDetailPageState
                   ),
                 ),
                 Text(
-                  '${form.employeeCode ?? 'بدون كود'} · ${DateFormat('MMMM y', 'ar').format(form.periodMonth)}',
+                  // 0633: كود مطبَّع (‎+20… ← 01…) لمنع انعكاس علامة + في RTL.
+                  '${form.employeeCode?.stripCountryCode().isNotEmpty == true ? form.employeeCode!.stripCountryCode() : (form.employeeCode ?? 'بدون كود')} · ${DateFormat('MMMM y', 'ar').format(form.periodMonth)}',
                 ),
                 const SizedBox(height: 14),
                 Wrap(
@@ -684,7 +702,7 @@ class _KpiEvaluationDetailPageState
     'finalized' => 'مدرج في التقرير الشهري',
     'closed' => 'مغلق',
     'archived' => 'مؤرشف',
-    _ => value,
+    _ => 'قيد المعالجة',
   };
 
   // Arabic labels for kpi_evaluations.workflow_status (migration 0058 + V23).

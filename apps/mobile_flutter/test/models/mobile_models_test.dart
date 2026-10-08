@@ -577,10 +577,8 @@ void main() {
         'document_signature_requests',
         'public_holiday',
         'role',
-        'attendance_manager_notify',
         'broadcast_alert',
         'fellowship_fund',
-        'weekly_executive_summary',
       ]) {
         final notif = MobileNotificationItem.fromJson(<String, dynamic>{
           'id': 'n-$raw',
@@ -619,7 +617,7 @@ void main() {
           type: 'work_assignments',
           entityId: '00000000-0000-0000-0000-000000000004',
         ),
-        '/',
+        '/action/notification/00000000-0000-0000-0000-000000000004',
       );
       expect(
         resolveNotificationRoute(

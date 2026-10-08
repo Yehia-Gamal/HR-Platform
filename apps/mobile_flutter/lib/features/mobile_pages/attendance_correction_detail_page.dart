@@ -1,5 +1,6 @@
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
+import 'package:ahla_shabab_management_os/core/widgets/phone_display.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/team_requests_page.dart';
@@ -254,6 +255,7 @@ class _AttendanceCorrectionDetailPageState
                           children: [
                             AppAvatar(
                               name: detail.employeeName,
+                              photoUrl: detail.employeePhotoUrl,
                               radius: 24,
                             ),
                             const SizedBox(width: 12),
@@ -270,7 +272,7 @@ class _AttendanceCorrectionDetailPageState
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '${detail.jobTitle ?? "موظف"} · كود: ${detail.employeeCode}',
+                                    '${detail.jobTitle ?? "موظف"} · كود: ${PhoneDisplay.stripCountryCode(detail.employeeCode)}',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: scheme.onSurfaceVariant,

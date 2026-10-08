@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
+import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_employee_file_page.dart';
@@ -92,7 +93,7 @@ class _LocationDirectoryTab extends ConsumerWidget {
             options: const [],
             selected: '',
             onSelected: (_) {},
-            resultLabel: '${query.value?.length ?? 0} موظف',
+            resultLabel: arEmployees(query.value?.length ?? 0),
           ),
           const SizedBox(height: 16),
           query.when(

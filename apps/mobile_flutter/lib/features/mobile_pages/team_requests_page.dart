@@ -1,16 +1,22 @@
+import 'package:ahla_design_tokens/ahla_design_tokens.dart';
+import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
+import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_correction_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/request_decision_sheet.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/request_display.dart';
 import 'package:ahla_shabab_management_os/shared/permission_gate.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' show DateFormat;
 
-/// اعتماد طلبات وتصحيحات بصمة الفريق — يشمل طلبات الإجازات والمأموريات وتصحيحات بصمة الحضور والانصراف.
+/// اعتماد طلبات الفريق: الإجازات والمأموريات والأذونات وتغيير الفترة وتصحيحات
+/// البصمة — الأحدث أولًا، مع اعتماد/رفض سريع وفتح التفاصيل.
 class TeamRequestsPage extends ConsumerStatefulWidget {
   const TeamRequestsPage({super.key});
 
@@ -18,11 +24,72 @@ class TeamRequestsPage extends ConsumerStatefulWidget {
   ConsumerState<TeamRequestsPage> createState() => _TeamRequestsPageState();
 }
 
+enum _Category {
+  all('الكل', null),
+  leaves('الإجازات', Icons.beach_access_rounded),
+  missions('المأموريات والقوافل', Icons.business_center_rounded),
+  permits('الأذونات', Icons.schedule_rounded),
+  shifts('فترات العمل', Icons.more_time_rounded),
+  corrections('تصحيحات البصمة', Icons.fingerprint_rounded);
+
+  const _Category(this.label, this.icon);
+
+  final String label;
+  final IconData? icon;
+
+  bool matches(String type) => switch (this) {
+    _Category.all => true,
+    _Category.leaves => type == 'leave',
+    _Category.missions => isFieldAssignmentType(type),
+    _Category.permits =>
+      type == 'late_permit' || type == 'early_permit' || type == 'excuse',
+    _Category.shifts => type == 'shift_change',
+    _Category.corrections => false,
+  };
+}
+
 class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
   final _search = TextEditingController();
   String _query = '';
   String _statusFilter = 'pending';
-  String _categoryFilter = 'all'; // all, corrections, leaves, missions, excuses
+  _Category _category = _Category.all;
+
+  /// اعتماد جماعي: معرّفات الطلبات المحددة (معلّقة ويملك المستخدم قرارها).
+  final _selected = <String>{};
+  bool get _selecting => _selected.isNotEmpty;
+
+  bool _selectable(MobileRequest r) =>
+      r.status == 'pending' && (r.canDecide ?? true);
+
+  void _toggle(MobileRequest r) {
+    if (!_selectable(r)) return;
+    setState(() {
+      if (!_selected.remove(r.id)) _selected.add(r.id);
+    });
+  }
+
+  Future<void> _bulkApprove(List<MobileRequest> visible) async {
+    final picked = visible.where((r) => _selected.contains(r.id)).toList();
+    if (picked.isEmpty) return;
+    final approved = await showModalBottomSheet<int>(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
+      builder: (_) => _BulkApproveSheet(requests: picked),
+    );
+    if (!mounted) return;
+    setState(_selected.clear);
+    ref.invalidate(mobileRequestsProvider);
+    if (approved != null && approved > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.statusSuccess,
+          content: Text('تم اعتماد ${arRequests(approved)} وإبلاغ أصحابها.'),
+        ),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -30,323 +97,245 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
     super.dispose();
   }
 
-  List<MobileRequest> _filterRequests(
-    List<MobileRequest> requests,
+  /// حالة التصحيحات المرسلة للخادم.
+  String? get _correctionStatus => switch (_statusFilter) {
+    'pending' => 'pending',
+    'approved' => 'approved',
+    'closed' => 'rejected',
+    _ => null,
+  };
+
+  /// طلبات الآخرين في نطاقي: الخادم (0646) يحدّد النطاق ويعلّم طلباتي؛
+  /// الخادم الأقدم يُكتفى معه بأعضاء الفريق المباشر.
+  bool _inScope(MobileRequest r, String? me, Set<String> teamIds) {
+    if (r.isMineFor(me)) return false;
+    if (r.isMine != null) return true;
+    return r.employeeId != null && teamIds.contains(r.employeeId);
+  }
+
+  bool _matchesStatus(MobileRequest r) => switch (_statusFilter) {
+    'pending' => r.status == 'pending' && (r.canDecide ?? true),
+    'approved' => r.status == 'approved',
+    'closed' =>
+      r.status == 'rejected' ||
+          r.status == 'returned' ||
+          r.status == 'cancelled',
+    _ => true,
+  };
+
+  bool _matchesQuery(MobileRequest r) {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    return [
+      r.employeeName,
+      r.title ?? '',
+      r.reason ?? '',
+      r.employeeDepartment ?? '',
+      requestTypeLabel(r.type),
+      '${r.number}',
+    ].any((v) => v.toLowerCase().contains(q));
+  }
+
+  List<MobileRequest> _filtered(
+    List<MobileRequest> all,
+    String? me,
     Set<String> teamIds,
   ) {
-    var result = requests
-        .where((r) => r.employeeId != null && teamIds.contains(r.employeeId))
-        .toList(growable: false);
-
-    // فلترة حسب الفئة
-    result = switch (_categoryFilter) {
-      'leaves' => result.where((r) => r.type == 'leave').toList(growable: false),
-      'missions' => result
-          .where((r) => r.type == 'mission' || r.type == 'convoy' || r.type == 'fundraising')
-          .toList(growable: false),
-      'excuses' => result
-          .where((r) => r.type == 'excuse' || r.type == 'late_permit' || r.type == 'early_permit')
-          .toList(growable: false),
-      'corrections' => <MobileRequest>[], // لا توجد طلبات عادية في تصحيحات البصمة
-      _ => result,
-    };
-
-    final q = _query.trim().toLowerCase();
-    if (q.isNotEmpty) {
-      result = result
-          .where(
-            (r) =>
-                r.employeeName.toLowerCase().contains(q) ||
-                (r.title?.toLowerCase().contains(q) ?? false) ||
-                (r.reason?.toLowerCase().contains(q) ?? false),
-          )
-          .toList(growable: false);
-    }
-    return switch (_statusFilter) {
-      'pending' =>
-        result.where((r) => r.status == 'pending').toList(growable: false),
-      'approved' =>
-        result
-            .where(
-              (r) =>
-                  r.status == 'approved' ||
-                  r.status == 'completed' ||
-                  r.status == 'escalated',
-            )
-            .toList(growable: false),
-      'closed' =>
-        result
-            .where(
-              (r) =>
-                  r.status == 'rejected' ||
-                  r.status == 'returned' ||
-                  r.status == 'cancelled',
-            )
-            .toList(growable: false),
-      _ => result,
-    };
+    if (_category == _Category.corrections) return const [];
+    final list = all
+        .where(
+          (r) =>
+              _inScope(r, me, teamIds) &&
+              _category.matches(r.type) &&
+              _matchesStatus(r) &&
+              _matchesQuery(r),
+        )
+        .toList();
+    // الأحدث أولًا في كل الحالات (قرار المالك) — «دورك» و«متأخر» شارات على
+    // البطاقة وأعداد في الملخص، لا ترتيب يدفع القديم إلى الأعلى.
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
   }
 
-  List<MobileTeamAttendanceCorrection> _filterCorrections(
+  List<MobileTeamAttendanceCorrection> _filteredCorrections(
     List<MobileTeamAttendanceCorrection> corrections,
   ) {
-    // إذا كانت الفئة مختارة لغير تصحيحات البصمة، لا نعرض تصحيحات
-    if (_categoryFilter == 'leaves' ||
-        _categoryFilter == 'missions' ||
-        _categoryFilter == 'excuses') {
-      return const <MobileTeamAttendanceCorrection>[];
+    if (_category != _Category.all && _category != _Category.corrections) {
+      return const [];
     }
-
-    var result = corrections;
     final q = _query.trim().toLowerCase();
-    if (q.isNotEmpty) {
-      result = result
-          .where(
-            (c) =>
-                c.employeeName.toLowerCase().contains(q) ||
-                (c.employeeCode.toLowerCase().contains(q)) ||
-                (c.jobTitle?.toLowerCase().contains(q) ?? false) ||
-                c.reason.toLowerCase().contains(q) ||
-                DateFormat('yyyy-MM-dd').format(c.workDate).contains(q),
-          )
-          .toList(growable: false);
-    }
-    return result;
+    if (q.isEmpty) return corrections;
+    return corrections
+        .where(
+          (c) =>
+              c.employeeName.toLowerCase().contains(q) ||
+              (c.jobTitle?.toLowerCase().contains(q) ?? false) ||
+              c.reason.toLowerCase().contains(q),
+        )
+        .toList(growable: false);
   }
 
-  Future<void> _openRequestDetail(MobileRequest request) async {
+  Future<void> _openRequest(MobileRequest request) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => MobileRequestDetailPage(requestId: request.id),
       ),
     );
-    if (mounted) {
-      ref.invalidate(mobileRequestsProvider);
-      ref.invalidate(mobileTeamProvider);
-    }
+    if (mounted) ref.invalidate(mobileRequestsProvider);
   }
 
-  Future<void> _openCorrectionDetail(
-    MobileTeamAttendanceCorrection correction,
-  ) async {
+  Future<void> _openCorrection(MobileTeamAttendanceCorrection c) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AttendanceCorrectionDetailPage(
-          correctionId: correction.id,
-        ),
+        builder: (_) => AttendanceCorrectionDetailPage(correctionId: c.id),
       ),
     );
-    if (mounted) {
-      ref.invalidate(teamAttendanceCorrectionsProvider(_statusFilter));
-      ref.invalidate(mobileTeamProvider);
-    }
+    if (mounted) ref.invalidate(teamAttendanceCorrectionsProvider(_correctionStatus));
   }
 
-  Future<void> _decideRequest(MobileRequest request, String decision) async {
-    final controller = TextEditingController();
-    String? errorText;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDlgState) => AlertDialog(
-          title: Text(decision == 'approve' ? 'اعتماد الطلب' : 'رفض الطلب'),
-          content: TextField(
-            controller: controller,
-            maxLines: 3,
-            decoration: InputDecoration(
-              labelText: decision == 'approve'
-                  ? 'ملاحظة اختيارية'
-                  : 'سبب الرفض (إلزامي)',
-              errorText: errorText,
-              border: const OutlineInputBorder(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (decision != 'approve' &&
-                    controller.text.trim().length < 3) {
-                  setDlgState(
-                    () => errorText = 'سبب الرفض إلزامي ولا يقل عن 3 أحرف.',
-                  );
-                  return;
-                }
-                Navigator.pop(dialogContext, true);
-              },
-              child: const Text('تأكيد'),
-            ),
-          ],
-        ),
+  Widget _card(MobileRequest r) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: _TeamRequestCard(
+      request: r,
+      selecting: _selecting,
+      selected: _selected.contains(r.id),
+      onTap: _selecting ? () => _toggle(r) : () => _openRequest(r),
+      onLongPress: _selectable(r) ? () => _toggle(r) : null,
+      onApprove: !_selecting && _selectable(r)
+          ? () => _quickDecide(r, 'approve')
+          : null,
+      onReject: !_selecting && _selectable(r)
+          ? () => _quickDecide(r, 'reject')
+          : null,
+    ),
+  );
+
+  Widget _correctionCard(MobileTeamAttendanceCorrection c) {
+    final decidable = c.status == 'pending' && c.canDecide;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: _CorrectionCard(
+        correction: c,
+        onTap: () => _openCorrection(c),
+        onApprove: decidable ? () => _decideCorrection(c, 'approved') : null,
+        onReject: decidable ? () => _decideCorrection(c, 'rejected') : null,
       ),
     );
-    final comment = controller.text.trim();
-    controller.dispose();
-    if (confirmed != true || !mounted) return;
-
-    try {
-      await ref
-          .read(mobileCommandsProvider)
-          .decideRequest(request.id, decision, comment);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              decision == 'approve'
-                  ? 'تم اعتماد الطلب بنجاح.'
-                  : 'تم رفض الطلب.',
-            ),
-          ),
-        );
-      }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
-      }
-    }
   }
+
+  Future<void> _quickDecide(MobileRequest r, String decision) =>
+      showRequestDecisionSheet(
+        context,
+        ref,
+        requestId: r.id,
+        number: r.number,
+        type: r.type,
+        employeeName: r.employeeName,
+        decision: decision,
+      );
 
   Future<void> _decideCorrection(
     MobileTeamAttendanceCorrection correction,
     String decision,
   ) async {
-    final controller = TextEditingController();
-    String? errorText;
-    final confirmed = await showDialog<bool>(
+    final approve = decision == 'approved';
+    final commands = ref.read(mobileCommandsProvider);
+    final done = await showModalBottomSheet<bool>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDlgState) => AlertDialog(
-          title: Text(
-            decision == 'approved' ? 'اعتماد تصحيح البصمة' : 'رفض تصحيح البصمة',
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                decision == 'approved'
-                    ? 'هل تؤكد اعتماد تصحيح البصمة للموظف ${correction.employeeName}؟'
-                    : 'يرجى كتابة سبب رفض تصحيح البصمة للموظف ${correction.employeeName}:',
-                style: const TextStyle(fontSize: 13.5),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: controller,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: decision == 'approved'
-                      ? 'ملاحظة اختيارية'
-                      : 'سبب الرفض (إلزامي)',
-                  errorText: errorText,
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: decision == 'approved'
-                    ? const Color(0xFF0F9F6E)
-                    : Theme.of(context).colorScheme.error,
-              ),
-              onPressed: () {
-                if (decision != 'approved' &&
-                    controller.text.trim().length < 3) {
-                  setDlgState(
-                    () => errorText = 'سبب الرفض إلزامي ولا يقل عن 3 أحرف.',
-                  );
-                  return;
-                }
-                Navigator.pop(dialogContext, true);
-              },
-              child: const Text('تأكيد'),
-            ),
-          ],
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => RequestActionSheet(
+        config: RequestSheetConfig(
+          title: approve ? 'اعتماد تصحيح البصمة' : 'رفض تصحيح البصمة',
+          icon: approve ? Icons.check_circle_rounded : Icons.cancel_rounded,
+          color: approve ? AppColors.statusSuccess : AppColors.statusDanger,
+          explanation: approve
+              ? 'يُصحَّح سجل ${correction.employeeName} ليوم ${arDay(correction.workDate)} كما طلب.'
+              : 'يبقى سجل اليوم كما هو ويُبلَّغ ${correction.employeeName} بالسبب.',
+          inputLabel: approve ? 'ملاحظة (اختياري)' : 'سبب الرفض (إلزامي)',
+          required: !approve,
+          suggestions: approve
+              ? const ['تمت المراجعة والموافقة']
+              : const [
+                  'لا يوجد ما يثبت الحضور في هذا الوقت',
+                  'يُرجى التواصل مع مديرك المباشر',
+                ],
+          confirmLabel: approve ? 'تأكيد الاعتماد' : 'تأكيد الرفض',
+          successMessage: approve
+              ? 'تم اعتماد تصحيح البصمة.'
+              : 'تم رفض طلب تصحيح البصمة.',
+        ),
+        subject: 'تصحيح بصمة · ${correction.employeeName}',
+        onSubmit: (note) => commands.decideAttendanceCorrection(
+          correctionId: correction.id,
+          decision: decision,
+          note: note.isEmpty ? null : note,
         ),
       ),
     );
-    final comment = controller.text.trim();
-    controller.dispose();
-    if (confirmed != true || !mounted) return;
-
-    try {
-      await ref.read(mobileCommandsProvider).decideAttendanceCorrection(
-            correctionId: correction.id,
-            decision: decision,
-            note: comment.isNotEmpty ? comment : null,
-          );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              decision == 'approved'
-                  ? 'تم اعتماد تصحيح البصمة بنجاح.'
-                  : 'تم رفض طلب تصحيح البصمة.',
-            ),
-          ),
-        );
-      }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
-      }
-    }
+    if (done != true || !mounted) return;
+    ref.invalidate(teamAttendanceCorrectionsProvider(_correctionStatus));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          approve ? 'تم اعتماد تصحيح البصمة.' : 'تم رفض طلب تصحيح البصمة.',
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final me = ref.watch(accessContextProvider).value?.employeeId;
     final teamAsync = ref.watch(mobileTeamProvider);
     final requestsAsync = ref.watch(mobileRequestsProvider);
-    final correctionsAsync =
-        ref.watch(teamAttendanceCorrectionsProvider(_statusFilter));
+    final correctionsAsync = ref.watch(
+      teamAttendanceCorrectionsProvider(_correctionStatus),
+    );
 
     final teamIds = switch (teamAsync) {
       AsyncData(value: final members) => members.map((m) => m.id).toSet(),
       _ => <String>{},
     };
+    final allRequests = requestsAsync.value ?? const <MobileRequest>[];
+    final requests = _filtered(allRequests, me, teamIds);
+    final corrections = _filteredCorrections(
+      correctionsAsync.value ?? const <MobileTeamAttendanceCorrection>[],
+    );
 
-    final filteredRequests = switch (requestsAsync) {
-      AsyncData(value: final requests) => _filterRequests(requests, teamIds),
-      _ => <MobileRequest>[],
-    };
+    // ملخص ما ينتظر القرار (بغض النظر عن التصفية الحالية)
+    final now = DateTime.now();
+    final pendingMine = allRequests
+        .where(
+          (r) =>
+              _inScope(r, me, teamIds) &&
+              r.status == 'pending' &&
+              (r.canDecide ?? true),
+        )
+        .toList(growable: false);
+    final awaiting = pendingMine.where((r) => r.awaitingMe ?? true).length;
+    final overdue = pendingMine
+        .where((r) => r.effectiveDueAt?.isBefore(now) ?? false)
+        .length;
+    final pendingCorrections = _statusFilter == 'pending'
+        ? (correctionsAsync.value ?? const <MobileTeamAttendanceCorrection>[])
+              .where((c) => c.status == 'pending')
+              .length
+        : 0;
 
-    final filteredCorrections = switch (correctionsAsync) {
-      AsyncData(value: final corrections) => _filterCorrections(corrections),
-      _ => <MobileTeamAttendanceCorrection>[],
-    };
+    final loading =
+        (requestsAsync.isLoading && !requestsAsync.hasValue) ||
+        (correctionsAsync.isLoading && !correctionsAsync.hasValue);
+    final total = requests.length + corrections.length;
 
-    final totalCount = filteredRequests.length + filteredCorrections.length;
-
-    // حساب المعلق
-    final pendingRequestsCount = switch (requestsAsync) {
-      AsyncData(value: final requests) => _filterRequests(
-        requests,
-        teamIds,
-      ).where((r) => r.status == 'pending').length,
-      _ => 0,
-    };
-    final pendingCorrectionsCount = switch (correctionsAsync) {
-      AsyncData(value: final corrections) =>
-        corrections.where((c) => c.status == 'pending').length,
-      _ => 0,
-    };
-    final totalPendingCount =
-        pendingRequestsCount + pendingCorrectionsCount;
+    // الأحدث أولًا في كل شيء (قرار المالك): التصحيحات والطلبات خط زمني واحد
+    // بتاريخ التقديم — لا كتلة تصحيحات (قد تكون قديمة) فوق الطلبات الأحدث.
+    final timeline = <({DateTime at, Widget card})>[
+      for (final c in corrections) (at: c.createdAt, card: _correctionCard(c)),
+      for (final r in requests) (at: r.createdAt, card: _card(r)),
+    ]..sort((a, b) => b.at.compareTo(a.at));
 
     return PermissionGate(
       permission: null,
@@ -357,194 +346,142 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
         'attendance.manage',
       ],
       child: Scaffold(
-        appBar: AppBar(title: const Text('اعتماد طلبات الفريق')),
+        appBar: _selecting
+            ? AppBar(
+                leading: IconButton(
+                  tooltip: 'إلغاء التحديد',
+                  onPressed: () => setState(_selected.clear),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+                title: Text('تحديد ${arRequests(_selected.length)}'),
+                actions: [
+                  TextButton(
+                    onPressed: () => setState(
+                      () => _selected.addAll(
+                        requests.where(_selectable).map((r) => r.id),
+                      ),
+                    ),
+                    child: const Text('تحديد الكل'),
+                  ),
+                ],
+              )
+            : AppBar(
+                title: const Text('اعتماد طلبات الفريق'),
+                actions: [
+                  if (_statusFilter == 'pending' &&
+                      requests.where(_selectable).length > 1)
+                    TextButton.icon(
+                      onPressed: () => setState(
+                        () => _selected.add(
+                          requests.firstWhere(_selectable).id,
+                        ),
+                      ),
+                      icon: const Icon(Icons.checklist_rounded, size: 20),
+                      label: const Text('اعتماد جماعي'),
+                    ),
+                ],
+              ),
+        bottomNavigationBar: _selecting
+            ? Material(
+                elevation: 8,
+                color: Theme.of(context).colorScheme.surface,
+                child: SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.statusSuccess,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(50),
+                      ),
+                      onPressed: () => _bulkApprove(requests),
+                      icon: const Icon(Icons.done_all_rounded),
+                      label: Text('اعتماد ${arRequests(_selected.length)}'),
+                    ),
+                  ),
+                ),
+              )
+            : null,
         body: SafeArea(
           child: RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(mobileRequestsProvider);
-              ref.invalidate(teamAttendanceCorrectionsProvider(_statusFilter));
+              ref.invalidate(teamAttendanceCorrectionsProvider(_correctionStatus));
               ref.invalidate(mobileTeamProvider);
             },
             child: ListView(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 32),
               children: [
-                const MobileSectionHeader(
-                  title: 'اعتماد طلبات وتصحيحات الفريق',
-                  subtitle:
-                      'طلبات الإجازات، المأموريات، وتصحيحات بصمة الحضور والانصراف.',
+                _SummaryCard(
+                  awaiting: awaiting,
+                  canDecideOther: pendingMine.length - awaiting,
+                  overdue: overdue,
+                  corrections: pendingCorrections,
                 ),
-                const SizedBox(height: 8),
-
-                // شريط تبويبات الفئات
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _CategoryChip(
-                        label: 'الكل',
-                        selected: _categoryFilter == 'all',
-                        onTap: () => setState(() => _categoryFilter = 'all'),
-                      ),
-                      const SizedBox(width: 6),
-                      _CategoryChip(
-                        label: 'تصحيحات البصمة',
-                        icon: Icons.fingerprint_rounded,
-                        selected: _categoryFilter == 'corrections',
-                        onTap: () =>
-                            setState(() => _categoryFilter = 'corrections'),
-                      ),
-                      const SizedBox(width: 6),
-                      _CategoryChip(
-                        label: 'الإجازات',
-                        icon: Icons.beach_access_rounded,
-                        selected: _categoryFilter == 'leaves',
-                        onTap: () => setState(() => _categoryFilter = 'leaves'),
-                      ),
-                      const SizedBox(width: 6),
-                      _CategoryChip(
-                        label: 'المأموريات',
-                        icon: Icons.near_me_rounded,
-                        selected: _categoryFilter == 'missions',
-                        onTap: () =>
-                            setState(() => _categoryFilter = 'missions'),
-                      ),
-                      const SizedBox(width: 6),
-                      _CategoryChip(
-                        label: 'الأذونات',
-                        icon: Icons.schedule_rounded,
-                        selected: _categoryFilter == 'excuses',
-                        onTap: () =>
-                            setState(() => _categoryFilter = 'excuses'),
-                      ),
-                    ],
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 38,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _Category.values.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 6),
+                    itemBuilder: (context, i) {
+                      final c = _Category.values[i];
+                      return ChoiceChip(
+                        avatar: c.icon == null ? null : Icon(c.icon, size: 16),
+                        label: Text(c.label),
+                        selected: _category == c,
+                        showCheckmark: false,
+                        onSelected: (_) => setState(() => _category = c),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(height: 8),
-
-                // شريط تصفية الحالة والبحث
                 MobileFilterBar(
-                  searchHint: 'بحث بالاسم، التاريخ، أو السبب',
+                  searchHint: 'بحث بالاسم أو الإدارة أو رقم الطلب',
                   controller: _search,
                   onSearchChanged: (v) => setState(() => _query = v),
                   options: const [
-                    MobileFilterOption('pending', 'معلّقة'),
+                    MobileFilterOption('pending', 'بانتظار القرار'),
                     MobileFilterOption('approved', 'معتمدة'),
-                    MobileFilterOption('closed', 'مرفوضة/ملغاة'),
+                    MobileFilterOption('closed', 'مرفوضة ومسحوبة'),
                     MobileFilterOption('all', 'الكل'),
                   ],
                   selected: _statusFilter,
                   onSelected: (v) => setState(() => _statusFilter = v),
-                  resultLabel: totalCount == 0 ? 'لا نتائج' : '$totalCount طلب',
+                  resultLabel: total == 0 ? 'لا نتائج' : arRequests(total),
                 ),
-
-                if (totalPendingCount > 0 && _statusFilter == 'pending') ...[
-                  const SizedBox(height: 8),
-                  _PendingBanner(count: totalPendingCount),
-                ],
                 const SizedBox(height: 10),
-
-                // حالة التحميل
-                if (requestsAsync.isLoading || correctionsAsync.isLoading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else if (totalCount == 0)
+                if (loading)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 48),
-                    child: Center(
-                      child: Text(
-                        'لا توجد طلبات أو تصحيحات بصمة مطابقة',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
+                    child: Center(child: CircularProgressIndicator()),
                   )
-                else ...[
-                  // أولاً: تصحيحات البصمة
-                  if (filteredCorrections.isNotEmpty) ...[
-                    if (_categoryFilter == 'all')
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 6, top: 4),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.fingerprint_rounded,
-                              size: 16,
-                              color: theme.colorScheme.primary,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'تصحيحات البصمة (${filteredCorrections.length})',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                color: theme.colorScheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ...filteredCorrections.map(
-                      (correction) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _AttendanceCorrectionCard(
-                          correction: correction,
-                          onTap: () => _openCorrectionDetail(correction),
-                          onApprove: correction.status == 'pending' &&
-                                  correction.canDecide
-                              ? () => _decideCorrection(correction, 'approved')
-                              : null,
-                          onReject: correction.status == 'pending' &&
-                                  correction.canDecide
-                              ? () => _decideCorrection(correction, 'rejected')
-                              : null,
-                        ),
-                      ),
-                    ),
-                  ],
-
-                  // ثانياً: طلبات الفريق (إجازات ومأموريات وأذونات)
-                  if (filteredRequests.isNotEmpty) ...[
-                    if (_categoryFilter == 'all' &&
-                        filteredCorrections.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 6, top: 8),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.rule_rounded,
-                              size: 16,
-                              color: theme.colorScheme.primary,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'طلبات الإجازات والتكليفات (${filteredRequests.length})',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                color: theme.colorScheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ...filteredRequests.map(
-                      (request) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _RequestCard(
-                          request: request,
-                          onTap: () => _openRequestDetail(request),
-                          onApprove: request.status == 'pending'
-                              ? () => _decideRequest(request, 'approve')
-                              : null,
-                          onReject: request.status == 'pending'
-                              ? () => _decideRequest(request, 'reject')
-                              : null,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
+                else if (requestsAsync.hasError && !requestsAsync.hasValue)
+                  _EmptyState(
+                    icon: Icons.cloud_off_rounded,
+                    text: humanizeError(requestsAsync.error!),
+                    onRetry: () => ref.invalidate(mobileRequestsProvider),
+                  )
+                else if (total == 0)
+                  _EmptyState(
+                    icon: _statusFilter == 'pending'
+                        ? Icons.task_alt_rounded
+                        : Icons.search_off_rounded,
+                    text: _statusFilter == 'pending'
+                        ? 'لا توجد طلبات بانتظار قرارك الآن.'
+                        : 'لا توجد طلبات مطابقة.',
+                  )
+                else
+                  ...(_statusFilter == 'pending'
+                      ? timeline.map((e) => e.card)
+                      : withRequestGroupHeaders<({DateTime at, Widget card})>(
+                          timeline,
+                          (e) => e.at,
+                          (e) => e.card,
+                        )),
               ],
             ),
           ),
@@ -554,49 +491,396 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
   }
 }
 
-class _CategoryChip extends StatelessWidget {
-  const _CategoryChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.icon,
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({
+    required this.awaiting,
+    required this.canDecideOther,
+    required this.overdue,
+    required this.corrections,
   });
 
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final IconData? icon;
+  final int awaiting;
+  final int canDecideOther;
+  final int overdue;
+  final int corrections;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: selected ? scheme.primary : scheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(99),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(99),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+    final nothing = awaiting + canDecideOther + corrections == 0;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: AlignmentDirectional.topStart,
+          end: AlignmentDirectional.bottomEnd,
+          colors: [
+            AppColors.brandPrimary.withValues(alpha: .10),
+            AppColors.accent.withValues(alpha: .05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.brandPrimary.withValues(alpha: .15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              if (icon != null) ...[
-                Icon(
-                  icon,
-                  size: 14,
-                  color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 4),
-              ],
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
+              const Icon(Icons.approval_rounded, color: AppColors.brandPrimary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  nothing
+                      ? 'لا شيء ينتظر قرارك الآن'
+                      : awaiting > 0
+                      ? '${arRequests(awaiting)} بانتظار قرارك'
+                      : 'طلبات في نطاقك يمكنك البت فيها',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15.5,
+                  ),
                 ),
               ),
+            ],
+          ),
+          if (!nothing) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                if (overdue > 0)
+                  RequestMetaChip(
+                    icon: Icons.warning_amber_rounded,
+                    text: 'متأخرة: ${arRequests(overdue)}',
+                    color: AppColors.statusDanger,
+                    strong: true,
+                  ),
+                if (canDecideOther > 0)
+                  RequestMetaChip(
+                    icon: Icons.verified_user_outlined,
+                    text: 'عند مرحلة أخرى ويمكنك البت فيها: $canDecideOther',
+                    color: AppColors.statusInfo,
+                  ),
+                if (corrections > 0)
+                  RequestMetaChip(
+                    icon: Icons.fingerprint_rounded,
+                    text: 'تصحيحات بصمة: $corrections',
+                    color: AppColors.statusViolet,
+                  ),
+              ],
+            ),
+          ] else ...[
+            const SizedBox(height: 4),
+            Text(
+              'ستظهر هنا طلبات فريقك فور تقديمها.',
+              style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.icon, required this.text, this.onRetry});
+
+  final IconData icon;
+  final String text;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 44, horizontal: 16),
+      child: Column(
+        children: [
+          Icon(icon, size: 46, color: scheme.onSurfaceVariant.withValues(alpha: .6)),
+          const SizedBox(height: 10),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          if (onRetry != null) ...[
+            const SizedBox(height: 10),
+            OutlinedButton(onPressed: onRetry, child: const Text('إعادة المحاولة')),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// بطاقة طلب للمعتمِد: من؟ ماذا؟ متى؟ أين يقف؟ مع قرار سريع.
+class _TeamRequestCard extends StatelessWidget {
+  const _TeamRequestCard({
+    required this.request,
+    required this.onTap,
+    required this.onApprove,
+    required this.onReject,
+    this.onLongPress,
+    this.selecting = false,
+    this.selected = false,
+  });
+
+  final MobileRequest request;
+  final VoidCallback onTap;
+  final VoidCallback? onApprove;
+  final VoidCallback? onReject;
+  final VoidCallback? onLongPress;
+  final bool selecting;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final r = request;
+    final typeColor = requestTypeColor(r.type);
+    final typeLabel = requestTypeLabel(r.type);
+    final title = r.title?.trim();
+    final brief = requestBriefLine(r.type, r.payload);
+    final subtitle = [
+      if (r.employeeJobTitle?.trim().isNotEmpty == true) r.employeeJobTitle!.trim(),
+      if (r.employeeDepartment?.trim().isNotEmpty == true) r.employeeDepartment!.trim(),
+    ].join(' · ');
+    final pending = r.status == 'pending';
+    final due = pending ? requestDueStatus(r.effectiveDueAt) : null;
+    final stage = pending && r.activeStepName != null
+        ? requestStageName(r.activeStepName, roleSlug: r.activeStepRole)
+        : null;
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(
+          color: selected
+              ? AppColors.statusSuccess
+              : r.awaitingMe == true
+              ? AppColors.statusInfo.withValues(alpha: .45)
+              : (due?.overdue ?? false)
+              ? AppColors.statusDanger.withValues(alpha: .35)
+              : scheme.outlineVariant.withValues(alpha: .6),
+          width: selected || r.awaitingMe == true ? 1.4 : 1,
+        ),
+      ),
+      color: selected ? AppColors.statusSuccess.withValues(alpha: .06) : null,
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  if (selecting) ...[
+                    Icon(
+                      selected
+                          ? Icons.check_circle_rounded
+                          : Icons.radio_button_unchecked_rounded,
+                      color: selected
+                          ? AppColors.statusSuccess
+                          : scheme.outline,
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  AppAvatar(
+                    name: r.employeeName,
+                    photoUrl: r.employeePhotoUrl,
+                    radius: 21,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          r.employeeName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14.5,
+                          ),
+                        ),
+                        if (subtitle.isNotEmpty)
+                          Text(
+                            subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  RequestStatusChip(r.status, dense: true),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: typeColor.withValues(alpha: .12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(requestTypeIcon(r.type), size: 14, color: typeColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          typeLabel,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: typeColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'رقم ${r.number}',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    arAgo(r.createdAt),
+                    style: TextStyle(fontSize: 11.5, color: scheme.onSurfaceVariant),
+                  ),
+                ],
+              ),
+              if (title != null && title.isNotEmpty && title != typeLabel) ...[
+                const SizedBox(height: 8),
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                ),
+              ],
+              if (brief.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  brief,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    height: 1.45,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface.withValues(alpha: .8),
+                  ),
+                ),
+              ],
+              if (r.reason?.trim().isNotEmpty == true &&
+                  r.reason!.trim() != title) ...[
+                const SizedBox(height: 4),
+                Text(
+                  r.reason!.trim(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    height: 1.45,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  if (r.awaitingMe == true)
+                    const RequestMetaChip(
+                      icon: Icons.notifications_active_rounded,
+                      text: 'دورك الآن',
+                      color: AppColors.statusInfo,
+                      strong: true,
+                    ),
+                  if (stage != null && r.awaitingMe != true)
+                    RequestMetaChip(icon: Icons.route_rounded, text: 'عند $stage'),
+                  if (due != null)
+                    RequestMetaChip(
+                      icon: due.overdue
+                          ? Icons.warning_amber_rounded
+                          : Icons.schedule_rounded,
+                      text: due.label,
+                      color: due.overdue ? AppColors.statusDanger : null,
+                      strong: due.overdue,
+                    ),
+                  if (!pending && r.decidedAt != null)
+                    RequestMetaChip(
+                      icon: requestStatusStyle(r.status).icon,
+                      text: [
+                        if (r.decidedByName != null) r.decidedByName!,
+                        arDateTime(r.decidedAt!),
+                      ].join(' · '),
+                      color: requestStatusStyle(r.status).color,
+                    ),
+                ],
+              ),
+              if (onApprove != null || onReject != null) ...[
+                const Divider(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.statusSuccess,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(42),
+                        ),
+                        onPressed: onApprove,
+                        icon: const Icon(Icons.check_rounded, size: 18),
+                        label: const Text('اعتماد'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.statusDanger,
+                          side: BorderSide(
+                            color: AppColors.statusDanger.withValues(alpha: .5),
+                          ),
+                          minimumSize: const Size.fromHeight(42),
+                        ),
+                        onPressed: onReject,
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                        label: const Text('رفض'),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      tooltip: 'التفاصيل والإرجاع للتعديل',
+                      onPressed: onTap,
+                      icon: const Icon(Icons.chevron_left_rounded),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -605,39 +889,193 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
-class _PendingBanner extends StatelessWidget {
-  const _PendingBanner({required this.count});
+/// اعتماد جماعي: مراجعة المحدد، ملاحظة واحدة اختيارية، ثم تنفيذ متتابع مع
+/// إظهار نتيجة كل طلب (الخادم يتحقق من صلاحية كل قرار على حدة).
+class _BulkApproveSheet extends ConsumerStatefulWidget {
+  const _BulkApproveSheet({required this.requests});
 
-  final int count;
+  final List<MobileRequest> requests;
+
+  @override
+  ConsumerState<_BulkApproveSheet> createState() => _BulkApproveSheetState();
+}
+
+class _BulkApproveSheetState extends ConsumerState<_BulkApproveSheet> {
+  final _note = TextEditingController();
+  final _results = <String, String?>{}; // id → null نجاح / رسالة خطأ
+  bool _running = false;
+  bool get _done => _results.length == widget.requests.length;
+  int get _okCount => _results.values.where((e) => e == null).length;
+
+  @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
+  }
+
+  Future<void> _run() async {
+    setState(() => _running = true);
+    final commands = ref.read(mobileCommandsProvider);
+    final note = _note.text.trim();
+    for (final r in widget.requests) {
+      if (!mounted) return;
+      try {
+        await commands.decideRequest(r.id, 'approve', note.isEmpty ? null : note);
+        _results[r.id] = null;
+      } catch (error) {
+        _results[r.id] = requestErrorMessage(error) ?? humanizeError(error);
+      }
+      if (mounted) setState(() {});
+    }
+    if (mounted) setState(() => _running = false);
+  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(
-        color: scheme.primaryContainer,
-        borderRadius: BorderRadius.circular(10),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        20,
+        20,
+        MediaQuery.viewInsetsOf(context).bottom + 20,
       ),
-      child: Row(
-        children: [
-          Icon(Icons.pending_actions_rounded, color: scheme.primary, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '$count طلب وتصحيح بصمة بانتظار قرارك.',
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppColors.statusSuccess.withValues(alpha: .12),
+                  child: const Icon(Icons.done_all_rounded, color: AppColors.statusSuccess),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _done
+                        ? 'اكتمل الاعتماد الجماعي'
+                        : 'اعتماد ${arRequests(widget.requests.length)} دفعة واحدة',
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            for (final r in widget.requests)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      !_results.containsKey(r.id)
+                          ? requestTypeIcon(r.type)
+                          : _results[r.id] == null
+                          ? Icons.check_circle_rounded
+                          : Icons.error_rounded,
+                      size: 20,
+                      color: !_results.containsKey(r.id)
+                          ? requestTypeColor(r.type)
+                          : _results[r.id] == null
+                          ? AppColors.statusSuccess
+                          : AppColors.statusDanger,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${requestTypeLabel(r.type)} · ${r.employeeName}',
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5),
+                          ),
+                          Text(
+                            _results[r.id] ?? requestBriefLine(r.type, r.payload),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _results[r.id] != null
+                                  ? AppColors.statusDanger
+                                  : scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 12),
+            if (!_done) ...[
+              TextField(
+                controller: _note,
+                enabled: !_running,
+                maxLines: 2,
+                maxLength: 300,
+                decoration: InputDecoration(
+                  labelText: 'ملاحظة تصل للجميع (اختياري)',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: _running ? null : () => Navigator.of(context).pop(0),
+                    child: const Text('رجوع'),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.statusSuccess,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(48),
+                      ),
+                      onPressed: _running ? null : _run,
+                      icon: _running
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.done_all_rounded),
+                      label: Text(
+                        _running
+                            ? 'جارٍ الاعتماد ${_results.length + 1} من ${widget.requests.length}…'
+                            : 'تأكيد اعتماد الكل',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              Text(
+                _okCount == widget.requests.length
+                    ? 'اعتُمدت كلها بنجاح وأُبلغ أصحابها.'
+                    : 'اعتُمد $_okCount من ${widget.requests.length} — راجع سبب تعذّر الباقي أعلاه.',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 10),
+              FilledButton(
+                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                onPressed: () => Navigator.of(context).pop(_okCount),
+                child: const Text('تم'),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
 }
 
-/// بطاقة تصحيح البصمة — رشيقة ومصممة بعناية للمدير
-class _AttendanceCorrectionCard extends StatelessWidget {
-  const _AttendanceCorrectionCard({
+/// بطاقة تصحيح البصمة للمدير.
+class _CorrectionCard extends StatelessWidget {
+  const _CorrectionCard({
     required this.correction,
     required this.onTap,
     required this.onApprove,
@@ -649,50 +1087,51 @@ class _AttendanceCorrectionCard extends StatelessWidget {
   final VoidCallback? onApprove;
   final VoidCallback? onReject;
 
-  String _typeLabel(String type) => switch (type) {
-    'missing_check_in' => 'نسيان بصمة حضور (دخول)',
-    'missing_check_out' => 'نسيان بصمة انصراف (خروج)',
+  String get _typeLabel => switch (correction.type) {
+    'missing_check_in' => 'نسيان بصمة الحضور',
+    'missing_check_out' => 'نسيان بصمة الانصراف',
     'wrong_time' => 'تعديل توقيت البصمة',
-    'wrong_status' => 'تعديل حالة الدوام',
+    'wrong_status' => 'تعديل حالة اليوم',
     'mission' => 'مأمورية عمل',
     'leave' => 'إجازة',
     _ => 'تصحيح بصمة',
   };
 
-  IconData _typeIcon(String type) => switch (type) {
+  IconData get _typeIcon => switch (correction.type) {
     'missing_check_in' => Icons.login_rounded,
     'missing_check_out' => Icons.logout_rounded,
     'wrong_time' => Icons.access_time_rounded,
     _ => Icons.fingerprint_rounded,
   };
 
-  String _formatTime(DateTime? dt) {
-    if (dt == null) return '';
-    return DateFormat('hh:mm a', 'ar').format(dt.toLocal());
-  }
+  String _time(DateTime? dt) =>
+      dt == null ? '' : DateFormat('h:mm a', 'ar').format(dt.toLocal());
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final scheme = Theme.of(context).colorScheme;
+    const color = Color(0xFF4F46E5);
     final isPending = correction.status == 'pending';
-
     return Card(
       clipBehavior: Clip.antiAlias,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: .6)),
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // رأس البطاقة: صورة الموظف والاسم والمنصب
               Row(
                 children: [
                   AppAvatar(
                     name: correction.employeeName,
-                    radius: 20,
+                    photoUrl: correction.employeePhotoUrl,
+                    radius: 21,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -703,291 +1142,95 @@ class _AttendanceCorrectionCard extends StatelessWidget {
                           correction.employeeName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyLarge?.copyWith(
+                          style: const TextStyle(
                             fontWeight: FontWeight.w800,
-                            fontSize: 14,
+                            fontSize: 14.5,
                           ),
                         ),
-                        Text(
-                          [
-                            if (correction.jobTitle?.isNotEmpty ?? false)
-                              correction.jobTitle,
-                            if (correction.employeeCode.isNotEmpty)
-                              '#${correction.employeeCode}',
-                          ].join(' · '),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontSize: 11.5,
+                        if (correction.jobTitle?.trim().isNotEmpty == true)
+                          Text(
+                            correction.jobTitle!.trim(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: scheme.onSurfaceVariant,
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  MobileStatusPill(correction.status),
+                  RequestStatusChip(correction.status, dense: true),
                 ],
               ),
-              const SizedBox(height: 8),
-
-              // نوع التصحيح والتاريخ
-              Row(
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: scheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _typeIcon(correction.type),
-                          size: 13,
-                          color: scheme.primary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _typeLabel(correction.type),
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: scheme.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    Icons.calendar_today_outlined,
-                    size: 12,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 3),
-                  Text(
-                    DateFormat('d MMM y', 'ar').format(correction.workDate),
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: scheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-
-              // الأوقات المطلوبة (إن وجدت)
-              if (correction.requestedCheckIn != null ||
-                  correction.requestedCheckOut != null) ...[
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    if (correction.requestedCheckIn != null) ...[
-                      const Icon(
-                        Icons.login_rounded,
-                        size: 13,
-                        color: Color(0xFF0F9F6E),
-                      ),
-                      const SizedBox(width: 3),
-                      Text(
-                        'حضور: ${_formatTime(correction.requestedCheckIn)}',
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF0F9F6E),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                    ],
-                    if (correction.requestedCheckOut != null) ...[
-                      Icon(Icons.logout_rounded, size: 13, color: scheme.error),
-                      const SizedBox(width: 3),
-                      Text(
-                        'انصراف: ${_formatTime(correction.requestedCheckOut)}',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          color: scheme.error,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-
-              // سبب التصحيح
-              if (correction.reason.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  correction.reason,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-
-              // أزرار اتخاذ القرار السريع (إذا كان معلّقاً)
-              if (isPending && (onApprove != null || onReject != null)) ...[
-                const Divider(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF0F9F6E),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                        ),
-                        onPressed: onApprove,
-                        icon: const Icon(Icons.check, size: 16),
-                        label: const Text('اعتماد'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: scheme.error,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                        ),
-                        onPressed: onReject,
-                        icon: const Icon(Icons.close, size: 16),
-                        label: const Text('رفض'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RequestCard extends StatelessWidget {
-  const _RequestCard({
-    required this.request,
-    required this.onTap,
-    required this.onApprove,
-    required this.onReject,
-  });
-
-  final MobileRequest request;
-  final VoidCallback onTap;
-  final VoidCallback? onApprove;
-  final VoidCallback? onReject;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final formatter = DateFormat('d MMM y', 'ar');
-    final isPending = request.status == 'pending';
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  AppAvatar(
-                    name: request.employeeName,
-                    photoUrl: request.employeePhotoUrl,
-                    radius: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          request.employeeName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        Text(
-                          '${_typeLabel(request.type)} · #${request.number}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  MobileStatusPill(request.status),
-                ],
-              ),
-              if (request.title?.isNotEmpty ?? false) ...[
-                const SizedBox(height: 10),
-                Text(
-                  request.title!,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ],
-              if (request.reason?.isNotEmpty ?? false) ...[
-                const SizedBox(height: 4),
-                Text(
-                  request.reason!,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Wrap(
                 spacing: 6,
-                runSpacing: 4,
+                runSpacing: 6,
                 children: [
-                  _metaChip(
-                    theme,
-                    icon: Icons.rule_rounded,
-                    text: request.activeStepName ?? 'قيد الاعتماد',
+                  RequestMetaChip(icon: _typeIcon, text: _typeLabel, color: color),
+                  RequestMetaChip(
+                    icon: Icons.today_rounded,
+                    text: arDay(correction.workDate),
                   ),
-                  _metaChip(
-                    theme,
-                    icon: Icons.calendar_today_outlined,
-                    text: formatter.format(request.createdAt),
-                  ),
+                  if (correction.requestedCheckIn != null)
+                    RequestMetaChip(
+                      icon: Icons.login_rounded,
+                      text: 'حضور ${_time(correction.requestedCheckIn)}',
+                      color: AppColors.statusSuccess,
+                    ),
+                  if (correction.requestedCheckOut != null)
+                    RequestMetaChip(
+                      icon: Icons.logout_rounded,
+                      text: 'انصراف ${_time(correction.requestedCheckOut)}',
+                      color: AppColors.statusDanger,
+                    ),
                 ],
               ),
+              if (correction.reason.trim().isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  correction.reason.trim(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    height: 1.45,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
               if (isPending && (onApprove != null || onReject != null)) ...[
-                const Divider(height: 16),
+                const Divider(height: 20),
                 Row(
                   children: [
                     Expanded(
+                      flex: 3,
                       child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.statusSuccess,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(42),
+                        ),
                         onPressed: onApprove,
-                        icon: const Icon(Icons.check, size: 18),
+                        icon: const Icon(Icons.check_rounded, size: 18),
                         label: const Text('اعتماد'),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
+                      flex: 2,
                       child: OutlinedButton.icon(
-                        onPressed: onReject,
-                        icon: const Icon(Icons.close, size: 18),
-                        label: const Text('رفض'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: theme.colorScheme.error,
+                          foregroundColor: AppColors.statusDanger,
+                          side: BorderSide(
+                            color: AppColors.statusDanger.withValues(alpha: .5),
+                          ),
+                          minimumSize: const Size.fromHeight(42),
                         ),
+                        onPressed: onReject,
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                        label: const Text('رفض'),
                       ),
                     ),
                   ],
@@ -999,44 +1242,4 @@ class _RequestCard extends StatelessWidget {
       ),
     );
   }
-
-  Widget _metaChip(
-    ThemeData theme, {
-    required IconData icon,
-    required String text,
-  }) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-    decoration: BoxDecoration(
-      color: theme.colorScheme.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 12, color: theme.colorScheme.onSurfaceVariant),
-        const SizedBox(width: 3),
-        Text(
-          text,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    ),
-  );
-
-  static String _typeLabel(String type) => switch (type) {
-    'leave' => 'طلب إجازة',
-    'mission' => 'مأمورية',
-    'convoy' => 'قافلة',
-    'fundraising' => 'فاندي',
-    'late_permit' => 'تصريح تأخير',
-    'early_permit' => 'تصريح انصراف مبكر',
-    'excuse' => 'إذن',
-    'overtime' => 'عمل إضافي',
-    'schedule_change' => 'تعديل جدول',
-    'location' => 'موقع فوري',
-    _ => type,
-  };
 }

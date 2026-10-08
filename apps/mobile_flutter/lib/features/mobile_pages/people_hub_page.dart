@@ -7,291 +7,121 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/employee_profile
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_employee_summary_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/org_chart_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/today_status_style.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:ahla_shabab_management_os/shared/hierarchy_sort.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// صفحة موحدة تجمع ثلاث صفحات منفصلة في مكان واحد:
-/// ١. دليل الموظفين (بحث حي)
-/// ٢. سجل الموظفين (قائمة كاملة مع فلتر الحالة)
-/// ٣. الهيكل التنظيمي (شجرة تفاعلية)
+/// الموظفون والهيكل الإداري — صفحة واحدة بدل ثلاث (الدليل/السجل/الهيكل):
+/// بحث، ملخص حالة اليوم (يُصفّي بالضغط)، والهيكل الإداري كاملًا شجرةً
+/// بحالة كل موظف اليوم. للإدارة وHR: تصفية بحالة التوظيف (السجل سابقًا).
 class PeopleHubPage extends ConsumerStatefulWidget {
   const PeopleHubPage({super.key, this.initialTab = 0});
 
-  /// التبويب الأولي عند فتح الصفحة
+  /// أُبقي للتوافق مع نقاط الدخول القديمة (كانت تفتح تبويبًا بعينه).
   final int initialTab;
 
   @override
   ConsumerState<PeopleHubPage> createState() => _PeopleHubPageState();
 }
 
-class _PeopleHubPageState extends ConsumerState<PeopleHubPage>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tab;
+/// الهيكل الإداري الكامل (get_admin_org_chart).
+final peopleOrgChartProvider = FutureProvider.autoDispose<List<OrgEmployee>>((
+  ref,
+) async {
+  final data = await ref
+      .watch(supabaseProvider)
+      .rpc<dynamic>('get_admin_org_chart')
+      .timeout(const Duration(seconds: 20));
+  final json = Map<String, dynamic>.from(data as Map);
+  return (json['employees'] as List<dynamic>? ?? const [])
+      .map((e) => OrgEmployee.fromJson(Map<String, dynamic>.from(e as Map)))
+      .toList(growable: false);
+  // رفض الصلاحية لا يتغير بالإعادة؛ التحديث اليدوي يعيد الطلب.
+}, retry: (_, _) => null);
 
-  @override
-  void initState() {
-    super.initState();
-    _tab = TabController(
-      length: 3,
-      vsync: this,
-      initialIndex: widget.initialTab,
-    );
+/// حالة اليوم لكل الموظفين في طلب واحد (بدل بحث على الخادم لكل حرف).
+final peopleTodayStatusProvider =
+    FutureProvider.autoDispose<List<DirectoryEmployee>>((ref) async {
+      final data = await ref
+          .watch(supabaseProvider)
+          .rpc<dynamic>(
+            'get_mobile_employee_directory',
+            params: {'p_search': null, 'p_limit': 100},
+          )
+          .timeout(const Duration(seconds: 15));
+      return (data as List<dynamic>? ?? const [])
+          .map(
+            (e) =>
+                DirectoryEmployee.fromJson(Map<String, dynamic>.from(e as Map)),
+          )
+          .toList(growable: false);
+    });
+
+const _employmentFilters = <(String, String)>[
+  ('all', 'كل الحالات'),
+  ('active', 'نشط'),
+  ('onboarding', 'قيد التهيئة'),
+  ('invited', 'تمت الدعوة'),
+  ('notice_period', 'فترة إخطار'),
+  ('suspended', 'موقوف'),
+  ('terminated', 'منتهي'),
+  ('archived', 'مؤرشف'),
+];
+
+const _registryRoles = {
+  'admin',
+  'system-admin',
+  'executive-secretary',
+  'executive',
+  'executive-director',
+  'hr-manager',
+  'hr-specialist',
+};
+
+/// شخص في الشاشة: من الهيكل الإداري (أو الدليل إن لم يتح الهيكل) مع حالته اليوم.
+class _Person {
+  _Person({
+    required this.id,
+    required this.name,
+    this.jobTitle,
+    this.department,
+    this.photoUrl,
+    this.code,
+    this.managerId,
+  });
+
+  final String id;
+  final String name;
+  final String? jobTitle;
+  final String? department;
+  final String? photoUrl;
+  final String? code;
+  final String? managerId;
+  String? status;
+  String? statusLabel;
+  String? activity;
+  final List<_Person> team = [];
+
+  bool get hasStatus => status != null;
+  String get label => todayStatusLabel(status, fallback: statusLabel);
+  Color get color => todayStatusColor(status);
+  String? get destination {
+    final a = humanizeIsoDates(activity?.trim() ?? '');
+    return isOffsiteStatus(status) && a.isNotEmpty ? a : null;
   }
 
-  @override
-  void dispose() {
-    _tab.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('الموظفون والهيكل التنظيمي'),
-        bottom: TabBar(
-          controller: _tab,
-          labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
-          indicatorSize: TabBarIndicatorSize.tab,
-          dividerColor: Colors.transparent,
-          indicator: BoxDecoration(
-            color: scheme.primary.withValues(alpha: .12),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          tabs: const [
-            Tab(icon: Icon(Icons.manage_search_rounded, size: 20), text: 'الدليل'),
-            Tab(icon: Icon(Icons.badge_outlined, size: 20), text: 'السجل'),
-            Tab(icon: Icon(Icons.account_tree_rounded, size: 20), text: 'الهيكل'),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tab,
-        children: const [
-          _DirectoryTab(),
-          _EmployeeRegistryTab(),
-          _OrgChartTab(),
-        ],
-      ),
-    );
-  }
+  late final String searchText =
+      '$name ${code ?? ''} ${jobTitle ?? ''} ${department ?? ''}'.toLowerCase();
 }
 
-// ════════════════════════════════════════════════════════
-// التبويب ١ — دليل الموظفين (بحث حي)
-// ════════════════════════════════════════════════════════
-
-class _DirectoryTab extends ConsumerStatefulWidget {
-  const _DirectoryTab();
-
-  @override
-  ConsumerState<_DirectoryTab> createState() => _DirectoryTabState();
-}
-
-class _DirectoryTabState extends ConsumerState<_DirectoryTab> {
-  final _ctrl = TextEditingController();
-  String _query = '';
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final results = ref.watch(employeeDirectoryProvider(_query));
-
-    return Column(
-      children: [
-        // ── شريط البحث ──
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: TextField(
-            controller: _ctrl,
-            decoration: InputDecoration(
-              hintText: 'ابحث بالاسم أو الكود أو الإدارة…',
-              prefixIcon: const Icon(Icons.search_rounded),
-              suffixIcon: _query.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear_rounded),
-                      onPressed: () {
-                        _ctrl.clear();
-                        setState(() => _query = '');
-                      },
-                    )
-                  : null,
-              filled: true,
-              fillColor: scheme.surfaceContainerHighest.withValues(alpha: .5),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-            ),
-            onChanged: (v) => setState(() => _query = v.trim()),
-          ),
-        ),
-        // ── المحتوى ──
-        Expanded(
-          child: results.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => _ErrorRetry(
-              message: humanizeError(e),
-              onRetry: () => ref.invalidate(employeeDirectoryProvider(_query)),
-            ),
-            data: (items) {
-              if (_query.isEmpty) {
-                return _DirectoryEmptyPrompt(scheme: scheme);
-              }
-              if (items.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.person_search_outlined,
-                          size: 56,
-                          color: scheme.onSurfaceVariant.withValues(alpha: .4)),
-                      const SizedBox(height: 12),
-                      Text(
-                        'لا توجد نتائج مطابقة لـ "$_query"',
-                        style: TextStyle(color: scheme.onSurfaceVariant),
-                      ),
-                    ],
-                  ),
-                );
-              }
-              final sorted = sortByHierarchy<DirectoryEmployee>(
-                items,
-                (e) => e.jobTitle ?? '',
-                (e) => e.name,
-              );
-              return ListView.separated(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                itemCount: sorted.length,
-                separatorBuilder: (_, _) => const Divider(height: 1),
-                itemBuilder: (ctx, i) => _DirectoryTile(employee: sorted[i]),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _DirectoryEmptyPrompt extends StatelessWidget {
-  const _DirectoryEmptyPrompt({required this.scheme});
-  final ColorScheme scheme;
-
-  @override
-  Widget build(BuildContext context) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.groups_3_outlined,
-              size: 72,
-              color: scheme.primary.withValues(alpha: .25),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'ابحث عن أي موظف في المنظومة',
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
-                color: scheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'بالاسم أو الكود أو الإدارة أو المسمى الوظيفي',
-              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-}
-
-class _DirectoryTile extends StatelessWidget {
-  const _DirectoryTile({required this.employee});
-  final DirectoryEmployee employee;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final sub = [employee.jobTitle, employee.department]
-        .where((s) => s != null && s.isNotEmpty)
-        .join(' · ');
-    final isPresent = employee.statusToday == 'present';
-    final isOnLeave = employee.statusToday == 'on_leave';
-
-    return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: AppAvatar(
-          name: employee.name, photoUrl: employee.photoUrl, radius: 22),
-      title: Text(employee.name,
-          style: const TextStyle(fontWeight: FontWeight.w700)),
-      subtitle: sub.isNotEmpty ? Text(sub) : null,
-      trailing: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (isPresent || isOnLeave)
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: (isPresent
-                        ? const Color(0xFF0F9F6E)
-                        : scheme.primary)
-                    .withValues(alpha: .12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                isPresent ? 'حاضر' : 'في إجازة',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: isPresent
-                      ? const Color(0xFF0F9F6E)
-                      : scheme.primary,
-                ),
-              ),
-            ),
-          if (employee.employeeCode != null)
-            Text(employee.employeeCode!,
-                style: Theme.of(context).textTheme.bodySmall),
-        ],
-      ),
-    );
-  }
-}
-
-// ════════════════════════════════════════════════════════
-// التبويب ٢ — سجل الموظفين (قائمة كاملة مع فلتر الحالة)
-// ════════════════════════════════════════════════════════
-
-class _EmployeeRegistryTab extends ConsumerStatefulWidget {
-  const _EmployeeRegistryTab();
-
-  @override
-  ConsumerState<_EmployeeRegistryTab> createState() =>
-      _EmployeeRegistryTabState();
-}
-
-class _EmployeeRegistryTabState extends ConsumerState<_EmployeeRegistryTab> {
+class _PeopleHubPageState extends ConsumerState<PeopleHubPage> {
   final _search = TextEditingController();
   String _query = '';
-  String _status = 'all';
+  TodayStatusGroup? _group;
+  String? _employment;
+  final _collapsed = <String>{};
 
   @override
   void dispose() {
@@ -299,648 +129,774 @@ class _EmployeeRegistryTabState extends ConsumerState<_EmployeeRegistryTab> {
     super.dispose();
   }
 
+  void _refresh() {
+    ref.invalidate(peopleOrgChartProvider);
+    ref.invalidate(peopleTodayStatusProvider);
+    if (_employment != null) {
+      ref.invalidate(mobileEmployeesProvider(('', _employment!)));
+    }
+  }
+
+  void _open(String id, String name) {
+    final access = ref.read(accessContextProvider).value;
+    // 0451: المدير التنفيذي يفتح ملخصه التنفيذي للشخص بدل الملف العام.
+    final isExecutive =
+        (access?.roles.contains('executive-director') ?? false) ||
+        (access?.workspaces.contains(WorkspaceId.executive) ?? false);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => isExecutive
+            ? ExecutiveEmployeeSummaryPage(employeeId: id, employeeName: name)
+            : EmployeeProfilePage(employeeId: id, employeeName: name),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final employees =
-        ref.watch(mobileEmployeesProvider((_query.trim(), _status)));
+    final access = ref.watch(accessContextProvider).value;
+    final canFilterEmployment =
+        access?.roles.any(_registryRoles.contains) ?? false;
 
-    return RefreshIndicator(
-      onRefresh: () async =>
-          ref.invalidate(mobileEmployeesProvider((_query.trim(), _status))),
-      child: employees.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            const SizedBox(height: 120),
-            _ErrorRetry(
-              message: humanizeError(e),
-              onRetry: () => ref.invalidate(
-                  mobileEmployeesProvider((_query.trim(), _status))),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('الموظفون والهيكل الإداري'),
+        actions: [
+          if (canFilterEmployment)
+            PopupMenuButton<String>(
+              tooltip: 'حالة التوظيف',
+              icon: Icon(
+                Icons.filter_list_rounded,
+                color: _employment != null
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+              ),
+              onSelected: (v) => setState(() {
+                _employment = v == '_tree' ? null : v;
+                _group = null;
+              }),
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: '_tree',
+                  child: Text('الهيكل الإداري (الافتراضي)'),
+                ),
+                const PopupMenuDivider(),
+                for (final f in _employmentFilters)
+                  PopupMenuItem(
+                    value: f.$1,
+                    child: Text('حالة التوظيف: ${f.$2}'),
+                  ),
+              ],
             ),
-          ],
+          IconButton(
+            tooltip: 'تحديث',
+            onPressed: _refresh,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: () async => _refresh(),
+        child: _employment != null ? _registryBody() : _peopleBody(),
+      ),
+    );
+  }
+
+  // ── الحقل والملخص ───────────────────────────────────────────────────────
+
+  Widget _searchField() {
+    final scheme = Theme.of(context).colorScheme;
+    return TextField(
+      controller: _search,
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        hintText: 'ابحث بالاسم أو الكود أو الوظيفة أو الإدارة…',
+        prefixIcon: const Icon(Icons.search_rounded),
+        suffixIcon: _query.isNotEmpty
+            ? IconButton(
+                tooltip: 'مسح',
+                icon: const Icon(Icons.clear_rounded),
+                onPressed: () {
+                  _search.clear();
+                  setState(() => _query = '');
+                },
+              )
+            : null,
+        filled: true,
+        fillColor: scheme.surfaceContainerHighest.withValues(alpha: .5),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
         ),
-        data: (data) {
-          final sorted = sortByHierarchy<MobileEmployeeSummary>(
-            data,
-            (e) => e.jobTitle ?? '',
-            (e) => e.fullNameAr,
-          );
-          return ListView(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      ),
+      onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+    );
+  }
+
+  Widget _summary(List<_Person> people) {
+    final counts = <TodayStatusGroup, int>{};
+    for (final p in people.where((p) => p.hasStatus)) {
+      final g = TodayStatusGroup.of(p.status);
+      counts[g] = (counts[g] ?? 0) + 1;
+    }
+    // كل المجموعات ظاهرة معًا (Wrap) — لا شريط أفقي يخفي بعضها.
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _SummaryChip(
+          label: 'الكل',
+          count: people.length,
+          color: Theme.of(context).colorScheme.primary,
+          icon: Icons.groups_rounded,
+          selected: _group == null,
+          onTap: () => setState(() => _group = null),
+        ),
+        for (final g in TodayStatusGroup.values)
+          if ((counts[g] ?? 0) > 0)
+            _SummaryChip(
+              label: g.label,
+              count: counts[g]!,
+              color: g.color,
+              icon: g.icon,
+              selected: _group == g,
+              onTap: () => setState(() => _group = _group == g ? null : g),
+            ),
+      ],
+    );
+  }
+
+  // ── الشاشة الرئيسية: الهيكل أو نتائج البحث/التصفية ──────────────────────
+
+  Widget _peopleBody() {
+    final org = ref.watch(peopleOrgChartProvider);
+    final today = ref.watch(peopleTodayStatusProvider);
+
+    // الخطأ (مثل عدم إتاحة الهيكل لهذا المستخدم) لا يُنتظر: يُعرض الدليل وحده.
+    bool waiting(AsyncValue<Object?> v) =>
+        v.isLoading && !v.hasValue && !v.hasError;
+    if (waiting(org) || waiting(today)) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final orgList = org.hasError ? null : org.value;
+    final todayList = today.value ?? const <DirectoryEmployee>[];
+    if (orgList == null && todayList.isEmpty) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          const SizedBox(height: 120),
+          _ErrorRetry(
+            message: humanizeError(org.error ?? today.error ?? 'تعذر التحميل'),
+            onRetry: _refresh,
+          ),
+        ],
+      );
+    }
+
+    // الأشخاص من الهيكل (أو من الدليل إن لم يتح الهيكل لهذا المستخدم)
+    final byId = <String, _Person>{};
+    if (orgList != null) {
+      for (final e in orgList) {
+        byId[e.id] = _Person(
+          id: e.id,
+          name: e.fullNameAr,
+          jobTitle: e.jobTitle,
+          department: e.departmentName,
+          photoUrl: e.photoUrl,
+          code: e.employeeCode,
+          managerId: e.managerEmployeeId,
+        );
+      }
+    }
+    for (final d in todayList) {
+      final p = byId.putIfAbsent(
+        d.id,
+        () => _Person(
+          id: d.id,
+          name: d.name,
+          jobTitle: d.jobTitle,
+          department: d.department,
+          photoUrl: d.photoUrl,
+          code: d.employeeCode,
+        ),
+      );
+      p
+        ..status = d.statusToday
+        ..statusLabel = d.statusTodayLabel
+        ..activity = d.activityTitle;
+    }
+    final people = byId.values.toList(growable: false);
+    for (final p in people) {
+      final m = p.managerId == null ? null : byId[p.managerId];
+      m?.team.add(p);
+    }
+    List<_Person> sorted(List<_Person> list) =>
+        sortByHierarchy<_Person>(list, (p) => p.jobTitle ?? '', (p) => p.name);
+    for (final p in people) {
+      final ordered = sorted(p.team);
+      p.team
+        ..clear()
+        ..addAll(ordered);
+    }
+    final roots = sorted(
+      people
+          .where((p) => p.managerId == null || !byId.containsKey(p.managerId))
+          .toList(),
+    );
+    final hasTree = orgList != null;
+    final filtering = _query.isNotEmpty || _group != null || !hasTree;
+    final matches = filtering
+        ? sorted(
+            people
+                .where(
+                  (p) =>
+                      (_query.isEmpty || p.searchText.contains(_query)) &&
+                      (_group == null ||
+                          (p.hasStatus &&
+                              TodayStatusGroup.of(p.status) == _group)),
+                )
+                .toList(),
+          )
+        : const <_Person>[];
+    final theme = Theme.of(context);
+
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      children: [
+        _searchField(),
+        const SizedBox(height: 10),
+        _summary(people),
+        const SizedBox(height: 12),
+        if (!filtering) ...[
+          Row(
+            children: [
+              Icon(
+                Icons.account_tree_rounded,
+                size: 18,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'الهيكل الإداري',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => setState(_collapsed.clear),
+                child: const Text('توسيع الكل'),
+              ),
+              TextButton(
+                onPressed: () => setState(() {
+                  _collapsed
+                    ..clear()
+                    ..addAll(
+                      people.where((p) => p.team.isNotEmpty).map((p) => p.id),
+                    );
+                }),
+                child: const Text('طي الكل'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          for (final r in roots) _treeNode(r, root: true),
+        ] else ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              matches.isEmpty
+                  ? 'لا توجد نتائج مطابقة'
+                  : _employeesCount(matches.length),
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          for (final p in matches)
+            _PersonTile(
+              person: p,
+              managerName: p.managerId == null ? null : byId[p.managerId]?.name,
+              onTap: () => _open(p.id, p.name),
+            ),
+        ],
+      ],
+    );
+  }
+
+  Widget _treeNode(_Person person, {bool root = false}) {
+    final expanded = !_collapsed.contains(person.id);
+    final card = _NodeCard(
+      person: person,
+      root: root,
+      expanded: expanded,
+      onOpen: () => _open(person.id, person.name),
+      onToggle: person.team.isEmpty
+          ? null
+          : () => setState(() {
+              if (expanded) {
+                _collapsed.add(person.id);
+              } else {
+                _collapsed.remove(person.id);
+              }
+            }),
+    );
+    if (person.team.isEmpty || !expanded) return card;
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    final lineColor = Theme.of(context).colorScheme.outlineVariant;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        card,
+        Padding(
+          // الخط الرأسي تحت مركز صورة الأب
+          padding: EdgeInsetsDirectional.only(
+            start: _NodeCard.avatarCenter(root: root) - 1,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < person.team.length; i++)
+                CustomPaint(
+                  painter: _GuidePainter(
+                    color: lineColor,
+                    rtl: rtl,
+                    last: i == person.team.length - 1,
+                    tickY: 6 + _NodeCard.avatarCenter(root: false),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsetsDirectional.only(
+                      start: 16,
+                      top: 6,
+                    ),
+                    child: _treeNode(person.team[i]),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── حالة التوظيف (السجل سابقًا) — للإدارة وHR ──────────────────────────
+
+  Widget _registryBody() {
+    final status = _employment!;
+    final list = ref.watch(mobileEmployeesProvider(('', status)));
+    final label = _employmentFilters
+        .firstWhere((f) => f.$1 == status, orElse: () => (status, status))
+        .$2;
+    return list.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          const SizedBox(height: 120),
+          _ErrorRetry(message: humanizeError(e), onRetry: _refresh),
+        ],
+      ),
+      data: (items) {
+        final matches = sortByHierarchy<MobileEmployeeSummary>(
+          items
+              .where(
+                (e) =>
+                    _query.isEmpty ||
+                    '${e.fullNameAr} ${e.employeeCode ?? ''} ${e.jobTitle ?? ''} ${e.department ?? ''}'
+                        .toLowerCase()
+                        .contains(_query),
+              )
+              .toList(),
+          (e) => e.jobTitle ?? '',
+          (e) => e.fullNameAr,
+        );
+        return ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
           children: [
-            MobileFilterBar(
-              searchHint: 'بحث بالاسم أو كود الموظف',
-              controller: _search,
-              onSearchChanged: (v) => setState(() => _query = v),
-              options: const [
-                MobileFilterOption('all', 'الكل'),
-                MobileFilterOption('active', 'نشط'),
-                MobileFilterOption('onboarding', 'قيد التهيئة'),
-                MobileFilterOption('invited', 'تمت الدعوة'),
-                MobileFilterOption('notice_period', 'فترة إخطار'),
-                MobileFilterOption('suspended', 'موقوف'),
-                MobileFilterOption('terminated', 'منتهي'),
-                MobileFilterOption('archived', 'مؤرشف'),
-              ],
-              selected: _status,
-              onSelected: (v) => setState(() => _status = v),
-              resultLabel:
-                  sorted.isEmpty ? 'لا نتائج' : '${sorted.length} موظف',
-            ),
+            _searchField(),
             const SizedBox(height: 10),
-            if (sorted.isEmpty)
+            Row(
+              children: [
+                InputChip(
+                  avatar: const Icon(Icons.filter_list_rounded, size: 18),
+                  label: Text('حالة التوظيف: $label'),
+                  onDeleted: () => setState(() => _employment = null),
+                  deleteButtonTooltipMessage: 'العودة إلى الهيكل',
+                ),
+                const Spacer(),
+                Text(
+                  _employeesCount(matches.length),
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (matches.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 48),
-                child:
-                    Center(child: Text('لا يوجد موظفون مطابقون')),
+                child: Center(child: Text('لا يوجد موظفون مطابقون')),
               )
             else
-              ...sorted.map(
-                (emp) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _RegistryCard(
-                    employee: emp,
-                    // 0451: المدير التنفيذي يفتح ملخصه التنفيذي الغني للشخص
-                    // بدل الملف العام — بقية الأدوار على الملف الطبيعي.
-                    onTap: () {
-                      final access = ref.read(accessContextProvider).value;
-                      final isExecutive = (access?.roles.contains(
-                                'executive-director',
-                              ) ??
-                              false) ||
-                          (access?.workspaces.contains(
-                                WorkspaceId.executive,
-                              ) ??
-                              false);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => isExecutive
-                              ? ExecutiveEmployeeSummaryPage(
-                                  employeeId: emp.id,
-                                  employeeName: emp.fullNameAr,
-                                )
-                              : EmployeeProfilePage(
-                                   employeeId: emp.id,
-                                   employeeName: emp.fullNameAr,
-                                 ),
-                         ),
-                       );
-                     },
-                   ),
-                 ),
-               ),
+              for (final e in matches)
+                _PersonTile(
+                  person: _Person(
+                    id: e.id,
+                    name: e.fullNameAr,
+                    jobTitle: e.jobTitle,
+                    department: e.department,
+                    photoUrl: e.photoUrl,
+                    code: e.employeeCode,
+                  ),
+                  employmentStatus: e.status,
+                  onTap: () => _open(e.id, e.fullNameAr),
+                ),
           ],
-          );
-        },
+        );
+      },
+    );
+  }
+}
+
+class _SummaryChip extends StatelessWidget {
+  const _SummaryChip({
+    required this.label,
+    required this.count,
+    required this.color,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int count;
+  final Color color;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected
+          ? color.withValues(alpha: .18)
+          : color.withValues(alpha: .07),
+      shape: StadiumBorder(
+        side: BorderSide(
+          color: color.withValues(alpha: selected ? .9 : .3),
+          width: selected ? 1.4 : 1,
+        ),
+      ),
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 6),
+              Text(
+                '$label $count',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-class _RegistryCard extends StatelessWidget {
-  const _RegistryCard({required this.employee, required this.onTap});
-  final MobileEmployeeSummary employee;
-  final VoidCallback onTap;
+/// بطاقة شخص في الشجرة: الصورة بحلقة لون حالته اليوم، الاسم والوظيفة، حالته،
+/// وعدد فريقه مع زر الطي/التوسيع.
+class _NodeCard extends StatelessWidget {
+  const _NodeCard({
+    required this.person,
+    required this.root,
+    required this.expanded,
+    required this.onOpen,
+    this.onToggle,
+  });
+
+  final _Person person;
+  final bool root;
+  final bool expanded;
+  final VoidCallback onOpen;
+  final VoidCallback? onToggle;
+
+  static const double _padding = 10;
+  static double _radius({required bool root}) => root ? 22 : 18;
+
+  /// مركز الصورة من بداية البطاقة (لخطوط الشجرة): الحشوة + الحلقة + نصف القطر.
+  static double avatarCenter({required bool root}) =>
+      _padding + 3 + _radius(root: root);
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final orgInfo = [
-      if (employee.jobTitle?.isNotEmpty ?? false) employee.jobTitle!,
-      if (employee.department?.isNotEmpty ?? false) employee.department!,
-      if (employee.team?.isNotEmpty ?? false) employee.team!,
-    ].join(' — ');
-
-    return Card(
+    final scheme = theme.colorScheme;
+    final ringColor = person.hasStatus ? person.color : scheme.outlineVariant;
+    return Material(
+      color: root
+          ? scheme.primaryContainer.withValues(alpha: .4)
+          : scheme.surfaceContainerHighest.withValues(alpha: .4),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: root
+              ? scheme.primary.withValues(alpha: .45)
+              : scheme.outlineVariant.withValues(alpha: .6),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
+        onTap: onOpen,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(_padding),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppAvatar(
-                  name: employee.fullNameAr,
-                  photoUrl: employee.photoUrl,
-                  radius: 22),
+              Container(
+                padding: const EdgeInsets.all(1.5),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: ringColor, width: 1.5),
+                ),
+                child: AppAvatar(
+                  name: person.name,
+                  photoUrl: person.photoUrl,
+                  radius: _radius(root: root),
+                ),
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      employee.fullNameAr,
+                      person.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyLarge
-                          ?.copyWith(fontWeight: FontWeight.w800),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        fontSize: root ? 15 : null,
+                      ),
                     ),
-                    if (orgInfo.isNotEmpty) ...[
-                      const SizedBox(height: 2),
+                    if (person.jobTitle?.trim().isNotEmpty ?? false)
                       Text(
-                        orgInfo,
+                        person.jobTitle!.trim(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
-                    ],
-                    if (employee.employeeCode != null) ...[
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        children: [
-                          _chip(context,
-                              icon: Icons.badge_outlined,
-                              text: employee.employeeCode!),
-                          if (employee.branch?.isNotEmpty ?? false)
-                            _chip(context,
-                                icon: Icons.location_on_outlined,
-                                text: employee.branch!),
-                          MobileStatusPill(employee.status),
-                        ],
-                      ),
+                    if (person.hasStatus) ...[
+                      const SizedBox(height: 3),
+                      _StatusLine(person: person),
                     ],
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_left_rounded, color: Colors.grey),
+              if (onToggle != null)
+                InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: onToggle,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 4,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: scheme.primary.withValues(alpha: .12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${person.team.length}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              color: scheme.primary,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          expanded
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          size: 20,
+                          color: scheme.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
       ),
     );
   }
-
-  Widget _chip(BuildContext context,
-      {required IconData icon, required String text}) =>
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon,
-                size: 12,
-                color: Theme.of(context).colorScheme.onSurfaceVariant),
-            const SizedBox(width: 3),
-            Text(
-              text,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ],
-        ),
-      );
 }
 
-// ════════════════════════════════════════════════════════
-// التبويب ٣ — الهيكل التنظيمي
-// ════════════════════════════════════════════════════════
+class _StatusLine extends StatelessWidget {
+  const _StatusLine({required this.person});
 
-final _peopleHubOrgProvider =
-    FutureProvider.autoDispose<OrgChartData>((ref) async {
-  final data = await ref
-      .watch(supabaseProvider)
-      .rpc<dynamic>('get_admin_org_chart')
-      .timeout(const Duration(seconds: 20));
-  final json = Map<String, dynamic>.from(data as Map);
-  final employees = (json['employees'] as List<dynamic>? ?? [])
-      .map((e) => OrgEmployee.fromJson(Map<String, dynamic>.from(e as Map)))
-      .toList(growable: false);
-  final tree = _buildPeopleHubTree(employees);
-  final stats = _computePeopleHubStats(employees);
-  return OrgChartData(employees: employees, tree: tree, stats: stats);
-});
-
-List<OrgTreeNode> _buildPeopleHubTree(List<OrgEmployee> employees) {
-  final map = <String, OrgTreeNode>{};
-  for (final emp in employees) {
-    map[emp.id] = OrgTreeNode(employee: emp, children: []);
-  }
-  final roots = <OrgTreeNode>[];
-  for (final node in map.values) {
-    final mgrId = node.employee.managerEmployeeId;
-    if (mgrId != null && map.containsKey(mgrId)) {
-      map[mgrId]!.children.add(node);
-    } else {
-      roots.add(node);
-    }
-  }
-  return roots;
-}
-
-OrgStats _computePeopleHubStats(List<OrgEmployee> employees) {
-  if (employees.isEmpty) {
-    return const OrgStats(
-        totalEmployees: 0, managersCount: 0, maxDepth: 0, avgDirectReports: 0);
-  }
-  final managers = employees.where((e) => e.directReportsCount > 0).length;
-  final maxDepth =
-      employees.fold<int>(0, (m, e) => e.depth > m ? e.depth : m);
-  final totalReports =
-      employees.fold<int>(0, (s, e) => s + e.directReportsCount);
-  final avg = managers > 0 ? (totalReports / managers).roundToDouble() : 0.0;
-  return OrgStats(
-    totalEmployees: employees.length,
-    managersCount: managers,
-    maxDepth: maxDepth,
-    avgDirectReports: avg,
-  );
-}
-
-class _OrgChartTab extends ConsumerWidget {
-  const _OrgChartTab();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final data = ref.watch(_peopleHubOrgProvider);
-    return RefreshIndicator(
-      onRefresh: () async => ref.invalidate(_peopleHubOrgProvider),
-      child: data.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(24),
-          children: [
-            const SizedBox(height: 80),
-            _ErrorRetry(
-              message: humanizeError(e),
-              onRetry: () => ref.invalidate(_peopleHubOrgProvider),
-            ),
-          ],
-        ),
-        data: (chart) => _OrgChartBody(chart: chart),
-      ),
-    );
-  }
-}
-
-class _OrgChartBody extends StatefulWidget {
-  const _OrgChartBody({required this.chart});
-  final OrgChartData chart;
-
-  @override
-  State<_OrgChartBody> createState() => _OrgChartBodyState();
-}
-
-class _OrgChartBodyState extends State<_OrgChartBody> {
-  String _search = '';
-  final _expanded = <String>{};
-
-  @override
-  void initState() {
-    super.initState();
-    _expandDefaults(widget.chart.tree, 0);
-  }
-
-  void _expandDefaults(List<OrgTreeNode> nodes, int depth) {
-    if (depth >= 2) return;
-    for (final n in nodes) {
-      if (n.children.isNotEmpty) {
-        _expanded.add(n.employee.id);
-        _expandDefaults(n.children, depth + 1);
-      }
-    }
-  }
-
-  void _expandAll(List<OrgTreeNode> nodes) {
-    for (final n in nodes) {
-      if (n.children.isNotEmpty) {
-        _expanded.add(n.employee.id);
-        _expandAll(n.children);
-      }
-    }
-  }
+  final _Person person;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    final filtered = _search.isEmpty
-        ? <OrgEmployee>[]
-        : widget.chart.employees.where((e) {
-            final hay =
-                '${e.fullNameAr} ${e.fullNameEn ?? ''} ${e.employeeCode} ${e.jobTitle} ${e.departmentName}'
-                    .toLowerCase();
-            return hay.contains(_search.toLowerCase());
-          }).toList(growable: false);
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
+    final destination = person.destination;
+    return Row(
       children: [
-        // ── إحصائيات ──
-        Row(
-          children: [
-            _OrgStatChip(
-              icon: Icons.groups_rounded,
-              label: 'الموظفون',
-              value: '${widget.chart.stats.totalEmployees}',
-              color: scheme.primary,
-            ),
-            const SizedBox(width: 8),
-            _OrgStatChip(
-              icon: Icons.account_tree_rounded,
-              label: 'المديرون',
-              value: '${widget.chart.stats.managersCount}',
-              color: scheme.tertiary,
-            ),
-            const SizedBox(width: 8),
-            _OrgStatChip(
-              icon: Icons.layers_rounded,
-              label: 'مستويات',
-              value: '${widget.chart.stats.maxDepth}',
-              color: scheme.secondary,
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-
-        // ── بحث ──
-        TextField(
-          decoration: InputDecoration(
-            hintText: 'ابحث في الهيكل التنظيمي…',
-            prefixIcon: const Icon(Icons.search),
-            border:
-                OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-            filled: true,
-            fillColor: scheme.surfaceContainerHighest.withValues(alpha: .5),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: person.color,
+            shape: BoxShape.circle,
           ),
-          onChanged: (v) => setState(() => _search = v.trim()),
         ),
-        const SizedBox(height: 6),
-
-        // ── أزرار توسيع/طي ──
-        if (_search.isEmpty)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton.icon(
-                onPressed: () => setState(() {
-                  _expanded.clear();
-                  _expandAll(widget.chart.tree);
-                }),
-                icon: const Icon(Icons.unfold_more_rounded, size: 18),
-                label: const Text('توسيع الكل'),
-              ),
-              TextButton.icon(
-                onPressed: () => setState(_expanded.clear),
-                icon: const Icon(Icons.unfold_less_rounded, size: 18),
-                label: const Text('طي الكل'),
-              ),
-            ],
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            destination == null
+                ? person.label
+                : '${person.label} — $destination',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: person.color,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-
-        // ── المحتوى ──
-        if (_search.isNotEmpty)
-          ...filtered.isEmpty
-              ? [
-                  Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      children: [
-                        Icon(Icons.search_off_rounded,
-                            size: 48,
-                            color: scheme.onSurfaceVariant),
-                        const SizedBox(height: 8),
-                        const Text('لا توجد نتائج',
-                            textAlign: TextAlign.center),
-                      ],
-                    ),
-                  )
-                ]
-              : filtered
-                  .map((e) => _OrgCard(
-                        employee: e,
-                        indent: 0,
-                        isManager: e.directReportsCount > 0,
-                        isExpanded: false,
-                        onToggle: () {},
-                      ))
-                  .toList()
-        else
-          ...widget.chart.tree.expand((node) => _buildNode(node, 0)),
+        ),
       ],
     );
   }
-
-  List<Widget> _buildNode(OrgTreeNode node, int depth) {
-    final emp = node.employee;
-    final isExpanded = _expanded.contains(emp.id);
-    final hasChildren = node.children.isNotEmpty;
-    return [
-      _OrgCard(
-        employee: emp,
-        indent: depth,
-        isManager: hasChildren,
-        isExpanded: isExpanded,
-        onToggle: hasChildren
-            ? () => setState(() {
-                  if (isExpanded) {
-                    _expanded.remove(emp.id);
-                  } else {
-                    _expanded.add(emp.id);
-                  }
-                })
-            : () {},
-      ),
-      if (hasChildren && isExpanded)
-        ...node.children.expand((c) => _buildNode(c, depth + 1)),
-    ];
-  }
 }
 
-class _OrgStatChip extends StatelessWidget {
-  const _OrgStatChip({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
+/// سطر نتيجة بحث/تصفية: الشخص ووظيفته وإدارته وحالته اليوم وفريق من يتبع.
+class _PersonTile extends StatelessWidget {
+  const _PersonTile({
+    required this.person,
+    required this.onTap,
+    this.managerName,
+    this.employmentStatus,
   });
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
 
-  @override
-  Widget build(BuildContext context) => Expanded(
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            child: Row(
-              children: [
-                Icon(icon, size: 18, color: color),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(value,
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              color: color)),
-                      Text(label,
-                          style: TextStyle(
-                              fontSize: 10,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-}
-
-class _OrgCard extends StatelessWidget {
-  const _OrgCard({
-    required this.employee,
-    required this.indent,
-    required this.isManager,
-    required this.isExpanded,
-    required this.onToggle,
-  });
-  final OrgEmployee employee;
-  final int indent;
-  final bool isManager;
-  final bool isExpanded;
-  final VoidCallback onToggle;
+  final _Person person;
+  final VoidCallback onTap;
+  final String? managerName;
+  final String? employmentStatus;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final isRoot = indent == 0;
-    final depthColor = switch (indent % 3) {
-      0 => scheme.primary,
-      1 => scheme.tertiary,
-      _ => scheme.secondary,
-    };
-
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final sub = [
+      if (person.jobTitle?.trim().isNotEmpty ?? false) person.jobTitle!.trim(),
+      if (person.department?.trim().isNotEmpty ?? false)
+        person.department!.trim(),
+    ].join(' · ');
     return Padding(
-      padding: EdgeInsetsDirectional.only(start: indent * 16.0),
-      child: Card(
-        color: isRoot ? scheme.primaryContainer.withValues(alpha: .35) : null,
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: scheme.surfaceContainerHighest.withValues(alpha: .4),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: scheme.outlineVariant.withValues(alpha: .6)),
+        ),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => EmployeeProfilePage(
-                employeeId: employee.id,
-                employeeName: employee.fullNameAr,
-              ),
-            ),
-          ),
+          onTap: onTap,
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.all(10),
             child: Row(
               children: [
                 Container(
-                  width: 4,
-                  height: 40,
-                  margin: const EdgeInsetsDirectional.only(end: 10),
+                  padding: const EdgeInsets.all(1.5),
                   decoration: BoxDecoration(
-                    color: depthColor,
-                    borderRadius: BorderRadius.circular(4),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: person.hasStatus
+                          ? person.color
+                          : scheme.outlineVariant,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: AppAvatar(
+                    name: person.name,
+                    photoUrl: person.photoUrl,
+                    radius: 20,
                   ),
                 ),
-                AppAvatar(
-                  name: employee.fullNameAr,
-                  photoUrl: employee.photoUrl,
-                  radius: isRoot ? 24 : 20,
-                ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              employee.fullNameAr,
-                              style: TextStyle(
-                                fontWeight: isRoot
-                                    ? FontWeight.w900
-                                    : FontWeight.w800,
-                                fontSize: isRoot ? 15 : 14,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (isManager && employee.directReportsCount > 0) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: scheme.primary.withValues(alpha: .12),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '${employee.directReportsCount} مرؤوس',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                  color: scheme.primary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
                       Text(
-                        employee.jobTitle.isNotEmpty
-                            ? employee.jobTitle
-                            : 'غير محدد',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: scheme.onSurfaceVariant,
-                        ),
+                        person.name,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
-                      if (employee.departmentName.isNotEmpty)
+                      if (sub.isNotEmpty)
                         Text(
-                          employee.departmentName,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color:
-                                scheme.onSurfaceVariant.withValues(alpha: .7),
-                          ),
+                          sub,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      if (person.hasStatus) ...[
+                        const SizedBox(height: 3),
+                        _StatusLine(person: person),
+                      ],
+                      if (managerName != null)
+                        Text(
+                          'مديره المباشر: $managerName',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
                     ],
                   ),
                 ),
-                if (isManager)
-                  IconButton(
-                    onPressed: onToggle,
-                    icon: Icon(
-                      isExpanded
-                          ? Icons.keyboard_arrow_down_rounded
-                          : Icons.keyboard_arrow_left_rounded,
-                      color: scheme.primary,
-                      size: 22,
-                    ),
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints:
-                        const BoxConstraints(minWidth: 32, minHeight: 32),
-                  ),
+                if (employmentStatus != null) ...[
+                  const SizedBox(width: 6),
+                  MobileStatusPill(employmentStatus!),
+                ],
+                Icon(
+                  Icons.chevron_left_rounded,
+                  color: scheme.onSurfaceVariant,
+                ),
               ],
             ),
           ),
@@ -950,9 +906,51 @@ class _OrgCard extends StatelessWidget {
   }
 }
 
-// ════════════════════════════════════════════════════════
-// مساعد: رسالة الخطأ مع زر إعادة المحاولة
-// ════════════════════════════════════════════════════════
+/// خط الشجرة لعضو: رأسي من الأب (ينتهي عند آخر عضو) وفرع أفقي إلى بطاقته.
+class _GuidePainter extends CustomPainter {
+  _GuidePainter({
+    required this.color,
+    required this.rtl,
+    required this.last,
+    required this.tickY,
+  });
+
+  final Color color;
+  final bool rtl;
+  final bool last;
+  final double tickY;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.6
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final x = rtl ? size.width - 1 : 1.0;
+    final end = rtl ? size.width - 16 : 16.0;
+    final dir = rtl ? -1.0 : 1.0;
+    const r = 7.0;
+    if (last) {
+      final path = Path()
+        ..moveTo(x, 0)
+        ..lineTo(x, tickY - r)
+        ..quadraticBezierTo(x, tickY, x + dir * r, tickY)
+        ..lineTo(end, tickY);
+      canvas.drawPath(path, paint);
+    } else {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+      canvas.drawLine(Offset(x, tickY), Offset(end, tickY), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GuidePainter old) =>
+      old.color != color ||
+      old.rtl != rtl ||
+      old.last != last ||
+      old.tickY != tickY;
+}
 
 class _ErrorRetry extends StatelessWidget {
   const _ErrorRetry({required this.message, required this.onRetry});
@@ -960,19 +958,34 @@ class _ErrorRetry extends StatelessWidget {
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.error_outline_rounded,
-              size: 48, color: Theme.of(context).colorScheme.error),
-          const SizedBox(height: 12),
-          Text(message, textAlign: TextAlign.center),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: onRetry,
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('إعادة المحاولة'),
-          ),
-        ],
-      );
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 24),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.error_outline_rounded,
+          size: 48,
+          color: Theme.of(context).colorScheme.error,
+        ),
+        const SizedBox(height: 12),
+        Text(message, textAlign: TextAlign.center),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: onRetry,
+          icon: const Icon(Icons.refresh_rounded),
+          label: const Text('إعادة المحاولة'),
+        ),
+      ],
+    ),
+  );
 }
+
+/// «موظف واحد / موظفان / 5 موظفين / 33 موظفًا».
+String _employeesCount(int n) => switch (n) {
+  1 => 'موظف واحد',
+  2 => 'موظفان',
+  >= 3 && <= 10 => '$n موظفين',
+  >= 11 && <= 99 => '$n موظفًا',
+  _ => '$n موظف',
+};

@@ -11,17 +11,47 @@ String _wireDate(DateTime value) =>
     '${value.month.toString().padLeft(2, '0')}-'
     '${value.day.toString().padLeft(2, '0')}';
 
+/// متحكم الشهر المختار لعرض الملخص التشغيلي للفريق
+class ManagerOperationsMonthController extends Notifier<DateTime> {
+  @override
+  DateTime build() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, 1);
+  }
+
+  void setMonth(DateTime month) {
+    state = DateTime(month.year, month.month, 1);
+  }
+
+  void changeMonth(int delta) {
+    state = DateTime(state.year, state.month + delta, 1);
+  }
+
+  void resetToCurrentMonth() {
+    final now = DateTime.now();
+    state = DateTime(now.year, now.month, 1);
+  }
+}
+
+final mobileManagerOperationsMonthProvider =
+    NotifierProvider<ManagerOperationsMonthController, DateTime>(
+  ManagerOperationsMonthController.new,
+);
+
 final mobileManagerOperationsProvider = FutureProvider<MobileManagerOperations>(
   (ref) async {
-    final today = DateTime.now();
+    final selectedMonth = ref.watch(mobileManagerOperationsMonthProvider);
+    final startOfMonth = DateTime(selectedMonth.year, selectedMonth.month, 1);
+    final endOfMonth = DateTime(selectedMonth.year, selectedMonth.month + 1, 0);
+
     final data = await rpcWithTimeout(
       ref
           .watch(supabaseProvider)
           .rpc<dynamic>(
             'get_mobile_manager_operations',
             params: {
-              'p_from': _wireDate(today),
-              'p_to': _wireDate(today.add(const Duration(days: 14))),
+              'p_from': _wireDate(startOfMonth),
+              'p_to': _wireDate(endOfMonth),
             },
           ),
     );

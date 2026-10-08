@@ -1,10 +1,14 @@
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/kpi_evaluation_detail_page.dart';
+import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/employee_profile_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/people_hub_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/team_requests_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -148,14 +152,26 @@ class _TeamMembersViewState extends ConsumerState<_TeamMembersView>
           .toList(growable: false);
     }
     return switch (_filter) {
-      'pending' =>
-        result.where((m) => m.pendingRequests > 0).toList(growable: false),
+      'present' => result
+          .where((m) => _status(m) == 'present')
+          .toList(growable: false),
+      'field' => result
+          .where((m) =>
+              _status(m) == 'mission' ||
+              _status(m) == 'convoy' ||
+              _status(m) == 'fundraising')
+          .toList(growable: false),
       'late' => result
           .where((m) => _status(m) == 'late' || m.lateMinutes > 0)
           .toList(growable: false),
       'absent' => result
           .where((m) => _status(m) == 'absent')
           .toList(growable: false),
+      'on_leave' => result
+          .where((m) => _status(m) == 'on_leave')
+          .toList(growable: false),
+      'pending' =>
+        result.where((m) => m.pendingRequests > 0).toList(growable: false),
       'kpi' => result.where((m) => m.kpiStage != null).toList(growable: false),
       _ => result,
     };
@@ -209,29 +225,34 @@ class _TeamMembersViewState extends ConsumerState<_TeamMembersView>
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
                 MobileSectionHeader(title: _title, subtitle: _subtitle),
-                if (widget.mode != TeamPageMode.overview) ...[
-                  const SizedBox(height: 8),
-                  MobileFilterBar(
-                    searchHint: 'بحث بالاسم أو كود الموظف',
-                    controller: _search,
-                    onSearchChanged: (v) => setState(() => _query = v),
-                    options: const [
-                      MobileFilterOption('all', 'الكل'),
-                      MobileFilterOption('pending', 'طلبات معلّقة'),
-                      MobileFilterOption('late', 'متأخر اليوم'),
-                      MobileFilterOption('absent', 'غائب اليوم'),
-                      MobileFilterOption('kpi', 'بمرحلة KPI'),
-                    ],
-                    selected: _filter,
-                    onSelected: (v) => setState(() => _filter = v),
-                    resultLabel: filtered.isEmpty
-                        ? 'لا نتائج'
-                        : '${filtered.length} موظف',
-                  ),
-                ] else ...[
-                  const SizedBox(height: 8),
-                  _SummaryStrip(members: data),
-                ],
+                const SizedBox(height: 8),
+                _SummaryStrip(
+                  members: data,
+                  selectedFilter: _filter,
+                  onSelectFilter: (key) => setState(() {
+                    _filter = _filter == key ? 'all' : key;
+                  }),
+                ),
+                const SizedBox(height: 8),
+                MobileFilterBar(
+                  searchHint: 'بحث بالاسم أو كود الموظف',
+                  controller: _search,
+                  onSearchChanged: (v) => setState(() => _query = v),
+                  options: const [
+                    MobileFilterOption('all', 'الكل'),
+                    MobileFilterOption('present', 'حاضر'),
+                    MobileFilterOption('field', 'ميداني'),
+                    MobileFilterOption('late', 'متأخر'),
+                    MobileFilterOption('absent', 'غائب'),
+                    MobileFilterOption('on_leave', 'إجازة'),
+                    MobileFilterOption('pending', 'معلّق'),
+                  ],
+                  selected: _filter,
+                  onSelected: (v) => setState(() => _filter = v),
+                  resultLabel: filtered.isEmpty
+                      ? 'لا نتائج'
+                      : arEmployees(filtered.length),
+                ),
                 const SizedBox(height: 8),
                 if (filtered.isEmpty)
                   const Padding(
@@ -280,61 +301,99 @@ class _TeamMembersViewState extends ConsumerState<_TeamMembersView>
   }
 
   static String _status(MobileTeamMember member) =>
-      member.attendanceStatus ?? 'absent';
+      member.attendanceStatus ?? 'not_recorded';
 }
 
 class _SummaryStrip extends StatelessWidget {
-  const _SummaryStrip({required this.members});
+  const _SummaryStrip({
+    required this.members,
+    this.selectedFilter,
+    this.onSelectFilter,
+  });
 
   final List<MobileTeamMember> members;
+  final String? selectedFilter;
+  final ValueChanged<String>? onSelectFilter;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final present = members.where((m) => m.attendanceStatus == 'present').length;
+    final fieldActivity = members.where((m) =>
+        m.attendanceStatus == 'mission' ||
+        m.attendanceStatus == 'convoy' ||
+        m.attendanceStatus == 'fundraising').length;
     final late = members.where((m) => m.attendanceStatus == 'late').length;
     final absent = members.where((m) => m.attendanceStatus == 'absent').length;
-    final pending =
-        members.fold<int>(0, (sum, m) => sum + m.pendingRequests);
     final onLeave =
         members.where((m) => m.attendanceStatus == 'on_leave').length;
+
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         child: Row(
           children: [
-            _summaryCell(theme, '${members.length}', 'الفريق'),
-            _summaryCell(theme, '$present', 'حاضر'),
-            _summaryCell(theme, '$late', 'متأخر'),
-            _summaryCell(theme, '$absent', 'غائب'),
-            _summaryCell(theme, '$onLeave', 'إجازة'),
-            _summaryCell(theme, '$pending', 'طلبات'),
+            _summaryCell(theme, '${members.length}', 'الفريق', 'all'),
+            _summaryCell(theme, '$present', 'حاضر', 'present', const Color(0xFF0F9F6E)),
+            _summaryCell(theme, '$fieldActivity', 'ميداني', 'field', const Color(0xFF2563EB)),
+            _summaryCell(theme, '$late', 'متأخر', 'late', const Color(0xFFD97706)),
+            _summaryCell(theme, '$absent', 'غائب', 'absent', const Color(0xFFDC2626)),
+            _summaryCell(theme, '$onLeave', 'إجازة', 'on_leave', const Color(0xFF0284C7)),
           ],
         ),
       ),
     );
   }
 
-  Widget _summaryCell(ThemeData theme, String value, String label) =>
-      Expanded(
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w900,
+  Widget _summaryCell(
+    ThemeData theme,
+    String value,
+    String label,
+    String filterKey, [
+    Color? color,
+  ]) {
+    final isSelected = selectedFilter == filterKey;
+    final activeColor = color ?? theme.colorScheme.primary;
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onSelectFilter != null ? () => onSelectFilter!(filterKey) : null,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          decoration: isSelected
+              ? BoxDecoration(
+                  color: activeColor.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: activeColor),
+                )
+              : null,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: isSelected ? activeColor : null,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.normal,
+                  color: isSelected
+                      ? activeColor
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _MemberCard extends StatelessWidget {
@@ -353,7 +412,7 @@ class _MemberCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final status = member.attendanceStatus ?? 'absent';
+    final status = member.attendanceStatus ?? 'not_recorded';
     final checkIn = member.firstCheckIn;
     final time = checkIn == null
         ? null
@@ -402,7 +461,13 @@ class _MemberCard extends StatelessWidget {
                           spacing: 6,
                           runSpacing: 4,
                           children: [
-                            _statusChip(status),
+                            _statusChip(status, member.statusLabel),
+                            if (member.activityTitle != null && member.activityTitle!.trim().isNotEmpty)
+                              _metaChip(
+                                context,
+                                icon: Icons.location_on_rounded,
+                                text: member.activityTitle!.trim(),
+                              ),
                             if (status == 'late' && member.lateMinutes > 0)
                               _metaChip(
                                 context,
@@ -419,13 +484,13 @@ class _MemberCard extends StatelessWidget {
                               _metaChip(
                                 context,
                                 icon: Icons.pending_actions_rounded,
-                                text: '${member.pendingRequests} طلب معلّق',
+                                text: 'طلبات معلّقة: ${member.pendingRequests}',
                               ),
                             if (member.kpiStage?.isNotEmpty ?? false)
                               _metaChip(
                                 context,
                                 icon: Icons.analytics_outlined,
-                                text: 'KPI: ${member.kpiStage}',
+                                text: 'التقييم: ${kpiStageLabel(member.kpiStage!)}',
                               ),
                           ],
                         ),
@@ -483,44 +548,63 @@ class _MemberCard extends StatelessWidget {
   }
 
   Color _statusColor(String status) => switch (status) {
-    'present' => Colors.green,
-    'late' => Colors.orange,
-    'absent' => Colors.red,
-    'on_leave' => Colors.blue,
-    'holiday' || 'weekend' => Colors.teal,
-    'partial' => Colors.amber,
+    'present' => const Color(0xFF0F9F6E),
+    'late' => const Color(0xFFD97706),
+    'absent' => const Color(0xFFDC2626),
+    'convoy' => const Color(0xFF7C3AED),
+    'fundraising' => const Color(0xFF0D9488),
+    'mission' => const Color(0xFF2563EB),
+    'on_leave' => const Color(0xFF0284C7),
+    'holiday' || 'weekend' => const Color(0xFF6B7280),
+    'partial' => const Color(0xFFD97706),
     'pending' => Colors.blueGrey,
+    'not_recorded' => const Color(0xFF6B7280),
     _ => Colors.grey,
   };
 
   String _statusLabel(String status) => switch (status) {
-    'present' => 'حضر',
+    'present' => 'حاضر في الجمعية',
     'late' => 'متأخر',
     'absent' => 'غائب',
+    'convoy' => 'في قافلة',
+    'fundraising' => 'في فاندي ترفيهي',
+    'mission' => 'في مأمورية',
     'on_leave' => 'إجازة',
     'holiday' => 'عطلة',
     'weekend' => 'إجازة أسبوعية',
     'partial' => 'حضور جزئي',
     'pending' => 'قيد التحقق',
-    _ => status,
+    'not_recorded' => 'لم يسجل بعد',
+    'checked_out' => 'انصرف',
+    'left_early' => 'انصرف مبكرًا',
+    'missing_checkout' => 'لم يسجل الانصراف',
+    'exempt' => 'معفى من البصمة',
+    // لا يظهر رمز إنجليزي خام للمستخدم
+    _ => 'غير محدد',
   };
 
-  Widget _statusChip(String status) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-    decoration: BoxDecoration(
-      color: _statusColor(status).withValues(alpha: .12),
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: _statusColor(status)),
-    ),
-    child: Text(
-      _statusLabel(status),
-      style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w800,
-        color: _statusColor(status),
+  Widget _statusChip(String status, [String? customLabel]) {
+    final label = (customLabel != null && customLabel.trim().isNotEmpty)
+        ? customLabel
+        : _statusLabel(status);
+    final color = _statusColor(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color),
       ),
-    ),
-  );
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          color: color,
+        ),
+      ),
+    );
+  }
 
   Widget _metaChip(
     BuildContext context, {
@@ -561,30 +645,61 @@ class _EmptyHint extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Center(
-      child: Column(
-        children: [
-          Icon(
-            Icons.group_off_outlined,
-            size: 52,
-            color: theme.colorScheme.outline,
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'لا يوجد أعضاء في فريقك المباشر حاليًا',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Column(
+          children: [
+            Icon(
+              Icons.group_off_outlined,
+              size: 52,
+              color: theme.colorScheme.outline,
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'عند إسناد موظفين إليك كمدير مباشر سيظهرون هنا.',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+            const SizedBox(height: 14),
+            Text(
+              'لا يوجد أعضاء في فريقك المباشر حاليًا',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              'عند إسناد موظفين إليك كمدير مباشر سيظهرون هنا، مع متابعة حضورهم اليومي وتقاريرهم.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              alignment: WrapAlignment.center,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const TeamRequestsPage(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.approval_outlined, size: 18),
+                  label: const Text('اعتماد طلبات الفريق'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PeopleHubPage(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.account_tree_outlined, size: 18),
+                  label: const Text('الموظفون والهيكل الإداري'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

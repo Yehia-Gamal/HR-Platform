@@ -4,6 +4,7 @@ import 'package:ahla_shabab_management_os/core/config/app_config.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/network/offline_cache.dart';
 import 'package:ahla_shabab_management_os/core/network/session_cleanup.dart';
+import 'package:ahla_shabab_management_os/core/widgets/phone_display.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/auth/login_page.dart';
 import 'package:ahla_shabab_management_os/features/auth/set_password_page.dart';
@@ -987,7 +988,7 @@ class _UnassignedWorkspacePage extends StatelessWidget {
                         width: double.infinity,
                         child: FilledButton.tonalIcon(
                           onPressed: () {
-                            final code = access.employeeCode ?? '';
+                            final code = PhoneDisplay.stripCountryCode(access.employeeCode);
                             final name = access.displayName;
                             final text =
                                 'السلام عليكم، أنا الموظف $name${code.isNotEmpty ? ' (كود: $code)' : ''}. قمت بتسجيل الدخول في التطبيق وبانتظار تفعيل مساحة العمل الخاصة بي.';
@@ -1165,7 +1166,7 @@ class _SuspendedAccountPage extends StatelessWidget {
                             ),
                             if (access.employeeCode != null) ...[
                               const Divider(height: 16),
-                              _buildCodeRow(context, access.employeeCode!),
+                              _buildCodeRow(context, PhoneDisplay.stripCountryCode(access.employeeCode)),
                             ],
                             const Divider(height: 16),
                             _buildInfoRow(
@@ -1209,7 +1210,7 @@ class _SuspendedAccountPage extends StatelessWidget {
                         width: double.infinity,
                         child: FilledButton.tonalIcon(
                           onPressed: () {
-                            final code = access.employeeCode ?? '';
+                            final code = PhoneDisplay.stripCountryCode(access.employeeCode);
                             final name = access.displayName;
                             final owed = amount.toStringAsFixed(0);
                             final text =

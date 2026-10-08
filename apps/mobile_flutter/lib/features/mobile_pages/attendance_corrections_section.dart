@@ -131,10 +131,12 @@ class AttendanceCorrectionsSection extends ConsumerWidget {
 /// فتح نافذة إنشاء طلب تصحيح حضور.
 Future<void> showAttendanceCorrectionSheet(
   BuildContext context,
-  WidgetRef ref,
-) async {
-  DateTime workDate = DateTime.now().subtract(const Duration(days: 1));
-  String type = 'missing_check_in';
+  WidgetRef ref, {
+  DateTime? initialWorkDate,
+  String? initialType,
+}) async {
+  DateTime workDate = initialWorkDate ?? DateTime.now().subtract(const Duration(days: 1));
+  String type = initialType ?? 'missing_check_in';
   TimeOfDay? actualTime;
   final reason = TextEditingController();
   // 0439: نعرض وقت البصمة المتوقع من جدول الموظف عند اختيار اليوم ونوع التصحيح.

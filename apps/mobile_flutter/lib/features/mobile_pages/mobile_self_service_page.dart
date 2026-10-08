@@ -1,15 +1,14 @@
-import 'package:ahla_shabab_management_os/features/association_projects/association_projects_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
-import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/knowledge_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/my_instant_penalties_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/my_learning_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/service_portal_page.dart';
+import 'package:ahla_design_tokens/ahla_design_tokens.dart';
+import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/host_app_bar_scope.dart';
+import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/request_display.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/request_list_widgets.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/team_requests_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -31,6 +30,20 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
     final scheme = Theme.of(context).colorScheme;
     final balances = ref.watch(myLeaveBalancesProvider);
     final requests = ref.watch(mobileRequestsProvider);
+    final access = ref.watch(accessContextProvider).value;
+    final isClinicStaff = access?.isClinicStaff == true;
+    final me = access?.employeeId;
+    final allRequests = requests.asData?.value ?? const <MobileRequest>[];
+    final awaitingMe = isClinicStaff
+        ? 0
+        : allRequests
+            .where(
+              (r) =>
+                  !r.isMineFor(me) &&
+                  r.status == 'pending' &&
+                  (r.awaitingMe ?? r.canDecide ?? false),
+            )
+            .length;
 
     return Scaffold(
       appBar: HostAppBarScope.isActive(context)
@@ -44,188 +57,158 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
           children: [
+            if (awaitingMe > 0) ...[
+              Card(
+                elevation: 0,
+                color: AppColors.statusInfo.withValues(alpha: .08),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(
+                    color: AppColors.statusInfo.withValues(alpha: .35),
+                  ),
+                ),
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.notifications_active_rounded,
+                    color: AppColors.statusInfo,
+                  ),
+                  title: Text(
+                    '${arRequests(awaitingMe)} بانتظار قرارك',
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  subtitle: const Text(
+                    'افتح «اعتماد طلبات الفريق» للبت فيها مباشرة.',
+                  ),
+                  trailing: const Icon(Icons.chevron_left_rounded),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const TeamRequestsPage(),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
             // ── تقديم طلب جديد ──
             const MobileSectionHeader(
               title: 'تقديم طلب جديد',
               subtitle: 'اختر نوع الطلب من الخيارات التالية.',
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _ServiceCard(
-                    icon: Icons.beach_access_rounded,
-                    title: 'طلب إجازة',
-                    subtitle: 'سنوية، مرضية، طارئة',
-                    color: scheme.primary,
-                    onTap: () => _submitRequest(context, ref, 'leave'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _ServiceCard(
-                    icon: Icons.work_outline_rounded,
-                    title: 'طلب مأمورية',
-                    subtitle: 'مأمورية عمل خارجية',
-                    color: scheme.tertiary,
-                    onTap: () => _submitRequest(context, ref, 'mission'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: _ServiceCard(
-                    icon: Icons.directions_bus_rounded,
-                    title: 'قافلة',
-                    subtitle: 'تكليف ميداني',
-                    color: const Color(0xFF0D7C66),
-                    onTap: () => _submitRequest(context, ref, 'convoy'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _ServiceCard(
-                    icon: Icons.volunteer_activism_rounded,
-                    title: 'فاندي',
-                    subtitle: 'نشاط تشغيلي',
-                    color: const Color(0xFF7C3AED),
-                    onTap: () => _submitRequest(context, ref, 'fundraising'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: _ServiceCard(
-                    icon: Icons.access_time_rounded,
-                    title: 'طلب إذن',
-                    subtitle: 'حضور أو انصراف (ساعتين)',
-                    color: const Color(0xFFBF6A22),
-                    onTap: () => _submitRequest(context, ref, 'permit'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _ServiceCard(
-                    icon: Icons.fingerprint_rounded,
-                    title: 'تصحيح حضور',
-                    subtitle: 'نسيان بصمة دخول أو خروج',
-                    color: scheme.error,
-                    onTap: () => _submitCorrection(context, ref),
-                  ),
-                ),
-              ],
-            ),
-
-            // ── خدماتي الإضافية (المرحلة 1) ──
-            const SizedBox(height: 20),
-            const MobileSectionHeader(
-              title: 'خدماتي الإضافية',
-              subtitle: 'الخدمات والتعلم والدعم الفني — من هاتفك مباشرة.',
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _ServiceCard(
-                    icon: Icons.calendar_month_rounded,
-                    title: 'كشف الحضور',
-                    subtitle: 'سجل الدوام والالتزام',
-                    color: const Color(0xFF0F9F6E),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const MonthlyAttendanceStatementPage(),
-                      ),
+            if (isClinicStaff) ...[
+              // لطاقم العيادات: إجازة وإذن وتصحيح حضور فقط (حذف المأموريات والقوافل والفاندي)
+              Row(
+                children: [
+                  Expanded(
+                    child: _ServiceCard(
+                      icon: Icons.beach_access_rounded,
+                      title: 'طلب إجازة',
+                      subtitle: 'سنوية، مرضية، طارئة',
+                      color: scheme.primary,
+                      onTap: () => _submitRequest(context, ref, 'leave'),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _ServiceCard(
-                    icon: Icons.gavel_rounded,
-                    title: 'غرامات الحضور',
-                    subtitle: 'الغرامات الفورية وحالتها',
-                    color: const Color(0xFFDC2626),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const MyInstantPenaltiesPage(),
-                      ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _ServiceCard(
+                      icon: Icons.access_time_rounded,
+                      title: 'طلب إذن',
+                      subtitle: 'حضور أو انصراف (ساعتين)',
+                      color: const Color(0xFFBF6A22),
+                      onTap: () => _submitRequest(context, ref, 'permit'),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: _ServiceCard(
-                    icon: Icons.school_rounded,
-                    title: 'التعلم والتدريب',
-                    subtitle: 'دوراتي وتقدمي',
-                    color: const Color(0xFF2563EB),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const MyLearningPage()),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _ServiceCard(
+                      icon: Icons.fingerprint_rounded,
+                      title: 'تصحيح حضور',
+                      subtitle: 'نسيان بصمة دخول أو خروج',
+                      color: scheme.error,
+                      onTap: () => _submitCorrection(context, ref),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _ServiceCard(
-                    icon: Icons.support_agent_rounded,
-                    title: 'الدعم الفني',
-                    subtitle: 'فتح تذكرة ومتابعتها',
-                    color: const Color(0xFFD97706),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ServicePortalPage(),
-                      ),
+                ],
+              ),
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: _ServiceCard(
+                      icon: Icons.beach_access_rounded,
+                      title: 'طلب إجازة',
+                      subtitle: 'سنوية، مرضية، طارئة',
+                      color: scheme.primary,
+                      onTap: () => _submitRequest(context, ref, 'leave'),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: _ServiceCard(
-                    icon: Icons.menu_book_rounded,
-                    title: 'قاعدة المعرفة',
-                    subtitle: 'أدلة ومراجع للجميع',
-                    color: const Color(0xFF7C2D92),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const KnowledgePage()),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _ServiceCard(
+                      icon: Icons.work_outline_rounded,
+                      title: 'طلب مأمورية',
+                      subtitle: 'مأمورية عمل خارجية',
+                      color: scheme.tertiary,
+                      onTap: () => _submitRequest(context, ref, 'mission'),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _ServiceCard(
-                    icon: Icons.folder_special_rounded,
-                    title: 'مشاريع الجمعية',
-                    subtitle: 'مشاريع إدارتك وخطواتها',
-                    color: const Color(0xFF0F766E),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const AssociationProjectsPage(),
-                      ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _ServiceCard(
+                      icon: Icons.directions_bus_rounded,
+                      title: 'قافلة',
+                      subtitle: 'تكليف ميداني',
+                      color: const Color(0xFF0D7C66),
+                      onTap: () => _submitRequest(context, ref, 'convoy'),
                     ),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _ServiceCard(
+                      icon: Icons.volunteer_activism_rounded,
+                      title: 'فاندي ترفيهي',
+                      subtitle: 'يوم ترفيهي للموظفين',
+                      color: const Color(0xFF7C3AED),
+                      onTap: () => _submitRequest(context, ref, 'fundraising'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _ServiceCard(
+                      icon: Icons.access_time_rounded,
+                      title: 'طلب إذن',
+                      subtitle: 'حضور أو انصراف (ساعتين)',
+                      color: const Color(0xFFBF6A22),
+                      onTap: () => _submitRequest(context, ref, 'permit'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _ServiceCard(
+                      icon: Icons.fingerprint_rounded,
+                      title: 'تصحيح حضور',
+                      subtitle: 'نسيان بصمة دخول أو خروج',
+                      color: scheme.error,
+                      onTap: () => _submitCorrection(context, ref),
+                    ),
+                  ),
+                ],
+              ),
+            ],
 
             // ── أرصدة الإجازات ──
             const SizedBox(height: 20),
@@ -258,76 +241,18 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                   ),
                 ),
               ),
-              data: (items) {
-                if (items.isEmpty) {
-                  return Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.event_available_outlined,
-                            size: 32,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'لم تُضبط أرصدة إجازات لهذا الحساب بعد.',
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-                return SizedBox(
-                  height: 116,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: items.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 10),
-                    itemBuilder: (context, index) {
-                      final balance = items[index];
-                      return SizedBox(
-                        width: 190,
-                        child: Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  balance.name,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  '${balance.availableUnits.toStringAsFixed(balance.availableUnits % 1 == 0 ? 0 : 1)} متاح',
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(fontWeight: FontWeight.w900),
-                                ),
-                                Text(
-                                  'محجوز ${balance.reservedUnits.toStringAsFixed(1)} · مستهلك ${balance.consumedUnits.toStringAsFixed(1)}',
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
+              data: (items) => LeaveBalanceStrip(balances: items),
             ),
 
             // ── طلباتي السابقة ──
             const SizedBox(height: 20),
             const MobileSectionHeader(
               title: 'طلباتي السابقة',
-              subtitle: 'تابع حالة طلباتك المقدمة.',
+              subtitle: 'طلباتك أنت فقط — طلبات الفريق في «اعتماد طلبات الفريق».',
+            ),
+            const SizedBox(height: 10),
+            RequestMonthSummary(
+              requests: allRequests.where((r) => r.isMineFor(me)).toList(),
             ),
             const SizedBox(height: 10),
 
@@ -351,15 +276,22 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                   ),
                   const SizedBox(width: 6),
                   _StatusChip(
-                    label: 'مقبول',
+                    label: 'معتمد',
                     value: 'approved',
                     selected: _statusFilter,
                     onSelected: (v) => setState(() => _statusFilter = v),
                   ),
                   const SizedBox(width: 6),
                   _StatusChip(
-                    label: 'مرفوض',
+                    label: 'مرفوض أو مُعاد',
                     value: 'rejected',
+                    selected: _statusFilter,
+                    onSelected: (v) => setState(() => _statusFilter = v),
+                  ),
+                  const SizedBox(width: 6),
+                  _StatusChip(
+                    label: 'مسحوب',
+                    value: 'cancelled',
                     selected: _statusFilter,
                     onSelected: (v) => setState(() => _statusFilter = v),
                   ),
@@ -390,10 +322,15 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                 ),
               ),
               data: (items) {
+                // طلبات الموظف وحده — صندوق الطلبات يُرجع للمدير طلبات فريقه أيضًا
                 final filtered = items
+                    .where((r) => r.isMineFor(me))
                     .where(
-                      (r) =>
-                          _statusFilter == 'all' || r.status == _statusFilter,
+                      (r) => switch (_statusFilter) {
+                        'all' => true,
+                        'rejected' => r.status == 'rejected' || r.status == 'returned',
+                        _ => r.status == _statusFilter,
+                      },
                     )
                     .toList();
                 if (filtered.isEmpty) {
@@ -418,14 +355,15 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                   );
                 }
                 return Column(
-                  children: filtered
-                      .map(
-                        (item) => Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: _RequestCard(item: item),
-                        ),
-                      )
-                      .toList(),
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: withRequestGroupHeaders<MobileRequest>(
+                    filtered,
+                    (item) => item.createdAt,
+                    (item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: RequestListCard(item: item),
+                    ),
+                  ),
                 );
               },
             ),
@@ -598,88 +536,6 @@ class _StatusChip extends StatelessWidget {
   );
 }
 
-// ── بطاقة طلب سابق ──
-
-class _RequestCard extends StatelessWidget {
-  const _RequestCard({required this.item});
-  final MobileRequest item;
-
-  @override
-  Widget build(BuildContext context) => Card(
-    child: InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => MobileRequestDetailPage(requestId: item.id),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                MobileStatusPill(item.status),
-                const Spacer(),
-                Text(
-                  '#${item.number}',
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              item.title ?? _typeLabel(item.type),
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            if (item.reason?.trim().isNotEmpty == true) ...[
-              const SizedBox(height: 6),
-              Text(
-                item.reason!,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-            const Divider(height: 26),
-            Row(
-              children: [
-                const Icon(Icons.route_outlined, size: 18),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    item.activeStepName ?? 'اكتمل المسار',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-                Text(
-                  DateFormat('d MMM', 'ar').format(item.createdAt),
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-
-  static String _typeLabel(String type) => switch (type) {
-    'leave' => 'طلب إجازة',
-    'mission' => 'مهمة عمل',
-    'late_permit' => 'إذن حضور',
-    'early_permit' => 'إذن انصراف',
-    'permit' => 'طلب إذن',
-    'attendance_correction' => 'تصحيح حضور',
-    'convoy' => 'قافلة',
-    _ => 'طلب',
-  };
-}
-
 // ── نموذج طلب جديد ──
 
 class NewRequestSheet extends StatefulWidget {
@@ -735,6 +591,7 @@ class NewRequestSheetState extends State<NewRequestSheet> {
         _startTime = _parseTime(p['startTime']);
         _endTime = _parseTime(p['endTime']);
         if (p['leaveType'] is String) _leaveType = p['leaveType'] as String;
+        if (_leaveType == 'unpaid') _leaveType = 'annual';
         if (p['permitKind'] is String) _permitKind = p['permitKind'] as String;
       }
     }
@@ -965,7 +822,7 @@ class NewRequestSheetState extends State<NewRequestSheet> {
                   }
                 }
                 final avail = bal?.availableUnits ?? 0;
-                final isZero = avail <= 0 && _leaveType != 'unpaid';
+                final isZero = avail <= 0;
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -981,14 +838,41 @@ class NewRequestSheetState extends State<NewRequestSheet> {
                         DropdownMenuItem(value: 'casual', child: Text('عارضة (طارئة)')),
                         DropdownMenuItem(value: 'sick', child: Text('مرضية')),
                         DropdownMenuItem(value: 'weekly_rest_comp', child: Text('بدل راحة أسبوعية')),
-                        DropdownMenuItem(value: 'unpaid', child: Text('بدون راتب')),
                       ],
                       onChanged: (v) => setState(() {
                         _leaveType = v!;
                         _inlineError = null;
                       }),
                     ),
-                    if (_leaveType != 'unpaid') ...[
+                    if (_leaveType == 'sick') ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.tertiaryContainer.withValues(alpha: 0.35),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.health_and_safety_outlined,
+                              size: 18,
+                              color: Theme.of(context).colorScheme.tertiary,
+                            ),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text(
+                                'إجازة مرضية معتمدة — تتطلب كشفاً أو تقريراً طبياً من العيادة أو المستشفى.',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
                       const SizedBox(height: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -996,36 +880,73 @@ class NewRequestSheetState extends State<NewRequestSheet> {
                           color: isZero
                               ? Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.4)
                               : Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              isZero ? Icons.warning_amber_rounded : Icons.check_circle_outline,
-                              size: 16,
-                              color: isZero
-                                  ? Theme.of(context).colorScheme.error
-                                  : Theme.of(context).colorScheme.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'الرصيد المتاح: ${avail.toStringAsFixed(1)} يوم',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: isZero
-                                    ? Theme.of(context).colorScheme.onErrorContainer
-                                    : Theme.of(context).colorScheme.onPrimaryContainer,
-                              ),
-                            ),
-                            if (isZero) ...[
-                              const SizedBox(width: 8),
-                              const Expanded(
-                                child: Text(
-                                  '(الرصيد صفر، اختر عارضة أو بدل راحة)',
-                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-                                  overflow: TextOverflow.ellipsis,
+                            Row(
+                              children: [
+                                Icon(
+                                  isZero ? Icons.warning_amber_rounded : Icons.check_circle_outline,
+                                  size: 16,
+                                  color: isZero
+                                      ? Theme.of(context).colorScheme.error
+                                      : Theme.of(context).colorScheme.primary,
                                 ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'الرصيد المتاح: ${fmtUnits(avail)} ${avail == 1 ? 'يوم' : (avail >= 3 && avail <= 10 && avail % 1 == 0 ? 'أيام' : 'يوم')}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: isZero
+                                        ? Theme.of(context).colorScheme.onErrorContainer
+                                        : Theme.of(context).colorScheme.onPrimaryContainer,
+                                  ),
+                                ),
+                                if (isZero) ...[
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _leaveType == 'annual'
+                                          ? '(الرصيد غير كافٍ، يمكنك استخدام العارضة)'
+                                          : '(الرصيد صفر)',
+                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            if (_leaveType == 'casual') ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(Icons.bolt_rounded, size: 14, color: Theme.of(context).colorScheme.primary),
+                                  const SizedBox(width: 4),
+                                  const Expanded(
+                                    child: Text(
+                                      'تنفيذ فوري لليوم الحالي (اعتماد آلي دون انتظار موافقة)',
+                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                            if (_leaveType == 'weekly_rest_comp') ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(Icons.credit_score_outlined, size: 14, color: Theme.of(context).colorScheme.primary),
+                                  const SizedBox(width: 4),
+                                  const Expanded(
+                                    child: Text(
+                                      'يُخصم من رصيد الجمعات أو التكليفات الميدانية المعتمدة لك',
+                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ],
@@ -1083,7 +1004,8 @@ class NewRequestSheetState extends State<NewRequestSheet> {
                   const SizedBox(width: 10),
                   const Expanded(
                     child: Text(
-                      'تبدأ المأمورية فور إنشائها وتُسجل من الوقت الحالي دون الحاجة لتحديد وقت أو تواريخ.',
+                      'تبدأ المأمورية فور إرسالها، ويُسجَّل وقتها وموقعك الحالي ليراهما مديرك. '
+                      'إن أرسلتها بعد موعد الدوام يُحسب التأخير حتى لحظة الإرسال.',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,

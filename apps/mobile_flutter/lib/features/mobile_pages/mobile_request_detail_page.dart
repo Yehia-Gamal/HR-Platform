@@ -1,16 +1,23 @@
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
-import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
+import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
+import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/employee_profile_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_self_service_page.dart'
     show NewRequestSheet;
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/request_decision_sheet.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/request_display.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// تفاصيل الطلب: الحالة وصاحب الطلب، بيانات الطلب وسببه، تنفيذ المأمورية،
+/// مسار الاعتماد وسجله، وقرار المعتمِد أو إجراءات صاحب الطلب.
 class MobileRequestDetailPage extends ConsumerWidget {
   const MobileRequestDetailPage({
     required this.requestId,
@@ -27,26 +34,20 @@ class MobileRequestDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(mobileRequestDetailProvider(requestId));
-    return Scaffold(
-      appBar: AppBar(title: const Text('تفاصيل الطلب')),
-      body: SafeArea(
-        child: detail.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => _ErrorState(
-            message: humanizeError(error),
-            onRetry: () =>
-                ref.invalidate(mobileRequestDetailProvider(requestId)),
-          ),
-          data: (request) => RefreshIndicator(
-            onRefresh: () async =>
-                ref.invalidate(mobileRequestDetailProvider(requestId)),
-            child: _RequestContent(
-              request: request,
-              initialAction: initialAction,
-            ),
-          ),
+    return detail.when(
+      loading: () => Scaffold(
+        appBar: AppBar(title: const Text('تفاصيل الطلب')),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, _) => Scaffold(
+        appBar: AppBar(title: const Text('تفاصيل الطلب')),
+        body: _ErrorState(
+          message: requestErrorMessage(error) ?? humanizeError(error),
+          onRetry: () => ref.invalidate(mobileRequestDetailProvider(requestId)),
         ),
       ),
+      data: (request) =>
+          _RequestScreen(request: request, initialAction: initialAction),
     );
   }
 }
@@ -54,525 +55,655 @@ class MobileRequestDetailPage extends ConsumerWidget {
 /// حارس تكرار الفتح التلقائي لورقة القرار — مرة واحدة لكل طلب لكل تشغيل.
 final _autoDecisionOpened = <String>{};
 
-class _RequestContent extends ConsumerWidget {
-  const _RequestContent({required this.request, this.initialAction});
+class _RequestScreen extends ConsumerWidget {
+  const _RequestScreen({required this.request, this.initialAction});
 
   final MobileRequestDetail request;
   final String? initialAction;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final formatter = DateFormat('d MMMM y، h:mm a', 'ar');
-    // فتح تلقائي لورقة القرار عند القدوم من زر إشعار — مرة واحدة،
-    // وبشرط أن يكون المستخدم مخوّلاً والطلب ما زال معلقاً.
-    final String decision;
-    switch (initialAction) {
-      case 'approve':
-        decision = 'approve';
-      case 'reject':
-        decision = 'reject';
-      default:
-        decision = '';
-    }
-    if (decision.isNotEmpty &&
+    final access = ref.watch(accessContextProvider).value;
+    final isClinicStaff = access?.isClinicStaff == true;
+    final myEmployeeId = access?.employeeId;
+    final isMine = request.isMineFor(myEmployeeId);
+    final canDecide =
+        !isClinicStaff &&
         request.canDecide &&
         request.status == 'pending' &&
-        _autoDecisionOpened.add(request.id)) {
+        !isMine;
+
+    // فتح تلقائي لورقة القرار عند القدوم من زر إشعار — مرة واحدة،
+    // وبشرط أن يكون المستخدم مخوّلاً والطلب ما زال معلقاً.
+    final auto = switch (initialAction) {
+      'approve' => 'approve',
+      'reject' => 'reject',
+      _ => null,
+    };
+    if (auto != null && canDecide && _autoDecisionOpened.add(request.id)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (context.mounted) _decide(context, ref, decision);
+        if (context.mounted) _openDecision(context, ref, request, auto);
       });
     }
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    MobileStatusPill(request.status),
-                    const Spacer(),
-                    Text(
-                      '#${request.number}',
-                      style: const TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  request.title ?? _typeLabel(request.type),
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '${request.employeeName} · ${request.employeeCode ?? 'بدون كود'}',
-                ),
-                const Divider(height: 28),
-                _row('نوع الطلب', _typeLabel(request.type)),
-                _row('حالة المسار', request.workflowStatus),
-                if (request.decisionActorName != null)
-                  _row(
-                    request.decisionOnBehalfOfExecutive
-                        ? 'منفذ القرار بالإنابة'
-                        : 'منفذ القرار',
-                    request.decisionActorName!,
-                  ),
-                _row(
-                  'تاريخ الإنشاء',
-                  formatter.format(request.createdAt.toLocal()),
-                ),
-                if (request.updatedAt != null)
-                  _row(
-                    'آخر تحديث',
-                    formatter.format(request.updatedAt!.toLocal()),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        if (request.payload.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          _RequestPayloadCard(
-            requestType: request.type,
-            payload: request.payload,
-          ),
-        ],
-        if (request.type == 'mission' ||
-            request.type == 'convoy' ||
-            request.type == 'fundraising') ...[
-          const SizedBox(height: 12),
-          _MissionExecutionCard(request: request),
-        ],
-        if (request.substituteName != null || request.conflicts.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'البديل والتعارضات',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 10),
-                  _row('البديل', request.substituteName ?? 'لم يحدد'),
-                  if (request.conflicts.isEmpty)
-                    const Text('لا توجد طلبات متعارضة في الفترة المحددة.')
-                  else
-                    for (final conflict in request.conflicts)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          '• $conflict',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                ],
-              ),
-            ),
-          ),
-        ],
-        if (request.attachments.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'المرفقات',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 8),
-                  for (
-                    var index = 0;
-                    index < request.attachments.length;
-                    index++
-                  )
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.attachment_rounded),
-                      title: Text('مرفق ${index + 1}'),
-                      subtitle: Text(request.attachments[index].mimeType),
-                      trailing: const Icon(Icons.open_in_new_rounded),
-                      onTap: () => _openAttachment(
-                        context,
-                        request.attachments[index].path,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ],
-        const SizedBox(height: 12),
-        const MobileSectionHeader(title: 'مسار الاعتماد'),
-        if (request.steps.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          _RequestJourneySummary(
-            steps: request.steps,
-            createdAt: request.createdAt,
-          ),
-        ],
-        const SizedBox(height: 12),
-        if (request.steps.isEmpty)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.route_outlined,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'لم تُنشأ خطوات اعتماد لهذا الطلب.',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+
+    final current = currentStepIndex(request.steps, request.status);
+    final currentStage = current >= 0
+        ? requestStageName(
+            request.steps[current].name,
+            roleSlug: request.steps[current].roleSlug,
+            order: request.steps[current].order,
           )
-        else
-          _RequestTimeline(steps: request.steps, createdAt: request.createdAt),
-        if (request.canCancel && request.status == 'pending') ...[
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _cancel(context, ref),
-              icon: const Icon(Icons.undo_outlined),
-              label: const Text('سحب الطلب قبل القرار'),
+        : null;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('تفاصيل الطلب')),
+      bottomNavigationBar: canDecide
+          ? _DecisionBar(
+              request: request,
+              awaitingMe: request.awaitingMe ?? true,
+              currentStage: currentStage,
+            )
+          : null,
+      body: RefreshIndicator(
+        onRefresh: () async =>
+            ref.invalidate(mobileRequestDetailProvider(request.id)),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+          children: [
+            _HeroCard(
+              request: request,
+              isMine: isMine,
+              canDecide: canDecide,
+              currentStage: currentStage,
             ),
-          ),
-        ],
-        // 0451: المالك يعدّل الطلب المرفوض/المُرجَع ويعيد رفعه
-        if (request.canResubmit &&
-            (request.status == 'rejected' || request.status == 'returned')) ...[
-          const SizedBox(height: 12),
-          _ResubmitBanner(),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: () => _resubmit(context, ref),
-              icon: const Icon(Icons.edit_note_rounded),
-              label: const Text('تعديل وإعادة رفع الطلب'),
-            ),
-          ),
-        ],
-        if (request.canDecide && request.status == 'pending') ...[
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () => _decide(context, ref, 'approve'),
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: const Text('اعتماد'),
+            const SizedBox(height: 12),
+            _DetailsCard(request: request),
+            if (!isMine && _DecisionContextCard.hasContent(request)) ...[
+              const SizedBox(height: 12),
+              _DecisionContextCard(request: request),
+            ] else if (request.substituteName != null ||
+                request.conflicts.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _ContextCard(request: request),
+            ],
+            if (isFieldAssignmentType(request.type)) ...[
+              const SizedBox(height: 12),
+              _MissionExecutionCard(request: request, isOwner: isMine),
+            ],
+            const SizedBox(height: 12),
+            _JourneyCard(request: request),
+            if (isMine && request.canCancel && request.status == 'pending') ...[
+              const SizedBox(height: 14),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.statusDanger,
+                  side: BorderSide(
+                    color: AppColors.statusDanger.withValues(alpha: .5),
+                  ),
+                  minimumSize: const Size.fromHeight(48),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _decide(context, ref, 'reject'),
-                  icon: const Icon(Icons.cancel_outlined),
-                  label: const Text('رفض'),
-                ),
+                onPressed: () => _openWithdraw(context, ref, request),
+                icon: const Icon(Icons.undo_rounded),
+                label: const Text('سحب الطلب قبل صدور القرار'),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _decide(context, ref, 'return'),
-              icon: const Icon(Icons.replay_outlined),
-              label: const Text('إرجاع للموظف للتعديل'),
-            ),
-          ),
+            // 0452: صاحب الطلب يعدّل الطلب المرفوض/المُعاد ويعيد رفعه
+            if (isMine &&
+                request.canResubmit &&
+                (request.status == 'rejected' ||
+                    request.status == 'returned')) ...[
+              const SizedBox(height: 14),
+              _ResubmitBanner(returned: request.status == 'returned'),
+              const SizedBox(height: 10),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50),
+                ),
+                onPressed: () => _resubmit(context, ref, request),
+                icon: const Icon(Icons.edit_note_rounded),
+                label: const Text('تعديل الطلب وإعادة رفعه'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// الإجراءات: القرار، السحب، إعادة الرفع، فتح المرفق
+// ═══════════════════════════════════════════════════════════════════════════
+
+Future<void> _openDecision(
+  BuildContext context,
+  WidgetRef ref,
+  MobileRequestDetail request,
+  String decision,
+) async {
+  final done = await showRequestDecisionSheet(
+    context,
+    ref,
+    requestId: request.id,
+    number: request.number,
+    type: request.type,
+    employeeName: request.employeeName,
+    decision: decision,
+  );
+  if (done) ref.invalidate(mobileRequestDetailProvider(request.id));
+}
+
+Future<void> _openWithdraw(
+  BuildContext context,
+  WidgetRef ref,
+  MobileRequestDetail request,
+) async {
+  final done = await showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (_) => RequestActionSheet(
+      config: const RequestSheetConfig(
+        title: 'سحب الطلب',
+        icon: Icons.undo_rounded,
+        color: AppColors.statusDanger,
+        explanation:
+            'يتوقف مسار الاعتماد ولا يصل الطلب للمعتمدين. يمكنك تقديم طلب جديد لاحقًا.',
+        inputLabel: 'سبب السحب (إلزامي)',
+        required: true,
+        suggestions: [
+          'لم أعد بحاجة إلى الطلب',
+          'قُدِّم بالخطأ',
+          'سأقدّم طلبًا آخر ببيانات صحيحة',
         ],
-        const SizedBox(height: 24),
-      ],
-    );
-  }
-
-  Future<void> _cancel(BuildContext context, WidgetRef ref) async {
-    final controller = TextEditingController();
-    String? errorText;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setState) => AlertDialog(
-          title: const Text('سحب الطلب'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            maxLines: 3,
-            decoration: InputDecoration(
-              labelText: 'سبب سحب الطلب',
-              errorText: errorText,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('رجوع'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (controller.text.trim().length < 3) {
-                  setState(
-                    () => errorText = 'يرجى إدخال سبب لا يقل عن 3 أحرف.',
-                  );
-                  return;
-                }
-                Navigator.pop(dialogContext, true);
-              },
-              child: const Text('تأكيد السحب'),
-            ),
-          ],
-        ),
+        confirmLabel: 'تأكيد السحب',
+        successMessage: 'تم سحب الطلب وإيقاف مسار الاعتماد.',
       ),
-    );
-    final reason = controller.text.trim();
-    controller.dispose();
-    if (confirmed != true || !context.mounted) return;
-
-    try {
-      await ref.read(mobileCommandsProvider).cancelRequest(request.id, reason);
-      ref.invalidate(mobileRequestDetailProvider(request.id));
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم سحب الطلب وإيقاف مسار الاعتماد.')),
-        );
-      }
-    } catch (error) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
-      }
-    }
-  }
-
-  /// 0451: فتح نموذج التعديل معبّأً بالقيم الحالية ثم إعادة الرفع.
-  Future<void> _resubmit(BuildContext context, WidgetRef ref) async {
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
-      context: context,
-      isScrollControlled: true,
-      builder: (sheetContext) => NewRequestSheet(
-        type: request.type,
-        initial: {
-          'title': request.title,
-          'reason': request.reason,
-          'payload': request.payload,
-        },
-      ),
-    );
-    if (result == null || !context.mounted) return;
-
-    try {
-      await ref
-          .read(mobileCommandsProvider)
-          .resubmitRequest(
-            requestId: request.id,
-            title: result['title'] as String,
-            reason: result['reason'] as String,
-            payload: result['payload'] as Map<String, dynamic>,
-          );
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم تعديل الطلب وإعادة رفعه للمراجعة.')),
-        );
-      }
-    } catch (error) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
-      }
-    }
-  }
-
-  Future<void> _decide(
-    BuildContext context,
-    WidgetRef ref,
-    String decision,
-  ) async {
-    final controller = TextEditingController();
-    String? errorText;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setState) => AlertDialog(
-          title: Text(
-            decision == 'approve'
-                ? 'اعتماد الطلب'
-                : decision == 'return'
-                ? 'إرجاع الطلب'
-                : 'رفض الطلب',
-          ),
-          content: TextField(
-            controller: controller,
-            maxLines: 3,
-            decoration: InputDecoration(
-              labelText: decision == 'approve'
-                  ? 'ملاحظة اختيارية'
-                  : decision == 'return'
-                  ? 'سبب الإرجاع (إلزامي)'
-                  : 'سبب الرفض (إلزامي)',
-              errorText: errorText,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (decision != 'approve' &&
-                    controller.text.trim().length < 3) {
-                  setState(
-                    () => errorText = decision == 'return'
-                        ? 'سبب الإرجاع إلزامي ولا يقل عن 3 أحرف.'
-                        : 'سبب الرفض إلزامي ولا يقل عن 3 أحرف.',
-                  );
-                  return;
-                }
-                Navigator.pop(dialogContext, true);
-              },
-              child: const Text('تأكيد'),
-            ),
-          ],
-        ),
-      ),
-    );
-    final comment = controller.text.trim();
-    controller.dispose();
-    if (confirmed != true || !context.mounted) return;
-
-    try {
-      await ref
-          .read(mobileCommandsProvider)
-          .decideRequest(request.id, decision, comment);
-      ref.invalidate(mobileRequestDetailProvider(request.id));
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('تم تنفيذ القرار بنجاح.')));
-      }
-    } catch (error) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
-      }
-    }
-  }
-
-  Widget _row(String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(width: 110, child: Text(label)),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-        ),
-      ],
+      subject: '${requestTypeLabel(request.type)} · طلب رقم ${request.number}',
+      onSubmit: (note) =>
+          ref.read(mobileCommandsProvider).cancelRequest(request.id, note),
     ),
   );
+  if (done != true || !context.mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('تم سحب الطلب وإيقاف مسار الاعتماد.')),
+  );
+}
 
-  static String _typeLabel(String type) => switch (type) {
-    'leave' => 'طلب إجازة',
-    'mission' => 'مأمورية',
-    'late_permit' => 'إذن حضور',
-    'early_permit' => 'إذن انصراف',
-    'attendance_correction' => 'تصحيح حضور',
-    'convoy' => 'تكليف قافلة',
-    'fundraising' => 'فاندي',
-    _ => 'طلب عام',
-  };
+/// 0452: فتح نموذج التعديل معبّأً بالقيم الحالية ثم إعادة الرفع.
+Future<void> _resubmit(
+  BuildContext context,
+  WidgetRef ref,
+  MobileRequestDetail request,
+) async {
+  final result = await showModalBottomSheet<Map<String, dynamic>>(
+    context: context,
+    isScrollControlled: true,
+    builder: (sheetContext) => NewRequestSheet(
+      type: request.type,
+      permitKind: request.payload['permitKind']?.toString(),
+      initial: {
+        'title': request.title,
+        'reason': request.reason,
+        'payload': request.payload,
+      },
+    ),
+  );
+  if (result == null || !context.mounted) return;
 
-  Future<void> _openAttachment(BuildContext context, String path) async {
-    try {
-      final url = await Supabase.instance.client.storage
-          .from('request-attachments')
-          .createSignedUrl(path, 120)
-          .timeout(const Duration(seconds: 20));
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    } catch (error) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
-      }
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    await ref
+        .read(mobileCommandsProvider)
+        .resubmitRequest(
+          requestId: request.id,
+          title: result['title'] as String,
+          reason: result['reason'] as String,
+          payload: result['payload'] as Map<String, dynamic>,
+        );
+    ref.invalidate(mobileRequestDetailProvider(request.id));
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('تم تعديل الطلب وإعادة رفعه — بدأ مسار اعتماد جديد.'),
+      ),
+    );
+  } catch (error) {
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(requestErrorMessage(error) ?? humanizeError(error)),
+      ),
+    );
+  }
+}
+
+Future<void> _openAttachment(BuildContext context, String path) async {
+  try {
+    final url = await Supabase.instance.client.storage
+        .from('request-attachments')
+        .createSignedUrl(path, 120)
+        .timeout(const Duration(seconds: 20));
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  } catch (error) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
     }
   }
 }
 
-/// بطاقة تنفيذ المأمورية/القافلة: بدء، إنهاء بالتقرير، أو عرض نتيجة منجزة.
-/// 0451: بانر الإرجاع — يوضّح للموظف أن الطلب رُفض/أُرجع ويمكن تعديله.
-class _ResubmitBanner extends StatelessWidget {
-  const _ResubmitBanner();
+// ═══════════════════════════════════════════════════════════════════════════
+// شريط القرار الثابت أسفل الشاشة
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _DecisionBar extends ConsumerWidget {
+  const _DecisionBar({
+    required this.request,
+    required this.awaitingMe,
+    required this.currentStage,
+  });
+
+  final MobileRequestDetail request;
+  final bool awaitingMe;
+  final String? currentStage;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      elevation: 8,
+      color: scheme.surface,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                awaitingMe
+                    ? 'الطلب بانتظار قرارك'
+                    : 'الطلب الآن عند ${currentStage ?? 'مرحلة أخرى'} — ويمكنك البت فيه بصلاحيتك',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: awaitingMe
+                      ? AppColors.statusInfo
+                      : scheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.statusSuccess,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(48),
+                      ),
+                      onPressed: () =>
+                          _openDecision(context, ref, request, 'approve'),
+                      icon: const Icon(Icons.check_rounded),
+                      label: const Text('اعتماد'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: requestReturnColor,
+                        side: BorderSide(
+                          color: requestReturnColor.withValues(alpha: .5),
+                        ),
+                        minimumSize: const Size.fromHeight(48),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      onPressed: () =>
+                          _openDecision(context, ref, request, 'return'),
+                      icon: const Icon(Icons.undo_rounded, size: 19),
+                      label: const Text('إرجاع'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.statusDanger,
+                        side: BorderSide(
+                          color: AppColors.statusDanger.withValues(alpha: .5),
+                        ),
+                        minimumSize: const Size.fromHeight(48),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      onPressed: () =>
+                          _openDecision(context, ref, request, 'reject'),
+                      icon: const Icon(Icons.close_rounded, size: 19),
+                      label: const Text('رفض'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// البطاقة الرئيسية: النوع والرقم والحالة وصاحب الطلب
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _HeroCard extends StatelessWidget {
+  const _HeroCard({
+    required this.request,
+    required this.isMine,
+    required this.canDecide,
+    required this.currentStage,
+  });
+
+  final MobileRequestDetail request;
+  final bool isMine;
+  final bool canDecide;
+  final String? currentStage;
+
+  /// المرحلة التي صدر فيها القرار ومن أصدره.
+  ({String? who, String? stage}) _decisionInfo() {
+    final decided = request.steps.where(
+      (s) => s.status == 'approved' || s.status == 'rejected',
+    );
+    final step = decided.isEmpty ? null : decided.last;
+    return (
+      who:
+          request.decidedByName ?? step?.actorName ?? request.decisionActorName,
+      stage: step == null
+          ? null
+          : requestStageName(
+              step.name,
+              roleSlug: step.roleSlug,
+              order: step.order,
+            ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final typeColor = requestTypeColor(request.type);
+    final typeLabel = requestTypeLabel(request.type);
+    final title = request.title?.trim();
+    final showTitle = title != null && title.isNotEmpty && title != typeLabel;
+    final subtitleParts = [
+      if (request.employeeJobTitle?.trim().isNotEmpty == true)
+        request.employeeJobTitle!.trim(),
+      if (request.employeeDepartment?.trim().isNotEmpty == true)
+        request.employeeDepartment!.trim(),
+    ];
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: .6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: AlignmentDirectional.centerStart,
+                end: AlignmentDirectional.centerEnd,
+                colors: [
+                  typeColor.withValues(alpha: .14),
+                  typeColor.withValues(alpha: .04),
+                ],
+              ),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: typeColor.withValues(alpha: .16),
+                  child: Icon(
+                    requestTypeIcon(request.type),
+                    color: typeColor,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        typeLabel,
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                          color: typeColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'طلب رقم ${request.number} · قُدِّم ${arAgo(request.createdAt)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                RequestStatusChip(request.status),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (showTitle) ...[
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w900,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                _statusBanner(context),
+                const SizedBox(height: 12),
+                InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: isMine || request.employeeId == null
+                      ? null
+                      : () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EmployeeProfilePage(
+                              employeeId: request.employeeId!,
+                              employeeName: request.employeeName,
+                            ),
+                          ),
+                        ),
+                  child: Row(
+                    children: [
+                      AppAvatar(
+                        name: request.employeeName,
+                        photoUrl: request.employeePhotoUrl,
+                        radius: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              request.employeeName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                              ),
+                            ),
+                            Text(
+                              subtitleParts.isEmpty
+                                  ? 'صاحب الطلب'
+                                  : subtitleParts.join(' · '),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isMine)
+                        const RequestMetaChip(
+                          icon: Icons.person_rounded,
+                          text: 'طلبك',
+                          color: AppColors.brandPrimary,
+                        )
+                      else if (request.employeeId != null)
+                        Icon(
+                          Icons.chevron_left_rounded,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusBanner(BuildContext context) {
+    final style = requestStatusStyle(request.status);
+    String main;
+    String? detail;
+    Widget? chip;
+    switch (request.status) {
+      case 'pending':
+        final awaiting = canDecide && (request.awaitingMe ?? true);
+        main = awaiting
+            ? 'الطلب بانتظار قرارك'
+            : 'بانتظار قرار ${currentStage ?? 'الإدارة'}';
+        if (awaiting) {
+          if (currentStage != null) detail = 'المرحلة الحالية: $currentStage';
+        } else if (canDecide) {
+          detail = 'يمكنك البت فيه بصلاحيتك قبل وصوله إليك';
+        }
+        final current = currentStepIndex(request.steps, request.status);
+        final due = requestDueStatus(
+          current >= 0 ? request.steps[current].dueAt : request.decisionDueAt,
+        );
+        if (due != null) {
+          chip = RequestMetaChip(
+            icon: due.overdue
+                ? Icons.warning_amber_rounded
+                : Icons.schedule_rounded,
+            text: due.label,
+            color: due.overdue ? AppColors.statusDanger : AppColors.statusInfo,
+            strong: due.overdue,
+          );
+        }
+      case 'approved' || 'rejected' || 'returned':
+        final info = _decisionInfo();
+        final verb = switch (request.status) {
+          'approved' => 'اعتمده',
+          'rejected' => 'رفضه',
+          _ => 'أعاده للتعديل',
+        };
+        main = info.who == null
+            ? style.label
+            : request.status == 'returned'
+            ? 'أعاده ${info.who} للتعديل'
+            : '$verb ${info.who}';
+        final when =
+            request.decidedAt ??
+            request.steps
+                .where((s) => s.decidedAt != null)
+                .map((s) => s.decidedAt!)
+                .fold<DateTime?>(
+                  null,
+                  (a, b) => a == null || b.isAfter(a) ? b : a,
+                );
+        detail = [
+          if (info.stage != null) info.stage!,
+          if (request.decisionOnBehalfOfExecutive)
+            'بالإنابة عن المدير التنفيذي',
+          if (when != null) arDateTime(when),
+        ].join(' · ');
+      case 'cancelled' || 'withdrawn':
+        main =
+            request.cancelledByName == null ||
+                request.cancelledByName == request.employeeName
+            ? 'سحبه صاحب الطلب'
+            : 'سحبه ${request.cancelledByName}';
+        final when = request.cancelledAt ?? request.updatedAt;
+        detail = [
+          if (when != null) arDateTime(when),
+          if (request.cancelReason?.trim().isNotEmpty == true)
+            'السبب: ${request.cancelReason!.trim()}',
+        ].join(' · ');
+      default:
+        main = style.label;
+    }
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: scheme.error.withValues(alpha: .07),
+        color: style.color.withValues(alpha: .08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: scheme.error.withValues(alpha: .35)),
+        border: Border.all(color: style.color.withValues(alpha: .25)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline_rounded, color: scheme.error, size: 22),
+          Icon(style.icon, color: style.color, size: 22),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'تم إرجاع هذا الطلب',
+                  main,
                   style: TextStyle(
                     fontWeight: FontWeight.w900,
-                    color: scheme.error,
+                    fontSize: 14.5,
+                    color: style.color,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'راجع ملاحظات القرار أدناه، عدّل ما يلزم في الطلب ثم أعد رفعه '
-                  'ليبدأ مسار اعتماد جديد.',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    height: 1.5,
-                    color: scheme.onSurfaceVariant,
+                if (detail != null && detail.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    detail,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      height: 1.45,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
+                ],
+                if (chip != null) ...[const SizedBox(height: 8), chip],
               ],
             ),
           ),
@@ -582,58 +713,743 @@ class _ResubmitBanner extends StatelessWidget {
   }
 }
 
-class _MissionExecutionCard extends ConsumerWidget {
-  const _MissionExecutionCard({required this.request});
+// ═══════════════════════════════════════════════════════════════════════════
+// تفاصيل الطلب: البيانات حسب النوع + السبب + المرفقات
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _DetailsCard extends StatelessWidget {
+  const _DetailsCard({required this.request});
 
   final MobileRequestDetail request;
 
-  String _statusLabel(BuildContext context, String status) => switch (status) {
-    'in_progress' => 'قيد التنفيذ',
-    'completed' => 'منجزة',
-    _ => 'لم تبدأ',
+  Map<String, dynamic> get _p => request.payload;
+
+  String? _text(String key) {
+    final v = _p[key]?.toString().trim();
+    return v == null || v.isEmpty || v == 'null' ? null : v;
+  }
+
+  String? _day(String key) {
+    final d = DateTime.tryParse(_p[key]?.toString() ?? '');
+    return d == null ? null : arDay(d);
+  }
+
+  List<(IconData, String, String)> _rows() {
+    final rows = <(IconData, String, String)>[];
+    void add(IconData icon, String label, String? value) {
+      if (value != null && value.trim().isNotEmpty) {
+        rows.add((icon, label, value.trim()));
+      }
+    }
+
+    final period = requestPeriodLabel(_p);
+    final days = requestDays(_p);
+    switch (request.type) {
+      case 'leave':
+        add(
+          Icons.category_rounded,
+          'نوع الإجازة',
+          leaveTypeLabel(_text('leaveType')),
+        );
+        add(Icons.date_range_rounded, 'الفترة', period);
+        if (days != null) {
+          add(Icons.event_available_rounded, 'المدة', arDays(days));
+        }
+      case 'mission' || 'convoy' || 'fundraising':
+        add(Icons.place_rounded, 'الوجهة', _text('location'));
+        add(
+          Icons.date_range_rounded,
+          days != null && days > 1 ? 'الفترة' : 'اليوم',
+          period,
+        );
+        if (days != null && days > 1) {
+          add(Icons.event_available_rounded, 'المدة', arDays(days));
+        }
+        add(Icons.logout_rounded, 'وقت الانطلاق', time12(_p['startTime']));
+        add(Icons.login_rounded, 'وقت العودة', time12(_p['endTime']));
+      case 'late_permit' || 'early_permit':
+        add(
+          Icons.category_rounded,
+          'نوع الإذن',
+          permitKindLabel(_text('permitKind'), request.type),
+        );
+        add(Icons.today_rounded, 'اليوم', period);
+        add(Icons.timer_outlined, 'المدة', permitDurationLabel(_p['minutes']));
+      case 'shift_change':
+        add(Icons.schedule_rounded, 'الفترة المطلوبة', _text('shiftName'));
+        add(Icons.event_available_rounded, 'تبدأ من', _day('effectiveFrom'));
+      case 'attendance_correction':
+        add(Icons.today_rounded, 'اليوم', _day('workDate') ?? period);
+        add(Icons.login_rounded, 'الحضور المطلوب', time12(_p['checkInTime']));
+        add(
+          Icons.logout_rounded,
+          'الانصراف المطلوب',
+          time12(_p['checkOutTime']),
+        );
+      default:
+        add(Icons.date_range_rounded, 'الفترة', period);
+        add(Icons.place_rounded, 'المكان', _text('location'));
+    }
+    return rows;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final rows = _rows();
+    final reason = request.reason?.trim();
+    final showReason =
+        reason != null && reason.isNotEmpty && reason != request.title?.trim();
+    if (rows.isEmpty && !showReason && request.attachments.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return _SectionCard(
+      icon: Icons.assignment_outlined,
+      title:
+          'بيانات ${requestTypeLabel(request.type) == 'طلب' ? 'الطلب' : requestTypeLabel(request.type)}',
+      children: [
+        for (final (icon, label, value) in rows)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, size: 18, color: scheme.primary),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 92,
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                      height: 1.45,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (showReason) ...[
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest.withValues(alpha: .45),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.format_quote_rounded,
+                      size: 18,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'السبب والتفاصيل',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  reason,
+                  style: const TextStyle(fontSize: 13.5, height: 1.6),
+                ),
+              ],
+            ),
+          ),
+        ],
+        if (_p['startLocation'] is Map) ...[
+          const SizedBox(height: 10),
+          _StartLocationTile(
+            location: Map<String, dynamic>.from(_p['startLocation'] as Map),
+          ),
+        ],
+        if (request.attachments.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          for (var i = 0; i < request.attachments.length; i++)
+            _AttachmentTile(attachment: request.attachments[i], index: i),
+        ],
+      ],
+    );
+  }
+}
+
+/// موقع بدء المأمورية كما سُجِّل لحظة إرسالها: العنوان/الإحداثيات، الدقة، الوقت،
+/// فتح الخريطة، وتحذير صريح إن كان الموقع من تطبيق تزييف.
+class _StartLocationTile extends StatelessWidget {
+  const _StartLocationTile({required this.location});
+
+  final Map<String, dynamic> location;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final lat = (location['lat'] as num?)?.toDouble();
+    final lng = (location['lng'] as num?)?.toDouble();
+    if (lat == null || lng == null) return const SizedBox.shrink();
+    final mocked = location['mocked'] == true;
+    final accuracy = (location['accuracy'] as num?)?.round();
+    final at = DateTime.tryParse(location['capturedAt']?.toString() ?? '');
+    final address = location['address']?.toString().trim();
+    final color = mocked ? AppColors.statusDanger : const Color(0xFF2563EB);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: .25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.my_location_rounded, size: 20, color: color),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'موقع بدء المأمورية',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      address != null && address.isNotEmpty
+                          ? address
+                          : '${lat.toStringAsFixed(5)}، ${lng.toStringAsFixed(5)}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      [
+                        if (at != null) arDateTime(at),
+                        if (accuracy != null) 'الدقة ± $accuracy م',
+                      ].join(' · '),
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (mocked) ...[
+            const SizedBox(height: 8),
+            const Text(
+              'تحذير: الموقع صادر عن تطبيق لتزييف المواقع، وليس من GPS الجهاز.',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w900,
+                color: AppColors.statusDanger,
+              ),
+            ),
+          ],
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: TextButton.icon(
+              onPressed: () => launchUrl(
+                Uri.parse(
+                  'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
+                ),
+                mode: LaunchMode.externalApplication,
+              ),
+              icon: const Icon(Icons.map_outlined, size: 18),
+              label: const Text('فتح على الخريطة'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AttachmentTile extends StatelessWidget {
+  const _AttachmentTile({required this.attachment, required this.index});
+
+  final MobileRequestAttachment attachment;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final mime = attachment.mimeType.toLowerCase();
+    final isImage = mime.startsWith('image/');
+    final isPdf = mime.contains('pdf');
+    final kb = attachment.sizeBytes / 1024;
+    final size = attachment.sizeBytes <= 0
+        ? null
+        : kb < 1024
+        ? '${kb.round()} كيلوبايت'
+        : '${(kb / 1024).toStringAsFixed(1)} ميجابايت';
+    return Card(
+      margin: const EdgeInsets.only(top: 6),
+      elevation: 0,
+      color: Theme.of(
+        context,
+      ).colorScheme.surfaceContainerHighest.withValues(alpha: .35),
+      child: ListTile(
+        dense: true,
+        leading: Icon(
+          isImage
+              ? Icons.image_outlined
+              : isPdf
+              ? Icons.picture_as_pdf_outlined
+              : Icons.attach_file_rounded,
+        ),
+        title: Text(
+          isImage
+              ? 'صورة ${index + 1}'
+              : isPdf
+              ? 'ملف PDF ${index + 1}'
+              : 'مرفق ${index + 1}',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: size == null ? null : Text(size),
+        trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+        onTap: () => _openAttachment(context, attachment.path),
+      ),
+    );
+  }
+}
+
+/// بطاقة قسم بعنوان وأيقونة.
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
+    required this.icon,
+    required this.title,
+    required this.children,
+  });
+
+  final IconData icon;
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: .6)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 20, color: AppColors.brandPrimary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// سياق القرار للمعتمِد: الرصيد، الزملاء خارج المقر، طلبات الشهر، البديل
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _DecisionContextCard extends StatelessWidget {
+  const _DecisionContextCard({required this.request});
+
+  final MobileRequestDetail request;
+
+  static bool hasContent(MobileRequestDetail r) =>
+      r.insights != null || r.substituteName != null || r.conflicts.isNotEmpty;
+
+  static String _units(double v) => arDays(v.round());
+
+  String _awayLabel(String type) => switch (type) {
+    'leave' => 'إجازة',
+    'mission' => 'مأمورية',
+    'convoy' => 'قافلة',
+    'fundraising' => 'فاندي',
+    _ => requestTypeLabel(type),
   };
 
-  Widget _row(String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(width: 110, child: Text(label)),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.w800),
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final ins = request.insights;
+    final days = requestDays(request.payload);
+    final rows = <Widget>[];
+
+    Widget row({
+      required IconData icon,
+      required Color color,
+      required String title,
+      String? subtitle,
+      Widget? extra,
+    }) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 15,
+            backgroundColor: color.withValues(alpha: .12),
+            child: Icon(icon, size: 16, color: color),
           ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13.5,
+                    height: 1.45,
+                  ),
+                ),
+                if (subtitle != null && subtitle.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.45,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ?extra,
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    // الرصيد (للإجازات)
+    if (ins?.leaveAvailable != null) {
+      final available = ins!.leaveAvailable!;
+      final short =
+          days != null && request.status == 'pending' && available < 0;
+      rows.add(
+        row(
+          icon: Icons.account_balance_wallet_outlined,
+          color: short ? AppColors.statusDanger : AppColors.statusSuccess,
+          title:
+              'المتاح من ${ins.leaveName ?? 'رصيد الإجازة'}: ${_units(available < 0 ? 0 : available)}',
+          subtitle: [
+            'مستهلك ${fmtUnits(ins.leaveConsumed ?? 0)}',
+            'محجوز ${fmtUnits(ins.leaveReserved ?? 0)}',
+            if (short) 'الرصيد لا يغطي هذه المدة',
+          ].join(' · '),
         ),
+      );
+    }
+
+    // الزملاء خارج المقر في الفترة نفسها
+    if (ins != null && requestPeriodLabel(request.payload) != null) {
+      final away = ins.teamAway;
+      rows.add(
+        row(
+          icon: away.isEmpty ? Icons.groups_rounded : Icons.group_off_rounded,
+          color: away.isEmpty
+              ? AppColors.statusSuccess
+              : AppColors.statusWarning,
+          title: away.isEmpty
+              ? (ins.teamSize == 0
+                    ? 'لا زملاء آخرين في إدارته'
+                    : 'لا أحد من زملاء إدارته خارج المقر في الفترة نفسها')
+              : '${arEmployees(away.length)} من إدارته خارج المقر في الفترة نفسها',
+          subtitle: away.isEmpty || ins.teamSize == 0
+              ? null
+              : 'من أصل ${arEmployees(ins.teamSize)} في الإدارة',
+          extra: away.isEmpty
+              ? null
+              : Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final a in away.take(8))
+                        RequestMetaChip(
+                          icon: requestTypeIcon(a.type),
+                          text:
+                              '${a.name} · ${_awayLabel(a.type)}${a.status == 'pending' ? ' (قيد المراجعة)' : ''}',
+                          color: requestTypeColor(a.type),
+                        ),
+                      if (away.length > 8)
+                        RequestMetaChip(
+                          icon: Icons.more_horiz_rounded,
+                          text: 'و${away.length - 8} آخرون',
+                        ),
+                    ],
+                  ),
+                ),
+        ),
+      );
+    }
+
+    // طلبات الموظف هذا الشهر
+    if (ins != null) {
+      final parts = [
+        if (ins.monthMissions > 0)
+          arCount(
+            ins.monthMissions,
+            one: 'مأمورية واحدة',
+            two: 'مأموريتان',
+            few: 'مأموريات',
+            many: 'مأمورية',
+            base: 'مأمورية',
+          ),
+        if (ins.monthLeaves > 0)
+          arCount(
+            ins.monthLeaves,
+            one: 'إجازة واحدة',
+            two: 'إجازتان',
+            few: 'إجازات',
+            many: 'إجازة',
+            base: 'إجازة',
+          ),
+        if (ins.monthPermits > 0)
+          arCount(
+            ins.monthPermits,
+            one: 'إذن واحد',
+            two: 'إذنان',
+            few: 'أذونات',
+            many: 'إذنًا',
+            base: 'إذن',
+          ),
+      ];
+      rows.add(
+        row(
+          icon: Icons.insights_rounded,
+          color: AppColors.statusViolet,
+          title: ins.monthTotal == 0
+              ? 'لا طلبات أخرى له هذا الشهر'
+              : 'طلباته الأخرى هذا الشهر: ${arRequests(ins.monthTotal)}',
+          subtitle: [
+            if (parts.isNotEmpty) parts.join(' · '),
+            if (ins.monthPending > 0) 'قيد المراجعة: ${ins.monthPending}',
+            if (ins.monthRejected > 0) 'مرفوض أو مُعاد: ${ins.monthRejected}',
+          ].join(' — '),
+        ),
+      );
+    }
+
+    // البديل والتعارضات
+    if (request.type == 'leave' || request.substituteName != null) {
+      rows.add(
+        row(
+          icon: Icons.swap_horiz_rounded,
+          color: AppColors.brandPrimary,
+          title: request.substituteName == null
+              ? 'لم يُحدِّد بديلًا أثناء غيابه'
+              : 'البديل أثناء غيابه: ${request.substituteName}',
+        ),
+      );
+    }
+    for (final conflict in request.conflicts) {
+      rows.add(
+        row(
+          icon: Icons.warning_amber_rounded,
+          color: AppColors.statusDanger,
+          title: _ContextCard._humanize(conflict),
+        ),
+      );
+    }
+
+    if (rows.isEmpty) return const SizedBox.shrink();
+    return _SectionCard(
+      icon: Icons.fact_check_outlined,
+      title: 'سياق القرار',
+      children: rows,
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// البديل والتعارضات
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _ContextCard extends StatelessWidget {
+  const _ContextCard({required this.request});
+
+  final MobileRequestDetail request;
+
+  /// «2026-10-05» داخل رسالة التعارض → «5 أكتوبر».
+  static String _humanize(String text) => text
+      .replaceAllMapped(RegExp(r'(\d{4})-(\d{1,2})-(\d{1,2})'), (m) {
+        final d = DateTime.tryParse(
+          '${m[1]}-${m[2]!.padLeft(2, '0')}-${m[3]!.padLeft(2, '0')}',
+        );
+        return d == null ? m[0]! : DateFormat('d MMMM', 'ar').format(d);
+      })
+      .replaceAllMapped(
+        RegExp(r'\(([^()]+) إلى ([^()]+)\)'),
+        (m) => m[1]!.trim() == m[2]!.trim() ? '(${m[1]!.trim()})' : m[0]!,
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return _SectionCard(
+      icon: Icons.people_alt_outlined,
+      title: 'البديل والتعارضات',
+      children: [
+        Row(
+          children: [
+            Icon(Icons.swap_horiz_rounded, size: 18, color: scheme.primary),
+            const SizedBox(width: 8),
+            Text(
+              'البديل أثناء الغياب: ',
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+            ),
+            Expanded(
+              child: Text(
+                request.substituteName ?? 'لم يُحدَّد',
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (request.conflicts.isEmpty)
+          Row(
+            children: [
+              const Icon(
+                Icons.check_circle_outline_rounded,
+                size: 18,
+                color: AppColors.statusSuccess,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'لا توجد طلبات متداخلة في الفترة نفسها.',
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+              ),
+            ],
+          )
+        else
+          for (final conflict in request.conflicts)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    size: 18,
+                    color: AppColors.statusDanger,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _humanize(conflict),
+                      style: const TextStyle(
+                        color: AppColors.statusDanger,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
       ],
-    ),
-  );
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// تنفيذ المأمورية / القافلة / الفاندي
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _MissionExecutionCard extends ConsumerWidget {
+  const _MissionExecutionCard({required this.request, required this.isOwner});
+
+  final MobileRequestDetail request;
+  final bool isOwner;
+
+  String get _noun => switch (request.type) {
+    'convoy' => 'القافلة',
+    'fundraising' => 'الفاندي',
+    _ => 'المأمورية',
+  };
 
   Future<void> _start(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(mobileCommandsProvider).startMission(request.id);
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('بدأت المأمورية بنجاح')));
-      }
+      messenger.showSnackBar(
+        SnackBar(content: Text('بدأت $_noun — بالتوفيق.')),
+      );
     } catch (error) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تعذر البدء: ${humanizeError(error)}')),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(content: Text('تعذر البدء: ${humanizeError(error)}')),
+      );
     }
   }
 
   Future<void> _end(BuildContext context, WidgetRef ref) async {
     final result =
-        await showModalBottomSheet<({String report, String? outcome})>(
+        await showModalBottomSheet<
+          ({String report, String? outcome, bool withCheckout})
+        >(
           context: context,
           isScrollControlled: true,
-          builder: (context) => _EndMissionSheet(),
+          showDragHandle: true,
+          builder: (context) => _EndMissionSheet(noun: _noun),
         );
-    if (result == null) return;
+    if (result == null || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await ref
           .read(mobileCommandsProvider)
@@ -641,125 +1457,401 @@ class _MissionExecutionCard extends ConsumerWidget {
             requestId: request.id,
             report: result.report,
             outcome: result.outcome,
+            withCheckout: result.withCheckout,
           );
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم إنهاء المأمورية وحفظ التقرير')),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.statusSuccess,
+          content: Text(
+            result.withCheckout
+                ? 'تم إنهاء $_noun وتسجيل انصرافك.'
+                : 'تم إنهاء $_noun — دوامك مستمر.',
+          ),
+        ),
+      );
     } catch (error) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تعذر الإنهاء: ${humanizeError(error)}')),
+      messenger.showSnackBar(
+        SnackBar(content: Text('تعذر الإنهاء: ${humanizeError(error)}')),
+      );
+    }
+  }
+
+  /// 0658: تقرير مأمورية أغلقها النظام — لا يغيّر الإغلاق ولا حضور يومها.
+  Future<void> _writeReport(
+    BuildContext context,
+    WidgetRef ref,
+    MobileMissionExecution execution,
+  ) async {
+    final result =
+        await showModalBottomSheet<
+          ({String report, String? outcome, bool withCheckout})
+        >(
+          context: context,
+          isScrollControlled: true,
+          showDragHandle: true,
+          builder: (context) => _EndMissionSheet(
+            noun: _noun,
+            reportOnly: true,
+            initialReport: execution.awaitsReport ? null : execution.report,
+            initialOutcome: execution.outcome,
+          ),
         );
-      }
+    if (result == null || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref
+          .read(mobileCommandsProvider)
+          .submitMissionReport(
+            requestId: request.id,
+            report: result.report,
+            outcome: result.outcome,
+          );
+      messenger.showSnackBar(
+        const SnackBar(
+          backgroundColor: AppColors.statusSuccess,
+          content: Text('حُفظ التقرير.'),
+        ),
+      );
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('تعذر حفظ التقرير: ${humanizeError(error)}')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final execution = request.missionExecution;
-    final formatter = DateFormat('d MMMM y، h:mm a', 'ar');
-    final isOwner = request.status == 'approved';
-    final canStart = isOwner && (execution == null || !execution.isInProgress);
-    final canEnd = isOwner && execution != null && execution.isInProgress;
+    final status = request.status;
+    final actionable = status == 'approved' || status == 'pending';
+    final started = execution?.startedAt != null;
+    // tg_mission_execution_close_on_cancel يغلق التنفيذ «completed» بهذا النص
+    // لحظة الرفض/السحب — ليس إنجازًا من الموظف
+    final closedAt = request.cancelledAt ?? request.decidedAt;
+    final systemClosed =
+        execution?.report?.trim() == 'أُلغي الطلب قبل إتمام التنفيذ' ||
+        (const {
+              'rejected',
+              'cancelled',
+              'withdrawn',
+              'expired',
+            }.contains(status) &&
+            closedAt != null &&
+            execution?.endedAt != null &&
+            execution!.endedAt!.difference(closedAt).inMinutes.abs() <= 2);
+    // 0658: أغلقها النظام لانقضاء يومها دون إنهاء — ليست «أُنجزت»، ولصاحبها
+    // كتابة تقريرها خلال 14 يومًا.
+    final autoClosed = !systemClosed && execution?.isAutoClosed == true;
+    final reportDeadline = execution?.reportDeadline;
+    final canWriteReport =
+        isOwner &&
+        autoClosed &&
+        reportDeadline != null &&
+        DateTime.now().isBefore(reportDeadline);
+    final completed =
+        execution != null &&
+        !systemClosed &&
+        !autoClosed &&
+        (execution.isCompleted || execution.endedAt != null);
+    final stopped =
+        !completed &&
+        !autoClosed &&
+        (systemClosed ||
+            execution?.status == 'cancelled' ||
+            const {
+              'rejected',
+              'cancelled',
+              'withdrawn',
+              'expired',
+              'returned',
+            }.contains(status));
+    final inProgress =
+        execution != null && execution.isInProgress && !completed && !stopped;
+    // مأمورية «قيد التنفيذ» انقضى يومها دون إنهاء: إنهاؤها اليوم يسجّل حضورًا
+    // وانصرافًا لليوم الحالي، فلا يُعرض زر الإنهاء لها.
+    final lastDay =
+        requestLastDay(request.payload) ?? execution?.startedAt?.toLocal();
+    final today = DateUtils.dateOnly(DateTime.now());
+    final stale =
+        inProgress &&
+        lastDay != null &&
+        DateUtils.dateOnly(lastDay).isBefore(today);
+    // 0607: البدء والإنهاء متاحان لصاحب التكليف والطلب معلّق أو معتمد
+    final canStart =
+        isOwner && actionable && !started && !completed && !stopped;
+    final canEnd = isOwner && actionable && inProgress && !stale;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.flag_circle_outlined),
-                const SizedBox(width: 8),
-                const Text(
-                  'تنفيذ المأمورية',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: execution == null || !execution.isInProgress
-                        ? Theme.of(context).colorScheme.surfaceContainerHighest
-                        : Colors.orange.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    _statusLabel(context, execution?.status ?? 'not_started'),
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (execution != null && execution.startedAt != null) ...[
-              _row(
-                'وقت البدء',
-                formatter.format(execution.startedAt!.toLocal()),
-              ),
-              if (execution.endedAt != null)
-                _row(
-                  'وقت الإنهاء',
-                  formatter.format(execution.endedAt!.toLocal()),
-                ),
-              if (execution.actualMinutes != null)
-                _row('المدة الفعلية', '${execution.actualMinutes} دقيقة'),
-            ],
-            if (execution != null && execution.report != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                'التقرير: ${execution.report}',
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ],
-            if (execution == null)
-              const Text(
-                'لم يبدأ الموظف التنفيذ بعد. تبدأ المأمورية بعد الاعتماد.',
-              ),
-            if (canStart) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () => _start(context, ref),
-                  icon: const Icon(Icons.play_circle_outline),
-                  label: const Text('ابدأ المأمورية الآن'),
-                ),
-              ),
-            ],
-            if (canEnd) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () => _end(context, ref),
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: const Text('إنهاء المأمورية وتقديم التقرير'),
-                ),
-              ),
-            ],
-          ],
+    final (
+      Color color,
+      IconData icon,
+      String headline,
+      String? note,
+    ) = switch ((autoClosed, completed, stopped, stale, inProgress)) {
+      (true, _, _, _, _) when execution!.awaitsReport => (
+        AppColors.statusWarning,
+        Icons.history_toggle_off_rounded,
+        'أغلق النظام $_noun لانقضاء يومها دون إنهاء',
+        isOwner
+            ? (canWriteReport
+                  ? 'اكتب ما أنجزته قبل ${arDay(reportDeadline.toLocal())} — لا يغيّر ذلك حضور يومها.'
+                  : 'انتهت مهلة كتابة التقرير.')
+            : 'لم يسجّل الموظف إنهاءها وتقريرها في يومها.',
+      ),
+      (true, _, _, _, _) => (
+        AppColors.statusSuccess,
+        Icons.task_alt_rounded,
+        'أُغلقت $_noun تلقائيًا وكُتب تقريرها لاحقًا',
+        null,
+      ),
+      (_, true, _, _, _) => (
+        AppColors.statusSuccess,
+        Icons.task_alt_rounded,
+        'أُنجزت $_noun وقُدِّم التقرير',
+        null,
+      ),
+      (_, _, true, _, _) => (
+        const Color(0xFF64748B),
+        Icons.block_rounded,
+        status == 'cancelled'
+            ? 'سُحب الطلب فتوقف التنفيذ'
+            : status == 'returned'
+            ? 'أُعيد الطلب للتعديل فتوقف التنفيذ'
+            : 'رُفض الطلب فتوقف التنفيذ',
+        null,
+      ),
+      (_, _, _, true, _) => (
+        AppColors.statusWarning,
+        Icons.history_toggle_off_rounded,
+        'لم يُسجَّل إنهاء $_noun في يومها',
+        isOwner
+            ? 'انقضى يومها دون تقرير — تواصل مع الموارد البشرية إن لزم تسوية الحضور.'
+            : 'انقضى يومها دون أن يسجّل الموظف الإنهاء والتقرير.',
+      ),
+      (_, _, _, _, true) => (
+        const Color(0xFF2563EB),
+        Icons.directions_run_rounded,
+        isOwner ? '$_noun جارية الآن' : 'الموظف في $_noun الآن',
+        [
+          if (status == 'pending')
+            'بدأت قبل صدور القرار والطلب ما زال قيد المراجعة.',
+          if (isOwner) 'عند الانتهاء اضغط «إنهاء $_noun» وقدّم تقريرك.',
+        ].join(' '),
+      ),
+      _ => (
+        const Color(0xFF64748B),
+        Icons.flag_outlined,
+        'لم يبدأ التنفيذ بعد',
+        isOwner
+            ? (status == 'approved'
+                  ? 'اعتُمدت $_noun — ابدأها عند انطلاقك فعليًا.'
+                  : 'يمكنك بدؤها الآن ولو كان الطلب قيد المراجعة.')
+            : (status == 'approved'
+                  ? 'اعتُمدت وبانتظار أن يبدأ الموظف التنفيذ.'
+                  : null),
+      ),
+    };
+
+    final rows = <(String, String)>[
+      if (execution?.startedAt != null)
+        ('بدأت', arDateTime(execution!.startedAt!)),
+      if (execution?.endedAt != null)
+        (
+          systemClosed ? 'توقفت' : (autoClosed ? 'أُغلقت' : 'انتهت'),
+          arDateTime(execution!.endedAt!),
         ),
+      if (execution?.actualMinutes != null && completed)
+        ('المدة الفعلية', arDurationMinutes(execution.actualMinutes!)),
+    ];
+
+    return _SectionCard(
+      icon: requestTypeIcon(request.type),
+      title: 'تنفيذ $_noun',
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: .08),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withValues(alpha: .25)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: color, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      headline,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: color,
+                        fontSize: 14,
+                      ),
+                    ),
+                    if (note != null && note.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        note,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          height: 1.5,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (rows.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          for (final (label, value) in rows)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 92,
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      value,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+        if (!systemClosed &&
+            execution?.awaitsReport != true &&
+            execution?.report?.trim().isNotEmpty == true) ...[
+          const SizedBox(height: 8),
+          _QuoteBox(label: 'تقرير التنفيذ', text: execution!.report!.trim()),
+        ],
+        if (execution?.outcome?.trim().isNotEmpty == true) ...[
+          const SizedBox(height: 8),
+          _QuoteBox(label: 'النتيجة', text: execution!.outcome!.trim()),
+        ],
+        if (canStart) ...[
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+            ),
+            onPressed: () => _start(context, ref),
+            icon: const Icon(Icons.play_circle_outline_rounded),
+            label: Text('ابدأ $_noun الآن'),
+          ),
+        ],
+        if (canEnd) ...[
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.statusSuccess,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(48),
+            ),
+            onPressed: () => _end(context, ref),
+            icon: const Icon(Icons.flag_rounded),
+            label: Text('إنهاء $_noun وتقديم التقرير'),
+          ),
+        ],
+        if (canWriteReport && execution != null) ...[
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+            ),
+            onPressed: () => _writeReport(context, ref, execution),
+            icon: const Icon(Icons.edit_note_rounded),
+            label: Text(
+              execution.awaitsReport ? 'كتابة تقرير $_noun' : 'تعديل التقرير',
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _QuoteBox extends StatelessWidget {
+  const _QuoteBox({required this.label, required this.text});
+
+  final String label;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: .45),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(text, style: const TextStyle(fontSize: 13, height: 1.55)),
+        ],
       ),
     );
   }
 }
 
-/// ورقة إنهاء المأمورية: تقرير إلزامي + نتيجة اختيارية.
+/// ورقة إنهاء المأمورية: تقرير إلزامي + نتيجة اختيارية + إنهاء بالانصراف أو بدونه.
+/// وبـ[reportOnly]: تقرير مأمورية أغلقها النظام — حفظ فقط، بلا إنهاء ولا انصراف.
 class _EndMissionSheet extends StatefulWidget {
+  const _EndMissionSheet({
+    required this.noun,
+    this.reportOnly = false,
+    this.initialReport,
+    this.initialOutcome,
+  });
+
+  final String noun;
+  final bool reportOnly;
+  final String? initialReport;
+  final String? initialOutcome;
+
   @override
   State<_EndMissionSheet> createState() => _EndMissionSheetState();
 }
 
 class _EndMissionSheetState extends State<_EndMissionSheet> {
-  final _reportController = TextEditingController();
-  final _outcomeController = TextEditingController();
+  late final _reportController = TextEditingController(
+    text: widget.initialReport?.trim() ?? '',
+  );
+  late final _outcomeController = TextEditingController(
+    text: widget.initialOutcome?.trim() ?? '',
+  );
+  String? _error;
 
   @override
   void dispose() {
@@ -768,694 +1860,124 @@ class _EndMissionSheetState extends State<_EndMissionSheet> {
     super.dispose();
   }
 
-  void _submit() {
+  void _submit({required bool withCheckout}) {
     final report = _reportController.text.trim();
     if (report.length < 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('التقرير إلزامي (3 أحرف على الأقل)')),
-      );
+      setState(() => _error = 'التقرير إلزامي (ثلاثة أحرف على الأقل).');
       return;
     }
     final outcome = _outcomeController.text.trim();
     Navigator.pop(context, (
       report: report,
       outcome: outcome.isEmpty ? null : outcome,
+      withCheckout: withCheckout,
     ));
   }
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: bottomInset > 0 ? bottomInset + 16 : 40,
+      padding: EdgeInsets.fromLTRB(
+        20,
+        0,
+        20,
+        MediaQuery.viewInsetsOf(context).bottom + 24,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
-            'إنهاء المأمورية',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          TextFormField(
-            controller: _reportController,
-            maxLines: 4,
-            decoration: const InputDecoration(
-              labelText: 'تقرير التنفيذ (إلزامي)',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _outcomeController,
-            maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: 'النتيجة (اختياري)',
-              hintText: 'مثال: اكتمل التسليم، تأجل جزئيًا…',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: _submit,
-            child: const Text('حفظ التقرير وإنهاء المأمورية'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// صندوق بيانات الطلب — تصميم 0451: أيقونة نوع + وجهة بارزة + نطاق تاريخي
-/// + أوقات 12 ساعة + رقائق (أيام/مدة) بدل صفوف نصية جافة.
-class _RequestPayloadCard extends StatelessWidget {
-  const _RequestPayloadCard({required this.requestType, required this.payload});
-  final String requestType;
-  final Map<String, dynamic> payload;
-
-  IconData get _typeIcon => switch (requestType) {
-    'mission' => Icons.work_history_rounded,
-    'convoy' => Icons.directions_bus_rounded,
-    'fundraising' => Icons.volunteer_activism_rounded,
-    'leave' => Icons.beach_access_rounded,
-    'late_permit' || 'early_permit' => Icons.schedule_rounded,
-    _ => Icons.description_rounded,
-  };
-
-  String get _typeTitle => switch (requestType) {
-    'mission' => 'بيانات المأمورية',
-    'convoy' => 'بيانات القافلة',
-    'fundraising' => 'بيانات الفاندي',
-    'leave' => 'بيانات الإجازة',
-    'late_permit' || 'early_permit' => 'بيانات الإذن',
-    _ => 'بيانات الطلب',
-  };
-
-  /// 0451: 'HH:mm' → 'h:mm ص/م'
-  static String _time12(Object? raw) {
-    if (raw is! String) return '—';
-    final parts = raw.split(':');
-    final h = int.tryParse(parts.isNotEmpty ? parts[0] : '');
-    final m = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
-    if (h == null) return raw;
-    final period = h < 12 ? 'ص' : 'م';
-    final h12 = h % 12 == 0 ? 12 : h % 12;
-    return '$h12:${m.toString().padLeft(2, '0')} $period';
-  }
-
-  String? _dateLabel(String key) {
-    final raw = payload[key]?.toString();
-    if (raw == null || raw.isEmpty) return null;
-    final parsed = DateTime.tryParse(raw);
-    return parsed == null ? raw : DateFormat('EEE، d MMM', 'ar').format(parsed);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final accent = scheme.primary;
-    final start = _dateLabel('startDate');
-    final end = _dateLabel('endDate');
-    final location = payload['location']?.toString();
-    final startTime = payload['startTime'];
-    final endTime = payload['endTime'];
-    final days = payload['days']?.toString();
-    final minutes = payload['minutes']?.toString();
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: .6)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // ── ترويسة ملونة ──
-          Container(
-            color: accent.withValues(alpha: .08),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: accent.withValues(alpha: .15),
-                  child: Icon(_typeIcon, size: 20, color: accent),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  _typeTitle,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── الوجهة (مأمورية/قافلة/فاندي) ──
-                if (location != null && location.isNotEmpty) ...[
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(Icons.place_rounded, size: 18, color: accent),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          location,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 15,
-                            height: 1.4,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                // ── النطاق الزمني ──
-                if (start != null || end != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: scheme.surfaceContainerHighest.withValues(
-                        alpha: .45,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.date_range_rounded,
-                          size: 18,
-                          color: scheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            (start != null && end != null && start != end)
-                                ? '$start ← $end'
-                                : (start ?? end ?? ''),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                // ── أوقات الانطلاق/العودة (12 ساعة) ──
-                if (startTime != null || endTime != null) ...[
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      if (startTime != null)
-                        Expanded(
-                          child: _TimeChip(
-                            icon: Icons.logout_rounded,
-                            label: 'الانطلاق',
-                            value: _time12(startTime),
-                          ),
-                        ),
-                      if (startTime != null && endTime != null)
-                        const SizedBox(width: 8),
-                      if (endTime != null)
-                        Expanded(
-                          child: _TimeChip(
-                            icon: Icons.login_rounded,
-                            label: 'العودة',
-                            value: _time12(endTime),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-                // ── رقائق إضافية ──
-                if (days != null ||
-                    minutes != null ||
-                    payload['leaveType'] != null ||
-                    payload['permitKind'] != null) ...[
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      if (days != null)
-                        _InfoChip(
-                          icon: Icons.event_available_rounded,
-                          text: '$days يوم',
-                        ),
-                      if (minutes != null)
-                        _InfoChip(
-                          icon: Icons.timer_outlined,
-                          text: '$minutes دقيقة',
-                        ),
-                      if (payload['leaveType'] != null)
-                        _InfoChip(
-                          icon: Icons.category_rounded,
-                          text: _leaveType(payload['leaveType']?.toString()),
-                        ),
-                      if (payload['permitKind'] != null)
-                        _InfoChip(
-                          icon: Icons.category_rounded,
-                          text: _permitType(payload['permitKind']?.toString()),
-                        ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static String _leaveType(String? value) => switch (value) {
-    'annual' => 'اعتيادية',
-    'sick' => 'مرضية',
-    'emergency' => 'عارضة / طارئة',
-    'casual' => 'عارضة',
-    'unpaid' => 'بدون راتب',
-    'weekly_rest_comp' => 'بدل راحة أسبوعية',
-    _ => value ?? '—',
-  };
-
-  static String _permitType(String? value) => switch (value) {
-    'late_arrival' => 'إذن حضور',
-    'early_departure' => 'إذن انصراف',
-    _ => value ?? '—',
-  };
-}
-
-/// رقاقة وقت (انطلاق/عودة) — 0451
-class _TimeChip extends StatelessWidget {
-  const _TimeChip({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: scheme.primary.withValues(alpha: .06),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: scheme.primary.withValues(alpha: .25)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: scheme.primary),
-          const SizedBox(width: 6),
-          Text(
-            '$label $value',
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// رقاقة معلومة (أيام/مدة/نوع) — 0451
-class _InfoChip extends StatelessWidget {
-  const _InfoChip({required this.icon, required this.text});
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: .5),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 15, color: scheme.onSurfaceVariant),
-          const SizedBox(width: 5),
-          Text(
-            text,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// ملخص مسار الاعتماد — بطاقة مدمجة تعرض التقدم الإجمالي
-class _RequestJourneySummary extends StatelessWidget {
-  const _RequestJourneySummary({required this.steps, required this.createdAt});
-
-  final List<MobileRequestStep> steps;
-  final DateTime createdAt;
-
-  @override
-  Widget build(BuildContext context) {
-    final total = steps.length;
-    final completed = steps
-        .where((s) => s.status == 'approved' || s.status == 'completed')
-        .length;
-    final currentStep = steps.cast<MobileRequestStep?>().firstWhere(
-      (s) => s!.status == 'pending',
-      orElse: () => null,
-    );
-    final progress = total > 0 ? completed / total : 0.0;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+      child: SingleChildScrollView(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                const Icon(
-                  Icons.route_rounded,
-                  color: AppColors.brandPrimary,
-                  size: 22,
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'ملخص المسار',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-                ),
-                const Spacer(),
-                Text(
-                  '$completed / $total',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.brandPrimary,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
+            Text(
+              widget.reportOnly
+                  ? 'تقرير ${widget.noun}'
+                  : 'إنهاء ${widget.noun}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
             ),
-            if (currentStep != null) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Text(
-                    'الخطوة الحالية: ',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  Flexible(
-                    child: Text(
-                      currentStep.name,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 8,
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest,
-                valueColor: const AlwaysStoppedAnimation(
-                  AppColors.statusSuccess,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// الجدول الزمني العمودي — خط عمودي يربط جميع الخطوات (RTL)
-class _RequestTimeline extends StatelessWidget {
-  const _RequestTimeline({required this.steps, required this.createdAt});
-
-  final List<MobileRequestStep> steps;
-  final DateTime createdAt;
-
-  @override
-  Widget build(BuildContext context) {
-    final formatter = DateFormat('d MMMM y، h:mm a', 'ar');
-    // تحديد أول خطوة معلقة لتمييزها كـ "حالية"
-    final firstPendingIndex = steps.indexWhere((s) => s.status == 'pending');
-
-    return Column(
-      children: [
-        // عقدة إنشاء الطلب
-        _TimelineNode(
-          isFirst: true,
-          isLast: steps.isEmpty,
-          nodeColor: AppColors.statusSuccess,
-          icon: Icons.flag_rounded,
-          isPending: false,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 4, top: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'تم إنشاء الطلب',
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  formatter.format(createdAt.toLocal()),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        // خطوات الاعتماد
-        for (var i = 0; i < steps.length; i++)
-          _buildStepNode(context, steps[i], i, firstPendingIndex),
-      ],
-    );
-  }
-
-  Widget _buildStepNode(
-    BuildContext context,
-    MobileRequestStep step,
-    int index,
-    int firstPendingIndex,
-  ) {
-    final formatter = DateFormat('d MMM y، h:mm a', 'ar');
-    final scheme = Theme.of(context).colorScheme;
-
-    // تحديد حالة العقدة ولونها
-    final bool isCurrent = index == firstPendingIndex;
-    final bool isFuture =
-        firstPendingIndex >= 0 &&
-        index > firstPendingIndex &&
-        step.status == 'pending';
-
-    final Color nodeColor;
-    final IconData? icon;
-    final bool isPending;
-
-    switch (step.status) {
-      case 'approved' || 'completed':
-        nodeColor = AppColors.statusSuccess;
-        icon = Icons.check_rounded;
-        isPending = false;
-      case 'rejected':
-        nodeColor = AppColors.statusDanger;
-        icon = Icons.close_rounded;
-        isPending = false;
-      case 'cancelled':
-        nodeColor = AppColors.statusWarning;
-        icon = Icons.block_rounded;
-        isPending = false;
-      case 'pending' when isCurrent:
-        nodeColor = AppColors.statusInfo;
-        icon = null;
-        isPending = true;
-      default: // مستقبلية / في الانتظار
-        nodeColor = scheme.outlineVariant;
-        icon = null;
-        isPending = false;
-    }
-
-    // حساب الوقت المتبقي للخطوات المعلقة
-    String? remainingLabel;
-    if (step.status == 'pending' && step.dueAt != null) {
-      final diff = step.dueAt!.difference(DateTime.now());
-      if (diff.isNegative) {
-        final days = diff.inDays.abs();
-        remainingLabel = days > 0
-            ? 'متأخر ${_arabicNum(days)} ${days == 1 ? "يوم" : "أيام"}'
-            : 'متأخر ${_arabicNum(diff.inHours.abs())} ساعات';
-      } else {
-        final days = diff.inDays;
-        if (days > 0) {
-          remainingLabel =
-              'متبقي ${_arabicNum(days)} ${days == 1 ? "يوم" : "أيام"}';
-        } else {
-          final hours = diff.inHours;
-          remainingLabel = hours > 0
-              ? 'متبقي ${_arabicNum(hours)} ساعات'
-              : 'متبقي أقل من ساعة';
-        }
-      }
-    }
-
-    return _TimelineNode(
-      isFirst: false,
-      isLast: index == steps.length - 1,
-      nodeColor: nodeColor,
-      icon: icon,
-      isPending: isPending,
-      isFuture: isFuture,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 4, top: 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // اسم الخطوة + حالة
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    step.name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 14,
-                      color: isFuture ? scheme.onSurfaceVariant : null,
-                    ),
-                  ),
-                ),
-                MobileStatusPill(step.status),
-              ],
-            ),
-            // القرار
-            if (step.decision?.trim().isNotEmpty == true) ...[
-              const SizedBox(height: 4),
+            if (widget.reportOnly) ...[
+              const SizedBox(height: 6),
               Text(
-                step.decision!,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ],
-            // المنفذ
-            if (step.actorName?.trim().isNotEmpty == true) ...[
-              const SizedBox(height: 2),
-              Row(
-                children: [
-                  Icon(
-                    Icons.person_outline_rounded,
-                    size: 14,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      step.actorName!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            // التعليق
-            if (step.comment?.trim().isNotEmpty == true) ...[
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.comment_outlined,
-                      size: 14,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        step.comment!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            // التاريخ
-            if (step.decidedAt != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                formatter.format(step.decidedAt!.toLocal()),
+                'أغلقها النظام في نهاية يومها؛ التقرير يوثّق ما أنجزته ولا يغيّر حضور اليوم.',
+                textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
               ),
             ],
-            // الوقت المتبقي
-            if (remainingLabel != null) ...[
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color:
-                      (step.dueAt!.difference(DateTime.now()).isNegative
-                              ? AppColors.statusDanger
-                              : AppColors.statusInfo)
-                          .withValues(alpha: 0.12),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _reportController,
+              maxLines: 3,
+              onChanged: (_) {
+                if (_error != null) setState(() => _error = null);
+              },
+              decoration: InputDecoration(
+                labelText: 'تقرير التنفيذ (إلزامي)',
+                hintText: 'ماذا أنجزت؟',
+                errorText: _error,
+                border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  remainingLabel,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: step.dueAt!.difference(DateTime.now()).isNegative
-                        ? AppColors.statusDanger
-                        : AppColors.statusInfo,
-                  ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _outcomeController,
+              maxLines: 2,
+              decoration: InputDecoration(
+                labelText: 'النتيجة (اختياري)',
+                hintText: 'مثال: اكتملت بنجاح، تم التسليم…',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            if (widget.reportOnly)
+              FilledButton.icon(
+                onPressed: () => _submit(withCheckout: false),
+                icon: const Icon(Icons.save_rounded),
+                label: const Text('حفظ التقرير'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50),
+                ),
+              )
+            else ...[
+              FilledButton.icon(
+                onPressed: () => _submit(withCheckout: true),
+                icon: const Icon(Icons.logout_rounded),
+                label: Text('إنهاء ${widget.noun} وتسجيل الانصراف'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.statusSuccess,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(50),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'إذا انتهى يوم عملك وتغادر مباشرة.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => _submit(withCheckout: false),
+                icon: const Icon(Icons.task_alt_rounded),
+                label: Text('إنهاء ${widget.noun} فقط واستمرار الدوام'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'إذا عدت إلى مقر العمل أو ما زال دوامك مستمرًا.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -1464,123 +1986,481 @@ class _RequestTimeline extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// تحويل رقم إلى أرقام عربية شرقية
-  static String _arabicNum(int n) {
-    const eastern = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-    return n.toString().split('').map((c) {
-      final d = int.tryParse(c);
-      return d != null ? eastern[d] : c;
-    }).join();
+// ═══════════════════════════════════════════════════════════════════════════
+// مسار الاعتماد: شريط المراحل + سجل الطلب
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _JourneyEvent {
+  const _JourneyEvent({
+    required this.icon,
+    required this.color,
+    required this.title,
+    this.subtitle,
+    this.at,
+    this.comment,
+    this.chip,
+    this.chipDanger = false,
+    this.live = false,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String? subtitle;
+  final DateTime? at;
+  final String? comment;
+  final String? chip;
+  final bool chipDanger;
+  final bool live;
+}
+
+class _JourneyCard extends StatelessWidget {
+  const _JourneyCard({required this.request});
+
+  final MobileRequestDetail request;
+
+  static const _returnColor = Color(0xFFC2410C);
+  static const _muted = Color(0xFF64748B);
+
+  String _stage(String? name, String? role, int? order) =>
+      requestStageName(name, roleSlug: role, order: order);
+
+  List<_JourneyEvent> _events() {
+    final events = <_JourneyEvent>[];
+    final history = request.history;
+    if (history != null && history.isNotEmpty) {
+      for (final h in history) {
+        final stage = h.stepOrder == null && h.stepName == null
+            ? null
+            : _stage(h.stepName, h.stepRole, h.stepOrder);
+        switch (h.action) {
+          case 'submit':
+            events.add(
+              _JourneyEvent(
+                icon: h.isResubmit ? Icons.replay_rounded : Icons.send_rounded,
+                color: AppColors.brandPrimary,
+                title: h.isResubmit
+                    ? 'أُعيد رفع الطلب بعد التعديل'
+                    : 'قُدِّم الطلب',
+                subtitle: h.actorName ?? request.employeeName,
+                at: h.at,
+              ),
+            );
+          case 'escalate':
+            final repeat = h.repeat ?? 1;
+            events.add(
+              _JourneyEvent(
+                icon: Icons.trending_up_rounded,
+                color: AppColors.statusWarning,
+                title:
+                    'صُعِّد تلقائيًا إلى ${escalationTargetLabel(h.targetRole)}',
+                subtitle: repeat > 1
+                    ? 'لعدم صدور قرار في المهلة · تكرر التذكير ${arCount(repeat, one: 'مرة', two: 'مرتين', few: 'مرات', many: 'مرة', base: 'مرة')}'
+                    : 'لعدم صدور قرار في المهلة',
+                at: h.at,
+              ),
+            );
+          case 'approve':
+            events.add(
+              _JourneyEvent(
+                icon: Icons.check_rounded,
+                color: AppColors.statusSuccess,
+                title: 'اعتمده ${h.actorName ?? 'المعتمِد'}',
+                subtitle: stage,
+                at: h.at,
+                comment: h.comment,
+              ),
+            );
+          case 'reject':
+            events.add(
+              _JourneyEvent(
+                icon: Icons.close_rounded,
+                color: AppColors.statusDanger,
+                title: 'رفضه ${h.actorName ?? 'المعتمِد'}',
+                subtitle: stage,
+                at: h.at,
+                comment: h.comment,
+              ),
+            );
+          case 'return' || 'request_changes':
+            events.add(
+              _JourneyEvent(
+                icon: Icons.undo_rounded,
+                color: _returnColor,
+                title: 'أعاده ${h.actorName ?? 'المعتمِد'} للتعديل',
+                subtitle: stage,
+                at: h.at,
+                comment: h.comment,
+              ),
+            );
+          case 'cancel' || 'withdraw':
+            events.add(
+              _JourneyEvent(
+                icon: Icons.block_rounded,
+                color: _muted,
+                title: 'سُحب الطلب',
+                subtitle:
+                    h.actorName == null || h.actorName == request.employeeName
+                    ? 'بواسطة صاحب الطلب'
+                    : 'بواسطة ${h.actorName}',
+                at: h.at,
+                comment: h.comment,
+              ),
+            );
+          case 'expire':
+            events.add(
+              _JourneyEvent(
+                icon: Icons.timer_off_outlined,
+                color: _muted,
+                title: 'انتهت مهلة الطلب',
+                at: h.at,
+              ),
+            );
+          case 'reassign':
+            events.add(
+              _JourneyEvent(
+                icon: Icons.swap_horiz_rounded,
+                color: AppColors.statusViolet,
+                title: 'أُعيد إسناد الطلب',
+                subtitle: h.actorName,
+                at: h.at,
+                comment: h.comment,
+              ),
+            );
+        }
+      }
+    } else {
+      // خادم أقدم بلا سجل: يُبنى من المراحل
+      events.add(
+        _JourneyEvent(
+          icon: Icons.send_rounded,
+          color: AppColors.brandPrimary,
+          title: 'قُدِّم الطلب',
+          subtitle: request.employeeName,
+          at: request.createdAt,
+        ),
+      );
+      for (final s in request.steps) {
+        final stage = _stage(s.name, s.roleSlug, s.order);
+        if (s.status == 'escalated' || s.escalatedAt != null) {
+          events.add(
+            _JourneyEvent(
+              icon: Icons.trending_up_rounded,
+              color: AppColors.statusWarning,
+              title: 'صُعِّد من $stage لتأخر الرد',
+              at: s.escalatedAt,
+            ),
+          );
+        }
+        final state = requestStageState(s, request.status, isCurrent: false);
+        if (state.isDecision) {
+          events.add(
+            _JourneyEvent(
+              icon: state.icon,
+              color: state.color,
+              title: switch (state) {
+                RequestStageState.approved =>
+                  'اعتمده ${s.actorName ?? 'المعتمِد'}',
+                RequestStageState.returned =>
+                  'أعاده ${s.actorName ?? 'المعتمِد'} للتعديل',
+                _ => 'رفضه ${s.actorName ?? 'المعتمِد'}',
+              },
+              subtitle: stage,
+              at: s.decidedAt,
+              comment: s.comment,
+            ),
+          );
+        }
+      }
+      if (request.status == 'cancelled') {
+        events.add(
+          _JourneyEvent(
+            icon: Icons.block_rounded,
+            color: _muted,
+            title: 'سُحب الطلب',
+            at: request.cancelledAt ?? request.updatedAt,
+            comment: request.cancelReason,
+          ),
+        );
+      }
+    }
+
+    if (request.status == 'pending') {
+      final i = currentStepIndex(request.steps, request.status);
+      final step = i >= 0 ? request.steps[i] : null;
+      final due = requestDueStatus(step?.dueAt ?? request.decisionDueAt);
+      events.add(
+        _JourneyEvent(
+          icon: Icons.hourglass_top_rounded,
+          color: AppColors.statusInfo,
+          title: step == null
+              ? 'بانتظار القرار'
+              : 'بانتظار قرار ${_stage(step.name, step.roleSlug, step.order)}',
+          chip: due?.label,
+          chipDanger: due?.overdue ?? false,
+          live: true,
+        ),
+      );
+    }
+    return events;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final events = _events();
+    final current = currentStepIndex(request.steps, request.status);
+    return _SectionCard(
+      icon: Icons.route_rounded,
+      title: 'مسار الاعتماد',
+      children: [
+        if (request.steps.isNotEmpty) ...[
+          _StageStrip(
+            steps: request.steps,
+            requestStatus: request.status,
+            currentIndex: current,
+          ),
+          const SizedBox(height: 12),
+          Divider(
+            height: 1,
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+          const SizedBox(height: 12),
+        ] else if (request.status == 'pending') ...[
+          Text(
+            'لم تُنشأ مراحل اعتماد لهذا الطلب — يبت فيه المعتمِد مباشرة.',
+            style: TextStyle(
+              fontSize: 12.5,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        for (var i = 0; i < events.length; i++)
+          _EventTile(
+            event: events[i],
+            isFirst: i == 0,
+            isLast: i == events.length - 1,
+          ),
+      ],
+    );
   }
 }
 
-/// عقدة واحدة في الجدول الزمني — دائرة + خط + محتوى
-class _TimelineNode extends StatelessWidget {
-  const _TimelineNode({
-    required this.isFirst,
-    required this.isLast,
-    required this.nodeColor,
-    required this.icon,
-    required this.isPending,
-    required this.child,
-    this.isFuture = false,
+/// المراحل متتالية مع حالة كل منها: «المدير المباشر ✓ — مدير التشغيل 1 لم يلزم».
+class _StageStrip extends StatelessWidget {
+  const _StageStrip({
+    required this.steps,
+    required this.requestStatus,
+    required this.currentIndex,
   });
 
-  final bool isFirst;
-  final bool isLast;
-  final Color nodeColor;
-  final IconData? icon;
-  final bool isPending;
-  final bool isFuture;
-  final Widget child;
-
-  static const double _circleSize = 28.0;
-  static const double _lineWidth = 2.5;
+  final List<MobileRequestStep> steps;
+  final String requestStatus;
+  final int currentIndex;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final lineColor = isFuture
-        ? scheme.outlineVariant.withValues(alpha: 0.3)
-        : nodeColor.withValues(alpha: 0.4);
+    final children = <Widget>[];
+    for (var i = 0; i < steps.length; i++) {
+      final s = steps[i];
+      final state = requestStageState(
+        s,
+        requestStatus,
+        isCurrent: i == currentIndex,
+      );
+      final faded =
+          state == RequestStageState.skipped ||
+          state == RequestStageState.waiting ||
+          state == RequestStageState.stopped;
+      children.add(
+        Expanded(
+          child: Column(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: faded ? scheme.surface : state.color,
+                  border: Border.all(color: state.color, width: 2),
+                ),
+                child: Icon(
+                  state.icon,
+                  size: 18,
+                  color: faded ? state.color : Colors.white,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                requestStageName(s.name, roleSlug: s.roleSlug, order: s.order),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                  color: faded ? scheme.onSurfaceVariant : null,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                state.label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: state.color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (i < steps.length - 1) {
+        children.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: SizedBox(
+              width: 28,
+              child: Divider(thickness: 2, color: scheme.outlineVariant),
+            ),
+          ),
+        );
+      }
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    );
+  }
+}
 
+class _EventTile extends StatelessWidget {
+  const _EventTile({
+    required this.event,
+    required this.isFirst,
+    required this.isLast,
+  });
+
+  final _JourneyEvent event;
+  final bool isFirst;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final line = scheme.outlineVariant.withValues(alpha: .7);
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // عمود المؤشر الزمني (يظهر على اليمين في RTL)
           SizedBox(
-            width: 40,
+            width: 34,
             child: Column(
               children: [
-                // خط علوي
-                if (!isFirst)
-                  Container(width: _lineWidth, height: 8, color: lineColor)
-                else
-                  const SizedBox(height: 8),
-                // الدائرة
-                if (isPending)
-                  _PulsingDot(color: nodeColor, size: _circleSize)
-                else if (isFuture)
-                  // دائرة مفرغة للخطوات المستقبلية
-                  Container(
-                    width: _circleSize,
-                    height: _circleSize,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: scheme.outlineVariant,
-                        width: 2,
-                      ),
-                    ),
-                    child: Center(
-                      child: Container(
-                        width: 8,
-                        height: 8,
+                Container(
+                  width: 2,
+                  height: 6,
+                  color: isFirst ? Colors.transparent : line,
+                ),
+                event.live
+                    ? _PulsingDot(color: event.color, size: 28)
+                    : Container(
+                        width: 28,
+                        height: 28,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: scheme.outlineVariant.withValues(alpha: 0.4),
+                          color: event.color.withValues(alpha: .14),
+                          border: Border.all(
+                            color: event.color.withValues(alpha: .5),
+                          ),
                         ),
+                        child: Icon(event.icon, size: 15, color: event.color),
                       ),
-                    ),
-                  )
-                else
-                  // دائرة ملونة مع أيقونة
-                  Container(
-                    width: _circleSize,
-                    height: _circleSize,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: nodeColor,
-                      boxShadow: [
-                        BoxShadow(
-                          color: nodeColor.withValues(alpha: 0.3),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: icon != null
-                        ? Icon(icon, size: 16, color: Colors.white)
-                        : null,
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    color: isLast ? Colors.transparent : line,
                   ),
-                // خط سفلي
-                if (!isLast)
-                  Expanded(
-                    child: Container(width: _lineWidth, color: lineColor),
-                  )
-                else
-                  const Expanded(child: SizedBox()),
+                ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          // المحتوى
+          const SizedBox(width: 10),
           Expanded(
             child: Padding(
-              padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
-              child: child,
+              padding: EdgeInsets.only(top: 8, bottom: isLast ? 0 : 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event.title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13.5,
+                      color: event.live ? event.color : null,
+                    ),
+                  ),
+                  if (event.subtitle != null && event.subtitle!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        event.subtitle!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  if (event.at != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        arDateTime(event.at!),
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  if (event.comment != null && event.comment!.trim().isNotEmpty)
+                    Container(
+                      margin: const EdgeInsets.only(top: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: event.color.withValues(alpha: .07),
+                        borderRadius: const BorderRadiusDirectional.only(
+                          topEnd: Radius.circular(12),
+                          bottomStart: Radius.circular(12),
+                          bottomEnd: Radius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        '«${event.comment!.trim()}»',
+                        style: const TextStyle(fontSize: 12.5, height: 1.5),
+                      ),
+                    ),
+                  if (event.chip != null) ...[
+                    const SizedBox(height: 6),
+                    RequestMetaChip(
+                      icon: event.chipDanger
+                          ? Icons.warning_amber_rounded
+                          : Icons.schedule_rounded,
+                      text: event.chip!,
+                      color: event.chipDanger
+                          ? AppColors.statusDanger
+                          : AppColors.statusInfo,
+                      strong: event.chipDanger,
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
         ],
@@ -1589,7 +2469,7 @@ class _TimelineNode extends StatelessWidget {
   }
 }
 
-/// دائرة نابضة للخطوة الحالية المعلقة
+/// دائرة نابضة للمرحلة الحالية.
 class _PulsingDot extends StatefulWidget {
   const _PulsingDot({required this.color, required this.size});
 
@@ -1602,25 +2482,22 @@ class _PulsingDot extends StatefulWidget {
 
 class _PulsingDotState extends State<_PulsingDot>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _scaleAnimation;
-  late final Animation<double> _opacityAnimation;
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1400),
+  );
+  bool _started = false;
 
   @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.35,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-    _opacityAnimation = Tween<double>(
-      begin: 0.6,
-      end: 0.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    // نبض محدود لا يستنزف البطارية ولا يُبقي الشاشة ترسم بلا نهاية، ويحترم
+    // إعداد تقليل الحركة في الجهاز.
+    if (!MediaQuery.disableAnimationsOf(context)) {
+      _controller.repeat(reverse: true, count: 6);
+    }
   }
 
   @override
@@ -1636,40 +2513,84 @@ class _PulsingDotState extends State<_PulsingDot>
       height: widget.size,
       child: AnimatedBuilder(
         animation: _controller,
-        builder: (context, child) => Stack(
-          alignment: Alignment.center,
-          children: [
-            // هالة خارجية نابضة
-            Transform.scale(
-              scale: _scaleAnimation.value,
-              child: Container(
-                width: widget.size,
-                height: widget.size,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: widget.color.withValues(
-                    alpha: _opacityAnimation.value,
+        builder: (context, _) {
+          final t = Curves.easeInOut.transform(_controller.value);
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              Transform.scale(
+                scale: 1 + .3 * t,
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: widget.color.withValues(alpha: .35 * (1 - t)),
                   ),
                 ),
               ),
-            ),
-            // الدائرة الداخلية الثابتة
-            Container(
-              width: widget.size * 0.65,
-              height: widget.size * 0.65,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: widget.color,
-                boxShadow: [
-                  BoxShadow(
-                    color: widget.color.withValues(alpha: 0.4),
-                    blurRadius: 8,
-                  ),
-                ],
+              Container(
+                width: widget.size * .62,
+                height: widget.size * .62,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: widget.color,
+                ),
+                child: const Icon(
+                  Icons.hourglass_top_rounded,
+                  size: 11,
+                  color: Colors.white,
+                ),
               ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// بانر إعادة الرفع — يوضّح لصاحب الطلب أنه رُفض/أُعيد ويمكن تعديله.
+class _ResubmitBanner extends StatelessWidget {
+  const _ResubmitBanner({required this.returned});
+
+  final bool returned;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = returned ? const Color(0xFFC2410C) : AppColors.statusDanger;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .07),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: .35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.edit_note_rounded, color: color, size: 24),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  returned ? 'أُعيد إليك الطلب للتعديل' : 'رُفض هذا الطلب',
+                  style: TextStyle(fontWeight: FontWeight.w900, color: color),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'اقرأ ملاحظة المعتمِد في مسار الاعتماد، عدّل ما يلزم ثم أعد رفعه '
+                  'ليبدأ مسار اعتماد جديد.',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    height: 1.5,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

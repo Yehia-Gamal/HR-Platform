@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/core/network/session_cleanup.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
@@ -813,7 +814,7 @@ class _PeopleDirectoryState extends ConsumerState<_PeopleDirectory> {
                   ]
                 : [
                     Text(
-                      '${list.length} موظف',
+                      arEmployees(list.length),
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
                         fontWeight: FontWeight.w800,
@@ -997,8 +998,8 @@ class ExecutiveMoreTab extends ConsumerWidget {
               subtitle: 'متابعة الطلبات وحالاتها.',
               onTap: () => pushMobileSubpage(
                 context,
-                'الطلبات',
-                const MobileRequestsPage(),
+                'كل الطلبات',
+                const MobileRequestsPage(showAllByDefault: true),
               ),
             ),
           ],

@@ -1,4 +1,7 @@
+import 'package:ahla_design_tokens/ahla_design_tokens.dart';
+import 'package:ahla_shabab_management_os/core/theme/brand_gradients.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
@@ -9,6 +12,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_ho
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notifications_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/month_glance_card.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/honor_board_sheet.dart';
 import 'package:ahla_shabab_management_os/core/network/offline_sync_queue.dart';
@@ -41,22 +45,13 @@ class EmployeeHomePage extends ConsumerWidget {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              gradient: LinearGradient(
+              // ألوان العلامة الثابتة: ألوان الثيم في الداكن فاتحة فيضيع النص الأبيض
+              gradient: const LinearGradient(
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
-                colors: [
-                  Color.lerp(scheme.primary, Colors.black, .25)!,
-                  scheme.primary,
-                  scheme.secondary,
-                ],
+                colors: BrandGradients.hero,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: scheme.primary.withValues(alpha: .22),
-                  blurRadius: 26,
-                  offset: const Offset(0, 12),
-                ),
-              ],
+              boxShadow: BrandGradients.heroShadow(),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,7 +115,7 @@ class EmployeeHomePage extends ConsumerWidget {
                   FilledButton.icon(
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: scheme.primary,
+                      foregroundColor: AppColors.brandPrimary,
                     ),
                     onPressed: () => Navigator.push(
                       context,
@@ -137,7 +132,7 @@ class EmployeeHomePage extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           const _ConnectivitySyncBanner(),
-          const HonorBoardSummaryCard(),
+          if (!access.isClinicStaff) const HonorBoardSummaryCard(),
           _ProactiveSmartAlertBanner(summary: summary.value, access: access),
           const MobileSectionHeader(
             title: 'اختصارات اليوم',
@@ -150,19 +145,21 @@ class EmployeeHomePage extends ConsumerWidget {
             const _BroadcastAlertCard(),
             const SizedBox(height: 12),
           ],
-          _QuickAction(
-            icon: Icons.location_searching_rounded,
-            title: 'طلبات الموقع',
-            subtitle: 'موافقة واضحة ومؤقتة',
-            badgeCount: summary.value?.pendingLocationRequests,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => LocationRequestsPage(access: access),
+          if (!access.isClinicStaff || (summary.value?.pendingLocationRequests ?? 0) > 0) ...[
+            _QuickAction(
+              icon: Icons.location_searching_rounded,
+              title: 'طلبات الموقع',
+              subtitle: access.isClinicStaff ? 'من مديرك مصطفى أحمد' : 'موافقة واضحة ومؤقتة',
+              badgeCount: summary.value?.pendingLocationRequests,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LocationRequestsPage(access: access),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
+            const SizedBox(height: 8),
+          ],
           _QuickAction(
             icon: Icons.calendar_month_rounded,
             title: 'كشف الحضور الشهري',
@@ -174,12 +171,14 @@ class EmployeeHomePage extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 20),
-          const DailyReportsHomeBox(),
+          if (!access.isClinicStaff) ...[
+            const SizedBox(height: 20),
+            const DailyReportsHomeBox(),
+          ],
           const SizedBox(height: 20),
           const MobileSectionHeader(
             title: 'ملخص حسابك',
-            subtitle: 'الأرقام التالية محدثة من الخادم حسب نطاقك.',
+            subtitle: 'نظرة سريعة على ما يحتاج متابعتك.',
           ),
           const SizedBox(height: 12),
           summary.when(
@@ -216,6 +215,8 @@ class EmployeeHomePage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 20),
+          const MonthGlanceCard(),
+          const SizedBox(height: 12),
           const _AttendanceSparkline(),
           const SizedBox(height: 20),
           Card(
@@ -1033,40 +1034,9 @@ class _ProactiveSmartAlertBanner extends StatelessWidget {
     final pendingReq = summary!.pendingRequests;
     final unreadAnnouncements = summary!.unreadOfficial;
 
-    // حالة عدم وجود طلبات معلقة: نصيحة ذكية محفزة
+    // في حال عدم وجود تنبيهات فعلية: لا نعرض أي عناصر
     if (pendingLoc == 0 && pendingReq == 0 && unreadAnnouncements == 0) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.35),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.lightbulb_outline_rounded,
-                size: 20,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  '💡 نصيحة اليوم: سجل حضورك وانصرافك في الموعد المحدد للحفاظ على رصيد نقاط تميزك ونيل درع الانضباط!',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11.5,
-                      ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+      return const SizedBox.shrink();
     }
 
     // تنبيه استباقي: طلبات موقع معلقة تحتاج استجابة
@@ -1136,8 +1106,8 @@ class _ProactiveSmartAlertBanner extends StatelessWidget {
       );
     }
 
-    // تنبيه بالقرارات أو الإعلانات الرسمية غير المقروءة
-    if (unreadAnnouncements > 0) {
+    // تنبيه بالقرارات أو الإعلانات الرسمية غير المقروءة (لا يظهر لطاقم العيادات)
+    if (unreadAnnouncements > 0 && !access.isClinicStaff) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Material(
@@ -1249,7 +1219,7 @@ class _ProactiveSmartAlertBanner extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'لديك $pendingReq طلبات إجازة/خدمات قيد المراجعة',
+                        'لديك ${arRequests(pendingReq)} قيد المراجعة',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               fontWeight: FontWeight.w800,
                               fontSize: 12,

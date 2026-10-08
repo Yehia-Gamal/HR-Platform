@@ -57,6 +57,7 @@ class AccessContext {
     this.suspensionReason,
     this.suspensionMessage,
     this.suspensionAmount,
+    this.isClinicStaff = false,
   });
 
   factory AccessContext.fromJson(Map<String, dynamic> json) {
@@ -66,13 +67,17 @@ class AccessContext {
         (json['suspensionReason'] != null &&
             json['suspensionReason'].toString().trim().isNotEmpty);
 
+    final rolesList = List<String>.from(json['roles'] as List<dynamic>? ?? const []);
+    final isClinic = (json['isClinicStaff'] as bool? ?? false) ||
+        (rolesList.contains('clinic-staff') && !rolesList.contains('clinics-manager'));
+
     return AccessContext(
       userId: json['userId'] as String? ?? '',
       employeeId: json['employeeId'] as String?,
       displayName: json['displayName'] as String? ?? '',
       employeeCode: json['employeeCode'] as String?,
       photoUrl: json['photoUrl'] as String?,
-      roles: List<String>.from(json['roles'] as List<dynamic>? ?? const []),
+      roles: rolesList,
       permissions: List<String>.from(
         json['permissions'] as List<dynamic>? ?? const [],
       ),
@@ -94,6 +99,7 @@ class AccessContext {
       suspensionReason: json['suspensionReason'] as String?,
       suspensionMessage: json['suspensionMessage'] as String?,
       suspensionAmount: (json['suspensionAmount'] as num?)?.toDouble(),
+      isClinicStaff: isClinic,
     );
   }
 
@@ -112,6 +118,7 @@ class AccessContext {
   final String? suspensionReason;
   final String? suspensionMessage;
   final double? suspensionAmount;
+  final bool isClinicStaff;
 
   bool get isSuspendedAccount =>
       isSuspended ||

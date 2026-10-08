@@ -1,9 +1,12 @@
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
+import 'package:ahla_shabab_management_os/core/widgets/phone_display.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/attendance_pdf_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,6 +16,13 @@ const _months = [
   'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
 ];
 
+/// كشف المستخدم نفسه؟ الطلبات الذاتية (إجازة/إذن/تصحيح بصمة/تعديل حالة يوم)
+/// تُقدَّم باسم من يستخدم التطبيق، فلا تُعرض على كشف موظف آخر.
+bool _isOwnStatement(WidgetRef ref, MonthlyAttendanceStatement statement) {
+  final me = ref.watch(accessContextProvider).value?.employeeId;
+  return statement.employeeId.isEmpty || statement.employeeId == me;
+}
+
 
 /// كشف الحضور والانصراف الشهري — للموظف عن نفسه (V12 §18)،
 /// وعند تمرير [employeeId] يُعرض كشف موظف محدد (مدير مباشر/HR) (V22).
@@ -20,12 +30,19 @@ class MonthlyAttendanceStatementPage extends ConsumerStatefulWidget {
   const MonthlyAttendanceStatementPage({
     this.employeeId,
     this.employeeName,
+    this.initialYear,
+    this.initialMonth,
     super.key,
   });
 
   /// عند تمريره يُحمل كشف هذا الموظف بدلًا من كشف المستخدم الحالي.
   final String? employeeId;
   final String? employeeName;
+
+  /// الشهر المعروض أولًا (افتراضيًا الشهر الحالي) — يفتح ملف الموظف كشف
+  /// الشهر الذي يعرض ملخصه.
+  final int? initialYear;
+  final int? initialMonth;
 
   @override
   ConsumerState<MonthlyAttendanceStatementPage> createState() =>
@@ -41,8 +58,8 @@ class _MonthlyAttendanceStatementPageState
   @override
   void initState() {
     super.initState();
-    _year = _now.year;
-    _month = _now.month;
+    _year = widget.initialYear ?? _now.year;
+    _month = widget.initialMonth ?? _now.month;
   }
 
   AsyncValue<MonthlyAttendanceStatement> _statement(WidgetRef ref) =>
@@ -216,7 +233,7 @@ class _StatementBody extends StatelessWidget {
             _MetricTile(icon: Icons.directions_car_outlined, label: 'مأموريات', value: '${s.missionDays}', color: const Color(0xFF0284C7)),
             _MetricTile(icon: Icons.assignment_outlined, label: 'أذونات', value: '${s.permitCount}', color: const Color(0xFFD97706)),
             _MetricTile(icon: Icons.volunteer_activism_outlined, label: 'قوافل', value: '$cDays', color: const Color(0xFF7C3AED)),
-            _MetricTile(icon: Icons.celebration_outlined, label: 'فاندي', value: '$fDays', color: const Color(0xFFDB2777)),
+            _MetricTile(icon: Icons.attractions_outlined, label: 'فاندي (ترفيهي)', value: '$fDays', color: const Color(0xFFDB2777)),
             _MetricTile(icon: Icons.bed_outlined, label: 'عطلات', value: '${s.restDays + s.holidayDays}', color: const Color(0xFF64748B)),
           ],
         ),
@@ -289,7 +306,7 @@ class _StatementBody extends StatelessWidget {
             _LegendChip(color: Color(0xFF4F46E5), label: 'إجازة'),
             _LegendChip(color: Color(0xFF0284C7), label: 'مأمورية'),
             _LegendChip(color: Color(0xFF7C3AED), label: 'قافلة'),
-            _LegendChip(color: Color(0xFFDB2777), label: 'فاندي'),
+            _LegendChip(color: Color(0xFFDB2777), label: 'فاندي (يوم ترفيهي)'),
             _LegendChip(color: Color(0xFFD97706), label: 'مراجعة / تأخير'),
             _LegendChip(color: Color(0xFF94A3B8), label: 'راحة / عطلة'),
             _LegendChip(color: Color(0xFF64748B), label: 'قادم'),
@@ -309,8 +326,12 @@ class _EmployeeHeader extends StatelessWidget {
 
   static String _formatEmployeeCodeOrPhone(String? code) {
     if (code == null || code.trim().isEmpty) return '';
-    final cleaned = code.trim();
-    if (cleaned.startsWith('+') || (cleaned.startsWith('01') && cleaned.length >= 11)) {
+    final cleaned = PhoneDisplay.stripCountryCode(code);
+    if (cleaned.startsWith('01') && cleaned.length >= 11) {
+      return 'الهاتف: $cleaned';
+    }
+    // لو بدأ بـ + دولي غير مصري
+    if (cleaned.startsWith('+')) {
       return 'الهاتف: $cleaned';
     }
     return 'كود: $cleaned';
@@ -341,7 +362,7 @@ class _EmployeeHeader extends StatelessWidget {
             // الاسم والكود/الهاتف مع الصورة الرمزية الرسمية
             Row(
               children: [
-                AppAvatar(name: statement.employeeNameAr, radius: 24),
+                AppAvatar(name: statement.employeeNameAr, photoUrl: statement.photoUrl, radius: 24),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
@@ -593,41 +614,41 @@ class _AttendancePercentageCard extends StatelessWidget {
                         value: isExempt
                             ? 'معفى من البصمة بقرار الإدارة'
                             : rateAvailable
-                                ? '${s.attendanceRatePresentDays} من $dueDays يوم مستحق'
+                                ? '${s.attendanceRatePresentDays} من $dueDays'
                                 : 'لا توجد أيام عمل مستحقة بعد',
                         color: pctColor,
                       ),
                       if (excludedLeave > 0 && rateAvailable)
                         _PctDetailRow(
                           label: 'مستبعد من النسبة',
-                          value: '$excludedLeave يوم إجازة',
+                          value: '${arDays(excludedLeave)} إجازة',
                         ),
-                      _PctDetailRow(label: 'حضور بالمقر', value: '$presentInOffice يوم'),
+                      _PctDetailRow(label: 'حضور بالمقر', value: arDays(presentInOffice)),
                       if (convoysCount > 0)
                         _PctDetailRow(
                           label: 'قوافل خارجية',
-                          value: '$convoysCount يوم',
+                          value: arDays(convoysCount),
                         ),
                       if (fundiCount > 0)
                         _PctDetailRow(
                           label: 'فاندي (ترفيهي)',
-                          value: '$fundiCount يوم',
+                          value: arDays(fundiCount),
                         ),
                       if (missionsCount > 0)
                         _PctDetailRow(
                           label: 'مأموريات خارجية',
-                          value: '$missionsCount يوم',
+                          value: arDays(missionsCount),
                         ),
                       if (leavesCount > 0)
-                        _PctDetailRow(label: 'إجازات', value: '$leavesCount يوم'),
+                        _PctDetailRow(label: 'إجازات', value: arDays(leavesCount)),
                       if (unexcusedAbsences > 0)
                         _PctDetailRow(
                           label: 'غياب غير مبرر',
-                          value: '$unexcusedAbsences يوم',
+                          value: arDays(unexcusedAbsences),
                           color: scheme.error,
                         ),
                       if (upcomingWorkDays > 0)
-                        _PctDetailRow(label: 'أيام عمل قادمة', value: '$upcomingWorkDays يوم'),
+                        _PctDetailRow(label: 'أيام عمل قادمة', value: arDays(upcomingWorkDays)),
                     ],
                   ),
                 ),
@@ -709,17 +730,23 @@ class _PctDetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
+      // القيمة تأخذ المساحة المتبقية وتلتف — كانت «لا توجد أيام عمل مستحقة بعد»
+      // تتجاوز البطاقة على الهواتف.
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-              color: color,
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                color: color,
+              ),
             ),
           ),
         ],
@@ -1121,16 +1148,17 @@ class _SummaryTile extends StatelessWidget {
 
 // ─── بطاقة تنبيه نقص البصمة التفاعلية ─────────────────────────────
 
-class _MissingPunchesBanner extends StatelessWidget {
+class _MissingPunchesBanner extends ConsumerWidget {
   const _MissingPunchesBanner({required this.statement});
   final MonthlyAttendanceStatement statement;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final s = statement.summary;
-    final missingDays = statement.days
-        .where((d) => d.missingCheckIn || d.missingCheckOut)
-        .toList();
+    // معالجة البصمات المنسية = طلب تصحيح باسم المستخدم — على كشفه هو فقط.
+    final missingDays = _isOwnStatement(ref, statement)
+        ? statement.days.where((d) => d.missingCheckIn || d.missingCheckOut).toList()
+        : const <AttendanceStatementDay>[];
 
     final parts = <String>[];
     if (s.missingCheckInCount > 0) parts.add('نسيان حضور: ${s.missingCheckInCount}');
@@ -1614,7 +1642,7 @@ class _MonthlyCalendarGridState extends State<_MonthlyCalendarGrid> {
                 onTap: () => setState(() => _activeFilter = 'convoy'),
               ),
               _FilterChipButton(
-                label: 'فاندي',
+                label: 'فاندي (ترفيهي)',
                 count: fCount,
                 color: const Color(0xFFDB2777),
                 isSelected: _activeFilter == 'fundi',
@@ -1670,12 +1698,34 @@ class _MonthlyCalendarGridState extends State<_MonthlyCalendarGrid> {
                 ),
                 // ─ صفوف الأيام ─
                 ...List.generate(rows, (row) {
+                  final prevMonthDays = DateTime(widget.year, widget.month, 0).day;
                   return Row(
                     children: List.generate(7, (col) {
                       final cellIndex = row * 7 + col;
                       final dayNum = cellIndex - firstWeekdayCol + 1;
                       if (dayNum < 1 || dayNum > daysInMonth) {
-                        return const Expanded(child: SizedBox(height: 48));
+                        final adjacentDay = dayNum < 1
+                            ? prevMonthDays + dayNum
+                            : dayNum - daysInMonth;
+                        return Expanded(
+                          child: Container(
+                            height: 56,
+                            margin: const EdgeInsets.all(1.5),
+                            decoration: BoxDecoration(
+                              color: scheme.surfaceContainerLowest.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '$adjacentDay',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: scheme.onSurface.withValues(alpha: 0.18),
+                              ),
+                            ),
+                          ),
+                        );
                       }
                       final dayData = dayMap[dayNum];
                       final isToday = isCurrentMonth && today.day == dayNum;
@@ -2325,19 +2375,27 @@ class _DayDetailSheet extends ConsumerWidget {
     final isSameMonth = year == now.year && month == now.month;
     final canModifyDay = !isFuture && isSameMonth;
 
+    final isClinicStaff = ref.watch(accessContextProvider).value?.isClinicStaff == true;
+    // طلبات الإجازة والأذونات والتصحيح وتعديل حالة اليوم تُقدَّم باسم من يستخدم
+    // التطبيق، فلا تظهر على كشف موظف آخر (كان المدير يراها على كشف مرؤوسه فيقدّمها
+    // باسمه هو). هناك يظهر التعديل الإداري وحده، بقرار الخادم (canEditDays).
+    final isOwn = _isOwnStatement(ref, statement);
+
     // ── تعديل حالة اليوم بأثر رجعي في نفس الشهر (إجازة/مأمورية/قافلة مساعدات/فاندي) ──
-    if (canModifyDay) {
+    if (isOwn && canModifyDay) {
       actions.add(_ActionTile(
         icon: Icons.published_with_changes_rounded,
         label: 'تعديل حالة هذا اليوم',
-        subtitle: 'طلب تحويل اليوم إلى إجازة، مأمورية عمل، قافلة مساعدات، أو يوم ترفيهي (فاندي).',
+        subtitle: isClinicStaff
+            ? 'طلب تحويل اليوم إلى إجازة معتمدة.'
+            : 'طلب تحويل اليوم إلى إجازة، مأمورية عمل، قافلة مساعدات، أو يوم ترفيهي (فاندي).',
         color: const Color(0xFF4F46E5),
         onTap: () => _openRetroactiveDayChange(context, ref),
       ));
     }
 
     // ── اليوم الحالي الجاري الذي لم تُسجل بصمته بعد ──
-    if (isToday && (day == null || day!.status == 'غائب دون إذن')) {
+    if (isOwn && isToday && (day == null || day!.status == 'غائب دون إذن')) {
       actions.add(_ActionTile(
         icon: Icons.fingerprint,
         label: 'تسجيل بصمة اليوم',
@@ -2348,7 +2406,7 @@ class _DayDetailSheet extends ConsumerWidget {
     }
 
     // ── يوم ماضٍ غائب → طلب إجازة أو نسيان بصمة ──
-    if (!isFuture && !isToday && day != null && day!.status == 'غائب دون إذن') {
+    if (isOwn && !isFuture && !isToday && day != null && day!.status == 'غائب دون إذن') {
       actions.add(_ActionTile(
         icon: Icons.beach_access_outlined,
         label: 'طلب إجازة لتغطية هذا اليوم',
@@ -2366,7 +2424,7 @@ class _DayDetailSheet extends ConsumerWidget {
     }
 
     // ── نسيان بصمة (حضور أو انصراف) وليس غائباً بالكامل ──
-    if (!isFuture && day != null && day!.status != 'غائب دون إذن' &&
+    if (isOwn && !isFuture && day != null && day!.status != 'غائب دون إذن' &&
         (day!.missingCheckIn || day!.missingCheckOut)) {
       actions.add(_ActionTile(
         icon: Icons.fingerprint,
@@ -2378,7 +2436,7 @@ class _DayDetailSheet extends ConsumerWidget {
     }
 
     // ── تأخير → إذن حضور ──
-    if (!isFuture && day != null && day!.lateMinutes > 0 && !day!.hasPermit) {
+    if (isOwn && !isFuture && day != null && day!.lateMinutes > 0 && !day!.hasPermit) {
       actions.add(_ActionTile(
         icon: Icons.schedule,
         label: 'طلب إذن حضور',
@@ -2389,7 +2447,7 @@ class _DayDetailSheet extends ConsumerWidget {
     }
 
     // ── خروج مبكر → إذن انصراف ──
-    if (!isFuture && day != null && day!.earlyLeaveMinutes > 0 && !day!.hasPermit) {
+    if (isOwn && !isFuture && day != null && day!.earlyLeaveMinutes > 0 && !day!.hasPermit) {
       actions.add(_ActionTile(
         icon: Icons.exit_to_app,
         label: 'طلب إذن انصراف',
@@ -2400,7 +2458,7 @@ class _DayDetailSheet extends ConsumerWidget {
     }
 
     // ── يوم قادم → طلب إجازة مسبقة ──
-    if (isFuture) {
+    if (isOwn && isFuture) {
       actions.add(_ActionTile(
         icon: Icons.beach_access_outlined,
         label: 'طلب إجازة مسبقة',
@@ -2410,7 +2468,7 @@ class _DayDetailSheet extends ConsumerWidget {
       ));
     }
 
-    // ── إجراءات المدير / المشرف المعتمد (تعديل اليوم إدارياً أو إلغاؤه) ──
+    // ── التعديل الإداري لليوم أو إلغاؤه — الموارد البشرية والإدارة (canEditDays من الخادم) ──
     if (statement.canEditDays) {
       actions.add(_ActionTile(
         icon: Icons.edit_calendar_rounded,
@@ -2435,7 +2493,11 @@ class _DayDetailSheet extends ConsumerWidget {
       actions.add(Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Center(
-          child: Text('لا توجد إجراءات متاحة لهذا اليوم.',
+          child: Text(
+              isOwn
+                  ? 'لا توجد إجراءات متاحة لهذا اليوم.'
+                  : 'للاطلاع فقط — الطلبات يقدّمها الموظف من حسابه، والتعديل الإداري للموارد البشرية.',
+              textAlign: TextAlign.center,
               style: TextStyle(color: scheme.onSurfaceVariant)),
         ),
       ));
@@ -2514,9 +2576,10 @@ class _DayDetailSheet extends ConsumerWidget {
     }
   }
 
-  // ── فتح نموذج تعديل حالة اليوم بأثر رجعي (إجازة / مأمورية / قافلة / حملة تبرعات) ──
+  // ── فتح نموذج تعديل حالة اليوم بأثر رجعي (إجازة / مأمورية / قافلة / يوم ترفيهي فاندي) ──
   Future<void> _openRetroactiveDayChange(BuildContext context, WidgetRef ref) async {
     Navigator.pop(context); // إغلاق ورقة التفاصيل
+    final isClinicStaff = ref.read(accessContextProvider).value?.isClinicStaff == true;
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
@@ -2527,6 +2590,7 @@ class _DayDetailSheet extends ConsumerWidget {
         dateStr: _dateStr,
         dayNameAr: day?.dayNameAr ?? _dayNameFull,
         currentStatus: day?.status ?? 'غير مسجل',
+        isClinicStaff: isClinicStaff,
       ),
     );
     if (result == null || !context.mounted) return;
@@ -2758,7 +2822,6 @@ class _QuickLeaveSheetState extends State<_QuickLeaveSheet> {
     'casual': 'عارضة',
     'weekly_rest_comp': 'بدل راحة',
     'sick': 'مرضية',
-    'unpaid': 'بدون راتب',
   };
 
   @override
@@ -2842,17 +2905,19 @@ class _QuickLeaveSheetState extends State<_QuickLeaveSheet> {
   }
 }
 
-// ─── ورقة تعديل حالة اليوم بأثر رجعي (إجازة / مأمورية / قافلة / حملة تبرعات) ───
+// ─── ورقة تعديل حالة اليوم بأثر رجعي (إجازة / مأمورية / قافلة / يوم ترفيهي فاندي) ───
 
 class _RetroactiveDayChangeSheet extends StatefulWidget {
   const _RetroactiveDayChangeSheet({
     required this.dateStr,
     required this.dayNameAr,
     required this.currentStatus,
+    this.isClinicStaff = false,
   });
   final String dateStr;
   final String dayNameAr;
   final String currentStatus;
+  final bool isClinicStaff;
 
   @override
   State<_RetroactiveDayChangeSheet> createState() => _RetroactiveDayChangeSheetState();
@@ -2871,11 +2936,13 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
     super.dispose();
   }
 
-  static const _categories = [
-    (id: 'leave', label: 'إجازة معتمدة', icon: Icons.beach_access_rounded, color: Color(0xFF4F46E5)),
-    (id: 'mission', label: 'مأمورية عمل', icon: Icons.directions_car_rounded, color: Color(0xFF0EA5E9)),
-    (id: 'convoy', label: 'قافلة مساعدات (كامب)', icon: Icons.volunteer_activism_rounded, color: Color(0xFF8B5CF6)),
-    (id: 'fundraising', label: 'يوم ترفيهي (فاندي / Fun Day)', icon: Icons.celebration_rounded, color: Color(0xFFEC4899)),
+  List<({Color color, IconData icon, String id, String label})> get _categories => [
+    (id: 'leave', label: 'إجازة معتمدة', icon: Icons.beach_access_rounded, color: const Color(0xFF4F46E5)),
+    if (!widget.isClinicStaff) ...[
+      (id: 'mission', label: 'مأمورية عمل', icon: Icons.directions_car_rounded, color: const Color(0xFF0EA5E9)),
+      (id: 'convoy', label: 'قافلة مساعدات (كامب)', icon: Icons.volunteer_activism_rounded, color: const Color(0xFF8B5CF6)),
+      (id: 'fundraising', label: 'يوم ترفيهي (فاندي / Fun Day)', icon: Icons.celebration_rounded, color: const Color(0xFFEC4899)),
+    ],
   ];
 
   static const _leaveOptions = [

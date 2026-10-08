@@ -657,7 +657,12 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
     // الداخلية وإن مُنع عرضه المنبثق.
     try {
       final prefs = await NotificationPreferences.load();
-      if (prefs.shouldSuppress(entityType ?? '')) return;
+      if (prefs.shouldSuppress(
+        entityType ?? '',
+        subKind: data['kind'] as String?,
+      )) {
+        return;
+      }
     } catch (_) {
       // فشل قراءة التفضيلات → نعرض كالمعتاد.
     }

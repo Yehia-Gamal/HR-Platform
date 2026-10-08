@@ -1,5 +1,6 @@
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
+import 'package:ahla_shabab_management_os/core/widgets/phone_display.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/kpi_evaluation_detail_page.dart';
@@ -228,6 +229,8 @@ class _MobileKpiPageState extends ConsumerState<MobileKpiPage>
                         tab.items,
                         showFilter: !isPersonal,
                         showHeader: false,
+                        // 0633: عدّاد سياقي — تبويب «المهام» يعرض مهام مراجعة لا تقييمات.
+                        noun: tab.key == 'review' ? 'مهمة' : 'تقييم',
                       ),
                     );
                   }).toList(),
@@ -246,6 +249,7 @@ class _MobileKpiPageState extends ConsumerState<MobileKpiPage>
     List<MobileKpiEvaluation> items, {
     required bool showFilter,
     required bool showHeader,
+    String noun = 'تقييم',
   }) {
     final visible = items.where(_matches).toList(growable: false);
     return ListView(
@@ -269,19 +273,15 @@ class _MobileKpiPageState extends ConsumerState<MobileKpiPage>
                 setState(() => _search = value.trim().toLowerCase()),
             options: const [
               MobileFilterOption('all', 'كل المراحل'),
-              MobileFilterOption('self', 'الموظف'),
-              MobileFilterOption('parallel_review', 'مراجعة متوازية'),
-              MobileFilterOption('hr_review', 'مراجعة HR'),
+              MobileFilterOption('self', 'تقييم ذاتي'),
               MobileFilterOption('manager_review', 'مراجعة المدير'),
-              MobileFilterOption('secretary_review', 'السكرتير'),
-              MobileFilterOption('executive_review', 'المدير التنفيذي'),
               MobileFilterOption('finalized', 'في التقرير'),
               MobileFilterOption('closed', 'مغلق'),
               MobileFilterOption('archived', 'مؤرشف'),
             ],
             selected: _stage,
             onSelected: (value) => setState(() => _stage = value),
-            resultLabel: '${visible.length} من ${items.length} تقييم',
+            resultLabel: '${visible.length} من ${items.length} $noun',
             onClear: _search.isEmpty && _stage == 'all'
                 ? null
                 : () {
@@ -331,8 +331,12 @@ class _MobileKpiPageState extends ConsumerState<MobileKpiPage>
   }
 
   bool _matches(MobileKpiEvaluation item) {
-    final haystack = '${item.employeeName} ${item.employeeCode ?? ''}'
-        .toLowerCase();
+    // 0633: الكود يُطبَّع (‎+20… ← 01…) في البحث أيضاً حتى يطابق ما يراه
+    // المستخدم على البطاقة بعد تصحيح العرض.
+    final rawCode = item.employeeCode ?? '';
+    final haystack =
+        '${item.employeeName} $rawCode ${rawCode.stripCountryCode()}'
+            .toLowerCase();
     return (_search.isEmpty || haystack.contains(_search)) &&
         (_stage == 'all' || item.currentStage == _stage);
   }
@@ -366,6 +370,11 @@ class _KpiCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final action = _allowedAction();
+    final scheme = Theme.of(context).colorScheme;
+    // تقييمي أنا: لا داعي لاسمي وكودي على البطاقة.
+    final isMine = employeeOnly || item.employeeId == access.employeeId;
+    final overdue = item.workflowStatus == 'OVERDUE';
+    final hasResult = item.finalScore != null || item.finalRating != null;
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
@@ -410,8 +419,9 @@ class _KpiCard extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: 12),
-              // في مساحة الموظف لا داعي لعرض اسم الموظف — هو نفسه.
-              if (!employeeOnly) ...[
+              // في مساحة الموظف لا داعي لعرض اسم الموظف — هو نفسه؛
+              // وفي وضع المدير أيضاً: تبويب «تقييمي» يعرض تقييمك فلا تكرر اسمك.
+              if (!employeeOnly && item.employeeId != access.employeeId) ...[
                 Row(
                   children: [
                     AppAvatar(
@@ -431,7 +441,11 @@ class _KpiCard extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            item.employeeCode ?? 'بدون كود',
+                            // 0633: عرض الكود مطبَّعاً — ‎+20… تنقلب علامتها
+                            // في RTL إلى …20+ بدون عزل الاتجاه.
+                            item.employeeCode?.stripCountryCode().isNotEmpty == true
+                                ? item.employeeCode!.stripCountryCode()
+                                : (item.employeeCode ?? 'بدون كود'),
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
@@ -443,32 +457,60 @@ class _KpiCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
               ],
-              Text(
-                kpiWorkflowLabel(item.workflowStatus),
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 12),
               Row(
                 children: [
+                  if (overdue) ...[
+                    Icon(Icons.warning_amber_rounded, size: 16, color: scheme.error),
+                    const SizedBox(width: 4),
+                  ],
                   Expanded(
-                    child: _Info(
-                      label: 'النتيجة',
-                      value: item.finalScore?.toStringAsFixed(1) ?? '—',
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _Info(
-                      label: 'التقدير',
-                      value: item.finalRating ?? '—',
+                    child: Text(
+                      kpiWorkflowLabel(item.workflowStatus),
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: overdue ? scheme.error : scheme.onSurfaceVariant,
+                        fontWeight: overdue ? FontWeight.w800 : null,
+                      ),
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+              // قبل الاعتماد لا نتيجة: سطر توضيحي بدل خانتين فارغتين «—».
+              if (hasResult)
+                Row(
+                  children: [
+                    Expanded(
+                      child: _Info(
+                        label: 'النتيجة',
+                        value: item.finalScore?.toStringAsFixed(1) ?? '—',
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _Info(
+                        label: 'التقدير',
+                        value: item.finalRating ?? '—',
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded, size: 16, color: scheme.onSurfaceVariant),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'تظهر النتيجة والتقدير بعد اعتماد التقييم.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               // في مساحة الموظف: رسالة توضيحية بعد إرسال التقييم الذاتي.
-              if (employeeOnly && item.currentStage != 'self' && action == null) ...[
+              if (isMine && item.currentStage != 'self' && action == null) ...[
                 const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -489,6 +531,40 @@ class _KpiCard extends StatelessWidget {
                           'تم تقديم تقييمك — ${kpiWorkflowLabel(item.workflowStatus)}',
                           style: Theme.of(context).textTheme.labelMedium?.copyWith(
                             color: Theme.of(context).colorScheme.onSecondaryContainer,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              // 0633: تقييم مرحلة «ذاتي» لموظف آخر — لا زر ميت (الباك إند
+              // يرفض التقديم عن غير المالك) بل شارة انتظار واضحة.
+              if (action == null &&
+                  item.currentStage == 'self' &&
+                  !employeeOnly &&
+                  item.employeeId != access.employeeId) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.hourglass_top_rounded,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'بانتظار إرسال التقييم الذاتي من الموظف',
+                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -521,48 +597,32 @@ class _KpiCard extends StatelessWidget {
     );
   }
 
-  // V23: تسميات أزرار الإجراء حسب المرحلة.
+  // 0633: تسميات أزرار الإجراء — المسار المبسّط فقط (0470):
+  // ذاتي (للمالك) + مراجعة المدير (للموافق). أي مرحلة أخرى للعرض فقط.
   String _actionLabel(String action) => switch (action) {
     'self' => 'بدء التقييم الذاتي',
-    'hr_review' => 'مراجعة HR',
-    'manager_review' => 'مراجعة المدير المباشر',
-    'parallel_review' => 'مراجعة متوازية',
-    'secretary_review' => 'مراجعة السكرتير',
-    'executive_review' => 'إقرار المدير التنفيذي',
-    _ => 'فتح نموذج المراجعة',
+    'manager_review' => 'مراجعة واعتماد التقييم',
+    _ => 'فتح التقييم',
   };
 
   String? _allowedAction() {
-    // التقييم الذاتي: يتطلب الصلاحية دائمًا + ملكية التقييم في مساحة الموظف.
+    // التقييم الذاتي: الملكية شرط دائماً — لا يبدأ غير الموظف تقييمه
+    // (الباك إند يرفض: 0476 سطر 167)، وموقع الموظف نفسه يتطلب الصلاحية.
     if (item.currentStage == 'self' &&
-        access.hasPermission('performance.kpi.self_assess') &&
-        (!employeeOnly || item.employeeId == access.employeeId)) {
+        item.employeeId == access.employeeId &&
+        access.hasPermission('performance.kpi.self_assess')) {
       return 'self';
     }
-    if (item.currentStage == 'hr_review' &&
-        access.hasPermission('performance.kpi.hr_assess')) {
-      return 'hr_review';
-    }
+    // خطوة المدير الوحيدة القابلة للاعتماد (0470) — لمن يملك التفويض فقط،
+    // ولم يعُد أحد يعتمد تقييمه بنفسه (0634).
     if (item.currentStage == 'manager_review' &&
-        access.hasPermission('performance.kpi.manager_assess')) {
+        item.employeeId != access.employeeId &&
+        (access.hasPermission('performance.kpi.manager_assess') ||
+            access.hasPermission('performance.kpi.hr_assess'))) {
       return 'manager_review';
     }
-    // V23: المراجعة المتوازية — HR أو المدير حسب الصلاحية.
-    if (item.currentStage == 'parallel_review') {
-      if (access.hasPermission('performance.kpi.hr_assess') ||
-          access.hasPermission('performance.kpi.manager_assess')) {
-        return 'parallel_review';
-      }
-    }
-    // V23: مراحل السكرتير والمدير التنفيذي.
-    if (item.currentStage == 'secretary_review' &&
-        access.hasPermission('performance.kpi.secretary_review')) {
-      return 'secretary_review';
-    }
-    if (item.currentStage == 'executive_review' &&
-        access.hasPermission('performance.kpi.executive_review')) {
-      return 'executive_review';
-    }
+    // المراحل التراثية (hr/parallel/secretary/executive) ولغير المالك:
+    // لا زر — الصفحة تفتح للعرض فقط بعد تبسيط 0470.
     return null;
   }
 }

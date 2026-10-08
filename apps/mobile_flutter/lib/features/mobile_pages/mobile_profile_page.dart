@@ -1,6 +1,9 @@
+import 'package:ahla_design_tokens/ahla_design_tokens.dart';
+import 'package:ahla_shabab_management_os/core/theme/brand_gradients.dart';
 import 'dart:io' show Platform;
 import 'dart:ui' as ui;
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/core/widgets/host_app_bar_scope.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
@@ -9,6 +12,8 @@ import 'package:ahla_shabab_management_os/core/theme/theme_mode_controller.dart'
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/my_team_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/employee_profile_page.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
@@ -41,7 +46,12 @@ class MobileProfilePage extends ConsumerWidget {
               ],
             ),
       body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(mobileProfileProvider),
+        onRefresh: () async {
+          ref.invalidate(mobileProfileProvider);
+          ref.invalidate(attendanceStateProvider);
+          ref.invalidate(mobileTeamProvider);
+          ref.invalidate(myPasskeysProvider);
+        },
         child: profile.when(
           loading: () => ListView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -63,9 +73,14 @@ class MobileProfilePage extends ConsumerWidget {
               const SizedBox(height: 12),
               Text(humanizeError(error), textAlign: TextAlign.center),
               const SizedBox(height: 16),
-              Center(
-                child: FilledButton.icon(
-                  onPressed: () => ref.invalidate(mobileProfileProvider),
+                Center(
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      ref.invalidate(mobileProfileProvider);
+                      ref.invalidate(attendanceStateProvider);
+                      ref.invalidate(mobileTeamProvider);
+                      ref.invalidate(myPasskeysProvider);
+                    },
                   icon: const Icon(Icons.refresh),
                   label: const Text('إعادة المحاولة'),
                 ),
@@ -75,9 +90,11 @@ class MobileProfilePage extends ConsumerWidget {
           data: (item) => ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _Header(item: item),
-              const SizedBox(height: 14),
               _DigitalIdCardWidget(item: item),
+              const SizedBox(height: 14),
+              const _MyDailyStatusCard(),
+              const SizedBox(height: 14),
+              const _TeamDailyStatusCard(),
               const SizedBox(height: 14),
               _InfoSection(item: item),
               const SizedBox(height: 14),
@@ -169,15 +186,15 @@ class _ThemePreferenceCard extends ConsumerWidget {
   }
 }
 
-class _Header extends ConsumerStatefulWidget {
-  const _Header({required this.item});
+class _DigitalIdCardWidget extends ConsumerStatefulWidget {
+  const _DigitalIdCardWidget({required this.item});
   final MobileProfile item;
 
   @override
-  ConsumerState<_Header> createState() => _HeaderState();
+  ConsumerState<_DigitalIdCardWidget> createState() => _DigitalIdCardWidgetState();
 }
 
-class _HeaderState extends ConsumerState<_Header> {
+class _DigitalIdCardWidgetState extends ConsumerState<_DigitalIdCardWidget> {
   bool _isUploading = false;
 
   Future<void> _pickAndUploadPhoto() async {
@@ -303,115 +320,39 @@ class _HeaderState extends ConsumerState<_Header> {
   }
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(18),
-      child: Row(
-        children: [
-          Semantics(
-            button: true,
-            enabled: !_isUploading,
-            label: 'تغيير الصورة الشخصية',
-            child: GestureDetector(
-              onTap: _isUploading ? null : _pickAndUploadPhoto,
-              child: Stack(
-              children: [
-                AppAvatar(
-                  name: widget.item.fullNameAr,
-                  photoUrl: widget.item.photoUrl,
-                  radius: 36,
-                ),
-                if (_isUploading)
-                  const Positioned.fill(
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                else
-                  PositionedDirectional(
-                    bottom: 0,
-                    end: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.camera_alt,
-                        size: 14,
-                        color: Theme.of(context).colorScheme.onPrimary,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.item.fullNameAr,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                if (widget.item.jobTitle != null) Text(widget.item.jobTitle!),
-                Text(
-                  widget.item.employeeCode,
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
-              ],
-            ),
-          ),
-          MobileStatusPill(widget.item.status),
-        ],
-      ),
-    ),
-  );
-}
-
-class _DigitalIdCardWidget extends StatelessWidget {
-  const _DigitalIdCardWidget({required this.item});
-  final MobileProfile item;
-
-  void _showFullscreen(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => _DigitalIdFullscreenDialog(item: item),
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final item = widget.item;
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         gradient: LinearGradient(
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
-          colors: [
-            Color.lerp(scheme.primary, Colors.black, .35)!,
-            scheme.primary,
-            Color.lerp(scheme.secondary, Colors.black, .2)!,
-          ],
+          colors: BrandGradients.hero,
+        ),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: .18),
+          width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: scheme.primary.withValues(alpha: .25),
-            blurRadius: 20,
+            color: AppColors.brandPrimaryStrong.withValues(alpha: .28),
+            blurRadius: 22,
             offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .35),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header: Logo + Title + Verified Badge
             Row(
               children: [
                 const BrandLogoMark(inverse: true, size: 32),
@@ -426,33 +367,36 @@ class _DigitalIdCardWidget extends StatelessWidget {
                           color: Colors.white,
                           fontSize: 13,
                           fontWeight: FontWeight.w900,
+                          letterSpacing: 0.2,
                         ),
                       ),
+                      SizedBox(height: 2),
                       Text(
-                        'منظومة الموارد البشرية والإدارة',
+                        'منظومة الموارد البشرية والعمليات',
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: 10,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withValues(alpha: .25),
+                    color: const Color(0xFF10B981).withValues(alpha: .22),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: const Color(0xFF10B981).withValues(alpha: .6)),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.verified_rounded, size: 12, color: Color(0xFF10B981)),
+                      Icon(Icons.verified_rounded, size: 13, color: Color(0xFF10B981)),
                       SizedBox(width: 4),
                       Text(
-                        'موثّق',
-                        style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800),
+                        'موثّق رسمياً',
+                        style: TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w800),
                       ),
                     ],
                   ),
@@ -460,14 +404,65 @@ class _DigitalIdCardWidget extends StatelessWidget {
               ],
             ),
             const Divider(color: Colors.white24, height: 26),
+
+            // Middle section: Avatar (with upload trigger) + Details
             Row(
               children: [
-                AppAvatar(
-                  name: item.fullNameAr,
-                  photoUrl: item.photoUrl,
-                  radius: 28,
+                Semantics(
+                  button: true,
+                  enabled: !_isUploading,
+                  label: 'تغيير الصورة الشخصية',
+                  child: GestureDetector(
+                    onTap: _isUploading ? null : _pickAndUploadPhoto,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFFFBBF24).withValues(alpha: .8),
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFBBF24).withValues(alpha: .25),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: Stack(
+                        children: [
+                          AppAvatar(
+                            name: item.fullNameAr,
+                            photoUrl: item.photoUrl,
+                            radius: 32,
+                          ),
+                          if (_isUploading)
+                            const Positioned.fill(
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.amber),
+                            )
+                          else
+                            PositionedDirectional(
+                              bottom: 0,
+                              end: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFFBBF24),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt_rounded,
+                                  size: 12,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -476,7 +471,7 @@ class _DigitalIdCardWidget extends StatelessWidget {
                         item.fullNameAr,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 15,
+                          fontSize: 16,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -487,77 +482,118 @@ class _DigitalIdCardWidget extends StatelessWidget {
                           style: const TextStyle(color: Colors.white70, fontSize: 11),
                         ),
                       ],
-                      const SizedBox(height: 4),
-                      Text(
-                        item.jobTitle ?? 'موظف',
-                        style: const TextStyle(
-                          color: Color(0xFFFBBF24),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFBBF24).withValues(alpha: .18),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: const Color(0xFFFBBF24).withValues(alpha: .45),
+                          ),
+                        ),
+                        child: Text(
+                          item.jobTitle ?? 'موظف',
+                          style: const TextStyle(
+                            color: Color(0xFFFDE68A),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
-                      Text(
-                        '${item.department ?? "الإدارة العامة"} • ${item.branch ?? "المقر الرئيسي"}',
-                        style: const TextStyle(color: Colors.white60, fontSize: 10),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(Icons.corporate_fare_rounded, size: 13, color: Colors.white60),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              '${item.department ?? "الإدارة العامة"} • ${item.branch ?? "المقر الرئيسي"}',
+                              style: const TextStyle(color: Colors.white70, fontSize: 10.5),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-                // QR Badge representation
-                GestureDetector(
-                  onTap: () => _showFullscreen(context),
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Footer Bar: Employee Code with Copy Action + Worksite
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: .28),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.badge_outlined, size: 16, color: Colors.white70),
+                  const SizedBox(width: 6),
+                  Text(
+                    'كود الموظف: ${PhoneDisplay.stripCountryCode(item.employeeCode)}',
+                    style: const TextStyle(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: const [
-                        BoxShadow(color: Colors.black26, blurRadius: 4),
-                      ],
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CustomPaint(
-                          size: const Size(48, 48),
-                          painter: _QrMatrixPainter(code: item.employeeCode),
+                  ),
+                  const SizedBox(width: 6),
+                  InkWell(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: PhoneDisplay.stripCountryCode(item.employeeCode)));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('تم نسخ كود الموظف'),
+                          duration: Duration(seconds: 2),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          item.employeeCode,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 8,
-                            fontWeight: FontWeight.w900,
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.copy_rounded,
+                        size: 14,
+                        color: Colors.white.withValues(alpha: .8),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // موقع العمل قد يطول («العمل من خلال المجمع بدوام كامل») —
+                  // يأخذ المساحة المتبقية ويُختصر بدل تجاوز البطاقة.
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Icon(
+                          item.workSite != null && item.workSite!.isNotEmpty
+                              ? Icons.location_on_outlined
+                              : Icons.business_rounded,
+                          size: 13,
+                          color: Colors.white60,
+                        ),
+                        const SizedBox(width: 3),
+                        Flexible(
+                          child: Text(
+                            item.workSite != null && item.workSite!.isNotEmpty
+                                ? item.workSite!
+                                : (item.branch ?? 'المقر الرئيسي'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white70, fontSize: 10.5),
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Text(
-                  'كود الموظف: ${item.employeeCode}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700),
-                ),
-                const Spacer(),
-                TextButton.icon(
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.white.withValues(alpha: .15),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  onPressed: () => _showFullscreen(context),
-                  icon: const Icon(Icons.qr_code_2_rounded, size: 16),
-                  label: const Text('تكبير البطاقة', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -566,155 +602,470 @@ class _DigitalIdCardWidget extends StatelessWidget {
   }
 }
 
-class _QrMatrixPainter extends CustomPainter {
-  const _QrMatrixPainter({required this.code});
-  final String code;
+class _MyDailyStatusCard extends ConsumerWidget {
+  const _MyDailyStatusCard();
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.black
-      ..style = PaintingStyle.fill;
+  Color _attendanceColor(String? status) => switch (status) {
+    'present' => const Color(0xFF0F9F6E),
+    'late' => const Color(0xFFD97706),
+    'absent' => const Color(0xFFDC2626),
+    'convoy' => const Color(0xFF7C3AED),
+    'fundraising' => const Color(0xFF0D9488),
+    'mission' => const Color(0xFF2563EB),
+    'on_leave' => const Color(0xFF0284C7),
+    'holiday' || 'weekend' => const Color(0xFF6B7280),
+    'partial' => const Color(0xFFD97706),
+    'pending' => Colors.blueGrey,
+    _ => Colors.grey,
+  };
 
-    final cellW = size.width / 17;
-    final cellH = size.height / 17;
+  String _attendanceLabel(String? status) => switch (status) {
+    'present' => 'حاضر في الجمعية',
+    'late' => 'متأخر',
+    'absent' => 'غائب',
+    'convoy' => 'في قافلة',
+    'fundraising' => 'في فاندي ترفيهي',
+    'mission' => 'في مأمورية',
+    'on_leave' => 'إجازة',
+    'holiday' => 'عطلة',
+    'weekend' => 'إجازة أسبوعية',
+    'partial' => 'حضور جزئي',
+    'pending' => 'قيد التحقق',
+    'not_recorded' => 'لم تسجل بعد',
+    'checked_out' => 'انصرفت',
+    'missing_checkout' => 'لم يُسجَّل الانصراف',
+    'exempt' => 'معفى من البصمة',
+    null => 'لم تسجل بعد',
+    // لا يظهر رمز إنجليزي خام للمستخدم
+    _ => 'متابعة الدوام',
+  };
 
-    // Draw finder pattern helper
-    void drawFinder(double startX, double startY) {
-      // Outer 7x7 box
-      canvas.drawRect(Rect.fromLTWH(startX * cellW, startY * cellH, 7 * cellW, 7 * cellH), paint);
-      // Inner clear 5x5 box
-      canvas.drawRect(
-        Rect.fromLTWH((startX + 1) * cellW, (startY + 1) * cellH, 5 * cellW, 5 * cellH),
-        Paint()..color = Colors.white,
-      );
-      // Inner solid 3x3 box
-      canvas.drawRect(
-        Rect.fromLTWH((startX + 2) * cellW, (startY + 2) * cellH, 3 * cellW, 3 * cellH),
-        paint,
-      );
-    }
-
-    // Top-left finder
-    drawFinder(0, 0);
-    // Top-right finder
-    drawFinder(10, 0);
-    // Bottom-left finder
-    drawFinder(0, 10);
-
-    // Fill pseudo-random matrix bits based on code hash
-    final hash = code.hashCode;
-    for (int r = 0; r < 17; r++) {
-      for (int c = 0; c < 17; c++) {
-        // Skip finder areas
-        if ((r < 8 && c < 8) || (r < 8 && c > 8) || (r > 8 && c < 8)) continue;
-        final bit = ((hash ^ (r * 31 + c * 17)) + (r * c)) % 3 == 0;
-        if (bit) {
-          canvas.drawRect(Rect.fromLTWH(c * cellW, r * cellH, cellW * 0.9, cellH * 0.9), paint);
-        }
-      }
-    }
+  String _fmtTime(DateTime? dt) {
+    if (dt == null) return '—';
+    return DateFormat('hh:mm a', 'ar').format(dt.toLocal());
   }
 
   @override
-  bool shouldRepaint(_QrMatrixPainter oldDelegate) => oldDelegate.code != code;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final attStateAsync = ref.watch(attendanceStateProvider);
+
+    return attStateAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (att) {
+        final status = att.todayStatus;
+        final color = _attendanceColor(status);
+        final label = _attendanceLabel(status);
+        final checkIn = att.todayCheckInAt;
+        final checkOut = att.todayCheckOutAt;
+        final todayStr = DateFormat('EEEE، d MMMM', 'ar').format(DateTime.now());
+
+        String hint;
+        if (att.missionToday != null) {
+          final mType = switch (att.missionToday!.type) {
+            'convoy' => 'قافلة',
+            'fundraising' => 'يوم ترفيهي (فاندي)',
+            _ => 'مأمورية عمل',
+          };
+          hint = '$mType نشطة اليوم';
+        } else if (status == 'on_leave' || status == 'leave') {
+          // كانت تظهر «بانتظار تسجيل بصمة الحضور» مع حالة «إجازة».
+          hint = 'أنت في إجازة اليوم — لا يلزم تسجيل الحضور';
+        } else if (status == 'weekend' || status == 'holiday') {
+          hint = 'لا يوجد دوام اليوم';
+        } else if (att.suggestedAction == 'CHECK_IN') {
+          hint = 'بانتظار تسجيل بصمة الحضور';
+        } else if (att.suggestedAction == 'CHECK_OUT') {
+          hint = 'أنت قيد العمل — يُرجى تسجيل الانصراف عند المغادرة';
+        } else if (att.suggestedAction == 'DAY_COMPLETED') {
+          hint = 'تم اكتمال دوام اليوم بنجاح';
+        } else {
+          hint = 'متابعة الدوام اليومي';
+        }
+
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: (status == null || status == 'absent')
+                  ? theme.colorScheme.outlineVariant.withValues(alpha: .6)
+                  : color.withValues(alpha: .35),
+              width: 1.2,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: .12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.fingerprint_rounded,
+                        color: color,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'حالتي اليوم',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            todayStr,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: .12),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: color.withValues(alpha: .6)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: color,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: color,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 24),
+                Row(
+                  children: [
+                    _MiniStatTile(
+                      icon: Icons.login_rounded,
+                      value: _fmtTime(checkIn),
+                      label: 'الحضور',
+                    ),
+                    _MiniStatTile(
+                      icon: Icons.logout_rounded,
+                      value: _fmtTime(checkOut),
+                      label: 'الانصراف',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: .4),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        size: 16,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          hint,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
-class _DigitalIdFullscreenDialog extends StatelessWidget {
-  const _DigitalIdFullscreenDialog({required this.item});
-  final MobileProfile item;
+class _TeamDailyStatusCard extends ConsumerWidget {
+  const _TeamDailyStatusCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final teamAsync = ref.watch(mobileTeamProvider);
+
+    return teamAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (members) {
+        if (members.isEmpty) return const SizedBox.shrink();
+
+        final present = members.where((m) => m.attendanceStatus == 'present').length;
+        final late = members.where((m) => m.attendanceStatus == 'late').length;
+        final absent = members.where((m) => m.attendanceStatus == 'absent').length;
+        final onLeave = members.where((m) => m.attendanceStatus == 'on_leave').length;
+
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: .6),
+              width: 1.2,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer.withValues(alpha: .4),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.groups_rounded,
+                        color: theme.colorScheme.primary,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'حالة فريقي اليوم',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            '${arMembers(members.length)} في الفريق',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MyTeamPage()),
+                      ),
+                      icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                      label: const Text('عرض الكل'),
+                    ),
+                  ],
+                ),
+                const Divider(height: 20),
+                Row(
+                  children: [
+                    _TeamCounterBadge(
+                      count: present,
+                      label: 'حاضر',
+                      color: Colors.green,
+                    ),
+                    _TeamCounterBadge(
+                      count: late,
+                      label: 'متأخر',
+                      color: Colors.orange,
+                    ),
+                    _TeamCounterBadge(
+                      count: absent,
+                      label: 'غائب',
+                      color: Colors.red,
+                    ),
+                    _TeamCounterBadge(
+                      count: onLeave,
+                      label: 'إجازة',
+                      color: Colors.blue,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 48,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: members.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    itemBuilder: (context, idx) {
+                      final m = members[idx];
+                      final stColor = switch (m.attendanceStatus) {
+                        'present' => const Color(0xFF0F9F6E),
+                        'late' => const Color(0xFFD97706),
+                        'absent' => const Color(0xFFDC2626),
+                        'convoy' => const Color(0xFF7C3AED),
+                        'fundraising' => const Color(0xFF0D9488),
+                        'mission' => const Color(0xFF2563EB),
+                        'on_leave' => const Color(0xFF0284C7),
+                        _ => Colors.grey,
+                      };
+                      return InkWell(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EmployeeProfilePage(
+                              employeeId: m.id,
+                              employeeName: m.name,
+                            ),
+                          ),
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        child: Stack(
+                          children: [
+                            AppAvatar(name: m.name, photoUrl: m.photoUrl, radius: 22),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: stColor,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: theme.colorScheme.surface,
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MiniStatTile extends StatelessWidget {
+  const _MiniStatTile({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String value;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(20),
+    final theme = Theme.of(context);
+    return Expanded(
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TeamCounterBadge extends StatelessWidget {
+  const _TeamCounterBadge({
+    required this.count,
+    required this.label,
+    required this.color,
+  });
+
+  final int count;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(24),
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          color: scheme.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: scheme.outlineVariant.withValues(alpha: .5)),
-          boxShadow: const [
-            BoxShadow(color: Colors.black45, blurRadius: 30, offset: Offset(0, 10)),
-          ],
+          color: color.withValues(alpha: .08),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: .2)),
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                const BrandLogoMark(size: 28),
-                const SizedBox(width: 8),
-                const Text(
-                  'بطاقة التحقق الرقمية',
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const Divider(height: 20),
-            AppAvatar(
-              name: item.fullNameAr,
-              photoUrl: item.photoUrl,
-              radius: 36,
-            ),
-            const SizedBox(height: 10),
             Text(
-              item.fullNameAr,
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17),
-            ),
-            Text(
-              '${item.jobTitle ?? "موظف"} • ${item.department ?? ""}',
-              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
-            ),
-            const SizedBox(height: 20),
-            // High contrast QR code container
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade300, width: 2),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: .08), blurRadius: 10),
-                ],
-              ),
-              child: CustomPaint(
-                size: const Size(160, 160),
-                painter: _QrMatrixPainter(code: item.employeeCode),
+              '$count',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: color,
               ),
             ),
-            const SizedBox(height: 14),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'كود التحقق: ${item.employeeCode}',
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.copy_rounded, size: 18),
-                  tooltip: 'نسخ الكود',
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: item.employeeCode));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('تم نسخ كود الموظف'), duration: Duration(seconds: 2)),
-                    );
-                  },
-                ),
-              ],
-            ),
+            const SizedBox(height: 2),
             Text(
-              'صالح للتحقق الميداني والمسح عبر أجهزة الأمن والاستقبال',
-              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11),
-              textAlign: TextAlign.center,
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -744,7 +1095,7 @@ class _InfoSection extends StatelessWidget {
             'المدير المباشر',
             item.managerName,
           ),
-          _phoneRow(item.phoneE164),
+          _phoneRow(context, item.phoneE164),
           _row(
             Icons.event_outlined,
             'تاريخ التعيين',
@@ -758,27 +1109,44 @@ class _InfoSection extends StatelessWidget {
     ),
   );
 
-  Widget _phoneRow(String? phone) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
-    child: Row(
-      children: [
-        const Icon(Icons.phone_outlined, size: 20),
-        const SizedBox(width: 16),
-        const Text('الهاتف'),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Directionality(
-            textDirection: ui.TextDirection.ltr,
-            child: Text(
-              phone?.fixIntlPhoneOrder() ?? '—',
-              textAlign: TextAlign.end,
-              overflow: TextOverflow.ellipsis,
+  Widget _phoneRow(BuildContext context, String? phone) {
+    final display = phone?.fixIntlPhoneOrder() ?? '—';
+    return InkWell(
+      onTap: phone == null || phone.isEmpty
+          ? null
+          : () {
+              Clipboard.setData(ClipboardData(text: display));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('تم نسخ رقم الهاتف'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: [
+            const Icon(Icons.phone_outlined, size: 20),
+            const SizedBox(width: 16),
+            const Text('الهاتف'),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Directionality(
+                textDirection: ui.TextDirection.ltr,
+                child: Text(
+                  display,
+                  textAlign: TextAlign.end,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ),
-          ),
+          ],
         ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 
   Widget _row(IconData icon, String label, String? value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 6),
@@ -899,7 +1267,10 @@ class _DeviceSecuritySectionState
       return;
     }
 
-    if (!mounted) return;
+    if (!mounted) {
+      reasonController.dispose();
+      return;
+    }
     setState(() => _revokingId = device.id);
     try {
       await ref
@@ -1051,11 +1422,19 @@ class _DeviceSecuritySectionState
                     ),
                   );
                 }
+                // الأجهزة في حالات نهاية (مستبدل/ملغى/محظور) تُطوى في لوحة
+                // مختصرة — منع تكديس بطاقات كاملة كما في القوائم الطويلة.
+                const terminal = {'revoked', 'replaced', 'blocked', 'auto_revoked'};
+                final live =
+                    items.where((d) => !terminal.contains(d.status)).toList();
+                final past =
+                    items.where((d) => terminal.contains(d.status)).toList();
                 return Column(
-                  children: items.map((device) {
-                    final active = device.status == 'active';
-                    final isRevoking = _revokingId == device.id;
-                    return Padding(
+                  children: [
+                    ...live.map((device) {
+                      final active = device.status == 'active';
+                      final isRevoking = _revokingId == device.id;
+                      return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: Container(
                         width: double.infinity,
@@ -1151,7 +1530,10 @@ class _DeviceSecuritySectionState
                         ),
                       ),
                     );
-                  }).toList(),
+                    }),
+                    if (past.isNotEmpty)
+                      _InactiveDevicesPanel(devices: past),
+                  ],
                 );
               },
             ),
@@ -1186,6 +1568,77 @@ class _DeviceSecuritySectionState
                 label: const Text('إدارة جميع الأجهزة'),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// الأجهزة السابقة (مستبدلة/ملغاة/محظورة) — لوحة مطوية مختصرة بدل بطاقات
+/// كاملة لكل جهاز، لتفادي تكديس القوائم الطويلة.
+class _InactiveDevicesPanel extends StatelessWidget {
+  const _InactiveDevicesPanel({required this.devices});
+
+  final List<PasskeyDevice> devices;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          shape: const Border(),
+          collapsedShape: const Border(),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 14),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          leading: Icon(
+            Icons.history_rounded,
+            size: 20,
+            color: scheme.onSurfaceVariant,
+          ),
+          title: Text(
+            'أجهزة سابقة (${devices.length})',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+          ),
+          subtitle: Text(
+            'معطّلة أو مستبدلة — لا تُستخدم لإثبات الحضور.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          children: [
+            for (final d in devices)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.mobile_off_outlined,
+                      size: 16,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        d.deviceLabel,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    MobileStatusPill(d.status),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
@@ -1246,10 +1699,10 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
           return;
         }
       } catch (_) {
-        // في حال تعذر الوصول لدالة الخادم، نتحقق محلياً
-        if (_passwordController.text.length < 8) {
+        // في حال تعذر الوصول لدالة الخادم، نتحقق محلياً (بنفس حد.validator)
+        if (_passwordController.text.length < 12) {
           if (mounted) {
-            setState(() => _error = 'كلمة المرور يجب ألا تقل عن 8 أحرف.');
+            setState(() => _error = 'الرقم السري يجب أن يكون 12 حرفًا على الأقل.');
           }
           return;
         }
@@ -1271,8 +1724,9 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
       }
 
       if (mounted) {
+        final messenger = ScaffoldMessenger.of(context);
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text('تم تغيير الرقم السري بنجاح')),
         );
       }
@@ -1334,6 +1788,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
               obscureText: _obscurePassword,
               decoration: InputDecoration(
                 labelText: 'الرقم السري الجديد',
+                helperText: '12 حرفًا على الأقل — يُفضَّل مزيج حروف وأرقام',
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
                   icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
@@ -1505,9 +1960,16 @@ class _ShareLocationCardState extends ConsumerState<_ShareLocationCard> {
     setState(() { _sending = true; _result = null; });
     try {
       final location = await LocationService.current();
-      final address = await LocationService.reverseGeocode(
-        location.latitude, location.longitude,
-      );
+      // فشل العنوان (reverse geocode) لا يمنع الإرسال — الموقع هو الأهم.
+      String addr = 'غير متاح';
+      try {
+        addr = await LocationService.reverseGeocode(
+              location.latitude, location.longitude,
+            ) ??
+            'غير متاح';
+      } catch (_) {
+        addr = 'غير متاح';
+      }
       await ref.read(mobileCommandsProvider)
           .shareMyLocationProactively(
             latitude: location.latitude,
@@ -1517,10 +1979,9 @@ class _ShareLocationCardState extends ConsumerState<_ShareLocationCard> {
             reason: 'مشاركة موقع استباقية من البروفايل',
             batteryLevel: null,
           );
-      final addr = address ?? 'غير متاح';
       if (mounted) {
         setState(() {
-          _result = 'تم إرسال موقعك للشيخ محمد. العنوان: $addr';
+          _result = 'تم إرسال موقعك للمدير المباشر. العنوان: $addr';
           _sending = false;
         });
       }

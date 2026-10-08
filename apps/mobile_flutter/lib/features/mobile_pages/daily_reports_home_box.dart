@@ -1,11 +1,12 @@
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
+import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_feed_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-/// بوكس التقارير اليومية في الواجهة الأولى — يظهر لكل المستخدمين.
+/// بوكس التقارير اليومية في الواجهة الأولى — يظهر لكل المستخدمين ما عدا طاقم العيادات.
 /// يعرض أحدث 3 تقارير (الاسم، الصورة، التاريخ، المشاهدات والإعجابات)
 /// والنقر عليه يفتح صفحة التقارير اليومية الكاملة.
 class DailyReportsHomeBox extends ConsumerWidget {
@@ -13,6 +14,10 @@ class DailyReportsHomeBox extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final access = ref.watch(accessContextProvider).value;
+    if (access != null && access.isClinicStaff) {
+      return const SizedBox.shrink();
+    }
     final scheme = Theme.of(context).colorScheme;
     final feed = ref.watch(dailyReportsFeedProvider(null));
 

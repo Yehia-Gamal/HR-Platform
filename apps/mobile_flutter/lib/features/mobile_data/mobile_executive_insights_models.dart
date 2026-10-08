@@ -1,3 +1,5 @@
+import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
+
 Map<String, dynamic> _map(dynamic value) =>
     Map<String, dynamic>.from(value as Map<dynamic, dynamic>);
 
@@ -224,6 +226,7 @@ class ExecutiveEmployeeSummary {
     required this.latestKpi,
     required this.recentAttendance,
     required this.lastUpdatedAt,
+    this.todayStatus,
   });
 
   factory ExecutiveEmployeeSummary.fromJson(Map<String, dynamic> json) =>
@@ -252,6 +255,9 @@ class ExecutiveEmployeeSummary {
           ExecutiveEmployeeAttendance.fromJson,
         ),
         lastUpdatedAt: _reqDate(json['lastUpdatedAt']),
+        todayStatus: json['todayStatus'] == null
+            ? null
+            : Employee360TodayStatus.fromJson(_map(json['todayStatus'])),
       );
 
   final String id;
@@ -273,6 +279,7 @@ class ExecutiveEmployeeSummary {
   final ExecutiveEmployeeKpi? latestKpi;
   final List<ExecutiveEmployeeAttendance> recentAttendance;
   final DateTime lastUpdatedAt;
+  final Employee360TodayStatus? todayStatus;
 }
 
 class ExecutiveEmployeeKpi {

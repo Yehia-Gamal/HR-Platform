@@ -1,12 +1,13 @@
 import 'package:ahla_shabab_management_os/core/network/session_cleanup.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
+import 'package:ahla_shabab_management_os/core/widgets/phone_display.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/core/widgets/host_app_bar_scope.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/location_incoming_overlay.dart';
 
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_inbox_page.dart';
+import 'package:ahla_shabab_management_os/features/association_projects/association_projects_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/people_hub_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_feed_page.dart';
 
@@ -51,6 +52,14 @@ class WorkspaceScaffold extends ConsumerWidget {
     final notifications = ref.watch(myNotificationsProvider);
     final unread =
         notifications.asData?.value.where((item) => !item.isRead).length ?? 0;
+    final requests = ref.watch(mobileRequestsProvider);
+    final pendingApprovalsCount = requests.asData?.value
+            .where((r) =>
+                !r.isMineFor(contextData.employeeId) &&
+                r.status == 'pending' &&
+                (r.canDecide ?? true))
+            .length ??
+        0;
     // V20: اعرض الاسم الثنائي (الاسم + الأب) بدل الاسم الأول فقط،
     // مع تجنّب الاسماء الطويلة التي تُقصّ في الشريط.
     final nameTokens =
@@ -89,7 +98,9 @@ class WorkspaceScaffold extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            '$greeting $fullName',
+                            // الاسم أولاً حتى لا يبتلعه القص (…) عند الطول —
+                            // التحية لاحقة ومختصرة بلا فاصلة نهائية.
+                            '$fullName · ${greeting.replaceAll('،', '').trim()}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleMedium,
@@ -124,7 +135,11 @@ class WorkspaceScaffold extends ConsumerWidget {
                 ),
                 icon: Badge(
                   isLabelVisible: unread > 0,
-                  label: Text(unread > 99 ? '99+' : unread.toString()),
+                  // LTR: في السياق العربي كانت تظهر «+99»
+                  label: Text(
+                    unread > 99 ? '99+' : unread.toString(),
+                    textDirection: TextDirection.ltr,
+                  ),
                   child: const Icon(Icons.notifications_none_rounded),
                 ),
               ),
@@ -137,8 +152,18 @@ class WorkspaceScaffold extends ConsumerWidget {
               if (showServicesButton)
                 IconButton(
                   tooltip: 'الخدمات والمزيد',
-                  onPressed: () => _showMore(context, ref),
-                  icon: const Icon(Icons.grid_view_rounded),
+                  onPressed: () => _showMore(context, ref, pendingApprovalsCount),
+                  icon: Badge(
+                    isLabelVisible: pendingApprovalsCount > 0,
+                    label: Text(
+                      pendingApprovalsCount > 99
+                          ? '99+'
+                          : pendingApprovalsCount.toString(),
+                      textDirection: TextDirection.ltr,
+                    ),
+                    backgroundColor: const Color(0xFFD97706),
+                    child: const Icon(Icons.grid_view_rounded),
+                  ),
                 ),
               const SizedBox(width: 8),
             ],
@@ -213,20 +238,19 @@ class WorkspaceScaffold extends ConsumerWidget {
     return 'أهلًا،';
   }
 
-  void _showMore(BuildContext context, WidgetRef ref) {
+  void _showMore(BuildContext context, WidgetRef ref, [int pendingApprovals = 0]) {
     final isExecutive = workspace == WorkspaceId.executive;
     final isManagerOrOps = workspace == WorkspaceId.manager ||
         workspace == WorkspaceId.fieldOperations;
     final items = <_MoreItem>[
-      // §9.1 — صندوق الإجراءات متاح لجميع الأدوار الإدارية
+      // أدوار الإدارة والتشغيل: اعتماد الطلبات وإدارة الفريق
       if (isManagerOrOps) ...[
+        // اعتماد طلبات الفريق: الإجازات والمأموريات والأذونات وفترات العمل وتصحيحات البصمة مع اعتماد/رفض سريع
         _MoreItem(
-          icon: Icons.inbox_rounded,
-          label: 'صندوق الإجراءات',
-          page: Scaffold(
-            appBar: AppBar(title: const Text('صندوق الإجراءات')),
-            body: const MobileActionInboxPage(),
-          ),
+          icon: Icons.approval_outlined,
+          label: 'اعتماد طلبات الفريق',
+          page: const TeamRequestsPage(),
+          badgeCount: pendingApprovals > 0 ? pendingApprovals : null,
         ),
         // V22 — فريقي: صفحة موحّدة بتبويبات (نظرة عامة + ملفات الفريق + جداول الحضور).
         _MoreItem(
@@ -234,43 +258,45 @@ class WorkspaceScaffold extends ConsumerWidget {
           label: 'فريقي',
           page: const MyTeamPage(),
         ),
-        // اعتماد طلبات الفريق: طلبات أعضاء فريقك المباشر مع اعتماد/رفض سريع.
-        _MoreItem(
-          icon: Icons.approval_outlined,
-          label: 'اعتماد طلبات الفريق',
-          page: const TeamRequestsPage(),
-        ),
-        // الملخص التشغيلي 14 يوم: جدول الفريق والتنبيهات (مهام/مستندات/تقارير).
+        // الملخص التشغيلي الشهري: جدول الفريق للشهر والتنبيهات المباشرة (مهام/مستندات/تقارير).
         _MoreItem(
           icon: Icons.dashboard_customize_outlined,
-          label: 'الملخص التشغيلي',
+          label: 'الملخص التشغيلي الشهري',
           page: const TeamOperationsSummaryPage(),
         ),
-        // إدارة الموظفين: موحّدة ضمن PeopleHubPage (تبويب السجل)
+      ],
+      // الخدمات المؤسسية العامة (محجوبة عن طاقم العيادات المعزول)
+      if (!contextData.isClinicStaff) ...[
+        // مشاريع الجمعية: متابعة مشاريع الإدارات وخطوات العمل والمهام (0553 + 0645 + 0647)
         _MoreItem(
-          icon: Icons.manage_accounts_outlined,
-          label: 'إدارة وسجل الموظفين',
-          page: const PeopleHubPage(initialTab: 1),
+          icon: Icons.folder_special_outlined,
+          label: 'مشاريع الجمعية',
+          page: const AssociationProjectsPage(),
+        ),
+        // الموظفون والهيكل الإداري — صفحة واحدة لكل منسوبي الجمعية (0631)
+        _MoreItem(
+          icon: Icons.account_tree_outlined,
+          label: 'الموظفون والهيكل الإداري',
+          page: const PeopleHubPage(),
+        ),
+        _MoreItem(
+          icon: Icons.newspaper_outlined,
+          label: 'تقارير الجميع',
+          page: const DailyReportsFeedPage(),
+        ),
+        _MoreItem(
+          icon: Icons.campaign_outlined,
+          label: 'القرارات والتعاميم',
+          page: MobileOfficialFeedPage(
+            canPublish: isExecutive ||
+                contextData.hasAnyPermission(const [
+                  'posts.publish',
+                  'comms.announcement.manage',
+                  'comms.decision.manage',
+                ]),
+          ),
         ),
       ],
-      // V20: التقارير اليومية للجميع — زر إضافة تقرير داخل الصفحة نفسها
-      _MoreItem(
-        icon: Icons.newspaper_outlined,
-        label: 'تقارير الجميع',
-        page: const DailyReportsFeedPage(),
-      ),
-      _MoreItem(
-        icon: Icons.campaign_outlined,
-        label: 'القرارات والتعاميم',
-        page: MobileOfficialFeedPage(
-          canPublish: isExecutive ||
-              contextData.hasAnyPermission(const [
-                'posts.publish',
-                'comms.announcement.manage',
-                'comms.decision.manage',
-              ]),
-        ),
-      ),
     ];
 
     showModalBottomSheet<void>(
@@ -339,18 +365,45 @@ class WorkspaceScaffold extends ConsumerWidget {
                               ),
                               const SizedBox(width: 10),
                               Expanded(
-                                child: Text(
-                                  item.label,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelLarge
-                                      ?.copyWith(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w900,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurface,
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        item.label,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelLarge
+                                            ?.copyWith(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w900,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurface,
+                                            ),
                                       ),
+                                    ),
+                                    if (item.badgeCount != null) ...[
+                                      const SizedBox(width: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFD97706),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Text(
+                                          '${item.badgeCount}',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ),
                             ],
@@ -428,7 +481,9 @@ class WorkspaceScaffold extends ConsumerWidget {
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             Text(
-              contextData.employeeCode ?? 'بدون كود موظف',
+              PhoneDisplay.stripCountryCode(contextData.employeeCode).isEmpty
+                  ? 'بدون كود موظف'
+                  : PhoneDisplay.stripCountryCode(contextData.employeeCode),
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -469,8 +524,10 @@ class _MoreItem {
     required this.icon,
     required this.label,
     required this.page,
+    this.badgeCount,
   });
   final IconData icon;
   final String label;
   final Widget page;
+  final int? badgeCount;
 }

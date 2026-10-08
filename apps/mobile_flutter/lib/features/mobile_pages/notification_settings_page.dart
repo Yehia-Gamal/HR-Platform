@@ -147,6 +147,9 @@ class _NotificationSettingsPageState
                     in NotificationPreferences.mutableChannels.entries) ...[
                   SwitchListTile(
                     title: Text(entry.value),
+                    subtitle: entry.key == 'association_project'
+                        ? const Text('تنبيهات تعثّر المشروع وتأخر خطواته تصل دائماً.')
+                        : null,
                     value: !prefs.isKindMuted(entry.key),
                     onChanged: (enabled) {
                       final muted = {...prefs.mutedKinds};

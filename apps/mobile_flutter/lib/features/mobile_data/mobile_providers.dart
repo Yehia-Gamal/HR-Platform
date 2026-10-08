@@ -122,13 +122,33 @@ final myAttendanceServicesProvider = FutureProvider<MobileAttendanceServices>((
   return MobileAttendanceServices.fromJson(_asMap(data));
 });
 
+final myWorkShiftInfoProvider = FutureProvider<MobileWorkShiftInfo>((ref) async {
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_my_work_shift_info'),
+  );
+  return MobileWorkShiftInfo.fromJson(_asMap(data));
+});
+
+class NotificationsLimitController extends Notifier<int> {
+  @override
+  int build() => 300;
+
+  void loadMore([int step = 300]) => state += step;
+}
+
+final notificationsLimitProvider =
+    NotifierProvider<NotificationsLimitController, int>(
+  NotificationsLimitController.new,
+);
+
 final myNotificationsProvider = FutureProvider<List<MobileNotificationItem>>((
   ref,
 ) async {
+  final limit = ref.watch(notificationsLimitProvider);
   final data = await rpcWithTimeout(
     ref
         .watch(supabaseProvider)
-        .rpc<dynamic>('get_my_notifications', params: {'p_limit': 200}),
+        .rpc<dynamic>('get_my_notifications', params: {'p_limit': limit, 'p_offset': 0}),
   );
   return _asList(
     data,
@@ -644,17 +664,25 @@ final announcementEngagementProvider =
     });
 
 // ─── غرامات الحضور الفورية — للموظف ─────────────────────────────────────
-/// غرامات الحضور الفورية للموظف الحالي — تُقرأ مباشرة من الجدول عبر RLS.
+/// غرامات الحضور الفورية للموظف الحالي — تُستدعى عبر دالة get_my_instant_penalties
+/// الآمنة التي تُرجع غرامات الموظف الحالي حصراً (مع مسار احتياطي عبر الجدول).
 final myInstantPenaltiesProvider =
     FutureProvider<List<MobileInstantPenalty>>((ref) async {
   final client = ref.watch(supabaseProvider);
-  final data = await rpcWithTimeout(
-    client
-        .from('instant_attendance_penalties')
-        .select()
-        .order('work_date', ascending: false)
-        .order('created_at', ascending: false),
-  );
+  dynamic data;
+  try {
+    data = await rpcWithTimeout(
+      client.rpc<dynamic>('get_my_instant_penalties'),
+    );
+  } catch (_) {
+    data = await rpcWithTimeout(
+      client
+          .from('instant_attendance_penalties')
+          .select()
+          .order('work_date', ascending: false)
+          .order('created_at', ascending: false),
+    );
+  }
   return _asList(data)
       .map(MobileInstantPenalty.fromJson)
       .toList(growable: false);

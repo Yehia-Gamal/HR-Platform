@@ -3,6 +3,8 @@ import 'package:ahla_shabab_management_os/core/notifications/notification_handle
 import 'package:ahla_shabab_management_os/features/association_projects/association_project_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_correction_detail_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_history_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/employee_profile_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/kpi_evaluation_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_services_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_daily_reports_page.dart';
@@ -84,16 +86,24 @@ Widget? getDirectActionPage({
         kind: 'dispute',
         itemId: actionId,
       ),
-    'attendance' ||
-    'attendance_daily' ||
-    'attendance_event' ||
-    'punch_reminder' ||
-    'attendance_alert' ||
     'attendance_services' =>
       MobileAttendanceServicesPage(
         highlightId:
             actionId.isEmpty || actionId == 'default' ? null : actionId,
       ),
+    'late_attendance_alert' ||
+    'attendance' ||
+    'attendance_daily' ||
+    'attendance_event' ||
+    'punch_reminder' ||
+    'attendance_alert' ||
+    'attendance_history' =>
+      _isUuid(actionId)
+          ? EmployeeProfilePage(employeeId: actionId)
+          : AttendanceHistoryPage(
+              highlightDate:
+                  actionId.isEmpty || actionId == 'default' ? null : actionId,
+            ),
     'device' || 'employee_device' || 'devices' =>
       const PasskeyDevicesPage(),
     'association_project' ||
@@ -167,16 +177,21 @@ Widget mobilePageForActionTarget(
       AttendanceCorrectionDetailPage(
         correctionId: target.recordId,
       ),
+    'attendance_services' =>
+      MobileAttendanceServicesPage(
+        highlightId: target.recordId.isEmpty || target.recordId == 'default'
+            ? null
+            : target.recordId,
+      ),
     'attendance_detail' ||
     'attendance' ||
-    'attendance_services' ||
     'attendance_page' ||
     'attendance_history' ||
     'attendance_event' ||
     'punch_reminder' ||
     'attendance_alert' =>
-      MobileAttendanceServicesPage(
-        highlightId: target.recordId.isEmpty || target.recordId == 'default'
+      AttendanceHistoryPage(
+        highlightDate: target.recordId.isEmpty || target.recordId == 'default'
             ? null
             : target.recordId,
       ),
@@ -310,4 +325,12 @@ class UnsupportedActionPage extends StatelessWidget {
       ),
     );
   }
+}
+
+bool _isUuid(String? s) {
+  if (s == null || s.length != 36) return false;
+  final uuidRegex = RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+  );
+  return uuidRegex.hasMatch(s);
 }

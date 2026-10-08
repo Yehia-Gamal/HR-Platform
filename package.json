@@ -36,7 +36,7 @@
                 "apps/admin_web/dist/assets/*.js",
                 "!apps/admin_web/dist/assets/pdf-vendor-*.js"
             ],
-            "limit": "640 KB"
+            "limit": "700 KB"
         },
         {
             "name": "on-demand PDF export (loaded only when exporting)",

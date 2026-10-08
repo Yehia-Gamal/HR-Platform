@@ -120,6 +120,6 @@ class MobileAttendanceServicesPage extends ConsumerWidget {
     'holiday' => 'عطلة',
     'leave' => 'إجازة',
     'mission' => 'مأمورية',
-    _ => value,
+    _ => 'غير محدد',
   };
 }

@@ -179,7 +179,7 @@ void main() {
       'target_amount': 50000,
     });
     expect(asg.assignmentType, 'FUNDRAISING');
-    expect(asg.typeLabel, 'فاندي');
+    expect(asg.typeLabel, 'فاندي ترفيهي');
     expect(asg.targetAmount, 50000);
   });
 
@@ -353,5 +353,153 @@ void main() {
     });
     expect(doubled.escalationLevel, 'doubled');
     expect(doubled.currentAmount, 500.0);
+  });
+
+  test('instant penalty handles String numeric amounts and non-string reference number safely', () {
+    final p = MobileInstantPenalty.fromJson({
+      'id': 'uuid-123',
+      'work_date': '2026-10-03',
+      'late_minutes': '45',
+      'original_amount': '150.00',
+      'current_amount': '150.50',
+      'receipt_reference_number': 987654,
+      'created_at': '2026-10-03 07:40:00+00',
+    });
+    expect(p.lateMinutes, 45);
+    expect(p.originalAmount, 150.0);
+    expect(p.currentAmount, 150.5);
+    expect(p.receiptReferenceNumber, '987654');
+    expect(p.escalationLevel, 'initial');
+    expect(p.status, 'pending_payment');
+  });
+
+  test('Employee360 parses todayStatus correctly and handles null safely', () {
+    final withToday = Employee360.fromJson({
+      'id': 'emp-uuid',
+      'employeeCode': 'EMP-01',
+      'fullNameAr': 'محمد أحمد',
+      'status': 'active',
+      'todayStatus': {
+        'status': 'present',
+        'lateMinutes': 15,
+        'checkInAt': '2026-10-03T08:15:00Z',
+        'checkOutAt': '2026-10-03T16:00:00Z',
+        'workMinutes': 465,
+      },
+      'attendance30': {
+        'present': 20,
+        'lateDays': 2,
+        'absent': 1,
+        'workMinutes': 9000,
+      },
+      'requestCounts': {
+        'pending': 1,
+        'approved': 5,
+        'rejected': 0,
+      },
+    });
+
+    expect(withToday.todayStatus, isNotNull);
+    expect(withToday.todayStatus!.status, 'present');
+    expect(withToday.todayStatus!.lateMinutes, 15);
+    expect(withToday.todayStatus!.workMinutes, 465);
+    expect(withToday.todayStatus!.checkInAt, isNotNull);
+    expect(withToday.todayStatus!.checkOutAt, isNotNull);
+
+    final withoutToday = Employee360.fromJson({
+      'id': 'emp-uuid-2',
+      'employeeCode': 'EMP-02',
+      'fullNameAr': 'علي حسن',
+      'status': 'active',
+    });
+
+    expect(withoutToday.todayStatus, isNull);
+  });
+
+  test('Employee360 and DirectoryEmployee parse convoy, mission, fundraising with label and activity', () {
+    final emp360Convoy = Employee360.fromJson({
+      'id': 'emp-convoy',
+      'employeeCode': 'EMP-CV',
+      'fullNameAr': 'سعيد محمد',
+      'status': 'active',
+      'todayStatus': {
+        'status': 'convoy',
+        'statusLabel': 'في قافلة',
+        'activityTitle': 'سوهاج - طما',
+      },
+    });
+
+    expect(emp360Convoy.todayStatus, isNotNull);
+    expect(emp360Convoy.todayStatus!.status, 'convoy');
+    expect(emp360Convoy.todayStatus!.statusLabel, 'في قافلة');
+    expect(emp360Convoy.todayStatus!.activityTitle, 'سوهاج - طما');
+
+    final dirEmp = DirectoryEmployee.fromJson({
+      'id': 'dir-1',
+      'name': 'خالد إبراهيم',
+      'statusToday': 'fundraising',
+      'statusTodayLabel': 'في فاندي',
+      'activityTitle': 'الريف الأوروبي',
+    });
+
+    expect(dirEmp.statusToday, 'fundraising');
+    expect(dirEmp.statusTodayLabel, 'في فاندي');
+    expect(dirEmp.activityTitle, 'الريف الأوروبي');
+  });
+
+  test('MobileWorkShiftInfo parses current shift, available shifts, and pending request', () {
+    final info = MobileWorkShiftInfo.fromJson({
+      'currentShift': {
+        'id': 'shift-official',
+        'code': 'OFFICIAL',
+        'name': 'الدوام الأساسي (10 ص – 6 م)',
+        'startTime': '10:00:00',
+        'endTime': '18:00:00',
+        'graceInMinutes': 15,
+        'isAssigned': true,
+        'assignmentId': 'assign-1',
+        'effectiveFrom': '2026-10-01',
+        'status': 'approved',
+      },
+      'availableShifts': [
+        {
+          'id': 'shift-9-5',
+          'code': 'SHIFT_9_5',
+          'name': 'الوردية الصباحية (9 ص – 5 م)',
+          'startTime': '09:00:00',
+          'endTime': '17:00:00',
+          'graceInMinutes': 15,
+          'isDefault': false,
+          'description': 'فترة صباحية',
+        },
+        {
+          'id': 'shift-official',
+          'code': 'OFFICIAL',
+          'name': 'الدوام الأساسي (10 ص – 6 م)',
+          'startTime': '10:00:00',
+          'endTime': '18:00:00',
+          'graceInMinutes': 15,
+          'isDefault': true,
+        },
+      ],
+      'pendingRequest': {
+        'requestId': 'req-1',
+        'title': 'طلب تغيير فترة العمل',
+        'reason': 'مواعيد المواصلات',
+        'requestedShiftId': 'shift-9-5',
+        'requestedShiftName': 'الوردية الصباحية (9 ص – 5 م)',
+        'createdAt': '2026-10-04T12:00:00Z',
+        'status': 'pending',
+      },
+    });
+
+    expect(info.currentShift.isAssigned, isTrue);
+    expect(info.currentShift.badgeLabel, 'معتمدة من الإدارة');
+    expect(info.currentShift.formattedRange, contains('10'));
+    expect(info.availableShifts.length, 2);
+    expect(info.availableShifts.first.code, 'SHIFT_9_5');
+    expect(info.pendingRequest, isNotNull);
+    expect(info.pendingRequest!.status, 'pending');
+    expect(info.pendingRequest!.requestedShiftName, 'الوردية الصباحية (9 ص – 5 م)');
   });
 }

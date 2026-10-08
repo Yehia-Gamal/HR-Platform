@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/theme/brand_gradients.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_operations_models.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
@@ -82,7 +83,7 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
             gradient: LinearGradient(
               begin: Alignment.topRight,
               end: Alignment.bottomLeft,
-              colors: [scheme.primary, scheme.secondary],
+              colors: BrandGradients.hero,
             ),
           ),
           child: Row(
@@ -96,9 +97,9 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
                   color: Colors.white.withValues(alpha: .1),
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.analytics_outlined,
-                  color: scheme.onPrimary,
+                  color: Colors.white,
                   size: 29,
                 ),
               ),

@@ -51,17 +51,62 @@ class MobileCommands {
     String reason,
     Map<String, dynamic> payload,
   ) async {
+    // المأمورية تبدأ لحظة تقديمها: يُسجَّل موقع البدء ليراه المعتمِد (لا مأمورية
+    // صباحية «احتياطية» من البيت دون أن يظهر ذلك لمديره).
+    final body = type == 'mission' && payload['startLocation'] == null
+        ? {...payload, 'startLocation': await _missionStartLocation()}
+        : payload;
     // مفتاح idempotency يمنع الإرسال المزدوج عند إعادة المحاولة أو الضغط المزدوج.
     final idempotencyKey = const Uuid().v4();
     await _rpcQueued('submit_request', 'submit_my_request', {
       'p_request_type': type,
       'p_title': title,
       'p_reason': reason,
-      'p_payload': payload,
+      'p_payload': body,
       'p_idempotency_key': idempotencyKey,
     });
     ref.invalidate(mobileRequestsProvider);
     ref.invalidate(employeeHomeProvider);
+  }
+
+  /// موقع بدء المأمورية (إلزامي): الإحداثيات والدقة وعلامة التزييف والعنوان إن تيسّر.
+  Future<Map<String, dynamic>> _missionStartLocation() async {
+    try {
+      final p = await LocationService.current();
+      String? address;
+      try {
+        address = await LocationService.reverseGeocode(
+          p.latitude,
+          p.longitude,
+        ).timeout(const Duration(seconds: 6));
+      } catch (_) {
+        // العنوان اختياري — الإحداثيات تكفي لفتح الخريطة
+      }
+      return {
+        'lat': double.parse(p.latitude.toStringAsFixed(6)),
+        'lng': double.parse(p.longitude.toStringAsFixed(6)),
+        'accuracy': p.accuracy.round(),
+        'mocked': p.isMocked,
+        'capturedAt': DateTime.now().toUtc().toIso8601String(),
+        'address': ?address,
+      };
+    } on GpsDisabledException {
+      throw StateError(
+        'لا تبدأ المأمورية دون تحديد موقعك — فعّل خدمة الموقع (GPS) ثم أعد الإرسال.',
+      );
+    } on GpsPermissionDeniedException catch (e) {
+      throw StateError(
+        e.isDeniedForever
+            ? 'صلاحية الموقع مرفوضة نهائيًا — افتح إعدادات التطبيق وامنحها ثم أعد الإرسال.'
+            : 'امنح التطبيق صلاحية الموقع لبدء المأمورية ثم أعد الإرسال.',
+      );
+    } on GpsAccuracyException {
+      throw StateError(
+        'دقة الموقع ضعيفة الآن — انتقل إلى مكان مكشوف وأعد الإرسال.',
+      );
+    } catch (_) {
+      throw StateError('تعذر تحديد موقعك لبدء المأمورية — أعد المحاولة.');
+    }
   }
 
   Future<void> startMission(String requestId) async {
@@ -107,6 +152,7 @@ class MobileCommands {
     required String requestId,
     required String report,
     String? outcome,
+    bool withCheckout = true,
   }) async {
     await _withTimeout(
       ref
@@ -117,12 +163,37 @@ class MobileCommands {
               'p_request_id': requestId,
               'p_report': report,
               'p_outcome': outcome,
+              'p_with_checkout': withCheckout,
             },
           ),
     );
     ref.invalidate(mobileRequestsProvider);
     ref.invalidate(mobileRequestDetailProvider(requestId));
     ref.invalidate(employeeHomeProvider);
+    ref.invalidate(attendanceStateProvider);
+  }
+
+  /// 0658: تقرير مأمورية أغلقها النظام تلقائيًا — لصاحبها خلال 14 يومًا، بلا أثر
+  /// على الحضور (الإغلاق نفسه لا يُلغى).
+  Future<void> submitMissionReport({
+    required String requestId,
+    required String report,
+    String? outcome,
+  }) async {
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'submit_my_mission_report',
+            params: {
+              'p_request_id': requestId,
+              'p_report': report,
+              'p_outcome': outcome,
+            },
+          ),
+    );
+    ref.invalidate(mobileRequestDetailProvider(requestId));
+    ref.invalidate(mobileRequestsProvider);
   }
 
   Future<Map<String, dynamic>> uploadRequestAttachment({
@@ -1136,7 +1207,7 @@ extension MobileDailyCommands on MobileCommands {
     ref.invalidate(employeeHomeProvider);
   }
 
-  Future<void> deleteNotifications(List<String> ids) async {
+  Future<void> deleteNotifications([List<String>? ids]) async {
     await _withTimeout(
       ref
           .read(supabaseProvider)
@@ -1257,6 +1328,26 @@ extension MobileSelfServiceCommands on MobileCommands {
     });
     ref.invalidate(myAttendanceServicesProvider);
     ref.invalidate(myAttendanceHistoryProvider);
+  }
+
+  /// طلب اختيار أو تغيير فترة العمل (الوردية الأساسية) للموظف
+  Future<void> requestShiftChange({
+    required String shiftId,
+    String? reason,
+  }) async {
+    await _withTimeout(
+      ref.read(supabaseProvider).rpc<dynamic>(
+        'request_my_shift_change',
+        params: {
+          'p_shift_id': shiftId,
+          'p_reason': reason?.trim(),
+        },
+      ),
+    );
+    ref.invalidate(myWorkShiftInfoProvider);
+    ref.invalidate(attendanceStateProvider);
+    ref.invalidate(mobileRequestsProvider);
+    ref.invalidate(employeeHomeProvider);
   }
 
   /// قرار على طلب تصحيح بصمة (اعتماد أو رفض) بواسطة المدير أو المراجع

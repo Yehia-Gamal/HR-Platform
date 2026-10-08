@@ -40,7 +40,13 @@ class NotificationPreferences {
     'announcement': 'الإعلانات',
     'recognition': 'التقديرات',
     'daily_report': 'التقارير اليومية',
+    'association_project': 'المشاريع',
   };
+
+  /// تنبيهات لا تُكتم بكتم قناتها (قرار المالك): تعثّر مشروع وتأخر خطوة فيه.
+  /// تصل بالنوع الفرعي `kind` من notification-dispatcher (metadata.kind)، بينما
+  /// القناة من entityType. ساعات الهدوء تبقى سارية عليها.
+  static const mandatoryKinds = <String>{'project_stalled', 'project_step_overdue'};
 
   bool isKindMuted(String kind) => mutedKinds.contains(kind);
 
@@ -58,9 +64,10 @@ class NotificationPreferences {
   }
 
   /// القرار النهائي: هل نكتم هذا الإشعار؟
-  /// طلبات الموقع تتجاوز كل شيء دائماً.
-  bool shouldSuppress(String kind) {
+  /// طلبات الموقع تتجاوز كل شيء دائماً، والتنبيهات الإلزامية تتجاوز كتم القناة.
+  bool shouldSuppress(String kind, {String? subKind}) {
     if (kind == 'live_location_request') return false;
+    if (mandatoryKinds.contains(subKind)) return isQuietNow;
     return isKindMuted(kind) || isQuietNow;
   }
 

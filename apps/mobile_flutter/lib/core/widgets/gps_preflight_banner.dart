@@ -1,4 +1,5 @@
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -41,6 +42,30 @@ class _GpsPreflightBannerState extends ConsumerState<GpsPreflightBanner>
     }
   }
 
+  void _showWebLocationHelp(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.info_outline, color: Colors.blue, size: 36),
+        title: const Text('تفعيل الموقع في المتصفح', textAlign: TextAlign.center),
+        content: const Text(
+          'للسماح بالوصول إلى موقعك من المتصفح:\n'
+          '1. انقر على أيقونة القفل أو الأذونات بجانب رابط الصفحة (شريط العنوان).\n'
+          '2. اختر "الموقع" (Location) واضبطه على "سماح" (Allow).\n'
+          '3. أعد تحديث الصفحة.',
+          textAlign: TextAlign.start,
+          style: TextStyle(height: 1.6),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('حسناً، فهمت'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final preflight = ref.watch(gpsPreflightProvider);
@@ -62,13 +87,25 @@ class _GpsPreflightBannerState extends ConsumerState<GpsPreflightBanner>
           icon = Icons.gps_off_rounded;
           text = 'خدمة الموقع (GPS) غير مفعلة';
           buttonLabel = 'تفعيل الموقع';
-          onTap = () => Geolocator.openLocationSettings();
+          onTap = () {
+            if (kIsWeb) {
+              _showWebLocationHelp(context);
+            } else {
+              Geolocator.openLocationSettings();
+            }
+          };
         } else if (result.isDeniedForever) {
           color = Colors.red.shade700;
           icon = Icons.location_disabled_rounded;
           text = 'صلاحية الموقع مرفوضة نهائيًا';
           buttonLabel = 'فتح الإعدادات';
-          onTap = () => Geolocator.openAppSettings();
+          onTap = () {
+            if (kIsWeb) {
+              _showWebLocationHelp(context);
+            } else {
+              Geolocator.openAppSettings();
+            }
+          };
         } else {
           color = Colors.amber.shade800;
           icon = Icons.location_off_rounded;
@@ -80,48 +117,54 @@ class _GpsPreflightBannerState extends ConsumerState<GpsPreflightBanner>
           };
         }
 
-        return AnimatedSlide(
-          duration: const Duration(milliseconds: 300),
-          offset: Offset.zero,
-          child: Material(
-            color: color,
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: Row(
-                  children: [
-                    Icon(icon, color: Colors.white, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        text,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      onPressed: onTap,
-                      child: Text(
-                        buttonLabel,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: color.withValues(alpha: 0.35),
+                width: 1.2,
               ),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: color, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    text,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton.tonal(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: color.withValues(alpha: 0.16),
+                    foregroundColor: color,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: onTap,
+                  child: Text(
+                    buttonLabel,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );

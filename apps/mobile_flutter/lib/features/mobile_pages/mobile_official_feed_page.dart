@@ -1,5 +1,6 @@
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
+import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_announcement_page.dart';
@@ -27,6 +28,23 @@ class MobileOfficialFeedPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (focusItemId != null) {
       return MobileFeedDetailPage(kind: focusKind, itemId: focusItemId!);
+    }
+
+    final access = ref.watch(accessContextProvider).value;
+    if (access != null && access.isClinicStaff) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('القرارات والتعاميم')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Text(
+              'صفحة القرارات والتعاميم غير متاحة لطاقم العيادات.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      );
     }
 
     final feed = ref.watch(mobileFeedProvider);
@@ -284,20 +302,29 @@ class _FeedCard extends StatelessWidget {
                       children: [
                         MobileStatusPill(item.kind),
                         const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            item.postTypeLabel,
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
+                        // نوع المنشور يُعرض فقط إن اختلف عن النوع («إعلان» مرتين سابقًا)
+                        if (item.postTypeLabel.trim().isNotEmpty &&
+                            item.postTypeLabel.trim() !=
+                                switch (item.kind) {
+                                  'announcement' => 'إعلان',
+                                  'decision' => 'قرار إداري',
+                                  _ => '',
+                                }) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              item.postTypeLabel,
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 6),
+                          const SizedBox(width: 6),
+                        ],
                         MobileStatusPill(item.priority),
                         const Spacer(),
                         if (item.publishedAt != null)

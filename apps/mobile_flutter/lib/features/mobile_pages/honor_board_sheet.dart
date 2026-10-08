@@ -1,4 +1,5 @@
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
+import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
@@ -23,187 +24,10 @@ enum HonorCategory {
 class HonorBoardSummaryCard extends ConsumerWidget {
   const HonorBoardSummaryCard({super.key});
 
-  void _showHonorBoard(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const HonorBoardSheet(),
-    );
-  }
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    final monthData = ref.watch(honorBoardProvider(('month', 'attendance'))).value;
-    final weekData = ref.watch(honorBoardProvider(('week', 'attendance'))).value;
-
-    final monthHero = monthData?.isNotEmpty == true ? monthData![0] : null;
-    final weekHero = weekData?.isNotEmpty == true ? weekData![0] : null;
-
-    // بلا بيانات بعد: نص محايد — كانت هنا أسماء ونسبة ثابتة تُعرض كأنها نتيجة.
-    final monthName = monthHero?.name.isNotEmpty == true ? monthHero!.name : 'يُحتسب قريباً';
-    final monthMetric = monthHero?.metric.isNotEmpty == true ? monthHero!.metric : '—';
-    final weekName = weekHero?.name.isNotEmpty == true ? weekHero!.name : 'يُحتسب قريباً';
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFF59E0B).withValues(alpha: .32),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFF59E0B).withValues(alpha: .08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => _showHonorBoard(context),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFF59E0B).withValues(alpha: .35),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.workspace_premium_rounded,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Text(
-                                'لوحة الشرف والتميز الوظيفي',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              const Spacer(),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF10B981).withValues(alpha: .12),
-                                  borderRadius: BorderRadius.circular(99),
-                                  border: Border.all(
-                                    color: const Color(0xFF10B981).withValues(alpha: .3),
-                                  ),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.emoji_events_rounded,
-                                      size: 11,
-                                      color: Color(0xFF10B981),
-                                    ),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'لوحة الشرف',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w800,
-                                        color: Color(0xFF10B981),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'تكريم نجوم الانضباط والمأموريات والتقارير اليومية',
-                            style: TextStyle(
-                              color: scheme.onSurfaceVariant,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF59E0B).withValues(alpha: .08),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: const Color(0xFFF59E0B).withValues(alpha: .2),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '🥇 موظف الشهر: $monthName ($monthMetric) · موظف الأسبوع: $weekName',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFFB45309),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Icon(
-                        Icons.chevron_left_rounded,
-                        size: 18,
-                        color: const Color(0xFFB45309).withValues(alpha: .9),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context, WidgetRef ref) => const SizedBox.shrink();
 }
 
-/// نافذة لوحة الشرف ومنصة التتويج الشرفية
 class HonorBoardSheet extends ConsumerStatefulWidget {
   const HonorBoardSheet({super.key});
 
@@ -212,11 +36,39 @@ class HonorBoardSheet extends ConsumerStatefulWidget {
 }
 
 class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
+  // ignore: unused_field
   HonorPeriod _period = HonorPeriod.month;
+  // ignore: unused_field
   HonorCategory _category = HonorCategory.attendance;
 
   @override
   Widget build(BuildContext context) {
+    final access = ref.watch(accessContextProvider).value;
+    if (access != null && access.isClinicStaff) {
+      return Container(
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Icon(Icons.military_tech_outlined, size: 56, color: Theme.of(context).colorScheme.outline),
+            const SizedBox(height: 16),
+            Text(
+              'لوحة الشرف غير متاحة لطاقم العيادات.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      );
+    }
     final scheme = Theme.of(context).colorScheme;
     final currentProfile = ref.watch(mobileProfileProvider).value;
     final currentName = currentProfile?.fullNameAr ?? '';
@@ -245,7 +97,13 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
     final second = honorees.length > 1 ? honorees[1] : null;
     final third = honorees.length > 2 ? honorees[2] : null;
 
-    final periodLabel = _period == HonorPeriod.month ? 'شهر سبتمبر' : 'الأسبوع الحالي';
+    final now = DateTime.now();
+    const monthNames = [
+      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+    ];
+    final currentMonthName = monthNames[now.month - 1];
+    final periodLabel = _period == HonorPeriod.month ? 'شهر $currentMonthName' : 'الأسبوع الحالي';
     final categoryLabel = switch (_category) {
       HonorCategory.attendance => 'الانضباط والحضور',
       HonorCategory.missions => 'المأموريات الميدانية',

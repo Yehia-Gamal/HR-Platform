@@ -1,5 +1,8 @@
+import 'package:ahla_design_tokens/ahla_design_tokens.dart';
+import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -112,27 +115,55 @@ class _PasskeyDevicesPageState extends ConsumerState<PasskeyDevicesPage> {
   }
 
   Future<void> _register() async {
+    if (kIsWeb) {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: const Icon(Icons.phonelink_setup_rounded, color: Colors.blue, size: 36),
+          title: const Text('تسجيل أجهزة البصمة', textAlign: TextAlign.center),
+          content: const Text(
+            'تسجيل أجهزة البصمة المعتمدة لإثبات الحضور يتم من تطبيق الهاتف المحمول (Android / iOS) لربطه بالبصمة الحيوية أو قفل الشاشة الخاص بهاتفك الشخصي.',
+            textAlign: TextAlign.center,
+            style: TextStyle(height: 1.5),
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('حسناً، فهمت'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     setState(() => _registering = true);
-      try {
-      await ref.read(mobileCommandsProvider).registerPasskey();
+    try {
+      await ref.read(mobileCommandsProvider).registerLocalBiometricDevice();
+      ref.invalidate(myPasskeysProvider);
+      ref.invalidate(attendanceStateProvider);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(
-          content: Text('تم تأمين الجهاز وتفعيله تلقائيًا'),
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم تأمين الجهاز وتفعيله تلقائيًا'),
+            backgroundColor: AppColors.statusSuccess,
+          ),
+        );
       }
     } catch (error) {
       if (mounted) {
         final msg = error.toString();
-        final text = msg.contains('cancelled')
+        final text = msg.contains('cancelled') || msg.contains('إلغاء')
             ? 'تم إلغاء التحقق.'
-            : msg.contains('الجهاز لا يدعم')
+            : msg.contains('الجهاز لا يدعم') || msg.contains('PasscodeNotSet')
                 ? 'فعّل قفل الشاشة (نقش أو PIN) من إعدادات الجهاز.'
-                : 'تعذر تسجيل الجهاز. أعد المحاولة.';
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(text)));
+                : humanizeError(error);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(text),
+            backgroundColor: AppColors.statusDanger,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _registering = false);
@@ -337,7 +368,18 @@ class _DeviceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final formatter = DateFormat('d MMMM y، h:mm a', 'ar');
     final info = _statusInfo(device.status, context);
+    final isActive = device.status == 'active';
     return Card(
+      elevation: isActive ? 2 : 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isActive
+              ? Colors.green.withValues(alpha: 0.5)
+              : Theme.of(context).dividerColor.withValues(alpha: 0.15),
+          width: isActive ? 1.5 : 1,
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -354,9 +396,36 @@ class _DeviceCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        device.deviceLabel,
-                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              device.deviceLabel,
+                              style: const TextStyle(fontWeight: FontWeight.w900),
+                            ),
+                          ),
+                          if (isActive) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'الجهاز المعتمد حالياً',
+                                style: TextStyle(
+                                  color: Colors.green,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       Text(
                         info.label,
@@ -368,7 +437,7 @@ class _DeviceCard extends StatelessWidget {
                 if (device.trusted)
                   const Tooltip(
                     message: 'موثوق من الخادم',
-                    child: Icon(Icons.verified_user_outlined),
+                    child: Icon(Icons.verified_user_rounded, color: Colors.green),
                   ),
               ],
             ),

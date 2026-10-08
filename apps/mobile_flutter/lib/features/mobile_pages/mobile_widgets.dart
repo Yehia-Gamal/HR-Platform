@@ -136,6 +136,10 @@ class MobileStatusPill extends StatelessWidget {
       'draft' => ('مسودة', scheme.onSurfaceVariant),
       'cancelled' => ('ملغي', scheme.onSurfaceVariant),
       'active' => ('نشط', AppColors.statusSuccess),
+      // Device / passkey states (0096: pending, active, blocked, revoked, replaced)
+      'revoked' => ('ملغى', AppColors.statusDanger),
+      'replaced' => ('مستبدل', AppColors.statusWarning),
+      'auto_revoked' => ('إلغاء تلقائي', AppColors.statusWarning),
       // Lifecycle / employee states
       'onboarding' => ('قيد التهيئة', AppColors.statusViolet),
       'invited' => ('تمت الدعوة', AppColors.statusInfo),
@@ -154,10 +158,17 @@ class MobileStatusPill extends StatelessWidget {
       'unregistered' => ('غير مسجّل', scheme.onSurfaceVariant),
       'scheduled' => ('مجدول', AppColors.statusViolet),
       'rest' => ('راحة', scheme.onSurfaceVariant),
-      'holiday' => ('عطلة', AppColors.statusInfo),
-      'mission' => ('مهمة', AppColors.statusViolet),
-      'convoy' => ('قافلة مساعدات', AppColors.statusViolet),
-      'fundi' => ('فاندي (ترفيهي)', const Color(0xFFDB2777)),
+      'weekend' => ('إجازة أسبوعية', scheme.onSurfaceVariant),
+      'not_recorded' => ('لم يسجل بعد', scheme.onSurfaceVariant),
+      'holiday' => ('عطلة رسمية', AppColors.statusInfo),
+      'partial' => ('حضور جزئي', AppColors.statusWarning),
+      'mission' => ('في مأمورية', const Color(0xFF2563EB)),
+      'convoy' => ('في قافلة', const Color(0xFF7C3AED)),
+      'fundraising' || 'fundi' => ('في فاندي ترفيهي', const Color(0xFF0D9488)),
+      // حالات اليوم من لوحة الحضور (0631)
+      'checked_out' => ('انصرف', const Color(0xFF64748B)),
+      'left_early' => ('انصرف مبكرًا', AppColors.statusWarning),
+      'exempt' => ('معفى من البصمة', scheme.onSurfaceVariant),
       'convoy_fundi' => ('قوافل / فاندي', AppColors.statusViolet),
       'overtime' => ('عمل إضافي', AppColors.statusWarning),
       // Progress / lifecycle of tasks, courses, requests, cases
@@ -182,6 +193,10 @@ class MobileStatusPill extends StatelessWidget {
       'failed' => ('فشل', AppColors.statusDanger),
       'expired' => ('منتهي الصلاحية', AppColors.statusDanger),
       'escalated' => ('مُصعّد', AppColors.statusDanger),
+      // مراحل/مسار الطلبات (0646)
+      'skipped' => ('لم يلزم', scheme.onSurfaceVariant),
+      'withdrawn' => ('مسحوب', scheme.onSurfaceVariant),
+      'awaiting_operator' => ('عند مدير التشغيل 1', AppColors.statusViolet),
       'blocked' => ('محظور', AppColors.statusDanger),
       _ => (value, scheme.primary),
     };

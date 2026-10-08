@@ -73,12 +73,18 @@ class _ExecutiveWorkspaceState extends ConsumerState<ExecutiveWorkspace> {
         NavigationDestination(
           icon: Badge(
             isLabelVisible: pending > 0,
-            label: Text(pending > 99 ? '99+' : '$pending'),
+            label: Text(
+              pending > 99 ? '99+' : '$pending',
+              textDirection: TextDirection.ltr,
+            ),
             child: const Icon(Icons.approval_outlined),
           ),
           selectedIcon: Badge(
             isLabelVisible: pending > 0,
-            label: Text(pending > 99 ? '99+' : '$pending'),
+            label: Text(
+              pending > 99 ? '99+' : '$pending',
+              textDirection: TextDirection.ltr,
+            ),
             child: const Icon(Icons.approval_rounded),
           ),
           label: 'الاعتمادات',
