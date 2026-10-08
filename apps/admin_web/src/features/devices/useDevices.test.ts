@@ -77,7 +77,7 @@ describe('useDevices — AdminDevice interface', () => {
   });
 
   it('approvedAt is a valid ISO timestamp when set', () => {
-    if (ADMIN.approvedAt !== null) {
+    if (ADMIN.approvedAt) {
       expect(new Date(ADMIN.approvedAt).getTime()).not.toBeNaN();
     }
   });
@@ -89,7 +89,7 @@ describe('useDevices — AdminDevice interface', () => {
   });
 
   it('lastUsedAt is a valid ISO timestamp when set', () => {
-    if (ADMIN.lastUsedAt !== null) {
+    if (ADMIN.lastUsedAt) {
       expect(new Date(ADMIN.lastUsedAt).getTime()).not.toBeNaN();
     }
   });

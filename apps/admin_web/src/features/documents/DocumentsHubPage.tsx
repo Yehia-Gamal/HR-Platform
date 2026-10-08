@@ -59,7 +59,7 @@ export function DocumentsHubPage() {
         </button>
       </div>
 
-      {tab === 'studio' ? <DocumentsStudioPage /> : <DocumentsPage />}
+      {tab === 'studio' ? <DocumentsStudioPage /> : <DocumentsPage onGenerateDoc={() => setShowDocGenerator(true)} />}
 
       <OfficialDocumentGeneratorModal isOpen={showDocGenerator} onClose={() => setShowDocGenerator(false)} />
     </div>

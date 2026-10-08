@@ -125,6 +125,8 @@ vi.mock('../useSystemHealth', () => ({
 vi.mock('../useSystemAlerts', () => ({
   useSystemAlerts: () => alertsOverrideFn(),
   useUpdateAlertStatus: () => mutationMock,
+  useResolveAllAlerts: () => mutationMock,
+  useAcknowledgeAllAlerts: () => mutationMock,
 }));
 
 vi.mock('../useCronHealth', () => ({

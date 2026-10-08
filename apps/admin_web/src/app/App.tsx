@@ -48,7 +48,6 @@ const FellowshipFundPage = lazy(() => import('../features/finance/FellowshipFund
 const MyInstantPenaltiesPage = lazy(() => import('../features/finance/MyInstantPenaltiesPage').then((m) => ({ default: m.MyInstantPenaltiesPage })));
 const DisputesPage = lazy(() => import('../features/advanced/DisputesPage').then((m) => ({ default: m.DisputesPage })));
 const SettingsHubPage = lazy(() => import('../features/management/SettingsHubPage').then((m) => ({ default: m.SettingsHubPage })));
-const KnowledgeHubPage = lazy(() => import('../features/knowledge/KnowledgeHubPage').then((m) => ({ default: m.KnowledgeHubPage })));
 const ReportsHubPage = lazy(() => import('../features/management/ReportsHubPage').then((m) => ({ default: m.ReportsHubPage })));
 const DocumentsHubPage = lazy(() => import('../features/documents/DocumentsHubPage').then((m) => ({ default: m.DocumentsHubPage })));
 const AccessPage = lazy(() => import('../features/management/AccessPage').then((m) => ({ default: m.AccessPage })));
@@ -61,12 +60,9 @@ const ObservabilityDashboardPage = lazy(() =>
 );
 const IntegrationsJobsPage = lazy(() => import('../features/management/IntegrationsJobsPage').then((m) => ({ default: m.IntegrationsJobsPage })));
 /* V17 §4.2: feature-flagged pages — shown only when the corresponding flag in featureFlags.ts is true */
-const LearningPage = lazy(() => import('../features/learning/LearningPage').then((m) => ({ default: m.LearningPage })));
 const LifecyclePage = lazy(() => import('../features/lifecycle/LifecyclePage').then((m) => ({ default: m.LifecyclePage })));
 const ExecutiveMonitoringPage = lazy(() => import('../features/management/ExecutiveMonitoringPage').then((m) => ({ default: m.ExecutiveMonitoringPage })));
 const OrganizationPage = lazy(() => import('../features/management/OrganizationPage').then((m) => ({ default: m.OrganizationPage })));
-const KnowledgePage = lazy(() => import('../features/knowledge/KnowledgePage').then((m) => ({ default: m.KnowledgePage })));
-const HelpdeskPage = lazy(() => import('../features/helpdesk/HelpdeskPage').then((m) => ({ default: m.HelpdeskPage })));
 const GovernancePage = lazy(() => import('../features/governance/GovernancePage').then((m) => ({ default: m.GovernancePage })));
 const AuditTrailPage = lazy(() => import('../features/management/AuditTrailPage').then((m) => ({ default: m.AuditTrailPage })));
 const LeavesPage = lazy(() => import('../features/leaves/LeavesPage').then((m) => ({ default: m.LeavesPage })));
@@ -222,6 +218,7 @@ function AuthenticatedApp() {
                 </RequirePermission>
               }
             />
+            <Route path="live-locations" element={<Navigate to="../live-location" replace />} />
             <Route
               path="official-feed"
               element={
@@ -326,14 +323,6 @@ function AuthenticatedApp() {
               }
             />
             <Route
-              path="helpdesk"
-              element={
-                <FeatureGate feature="helpdesk">
-                  <HelpdeskPage />
-                </FeatureGate>
-              }
-            />
-            <Route
               path="finance"
               element={
                 <FeatureGate feature="peopleFinance">
@@ -379,17 +368,8 @@ function AuthenticatedApp() {
                 </RequirePermission>
               }
             />
-            {/* notifications/knowledge: مرئيان لكل أعضاء المساحة — لا يحتاجان permission خاص */}
+            {/* notifications: مرئي لكل أعضاء المساحة — لا يحتاج permission خاص */}
             <Route path="notifications" element={<NotificationsPage />} />
-            <Route
-              path="knowledge"
-              element={
-                <RequirePermission perm="knowledge.article.read">
-                  <KnowledgeHubPage />
-                </RequirePermission>
-              }
-            />
-            <Route path="learning" element={<Navigate to="../knowledge?tab=learning" replace />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Route>
         </Route>
@@ -572,14 +552,6 @@ function HrWorkspaceRoutes() {
         }
       />
       <Route
-        path="learning"
-        element={
-          <RequirePermission perm="learning.enroll">
-            <LearningPage />
-          </RequirePermission>
-        }
-      />
-      <Route
         path="lifecycle"
         element={
           <RequirePermission perm="people.employee.read">
@@ -621,14 +593,6 @@ function HrWorkspaceRoutes() {
         }
       />
       <Route
-        path="knowledge"
-        element={
-          <RequirePermission perm="knowledge.article.read">
-            <KnowledgePage />
-          </RequirePermission>
-        }
-      />
-      <Route
         path="org-chart"
         element={
           <RequirePermission perm="organization.org_chart.read">
@@ -638,6 +602,31 @@ function HrWorkspaceRoutes() {
         }
       />
       <Route path="association-projects" element={<AssociationProjectsPage />} />
+      <Route
+        path="finance"
+        element={
+          <FeatureGate feature="peopleFinance">
+            <FinanceHubPage />
+          </FeatureGate>
+        }
+      />
+      <Route
+        path="finance/*"
+        element={
+          <FeatureGate feature="peopleFinance">
+            <FinanceHubPage />
+          </FeatureGate>
+        }
+      />
+      <Route path="fellowship-fund" element={<FellowshipFundPage />} />
+      <Route path="attendance-penalties" element={<Navigate to="../finance?tab=instant-penalties" replace />} />
+      <Route path="actions" element={<Navigate to="/admin/actions" replace />} />
+      <Route path="live-location" element={<Navigate to="/admin/live-location" replace />} />
+      <Route path="live-locations" element={<Navigate to="/admin/live-location" replace />} />
+      <Route path="executive-monitoring" element={<Navigate to="/admin/executive-monitoring" replace />} />
+      <Route path="disputes" element={<Navigate to="/admin/disputes" replace />} />
+      <Route path="settings" element={<Navigate to="/admin/settings" replace />} />
+      <Route path="access" element={<Navigate to="/admin/access" replace />} />
       <Route path="notifications" element={<NotificationsPage />} />
       <Route path="*" element={<HrCatchAll />} />
     </Routes>

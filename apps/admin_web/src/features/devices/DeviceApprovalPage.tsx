@@ -24,26 +24,31 @@ export function DeviceApprovalPage() {
   // «كل الأجهزة» لأنه الوحيد الذي يعرض كل الحالات.
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState<Tab>(searchParams.has('focus') ? 'all' : 'pending');
+  const pendingQuery = useDeviceApprovals();
+  const allQuery = useAllDevices();
+
+  const pendingCount = pendingQuery.data?.length;
+  const allCount = allQuery.data?.length;
 
   return (
     <div className="space-y-5">
       <PageHeader title="أجهزة الموظفين" description="مراجعة وموافقة على أجهزة الموظفين وإدارة الأجهزة المسجلة" />
       <Tabs
         tabs={[
-          { id: 'pending', label: 'طلبات الأجهزة' },
-          { id: 'all', label: 'كل الأجهزة' },
+          { id: 'pending', label: 'طلبات الأجهزة', count: pendingCount },
+          { id: 'all', label: 'كل الأجهزة', count: allCount },
         ]}
         activeTab={tab}
         onTabChange={(id) => setTab(id as Tab)}
         ariaLabel="أقسام الأجهزة"
       >
-        {tab === 'pending' ? <PendingDevicesPanel /> : <AllDevicesPanel />}
+        {tab === 'pending' ? <PendingDevicesPanel onSwitchToAll={() => setTab('all')} allCount={allCount} /> : <AllDevicesPanel />}
       </Tabs>
     </div>
   );
 }
 
-function PendingDevicesPanel() {
+function PendingDevicesPanel({ onSwitchToAll, allCount }: { onSwitchToAll?: () => void; allCount?: number }) {
   const query = useDeviceApprovals();
   const approve = useApproveDevice();
   const [search, setSearch] = useState('');
@@ -97,6 +102,7 @@ function PendingDevicesPanel() {
           icon={MonitorSmartphone}
           hint="أجهزة تنتظر المراجعة أو محظورة"
           compact={true}
+          showAction={false}
           onClick={() => setStatusFilter('all')}
         />
         <MetricCard
@@ -105,6 +111,7 @@ function PendingDevicesPanel() {
           icon={Clock3}
           hint="أجهزة جديدة لم تُراجع بعد"
           compact={true}
+          showAction={false}
           onClick={() => setStatusFilter('pending')}
         />
         <MetricCard
@@ -113,6 +120,7 @@ function PendingDevicesPanel() {
           icon={ShieldAlert}
           hint="أجهزة تم رفضها وتحتاج مراجعة"
           compact={true}
+          showAction={false}
           onClick={() => setStatusFilter('blocked')}
         />
       </section>
@@ -127,7 +135,7 @@ function PendingDevicesPanel() {
           setStatusFilter('all');
         }}
       >
-        <select className="input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="تصفية حسب الحالة">
+        <select className="input sm:w-48" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="تصفية حسب الحالة">
           <option value="all">كل الحالات</option>
           <option value="pending">بانتظار الموافقة</option>
           <option value="blocked">محظور</option>
@@ -136,7 +144,19 @@ function PendingDevicesPanel() {
       {filtered.length === 0 ? (
         <EmptyState
           title="لا توجد أجهزة معلّقة"
-          description={allDevices.length === 0 ? 'لم يسجّل أي موظف جهازاً جديداً بعد.' : 'لا توجد نتائج مطابقة للفلاتر المحددة.'}
+          description={allDevices.length === 0 ? 'لم يسجّل أي موظف جهازاً جديداً بانتظار الموافقة حالياً.' : 'لا توجد نتائج مطابقة للفلاتر المحددة.'}
+          action={
+            allDevices.length === 0 && onSwitchToAll && allCount && allCount > 0 ? (
+              <button
+                type="button"
+                className="btn-secondary mt-3 inline-flex items-center gap-1.5"
+                onClick={onSwitchToAll}
+              >
+                <MonitorSmartphone className="size-4" aria-hidden="true" />
+                عرض كل الأجهزة المسجلة ({allCount})
+              </button>
+            ) : undefined
+          }
         />
       ) : (
         <section className="space-y-3" aria-label="قائمة الأجهزة">
@@ -282,9 +302,10 @@ function AllDevicesPanel() {
           icon={MonitorSmartphone}
           hint={showTerminated ? 'بما فيها المنتهية' : 'بدون المنتهية'}
           compact={true}
+          showAction={false}
         />
-        <MetricCard label="أجهزة نشطة" value={activeCount} icon={Shield} hint="أجهزة معتمدة ونشطة حالياً" compact={true} />
-        <MetricCard label="منتهية" value={terminatedCount} icon={ShieldOff} hint="ملغاة أو مستبدلة" compact={true} />
+        <MetricCard label="أجهزة نشطة" value={activeCount} icon={Shield} hint="أجهزة معتمدة ونشطة حالياً" compact={true} showAction={false} />
+        <MetricCard label="منتهية" value={terminatedCount} icon={ShieldOff} hint="ملغاة أو مستبدلة" compact={true} showAction={false} />
       </section>
       <FilterBar
         searchValue={search}
@@ -298,7 +319,7 @@ function AllDevicesPanel() {
           setShowTerminated(false);
         }}
       >
-        <select className="input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="تصفية حسب الحالة">
+        <select className="input sm:w-48" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="تصفية حسب الحالة">
           <option value="">كل الحالات</option>
           <option value="pending">بانتظار الموافقة</option>
           <option value="active">نشط</option>

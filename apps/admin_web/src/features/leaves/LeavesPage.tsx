@@ -237,7 +237,7 @@ function LeaveDetailDialog({ row, onClose, onDecided }: { row: LeaveAdminRow; on
                   onChange={(e) => setRejectReason(e.target.value)}
                   rows={2}
                   placeholder="أدخل سبب الرفض..."
-                  className="input-field w-full resize-none text-sm"
+                  className="input w-full resize-none text-sm"
                 />
                 <div className="flex gap-2">
                   <button type="button" onClick={handleReject} disabled={decision.isPending} className="btn-danger flex-1 disabled:opacity-50">
@@ -362,8 +362,8 @@ export function LeavesPage() {
         title="إدارة الإجازات"
         description="مراجعة واعتماد طلبات إجازات الموظفين"
         actions={
-          <div className="flex items-center gap-2">
-            <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="input-field h-9 w-28 text-sm" aria-label="اختر السنة">
+          <div className="flex flex-wrap items-center gap-2">
+            <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="input h-10 w-28 text-sm" aria-label="اختر السنة">
               {YEAR_OPTIONS.map((y) => (
                 <option key={y} value={y}>
                   {y}

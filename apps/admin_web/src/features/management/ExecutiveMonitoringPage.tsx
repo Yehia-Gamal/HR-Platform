@@ -1,4 +1,4 @@
-import { Activity, CalendarClock, MapPin, RefreshCw, Search, Send, Users } from 'lucide-react';
+import { Activity, CalendarClock, ExternalLink, MapPin, RefreshCw, Search, Send, Users } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ListSkeleton } from '../../ui/Skeletons';
@@ -189,19 +189,40 @@ export function ExecutiveMonitoringPage({ embedded: _embedded = false }: { embed
                   <article key={e.id} className="p-4 transition-colors hover:bg-[var(--surface-muted)]">
                     <div className="flex items-start justify-between gap-3">
                       <UserAvatar displayName={e.name ?? ''} photoUrl={e.avatarUrl} size="sm" />
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <strong className="truncate">{e.name}</strong>
+                          <strong className="truncate font-black">{e.name}</strong>
                           <StatusBadge value={e.status} label={STATUS_LABELS[e.status] ?? e.status} />
                         </div>
                         <p className="muted mt-1 text-xs">
                           {cleanCode ? `${cleanCode} · ` : ''}
                           {e.department ?? 'دون إدارة'} · مدير: {e.managerName ?? '—'}
                         </p>
-                        <p className="muted mt-1 text-xs">
-                          آخر موقع: {relative(e.lastLocationAt)}
-                          {e.lastAddressAr ? ` · ${e.lastAddressAr}` : ''}
-                        </p>
+                        {(() => {
+                          const address = e.lastAddressAr || '';
+                          const parts = address.split('|').map((s) => s.trim());
+                          const addrText = parts[0] || '';
+                          const mapUrl = parts.length > 1 ? parts[1] : (addrText.startsWith('http') ? addrText : null);
+                          const cleanAddrText = mapUrl === addrText ? '' : addrText;
+
+                          return (
+                            <div className="muted mt-1 text-xs flex flex-wrap items-center gap-1.5">
+                              <span>آخر موقع: {relative(e.lastLocationAt)}</span>
+                              {cleanAddrText ? <span className="break-words">· {cleanAddrText}</span> : null}
+                              {mapUrl ? (
+                                <a
+                                  href={mapUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-[var(--brand-primary)] hover:underline font-bold"
+                                >
+                                  <ExternalLink className="size-3" aria-hidden="true" />
+                                  <span>خريطة Google</span>
+                                </a>
+                              ) : null}
+                            </div>
+                          );
+                        })()}
                       </div>
                       {e.activeRequestStatus ? <StatusBadge value={e.activeRequestStatus} /> : null}
                     </div>

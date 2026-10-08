@@ -22,7 +22,7 @@ describe('useRequests — mock data schema validation', () => {
     });
 
     it('requestType is a valid enum value', () => {
-      const validTypes = ['leave', 'mission', 'convoy', 'late_permit', 'early_permit', 'attendance_correction'];
+      const validTypes = ['leave', 'mission', 'convoy', 'fundraising', 'late_permit', 'early_permit', 'attendance_correction', 'shift_change'];
       const parsed = requestSummarySchema.array().parse(mockRequests);
       for (const req of parsed) {
         expect(validTypes).toContain(req.requestType);

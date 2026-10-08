@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeft, CalendarDays, Copy, Download, ExternalLink, Printer, ShieldCheck, Sparkles, TrendingUp, Users } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CalendarDays, Copy, Download, ExternalLink, Printer, ShieldCheck, Sparkles, TrendingUp, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { cairoTodayIso } from '../../core/cairoTime';
@@ -9,7 +9,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { SkeletonCard } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { useAuth } from '../auth/AuthProvider';
-import { hasPermission } from '../workspaces/access';
+import { hasPermission, useHrPrefix } from '../workspaces/access';
 import { useExecutiveDailyReport, useExecutiveDailyReportDetail, exportExecutiveDailyReportPdf } from './useAttendanceDashboard';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useToast } from '../../ui/Toast';
@@ -31,6 +31,7 @@ function fmtTime12(iso: string | null | undefined): string {
 export function ExecutiveDailyReportPage() {
   const { toast } = useToast();
   const auth = useAuth();
+  const hrPrefix = useHrPrefix();
   const [params, setParams] = useSearchParams();
   const dateParam = params.get('date');
   const dateIso = /^\d{4}-\d{2}-\d{2}$/.test(dateParam ?? '') ? (dateParam as string) : cairoTodayIso();
@@ -234,8 +235,8 @@ export function ExecutiveDailyReportPage() {
               <Printer className="size-4" aria-hidden="true" />
               طباعة
             </button>
-            <Link to="/hr/attendance" className="btn-secondary">
-              <ArrowLeft className="size-4" aria-hidden="true" />
+            <Link to={`${hrPrefix}/attendance`} className="btn-secondary">
+              <ArrowRight className="size-4" aria-hidden="true" />
               عودة للحضور
             </Link>
           </div>

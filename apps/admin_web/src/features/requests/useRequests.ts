@@ -1,10 +1,19 @@
-import { leaveBalanceSchema, requestSummarySchema, workAssignmentSchema, type RequestSummary, type WorkAssignment } from '@ahla/shared-contracts';
+import {
+  leaveBalanceSchema,
+  requestDetailSchema,
+  requestSummarySchema,
+  workAssignmentSchema,
+  type RequestDetail,
+  type RequestSummary,
+  type WorkAssignment,
+} from '@ahla/shared-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
 import { loadDomainMocks } from '../mock/loadDomainMocks';
 
-type Decision = 'approve' | 'reject';
+/** قرار المعتمِد — «إعادة للتعديل» ترجع الطلب لصاحبه ليعدّله ويعيد تقديمه (0646). */
+export type Decision = 'approve' | 'reject' | 'return';
 
 export function useRequests() {
   const auth = useAuth();
@@ -14,7 +23,17 @@ export function useRequests() {
     queryFn: async (): Promise<RequestSummary[]> => {
       if (auth.isMock) return (await loadDomainMocks()).mockRequests;
       const data = await rpc('get_request_inbox', { p_limit: 100 });
-      return requestSummarySchema.array().parse(data ?? []);
+      if (!Array.isArray(data)) return [];
+      const parsed: RequestSummary[] = [];
+      for (const item of data) {
+        const result = requestSummarySchema.safeParse(item);
+        if (result.success) {
+          parsed.push(result.data);
+        } else {
+          console.warn('[useRequests] Failed to parse request item:', (item as Record<string, unknown>)?.id, result.error);
+        }
+      }
+      return parsed;
     },
   });
 }
@@ -28,7 +47,52 @@ export function useRequestDecision() {
       return rpc('decide_request', { p_request_id: requestId, p_decision: decision, p_comment: comment || null });
     },
     meta: { successMessage: 'تم البتّ في الطلب بنجاح' },
-    onSuccess: () => Promise.all([client.invalidateQueries({ queryKey: ['requests'] }), client.invalidateQueries({ queryKey: ['action-center'] })]),
+    onSuccess: () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: ['requests'] }),
+        client.invalidateQueries({ queryKey: ['request-detail'] }),
+        client.invalidateQueries({ queryKey: ['action-center'] }),
+      ]),
+  });
+}
+
+/** تفاصيل طلب واحد: مسار الطلب وسياق القرار للمعتمِد (get_mobile_request_detail — 0646/0651). */
+export function useRequestDetail(requestId: string | null) {
+  const auth = useAuth();
+  return useQuery({
+    queryKey: ['request-detail', requestId, auth.isMock],
+    enabled: auth.status === 'authenticated' && Boolean(requestId) && !auth.isMock,
+    queryFn: async (): Promise<RequestDetail> => requestDetailSchema.parse(await rpc('get_mobile_request_detail', { p_request_id: requestId })),
+  });
+}
+
+/**
+ * اعتماد جماعي: قرار مستقل لكل طلب بالتتابع (الخادم يتحقق من صلاحية كل طلب على حدة)،
+ * ويُعاد عدد الناجح والفاشل بدل إيقاف الكل عند أول خطأ.
+ */
+export function useBulkApprove() {
+  const auth = useAuth();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ requestIds, comment }: { requestIds: string[]; comment: string }) => {
+      let approved = 0;
+      const failed: string[] = [];
+      for (const id of requestIds) {
+        try {
+          if (!auth.isMock) await rpc('decide_request', { p_request_id: id, p_decision: 'approve', p_comment: comment || null });
+          approved += 1;
+        } catch {
+          failed.push(id);
+        }
+      }
+      return { approved, failed };
+    },
+    onSettled: () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: ['requests'] }),
+        client.invalidateQueries({ queryKey: ['request-detail'] }),
+        client.invalidateQueries({ queryKey: ['action-center'] }),
+      ]),
   });
 }
 

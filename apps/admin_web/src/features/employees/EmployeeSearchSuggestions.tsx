@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router';
 import type { EmployeeSummary } from '@ahla/shared-contracts';
 import { UserAvatar } from '../../ui/UserAvatar';
+import { useHrPrefix } from '../workspaces/access';
 
 interface EmployeeSearchSuggestionsProps {
   /** النص الحالي في حقل البحث */
@@ -17,7 +18,7 @@ interface EmployeeSearchSuggestionsProps {
 /**
  * قائمة اقتراحات حيّة تظهر أسفل حقل البحث أثناء الكتابة.
  * تعمل على القائمة المحمّلة مسبقًا (no API call) و تعرض حتى 5 مطابقات.
- * كل عنصر عبارة عن رابط إلى صفحة تفاصيل الموظف `/hr/employees/:id`.
+ * كل عنصر عبارة عن رابط إلى صفحة تفاصيل الموظف `${hrPrefix}/employees/:id`.
  *
  * تُغلق القائمة عند:
  * - الضغط على Escape
@@ -25,6 +26,7 @@ interface EmployeeSearchSuggestionsProps {
  * - اختيار أحد الاقتراحات (الملاحة تغيّر الصفحة فتفكّ المُكوّن)
  */
 export function EmployeeSearchSuggestions({ query, employees, open, onClose }: EmployeeSearchSuggestionsProps) {
+  const hrPrefix = useHrPrefix();
   const trimmed = query.trim().toLowerCase();
 
   const matches = useMemo<EmployeeSummary[]>(() => {
@@ -64,7 +66,7 @@ export function EmployeeSearchSuggestions({ query, employees, open, onClose }: E
       {matches.map((employee) => (
         <li key={employee.id} role="option" aria-selected={false}>
           <Link
-            to={`/hr/employees/${employee.id}`}
+            to={`${hrPrefix}/employees/${employee.id}`}
             // منع blur المبكر للحقل حتى يسجّل النقر على الرابط ويتنقّح
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => onClose()}

@@ -215,7 +215,7 @@ export function AttendancePage() {
             </Link>
 
             <Link
-              to="/admin/live-locations"
+              to="/admin/live-location"
               className="card p-3 flex items-center justify-between gap-2 hover:border-[var(--brand-primary)] hover:shadow-xs transition-all group"
             >
               <div className="flex items-center gap-2.5 min-w-0">

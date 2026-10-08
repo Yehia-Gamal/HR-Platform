@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarClock, CalendarX2, CheckCircle2, Clock3, Loader2, MapPin, Plane, Printer, Search, UserCheck, UserX, Users } from 'lucide-react';
+import { ArrowRight, CalendarClock, CalendarX2, CheckCircle2, Clock3, Loader2, MapPin, Plane, Printer, Search, UserCheck, UserX, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import {
@@ -55,6 +55,10 @@ const STATUS_LABELS: Record<string, string> = {
   partial: 'جزئي',
   pending: 'قيد الانتظار',
   on_mission: 'مأمورية',
+  mission: 'مأمورية',
+  convoy: 'قافلة',
+  fundraising: 'فاندي',
+  not_recorded: 'لم يسجل بعد',
   missing_checkout: 'بصمة بلا انصراف',
 };
 
@@ -107,8 +111,8 @@ export function AttendanceDrilldownPage() {
   const sort: AttendanceRosterSort = attendanceRosterSortSchema.safeParse(sortParam).success ? (sortParam as AttendanceRosterSort) : 'name';
   const direction = searchParams.get('dir') === 'desc' ? ('desc' as const) : ('asc' as const);
   const page = Math.max(1, Number(searchParams.get('page') ?? '1') || 1);
-  const sizeParam = Number(searchParams.get('size') ?? '25');
-  const limit = PAGE_SIZES.includes(sizeParam) ? sizeParam : 25;
+  const sizeParam = Number(searchParams.get('size') ?? '50');
+  const limit = PAGE_SIZES.includes(sizeParam) ? sizeParam : 50;
   const offset = (page - 1) * limit;
 
   const [searchInput, setSearchInput] = useState(q);
@@ -171,14 +175,15 @@ export function AttendanceDrilldownPage() {
   // الوصول من إشعار حضور → إبراز صف الموظف صاحب الحدث في يوم الحدث.
   const focusedId = useEntityFocus(items.length > 0);
 
+  const hrPrefix = useHrPrefix();
   const currentCategory = CATEGORIES.find((c) => c.key === category) ?? CATEGORIES[0];
 
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Link to="/hr/attendance" className="btn-ghost btn-sm" aria-label="العودة إلى لوحة الحضور">
-            <ArrowLeft className="size-4" aria-hidden="true" />
+          <Link to={`${hrPrefix}/attendance`} className="btn-ghost btn-sm" aria-label="العودة إلى لوحة الحضور">
+            <ArrowRight className="size-4" aria-hidden="true" />
             عودة
           </Link>
           <div>
@@ -189,7 +194,7 @@ export function AttendanceDrilldownPage() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             className="btn-secondary btn-sm"
             onClick={() => void handlePrint()}
@@ -227,23 +232,22 @@ export function AttendanceDrilldownPage() {
         })}
       </div>
 
-      <div className="card space-y-4 p-4">
-        {/* ─── البحث (صف مستقل) ─── */}
-        <label className="relative block">
-          <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
-          <input
-            type="search"
-            className="input w-full ps-3 pe-9 text-sm"
-            placeholder="ابحث بالاسم أو الرقم الوظيفي أو الإدارة..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            aria-label="بحث في القائمة"
-          />
-        </label>
-
-        {/* ─── الفلاتر (صف ثانٍ) ─── */}
+      <div className="card space-y-3 p-3 sm:p-4">
+        {/* ─── شريط التحكم والبحث المدمج ─── */}
         <div className="flex flex-wrap items-center gap-2">
-          <select className="input min-w-36 text-sm" value={branch} onChange={(e) => updateParams({ branch: e.target.value })} aria-label="تصفية حسب الفرع">
+          <label className="relative flex-1 min-w-[200px] max-w-sm">
+            <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
+            <input
+              type="search"
+              className="input w-full ps-3 pe-9 text-xs font-bold"
+              placeholder="ابحث بالاسم أو الرقم الوظيفي أو الإدارة..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              aria-label="بحث في القائمة"
+            />
+          </label>
+
+          <select className="input min-w-32 text-xs font-bold shrink-0" value={branch} onChange={(e) => updateParams({ branch: e.target.value })} aria-label="تصفية حسب الفرع">
             <option value="">كل الفروع</option>
             {(lookups.data?.branches ?? []).map((b) => (
               <option key={b.id} value={b.id}>
@@ -251,7 +255,7 @@ export function AttendanceDrilldownPage() {
               </option>
             ))}
           </select>
-          <select className="input min-w-36 text-sm" value={dept} onChange={(e) => updateParams({ dept: e.target.value })} aria-label="تصفية حسب الإدارة">
+          <select className="input min-w-32 text-xs font-bold shrink-0" value={dept} onChange={(e) => updateParams({ dept: e.target.value })} aria-label="تصفية حسب الإدارة">
             <option value="">كل الإدارات</option>
             {(lookups.data?.departments ?? []).map((d) => (
               <option key={d.id} value={d.id}>
@@ -259,7 +263,7 @@ export function AttendanceDrilldownPage() {
               </option>
             ))}
           </select>
-          <select className="input min-w-32 text-sm" value={sort} onChange={(e) => updateParams({ sort: e.target.value })} aria-label="ترتيب القائمة">
+          <select className="input min-w-28 text-xs font-bold shrink-0" value={sort} onChange={(e) => updateParams({ sort: e.target.value })} aria-label="ترتيب القائمة">
             {SORT_OPTIONS.map((s) => (
               <option key={s.key} value={s.key}>
                 {s.label}
@@ -268,7 +272,7 @@ export function AttendanceDrilldownPage() {
           </select>
           <button
             type="button"
-            className="btn-secondary btn-sm"
+            className="btn-secondary btn-sm !h-9 text-xs font-bold shrink-0"
             onClick={() => updateParams({ dir: direction === 'asc' ? 'desc' : 'asc' })}
             aria-label={`ترتيب ${direction === 'asc' ? 'تنازلي' : 'تصاعدي'}`}
           >
@@ -292,7 +296,7 @@ export function AttendanceDrilldownPage() {
             description={q ? 'جرّب البحث بكلمات أخرى أو عدّل الفلاتر.' : `لا يوجد موظفون ضمن فئة «${currentCategory.label}» لهذا اليوم.`}
           />
         ) : (
-          <div className="-m-4 max-h-[65vh] overflow-auto">
+          <div className="overflow-x-auto">
             <table className="data-table w-full">
               <thead className="sticky top-0 z-10">
                 <tr>

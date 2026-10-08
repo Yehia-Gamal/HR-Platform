@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { DocumentItem, AssetItem, OffboardingCase } from '@ahla/shared-contracts';
-import { FileCheck, Package, UserMinus, RefreshCw, CheckCircle2, XCircle, Archive } from 'lucide-react';
+import { FileCheck, Package, UserMinus, RefreshCw, CheckCircle2, XCircle, Archive, Printer } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useEntityFocus } from '../../core/useEntityFocus';
 import { useUrlState } from '../../core/useUrlState';
@@ -26,7 +26,7 @@ const TABS: { key: Tab; label: string; icon: typeof FileCheck }[] = [
   { key: 'offboarding', label: 'إنهاء الخدمة', icon: UserMinus },
 ];
 
-export function DocumentsPage() {
+export function DocumentsPage({ onGenerateDoc }: { onGenerateDoc?: () => void } = {}) {
   const catalog = useDocumentsCatalog();
   const reviewDoc = useReviewDocument();
   const { toast } = useToast();
@@ -252,10 +252,22 @@ export function DocumentsPage() {
         title="إدارة المستندات"
         description="إدارة مستندات الموظفين والعهد والأصول وعمليات إنهاء الخدمة في مكان واحد."
         actions={
-          <button type="button" className="btn-secondary" onClick={() => void catalog.refetch()} disabled={catalog.isFetching}>
-            <RefreshCw className={`size-4 ${catalog.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
-            تحديث
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {onGenerateDoc && (
+              <button
+                type="button"
+                className="btn-primary text-xs flex items-center gap-1.5 py-2 px-3 shadow-sm"
+                onClick={onGenerateDoc}
+              >
+                <Printer className="size-4" aria-hidden="true" />
+                توليد وطباعة وثيقة رسمية
+              </button>
+            )}
+            <button type="button" className="btn-secondary" onClick={() => void catalog.refetch()} disabled={catalog.isFetching}>
+              <RefreshCw className={`size-4 ${catalog.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
+              تحديث
+            </button>
+          </div>
         }
       />
 
@@ -269,6 +281,8 @@ export function DocumentsPage() {
             icon={FileCheck}
             hint="خلال 30 يوماً"
             onClick={() => setTab('documents')}
+            compact
+            showAction={false}
           />
           <MetricCard
             label="عهد مُسلّمة"
@@ -276,6 +290,8 @@ export function DocumentsPage() {
             icon={Package}
             hint="موكّلة لموظفين حالياً"
             onClick={() => setTab('assets')}
+            compact
+            showAction={false}
           />
           <MetricCard
             label="حالات خروج نشطة"
@@ -283,16 +299,26 @@ export function DocumentsPage() {
             icon={UserMinus}
             hint="قيد التخليص"
             onClick={() => setTab('offboarding')}
+            compact
+            showAction={false}
           />
         </section>
       )}
 
-      <div className="flex gap-1 border-b border-[var(--border)]">
-        {TABS.map(({ key, label, icon: Icon }) => (
+      <div className="flex gap-1 border-b border-[var(--border)] overflow-x-auto pb-px">
+        {[
+          { key: 'documents' as const, label: 'المستندات', icon: FileCheck, count: documents.length },
+          { key: 'assets' as const, label: 'العهد والأصول', icon: Package, count: assets.length },
+          { key: 'offboarding' as const, label: 'إنهاء الخدمة', icon: UserMinus, count: offboarding.length },
+        ].map(({ key, label, icon: Icon, count }) => (
           <button
             key={key}
             type="button"
-            className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold transition ${tab === key ? 'border-b-2 border-[var(--brand)] text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold transition whitespace-nowrap ${
+              tab === key
+                ? 'border-b-2 border-[var(--brand)] text-[var(--text-primary)]'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            }`}
             onClick={() => {
               setTab(key);
               setSearch('');
@@ -301,6 +327,9 @@ export function DocumentsPage() {
           >
             <Icon className="size-4" aria-hidden="true" />
             {label}
+            <span className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-xs font-mono font-bold text-[var(--text-muted)]">
+              {count}
+            </span>
           </button>
         ))}
       </div>
@@ -321,7 +350,7 @@ export function DocumentsPage() {
         isDirty={dirty}
         onClear={clearFilters}
       >
-        <select className="input" value={statusFilter} onChange={(ev) => setStatusFilter(ev.target.value)} aria-label="تصفية حسب الحالة">
+        <select className="input sm:w-48" value={statusFilter} onChange={(ev) => setStatusFilter(ev.target.value)} aria-label="تصفية حسب الحالة">
           <option value="all">كل الحالات</option>
           {statusOptions.map(([key, label]) => (
             <option key={key} value={key}>

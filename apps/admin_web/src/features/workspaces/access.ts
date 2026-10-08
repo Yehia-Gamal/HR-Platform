@@ -42,10 +42,8 @@ export const HR_PAGE_SEGMENTS = [
   'devices',
   'organization',
   'official-feed',
-  'learning',
   'lifecycle',
   'documents',
-  'knowledge',
 ] as const;
 
 /**
@@ -75,5 +73,5 @@ export function isUnifiedAdminActive(workspaces: readonly WorkspaceId[], pathnam
  */
 export function useHrPrefix(): string {
   const location = useLocation();
-  return location.pathname.startsWith('/admin/hr') ? '/admin/hr' : '/hr';
+  return location.pathname.startsWith('/admin') ? '/admin/hr' : '/hr';
 }

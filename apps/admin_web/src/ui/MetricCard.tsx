@@ -11,6 +11,7 @@ export function MetricCard({
   onClick,
   ariaLabel,
   compact = false,
+  showAction = true,
 }: {
   label: string;
   value: number | string;
@@ -21,6 +22,7 @@ export function MetricCard({
   onClick?: () => void;
   ariaLabel?: string;
   compact?: boolean;
+  showAction?: boolean;
 }) {
   const clickable = Boolean(to) || Boolean(onClick);
   const a11yLabel = ariaLabel ?? `عرض تفاصيل ${label}`;
@@ -44,7 +46,7 @@ export function MetricCard({
         </span>
       </div>
       {hint ? <p className={`${compact ? 'mt-2 text-[11px] leading-4' : 'mt-3 text-xs leading-5'} text-[var(--text-muted)] truncate`}>{hint}</p> : null}
-      {clickable ? (
+      {clickable && showAction ? (
         <span className={`${compact ? 'mt-1.5 text-[11px]' : 'mt-2 text-xs'} flex items-center gap-1 font-bold text-[var(--brand-primary)]`}>
           <ArrowRight className="size-3" aria-hidden="true" />
           عرض التفاصيل

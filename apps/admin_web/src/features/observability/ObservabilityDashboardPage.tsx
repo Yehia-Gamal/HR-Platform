@@ -15,7 +15,7 @@ import {
   AlertOctagon,
   Ban,
 } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
@@ -23,7 +23,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { SkeletonCard } from '../../ui/Skeletons';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useSystemHealth } from './useSystemHealth';
-import { useSystemAlerts, useUpdateAlertStatus, type SystemAlert } from './useSystemAlerts';
+import { useSystemAlerts, useUpdateAlertStatus, useResolveAllAlerts, useAcknowledgeAllAlerts, type SystemAlert } from './useSystemAlerts';
 import { useCronHealthSummary, useCronJobHealth, useObservabilityEvents } from './useCronHealth';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
@@ -66,41 +66,106 @@ function StatItem({ label, value, tone }: { label: string; value: number | strin
   );
 }
 
+// ─── أيقونة المصدر ───
+function getSourceIcon(source: string) {
+  if (source.includes('sec') || source.includes('auth')) return Shield;
+  if (source.includes('cron') || source.includes('sched')) return Clock;
+  if (source.includes('queue') || source.includes('integration')) return Database;
+  return AlertTriangle;
+}
+
 // ─── عنصر تنبيه ───
-function AlertRow({ alert, onAcknowledge }: { alert: SystemAlert; onAcknowledge: (id: string) => void }) {
+function AlertRow({
+  alert,
+  onAcknowledge,
+  onResolve,
+  isPending,
+}: {
+  alert: SystemAlert;
+  onAcknowledge: (id: string) => void;
+  onResolve: (id: string) => void;
+  isPending?: boolean;
+}) {
   const isP0 = alert.severity === 'P0';
+  const isResolved = alert.status === 'resolved';
+  const isAck = alert.status === 'acknowledged';
+  const SourceIcon = getSourceIcon(alert.source);
+
   return (
     <div
-      className={`flex items-start justify-between gap-3 rounded-xl border p-3 ${isP0 ? 'border-[var(--danger)]/30 bg-[var(--danger-soft)]/50' : 'border-[var(--border)] bg-[var(--surface-muted)]/40'}`}
+      className={`flex flex-col sm:flex-row sm:items-start justify-between gap-3 rounded-xl border p-3.5 transition-all ${
+        isResolved
+          ? 'border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-950/15 opacity-75'
+          : isP0
+            ? 'border-rose-500/30 bg-rose-500/10 dark:bg-rose-950/25 shadow-sm'
+            : 'border-amber-500/30 bg-amber-500/10 dark:bg-amber-950/25'
+      }`}
     >
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span
-            className={`inline-block rounded-full px-2 py-0.5 text-xs font-black ${isP0 ? 'bg-[var(--danger)] text-white' : 'bg-[var(--warning-soft)] text-[var(--warning)]'}`}
+            className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-black shadow-xs ${
+              isP0 ? 'bg-rose-600 text-white' : 'bg-amber-500 text-white'
+            }`}
           >
             {alert.severity}
           </span>
-          <p className="font-bold">{alert.title}</p>
-          <span className="muted text-xs">×{alert.occurrences}</span>
+          <p className="font-bold text-sm text-[var(--text-primary)]">{alert.title}</p>
+          <span className="inline-flex items-center gap-1 rounded-md bg-[var(--surface-muted)] px-2 py-0.5 text-xs font-bold text-[var(--text-muted)]">
+            <SourceIcon className="size-3" aria-hidden="true" />
+            {alert.source}
+          </span>
+          <span className="rounded-full bg-black/10 dark:bg-white/10 px-2 py-0.5 text-xs font-bold text-[var(--text-muted)]">
+            ×{alert.occurrences}
+          </span>
         </div>
-        {alert.detail && <p className="muted mt-1 text-xs">{alert.detail}</p>}
-        <p className="muted mt-1 text-xs">
-          {fmtTime(alert.last_seen_at)} · المصدر: {alert.source}
-        </p>
+        {alert.detail && <p className="mt-1.5 text-xs text-[var(--text-muted)] leading-relaxed">{alert.detail}</p>}
+        <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[var(--text-muted)]">
+          <span>آخر ظهور: {fmtTime(alert.last_seen_at)}</span>
+          {alert.first_seen_at && alert.first_seen_at !== alert.last_seen_at && (
+            <span>أول ظهور: {fmtTime(alert.first_seen_at)}</span>
+          )}
+        </div>
       </div>
-      <div className="flex flex-col items-end gap-1">
+      <div className="flex flex-wrap sm:flex-col items-end gap-1.5 shrink-0">
         {alert.status === 'open' && (
-          <button
-            type="button"
-            className="rounded-lg border border-[var(--border)] px-2 py-1 text-xs font-bold hover:border-[var(--brand)] hover:text-[var(--brand)] transition-colors"
-            onClick={() => onAcknowledge(alert.id)}
-          >
-            <Eye className="size-3.5 inline" aria-hidden="true" /> تأكيد
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              disabled={isPending}
+              className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-xs font-bold hover:border-[var(--brand)] hover:text-[var(--brand)] transition-colors shadow-xs"
+              onClick={() => onAcknowledge(alert.id)}
+            >
+              <Eye className="size-3.5 inline" aria-hidden="true" /> تأكيد
+            </button>
+            <button
+              type="button"
+              disabled={isPending}
+              className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 text-xs font-bold hover:bg-emerald-500/25 transition-colors shadow-xs"
+              onClick={() => onResolve(alert.id)}
+            >
+              <CheckCircle2 className="size-3.5 inline" aria-hidden="true" /> حل
+            </button>
+          </div>
         )}
-        {alert.status === 'acknowledged' && (
-          <span className="text-xs font-bold text-[var(--success)]">
-            <CheckCircle2 className="size-3.5 inline" aria-hidden="true" /> مؤكد
+        {isAck && (
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 dark:text-amber-400">
+              <CheckCircle2 className="size-3.5" aria-hidden="true" /> مؤكد
+            </span>
+            <button
+              type="button"
+              disabled={isPending}
+              className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 text-xs font-bold hover:bg-emerald-500/25 transition-colors shadow-xs"
+              onClick={() => onResolve(alert.id)}
+            >
+              <CheckCircle2 className="size-3.5" aria-hidden="true" /> حل
+            </button>
+          </div>
+        )}
+        {isResolved && (
+          <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="size-3.5" aria-hidden="true" /> تم الحل {alert.resolved_at ? `(${fmtTime(alert.resolved_at)})` : ''}
           </span>
         )}
       </div>
@@ -114,6 +179,12 @@ export function ObservabilityDashboardPage() {
   const healthQuery = useSystemHealth();
   const alertsQuery = useSystemAlerts();
   const updateStatus = useUpdateAlertStatus();
+  const resolveAll = useResolveAllAlerts();
+  const acknowledgeAll = useAcknowledgeAllAlerts();
+
+  const [alertTab, setAlertTab] = useState<'active' | 'open' | 'acknowledged' | 'resolved' | 'all'>('active');
+  const [severityFilter, setSeverityFilter] = useState<'all' | 'P0' | 'P1'>('all');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
 
   // صلاحية رصد التفاصيل (cron + أحداث) — full access أو observability.read/admin.observability
   const canReadDetail = Boolean(auth.access && (hasPermission(auth.access, 'observability.read') || hasPermission(auth.access, 'admin.observability')));
@@ -129,6 +200,34 @@ export function ObservabilityDashboardPage() {
 
   const p0Count = alerts.filter((a) => a.severity === 'P0' && a.status !== 'resolved').length;
   const p1Count = alerts.filter((a) => a.severity === 'P1' && a.status !== 'resolved').length;
+
+  const openAlerts = useMemo(() => alerts.filter((a) => a.status === 'open'), [alerts]);
+  const ackAlerts = useMemo(() => alerts.filter((a) => a.status === 'acknowledged'), [alerts]);
+  const resolvedAlerts = useMemo(() => alerts.filter((a) => a.status === 'resolved'), [alerts]);
+  const activeAlerts = useMemo(() => alerts.filter((a) => a.status !== 'resolved'), [alerts]);
+
+  const uniqueSources = useMemo(() => Array.from(new Set(alerts.map((a) => a.source))), [alerts]);
+
+  const displayedAlerts = useMemo(() => {
+    let list =
+      alertTab === 'active'
+        ? activeAlerts
+        : alertTab === 'open'
+          ? openAlerts
+          : alertTab === 'acknowledged'
+            ? ackAlerts
+            : alertTab === 'resolved'
+              ? resolvedAlerts
+              : alerts;
+
+    if (severityFilter !== 'all') {
+      list = list.filter((a) => a.severity === severityFilter);
+    }
+    if (sourceFilter !== 'all') {
+      list = list.filter((a) => a.source === sourceFilter);
+    }
+    return list;
+  }, [alertTab, activeAlerts, openAlerts, ackAlerts, resolvedAlerts, alerts, severityFilter, sourceFilter]);
 
   // استخراج بيانات المراقبة من JSON
   const monitors = useMemo(() => {
@@ -209,21 +308,126 @@ export function ObservabilityDashboardPage() {
 
       {/* ─── التنبيهات المفتوحة ─── */}
       <section id="alerts-section" className="card p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="flex items-center gap-2 font-black">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
             <Bell className="size-5 text-[var(--brand)]" aria-hidden="true" />
-            التنبيهات المفتوحة
-          </h3>
+            <h3 className="font-black text-base">التنبيهات المفتوحة</h3>
+            {activeAlerts.length > 0 && (
+              <span className="rounded-full bg-rose-500/15 px-2.5 py-0.5 text-xs font-black text-rose-600 dark:text-rose-400">
+                {activeAlerts.length} نشط
+              </span>
+            )}
+          </div>
           {alertsQuery.isError && <ErrorBanner message={safeErrorMessage(alertsQuery.error)} />}
+
+          {/* أزرار العمليات الجماعية */}
+          {displayedAlerts.some((a) => a.status !== 'resolved') && (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={resolveAll.isPending}
+                className="btn-secondary !py-1 !px-2.5 !text-xs text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                onClick={() =>
+                  resolveAll.mutate({
+                    ids: displayedAlerts.filter((a) => a.status !== 'resolved').map((a) => a.id),
+                  })
+                }
+              >
+                <CheckCircle2 className="size-3.5 inline ms-1" />
+                حل المعروض ({displayedAlerts.filter((a) => a.status !== 'resolved').length})
+              </button>
+              {displayedAlerts.some((a) => a.status === 'open') && (
+                <button
+                  type="button"
+                  disabled={acknowledgeAll.isPending}
+                  className="btn-secondary !py-1 !px-2.5 !text-xs"
+                  onClick={() =>
+                    acknowledgeAll.mutate({
+                      ids: displayedAlerts.filter((a) => a.status === 'open').map((a) => a.id),
+                    })
+                  }
+                >
+                  <Eye className="size-3.5 inline ms-1" />
+                  تأكيد المعروض ({displayedAlerts.filter((a) => a.status === 'open').length})
+                </button>
+              )}
+            </div>
+          )}
         </div>
+
+        {/* ألسنة التصفية */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] pb-3">
+          <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="حالة التنبيهات">
+            {[
+              { id: 'active' as const, label: 'النشطة', count: activeAlerts.length },
+              { id: 'open' as const, label: 'بانتظار التأكيد', count: openAlerts.length },
+              { id: 'acknowledged' as const, label: 'المؤكدة', count: ackAlerts.length },
+              { id: 'resolved' as const, label: 'المحلولة', count: resolvedAlerts.length },
+              { id: 'all' as const, label: 'الكل', count: alerts.length },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={alertTab === tab.id}
+                onClick={() => setAlertTab(tab.id)}
+                className={`rounded-lg px-3 py-1 text-xs font-bold transition-colors ${
+                  alertTab === tab.id
+                    ? 'bg-[var(--brand)] text-white'
+                    : 'text-[var(--text-muted)] hover:bg-[var(--surface-muted)]'
+                }`}
+              >
+                {tab.label}
+                <span className="ms-1.5 opacity-75 font-mono">({tab.count})</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={severityFilter}
+              onChange={(e) => setSeverityFilter(e.target.value as 'all' | 'P0' | 'P1')}
+              className="input !py-1 !px-2 !text-xs w-auto"
+              aria-label="تصفية حسب الخطورة"
+            >
+              <option value="all">كل درجات الخطورة</option>
+              <option value="P0">P0 حرجة فقط</option>
+              <option value="P1">P1 عالية فقط</option>
+            </select>
+            {uniqueSources.length > 1 && (
+              <select
+                value={sourceFilter}
+                onChange={(e) => setSourceFilter(e.target.value)}
+                className="input !py-1 !px-2 !text-xs w-auto"
+                aria-label="تصفية حسب المصدر"
+              >
+                <option value="all">كل المصادر</option>
+                {uniqueSources.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        </div>
+
         {alertsQuery.isLoading ? (
           <SkeletonCard className="h-24" />
-        ) : alerts.length === 0 ? (
+        ) : alerts.length === 0 || (alertTab === 'active' && activeAlerts.length === 0) ? (
           <EmptyState title="لا توجد تنبيهات مفتوحة" description="النظام يعمل بسلاسة، لا تنبيهات مفتوحة." />
+        ) : displayedAlerts.length === 0 ? (
+          <EmptyState title="لا توجد تنبيهات مطابقة" description="لا توجد تنبيهات تطابق خيارات التصفية المحددة." />
         ) : (
-          <div className="space-y-2">
-            {alerts.map((alert) => (
-              <AlertRow key={alert.id} alert={alert} onAcknowledge={(id) => updateStatus.mutate({ alertId: id, status: 'acknowledged' })} />
+          <div className="space-y-2.5">
+            {displayedAlerts.map((alert) => (
+              <AlertRow
+                key={alert.id}
+                alert={alert}
+                onAcknowledge={(id) => updateStatus.mutate({ alertId: id, status: 'acknowledged' })}
+                onResolve={(id) => updateStatus.mutate({ alertId: id, status: 'resolved' })}
+                isPending={updateStatus.isPending || resolveAll.isPending}
+              />
             ))}
           </div>
         )}

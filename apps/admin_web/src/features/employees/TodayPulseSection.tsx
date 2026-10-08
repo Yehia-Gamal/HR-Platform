@@ -7,7 +7,7 @@ import { cairoTodayIso } from '../../core/cairoTime';
 import { relativeTime, formatClock } from '../../core/formatTime';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useAuth } from '../auth/AuthProvider';
-import { hasAnyPermission } from '../workspaces/access';
+import { hasAnyPermission, useHrPrefix } from '../workspaces/access';
 import { loadDomainMocks } from '../mock/loadDomainMocks';
 import { ATTENDANCE_STATUS_LABELS } from '../management/statusLabels';
 import { LiveLocationResultCard } from '../management/LiveLocationResultCard';
@@ -108,6 +108,7 @@ const CARD_TONES: Record<PulseDialogKind, string> = {
 
 export function TodayPulseSection() {
   const auth = useAuth();
+  const hrPrefix = useHrPrefix();
   const allowed = auth.access ? hasAnyPermission(auth.access, ['reports.attendance.read', 'live_location.request']) : false;
   const query = useTodayPulse(allowed);
   const trend = useAttendanceTrend(7, allowed);
@@ -237,6 +238,7 @@ function PulseDialogBody({
   employees: EmployeeOverviewRow[];
   onSelectRequest: (requestId: string) => void;
 }) {
+  const hrPrefix = useHrPrefix();
   const list = dialogEmployees(kind, employees);
   if (!list.length) {
     return <p className="py-8 text-center text-sm text-[var(--text-muted)]">{DIALOG_META[kind].empty}</p>;
@@ -258,7 +260,7 @@ function PulseDialogBody({
               <UserAvatar displayName={e.name ?? ''} photoUrl={e.avatarUrl} size="sm" />
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Link to={`/hr/employees/${e.id}`} className="truncate font-black hover:text-[var(--brand-primary)]">
+                  <Link to={`${hrPrefix}/employees/${e.id}`} className="truncate font-black hover:text-[var(--brand-primary)]">
                     {e.name}
                   </Link>
                   <StatusBadge value={e.status} label={ATTENDANCE_STATUS_LABELS[e.status] ?? e.status} />

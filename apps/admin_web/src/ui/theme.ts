@@ -22,6 +22,7 @@ export function getPreferredTheme(): AppTheme {
 
 export function applyTheme(theme: AppTheme, persist = true) {
   document.documentElement.dataset.theme = theme;
+  document.documentElement.classList.toggle('dark', theme === 'dark');
   document.documentElement.style.colorScheme = theme;
   document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#060B16' : '#0B4FA2');
   if (persist) {

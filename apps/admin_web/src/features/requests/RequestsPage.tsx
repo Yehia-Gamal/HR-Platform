@@ -5,7 +5,7 @@ import {
   type WorkAssignment,
   type AttendanceOperationsCatalog,
 } from '@ahla/shared-contracts';
-import { CalendarDays, Check, CheckCircle2, Clock, Clock3, FileX, Inbox, MapPin, RefreshCw, RotateCcw, Truck, X } from 'lucide-react';
+import { CalendarDays, Check, CheckCircle2, Clock, Clock3, CornerUpLeft, FileX, Inbox, ListChecks, MapPin, RefreshCw, RotateCcw, Truck, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useUrlState } from '../../core/useUrlState';
@@ -21,7 +21,8 @@ import { ListSkeleton, MetricSkeletonRow } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { useToast } from '../../ui/Toast';
 import { UserAvatar } from '../../ui/UserAvatar';
-import { useMyLeaveBalances, useRequestDecision, useRequests, useWorkAssignments } from './useRequests';
+import { useBulkApprove, useMyLeaveBalances, useRequestDecision, useRequestDetail, useRequests, useWorkAssignments, type Decision } from './useRequests';
+import { DecisionInsights, RequestJourney } from './RequestJourney';
 import { useAttendanceOperations, useAttendanceOperationsCommands } from '../advanced/useAdvancedOperations';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { cairoMonthIso } from '../../core/cairoTime';
@@ -34,6 +35,7 @@ const labels: Record<RequestSummary['requestType'], string> = {
   late_permit: 'إذن حضور',
   early_permit: 'إذن انصراف',
   attendance_correction: 'تصحيح حضور',
+  shift_change: 'تغيير فترة العمل',
 };
 
 /// تنسيق فترة الطلب من startDate/endDate (YYYY-MM-DD) بالعربية — يعرض
@@ -63,6 +65,11 @@ function isPhoneLikeCode(code: string | null | undefined): boolean {
 }
 
 const currentMonth = cairoMonthIso();
+
+/** بانتظار قراري: علم الخادم (0646) — ولا يبتّ أحد في طلبه. */
+function isAwaitingMe(item: RequestSummary): boolean {
+  return item.status === 'pending' && !item.isMine && (item.awaitingMe ?? item.canDecide ?? false);
+}
 
 /** شارة المرحلة الحالية للطلب مع لونها */
 function TierBadge({ workflowStatus, activeStepName }: { workflowStatus: string; activeStepName: string | null }) {
@@ -120,6 +127,13 @@ export function RequestsPage() {
     }
   }, [requestParam, query.data, setSearchParams]);
   const [comment, setComment] = useState('');
+  // نطاق القائمة: بانتظاري / طلباتي / الكل — من أعلام الخادم (0646).
+  const [scope, setScope] = useUrlState('scope', 'all');
+  const detail = useRequestDetail(selected?.id ?? null);
+  const bulkApprove = useBulkApprove();
+  const [picked, setPicked] = useState<Set<string>>(() => new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkComment, setBulkComment] = useState('');
   const canDecide =
     auth.access != null &&
     (hasPermission(auth.access, 'requests.request.approve') ||
@@ -139,6 +153,9 @@ export function RequestsPage() {
         ].includes(r),
       ) ||
       auth.access.workspaces.includes('main_admin'));
+  // قرار هذا الطلب تحديدًا: علم الخادم أولًا (لا يبتّ أحد في طلبه، وكل مرحلة لأصحابها)،
+  // ثم الصلاحية العامة مع خادم أقدم لا يرسل العلم.
+  const canDecideOn = (item: RequestSummary) => item.status === 'pending' && !item.isMine && (item.canDecide ?? canDecide);
   const assignments = useWorkAssignments('team');
   // تصحيحات الحضور
   const correctionsQuery = useAttendanceOperations(currentMonth);
@@ -162,6 +179,7 @@ export function RequestsPage() {
     const convoys = allRequests.filter((r) => r.requestType === 'convoy').length;
     const fundraising = allRequests.filter((r) => r.requestType === 'fundraising').length;
     const permits = allRequests.filter((r) => r.requestType === 'late_permit' || r.requestType === 'early_permit').length;
+    const shiftChanges = allRequests.filter((r) => r.requestType === 'shift_change').length;
 
     return {
       total,
@@ -176,35 +194,82 @@ export function RequestsPage() {
       convoys,
       fundraising,
       permits,
+      shiftChanges,
       approvalRate: total > 0 ? Math.round((approved / total) * 100) : 0,
     };
   }, [allRequests, corrections]);
 
-  const filtered = useMemo(
-    () =>
-      (query.data ?? []).filter((item) => {
-        const haystack = `${item.employeeName} ${item.employeeCode ?? ''} ${item.title ?? ''} ${item.requestNumber}`.toLowerCase();
-        return (
-          haystack.includes(search.toLowerCase()) &&
-          (status === 'all' || item.status === status) &&
-          (typeTab === 'all' ||
-            typeTab === 'corrections' ||
-            // تبويب «أذونات الحضور» يجمع نوعين (يطابق عدّاده metrics.permits) —
-            // كانت المقارنة الحرفية بـ 'attendance_permit' تُفرغ القائمة رغم العدّاد.
-            (typeTab === 'attendance_permit' ? item.requestType === 'late_permit' || item.requestType === 'early_permit' : item.requestType === typeTab))
-        );
-      }),
-    [query.data, search, status, typeTab],
+  const scopeCounts = useMemo(
+    () => ({
+      awaiting: allRequests.filter(isAwaitingMe).length,
+      mine: allRequests.filter((r) => r.isMine).length,
+    }),
+    [allRequests],
   );
 
-  const submitDecision = async (kind: 'approve' | 'reject') => {
+  const filtered = useMemo(
+    () =>
+      (query.data ?? [])
+        .filter((item) => {
+          const haystack = `${item.employeeName} ${item.employeeCode ?? ''} ${item.title ?? ''} ${item.requestNumber}`.toLowerCase();
+          return (
+            haystack.includes(search.toLowerCase()) &&
+            (status === 'all' || item.status === status) &&
+            (scope === 'all' || (scope === 'awaiting' ? isAwaitingMe(item) : item.isMine === true)) &&
+            (typeTab === 'all' ||
+              typeTab === 'corrections' ||
+              // تبويب «أذونات الحضور» يجمع نوعين (يطابق عدّاده metrics.permits) —
+              // كانت المقارنة الحرفية بـ 'attendance_permit' تُفرغ القائمة رغم العدّاد.
+              (typeTab === 'attendance_permit' ? item.requestType === 'late_permit' || item.requestType === 'early_permit' : item.requestType === typeTab))
+          );
+        })
+        // الأحدث أولًا (قاعدة المالك لكل قائمة) — الاستعجال شارة «بانتظارك» لا ترتيب.
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [query.data, search, status, typeTab, scope],
+  );
+
+  // التحديد للاعتماد الجماعي: ما بانتظاري فقط، ويُنظَّف عند تغيّر القائمة.
+  const pickable = useMemo(() => filtered.filter(isAwaitingMe), [filtered]);
+  useEffect(() => {
+    setPicked((prev) => {
+      const allowed = new Set(pickable.map((r) => r.id));
+      const next = new Set([...prev].filter((id) => allowed.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [pickable]);
+  const togglePick = (id: string) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const submitBulk = async () => {
+    const ids = [...picked];
+    if (ids.length === 0) return;
+    const result = await bulkApprove.mutateAsync({ requestIds: ids, comment: bulkComment.trim() });
+    setBulkOpen(false);
+    setBulkComment('');
+    setPicked(new Set());
+    toast(
+      result.failed.length === 0
+        ? { message: `اعتُمد ${result.approved} من الطلبات`, tone: 'success' }
+        : { message: `اعتُمد ${result.approved}، وتعذّر ${result.failed.length} (قد يكون غيّر حالته أحد غيرك)`, tone: 'error' },
+    );
+  };
+
+  const submitDecision = async (kind: Decision) => {
     if (!selected) return;
-    if (kind === 'reject' && comment.trim().length < 3) return;
+    if (kind !== 'approve' && comment.trim().length < 3) return;
     try {
       await decision.mutateAsync({ requestId: selected.id, decision: kind, comment: comment.trim() });
       setSelected(null);
       setComment('');
-      toast({ message: kind === 'approve' ? 'تم اعتماد الطلب بنجاح' : 'تم رفض الطلب', tone: 'success' });
+      toast({
+        message: kind === 'approve' ? 'تم اعتماد الطلب بنجاح' : kind === 'return' ? 'أُعيد الطلب لصاحبه للتعديل' : 'تم رفض الطلب',
+        tone: 'success',
+      });
     } catch {
       /* decision.isError displayed in dialog via ErrorBanner */
     }
@@ -217,7 +282,7 @@ export function RequestsPage() {
         title="طلبات الموظفين"
         description="لوحة مركزية شاملة لمتابعة واعتماد طلبات الموظفين (إجازات، مأموريات، قوافل، فاندي، أذونات، وتصحيحات الحضور) عبر المنظومة."
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => setShowPersonalBalances(true)}
@@ -299,6 +364,7 @@ export function RequestsPage() {
           { key: 'convoy' as const, label: 'القوافل', count: metrics.convoys },
           { key: 'fundraising' as const, label: 'الفاندي', count: metrics.fundraising },
           { key: 'attendance_permit' as const, label: 'أذونات الحضور', count: metrics.permits },
+          { key: 'shift_change' as const, label: 'فترات العمل', count: metrics.shiftChanges },
           { key: 'corrections' as const, label: 'تصحيحات الحضور', count: corrections.length },
         ].map((tab) => (
           <button
@@ -400,6 +466,58 @@ export function RequestsPage() {
         </section>
       ) : (
         <>
+          {/* ─── نطاق القائمة: بانتظاري / طلباتي / الكل ─── */}
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="نطاق الطلبات">
+            {[
+              { key: 'all', label: 'كل الطلبات', count: null as number | null },
+              { key: 'awaiting', label: 'بانتظار قراري', count: scopeCounts.awaiting },
+              { key: 'mine', label: 'طلباتي', count: scopeCounts.mine },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                aria-pressed={scope === tab.key}
+                onClick={() => setScope(tab.key)}
+                className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-bold transition-colors ${
+                  scope === tab.key ? 'border-brand bg-brand/10 text-brand' : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-raised)]'
+                }`}
+              >
+                <span>{tab.label}</span>
+                {tab.count ? (
+                  <span className={`rounded-full px-2 py-0.5 text-xs ${tab.key === 'awaiting' ? 'bg-[var(--warning)] text-white' : 'bg-[var(--surface-muted)]'}`}>
+                    {tab.count}
+                  </span>
+                ) : null}
+              </button>
+            ))}
+            {pickable.length > 1 ? (
+              <button
+                type="button"
+                className="ms-auto inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-bold hover:bg-[var(--surface-raised)]"
+                onClick={() => setPicked(picked.size === pickable.length ? new Set() : new Set(pickable.map((r) => r.id)))}
+              >
+                <ListChecks className="size-4 text-brand" aria-hidden="true" />
+                {picked.size === pickable.length ? 'إلغاء التحديد' : `تحديد كل ما بانتظاري (${pickable.length})`}
+              </button>
+            ) : null}
+          </div>
+          {picked.size > 0 ? (
+            <div className="sticky top-2 z-10 flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--success)]/40 bg-[var(--surface-raised)] px-4 py-3 shadow-sm">
+              <strong className="text-sm">حددت {picked.size} للاعتماد</strong>
+              <button type="button" className="btn-secondary text-xs" onClick={() => setPicked(new Set())}>
+                إلغاء
+              </button>
+              <button
+                type="button"
+                className="ms-auto inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-black text-white"
+                style={{ background: 'var(--success)' }}
+                onClick={() => setBulkOpen(true)}
+              >
+                <Check className="size-4" aria-hidden="true" />
+                اعتماد المحدد
+              </button>
+            </div>
+          ) : null}
           {/* ─── قائمة الطلبات العادية ─── */}
           <FilterBar
             searchValue={search}
@@ -429,28 +547,51 @@ export function RequestsPage() {
           ) : (
             <section className="grid gap-4 xl:grid-cols-2">
               {filtered.map((item) => (
-                <article key={item.id} className="card flex flex-col gap-3 p-5">
+                <article
+                  key={item.id}
+                  className={`card flex flex-col gap-3 p-5 ${picked.has(item.id) ? 'ring-2 ring-[var(--success)]' : ''}`}
+                >
                   {/* صف علوي: النوع + رقم الطلب + الحالة */}
                   <div className="flex flex-wrap items-center gap-2">
+                    {isAwaitingMe(item) ? (
+                      <input
+                        type="checkbox"
+                        className="size-4 accent-[var(--success)]"
+                        aria-label={`تحديد الطلب #${item.requestNumber} للاعتماد الجماعي`}
+                        checked={picked.has(item.id)}
+                        onChange={() => togglePick(item.id)}
+                      />
+                    ) : null}
                     <span className="rounded-lg bg-brand/10 px-2.5 py-1 text-xs font-black text-brand">{labels[item.requestType]}</span>
                     <span className="rounded-lg bg-[var(--surface-muted)] px-2 py-1 text-xs font-black">#{item.requestNumber}</span>
                     <StatusBadge value={item.status} />
+                    {isAwaitingMe(item) ? (
+                      <span className="rounded-lg bg-[var(--warning)]/15 px-2 py-1 text-xs font-black text-[var(--warning)]">بانتظارك</span>
+                    ) : item.isMine ? (
+                      <span className="rounded-lg bg-[var(--surface-muted)] px-2 py-1 text-xs font-bold">طلبي</span>
+                    ) : null}
                   </div>
 
                   {/* العنوان */}
-                  <h2 className="text-lg font-black leading-snug">{item.title || labels[item.requestType]}</h2>
+                  <h2 className="text-base font-black leading-snug break-words line-clamp-2" title={item.title || labels[item.requestType]}>
+                    {item.title || labels[item.requestType]}
+                  </h2>
 
                   {/* الموظف */}
                   <div className="flex items-center gap-2">
                     <UserAvatar displayName={item.employeeName} size="sm" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold">{item.employeeName}</p>
-                      {!isPhoneLikeCode(item.employeeCode) ? <p className="muted truncate text-xs">كود: {item.employeeCode}</p> : null}
+                      <p className="muted truncate text-xs">
+                        {[item.employeeJobTitle, item.employeeDepartment, !isPhoneLikeCode(item.employeeCode) ? `كود: ${item.employeeCode}` : null]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </p>
                     </div>
                   </div>
 
                   {/* السبب */}
-                  <p className="line-clamp-2 text-sm leading-7 text-[var(--text-muted)]">{item.reason || 'لم يضف الموظف سببًا تفصيليًا.'}</p>
+                  <p className="line-clamp-2 text-sm leading-relaxed text-[var(--text-muted)] break-words">{item.reason || 'لم يضف الموظف سببًا تفصيليًا.'}</p>
 
                   {/* التكليف: المكان + الوقت المخطط + حالة التنفيذ */}
                   {item.requestType === 'mission' || item.requestType === 'convoy' || item.requestType === 'fundraising' ? (
@@ -488,6 +629,21 @@ export function RequestsPage() {
                       ) : null}
                     </div>
                   ) : null}
+                  {/* تغيير فترة العمل: الوردية المطلوبة وتاريخ السريان */}
+                  {item.requestType === 'shift_change' && typeof item.payload?.shiftName === 'string' ? (
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-brand/5 border border-brand/20 px-3 py-2 text-sm">
+                      <span className="inline-flex items-center gap-1.5 font-bold text-brand">
+                        <Clock3 className="size-4 text-brand" aria-hidden="true" />
+                        الوردية المطلوبة: {item.payload.shiftName}
+                      </span>
+                      {typeof item.payload?.effectiveFrom === 'string' ? (
+                        <span className="muted inline-flex items-center gap-1.5 text-xs">
+                          <CalendarDays className="size-3.5" aria-hidden="true" />
+                          سريان من: {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium' }).format(new Date(item.payload.effectiveFrom))}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   {/* تذييل: المرحلة + الوقت + زر الإجراء */}
                   <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--border)] pt-3 text-xs">
@@ -503,11 +659,15 @@ export function RequestsPage() {
                     <span className="muted">
                       {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.createdAt))}
                     </span>
-                    {canDecide && item.status === 'pending' ? (
+                    {canDecideOn(item) ? (
                       <button className="btn-primary ms-auto text-xs" onClick={() => setSelected(item)}>
                         مراجعة واتخاذ إجراء
                       </button>
-                    ) : null}
+                    ) : (
+                      <button className="btn-secondary ms-auto text-xs" onClick={() => setSelected(item)}>
+                        التفاصيل والمسار
+                      </button>
+                    )}
                   </div>
                 </article>
               ))}
@@ -605,8 +765,37 @@ export function RequestsPage() {
               ) : null}
             </div>
           ) : null}
+          {selected.requestType === 'shift_change' && typeof selected.payload?.shiftName === 'string' ? (
+            <div className="mt-4 rounded-2xl border border-brand/20 bg-brand/5 p-4 text-sm space-y-2">
+              <div className="flex items-center gap-2">
+                <Clock3 className="size-4 text-brand" aria-hidden="true" />
+                <strong className="text-brand">تفاصيل الوردية وفترة العمل المطلوبة:</strong>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 pt-1 text-xs">
+                <div className="rounded-xl bg-[var(--surface-raised)] p-3 border border-[var(--border)]">
+                  <span className="muted block">الوردية المطلوبة:</span>
+                  <strong className="text-sm text-[var(--text-primary)]">{selected.payload.shiftName}</strong>
+                </div>
+                {typeof selected.payload?.effectiveFrom === 'string' ? (
+                  <div className="rounded-xl bg-[var(--surface-raised)] p-3 border border-[var(--border)]">
+                    <span className="muted block">تاريخ السريان المخطط:</span>
+                    <strong className="text-sm text-[var(--text-primary)]">
+                      {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium' }).format(new Date(selected.payload.effectiveFrom))}
+                    </strong>
+                  </div>
+                ) : null}
+              </div>
+              <p className="muted text-xs pt-1">
+                * بمجرد الاعتماد، يتم تحديث فترة عمل الموظف الأساسية في النظام وتفعيل احتساب الحضور والتأخير على هذه الوردية تلقائياً.
+              </p>
+            </div>
+          ) : null}
+          {/* سياق القرار ومسار الطلب (0646/0651) */}
+          {canDecideOn(selected) ? <DecisionInsights insights={detail.data?.insights} /> : null}
+          {detail.isLoading ? <p className="muted mt-4 text-xs">جارٍ تحميل مسار الطلب…</p> : null}
+          {detail.data ? <RequestJourney history={detail.data.history} employeeName={selected.employeeName} /> : null}
           {selected.status === 'pending' ? (
-            canDecide ? (
+            canDecideOn(selected) && (detail.data?.canDecide ?? true) ? (
               <>
                 <label className="mt-5 block text-sm font-bold">
                   ملاحظة القرار
@@ -614,18 +803,18 @@ export function RequestsPage() {
                     className="input mt-2 min-h-28 resize-y"
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    placeholder="الرفض يتطلب سببًا واضحًا، والموافقة يمكن أن تتضمن ملاحظة."
+                    placeholder="الرفض والإعادة للتعديل يتطلبان سببًا واضحًا، والموافقة يمكن أن تتضمن ملاحظة."
                   />
                 </label>
                 <p id="reject-hint" className="muted mt-2 text-xs">
-                  يتطلب الرفض إدخال سبب لا يقل عن ٣ أحرف.
+                  الرفض والإعادة للتعديل يتطلبان سببًا لا يقل عن ٣ أحرف. الإعادة ترجع الطلب لصاحبه ليعدّله ويعيد رفعه.
                 </p>
                 {decision.isError ? (
                   <div className="mt-3">
                     <ErrorBanner message={safeErrorMessage(decision.error)} />
                   </div>
                 ) : null}
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
                   <button
                     className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-black text-white disabled:opacity-50"
                     style={{ background: 'var(--success)' }}
@@ -634,6 +823,16 @@ export function RequestsPage() {
                   >
                     <Check className="size-5" aria-hidden="true" />
                     اعتماد
+                  </button>
+                  <button
+                    className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-black text-white disabled:opacity-50"
+                    style={{ background: '#C2410C' }}
+                    aria-describedby="reject-hint"
+                    disabled={decision.isPending || comment.trim().length < 3}
+                    onClick={() => void submitDecision('return')}
+                  >
+                    <CornerUpLeft className="size-5" aria-hidden="true" />
+                    إعادة للتعديل
                   </button>
                   <button
                     className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-black text-white disabled:opacity-50"
@@ -649,7 +848,9 @@ export function RequestsPage() {
               </>
             ) : (
               <div className="mt-5 text-center p-3 rounded-xl bg-[var(--surface-muted)] text-sm muted">
-                ليس لديك صلاحية اتخاذ قرار على هذا الطلب في المرحلة الحالية.
+                {selected.isMine
+                  ? 'هذا طلبك — يبتّ فيه المعتمِد في مرحلته.'
+                  : `القرار في هذه المرحلة${selected.activeStepName ? ` (${selected.activeStepName})` : ''} لغيرك.`}
               </div>
             )
           ) : (
@@ -657,6 +858,49 @@ export function RequestsPage() {
               حالة الطلب: {REQUEST_STATUS_LABELS[selected.status] ?? selected.status}
             </div>
           )}
+        </DialogOverlay>
+      ) : null}
+
+      {bulkOpen ? (
+        <DialogOverlay title={`اعتماد ${picked.size} من الطلبات`} onClose={() => setBulkOpen(false)} maxWidth="max-w-lg">
+          <p className="muted text-sm leading-7">
+            يُعتمد كل طلب على حدة في مرحلته الحالية؛ ما غيّر حالته غيرك في الأثناء يُترك كما هو ويُذكر لك. الرفض والإعادة للتعديل من صفحة كل طلب.
+          </p>
+          <ul className="mt-3 max-h-56 space-y-1 overflow-y-auto text-sm">
+            {filtered
+              .filter((r) => picked.has(r.id))
+              .map((r) => (
+                <li key={r.id} className="flex items-center gap-2">
+                  <span className="rounded bg-brand/10 px-1.5 text-xs font-bold text-brand">{labels[r.requestType]}</span>
+                  <span className="truncate">{r.employeeName}</span>
+                  <span className="muted text-xs">#{r.requestNumber}</span>
+                </li>
+              ))}
+          </ul>
+          <label className="mt-4 block text-sm font-bold">
+            ملاحظة للجميع (اختياري)
+            <input className="input mt-2" value={bulkComment} onChange={(e) => setBulkComment(e.target.value)} />
+          </label>
+          {bulkApprove.isError ? (
+            <div className="mt-3">
+              <ErrorBanner message={safeErrorMessage(bulkApprove.error)} />
+            </div>
+          ) : null}
+          <div className="mt-5 flex justify-end gap-2">
+            <button type="button" className="btn-secondary" onClick={() => setBulkOpen(false)}>
+              تراجع
+            </button>
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2 font-black text-white disabled:opacity-50"
+              style={{ background: 'var(--success)' }}
+              disabled={bulkApprove.isPending}
+              onClick={() => void submitBulk()}
+            >
+              <Check className="size-4" aria-hidden="true" />
+              {bulkApprove.isPending ? 'جارٍ الاعتماد…' : 'اعتماد الكل'}
+            </button>
+          </div>
         </DialogOverlay>
       ) : null}
 

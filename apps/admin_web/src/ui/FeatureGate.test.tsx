@@ -8,20 +8,16 @@ const UNKNOWN_FLAG = 'not_a_real_flag' as FeatureFlagKey;
 
 describe('featureFlags', () => {
   it('has all expected flag keys', () => {
-    expect(FEATURE_FLAGS).toHaveProperty('learning');
     expect(FEATURE_FLAGS).toHaveProperty('documents');
     expect(FEATURE_FLAGS).toHaveProperty('lifecycle');
     expect(FEATURE_FLAGS).toHaveProperty('governance');
-    expect(FEATURE_FLAGS).toHaveProperty('helpdesk');
     expect(FEATURE_FLAGS).toHaveProperty('peopleFinance');
   });
 
   it('returns true for enabled features, false for unknown ones', () => {
-    expect(isFeatureEnabled('learning')).toBe(true);
     expect(isFeatureEnabled('lifecycle')).toBe(true);
     expect(isFeatureEnabled('documents')).toBe(true);
     expect(isFeatureEnabled('governance')).toBe(true);
-    expect(isFeatureEnabled('helpdesk')).toBe(true);
     expect(isFeatureEnabled('peopleFinance')).toBe(true);
     expect(isFeatureEnabled(UNKNOWN_FLAG)).toBeFalsy();
   });
@@ -49,7 +45,7 @@ describe('FeatureGate', () => {
 
   it('renders children when feature is enabled', () => {
     render(
-      <FeatureGate feature="helpdesk">
+      <FeatureGate feature="lifecycle">
         <p>محتوى ظاهر</p>
       </FeatureGate>,
     );

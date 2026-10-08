@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 @import '@ahla/design-tokens/theme.css';
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *, .dark, .dark *));
+
 @theme {
   --font-sans: 'Cairo', 'Noto Sans Arabic', 'Segoe UI', Tahoma, system-ui, sans-serif;
   --color-brand: var(--brand-primary);
@@ -82,7 +84,8 @@ a {
 .muted {
   color: var(--text-muted);
 }
-.input {
+.input,
+.input-field {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 0.85rem;
@@ -94,18 +97,32 @@ a {
     box-shadow 160ms ease,
     background 160ms ease;
 }
-.input:hover:not(:disabled) {
+.input:hover:not(:disabled),
+.input-field:hover:not(:disabled) {
   border-color: var(--border-strong);
 }
-.input:focus {
+.input:focus,
+.input-field:focus {
   border-color: var(--brand-accent);
   box-shadow: var(--focus-ring);
   outline: none;
 }
-.input:disabled {
+.input:disabled,
+.input-field:disabled {
   background: var(--surface-muted);
   color: var(--text-disabled);
   cursor: not-allowed;
+}
+
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"] {
+  color-scheme: dark;
+}
+[data-theme="light"] input[type="date"],
+[data-theme="light"] input[type="datetime-local"],
+[data-theme="light"] input[type="time"] {
+  color-scheme: light;
 }
 
 .btn-primary,
@@ -436,12 +453,17 @@ a {
   flex: 0 0 auto;
   place-items: center;
   overflow: hidden;
-  border: 2px solid color-mix(in srgb, var(--brand-accent) 24%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--brand-accent) 28%, var(--border));
   border-radius: 50%;
-  background: var(--brand-primary-soft);
+  background: linear-gradient(135deg, var(--brand-primary-soft), color-mix(in srgb, var(--brand-accent-soft) 40%, var(--brand-primary-soft)));
   color: var(--on-brand-soft);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: var(--font-heavy);
+}
+[data-theme='dark'] .user-avatar {
+  background: linear-gradient(135deg, #132f57, #0d223f);
+  color: #9ec5fe;
+  border-color: #2e4d7a;
 }
 .user-avatar img {
   width: 100%;
@@ -861,9 +883,30 @@ a.no-underline:hover .metric-card--linked {
   text-underline-offset: 3px;
 }
 .filter-bar-grid {
-  display: grid;
-  grid-template-columns: minmax(260px, 1fr) repeat(3, minmax(150px, auto));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.7rem;
+}
+.filter-bar-grid > .filter-search {
+  flex: 1 1 260px;
+  min-width: 220px;
+}
+.filter-bar-grid > select,
+.filter-bar-grid > select.input {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 170px;
+}
+.filter-bar-grid > .input:not(select) {
+  flex: 0 1 auto;
+}
+.filter-bar-grid > .btn-primary,
+.filter-bar-grid > .btn-secondary,
+.filter-bar-grid > .btn-outline {
+  flex: 0 0 auto;
+  width: auto;
+  white-space: nowrap;
 }
 .filter-search {
   position: relative;
@@ -873,7 +916,7 @@ a.no-underline:hover .metric-card--linked {
   position: absolute;
   z-index: 1;
   top: 50%;
-  right: 0.85rem;
+  inset-inline-start: 0.85rem;
   width: 1rem;
   height: 1rem;
   color: var(--text-muted);
@@ -881,8 +924,8 @@ a.no-underline:hover .metric-card--linked {
   pointer-events: none;
 }
 .filter-search .input {
-  padding-inline-start: 0.9rem;
-  padding-inline-end: 2.6rem;
+  padding-inline-start: 2.6rem;
+  padding-inline-end: 0.9rem;
 }
 .filter-result {
   margin: 0.65rem 0.15rem 0;
@@ -1243,9 +1286,6 @@ a.no-underline:hover .metric-card--linked {
   .login-form-panel {
     min-height: 100vh;
   }
-  .filter-bar-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(170px, 0.45fr);
-  }
 }
 
 /* Five KPI cards become unreadable around the 1280px breakpoint. Keep three
@@ -1300,14 +1340,25 @@ a.no-underline:hover .metric-card--linked {
     display: none;
   }
   .filter-bar {
-    padding: 0.75rem;
+    padding: 0.65rem;
   }
   .filter-bar-grid {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
   }
+  .filter-bar-grid > .filter-search {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+  .filter-bar-grid > select,
+  .filter-bar-grid > select.input,
   .filter-bar-grid > .btn-primary,
   .filter-bar-grid > .btn-secondary {
-    width: 100%;
+    flex: 1 1 calc(50% - 0.25rem);
+    min-width: 120px;
+    width: auto;
   }
 }
 

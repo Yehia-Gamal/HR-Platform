@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fixIntlPhoneOrder, splitIntlPhone } from './phoneDisplay';
+import { fixIntlPhoneOrder, splitIntlPhone, stripCountryCode } from './phoneDisplay';
 
 describe('fixIntlPhoneOrder', () => {
   it('يعيد ترتيب رقم انعكس بفعل bidi (2010…+ ← +2010…)', () => {
@@ -36,3 +36,30 @@ describe('splitIntlPhone', () => {
     expect(splitIntlPhone('هاتف: +20 109 950 5229')?.phone).toBe('+201099505229');
   });
 });
+
+describe('stripCountryCode', () => {
+  it('يزيل رمز الدولة +20 ويعيد 01xxxxxxxxx', () => {
+    expect(stripCountryCode('+201099505229')).toBe('01099505229');
+  });
+
+  it('يزيل رمز الدولة 0020 ويعيد 01xxxxxxxxx', () => {
+    expect(stripCountryCode('00201099505229')).toBe('01099505229');
+  });
+
+  it('يحول الرقم المعكوس بفعل bidi مع +20 إلى الصيغة المحلية 01...', () => {
+    expect(stripCountryCode('201099505229+')).toBe('01099505229');
+  });
+
+  it('يحول 12 خانة تبدأ بـ 201 إلى 01...', () => {
+    expect(stripCountryCode('201099505229')).toBe('01099505229');
+  });
+
+  it('يبقي الرقم المحلي 01... كما هو', () => {
+    expect(stripCountryCode('01099505229')).toBe('01099505229');
+  });
+
+  it('يحافظ على الأرقام الدولية غير المصرية', () => {
+    expect(stripCountryCode('+966501234567')).toBe('+966501234567');
+  });
+});
+

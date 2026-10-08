@@ -42,9 +42,11 @@ export function UserAvatar({
       {resolvedUrl && !failed ? (
         <img src={resolvedUrl} alt="" loading={eager ? 'eager' : 'lazy'} decoding="async" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} />
       ) : (displayName ?? '').trim() ? (
-        <span aria-hidden="true">{avatarInitial(displayName)}</span>
+        <span aria-hidden="true" className="font-black select-none leading-none tracking-normal">
+          {avatarInitial(displayName)}
+        </span>
       ) : (
-        <UserRound aria-hidden="true" />
+        <UserRound aria-hidden="true" className="size-4 opacity-75" />
       )}
     </span>
   );

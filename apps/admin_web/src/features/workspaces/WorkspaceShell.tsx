@@ -3,7 +3,6 @@ import {
   Activity,
   BadgeCheck,
   Bell,
-  BookOpen,
   BriefcaseBusiness,
   Building2,
   CalendarClock,
@@ -23,7 +22,6 @@ import {
   LogOut,
   Megaphone,
   Menu,
-  Headphones,
   MapPin,
   PackageCheck,
   PanelRightClose,
@@ -96,7 +94,6 @@ const hrSections: NavSection[] = [
     title: 'الأداء والتطوير',
     items: [
       { label: 'KPI والأداء', to: '/hr/performance', icon: Gauge, permission: 'performance.kpi.read' },
-      { label: 'التدريب والمهارات', to: '/hr/learning', icon: Sparkles, featureFlag: 'learning' },
     ],
   },
   {
@@ -116,7 +113,6 @@ const hrSections: NavSection[] = [
       { label: 'الأخبار والقرارات', to: '/hr/official-feed', icon: Megaphone, permission: ['comms.announcement.read', 'comms.decision.read'] },
       { label: 'التقارير اليومية', to: '/hr/daily-reports', icon: ClipboardList },
       { label: 'مشاريع الجمعية', to: '/hr/association-projects', icon: FolderKanban },
-      { label: 'التدريب والمعرفة', to: '/hr/knowledge', icon: BookOpen },
       { label: 'الإشعارات', to: '/hr/notifications', icon: Bell },
     ],
   },
@@ -166,7 +162,6 @@ const adminSections: NavSection[] = [
     items: [
       { label: 'KPI والأداء', to: '/admin/hr/performance', icon: Gauge, permission: 'performance.kpi.read' },
       { label: 'دورات KPI والاعتراضات', to: '/admin/performance/cycles', icon: BadgeCheck, permission: 'performance.cycle.manage' },
-      { label: 'التدريب والمهارات', to: '/admin/hr/learning', icon: Sparkles, permission: 'learning.enroll' },
     ],
   },
   {
@@ -174,7 +169,6 @@ const adminSections: NavSection[] = [
     items: [
       { label: 'مشاريع الجمعية', to: '/admin/association-projects', icon: FolderKanban },
       { label: 'لجنة الخلافات', to: '/admin/disputes', icon: Gavel, permission: ['disputes.case.manage', 'disputes.portal.access'] },
-      { label: 'مكتب الخدمات', to: '/admin/helpdesk', icon: Headphones, featureFlag: 'helpdesk' },
       { label: 'غرامات الحضور والانصراف', to: '/admin/finance?tab=instant-penalties', icon: AlertOctagon },
       { label: 'صندوق الزمالة والتكافل', to: '/admin/fellowship-fund', icon: HeartHandshake },
     ],
@@ -203,7 +197,6 @@ const adminSections: NavSection[] = [
       { label: 'التقارير والتحليلات', to: '/admin/hr/reports', icon: FileClock, permission: 'reports.people.read' },
       { label: 'الأخبار والقرارات', to: '/admin/hr/official-feed', icon: Megaphone, permission: ['comms.announcement.read', 'comms.decision.read'] },
       { label: 'التقارير اليومية', to: '/admin/hr/daily-reports', icon: ClipboardList, permission: ['reports.daily.read', 'people.employee.read'] },
-      { label: 'التدريب والمعرفة', to: '/admin/knowledge', icon: BookOpen, permission: 'knowledge.article.read' },
     ],
   },
 ];

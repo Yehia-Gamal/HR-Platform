@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, CalendarRange, Clock3, Download, FileText, Plane, Printer, Users, BadgeCheck } from 'lucide-react';
+import { ArrowRight, CalendarDays, CalendarRange, Clock3, Download, FileText, Plane, Printer, Users, BadgeCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { cairoTodayIso, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from '../../core/cairoTime';
@@ -12,7 +12,7 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { Tabs } from '../../ui/Tabs';
 import { useToast } from '../../ui/Toast';
 import { useAuth } from '../auth/AuthProvider';
-import { hasPermission } from '../workspaces/access';
+import { hasPermission, useHrPrefix } from '../workspaces/access';
 import { exportAttendancePDF } from './exportAttendancePDF';
 import { exportAttendancePdf, exportExecutiveDailyReportPdf } from './useAttendanceDashboard';
 import { exportWeeklyAttendancePdf, exportMonthlyAttendancePdf } from './exportRangeReports';
@@ -42,6 +42,7 @@ export function AttendanceReportsPage() {
   const isIndividual = Boolean(employeeId);
   const auth = useAuth();
   const { toast } = useToast();
+  const hrPrefix = useHrPrefix();
 
   const [period, setPeriod] = useState<ReportPeriod>('month');
   const [scope, setScope] = useState<ReportScope>(isIndividual ? 'individual' : 'all');
@@ -118,8 +119,8 @@ export function AttendanceReportsPage() {
               طباعة
             </button>
             {!isIndividual && (
-              <Link to="/hr/attendance" className="btn-secondary">
-                <ArrowLeft className="size-4" />
+              <Link to={`${hrPrefix}/attendance`} className="btn-secondary">
+                <ArrowRight className="size-4" aria-hidden="true" />
                 عودة للحضور
               </Link>
             )}

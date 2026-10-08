@@ -4,11 +4,9 @@
  * عند الحاجة لتفعيل صفحة، غيّر القيمة إلى true.
  */
 export const FEATURE_FLAGS = {
-  learning: true,
   lifecycle: true,
   documents: true,
   governance: true,
-  helpdesk: true,
   peopleFinance: true,
 } as const;
 

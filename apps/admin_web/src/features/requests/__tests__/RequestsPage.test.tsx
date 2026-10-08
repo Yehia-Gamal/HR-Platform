@@ -35,6 +35,8 @@ let requestsOverrideFn: () => Record<string, unknown>;
 vi.mock('../useRequests', () => ({
   useRequests: () => requestsOverrideFn(),
   useRequestDecision: () => ({ mutateAsync: vi.fn(), isError: false, error: null, isPending: false }),
+  useRequestDetail: () => ({ data: undefined, isLoading: false, isError: false, error: null }),
+  useBulkApprove: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useMyLeaveBalances: () => ({ data: [], isLoading: false, isError: false, error: null }),
   useWorkAssignments: () => ({ data: [], isLoading: false, isError: false, error: null }),
 }));
@@ -168,5 +170,33 @@ describe('RequestsPage', () => {
     );
     // ListSkeleton يعرض عناصر skeleton أثناء التحميل
     expect(container.querySelector('.animate-pulse')).toBeTruthy();
+  });
+
+  it('يعرض تفاصيل طلب تغيير الوردية مع اسم الوردية وتاريخ السريان', () => {
+    requestsOverrideFn = () => ({
+      ...dataQuery,
+      data: [
+        {
+          ...mockRequests[0],
+          id: '00000000-0000-0000-0000-000000000023',
+          requestNumber: 1004,
+          requestType: 'shift_change',
+          title: 'طلب تغيير فترة العمل',
+          employeeName: 'خالد عبد الرحمن',
+          payload: {
+            shiftId: 'shift-1',
+            shiftName: 'الوردية المسائية',
+            effectiveFrom: '2026-02-01',
+          },
+        },
+      ],
+    });
+    render(
+      <Wrapper>
+        <RequestsPage />
+      </Wrapper>,
+    );
+    expect(screen.getByText(/الوردية المطلوبة:\s*الوردية المسائية/)).toBeDefined();
+    expect(screen.getByText(/سريان من:/)).toBeDefined();
   });
 });

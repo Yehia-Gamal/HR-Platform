@@ -50,28 +50,35 @@ function EmployeeMultiSelect({
             onChange={(e) => onSearch(e.target.value)}
             placeholder={placeholder}
             aria-label="بحث عن موظف"
-            className="input-field h-9 w-full ps-9 text-sm"
+            className="input h-10 w-full ps-9 text-sm"
           />
         </div>
-        <button type="button" onClick={onSelectAllActive} className="btn-secondary shrink-0 px-3 py-1.5 text-xs" disabled={activeCount === 0}>
+        <button type="button" onClick={onSelectAllActive} className="btn-secondary shrink-0 px-3 py-2 text-xs font-bold" disabled={activeCount === 0}>
           تحديد الكل ({activeCount})
         </button>
         {selected.size > 0 && (
-          <button type="button" onClick={onClear} className="rounded-lg px-2 py-1.5 text-xs font-semibold text-[var(--danger)] hover:bg-[var(--danger-soft)]">
+          <button type="button" onClick={onClear} className="rounded-lg px-2.5 py-2 text-xs font-semibold text-[var(--danger)] hover:bg-[var(--danger-soft)]">
             مسح ({selected.size})
           </button>
         )}
       </div>
-      <div className="max-h-56 space-y-1 overflow-y-auto rounded-xl border border-[var(--border)] p-1.5">
+      <div className="max-h-60 space-y-1.5 overflow-y-auto rounded-xl border border-[var(--border)] p-2">
         {employees.map((emp) => {
           const checked = selected.has(emp.id);
           return (
             <label
               key={emp.id}
-              className={`flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors ${
-                checked ? 'bg-[var(--brand-accent-soft)]' : 'hover:bg-[var(--surface-raised)]'
+              className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${
+                checked ? 'bg-[var(--brand-accent-soft)]/50 border border-[var(--brand-primary)]/40' : 'hover:bg-[var(--surface-raised)] border border-transparent'
               } ${!emp.isActive ? 'opacity-45' : ''}`}
             >
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <UserAvatar displayName={emp.name} size="sm" />
+                <span className="min-w-0 truncate font-bold text-start">{emp.name}</span>
+                {emp.code && !emp.code.match(/^\+?\d{9,}$/) && (
+                  <span className="shrink-0 text-xs text-[var(--text-muted)] font-mono">({emp.code})</span>
+                )}
+              </div>
               <input
                 type="checkbox"
                 checked={checked}
@@ -79,9 +86,6 @@ function EmployeeMultiSelect({
                 disabled={!emp.isActive}
                 className="size-4 shrink-0 accent-[var(--brand-primary)]"
               />
-              <UserAvatar displayName={emp.name} size="sm" />
-              <span className="min-w-0 flex-1 truncate font-semibold">{emp.name}</span>
-              {emp.code && !emp.code.match(/^\+?\d{9,}$/) && <span className="shrink-0 text-xs text-[var(--text-muted)]">{emp.code}</span>}
             </label>
           );
         })}
@@ -160,12 +164,12 @@ function BulkRestCreditSection() {
       />
       {isLoading && <p className="text-xs text-[var(--text-muted)]">جارٍ تحميل الموظفين...</p>}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">تاريخ بداية العمل (الجمعة)</span>
           <input
             type="date"
-            className="input-field w-full text-sm"
+            className="input w-full text-sm"
             value={workDate}
             onChange={(e) => setWorkDate(e.target.value)}
             required
@@ -176,7 +180,7 @@ function BulkRestCreditSection() {
           <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">عدد أيام البدل</span>
           <input
             type="number"
-            className="input-field w-full text-sm"
+            className="input w-full text-sm"
             value={days}
             min={1}
             max={365}
@@ -187,7 +191,7 @@ function BulkRestCreditSection() {
         </label>
       </div>
 
-      <button type="submit" className="btn-primary w-full" disabled={grant.isPending || selected.size === 0 || days < 1 || days > 365}>
+      <button type="submit" className="btn-primary w-full py-2.5 text-sm font-bold" disabled={grant.isPending || selected.size === 0 || days < 1 || days > 365}>
         {grant.isPending ? 'جارٍ المنح...' : `منح الرصيد لـ ${selected.size} موظف`}
       </button>
     </form>
@@ -244,10 +248,10 @@ function AdjustBalanceSection() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="ابحث عن موظف..."
             aria-label="بحث عن موظف"
-            className="input-field h-9 w-full ps-9 text-sm"
+            className="input h-10 w-full ps-9 text-sm"
           />
         </div>
-        <select value={selectedEmployee} onChange={(e) => setSelectedEmployee(e.target.value)} className="input-field w-full text-sm" required>
+        <select value={selectedEmployee} onChange={(e) => setSelectedEmployee(e.target.value)} className="input w-full text-sm" required>
           <option value="">— اختر موظفاً —</option>
           {options.map((emp) => (
             <option key={emp.id} value={emp.id} disabled={!emp.isActive}>
@@ -258,10 +262,10 @@ function AdjustBalanceSection() {
         </select>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">نوع الإجازة</span>
-          <select value={leaveTypeId} onChange={(e) => setLeaveTypeId(e.target.value)} className="input-field w-full text-sm" required>
+          <select value={leaveTypeId} onChange={(e) => setLeaveTypeId(e.target.value)} className="input w-full text-sm" required>
             <option value="">— اختر النوع —</option>
             {(leaveTypes ?? []).map((lt) => (
               <option key={lt.id} value={lt.id}>
@@ -274,7 +278,7 @@ function AdjustBalanceSection() {
           <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">السنة</span>
           <input
             type="number"
-            className="input-field w-full text-sm"
+            className="input w-full text-sm"
             value={year}
             min={2020}
             max={2100}
@@ -283,11 +287,11 @@ function AdjustBalanceSection() {
             disabled={adjust.isPending}
           />
         </label>
-        <label className="block">
+        <label className="block sm:col-span-2">
           <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">الكمية (بالأيام، +/−)</span>
           <input
             type="number"
-            className="input-field w-full text-sm"
+            className="input w-full text-sm"
             value={units}
             onChange={(e) => setUnits(Number(e.target.value))}
             required
@@ -295,15 +299,15 @@ function AdjustBalanceSection() {
             step="0.5"
           />
         </label>
-        <div className="flex items-end">
-          <p className="text-xs text-[var(--text-muted)]">استخدم قيماً سالبة للخصم، موجبة للإضافة.</p>
+        <div className="sm:col-span-2 rounded-xl bg-[var(--surface-muted)] border border-[var(--border)] p-2.5 text-xs text-[var(--text-muted)]">
+          💡 استخدم قيماً سالبة للخصم (مثل -2)، وقيمًا موجبة للإضافة (مثل 3).
         </div>
       </div>
 
       <label className="block">
         <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">سبب التعديل (يُسجّل في سجل التدقيق)</span>
         <textarea
-          className="input-field w-full resize-none text-sm"
+          className="input w-full resize-none text-sm"
           rows={2}
           minLength={5}
           value={reason}
@@ -314,7 +318,7 @@ function AdjustBalanceSection() {
         />
       </label>
 
-      <button type="submit" className="btn-primary w-full" disabled={adjust.isPending || !selectedEmployee || !leaveTypeId || reason.trim().length < 5}>
+      <button type="submit" className="btn-primary w-full py-2.5 text-sm font-bold" disabled={adjust.isPending || !selectedEmployee || !leaveTypeId || reason.trim().length < 5}>
         {adjust.isPending ? 'جارٍ الحفظ...' : 'حفظ التعديل'}
       </button>
     </form>
@@ -382,10 +386,10 @@ function CreateLeaveForEmployeeSection() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="ابحث عن موظف..."
             aria-label="بحث عن موظف"
-            className="input-field h-9 w-full ps-9 text-sm"
+            className="input h-10 w-full ps-9 text-sm"
           />
         </div>
-        <select value={selectedEmployee} onChange={(e) => setSelectedEmployee(e.target.value)} className="input-field w-full text-sm" required>
+        <select value={selectedEmployee} onChange={(e) => setSelectedEmployee(e.target.value)} className="input w-full text-sm" required>
           <option value="">— اختر موظفاً —</option>
           {options.map((emp) => (
             <option key={emp.id} value={emp.id} disabled={!emp.isActive}>
@@ -398,7 +402,7 @@ function CreateLeaveForEmployeeSection() {
 
       <label className="block">
         <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">نوع الإجازة</span>
-        <select value={leaveType} onChange={(e) => setLeaveType(e.target.value)} className="input-field w-full text-sm">
+        <select value={leaveType} onChange={(e) => setLeaveType(e.target.value)} className="input w-full text-sm">
           {(leaveTypes ?? []).map((lt) => (
             <option key={lt.code} value={lt.code}>
               {lt.nameAr}
@@ -408,12 +412,12 @@ function CreateLeaveForEmployeeSection() {
         </select>
       </label>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">من تاريخ</span>
           <input
             type="date"
-            className="input-field w-full text-sm"
+            className="input w-full text-sm"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             required
@@ -424,7 +428,7 @@ function CreateLeaveForEmployeeSection() {
           <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">إلى تاريخ</span>
           <input
             type="date"
-            className="input-field w-full text-sm"
+            className="input w-full text-sm"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             required
@@ -436,7 +440,7 @@ function CreateLeaveForEmployeeSection() {
       <label className="block">
         <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">السبب</span>
         <textarea
-          className="input-field w-full resize-none text-sm"
+          className="input w-full resize-none text-sm"
           rows={2}
           minLength={3}
           value={reason}
@@ -450,7 +454,7 @@ function CreateLeaveForEmployeeSection() {
       <label className="block">
         <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">ملاحظات التسليم (اختياري)</span>
         <input
-          className="input-field w-full text-sm"
+          className="input w-full text-sm"
           value={handoverNotes}
           onChange={(e) => setHandoverNotes(e.target.value)}
           placeholder="من سيغطي العمل أثناء الإجازة؟"
@@ -460,7 +464,7 @@ function CreateLeaveForEmployeeSection() {
 
       <button
         type="submit"
-        className="btn-primary w-full"
+        className="btn-primary w-full py-2.5 text-sm font-bold"
         disabled={create.isPending || !selectedEmployee || !startDate || !endDate || reason.trim().length < 3}
       >
         {create.isPending ? 'جارٍ الإنشاء...' : 'إنشاء الطلب'}
@@ -543,14 +547,14 @@ function BulkAssignmentSection() {
 
       {error ? <ErrorBanner message={error} /> : null}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">نوع التكليف</span>
           <div className="relative">
             <select
               value={assignmentType}
               onChange={(e) => setAssignmentType(e.target.value as 'MISSION' | 'CONVOY' | 'FUNDRAISING')}
-              className="input-field w-full appearance-none text-sm"
+              className="input w-full appearance-none text-sm pe-8"
             >
               <option value="MISSION">مأمورية عمل خارجية</option>
               <option value="CONVOY">قافلة مساعدات إنسانية (كامب)</option>
@@ -562,7 +566,7 @@ function BulkAssignmentSection() {
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">العنوان</span>
           <input
-            className="input-field w-full text-sm"
+            className="input w-full text-sm"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             minLength={3}
@@ -583,7 +587,7 @@ function BulkAssignmentSection() {
               <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">من</span>
               <input
                 type="datetime-local"
-                className="input-field w-full text-sm"
+                className="input w-full text-sm"
                 value={startAt}
                 onChange={(e) => setStartAt(e.target.value)}
                 required
@@ -594,7 +598,7 @@ function BulkAssignmentSection() {
               <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">إلى</span>
               <input
                 type="datetime-local"
-                className="input-field w-full text-sm"
+                className="input w-full text-sm"
                 value={endAt}
                 onChange={(e) => setEndAt(e.target.value)}
                 required
@@ -603,18 +607,18 @@ function BulkAssignmentSection() {
             </label>
           </>
         ) : (
-          <div className="col-span-2 rounded-xl bg-[var(--brand-accent-soft)] p-3 text-xs text-[var(--brand-primary)]">
+          <div className="sm:col-span-2 rounded-xl bg-[var(--brand-accent-soft)] p-3 text-xs text-[var(--brand-primary)]">
             تبدأ المأمورية تلقائياً الآن من وقت الإنشاء وتستمر حتى انتهاء المهمة دون الحاجة لتحديد توقيتات مسبقة.
           </div>
         )}
         {assignmentType === 'CONVOY' && (
-          <div className="col-span-2 rounded-xl bg-purple-500/10 border border-purple-500/20 p-3 text-xs text-purple-700 dark:text-purple-300">
+          <div className="sm:col-span-2 rounded-xl bg-purple-500/10 border border-purple-500/20 p-3 text-xs text-purple-700 dark:text-purple-300">
             <strong>قافلة مساعدات إنسانية (كامب):</strong> يوم عمل ميداني خارجي فيه سفر لمساعدة الأسر المستحقة (مثل بناء الأسقف وتوصيل المياه والكفالات)، ويُحسب
             يوم عمل كامل للموظفين المشاركين.
           </div>
         )}
         {assignmentType === 'FUNDRAISING' && (
-          <div className="col-span-2 rounded-xl bg-pink-500/10 border border-pink-500/20 p-3 text-xs text-pink-700 dark:text-pink-300">
+          <div className="sm:col-span-2 rounded-xl bg-pink-500/10 border border-pink-500/20 p-3 text-xs text-pink-700 dark:text-pink-300">
             <strong>يوم ترفيهي للموظفين (فاندي / Fun Day):</strong> يوم ترفيهي تنظمه الإدارة لترفيه الموظفين (حجز فيلا، رحلة وسفر ترفيهي)، ويُحسب كـ يوم عمل
             رسمي كامل للموظفين بدون أي خصم ولا يتطلب بصمة بالمقر.
           </div>
@@ -622,7 +626,7 @@ function BulkAssignmentSection() {
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">الموقع (اختياري)</span>
           <input
-            className="input-field w-full text-sm"
+            className="input w-full text-sm"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="مثال: شارع المدارس"
@@ -634,7 +638,7 @@ function BulkAssignmentSection() {
             <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">الهدف (جنيه، اختياري)</span>
             <input
               type="number"
-              className="input-field w-full text-sm"
+              className="input w-full text-sm"
               value={targetAmount}
               min={0}
               onChange={(e) => setTargetAmount(e.target.value)}

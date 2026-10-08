@@ -332,7 +332,7 @@ export function FinancePage() {
         title="الرواتب والمالية"
         description="إدارة دورات الرواتب وهياكل الأجور والسلف وخطط القوى العاملة."
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {tab === 'payroll' && (
               <button
                 type="button"

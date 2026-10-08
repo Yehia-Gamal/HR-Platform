@@ -147,7 +147,7 @@ export function AssociationProjectsPage() {
             : 'المشاريع التي أنت في فريقها أو تخص إدارتك: أنشئ مشروعاً بفريقه وأرسله للاعتماد، ثم تابع خطواته وسجّل التحديثات ليبقى أخضر.'
         }
         actions={
-          <>
+          <div className="flex flex-wrap items-center gap-2">
             {isFullAccess && (
               <button className="icon-button" onClick={() => setSettingsOpen(true)} aria-label="إعدادات لمبة التنبيه" title="إعدادات لمبة التنبيه">
                 <Settings2 className="size-4" />
@@ -188,7 +188,7 @@ export function AssociationProjectsPage() {
                 <Plus className="size-4" aria-hidden="true" /> مشروع جديد
               </button>
             )}
-          </>
+          </div>
         }
       />
 

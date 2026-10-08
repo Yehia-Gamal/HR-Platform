@@ -12,6 +12,8 @@
  * المكتبات تُحمَّل عند التصدير فقط (chunk «pdf-vendor»).
  */
 
+import type * as JsPdfNamespace from 'jspdf';
+
 export type PdfOrientation = 'portrait' | 'landscape';
 
 export interface PdfPageImage {
@@ -27,8 +29,9 @@ const SCALE = 2.5;
 const JPEG_QUALITY = 0.98;
 
 type Html2Canvas = (element: HTMLElement, options?: Record<string, unknown>) => Promise<HTMLCanvasElement>;
-type JsPdfModule = typeof import('jspdf');
-type JsPdfDoc = InstanceType<JsPdfModule['jsPDF']>;
+type JsPdfModule = typeof JsPdfNamespace;
+type JsPdfCtor = JsPdfModule['jsPDF'];
+type JsPdfDoc = InstanceType<JsPdfCtor>;
 
 function pageDims(orientation: PdfOrientation) {
   const wMm = orientation === 'landscape' ? 297 : 210;
@@ -51,22 +54,28 @@ export function detectOrientation(html: string): PdfOrientation {
   return m && /landscape/i.test(m[1]) ? 'landscape' : 'portrait';
 }
 
-function resolveJsPdf(mod: any): any {
-  if (typeof mod?.jsPDF === 'function') return mod.jsPDF;
-  if (typeof mod?.default?.jsPDF === 'function') return mod.default.jsPDF;
-  if (typeof mod?.default === 'function') return mod.default;
-  if (typeof mod === 'function') return mod;
-  return mod?.jsPDF || mod?.default?.jsPDF || mod?.default || mod;
+function resolveJsPdf(mod: unknown): JsPdfCtor {
+  const m = (mod ?? {}) as Record<string, unknown>;
+  const d = m.default;
+  const dRec = (typeof d === 'object' && d !== null ? d : {}) as Record<string, unknown>;
+  if (typeof m.jsPDF === 'function') return m.jsPDF as JsPdfCtor;
+  if (typeof dRec.jsPDF === 'function') return dRec.jsPDF as JsPdfCtor;
+  if (typeof d === 'function') return d as JsPdfCtor;
+  if (typeof mod === 'function') return mod as JsPdfCtor;
+  return (m.jsPDF ?? d ?? mod) as JsPdfCtor;
 }
 
-function resolveHtml2Canvas(mod: any): Html2Canvas {
-  if (typeof mod === 'function') return mod;
-  if (typeof mod?.default === 'function') return mod.default;
-  if (typeof mod?.default?.default === 'function') return mod.default.default;
-  return (mod?.default || mod) as Html2Canvas;
+function resolveHtml2Canvas(mod: unknown): Html2Canvas {
+  if (typeof mod === 'function') return mod as Html2Canvas;
+  const m = (mod ?? {}) as Record<string, unknown>;
+  const d = m.default;
+  if (typeof d === 'function') return d as Html2Canvas;
+  const dRec = (typeof d === 'object' && d !== null ? d : {}) as Record<string, unknown>;
+  if (typeof dRec.default === 'function') return dRec.default as Html2Canvas;
+  return (d ?? mod) as Html2Canvas;
 }
 
-async function loadLibs(): Promise<{ jspdf: any; html2canvas: Html2Canvas }> {
+async function loadLibs(): Promise<{ jspdf: { jsPDF: JsPdfCtor }; html2canvas: Html2Canvas }> {
   const [jspdfModule, h2cModule] = await Promise.all([import('jspdf'), import('html2canvas')]);
   const html2canvas = resolveHtml2Canvas(h2cModule);
   const jsPdfClass = resolveJsPdf(jspdfModule);
@@ -84,12 +93,8 @@ function preparePrintableHtml(html: string, widthPx: number): string {
     html { margin: 0 !important; padding: 0 !important; background: #fff !important; }
     body { margin: 0 !important; padding: 0 !important; box-sizing: border-box !important; background: #fff !important; width: ${widthPx}px !important; font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif !important; }
   </style>`;
-  const stripped = html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/@media\s+print\s*{/gi, '@media all {');
-  return stripped.includes('</head>')
-    ? stripped.replace(/<\/head>/i, `${extra}</head>`)
-    : `${extra}${stripped}`;
+  const stripped = html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/@media\s+print\s*{/gi, '@media all {');
+  return stripped.includes('</head>') ? stripped.replace(/<\/head>/i, `${extra}</head>`) : `${extra}${stripped}`;
 }
 
 /**
@@ -289,7 +294,11 @@ export function downloadBlob(blob: Blob, filename: string): void {
 
 /** اسم ملف آمن لأنظمة الملفات مع امتداد pdf. */
 export function pdfFileName(title: string): string {
-  const base = title.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').trim() || 'تقرير';
+  const base =
+    title
+      .replace(/[\\/:*?"<>|]/g, '')
+      .replace(/\s+/g, '-')
+      .trim() || 'تقرير';
   return base.toLowerCase().endsWith('.pdf') ? base : `${base}.pdf`;
 }
 

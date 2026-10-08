@@ -27,7 +27,7 @@ import {
   Phone,
   Plus,
   Printer,
-  QrCode,
+  CreditCard,
   ShieldCheck,
   Star,
   Trash2,
@@ -49,7 +49,7 @@ import { getSupabase } from '../../core/supabase';
 import { prepareAvatarFile } from '../../ui/avatarImage';
 import { fixIntlPhoneOrder, isPhoneLikeCode, renderSafeIntlPhoneText } from '../../ui/phoneDisplay';
 import { useAuth } from '../auth/AuthProvider';
-import { hasPermission } from '../workspaces/access';
+import { hasPermission, useHrPrefix } from '../workspaces/access';
 import { MonthlyStatementSection } from '../attendance/MonthlyStatementSection';
 import {
   useEmployee360,
@@ -66,6 +66,8 @@ import {
   useSetEmployeePassword,
   useUpdateEmployeeEmail,
   useGrantWeeklyRestCredit,
+  useEmployeeActiveShift,
+  formatShiftTiming,
 } from './useEmployees';
 import { normalizePhoneForSubmit, EmployeeEditHistory } from './employeeDetailShared';
 import { safeErrorMessage } from '../../core/errorMapper';
@@ -82,6 +84,7 @@ import { EmployeeRecognitionTab } from './EmployeeRecognitionTab';
 import { EmployeeRetentionScoreCard } from './EmployeeRetentionScoreCard';
 import { EmployeeActivityTimeline } from './EmployeeActivityTimeline';
 import { EmployeeOrgChartTab } from './EmployeeOrgChartTab';
+import { AssignShiftDialog } from './AssignShiftDialog';
 
 const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
 
@@ -1202,7 +1205,7 @@ function PrintableIdBadgeDialog({ employee, onClose }: { employee: Employee360; 
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-6 text-emerald-400" />
               <div>
-                <h4 className="text-xs font-black tracking-wider uppercase">جمعية أهل مصر</h4>
+                <h4 className="text-xs font-black tracking-wider uppercase">جمعية أحلى شباب</h4>
                 <p className="text-[10px] text-white/70">بطاقة هوية وظيفية معتمدة</p>
               </div>
             </div>
@@ -1226,18 +1229,22 @@ function PrintableIdBadgeDialog({ employee, onClose }: { employee: Employee360; 
             </div>
           </div>
 
-          {/* Footer with Code & Barcode aesthetic */}
+          {/* Footer with Code & Verification (Clean - No QR Code, No Financials) */}
           <div className="flex items-center justify-between rounded-xl bg-black/30 p-3 backdrop-blur-sm border border-white/10">
             <div>
               <span className="block text-[10px] text-white/60">الرقم الوظيفي:</span>
-              <span className="font-mono text-xs font-black tracking-widest text-emerald-400">{employee.employeeCode}</span>
+              <span className="font-mono text-sm font-black tracking-widest text-emerald-400">{employee.employeeCode}</span>
             </div>
-            <div className="text-end">
+            <div className="text-center">
               <span className="block text-[10px] text-white/60">تاريخ التعيين:</span>
               <span className="font-mono text-xs text-white/90">{employee.hireDate ?? '—'}</span>
             </div>
-            <div className="flex size-10 items-center justify-center rounded-lg bg-white p-1 shadow">
-              <QrCode className="size-8 text-black" />
+            <div className="text-end">
+              <span className="block text-[10px] text-white/60">الاعتماد:</span>
+              <span className="text-[11px] font-bold text-emerald-300 flex items-center gap-1 justify-end">
+                <ShieldCheck className="size-3.5 text-emerald-400" />
+                موثق رسميًا
+              </span>
             </div>
           </div>
         </div>
@@ -1279,6 +1286,7 @@ export function EmployeeDetailPage() {
   const { employeeId } = useParams();
   const auth = useAuth();
   const query = useEmployee360(employeeId);
+  const activeShiftQuery = useEmployeeActiveShift(employeeId);
   const resend = useResendInvite();
   const { toast } = useToast();
   const [resendMessage, setResendMessage] = useState<string | null>(null);
@@ -1290,6 +1298,7 @@ export function EmployeeDetailPage() {
   const [showAddDeptDialog, setShowAddDeptDialog] = useState(false);
   const [showGrantRestDialog, setShowGrantRestDialog] = useState(false);
   const [showBadgeDialog, setShowBadgeDialog] = useState(false);
+  const [showShiftDialog, setShowShiftDialog] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTab = searchParams.get('tab') as EmployeeTabId | null;
   const [activeTab, setActiveTabState] = useState<EmployeeTabId>(() => {
@@ -1309,6 +1318,7 @@ export function EmployeeDetailPage() {
   };
   const navigate = useNavigate();
   const location = useLocation();
+  const hrPrefix = useHrPrefix();
   const item = query.data;
 
   const displayDepartments = useMemo(() => {
@@ -1356,42 +1366,44 @@ export function EmployeeDetailPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="ملف الموظف"
-        description="عرض شامل للبيانات الوظيفية والحضور والطلبات والأداء والمستندات."
+        eyebrow="الموظفون والهيكل"
+        title={`ملف الموظف: ${item.fullNameAr}`}
+        description={
+          item.todayStatus ? (
+            <span className="flex items-center gap-2 flex-wrap text-sm">
+              <span>عرض شامل للبيانات الوظيفية والتشغيلية والحضور.</span>
+              <span className="inline-flex items-center gap-1 font-bold text-[var(--text)]">
+                • حالة اليوم:
+                <span className="font-black text-[var(--brand-primary)]">
+                  {item.todayStatus.statusLabel ?? 'لم يسجل بعد'}
+                  {item.todayStatus.activityTitle ? ` (${item.todayStatus.activityTitle})` : ''}
+                </span>
+              </span>
+            </span>
+          ) : (
+            'عرض شامل للبيانات الوظيفية والحضور والطلبات والأداء والمستندات.'
+          )
+        }
         actions={
-          <div className="flex flex-wrap gap-2">
-            {showResend ? (
-              <button type="button" className="btn-secondary" disabled={resend.isPending} onClick={() => void onResend()}>
-                <MailCheck className="size-4" aria-hidden="true" />
-                {resend.isPending ? 'جارٍ الإرسال…' : 'إعادة إرسال دعوة التفعيل'}
-              </button>
-            ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <Link to={`${hrPrefix}/employees`} className="btn-secondary">
+              <ArrowRight className="size-4" aria-hidden="true" />
+              عودة للموظفين
+            </Link>
             {canEdit ? (
               <button type="button" className="btn-primary" onClick={() => setShowEditDialog(true)}>
                 <Pencil className="size-4" aria-hidden="true" />
                 تعديل البيانات
               </button>
             ) : null}
-            {canEdit && item.isActive ? (
-              <button type="button" className="btn-secondary text-[var(--danger)]" onClick={() => setShowArchiveDialog(true)}>
-                <Archive className="size-4" aria-hidden="true" />
-                أرشفة الموظف
-              </button>
-            ) : null}
             {canEdit ? (
-              <button type="button" className="btn-secondary text-[var(--danger)]" onClick={() => setShowDeleteDialog(true)}>
-                <Trash2 className="size-4" aria-hidden="true" />
-                حذف الموظف
-              </button>
-            ) : null}
-            {canGrantRestComp ? (
-              <button type="button" className="btn-secondary" onClick={() => setShowGrantRestDialog(true)}>
-                <BadgeCheck className="size-4" aria-hidden="true" />
-                منح بدل راحة
+              <button type="button" className="btn-secondary" onClick={() => setShowShiftDialog(true)}>
+                <Clock3 className="size-4 text-[var(--brand-primary)]" aria-hidden="true" />
+                إسناد الوردية
               </button>
             ) : null}
             <button type="button" className="btn-secondary" onClick={() => setShowBadgeDialog(true)}>
-              <QrCode className="size-4" aria-hidden="true" />
+              <CreditCard className="size-4" aria-hidden="true" />
               بطاقة الهوية الوظيفية
             </button>
             <Link
@@ -1402,10 +1414,30 @@ export function EmployeeDetailPage() {
               <KeyRound className="size-4 text-[var(--brand-primary)]" aria-hidden="true" />
               كلمة المرور
             </Link>
-            <Link to="/hr/employees" className="btn-secondary">
-              <ArrowRight className="size-4" aria-hidden="true" />
-              عودة للموظفين
-            </Link>
+            {canGrantRestComp ? (
+              <button type="button" className="btn-secondary" onClick={() => setShowGrantRestDialog(true)}>
+                <BadgeCheck className="size-4" aria-hidden="true" />
+                منح بدل راحة
+              </button>
+            ) : null}
+            {showResend ? (
+              <button type="button" className="btn-secondary" disabled={resend.isPending} onClick={() => void onResend()}>
+                <MailCheck className="size-4" aria-hidden="true" />
+                {resend.isPending ? 'جارٍ الإرسال…' : 'إعادة إرسال دعوة التفعيل'}
+              </button>
+            ) : null}
+            {canEdit && item.isActive ? (
+              <button type="button" className="btn-secondary text-[var(--danger)] hover:bg-[var(--danger)]/10" onClick={() => setShowArchiveDialog(true)}>
+                <Archive className="size-4" aria-hidden="true" />
+                أرشفة الموظف
+              </button>
+            ) : null}
+            {canEdit ? (
+              <button type="button" className="btn-secondary text-[var(--danger)] hover:bg-[var(--danger)]/10" onClick={() => setShowDeleteDialog(true)}>
+                <Trash2 className="size-4" aria-hidden="true" />
+                حذف الموظف
+              </button>
+            ) : null}
           </div>
         }
       />
@@ -1426,39 +1458,82 @@ export function EmployeeDetailPage() {
       >
         {activeTab === 'overview' ? (
           <div className="space-y-6">
-            <section className="card flex flex-col gap-5 p-5 lg:flex-row lg:items-center">
-              <UserAvatar displayName={item.fullNameAr} photoUrl={item.photoUrl} size="lg" eager />
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-3">
-                  <h2 className="text-2xl font-black">{item.fullNameAr}</h2>
-                  <StatusBadge status={item.status} />
-                </div>
-                <p className="muted mt-1 flex items-center gap-2">
-                  <span>{item.jobTitle ?? 'بدون مسمى وظيفي'}</span>
-                  {!isPhoneLikeCode(item.employeeCode, item.phoneE164) && (
-                    <>
-                      <span>•</span>
-                      <bdi
-                        dir="ltr"
-                        className="font-mono text-xs px-2 py-0.5 rounded bg-[var(--surface-muted)] text-[var(--text-secondary)] border border-[var(--border)] font-bold"
+            <section className="card flex flex-col gap-6 p-6 xl:flex-row xl:items-start xl:justify-between">
+              {/* القسم الرئيسي لبيانات الموظف والهوية */}
+              <div className="flex flex-col sm:flex-row items-start gap-5 flex-1 min-w-0">
+                <UserAvatar displayName={item.fullNameAr} photoUrl={item.photoUrl} size="lg" eager />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h2 className="text-2xl font-black">{item.fullNameAr}</h2>
+                    <StatusBadge status={item.status} />
+                    {/* شارة حالة اليوم التشغيلية الحية والبارزة */}
+                    {item.todayStatus ? (
+                      <span
+                        className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black shadow-sm transition-all ${
+                          item.todayStatus.status === 'present'
+                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                            : item.todayStatus.status === 'convoy'
+                            ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30'
+                            : item.todayStatus.status === 'fundraising'
+                            ? 'bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30'
+                            : item.todayStatus.status === 'mission'
+                            ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30'
+                            : item.todayStatus.status === 'on_leave'
+                            ? 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30'
+                            : item.todayStatus.status === 'late'
+                            ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                            : item.todayStatus.status === 'absent'
+                            ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30'
+                            : 'bg-gray-500/15 text-gray-700 dark:text-gray-300 border border-gray-500/30'
+                        }`}
                       >
-                        {item.employeeCode}
-                      </bdi>
-                    </>
-                  )}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-                  <Info icon={Network} label={displayDepartments} />
-                  <Info icon={Phone} label={item.phoneE164 ? renderSafeIntlPhoneText(item.phoneE164) : 'بدون هاتف'} />
-                  <Info icon={Mail} label={item.email ?? 'بدون بريد'} />
-                  <Info
-                    icon={ShieldCheck}
-                    label={`الحساب: ${ACCOUNT_STATUS_LABELS[(item.accountStatus ?? '').toLowerCase()] ?? (accountPending ? 'بانتظار التفعيل' : 'غير متاح')}`}
-                  />
+                        <span className="relative flex size-2">
+                          {['present', 'mission', 'convoy', 'fundraising'].includes(item.todayStatus.status ?? '') && (
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-75" />
+                          )}
+                          <span className="relative inline-flex size-2 rounded-full bg-current" />
+                        </span>
+                        <span>
+                          حالة اليوم: {item.todayStatus.statusLabel ?? 'لم يسجل بعد'}
+                          {item.todayStatus.activityTitle ? ` — ${item.todayStatus.activityTitle}` : ''}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-500/10 text-gray-600 border border-gray-500/20">
+                        <span className="size-1.5 rounded-full bg-gray-400" />
+                        حالة اليوم: لم يسجل بعد
+                      </span>
+                    )}
+                  </div>
+                  <p className="muted mt-2 flex items-center gap-2">
+                    <span className="font-semibold">{item.jobTitle ?? 'بدون مسمى وظيفي'}</span>
+                    {!isPhoneLikeCode(item.employeeCode, item.phoneE164) && (
+                      <>
+                        <span>•</span>
+                        <bdi
+                          dir="ltr"
+                          className="font-mono text-xs px-2 py-0.5 rounded bg-[var(--surface-muted)] text-[var(--text-secondary)] border border-[var(--border)] font-bold"
+                        >
+                          {item.employeeCode}
+                        </bdi>
+                      </>
+                    )}
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2.5 text-sm">
+                    <Info icon={Network} label={displayDepartments} />
+                    <Info icon={Phone} label={item.phoneE164 ? renderSafeIntlPhoneText(item.phoneE164) : 'بدون هاتف'} />
+                    <Info icon={Mail} label={item.email ?? 'بدون بريد'} />
+                    <Info
+                      icon={ShieldCheck}
+                      label={`الحساب: ${ACCOUNT_STATUS_LABELS[(item.accountStatus ?? '').toLowerCase()] ?? (accountPending ? 'بانتظار التفعيل' : 'غير متاح')}`}
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="rounded-2xl bg-[var(--surface-muted)] p-4 text-sm lg:min-w-64">
-                <div className="flex items-center justify-between">
+
+              {/* بطاقة العلاقة الإدارية */}
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-4 text-sm xl:w-84 xl:shrink-0">
+                <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
                   <p className="font-black">العلاقة الإدارية</p>
                   <button
                     type="button"
@@ -1469,33 +1544,194 @@ export function EmployeeDetailPage() {
                     عرض الهيكل
                   </button>
                 </div>
-                <div className="mt-2 flex items-center justify-between gap-2">
-                  <p className="muted">
-                    المدير المباشر: <span className="font-bold text-[var(--text)]">{item.managerName ?? 'غير معين'}</span>
-                  </p>
-                  {canEdit ? (
-                    <button type="button" onClick={() => setShowManagerDialog(true)} className="text-brand font-bold text-xs">
-                      تغيير
-                    </button>
-                  ) : null}
-                </div>
-                <p className="muted mt-1">المرؤوسون المباشرون: {item.directReports}</p>
-                <div className="mt-1 flex items-center justify-between gap-2">
-                  <p className="muted">الأدوار: {item.roles.map((role) => role.name).join('، ') || 'لا توجد'}</p>
-                  {hasPermission(auth.access, 'access.role.read') ? (
-                    <Link to="/admin/access" className="text-brand font-bold text-xs">
-                      إدارة الصلاحيات
-                    </Link>
-                  ) : null}
+                <div className="mt-2.5 space-y-2 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="muted">المدير المباشر:</span>
+                    <div className="flex items-center gap-1.5 font-bold text-[var(--text)]">
+                      <span>{item.managerName ?? 'غير معين'}</span>
+                      {canEdit ? (
+                        <button type="button" onClick={() => setShowManagerDialog(true)} className="text-brand font-bold text-xs hover:underline">
+                          تغيير
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="muted">المرؤوسون المباشرون:</span>
+                    <span className="font-bold text-[var(--text)]">{item.directReports}</span>
+                  </div>
+                  <div className="border-t border-[var(--border)] pt-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="muted">الأدوار:</span>
+                      {hasPermission(auth.access, 'access.role.read') ? (
+                        <Link to="/admin/access" className="text-brand font-bold text-xs hover:underline">
+                          إدارة الصلاحيات
+                        </Link>
+                      ) : null}
+                    </div>
+                    <p className="font-medium text-[var(--text-secondary)] leading-relaxed">
+                      {item.roles.map((role) => role.name).join('، ') || 'لا توجد'}
+                    </p>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setActiveTab('org-hierarchy')}
-                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[var(--brand-primary)]/30 bg-[var(--brand-primary-soft)]/20 px-3 py-1.5 text-xs font-bold text-[var(--brand-primary)] hover:bg-[var(--brand-primary)] hover:text-white transition"
+                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[var(--brand-primary)]/30 bg-[var(--brand-primary-soft)]/20 px-3 py-2 text-xs font-bold text-[var(--brand-primary)] hover:bg-[var(--brand-primary)] hover:text-white transition"
                 >
                   <Network className="size-3.5" />
                   الهيكل الإداري والمرؤوسون
                 </button>
+              </div>
+            </section>
+
+            {/* بطاقة الحالة التشغيلية واليومية */}
+            <section className="card p-5 border-r-4 border-r-[var(--brand-primary)]">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-[var(--surface-muted)] text-[var(--brand-primary)]">
+                    <CalendarDays className="size-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-black text-base">الحالة التشغيلية واليومية</h3>
+                      {item.todayStatus ? (
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black ${
+                          item.todayStatus.status === 'present'
+                            ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/30'
+                            : item.todayStatus.status === 'convoy'
+                            ? 'bg-purple-500/10 text-purple-600 border border-purple-500/30'
+                            : item.todayStatus.status === 'fundraising'
+                            ? 'bg-teal-500/10 text-teal-600 border border-teal-500/30'
+                            : item.todayStatus.status === 'mission'
+                            ? 'bg-blue-500/10 text-blue-600 border border-blue-500/30'
+                            : item.todayStatus.status === 'on_leave'
+                            ? 'bg-sky-500/10 text-sky-600 border border-sky-500/30'
+                            : item.todayStatus.status === 'late'
+                            ? 'bg-amber-500/10 text-amber-600 border border-amber-500/30'
+                            : item.todayStatus.status === 'absent'
+                            ? 'bg-rose-500/10 text-rose-600 border border-rose-500/30'
+                            : 'bg-gray-500/10 text-gray-600 border border-gray-500/30'
+                        }`}>
+                          <span className="size-1.5 rounded-full bg-current" />
+                          {item.todayStatus.statusLabel ?? item.todayStatus.status}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-500/10 text-gray-600 border border-gray-500/30">
+                          لم يسجل بعد
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                      متابعة الحالة التشغيلية والدوام لليوم الحالي
+                    </p>
+                  </div>
+                </div>
+
+                {item.todayStatus?.activityTitle && (
+                  <div className="flex items-center gap-1.5 rounded-xl bg-[var(--brand-primary-soft)]/20 border border-[var(--brand-primary)]/20 px-3 py-1.5 text-xs font-bold text-[var(--brand-primary)]">
+                    <MapPin className="size-3.5" />
+                    <span>الوجهة / النشاط: {item.todayStatus.activityTitle}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-[var(--border)] text-sm">
+                <div>
+                  <span className="text-xs text-[var(--text-secondary)] block">وقت الحضور</span>
+                  <span className="font-bold">
+                    {item.todayStatus?.checkInAt
+                      ? new Date(item.todayStatus.checkInAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+                      : '—'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-[var(--text-secondary)] block">وقت الانصراف</span>
+                  <span className="font-bold">
+                    {item.todayStatus?.checkOutAt
+                      ? new Date(item.todayStatus.checkOutAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+                      : '—'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-[var(--text-secondary)] block">
+                    {item.todayStatus?.lateMinutes && item.todayStatus.lateMinutes > 0 ? 'مدة التأخير' : 'ساعات العمل'}
+                  </span>
+                  <span className="font-bold">
+                    {item.todayStatus?.lateMinutes && item.todayStatus.lateMinutes > 0
+                      ? `${item.todayStatus.lateMinutes} دقيقة`
+                      : item.todayStatus?.workMinutes && item.todayStatus.workMinutes > 0
+                      ? `${(item.todayStatus.workMinutes / 60).toFixed(1)} ساعة`
+                      : (item.todayStatus?.status === 'convoy' || item.todayStatus?.status === 'mission' || item.todayStatus?.status === 'fundraising')
+                      ? 'مهمة عمل رسمية'
+                      : '—'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-[var(--text-secondary)] block">ملاحظة اليوم</span>
+                  <span className="font-bold text-xs text-[var(--text-secondary)]">
+                    {!item.todayStatus
+                      ? 'لم يسجل بعد'
+                      : item.todayStatus.status === 'convoy'
+                      ? 'مشارك في قافلة مساعدات'
+                      : item.todayStatus.status === 'fundraising'
+                      ? 'يوم ترفيهي للموظفين (فاندي)'
+                      : item.todayStatus.status === 'mission'
+                      ? 'مأمورية عمل خارجية'
+                      : item.todayStatus.status === 'on_leave'
+                      ? 'إجازة رسمية معتمدة'
+                      : item.todayStatus.status === 'present'
+                      ? 'قيد الدوام'
+                      : item.todayStatus.status === 'late'
+                      ? 'حضر مع تأخير'
+                      : item.todayStatus.status === 'absent'
+                      ? 'لم يسجل حضور'
+                      : 'لم يسجل بعد'}
+                  </span>
+                </div>
+              </div>
+
+              {/* قسم فترة العمل (الوردية المقررة) */}
+              <div className="mt-4 pt-3 border-t border-[var(--border)] flex flex-wrap items-center justify-between gap-3 text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-[var(--text-secondary)] font-semibold flex items-center gap-1.5">
+                    <Clock3 className="size-4 text-[var(--brand-primary)]" aria-hidden="true" />
+                    فترة العمل المقررة:
+                  </span>
+                  {activeShiftQuery.isLoading ? (
+                    <span className="text-xs text-[var(--text-secondary)]">جارٍ التحميل…</span>
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-bold text-[var(--text)]">
+                        {activeShiftQuery.data?.shiftName ?? 'الدوام الأساسي العام'}
+                      </span>
+                      {activeShiftQuery.data ? (
+                        <span className="text-xs text-[var(--text-secondary)] font-sans">
+                          ({formatShiftTiming(activeShiftQuery.data.startTime, activeShiftQuery.data.endTime, activeShiftQuery.data.graceInMinutes)})
+                        </span>
+                      ) : null}
+                      {activeShiftQuery.data?.isAssigned ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-black text-emerald-600 border border-emerald-500/20">
+                          معتمدة ومسندة
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-gray-500/10 px-2 py-0.5 text-xs font-semibold text-gray-600 border border-gray-500/20">
+                          الافتراضية العامة
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {canEdit ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowShiftDialog(true)}
+                    className="btn-secondary btn-sm text-xs font-bold flex items-center gap-1.5"
+                  >
+                    <Pencil className="size-3.5" aria-hidden="true" />
+                    تغيير الوردية
+                  </button>
+                ) : null}
               </div>
             </section>
 
@@ -1727,6 +1963,19 @@ export function EmployeeDetailPage() {
           onClose={() => setShowGrantRestDialog(false)}
           onSuccess={() => {
             setShowGrantRestDialog(false);
+            void query.refetch();
+          }}
+        />
+      ) : null}
+      {showShiftDialog && employeeId ? (
+        <AssignShiftDialog
+          employeeId={employeeId}
+          employeeName={item.fullNameAr}
+          employeeCode={item.employeeCode}
+          onClose={() => setShowShiftDialog(false)}
+          onSuccess={() => {
+            setShowShiftDialog(false);
+            void activeShiftQuery.refetch();
             void query.refetch();
           }}
         />

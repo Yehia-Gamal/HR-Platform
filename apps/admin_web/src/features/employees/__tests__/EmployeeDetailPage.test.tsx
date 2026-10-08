@@ -90,6 +90,41 @@ vi.mock('../useEmployees', () => ({
   useGrantWeeklyRestCredit: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useEmployeeAuditTrail: () => ({ data: [], isLoading: false, isError: false }),
   useSyncEmployeeDepartments: () => ({ isPending: false, mutateAsync: vi.fn() }),
+  useEmployeeActiveShift: () => ({
+    data: {
+      shiftId: 'shift-1',
+      shiftCode: 'OFFICIAL',
+      shiftName: 'الدوام الأساسي العام',
+      startTime: '10:00:00',
+      endTime: '18:00:00',
+      graceInMinutes: 15,
+      isAssigned: false,
+    },
+    isLoading: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+  useAvailableShifts: () => ({
+    data: [
+      {
+        id: 'shift-1',
+        code: 'OFFICIAL',
+        name: 'الدوام الأساسي العام',
+        startTime: '10:00:00',
+        endTime: '18:00:00',
+        graceInMinutes: 15,
+      },
+    ],
+    isLoading: false,
+    isError: false,
+    error: null,
+  }),
+  useSetEmployeeShiftAdmin: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
+  formatShiftTiming: (s: string, e: string) => `${s} – ${e}`,
 }));
 
 const departmentCreateMock = vi.hoisted(() => vi.fn(async () => '00000000-0000-4000-8000-0000000000d9'));
@@ -205,7 +240,7 @@ describe('EmployeeDetailPage', () => {
   it('يعرض عنوان الصفحة', () => {
     employee360Fn = () => dataQuery;
     renderPage();
-    expect(screen.getByText('ملف الموظف')).toBeDefined();
+    expect(screen.getByText(/^ملف الموظف/)).toBeDefined();
   });
 
   it('يعرض اسم الموظف عند توفر البيانات', () => {
@@ -276,5 +311,15 @@ describe('EmployeeDetailPage', () => {
     expect(orgTabBtn).toBeDefined();
     fireEvent.click(orgTabBtn);
     expect(screen.getByText('الهيكل والتسلسل الإداري للموظف')).toBeDefined();
+  });
+
+  it('يعرض فترة العمل المقررة وزر إسناد وتغيير الوردية', () => {
+    employee360Fn = () => dataQuery;
+    renderPage();
+    expect(screen.getByText('فترة العمل المقررة:')).toBeDefined();
+    expect(screen.getByText('الدوام الأساسي العام')).toBeDefined();
+    expect(screen.getByRole('button', { name: /إسناد الوردية/ })).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: /تغيير الوردية/ }));
+    expect(screen.getByText('إسناد وتغيير فترة العمل (الوردية)')).toBeDefined();
   });
 });

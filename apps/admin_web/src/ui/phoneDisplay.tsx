@@ -26,8 +26,31 @@ export function splitIntlPhone(value: string): { phone: string; rest: string } |
 }
 
 /**
- * يصحّح اتجاه أي رقم دولي داخل نص عربي: يلتقط الرقم، يصلّح ترتيبه إن لزم،
- * ويعرضه في <bdi dir="ltr"> ليبقى «+20…» بشكل صحيح داخل الفقرة.
+ * يزيل رمز الدولة (+20 أو 0020) ويعيد الرقم المصري بالصيغة المحلية (01xxxxxxxxx).
+ * الأرقام الدولية الأخرى غير المصرية يُعاد ترتيبها بالصيغة الصحيحة.
+ */
+export function stripCountryCode(value: string | null | undefined): string {
+  if (!value) return '';
+  const cleaned = fixIntlPhoneOrder(value).trim();
+  const compact = cleaned.replace(/[\s-]/g, '');
+
+  if (compact.startsWith('+20')) {
+    const rest = compact.slice(3).trim();
+    return rest.startsWith('0') ? rest : `0${rest}`;
+  }
+  if (compact.startsWith('0020')) {
+    const rest = compact.slice(4).trim();
+    return rest.startsWith('0') ? rest : `0${rest}`;
+  }
+  if (/^201[0125]\d{8}$/.test(compact)) {
+    return `0${compact.slice(2)}`;
+  }
+  return cleaned;
+}
+
+/**
+ * يصحّح اتجاه أي رقم دولي داخل نص عربي: يلتقط الرقم، يزيل رمز الدولة +20،
+ * ويعرضه في <bdi dir="ltr"> بشكل محلي سليم داخل الفقرة.
  */
 export function renderSafeIntlPhoneText(value: string): ReactNode {
   const match = splitIntlPhone(value);
@@ -35,7 +58,7 @@ export function renderSafeIntlPhoneText(value: string): ReactNode {
   return (
     <>
       {match.rest ? `${match.rest} ` : ''}
-      <bdi dir="ltr">{fixIntlPhoneOrder(match.phone)}</bdi>
+      <bdi dir="ltr">{stripCountryCode(match.phone)}</bdi>
     </>
   );
 }

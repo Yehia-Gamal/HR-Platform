@@ -34,9 +34,11 @@ import { useAttendanceTodayOverview } from './useAttendanceTodayOverview';
 import { notificationTargetPath } from '../notifications/notificationTarget';
 import { notificationCategoryIcon, notificationCategoryLabel } from '../notifications/notificationMeta';
 import { useNotifications } from '../notifications/useNotifications';
+import { useHrPrefix } from './access';
 
 export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
   const auth = useAuth();
+  const hrPrefix = useHrPrefix();
   const query = useDashboardOverview(type === 'hr' ? 'hr' : 'main_admin');
   const attendance = useAttendanceTodayOverview();
   const att = attendance.data;
@@ -53,12 +55,12 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
             icon: Users,
             hint: `${data.activeEmployees} موظفًا نشطًا`,
             trend: data.employees ? `${Math.round((data.activeEmployees / data.employees) * 100)}% نشط` : undefined,
-            to: '/hr/employees',
+            to: `${hrPrefix}/employees`,
           },
-          { label: 'طلبات معلقة', value: data.pendingRequests, icon: BadgeCheck, hint: 'وفق نطاق وصلاحيات المستخدم', to: '/hr/requests?status=pending' },
-          { label: 'حضور يحتاج مراجعة', value: data.attendancePendingReview, icon: Clock3, hint: 'تصحيحات واستثناءات اليوم', to: '/hr/attendance' },
-          { label: 'تقييمات قيد الدورة', value: data.pendingKpi, icon: Activity, hint: 'لم تصل للاعتماد النهائي', to: '/hr/performance' },
-          { label: 'طلبات توظيف مفتوحة', value: data.openRequisitions, icon: BriefcaseBusiness, hint: 'طلبات معتمدة أو قيد النشر', to: '/hr/recruitment' },
+          { label: 'طلبات معلقة', value: data.pendingRequests, icon: BadgeCheck, hint: 'وفق نطاق وصلاحيات المستخدم', to: `${hrPrefix}/requests?status=pending` },
+          { label: 'حضور يحتاج مراجعة', value: data.attendancePendingReview, icon: Clock3, hint: 'تصحيحات واستثناءات اليوم', to: `${hrPrefix}/attendance` },
+          { label: 'تقييمات قيد الدورة', value: data.pendingKpi, icon: Activity, hint: 'لم تصل للاعتماد النهائي', to: `${hrPrefix}/performance` },
+          { label: 'طلبات توظيف مفتوحة', value: data.openRequisitions, icon: BriefcaseBusiness, hint: 'طلبات معتمدة أو قيد النشر', to: `${hrPrefix}/recruitment` },
         ]
       : [
           {
@@ -125,9 +127,9 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
   const quickActions =
     type === 'hr'
       ? [
-          { label: 'إضافة موظف', to: '/hr/employees/new', icon: Plus },
-          { label: 'مراجعة الطلبات', to: '/hr/requests', icon: BadgeCheck },
-          { label: 'تشغيل الحضور', to: '/hr/attendance/operations', icon: CalendarDays },
+          { label: 'إضافة موظف', to: `${hrPrefix}/employees/new`, icon: Plus },
+          { label: 'مراجعة الطلبات', to: `${hrPrefix}/requests`, icon: BadgeCheck },
+          { label: 'تشغيل الحضور', to: `${hrPrefix}/attendance/operations`, icon: CalendarDays },
         ]
       : [
           { label: 'مركز الإجراءات', to: '/admin/actions', icon: ShieldAlert },
@@ -154,13 +156,13 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
   const priorities = data
     ? type === 'hr'
       ? [
-          { title: `${data.attendancePendingReview} حالة حضور تحتاج مراجعة`, description: 'ابدأ بالتصحيحات الأقدم والأعلى تأثيرًا.', to: '/hr/attendance' },
+          { title: `${data.attendancePendingReview} حالة حضور تحتاج مراجعة`, description: 'ابدأ بالتصحيحات الأقدم والأعلى تأثيرًا.', to: `${hrPrefix}/attendance` },
           {
             title: `${data.pendingRequests} طلبًا داخل مسارات الاعتماد`,
             description: 'تابع الطلبات التي اقتربت من تجاوز SLA.',
-            to: '/hr/requests?status=pending',
+            to: `${hrPrefix}/requests?status=pending`,
           },
-          { title: `${data.openRequisitions} احتياج توظيف مفتوح`, description: 'راجع الموافقات وخطة المقابلات.', to: '/hr/recruitment' },
+          { title: `${data.openRequisitions} احتياج توظيف مفتوح`, description: 'راجع الموافقات وخطة المقابلات.', to: `${hrPrefix}/recruitment` },
         ]
       : [
           { title: `${data.urgentActions} إجراء عاجل`, description: 'عناصر ذات أولوية زمنية أو أثر مؤسسي مرتفع.', to: '/admin/actions' },
@@ -239,14 +241,14 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Link
-                    to={type === 'admin' ? '/admin/hr/attendance?tab=executive' : '/hr/attendance?tab=executive'}
+                    to={`${hrPrefix}/attendance?tab=executive`}
                     className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-2.5 py-1 text-xs font-bold transition-colors hover:bg-[var(--surface-raised)]"
                   >
                     <span>التقرير التنفيذي</span>
                     <ArrowUpRight className="size-3" />
                   </Link>
                   <Link
-                    to={type === 'admin' ? '/admin/hr/attendance' : '/hr/attendance'}
+                    to={`${hrPrefix}/attendance`}
                     className="flex items-center gap-1 text-xs font-bold text-brand transition-colors hover:underline"
                   >
                     <span>شاشة الحضور والتتبع الحي</span>
@@ -279,7 +281,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
               {/* بطاقات توزيع الحضور الدقيقة */}
               <div className="mt-3.5 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6 text-xs">
                 <Link
-                  to={type === 'admin' ? '/admin/hr/attendance' : '/hr/attendance'}
+                  to={`${hrPrefix}/attendance`}
                   className="flex items-center gap-2 rounded-xl bg-[var(--surface-muted)] p-2.5 transition-colors hover:bg-[var(--surface-raised)]"
                 >
                   <span className="size-2 rounded-full bg-emerald-500" />
@@ -287,7 +289,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                   <strong className="text-emerald-500">{att.present}</strong>
                 </Link>
                 <Link
-                  to={type === 'admin' ? '/admin/hr/attendance' : '/hr/attendance'}
+                  to={`${hrPrefix}/attendance`}
                   className="flex items-center gap-2 rounded-xl bg-[var(--surface-muted)] p-2.5 transition-colors hover:bg-[var(--surface-raised)]"
                 >
                   <span className="size-2 rounded-full bg-amber-500" />
@@ -295,7 +297,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                   <strong className="text-amber-500">{att.late}</strong>
                 </Link>
                 <Link
-                  to={type === 'admin' ? '/admin/hr/attendance' : '/hr/attendance'}
+                  to={`${hrPrefix}/attendance`}
                   className="flex items-center gap-2 rounded-xl bg-[var(--surface-muted)] p-2.5 transition-colors hover:bg-[var(--surface-raised)]"
                 >
                   <span className="size-2 rounded-full bg-sky-500" />
@@ -303,7 +305,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                   <strong className="text-sky-500">{att.onAssignment}</strong>
                 </Link>
                 <Link
-                  to={type === 'admin' ? '/admin/hr/leaves' : '/hr/leaves'}
+                  to={`${hrPrefix}/leaves`}
                   className="flex items-center gap-2 rounded-xl bg-[var(--surface-muted)] p-2.5 transition-colors hover:bg-[var(--surface-raised)]"
                 >
                   <span className="size-2 rounded-full bg-purple-500" />
@@ -311,7 +313,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                   <strong className="text-purple-500">{att.onLeave}</strong>
                 </Link>
                 <Link
-                  to={type === 'admin' ? '/admin/hr/attendance' : '/hr/attendance'}
+                  to={`${hrPrefix}/attendance`}
                   className="flex items-center gap-2 rounded-xl bg-[var(--surface-muted)] p-2.5 transition-colors hover:bg-[var(--surface-raised)]"
                 >
                   <span className="size-2 rounded-full bg-slate-400" />
@@ -319,7 +321,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                   <strong>{att.notCheckedIn}</strong>
                 </Link>
                 <Link
-                  to={type === 'admin' ? '/admin/hr/attendance' : '/hr/attendance'}
+                  to={`${hrPrefix}/attendance`}
                   className="flex items-center gap-2 rounded-xl bg-[var(--surface-muted)] p-2.5 transition-colors hover:bg-[var(--surface-raised)]"
                 >
                   <span className="size-2 rounded-full bg-rose-500" />
@@ -484,9 +486,6 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                         className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]"
                       >
                         دورات KPI والاعتراضات
-                      </Link>
-                      <Link to="/admin/knowledge" className="rounded-lg bg-[var(--surface-muted)] px-2.5 py-1 font-bold hover:bg-[var(--surface-raised)]">
-                        التدريب والمعرفة
                       </Link>
                     </div>
                   </div>

@@ -66,3 +66,47 @@ export function useUpdateAlertStatus() {
     },
   });
 }
+
+/**
+ * يحل مجموعة تنبيهات دفعة واحدة.
+ */
+export function useResolveAllAlerts() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ids }: { ids: string[] }) => {
+      if (ids.length === 0) return;
+      const supabase = await getSupabase();
+      const { error } = await supabase
+        .from('system_alerts')
+        .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+        .in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['system-alerts'] });
+      void queryClient.invalidateQueries({ queryKey: ['system-health'] });
+    },
+  });
+}
+
+/**
+ * يؤكد مجموعة تنبيهات دفعة واحدة.
+ */
+export function useAcknowledgeAllAlerts() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ids }: { ids: string[] }) => {
+      if (ids.length === 0) return;
+      const supabase = await getSupabase();
+      const { error } = await supabase
+        .from('system_alerts')
+        .update({ status: 'acknowledged', acknowledged_at: new Date().toISOString() })
+        .in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['system-alerts'] });
+      void queryClient.invalidateQueries({ queryKey: ['system-health'] });
+    },
+  });
+}

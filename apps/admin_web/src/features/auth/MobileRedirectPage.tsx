@@ -4,18 +4,29 @@ const APP_SCHEME = 'ahlashabab://action';
 // ms to wait before concluding the app didn't open
 const FALLBACK_DELAY = 2200;
 
-function buildAppLink(): string {
-  // Supabase appends the session tokens to the hash of the redirectTo URL.
-  // Pass the full hash through so supabase_flutter can parse the session.
-  return APP_SCHEME + (window.location.hash || '');
+type UrlParts = Pick<Location, 'search' | 'hash'>;
+
+// Supabase يضع مُعاملات الجلسة إما في الـ hash (implicit) أو في الـ query
+// (PKCE `?code=` — وهو ما يفعله تطبيق الموبايل). إسقاط أيٍّ منهما يفقد الرمز
+// فلا يستطيع التطبيق مستقبِلاً تبادل رمز الاسترداد.
+function authCallbackParams(location: UrlParts): string {
+  return `${location.search || ''}${location.hash || ''}`;
+}
+
+export function buildAppLink(location: UrlParts = window.location): string {
+  return APP_SCHEME + authCallbackParams(location);
+}
+
+export function buildSetupUrl(location: UrlParts = window.location): string {
+  return `/auth/setup-password${authCallbackParams(location)}`;
 }
 
 export function MobileRedirectPage() {
   const [status, setStatus] = useState<'redirecting' | 'failed'>('redirecting');
   const appLink = useRef(buildAppLink());
-  // الرابط البديل لتعيين كلمة المرور من المتصفح يجب أن يحمل نفس الـ hash
+  // الرابط البديل لتعيين كلمة المرور من المتصفح يجب أن يحمل نفس المُعاملات
   // (توكنات جلسة الاسترداد). بدونها تظهر صفحة "الرابط غير صالح أو انتهت مدته".
-  const setupUrl = useRef(`/auth/setup-password${window.location.hash || ''}`);
+  const setupUrl = useRef(buildSetupUrl());
 
   useEffect(() => {
     // SEC: clear Supabase session tokens from the address bar so they don't

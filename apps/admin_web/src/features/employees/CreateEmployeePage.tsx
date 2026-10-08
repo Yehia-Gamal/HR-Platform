@@ -15,6 +15,7 @@ import { fixIntlPhoneOrder, sanitizePhoneInput } from '../../ui/phoneDisplay';
 import { useAuth } from '../auth/AuthProvider';
 import { ErrorBanner } from '../../ui/ErrorState';
 import { useOrganizationLookups } from './useOrganizationLookups';
+import { useHrPrefix } from '../workspaces/access';
 
 type FormInput = z.input<typeof createEmployeeInputSchema>;
 const defaultValues: Partial<FormInput> = { roleSlug: 'employee', sendInvite: false, initialPassword: '' };
@@ -23,6 +24,7 @@ const steps = ['الهوية والحساب', 'الهيكل والوظيفة', '
 
 export function CreateEmployeePage() {
   const auth = useAuth();
+  const hrPrefix = useHrPrefix();
   const lookups = useOrganizationLookups();
   const [step, setStep] = useState(0);
   const [result, setResult] = useState<string | null>(null);
@@ -201,7 +203,7 @@ export function CreateEmployeePage() {
         title="إنشاء موظف وحساب دخول"
         description="إنشاء ملف الموظف وحساب الدخول في رحلة موحدة بخطوات واضحة."
         actions={
-          <Link to="/hr/employees" className="btn-secondary text-sm">
+          <Link to={`${hrPrefix}/employees`} className="btn-secondary text-sm">
             <ArrowRight className="size-4" aria-hidden="true" />
             رجوع
           </Link>
