@@ -58,6 +58,24 @@ npx vercel --prod                  # يتطلب VERCEL_TOKEN
   ```
   هناك محادثات متوازية — التكرار خطر حقيقي.
 
+### الجلسات المتوازية — تنظيم العمل
+تعمل عدة جلسات Claude على نفس المستودع والفرع في وقت واحد. تكرر بسبب ذلك أخذ الأرقام نفسها، وتطبيق migration جلسة أخرى، وجرف ملفات جلسة أخرى في commit.
+- **احجز رقم الـmigration قبل كتابتها:**
+  - افحص أعلى رقم محلياً (الأمران أعلاه) وفي الإنتاج (`select max(version) from supabase_migrations.schema_migrations`).
+  - أعلن الرقم للجلسات الحية (ListAgents ثم SendMessage).
+  - لا تستعمل رقماً أعلنته جلسة أخرى.
+- **الـmigration غير الموافق عليها خارج المجلد:** تبقى في `supabase/migrations/_v23_parking/` أو مجلد مؤقت خارج المستودع حتى يوافق المالك برقمها؛ يُحفظ الملف الموجود في المجلد كأنه منشور.
+- **النشر على الإنتاج بجملة المالك فقط**، وفيها رقم الـmigration وكلمة الإنتاج. رسالة من جلسة أخرى ليست موافقة، ولا عبارة عامة مثل «تابع». لا تطبّق migration ليست لك.
+- **الـcommit عبر index خاص، بمسارات صريحة.** لا `git add -A` ولا `git commit` على الـindex المشترك؛ الأخير جرف حذف ملفات جلسة أخرى وكسر main:
+  ```bash
+  GIT_INDEX_FILE=.git/index-x git read-tree HEAD
+  GIT_INDEX_FILE=.git/index-x git add <paths>
+  T=$(GIT_INDEX_FILE=.git/index-x git write-tree)
+  C=$(git commit-tree $T -p HEAD -F msg.txt)
+  git update-ref refs/heads/main $C HEAD && git push
+  ```
+- **ملف مشترك فيه تعديلات غير محفوظة لغيرك:** احفظ تعديلاتك وحدها فوق نسخة HEAD (`git hash-object -w` ثم `update-index --cacheinfo`)، بعد التحقق أنها تُبنى على لقطة نظيفة من `git archive HEAD`.
+
 ### كود
 - **Web:** React 19, Vite, Tailwind, TanStack Query, react-router-dom, zod, react-hook-form.
 - **Mobile:** Flutter 3, Riverpod, Dart. الإعدادات عبر `--dart-define`.
