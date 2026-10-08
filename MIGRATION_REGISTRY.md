@@ -320,3 +320,6 @@
 | 0601 | `0601_attendance_state_pending_missions.sql` | دعم عرض بطاقة مأمورية العمل المعلقة أثناء انتظار موافقة المدير المباشر في لوحة الحضور. |
 | 0602 | `0602_fix_mobile_action_targets_and_defaults.sql` | إصلاح شامل لتحليل مسارات الإجراءات والإشعارات في الموبايل ودعم المعرف الافتراضي default لمسارات الغرامات والمالية والحضور والإشعارات والمشاريع. |
 | 0637 | `0637_revoke_anon_from_unguarded_secdef_functions.sql` | سحب anon من دوال SECURITY DEFINER بلا حارس جلسة: خمس دوال تُرجع بيانات أي موظف (القسم، الإعفاءات، الطلبات، المهام، حالة اليوم، دقائق الدفع) بأي معرّف دون فحص الجلسة، ودالة get_mobile_employees ودالة trigger handle_new_user — سحب من anon وPUBLIC مع إعادة grant صريحة لـ authenticated/service_role/postgres، ثم reload لمخطط PostgREST. |
+| 0660 | `0660_approval_speed_report.sql` | تقرير سرعة الاعتماد وSLA: دالة get_approval_speed_report لحساب متوسط وزمن الاعتماد لكل خطوة ومدير ومعدل الالتزام بـ SLA مع حماية كاملة ضد استدعاء anon. |
+| 0661 | `0661_executive_monthly_report.sql` | تقرير الإدارة التنفيذية الشهري الشامل: دالة get_executive_monthly_report لتجميع مؤشرات الحضور والطلبات والجزاءات وتقييمات الأداء مع تفصيل الأقسام. |
+| 0662 | `0662_approval_delegations.sql` | نظام تفويض الاعتمادات للمديرين: جدول approval_delegations ودوال التفويض والإلغاء وإعادة توجيه الطلبات للنائب المفوض تلقائياً أثناء فترة الغياب. |
