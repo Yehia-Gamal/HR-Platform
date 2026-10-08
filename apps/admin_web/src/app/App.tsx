@@ -536,6 +536,8 @@ function HrWorkspaceRoutes() {
           </RequirePermission>
         }
       />
+      <Route path="executive-monthly" element={<Navigate to="../reports?tab=executive-monthly" replace />} />
+      <Route path="reports/executive-monthly" element={<Navigate to="../reports?tab=executive-monthly" replace />} />
       <Route
         path="devices"
         element={
