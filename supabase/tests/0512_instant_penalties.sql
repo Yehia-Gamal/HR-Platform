@@ -18,7 +18,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
 set local timezone = 'Africa/Cairo';
-select plan(36);
+select plan(49);
 
 -- =====================================================================
 -- Fixture: كيان + إدارة + وظيفة + موظف مسؤول (full-access) + موظف عادي
@@ -82,8 +82,9 @@ select ok(
 
 select has_function('public', 'calc_instant_penalty_amount', array['integer'],
   'calc_instant_penalty_amount(integer) موجودة');
-select has_function('public', 'generate_instant_penalty', array['uuid', 'date', 'integer'],
-  'generate_instant_penalty(uuid, date, integer) موجودة');
+-- 0612 أعادت الدالة بمعامل رابع p_notes (بدون قيمة افتراضية) وإرجاع jsonb.
+select has_function('public', 'generate_instant_penalty', array['uuid', 'date', 'integer', 'text'],
+  'generate_instant_penalty(uuid, date, integer, text) موجودة');
 select has_function('public', 'confirm_instant_penalty_payment', array['uuid', 'text'],
   'confirm_instant_penalty_payment(uuid, text) موجودة');
 select has_function('public', 'get_instant_penalties', array['uuid', 'text', 'date', 'date', 'integer', 'integer'],
@@ -114,7 +115,7 @@ select is(public.calc_instant_penalty_amount(180), 150.00::numeric, '180 دقي�
 -- =====================================================================
 select is(pg_catalog.has_function_privilege('anon', 'public.calc_instant_penalty_amount(integer)', 'EXECUTE'),
   false, 'anon لا ينفّذ calc_instant_penalty_amount');
-select is(pg_catalog.has_function_privilege('anon', 'public.generate_instant_penalty(uuid, date, integer)', 'EXECUTE'),
+select is(pg_catalog.has_function_privilege('anon', 'public.generate_instant_penalty(uuid, date, integer, text)', 'EXECUTE'),
   false, 'anon لا ينفّذ generate_instant_penalty');
 select is(pg_catalog.has_function_privilege('anon', 'public.get_instant_penalties(uuid, text, date, date, integer, integer)', 'EXECUTE'),
   false, 'anon لا ينفّذ get_instant_penalties');
@@ -135,7 +136,7 @@ select set_config(
 -- إنشاء غرامة لتأخير 25 دقيقة (20 ج.م)
 select lives_ok(
   format($q$ select public.generate_instant_penalty(
-    %L::uuid, current_date, 25) $q$,
+    %L::uuid, current_date, 25, null) $q$,
     current_setting('app.t0512_emp', true)::uuid),
   'إنشاء غرامة فورية لتأخير 25 دقيقة يُنفذ بنجاح');
 
@@ -165,7 +166,7 @@ select is(
 -- =====================================================================
 select lives_ok(
   format($q$ select public.generate_instant_penalty(
-    %L::uuid, current_date, 45) $q$,
+    %L::uuid, current_date, 45, null) $q$,
     current_setting('app.t0512_emp', true)::uuid),
   'محاولة إنشاء غرامة مكررة (نفس التاريخ) لا تفشل');
 
@@ -181,14 +182,14 @@ select is(
 -- =====================================================================
 select lives_ok(
   format($q$ select public.generate_instant_penalty(
-    %L::uuid, current_date, 10) $q$,
-    'f5120000-0000-4000-8000-000000000099'::uuid),
+    %L::uuid, current_date, 10, null) $q$,
+    current_setting('app.t0512_admin', true)::uuid),
   'محاولة إنشاء غرامة لتأخير 10 دقائق (فترة سماح)');
 
 -- لا يجب أن يُنشأ سجل لأن المبلغ = 0
 select is(
   (select count(*)::int from public.instant_attendance_penalties
-   where employee_id = 'f5120000-0000-4000-8000-000000000099'),
+   where employee_id = nullif(current_setting('app.t0512_admin', true), '')::uuid),
   0,
   'لا تُنشأ غرامة لتأخير 10 دقائق (فترة سماح)');
 
@@ -277,7 +278,7 @@ select is(
 -- التحقق من تغيير الحالة إلى pending_payment
 select is(
   (select status from public.instant_attendance_penalties
-   where employee_id = nullif(current_setting('app.t0512_emp', true), '')
+   where employee_id = nullif(current_setting('app.t0512_emp', true), '')::uuid
      and work_date = current_date - 5),
   'pending_payment',
   'حالة الغرامة تعود pending_payment بعد رفع التعليق');
@@ -326,7 +327,7 @@ select throws_ok(
      where employee_id = %L::uuid and status = 'paid' limit 1),
     'سبب') $q$,
     current_setting('app.t0512_emp', true)),
-  22023, '22023',
+  22023, 'لا يمكن إلغاء غرامة تم دفعها وتوريدها لصندوق الزمالة',
   'لا يمكن إلغاء غرامة مدفوعة بالفعل');
 
 -- =====================================================================
@@ -344,28 +345,28 @@ end $set_emp$;
 
 select throws_ok($$
   select public.generate_instant_penalty(
-    'f5120000-0000-4000-8000-000000000012'::uuid, current_date, 25)
-$$, 42501, '42501',
+    'f5120000-0000-4000-8000-000000000012'::uuid, current_date, 25, null)
+$$, 42501, null,
   'الموظف العادي لا يستطيع إنشاء غرامة فورية (42501)');
 
 select throws_ok($$
   select public.confirm_instant_penalty_payment(
     (select id from public.instant_attendance_penalties limit 1), null)
-$$, 42501, '42501',
+$$, 42501, null,
   'الموظف العادي لا يستطيع تأكيد الدفع (42501)');
 
 select throws_ok($$
   select public.lift_instant_penalty_suspension(
     (select id from public.instant_attendance_penalties
      where status = 'suspended' limit 1), null)
-$$, 42501, '42501',
+$$, 42501, null,
   'الموظف العادي لا يستطيع رفع التعليق (42501)');
 
 select throws_ok($$
   select public.cancel_instant_penalty(
     (select id from public.instant_attendance_penalties
      where status = 'pending_payment' limit 1), 'سبب')
-$$, 42501, '42501',
+$$, 42501, null,
   'الموظف العادي لا يستطيع إلغاء غرامة (42501)');
 
 reset role;

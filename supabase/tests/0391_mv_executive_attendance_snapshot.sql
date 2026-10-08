@@ -55,8 +55,8 @@ select alike(
    join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname = 'get_executive_attendance_overview'
    limit 1),
-  '%mv_executive_attendance_snapshot%',
-  'get_executive_attendance_overview تقرأ من الـ MV للأداء'
+  '%attendance_day_board%',
+  'get_executive_attendance_overview تقرأ من المصدر الواحد attendance_day_board (0597)'
 );
 
 select finish();

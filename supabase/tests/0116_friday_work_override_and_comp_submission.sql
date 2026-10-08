@@ -30,10 +30,23 @@ select results_eq(
 
 -- 3. get_executive_attendance_overview: فحص الجمعة يأتي كـ fallback
 --    في 0279 كان أولاً (قبل on_leave)، في 0333 يجب أن يأتي بعد (else 'not_yet')
+--    0597: نقل التصنيف إلى attendance_day_board — الترتيب هناك:
+--    on_leave ← assignment ← ... ← weekend (غير العمل) ← not_yet.
+--    0631: جسم اللوحة صار في attendance_day_board_scoped (الاسم القديم غلاف).
 select isnt_empty(
   $$ select 1 from pg_proc
      where proname = 'get_executive_attendance_overview'
-       and prosrc like '%when on_leave%when assignment_type%weekend%else ''not_yet''%' $$,
+       and prosrc like '%attendance_day_board%'
+       and exists (
+         select 1 from pg_proc b
+          where b.proname in ('attendance_day_board', 'attendance_day_board_scoped')
+            and b.prosrc like '%when t.leave_like then ''on_leave''%'
+            and b.prosrc like '%when t.offsite and not t.checked_in then ''assignment''%'
+            and b.prosrc like '%when not t.is_workday then ''weekend''%'
+            and position('when not t.is_workday then ''weekend''' in b.prosrc)
+              > position('when t.leave_like then ''on_leave''' in b.prosrc)
+            and position('when p_date > c.today then ''not_yet''' in b.prosrc)
+              > position('when not t.is_workday then ''weekend''' in b.prosrc)) $$,
   '3. get_executive_attendance_overview: فحص الجمعة يأتي كـ fallback بعد الحالات الأخرى'
 );
 
@@ -46,11 +59,23 @@ select isnt_empty(
 );
 
 -- 5. get_executive_attendance_today: فحص mission قبل weekend
+--    0597: الترتيب في attendance_day_board: offsite → 'assignment' قبل
+--    'not is_workday → weekend'، والدالة تعدّل assignment → on_mission.
+--    0631: جسم اللوحة في attendance_day_board_scoped.
 select isnt_empty(
   $$ select 1 from pg_proc
      where proname = 'get_executive_attendance_today'
-       and prosrc like '%mission.id is not null then ''on_mission''%'
-       and prosrc like '%isodow%v_today%5%weekend%' $$,
+       and prosrc like '%attendance_day_board%'
+       and prosrc like '%when ''assignment'' then ''on_mission''%'
+       and position('when ''assignment'' then ''on_mission''' in prosrc)
+           < position('when ''weekend'' then' in prosrc)
+       and exists (
+         select 1 from pg_proc b
+          where b.proname in ('attendance_day_board', 'attendance_day_board_scoped')
+            and b.prosrc like '%when t.offsite and not t.checked_in then ''assignment''%'
+            and b.prosrc like '%when not t.is_workday then ''weekend''%'
+            and position('when t.offsite and not t.checked_in then ''assignment''' in b.prosrc)
+              < position('when not t.is_workday then ''weekend''' in b.prosrc)) $$,
   '5. get_executive_attendance_today: فحص mission قبل weekend يوم الجمعة'
 );
 

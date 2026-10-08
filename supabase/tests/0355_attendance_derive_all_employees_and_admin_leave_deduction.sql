@@ -5,7 +5,7 @@
 --   (1) get_attendance_dashboard: no-show ÙŠÙØ¹Ø¯ ØºØ§Ø¦Ø¨Ù‹Ø§ØŒ ÙˆÙØ¦Ø§Øª on_leave/on_mission/
 --       missing_checkout Ø§Ø´ØªÙ‚Ø§Ù‚ÙŠØ© Ø¬Ø¯ÙŠØ¯Ø©.
 --   (2) get_attendance_day_roster: ÙØ¦Ø§Øª on_leave/on_mission/missing_checkout.
---   (3) set_employee_attendance_day_admin: p_leave_type + Ø·Ù„Ø¨ Ù…Ø¹ØªÙ…Ø¯ + Ø®ØµÙ… Ø±ØµÙŠØ¯ØŒ
+--   (3) set_employee_attendance_day_admin: p_leave_type + معتمد + خصم رصيد، الاختياري (غياب <- unpaid)، وتصحيح النوع غير المعروف إلى annual (0501).
 --       Ø§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠ (ØºÙŠØ§Ø¨ â† unpaid)ØŒ Ø±ÙØ¶ Ø§Ù„Ù†ÙˆØ¹ ØºÙŠØ± Ø§Ù„Ù…Ø¯Ø¹ÙˆÙ…ØŒ ÙˆØ§Ù„Ø±ÙØ¶ Ù„ØºÙŠØ± Ø§Ù„Ù…ØµØ±Ø­.
 --   (4) Ø³Ù‚ÙˆØ· Ø§Ù„ØªÙˆÙ‚ÙŠØ¹ Ø§Ù„Ù‚Ø¯ÙŠÙ… (9 Ø¨Ø§Ø±Ø§Ù…ØªØ±Ø§Øª) Ø­ØªÙ‰ Ù„Ø§ ÙŠÙØªØ¬Ø§ÙˆØ² Ø§Ù„Ù…Ø³Ø§Ø± Ø§Ù„Ø¬Ø¯ÙŠØ¯.
 
@@ -85,9 +85,20 @@ begin
   insert into public.attendance_daily(employee_id, work_date, shift_id,
     first_check_in, last_check_out, work_minutes, late_minutes, status, is_finalized)
   values
-    ('d3550000-0000-4000-8000-000000000010', v_day, v_shift, '2026-08-03 09:00:00+02', '2026-08-03 17:00:00+02', 480, 0, 'present', true),
-    ('d3550000-0000-4000-8000-000000000011', v_day, v_shift, '2026-08-03 09:15:00+02', '2026-08-03 17:00:00+02', 465, 15, 'late',   true),
-    ('d3550000-0000-4000-8000-000000000012', v_day, v_shift, '2026-08-03 09:00:00+02', null,                         0,   0, 'present', false);
+    ('d3550000-0000-4000-8000-000000000010', v_day, v_shift, '2026-08-03 09:00:00+03', '2026-08-03 17:00:00+03', 480, 0, 'present', true),
+    ('d3550000-0000-4000-8000-000000000011', v_day, v_shift, '2026-08-03 09:15:00+03', '2026-08-03 17:00:00+03', 465, 15, 'late',   true),
+    ('d3550000-0000-4000-8000-000000000012', v_day, v_shift, '2026-08-03 09:00:00+03', null,                         0,   0, 'present', false);
+
+  -- إسناد وردية 09:00 للموظفين الثلاثة: الحساب الموحّد (attendance_day_facts)
+  -- يشتق التأخير من الوردية المسندة لا من late_minutes المخزّن، فلا بد أن
+  -- يكون الإسناد موجوداً كي يظهر تأخير 09:15 = 15 دقيقة.
+  -- الأوقات أعلاه بصيغة +03 لأن القاهرة صيفاً UTC+3 (DST) في أغسطس 2026؛
+  -- الإزاحة +02 كانت تجعل حضور 09:00 فعلياً 10:00 بتوقيت الوردية.
+  insert into public.shift_assignments(employee_id, shift_id, is_active, effective_from)
+  values
+    ('d3550000-0000-4000-8000-000000000010', v_shift, true, '2020-01-01'),
+    ('d3550000-0000-4000-8000-000000000011', v_shift, true, '2020-01-01'),
+    ('d3550000-0000-4000-8000-000000000012', v_shift, true, '2020-01-01');
 
   -- Ø¥Ø¬Ø§Ø²Ø© Ù…Ø¹ØªÙ…Ø¯Ø© Ù…Ø¨Ø§Ø´Ø±Ø© (annual) â€” Ù„Ø§ ØµÙ Ø­Ø¶ÙˆØ± Ù„Ù„ÙŠÙˆÙ… â†’ Ø§Ø´ØªÙ‚Ø§Ù‚ on_leave.
   select id into v_annual from public.leave_types where code = 'annual';
@@ -122,6 +133,14 @@ begin
   select id into v_unpaid from public.leave_types where code = 'unpaid';
   perform public.ensure_leave_account('d3550000-0000-4000-8000-000000000017', v_unpaid, 2026);
 end $fixture$;
+
+-- 0589: لوحة الحضور SECURITY DEFINER تُصفّي الموظفين بـ can_access_employee،
+-- فلا تُرجع أي عدد بلا هوية مستخدم. نُشغّل الجلسة بهوية المشرف تجريبي
+-- كامل الصلاحيات (نفس ما يحدث في الإنتاج) قبل فحوص اللوحة.
+select set_config('request.jwt.claims',
+  '{"sub":"d3550000-0000-4000-8000-000000000020","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub',
+  'd3550000-0000-4000-8000-000000000020', true);
 
 -- =====================================================================
 -- (1) Ø¯ÙˆØ§Ù„ 0355 Ù…ÙˆØ¬ÙˆØ¯Ø© Ø¨Ø§Ù„ØªÙˆÙ‚ÙŠØ¹Ø§Øª Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø©ØŒ ÙˆØ§Ù„Ù‚Ø¯ÙŠÙ… Ø³Ù‚Ø·.
@@ -341,12 +360,15 @@ select is(
 -- (6) Ø§Ù„Ù†ÙˆØ¹ ØºÙŠØ± Ø§Ù„Ù…Ø¯Ø¹ÙˆÙ… ÙŠÙØ±ÙØ¶ Ù‚Ø¨Ù„ Ø£ÙŠ Ø£Ø«Ø±.
 -- =====================================================================
 set local role authenticated;
-select throws_ok($q$
-  select public.set_employee_attendance_day_admin(
-    'd3550000-0000-4000-8000-000000000017',
-    nullif(current_setting('app.t0355_day', true), '')::date,
-    'leave', null, null, false, false, 'Ø³Ø¨Ø¨ Ø§Ø®ØªØ¨Ø§Ø±ÙŠ ÙƒØ§ÙÙ Ù„Ù„Ù…Ø¯Ù‰', null, 'bogus')
-$q$, '22023', null, 'Ù†ÙˆØ¹ Ø¥Ø¬Ø§Ø²Ø© ØºÙŠØ± Ù…Ø¯Ø¹ÙˆÙ… ÙŠÙØ±ÙØ¶ (22023)');
+-- 0501: النوع غير المعروف لم يعد يرفع 22023 — يُصحَّح تلقائياً إلى annual
+--       ويُحفظ الترميز بالقيمة المصححة (تبسيط ترميز الأيام الإداري).
+select is(
+  (public.set_employee_attendance_day_admin(
+     'd3550000-0000-4000-8000-000000000017',
+     nullif(current_setting('app.t0355_day', true), '')::date,
+     'leave', null, null, false, false, 'سبب اختبار نوع إجازة غير معروف', null, 'bogus')->>'leaveType'),
+  'annual',
+  'نوع إجازة غير معروف يُصحَّح إلى annual بدل رفع 22023 (0501)');
 
 -- =====================================================================
 -- (7) ØºÙŠØ± Ø§Ù„Ù…ØµØ±Ø­ (Ø¨Ù„Ø§ Ø£Ø¯ÙˆØ§Ø±) ÙŠÙØ±ÙØ¶.

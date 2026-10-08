@@ -135,13 +135,13 @@ set local role authenticated;
 -- إجازة اعتيادية 3 أيام → تبقى pending (تحتاج موافقة) وتحجز الرصيد.
 select lives_ok($$
   select public.submit_my_request('leave','إجازة اعتيادية','سبب مقبول للإجازة',
-    '{"leaveType":"annual","startDate":"2026-09-01","endDate":"2026-09-03"}'::jsonb)
+    jsonb_build_object('leaveType','annual','startDate',to_char(current_date - 3,'YYYY-MM-DD'),'endDate',to_char(current_date - 1,'YYYY-MM-DD')))
 $$, 'تقديم إجازة اعتيادية ينجح');
 
 -- عارضة يومان → تُعتمَد فورًا (immediate).
 select lives_ok($$
   select public.submit_my_request('leave','إجازة عارضة','ظرف طارئ مفاجئ',
-    '{"leaveType":"casual","startDate":"2026-09-10","endDate":"2026-09-11"}'::jsonb)
+    jsonb_build_object('leaveType','casual','startDate',to_char(current_date + 5,'YYYY-MM-DD'),'endDate',to_char(current_date + 6,'YYYY-MM-DD')))
 $$, 'تقديم إجازة عارضة ينجح');
 
 -- =====================================================================

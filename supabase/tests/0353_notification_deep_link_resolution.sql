@@ -36,16 +36,20 @@ select function_privs_are(
   'authenticated', array['EXECUTE'],
   'authenticated clients resolve action targets');
 select ok(
-  position('''live_location'' then' in pg_get_functiondef(
+  position('''live_location'' then' in lower(pg_get_functiondef(
     'public.resolve_mobile_action_target(text,text)'::regprocedure
-  )) > 0,
+  ))) > 0,
   'action resolver normalizes the proactive live_location kind');
-select throws_ok($$
-  select public.resolve_mobile_action_target('00000000-0000-0000-0000-000000000001','bogus')
-$$, '22023', null, 'action resolver rejects unsupported kinds');
-select throws_ok($$
-  select public.resolve_mobile_action_target('00000000-0000-0000-0000-000000000001','live_location')
-$$, 'P0002', null, 'live_location kind is accepted then guarded by existence');
+-- 0549 استبدلت رمي 22023/P0002 بكائن jsonb آمن mobileRoute='unsupported'
+-- (منع تجميد الموبايل على شاشة «جاري فتح الإشعار...»)
+select is(
+  public.resolve_mobile_action_target('00000000-0000-0000-0000-000000000001','bogus'),
+  '{"kind": "bogus", "recordId": "00000000-0000-0000-0000-000000000001", "mobileRoute": "unsupported"}'::jsonb,
+  'action resolver rejects unsupported kinds');
+select is(
+  public.resolve_mobile_action_target('00000000-0000-0000-0000-000000000001','live_location'),
+  '{"kind": "live_location_request", "recordId": "00000000-0000-0000-0000-000000000001", "mobileRoute": "unsupported"}'::jsonb,
+  'live_location kind is accepted then guarded by existence');
 
 -- get_live_location_request_by_id يفتح طلب الموقع بالمعرّف للطرفين (0353)
 select has_function(

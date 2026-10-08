@@ -133,8 +133,10 @@ begin
 
   -- حضور اليوم للموظف الزميل (لاختبار الحالة العامة في الدليل) + حضور للزميل بلا رصيد
   -- بتاريخ القاهرة اتساقاً مع get_mobile_employee_directory (نافذة منتصف الليل UTC≠القاهرة)
-  insert into public.attendance_daily (employee_id, work_date, status)
-  values ('11111111-0000-4000-8000-000000000202', (now() at time zone 'Africa/Cairo')::date, 'present');
+  -- first_check_in ضروري: لوحة/الدليل تُشتق present من checked_in في حقائق اليوم لا من status.
+  insert into public.attendance_daily (employee_id, work_date, status, first_check_in)
+  values ('11111111-0000-4000-8000-000000000202', (now() at time zone 'Africa/Cairo')::date, 'present',
+          ((now() at time zone 'Africa/Cairo')::date + interval '6 hours') at time zone 'Africa/Cairo');
 end $fixture$;
 
 -- =====================================================================

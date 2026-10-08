@@ -132,8 +132,8 @@ select throws_like(
        (select id from public.leave_types where code = 'weekly_rest_comp'),
        2026, 'reserve', 2, 'test:wr:reserve:x'
      ) $$,
-  '%INSUFFICIENT_LEAVE_BALANCE%',
-  '7. reserve بـ2 والرصيد 1 → INSUFFICIENT_LEAVE_BALANCE'
+  '%رصيد الإجازة غير كافٍ%',
+  '7. reserve بـ2 والرصيد 1 → رصيد غير كافٍ (0600)'
 );
 
 -- 8. reserve ضمن الرصيد → نجاح والرصيد المتاح ينخفض

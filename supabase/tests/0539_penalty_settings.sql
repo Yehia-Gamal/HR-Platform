@@ -82,7 +82,7 @@ select set_config('request.jwt.claim.sub', current_setting('app.t0539_user_e', t
 
 select throws_ok(
   $$select public.update_penalty_settings('[{"key":"grace_minutes","value":5}]'::jsonb)$$,
-  'non-admin update rejected'
+  'غير مصرح — يتطلب صلاحيات كاملة'
 );
 
 select * from finish();

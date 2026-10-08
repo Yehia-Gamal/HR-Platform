@@ -24,18 +24,20 @@ select ok(
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- ② Selection order — first CHECK_IN (asc), last CHECK_OUT (desc)
+--    ملاحظة: تباعد المسافات حول '=' يعتمد على نص الدالة المخزن، فالفحص
+--    يقبل الحالتين (event_type='X' و event_type = 'X').
 -- ═══════════════════════════════════════════════════════════════════════════
 
 select ok(
-  position('event_type=''CHECK_IN''' in pg_get_functiondef(
-    'public.get_my_attendance_state(text)'::regprocedure)) > 0
+  pg_get_functiondef('public.get_my_attendance_state(text)'::regprocedure)
+    ~ 'event_type\s*=\s*''CHECK_IN'''
   and position('order by event_at asc' in pg_get_functiondef(
     'public.get_my_attendance_state(text)'::regprocedure)) > 0,
   '0439: todayCheckInAt picks the FIRST check-in of the day');
 
 select ok(
-  position('event_type=''CHECK_OUT''' in pg_get_functiondef(
-    'public.get_my_attendance_state(text)'::regprocedure)) > 0
+  pg_get_functiondef('public.get_my_attendance_state(text)'::regprocedure)
+    ~ 'event_type\s*=\s*''CHECK_OUT'''
   and position('order by event_at desc' in pg_get_functiondef(
     'public.get_my_attendance_state(text)'::regprocedure)) > 0,
   '0439: todayCheckOutAt picks the LAST check-out of the day');

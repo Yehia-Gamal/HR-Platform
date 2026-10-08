@@ -57,14 +57,14 @@ select lives_ok(
   begin
     select prosrc into v_src from pg_proc
     where proname='generate_punch_reminders' and pronamespace='public'::regnamespace;
-    if v_src not ilike '%operations-manager-1%' then
-      raise exception 'generate_punch_reminders تستثني operations-manager-1';
+    if v_src not ilike '%is_employee_attendance_exempt%' then
+      raise exception 'generate_punch_reminders missing is_employee_attendance_exempt (0585)';
     end if;
-    if v_src not ilike '%executive-director%' then
-      raise exception 'generate_punch_reminders تستثني executive-director';
+    if v_src not ilike '%comms.notification.send%' then
+      raise exception 'generate_punch_reminders missing permission gate comms.notification.send (0585)';
     end if;
   end $t$$live$,
-  'مصدر الدالة يشمل أدوار الاستثناء كاملة');
+  'مصدر الدالة يستخدم آلية الاستبعاد الحالية (0585)');
 
 -- (3) استدعاء الدالة لا يُنشئ أي تذكير لحامل operations-manager-1
 select lives_ok(

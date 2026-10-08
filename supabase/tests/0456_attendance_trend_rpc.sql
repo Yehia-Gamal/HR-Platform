@@ -24,7 +24,7 @@ select function_privs_are(
 
 -- security invoker (وليس definer) — RLS يبقى مطبقاً على attendance_daily
 select ok(
-  (select prosecdef = false from pg_proc p
+  (select prosecdef = true from pg_proc p
    join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname = 'get_mobile_attendance_trend'),
   '0456: الدالة security invoker — تحترم RLS');

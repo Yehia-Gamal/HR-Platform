@@ -146,24 +146,35 @@ select ok((select code like 'PRJ-%' from public.association_projects where name 
 
 -- =====================================================================
 -- 4) نطاق الإدارة: الزميل يدير، الغريب لا يرى
+--    ملاحظة: قراءة الجаблиц مباشرةً كـ authenticated محجوبة بـ RLS
+--    (سياسة projects_owner_read للمالك فقط) — والتطبيق نفسه يحصل على
+--    المعرّف عبر get_association_projects()، لذا نستخدم نفس المسار هنا.
 -- =====================================================================
+create or replace function pg_temp.prj_id(p_code text) returns uuid
+language sql stable as $f$
+  select (x->>'id')::uuid
+    from jsonb_array_elements(public.get_association_projects() -> 'projects') x
+   where x->>'code' = p_code
+   limit 1
+$f$;
+
 select pg_temp.act_as('f5530000-0000-4000-8000-000000000022');
 set local role authenticated;
 
 select lives_ok($$
   select public.upsert_project_step_admin(
-    (select id from public.association_projects where code = 'PRJ-0553-A'),
+    pg_temp.prj_id('PRJ-0553-A'),
     null, 'دراسة', null, null, 'pending', null, null)
 $$, 'الزميل في نفس الإدارة يضيف خطوة');
 
 select lives_ok($$
   select public.upsert_project_step_admin(
-    (select id from public.association_projects where code = 'PRJ-0553-A'),
+    pg_temp.prj_id('PRJ-0553-A'),
     null, 'تنفيذ', null, null, 'pending', null, null)
 $$, 'الزميل يضيف خطوة ثانية');
 
 select lives_ok($$ select public.submit_project_for_approval(
-    (select id from public.association_projects where code = 'PRJ-0553-A')) $$,
+    pg_temp.prj_id('PRJ-0553-A')) $$,
   'الزميل يرسل مشروع الإدارة للاعتماد');
 
 select throws_ok($$ select public.approve_project(
@@ -247,7 +258,7 @@ select is(public.notify_stalled_association_projects(), 0, 'لا يتكرر ال
 select pg_temp.act_as('f5530000-0000-4000-8000-000000000022');
 set local role authenticated;
 select lives_ok($$ select public.add_project_update_admin(
-    (select id from public.association_projects where code = 'PRJ-0553-A'), 'استُؤنف العمل', null, null) $$,
+    pg_temp.prj_id('PRJ-0553-A'), 'استُؤنف العمل', null, null) $$,
   'الزميل يضيف تحديثاً');
 select is(
   (select x ->> 'ledStatus' from jsonb_array_elements(public.get_association_projects() -> 'projects') x

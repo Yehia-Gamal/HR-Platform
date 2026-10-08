@@ -126,13 +126,15 @@ select is(
    where employee_id = '11111111-0000-4000-8000-000000000301'
      and work_date between '2026-06-15' and '2026-06-17' and status = 'present'),
   3, 'مأمورية payload (3 أيام) → present بلا غياب');
+-- 0545: end_at الافتراضي صار نهاية اليوم T23:59:59 بدل T00:00:00 (كان T00:00 يسبق
+-- start_at وقت الإنشاء فيخرق ck_missions_period بـ 23514 عند اعتماد المأمورية)
 select is(
   (select count(*)::int from public.missions
    where request_id = '33333333-0000-4000-8000-000000000301'
      and employee_id = '11111111-0000-4000-8000-000000000301'
      and destination = 'الفيوم'
      and start_at at time zone 'Africa/Cairo' = '2026-06-15 00:00:00'
-     and end_at at time zone 'Africa/Cairo' = '2026-06-17 00:00:00'),
+     and end_at at time zone 'Africa/Cairo' = '2026-06-17 23:59:59'),
   1, 'الخانات الخاصة: missions مُعبّأة من payload (الوجهة والتواريخ)');
 
 -- مأمورية payload تغطي جمعة (2026-06-19) → بدل راحة أسبوعي تلقائي
@@ -166,13 +168,15 @@ select is(
    where employee_id = '11111111-0000-4000-8000-000000000301'
      and work_date between '2026-06-22' and '2026-06-23' and status = 'present'),
   2, 'قافلة payload → present بلا غياب');
+-- 0545: return_at الافتراضي ( endDate > startDate ) صار نهاية اليوم T23:59:59
+-- بدل T00:00:00 — طبّقت 0545 نفس حماية المأمورية على convoy_requests
 select is(
   (select count(*)::int from public.convoy_requests
    where request_id = '33333333-0000-4000-8000-000000000303'
      and employee_id = '11111111-0000-4000-8000-000000000301'
      and destination = 'الريف الأوروبي'
      and departure_at at time zone 'Africa/Cairo' = '2026-06-22 00:00:00'
-     and return_at at time zone 'Africa/Cairo' = '2026-06-23 00:00:00'),
+     and return_at at time zone 'Africa/Cairo' = '2026-06-23 23:59:59'),
   1, 'الخانات الخاصة: convoy_requests مُعبّأة من payload (الوجهة والتواريخ)');
 
 -- =====================================================================

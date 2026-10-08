@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
 set local timezone = 'Africa/Cairo';
-select plan(18);
+select plan(15);
 
 -- fixture
 do $fixture$
@@ -33,7 +33,7 @@ begin
   insert into public.roles(id, slug, name_ar, name_en, is_full_access) values (gen_random_uuid(), 'admin-0537', 'أدمن 0537', 'Admin 0537', true) on conflict (slug) do nothing;
   select id into v_role from public.roles where slug = 'admin-0537';
   insert into public.user_roles(user_id, role_id) values (v_user_a, v_role) on conflict do nothing;
-  v_penalty := public.generate_instant_penalty(v_emp, current_date, 25);
+  v_penalty := (public.generate_instant_penalty(v_emp, current_date, 25)->>'id')::uuid;
   perform set_config('app.t0537_admin', v_admin::text, false);
   perform set_config('app.t0537_emp', v_emp::text, false);
   perform set_config('app.t0537_user_a', v_user_a::text, false);
@@ -54,14 +54,14 @@ select set_config('request.jwt.claims', json_build_object('sub', current_setting
 select set_config('request.jwt.claim.sub', current_setting('app.t0537_user_e', true), true);
 
 select lives_ok(
-  format($ select public.submit_penalty_dispute(%L::uuid, 'كنت في مهمة رسمية') $, current_setting('app.t0537_penalty', true)::uuid),
+  format($$select public.submit_penalty_dispute(%L::uuid, 'كنت في مهمة رسمية')$$, current_setting('app.t0537_penalty', true)::uuid),
   'employee submits dispute'
 );
 
 -- 3. طعن مكرر مرفوض
 select throws_ok(
-  format($ select public.submit_penalty_dispute(%L::uuid, 'سبب آخر') $, current_setting('app.t0537_penalty', true)::uuid),
-  'duplicate dispute rejected'
+  format($$select public.submit_penalty_dispute(%L::uuid, 'سبب آخر')$$, current_setting('app.t0537_penalty', true)::uuid),
+  'يوجد طعن معلق بالفعل على هذه الغرامة'
 );
 
 -- 4. جلب الطعون
@@ -78,9 +78,9 @@ select set_config('request.jwt.claims', json_build_object('sub', current_setting
 select set_config('request.jwt.claim.sub', current_setting('app.t0537_user_a', true), true);
 
 select lives_ok(
-  format($ select public.review_penalty_dispute(
+  format($$select public.review_penalty_dispute(
     (select id from public.penalty_disputes limit 1),
-    'approved', 'مقبول') $),
+    'approved', 'مقبول')$$),
   'admin approves dispute'
 );
 
@@ -93,27 +93,33 @@ select is(
 
 -- 7. لا يمكن مراجعة طعن تم مراجعته
 select throws_ok(
-  format($ select public.review_penalty_dispute(
+  format($$select public.review_penalty_dispute(
     (select id from public.penalty_disputes limit 1),
-    'rejected', 'مرفوض') $),
-  'already reviewed dispute rejected'
+    'rejected', 'مرفوض')$$),
+  'تم مراجعة هذا الطعن بالفعل'
 );
 
 -- 8. إنشاء غرامة أخرى + رفض
+-- 0612: generate_instant_penalty تتطلب صلاحية إدارة الغرامات → التوليد كمسؤول
+reset role;
+set local role = authenticated;
+select set_config('request.jwt.claims', json_build_object('sub', current_setting('app.t0537_user_a'), 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claim.sub', current_setting('app.t0537_user_a', true), true);
+
+do $fix2$
+declare v_p2 uuid;
+begin
+  v_p2 := (public.generate_instant_penalty(current_setting('app.t0537_emp')::uuid, current_date - 1, 35)->>'id')::uuid;
+  perform set_config('app.t0537_penalty2', v_p2::text, false);
+end $fix2$;
+
 reset role;
 set local role = authenticated;
 select set_config('request.jwt.claims', json_build_object('sub', current_setting('app.t0537_user_e'), 'role', 'authenticated')::text, true);
 select set_config('request.jwt.claim.sub', current_setting('app.t0537_user_e', true), true);
 
-do $fix2$
-declare v_p2 uuid;
-begin
-  v_p2 := public.generate_instant_penalty(current_setting('app.t0537_emp')::uuid, current_date - 1, 35);
-  perform set_config('app.t0537_penalty2', v_p2::text, false);
-end $fix2$;
-
 select lives_ok(
-  format($ select public.submit_penalty_dispute(%L::uuid, 'سبب ثاني') $, current_setting('app.t0537_penalty2', true)::uuid),
+  format($$select public.submit_penalty_dispute(%L::uuid, 'سبب ثاني')$$, current_setting('app.t0537_penalty2', true)::uuid),
   'second dispute submitted'
 );
 
@@ -123,9 +129,9 @@ select set_config('request.jwt.claims', json_build_object('sub', current_setting
 select set_config('request.jwt.claim.sub', current_setting('app.t0537_user_a', true), true);
 
 select lives_ok(
-  format($ select public.review_penalty_dispute(
+  format($$select public.review_penalty_dispute(
     (select id from public.penalty_disputes where penalty_id = %L::uuid),
-    'rejected', 'مرفوض') $, current_setting('app.t0537_penalty2', true)::uuid),
+    'rejected', 'مرفوض')$$, current_setting('app.t0537_penalty2', true)::uuid),
   'admin rejects dispute'
 );
 

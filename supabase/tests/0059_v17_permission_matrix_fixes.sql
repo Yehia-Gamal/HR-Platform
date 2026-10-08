@@ -2,7 +2,7 @@
 -- يتحقق من:
 --   1) وجود دور hr-specialist
 --   2) disputes.admin_action.decide ممنوحة لـ executive (وليس executive-secretary)
---   3) performance.cycle.manage غير ممنوحة لـ executive
+--   3) performance.cycle.manage ممنوحة لـ executive (سياسة 0504 — كانت مسحوبة في 0138)
 --   4) hr-specialist لديه صلاحيات HR الأساسية
 
 begin;
@@ -102,11 +102,14 @@ select ok(
 );
 
 -- =====================================================================
--- 4. performance.cycle.manage غير ممنوحة لـ executive
+-- 4. performance.cycle.manage ممنوحة لـ executive
+--    (0138 سحبها من executive وحدّدها «للسكرتير فقط»، لكن 0504
+--     «توحيد صلاحيات المدير التنفيذي» أعاد منحها صراحةً لدور executive
+--     ضمن قائمة صلاحيات KPI — التوقع محدَّث للسلوك بعد 0504.)
 -- =====================================================================
 
 select ok(
-  not exists(
+  exists(
     select 1
     from public.role_permissions rp
     join public.roles r on r.id = rp.role_id
@@ -114,7 +117,7 @@ select ok(
     where r.slug = 'executive'
       and p.code = 'performance.cycle.manage'
   ),
-  'performance.cycle.manage غير ممنوحة لـ executive'
+  'performance.cycle.manage ممنوحة لـ executive (بعد 0504)'
 );
 
 -- =====================================================================

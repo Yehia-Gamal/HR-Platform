@@ -1,17 +1,19 @@
--- 0382: set_employee_attendance_day_admin — backdating limit 90 days (mig 0383)
+-- 0382: set_employee_attendance_day_admin — backdating limit (mig 0383 ثم 0501)
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions,pg_temp;
 
 select plan(4);
 
--- 1. الثابت 90 يوماً موجود في جسم الدالة
+-- 1. ثابت حد الأرشفة موجود في جسم الدالة
+-- 0501 رفعت الحد من 90 إلى 180 يوماً ضمن «تبسيط وتطوير تعديل أيام الحضور»،
+-- وأعادت 0578 تأكيد 180 يوماً — فالحارس ما زال مفروضاً لكن بسقف 180 يوماً.
 select alike(
   (select prosrc from pg_proc p
    join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname = 'set_employee_attendance_day_admin' limit 1),
-  '%90%',
-  'الدالة يجب أن تحتوي على الثابت 90 (حد الأرشفة)'
+  '%older than 180 days%',
+  'الدالة يجب أن تحتوي على ثابت حد الأرشفة 180 يوماً (0383 ثم 0501/0578)'
 );
 
 -- 2. ترفض تواريخ المستقبل
@@ -29,7 +31,7 @@ select alike(
    join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname = 'set_employee_attendance_day_admin' limit 1),
   '%BACKDATING_LIMIT%',
-  'الدالة يجب أن ترفض الأرشفة >90 يوم بـ BACKDATING_LIMIT'
+  'الدالة يجب أن ترفض الأرشفة >180 يوم بـ BACKDATING_LIMIT'
 );
 
 -- 4. الدالة SECURITY DEFINER

@@ -9,7 +9,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_temp;
-select plan(25);
+select plan(27);
 
 -- =====================================================================
 -- Fixture: كيان + قسمان + موظفون بأدوار متنوعة.
@@ -94,6 +94,44 @@ begin
              'd5720000-0000-4000-8000-000000001502',
              'd5720000-0000-4000-8000-000000001501'])
       from public.roles r where r.slug = 'iso-0572-sel';
+
+  -- مدير العيادات الحقيقي (0617): طلبات موقع طاقم العيادات تُحوَّل له.
+  insert into auth.users(id, email, aud, role) values
+    ('3e950d11-b5b4-4652-9ecf-919c434222fc','u572-cmgr@test.local','authenticated','authenticated')
+    on conflict (id) do nothing;
+  insert into public.employees(id,user_id,employee_code,full_name_ar,department_id,status,is_active,hire_date) values
+    ('4120ce3a-8999-453e-8d9d-acd8f3b5f04c','3e950d11-b5b4-4652-9ecf-919c434222fc','D572-CM','مدير العيادات الرئيسي 572',v_d9,'active',true,current_date - 1100)
+    on conflict (id) do nothing;
+  insert into public.profiles(id, employee_id, status) values
+    ('3e950d11-b5b4-4652-9ecf-919c434222fc','4120ce3a-8999-453e-8d9d-acd8f3b5f04c','active')
+    on conflict (id) do nothing;
+  insert into public.user_roles(user_id, role_id, effective_from)
+    select '3e950d11-b5b4-4652-9ecf-919c434222fc', r.id, now() - interval '1 year'
+      from public.roles r where r.slug = 'clinics-manager'
+    on conflict do nothing;
+
+  -- دليل الموقع يتطلب live_location.request (0017/0444): يُمنح هنا
+  -- لـ clinics-manager — نموذج الدور direct-manager منحها عند إنشاء الدور
+  -- فقط (0474 على conflict do nothing) وبقيت فجوة بعده؛ الاختبار يثبت
+  -- محتوى الدليل لا توزيع الصلاحيات.
+  insert into public.role_permissions(role_id, permission_id, scope)
+    select cr.id, p.id, tp.scope
+      from public.roles cr
+      join public.permissions p on p.code = 'live_location.request'
+      join public.roles tr on tr.slug = 'direct-manager'
+      join public.role_permissions tp on tp.role_id = tr.id and tp.permission_id = p.id
+     where cr.slug = 'clinics-manager'
+    on conflict do nothing;
+
+  -- كتالوج الهيكل (0025) وشجرة الموبايل يتطلبان organization.org_chart.read —
+  -- يُمنح لـ department-manager هنا (نموذج دوره لم يشمل صلاحيات الهيكل)؛
+  -- الاختباران يثبتان فلترة العيادات من المحتوى لا توزيع الصلاحيات.
+  insert into public.role_permissions(role_id, permission_id)
+    select r.id, p.id
+      from public.roles r, public.permissions p
+     where r.slug = 'department-manager'
+       and p.code = 'organization.org_chart.read'
+    on conflict do nothing;
 end $fixture$;
 
 create or replace function pg_temp.act_as_0572(p_user uuid) returns void
@@ -136,7 +174,10 @@ values ('d5720000-0000-4000-8000-000000000501','d5720000-0000-4000-8000-00000000
         'إعلان عام', 'اختبار السماح', 'announcement', 'normal', 'announcement');
 select is(
   (select count(*)::int from public.notifications
-    where recipient_employee_id = 'd5720000-0000-4000-8000-000000001501'),
+    where recipient_employee_id = 'd5720000-0000-4000-8000-000000001501'
+      -- محفّز تعيين الأدوار (0164/0171) أضاف «تم منحك دوراً» مع الإدراج؛
+      -- نحصر العدّ على الإعلان نفسه وهو المقصود بالسماح.
+      and entity_type = 'announcement'),
   1, 'إشعار الموظف العادي يمر كالمعتاد');
 
 do $mkreq$
@@ -201,10 +242,23 @@ select is(
 -- 5) حظر طلبات الموقع والحضور.
 -- =====================================================================
 select pg_temp.act_as_0572('d5720000-0000-4000-8000-000000000506');
-select throws_ok(
+-- 0617: الطلب لم يعد مرفوضاً — يُحوَّل لمدير العيادات ولا يطال الموظفة.
+select lives_ok(
   $$select public.request_live_location('d5720000-0000-4000-8000-000000001502', 'snapshot', 'اختبار')$$,
-  '22023', null,
-  'طلب موقع على موظف العيادات مرفوض حتى من التنفيذي');
+  'طلب موقع موظفة العيادات يمر بعد التحويل لمدير العيادات');
+-- ملاحظة: requested_by يخزّن معرّف الموظف (1506) لا معرّف المستخدم (0506).
+select is(
+  (select r.employee_id from public.live_location_requests r
+    where r.requested_by = 'd5720000-0000-4000-8000-000000001506'
+    order by r.requested_at desc limit 1),
+  '4120ce3a-8999-453e-8d9d-acd8f3b5f04c'::uuid,
+  'الطلب يُوجَّه لمدير العيادات لا لموظفة العيادات نفسها');
+select is(
+  (select r.metadata->>'originalTargetEmployeeId' from public.live_location_requests r
+    where r.requested_by = 'd5720000-0000-4000-8000-000000001506'
+    order by r.requested_at desc limit 1),
+  'd5720000-0000-4000-8000-000000001502',
+  'الهدف الأصلي محفوظ في البيانات الوصفية');
 
 select pg_temp.act_as_0572('d5720000-0000-4000-8000-000000000502');
 select throws_ok(
@@ -229,7 +283,7 @@ select ok(
 -- =====================================================================
 insert into public.broadcast_alerts(id, message, created_by, expires_at, is_active)
 values ('d5720000-0000-4000-8000-000000000701', 'تنبيه بث تجريبي 0572',
-        'd5720000-0000-4000-8000-000000000501', now() + interval '1 hour', true);
+        'd5720000-0000-4000-8000-000000001501', now() + interval '1 hour', true);
 
 select pg_temp.act_as_0572('d5720000-0000-4000-8000-000000000502');
 select is(

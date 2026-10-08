@@ -30,9 +30,9 @@ begin
   insert into public.roles(id, slug, name_ar, name_en, is_full_access) values (gen_random_uuid(), 'admin-0538', 'أدمن 0538', 'Admin 0538', true) on conflict (slug) do nothing;
   select id into v_role from public.roles where slug = 'admin-0538';
   insert into public.user_roles(user_id, role_id) values (v_user_a, v_role) on conflict do nothing;
-  v_p1 := public.generate_instant_penalty(v_emp, current_date, 25);
-  v_p2 := public.generate_instant_penalty(v_emp, current_date - 1, 45);
-  v_p3 := public.generate_instant_penalty(v_emp, current_date - 2, 35);
+  v_p1 := (public.generate_instant_penalty(v_emp, current_date, 25)->>'id')::uuid;
+  v_p2 := (public.generate_instant_penalty(v_emp, current_date - 1, 45)->>'id')::uuid;
+  v_p3 := (public.generate_instant_penalty(v_emp, current_date - 2, 35)->>'id')::uuid;
   perform set_config('app.t0538_user_a', v_user_a::text, false);
   perform set_config('app.t0538_p1', v_p1::text, false);
   perform set_config('app.t0538_p2', v_p2::text, false);

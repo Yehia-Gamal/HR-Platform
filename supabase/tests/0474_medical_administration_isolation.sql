@@ -134,10 +134,13 @@ select ok(
 
 -- =====================================================================
 -- 3) قائمة ولوحة الحضور مخفيان عن الخارجيين.
+--    (لوحة 0589 تعتمد حقائق اليوم: present = first_check_in غير فارغ.)
 -- =====================================================================
-insert into public.attendance_daily(employee_id, work_date, status, is_finalized) values
-  ('d4720000-0000-4000-8000-000000000201', (now() at time zone 'Africa/Cairo')::date, 'present', true),
-  ('d4720000-0000-4000-8000-000000000204', (now() at time zone 'Africa/Cairo')::date, 'present', true);
+insert into public.attendance_daily(employee_id, work_date, status, is_finalized, first_check_in) values
+  ('d4720000-0000-4000-8000-000000000201', (now() at time zone 'Africa/Cairo')::date, 'present', true,
+   ((now() at time zone 'Africa/Cairo')::date + interval '9 hours') at time zone 'Africa/Cairo'),
+  ('d4720000-0000-4000-8000-000000000204', (now() at time zone 'Africa/Cairo')::date, 'present', true,
+   ((now() at time zone 'Africa/Cairo')::date + interval '9 hours') at time zone 'Africa/Cairo');
 
 select pg_temp.act_as_0474('d4720000-0000-4000-8000-000000000101');
 select is(

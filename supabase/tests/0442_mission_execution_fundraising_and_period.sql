@@ -64,10 +64,17 @@ begin
   perform set_config('request.jwt.claim.sub','a4420000-0000-4000-8000-000000000005', true);
 end $set_emp$;
 
+-- ملاحظة: التواريخ ثابتة (سبتمبر 2026) كانت مستقبلية عند كتابة الاختبار ثم
+-- صارت ماضية، فبدأ submit_my_request يرفضها بـ «لا يمكن تقديم تكليف عن أشهر
+-- سابقة». نستخدم تواريخ نسبية مستقبلية ليبقى الاختبار صالحاً دائماً.
 select lives_ok($$
   insert into pg_temp.f_req_ids(request_id, rtype)
   select (public.submit_my_request('fundraising','فاندي خيري','جمع تبرعات لصالح الأسر المتعففة',
-    '{"startDate":"2026-09-10","endDate":"2026-09-11","location":"مقر الجمعية","startTime":"09:00"}'::jsonb)).id, 'fundraising'
+    jsonb_build_object(
+      'startDate', to_char(current_date + 10, 'YYYY-MM-DD'),
+      'endDate',   to_char(current_date + 11, 'YYYY-MM-DD'),
+      'location',  'مقر الجمعية',
+      'startTime', '09:00'))).id, 'fundraising'
 $$, 'تقديم طلب فاندي ينجح');
 
 do $approve$
@@ -144,7 +151,10 @@ do $fr$
 begin
   insert into pg_temp.f_req_ids(request_id, rtype)
   select (public.submit_my_request('convoy','قافلة إغاثية','توزيع مواد غذائية على القرى',
-    '{"startDate":"2026-09-20","endDate":"2026-09-21","location":"القرى"}'::jsonb)).id, 'convoy_cancel';
+    jsonb_build_object(
+      'startDate', to_char(current_date + 20, 'YYYY-MM-DD'),
+      'endDate',   to_char(current_date + 21, 'YYYY-MM-DD'),
+      'location',  'القرى'))).id, 'convoy_cancel';
 end $fr$;
 
 do $approve2$
@@ -193,7 +203,10 @@ do $fr2$
 begin
   insert into pg_temp.f_req_ids(request_id, rtype)
   select (public.submit_my_request('mission','مأمورية قابلة للإلغاء','سبب مقبول',
-    '{"startDate":"2026-09-25","endDate":"2026-09-25","location":"جهة"}'::jsonb)).id, 'mission_cancel';
+    jsonb_build_object(
+      'startDate', to_char(current_date + 30, 'YYYY-MM-DD'),
+      'endDate',   to_char(current_date + 30, 'YYYY-MM-DD'),
+      'location',  'جهة'))).id, 'mission_cancel';
 end $fr2$;
 
 do $approve3$

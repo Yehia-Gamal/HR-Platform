@@ -44,7 +44,30 @@ begin
     ('c4310000-0000-4000-8000-000000000010', v_day, v_shift, '2026-08-03 09:00:00+02', null, 0, 0, 'present', false),
     -- حضر ببصمتين لكن ساعات العمل أقل من المطلوب → partial.
     ('c4310000-0000-4000-8000-000000000011', v_day, v_shift, '2026-08-03 09:00:00+02', '2026-08-03 13:00:00+02', 240, 0, 'partial', true);
+  -- مشرف تجريبي كامل الصلاحيات: اللوحة تُصفّي الموظفين بـ can_access_employee
+  -- فلا تُرجع أي رقم بلا هوية مستخدم (0589).
+  insert into auth.users(id, email, aud, role) values
+    ('c4310000-0000-4000-8000-000000000020', 'adm-0431@test.local', 'authenticated', 'authenticated');
+
+  insert into public.employees(id, user_id, employee_code, full_name_ar, department_id,
+    status, is_active, hire_date)
+    values ('c4310000-0000-4000-8000-000000000021', 'c4310000-0000-4000-8000-000000000020',
+            'E-431-ADM', 'مشرف لوحة 0431', v_dept, 'active', true, '2020-01-01');
+
+  insert into public.profiles(id, employee_id, status) values
+    ('c4310000-0000-4000-8000-000000000020', 'c4310000-0000-4000-8000-000000000021', 'active');
+
+  insert into public.user_roles(user_id, role_id)
+    select 'c4310000-0000-4000-8000-000000000020', id from public.roles where slug = 'admin';
 end $fixture$;
+
+-- 0589: لوحة الحضور SECURITY DEFINER تُصفّي الموظفين بـ can_access_employee،
+-- فلا تُرجع أرقاماً بلا هوية مستخدم. نُشغّل الجلسة بهوية مشرف تجريبي
+-- كامل الصلاحيات (كما في الإنتاج) قبل فحوص اللوحة.
+select set_config('request.jwt.claims',
+  '{"sub":"c4310000-0000-4000-8000-000000000020","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub',
+  'c4310000-0000-4000-8000-000000000020', true);
 
 -- =====================================================================
 -- (1) قبل التصفية الليلية: الرسترة واللوحة.

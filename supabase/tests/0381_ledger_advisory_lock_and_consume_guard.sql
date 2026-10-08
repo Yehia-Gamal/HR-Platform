@@ -35,7 +35,7 @@ select alike(
   (select prosrc from pg_proc p
    join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname = 'apply_leave_ledger_entry' limit 1),
-  '%INSUFFICIENT_LEAVE_BALANCE%',
+  '%رصيد الإجازة غير كافٍ%',
   'يجب أن ترفع INSUFFICIENT_LEAVE_BALANCE عند نقص الرصيد'
 );
 

@@ -12,12 +12,14 @@ select alike(
   'apply_leave_ledger_entry should use advisory lock'
 );
 
--- Migration 0380: consume branch checks reserved_units
+-- Migration 0380 (عدّلها 0503): فرع consume يقيّد الحجز ويستهلك دون رمي خطأ —
+-- 0503 أزالت CONSUME_EXCEEDS_RESERVE عمداً لأنه كان يوقف اعتماد الإجازات عند فارق
+-- حجز الرصيد، واستبدلته بتقييد clamp على reserved_units ورفع consumed_units.
 select alike(
   (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname='public' and p.proname='apply_leave_ledger_entry' limit 1),
-  '%CONSUME_EXCEEDS_RESERVE%',
-  'consume branch should guard against exceeding reserved units'
+  '%consumed_units = consumed_units + abs(p_units)%',
+  'consume branch clamps reserved_units and consumes without raising'
 );
 
 -- Migration 0381: cron_health_log table exists

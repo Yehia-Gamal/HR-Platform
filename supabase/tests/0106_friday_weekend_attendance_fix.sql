@@ -32,10 +32,21 @@ select results_eq(
 );
 
 -- 4. get_executive_attendance_overview تحتوي على فحص الجمعة
+--    0597: نقل التصنيف اليومي إلى attendance_day_board/attendance_day_facts،
+--    فالدالة تسحب من اللوحة واللوحة هي من تُخرج weekend لليوم غير العمل.
+--    0631: نقل جسم الدالتين إلى attendance_day_board_scoped/attendance_day_facts_scoped
+--    (اللسان أعلاهما صار غلافاً)، فالفحص يشمل الاسمين معاً.
 select isnt_empty(
   $$ select 1 from pg_proc
      where proname = 'get_executive_attendance_overview'
-       and prosrc like '%isodow%v_date%5%weekend%' $$,
+       and prosrc like '%attendance_day_board%'
+       and prosrc like '%weekend%'
+       and exists (select 1 from pg_proc f
+                    where f.proname in ('attendance_day_facts', 'attendance_day_facts_scoped')
+                      and f.prosrc like '%extract(isodow from d.work_date) <> 5%')
+       and exists (select 1 from pg_proc b
+                    where b.proname in ('attendance_day_board', 'attendance_day_board_scoped')
+                      and b.prosrc like '%when not t.is_workday then ''weekend''%') $$,
   '4. get_executive_attendance_overview: تحتوي على فحص isodow=5 → weekend'
 );
 
@@ -48,10 +59,19 @@ select isnt_empty(
 );
 
 -- 6. get_executive_attendance_today (موبايل) تحتوي على فحص الجمعة
+--    0597: تصنيف weekend يمرّ عبر attendance_day_board بدل isodow داخل الدالة.
+--    0631: جسم الدالتين في attendance_day_board_scoped/attendance_day_facts_scoped.
 select isnt_empty(
   $$ select 1 from pg_proc
      where proname = 'get_executive_attendance_today'
-       and prosrc like '%isodow%v_today%5%weekend%' $$,
+       and prosrc like '%attendance_day_board%'
+       and prosrc like '%weekend%'
+       and exists (select 1 from pg_proc b
+                    where b.proname in ('attendance_day_board', 'attendance_day_board_scoped')
+                      and b.prosrc like '%when not t.is_workday then ''weekend''%')
+       and exists (select 1 from pg_proc f
+                    where f.proname in ('attendance_day_facts', 'attendance_day_facts_scoped')
+                      and f.prosrc like '%extract(isodow from d.work_date) <> 5%') $$,
   '6. get_executive_attendance_today (موبايل): تحتوي على فحص isodow=5 → weekend'
 );
 
