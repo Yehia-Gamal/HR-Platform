@@ -1,7 +1,6 @@
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/theme/brand_gradients.dart';
 import 'package:ahla_shabab_management_os/core/widgets/host_app_bar_scope.dart';
-import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
@@ -78,7 +77,7 @@ class _ApprovalDelegationsPageState
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    gradient: BrandGradients.primary,
+                    gradient: const LinearGradient(colors: BrandGradients.hero),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Column(
@@ -491,7 +490,6 @@ class _NewDelegationSheetState extends ConsumerState<_NewDelegationSheet> {
               style: const TextStyle(color: Colors.red, fontSize: 12),
             ),
             data: (team) {
-              final activeMembers = team.where((m) => m.isActive).toList();
               return DropdownButtonFormField<String>(
                 decoration: InputDecoration(
                   labelText: 'اختر الموظف البديل',
@@ -501,12 +499,15 @@ class _NewDelegationSheetState extends ConsumerState<_NewDelegationSheet> {
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
-                initialValue: _selectedDelegateId,
-                items: activeMembers.map((m) {
+                value: _selectedDelegateId,
+                items: team.map((m) {
+                  final title = m.jobTitle?.isNotEmpty == true
+                      ? m.jobTitle!
+                      : (m.employeeCode ?? '');
                   return DropdownMenuItem<String>(
                     value: m.id,
                     child: Text(
-                      '${m.name} (${m.jobTitle.isNotEmpty ? m.jobTitle : m.employeeCode})',
+                      title.isNotEmpty ? '${m.name} ($title)' : m.name,
                       overflow: TextOverflow.ellipsis,
                     ),
                   );
