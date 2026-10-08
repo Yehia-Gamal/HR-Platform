@@ -710,3 +710,16 @@ final honorBoardProvider =
           .toList(growable: false);
       return list.map(HonoreeItem.fromJson).toList(growable: false);
     });
+
+// ─── تفويض الاعتمادات للمديرين ─────────────────────────────────────────────
+final myApprovalDelegationsProvider =
+    FutureProvider<List<ApprovalDelegation>>((ref) async {
+  final data = await rpcWithTimeout(
+    ref.watch(supabaseProvider).rpc<dynamic>('get_my_approval_delegations'),
+  );
+  final list = (data as List<dynamic>? ?? const [])
+      .whereType<Map<dynamic, dynamic>>()
+      .map((m) => Map<String, dynamic>.from(m))
+      .toList(growable: false);
+  return list.map(ApprovalDelegation.fromJson).toList(growable: false);
+});

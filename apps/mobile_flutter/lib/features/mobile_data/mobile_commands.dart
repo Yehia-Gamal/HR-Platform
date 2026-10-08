@@ -1421,4 +1421,36 @@ extension MobileSelfServiceCommands on MobileCommands {
       ),
     );
   }
+
+  /// تعيين تفويض الاعتماد لموظف بديل
+  Future<void> setApprovalDelegation({
+    required String delegateEmployeeId,
+    required String startsAt,
+    required String endsAt,
+    String? reason,
+  }) async {
+    await _withTimeout(
+      ref.read(supabaseProvider).rpc<dynamic>(
+        'set_my_approval_delegation',
+        params: {
+          'p_delegate_employee_id': delegateEmployeeId,
+          'p_starts_at': startsAt,
+          'p_ends_at': endsAt,
+          'p_reason': reason,
+        },
+      ),
+    );
+  }
+
+  /// إلغاء تفويض الاعتماد
+  Future<void> cancelApprovalDelegation(String delegationId) async {
+    await _withTimeout(
+      ref.read(supabaseProvider).rpc<dynamic>(
+        'cancel_my_approval_delegation',
+        params: {
+          'p_delegation_id': delegationId,
+        },
+      ),
+    );
+  }
 }

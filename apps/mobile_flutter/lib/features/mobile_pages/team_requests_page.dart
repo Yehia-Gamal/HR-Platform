@@ -5,6 +5,7 @@ import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/approval_delegations_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/attendance_correction_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
@@ -368,6 +369,16 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
             : AppBar(
                 title: const Text('اعتماد طلبات الفريق'),
                 actions: [
+                  IconButton(
+                    tooltip: 'تفويض الاعتماد',
+                    icon: const Icon(Icons.swap_horiz_rounded),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ApprovalDelegationsPage(),
+                      ),
+                    ),
+                  ),
                   if (_statusFilter == 'pending' &&
                       requests.where(_selectable).length > 1)
                     TextButton.icon(

@@ -4164,3 +4164,62 @@ class HonoreeItem {
   final String metric;
   final String? photoUrl;
 }
+
+/// نموذج بيانات تفويض الاعتماد الإداري
+class ApprovalDelegation {
+  const ApprovalDelegation({
+    required this.id,
+    required this.managerEmployeeId,
+    required this.managerName,
+    required this.managerCode,
+    required this.delegateEmployeeId,
+    required this.delegateName,
+    required this.delegateCode,
+    required this.startsAt,
+    required this.endsAt,
+    this.reason,
+    this.cancelledAt,
+    required this.createdAt,
+    required this.isMine,
+    required this.isActive,
+    required this.status,
+  });
+
+  factory ApprovalDelegation.fromJson(Map<String, dynamic> json) =>
+      ApprovalDelegation(
+        id: json['id'] as String? ?? '',
+        managerEmployeeId: json['manager_employee_id'] as String? ?? '',
+        managerName: json['manager_name'] as String? ?? '',
+        managerCode: json['manager_code'] as String? ?? '',
+        delegateEmployeeId: json['delegate_employee_id'] as String? ?? '',
+        delegateName: json['delegate_name'] as String? ?? '',
+        delegateCode: json['delegate_code'] as String? ?? '',
+        startsAt: json['starts_at'] as String? ?? '',
+        endsAt: json['ends_at'] as String? ?? '',
+        reason: json['reason'] as String?,
+        cancelledAt: json['cancelled_at'] != null
+            ? DateTime.tryParse(json['cancelled_at'].toString())
+            : null,
+        createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+            DateTime.now(),
+        isMine: json['is_mine'] as bool? ?? false,
+        isActive: json['is_active'] as bool? ?? false,
+        status: json['status'] as String? ?? 'active',
+      );
+
+  final String id;
+  final String managerEmployeeId;
+  final String managerName;
+  final String managerCode;
+  final String delegateEmployeeId;
+  final String delegateName;
+  final String delegateCode;
+  final String startsAt;
+  final String endsAt;
+  final String? reason;
+  final DateTime? cancelledAt;
+  final DateTime createdAt;
+  final bool isMine;
+  final bool isActive;
+  final String status;
+}
